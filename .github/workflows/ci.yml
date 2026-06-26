@@ -73,6 +73,18 @@ jobs:
           $dotnetRoot | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "DOTNET_ROOT=$dotnetRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           & (Join-Path $dotnetRoot 'dotnet.exe') --version
-      - name: Verify .NET solution and repository policy
+      - name: .NET version
         shell: pwsh
-        run: python ./scripts/verify.py --skip-python
+        run: dotnet --version
+      - name: Restore solution
+        shell: pwsh
+        run: dotnet restore NvtFwCombiner.slnx
+      - name: Verify dotnet formatting
+        shell: pwsh
+        run: dotnet format NvtFwCombiner.slnx --verify-no-changes --no-restore
+      - name: Build solution
+        shell: pwsh
+        run: dotnet build NvtFwCombiner.slnx -c Release --no-restore
+      - name: Test solution
+        shell: pwsh
+        run: dotnet test NvtFwCombiner.slnx -c Release --no-build
