@@ -38,19 +38,19 @@ public sealed class ExternalCombinerToolRegistryTests
     private static ExternalCombinerToolManifest Manifest(string bindingId, string version)
     {
         return new ExternalCombinerToolManifest(
-            SchemaVersion: "1.0",
-            ToolBindingId: bindingId,
-            ToolId: "legacy-combiner",
-            ToolVersion: version,
-            DisplayName: $"Legacy Combiner {version}",
-            Platform: "win-x64",
-            ExecutableName: "combiner.exe",
-            Sha256: new string('a', 64),
-            AdapterId: "legacy-combiner-inplace-v1",
-            InputMode: "in-place",
-            ArgumentTemplate: ["{staging.workBin}"],
-            WorkingDirectoryPolicy: "staging-directory",
-            TimeoutSeconds: 5,
-            AllowedExtraOutputFiles: []);
+            schemaVersion: "1.0",
+            toolBindingId: bindingId,
+            toolId: "legacy-combiner",
+            toolVersion: version,
+            displayName: $"Legacy Combiner {version}",
+            platform: "win-x64",
+            executableName: "combiner.exe",
+            sha256: new string('a', 64),
+            adapterId: "legacy-combiner-inplace-v1",
+            inputMode: "in-place",
+            argumentTemplate: ["{staging.workBin}"],
+            workingDirectoryPolicy: "staging-directory",
+            timeoutSeconds: 5,
+            allowedExtraOutputFiles: []);
     }
 }
