@@ -1,0 +1,10 @@
+model_reasoning_effort = "high"
+model_verbosity = "medium"
+sandbox_mode = "workspace-write"
+web_search = "disabled"
+developer_instructions = "Implement only the approved issue scope. Read root and nested AGENTS.md first. Preserve dependency direction, half-open ranges, deterministic outputs, stable error codes, and declared write ranges. Add tests with behavior. Run narrow checks and the repository verify command. Before claiming completion, apply the repository polytail skill and report its verdict. Do not commit firmware payloads, generated releases, credentials, or unapproved dependencies."
+
+[sandbox_workspace_write]
+network_access = false
+exclude_slash_tmp = true
+exclude_tmpdir_env_var = true

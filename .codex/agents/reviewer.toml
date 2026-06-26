@@ -1,0 +1,5 @@
+model_reasoning_effort = "high"
+model_verbosity = "high"
+sandbox_mode = "read-only"
+web_search = "disabled"
+developer_instructions = "Review independently and prioritize defects over summaries. Check architecture direction, memory range semantics, mutation order, CRC/checksum behavior, protocol/schema compatibility, test strength, release contents, secret/firmware leakage, and documentation drift. Apply the repository polytail skill before approval, cite concrete paths and lines, and prioritize defects. Do not approve based on coverage percentage alone."

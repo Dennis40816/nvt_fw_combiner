@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.example.invalid/nvt_fw_combiner/crc-worker-v1.schema.json",
+  "title": "NFC CRC Worker Protocol 1.0",
+  "description": "Request and response envelopes for the constrained CRC worker.",
+  "$defs": {
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocolVersion",
+        "requestId",
+        "operation",
+        "algorithmId",
+        "payloadBase64"
+      ],
+      "properties": {
+        "protocolVersion": { "const": "1.0" },
+        "requestId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "operation": { "const": "calculate" },
+        "algorithmId": { "const": "crc-32-mpeg-2" },
+        "payloadBase64": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "maxLength": 5592408
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithmId",
+        "valueUnsigned",
+        "valueHex",
+        "bytesLittleEndianHex"
+      ],
+      "properties": {
+        "algorithmId": { "const": "crc-32-mpeg-2" },
+        "valueUnsigned": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "valueHex": {
+          "type": "string",
+          "pattern": "^0x[0-9A-F]{8}$"
+        },
+        "bytesLittleEndianHex": {
+          "type": "string",
+          "pattern": "^[0-9A-F]{8}$"
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "CRC_PROTOCOL_INVALID_JSON",
+            "CRC_PROTOCOL_INVALID_REQUEST",
+            "CRC_PROTOCOL_INVALID_BASE64",
+            "CRC_PROTOCOL_PAYLOAD_TOO_LARGE",
+            "CRC_PROTOCOL_UNSUPPORTED_VERSION",
+            "CRC_PROTOCOL_UNSUPPORTED_OPERATION",
+            "CRC_PROTOCOL_UNSUPPORTED_ALGORITHM",
+            "CRC_INTERNAL_CALCULATION_FAILED",
+            "CRC_WORKER_SELF_TEST_FAILED"
+          ]
+        },
+        "message": { "type": "string", "minLength": 1, "maxLength": 512 }
+      }
+    },
+    "successResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocolVersion",
+        "requestId",
+        "ok",
+        "workerVersion",
+        "result"
+      ],
+      "properties": {
+        "protocolVersion": { "const": "1.0" },
+        "requestId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "ok": { "const": true },
+        "workerVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$" },
+        "result": { "$ref": "#/$defs/result" }
+      }
+    },
+    "errorResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocolVersion",
+        "requestId",
+        "ok",
+        "workerVersion",
+        "error"
+      ],
+      "properties": {
+        "protocolVersion": { "const": "1.0" },
+        "requestId": { "type": "string", "maxLength": 128 },
+        "ok": { "const": false },
+        "workerVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$" },
+        "error": { "$ref": "#/$defs/error" }
+      }
+    }
+  },
+  "oneOf": [
+    { "$ref": "#/$defs/request" },
+    { "$ref": "#/$defs/successResponse" },
+    { "$ref": "#/$defs/errorResponse" }
+  ]
+}

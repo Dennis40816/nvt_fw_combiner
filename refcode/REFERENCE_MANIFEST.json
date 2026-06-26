@@ -1,0 +1,60 @@
+{
+  "manifestVersion": "2.0",
+  "generatedDate": "2026-06-25",
+  "policy": {
+    "productionDependencyAllowed": false,
+    "releasePackagingAllowed": false,
+    "firmwareBinaryStorageAllowed": false,
+    "portRequiresRegressionTest": true,
+    "allowedTopLevelCodeSnapshots": [
+      "gen_flash_bin_v2",
+      "ab_code_combiner"
+    ],
+    "typescriptSnapshotAllowed": false
+  },
+  "codeSources": [
+    {
+      "id": "standard-merge-python",
+      "kind": "git-path-snapshot",
+      "repository": "Dennis40816/NFCG",
+      "repositoryPath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2",
+      "ref": "main",
+      "snapshotPath": "refcode/gen_flash_bin_v2",
+      "purpose": "Authoritative Python reference for standard DP/TP/LD merge, version extraction, padding, output naming, and IC configuration.",
+      "sourceManifest": "refcode/gen_flash_bin_v2/SOURCE_MANIFEST.json"
+    },
+    {
+      "id": "current-ab-code-combiner-python",
+      "kind": "user-upload",
+      "origin": "ab_code_combiner.rar",
+      "snapshotPath": "refcode/ab_code_combiner",
+      "purpose": "Authoritative current Python reference for AB merge, relocation, version naming, and NT51950/NT51951 CRC behavior.",
+      "sourceManifest": "refcode/ab_code_combiner/SOURCE_MANIFEST.json"
+    }
+  ],
+  "conceptReferences": [
+    {
+      "id": "nfcg-typescript-prototype",
+      "repository": "Dennis40816/NFCG",
+      "visibilityAtReview": "private",
+      "codeCopiedIntoRefcode": false,
+      "runtimeDependency": false,
+      "purpose": "Concept-only reference for profile-driven architecture, validation, preview/build flow, catalog diagnostics, UI workflow, and regression design.",
+      "paths": [
+        "src/application",
+        "src/profiles/reference",
+        "IC_ADDRESS_REFERENCE.md",
+        "CODING_RULES.md",
+        "GLOSSARY.md"
+      ]
+    },
+    {
+      "id": "legacy-51932-ab-script",
+      "repository": "Dennis40816/NFCG",
+      "repositoryPath": "testdata/reference/FlashCodeGenerator/51932_ab_combiner/51932_ab_combiner.py",
+      "blobSha": "0d8d484c6097abe1bbde890ff7140ddef41484ac",
+      "codeCopiedIntoRefcode": false,
+      "purpose": "Historical AB order/offset comparison only; current uploaded AB combiner is the source snapshot."
+    }
+  ]
+}

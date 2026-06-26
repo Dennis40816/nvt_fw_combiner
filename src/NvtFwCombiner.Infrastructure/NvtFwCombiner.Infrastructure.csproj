@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\NvtFwCombiner.Domain\NvtFwCombiner.Domain.csproj" />
+    <ProjectReference Include="..\NvtFwCombiner.Contracts\NvtFwCombiner.Contracts.csproj" />
+    <ProjectReference Include="..\NvtFwCombiner.Application\NvtFwCombiner.Application.csproj" />
+  </ItemGroup>
+</Project>

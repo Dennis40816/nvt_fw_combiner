@@ -1,0 +1,36 @@
+# Minimal Windows Release Package
+
+## Closed allowlist
+
+The end-user ZIP contains one top-level directory with exactly seven files:
+
+```text
+NvtFwCombiner-vX.Y.Z-win-x64/
+├─ NvtFwCombiner.exe
+├─ Nfc.CrcWorker.exe
+├─ RELEASE-MANIFEST.json
+├─ THIRD-PARTY-NOTICES.txt
+├─ LICENSE.txt
+├─ README.txt
+└─ SHA256SUMS.txt
+```
+
+No source/profile tree, Python runtime installation, .NET runtime installation, tests, firmware BINs, PDBs, Codex configuration, or signing material is shipped. Built-in data needed at runtime must ultimately be embedded into the app or an explicitly reviewed processor bundle.
+
+## Implemented command
+
+```powershell
+./scripts/package.ps1 -Version 1.0.0 -Commit <40-character-git-sha>
+```
+
+The script accepts stable SemVer only, requires `VERSION` agreement, publishes a self-contained single-file `win-x64` Avalonia app with trimming disabled, builds the worker with PyInstaller one-file mode, assembles a new empty directory, rejects paths outside the allowlist, writes the manifest and hashes, and creates the ZIP under `artifacts/release/`.
+
+## Release gates still requiring organizational setup
+
+- approved code-signing provider and certificate identity;
+- SBOM/provenance generation and retention policy;
+- private golden regression runner and firmware-owner approval;
+- clean Windows smoke without development runtimes;
+- final third-party license/legal review.
+
+The manually dispatched release workflow only accepts an existing approved stable `vX.Y.Z` tag. Development tags never publish assets.

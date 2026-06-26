@@ -1,0 +1,41 @@
+{
+  "source": "user-upload:ab_code_combiner.rar",
+  "snapshotDate": "2026-06-25",
+  "included": [
+    {
+      "path": "README.txt",
+      "sha256": "899e5555502145f43b28907860b81d89c778027306a8766244999f046bcb7c31"
+    },
+    {
+      "path": "clean.bat",
+      "sha256": "5e068f9ac0976749d98102731fa5dae07db14680f1b8b6bb3c8a2a20fe8e696a"
+    },
+    {
+      "path": "combine.py",
+      "sha256": "6c42a48a4d25ee763eaec5dbc9b0cfda9263818fce8a93e5c56f1dd282a35cfa"
+    },
+    {
+      "path": "ic_config.py",
+      "sha256": "d6c39d5c13c14f1330934b0997b04c6a31295462aad3a23ec3dd80701f0bdac5"
+    },
+    {
+      "path": "main.py",
+      "sha256": "b7b0a00414e9589ed2d01921ed3276d0dd69fcb5282a6c5acc6873cfad7440eb"
+    },
+    {
+      "path": "version.py",
+      "sha256": "26172f2c35727a10377e728c7d5b474398a4b635c51f1fcccdb8cb143eb09966"
+    }
+  ],
+  "excluded": [
+    "**/*.bin",
+    "**/__pycache__/**",
+    "generated output",
+    "temporary files"
+  ],
+  "notes": [
+    "Reference-only current AB merge implementation; not a production dependency.",
+    "CRC implementation in combine.py is CRC-32/MPEG-2, not reflected CRC-32/ZIP.",
+    "The current combine function mutates the TPB bytearray during relocation; the new implementation must avoid mutating caller-owned input."
+  ]
+}

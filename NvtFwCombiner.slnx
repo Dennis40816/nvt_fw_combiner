@@ -1,0 +1,23 @@
+<Solution>
+  <Folder Name="/Repository/">
+    <File Path="AGENTS.md" />
+    <File Path="SPEC.md" />
+    <File Path="README.md" />
+    <File Path="CHANGELOG.md" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path="NuGet.config" />
+  </Folder>
+  <Project Path="src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj" />
+  <Project Path="src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj" />
+  <Project Path="src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj" />
+  <Project Path="src/NvtFwCombiner.Profiles/NvtFwCombiner.Profiles.csproj" />
+  <Project Path="src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj" />
+  <Project Path="src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj" />
+  <Project Path="src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj" />
+  <Project Path="src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj" />
+  <Project Path="tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj" />
+  <Project Path="tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj" />
+</Solution>

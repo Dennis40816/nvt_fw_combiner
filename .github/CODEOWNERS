@@ -1,0 +1,16 @@
+# Add company subject-matter reviewers when their GitHub identities are approved.
+* @Dennis40816
+
+# High-risk firmware semantics and contracts.
+/profiles/ @Dennis40816
+/docs/contracts/ @Dennis40816
+/docs/adr/ @Dennis40816
+/tools/crc-worker/ @Dennis40816
+/tests/NvtFwCombiner.GoldenRegression.Tests/ @Dennis40816
+
+# Repository governance and release controls.
+/.github/ @Dennis40816
+/.codex/ @Dennis40816
+/.agents/ @Dennis40816
+/AGENTS.md @Dennis40816
+/scripts/ @Dennis40816

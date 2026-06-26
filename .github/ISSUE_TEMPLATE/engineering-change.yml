@@ -1,0 +1,46 @@
+name: Engineering change
+about: Bounded implementation, refactor, test, documentation, or tooling task
+title: ""
+labels: ["triage"]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: In scope
+    validations:
+      required: true
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of scope
+    validations:
+      required: true
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Risk class
+      options:
+        - R0 - docs/tooling only
+        - R1 - ordinary implementation
+        - R2 - contract/profile/architecture
+        - R3 - firmware semantics/security/release
+    validations:
+      required: true
+  - type: textarea
+    id: invariants
+    attributes:
+      label: Invariants that must not change
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria and required commands
+    validations:
+      required: true

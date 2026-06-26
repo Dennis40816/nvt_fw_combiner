@@ -1,0 +1,751 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/nfc/schemas/composition-report-v1.schema.json",
+  "title": "NVT FW Combiner Composition Report 1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "reportSchemaVersion",
+    "runId",
+    "startedAtUtc",
+    "completedAtUtc",
+    "appVersion",
+    "experienceId",
+    "compositionKind",
+    "experience",
+    "modeId",
+    "profile",
+    "imageInitialization",
+    "inputs",
+    "plan",
+    "processorRuns",
+    "mutations",
+    "validations",
+    "issues",
+    "output",
+    "status"
+  ],
+  "properties": {
+    "reportSchemaVersion": {
+      "const": "1.0"
+    },
+    "runId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "startedAtUtc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completedAtUtc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "appVersion": {
+      "$ref": "#/$defs/semver"
+    },
+    "compositionKind": {
+      "enum": [
+        "merge",
+        "replace"
+      ]
+    },
+    "experienceId": {
+      "$ref": "#/$defs/id"
+    },
+    "modeId": {
+      "$ref": "#/$defs/id"
+    },
+    "profile": {
+      "$ref": "#/$defs/profileIdentity"
+    },
+    "imageInitialization": {
+      "$ref": "#/$defs/imageInitialization"
+    },
+    "addressSpaces": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/addressSpaceSummary"
+      }
+    },
+    "regions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/regionSummary"
+      }
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/inputSummary"
+      }
+    },
+    "versionTokens": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/token"
+      }
+    },
+    "plan": {
+      "$ref": "#/$defs/plan"
+    },
+    "processorRuns": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/processorRun"
+      }
+    },
+    "mutations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/mutation"
+      }
+    },
+    "validations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/validationResult"
+      }
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/issue"
+      }
+    },
+    "output": {
+      "$ref": "#/$defs/output"
+    },
+    "status": {
+      "enum": [
+        "succeeded",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "experience": {
+      "$ref": "#/$defs/experienceSummary"
+    },
+    "explicitMappings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/mappingSummary"
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "byteRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "length"
+      ],
+      "properties": {
+        "start": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "profileIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profileId",
+        "profileVersion",
+        "sha256"
+      ],
+      "properties": {
+        "profileId": {
+          "$ref": "#/$defs/id"
+        },
+        "profileVersion": {
+          "$ref": "#/$defs/semver"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "imageInitialization": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "capacity",
+            "fillByte"
+          ],
+          "properties": {
+            "kind": {
+              "const": "blank"
+            },
+            "capacity": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "fillByte": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "capacity",
+            "referenceBindingId",
+            "referenceSize",
+            "referenceSha256"
+          ],
+          "properties": {
+            "kind": {
+              "const": "reference"
+            },
+            "capacity": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "referenceBindingId": {
+              "$ref": "#/$defs/id"
+            },
+            "referenceSize": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "referenceSha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        }
+      ]
+    },
+    "addressSpaceSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "spaceId",
+        "kind",
+        "size",
+        "mutable"
+      ],
+      "properties": {
+        "spaceId": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "mutable": {
+          "type": "boolean"
+        }
+      }
+    },
+    "regionSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "regionId",
+        "spaceId",
+        "range",
+        "atomicity",
+        "writePolicy"
+      ],
+      "properties": {
+        "regionId": {
+          "$ref": "#/$defs/id"
+        },
+        "spaceId": {
+          "$ref": "#/$defs/id"
+        },
+        "range": {
+          "$ref": "#/$defs/byteRange"
+        },
+        "atomicity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "writePolicy": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "inputSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bindingId",
+        "slotId",
+        "displayName",
+        "size",
+        "sha256"
+      ],
+      "properties": {
+        "bindingId": {
+          "$ref": "#/$defs/id"
+        },
+        "slotId": {
+          "$ref": "#/$defs/id"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "mappingSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mappingId",
+        "sequence",
+        "operationKind",
+        "sourceBindingId",
+        "sourceRange",
+        "targetSpaceId",
+        "targetRange",
+        "overlapPolicy",
+        "alignment",
+        "reason"
+      ],
+      "properties": {
+        "mappingId": {
+          "$ref": "#/$defs/id"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "operationKind": {
+          "enum": [
+            "copy-range",
+            "replace-range"
+          ]
+        },
+        "sourceBindingId": {
+          "$ref": "#/$defs/id"
+        },
+        "sourceRange": {
+          "$ref": "#/$defs/byteRange"
+        },
+        "targetSpaceId": {
+          "$ref": "#/$defs/id"
+        },
+        "targetRegionId": {
+          "$ref": "#/$defs/id"
+        },
+        "targetRange": {
+          "$ref": "#/$defs/byteRange"
+        },
+        "overlapPolicy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "alignment": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "token": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tokenId",
+        "value"
+      ],
+      "properties": {
+        "tokenId": {
+          "$ref": "#/$defs/id"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "initializationKind",
+        "operations"
+      ],
+      "properties": {
+        "initializationKind": {
+          "enum": [
+            "blank",
+            "reference"
+          ]
+        },
+        "operations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/operationSummary"
+          }
+        }
+      }
+    },
+    "operationSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operationId",
+        "sequence",
+        "kind",
+        "status"
+      ],
+      "properties": {
+        "operationId": {
+          "$ref": "#/$defs/id"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "planned",
+            "succeeded",
+            "failed",
+            "skipped"
+          ]
+        }
+      }
+    },
+    "processorRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operationId",
+        "processorId",
+        "processorContractVersion",
+        "protocolVersion",
+        "authority",
+        "purpose",
+        "workerVersion",
+        "workerSha256",
+        "status"
+      ],
+      "properties": {
+        "operationId": {
+          "$ref": "#/$defs/id"
+        },
+        "processorId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "processorContractVersion": {
+          "$ref": "#/$defs/semver"
+        },
+        "protocolVersion": {
+          "$ref": "#/$defs/protocolVersion"
+        },
+        "authority": {
+          "enum": [
+            "calculate",
+            "transform"
+          ]
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "workerVersion": {
+          "$ref": "#/$defs/semver"
+        },
+        "workerSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "beforeSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "afterSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "claimedChangedRanges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/byteRange"
+          }
+        },
+        "hostVerifiedChangedRanges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/byteRange"
+          }
+        },
+        "status": {
+          "enum": [
+            "succeeded",
+            "failed",
+            "cancelled"
+          ]
+        },
+        "inputSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "result": {
+          "type": "object"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "authority": {
+                "const": "calculate"
+              }
+            },
+            "required": [
+              "authority"
+            ]
+          },
+          "then": {
+            "required": [
+              "inputSha256"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "authority": {
+                "const": "transform"
+              }
+            },
+            "required": [
+              "authority"
+            ]
+          },
+          "then": {
+            "required": [
+              "beforeSha256",
+              "afterSha256",
+              "claimedChangedRanges",
+              "hostVerifiedChangedRanges"
+            ]
+          }
+        }
+      ]
+    },
+    "mutation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operationId",
+        "actor",
+        "targetSpaceId",
+        "targetRange",
+        "beforeSha256",
+        "afterSha256",
+        "changedByteCount",
+        "changedRanges"
+      ],
+      "properties": {
+        "operationId": {
+          "$ref": "#/$defs/id"
+        },
+        "actor": {
+          "enum": [
+            "host",
+            "external-processor"
+          ]
+        },
+        "targetSpaceId": {
+          "$ref": "#/$defs/id"
+        },
+        "targetRange": {
+          "$ref": "#/$defs/byteRange"
+        },
+        "beforeSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "afterSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "changedByteCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "changedRanges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/byteRange"
+          }
+        }
+      }
+    },
+    "validationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ruleId",
+        "status"
+      ],
+      "properties": {
+        "ruleId": {
+          "$ref": "#/$defs/id"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "skipped"
+          ]
+        }
+      }
+    },
+    "issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]+$"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operationId": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "output": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "fileName",
+            "size",
+            "sha256",
+            "committed"
+          ],
+          "properties": {
+            "fileName": {
+              "type": "string",
+              "minLength": 1
+            },
+            "size": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "committed": {
+              "const": true
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "fileName",
+            "committed"
+          ],
+          "properties": {
+            "fileName": {
+              "type": "string",
+              "minLength": 1
+            },
+            "committed": {
+              "const": false
+            }
+          }
+        }
+      ]
+    },
+    "protocolVersion": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+    },
+    "experienceSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "experienceId",
+        "audience",
+        "layoutPolicy"
+      ],
+      "properties": {
+        "experienceId": {
+          "$ref": "#/$defs/id"
+        },
+        "audience": {
+          "enum": [
+            "system",
+            "display",
+            "tp-hw",
+            "tp-fw",
+            "advanced"
+          ]
+        },
+        "layoutPolicy": {
+          "enum": [
+            "fixed",
+            "constrained",
+            "user-defined"
+          ]
+        }
+      }
+    }
+  }
+}

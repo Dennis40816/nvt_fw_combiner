@@ -1,0 +1,70 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "nfc-crc-worker"
+version = "0.1.0"
+description = "Constrained stdin/stdout CRC worker for NVT FW Combiner"
+requires-python = ">=3.13,<3.15"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "hypothesis>=6.130,<7",
+  "pylint>=3.3,<4",
+  "pyright>=1.1.400,<2",
+  "pytest>=8.3,<9",
+  "pytest-cov>=6,<7",
+  "ruff>=0.11,<1"
+]
+package = ["pyinstaller>=6.13,<7"]
+
+[project.scripts]
+nfc-crc-worker = "nfc_crc_worker.__main__:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/nfc_crc_worker"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-config --strict-markers"
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["nfc_crc_worker"]
+
+[tool.coverage.report]
+fail_under = 95
+show_missing = true
+skip_covered = false
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "C4", "DTZ", "N", "PERF", "PIE", "PL", "PTH", "RUF", "S", "SIM", "UP"]
+ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["PLR2004"]
+
+[tool.pyright]
+include = ["src", "tests"]
+pythonVersion = "3.13"
+typeCheckingMode = "strict"
+reportMissingTypeStubs = "error"
+
+[tool.pylint.main]
+py-version = "3.13"
+source-roots = ["src"]
+
+[tool.pylint.format]
+max-line-length = 100
+
+[tool.pylint.design]
+max-args = 6
+max-locals = 15

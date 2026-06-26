@@ -1,0 +1,22 @@
+<Window
+    x:Class="NvtFwCombiner.Presentation.Avalonia.MainWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Width="1120"
+    Height="720"
+    MinWidth="900"
+    MinHeight="600"
+    Title="NVT FW Combiner">
+  <Grid Margin="32" RowDefinitions="Auto,Auto,*">
+    <TextBlock FontSize="30" FontWeight="SemiBold" Text="NVT FW Combiner" />
+    <TextBlock Grid.Row="1" Margin="0,12,0,0" Text="Repository bootstrap • .NET 10 • Avalonia 12" />
+    <Border Grid.Row="2" Margin="0,24,0,0" Padding="24" BorderThickness="1" CornerRadius="12">
+      <StackPanel Spacing="12">
+        <TextBlock FontSize="20" FontWeight="SemiBold" Text="Development surfaces" />
+        <TextBlock Text="Merge: Standard • AB • General" />
+        <TextBlock Text="Replace: Display • TP HW • TP FW • General" />
+        <TextBlock TextWrapping="Wrap" Text="All experiences compile to the same composition operation model. Replace starts from a reference image; Merge starts from a blank image." />
+      </StackPanel>
+    </Border>
+  </Grid>
+</Window>

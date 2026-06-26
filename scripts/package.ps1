@@ -1,0 +1,232 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $true)]
+    [string]$Version,
+
+    [Parameter(Mandatory = $true)]
+    [string]$Commit
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
+
+$RepoRoot = Split-Path -Parent $PSScriptRoot
+$SourceTag = if ($Version.StartsWith('v', [StringComparison]::Ordinal)) { $Version } else { "v$Version" }
+$SemanticVersion = $SourceTag.Substring(1)
+if ($SemanticVersion -notmatch '^[0-9]+\.[0-9]+\.[0-9]+$') {
+    throw "Stable release packaging requires vX.Y.Z; received '$Version'."
+}
+if ($Commit -notmatch '^[0-9a-f]{40}$') {
+    throw "Commit must be a lowercase 40-character Git SHA; received '$Commit'."
+}
+
+$DotNet = (Get-Command dotnet -ErrorAction Stop).Source
+$Python = (Get-Command python -ErrorAction Stop).Source
+$ReleaseRoot = Join-Path $RepoRoot 'artifacts/release'
+$WorkRoot = Join-Path $RepoRoot 'artifacts/package-work'
+$PackageName = "NvtFwCombiner-$SourceTag-win-x64"
+$PackageRoot = Join-Path $WorkRoot $PackageName
+$AppPublish = Join-Path $WorkRoot 'app-publish'
+$WorkerBuild = Join-Path $WorkRoot 'worker-build'
+$WorkerDist = Join-Path $WorkRoot 'worker-dist'
+
+Remove-Item -LiteralPath $ReleaseRoot, $WorkRoot -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force -Path $ReleaseRoot, $PackageRoot, $AppPublish, $WorkerBuild, $WorkerDist | Out-Null
+
+function Get-LowerSha256 {
+    param([Parameter(Mandatory = $true)][string]$Path)
+    return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
+}
+
+function Get-TreeDigest {
+    param([Parameter(Mandatory = $true)][string[]]$Paths)
+    $Lines = foreach ($Path in ($Paths | Sort-Object)) {
+        $Relative = [System.IO.Path]::GetRelativePath($RepoRoot, $Path).Replace('\', '/')
+        "$Relative:$((Get-LowerSha256 -Path $Path))"
+    }
+    $Bytes = [Text.Encoding]::UTF8.GetBytes(($Lines -join "`n"))
+    $Digest = [Security.Cryptography.SHA256]::HashData($Bytes)
+    return [Convert]::ToHexString($Digest).ToLowerInvariant()
+}
+
+$AppProject = Join-Path $RepoRoot 'src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj'
+& $DotNet publish $AppProject -c Release -r win-x64 --self-contained true `
+    -p:Version=$SemanticVersion `
+    -p:PublishSingleFile=true `
+    -p:PublishTrimmed=false `
+    -p:IncludeNativeLibrariesForSelfExtract=true `
+    -p:DebugType=None `
+    -p:DebugSymbols=false `
+    -o $AppPublish
+if ($LASTEXITCODE -ne 0) { throw 'dotnet publish failed.' }
+
+$PublishedApp = Join-Path $AppPublish 'NvtFwCombiner.Presentation.Avalonia.exe'
+if (-not (Test-Path -LiteralPath $PublishedApp -PathType Leaf)) {
+    throw "Published application was not found at $PublishedApp"
+}
+$AppExe = Join-Path $PackageRoot 'NvtFwCombiner.exe'
+Copy-Item -LiteralPath $PublishedApp -Destination $AppExe
+
+$WorkerEntry = Join-Path $WorkRoot 'crc_worker_entry.py'
+@'
+from nfc_crc_worker.__main__ import main
+
+raise SystemExit(main())
+'@ | Set-Content -LiteralPath $WorkerEntry -Encoding utf8NoBOM
+
+$WorkerSource = Join-Path $RepoRoot 'tools/crc-worker/src'
+& $Python -m PyInstaller --onefile --clean --noconfirm --noupx `
+    --name Nfc.CrcWorker `
+    --paths $WorkerSource `
+    --workpath $WorkerBuild `
+    --distpath $WorkerDist `
+    --specpath $WorkRoot `
+    $WorkerEntry
+if ($LASTEXITCODE -ne 0) { throw 'PyInstaller worker packaging failed.' }
+
+$BuiltWorker = Join-Path $WorkerDist 'Nfc.CrcWorker.exe'
+if (-not (Test-Path -LiteralPath $BuiltWorker -PathType Leaf)) {
+    throw "Packaged CRC worker was not found at $BuiltWorker"
+}
+$WorkerExe = Join-Path $PackageRoot 'Nfc.CrcWorker.exe'
+Copy-Item -LiteralPath $BuiltWorker -Destination $WorkerExe
+
+$SelfTestRequest = '{"protocolVersion":"1.0","requestId":"package-self-test","operation":"calculate","algorithmId":"crc-32-mpeg-2","payloadBase64":"MTIzNDU2Nzg5"}'
+$SelfTestRaw = $SelfTestRequest | & $WorkerExe
+if ($LASTEXITCODE -ne 0) { throw 'Packaged CRC worker self-test process failed.' }
+$SelfTest = $SelfTestRaw | ConvertFrom-Json
+if ($SelfTest.result.valueHex -ne '0x0376E6E7') {
+    throw "Packaged CRC worker self-test returned '$($SelfTest.result.valueHex)'."
+}
+
+Copy-Item -LiteralPath (Join-Path $RepoRoot 'LICENSE') -Destination (Join-Path $PackageRoot 'LICENSE.txt')
+Copy-Item -LiteralPath (Join-Path $RepoRoot 'THIRD_PARTY_NOTICES.md') -Destination (Join-Path $PackageRoot 'THIRD-PARTY-NOTICES.txt')
+@"
+NVT FW Combiner $SemanticVersion
+
+Contents:
+- NvtFwCombiner.exe: self-contained Windows x64 desktop application
+- Nfc.CrcWorker.exe: constrained external checksum/header worker
+- RELEASE-MANIFEST.json: source and file integrity metadata
+- SHA256SUMS.txt: package file hashes
+
+This package contains no firmware samples, source code, refcode, tests, editable profiles, Python runtime installation, or .NET installation requirement.
+"@ | Set-Content -LiteralPath (Join-Path $PackageRoot 'README.txt') -Encoding utf8NoBOM
+
+$AppHash = Get-LowerSha256 -Path $AppExe
+$WorkerHash = Get-LowerSha256 -Path $WorkerExe
+$NoticePath = Join-Path $PackageRoot 'THIRD-PARTY-NOTICES.txt'
+$LicensePath = Join-Path $PackageRoot 'LICENSE.txt'
+$ReadmePath = Join-Path $PackageRoot 'README.txt'
+
+$ProfileFiles = @(Get-ChildItem -LiteralPath (Join-Path $RepoRoot 'profiles') -File -Recurse | ForEach-Object FullName)
+$SchemaFiles = @(Get-ChildItem -LiteralPath (Join-Path $RepoRoot 'docs/contracts') -Filter '*.schema.json' -File | ForEach-Object FullName)
+$ProfileDigest = Get-TreeDigest -Paths $ProfileFiles
+$SchemaDigest = Get-TreeDigest -Paths $SchemaFiles
+
+$SbomName = "$PackageName.spdx.json"
+$ProvenanceName = "$PackageName.provenance.json"
+$FileEntries = @(
+    [ordered]@{ path = 'NvtFwCombiner.exe'; size = (Get-Item $AppExe).Length; sha256 = $AppHash; role = 'application' },
+    [ordered]@{ path = 'Nfc.CrcWorker.exe'; size = (Get-Item $WorkerExe).Length; sha256 = $WorkerHash; role = 'crcWorker' },
+    [ordered]@{ path = 'THIRD-PARTY-NOTICES.txt'; size = (Get-Item $NoticePath).Length; sha256 = (Get-LowerSha256 $NoticePath); role = 'notices' },
+    [ordered]@{ path = 'LICENSE.txt'; size = (Get-Item $LicensePath).Length; sha256 = (Get-LowerSha256 $LicensePath); role = 'license' },
+    [ordered]@{ path = 'README.txt'; size = (Get-Item $ReadmePath).Length; sha256 = (Get-LowerSha256 $ReadmePath); role = 'readme' }
+)
+
+$Manifest = [ordered]@{
+    schemaVersion = '1.1'
+    product = 'NVT FW Combiner'
+    version = $SemanticVersion
+    sourceCommit = $Commit
+    sourceTag = $SourceTag
+    runtimeIdentifier = 'win-x64'
+    licenseSpdx = 'MIT'
+    workerProtocolVersions = @('1.0')
+    approvedProcessorIds = @('nfc.crc32-mpeg2.calculate-v1')
+    processorBundleSha256 = $WorkerHash
+    embeddedProfileCatalogSha256 = $ProfileDigest
+    embeddedSchemaBundleSha256 = $SchemaDigest
+    files = $FileEntries
+    sbomAsset = $SbomName
+    provenanceAsset = $ProvenanceName
+}
+$ManifestPath = Join-Path $PackageRoot 'RELEASE-MANIFEST.json'
+$Manifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $ManifestPath -Encoding utf8NoBOM
+
+$Sbom = [ordered]@{
+    spdxVersion = 'SPDX-2.3'
+    dataLicense = 'CC0-1.0'
+    SPDXID = 'SPDXRef-DOCUMENT'
+    name = $PackageName
+    documentNamespace = "https://github.com/Dennis40816/nvt_fw_combiner/releases/download/$SourceTag/$SbomName"
+    creationInfo = [ordered]@{
+        created = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')
+        creators = @('Tool: NVT-FW-Combiner-release-script')
+    }
+    packages = @(
+        [ordered]@{
+            name = 'NVT FW Combiner'
+            SPDXID = 'SPDXRef-Package-NvtFwCombiner'
+            versionInfo = $SemanticVersion
+            downloadLocation = 'NOASSERTION'
+            filesAnalyzed = $true
+            licenseConcluded = 'MIT'
+            licenseDeclared = 'MIT'
+            copyrightText = 'NOASSERTION'
+        }
+    )
+    files = @(
+        $FileEntries | ForEach-Object {
+            [ordered]@{
+                fileName = $_.path
+                SPDXID = "SPDXRef-File-$($_.path.Replace('.', '-'))"
+                checksums = @([ordered]@{ algorithm = 'SHA256'; checksumValue = $_.sha256 })
+                licenseConcluded = 'NOASSERTION'
+                copyrightText = 'NOASSERTION'
+            }
+        }
+    )
+}
+$Sbom | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $ReleaseRoot $SbomName) -Encoding utf8NoBOM
+
+$Provenance = [ordered]@{
+    schemaVersion = '1.0'
+    product = 'NVT FW Combiner'
+    version = $SemanticVersion
+    sourceRepository = 'https://github.com/Dennis40816/nvt_fw_combiner'
+    sourceCommit = $Commit
+    sourceTag = $SourceTag
+    builder = 'GitHub Actions / scripts/package.ps1'
+    runtimeIdentifier = 'win-x64'
+    subjects = $FileEntries | ForEach-Object { [ordered]@{ name = $_.path; sha256 = $_.sha256 } }
+}
+$Provenance | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $ReleaseRoot $ProvenanceName) -Encoding utf8NoBOM
+
+$HashTargets = @($FileEntries.path) + @('RELEASE-MANIFEST.json')
+$HashLines = foreach ($Name in $HashTargets) {
+    $Path = Join-Path $PackageRoot $Name
+    "$(Get-LowerSha256 -Path $Path)  $Name"
+}
+$HashLines | Set-Content -LiteralPath (Join-Path $PackageRoot 'SHA256SUMS.txt') -Encoding ascii
+
+$Expected = @(
+    'LICENSE.txt',
+    'Nfc.CrcWorker.exe',
+    'NvtFwCombiner.exe',
+    'README.txt',
+    'RELEASE-MANIFEST.json',
+    'SHA256SUMS.txt',
+    'THIRD-PARTY-NOTICES.txt'
+) | Sort-Object
+$Actual = @(Get-ChildItem -LiteralPath $PackageRoot -File | ForEach-Object Name | Sort-Object)
+if (Compare-Object -ReferenceObject $Expected -DifferenceObject $Actual) {
+    throw "Release package contents differ from the closed allowlist: $($Actual -join ', ')"
+}
+
+$ZipPath = Join-Path $ReleaseRoot "$PackageName.zip"
+Compress-Archive -LiteralPath $PackageRoot -DestinationPath $ZipPath -CompressionLevel Optimal
+Write-Host "Release package: $ZipPath"
+Write-Host "Application SHA-256: $AppHash"
+Write-Host "Worker SHA-256: $WorkerHash"

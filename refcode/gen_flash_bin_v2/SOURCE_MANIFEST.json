@@ -1,0 +1,64 @@
+{
+  "source": "git:Dennis40816/NFCG",
+  "repositoryPath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2",
+  "ref": "main",
+  "snapshotDate": "2026-06-25",
+  "included": [
+    {
+      "path": "gen_flash_bin.py",
+      "repositoryBlobSha": "136c1ee8d588e6939b9cba7640ce72b8d0a3188c",
+      "sha256": "7d70ab72216c5e458b3736601fbb0bd17a5ac683f2480db0cbf0974606214505"
+    },
+    {
+      "path": "ic_config.json",
+      "repositoryBlobSha": "cd0bfc83b6e7785211362a0d1e660c764ddcdfdb",
+      "sha256": "057f318b008e9ea7cd8914a64c328a35c8a1495ab7b85385fe9c1e8e0c46caeb"
+    },
+    {
+      "path": "lib/__init__.py",
+      "repositoryBlobSha": "96f6241f7fdd71f863bf1a3df901abee7b1619f2",
+      "sha256": "e32b7fb992b8c89b81355572f6d1666ff504ccf4f8c94250d0c55a7e1efb12c1"
+    },
+    {
+      "path": "lib/py_meta.py",
+      "repositoryBlobSha": "41b0ca63294c6e6a9f4b5be349509cbf245f3b52",
+      "sha256": "68a183280b46499f2bddaaa5f7cc34ef446caec58a7e2c741164c57f4fe8df82"
+    },
+    {
+      "path": "lib/logger.py",
+      "repositoryBlobSha": "7e704a466e6df96d01a997e1b3b5d94a96442696",
+      "sha256": "fa8b5294a3b8ab5adbba33960abd4843cf1a36de7de5e765845ed3761d8d712c"
+    },
+    {
+      "path": "lib/file_utils.py",
+      "repositoryBlobSha": "7ef11ba7a4a9d01fe7cf845fc3f77525d4d51eea",
+      "sha256": "7937bacefbf5e3f1f0d1b64b4d7afdb9c00fdd721321c78e628dea28376ef487"
+    },
+    {
+      "path": "lib/config.py",
+      "repositoryBlobSha": "7640b51674b572494658016e65a687dccf5ea273",
+      "sha256": "4acc6ec5ae11cbcd851645b80bd800e9e42aa18851ff7563969fb2f7aaa0693b"
+    },
+    {
+      "path": "lib/validation.py",
+      "repositoryBlobSha": "7a1f61b94b93a512e0ab503b7ee857602148175e",
+      "sha256": "192c26de87e36c6f63d1c645636ced369408cbaa501456598211bf88799bc1fe"
+    },
+    {
+      "path": "lib/flash_builder.py",
+      "repositoryBlobSha": "d5cbba26cd6a0d4f764b676c92f9ec078860d520",
+      "sha256": "ad121ba9432fd15fd0a57e93a7de275dcdcdc200635ba1950a3a060647a26b2d"
+    }
+  ],
+  "excluded": [
+    "test/**",
+    "**/*.bin",
+    "generated output",
+    "cache/venv"
+  ],
+  "notes": [
+    "Reference-only standard merge implementation; not a production dependency.",
+    "Legacy source ranges use inclusive end addresses. New NFC profiles normalize them to half-open ranges.",
+    "The TypeScript NFCG application code is intentionally not copied into refcode."
+  ]
+}

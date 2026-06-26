@@ -1,0 +1,47 @@
+{
+  "manifestVersion": "1.0",
+  "createdDate": "2026-06-25",
+  "binaryPayloadsIncluded": false,
+  "algorithmVectors": [
+    {
+      "id": "crc32-mpeg2-empty",
+      "algorithmId": "crc-32-mpeg-2",
+      "payloadEncoding": "ascii",
+      "payload": "",
+      "expectedHex": "0xFFFFFFFF"
+    },
+    {
+      "id": "crc32-mpeg2-check",
+      "algorithmId": "crc-32-mpeg-2",
+      "payloadEncoding": "ascii",
+      "payload": "123456789",
+      "expectedHex": "0x0376E6E7"
+    }
+  ],
+  "privateReferenceCases": [
+    {
+      "id": "nt51929-ab-uploaded-sample",
+      "inputHashes": {
+        "dpAb": "59b4407bdb5786060c563a0c8bc262548a1c3e274bd0eea49555dbf773f0dc55",
+        "tpA": "96d126d33d2f075bac2a95e718714bd1f9ef5a4f45f37f04b82ceb2b7a54b01a",
+        "tpB": "96d126d33d2f075bac2a95e718714bd1f9ef5a4f45f37f04b82ceb2b7a54b01a"
+      },
+      "expectedOutputSha256": "2cc711e019d3cc8b9ea2fc5f168fd4427b66679ae168a2572856d1a306fd57f4"
+    },
+    {
+      "id": "nt51950-ab-uploaded-sample",
+      "inputHashes": {
+        "dpAb": "afc4ec1ff4195bf73e664c3dea187dd06a4fef9eeb3151ae5b44916b0a8a2b7b",
+        "tpA": "dcdb291abc92ab8ab41453cdb14f80771cf8eed2095a402d81923fb804281102",
+        "tpB": "dcdb291abc92ab8ab41453cdb14f80771cf8eed2095a402d81923fb804281102"
+      },
+      "expectedOutputSha256": "4a292cd9615c58079b8994af8060af92562eaa92a55bc24bacc5ec5234e23b30",
+      "crc": {
+        "range": { "start": 41216, "endExclusive": 41264 },
+        "writeOffset": 41264,
+        "tpAExpectedHex": "0x54A6A04F",
+        "tpBPostRelocationExpectedHex": "0xFBC4CEE4"
+      }
+    }
+  ]
+}

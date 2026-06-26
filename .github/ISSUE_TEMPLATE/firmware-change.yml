@@ -1,0 +1,36 @@
+name: Firmware semantic change
+about: IC/profile/range/patch/checksum/CRC/order or golden-output change
+title: "[firmware] "
+labels: ["firmware-semantic", "human-review-required"]
+body:
+  - type: input
+    id: ic_mode
+    attributes:
+      label: IC / mode / profile
+    validations:
+      required: true
+  - type: textarea
+    id: facts
+    attributes:
+      label: Authoritative memory facts
+      description: List source/target half-open ranges, offset bases, byte order, operation order, and source evidence.
+    validations:
+      required: true
+  - type: textarea
+    id: change
+    attributes:
+      label: Proposed semantic change
+    validations:
+      required: true
+  - type: textarea
+    id: vectors
+    attributes:
+      label: Golden/reference vectors and expected hashes
+    validations:
+      required: true
+  - type: textarea
+    id: reviewers
+    attributes:
+      label: Required human reviewers and owner sign-off
+    validations:
+      required: true

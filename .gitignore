@@ -1,0 +1,49 @@
+# .NET
+**/bin/
+**/obj/
+*.user
+*.suo
+
+# Python
+.venv/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.pyright/
+.ruff_cache/
+
+# Build and release
+artifacts/
+release/
+dist/
+build/
+*.pdb
+
+# Firmware and generated images
+*.bin
+*.hex
+*.fw
+
+# Local settings and secrets
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.key
+*.pem
+secrets.json
+
+# IDE/OS
+.vs/
+.vscode/*.local.*
+.idea/
+.DS_Store
+Thumbs.db
+.dotnet/
+.packages/
+TestResults/
+*.trx

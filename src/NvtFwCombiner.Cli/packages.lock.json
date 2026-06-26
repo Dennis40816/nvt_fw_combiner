@@ -1,0 +1,43 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net10.0": {
+      "nvtfwcombiner.application": {
+        "type": "Project",
+        "dependencies": {
+          "NvtFwCombiner.Contracts": "[1.0.0, )",
+          "NvtFwCombiner.Domain": "[1.0.0, )"
+        }
+      },
+      "nvtfwcombiner.bootstrap": {
+        "type": "Project",
+        "dependencies": {
+          "NvtFwCombiner.Application": "[1.0.0, )",
+          "NvtFwCombiner.Infrastructure": "[1.0.0, )",
+          "NvtFwCombiner.Profiles": "[1.0.0, )"
+        }
+      },
+      "nvtfwcombiner.contracts": {
+        "type": "Project"
+      },
+      "nvtfwcombiner.domain": {
+        "type": "Project"
+      },
+      "nvtfwcombiner.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "NvtFwCombiner.Application": "[1.0.0, )",
+          "NvtFwCombiner.Contracts": "[1.0.0, )",
+          "NvtFwCombiner.Domain": "[1.0.0, )"
+        }
+      },
+      "nvtfwcombiner.profiles": {
+        "type": "Project",
+        "dependencies": {
+          "NvtFwCombiner.Contracts": "[1.0.0, )",
+          "NvtFwCombiner.Domain": "[1.0.0, )"
+        }
+      }
+    }
+  }
+}

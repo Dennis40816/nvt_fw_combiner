@@ -1,0 +1,856 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/nfc/schemas/composition-profile-v1.schema.json",
+  "title": "NVT FW Combiner Composition Profile 1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "profileId",
+    "profileVersion",
+    "supportStatus",
+    "icId",
+    "modeId",
+    "compositionKind",
+    "experience",
+    "image",
+    "inputSlots",
+    "addressSpaces",
+    "regions",
+    "views",
+    "operations",
+    "validations",
+    "outputNaming"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "profileId": {
+      "$ref": "#/$defs/id"
+    },
+    "profileVersion": {
+      "$ref": "#/$defs/semver"
+    },
+    "supportStatus": {
+      "enum": [
+        "draft",
+        "candidate",
+        "supported",
+        "deprecated"
+      ]
+    },
+    "icId": {
+      "type": "string",
+      "pattern": "^NT[0-9A-Za-z-]+$"
+    },
+    "modeId": {
+      "$ref": "#/$defs/id"
+    },
+    "compositionKind": {
+      "enum": [
+        "merge",
+        "replace"
+      ]
+    },
+    "experience": {
+      "$ref": "#/$defs/experience"
+    },
+    "image": {
+      "$ref": "#/$defs/image"
+    },
+    "inputSlots": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/inputSlot"
+      }
+    },
+    "addressSpaces": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/addressSpace"
+      }
+    },
+    "regions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/region"
+      }
+    },
+    "views": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/view"
+      }
+    },
+    "operations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/operation"
+      }
+    },
+    "validations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/validation"
+      }
+    },
+    "outputNaming": {
+      "$ref": "#/$defs/outputNaming"
+    },
+    "evidenceRefs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "byteRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "length"
+      ],
+      "properties": {
+        "start": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capacity",
+        "initializer"
+      ],
+      "properties": {
+        "capacity": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "initializer": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "fillByte"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "blank"
+                },
+                "fillByte": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "baseSlotId"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "reference"
+                },
+                "baseSlotId": {
+                  "$ref": "#/$defs/id"
+                },
+                "baseValidationRuleIds": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "$ref": "#/$defs/id"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "sizeRule": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "bytes"
+          ],
+          "properties": {
+            "kind": {
+              "const": "exact"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "minimumBytes",
+            "maximumBytes"
+          ],
+          "properties": {
+            "kind": {
+              "const": "bounded"
+            },
+            "minimumBytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maximumBytes": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      ]
+    },
+    "inputSlot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slotId",
+        "role",
+        "required",
+        "cardinality",
+        "acceptedExtensions"
+      ],
+      "properties": {
+        "slotId": {
+          "$ref": "#/$defs/id"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "cardinality": {
+          "enum": [
+            "exactly-one",
+            "zero-or-one",
+            "one-or-more"
+          ]
+        },
+        "acceptedExtensions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^\\.[A-Za-z0-9]+$"
+          }
+        },
+        "sizeRule": {
+          "$ref": "#/$defs/sizeRule"
+        },
+        "validationRuleIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "compatibilityTags": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "addressSpace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "spaceId",
+        "kind",
+        "mutable",
+        "instancePolicy"
+      ],
+      "properties": {
+        "spaceId": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "enum": [
+            "input-artifact",
+            "reference-base",
+            "work-buffer",
+            "output-image"
+          ]
+        },
+        "mutable": {
+          "type": "boolean"
+        },
+        "instancePolicy": {
+          "enum": [
+            "singleton",
+            "per-binding"
+          ]
+        },
+        "slotId": {
+          "$ref": "#/$defs/id"
+        },
+        "capacity": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sourceSpaceId": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "region": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "regionId",
+        "spaceId",
+        "role",
+        "range",
+        "atomicity",
+        "writePolicy"
+      ],
+      "properties": {
+        "regionId": {
+          "$ref": "#/$defs/id"
+        },
+        "parentRegionId": {
+          "$ref": "#/$defs/id"
+        },
+        "spaceId": {
+          "$ref": "#/$defs/id"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "range": {
+          "$ref": "#/$defs/byteRange"
+        },
+        "atomicity": {
+          "enum": [
+            "whole",
+            "partitioned",
+            "explicit-mapping"
+          ]
+        },
+        "alignment": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        },
+        "processorDependencyIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "compatibilityTags": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "classificationTags": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "writePolicy": {
+          "enum": [
+            "forbidden",
+            "whole-only",
+            "declared-parts",
+            "general-explicit"
+          ]
+        }
+      }
+    },
+    "view": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "viewId",
+        "spaceId",
+        "range",
+        "role"
+      ],
+      "properties": {
+        "viewId": {
+          "$ref": "#/$defs/id"
+        },
+        "spaceId": {
+          "$ref": "#/$defs/id"
+        },
+        "regionId": {
+          "$ref": "#/$defs/id"
+        },
+        "range": {
+          "$ref": "#/$defs/byteRange"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "versionExtractorIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        }
+      }
+    },
+    "scalarPatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "offset",
+        "widthBytes",
+        "byteOrder",
+        "mode",
+        "value"
+      ],
+      "properties": {
+        "offset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "widthBytes": {
+          "enum": [
+            1,
+            2,
+            4,
+            8
+          ]
+        },
+        "byteOrder": {
+          "enum": [
+            "little",
+            "big"
+          ]
+        },
+        "mode": {
+          "enum": [
+            "set",
+            "add"
+          ]
+        },
+        "value": {
+          "type": "integer"
+        },
+        "expectedValueBefore": {
+          "type": "integer"
+        }
+      }
+    },
+    "processorInvocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "processorId",
+        "contractVersion",
+        "authority",
+        "purpose",
+        "allowedReadRanges",
+        "allowedWriteRanges",
+        "failurePolicy"
+      ],
+      "properties": {
+        "processorId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contractVersion": {
+          "$ref": "#/$defs/semver"
+        },
+        "authority": {
+          "enum": [
+            "calculate",
+            "transform"
+          ]
+        },
+        "purpose": {
+          "enum": [
+            "checksum",
+            "header",
+            "header-and-integrity",
+            "relocation",
+            "composite-post-process"
+          ]
+        },
+        "allowedReadRanges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/byteRange"
+          }
+        },
+        "allowedWriteRanges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/byteRange"
+          }
+        },
+        "parameters": {
+          "type": "object"
+        },
+        "failurePolicy": {
+          "const": "fail-closed"
+        }
+      }
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operationId",
+        "sequence",
+        "kind",
+        "reason"
+      ],
+      "properties": {
+        "operationId": {
+          "$ref": "#/$defs/id"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "kind": {
+          "enum": [
+            "initialize-image",
+            "create-work-buffer",
+            "copy-range",
+            "fill-range",
+            "patch-scalar",
+            "replace-range",
+            "run-external-processor",
+            "assert-range",
+            "validate-checksum",
+            "extract-metadata",
+            "finalize-output"
+          ]
+        },
+        "sourceSpaceId": {
+          "$ref": "#/$defs/id"
+        },
+        "sourceViewId": {
+          "$ref": "#/$defs/id"
+        },
+        "sourceRange": {
+          "$ref": "#/$defs/byteRange"
+        },
+        "targetSpaceId": {
+          "$ref": "#/$defs/id"
+        },
+        "targetRange": {
+          "$ref": "#/$defs/byteRange"
+        },
+        "overlapPolicy": {
+          "enum": [
+            "reject",
+            "allow-declared",
+            "replace-existing"
+          ]
+        },
+        "fillByte": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "scalarPatch": {
+          "$ref": "#/$defs/scalarPatch"
+        },
+        "integrityDisposition": {
+          "enum": [
+            "none",
+            "verify-existing",
+            "recalculate-and-write"
+          ]
+        },
+        "processorInvocation": {
+          "$ref": "#/$defs/processorInvocation"
+        },
+        "preconditionRuleIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "postconditionRuleIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ruleId",
+        "stage",
+        "kind",
+        "severity",
+        "issueCode"
+      ],
+      "properties": {
+        "ruleId": {
+          "$ref": "#/$defs/id"
+        },
+        "stage": {
+          "enum": [
+            "profile-compile",
+            "input-load",
+            "pre-operation",
+            "post-operation",
+            "final-output"
+          ]
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ]
+        },
+        "issueCode": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]+$"
+        },
+        "parameters": {
+          "type": "object"
+        }
+      }
+    },
+    "outputNaming": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "template",
+        "allowOverride",
+        "invalidCharacterPolicy"
+      ],
+      "properties": {
+        "template": {
+          "type": "string",
+          "minLength": 1
+        },
+        "allowOverride": {
+          "type": "boolean"
+        },
+        "invalidCharacterPolicy": {
+          "enum": [
+            "reject",
+            "replace-underscore"
+          ]
+        },
+        "requiredTokenIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        }
+      }
+    },
+    "regionAccessRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "regionId",
+        "access",
+        "reason"
+      ],
+      "properties": {
+        "regionId": {
+          "$ref": "#/$defs/id"
+        },
+        "access": {
+          "enum": [
+            "hidden",
+            "read-only",
+            "whole",
+            "parts",
+            "explicit-range"
+          ]
+        },
+        "allowedPartIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "experience": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "experienceId",
+        "audience",
+        "layoutPolicy",
+        "inputPolicy",
+        "displayNameKey",
+        "regionAccessRules"
+      ],
+      "properties": {
+        "experienceId": {
+          "$ref": "#/$defs/id"
+        },
+        "audience": {
+          "enum": [
+            "system",
+            "display",
+            "tp-hw",
+            "tp-fw",
+            "advanced"
+          ]
+        },
+        "layoutPolicy": {
+          "enum": [
+            "fixed",
+            "constrained",
+            "user-defined"
+          ]
+        },
+        "inputPolicy": {
+          "enum": [
+            "fixed",
+            "extensible"
+          ]
+        },
+        "displayNameKey": {
+          "type": "string",
+          "minLength": 1
+        },
+        "regionAccessRules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/regionAccessRule"
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "compositionKind": {
+            "const": "merge"
+          }
+        },
+        "required": [
+          "compositionKind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "image": {
+            "properties": {
+              "initializer": {
+                "properties": {
+                  "kind": {
+                    "const": "blank"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "compositionKind": {
+            "const": "replace"
+          }
+        },
+        "required": [
+          "compositionKind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "image": {
+            "properties": {
+              "initializer": {
+                "properties": {
+                  "kind": {
+                    "const": "reference"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

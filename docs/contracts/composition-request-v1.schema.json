@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/nfc/schemas/composition-request-v1.schema.json",
+  "title": "NVT FW Combiner Composition Request 1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "runId",
+    "profile",
+    "inputBindings",
+    "explicitMappings",
+    "outputOptions",
+    "strictness"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "runId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profileId",
+        "profileVersion"
+      ],
+      "properties": {
+        "profileId": {
+          "$ref": "#/$defs/id"
+        },
+        "profileVersion": {
+          "$ref": "#/$defs/semver"
+        },
+        "expectedSha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "inputBindings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/inputBinding"
+      }
+    },
+    "outputOptions": {
+      "$ref": "#/$defs/outputOptions"
+    },
+    "strictness": {
+      "enum": [
+        "strict",
+        "diagnostic"
+      ]
+    },
+    "surface": {
+      "enum": [
+        "ui",
+        "cli",
+        "ci"
+      ]
+    },
+    "explicitMappings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/explicitMapping"
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "byteRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "length"
+      ],
+      "properties": {
+        "start": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "inputBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bindingId",
+        "slotId",
+        "path"
+      ],
+      "properties": {
+        "bindingId": {
+          "$ref": "#/$defs/id"
+        },
+        "slotId": {
+          "$ref": "#/$defs/id"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expectedSha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "outputOptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "directory"
+      ],
+      "properties": {
+        "directory": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nameOverride": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "dateOverride": {
+          "type": "string",
+          "pattern": "^[0-9]{8}$"
+        }
+      }
+    },
+    "explicitMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mappingId",
+        "sequence",
+        "operationKind",
+        "sourceBindingId",
+        "sourceRange",
+        "targetSpaceId",
+        "targetRange",
+        "overlapPolicy",
+        "alignment",
+        "reason"
+      ],
+      "properties": {
+        "mappingId": {
+          "$ref": "#/$defs/id"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "operationKind": {
+          "enum": [
+            "copy-range",
+            "replace-range"
+          ]
+        },
+        "sourceBindingId": {
+          "$ref": "#/$defs/id"
+        },
+        "sourceRange": {
+          "$ref": "#/$defs/byteRange"
+        },
+        "targetSpaceId": {
+          "$ref": "#/$defs/id"
+        },
+        "targetRegionId": {
+          "$ref": "#/$defs/id"
+        },
+        "targetRange": {
+          "$ref": "#/$defs/byteRange"
+        },
+        "overlapPolicy": {
+          "enum": [
+            "reject",
+            "allow-declared",
+            "replace-existing"
+          ]
+        },
+        "alignment": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

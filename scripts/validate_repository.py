@@ -1,0 +1,586 @@
+"""Validate repository structure, contracts, policies, and reference provenance."""
+
+from __future__ import annotations
+
+import ast
+import hashlib
+import json
+import re
+import subprocess
+import sys
+import tomllib
+import xml.etree.ElementTree as ET
+from pathlib import Path, PurePosixPath
+from typing import Any, Iterable
+from urllib.parse import unquote
+
+ROOT = Path(__file__).resolve().parents[1]
+REQUIRED_FILES = {
+    "README.md",
+    "LICENSE",
+    "AGENTS.md",
+    "SPEC.md",
+    "CHANGELOG.md",
+    "VERSION",
+    "global.json",
+    "Directory.Build.props",
+    "Directory.Build.targets",
+    "Directory.Packages.props",
+    "NuGet.config",
+    "NvtFwCombiner.slnx",
+    ".codex/config.toml",
+    ".github/CODEOWNERS",
+    ".github/dependabot.yml",
+    ".github/pull_request_template.md",
+    ".github/workflows/ci.yml",
+    ".github/workflows/release.yml",
+    "scripts/install-dotnet.ps1",
+    "scripts/install-dotnet.sh",
+    "scripts/bootstrap.ps1",
+    "scripts/bootstrap.sh",
+    "scripts/package.ps1",
+    "scripts/polytail_check.py",
+    "scripts/publish-github.ps1",
+    "scripts/publish-github.sh",
+    "scripts/validate_repository.py",
+    "THIRD_PARTY_NOTICES.md",
+    "scripts/verify.py",
+    "docs/adr/0003-unified-composition-engine.md",
+    "docs/adr/0004-orthogonal-experience-access-policy.md",
+    "docs/adr/0005-replace-personas-and-general-mapping.md",
+    "docs/architecture/canonical-variable-model.md",
+    "docs/architecture/experience-and-access-policy.md",
+    "docs/architecture/integrity-processing-matrix.md",
+    "docs/governance/development-tags.md",
+    "docs/governance/codex-handoff.md",
+    "docs/policies/polytail.md",
+    "docs/contracts/crc-worker-v1.schema.json",
+    "docs/contracts/composition-profile-v1.schema.json",
+    "docs/contracts/composition-request-v1.schema.json",
+    "docs/contracts/composition-report-v1.schema.json",
+    "docs/contracts/release-manifest-v1.schema.json",
+    "docs/references/verification-report.md",
+    "refcode/README.md",
+    "refcode/REFERENCE_MANIFEST.json",
+    "refcode/gen_flash_bin_v2/SOURCE_MANIFEST.json",
+    "refcode/ab_code_combiner/SOURCE_MANIFEST.json",
+    "tools/crc-worker/pyproject.toml",
+}
+EXPECTED_PROJECTS = {
+    "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
+    "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
+    "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
+    "src/NvtFwCombiner.Profiles/NvtFwCombiner.Profiles.csproj",
+    "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj",
+    "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
+    "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj",
+    "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
+    "tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj",
+    "tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj",
+}
+EXPECTED_PROJECT_REFERENCES = {
+    "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj": set(),
+    "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj": set(),
+    "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj": {
+        "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
+        "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
+    },
+    "src/NvtFwCombiner.Profiles/NvtFwCombiner.Profiles.csproj": {
+        "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
+        "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
+    },
+    "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj": {
+        "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
+        "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
+        "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
+    },
+    "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj": {
+        "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
+        "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj",
+        "src/NvtFwCombiner.Profiles/NvtFwCombiner.Profiles.csproj",
+    },
+    "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj": {
+        "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
+    },
+    "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj": {
+        "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
+    },
+    "tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj": {
+        "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
+    },
+    "tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj": set(),
+}
+EXPECTED_SKILLS = {
+    "nfc-architecture-change",
+    "firmware-profile-authoring",
+    "crc-worker-contract",
+    "golden-regression",
+    "ui-experience-change",
+    "composition-experience-change",
+    "dotnet-bootstrap",
+    "release-readiness",
+    "polytail",
+}
+EXPECTED_REFCODE_SNAPSHOTS = {"gen_flash_bin_v2", "ab_code_combiner"}
+FORBIDDEN_SUFFIXES = {".bin", ".exe", ".dll", ".pdb", ".pfx", ".p12", ".pem", ".key", ".pyc"}
+FORBIDDEN_DIRECTORY_NAMES = {
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".venv",
+    "venv",
+    "artifacts",
+    "release",
+    "bin",
+    "obj",
+}
+FORBIDDEN_REFCODE_SUFFIXES = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"}
+SNAPSHOT_CODE_SUFFIXES = {".py", ".json", ".txt", ".bat"}
+XML_SUFFIXES = {".csproj", ".props", ".targets", ".slnx", ".axaml", ".manifest"}
+SEMVER = re.compile(
+    r"(?:0|[1-9][0-9]*)(?:\.(?:0|[1-9][0-9]*)){2}"
+    r"(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
+    r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
+)
+FULL_ACTION_PIN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@[0-9a-f]{40}$")
+DOTNET_INSTALL_SCRIPTS_COMMIT = "cbd31355adcf0c63eaeff601fb2eaa5fd0778f2b"
+
+
+def _git_tracked_paths() -> list[Path] | None:
+    if not (ROOT / ".git").exists():
+        return None
+    completed = subprocess.run(
+        ["git", "ls-files", "-z"],
+        cwd=ROOT,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if completed.returncode != 0:
+        return None
+    return [ROOT / item.decode("utf-8") for item in completed.stdout.split(b"\0") if item]
+
+
+def repository_files() -> list[Path]:
+    tracked = _git_tracked_paths()
+    if tracked is not None:
+        return [path for path in tracked if path.is_file()]
+    files: list[Path] = []
+    for path in ROOT.rglob("*"):
+        if not path.is_file() or ".git" in path.relative_to(ROOT).parts:
+            continue
+        if any(part in FORBIDDEN_DIRECTORY_NAMES for part in path.relative_to(ROOT).parts):
+            continue
+        files.append(path)
+    return files
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def git_blob_sha1(path: Path) -> str:
+    content = path.read_bytes()
+    digest = hashlib.sha1(usedforsecurity=False)
+    digest.update(f"blob {len(content)}\0".encode("ascii"))
+    digest.update(content)
+    return digest.hexdigest()
+
+
+def load_json(path: Path, errors: list[str]) -> Any | None:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        errors.append(f"invalid JSON {path.relative_to(ROOT)}: {exc}")
+        return None
+
+
+def validate_required_files(errors: list[str]) -> None:
+    for relative in sorted(REQUIRED_FILES):
+        if not (ROOT / relative).is_file():
+            errors.append(f"missing required file: {relative}")
+
+
+def validate_forbidden_tracked_content(files: Iterable[Path], errors: list[str]) -> None:
+    for path in files:
+        relative = path.relative_to(ROOT)
+        if any(part in FORBIDDEN_DIRECTORY_NAMES for part in relative.parts):
+            errors.append(f"generated/cache path is tracked: {relative}")
+        if path.suffix.lower() in FORBIDDEN_SUFFIXES:
+            errors.append(f"forbidden payload/generated/secret-like file is tracked: {relative}")
+
+
+def validate_structured_files(files: Iterable[Path], errors: list[str]) -> None:
+    for path in files:
+        suffix = path.suffix.lower()
+        if suffix == ".json":
+            document = load_json(path, errors)
+            if document is not None and path.name.endswith(".schema.json"):
+                try:
+                    from jsonschema import Draft202012Validator
+                except ImportError:
+                    continue
+                try:
+                    Draft202012Validator.check_schema(document)
+                except Exception as exc:  # jsonschema exposes multiple schema exceptions
+                    errors.append(f"invalid JSON Schema {path.relative_to(ROOT)}: {exc}")
+        elif suffix == ".toml":
+            try:
+                tomllib.loads(path.read_text(encoding="utf-8"))
+            except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
+                errors.append(f"invalid TOML {path.relative_to(ROOT)}: {exc}")
+        elif suffix in XML_SUFFIXES:
+            try:
+                ET.parse(path)
+            except (OSError, ET.ParseError) as exc:
+                errors.append(f"invalid XML {path.relative_to(ROOT)}: {exc}")
+        elif suffix in {".yml", ".yaml"}:
+            try:
+                import yaml
+            except ImportError:
+                continue
+            try:
+                yaml.safe_load(path.read_text(encoding="utf-8"))
+            except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
+                errors.append(f"invalid YAML {path.relative_to(ROOT)}: {exc}")
+
+
+def validate_python_syntax(files: Iterable[Path], errors: list[str]) -> None:
+    for path in files:
+        if path.suffix.lower() != ".py":
+            continue
+        try:
+            ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        except (OSError, UnicodeDecodeError, SyntaxError) as exc:
+            errors.append(f"invalid Python {path.relative_to(ROOT)}: {exc}")
+
+
+def validate_markdown_links(files: Iterable[Path], errors: list[str]) -> None:
+    link_pattern = re.compile(r"(?<!!)\[[^\]]*\]\(([^)]+)\)")
+    for path in files:
+        if path.suffix.lower() != ".md":
+            continue
+        text = path.read_text(encoding="utf-8")
+        for raw_target in link_pattern.findall(text):
+            target = raw_target.strip()
+            if target.startswith("<") and ">" in target:
+                target = target[1 : target.index(">")]
+            elif " \"" in target:
+                target = target.split(" \"", 1)[0]
+            target = unquote(target.split("#", 1)[0].split("?", 1)[0])
+            if not target or target.startswith(("http://", "https://", "mailto:", "sandbox:")):
+                continue
+            candidate = (path.parent / target).resolve()
+            try:
+                candidate.relative_to(ROOT.resolve())
+            except ValueError:
+                errors.append(f"Markdown link escapes repository in {path.relative_to(ROOT)}: {target}")
+                continue
+            if not candidate.exists():
+                errors.append(f"broken local Markdown link in {path.relative_to(ROOT)}: {target}")
+
+
+def validate_skills(errors: list[str]) -> None:
+    found: set[str] = set()
+    skills_root = ROOT / ".agents" / "skills"
+    for path in sorted(skills_root.glob("*/SKILL.md")):
+        text = path.read_text(encoding="utf-8")
+        if not text.startswith("---\n"):
+            errors.append(f"skill frontmatter must start at byte zero: {path.relative_to(ROOT)}")
+            continue
+        parts = text.split("---\n", 2)
+        if len(parts) < 3:
+            errors.append(f"skill frontmatter is not closed: {path.relative_to(ROOT)}")
+            continue
+        header = parts[1]
+        name_match = re.search(r"(?m)^name:\s*([^\s]+)\s*$", header)
+        description_match = re.search(r"(?m)^description:\s*(.+?)\s*$", header)
+        if name_match is None or description_match is None:
+            errors.append(f"skill requires name and description: {path.relative_to(ROOT)}")
+            continue
+        name = name_match.group(1)
+        found.add(name)
+        if name != path.parent.name:
+            errors.append(f"skill name/directory mismatch: {path.relative_to(ROOT)}")
+        if len(description_match.group(1).strip()) < 20:
+            errors.append(f"skill description is too vague: {path.relative_to(ROOT)}")
+    if found != EXPECTED_SKILLS:
+        errors.append(f"repository skills must be exactly {sorted(EXPECTED_SKILLS)}, got {sorted(found)}")
+
+
+def validate_source_manifest(manifest_path: Path, errors: list[str]) -> None:
+    document = load_json(manifest_path, errors)
+    if not isinstance(document, dict):
+        return
+    included = document.get("included")
+    if not isinstance(included, list) or not included:
+        errors.append(f"source manifest has no included entries: {manifest_path.relative_to(ROOT)}")
+        return
+
+    snapshot_root = manifest_path.parent.resolve()
+    listed_paths: set[str] = set()
+    for index, entry in enumerate(included):
+        if not isinstance(entry, dict):
+            errors.append(f"invalid included[{index}] in {manifest_path.relative_to(ROOT)}")
+            continue
+        relative = entry.get("path")
+        expected_hash = entry.get("sha256")
+        if not isinstance(relative, str) or not isinstance(expected_hash, str):
+            errors.append(f"invalid path/hash in {manifest_path.relative_to(ROOT)} included[{index}]")
+            continue
+        pure_path = PurePosixPath(relative)
+        if pure_path.is_absolute() or ".." in pure_path.parts:
+            errors.append(f"unsafe source-manifest path: {manifest_path.parent.name}/{relative}")
+            continue
+        candidate = (manifest_path.parent / Path(*pure_path.parts)).resolve()
+        if snapshot_root not in candidate.parents:
+            errors.append(f"source-manifest path escapes snapshot: {relative}")
+            continue
+        listed_paths.add(pure_path.as_posix())
+        if not candidate.is_file():
+            errors.append(f"source-manifest file missing: {candidate.relative_to(ROOT)}")
+            continue
+        actual_hash = sha256(candidate)
+        if actual_hash != expected_hash.lower():
+            errors.append(
+                f"reference hash drift: {candidate.relative_to(ROOT)} "
+                f"expected={expected_hash.lower()} actual={actual_hash}"
+            )
+        repository_blob_sha = entry.get("repositoryBlobSha")
+        if repository_blob_sha is not None and (
+            not isinstance(repository_blob_sha, str)
+            or git_blob_sha1(candidate) != repository_blob_sha
+        ):
+            errors.append(f"Git blob provenance drift: {candidate.relative_to(ROOT)}")
+
+    for candidate in manifest_path.parent.rglob("*"):
+        if not candidate.is_file() or candidate.name == "SOURCE_MANIFEST.json":
+            continue
+        relative = candidate.relative_to(manifest_path.parent).as_posix()
+        if candidate.name in {"README.md", "README.txt"}:
+            continue
+        if candidate.suffix.lower() in SNAPSHOT_CODE_SUFFIXES and relative not in listed_paths:
+            errors.append(f"unlisted reference source file: {candidate.relative_to(ROOT)}")
+
+
+def validate_refcode(errors: list[str]) -> None:
+    refcode_root = ROOT / "refcode"
+    snapshot_dirs = {path.name for path in refcode_root.iterdir() if path.is_dir()}
+    if snapshot_dirs != EXPECTED_REFCODE_SNAPSHOTS:
+        errors.append(
+            "refcode top-level snapshots must be exactly "
+            f"{sorted(EXPECTED_REFCODE_SNAPSHOTS)}, got {sorted(snapshot_dirs)}"
+        )
+    for path in refcode_root.rglob("*"):
+        if path.is_file() and path.suffix.lower() in FORBIDDEN_REFCODE_SUFFIXES:
+            errors.append(f"TypeScript/JavaScript is forbidden in refcode: {path.relative_to(ROOT)}")
+
+    manifest = load_json(refcode_root / "REFERENCE_MANIFEST.json", errors)
+    if isinstance(manifest, dict):
+        policy = manifest.get("policy")
+        if not isinstance(policy, dict):
+            errors.append("REFERENCE_MANIFEST policy must be an object")
+        else:
+            allowed = policy.get("allowedTopLevelCodeSnapshots")
+            if not isinstance(allowed, list) or set(allowed) != EXPECTED_REFCODE_SNAPSHOTS:
+                errors.append("REFERENCE_MANIFEST allowedTopLevelCodeSnapshots is inconsistent")
+            if policy.get("typescriptSnapshotAllowed") is not False:
+                errors.append("REFERENCE_MANIFEST must explicitly forbid TypeScript snapshots")
+    for snapshot in EXPECTED_REFCODE_SNAPSHOTS:
+        validate_source_manifest(refcode_root / snapshot / "SOURCE_MANIFEST.json", errors)
+
+
+def validate_version_license_and_sdk(errors: list[str]) -> None:
+    version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    if SEMVER.fullmatch(version) is None:
+        errors.append(f"invalid VERSION value: {version!r}")
+    spec = (ROOT / "SPEC.md").read_text(encoding="utf-8")
+    report = (ROOT / "docs/references/verification-report.md").read_text(encoding="utf-8")
+    changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    tags = (ROOT / "docs/governance/development-tags.md").read_text(encoding="utf-8")
+    if f"文件版本：`{version}`" not in spec:
+        errors.append("VERSION and SPEC.md document version disagree")
+    if f"Specification package version: `{version}`" not in report:
+        errors.append("VERSION and verification-report version disagree")
+    if f"## [{version}]" not in changelog:
+        errors.append("VERSION has no changelog section")
+    if f"v{version}" not in tags:
+        errors.append("VERSION has no development-tag node")
+    if not (ROOT / "LICENSE").read_text(encoding="utf-8").startswith("MIT License"):
+        errors.append("root LICENSE is not the MIT License")
+
+    global_json = load_json(ROOT / "global.json", errors)
+    sdk_version = global_json.get("sdk", {}).get("version") if isinstance(global_json, dict) else None
+    if not isinstance(sdk_version, str) or re.fullmatch(r"10\.0\.[0-9]+", sdk_version) is None:
+        errors.append(f"global.json must pin a stable .NET 10 SDK, got {sdk_version!r}")
+    for installer in ("scripts/install-dotnet.ps1", "scripts/install-dotnet.sh"):
+        text = (ROOT / installer).read_text(encoding="utf-8")
+        if "global.json" not in text or "dotnet-install" not in text:
+            errors.append(f"{installer} must derive the SDK from global.json and use dotnet-install")
+        if DOTNET_INSTALL_SCRIPTS_COMMIT not in text:
+            errors.append(f"{installer} must pin the approved dotnet/install-scripts commit")
+        if "raw.githubusercontent.com/dotnet/install-scripts" not in text:
+            errors.append(f"{installer} must download from the official dotnet/install-scripts repository")
+        if "<auto>" not in text:
+            errors.append(f"{installer} must translate the wrapper auto architecture to dotnet-install <auto>")
+
+
+def normalize_project_reference(project: Path, include: str) -> str:
+    return (project.parent / include.replace("\\", "/")).resolve().relative_to(ROOT.resolve()).as_posix()
+
+
+def validate_solution_and_dependencies(errors: list[str]) -> None:
+    solution_root = ET.parse(ROOT / "NvtFwCombiner.slnx").getroot()
+    solution_projects = {element.attrib["Path"].replace("\\", "/") for element in solution_root.findall("Project")}
+    if solution_projects != EXPECTED_PROJECTS:
+        errors.append(
+            f"solution projects must be exactly {sorted(EXPECTED_PROJECTS)}, got {sorted(solution_projects)}"
+        )
+
+    for relative, expected_references in EXPECTED_PROJECT_REFERENCES.items():
+        project_path = ROOT / relative
+        root = ET.parse(project_path).getroot()
+        actual = {
+            normalize_project_reference(project_path, element.attrib["Include"])
+            for element in root.iter("ProjectReference")
+        }
+        if actual != expected_references:
+            errors.append(
+                f"project reference drift in {relative}: expected={sorted(expected_references)} "
+                f"actual={sorted(actual)}"
+            )
+        for element in root.iter():
+            include = element.attrib.get("Include", "")
+            if "refcode" in include.lower():
+                errors.append(f"production/test project includes refcode: {relative} -> {include}")
+
+
+def validate_contract_model(errors: list[str]) -> None:
+    profile = load_json(ROOT / "docs/contracts/composition-profile-v1.schema.json", errors)
+    report = load_json(ROOT / "docs/contracts/composition-report-v1.schema.json", errors)
+    if isinstance(profile, dict):
+        required = set(profile.get("required", []))
+        for key in {"compositionKind", "experience", "image", "regions", "operations"}:
+            if key not in required:
+                errors.append(f"profile schema does not require canonical field: {key}")
+        if "workflowFamily" in json.dumps(profile):
+            errors.append("profile schema must not contain closed workflowFamily semantics")
+    if isinstance(report, dict):
+        required = set(report.get("required", []))
+        for key in {"compositionKind", "experience", "imageInitialization", "mutations"}:
+            if key not in required:
+                errors.append(f"report schema does not require canonical field: {key}")
+
+    spec = (ROOT / "SPEC.md").read_text(encoding="utf-8")
+    required_terms = {
+        "display-replace",
+        "tp-hw-replace",
+        "tp-fw-replace",
+        "general-replace",
+        "general-merge",
+        "host 建立的隔離 staging copy",
+        "`unknown` 絕不等同 `none`",
+    }
+    for term in required_terms:
+        if term not in spec:
+            errors.append(f"SPEC.md is missing required architecture term: {term}")
+
+
+def validate_action_pins_in(path: Path, errors: list[str]) -> None:
+    text = path.read_text(encoding="utf-8")
+    for line_number, line in enumerate(text.splitlines(), 1):
+        match = re.search(r"\buses:\s*([^\s#]+)", line)
+        if match is None:
+            continue
+        reference = match.group(1).strip("'\"")
+        if reference.startswith("./"):
+            continue
+        if FULL_ACTION_PIN.fullmatch(reference) is None:
+            errors.append(
+                f"third-party action is not pinned to a full SHA in {path.relative_to(ROOT)}:"
+                f"{line_number}: {reference}"
+            )
+    if "pull_request_target" in text:
+        errors.append(f"pull_request_target is forbidden: {path.relative_to(ROOT)}")
+    if "__" in text and "FULL_COMMIT_SHA" in text:
+        errors.append(f"workflow contains unresolved pin placeholder: {path.relative_to(ROOT)}")
+
+
+def validate_workflows(errors: list[str]) -> None:
+    workflow_files = sorted(
+        path
+        for base in (ROOT / ".github/workflows", ROOT / "docs/ci/workflow-templates")
+        for path in base.glob("*.yml")
+    )
+    for path in workflow_files:
+        validate_action_pins_in(path, errors)
+
+    ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    for name in ("policy / polytail", "python-worker / verify", "dotnet / build-test"):
+        if f"name: {name}" not in ci:
+            errors.append(f"CI is missing required check name: {name}")
+    if "scripts/install-dotnet.ps1" not in ci:
+        errors.append("CI must exercise the repository .NET installer")
+
+    release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
+    if "workflow_dispatch" not in release or "stable SemVer tag" not in release:
+        errors.append("release workflow must be manually gated by an existing stable SemVer tag")
+    if "push:" in release and "tags:" in release:
+        errors.append("development tags must not automatically trigger the stable release workflow")
+    if "scripts/package.ps1" not in release:
+        errors.append("release workflow does not call the closed-allowlist packager")
+
+
+def validate_agent_files(errors: list[str]) -> None:
+    root_agents = ROOT / "AGENTS.md"
+    if root_agents.stat().st_size > 32 * 1024:
+        errors.append(f"root AGENTS.md exceeds 32 KiB: {root_agents.stat().st_size} bytes")
+    required_nested = {
+        "src/NvtFwCombiner.Domain/AGENTS.md",
+        "src/NvtFwCombiner.Application/AGENTS.md",
+        "src/NvtFwCombiner.Infrastructure/AGENTS.md",
+        "src/NvtFwCombiner.Profiles/AGENTS.md",
+        "src/NvtFwCombiner.Presentation.Avalonia/AGENTS.md",
+        "tools/crc-worker/AGENTS.md",
+        "refcode/AGENTS.md",
+    }
+    for relative in required_nested:
+        if not (ROOT / relative).is_file():
+            errors.append(f"missing scoped AGENTS.md: {relative}")
+
+
+def validate() -> list[str]:
+    errors: list[str] = []
+    files = repository_files()
+    validate_required_files(errors)
+    validate_forbidden_tracked_content(files, errors)
+    validate_structured_files(files, errors)
+    validate_python_syntax(files, errors)
+    validate_markdown_links(files, errors)
+    validate_skills(errors)
+    validate_refcode(errors)
+    validate_version_license_and_sdk(errors)
+    validate_solution_and_dependencies(errors)
+    validate_contract_model(errors)
+    validate_workflows(errors)
+    validate_agent_files(errors)
+    return sorted(set(errors))
+
+
+def main() -> int:
+    errors = validate()
+    if errors:
+        for error in errors:
+            print(f"ERROR: {error}", file=sys.stderr)
+        return 1
+    print("Repository structure validation passed.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
