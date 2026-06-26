@@ -33,6 +33,7 @@ Diagnostics
 - Demo must not call `combiner.exe` or Python workers.
 - Demo must not implement range validation in ViewModels.
 - Demo must keep all operation language aligned with `SPEC.md` and `docs/architecture/*`.
+- Demo status labels must clearly distinguish planned, disabled, synthetic, and production-ready states.
 
 ## Page hierarchy
 
