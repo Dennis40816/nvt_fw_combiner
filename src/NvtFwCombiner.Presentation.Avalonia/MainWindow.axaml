@@ -2,21 +2,101 @@
     x:Class="NvtFwCombiner.Presentation.Avalonia.MainWindow"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Width="1120"
-    Height="720"
-    MinWidth="900"
-    MinHeight="600"
+    Width="1180"
+    Height="760"
+    MinWidth="980"
+    MinHeight="640"
     Title="NVT FW Combiner">
-  <Grid Margin="32" RowDefinitions="Auto,Auto,*">
-    <TextBlock FontSize="30" FontWeight="SemiBold" Text="NVT FW Combiner" />
-    <TextBlock Grid.Row="1" Margin="0,12,0,0" Text="Repository bootstrap • .NET 10 • Avalonia 12" />
-    <Border Grid.Row="2" Margin="0,24,0,0" Padding="24" BorderThickness="1" CornerRadius="12">
-      <StackPanel Spacing="12">
-        <TextBlock FontSize="20" FontWeight="SemiBold" Text="Development surfaces" />
-        <TextBlock Text="Merge: Standard • AB • General" />
-        <TextBlock Text="Replace: Display • TP HW • TP FW • General" />
-        <TextBlock TextWrapping="Wrap" Text="All experiences compile to the same composition operation model. Replace starts from a reference image; Merge starts from a blank image." />
+  <Grid ColumnDefinitions="220,*" RowDefinitions="*,Auto" Background="{DynamicResource SystemControlBackgroundAltHighBrush}">
+    <Border Grid.RowSpan="2" Padding="24" BorderThickness="0,0,1,0">
+      <StackPanel Spacing="18">
+        <StackPanel Spacing="4">
+          <TextBlock FontSize="26" FontWeight="SemiBold" Text="NVT FW Combiner" />
+          <TextBlock Text="0.1.1 UI planning shell" />
+        </StackPanel>
+
+        <StackPanel Spacing="8">
+          <TextBlock FontWeight="SemiBold" Text="Navigation" />
+          <Button HorizontalContentAlignment="Left" Content="Home" IsEnabled="False" />
+          <Button HorizontalContentAlignment="Left" Content="Merge" IsEnabled="False" />
+          <Button HorizontalContentAlignment="Left" Content="Replace" IsEnabled="False" />
+          <Button HorizontalContentAlignment="Left" Content="Saved Rules" IsEnabled="False" />
+          <Button HorizontalContentAlignment="Left" Content="Reports" IsEnabled="False" />
+          <Button HorizontalContentAlignment="Left" Content="Settings" IsEnabled="False" />
+          <Button HorizontalContentAlignment="Left" Content="Diagnostics" IsEnabled="False" />
+        </StackPanel>
+
+        <Border Padding="12" BorderThickness="1" CornerRadius="8">
+          <TextBlock TextWrapping="Wrap" Text="Demo only: no firmware files are read, no external combiner is executed, and no byte mutation logic lives in UI." />
+        </Border>
       </StackPanel>
+    </Border>
+
+    <ScrollViewer Grid.Column="1" Padding="32">
+      <StackPanel Spacing="24">
+        <StackPanel Spacing="6">
+          <TextBlock FontSize="30" FontWeight="SemiBold" Text="Firmware composition demo shell" />
+          <TextBlock Text="The UI surfaces are planned here before the 0.2.0 composition core is implemented." />
+        </StackPanel>
+
+        <UniformGrid Columns="3" Rows="1">
+          <Border Margin="0,0,12,0" Padding="18" BorderThickness="1" CornerRadius="12">
+            <StackPanel Spacing="10">
+              <TextBlock FontSize="18" FontWeight="SemiBold" Text="Merge" />
+              <TextBlock Text="Standard • AB • General" />
+              <TextBlock TextWrapping="Wrap" Text="Starts from a blank image. General mappings may be saved as reusable rules after review." />
+            </StackPanel>
+          </Border>
+          <Border Margin="6,0,6,0" Padding="18" BorderThickness="1" CornerRadius="12">
+            <StackPanel Spacing="10">
+              <TextBlock FontSize="18" FontWeight="SemiBold" Text="Replace" />
+              <TextBlock Text="Display • TP HW • TP FW • General" />
+              <TextBlock TextWrapping="Wrap" Text="Starts from a reference image. Persona access is enforced by profile compiler, not UI visibility alone." />
+            </StackPanel>
+          </Border>
+          <Border Margin="12,0,0,0" Padding="18" BorderThickness="1" CornerRadius="12">
+            <StackPanel Spacing="10">
+              <TextBlock FontSize="18" FontWeight="SemiBold" Text="Diagnostics" />
+              <TextBlock Text="Reports • Logs • Terminal" />
+              <TextBlock TextWrapping="Wrap" Text="Terminal is read-only. Host diff is authoritative for external combiner changes." />
+            </StackPanel>
+          </Border>
+        </UniformGrid>
+
+        <Border Padding="20" BorderThickness="1" CornerRadius="12">
+          <StackPanel Spacing="14">
+            <TextBlock FontSize="20" FontWeight="SemiBold" Text="Preview-first workflow" />
+            <Grid ColumnDefinitions="180,*,160" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
+              <TextBlock FontWeight="SemiBold" Text="Surface" />
+              <TextBlock Grid.Column="1" FontWeight="SemiBold" Text="Demo responsibility" />
+              <TextBlock Grid.Column="2" FontWeight="SemiBold" Text="Status" />
+
+              <TextBlock Grid.Row="1" Text="Profile catalog" />
+              <TextBlock Grid.Row="1" Grid.Column="1" Text="Show IC/mode/experience candidates from typed demo data." />
+              <TextBlock Grid.Row="1" Grid.Column="2" Text="Planned" />
+
+              <TextBlock Grid.Row="2" Text="Operation preview" />
+              <TextBlock Grid.Row="2" Grid.Column="1" Text="Show ordered operations, overlaps, processors, and saved-rule source." />
+              <TextBlock Grid.Row="2" Grid.Column="2" Text="Planned" />
+
+              <TextBlock Grid.Row="3" Text="Build" />
+              <TextBlock Grid.Row="3" Grid.Column="1" Text="Disabled until 0.2.0 composition core returns a valid preview." />
+              <TextBlock Grid.Row="3" Grid.Column="2" Text="Disabled" />
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <Border Padding="20" BorderThickness="1" CornerRadius="12">
+          <StackPanel Spacing="10">
+            <TextBlock FontSize="20" FontWeight="SemiBold" Text="External combiner boundary" />
+            <TextBlock TextWrapping="Wrap" Text="Future CRC/Header transforms use approved tool bindings such as legacy-combiner-1.10. The UI displays readiness and diagnostics; infrastructure owns staging work.bin, executable SHA-256 verification, timeout, and byte diff validation." />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+
+    <Border Grid.Column="1" Grid.Row="1" Padding="16" BorderThickness="0,1,0,0">
+      <TextBlock Text="Milestone: 0.1.1 UI planning • Build disabled • No firmware bytes loaded" />
     </Border>
   </Grid>
 </Window>
