@@ -10,7 +10,6 @@ force=0
 persist=0
 installer_commit="cbd31355adcf0c63eaeff601fb2eaa5fd0778f2b"
 installer_url="https://raw.githubusercontent.com/dotnet/install-scripts/$installer_commit/src/dotnet-install.sh"
-
 auto_architecture_token="<auto>"
 
 usage() {
@@ -44,14 +43,21 @@ esac
 
 case "$architecture" in auto|x64|arm64) ;; *) echo "Unsupported architecture: $architecture" >&2; exit 64 ;; esac
 mkdir -p "$install_dir"
-dotnet_bin="$install_dir/dotnet"
+repo_dotnet_bin="$install_dir/dotnet"
+selected_dotnet=""
 
-has_sdk() {
-  [[ -x "$dotnet_bin" ]] && "$dotnet_bin" --list-sdks 2>/dev/null | grep -Eq "^${sdk_version//./\.}[[:space:]]"
+has_sdk_at() {
+  local candidate="$1"
+  [[ -n "$candidate" && -x "$candidate" ]] && "$candidate" --list-sdks 2>/dev/null | grep -Eq "^${sdk_version//./\.}[[:space:]]"
 }
 
-if ((force == 0)) && has_sdk; then
+system_dotnet="$(command -v dotnet || true)"
+if ((force == 0)) && has_sdk_at "$repo_dotnet_bin"; then
+  selected_dotnet="$repo_dotnet_bin"
   printf '.NET SDK %s is already installed at %s\n' "$sdk_version" "$install_dir"
+elif ((force == 0)) && has_sdk_at "$system_dotnet"; then
+  selected_dotnet="$system_dotnet"
+  printf '.NET SDK %s is already available from system dotnet: %s\n' "$sdk_version" "$selected_dotnet"
 else
   command -v curl >/dev/null 2>&1 || { echo "curl is required." >&2; exit 1; }
   tmp_dir="$(mktemp -d)"
@@ -61,18 +67,24 @@ else
   chmod 0700 "$tmp_dir/dotnet-install.sh"
   installer_args=(--version "$sdk_version" --install-dir "$install_dir" --no-path)
   if [[ "$architecture" == "auto" ]]; then
-    printf 'Using dotnet-install default architecture auto-detection (%s).\n' "$auto_architecture_token"
+    installer_args+=(--architecture "$auto_architecture_token")
   else
     installer_args+=(--architecture "$architecture")
   fi
   "$tmp_dir/dotnet-install.sh" "${installer_args[@]}"
+  if has_sdk_at "$repo_dotnet_bin"; then
+    selected_dotnet="$repo_dotnet_bin"
+  elif has_sdk_at "$system_dotnet"; then
+    selected_dotnet="$system_dotnet"
+  fi
 fi
 
-has_sdk || { echo ".NET SDK $sdk_version was not found after installation." >&2; exit 1; }
-export DOTNET_ROOT="$install_dir"
-export PATH="$install_dir:$install_dir/tools:$PATH"
+has_sdk_at "$selected_dotnet" || { echo ".NET SDK $sdk_version was not found after installation or system fallback." >&2; exit 1; }
+selected_dir="$(cd "$(dirname "$selected_dotnet")" && pwd)"
+export DOTNET_ROOT="$selected_dir"
+export PATH="$selected_dir:$selected_dir/tools:$PATH"
 
-if ((persist == 1)); then
+if ((persist == 1)) && [[ "$selected_dotnet" == "$repo_dotnet_bin" ]]; then
   profile_file="${SHELL##*/}"
   case "$profile_file" in
     zsh) profile_file="$HOME/.zshrc" ;;
@@ -83,13 +95,13 @@ if ((persist == 1)); then
   if ! grep -Fq "$marker_begin" "$profile_file" 2>/dev/null; then
     {
       printf '\n%s\n' "$marker_begin"
-      printf 'export DOTNET_ROOT=%q\n' "$install_dir"
+      printf 'export DOTNET_ROOT=%q\n' "$selected_dir"
       printf 'export PATH="$DOTNET_ROOT:$DOTNET_ROOT/tools:$PATH"\n'
       printf '%s\n' "$marker_end"
     } >> "$profile_file"
   fi
 fi
 
-printf 'Installed .NET SDK: %s\n' "$("$dotnet_bin" --version)"
-printf 'DOTNET_ROOT: %s\n' "$install_dir"
-printf 'Run: export DOTNET_ROOT=%q; export PATH="$DOTNET_ROOT:$DOTNET_ROOT/tools:$PATH"\n' "$install_dir"
+printf 'Installed .NET SDK: %s\n' "$("$selected_dotnet" --version)"
+printf 'DOTNET_ROOT: %s\n' "$selected_dir"
+printf 'Run: export DOTNET_ROOT=%q; export PATH="$DOTNET_ROOT:$DOTNET_ROOT/tools:$PATH"\n' "$selected_dir"
