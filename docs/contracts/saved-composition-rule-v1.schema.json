@@ -1,0 +1,322 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/nfc/schemas/saved-composition-rule-v1.schema.json",
+  "title": "NVT FW Combiner Saved Composition Rule 1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "ruleId",
+    "ruleVersion",
+    "displayName",
+    "compositionKind",
+    "sourceExperience",
+    "supportStatus",
+    "compatibility",
+    "mappingRows",
+    "operationFragments",
+    "validationRuleIds",
+    "owner",
+    "evidenceRefs"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "ruleId": {
+      "$ref": "#/$defs/id"
+    },
+    "ruleVersion": {
+      "$ref": "#/$defs/semver"
+    },
+    "displayName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "compositionKind": {
+      "enum": [
+        "merge",
+        "replace"
+      ]
+    },
+    "sourceExperience": {
+      "enum": [
+        "general-merge",
+        "general-replace"
+      ]
+    },
+    "supportStatus": {
+      "enum": [
+        "draft",
+        "candidate",
+        "supported",
+        "deprecated"
+      ]
+    },
+    "compatibility": {
+      "$ref": "#/$defs/compatibility"
+    },
+    "inputSlotTemplates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/inputSlotTemplate"
+      }
+    },
+    "mappingRows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/mappingRow"
+      }
+    },
+    "operationFragments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/operationFragment"
+      }
+    },
+    "processorDependencyIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "validationRuleIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "protectedRangePolicy": {
+      "enum": [
+        "deny-crossing",
+        "deny-touch",
+        "profile-defined"
+      ]
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reviewers": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "evidenceRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "byteRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "length"
+      ],
+      "properties": {
+        "start": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profileIds",
+        "icIds",
+        "modeIds"
+      ],
+      "properties": {
+        "profileIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "icIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^NT[0-9A-Za-z-]+$"
+          }
+        },
+        "modeIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "compatibilityTags": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        }
+      }
+    },
+    "inputSlotTemplate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slotTemplateId",
+        "role",
+        "cardinality"
+      ],
+      "properties": {
+        "slotTemplateId": {
+          "$ref": "#/$defs/id"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cardinality": {
+          "enum": [
+            "one",
+            "many"
+          ]
+        },
+        "acceptedExtensions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^\\.[A-Za-z0-9]+$"
+          }
+        }
+      }
+    },
+    "mappingRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rowId",
+        "targetAddressSpaceId",
+        "targetRange",
+        "overlapPolicy",
+        "reason"
+      ],
+      "properties": {
+        "rowId": {
+          "$ref": "#/$defs/id"
+        },
+        "sourceBindingId": {
+          "$ref": "#/$defs/id"
+        },
+        "sourceSlotTemplateId": {
+          "$ref": "#/$defs/id"
+        },
+        "sourceRange": {
+          "$ref": "#/$defs/byteRange"
+        },
+        "targetAddressSpaceId": {
+          "$ref": "#/$defs/id"
+        },
+        "targetRegionId": {
+          "$ref": "#/$defs/id"
+        },
+        "targetRange": {
+          "$ref": "#/$defs/byteRange"
+        },
+        "overlapPolicy": {
+          "enum": [
+            "reject",
+            "allow-declared",
+            "replace-existing"
+          ]
+        },
+        "alignment": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "sourceBindingId"
+          ]
+        },
+        {
+          "required": [
+            "sourceSlotTemplateId"
+          ]
+        }
+      ]
+    },
+    "operationFragment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operationId",
+        "kind",
+        "reason"
+      ],
+      "properties": {
+        "operationId": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "enum": [
+            "copy-range",
+            "fill-range",
+            "patch-scalar",
+            "replace-range",
+            "run-external-processor",
+            "assert-range",
+            "validate-checksum"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mappingRowIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "processorDependencyIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        }
+      }
+    }
+  }
+}
