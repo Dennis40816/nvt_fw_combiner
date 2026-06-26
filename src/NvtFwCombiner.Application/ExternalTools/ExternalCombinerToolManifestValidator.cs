@@ -5,7 +5,6 @@ namespace NvtFwCombiner.Application.ExternalTools;
 /// <summary>Validates external combiner manifests before they can be registered for runtime use.</summary>
 public sealed class ExternalCombinerToolManifestValidator
 {
-    private static readonly char[] VersionSeparators = ['.', '-', '+'];
     private static readonly string[] AllowedTokens = ["{staging.workBin}", "{staging.outputBin}", "{staging.runDir}"];
 
     /// <summary>Returns deterministic validation errors. An empty list means the manifest is acceptable.</summary>
@@ -31,7 +30,7 @@ public sealed class ExternalCombinerToolManifestValidator
             errors.Add("TimeoutSeconds must be between 1 and 120 seconds.");
         }
 
-        if (manifest.ArgumentTemplate.Count == 0)
+        if (manifest.ArgumentTemplate is null || manifest.ArgumentTemplate.Count == 0)
         {
             errors.Add("ArgumentTemplate must contain at least one argument.");
         }
@@ -40,11 +39,18 @@ public sealed class ExternalCombinerToolManifestValidator
             ValidateArgumentTemplate(manifest.ArgumentTemplate, errors);
         }
 
-        foreach (string fileName in manifest.AllowedExtraOutputFiles)
+        if (manifest.AllowedExtraOutputFiles is null)
         {
-            if (!IsPlainFileName(fileName))
+            errors.Add("AllowedExtraOutputFiles must not be null.");
+        }
+        else
+        {
+            foreach (string fileName in manifest.AllowedExtraOutputFiles)
             {
-                errors.Add($"Allowed extra output file '{fileName}' must be a plain filename.");
+                if (!IsPlainFileName(fileName))
+                {
+                    errors.Add($"Allowed extra output file '{fileName}' must be a plain filename.");
+                }
             }
         }
 
@@ -53,13 +59,19 @@ public sealed class ExternalCombinerToolManifestValidator
 
     private static void ValidateToolVersion(string version, ICollection<string> errors)
     {
-        RequireNotBlank(version, nameof(ExternalCombinerToolManifest.ToolVersion), errors);
+        if (string.IsNullOrWhiteSpace(version))
+        {
+            errors.Add($"{nameof(ExternalCombinerToolManifest.ToolVersion)} must not be blank.");
+            return;
+        }
+
         if (version.Contains(' ', StringComparison.Ordinal))
         {
             errors.Add("ToolVersion must not contain spaces.");
         }
 
-        string[] numericParts = version.Split(VersionSeparators, StringSplitOptions.RemoveEmptyEntries);
+        string coreVersion = version.Split(['-', '+'], 2)[0];
+        string[] numericParts = coreVersion.Split('.', StringSplitOptions.RemoveEmptyEntries);
         if (numericParts.Length == 0 || numericParts.Any(part => !part.All(char.IsAsciiDigit)))
         {
             errors.Add("ToolVersion must start with dot-separated numeric string tokens, for example '1.10'.");
@@ -76,7 +88,7 @@ public sealed class ExternalCombinerToolManifestValidator
 
     private static void ValidateSha256(string value, ICollection<string> errors)
     {
-        if (value.Length != 64 || value.Any(character => !Uri.IsHexDigit(character) || char.IsUpper(character)))
+        if (string.IsNullOrWhiteSpace(value) || value.Length != 64 || value.Any(character => !Uri.IsHexDigit(character) || char.IsUpper(character)))
         {
             errors.Add("Sha256 must be 64 lowercase hexadecimal characters.");
         }
