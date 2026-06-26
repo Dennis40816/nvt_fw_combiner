@@ -40,7 +40,7 @@ if ([string]::IsNullOrWhiteSpace($InstallDir)) {
 }
 $InstallDir = [System.IO.Path]::GetFullPath($InstallDir)
 $dotnetExe = Join-Path $InstallDir 'dotnet.exe'
-$InstallerArchitecture = if ($Architecture -eq 'auto') { '<auto>' } else { $Architecture }
+$AutoArchitectureToken = '<auto>'
 
 function Test-RequiredSdk {
     param([string]$Executable)
@@ -61,7 +61,13 @@ if (-not $Force -and (Test-RequiredSdk -Executable $dotnetExe)) {
         $installer = Join-Path $tempRoot 'dotnet-install.ps1'
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
         Invoke-WebRequest -UseBasicParsing $InstallerUri -OutFile $installer
-        & $installer -Version $sdkVersion -InstallDir $InstallDir -Architecture $InstallerArchitecture -NoPath
+        $installerArgs = @('-Version', $sdkVersion, '-InstallDir', $InstallDir, '-NoPath')
+        if ($Architecture -ne 'auto') {
+            $installerArgs += @('-Architecture', $Architecture)
+        } else {
+            Write-Host "Using dotnet-install default architecture auto-detection ($AutoArchitectureToken)."
+        }
+        & $installer @installerArgs
         if ($LASTEXITCODE -ne 0) {
             throw "Microsoft dotnet-install.ps1 failed with exit code $LASTEXITCODE."
         }
