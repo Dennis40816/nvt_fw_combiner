@@ -22,7 +22,22 @@ public sealed class ChangedRangePolicy
 }
 
 /// <summary>Result of validating observed changes against declared write ranges.</summary>
-public sealed record ChangedRangeVerdict(
-    bool IsAllowed,
-    IReadOnlyList<ByteRange> ObservedRanges,
-    IReadOnlyList<ByteRange> ViolatingRanges);
+public sealed class ChangedRangeVerdict
+{
+    /// <summary>Creates a verdict from observed ranges and policy violations.</summary>
+    public ChangedRangeVerdict(bool isAllowed, IReadOnlyList<ByteRange> observedRanges, IReadOnlyList<ByteRange> violatingRanges)
+    {
+        IsAllowed = isAllowed;
+        ObservedRanges = observedRanges;
+        ViolatingRanges = violatingRanges;
+    }
+
+    /// <summary>True when every observed range is fully covered by declared write authority.</summary>
+    public bool IsAllowed { get; }
+
+    /// <summary>Observed changed ranges in deterministic order.</summary>
+    public IReadOnlyList<ByteRange> ObservedRanges { get; }
+
+    /// <summary>Observed ranges that are outside declared write authority.</summary>
+    public IReadOnlyList<ByteRange> ViolatingRanges { get; }
+}
