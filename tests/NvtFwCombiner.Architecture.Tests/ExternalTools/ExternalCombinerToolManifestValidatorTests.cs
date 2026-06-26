@@ -8,11 +8,7 @@ public sealed class ExternalCombinerToolManifestValidatorTests
     [Fact]
     public void ValidateAcceptsVersionOneTenAsStringToken()
     {
-        ExternalCombinerToolManifest manifest = ValidManifest() with
-        {
-            ToolVersion = "1.10",
-            ToolBindingId = "legacy-combiner-1-10"
-        };
+        ExternalCombinerToolManifest manifest = ValidManifest(toolVersion: "1.10", toolBindingId: "legacy-combiner-1-10");
 
         IReadOnlyList<string> errors = new ExternalCombinerToolManifestValidator().Validate(manifest);
 
@@ -23,10 +19,7 @@ public sealed class ExternalCombinerToolManifestValidatorTests
     [Fact]
     public void ValidateRejectsExecutablePathTraversal()
     {
-        ExternalCombinerToolManifest manifest = ValidManifest() with
-        {
-            ExecutableName = @"..\combiner.exe"
-        };
+        ExternalCombinerToolManifest manifest = ValidManifest(executableName: @"..\combiner.exe");
 
         IReadOnlyList<string> errors = new ExternalCombinerToolManifestValidator().Validate(manifest);
 
@@ -36,10 +29,7 @@ public sealed class ExternalCombinerToolManifestValidatorTests
     [Fact]
     public void ValidateRejectsUppercaseSha256()
     {
-        ExternalCombinerToolManifest manifest = ValidManifest() with
-        {
-            Sha256 = new string('A', 64)
-        };
+        ExternalCombinerToolManifest manifest = ValidManifest(sha256: new string('A', 64));
 
         IReadOnlyList<string> errors = new ExternalCombinerToolManifestValidator().Validate(manifest);
 
@@ -49,32 +39,34 @@ public sealed class ExternalCombinerToolManifestValidatorTests
     [Fact]
     public void ValidateRejectsUnsupportedArgumentToken()
     {
-        ExternalCombinerToolManifest manifest = ValidManifest() with
-        {
-            ArgumentTemplate = ["{staging.workBin}", "{user.path}"]
-        };
+        ExternalCombinerToolManifest manifest = ValidManifest(argumentTemplate: ["{staging.workBin}", "{user.path}"]);
 
         IReadOnlyList<string> errors = new ExternalCombinerToolManifestValidator().Validate(manifest);
 
         Assert.Contains(errors, error => error.Contains("unsupported token", StringComparison.Ordinal));
     }
 
-    private static ExternalCombinerToolManifest ValidManifest()
+    private static ExternalCombinerToolManifest ValidManifest(
+        string toolBindingId = "legacy-combiner-1-10",
+        string toolVersion = "1.10",
+        string executableName = "combiner.exe",
+        string? sha256 = null,
+        IReadOnlyList<string>? argumentTemplate = null)
     {
         return new ExternalCombinerToolManifest(
-            SchemaVersion: "1.0",
-            ToolBindingId: "legacy-combiner-1-10",
-            ToolId: "legacy-combiner",
-            ToolVersion: "1.10",
-            DisplayName: "Legacy Combiner 1.10",
-            Platform: "win-x64",
-            ExecutableName: "combiner.exe",
-            Sha256: new string('a', 64),
-            AdapterId: "legacy-combiner-inplace-v1",
-            InputMode: "in-place",
-            ArgumentTemplate: ["{staging.workBin}"],
-            WorkingDirectoryPolicy: "staging-directory",
-            TimeoutSeconds: 5,
-            AllowedExtraOutputFiles: []);
+            schemaVersion: "1.0",
+            toolBindingId: toolBindingId,
+            toolId: "legacy-combiner",
+            toolVersion: toolVersion,
+            displayName: $"Legacy Combiner {toolVersion}",
+            platform: "win-x64",
+            executableName: executableName,
+            sha256: sha256 ?? new string('a', 64),
+            adapterId: "legacy-combiner-inplace-v1",
+            inputMode: "in-place",
+            argumentTemplate: argumentTemplate ?? ["{staging.workBin}"],
+            workingDirectoryPolicy: "staging-directory",
+            timeoutSeconds: 5,
+            allowedExtraOutputFiles: []);
     }
 }
