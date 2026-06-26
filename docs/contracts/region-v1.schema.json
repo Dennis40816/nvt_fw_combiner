@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/nfc/schemas/region-v1.schema.json",
+  "title": "NVT FW Combiner Memory Region 1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "regionId",
+    "addressSpaceId",
+    "range",
+    "role",
+    "classificationTags",
+    "atomicity",
+    "writePolicy"
+  ],
+  "properties": {
+    "regionId": {
+      "$ref": "#/$defs/id"
+    },
+    "parentRegionId": {
+      "$ref": "#/$defs/id"
+    },
+    "addressSpaceId": {
+      "$ref": "#/$defs/id"
+    },
+    "range": {
+      "$ref": "#/$defs/byteRange"
+    },
+    "role": {
+      "type": "string",
+      "minLength": 1
+    },
+    "classificationTags": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/tag"
+      }
+    },
+    "atomicity": {
+      "enum": [
+        "whole",
+        "partitioned",
+        "explicit-mapping"
+      ]
+    },
+    "writePolicy": {
+      "enum": [
+        "forbidden",
+        "whole-only",
+        "declared-parts",
+        "general-explicit"
+      ]
+    },
+    "alignment": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 1
+    },
+    "processorDependencyIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "compatibilityTags": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/tag"
+      }
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+    },
+    "tag": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+    },
+    "byteRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "length"
+      ],
+      "properties": {
+        "start": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  }
+}
