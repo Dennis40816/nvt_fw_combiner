@@ -39,20 +39,35 @@ if ([string]::IsNullOrWhiteSpace($InstallDir)) {
     }
 }
 $InstallDir = [System.IO.Path]::GetFullPath($InstallDir)
-$dotnetExe = Join-Path $InstallDir 'dotnet.exe'
+$repositoryDotnetExe = Join-Path $InstallDir 'dotnet.exe'
 $AutoArchitectureToken = '<auto>'
 
 function Test-RequiredSdk {
     param([string]$Executable)
-    if (-not (Test-Path -LiteralPath $Executable -PathType Leaf)) {
+    if ([string]::IsNullOrWhiteSpace($Executable) -or -not (Test-Path -LiteralPath $Executable -PathType Leaf)) {
         return $false
     }
     $installed = & $Executable --list-sdks 2>$null
     return [bool]($installed | Where-Object { $_ -match ('^' + [regex]::Escape($sdkVersion) + '\s') })
 }
 
-if (-not $Force -and (Test-RequiredSdk -Executable $dotnetExe)) {
+function Get-SystemDotnet {
+    $command = Get-Command dotnet -ErrorAction SilentlyContinue
+    if ($null -eq $command) {
+        return $null
+    }
+    return [string]$command.Source
+}
+
+$systemDotnet = Get-SystemDotnet
+$selectedDotnet = $null
+
+if (-not $Force -and (Test-RequiredSdk -Executable $repositoryDotnetExe)) {
+    $selectedDotnet = $repositoryDotnetExe
     Write-Host ".NET SDK $sdkVersion is already installed at $InstallDir"
+} elseif (-not $Force -and (Test-RequiredSdk -Executable $systemDotnet)) {
+    $selectedDotnet = $systemDotnet
+    Write-Host ".NET SDK $sdkVersion is already available from system dotnet: $selectedDotnet"
 } else {
     New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
     $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("nfc-dotnet-" + [guid]::NewGuid().ToString('N'))
@@ -65,7 +80,7 @@ if (-not $Force -and (Test-RequiredSdk -Executable $dotnetExe)) {
         if ($Architecture -ne 'auto') {
             $installerArgs += @('-Architecture', $Architecture)
         } else {
-            Write-Host "Using dotnet-install default architecture auto-detection ($AutoArchitectureToken)."
+            $installerArgs += @('-Architecture', $AutoArchitectureToken)
         }
         & $installer @installerArgs
         if ($LASTEXITCODE -ne 0) {
@@ -74,24 +89,30 @@ if (-not $Force -and (Test-RequiredSdk -Executable $dotnetExe)) {
     } finally {
         Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
     }
-}
-
-if (-not (Test-RequiredSdk -Executable $dotnetExe)) {
-    throw ".NET SDK $sdkVersion was not found after installation."
-}
-
-$env:DOTNET_ROOT = $InstallDir
-$env:PATH = "$InstallDir$([System.IO.Path]::PathSeparator)$env:PATH"
-
-if ($PersistUserPath) {
-    [Environment]::SetEnvironmentVariable('DOTNET_ROOT', $InstallDir, 'User')
-    $userPath = [Environment]::GetEnvironmentVariable('PATH', 'User')
-    $parts = @($userPath -split ';' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-    if ($parts -notcontains $InstallDir) {
-        [Environment]::SetEnvironmentVariable('PATH', (($parts + $InstallDir) -join ';'), 'User')
+    if (Test-RequiredSdk -Executable $repositoryDotnetExe) {
+        $selectedDotnet = $repositoryDotnetExe
+    } elseif (Test-RequiredSdk -Executable $systemDotnet) {
+        $selectedDotnet = $systemDotnet
     }
 }
 
-Write-Host "Installed .NET SDK: $(& $dotnetExe --version)"
-Write-Host "DOTNET_ROOT: $InstallDir"
+if (-not (Test-RequiredSdk -Executable $selectedDotnet)) {
+    throw ".NET SDK $sdkVersion was not found after installation or system fallback."
+}
+
+$selectedDotnetDir = Split-Path -Parent $selectedDotnet
+$env:DOTNET_ROOT = $selectedDotnetDir
+$env:PATH = "$selectedDotnetDir$([System.IO.Path]::PathSeparator)$env:PATH"
+
+if ($PersistUserPath -and $selectedDotnet -eq $repositoryDotnetExe) {
+    [Environment]::SetEnvironmentVariable('DOTNET_ROOT', $selectedDotnetDir, 'User')
+    $userPath = [Environment]::GetEnvironmentVariable('PATH', 'User')
+    $parts = @($userPath -split ';' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    if ($parts -notcontains $selectedDotnetDir) {
+        [Environment]::SetEnvironmentVariable('PATH', (($parts + $selectedDotnetDir) -join ';'), 'User')
+    }
+}
+
+Write-Host "Installed .NET SDK: $(& $selectedDotnet --version)"
+Write-Host "DOTNET_ROOT: $selectedDotnetDir"
 Write-Host "Current shell PATH has been updated."
