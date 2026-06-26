@@ -11,6 +11,8 @@ persist=0
 installer_commit="cbd31355adcf0c63eaeff601fb2eaa5fd0778f2b"
 installer_url="https://raw.githubusercontent.com/dotnet/install-scripts/$installer_commit/src/dotnet-install.sh"
 
+auto_architecture_token="<auto>"
+
 usage() {
   cat <<'EOF'
 Usage: scripts/install-dotnet.sh [--scope repository|user] [--install-dir PATH]
@@ -43,8 +45,6 @@ esac
 case "$architecture" in auto|x64|arm64) ;; *) echo "Unsupported architecture: $architecture" >&2; exit 64 ;; esac
 mkdir -p "$install_dir"
 dotnet_bin="$install_dir/dotnet"
-installer_architecture="$architecture"
-[[ "$architecture" == "auto" ]] && installer_architecture="<auto>"
 
 has_sdk() {
   [[ -x "$dotnet_bin" ]] && "$dotnet_bin" --list-sdks 2>/dev/null | grep -Eq "^${sdk_version//./\.}[[:space:]]"
@@ -59,8 +59,13 @@ else
   curl --fail --location --proto '=https' --tlsv1.2 --silent --show-error \
     "$installer_url" -o "$tmp_dir/dotnet-install.sh"
   chmod 0700 "$tmp_dir/dotnet-install.sh"
-  "$tmp_dir/dotnet-install.sh" --version "$sdk_version" --install-dir "$install_dir" \
-    --architecture "$installer_architecture" --no-path
+  installer_args=(--version "$sdk_version" --install-dir "$install_dir" --no-path)
+  if [[ "$architecture" == "auto" ]]; then
+    printf 'Using dotnet-install default architecture auto-detection (%s).\n' "$auto_architecture_token"
+  else
+    installer_args+=(--architecture "$architecture")
+  fi
+  "$tmp_dir/dotnet-install.sh" "${installer_args[@]}"
 fi
 
 has_sdk || { echo ".NET SDK $sdk_version was not found after installation." >&2; exit 1; }
