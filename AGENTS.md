@@ -29,6 +29,17 @@ python -m pytest                  # narrow run from tools/crc-worker
 
 Do not invent a second canonical repository verification entry point.
 
+## Branch, PR, review, and merge rules
+
+- `main` is stable. Agents must not push implementation or documentation changes directly to `main` unless the owner explicitly requests an emergency single-file administrative edit.
+- Development happens on the active milestone branch, for example `0.1.0`, or on a `feature/<topic>` branch created from the active milestone branch.
+- Work reaches `main` only by pull request review and merge. A merge commit, squash merge, or rebase merge is acceptable only when it preserves the reviewed change set and the owner-approved milestone intent.
+- Every PR must identify scope, risk class, affected layers, contracts/profiles/ICs, verification commands, residual evidence gaps, and whether human firmware review is required.
+- Agent-authored PRs require a reviewer other than the implementer. The implementer must run Polytail before requesting review; the reviewer must apply Polytail before approval.
+- `R2` changes require architecture/contract review. `R3` changes require human firmware-owner review and byte-level evidence before merge.
+- Do not merge with failing required checks, unresolved P0/P1 review findings, missing required tests, undocumented schema/profile drift, or private golden evidence gaps disguised as TODOs.
+- If a connector/tool cannot open a PR, push only to the milestone branch and leave a clear review handoff with commit SHA, changed files, risks, and commands run. The owner or Codex must still merge to `main` through PR review.
+
 ## Mandatory architecture boundaries
 
 - `NvtFwCombiner.Domain` is pure and does not reference filesystem, process, UI, Avalonia, JSON serialization, or infrastructure.
@@ -54,7 +65,7 @@ Do not invent a second canonical repository verification entry point.
 - Never change a range, offset, operation order, atomicity, patch, checksum/header rule, padding, or naming token without evidence and tests.
 - `unknown` integrity behavior is not `none` and cannot compile as supported behavior.
 - Input/reference artifacts are immutable. Use named work buffers and atomic output promotion.
-- Python may modify only a host-created staging copy. It never modifies the user's source BIN or final output path.
+- Python, legacy `combiner.exe`, and every external processor may modify only a host-created staging copy. They never modify the user's source BIN or final output path.
 - The host independently diffs staged before/after bytes and rejects every change outside declared write ranges.
 - Never add real firmware BIN files, credentials, generated releases, or private golden data to Git.
 
@@ -72,10 +83,11 @@ After editing:
 2. Apply the repository `polytail` skill to every non-trivial change.
 3. Run `python scripts/verify.py --all` before claiming completion when the environment supports it.
 4. Report commands/results, firmware/profile/protocol/release impact, and missing private evidence.
+5. For branch work, prepare PR-ready notes: summary, changed files, risk class, tests, required reviewers, and merge target.
 
 ## Definition of done
 
-A change is incomplete while it has placeholders, duplicate semantics, magic offsets, broad suppressions, swallowed errors, fake tests, failing checks, undeclared mutations, documentation/schema drift, or missing required human review.
+A change is incomplete while it has placeholders, duplicate semantics, magic offsets, broad suppressions, swallowed errors, fake tests, failing checks, undeclared mutations, documentation/schema drift, missing required human review, or an unreviewed path into `main`.
 
 ## High-risk human gate
 
