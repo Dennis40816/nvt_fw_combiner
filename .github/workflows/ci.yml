@@ -84,7 +84,20 @@ jobs:
         run: dotnet format whitespace NvtFwCombiner.slnx --verify-no-changes --no-restore
       - name: Build solution
         shell: pwsh
-        run: dotnet build NvtFwCombiner.slnx -c Release --no-restore
+        run: |
+          $log = Join-Path $env:RUNNER_TEMP 'dotnet-build.log'
+          dotnet build NvtFwCombiner.slnx -c Release --no-restore -v:minimal -p:GenerateFullPaths=true 2>&1 | Tee-Object -FilePath $log
+          if ($LASTEXITCODE -ne 0) {
+            $errorLines = Get-Content -LiteralPath $log | Where-Object { $_ -match ': error ' -or $_ -match '^\s*error ' }
+            Write-Host '--- dotnet build errors ---'
+            if ($errorLines) {
+              $errorLines | Select-Object -First 120 | ForEach-Object { Write-Host $_ }
+            } else {
+              Write-Host 'No explicit error lines matched; showing final 200 log lines.'
+              Get-Content -LiteralPath $log -Tail 200 | ForEach-Object { Write-Host $_ }
+            }
+            exit $LASTEXITCODE
+          }
       - name: Test solution
         shell: pwsh
         run: dotnet test NvtFwCombiner.slnx -c Release --no-build
