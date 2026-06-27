@@ -3,6 +3,7 @@
     <OutputType>Exe</OutputType>
     <IsTestProject>true</IsTestProject>
     <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
