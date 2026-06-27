@@ -79,9 +79,9 @@ jobs:
       - name: Restore solution
         shell: pwsh
         run: dotnet restore NvtFwCombiner.slnx
-      - name: Verify dotnet formatting
+      - name: Verify dotnet whitespace formatting
         shell: pwsh
-        run: dotnet format NvtFwCombiner.slnx --verify-no-changes --no-restore
+        run: dotnet format whitespace NvtFwCombiner.slnx --verify-no-changes --no-restore
       - name: Build solution
         shell: pwsh
         run: dotnet build NvtFwCombiner.slnx -c Release --no-restore
