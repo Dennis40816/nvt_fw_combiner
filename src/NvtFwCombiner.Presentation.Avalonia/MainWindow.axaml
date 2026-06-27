@@ -32,57 +32,59 @@
       </StackPanel>
     </Border>
 
-    <ScrollViewer Grid.Column="1" Padding="32">
-      <StackPanel Spacing="24">
-        <StackPanel Spacing="6">
-          <TextBlock FontSize="30" FontWeight="SemiBold" Text="Firmware composition demo shell" />
-          <TextBlock Text="The UI surfaces are planned here before the 0.2.0 composition core is implemented." />
-        </StackPanel>
-
-        <StackPanel Spacing="12">
-          <Border Padding="18" BorderThickness="1" CornerRadius="12">
-            <StackPanel Spacing="10">
-              <TextBlock FontSize="18" FontWeight="SemiBold" Text="Merge" />
-              <TextBlock Text="Standard • AB • General" />
-              <TextBlock TextWrapping="Wrap" Text="Starts from a blank image. General mappings may be saved as reusable rules after review." />
-            </StackPanel>
-          </Border>
-
-          <Border Padding="18" BorderThickness="1" CornerRadius="12">
-            <StackPanel Spacing="10">
-              <TextBlock FontSize="18" FontWeight="SemiBold" Text="Replace" />
-              <TextBlock Text="Display • TP HW • TP FW • General" />
-              <TextBlock TextWrapping="Wrap" Text="Starts from a reference image. Persona access is enforced by profile compiler, not UI visibility alone." />
-            </StackPanel>
-          </Border>
-
-          <Border Padding="18" BorderThickness="1" CornerRadius="12">
-            <StackPanel Spacing="10">
-              <TextBlock FontSize="18" FontWeight="SemiBold" Text="Diagnostics" />
-              <TextBlock Text="Reports • Logs • Terminal" />
-              <TextBlock TextWrapping="Wrap" Text="Terminal is read-only. Host diff is authoritative for external combiner changes." />
-            </StackPanel>
-          </Border>
-        </StackPanel>
-
-        <Border Padding="20" BorderThickness="1" CornerRadius="12">
-          <StackPanel Spacing="14">
-            <TextBlock FontSize="20" FontWeight="SemiBold" Text="Preview-first workflow" />
-            <StackPanel Spacing="8">
-              <TextBlock Text="Profile catalog: show IC/mode/experience candidates from typed demo data. Status: planned." />
-              <TextBlock Text="Operation preview: show ordered operations, overlaps, processors, and saved-rule source. Status: planned." />
-              <TextBlock Text="Build: disabled until 0.2.0 composition core returns a valid preview." />
-            </StackPanel>
+    <ScrollViewer Grid.Column="1">
+      <Border Padding="32">
+        <StackPanel Spacing="24">
+          <StackPanel Spacing="6">
+            <TextBlock FontSize="30" FontWeight="SemiBold" Text="Firmware composition demo shell" />
+            <TextBlock Text="The UI surfaces are planned here before the 0.2.0 composition core is implemented." />
           </StackPanel>
-        </Border>
 
-        <Border Padding="20" BorderThickness="1" CornerRadius="12">
-          <StackPanel Spacing="10">
-            <TextBlock FontSize="20" FontWeight="SemiBold" Text="External combiner boundary" />
-            <TextBlock TextWrapping="Wrap" Text="Future CRC/Header transforms use approved tool bindings such as legacy-combiner-1.10. The UI displays readiness and diagnostics; infrastructure owns staging work.bin, executable SHA-256 verification, timeout, and byte diff validation." />
+          <StackPanel Spacing="12">
+            <Border Padding="18" BorderThickness="1" CornerRadius="12">
+              <StackPanel Spacing="10">
+                <TextBlock FontSize="18" FontWeight="SemiBold" Text="Merge" />
+                <TextBlock Text="Standard • AB • General" />
+                <TextBlock TextWrapping="Wrap" Text="Starts from a blank image. General mappings may be saved as reusable rules after review." />
+              </StackPanel>
+            </Border>
+
+            <Border Padding="18" BorderThickness="1" CornerRadius="12">
+              <StackPanel Spacing="10">
+                <TextBlock FontSize="18" FontWeight="SemiBold" Text="Replace" />
+                <TextBlock Text="Display • TP HW • TP FW • General" />
+                <TextBlock TextWrapping="Wrap" Text="Starts from a reference image. Persona access is enforced by profile compiler, not UI visibility alone." />
+              </StackPanel>
+            </Border>
+
+            <Border Padding="18" BorderThickness="1" CornerRadius="12">
+              <StackPanel Spacing="10">
+                <TextBlock FontSize="18" FontWeight="SemiBold" Text="Diagnostics" />
+                <TextBlock Text="Reports • Logs • Terminal" />
+                <TextBlock TextWrapping="Wrap" Text="Terminal is read-only. Host diff is authoritative for external combiner changes." />
+              </StackPanel>
+            </Border>
           </StackPanel>
-        </Border>
-      </StackPanel>
+
+          <Border Padding="20" BorderThickness="1" CornerRadius="12">
+            <StackPanel Spacing="14">
+              <TextBlock FontSize="20" FontWeight="SemiBold" Text="Preview-first workflow" />
+              <StackPanel Spacing="8">
+                <TextBlock Text="Profile catalog: show IC/mode/experience candidates from typed demo data. Status: planned." />
+                <TextBlock Text="Operation preview: show ordered operations, overlaps, processors, and saved-rule source. Status: planned." />
+                <TextBlock Text="Build: disabled until 0.2.0 composition core returns a valid preview." />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <Border Padding="20" BorderThickness="1" CornerRadius="12">
+            <StackPanel Spacing="10">
+              <TextBlock FontSize="20" FontWeight="SemiBold" Text="External combiner boundary" />
+              <TextBlock TextWrapping="Wrap" Text="Future CRC/Header transforms use approved tool bindings such as legacy-combiner-1.10. The UI displays readiness and diagnostics; infrastructure owns staging work.bin, executable SHA-256 verification, timeout, and byte diff validation." />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Border>
     </ScrollViewer>
 
     <Border Grid.Column="1" Grid.Row="1" Padding="16" BorderThickness="0,1,0,0">
