@@ -76,7 +76,7 @@ def verify_dotnet() -> None:
     commands = (
         [dotnet, "--version"],
         [dotnet, "restore", str(SOLUTION)],
-        [dotnet, "format", str(SOLUTION), "--verify-no-changes", "--no-restore"],
+        [dotnet, "format", "whitespace", str(SOLUTION), "--verify-no-changes", "--no-restore"],
         [dotnet, "build", str(SOLUTION), "-c", "Release", "--no-restore"],
         [dotnet, "test", str(SOLUTION), "-c", "Release", "--no-build"],
     )
