@@ -98,6 +98,14 @@ jobs:
             }
             exit $LASTEXITCODE
           }
+      - name: Upload dotnet build log
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: dotnet-build-log
+          path: ${{ runner.temp }}/dotnet-build.log
+          if-no-files-found: ignore
+          retention-days: 3
       - name: Test solution
         shell: pwsh
         run: dotnet test NvtFwCombiner.slnx -c Release --no-build
