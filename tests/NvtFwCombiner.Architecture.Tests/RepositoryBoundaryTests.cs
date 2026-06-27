@@ -1,9 +1,11 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
+/// <summary>Repository-level architecture boundary checks that do not depend on production assemblies.</summary>
 public sealed class RepositoryBoundaryTests
 {
     private static readonly DirectoryInfo Root = LocateRepositoryRoot();
 
+    /// <summary>Verifies architecture tests do not introduce production project references.</summary>
     [Fact]
     public void ArchitectureTestsRemainDependencyFree()
     {
@@ -12,6 +14,7 @@ public sealed class RepositoryBoundaryTests
         Assert.DoesNotContain("ProjectReference", project, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies external combiner versions are documented as exact string tokens.</summary>
     [Fact]
     public void ExternalCombinerVersionsAreDocumentedAsStringTokens()
     {
@@ -21,6 +24,7 @@ public sealed class RepositoryBoundaryTests
         Assert.Contains("`1.10` and `1.9` are exact version tokens", adr, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies UI planning documents keep firmware behavior out of ViewModels.</summary>
     [Fact]
     public void DemoUiDocumentsForbidFirmwareSemanticsInViewModels()
     {
