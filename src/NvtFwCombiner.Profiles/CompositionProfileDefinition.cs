@@ -13,7 +13,8 @@ public sealed class CompositionProfileDefinition
         string experienceId,
         ImageInitialization initialization,
         IReadOnlyList<AddressSpace> addressSpaces,
-        IReadOnlyList<CompositionOperation> operations)
+        IReadOnlyList<CompositionOperation> operations,
+        IReadOnlyList<ExplicitMappingTargetPolicy>? explicitMappingTargetPolicies = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
         ArgumentException.ThrowIfNullOrWhiteSpace(profileVersion);
@@ -29,6 +30,7 @@ public sealed class CompositionProfileDefinition
         Initialization = initialization;
         AddressSpaces = addressSpaces;
         Operations = operations;
+        ExplicitMappingTargetPolicies = explicitMappingTargetPolicies ?? [];
     }
 
     /// <summary>Stable profile id.</summary>
@@ -51,4 +53,7 @@ public sealed class CompositionProfileDefinition
 
     /// <summary>Fixed operations declared by the profile.</summary>
     public IReadOnlyList<CompositionOperation> Operations { get; }
+
+    /// <summary>Profile-approved explicit mapping target policies.</summary>
+    public IReadOnlyList<ExplicitMappingTargetPolicy> ExplicitMappingTargetPolicies { get; }
 }

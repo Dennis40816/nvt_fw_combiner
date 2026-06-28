@@ -176,12 +176,19 @@ public sealed class CompositionPlan
         }
     }
 
-    private static void ValidateOperationOverlap(
+    private void ValidateOperationOverlap(
         CompositionOperation operation,
         IReadOnlyList<CompositionOperation> priorWrites)
     {
         foreach (CompositionOperation prior in priorWrites)
         {
+            if (CreatesSameSequenceMutableDependency(prior, operation))
+            {
+                throw new ArgumentException(
+                    $"Operations '{prior.OperationId}' and '{operation.OperationId}' use a mutable read/write dependency with the same sequence.",
+                    nameof(priorWrites));
+            }
+
             if (!string.Equals(prior.TargetSpaceId, operation.TargetSpaceId, StringComparison.Ordinal) ||
                 !prior.TargetRange.Overlaps(operation.TargetRange))
             {
@@ -202,5 +209,22 @@ public sealed class CompositionPlan
                     nameof(priorWrites));
             }
         }
+    }
+
+    private bool CreatesSameSequenceMutableDependency(
+        CompositionOperation first,
+        CompositionOperation second)
+    {
+        return first.Sequence == second.Sequence &&
+            (ReadsMutableWrite(first, second) || ReadsMutableWrite(second, first));
+    }
+
+    private bool ReadsMutableWrite(CompositionOperation reader, CompositionOperation writer)
+    {
+        return reader.SourceSpaceId is not null &&
+            reader.SourceRange is not null &&
+            string.Equals(reader.SourceSpaceId, writer.TargetSpaceId, StringComparison.Ordinal) &&
+            _addressSpacesById[reader.SourceSpaceId].Mutability == AddressSpaceMutability.Mutable &&
+            reader.SourceRange.Value.Overlaps(writer.TargetRange);
     }
 }

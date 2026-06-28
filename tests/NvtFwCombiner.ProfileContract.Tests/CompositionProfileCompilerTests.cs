@@ -73,12 +73,120 @@ public sealed class CompositionProfileCompilerTests
         Assert.Contains(result.Issues, issue => issue.Code == "profile.plan.invalid");
     }
 
+    /// <summary>Verifies request-time source address spaces are included before explicit mappings are planned.</summary>
+    [Fact]
+    public void GeneralMergeAcceptsRequestSourceAddressSpace()
+    {
+        CompositionProfileDefinition profile = CreateProfile(
+            CompositionKind.Merge,
+            "general-merge",
+            ImageInitialization.Blank("output-image", 4, 0),
+            [new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable)]);
+        ExplicitMapping mapping = CreateMapping(
+            ExplicitMappingOperationKind.CopyRange,
+            sourceBindingId: "runtime-source");
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(
+            profile,
+            [mapping],
+            [new AddressSpace("runtime-source", 4, AddressSpaceMutability.Immutable)]);
+
+        Assert.True(result.IsSuccess);
+        CompositionOperation operation = Assert.Single(result.Plan!.OrderedOperations);
+        Assert.Equal("runtime-source", operation.SourceSpaceId);
+    }
+
+    /// <summary>Verifies explicit mapping range lengths must satisfy the declared alignment.</summary>
+    [Fact]
+    public void ExplicitMappingLengthMustSatisfyAlignment()
+    {
+        CompositionProfileDefinition profile = CreateProfile(
+            CompositionKind.Merge,
+            "general-merge",
+            ImageInitialization.Blank("output-image", 4, 0));
+        ExplicitMapping mapping = CreateMapping(
+            ExplicitMappingOperationKind.CopyRange,
+            sourceRange: new ByteRange(0, 3),
+            targetRange: new ByteRange(0, 3),
+            alignment: 2);
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, [mapping]);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.explicit-mapping.alignment");
+    }
+
+    /// <summary>Verifies general replace mappings are denied until a profile grants a target region policy.</summary>
+    [Fact]
+    public void GeneralReplaceRejectsMappingWithoutTargetPolicy()
+    {
+        CompositionProfileDefinition profile = CreateGeneralReplaceProfile();
+        ExplicitMapping mapping = CreateMapping(
+            ExplicitMappingOperationKind.ReplaceRange,
+            sourceBindingId: "runtime-replacement",
+            targetRange: new ByteRange(0, 2),
+            targetRegionId: "slot-a");
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(
+            profile,
+            [mapping],
+            [new AddressSpace("runtime-replacement", 4, AddressSpaceMutability.Immutable)]);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.explicit-mapping.region-policy.missing");
+    }
+
+    /// <summary>Verifies approved general replace target policies compile into replace-range operations.</summary>
+    [Fact]
+    public void GeneralReplaceAcceptsProfileApprovedTargetPolicy()
+    {
+        CompositionProfileDefinition profile = CreateGeneralReplaceProfile(
+            [CreateTargetPolicy("slot-a", [new ByteRange(0, 2)])]);
+        ExplicitMapping mapping = CreateMapping(
+            ExplicitMappingOperationKind.ReplaceRange,
+            sourceBindingId: "runtime-replacement",
+            targetRange: new ByteRange(0, 2),
+            targetRegionId: "slot-a");
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(
+            profile,
+            [mapping],
+            [new AddressSpace("runtime-replacement", 4, AddressSpaceMutability.Immutable)]);
+
+        Assert.True(result.IsSuccess);
+        CompositionOperation operation = Assert.Single(result.Plan!.OrderedOperations);
+        Assert.Equal(CompositionOperationKind.ReplaceRange, operation.Kind);
+    }
+
+    /// <summary>Verifies target policies still reject protected bytes inside otherwise allowed ranges.</summary>
+    [Fact]
+    public void GeneralReplaceRejectsProtectedTargetRange()
+    {
+        CompositionProfileDefinition profile = CreateGeneralReplaceProfile(
+            [CreateTargetPolicy("slot-a", [new ByteRange(0, 4)], [new ByteRange(1, 1)])]);
+        ExplicitMapping mapping = CreateMapping(
+            ExplicitMappingOperationKind.ReplaceRange,
+            sourceBindingId: "runtime-replacement",
+            targetRange: new ByteRange(0, 2),
+            targetRegionId: "slot-a");
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(
+            profile,
+            [mapping],
+            [new AddressSpace("runtime-replacement", 4, AddressSpaceMutability.Immutable)]);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.explicit-mapping.protected-range");
+    }
+
     private static CompositionProfileDefinition CreateProfile(
         CompositionKind compositionKind,
         string experienceId,
-        ImageInitialization initialization)
+        ImageInitialization initialization,
+        IReadOnlyList<AddressSpace>? addressSpaces = null,
+        IReadOnlyList<ExplicitMappingTargetPolicy>? explicitMappingTargetPolicies = null)
     {
-        AddressSpace[] addressSpaces =
+        AddressSpace[] defaultAddressSpaces =
         [
             new("source", 4, AddressSpaceMutability.Immutable),
             new("output-image", 4, AddressSpaceMutability.Mutable),
@@ -89,22 +197,62 @@ public sealed class CompositionProfileCompilerTests
             compositionKind,
             experienceId,
             initialization,
-            addressSpaces,
-            []);
+            addressSpaces ?? defaultAddressSpaces,
+            [],
+            explicitMappingTargetPolicies);
     }
 
-    private static ExplicitMapping CreateMapping(ExplicitMappingOperationKind operationKind)
+    private static CompositionProfileDefinition CreateGeneralReplaceProfile(
+        IReadOnlyList<ExplicitMappingTargetPolicy>? explicitMappingTargetPolicies = null)
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("reference-base", 4, AddressSpaceMutability.Immutable),
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+        ];
+        return CreateProfile(
+            CompositionKind.Replace,
+            "general-replace",
+            ImageInitialization.Reference("output-image", "reference-base", 4),
+            addressSpaces,
+            explicitMappingTargetPolicies);
+    }
+
+    private static ExplicitMappingTargetPolicy CreateTargetPolicy(
+        string regionId,
+        IReadOnlyList<ByteRange> allowedRanges,
+        IReadOnlyList<ByteRange>? protectedRanges = null)
+    {
+        return new ExplicitMappingTargetPolicy(
+            regionId,
+            "output-image",
+            allowedRanges,
+            RegionAccessKind.ExplicitRange,
+            RegionWritePolicy.GeneralExplicit,
+            RegionAtomicity.ExplicitMapping,
+            1,
+            protectedRanges);
+    }
+
+    private static ExplicitMapping CreateMapping(
+        ExplicitMappingOperationKind operationKind,
+        string sourceBindingId = "source",
+        ByteRange? sourceRange = null,
+        ByteRange? targetRange = null,
+        int alignment = 1,
+        string? targetRegionId = null)
     {
         return new ExplicitMapping(
             "mapping-1",
             10,
             operationKind,
-            "source",
-            new ByteRange(0, 2),
+            sourceBindingId,
+            sourceRange ?? new ByteRange(0, 2),
             "output-image",
-            new ByteRange(1, 2),
+            targetRange ?? new ByteRange(1, 2),
             OverlapPolicy.Reject,
-            1,
-            "compile explicit mapping");
+            alignment,
+            "compile explicit mapping",
+            targetRegionId);
     }
 }
