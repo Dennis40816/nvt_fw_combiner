@@ -131,6 +131,7 @@ EXPECTED_PROJECT_REFERENCES = {
     },
     "tests/NvtFwCombiner.Application.Tests/NvtFwCombiner.Application.Tests.csproj": {
         "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
+        "src/NvtFwCombiner.Profiles/NvtFwCombiner.Profiles.csproj",
     },
     "tests/NvtFwCombiner.ProfileContract.Tests/NvtFwCombiner.ProfileContract.Tests.csproj": {
         "src/NvtFwCombiner.Profiles/NvtFwCombiner.Profiles.csproj",

@@ -86,8 +86,11 @@ public sealed class CompositionProfileCompilerTests
         return new CompositionProfileDefinition(
             "demo-profile",
             "1.0.0",
+            "NT-SYNTHETIC",
+            "standard-merge",
             compositionKind,
             experienceId,
+            "demo-output.bin",
             initialization,
             addressSpaces,
             []);

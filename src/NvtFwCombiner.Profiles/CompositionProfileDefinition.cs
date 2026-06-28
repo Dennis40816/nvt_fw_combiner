@@ -9,23 +9,32 @@ public sealed class CompositionProfileDefinition
     public CompositionProfileDefinition(
         string profileId,
         string profileVersion,
+        string icId,
+        string modeId,
         CompositionKind compositionKind,
         string experienceId,
+        string defaultOutputFileName,
         ImageInitialization initialization,
         IReadOnlyList<AddressSpace> addressSpaces,
         IReadOnlyList<CompositionOperation> operations)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
         ArgumentException.ThrowIfNullOrWhiteSpace(profileVersion);
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(modeId);
         ArgumentException.ThrowIfNullOrWhiteSpace(experienceId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(defaultOutputFileName);
         ArgumentNullException.ThrowIfNull(initialization);
         ArgumentNullException.ThrowIfNull(addressSpaces);
         ArgumentNullException.ThrowIfNull(operations);
 
         ProfileId = profileId;
         ProfileVersion = profileVersion;
+        IcId = icId;
+        ModeId = modeId;
         CompositionKind = compositionKind;
         ExperienceId = experienceId;
+        DefaultOutputFileName = defaultOutputFileName;
         Initialization = initialization;
         AddressSpaces = addressSpaces;
         Operations = operations;
@@ -37,11 +46,20 @@ public sealed class CompositionProfileDefinition
     /// <summary>Profile content version.</summary>
     public string ProfileVersion { get; }
 
+    /// <summary>IC id declared by the profile.</summary>
+    public string IcId { get; }
+
+    /// <summary>Mode id declared by the profile.</summary>
+    public string ModeId { get; }
+
     /// <summary>Merge or replace composition kind.</summary>
     public CompositionKind CompositionKind { get; }
 
     /// <summary>Approved experience id from the experience catalog.</summary>
     public string ExperienceId { get; }
+
+    /// <summary>Default output file name rendered by the profile naming policy.</summary>
+    public string DefaultOutputFileName { get; }
 
     /// <summary>Image initialization declared by the profile.</summary>
     public ImageInitialization Initialization { get; }

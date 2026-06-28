@@ -175,6 +175,13 @@
       },
       "nvtfwcombiner.domain": {
         "type": "Project"
+      },
+      "nvtfwcombiner.profiles": {
+        "type": "Project",
+        "dependencies": {
+          "NvtFwCombiner.Contracts": "[1.0.0, )",
+          "NvtFwCombiner.Domain": "[1.0.0, )"
+        }
       }
     }
   }
