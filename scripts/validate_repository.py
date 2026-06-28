@@ -94,6 +94,8 @@ EXPECTED_PROJECTS = {
     "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj",
     "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
     "tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj",
+    "tests/NvtFwCombiner.Application.Tests/NvtFwCombiner.Application.Tests.csproj",
+    "tests/NvtFwCombiner.ProfileContract.Tests/NvtFwCombiner.ProfileContract.Tests.csproj",
     "tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj",
 }
 
@@ -126,6 +128,12 @@ EXPECTED_PROJECT_REFERENCES = {
     },
     "tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj": {
         "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
+    },
+    "tests/NvtFwCombiner.Application.Tests/NvtFwCombiner.Application.Tests.csproj": {
+        "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
+    },
+    "tests/NvtFwCombiner.ProfileContract.Tests/NvtFwCombiner.ProfileContract.Tests.csproj": {
+        "src/NvtFwCombiner.Profiles/NvtFwCombiner.Profiles.csproj",
     },
     "tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj": set(),
 }

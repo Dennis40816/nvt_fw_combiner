@@ -42,4 +42,11 @@ public static class ExperienceCatalog
         TpFirmwareReplace,
         GeneralReplace,
     ];
+
+    /// <summary>Finds an approved experience by exact id.</summary>
+    public static bool TryFind(string experienceId, out ExperienceDescriptor? experience)
+    {
+        experience = All.SingleOrDefault(item => string.Equals(item.ExperienceId, experienceId, StringComparison.Ordinal));
+        return experience is not null;
+    }
 }
