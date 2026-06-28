@@ -13,7 +13,9 @@ public sealed class CompositionProfileDefinition
         string experienceId,
         ImageInitialization initialization,
         IReadOnlyList<AddressSpace> addressSpaces,
-        IReadOnlyList<CompositionOperation> operations)
+        IReadOnlyList<CompositionOperation> operations,
+        IReadOnlyList<ProfileRegion>? regions = null,
+        IReadOnlyList<RegionAccessRule>? regionAccessRules = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
         ArgumentException.ThrowIfNullOrWhiteSpace(profileVersion);
@@ -29,6 +31,8 @@ public sealed class CompositionProfileDefinition
         Initialization = initialization;
         AddressSpaces = addressSpaces;
         Operations = operations;
+        Regions = regions ?? [];
+        RegionAccessRules = regionAccessRules ?? [];
     }
 
     /// <summary>Stable profile id.</summary>
@@ -51,4 +55,85 @@ public sealed class CompositionProfileDefinition
 
     /// <summary>Fixed operations declared by the profile.</summary>
     public IReadOnlyList<CompositionOperation> Operations { get; }
+
+    /// <summary>Canonical memory regions declared by the profile.</summary>
+    public IReadOnlyList<ProfileRegion> Regions { get; }
+
+    /// <summary>Experience access rules resolved for this profile.</summary>
+    public IReadOnlyList<RegionAccessRule> RegionAccessRules { get; }
+}
+
+/// <summary>Canonical profile memory region used by compiler policy checks.</summary>
+public sealed record ProfileRegion
+{
+    /// <summary>Creates a canonical region declaration.</summary>
+    public ProfileRegion(
+        string regionId,
+        string addressSpaceId,
+        ByteRange range,
+        RegionAtomicity atomicity,
+        RegionWritePolicy writePolicy,
+        int alignment = 1,
+        IReadOnlyList<string>? processorDependencyIds = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(regionId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
+        if (alignment <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(alignment), alignment, "Alignment must be positive.");
+        }
+
+        RegionId = regionId;
+        AddressSpaceId = addressSpaceId;
+        Range = range;
+        Atomicity = atomicity;
+        WritePolicy = writePolicy;
+        Alignment = alignment;
+        ProcessorDependencyIds = processorDependencyIds ?? [];
+    }
+
+    /// <summary>Stable region identifier.</summary>
+    public string RegionId { get; }
+
+    /// <summary>Address space that owns this region range.</summary>
+    public string AddressSpaceId { get; }
+
+    /// <summary>Half-open byte range in address-space coordinates.</summary>
+    public ByteRange Range { get; }
+
+    /// <summary>Smallest safe write unit for this region.</summary>
+    public RegionAtomicity Atomicity { get; }
+
+    /// <summary>Profile-declared write authority for this region.</summary>
+    public RegionWritePolicy WritePolicy { get; }
+
+    /// <summary>Required target start alignment for explicit writes.</summary>
+    public int Alignment { get; }
+
+    /// <summary>Processors that own additional semantics for this region.</summary>
+    public IReadOnlyList<string> ProcessorDependencyIds { get; }
+}
+
+/// <summary>Resolved experience access rule for a profile region.</summary>
+public sealed record RegionAccessRule
+{
+    /// <summary>Creates a region access rule.</summary>
+    public RegionAccessRule(string regionId, RegionAccessKind access, string reason)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(regionId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+        RegionId = regionId;
+        Access = access;
+        Reason = reason;
+    }
+
+    /// <summary>Region governed by this access rule.</summary>
+    public string RegionId { get; }
+
+    /// <summary>Authoring access granted to this region.</summary>
+    public RegionAccessKind Access { get; }
+
+    /// <summary>Human-readable policy reason.</summary>
+    public string Reason { get; }
 }
