@@ -86,8 +86,8 @@ if (-not $Force -and (Test-RequiredSdk -Executable $repositoryDotnetExe)) {
         }
         # <auto> is wrapper-only; omit -Architecture so dotnet-install auto-detects.
         & $installer @installerArgs
-        if ($LASTEXITCODE -ne 0) {
-            throw "Microsoft dotnet-install.ps1 failed with exit code $LASTEXITCODE."
+        if (-not $?) {
+            throw "Microsoft dotnet-install.ps1 failed."
         }
     } finally {
         Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
