@@ -76,9 +76,13 @@ if (-not $Force -and (Test-RequiredSdk -Executable $repositoryDotnetExe)) {
         $installer = Join-Path $tempRoot 'dotnet-install.ps1'
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
         Invoke-WebRequest -UseBasicParsing $InstallerUri -OutFile $installer
-        $installerArgs = @('-Version', $sdkVersion, '-InstallDir', $InstallDir, '-NoPath')
+        $installerArgs = @{
+            Version = $sdkVersion
+            InstallDir = $InstallDir
+            NoPath = $true
+        }
         if ($Architecture -ne 'auto') {
-            $installerArgs += @('-Architecture', $Architecture)
+            $installerArgs['Architecture'] = $Architecture
         }
         # <auto> is wrapper-only; omit -Architecture so dotnet-install auto-detects.
         & $installer @installerArgs
