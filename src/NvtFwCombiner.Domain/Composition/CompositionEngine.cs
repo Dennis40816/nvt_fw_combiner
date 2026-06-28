@@ -51,6 +51,12 @@ public static class CompositionEngine
                         "input.address-space.missing",
                         $"Input bytes for address space '{addressSpace.AddressSpaceId}' are missing."));
                 }
+                else if (RequiresMutableSeed(plan, addressSpace))
+                {
+                    issues.Add(new CompositionIssue(
+                        "input.mutable-address-space.missing",
+                        $"Mutable address space '{addressSpace.AddressSpaceId}' requires seed bytes before execution."));
+                }
 
                 continue;
             }
@@ -71,6 +77,13 @@ public static class CompositionEngine
         }
 
         return issues;
+    }
+
+    private static bool RequiresMutableSeed(CompositionPlan plan, AddressSpace addressSpace)
+    {
+        return plan.OrderedOperations.Any(operation =>
+            string.Equals(operation.TargetSpaceId, addressSpace.AddressSpaceId, StringComparison.Ordinal) ||
+            string.Equals(operation.SourceSpaceId, addressSpace.AddressSpaceId, StringComparison.Ordinal));
     }
 
     private static Dictionary<string, byte[]> InitializeMutableBuffers(CompositionPlan plan, CompositionExecutionInput input)

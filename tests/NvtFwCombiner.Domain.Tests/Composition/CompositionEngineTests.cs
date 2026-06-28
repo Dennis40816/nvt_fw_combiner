@@ -110,6 +110,36 @@ public sealed class CompositionEngineTests
         Assert.Empty(result.OutputBytes.ToArray());
     }
 
+    /// <summary>Verifies mutable address spaces outside initialization must be explicitly seeded.</summary>
+    [Fact]
+    public void MissingMutableTargetSeedFailsClosed()
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+            new("scratch", 4, AddressSpaceMutability.Mutable),
+        ];
+        var plan = new CompositionPlan(
+            ImageInitialization.Blank("output-image", 4, 0),
+            addressSpaces,
+            [
+                CompositionOperation.FillRange(
+                    "fill-scratch",
+                    10,
+                    "scratch",
+                    new ByteRange(0, 2),
+                    0x11,
+                    OverlapPolicy.Reject,
+                    "fill scratch"),
+            ]);
+
+        CompositionExecutionResult result = CompositionEngine.Execute(plan, EmptyInput());
+
+        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("input.mutable-address-space.missing", issue.Code);
+    }
+
     private static CompositionExecutionInput EmptyInput()
     {
         return new CompositionExecutionInput(new Dictionary<string, byte[]>());
