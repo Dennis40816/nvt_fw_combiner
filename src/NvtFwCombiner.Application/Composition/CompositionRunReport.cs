@@ -2,7 +2,7 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Composition;
 
-/// <summary>Deterministic machine-readable report summary for one preview or build run.</summary>
+/// <summary>Application run summary for one preview or build; not the canonical composition-report-v1 wire contract.</summary>
 public sealed class CompositionRunReport
 {
     /// <summary>Creates a report summary.</summary>

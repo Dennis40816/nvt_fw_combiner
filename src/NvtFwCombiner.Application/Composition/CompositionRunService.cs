@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 
@@ -59,17 +60,53 @@ public sealed class CompositionRunService
         ArgumentNullException.ThrowIfNull(request);
 
         DateTimeOffset startedAtUtc = _clock.UtcNow;
+        if (commitOutput && request.ApprovedPreviewToken is null)
+        {
+            CompositionExecutionResult previewRequired = CompositionExecutionResult.Failed([
+                new CompositionIssue(
+                    "build.preview-token.required",
+                    "Build requires an approved preview token before output can be committed."),
+            ]);
+            DateTimeOffset failedAtUtc = _clock.UtcNow;
+            CompositionRunReport failedReport = CreateReport(
+                request,
+                previewRequired,
+                [],
+                startedAtUtc,
+                failedAtUtc,
+                committed: false);
+            return new CompositionRunResult(
+                previewRequired.Status,
+                [],
+                failedReport,
+                committedOutputId: null);
+        }
+
         BoundInputs boundInputs = await ReadInputsAsync(request, cancellationToken).ConfigureAwait(false);
         CompositionExecutionResult execution = boundInputs.Issues.Count == 0
             ? CompositionEngine.Execute(request.Plan, new CompositionExecutionInput(boundInputs.InputBytes))
             : CompositionExecutionResult.Failed(boundInputs.Issues);
+        string? previewToken = execution.Status == CompositionExecutionStatus.Succeeded
+            ? CalculatePreviewToken(request, execution, boundInputs.InputSummaries)
+            : null;
 
         string? committedOutputId = null;
         if (commitOutput && execution.Status == CompositionExecutionStatus.Succeeded)
         {
-            committedOutputId = await _outputWriter!
-                .CommitAsync(request.OutputFileName, execution.OutputBytes, cancellationToken)
-                .ConfigureAwait(false);
+            if (!string.Equals(request.ApprovedPreviewToken, previewToken, StringComparison.Ordinal))
+            {
+                execution = CompositionExecutionResult.Failed([
+                    new CompositionIssue(
+                        "build.preview-token.mismatch",
+                        "Build request does not match the approved preview token."),
+                ]);
+            }
+            else
+            {
+                committedOutputId = await _outputWriter!
+                    .CommitAsync(request.OutputFileName, execution.OutputBytes, cancellationToken)
+                    .ConfigureAwait(false);
+            }
         }
 
         DateTimeOffset completedAtUtc = _clock.UtcNow;
@@ -85,7 +122,8 @@ public sealed class CompositionRunService
             execution.Status,
             execution.OutputBytes.ToArray(),
             report,
-            committedOutputId);
+            committedOutputId,
+            commitOutput ? null : previewToken);
     }
 
     private async ValueTask<BoundInputs> ReadInputsAsync(
@@ -98,8 +136,7 @@ public sealed class CompositionRunService
 
         foreach (string addressSpaceId in request.Plan.RequiredInputAddressSpaceIds)
         {
-            if (!request.ArtifactBindings.TryGetValue(addressSpaceId, out string? artifactId) ||
-                string.IsNullOrWhiteSpace(artifactId))
+            if (!request.ArtifactBindings.TryGetValue(addressSpaceId, out InputArtifactBinding? binding))
             {
                 issues.Add(new CompositionIssue(
                     "input.binding.missing",
@@ -108,13 +145,13 @@ public sealed class CompositionRunService
             }
 
             ReadOnlyMemory<byte> bytes = await _artifactReader
-                .ReadAsync(artifactId, cancellationToken)
+                .ReadAsync(binding.ArtifactId, cancellationToken)
                 .ConfigureAwait(false);
             byte[] buffer = bytes.ToArray();
             inputBytes.Add(addressSpaceId, buffer);
             inputSummaries.Add(new InputArtifactSummary(
                 addressSpaceId,
-                artifactId,
+                binding.BindingId,
                 buffer.LongLength,
                 ToSha256Hex(buffer)));
         }
@@ -168,6 +205,56 @@ public sealed class CompositionRunService
     private static string ToSha256Hex(ReadOnlySpan<byte> bytes)
     {
         return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+    }
+
+    private static string CalculatePreviewToken(
+        CompositionRunRequest request,
+        CompositionExecutionResult execution,
+        IReadOnlyList<InputArtifactSummary> inputSummaries)
+    {
+        var builder = new StringBuilder();
+        AppendTokenLine(builder, request.Profile.ProfileId);
+        AppendTokenLine(builder, request.Profile.ProfileVersion);
+        AppendTokenLine(builder, request.Profile.IcId);
+        AppendTokenLine(builder, request.Profile.ModeId);
+        AppendTokenLine(builder, request.Profile.ExperienceId);
+        AppendTokenLine(builder, request.Profile.CompositionKind.ToString());
+        AppendTokenLine(builder, request.OutputFileName);
+        foreach (InputArtifactSummary input in inputSummaries.OrderBy(item => item.AddressSpaceId, StringComparer.Ordinal))
+        {
+            AppendTokenLine(builder, input.AddressSpaceId);
+            AppendTokenLine(builder, input.ArtifactId);
+            AppendTokenLine(builder, input.Size.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            AppendTokenLine(builder, input.Sha256);
+        }
+
+        foreach (CompositionOperation operation in request.Plan.OrderedOperations)
+        {
+            AppendTokenLine(builder, operation.OperationId);
+            AppendTokenLine(builder, operation.Sequence.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            AppendTokenLine(builder, operation.Kind.ToString());
+            AppendTokenLine(builder, operation.SourceSpaceId ?? string.Empty);
+            AppendTokenLine(builder, FormatRange(operation.SourceRange));
+            AppendTokenLine(builder, operation.TargetSpaceId);
+            AppendTokenLine(builder, FormatRange(operation.TargetRange));
+            AppendTokenLine(builder, operation.OverlapPolicy.ToString());
+        }
+
+        AppendTokenLine(builder, execution.Status.ToString());
+        AppendTokenLine(builder, ToSha256Hex(execution.OutputBytes.Span));
+        return ToSha256Hex(Encoding.UTF8.GetBytes(builder.ToString()));
+    }
+
+    private static void AppendTokenLine(StringBuilder builder, string value)
+    {
+        _ = builder.AppendLine(value);
+    }
+
+    private static string FormatRange(ByteRange? range)
+    {
+        return range is { } value
+            ? FormattableString.Invariant($"{value.Start}:{value.Length}")
+            : string.Empty;
     }
 
     private sealed record BoundInputs(

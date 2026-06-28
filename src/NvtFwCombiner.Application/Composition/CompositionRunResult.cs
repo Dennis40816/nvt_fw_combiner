@@ -12,7 +12,8 @@ public sealed class CompositionRunResult
         CompositionExecutionStatus status,
         byte[] outputBytes,
         CompositionRunReport report,
-        string? committedOutputId)
+        string? committedOutputId,
+        string? previewToken = null)
     {
         ArgumentNullException.ThrowIfNull(outputBytes);
         ArgumentNullException.ThrowIfNull(report);
@@ -21,6 +22,7 @@ public sealed class CompositionRunResult
         _outputBytes = [.. outputBytes];
         Report = report;
         CommittedOutputId = string.IsNullOrWhiteSpace(committedOutputId) ? null : committedOutputId;
+        PreviewToken = string.IsNullOrWhiteSpace(previewToken) ? null : previewToken;
     }
 
     /// <summary>Execution status returned by the shared domain engine.</summary>
@@ -29,9 +31,12 @@ public sealed class CompositionRunResult
     /// <summary>Output bytes for preview/build when execution succeeded.</summary>
     public ReadOnlyMemory<byte> OutputBytes => _outputBytes;
 
-    /// <summary>Deterministic report summary for UI, CLI, and regression tests.</summary>
+    /// <summary>Application summary for UI, CLI, and regression tests; not the canonical v1 report artifact.</summary>
     public CompositionRunReport Report { get; }
 
     /// <summary>Adapter-owned destination id when build committed output.</summary>
     public string? CommittedOutputId { get; }
+
+    /// <summary>Deterministic token returned by preview and required before build commit.</summary>
+    public string? PreviewToken { get; }
 }
