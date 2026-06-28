@@ -2,8 +2,10 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Domain.Tests.Composition;
 
+/// <summary>Tests byte diff extraction and declared changed-range policy.</summary>
 public sealed class ByteDiffTests
 {
+    /// <summary>Verifies adjacent changed bytes are coalesced into contiguous ranges.</summary>
     [Fact]
     public void FindChangedRangesReturnsContiguousRanges()
     {
@@ -15,15 +17,17 @@ public sealed class ByteDiffTests
         Assert.Equal([new ByteRange(1, 2), new ByteRange(5, 2)], ranges);
     }
 
+    /// <summary>Verifies byte diff rejects before/after buffers with different lengths.</summary>
     [Fact]
     public void FindChangedRangesRejectsLengthChanges()
     {
         byte[] before = [0, 1];
         byte[] after = [0, 1, 2];
 
-        Assert.Throws<ArgumentException>(() => ByteDiff.FindChangedRanges(before, after));
+        _ = Assert.Throws<ArgumentException>(() => ByteDiff.FindChangedRanges(before, after));
     }
 
+    /// <summary>Verifies all observed changes are accepted when they are inside declared ranges.</summary>
     [Fact]
     public void ChangedRangePolicyAllowsDeclaredChanges()
     {
@@ -35,6 +39,7 @@ public sealed class ByteDiffTests
         Assert.Empty(verdict.ViolatingRanges);
     }
 
+    /// <summary>Verifies a changed byte outside the declared range makes the verdict fail.</summary>
     [Fact]
     public void ChangedRangePolicyRejectsOneByteOutsideDeclaredRange()
     {

@@ -32,13 +32,7 @@ public readonly record struct ByteRange
     public long Length { get; }
 
     /// <summary>Exclusive end offset.</summary>
-    public long EndExclusive
-    {
-        get
-        {
-            return checked(Start + Length);
-        }
-    }
+    public long EndExclusive => checked(Start + Length);
 
     /// <summary>Creates a range from an inclusive start and exclusive end.</summary>
     public static ByteRange FromStartEndExclusive(long start, long endExclusive)

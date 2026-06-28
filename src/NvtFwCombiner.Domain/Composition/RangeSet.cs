@@ -13,13 +13,7 @@ public sealed class RangeSet
     }
 
     /// <summary>Declared ranges sorted by start offset.</summary>
-    public IReadOnlyList<ByteRange> Ranges
-    {
-        get
-        {
-            return _ranges;
-        }
-    }
+    public IReadOnlyList<ByteRange> Ranges => _ranges;
 
     /// <summary>Returns true when at least one declared range fully contains <paramref name="candidate"/>.</summary>
     public bool Contains(ByteRange candidate)

@@ -1,5 +1,4 @@
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Domain.Memory;
 
 namespace NvtFwCombiner.Domain.Tests.Composition;
 
@@ -44,6 +43,6 @@ public sealed class ExplicitMappingTests
 
     private static ByteRange Range(long start, long length)
     {
-        return new(new ByteOffset(start), new ByteLength(length));
+        return new(start, length);
     }
 }

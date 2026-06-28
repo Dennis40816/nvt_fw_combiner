@@ -2,20 +2,24 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Domain.Tests.Composition;
 
+/// <summary>Tests composition-layer byte range invariants.</summary>
 public sealed class ByteRangeTests
 {
+    /// <summary>Verifies negative starts are rejected.</summary>
     [Fact]
     public void ConstructorRejectsNegativeStart()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new ByteRange(-1, 1));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new ByteRange(-1, 1));
     }
 
+    /// <summary>Verifies zero and negative lengths are rejected.</summary>
     [Fact]
     public void ConstructorRejectsNonPositiveLength()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new ByteRange(0, 0));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new ByteRange(0, 0));
     }
 
+    /// <summary>Verifies start/end construction uses half-open range semantics.</summary>
     [Fact]
     public void FromStartEndExclusiveUsesHalfOpenSemantics()
     {
@@ -29,6 +33,7 @@ public sealed class ByteRangeTests
         Assert.False(range.Contains(14));
     }
 
+    /// <summary>Verifies intersect returns the shared half-open range.</summary>
     [Fact]
     public void IntersectReturnsSharedRange()
     {
@@ -38,6 +43,7 @@ public sealed class ByteRangeTests
         Assert.Equal(new ByteRange(15, 5), left.Intersect(right));
     }
 
+    /// <summary>Verifies adjacent ranges do not overlap.</summary>
     [Fact]
     public void AdjacentRangesDoNotOverlap()
     {
