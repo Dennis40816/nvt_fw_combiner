@@ -55,7 +55,7 @@ system_dotnet="$(command -v dotnet || true)"
 if ((force == 0)) && has_sdk_at "$repo_dotnet_bin"; then
   selected_dotnet="$repo_dotnet_bin"
   printf '.NET SDK %s is already installed at %s\n' "$sdk_version" "$install_dir"
-elif ((force == 0)) && has_sdk_at "$system_dotnet"; then
+elif ((force == 0)) && [[ "$scope" != "repository" ]] && has_sdk_at "$system_dotnet"; then
   selected_dotnet="$system_dotnet"
   printf '.NET SDK %s is already available from system dotnet: %s\n' "$sdk_version" "$selected_dotnet"
 else
@@ -67,14 +67,14 @@ else
   chmod 0700 "$tmp_dir/dotnet-install.sh"
   installer_args=(--version "$sdk_version" --install-dir "$install_dir" --no-path)
   if [[ "$architecture" == "auto" ]]; then
-    installer_args+=(--architecture "$auto_architecture_token")
+    : # <auto> is wrapper-only; omit --architecture so dotnet-install auto-detects.
   else
     installer_args+=(--architecture "$architecture")
   fi
   "$tmp_dir/dotnet-install.sh" "${installer_args[@]}"
   if has_sdk_at "$repo_dotnet_bin"; then
     selected_dotnet="$repo_dotnet_bin"
-  elif has_sdk_at "$system_dotnet"; then
+  elif [[ "$scope" != "repository" ]] && has_sdk_at "$system_dotnet"; then
     selected_dotnet="$system_dotnet"
   fi
 fi

@@ -94,6 +94,7 @@ EXPECTED_PROJECTS = {
     "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj",
     "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
     "tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj",
+    "tests/NvtFwCombiner.Application.Tests/NvtFwCombiner.Application.Tests.csproj",
     "tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj",
 }
 
@@ -126,6 +127,10 @@ EXPECTED_PROJECT_REFERENCES = {
     },
     "tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj": {
         "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
+    },
+    "tests/NvtFwCombiner.Application.Tests/NvtFwCombiner.Application.Tests.csproj": {
+        "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
+        "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
     },
     "tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj": set(),
 }
@@ -168,7 +173,15 @@ def repository_files() -> list[Path]:
     tracked = _git_tracked_paths()
     if tracked is not None:
         return [path for path in tracked if path.is_file()]
-    return [path for path in ROOT.rglob("*") if path.is_file() and ".git" not in path.relative_to(ROOT).parts]
+    files: list[Path] = []
+    for path in ROOT.rglob("*"):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(ROOT)
+        if ".git" in relative.parts or any(part in FORBIDDEN_DIRECTORY_NAMES for part in relative.parts):
+            continue
+        files.append(path)
+    return files
 
 
 def sha256(path: Path) -> str:
