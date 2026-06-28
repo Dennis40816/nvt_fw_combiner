@@ -65,7 +65,7 @@ $selectedDotnet = $null
 if (-not $Force -and (Test-RequiredSdk -Executable $repositoryDotnetExe)) {
     $selectedDotnet = $repositoryDotnetExe
     Write-Host ".NET SDK $sdkVersion is already installed at $InstallDir"
-} elseif (-not $Force -and (Test-RequiredSdk -Executable $systemDotnet)) {
+} elseif (-not $Force -and $Scope -ne 'Repository' -and (Test-RequiredSdk -Executable $systemDotnet)) {
     $selectedDotnet = $systemDotnet
     Write-Host ".NET SDK $sdkVersion is already available from system dotnet: $selectedDotnet"
 } else {
@@ -79,9 +79,8 @@ if (-not $Force -and (Test-RequiredSdk -Executable $repositoryDotnetExe)) {
         $installerArgs = @('-Version', $sdkVersion, '-InstallDir', $InstallDir, '-NoPath')
         if ($Architecture -ne 'auto') {
             $installerArgs += @('-Architecture', $Architecture)
-        } else {
-            $installerArgs += @('-Architecture', $AutoArchitectureToken)
         }
+        # <auto> is wrapper-only; omit -Architecture so dotnet-install auto-detects.
         & $installer @installerArgs
         if ($LASTEXITCODE -ne 0) {
             throw "Microsoft dotnet-install.ps1 failed with exit code $LASTEXITCODE."
@@ -91,7 +90,7 @@ if (-not $Force -and (Test-RequiredSdk -Executable $repositoryDotnetExe)) {
     }
     if (Test-RequiredSdk -Executable $repositoryDotnetExe) {
         $selectedDotnet = $repositoryDotnetExe
-    } elseif (Test-RequiredSdk -Executable $systemDotnet) {
+    } elseif ($Scope -ne 'Repository' -and (Test-RequiredSdk -Executable $systemDotnet)) {
         $selectedDotnet = $systemDotnet
     }
 }

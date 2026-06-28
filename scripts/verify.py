@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import os
 import shutil
 import subprocess
 import sys
@@ -17,6 +18,31 @@ SOLUTION = ROOT / "NvtFwCombiner.slnx"
 def run(command: list[str], *, cwd: Path = ROOT) -> None:
     print(f"\n> {' '.join(command)}", flush=True)
     subprocess.run(command, cwd=cwd, check=True)
+
+
+def run_with_log(command: list[str], log_path: Path, *, cwd: Path = ROOT) -> None:
+    print(f"\n> {' '.join(command)}", flush=True)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    process = subprocess.Popen(
+        command,
+        cwd=cwd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    if process.stdout is None:
+        raise RuntimeError("failed to capture process output")
+
+    with log_path.open("w", encoding="utf-8") as log:
+        for line in process.stdout:
+            print(line, end="")
+            log.write(line)
+
+    return_code = process.wait()
+    if return_code != 0:
+        raise subprocess.CalledProcessError(return_code, command)
 
 
 def verify_structure() -> None:
@@ -80,8 +106,12 @@ def verify_dotnet() -> None:
         [dotnet, "build", str(SOLUTION), "-c", "Release", "--no-restore"],
         [dotnet, "test", str(SOLUTION), "-c", "Release", "--no-build"],
     )
+    build_log = os.environ.get("NFC_DOTNET_BUILD_LOG")
     for command in commands:
-        run(command)
+        if build_log and len(command) > 1 and command[1] == "build":
+            run_with_log(command, Path(build_log))
+        else:
+            run(command)
 
 
 def parse_args() -> argparse.Namespace:
