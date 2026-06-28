@@ -90,10 +90,7 @@ public static class CompositionProfileCompiler
         foreach (ExplicitMapping mapping in explicitMappings)
         {
             ValidateMappingAlignment(mapping, issues);
-            if (profile.CompositionKind == CompositionKind.Replace)
-            {
-                ValidateReplaceMappingPolicy(profile, mapping, issues);
-            }
+            ValidateExplicitMappingRegionPolicy(profile, mapping, issues);
         }
 
         return issues;
@@ -113,74 +110,106 @@ public static class CompositionProfileCompiler
 
         issues.Add(new CompositionIssue(
             "profile.explicit-mapping.alignment",
-            $"Explicit mapping '{mapping.MappingId}' source and target ranges must satisfy alignment {mapping.Alignment}."));
+            $"Explicit mapping '{mapping.MappingId}' source and target ranges must satisfy alignment {mapping.Alignment}.",
+            mapping.MappingId));
     }
 
-    private static void ValidateReplaceMappingPolicy(
+    private static void ValidateExplicitMappingRegionPolicy(
         CompositionProfileDefinition profile,
         ExplicitMapping mapping,
         List<CompositionIssue> issues)
     {
-        if (mapping.OperationKind != ExplicitMappingOperationKind.ReplaceRange)
-        {
-            return;
-        }
-
         if (mapping.TargetRegionId is null)
         {
             issues.Add(new CompositionIssue(
-                "profile.explicit-mapping.region-policy.missing",
-                $"Explicit replace mapping '{mapping.MappingId}' must cite an approved target region."));
+                "profile.explicit-mapping.target-region-required",
+                $"Explicit mapping '{mapping.MappingId}' must name a profile-approved target region.",
+                mapping.MappingId));
             return;
         }
 
-        ExplicitMappingTargetPolicy? policy = profile.ExplicitMappingTargetPolicies.SingleOrDefault(candidate =>
-            string.Equals(candidate.RegionId, mapping.TargetRegionId, StringComparison.Ordinal) &&
-            string.Equals(candidate.TargetSpaceId, mapping.TargetSpaceId, StringComparison.Ordinal));
-        if (policy is null)
+        ProfileRegion? targetRegion = profile.Regions.SingleOrDefault(region =>
+            string.Equals(region.RegionId, mapping.TargetRegionId, StringComparison.Ordinal));
+        if (targetRegion is null)
         {
             issues.Add(new CompositionIssue(
-                "profile.explicit-mapping.region-policy.missing",
-                $"Explicit replace mapping '{mapping.MappingId}' does not match an approved target region policy."));
+                "profile.explicit-mapping.target-region-unknown",
+                $"Explicit mapping '{mapping.MappingId}' targets unknown region '{mapping.TargetRegionId}'.",
+                mapping.MappingId));
             return;
         }
 
-        if (policy.AccessKind != RegionAccessKind.ExplicitRange ||
-            policy.WritePolicy != RegionWritePolicy.GeneralExplicit ||
-            policy.Atomicity != RegionAtomicity.ExplicitMapping)
+        RegionAccessRule? accessRule = profile.RegionAccessRules.SingleOrDefault(rule =>
+            string.Equals(rule.RegionId, targetRegion.RegionId, StringComparison.Ordinal));
+        if (accessRule?.Access != RegionAccessKind.ExplicitRange ||
+            targetRegion.WritePolicy != RegionWritePolicy.GeneralExplicit ||
+            targetRegion.Atomicity != RegionAtomicity.ExplicitMapping)
         {
             issues.Add(new CompositionIssue(
-                "profile.explicit-mapping.region-policy.denied",
-                $"Explicit replace mapping '{mapping.MappingId}' targets a region that is not writable by explicit range."));
+                "profile.explicit-mapping.region-not-enabled",
+                $"Explicit mapping '{mapping.MappingId}' targets region '{targetRegion.RegionId}' without explicit-range access and general-explicit write policy.",
+                mapping.MappingId));
         }
 
-        if (!policy.ContainsAllowedRange(mapping.TargetRange))
+        if (!string.Equals(targetRegion.AddressSpaceId, mapping.TargetSpaceId, StringComparison.Ordinal) ||
+            !targetRegion.Range.Contains(mapping.TargetRange))
         {
             issues.Add(new CompositionIssue(
-                "profile.explicit-mapping.range-denied",
-                $"Explicit replace mapping '{mapping.MappingId}' target range is outside profile-approved ranges."));
+                "profile.explicit-mapping.range-outside-region",
+                $"Explicit mapping '{mapping.MappingId}' target range must stay inside region '{targetRegion.RegionId}'.",
+                mapping.MappingId));
         }
 
-        if (policy.OverlapsProtectedRange(mapping.TargetRange))
-        {
-            issues.Add(new CompositionIssue(
-                "profile.explicit-mapping.protected-range",
-                $"Explicit replace mapping '{mapping.MappingId}' overlaps a protected range."));
-        }
-
-        if (policy.RequiredProcessorIds.Count > 0)
-        {
-            issues.Add(new CompositionIssue(
-                "profile.explicit-mapping.processor-dependency",
-                $"Explicit replace mapping '{mapping.MappingId}' requires unresolved processors: {string.Join(", ", policy.RequiredProcessorIds)}."));
-        }
-
-        if (mapping.TargetRange.Start % policy.Alignment != 0 || mapping.TargetRange.Length % policy.Alignment != 0)
+        if (mapping.TargetRange.Start % targetRegion.Alignment != 0 ||
+            mapping.TargetRange.Length % targetRegion.Alignment != 0)
         {
             issues.Add(new CompositionIssue(
                 "profile.explicit-mapping.region-alignment",
-                $"Explicit replace mapping '{mapping.MappingId}' target range must satisfy region alignment {policy.Alignment}."));
+                $"Explicit mapping '{mapping.MappingId}' target range does not satisfy region '{targetRegion.RegionId}' alignment.",
+                mapping.MappingId));
         }
+
+        if (targetRegion.ProcessorDependencyIds.Count > 0)
+        {
+            issues.Add(new CompositionIssue(
+                "profile.explicit-mapping.processor-dependency",
+                $"Explicit mapping '{mapping.MappingId}' targets region '{targetRegion.RegionId}' with processor dependencies.",
+                mapping.MappingId));
+        }
+
+        if (OverlapsProtectedRegion(profile, targetRegion, mapping))
+        {
+            issues.Add(new CompositionIssue(
+                "profile.explicit-mapping.protected-overlap",
+                $"Explicit mapping '{mapping.MappingId}' overlaps a protected or non-explicit profile region.",
+                mapping.MappingId));
+        }
+    }
+
+    private static bool OverlapsProtectedRegion(
+        CompositionProfileDefinition profile,
+        ProfileRegion targetRegion,
+        ExplicitMapping mapping)
+    {
+        foreach (ProfileRegion region in profile.Regions)
+        {
+            if (!string.Equals(region.AddressSpaceId, mapping.TargetSpaceId, StringComparison.Ordinal) ||
+                !region.Range.Overlaps(mapping.TargetRange) ||
+                string.Equals(region.RegionId, targetRegion.RegionId, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            RegionAccessRule? rule = profile.RegionAccessRules.SingleOrDefault(item =>
+                string.Equals(item.RegionId, region.RegionId, StringComparison.Ordinal));
+            if (region.WritePolicy == RegionWritePolicy.Forbidden ||
+                rule?.Access != RegionAccessKind.ExplicitRange)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static CompositionOperation CompileExplicitMapping(
