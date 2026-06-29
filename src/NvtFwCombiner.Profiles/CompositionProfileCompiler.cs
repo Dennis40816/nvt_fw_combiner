@@ -33,7 +33,14 @@ public static class CompositionProfileCompiler
                 .. profile.AddressSpaces,
                 .. requestAddressSpaces,
             ];
-            var plan = new CompositionPlan(profile.Initialization, addressSpaces, operations);
+            var provenance = new CompositionPlanProvenance(
+                profile.ProfileId,
+                profile.ProfileVersion,
+                profile.IcId,
+                profile.ModeId,
+                profile.ExperienceId,
+                profile.CompositionKind);
+            var plan = new CompositionPlan(profile.Initialization, addressSpaces, operations, provenance);
             return ProfileCompileResult.Succeeded(plan);
         }
         catch (ArgumentException exception)

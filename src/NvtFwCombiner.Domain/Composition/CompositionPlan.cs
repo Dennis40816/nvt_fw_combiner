@@ -9,7 +9,8 @@ public sealed class CompositionPlan
     public CompositionPlan(
         ImageInitialization initialization,
         IEnumerable<AddressSpace> addressSpaces,
-        IEnumerable<CompositionOperation> operations)
+        IEnumerable<CompositionOperation> operations,
+        CompositionPlanProvenance? provenance = null)
     {
         ArgumentNullException.ThrowIfNull(initialization);
         ArgumentNullException.ThrowIfNull(addressSpaces);
@@ -18,6 +19,7 @@ public sealed class CompositionPlan
         Initialization = initialization;
         AddressSpaces = [.. addressSpaces];
         OrderedOperations = [.. operations.OrderBy(operation => operation.Sequence).ThenBy(operation => operation.OperationId)];
+        Provenance = provenance;
         _addressSpacesById = BuildAddressSpaceIndex(AddressSpaces);
 
         ValidateInitialization();
@@ -32,6 +34,9 @@ public sealed class CompositionPlan
 
     /// <summary>Operations sorted by sequence and then operation id.</summary>
     public IReadOnlyList<CompositionOperation> OrderedOperations { get; }
+
+    /// <summary>Profile identity carried by compiler-created plans.</summary>
+    public CompositionPlanProvenance? Provenance { get; }
 
     /// <summary>Immutable address spaces that must be provided by the application before execution.</summary>
     public IReadOnlyList<string> RequiredInputAddressSpaceIds =>
