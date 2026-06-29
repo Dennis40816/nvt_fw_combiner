@@ -1,0 +1,166 @@
+{
+  "global": {
+    "dp_version_prefix": "D",
+    "tp_version_prefix": "T",
+    "tp_dir": "test/Test_TP_Bin",
+    "dp_dir": "test/Test_DP_Bin",
+    "out_dir": "test/Test_Output",
+    "padding_byte": "0x00",
+    "join_version": true
+  },
+
+  "51920": {
+    "flash_size": "0x40000",
+    "tp_bin_start_address": "0x00000",
+    "tp_bin_end_address":   "0x2FFFF",
+    "tp_version_ref": "end",
+    "tp_version_offset": "-0xFFF",
+
+    "dp_bin_start_address": "0x3E000",
+    "dp_bin_end_address":   "0x3FFFF",
+    "dp_version_ref": "start",
+    "dp_version_offset": "0x15",
+
+    "extra_bins": [],
+    "tp_size_check": false,
+    "flash_name_prefix": "NT51920_FlashCode"
+  },
+
+  "51923": {
+    "flash_size": "0x40000",
+    "tp_bin_start_address": "0x00000",
+    "tp_bin_end_address":   "0x3BFFF",
+    "tp_version_ref": "end",
+    "tp_version_offset": "-0xFFF",
+
+    "dp_bin_start_address": "0x3E000",
+    "dp_bin_end_address":   "0x3FFFF",
+    "dp_version_ref": "start",
+    "dp_version_offset": "0x15",
+
+    "extra_bins": [],
+    "tp_size_check": true,
+    "flash_name_prefix": "NT51923_FlashCode"
+  },
+
+  "51926": {
+    "flash_size": "0x40000",
+    "tp_bin_start_address": "0x00000",
+    "tp_bin_end_address":   "0x3BFFF",
+    "tp_version_ref": "end",
+    "tp_version_offset": "-0xFFF",
+
+    "dp_bin_start_address": "0x3E000",
+    "dp_bin_end_address":   "0x3FFFF",
+    "dp_version_ref": "start",
+    "dp_version_offset": "0x15",
+
+    "extra_bins": [],
+    "tp_size_check": true,
+    "flash_name_prefix": "NT51926_FlashCode"
+  },
+
+  "51927": {
+    "flash_size": "0x40000",
+    "tp_bin_start_address": "0x00000",
+    "tp_bin_end_address":   "0x34FFF",
+    "tp_version_ref": "end",
+    "tp_version_offset": "-0xFFF",
+
+    "dp_bin_start_address": "0x3C000",
+    "dp_bin_end_address":   "0x3FFFF",
+    "dp_version_ref": "start",
+    "dp_version_offset": "0x1D",
+
+    "extra_bins": [],
+    "tp_size_check": true,
+    "flash_name_prefix": "NT51927_FlashCode"
+  },
+
+  "51928": {
+    "flash_size": "0x80000",
+    "tp_bin_start_address": "0x00000",
+    "tp_bin_end_address":   "0x34FFF",
+    "tp_version_ref": "end",
+    "tp_version_offset": "-0xFFF",
+
+    "dp_bin_start_address": "0x3C000",
+    "dp_bin_end_address":   "0x3FFFF",
+    "dp_version_ref": "start",
+    "dp_version_offset": "0x1D",
+
+    "extra_bins": [
+      {
+        "dir": "test/Test_LD_Bin",
+        "name": "LD",
+        "start": "0x40000",
+        "end": "0x61FFF",
+        "version_ref": "start",
+        "version_offset": "0x0B",
+        "version_prefix": "L"
+      }
+    ],
+
+    "tp_size_check": true,
+    "flash_name_prefix": "NT51928_FlashCode"
+  },
+
+  "51929": {
+    "comment": "51929 is literally the same as 51932",
+    "flash_size": "0x40000",
+    "tp_bin_start_address": "0x07000",
+    "tp_bin_end_address":   "0x3FFFF",
+    "tp_version_ref": {
+      "type": "ascii",
+      "find_last_value": "NVT"
+    },
+    "tp_version_offset": "-0xFFF",
+
+    "dp_bin_start_address": "0x00000",
+    "dp_bin_end_address":   "0x05FFF",
+    "dp_version_ref": "start",
+    "dp_version_offset": "0x67",
+
+    "extra_bins": [],
+    "tp_size_check": true,
+    "flash_name_prefix": "NT51929_FlashCode"
+  },
+
+  "51931": {
+    "flash_size": "0x40000",
+    "tp_bin_start_address": "0x00000",
+    "tp_bin_end_address":   "0x3BFFF",
+    "tp_version_ref": "end",
+    "tp_version_offset": "-0xFFF",
+
+    "dp_bin_start_address": "0x3E000",
+    "dp_bin_end_address":   "0x3FFFF",
+    "dp_version_ref": "start",
+    "dp_version_offset": "0x19",
+
+    "extra_bins": [],
+    "tp_size_check": true,
+    "flash_name_prefix": "NT51931_FlashCode"
+  },
+
+  "51932": {
+    "comment": "Dynamic FW Layout",
+    "flash_size": "0x40000",
+    "tp_bin_start_address": "0x07000",
+    "tp_bin_end_address":   "0x3FFFF",
+    "tp_version_ref": {
+      "type": "ascii",
+      "find_last_value": "NVT"
+    },
+    "tp_version_offset": "-0xFFF",
+
+    "dp_bin_start_address": "0x00000",
+    "dp_bin_end_address":   "0x05FFF",
+    "dp_version_ref": "start",
+    "dp_version_offset": "0x67",
+
+    "extra_bins": [],
+    "tp_size_check": true,
+    "flash_name_prefix": "NT51932_FlashCode"
+  }
+}

@@ -1,0 +1,247 @@
+{
+  "manifestVersion": "1.0",
+  "payloadClass": "owner-approved-golden-firmware",
+  "binaryPayloadsIncluded": true,
+  "source": {
+    "repository": "Dennis40816/NFCG",
+    "commit": "bb87f183dc8abe3c47ff1a01966805ede5e74115",
+    "basePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test",
+    "testTreeSha": "693368fc1bac3471a7ae09fc1e2735055150948b",
+    "sourceClassification": "private-owner-approved-golden",
+    "approval": "Repository owner requested gen_flash_bin_v2 test BIN files be tracked as golden fixtures on 2026-06-30."
+  },
+  "supportingFiles": {
+    "test_ic_config": {
+      "path": "test_ic_config.json",
+      "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/test_ic_config.json",
+      "sourceBlobSha": "ca60e46f9e39c7e21e4dcdd601bbbe878e3c15db",
+      "size": 4094,
+      "sha256": "3afeb76d677f8a9b153bbd8c67bf77d7dd6544078f51ad67616d53efd1a45973"
+    }
+  },
+  "cases": [
+    {
+      "ic": "51920",
+      "profileId": "nt51920-standard-merge-gen-flash",
+      "inputs": {
+        "dp-input": {
+          "path": "inputs/51920/dp.bin",
+          "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_DP_Bin/JDI_LPM149G527A_JD51920_InitialCode_DP01_0_20241007.bin",
+          "sourceBlobSha": "06c43eba98d783006eb0cd7cca57628cc7713f28",
+          "size": 262144,
+          "sha256": "6fc8a14c03bf84a0d2db2777cbca9d1b273ccba35f518457928e44f538acfc0d"
+        },
+        "tp-input": {
+          "path": "inputs/51920/tp.bin",
+          "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_TP_Bin/JDI_LPM149G527A_JD51920_TP01_0_20241008.bin",
+          "sourceBlobSha": "ed9250a92c07919bb8675d0b9d3915ffa6adaa52",
+          "size": 196608,
+          "sha256": "4db68971dbb5bd8be4f68eccdfe1335b8dc4cfec8b65b46799133cde7bf142d5"
+        }
+      },
+      "expectedOutput": {
+        "path": "expected/51920/flash.bin",
+        "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Expected/NT51920_FlashCode_D01T01_20251028.bin",
+        "sourceBlobSha": "9089fcb5a70fc93ae40e43aac713637131f0f3b9",
+        "size": 262144,
+        "sha256": "1803d16e5c6c3082899c783156516734f9d43e3209ecd74099296d216a389be9"
+      }
+    },
+    {
+      "ic": "51923",
+      "profileId": "nt51923-standard-merge-gen-flash",
+      "inputs": {
+        "dp-input": {
+          "path": "inputs/51923/dp.bin",
+          "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_DP_Bin/NT51923TT_Initial Code_CSOT_1920x1080_TFT126C_D81_20240119.bin",
+          "sourceBlobSha": "29c67ea2bd0e60dc30937cf344eb9288e7cd321b",
+          "size": 262144,
+          "sha256": "eb15b2ad0172e325d767a27e32f56cc19df7b9d95e96e4b19cc2cd547656612d"
+        },
+        "tp-input": {
+          "path": "inputs/51923/tp.bin",
+          "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_TP_Bin/NT51923_CSOT_1290_20240826_V06.bin",
+          "sourceBlobSha": "7ad561b83fe9419b8ee8b70b5e516c66435d7a65",
+          "size": 245760,
+          "sha256": "4efbb496096d5851b8ae5fee396a77f6aa85eb0240bc19e0fc3171c25c6b6514"
+        }
+      },
+      "expectedOutput": {
+        "path": "expected/51923/flash.bin",
+        "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Expected/NT51923_FlashCode_D81T06_20251028.bin",
+        "sourceBlobSha": "ba91f7ccf9258b1d520ef969ea221a4066d1f57c",
+        "size": 262144,
+        "sha256": "b611bd837991be1ccb8e1dfffa7a9a1e825e71221c27377cf1aca8b37cf5666f"
+      }
+    },
+    {
+      "ic": "51926",
+      "profileId": "nt51926-standard-merge-gen-flash",
+      "inputs": {
+        "dp-input": {
+          "path": "inputs/51926/dp.bin",
+          "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_DP_Bin/NT51926TT_Initial Code_CSOT_1920x1080_14.0_D01_20251003.bin",
+          "sourceBlobSha": "2a464295ea326469d5425df3cf996a6941361767",
+          "size": 262144,
+          "sha256": "2853828a2bafaf9b7611ca18008c2a3866b5d566f97ce116ecb15864e652259b"
+        },
+        "tp-input": {
+          "path": "inputs/51926/tp.bin",
+          "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_TP_Bin/NT51926_FW_CSOT_14_00_PID5102_v01_20251003.bin",
+          "sourceBlobSha": "8d5323030adb0f5241498805cf6e4bcf7d7588bc",
+          "size": 245760,
+          "sha256": "9e5321fb7673736c6c52e61549e33347e3852488bd253088db7239d4d0f371fc"
+        }
+      },
+      "expectedOutput": {
+        "path": "expected/51926/flash.bin",
+        "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Expected/NT51926_FlashCode_D01T01_20251027.bin",
+        "sourceBlobSha": "30eb9a1c1d9f1aa087dc408b8b29d87816d78a1a",
+        "size": 262144,
+        "sha256": "910c302495ef037bad232b6c8e50fca58db643540bf0e5871a34a33ea907c305"
+      }
+    },
+    {
+      "ic": "51927",
+      "profileId": "nt51927-standard-merge-gen-flash",
+      "inputs": {
+        "dp-input": {
+          "path": "inputs/51927/dp.bin",
+          "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_DP_Bin/NT51927TT_Initial Code_Tianma_TE103UVKS01_D54_20250717.bin",
+          "sourceBlobSha": "a78d6582ab7483d1301db3ca0b012c82f0cf089d",
+          "size": 2097152,
+          "sha256": "866bff2ed5759ec45c2343630e77b74c1b906b77d4ed2beba62d955cf13e1d18"
+        },
+        "tp-input": {
+          "path": "inputs/51927/tp.bin",
+          "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_TP_Bin/NT51927TT_Tianma_TE103UVKS01_T02_20251023.bin",
+          "sourceBlobSha": "9f2fde5342a24cb7b88358b3017dc2c5163e851c",
+          "size": 217088,
+          "sha256": "ad80a708579cfce8954c9a46e8d82846aff12f2659f0e81ff55a8d5c9f77f265"
+        }
+      },
+      "expectedOutput": {
+        "path": "expected/51927/flash.bin",
+        "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Expected/NT51927_FlashCode_TM_1025_TE103UVKS01_D54T02_20251023.bin",
+        "sourceBlobSha": "47fdc6e3fb1cd9e71cad0911a62d207cc85e6b46",
+        "size": 262144,
+        "sha256": "8e0d362b74ba65dfd8eb2d33a8ae6c1359b99ce2994d64d878bfdb393855cf80"
+      }
+    },
+    {
+      "ic": "51928",
+      "profileId": "nt51928-standard-merge-gen-flash",
+      "inputs": {
+        "dp-input": {
+          "path": "inputs/51928/dp.bin",
+          "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_DP_Bin/NT51928TT_FlashCode_CSOT_DOE_D82T83L00_JIRA0270_20241018.bin",
+          "sourceBlobSha": "6b41096967fa34eae1e81f7a1585f602b0df6382",
+          "size": 524288,
+          "sha256": "a77fe6a40e4feebf100b7ef72addb4308f28579e4d8b291e3b555eb4b98886c3"
+        },
+        "tp-input": {
+          "path": "inputs/51928/tp.bin",
+          "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_TP_Bin/NT51928_fw.bin",
+          "sourceBlobSha": "0d75193d7a2e0c93fdb455f1a3eed5a07e6f10c6",
+          "size": 217088,
+          "sha256": "01e385aa60dcdbeeea343e8755af76cd0b282555494c8796e9ff687cd254ad6a"
+        },
+        "ld-input": {
+          "path": "inputs/51928/ld.bin",
+          "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_LD_Bin/NT51928TT_FlashCode_CSOT_DOE_D82T83L00_JIRA0270_20241018.bin",
+          "sourceBlobSha": "6b41096967fa34eae1e81f7a1585f602b0df6382",
+          "size": 524288,
+          "sha256": "a77fe6a40e4feebf100b7ef72addb4308f28579e4d8b291e3b555eb4b98886c3"
+        }
+      },
+      "expectedOutput": {
+        "path": "expected/51928/flash.bin",
+        "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Expected/NT51928_FlashCode_D82T84L00_20251028.bin",
+        "sourceBlobSha": "ca14e9d304a9815de55de41ea75579b8099d4df7",
+        "size": 524288,
+        "sha256": "5064b3134031adbd7ae292c9038d728da116d5a013a2463ae809694a07f87e0e"
+      }
+    },
+    {
+      "ic": "51929",
+      "profileId": "nt51929-standard-merge-gen-flash",
+      "inputs": {
+        "dp-input": {
+          "path": "inputs/51929/dp.bin",
+          "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_DP_Bin/NT51929TT_Initial Code_BOE_2560x1440_D02_20250820_GOP_4MUX_liut_VCOM OTP.bin",
+          "sourceBlobSha": "96bfbbe89e5fe0632ba7baabbe60f706a88eb4ad",
+          "size": 262144,
+          "sha256": "e9626d1230bb117a91e7cd365b060991b48bf555bda065a84f8a62edd8c95095"
+        },
+        "tp-input": {
+          "path": "inputs/51929/tp.bin",
+          "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_TP_Bin/nt51929_fw_BOE_1560_DOE_V01_20250819.bin",
+          "sourceBlobSha": "fa59e40e70361638cb306890e19bb17a0eecb83d",
+          "size": 262144,
+          "sha256": "a5631c8c05dd1e29b216b3cc00a84ef416db41e04c9d1e7c3d211a44bf7bc458"
+        }
+      },
+      "expectedOutput": {
+        "path": "expected/51929/flash.bin",
+        "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Expected/NT51929_FlashCode_BOE1560_BOEVX_2560x1440_D02T01_20250820.bin",
+        "sourceBlobSha": "ee208158ba34bd883be965afe9db97491c3989cd",
+        "size": 262144,
+        "sha256": "fdba72984d662c4d652c56d909cf27756193f3766875b42d55207bccfca6867e"
+      }
+    },
+    {
+      "ic": "51931",
+      "profileId": "nt51931-standard-merge-gen-flash",
+      "inputs": {
+        "dp-input": {
+          "path": "inputs/51931/dp.bin",
+          "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_DP_Bin/NT51931TT_Initial Code_TM_2880x1620 3MUX NMOS_D8Df_20250612.bin",
+          "sourceBlobSha": "ecb45ee006acef809a5d8edeaa85352004a9eaf0",
+          "size": 524288,
+          "sha256": "568aa24804dd0099404d8b4baf1bc5d3c812263542b7135d15766c470e3c8b9a"
+        },
+        "tp-input": {
+          "path": "inputs/51931/tp.bin",
+          "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_TP_Bin/NT51931_fw_v82.bin",
+          "sourceBlobSha": "c8e6251329cf042d17e49f2a3e33206fa896aff3",
+          "size": 245760,
+          "sha256": "ff040125530989528aff328a6d64f194283f486ddf09d880ee15f3b28aa08ff8"
+        }
+      },
+      "expectedOutput": {
+        "path": "expected/51931/flash.bin",
+        "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Expected/NT51931_FlashCode_D8DT82_20251028.bin",
+        "sourceBlobSha": "5b84b99052434edb196a221450f5e629d802231d",
+        "size": 262144,
+        "sha256": "d997b27199d93110f1f9753dd997fb12c6e814abfd22657e6b8b0c3baf400221"
+      }
+    },
+    {
+      "ic": "51932",
+      "profileId": "nt51932-standard-merge-gen-flash",
+      "inputs": {
+        "dp-input": {
+          "path": "inputs/51932/dp.bin",
+          "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_DP_Bin/NT51932_initial Code_TM_TL291XFKS01_6296x1740_D82_20251014.bin",
+          "sourceBlobSha": "2a24c9dc7f2d83afc29294423cf1e41bac8fda2b",
+          "size": 262144,
+          "sha256": "c66e361bb04df9dd95aa0e10b38ee70bfbb6fa6fe2a6c8d1a0ab1124dd03542b"
+        },
+        "tp-input": {
+          "path": "inputs/51932/tp.bin",
+          "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Test_TP_Bin/nt51932_fw_v80.bin",
+          "sourceBlobSha": "dbe7aa829c53d09d8b4dd95380279d11c1ad59b3",
+          "size": 262144,
+          "sha256": "3de3406d827b205601e085e163a0fff4c8180353e55535c33fb9f2b0357d9b9b"
+        }
+      },
+      "expectedOutput": {
+        "path": "expected/51932/flash.bin",
+        "sourcePath": "testdata/reference/FlashCodeGenerator/gen_flash_bin_v2/test/Expected/NT51932_FlashCode_TM2910_6296x1740_D82T80_20251014.bin",
+        "sourceBlobSha": "52fe50c8dcbc990a674e740161baff65e89bc64c",
+        "size": 262144,
+        "sha256": "6a0c90b1c314536119dda9aacd1f3dfcccfc8b90aae6e43cdf713100bb308b14"
+      }
+    }
+  ]
+}
