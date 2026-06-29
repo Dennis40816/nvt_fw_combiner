@@ -8,6 +8,19 @@ public static class CompositionEngine
     /// <summary>Executes <paramref name="plan"/> and returns output bytes, mutation trace, or structured issues.</summary>
     public static CompositionExecutionResult Execute(CompositionPlan plan, CompositionExecutionInput input)
     {
+        return ExecuteAsync(plan, input, externalProcessor: null, CancellationToken.None)
+            .AsTask()
+            .GetAwaiter()
+            .GetResult();
+    }
+
+    /// <summary>Executes <paramref name="plan"/> and invokes an application-owned hook for external operations.</summary>
+    public static async ValueTask<CompositionExecutionResult> ExecuteAsync(
+        CompositionPlan plan,
+        CompositionExecutionInput input,
+        CompositionExternalProcessor? externalProcessor,
+        CancellationToken cancellationToken)
+    {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(input);
 
@@ -22,9 +35,28 @@ public static class CompositionEngine
 
         foreach (CompositionOperation operation in plan.OrderedOperations)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             byte[] targetBuffer = mutableBuffers[operation.TargetSpaceId];
             byte[] before = ReadSlice(targetBuffer, operation.TargetRange);
-            ApplyOperation(operation, input, mutableBuffers);
+
+            if (operation.Kind == CompositionOperationKind.RunExternalProcessor)
+            {
+                CompositionExecutionResult? externalFailure = await ApplyExternalProcessorAsync(
+                        operation,
+                        targetBuffer,
+                        externalProcessor,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                if (externalFailure is not null)
+                {
+                    return externalFailure;
+                }
+            }
+            else
+            {
+                ApplyHostOperation(operation, input, mutableBuffers);
+            }
+
             byte[] after = ReadSlice(targetBuffer, operation.TargetRange);
             mutations.Add(CreateMutationRecord(operation, before, after));
         }
@@ -119,7 +151,7 @@ public static class CompositionEngine
         return referenceBytes.ToArray();
     }
 
-    private static void ApplyOperation(
+    private static void ApplyHostOperation(
         CompositionOperation operation,
         CompositionExecutionInput input,
         Dictionary<string, byte[]> mutableBuffers)
@@ -127,21 +159,82 @@ public static class CompositionEngine
         byte[] targetBuffer = mutableBuffers[operation.TargetSpaceId];
         Span<byte> targetSpan = targetBuffer.AsSpan((int)operation.TargetRange.Start, (int)operation.TargetRange.Length);
 
-        switch (operation.Kind)
+        if (operation.Kind is CompositionOperationKind.CopyRange or CompositionOperationKind.ReplaceRange)
         {
-            case CompositionOperationKind.CopyRange:
-            case CompositionOperationKind.ReplaceRange:
-                ReadOperationSource(operation, input, mutableBuffers).CopyTo(targetSpan);
-                break;
-            case CompositionOperationKind.FillRange:
-                targetSpan.Fill(operation.FillByte!.Value);
-                break;
-            case CompositionOperationKind.PatchScalar:
-                operation.PatchBytes.Span.CopyTo(targetSpan);
-                break;
-            default:
-                throw new InvalidOperationException($"Unsupported operation kind '{operation.Kind}'.");
+            ReadOperationSource(operation, input, mutableBuffers).CopyTo(targetSpan);
+            return;
         }
+
+        if (operation.Kind == CompositionOperationKind.FillRange)
+        {
+            targetSpan.Fill(operation.FillByte!.Value);
+            return;
+        }
+
+        if (operation.Kind == CompositionOperationKind.PatchScalar)
+        {
+            operation.PatchBytes.Span.CopyTo(targetSpan);
+            return;
+        }
+
+        throw new InvalidOperationException($"Unsupported operation kind '{operation.Kind}'.");
+    }
+
+    private static async ValueTask<CompositionExecutionResult?> ApplyExternalProcessorAsync(
+        CompositionOperation operation,
+        byte[] targetBuffer,
+        CompositionExternalProcessor? externalProcessor,
+        CancellationToken cancellationToken)
+    {
+        if (externalProcessor is null)
+        {
+            return CompositionExecutionResult.Failed([
+                new CompositionIssue(
+                    "execution.external-processor.unavailable",
+                    $"Operation '{operation.OperationId}' requires an external processor adapter.",
+                    operation.OperationId),
+            ]);
+        }
+
+        byte[] processorInput = ReadSlice(targetBuffer, operation.TargetRange);
+        CompositionExternalProcessorResult processorResult;
+        try
+        {
+            processorResult = await externalProcessor(operation, processorInput, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            return CompositionExecutionResult.Failed([
+                new CompositionIssue(
+                    "execution.external-processor.failed",
+                    $"Operation '{operation.OperationId}' external processor failed ({exception.GetType().Name}).",
+                    operation.OperationId),
+            ]);
+        }
+
+        if (!processorResult.Succeeded)
+        {
+            return CompositionExecutionResult.Failed(processorResult.Issues);
+        }
+
+        if (processorResult.OutputBytes.Length != processorInput.Length)
+        {
+            return CompositionExecutionResult.Failed([
+                new CompositionIssue(
+                    "execution.external-processor.length-mismatch",
+                    $"Operation '{operation.OperationId}' external processor changed the staged byte length.",
+                    operation.OperationId),
+            ]);
+        }
+
+        processorResult.OutputBytes.Span.CopyTo(targetBuffer.AsSpan(
+            (int)operation.TargetRange.Start,
+            (int)operation.TargetRange.Length));
+        return null;
     }
 
     private static ReadOnlySpan<byte> ReadOperationSource(
