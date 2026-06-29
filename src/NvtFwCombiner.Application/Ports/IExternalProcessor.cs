@@ -1,8 +1,12 @@
+using NvtFwCombiner.Application.ExternalTools;
+
 namespace NvtFwCombiner.Application.Ports;
 
 /// <summary>Runs an approved external processor through an application port.</summary>
 public interface IExternalProcessor
 {
     /// <summary>Executes the configured processor without exposing process details to application code.</summary>
-    ValueTask ExecuteAsync(string processorId, CancellationToken cancellationToken);
+    ValueTask<ExternalProcessorResult> TransformAsync(
+        ExternalProcessorRequest request,
+        CancellationToken cancellationToken);
 }
