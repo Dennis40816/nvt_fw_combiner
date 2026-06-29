@@ -38,11 +38,11 @@
       },
       "Avalonia.Themes.Fluent": {
         "type": "Direct",
-        "requested": "[12.0.4, )",
-        "resolved": "12.0.4",
-        "contentHash": "SWhg/CGDkQmYspvYHSH7f6OTqhAfdbK5oBpitL1TiGVc/KtslShZeQyW9kLo6vYajJmbjZG01gNGplcmjEyV4g==",
+        "requested": "[12.0.5, )",
+        "resolved": "12.0.5",
+        "contentHash": "QfbziOuzNQzMd0uCbe//p4o1u6EAesEpX41fUCULBaLENd5OAT6iU0GiN9gzhSzVfSjHuxDcafXqJMxi3H3IhA==",
         "dependencies": {
-          "Avalonia": "12.0.4"
+          "Avalonia": "12.0.5"
         }
       },
       "CommunityToolkit.Mvvm": {
