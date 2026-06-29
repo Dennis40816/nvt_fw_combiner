@@ -129,6 +129,56 @@ public sealed class CompositionPlanTests
             ]));
     }
 
+    /// <summary>Verifies allow-declared overlap is rejected until validation evidence is modeled.</summary>
+    [Fact]
+    public void AllowDeclaredOverlapWithoutValidationEvidenceFailsPlanValidation()
+    {
+        _ = Assert.Throws<ArgumentException>(() => CreatePlan(
+            CompositionOperation.FillRange(
+                "fill-a",
+                10,
+                "output-image",
+                new ByteRange(0, 4),
+                0x11,
+                OverlapPolicy.Reject,
+                "fill range"),
+            CompositionOperation.FillRange(
+                "fill-b",
+                20,
+                "output-image",
+                new ByteRange(2, 2),
+                0x22,
+                OverlapPolicy.AllowDeclared,
+                "declared overlay")));
+    }
+
+    /// <summary>Verifies required seeded mutable spaces are exposed to application services.</summary>
+    [Fact]
+    public void RequiredSeededMutableAddressSpacesListsWorkBuffers()
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+            new("scratch", 4, AddressSpaceMutability.Mutable),
+        ];
+        var plan = new CompositionPlan(
+            ImageInitialization.Blank("output-image", 4, 0),
+            addressSpaces,
+            [
+                CompositionOperation.FillRange(
+                    "fill-scratch",
+                    10,
+                    "scratch",
+                    new ByteRange(0, 1),
+                    0x11,
+                    OverlapPolicy.Reject,
+                    "write scratch"),
+            ]);
+
+        string addressSpaceId = Assert.Single(plan.RequiredSeededMutableAddressSpaceIds);
+        Assert.Equal("scratch", addressSpaceId);
+    }
+
     private static CompositionPlan CreatePlan(params CompositionOperation[] operations)
     {
         AddressSpace[] addressSpaces =

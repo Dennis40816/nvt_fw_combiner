@@ -47,6 +47,29 @@ public sealed class CompositionPreviewServiceTests
         Assert.Equal("preview.binding.missing", issue.Code);
     }
 
+    /// <summary>Verifies preview reads seeded mutable address spaces before execution.</summary>
+    [Fact]
+    public async Task PreviewReadsSeededMutableAddressSpaceBinding()
+    {
+        var reader = new FakeArtifactReader(new Dictionary<string, byte[]>
+        {
+            ["scratch-artifact"] = [1, 2, 3, 4],
+        });
+        var service = new CompositionPreviewService(reader);
+        var request = new CompositionPreviewRequest(
+            CreateSeededMutablePlan(),
+            new Dictionary<string, string>
+            {
+                ["scratch"] = "scratch-artifact",
+            });
+
+        CompositionExecutionResult result = await service.PreviewAsync(request, CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal([0, 3, 0, 0], result.OutputBytes.ToArray());
+        Assert.Equal(["scratch-artifact"], reader.ReadArtifactIds);
+    }
+
     private static CompositionPlan CreatePlan()
     {
         AddressSpace[] addressSpaces =
@@ -65,6 +88,28 @@ public sealed class CompositionPreviewServiceTests
                 new ByteRange(1, 2),
                 OverlapPolicy.Reject,
                 "copy source"),
+        ];
+        return new CompositionPlan(ImageInitialization.Blank("output-image", 4, 0), addressSpaces, operations);
+    }
+
+    private static CompositionPlan CreateSeededMutablePlan()
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+            new("scratch", 4, AddressSpaceMutability.Mutable),
+        ];
+        CompositionOperation[] operations =
+        [
+            CompositionOperation.CopyRange(
+                "copy-scratch",
+                10,
+                "scratch",
+                new ByteRange(2, 1),
+                "output-image",
+                new ByteRange(1, 1),
+                OverlapPolicy.Reject,
+                "copy scratch seed"),
         ];
         return new CompositionPlan(ImageInitialization.Blank("output-image", 4, 0), addressSpaces, operations);
     }

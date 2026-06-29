@@ -172,9 +172,14 @@ public static class CompositionEngine
             operation.TargetSpaceId,
             operation.TargetRange,
             changedRanges,
-            Convert.ToHexString(SHA256.HashData(before)),
-            Convert.ToHexString(SHA256.HashData(after)),
+            FormatSha256(before),
+            FormatSha256(after),
             operation.Reason);
+    }
+
+    private static string FormatSha256(byte[] bytes)
+    {
+        return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
     }
 
     private static byte[] ReadSlice(byte[] buffer, ByteRange range)

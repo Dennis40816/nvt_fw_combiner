@@ -27,19 +27,26 @@ public sealed class CompositionPreviewService
         List<CompositionIssue> issues = [];
         foreach (string addressSpaceId in request.Plan.RequiredInputAddressSpaceIds)
         {
-            if (!request.ArtifactBindings.TryGetValue(addressSpaceId, out string? artifactId) ||
-                string.IsNullOrWhiteSpace(artifactId))
-            {
-                issues.Add(new CompositionIssue(
+            await ReadBoundArtifactAsync(
+                    request,
+                    addressSpaceId,
                     "preview.binding.missing",
-                    $"No artifact binding was supplied for required address space '{addressSpaceId}'."));
-                continue;
-            }
-
-            ReadOnlyMemory<byte> bytes = await _artifactReader
-                .ReadAsync(artifactId, cancellationToken)
+                    inputBytes,
+                    issues,
+                    cancellationToken)
                 .ConfigureAwait(false);
-            inputBytes.Add(addressSpaceId, bytes.ToArray());
+        }
+
+        foreach (string addressSpaceId in request.Plan.RequiredSeededMutableAddressSpaceIds)
+        {
+            await ReadBoundArtifactAsync(
+                    request,
+                    addressSpaceId,
+                    "preview.mutable-binding.missing",
+                    inputBytes,
+                    issues,
+                    cancellationToken)
+                .ConfigureAwait(false);
         }
 
         if (issues.Count > 0)
@@ -49,5 +56,28 @@ public sealed class CompositionPreviewService
 
         var executionInput = new CompositionExecutionInput(inputBytes);
         return CompositionEngine.Execute(request.Plan, executionInput);
+    }
+
+    private async ValueTask ReadBoundArtifactAsync(
+        CompositionPreviewRequest request,
+        string addressSpaceId,
+        string missingIssueCode,
+        Dictionary<string, byte[]> inputBytes,
+        List<CompositionIssue> issues,
+        CancellationToken cancellationToken)
+    {
+        if (!request.ArtifactBindings.TryGetValue(addressSpaceId, out string? artifactId) ||
+            string.IsNullOrWhiteSpace(artifactId))
+        {
+            issues.Add(new CompositionIssue(
+                missingIssueCode,
+                $"No artifact binding was supplied for required address space '{addressSpaceId}'."));
+            return;
+        }
+
+        ReadOnlyMemory<byte> bytes = await _artifactReader
+            .ReadAsync(artifactId, cancellationToken)
+            .ConfigureAwait(false);
+        inputBytes.Add(addressSpaceId, bytes.ToArray());
     }
 }

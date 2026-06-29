@@ -85,6 +85,28 @@ public sealed class CompositionEngineTests
         Assert.Equal([0xFF, 0xAA, 0xBB, 0xFF], result.OutputBytes.ToArray());
     }
 
+    /// <summary>Verifies mutation hashes use lowercase hex for report contract compatibility.</summary>
+    [Fact]
+    public void MutationHashesUseLowercaseSha256()
+    {
+        CompositionPlan plan = CreateBlankPlan(
+            1,
+            CompositionOperation.PatchScalar(
+                "patch-scalar",
+                10,
+                "output-image",
+                new ByteRange(0, 1),
+                [0xFF],
+                OverlapPolicy.Reject,
+                "force non-decimal hash nybbles"));
+
+        CompositionExecutionResult result = CompositionEngine.Execute(plan, EmptyInput());
+
+        MutationRecord mutation = Assert.Single(result.Mutations);
+        Assert.Equal(mutation.BeforeSha256, mutation.BeforeSha256.ToLowerInvariant());
+        Assert.Equal(mutation.AfterSha256, mutation.AfterSha256.ToLowerInvariant());
+    }
+
     /// <summary>Verifies missing immutable source bytes return a structured issue instead of a partial output.</summary>
     [Fact]
     public void MissingInputAddressSpaceFailsClosed()
