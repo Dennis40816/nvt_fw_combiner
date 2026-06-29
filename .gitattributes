@@ -12,6 +12,7 @@
 *.toml text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
+*.bin binary
 
 # Preserve immutable reference snapshots byte-for-byte.
 refcode/** binary

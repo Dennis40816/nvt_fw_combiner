@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Globalization;
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 
@@ -14,6 +15,7 @@ public sealed class CompositionRunService
     private readonly IArtifactReader _artifactReader;
     private readonly ISystemClock _clock;
     private readonly ICompositionOutputWriter? _outputWriter;
+    private readonly IExternalProcessor? _externalProcessor;
 
     /// <summary>Creates a run service with read-only preview support.</summary>
     public CompositionRunService(IArtifactReader artifactReader, ISystemClock clock)
@@ -26,6 +28,16 @@ public sealed class CompositionRunService
         IArtifactReader artifactReader,
         ISystemClock clock,
         ICompositionOutputWriter? outputWriter)
+        : this(artifactReader, clock, outputWriter, null)
+    {
+    }
+
+    /// <summary>Creates a run service with preview, build, and external processor support.</summary>
+    public CompositionRunService(
+        IArtifactReader artifactReader,
+        ISystemClock clock,
+        ICompositionOutputWriter? outputWriter,
+        IExternalProcessor? externalProcessor)
     {
         ArgumentNullException.ThrowIfNull(artifactReader);
         ArgumentNullException.ThrowIfNull(clock);
@@ -33,6 +45,7 @@ public sealed class CompositionRunService
         _artifactReader = artifactReader;
         _clock = clock;
         _outputWriter = outputWriter;
+        _externalProcessor = externalProcessor;
     }
 
     /// <summary>Executes the request without committing output.</summary>
@@ -85,7 +98,7 @@ public sealed class CompositionRunService
 
         BoundInputs boundInputs = await ReadInputsAsync(request, cancellationToken).ConfigureAwait(false);
         CompositionExecutionResult execution = boundInputs.Issues.Count == 0
-            ? CompositionEngine.Execute(request.Plan, new CompositionExecutionInput(boundInputs.InputBytes))
+            ? await ExecutePlanAsync(request, boundInputs, cancellationToken).ConfigureAwait(false)
             : CompositionExecutionResult.Failed(boundInputs.Issues);
         string? previewToken = execution.Status == CompositionExecutionStatus.Succeeded
             ? CalculatePreviewToken(request, execution, boundInputs.InputSummaries)
@@ -125,6 +138,57 @@ public sealed class CompositionRunService
             report,
             committedOutputId,
             commitOutput ? null : previewToken);
+    }
+
+    private async ValueTask<CompositionExecutionResult> ExecutePlanAsync(
+        CompositionRunRequest request,
+        BoundInputs boundInputs,
+        CancellationToken cancellationToken)
+    {
+        var input = new CompositionExecutionInput(boundInputs.InputBytes);
+        return _externalProcessor is null
+            ? CompositionEngine.Execute(request.Plan, input)
+            : await CompositionEngine.ExecuteAsync(
+                request.Plan,
+                input,
+                (operation, inputBytes, token) => TransformExternalProcessorAsync(request, operation, inputBytes, token),
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async ValueTask<CompositionExternalProcessorResult> TransformExternalProcessorAsync(
+        CompositionRunRequest request,
+        CompositionOperation operation,
+        ReadOnlyMemory<byte> inputBytes,
+        CancellationToken cancellationToken)
+    {
+        ExternalProcessorInvocation invocation = operation.ExternalProcessorInvocation!;
+        ExternalProcessorRequest processorRequest;
+        try
+        {
+            processorRequest = new ExternalProcessorRequest(
+                $"{request.RunId}.{operation.OperationId}",
+                invocation.ProcessorId,
+                invocation.ToolBindingId,
+                inputBytes,
+                invocation.AllowedWriteRanges);
+        }
+        catch (ArgumentException exception)
+        {
+            return CompositionExternalProcessorResult.Failed([
+                new CompositionIssue(
+                    "external-processor.request.invalid",
+                    exception.Message,
+                    operation.OperationId),
+            ]);
+        }
+
+        ExternalProcessorResult processorResult = await _externalProcessor!
+            .TransformAsync(processorRequest, cancellationToken)
+            .ConfigureAwait(false);
+        return processorResult.Succeeded
+            ? CompositionExternalProcessorResult.Success(processorResult.OutputBytes)
+            : CompositionExternalProcessorResult.Failed(processorResult.Issues);
     }
 
     private async ValueTask<BoundInputs> ReadInputsAsync(
@@ -377,7 +441,30 @@ public sealed class CompositionRunService
             AppendTokenField(builder, "plan.operation.overlap", operation.OverlapPolicy.ToString());
             AppendTokenField(builder, "plan.operation.fill-byte", operation.FillByte?.ToString(CultureInfo.InvariantCulture) ?? string.Empty);
             AppendTokenField(builder, "plan.operation.patch-bytes", ToHex(operation.PatchBytes.Span));
+            AppendProcessorFingerprint(builder, operation);
             AppendTokenField(builder, "plan.operation.reason", operation.Reason);
+        }
+    }
+
+    private static void AppendProcessorFingerprint(StringBuilder builder, CompositionOperation operation)
+    {
+        if (operation.ExternalProcessorInvocation is not { } invocation)
+        {
+            AppendTokenField(builder, "plan.operation.processor.id", string.Empty);
+            AppendTokenField(builder, "plan.operation.processor.tool-binding", string.Empty);
+            return;
+        }
+
+        AppendTokenField(builder, "plan.operation.processor.id", invocation.ProcessorId);
+        AppendTokenField(builder, "plan.operation.processor.tool-binding", invocation.ToolBindingId);
+        foreach (ByteRange range in invocation.AllowedReadRanges)
+        {
+            AppendTokenField(builder, "plan.operation.processor.read-range", FormatRange(range));
+        }
+
+        foreach (ByteRange range in invocation.AllowedWriteRanges)
+        {
+            AppendTokenField(builder, "plan.operation.processor.write-range", FormatRange(range));
         }
     }
 
