@@ -2,6 +2,8 @@
     x:Class="NvtFwCombiner.Presentation.Avalonia.MainWindow"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    x:DataType="vm:MainWindowViewModel"
     Width="1180"
     Height="760"
     MinWidth="980"
@@ -21,16 +23,24 @@
             Text="NVT FW Combiner" />
         <TextBlock
             Foreground="#CBD5E1"
-            Text="0.1.1 demo shell" />
-        <StackPanel Margin="0,18,0,0" Spacing="10">
-          <TextBlock Foreground="White" Text="Home" />
-          <TextBlock Foreground="#CBD5E1" Text="Merge" />
-          <TextBlock Foreground="#CBD5E1" Text="Replace" />
-          <TextBlock Foreground="#CBD5E1" Text="Saved Rules" />
-          <TextBlock Foreground="#CBD5E1" Text="Reports" />
-          <TextBlock Foreground="#CBD5E1" Text="Settings" />
-          <TextBlock Foreground="#CBD5E1" Text="Diagnostics" />
-        </StackPanel>
+            Text="{Binding ShellVersion}" />
+        <ItemsControl
+            Margin="0,18,0,0"
+            ItemsSource="{Binding NavigationItems}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:NavigationItemViewModel">
+              <Button
+                  Margin="0,0,0,10"
+                  Padding="0"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Left"
+                  Background="Transparent"
+                  BorderThickness="0"
+                  Content="{Binding Label}"
+                  Foreground="#E5E7EB" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
       </StackPanel>
     </Border>
 
@@ -40,20 +50,25 @@
         Background="White"
         BorderBrush="#D6DAE1"
         BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="*,Auto">
+      <Grid ColumnDefinitions="*,Auto,Auto">
         <StackPanel Spacing="4">
           <TextBlock
               FontSize="26"
               FontWeight="SemiBold"
-              Text="UI planning workspace" />
+              Text="{Binding WorkspaceTitle}" />
           <TextBlock
               Foreground="#475569"
-              Text="Synthetic preview only. No firmware files are read and no external tool is executed." />
+              Text="{Binding WorkspaceSummary}" />
         </StackPanel>
         <Button
             Grid.Column="1"
+            Margin="0,0,10,0"
             IsEnabled="False"
-            Content="Build disabled until 0.2.0" />
+            Content="{Binding PreviewActionLabel}" />
+        <Button
+            Grid.Column="2"
+            IsEnabled="False"
+            Content="{Binding BuildActionLabel}" />
       </Grid>
     </Border>
 
@@ -68,12 +83,16 @@
               BorderThickness="1"
               CornerRadius="8">
             <StackPanel Spacing="10">
-              <TextBlock FontSize="18" FontWeight="SemiBold" Text="Merge preview" />
-              <TextBlock Foreground="#475569" Text="Modes: Standard / AB / General" />
-              <TextBlock Text="Profile selector: demo-standard-merge" />
-              <TextBlock Text="Inputs: DP demo.bin, TP demo.bin, optional LD placeholder" />
-              <TextBlock Text="Preview: mapping and occupancy table supplied by application core later" />
-              <TextBlock Foreground="#B45309" Text="Status: synthetic data, build blocked" />
+              <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding MergePreview.Title}" />
+              <TextBlock Foreground="#475569" Text="{Binding MergePreview.Subtitle}" />
+              <ItemsControl ItemsSource="{Binding MergePreview.Rows}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="x:String">
+                    <TextBlock Margin="0,0,0,10" Text="{Binding}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Foreground="#B45309" Text="{Binding MergePreview.Status}" />
             </StackPanel>
           </Border>
 
@@ -86,12 +105,16 @@
               BorderThickness="1"
               CornerRadius="8">
             <StackPanel Spacing="10">
-              <TextBlock FontSize="18" FontWeight="SemiBold" Text="Replace preview" />
-              <TextBlock Foreground="#475569" Text="Personas: Display / TP HW / TP FW / General" />
-              <TextBlock Text="Reference BIN: synthetic metadata only" />
-              <TextBlock Text="Regions: DP whole, TP whole, CtrlRAM, TP firmware groups as policy output" />
-              <TextBlock Text="Preview: before/after changed ranges and protected warnings" />
-              <TextBlock Foreground="#B45309" Text="Status: access policy display only" />
+              <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding ReplacePreview.Title}" />
+              <TextBlock Foreground="#475569" Text="{Binding ReplacePreview.Subtitle}" />
+              <ItemsControl ItemsSource="{Binding ReplacePreview.Rows}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="x:String">
+                    <TextBlock Margin="0,0,0,10" Text="{Binding}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Foreground="#B45309" Text="{Binding ReplacePreview.Status}" />
             </StackPanel>
           </Border>
 
@@ -104,10 +127,16 @@
               BorderThickness="1"
               CornerRadius="8">
             <StackPanel Spacing="10">
-              <TextBlock FontSize="18" FontWeight="SemiBold" Text="Saved rules and reports" />
-              <TextBlock Text="Saved rules: draft / candidate / supported" />
-              <TextBlock Text="Reports: runId, inputs, operations, processor invocations, mutations, output" />
-              <TextBlock Text="Promotion requires validation, compatibility review, and evidence." />
+              <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding SavedRulesAndReports.Title}" />
+              <TextBlock Foreground="#475569" Text="{Binding SavedRulesAndReports.Subtitle}" />
+              <ItemsControl ItemsSource="{Binding SavedRulesAndReports.Rows}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="x:String">
+                    <TextBlock Margin="0,0,0,10" Text="{Binding}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Foreground="#B45309" Text="{Binding SavedRulesAndReports.Status}" />
             </StackPanel>
           </Border>
 
@@ -121,11 +150,16 @@
               BorderThickness="1"
               CornerRadius="8">
             <StackPanel Spacing="10">
-              <TextBlock FontSize="18" FontWeight="SemiBold" Text="Diagnostics" />
-              <TextBlock Text="[info] Loaded candidate profile: demo-standard-merge" />
-              <TextBlock Text="[info] Compiled 6 synthetic operations" />
-              <TextBlock Text="[warn] Build disabled until Composition Core milestone" />
-              <TextBlock Text="[info] Terminal pane is read-only and sanitized" />
+              <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding Diagnostics.Title}" />
+              <TextBlock Foreground="#475569" Text="{Binding Diagnostics.Subtitle}" />
+              <ItemsControl ItemsSource="{Binding Diagnostics.Rows}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="x:String">
+                    <TextBlock Margin="0,0,0,10" Text="{Binding}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Foreground="#B45309" Text="{Binding Diagnostics.Status}" />
             </StackPanel>
           </Border>
         </Grid>
@@ -141,7 +175,7 @@
         BorderThickness="0,1,0,0">
       <TextBlock
           Foreground="#475569"
-          Text="Profile catalog: demo only | Validation: preview unavailable | Diagnostics: read-only transcript | Firmware mutation: none" />
+          Text="{Binding FooterStatus}" />
     </Border>
   </Grid>
 </Window>

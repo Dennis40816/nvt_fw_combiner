@@ -15,7 +15,8 @@ public static class CompositionProfileCompiler
         ArgumentNullException.ThrowIfNull(explicitMappings);
         requestAddressSpaces ??= [];
 
-        List<CompositionIssue> issues = ValidateProfileHeader(profile, explicitMappings);
+        List<CompositionIssue> issues = ValidateProfileHeader(profile, explicitMappings, requestAddressSpaces);
+        issues.AddRange(ValidateProfileOperations(profile));
         issues.AddRange(ValidateExplicitMappings(profile, explicitMappings));
         if (issues.Count > 0)
         {
@@ -52,9 +53,23 @@ public static class CompositionProfileCompiler
 
     private static List<CompositionIssue> ValidateProfileHeader(
         CompositionProfileDefinition profile,
-        IReadOnlyList<ExplicitMapping> explicitMappings)
+        IReadOnlyList<ExplicitMapping> explicitMappings,
+        IReadOnlyList<AddressSpace> requestAddressSpaces)
     {
         List<CompositionIssue> issues = [];
+
+        AddDuplicateIssues(
+            profile.Regions,
+            region => region.RegionId,
+            "profile.region.duplicate",
+            "Profile region id is declared more than once.",
+            issues);
+        AddDuplicateIssues(
+            profile.RegionAccessRules,
+            rule => rule.RegionId,
+            "profile.region-access.duplicate",
+            "Profile region access rule is declared more than once.",
+            issues);
 
         if (!ExperienceCatalog.TryFind(profile.ExperienceId, out ExperienceDescriptor? experience) ||
             experience is null)
@@ -86,7 +101,111 @@ public static class CompositionProfileCompiler
                 "Explicit mappings are allowed only for general user-defined experiences."));
         }
 
+        if (requestAddressSpaces.Count > 0 && experience.InputPolicy != InputPolicy.Extensible)
+        {
+            issues.Add(new CompositionIssue(
+                "profile.request-address-space.not-allowed",
+                "Runtime address spaces are allowed only for extensible-input experiences."));
+        }
+
         return issues;
+    }
+
+    private static void AddDuplicateIssues<T>(
+        IEnumerable<T> items,
+        Func<T, string> getId,
+        string issueCode,
+        string message,
+        List<CompositionIssue> issues)
+    {
+        foreach (string id in items.Select(getId).GroupBy(id => id, StringComparer.Ordinal)
+                     .Where(group => group.Count() > 1)
+                     .Select(group => group.Key))
+        {
+            issues.Add(new CompositionIssue(issueCode, $"{message} Duplicate id: '{id}'.", id));
+        }
+    }
+
+    private static List<CompositionIssue> ValidateProfileOperations(CompositionProfileDefinition profile)
+    {
+        List<CompositionIssue> issues = [];
+        if (profile.Regions.Count == 0)
+        {
+            return issues;
+        }
+
+        foreach (CompositionOperation operation in profile.Operations)
+        {
+            ProfileRegion? targetRegion = ResolveTargetRegionByRange(
+                profile,
+                operation.TargetSpaceId,
+                operation.TargetRange,
+                "profile.operation.target-region-unresolved",
+                "profile.operation.target-region-ambiguous",
+                operation.OperationId,
+                issues);
+            if (targetRegion is null)
+            {
+                continue;
+            }
+
+            RegionAccessRule? accessRule = FindAccessRule(profile, targetRegion.RegionId);
+            ValidateProfileOperationRegionPolicy(operation, targetRegion, accessRule, issues);
+            if (OverlapsProtectedRegion(profile, targetRegion, operation.TargetSpaceId, operation.TargetRange))
+            {
+                issues.Add(new CompositionIssue(
+                    "profile.operation.protected-overlap",
+                    $"Operation '{operation.OperationId}' overlaps a protected or processor-owned profile region.",
+                    operation.OperationId));
+            }
+        }
+
+        return issues;
+    }
+
+    private static void ValidateProfileOperationRegionPolicy(
+        CompositionOperation operation,
+        ProfileRegion targetRegion,
+        RegionAccessRule? accessRule,
+        List<CompositionIssue> issues)
+    {
+        if (accessRule is null ||
+            accessRule.Access is RegionAccessKind.Hidden or RegionAccessKind.ReadOnly ||
+            targetRegion.WritePolicy == RegionWritePolicy.Forbidden)
+        {
+            issues.Add(new CompositionIssue(
+                "profile.operation.region-not-enabled",
+                $"Operation '{operation.OperationId}' targets region '{targetRegion.RegionId}' without write access.",
+                operation.OperationId));
+        }
+
+        if (targetRegion.ProcessorDependencyIds.Count > 0)
+        {
+            issues.Add(new CompositionIssue(
+                "profile.operation.processor-dependency",
+                $"Operation '{operation.OperationId}' targets region '{targetRegion.RegionId}' with processor dependencies.",
+                operation.OperationId));
+        }
+
+        if ((targetRegion.Atomicity == RegionAtomicity.Whole ||
+                targetRegion.WritePolicy == RegionWritePolicy.WholeOnly ||
+                accessRule?.Access == RegionAccessKind.Whole) &&
+            operation.TargetRange != targetRegion.Range)
+        {
+            issues.Add(new CompositionIssue(
+                "profile.operation.atomicity",
+                $"Operation '{operation.OperationId}' must write whole region '{targetRegion.RegionId}'.",
+                operation.OperationId));
+        }
+
+        if (operation.TargetRange.Start % targetRegion.Alignment != 0 ||
+            operation.TargetRange.Length % targetRegion.Alignment != 0)
+        {
+            issues.Add(new CompositionIssue(
+                "profile.operation.region-alignment",
+                $"Operation '{operation.OperationId}' target range does not satisfy region '{targetRegion.RegionId}' alignment.",
+                operation.OperationId));
+        }
     }
 
     private static List<CompositionIssue> ValidateExplicitMappings(
@@ -126,28 +245,13 @@ public static class CompositionProfileCompiler
         ExplicitMapping mapping,
         List<CompositionIssue> issues)
     {
-        if (mapping.TargetRegionId is null)
-        {
-            issues.Add(new CompositionIssue(
-                "profile.explicit-mapping.target-region-required",
-                $"Explicit mapping '{mapping.MappingId}' must name a profile-approved target region.",
-                mapping.MappingId));
-            return;
-        }
-
-        ProfileRegion? targetRegion = profile.Regions.SingleOrDefault(region =>
-            string.Equals(region.RegionId, mapping.TargetRegionId, StringComparison.Ordinal));
+        ProfileRegion? targetRegion = ResolveExplicitMappingTargetRegion(profile, mapping, issues);
         if (targetRegion is null)
         {
-            issues.Add(new CompositionIssue(
-                "profile.explicit-mapping.target-region-unknown",
-                $"Explicit mapping '{mapping.MappingId}' targets unknown region '{mapping.TargetRegionId}'.",
-                mapping.MappingId));
             return;
         }
 
-        RegionAccessRule? accessRule = profile.RegionAccessRules.SingleOrDefault(rule =>
-            string.Equals(rule.RegionId, targetRegion.RegionId, StringComparison.Ordinal));
+        RegionAccessRule? accessRule = FindAccessRule(profile, targetRegion.RegionId);
         if (accessRule?.Access != RegionAccessKind.ExplicitRange ||
             targetRegion.WritePolicy != RegionWritePolicy.GeneralExplicit ||
             targetRegion.Atomicity != RegionAtomicity.ExplicitMapping)
@@ -184,32 +288,107 @@ public static class CompositionProfileCompiler
                 mapping.MappingId));
         }
 
-        if (OverlapsProtectedRegion(profile, targetRegion, mapping))
+        if (OverlapsProtectedRegion(profile, targetRegion, mapping.TargetSpaceId, mapping.TargetRange))
         {
             issues.Add(new CompositionIssue(
                 "profile.explicit-mapping.protected-overlap",
-                $"Explicit mapping '{mapping.MappingId}' overlaps a protected or non-explicit profile region.",
+                $"Explicit mapping '{mapping.MappingId}' overlaps a protected or processor-owned profile region.",
                 mapping.MappingId));
         }
+    }
+
+    private static ProfileRegion? ResolveExplicitMappingTargetRegion(
+        CompositionProfileDefinition profile,
+        ExplicitMapping mapping,
+        List<CompositionIssue> issues)
+    {
+        if (mapping.TargetRegionId is not null)
+        {
+            ProfileRegion? namedRegion = profile.Regions.FirstOrDefault(region =>
+                string.Equals(region.RegionId, mapping.TargetRegionId, StringComparison.Ordinal));
+            if (namedRegion is not null)
+            {
+                return namedRegion;
+            }
+
+            issues.Add(new CompositionIssue(
+                "profile.explicit-mapping.target-region-unknown",
+                $"Explicit mapping '{mapping.MappingId}' targets unknown region '{mapping.TargetRegionId}'.",
+                mapping.MappingId));
+            return null;
+        }
+
+        return ResolveTargetRegionByRange(
+            profile,
+            mapping.TargetSpaceId,
+            mapping.TargetRange,
+            "profile.explicit-mapping.target-region-unresolved",
+            "profile.explicit-mapping.target-region-ambiguous",
+            mapping.MappingId,
+            issues);
+    }
+
+    private static ProfileRegion? ResolveTargetRegionByRange(
+        CompositionProfileDefinition profile,
+        string targetSpaceId,
+        ByteRange targetRange,
+        string unresolvedIssueCode,
+        string ambiguousIssueCode,
+        string evidenceId,
+        List<CompositionIssue> issues)
+    {
+        ProfileRegion[] candidates = [
+            .. profile.Regions.Where(region =>
+                string.Equals(region.AddressSpaceId, targetSpaceId, StringComparison.Ordinal) &&
+                region.Range.Contains(targetRange)),
+        ];
+        if (candidates.Length == 1)
+        {
+            return candidates[0];
+        }
+
+        if (candidates.Length == 0)
+        {
+            issues.Add(new CompositionIssue(
+                unresolvedIssueCode,
+                $"Target range '{targetRange}' is not contained by exactly one profile region.",
+                evidenceId));
+        }
+        else
+        {
+            issues.Add(new CompositionIssue(
+                ambiguousIssueCode,
+                $"Target range '{targetRange}' is contained by multiple profile regions.",
+                evidenceId));
+        }
+
+        return null;
+    }
+
+    private static RegionAccessRule? FindAccessRule(CompositionProfileDefinition profile, string regionId)
+    {
+        return profile.RegionAccessRules.FirstOrDefault(rule =>
+            string.Equals(rule.RegionId, regionId, StringComparison.Ordinal));
     }
 
     private static bool OverlapsProtectedRegion(
         CompositionProfileDefinition profile,
         ProfileRegion targetRegion,
-        ExplicitMapping mapping)
+        string targetSpaceId,
+        ByteRange targetRange)
     {
         foreach (ProfileRegion region in profile.Regions)
         {
-            if (!string.Equals(region.AddressSpaceId, mapping.TargetSpaceId, StringComparison.Ordinal) ||
-                !region.Range.Overlaps(mapping.TargetRange) ||
+            if (!string.Equals(region.AddressSpaceId, targetSpaceId, StringComparison.Ordinal) ||
+                !region.Range.Overlaps(targetRange) ||
                 string.Equals(region.RegionId, targetRegion.RegionId, StringComparison.Ordinal))
             {
                 continue;
             }
 
-            RegionAccessRule? rule = profile.RegionAccessRules.SingleOrDefault(item =>
-                string.Equals(item.RegionId, region.RegionId, StringComparison.Ordinal));
+            RegionAccessRule? rule = FindAccessRule(profile, region.RegionId);
             if (region.WritePolicy == RegionWritePolicy.Forbidden ||
+                region.ProcessorDependencyIds.Count > 0 ||
                 rule?.Access != RegionAccessKind.ExplicitRange)
             {
                 return true;

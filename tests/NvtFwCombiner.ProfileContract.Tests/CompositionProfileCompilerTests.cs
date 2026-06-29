@@ -73,9 +73,9 @@ public sealed class CompositionProfileCompilerTests
         Assert.Equal(CompositionOperationKind.ReplaceRange, operation.Kind);
     }
 
-    /// <summary>Verifies general replace mappings are rejected before compilation when no explicit region is named.</summary>
+    /// <summary>Verifies general replace mappings can infer the target region from an unambiguous range.</summary>
     [Fact]
-    public void GeneralReplaceRejectsMappingWithoutTargetRegion()
+    public void GeneralReplaceInfersMappingTargetRegionFromRange()
     {
         CompositionProfileDefinition profile = CreateProfile(
             CompositionKind.Replace,
@@ -85,8 +85,9 @@ public sealed class CompositionProfileCompilerTests
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, [mapping]);
 
-        Assert.False(result.IsSuccess);
-        Assert.Contains(result.Issues, issue => issue.Code == "profile.explicit-mapping.target-region-required");
+        Assert.True(result.IsSuccess);
+        CompositionOperation operation = Assert.Single(result.Plan!.OrderedOperations);
+        Assert.Equal(new ByteRange(1, 2), operation.TargetRange);
     }
 
     /// <summary>Verifies general replace mappings cannot cross a protected region even within the output address space.</summary>
@@ -169,11 +170,150 @@ public sealed class CompositionProfileCompilerTests
         Assert.Contains(result.Issues, issue => issue.Code == "profile.explicit-mapping.alignment");
     }
 
+    /// <summary>Verifies duplicate region ids return structured compile issues.</summary>
+    [Fact]
+    public void DuplicateRegionIdsFailWithStructuredIssue()
+    {
+        CompositionProfileDefinition profile = CreateProfile(
+            CompositionKind.Replace,
+            "general-replace",
+            ImageInitialization.Reference("output-image", "source", 4),
+            regions:
+            [
+                new ProfileRegion(
+                    "payload",
+                    "output-image",
+                    new ByteRange(0, 2),
+                    RegionAtomicity.ExplicitMapping,
+                    RegionWritePolicy.GeneralExplicit),
+                new ProfileRegion(
+                    "payload",
+                    "output-image",
+                    new ByteRange(2, 2),
+                    RegionAtomicity.ExplicitMapping,
+                    RegionWritePolicy.GeneralExplicit),
+            ]);
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.region.duplicate");
+    }
+
+    /// <summary>Verifies duplicate access rules return structured compile issues.</summary>
+    [Fact]
+    public void DuplicateAccessRulesFailWithStructuredIssue()
+    {
+        CompositionProfileDefinition profile = CreateProfile(
+            CompositionKind.Replace,
+            "general-replace",
+            ImageInitialization.Reference("output-image", "source", 4),
+            accessRules:
+            [
+                new RegionAccessRule("payload", RegionAccessKind.ExplicitRange, "allow payload"),
+                new RegionAccessRule("payload", RegionAccessKind.ExplicitRange, "duplicate payload"),
+            ]);
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.region-access.duplicate");
+    }
+
+    /// <summary>Verifies fixed experience profiles cannot add runtime address spaces.</summary>
+    [Fact]
+    public void FixedExperienceRejectsRuntimeAddressSpaces()
+    {
+        CompositionProfileDefinition profile = CreateProfile(
+            CompositionKind.Merge,
+            "standard-merge",
+            ImageInitialization.Blank("output-image", 4, 0));
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(
+            profile,
+            [],
+            [new AddressSpace("runtime-source", 4, AddressSpaceMutability.Immutable)]);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.request-address-space.not-allowed");
+    }
+
+    /// <summary>Verifies profile operations are validated against region access policy.</summary>
+    [Fact]
+    public void FixedProfileOperationRejectsHiddenRegion()
+    {
+        CompositionProfileDefinition profile = CreateProfile(
+            CompositionKind.Replace,
+            "display-replace",
+            ImageInitialization.Reference("output-image", "source", 4),
+            operations:
+            [
+                CompositionOperation.ReplaceRange(
+                    "replace-header",
+                    10,
+                    "source",
+                    new ByteRange(0, 1),
+                    "output-image",
+                    new ByteRange(0, 1),
+                    OverlapPolicy.Reject,
+                    "unsafe header replace"),
+            ]);
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.operation.region-not-enabled");
+    }
+
+    /// <summary>Verifies parent mappings cannot cross processor-owned child regions.</summary>
+    [Fact]
+    public void ExplicitMappingRejectsProcessorOwnedChildOverlap()
+    {
+        CompositionProfileDefinition profile = CreateProfile(
+            CompositionKind.Replace,
+            "general-replace",
+            ImageInitialization.Reference("output-image", "source", 4),
+            regions:
+            [
+                new ProfileRegion(
+                    "payload",
+                    "output-image",
+                    new ByteRange(0, 4),
+                    RegionAtomicity.ExplicitMapping,
+                    RegionWritePolicy.GeneralExplicit),
+                new ProfileRegion(
+                    "payload-crc",
+                    "output-image",
+                    new ByteRange(1, 1),
+                    RegionAtomicity.Whole,
+                    RegionWritePolicy.GeneralExplicit,
+                    processorDependencyIds: ["crc-v1"]),
+            ],
+            accessRules:
+            [
+                new RegionAccessRule("payload", RegionAccessKind.ExplicitRange, "allow payload"),
+                new RegionAccessRule("payload-crc", RegionAccessKind.ExplicitRange, "processor owned"),
+            ]);
+        ExplicitMapping mapping = CreateMapping(
+            ExplicitMappingOperationKind.ReplaceRange,
+            sourceRange: new ByteRange(0, 4),
+            targetRange: new ByteRange(0, 4),
+            targetRegionId: "payload");
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, [mapping]);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.explicit-mapping.protected-overlap");
+    }
+
     private static CompositionProfileDefinition CreateProfile(
         CompositionKind compositionKind,
         string experienceId,
         ImageInitialization initialization,
-        IReadOnlyList<AddressSpace>? addressSpaces = null)
+        IReadOnlyList<AddressSpace>? addressSpaces = null,
+        IReadOnlyList<CompositionOperation>? operations = null,
+        IReadOnlyList<ProfileRegion>? regions = null,
+        IReadOnlyList<RegionAccessRule>? accessRules = null)
     {
         AddressSpace[] defaultAddressSpaces =
         [
@@ -190,7 +330,8 @@ public sealed class CompositionProfileCompilerTests
             "demo-output.bin",
             initialization,
             addressSpaces ?? defaultAddressSpaces,
-            [],
+            operations ?? [],
+            regions ??
             [
                 new ProfileRegion(
                     "header",
@@ -205,6 +346,7 @@ public sealed class CompositionProfileCompilerTests
                     RegionAtomicity.ExplicitMapping,
                     RegionWritePolicy.GeneralExplicit),
             ],
+            accessRules ??
             [
                 new RegionAccessRule("header", RegionAccessKind.Hidden, "protect header"),
                 new RegionAccessRule("payload", RegionAccessKind.ExplicitRange, "allow general mapping"),

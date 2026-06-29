@@ -143,6 +143,62 @@ public sealed class CompositionRunServiceTests
         Assert.DoesNotContain(result.Report.Inputs, input => input.ArtifactId == hostLocator);
     }
 
+    /// <summary>Verifies seeded mutable address-space bindings are read by run service previews.</summary>
+    [Fact]
+    public async Task PreviewReadsSeededMutableAddressSpaceBinding()
+    {
+        var reader = new FakeArtifactReader(new Dictionary<string, byte[]>
+        {
+            ["scratch-artifact"] = [1, 2, 3, 4],
+        });
+        var service = new CompositionRunService(reader, new FakeClock([FirstTimestamp, SecondTimestamp]));
+        CompositionRunRequest request = CreateScratchRequest();
+
+        CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal([0, 3, 0, 0], result.OutputBytes.ToArray());
+        InputArtifactSummary input = Assert.Single(result.Report.Inputs);
+        Assert.Equal("scratch-safe", input.ArtifactId);
+    }
+
+    /// <summary>Verifies artifact read failures are returned as structured run issues.</summary>
+    [Fact]
+    public async Task PreviewConvertsArtifactReadFailuresIntoRunIssues()
+    {
+        var service = new CompositionRunService(
+            new FakeArtifactReader([]),
+            new FakeClock([FirstTimestamp, SecondTimestamp]));
+        CompositionRunRequest request = CreateRequest(bindings:
+        [
+            new InputArtifactBinding("dp-input", "dp-safe", "missing-dp"),
+            new InputArtifactBinding("tp-input", "tp-safe", "missing-tp"),
+        ]);
+
+        CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
+        Assert.Equal(2, result.Report.Issues.Count);
+        Assert.All(result.Report.Issues, issue => Assert.Equal("input.artifact.read-failed", issue.Code));
+    }
+
+    /// <summary>Verifies preview tokens include overwritten operation details, not only final output bytes.</summary>
+    [Fact]
+    public async Task PreviewTokenChangesWhenOverwrittenPlanDetailsChange()
+    {
+        var service = new CompositionRunService(
+            new FakeArtifactReader([]),
+            new FakeClock([FirstTimestamp, SecondTimestamp, ThirdTimestamp, FourthTimestamp]));
+        CompositionRunRequest firstRequest = CreateOverwriteRequest("run-overwrite-a", 0x11);
+        CompositionRunRequest secondRequest = CreateOverwriteRequest("run-overwrite-b", 0x12);
+
+        CompositionRunResult first = await service.PreviewAsync(firstRequest, CancellationToken.None);
+        CompositionRunResult second = await service.PreviewAsync(secondRequest, CancellationToken.None);
+
+        Assert.Equal(first.OutputBytes.ToArray(), second.OutputBytes.ToArray());
+        Assert.NotEqual(first.PreviewToken, second.PreviewToken);
+    }
+
     /// <summary>Verifies output overrides are validated before a writer can see them.</summary>
     [Fact]
     public void RunRequestRejectsOutputFileNameWithPathSyntax()
@@ -214,6 +270,82 @@ public sealed class CompositionRunServiceTests
             compile.Plan!,
             bindings ?? DefaultBindings(),
             outputFileName ?? profile.DefaultOutputFileName);
+    }
+
+    private static CompositionRunRequest CreateScratchRequest()
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+            new("scratch", 4, AddressSpaceMutability.Mutable),
+        ];
+        var plan = new CompositionPlan(
+            ImageInitialization.Blank("output-image", 4, 0),
+            addressSpaces,
+            [
+                CompositionOperation.CopyRange(
+                    "copy-scratch",
+                    10,
+                    "scratch",
+                    new ByteRange(2, 1),
+                    "output-image",
+                    new ByteRange(1, 1),
+                    OverlapPolicy.Reject,
+                    "copy scratch seed"),
+            ]);
+        return new CompositionRunRequest(
+            "run-scratch",
+            new CompositionRunProfile(
+                "scratch-profile",
+                "1.0.0",
+                "NT-SYNTHETIC",
+                "scratch",
+                "general-merge",
+                CompositionKind.Merge),
+            plan,
+            [new InputArtifactBinding("scratch", "scratch-safe", "scratch-artifact")],
+            "scratch.bin");
+    }
+
+    private static CompositionRunRequest CreateOverwriteRequest(string runId, byte firstFillByte)
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("output-image", 1, AddressSpaceMutability.Mutable),
+        ];
+        var plan = new CompositionPlan(
+            ImageInitialization.Blank("output-image", 1, 0),
+            addressSpaces,
+            [
+                CompositionOperation.FillRange(
+                    "fill-first",
+                    10,
+                    "output-image",
+                    new ByteRange(0, 1),
+                    firstFillByte,
+                    OverlapPolicy.Reject,
+                    "first overwritten fill"),
+                CompositionOperation.FillRange(
+                    "fill-second",
+                    20,
+                    "output-image",
+                    new ByteRange(0, 1),
+                    0x22,
+                    OverlapPolicy.ReplaceExisting,
+                    "final fill"),
+            ]);
+        return new CompositionRunRequest(
+            runId,
+            new CompositionRunProfile(
+                "overwrite-profile",
+                "1.0.0",
+                "NT-SYNTHETIC",
+                "overwrite",
+                "general-merge",
+                CompositionKind.Merge),
+            plan,
+            [],
+            "overwrite.bin");
     }
 
     private static IReadOnlyList<InputArtifactBinding> DefaultBindings()

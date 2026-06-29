@@ -18,7 +18,7 @@ public sealed class CompositionRunReport
         DateTimeOffset completedAtUtc,
         IReadOnlyList<InputArtifactSummary> inputs,
         IReadOnlyList<OperationRunSummary> operations,
-        IReadOnlyList<MutationRecord> mutations,
+        IReadOnlyList<MutationRunSummary> mutations,
         IReadOnlyList<CompositionIssue> issues,
         OutputArtifactSummary output)
     {
@@ -83,8 +83,8 @@ public sealed class CompositionRunReport
     /// <summary>Operation statuses in plan order.</summary>
     public IReadOnlyList<OperationRunSummary> Operations { get; }
 
-    /// <summary>Mutation traces returned by the shared engine.</summary>
-    public IReadOnlyList<MutationRecord> Mutations { get; }
+    /// <summary>Application mutation summaries mapped from the shared engine.</summary>
+    public IReadOnlyList<MutationRunSummary> Mutations { get; }
 
     /// <summary>Structured issues emitted during the run.</summary>
     public IReadOnlyList<CompositionIssue> Issues { get; }

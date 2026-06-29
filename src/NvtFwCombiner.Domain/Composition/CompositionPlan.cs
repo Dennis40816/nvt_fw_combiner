@@ -45,6 +45,16 @@ public sealed class CompositionPlan
             .Select(addressSpace => addressSpace.AddressSpaceId)
             .Order(StringComparer.Ordinal)];
 
+    /// <summary>Mutable non-output address spaces that must be seeded before execution.</summary>
+    public IReadOnlyList<string> RequiredSeededMutableAddressSpaceIds =>
+        [.. AddressSpaces
+            .Where(addressSpace =>
+                addressSpace.Mutability == AddressSpaceMutability.Mutable &&
+                !string.Equals(addressSpace.AddressSpaceId, Initialization.TargetSpaceId, StringComparison.Ordinal) &&
+                RequiresSeededMutableAddressSpace(addressSpace.AddressSpaceId))
+            .Select(addressSpace => addressSpace.AddressSpaceId)
+            .Order(StringComparer.Ordinal)];
+
     internal AddressSpace GetAddressSpace(string addressSpaceId)
     {
         return _addressSpacesById[addressSpaceId];
@@ -207,6 +217,13 @@ public sealed class CompositionPlan
                     nameof(priorWrites));
             }
 
+            if (operation.OverlapPolicy == OverlapPolicy.AllowDeclared)
+            {
+                throw new ArgumentException(
+                    $"Operation '{operation.OperationId}' uses allow-declared overlap without validation evidence.",
+                    nameof(priorWrites));
+            }
+
             if (operation.OverlapPolicy == OverlapPolicy.Reject)
             {
                 throw new ArgumentException(
@@ -231,5 +248,12 @@ public sealed class CompositionPlan
             string.Equals(reader.SourceSpaceId, writer.TargetSpaceId, StringComparison.Ordinal) &&
             _addressSpacesById[reader.SourceSpaceId].Mutability == AddressSpaceMutability.Mutable &&
             reader.SourceRange.Value.Overlaps(writer.TargetRange);
+    }
+
+    private bool RequiresSeededMutableAddressSpace(string addressSpaceId)
+    {
+        return OrderedOperations.Any(operation =>
+            string.Equals(operation.TargetSpaceId, addressSpaceId, StringComparison.Ordinal) ||
+            string.Equals(operation.SourceSpaceId, addressSpaceId, StringComparison.Ordinal));
     }
 }
