@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: main-package-${{ github.ref }}
@@ -49,9 +49,31 @@ jobs:
         shell: pwsh
         run: ./scripts/package.ps1 -Version "$env:NFC_PACKAGE_VERSION" -Commit '${{ github.sha }}' -AllowPrerelease
       - name: Upload self-contained package
+        id: upload-package-artifact
+        continue-on-error: true
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: nvt-fw-combiner-${{ github.sha }}-win-x64
           path: artifacts/release/*
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 3
+      - name: Publish package fallback prerelease
+        if: steps.upload-package-artifact.outcome == 'failure'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $sha = '${{ github.sha }}'
+          $shortSha = $sha.Substring(0, 12)
+          $tag = "main-package-$shortSha"
+          $repo = '${{ github.repository }}'
+          $title = "Main package $shortSha"
+          $notes = "Automated main package for commit $sha. Created because GitHub Actions artifact upload was unavailable."
+          gh release view $tag --repo $repo *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag ./artifacts/release/* --repo $repo --clobber
+            gh release edit $tag --repo $repo --prerelease --title $title --notes $notes
+          }
+          else {
+            gh release create $tag ./artifacts/release/* --repo $repo --target $sha --prerelease --title $title --notes $notes
+          }
