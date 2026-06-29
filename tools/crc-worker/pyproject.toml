@@ -12,7 +12,7 @@ dependencies = []
 [project.optional-dependencies]
 dev = [
   "hypothesis>=6.130,<7",
-  "pylint>=3.3,<4",
+  "pylint>=3.3,<5",
   "pyright>=1.1.400,<2",
   "pytest>=8.3,<10",
   "pytest-cov>=6,<7",
