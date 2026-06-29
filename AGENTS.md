@@ -67,7 +67,7 @@ Do not invent a second canonical repository verification entry point.
 - Input/reference artifacts are immutable. Use named work buffers and atomic output promotion.
 - Python, legacy `combiner.exe`, and every external processor may modify only a host-created staging copy. They never modify the user's source BIN or final output path.
 - The host independently diffs staged before/after bytes and rejects every change outside declared write ranges.
-- Never add real firmware BIN files, credentials, generated releases, or private golden data to Git.
+- Never add real firmware BIN files, credentials, generated releases, or private golden data to Git, except owner-approved golden fixtures under `testdata/golden/` with manifest paths, sizes, hashes, source provenance, and human approval recorded.
 
 ## Required workflow
 
