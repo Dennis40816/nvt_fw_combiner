@@ -1,5 +1,3 @@
-using NvtFwCombiner.Domain.Memory;
-
 namespace NvtFwCombiner.Domain.Composition;
 
 /// <summary>Profile-approved explicit byte mapping between named address spaces.</summary>
@@ -34,7 +32,7 @@ public sealed record ExplicitMapping
             throw new ArgumentException("Source and target mapping lengths must match.", nameof(targetRange));
         }
 
-        if (targetRange.Start.Value % alignment != 0)
+        if (targetRange.Start % alignment != 0)
         {
             throw new ArgumentException("Target start must satisfy the mapping alignment.", nameof(targetRange));
         }

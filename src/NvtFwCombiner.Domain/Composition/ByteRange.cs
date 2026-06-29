@@ -37,22 +37,27 @@ public readonly record struct ByteRange
     /// <summary>Creates a range from an inclusive start and exclusive end.</summary>
     public static ByteRange FromStartEndExclusive(long start, long endExclusive)
     {
-        if (endExclusive <= start)
-        {
-            throw new ArgumentOutOfRangeException(nameof(endExclusive), endExclusive, "End must be greater than start.");
-        }
-
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(endExclusive, start);
         return new ByteRange(start, checked(endExclusive - start));
     }
 
     /// <summary>Returns true when this range contains the supplied absolute offset.</summary>
-    public bool Contains(long offset) => offset >= Start && offset < EndExclusive;
+    public bool Contains(long offset)
+    {
+        return offset >= Start && offset < EndExclusive;
+    }
 
     /// <summary>Returns true when this range fully contains <paramref name="other"/>.</summary>
-    public bool Contains(ByteRange other) => other.Start >= Start && other.EndExclusive <= EndExclusive;
+    public bool Contains(ByteRange other)
+    {
+        return other.Start >= Start && other.EndExclusive <= EndExclusive;
+    }
 
     /// <summary>Returns true when this range shares at least one byte with <paramref name="other"/>.</summary>
-    public bool Overlaps(ByteRange other) => Start < other.EndExclusive && other.Start < EndExclusive;
+    public bool Overlaps(ByteRange other)
+    {
+        return Start < other.EndExclusive && other.Start < EndExclusive;
+    }
 
     /// <summary>Returns the intersection of two ranges, or null when they do not overlap.</summary>
     public ByteRange? Intersect(ByteRange other)
@@ -63,5 +68,8 @@ public readonly record struct ByteRange
     }
 
     /// <inheritdoc />
-    public override string ToString() => $"[{Start}, {EndExclusive})/{Length}";
+    public override string ToString()
+    {
+        return $"[{Start}, {EndExclusive})/{Length}";
+    }
 }

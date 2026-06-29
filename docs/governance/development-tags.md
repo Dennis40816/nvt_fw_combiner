@@ -8,7 +8,8 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 
 ## Branch and merge policy
 
-- `0.1.0` is the active dev0 branch.
+- `0.1.0` is the dev0 contract branch.
+- `0.1.1` is the active UI planning branch.
 - `main` is the stable branch.
 - Progress to `main` must happen through reviewed merge/PR, not direct unreviewed development pushes.
 - Agent/Codex work should stay on the active milestone branch until review gates pass.

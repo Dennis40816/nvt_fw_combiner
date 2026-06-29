@@ -8,7 +8,7 @@ public sealed class ExternalCombinerToolManifestValidator
     private static readonly string[] AllowedTokens = ["{staging.workBin}", "{staging.outputBin}", "{staging.runDir}"];
 
     /// <summary>Returns deterministic validation errors. An empty list means the manifest is acceptable.</summary>
-    public IReadOnlyList<string> Validate(ExternalCombinerToolManifest manifest)
+    public static IReadOnlyList<string> Validate(ExternalCombinerToolManifest manifest)
     {
         ArgumentNullException.ThrowIfNull(manifest);
 
@@ -57,7 +57,7 @@ public sealed class ExternalCombinerToolManifestValidator
         return errors;
     }
 
-    private static void ValidateToolVersion(string version, ICollection<string> errors)
+    private static void ValidateToolVersion(string version, List<string> errors)
     {
         if (string.IsNullOrWhiteSpace(version))
         {
@@ -78,7 +78,7 @@ public sealed class ExternalCombinerToolManifestValidator
         }
     }
 
-    private static void ValidateExecutableName(string executableName, ICollection<string> errors)
+    private static void ValidateExecutableName(string executableName, List<string> errors)
     {
         if (!IsPlainFileName(executableName) || !executableName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
         {
@@ -86,7 +86,7 @@ public sealed class ExternalCombinerToolManifestValidator
         }
     }
 
-    private static void ValidateSha256(string value, ICollection<string> errors)
+    private static void ValidateSha256(string value, List<string> errors)
     {
         if (string.IsNullOrWhiteSpace(value) || value.Length != 64 || value.Any(character => !Uri.IsHexDigit(character) || char.IsUpper(character)))
         {
@@ -94,7 +94,7 @@ public sealed class ExternalCombinerToolManifestValidator
         }
     }
 
-    private static void ValidateArgumentTemplate(IEnumerable<string> arguments, ICollection<string> errors)
+    private static void ValidateArgumentTemplate(IEnumerable<string> arguments, List<string> errors)
     {
         foreach (string argument in arguments)
         {
@@ -139,7 +139,7 @@ public sealed class ExternalCombinerToolManifestValidator
             && value != "..";
     }
 
-    private static void RequireNotBlank(string value, string name, ICollection<string> errors)
+    private static void RequireNotBlank(string value, string name, List<string> errors)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
@@ -147,7 +147,7 @@ public sealed class ExternalCombinerToolManifestValidator
         }
     }
 
-    private static void RequireExact(string actual, string expected, string name, ICollection<string> errors)
+    private static void RequireExact(string actual, string expected, string name, List<string> errors)
     {
         if (!string.Equals(actual, expected, StringComparison.Ordinal))
         {
@@ -155,7 +155,7 @@ public sealed class ExternalCombinerToolManifestValidator
         }
     }
 
-    private static void RequireOneOf(string actual, IReadOnlyCollection<string> allowed, string name, ICollection<string> errors)
+    private static void RequireOneOf(string actual, IReadOnlyCollection<string> allowed, string name, List<string> errors)
     {
         if (!allowed.Contains(actual, StringComparer.Ordinal))
         {

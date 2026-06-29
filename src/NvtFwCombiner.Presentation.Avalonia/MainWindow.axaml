@@ -2,21 +2,180 @@
     x:Class="NvtFwCombiner.Presentation.Avalonia.MainWindow"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Width="1120"
-    Height="720"
-    MinWidth="900"
-    MinHeight="600"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    x:DataType="vm:MainWindowViewModel"
+    Width="1180"
+    Height="760"
+    MinWidth="980"
+    MinHeight="640"
+    Background="#F5F7FA"
     Title="NVT FW Combiner">
-  <Grid Margin="32" RowDefinitions="Auto,Auto,*">
-    <TextBlock FontSize="30" FontWeight="SemiBold" Text="NVT FW Combiner" />
-    <TextBlock Grid.Row="1" Margin="0,12,0,0" Text="Repository bootstrap • .NET 10 • Avalonia 12" />
-    <Border Grid.Row="2" Margin="0,24,0,0" Padding="24" BorderThickness="1" CornerRadius="12">
-      <StackPanel Spacing="12">
-        <TextBlock FontSize="20" FontWeight="SemiBold" Text="Development surfaces" />
-        <TextBlock Text="Merge: Standard • AB • General" />
-        <TextBlock Text="Replace: Display • TP HW • TP FW • General" />
-        <TextBlock TextWrapping="Wrap" Text="All experiences compile to the same composition operation model. Replace starts from a reference image; Merge starts from a blank image." />
+  <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,*,Auto">
+    <Border
+        Grid.RowSpan="3"
+        Padding="24"
+        Background="#111827">
+      <StackPanel Spacing="18">
+        <TextBlock
+            FontSize="21"
+            FontWeight="SemiBold"
+            Foreground="White"
+            Text="NVT FW Combiner" />
+        <TextBlock
+            Foreground="#CBD5E1"
+            Text="{Binding ShellVersion}" />
+        <ItemsControl
+            Margin="0,18,0,0"
+            ItemsSource="{Binding NavigationItems}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:NavigationItemViewModel">
+              <Button
+                  Margin="0,0,0,10"
+                  Padding="0"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Left"
+                  Background="Transparent"
+                  BorderThickness="0"
+                  Content="{Binding Label}"
+                  Foreground="#E5E7EB" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
       </StackPanel>
+    </Border>
+
+    <Border
+        Grid.Column="1"
+        Padding="28,22"
+        Background="White"
+        BorderBrush="#D6DAE1"
+        BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <StackPanel Spacing="4">
+          <TextBlock
+              FontSize="26"
+              FontWeight="SemiBold"
+              Text="{Binding WorkspaceTitle}" />
+          <TextBlock
+              Foreground="#475569"
+              Text="{Binding WorkspaceSummary}" />
+        </StackPanel>
+        <Button
+            Grid.Column="1"
+            Margin="0,0,10,0"
+            IsEnabled="False"
+            Content="{Binding PreviewActionLabel}" />
+        <Button
+            Grid.Column="2"
+            IsEnabled="False"
+            Content="{Binding BuildActionLabel}" />
+      </Grid>
+    </Border>
+
+    <ScrollViewer Grid.Row="1" Grid.Column="1">
+      <StackPanel Margin="28" Spacing="18">
+        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto">
+          <Border
+              Margin="0,0,9,9"
+              Padding="18"
+              Background="White"
+              BorderBrush="#D6DAE1"
+              BorderThickness="1"
+              CornerRadius="8">
+            <StackPanel Spacing="10">
+              <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding MergePreview.Title}" />
+              <TextBlock Foreground="#475569" Text="{Binding MergePreview.Subtitle}" />
+              <ItemsControl ItemsSource="{Binding MergePreview.Rows}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="x:String">
+                    <TextBlock Margin="0,0,0,10" Text="{Binding}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Foreground="#B45309" Text="{Binding MergePreview.Status}" />
+            </StackPanel>
+          </Border>
+
+          <Border
+              Grid.Column="1"
+              Margin="9,0,0,9"
+              Padding="18"
+              Background="White"
+              BorderBrush="#D6DAE1"
+              BorderThickness="1"
+              CornerRadius="8">
+            <StackPanel Spacing="10">
+              <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding ReplacePreview.Title}" />
+              <TextBlock Foreground="#475569" Text="{Binding ReplacePreview.Subtitle}" />
+              <ItemsControl ItemsSource="{Binding ReplacePreview.Rows}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="x:String">
+                    <TextBlock Margin="0,0,0,10" Text="{Binding}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Foreground="#B45309" Text="{Binding ReplacePreview.Status}" />
+            </StackPanel>
+          </Border>
+
+          <Border
+              Grid.Row="1"
+              Margin="0,9,9,0"
+              Padding="18"
+              Background="White"
+              BorderBrush="#D6DAE1"
+              BorderThickness="1"
+              CornerRadius="8">
+            <StackPanel Spacing="10">
+              <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding SavedRulesAndReports.Title}" />
+              <TextBlock Foreground="#475569" Text="{Binding SavedRulesAndReports.Subtitle}" />
+              <ItemsControl ItemsSource="{Binding SavedRulesAndReports.Rows}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="x:String">
+                    <TextBlock Margin="0,0,0,10" Text="{Binding}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Foreground="#B45309" Text="{Binding SavedRulesAndReports.Status}" />
+            </StackPanel>
+          </Border>
+
+          <Border
+              Grid.Row="1"
+              Grid.Column="1"
+              Margin="9,9,0,0"
+              Padding="18"
+              Background="White"
+              BorderBrush="#D6DAE1"
+              BorderThickness="1"
+              CornerRadius="8">
+            <StackPanel Spacing="10">
+              <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding Diagnostics.Title}" />
+              <TextBlock Foreground="#475569" Text="{Binding Diagnostics.Subtitle}" />
+              <ItemsControl ItemsSource="{Binding Diagnostics.Rows}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="x:String">
+                    <TextBlock Margin="0,0,0,10" Text="{Binding}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Foreground="#B45309" Text="{Binding Diagnostics.Status}" />
+            </StackPanel>
+          </Border>
+        </Grid>
+      </StackPanel>
+    </ScrollViewer>
+
+    <Border
+        Grid.Row="2"
+        Grid.Column="1"
+        Padding="28,10"
+        Background="#F8FAFC"
+        BorderBrush="#D6DAE1"
+        BorderThickness="0,1,0,0">
+      <TextBlock
+          Foreground="#475569"
+          Text="{Binding FooterStatus}" />
     </Border>
   </Grid>
 </Window>

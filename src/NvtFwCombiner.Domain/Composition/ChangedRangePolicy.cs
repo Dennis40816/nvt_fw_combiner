@@ -15,8 +15,8 @@ public sealed class ChangedRangePolicy
     public ChangedRangeVerdict Evaluate(IEnumerable<ByteRange> changedRanges)
     {
         ArgumentNullException.ThrowIfNull(changedRanges);
-        ByteRange[] observed = changedRanges.OrderBy(range => range.Start).ThenBy(range => range.Length).ToArray();
-        ByteRange[] violations = observed.Where(range => !_allowedWrites.Contains(range)).ToArray();
+        ByteRange[] observed = [.. changedRanges.OrderBy(range => range.Start).ThenBy(range => range.Length)];
+        ByteRange[] violations = [.. observed.Where(range => !_allowedWrites.Contains(range))];
         return new ChangedRangeVerdict(violations.Length == 0, observed, violations);
     }
 }

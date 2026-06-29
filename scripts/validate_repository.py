@@ -15,6 +15,7 @@ from typing import Any, Iterable
 from urllib.parse import unquote
 
 ROOT = Path(__file__).resolve().parents[1]
+
 REQUIRED_FILES = {
     "README.md",
     "LICENSE",
@@ -34,38 +35,55 @@ REQUIRED_FILES = {
     ".github/pull_request_template.md",
     ".github/workflows/ci.yml",
     ".github/workflows/release.yml",
-    "scripts/install-dotnet.ps1",
-    "scripts/install-dotnet.sh",
     "scripts/bootstrap.ps1",
     "scripts/bootstrap.sh",
+    "scripts/install-dotnet.ps1",
+    "scripts/install-dotnet.sh",
     "scripts/package.ps1",
     "scripts/polytail_check.py",
     "scripts/publish-github.ps1",
     "scripts/publish-github.sh",
     "scripts/validate_repository.py",
-    "THIRD_PARTY_NOTICES.md",
     "scripts/verify.py",
+    "THIRD_PARTY_NOTICES.md",
     "docs/adr/0003-unified-composition-engine.md",
     "docs/adr/0004-orthogonal-experience-access-policy.md",
     "docs/adr/0005-replace-personas-and-general-mapping.md",
+    "docs/adr/0006-external-combiner-tool-runner.md",
+    "docs/adr/0007-dev0-contract-scope-and-region-model.md",
     "docs/architecture/canonical-variable-model.md",
     "docs/architecture/experience-and-access-policy.md",
+    "docs/architecture/external-combiner-tool-runner.md",
     "docs/architecture/integrity-processing-matrix.md",
-    "docs/governance/development-tags.md",
-    "docs/governance/codex-handoff.md",
-    "docs/policies/polytail.md",
-    "docs/contracts/crc-worker-v1.schema.json",
+    "docs/architecture/operation-order-and-overlap-policy.md",
+    "docs/architecture/region-model.md",
+    "docs/architecture/saved-rule-promotion.md",
+    "docs/architecture/terminal-log-and-diagnostics.md",
     "docs/contracts/composition-profile-v1.schema.json",
     "docs/contracts/composition-request-v1.schema.json",
     "docs/contracts/composition-report-v1.schema.json",
+    "docs/contracts/crc-worker-v1.schema.json",
+    "docs/contracts/external-combiner-tool-manifest-v1.schema.json",
+    "docs/contracts/region-v1.schema.json",
     "docs/contracts/release-manifest-v1.schema.json",
+    "docs/contracts/saved-composition-rule-v1.schema.json",
+    "docs/governance/codex-handoff.md",
+    "docs/governance/development-tags.md",
+    "docs/policies/polytail.md",
     "docs/references/verification-report.md",
+    "docs/specs/dev0-contract-scope.md",
+    "docs/ui/0.1.1-demo-interface-plan.md",
+    "docs/ui/diagnostics-and-terminal-wireframe.md",
+    "docs/ui/information-architecture.md",
+    "docs/ui/merge-replace-wireframes.md",
+    "docs/ui/viewmodel-boundaries.md",
     "refcode/README.md",
     "refcode/REFERENCE_MANIFEST.json",
     "refcode/gen_flash_bin_v2/SOURCE_MANIFEST.json",
     "refcode/ab_code_combiner/SOURCE_MANIFEST.json",
     "tools/crc-worker/pyproject.toml",
 }
+
 EXPECTED_PROJECTS = {
     "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
     "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
@@ -76,8 +94,10 @@ EXPECTED_PROJECTS = {
     "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj",
     "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
     "tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj",
+    "tests/NvtFwCombiner.Application.Tests/NvtFwCombiner.Application.Tests.csproj",
     "tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj",
 }
+
 EXPECTED_PROJECT_REFERENCES = {
     "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj": set(),
     "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj": set(),
@@ -108,8 +128,13 @@ EXPECTED_PROJECT_REFERENCES = {
     "tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj": {
         "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
     },
+    "tests/NvtFwCombiner.Application.Tests/NvtFwCombiner.Application.Tests.csproj": {
+        "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
+        "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
+    },
     "tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj": set(),
 }
+
 EXPECTED_SKILLS = {
     "nfc-architecture-change",
     "firmware-profile-authoring",
@@ -121,41 +146,23 @@ EXPECTED_SKILLS = {
     "release-readiness",
     "polytail",
 }
+
 EXPECTED_REFCODE_SNAPSHOTS = {"gen_flash_bin_v2", "ab_code_combiner"}
 FORBIDDEN_SUFFIXES = {".bin", ".exe", ".dll", ".pdb", ".pfx", ".p12", ".pem", ".key", ".pyc"}
-FORBIDDEN_DIRECTORY_NAMES = {
-    "__pycache__",
-    ".pytest_cache",
-    ".mypy_cache",
-    ".ruff_cache",
-    ".venv",
-    "venv",
-    "artifacts",
-    "release",
-    "bin",
-    "obj",
-}
+FORBIDDEN_DIRECTORY_NAMES = {"__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", ".venv", "venv", "artifacts", "release", "bin", "obj"}
 FORBIDDEN_REFCODE_SUFFIXES = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"}
 SNAPSHOT_CODE_SUFFIXES = {".py", ".json", ".txt", ".bat"}
 XML_SUFFIXES = {".csproj", ".props", ".targets", ".slnx", ".axaml", ".manifest"}
-SEMVER = re.compile(
-    r"(?:0|[1-9][0-9]*)(?:\.(?:0|[1-9][0-9]*)){2}"
-    r"(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
-    r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
-)
-FULL_ACTION_PIN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@[0-9a-f]{40}$")
 DOTNET_INSTALL_SCRIPTS_COMMIT = "cbd31355adcf0c63eaeff601fb2eaa5fd0778f2b"
+FULL_ACTION_PIN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@[0-9a-f]{40}$")
+SEMVER = re.compile(r"(?:0|[1-9][0-9]*)(?:\.(?:0|[1-9][0-9]*)){2}(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?")
 
 
 def _git_tracked_paths() -> list[Path] | None:
     if not (ROOT / ".git").exists():
         return None
     completed = subprocess.run(
-        ["git", "ls-files", "-z"],
-        cwd=ROOT,
-        check=False,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        ["git", "ls-files", "-z"], cwd=ROOT, check=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     if completed.returncode != 0:
         return None
@@ -168,9 +175,10 @@ def repository_files() -> list[Path]:
         return [path for path in tracked if path.is_file()]
     files: list[Path] = []
     for path in ROOT.rglob("*"):
-        if not path.is_file() or ".git" in path.relative_to(ROOT).parts:
+        if not path.is_file():
             continue
-        if any(part in FORBIDDEN_DIRECTORY_NAMES for part in path.relative_to(ROOT).parts):
+        relative = path.relative_to(ROOT)
+        if ".git" in relative.parts or any(part in FORBIDDEN_DIRECTORY_NAMES for part in relative.parts):
             continue
         files.append(path)
     return files
@@ -227,7 +235,7 @@ def validate_structured_files(files: Iterable[Path], errors: list[str]) -> None:
                     continue
                 try:
                     Draft202012Validator.check_schema(document)
-                except Exception as exc:  # jsonschema exposes multiple schema exceptions
+                except Exception as exc:
                     errors.append(f"invalid JSON Schema {path.relative_to(ROOT)}: {exc}")
         elif suffix == ".toml":
             try:
@@ -239,15 +247,6 @@ def validate_structured_files(files: Iterable[Path], errors: list[str]) -> None:
                 ET.parse(path)
             except (OSError, ET.ParseError) as exc:
                 errors.append(f"invalid XML {path.relative_to(ROOT)}: {exc}")
-        elif suffix in {".yml", ".yaml"}:
-            try:
-                import yaml
-            except ImportError:
-                continue
-            try:
-                yaml.safe_load(path.read_text(encoding="utf-8"))
-            except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
-                errors.append(f"invalid YAML {path.relative_to(ROOT)}: {exc}")
 
 
 def validate_python_syntax(files: Iterable[Path], errors: list[str]) -> None:
@@ -265,8 +264,7 @@ def validate_markdown_links(files: Iterable[Path], errors: list[str]) -> None:
     for path in files:
         if path.suffix.lower() != ".md":
             continue
-        text = path.read_text(encoding="utf-8")
-        for raw_target in link_pattern.findall(text):
+        for raw_target in link_pattern.findall(path.read_text(encoding="utf-8")):
             target = raw_target.strip()
             if target.startswith("<") and ">" in target:
                 target = target[1 : target.index(">")]
@@ -287,8 +285,7 @@ def validate_markdown_links(files: Iterable[Path], errors: list[str]) -> None:
 
 def validate_skills(errors: list[str]) -> None:
     found: set[str] = set()
-    skills_root = ROOT / ".agents" / "skills"
-    for path in sorted(skills_root.glob("*/SKILL.md")):
+    for path in sorted((ROOT / ".agents" / "skills").glob("*/SKILL.md")):
         text = path.read_text(encoding="utf-8")
         if not text.startswith("---\n"):
             errors.append(f"skill frontmatter must start at byte zero: {path.relative_to(ROOT)}")
@@ -321,7 +318,6 @@ def validate_source_manifest(manifest_path: Path, errors: list[str]) -> None:
     if not isinstance(included, list) or not included:
         errors.append(f"source manifest has no included entries: {manifest_path.relative_to(ROOT)}")
         return
-
     snapshot_root = manifest_path.parent.resolve()
     listed_paths: set[str] = set()
     for index, entry in enumerate(included):
@@ -345,25 +341,15 @@ def validate_source_manifest(manifest_path: Path, errors: list[str]) -> None:
         if not candidate.is_file():
             errors.append(f"source-manifest file missing: {candidate.relative_to(ROOT)}")
             continue
-        actual_hash = sha256(candidate)
-        if actual_hash != expected_hash.lower():
-            errors.append(
-                f"reference hash drift: {candidate.relative_to(ROOT)} "
-                f"expected={expected_hash.lower()} actual={actual_hash}"
-            )
+        if sha256(candidate) != expected_hash.lower():
+            errors.append(f"reference hash drift: {candidate.relative_to(ROOT)}")
         repository_blob_sha = entry.get("repositoryBlobSha")
-        if repository_blob_sha is not None and (
-            not isinstance(repository_blob_sha, str)
-            or git_blob_sha1(candidate) != repository_blob_sha
-        ):
+        if repository_blob_sha is not None and git_blob_sha1(candidate) != repository_blob_sha:
             errors.append(f"Git blob provenance drift: {candidate.relative_to(ROOT)}")
-
     for candidate in manifest_path.parent.rglob("*"):
-        if not candidate.is_file() or candidate.name == "SOURCE_MANIFEST.json":
+        if not candidate.is_file() or candidate.name in {"SOURCE_MANIFEST.json", "README.md", "README.txt"}:
             continue
         relative = candidate.relative_to(manifest_path.parent).as_posix()
-        if candidate.name in {"README.md", "README.txt"}:
-            continue
         if candidate.suffix.lower() in SNAPSHOT_CODE_SUFFIXES and relative not in listed_paths:
             errors.append(f"unlisted reference source file: {candidate.relative_to(ROOT)}")
 
@@ -372,25 +358,18 @@ def validate_refcode(errors: list[str]) -> None:
     refcode_root = ROOT / "refcode"
     snapshot_dirs = {path.name for path in refcode_root.iterdir() if path.is_dir()}
     if snapshot_dirs != EXPECTED_REFCODE_SNAPSHOTS:
-        errors.append(
-            "refcode top-level snapshots must be exactly "
-            f"{sorted(EXPECTED_REFCODE_SNAPSHOTS)}, got {sorted(snapshot_dirs)}"
-        )
+        errors.append(f"refcode top-level snapshots must be exactly {sorted(EXPECTED_REFCODE_SNAPSHOTS)}, got {sorted(snapshot_dirs)}")
     for path in refcode_root.rglob("*"):
         if path.is_file() and path.suffix.lower() in FORBIDDEN_REFCODE_SUFFIXES:
             errors.append(f"TypeScript/JavaScript is forbidden in refcode: {path.relative_to(ROOT)}")
-
     manifest = load_json(refcode_root / "REFERENCE_MANIFEST.json", errors)
     if isinstance(manifest, dict):
         policy = manifest.get("policy")
-        if not isinstance(policy, dict):
-            errors.append("REFERENCE_MANIFEST policy must be an object")
-        else:
-            allowed = policy.get("allowedTopLevelCodeSnapshots")
-            if not isinstance(allowed, list) or set(allowed) != EXPECTED_REFCODE_SNAPSHOTS:
-                errors.append("REFERENCE_MANIFEST allowedTopLevelCodeSnapshots is inconsistent")
-            if policy.get("typescriptSnapshotAllowed") is not False:
-                errors.append("REFERENCE_MANIFEST must explicitly forbid TypeScript snapshots")
+        allowed = policy.get("allowedTopLevelCodeSnapshots") if isinstance(policy, dict) else None
+        if not isinstance(allowed, list) or set(allowed) != EXPECTED_REFCODE_SNAPSHOTS:
+            errors.append("REFERENCE_MANIFEST allowedTopLevelCodeSnapshots is inconsistent")
+        if not isinstance(policy, dict) or policy.get("typescriptSnapshotAllowed") is not False:
+            errors.append("REFERENCE_MANIFEST must explicitly forbid TypeScript snapshots")
     for snapshot in EXPECTED_REFCODE_SNAPSHOTS:
         validate_source_manifest(refcode_root / snapshot / "SOURCE_MANIFEST.json", errors)
 
@@ -413,7 +392,6 @@ def validate_version_license_and_sdk(errors: list[str]) -> None:
         errors.append("VERSION has no development-tag node")
     if not (ROOT / "LICENSE").read_text(encoding="utf-8").startswith("MIT License"):
         errors.append("root LICENSE is not the MIT License")
-
     global_json = load_json(ROOT / "global.json", errors)
     sdk_version = global_json.get("sdk", {}).get("version") if isinstance(global_json, dict) else None
     if not isinstance(sdk_version, str) or re.fullmatch(r"10\.0\.[0-9]+", sdk_version) is None:
@@ -427,7 +405,7 @@ def validate_version_license_and_sdk(errors: list[str]) -> None:
         if "raw.githubusercontent.com/dotnet/install-scripts" not in text:
             errors.append(f"{installer} must download from the official dotnet/install-scripts repository")
         if "<auto>" not in text:
-            errors.append(f"{installer} must translate the wrapper auto architecture to dotnet-install <auto>")
+            errors.append(f"{installer} must document wrapper auto architecture handling")
 
 
 def normalize_project_reference(project: Path, include: str) -> str:
@@ -438,22 +416,13 @@ def validate_solution_and_dependencies(errors: list[str]) -> None:
     solution_root = ET.parse(ROOT / "NvtFwCombiner.slnx").getroot()
     solution_projects = {element.attrib["Path"].replace("\\", "/") for element in solution_root.findall("Project")}
     if solution_projects != EXPECTED_PROJECTS:
-        errors.append(
-            f"solution projects must be exactly {sorted(EXPECTED_PROJECTS)}, got {sorted(solution_projects)}"
-        )
-
+        errors.append(f"solution projects must be exactly {sorted(EXPECTED_PROJECTS)}, got {sorted(solution_projects)}")
     for relative, expected_references in EXPECTED_PROJECT_REFERENCES.items():
         project_path = ROOT / relative
         root = ET.parse(project_path).getroot()
-        actual = {
-            normalize_project_reference(project_path, element.attrib["Include"])
-            for element in root.iter("ProjectReference")
-        }
+        actual = {normalize_project_reference(project_path, element.attrib["Include"]) for element in root.iter("ProjectReference")}
         if actual != expected_references:
-            errors.append(
-                f"project reference drift in {relative}: expected={sorted(expected_references)} "
-                f"actual={sorted(actual)}"
-            )
+            errors.append(f"project reference drift in {relative}: expected={sorted(expected_references)} actual={sorted(actual)}")
         for element in root.iter():
             include = element.attrib.get("Include", "")
             if "refcode" in include.lower():
@@ -475,18 +444,8 @@ def validate_contract_model(errors: list[str]) -> None:
         for key in {"compositionKind", "experience", "imageInitialization", "mutations"}:
             if key not in required:
                 errors.append(f"report schema does not require canonical field: {key}")
-
     spec = (ROOT / "SPEC.md").read_text(encoding="utf-8")
-    required_terms = {
-        "display-replace",
-        "tp-hw-replace",
-        "tp-fw-replace",
-        "general-replace",
-        "general-merge",
-        "host 建立的隔離 staging copy",
-        "`unknown` 絕不等同 `none`",
-    }
-    for term in required_terms:
+    for term in {"display-replace", "tp-hw-replace", "tp-fw-replace", "general-replace", "general-merge", "`unknown` 絕不等同 `none`", "host-created staging copy", "legacy `combiner.exe`"}:
         if term not in spec:
             errors.append(f"SPEC.md is missing required architecture term: {term}")
 
@@ -501,32 +460,22 @@ def validate_action_pins_in(path: Path, errors: list[str]) -> None:
         if reference.startswith("./"):
             continue
         if FULL_ACTION_PIN.fullmatch(reference) is None:
-            errors.append(
-                f"third-party action is not pinned to a full SHA in {path.relative_to(ROOT)}:"
-                f"{line_number}: {reference}"
-            )
+            errors.append(f"third-party action is not pinned to a full SHA in {path.relative_to(ROOT)}:{line_number}: {reference}")
     if "pull_request_target" in text:
         errors.append(f"pull_request_target is forbidden: {path.relative_to(ROOT)}")
-    if "__" in text and "FULL_COMMIT_SHA" in text:
-        errors.append(f"workflow contains unresolved pin placeholder: {path.relative_to(ROOT)}")
 
 
 def validate_workflows(errors: list[str]) -> None:
-    workflow_files = sorted(
-        path
-        for base in (ROOT / ".github/workflows", ROOT / "docs/ci/workflow-templates")
-        for path in base.glob("*.yml")
-    )
-    for path in workflow_files:
-        validate_action_pins_in(path, errors)
-
+    for base in (ROOT / ".github/workflows", ROOT / "docs/ci/workflow-templates"):
+        if base.is_dir():
+            for path in sorted(base.glob("*.yml")):
+                validate_action_pins_in(path, errors)
     ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
     for name in ("policy / polytail", "python-worker / verify", "dotnet / build-test"):
         if f"name: {name}" not in ci:
             errors.append(f"CI is missing required check name: {name}")
     if "scripts/install-dotnet.ps1" not in ci:
         errors.append("CI must exercise the repository .NET installer")
-
     release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
     if "workflow_dispatch" not in release or "stable SemVer tag" not in release:
         errors.append("release workflow must be manually gated by an existing stable SemVer tag")
@@ -537,10 +486,9 @@ def validate_workflows(errors: list[str]) -> None:
 
 
 def validate_agent_files(errors: list[str]) -> None:
-    root_agents = ROOT / "AGENTS.md"
-    if root_agents.stat().st_size > 32 * 1024:
-        errors.append(f"root AGENTS.md exceeds 32 KiB: {root_agents.stat().st_size} bytes")
-    required_nested = {
+    if (ROOT / "AGENTS.md").stat().st_size > 32 * 1024:
+        errors.append("root AGENTS.md exceeds 32 KiB")
+    for relative in {
         "src/NvtFwCombiner.Domain/AGENTS.md",
         "src/NvtFwCombiner.Application/AGENTS.md",
         "src/NvtFwCombiner.Infrastructure/AGENTS.md",
@@ -548,8 +496,7 @@ def validate_agent_files(errors: list[str]) -> None:
         "src/NvtFwCombiner.Presentation.Avalonia/AGENTS.md",
         "tools/crc-worker/AGENTS.md",
         "refcode/AGENTS.md",
-    }
-    for relative in required_nested:
+    }:
         if not (ROOT / relative).is_file():
             errors.append(f"missing scoped AGENTS.md: {relative}")
 

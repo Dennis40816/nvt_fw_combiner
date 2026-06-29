@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
 
@@ -9,5 +10,6 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        DataContext = DemoShellSampleData.Create();
     }
 }
