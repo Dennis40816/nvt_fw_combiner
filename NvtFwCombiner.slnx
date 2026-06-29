@@ -20,5 +20,6 @@
   <Project Path="src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj" />
   <Project Path="tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj" />
   <Project Path="tests/NvtFwCombiner.Application.Tests/NvtFwCombiner.Application.Tests.csproj" />
+  <Project Path="tests/NvtFwCombiner.ProfileContract.Tests/NvtFwCombiner.ProfileContract.Tests.csproj" />
   <Project Path="tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj" />
 </Solution>
