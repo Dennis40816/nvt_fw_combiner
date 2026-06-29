@@ -136,6 +136,12 @@ public static class CompositionProfileCompiler
 
         foreach (CompositionOperation operation in profile.Operations)
         {
+            if (operation.Kind == CompositionOperationKind.RunExternalProcessor)
+            {
+                ValidateExternalProcessorOperation(profile, operation, issues);
+                continue;
+            }
+
             ProfileRegion? targetRegion = ResolveTargetRegionByRange(
                 profile,
                 operation.TargetSpaceId,
@@ -161,6 +167,46 @@ public static class CompositionProfileCompiler
         }
 
         return issues;
+    }
+
+    private static void ValidateExternalProcessorOperation(
+        CompositionProfileDefinition profile,
+        CompositionOperation operation,
+        List<CompositionIssue> issues)
+    {
+        ExternalProcessorInvocation invocation = operation.ExternalProcessorInvocation!;
+        foreach (ByteRange writeRange in invocation.AllowedWriteRanges)
+        {
+            ProfileRegion? targetRegion = ResolveTargetRegionByRange(
+                profile,
+                operation.TargetSpaceId,
+                writeRange,
+                "profile.external-processor.target-region-unresolved",
+                "profile.external-processor.target-region-ambiguous",
+                operation.OperationId,
+                issues);
+            if (targetRegion is null)
+            {
+                continue;
+            }
+
+            if (!targetRegion.ProcessorDependencyIds.Contains(invocation.ProcessorId, StringComparer.Ordinal))
+            {
+                issues.Add(new CompositionIssue(
+                    "profile.external-processor.region-not-owned",
+                    $"Operation '{operation.OperationId}' writes region '{targetRegion.RegionId}' without matching processor ownership.",
+                    operation.OperationId));
+            }
+
+            if (writeRange.Start % targetRegion.Alignment != 0 ||
+                writeRange.Length % targetRegion.Alignment != 0)
+            {
+                issues.Add(new CompositionIssue(
+                    "profile.external-processor.region-alignment",
+                    $"Operation '{operation.OperationId}' write range does not satisfy region '{targetRegion.RegionId}' alignment.",
+                    operation.OperationId));
+            }
+        }
     }
 
     private static void ValidateProfileOperationRegionPolicy(

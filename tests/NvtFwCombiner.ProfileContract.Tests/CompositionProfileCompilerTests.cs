@@ -306,6 +306,74 @@ public sealed class CompositionProfileCompilerTests
         Assert.Contains(result.Issues, issue => issue.Code == "profile.explicit-mapping.protected-overlap");
     }
 
+    /// <summary>Verifies external processor operations may write only regions owned by the declared processor.</summary>
+    [Fact]
+    public void ExternalProcessorOperationCompilesForProcessorOwnedRegion()
+    {
+        CompositionProfileDefinition profile = CreateProfile(
+            CompositionKind.Merge,
+            "standard-merge",
+            ImageInitialization.Blank("output-image", 4, 0),
+            operations: [CreateExternalProcessorOperation("crc-v1")],
+            regions:
+            [
+                new ProfileRegion(
+                    "payload",
+                    "output-image",
+                    new ByteRange(0, 3),
+                    RegionAtomicity.ExplicitMapping,
+                    RegionWritePolicy.GeneralExplicit),
+                new ProfileRegion(
+                    "payload-crc",
+                    "output-image",
+                    new ByteRange(3, 1),
+                    RegionAtomicity.Whole,
+                    RegionWritePolicy.Forbidden,
+                    processorDependencyIds: ["crc-v1"]),
+            ],
+            accessRules:
+            [
+                new RegionAccessRule("payload", RegionAccessKind.ExplicitRange, "payload"),
+                new RegionAccessRule("payload-crc", RegionAccessKind.Hidden, "processor owned"),
+            ]);
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
+
+        Assert.True(result.IsSuccess);
+        CompositionOperation operation = Assert.Single(result.Plan!.OrderedOperations);
+        Assert.Equal(CompositionOperationKind.RunExternalProcessor, operation.Kind);
+    }
+
+    /// <summary>Verifies external processor write ranges fail when the target region is owned by a different processor.</summary>
+    [Fact]
+    public void ExternalProcessorOperationRejectsUnownedRegion()
+    {
+        CompositionProfileDefinition profile = CreateProfile(
+            CompositionKind.Merge,
+            "standard-merge",
+            ImageInitialization.Blank("output-image", 4, 0),
+            operations: [CreateExternalProcessorOperation("wrong-processor")],
+            regions:
+            [
+                new ProfileRegion(
+                    "payload-crc",
+                    "output-image",
+                    new ByteRange(3, 1),
+                    RegionAtomicity.Whole,
+                    RegionWritePolicy.Forbidden,
+                    processorDependencyIds: ["crc-v1"]),
+            ],
+            accessRules:
+            [
+                new RegionAccessRule("payload-crc", RegionAccessKind.Hidden, "processor owned"),
+            ]);
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.external-processor.region-not-owned");
+    }
+
     private static CompositionProfileDefinition CreateProfile(
         CompositionKind compositionKind,
         string experienceId,
@@ -374,5 +442,21 @@ public sealed class CompositionProfileCompilerTests
             alignment,
             "compile explicit mapping",
             targetRegionId);
+    }
+
+    private static CompositionOperation CreateExternalProcessorOperation(string processorId)
+    {
+        return CompositionOperation.RunExternalProcessor(
+            "run-crc",
+            10,
+            "output-image",
+            new ByteRange(0, 4),
+            new ExternalProcessorInvocation(
+                processorId,
+                "tool-v1",
+                [new ByteRange(0, 4)],
+                [new ByteRange(3, 1)]),
+            OverlapPolicy.Reject,
+            "run synthetic crc processor");
     }
 }

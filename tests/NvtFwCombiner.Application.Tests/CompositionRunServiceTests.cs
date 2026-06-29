@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
@@ -199,6 +200,62 @@ public sealed class CompositionRunServiceTests
         Assert.NotEqual(first.PreviewToken, second.PreviewToken);
     }
 
+    /// <summary>Verifies preview runs external processor operations through the application port.</summary>
+    [Fact]
+    public async Task PreviewRunsExternalProcessorOperationThroughPort()
+    {
+        var processor = new FakeExternalProcessor(request =>
+        {
+            Assert.Equal("run-external.run-crc", request.RunId);
+            Assert.Equal("processor-v1", request.ProcessorId);
+            Assert.Equal("tool-v1", request.ToolBindingId);
+            Assert.Equal([new ByteRange(1, 1)], request.AllowedWriteRanges);
+            byte[] output = request.InputBytes.ToArray();
+            output[1] = 0x7E;
+            return ExternalProcessorResult.Success(output, [new ByteRange(1, 1)]);
+        });
+        var service = new CompositionRunService(
+            new FakeArtifactReader([]),
+            new FakeClock([FirstTimestamp, SecondTimestamp]),
+            null,
+            processor);
+
+        CompositionRunResult result = await service.PreviewAsync(
+            CreateExternalProcessorRequest(),
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal([0, 0x7E, 0, 0], result.OutputBytes.ToArray());
+        Assert.Equal(1, processor.CallCount);
+        MutationRunSummary mutation = Assert.Single(result.Report.Mutations);
+        Assert.Equal(CompositionOperationKind.RunExternalProcessor, mutation.Kind);
+        Assert.Equal(1, mutation.ChangedByteCount);
+        Assert.NotNull(result.PreviewToken);
+    }
+
+    /// <summary>Verifies external processor failures are returned as structured run issues.</summary>
+    [Fact]
+    public async Task PreviewPropagatesExternalProcessorFailure()
+    {
+        var processor = new FakeExternalProcessor(_ => ExternalProcessorResult.Failed([
+            new CompositionIssue("external-tool.process.failed", "fake processor failed", "run-crc"),
+        ]));
+        var service = new CompositionRunService(
+            new FakeArtifactReader([]),
+            new FakeClock([FirstTimestamp, SecondTimestamp]),
+            null,
+            processor);
+
+        CompositionRunResult result = await service.PreviewAsync(
+            CreateExternalProcessorRequest(),
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
+        CompositionIssue issue = Assert.Single(result.Report.Issues);
+        Assert.Equal("external-tool.process.failed", issue.Code);
+        Assert.Empty(result.OutputBytes.ToArray());
+    }
+
     /// <summary>Verifies output overrides are validated before a writer can see them.</summary>
     [Fact]
     public void RunRequestRejectsOutputFileNameWithPathSyntax()
@@ -348,6 +405,43 @@ public sealed class CompositionRunServiceTests
             "overwrite.bin");
     }
 
+    private static CompositionRunRequest CreateExternalProcessorRequest()
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+        ];
+        var plan = new CompositionPlan(
+            ImageInitialization.Blank("output-image", 4, 0),
+            addressSpaces,
+            [
+                CompositionOperation.RunExternalProcessor(
+                    "run-crc",
+                    10,
+                    "output-image",
+                    new ByteRange(0, 4),
+                    new ExternalProcessorInvocation(
+                        "processor-v1",
+                        "tool-v1",
+                        [new ByteRange(0, 4)],
+                        [new ByteRange(1, 1)]),
+                    OverlapPolicy.Reject,
+                    "run synthetic external processor"),
+            ]);
+        return new CompositionRunRequest(
+            "run-external",
+            new CompositionRunProfile(
+                "external-profile",
+                "1.0.0",
+                "NT-SYNTHETIC",
+                "external",
+                "standard-merge",
+                CompositionKind.Merge),
+            plan,
+            [],
+            "external.bin");
+    }
+
     private static IReadOnlyList<InputArtifactBinding> DefaultBindings()
     {
         return
@@ -412,6 +506,26 @@ public sealed class CompositionRunServiceTests
             FileName = fileName;
             OutputBytes = outputBytes.ToArray();
             return ValueTask.FromResult($"committed:{fileName}");
+        }
+    }
+
+    private sealed class FakeExternalProcessor : IExternalProcessor
+    {
+        private readonly Func<ExternalProcessorRequest, ExternalProcessorResult> _transform;
+
+        internal FakeExternalProcessor(Func<ExternalProcessorRequest, ExternalProcessorResult> transform)
+        {
+            _transform = transform;
+        }
+
+        internal int CallCount { get; private set; }
+
+        public ValueTask<ExternalProcessorResult> TransformAsync(
+            ExternalProcessorRequest request,
+            CancellationToken cancellationToken)
+        {
+            CallCount++;
+            return ValueTask.FromResult(_transform(request));
         }
     }
 }

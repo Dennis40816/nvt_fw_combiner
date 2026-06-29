@@ -16,6 +16,7 @@ public sealed class CompositionOperation
         OverlapPolicy overlapPolicy,
         byte? fillByte,
         byte[] patchBytes,
+        ExternalProcessorInvocation? externalProcessorInvocation,
         string reason)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(operationId);
@@ -33,6 +34,7 @@ public sealed class CompositionOperation
         OverlapPolicy = overlapPolicy;
         FillByte = fillByte;
         _patchBytes = [.. patchBytes];
+        ExternalProcessorInvocation = externalProcessorInvocation;
         Reason = reason;
     }
 
@@ -66,6 +68,9 @@ public sealed class CompositionOperation
     /// <summary>Patch bytes for patch-scalar operations.</summary>
     public ReadOnlyMemory<byte> PatchBytes => _patchBytes;
 
+    /// <summary>External processor declaration for run-external-processor operations.</summary>
+    public ExternalProcessorInvocation? ExternalProcessorInvocation { get; }
+
     /// <summary>Human-readable reason recorded in mutation traces.</summary>
     public string Reason { get; }
 
@@ -93,6 +98,7 @@ public sealed class CompositionOperation
             overlapPolicy,
             null,
             [],
+            null,
             reason);
     }
 
@@ -120,6 +126,7 @@ public sealed class CompositionOperation
             overlapPolicy,
             null,
             [],
+            null,
             reason);
     }
 
@@ -144,6 +151,7 @@ public sealed class CompositionOperation
             overlapPolicy,
             fillByte,
             [],
+            null,
             reason);
     }
 
@@ -173,6 +181,33 @@ public sealed class CompositionOperation
             overlapPolicy,
             null,
             [.. patchBytes],
+            null,
+            reason);
+    }
+
+    /// <summary>Creates a run-external-processor operation over a staged target image range.</summary>
+    public static CompositionOperation RunExternalProcessor(
+        string operationId,
+        int sequence,
+        string targetSpaceId,
+        ByteRange targetRange,
+        ExternalProcessorInvocation invocation,
+        OverlapPolicy overlapPolicy,
+        string reason)
+    {
+        ArgumentNullException.ThrowIfNull(invocation);
+        return new CompositionOperation(
+            operationId,
+            sequence,
+            CompositionOperationKind.RunExternalProcessor,
+            null,
+            null,
+            targetSpaceId,
+            targetRange,
+            overlapPolicy,
+            null,
+            [],
+            invocation,
             reason);
     }
 
