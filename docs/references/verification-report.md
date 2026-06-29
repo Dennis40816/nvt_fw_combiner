@@ -6,7 +6,7 @@ Specification package version: `0.1.0-dev.0`
 
 - Repository identity is `Dennis40816/nvt_fw_combiner`, private, MIT.
 - `global.json` pins .NET SDK `10.0.301` and installers consume that value.
-- Avalonia packages are centrally pinned to `12.0.4`.
+- Avalonia packages are centrally pinned to `12.0.5`.
 - Root `SPEC.md`, layered AGENTS, Codex configuration and nine skills are present.
 - Replace experiences are Display, TP HW, TP FW and General; Merge experiences are Standard, AB and General.
 - `refcode/` contains exactly the two approved Python snapshots and their hashes remain validated.
