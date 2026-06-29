@@ -14,4 +14,7 @@ public enum CompositionOperationKind
 
     /// <summary>Writes exact profile-supplied scalar bytes into a target range.</summary>
     PatchScalar,
+
+    /// <summary>Runs an approved external processor against a host-created staging copy.</summary>
+    RunExternalProcessor,
 }

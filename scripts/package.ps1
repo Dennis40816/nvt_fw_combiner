@@ -4,7 +4,9 @@ param(
     [string]$Version,
 
     [Parameter(Mandatory = $true)]
-    [string]$Commit
+    [string]$Commit,
+
+    [switch]$AllowPrerelease
 )
 
 Set-StrictMode -Version Latest
@@ -14,14 +16,27 @@ $ProgressPreference = 'SilentlyContinue'
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $SourceTag = if ($Version.StartsWith('v', [StringComparison]::Ordinal)) { $Version } else { "v$Version" }
 $SemanticVersion = $SourceTag.Substring(1)
-if ($SemanticVersion -notmatch '^[0-9]+\.[0-9]+\.[0-9]+$') {
+$StableSemVerPattern = '^[0-9]+\.[0-9]+\.[0-9]+$'
+$PackageSemVerPattern = '^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$'
+if ($AllowPrerelease) {
+    if ($SemanticVersion -notmatch $PackageSemVerPattern) {
+        throw "Package version must be SemVer without build metadata; received '$Version'."
+    }
+}
+elseif ($SemanticVersion -notmatch $StableSemVerPattern) {
     throw "Stable release packaging requires vX.Y.Z; received '$Version'."
 }
 if ($Commit -notmatch '^[0-9a-f]{40}$') {
     throw "Commit must be a lowercase 40-character Git SHA; received '$Commit'."
 }
 
-$DotNet = (Get-Command dotnet -ErrorAction Stop).Source
+$RepositoryDotNet = Join-Path $RepoRoot '.dotnet/dotnet.exe'
+$DotNet = if (Test-Path -LiteralPath $RepositoryDotNet -PathType Leaf) {
+    $RepositoryDotNet
+}
+else {
+    (Get-Command dotnet -ErrorAction Stop).Source
+}
 $Python = (Get-Command python -ErrorAction Stop).Source
 $ReleaseRoot = Join-Path $RepoRoot 'artifacts/release'
 $WorkRoot = Join-Path $RepoRoot 'artifacts/package-work'
@@ -43,7 +58,7 @@ function Get-TreeDigest {
     param([Parameter(Mandatory = $true)][string[]]$Paths)
     $Lines = foreach ($Path in ($Paths | Sort-Object)) {
         $Relative = [System.IO.Path]::GetRelativePath($RepoRoot, $Path).Replace('\', '/')
-        "$Relative:$((Get-LowerSha256 -Path $Path))"
+        "{0}:{1}" -f $Relative, (Get-LowerSha256 -Path $Path)
     }
     $Bytes = [Text.Encoding]::UTF8.GetBytes(($Lines -join "`n"))
     $Digest = [Security.Cryptography.SHA256]::HashData($Bytes)

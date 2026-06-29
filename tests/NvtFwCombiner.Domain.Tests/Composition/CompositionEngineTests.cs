@@ -162,6 +162,86 @@ public sealed class CompositionEngineTests
         Assert.Equal("input.mutable-address-space.missing", issue.Code);
     }
 
+    /// <summary>Verifies external processor operations use the engine hook and produce normal mutation trace.</summary>
+    [Fact]
+    public async Task ExternalProcessorOperationMutatesThroughHook()
+    {
+        CompositionPlan plan = CreateBlankPlan(
+            4,
+            CreateExternalOperation());
+
+        CompositionExecutionResult result = await CompositionEngine.ExecuteAsync(
+            plan,
+            EmptyInput(),
+            (operation, inputBytes, _) =>
+            {
+                Assert.Equal("run-crc", operation.OperationId);
+                Assert.Equal([0xFF, 0xFF, 0xFF, 0xFF], inputBytes.ToArray());
+                byte[] output = inputBytes.ToArray();
+                output[2] = 0x44;
+                return ValueTask.FromResult(CompositionExternalProcessorResult.Success(output));
+            },
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal([0xFF, 0xFF, 0x44, 0xFF], result.OutputBytes.ToArray());
+        MutationRecord mutation = Assert.Single(result.Mutations);
+        Assert.Equal(CompositionOperationKind.RunExternalProcessor, mutation.OperationKind);
+        Assert.Equal([new ByteRange(2, 1)], mutation.ChangedRanges);
+    }
+
+    /// <summary>Verifies external processor operations fail closed when no adapter hook is supplied.</summary>
+    [Fact]
+    public void ExternalProcessorOperationRequiresHook()
+    {
+        CompositionPlan plan = CreateBlankPlan(
+            4,
+            CreateExternalOperation());
+
+        CompositionExecutionResult result = CompositionEngine.Execute(plan, EmptyInput());
+
+        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("execution.external-processor.unavailable", issue.Code);
+        Assert.Equal("run-crc", issue.OperationId);
+    }
+
+    /// <summary>Verifies processor write authority must stay inside the staged target range.</summary>
+    [Fact]
+    public void ExternalProcessorAllowedWriteRangeMustStayInsideTargetRange()
+    {
+        ExternalProcessorInvocation invocation = CreateExternalInvocation(writeRange: new ByteRange(3, 2));
+
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => CreateBlankPlan(
+            4,
+            CompositionOperation.RunExternalProcessor(
+                "run-crc",
+                10,
+                "output-image",
+                new ByteRange(0, 4),
+                invocation,
+                OverlapPolicy.Reject,
+                "run approved fake processor")));
+    }
+
+    /// <summary>Verifies staged external processors always receive the full target image coordinate space.</summary>
+    [Fact]
+    public void ExternalProcessorTargetRangeMustCoverFullTargetSpace()
+    {
+        ExternalProcessorInvocation invocation = CreateExternalInvocation(writeRange: new ByteRange(1, 1));
+
+        _ = Assert.Throws<ArgumentException>(() => CreateBlankPlan(
+            4,
+            CompositionOperation.RunExternalProcessor(
+                "run-crc",
+                10,
+                "output-image",
+                new ByteRange(1, 2),
+                invocation,
+                OverlapPolicy.Reject,
+                "run approved fake processor")));
+    }
+
     private static CompositionExecutionInput EmptyInput()
     {
         return new CompositionExecutionInput(new Dictionary<string, byte[]>());
@@ -206,5 +286,26 @@ public sealed class CompositionEngineTests
             ImageInitialization.Reference("output-image", "reference-base", capacity),
             addressSpaces,
             [operation]);
+    }
+
+    private static CompositionOperation CreateExternalOperation()
+    {
+        return CompositionOperation.RunExternalProcessor(
+            "run-crc",
+            10,
+            "output-image",
+            new ByteRange(0, 4),
+            CreateExternalInvocation(),
+            OverlapPolicy.Reject,
+            "run approved fake processor");
+    }
+
+    private static ExternalProcessorInvocation CreateExternalInvocation(ByteRange? writeRange = null)
+    {
+        return new ExternalProcessorInvocation(
+            "processor-v1",
+            "tool-v1",
+            [new ByteRange(0, 4)],
+            [writeRange ?? new ByteRange(2, 1)]);
     }
 }

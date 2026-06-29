@@ -46,6 +46,7 @@ REQUIRED_FILES = {
     "scripts/validate_repository.py",
     "scripts/verify.py",
     "THIRD_PARTY_NOTICES.md",
+    "testdata/golden/standard-merge-gen-flash/manifest.json",
     "docs/adr/0003-unified-composition-engine.md",
     "docs/adr/0004-orthogonal-experience-access-policy.md",
     "docs/adr/0005-replace-personas-and-general-mapping.md",
@@ -95,7 +96,9 @@ EXPECTED_PROJECTS = {
     "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
     "tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj",
     "tests/NvtFwCombiner.Application.Tests/NvtFwCombiner.Application.Tests.csproj",
+    "tests/NvtFwCombiner.Infrastructure.Tests/NvtFwCombiner.Infrastructure.Tests.csproj",
     "tests/NvtFwCombiner.ProfileContract.Tests/NvtFwCombiner.ProfileContract.Tests.csproj",
+    "tests/NvtFwCombiner.GoldenRegression.Tests/NvtFwCombiner.GoldenRegression.Tests.csproj",
     "tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj",
 }
 
@@ -134,7 +137,18 @@ EXPECTED_PROJECT_REFERENCES = {
         "src/NvtFwCombiner.Profiles/NvtFwCombiner.Profiles.csproj",
         "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
     },
+    "tests/NvtFwCombiner.Infrastructure.Tests/NvtFwCombiner.Infrastructure.Tests.csproj": {
+        "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj",
+        "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
+        "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
+        "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
+    },
     "tests/NvtFwCombiner.ProfileContract.Tests/NvtFwCombiner.ProfileContract.Tests.csproj": {
+        "src/NvtFwCombiner.Profiles/NvtFwCombiner.Profiles.csproj",
+    },
+    "tests/NvtFwCombiner.GoldenRegression.Tests/NvtFwCombiner.GoldenRegression.Tests.csproj": {
+        "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
+        "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
         "src/NvtFwCombiner.Profiles/NvtFwCombiner.Profiles.csproj",
     },
     "tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj": set(),
@@ -154,6 +168,7 @@ EXPECTED_SKILLS = {
 
 EXPECTED_REFCODE_SNAPSHOTS = {"gen_flash_bin_v2", "ab_code_combiner"}
 FORBIDDEN_SUFFIXES = {".bin", ".exe", ".dll", ".pdb", ".pfx", ".p12", ".pem", ".key", ".pyc"}
+ALLOWED_GOLDEN_BIN_ROOTS = {PurePosixPath("testdata/golden/standard-merge-gen-flash")}
 FORBIDDEN_DIRECTORY_NAMES = {"__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", ".venv", "venv", "artifacts", "release", "bin", "obj"}
 FORBIDDEN_REFCODE_SUFFIXES = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"}
 SNAPSHOT_CODE_SUFFIXES = {".py", ".json", ".txt", ".bat"}
@@ -224,8 +239,15 @@ def validate_forbidden_tracked_content(files: Iterable[Path], errors: list[str])
         relative = path.relative_to(ROOT)
         if any(part in FORBIDDEN_DIRECTORY_NAMES for part in relative.parts):
             errors.append(f"generated/cache path is tracked: {relative}")
-        if path.suffix.lower() in FORBIDDEN_SUFFIXES:
+        if path.suffix.lower() in FORBIDDEN_SUFFIXES and not is_allowed_golden_bin(relative):
             errors.append(f"forbidden payload/generated/secret-like file is tracked: {relative}")
+
+
+def is_allowed_golden_bin(relative: Path) -> bool:
+    normalized = PurePosixPath(relative.as_posix())
+    return normalized.suffix.lower() == ".bin" and any(
+        normalized == root or root in normalized.parents for root in ALLOWED_GOLDEN_BIN_ROOTS
+    )
 
 
 def validate_structured_files(files: Iterable[Path], errors: list[str]) -> None:
@@ -357,6 +379,102 @@ def validate_source_manifest(manifest_path: Path, errors: list[str]) -> None:
         relative = candidate.relative_to(manifest_path.parent).as_posix()
         if candidate.suffix.lower() in SNAPSHOT_CODE_SUFFIXES and relative not in listed_paths:
             errors.append(f"unlisted reference source file: {candidate.relative_to(ROOT)}")
+
+
+def validate_golden_fixtures(errors: list[str]) -> None:
+    manifest_path = ROOT / "testdata/golden/standard-merge-gen-flash/manifest.json"
+    manifest = load_json(manifest_path, errors)
+    if not isinstance(manifest, dict):
+        return
+
+    if manifest.get("payloadClass") != "owner-approved-golden-firmware":
+        errors.append("standard-merge golden manifest must declare owner-approved-golden-firmware payloadClass")
+    if manifest.get("binaryPayloadsIncluded") is not True:
+        errors.append("standard-merge golden manifest must explicitly include binaryPayloadsIncluded=true")
+
+    golden_root = manifest_path.parent
+    declared_bins: set[PurePosixPath] = set()
+    supporting = manifest.get("supportingFiles")
+    if isinstance(supporting, dict):
+        config = supporting.get("test_ic_config")
+        if isinstance(config, dict):
+            validate_golden_manifest_entry(golden_root, config, errors, require_bin=False)
+
+    cases = manifest.get("cases")
+    if not isinstance(cases, list) or not cases:
+        errors.append("standard-merge golden manifest must contain cases")
+        return
+
+    for index, item in enumerate(cases):
+        if not isinstance(item, dict):
+            errors.append(f"invalid standard-merge golden case[{index}]")
+            continue
+        inputs = item.get("inputs")
+        if not isinstance(inputs, dict):
+            errors.append(f"standard-merge golden case[{index}] has no inputs")
+        else:
+            for entry in inputs.values():
+                if isinstance(entry, dict):
+                    relative = validate_golden_manifest_entry(golden_root, entry, errors, require_bin=True)
+                    if relative is not None:
+                        declared_bins.add(relative)
+        expected = item.get("expectedOutput")
+        if isinstance(expected, dict):
+            relative = validate_golden_manifest_entry(golden_root, expected, errors, require_bin=True)
+            if relative is not None:
+                declared_bins.add(relative)
+        else:
+            errors.append(f"standard-merge golden case[{index}] has no expectedOutput")
+
+    actual_bins = {
+        PurePosixPath(path.relative_to(golden_root).as_posix())
+        for path in golden_root.rglob("*.bin")
+        if path.is_file()
+    }
+    if actual_bins != declared_bins:
+        errors.append(
+            "standard-merge golden BIN manifest drift: "
+            f"expected={sorted(path.as_posix() for path in declared_bins)} "
+            f"actual={sorted(path.as_posix() for path in actual_bins)}"
+        )
+
+
+def validate_golden_manifest_entry(
+    golden_root: Path,
+    entry: dict[str, Any],
+    errors: list[str],
+    *,
+    require_bin: bool,
+) -> PurePosixPath | None:
+    relative_text = entry.get("path")
+    expected_size = entry.get("size")
+    expected_hash = entry.get("sha256")
+    if not isinstance(relative_text, str) or not isinstance(expected_size, int) or not isinstance(expected_hash, str):
+        errors.append("invalid standard-merge golden manifest file entry")
+        return None
+
+    relative = PurePosixPath(relative_text)
+    if relative.is_absolute() or ".." in relative.parts:
+        errors.append(f"unsafe standard-merge golden manifest path: {relative_text}")
+        return None
+    if require_bin and relative.suffix.lower() != ".bin":
+        errors.append(f"standard-merge golden payload is not a BIN file: {relative_text}")
+        return None
+
+    candidate = (golden_root / Path(*relative.parts)).resolve()
+    try:
+        candidate.relative_to(golden_root.resolve())
+    except ValueError:
+        errors.append(f"standard-merge golden manifest path escapes fixture root: {relative_text}")
+        return None
+    if not candidate.is_file():
+        errors.append(f"standard-merge golden manifest file missing: {candidate.relative_to(ROOT)}")
+        return relative
+    if candidate.stat().st_size != expected_size:
+        errors.append(f"standard-merge golden size drift: {candidate.relative_to(ROOT)}")
+    if sha256(candidate) != expected_hash.lower():
+        errors.append(f"standard-merge golden hash drift: {candidate.relative_to(ROOT)}")
+    return relative
 
 
 def validate_refcode(errors: list[str]) -> None:
@@ -514,6 +632,7 @@ def validate() -> list[str]:
     validate_structured_files(files, errors)
     validate_python_syntax(files, errors)
     validate_markdown_links(files, errors)
+    validate_golden_fixtures(errors)
     validate_skills(errors)
     validate_refcode(errors)
     validate_version_license_and_sdk(errors)

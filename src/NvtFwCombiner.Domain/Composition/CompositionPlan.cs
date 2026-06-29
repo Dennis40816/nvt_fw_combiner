@@ -168,9 +168,51 @@ public sealed class CompositionPlan
                 $"Operation '{operation.OperationId}' target range is outside address space '{operation.TargetSpaceId}'.");
         }
 
+        if (operation.Kind == CompositionOperationKind.RunExternalProcessor)
+        {
+            ValidateExternalProcessorRanges(operation, targetSpace);
+        }
+
         if (operation.SourceSpaceId is not null && operation.SourceRange is not null)
         {
             ValidateSourceRange(operation);
+        }
+    }
+
+    private static void ValidateExternalProcessorRanges(
+        CompositionOperation operation,
+        AddressSpace targetSpace)
+    {
+        ExternalProcessorInvocation invocation = operation.ExternalProcessorInvocation
+            ?? throw new ArgumentException(
+                $"Operation '{operation.OperationId}' is missing an external processor invocation.",
+                nameof(operation));
+
+        if (operation.TargetRange.Start != 0 || operation.TargetRange.Length != targetSpace.Length)
+        {
+            throw new ArgumentException(
+                $"Operation '{operation.OperationId}' external processor target range must cover the full target address space.",
+                nameof(operation));
+        }
+
+        foreach (ByteRange range in invocation.AllowedReadRanges)
+        {
+            if (!operation.TargetRange.Contains(range) || !targetSpace.Contains(range))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(operation),
+                    $"Operation '{operation.OperationId}' allowed read range is outside the staged target range.");
+            }
+        }
+
+        foreach (ByteRange range in invocation.AllowedWriteRanges)
+        {
+            if (!operation.TargetRange.Contains(range) || !targetSpace.Contains(range))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(operation),
+                    $"Operation '{operation.OperationId}' allowed write range is outside the staged target range.");
+            }
         }
     }
 
@@ -205,7 +247,7 @@ public sealed class CompositionPlan
             }
 
             if (!string.Equals(prior.TargetSpaceId, operation.TargetSpaceId, StringComparison.Ordinal) ||
-                !prior.TargetRange.Overlaps(operation.TargetRange))
+                !DeclaredWriteRangesOverlap(prior, operation))
             {
                 continue;
             }
@@ -231,6 +273,29 @@ public sealed class CompositionPlan
                     nameof(priorWrites));
             }
         }
+    }
+
+    private static bool DeclaredWriteRangesOverlap(CompositionOperation first, CompositionOperation second)
+    {
+        foreach (ByteRange firstRange in DeclaredWriteRanges(first))
+        {
+            foreach (ByteRange secondRange in DeclaredWriteRanges(second))
+            {
+                if (firstRange.Overlaps(secondRange))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static IReadOnlyList<ByteRange> DeclaredWriteRanges(CompositionOperation operation)
+    {
+        return operation.Kind == CompositionOperationKind.RunExternalProcessor
+            ? operation.ExternalProcessorInvocation!.AllowedWriteRanges
+            : [operation.TargetRange];
     }
 
     private bool CreatesSameSequenceMutableDependency(
