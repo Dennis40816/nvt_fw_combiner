@@ -33,6 +33,7 @@ testpaths = ["tests"]
 
 [tool.coverage.run]
 branch = true
+patch = ["subprocess"]
 source = ["nfc_crc_worker"]
 
 [tool.coverage.report]
