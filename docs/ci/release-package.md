@@ -17,13 +17,15 @@ NvtFwCombiner-vX.Y.Z-win-x64/
 
 No source/profile tree, Python runtime installation, .NET runtime installation, tests, firmware BINs, PDBs, Codex configuration, or signing material is shipped. Built-in data needed at runtime must ultimately be embedded into the app or an explicitly reviewed processor bundle.
 
-## Implemented command
+## Implemented commands
 
 ```powershell
 ./scripts/package.ps1 -Version 1.0.0 -Commit <40-character-git-sha>
 ```
 
-The script accepts stable SemVer only, requires `VERSION` agreement, publishes a self-contained single-file `win-x64` Avalonia app with trimming disabled, builds the worker with PyInstaller one-file mode, assembles a new empty directory, rejects paths outside the allowlist, writes the manifest and hashes, and creates the ZIP under `artifacts/release/`.
+The stable release path accepts stable SemVer only, publishes a self-contained single-file `win-x64` Avalonia app with trimming disabled, builds the worker with PyInstaller one-file mode, assembles a new empty directory, rejects paths outside the allowlist, writes the manifest and hashes, and creates the ZIP under `artifacts/release/`.
+
+`main-package.yml` runs the same packager on every `main` push with `-AllowPrerelease`, using the repository `VERSION` value. That workflow uploads the ZIP, SBOM, and provenance files as a short-retention CI artifact only; it does not create an immutable GitHub Release.
 
 ## Release gates still requiring organizational setup
 
