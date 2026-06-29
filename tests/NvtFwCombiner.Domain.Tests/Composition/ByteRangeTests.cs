@@ -23,7 +23,7 @@ public sealed class ByteRangeTests
     [Fact]
     public void FromStartEndExclusiveUsesHalfOpenSemantics()
     {
-        ByteRange range = ByteRange.FromStartEndExclusive(10, 14);
+        var range = ByteRange.FromStartEndExclusive(10, 14);
 
         Assert.Equal(10, range.Start);
         Assert.Equal(4, range.Length);
