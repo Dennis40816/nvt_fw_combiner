@@ -8,9 +8,10 @@ This document defines the owner-approved UI direction for the first usable NVT F
 - Information density: show the smallest useful amount of information; reduce reading cost before adding secondary explanations.
 - Home: the first screen is a clean three-card launcher for Settings, Replace, and Merge only.
 - Page separation: Replace pages show Replace-only controls; Merge pages show Merge-only controls. Shared components are reused, but workflow content is not mixed.
+- Shared device context: IC, IC Num, and IC Num mode live in one prominent fixed row below the header on every page, including Home. Workflow pages consume that same context instead of redefining it.
 - Shared visualization: Merge and Replace use the same Memory coverage before/after component in the same page location; the area is visual-first and table-supported.
 - Inputs: firmware files are represented as slot cards.
-- Replace must include an explicit IC num selector/input before region choices and processor readiness. Initial selector modes are `single` and `cascade`; `numeric` is contract-reserved.
+- Replace must consume the explicit shared IC num selector/input before region choices and processor readiness. Initial selector modes are `single` and `cascade`; `numeric` is contract-reserved.
 - Reports: Preview/Build opens a report modal for diagnostics and evidence review.
 - Saved Rules: hidden in the first UI release until the saved-rule workflow is implemented and reviewed.
 - Localization: UI implementation uses a bilingual English/Chinese-ready text architecture, with English as the initial default.
@@ -23,8 +24,8 @@ This document defines the owner-approved UI direction for the first usable NVT F
 | --- | --- | --- | --- |
 | Home | Clean launcher | three large cards: Settings, Replace quick jumps, Merge quick jumps | Memory coverage, reports, mixed workflow controls |
 | Settings | Configure folders, profile packs, strictness, theme, diagnostics access | compact settings groups, profile catalog status, log/report access | direct GitHub secret editing, firmware mutation logic |
-| Merge | Normal / AB Code merge entry point | mode selector with Normal enabled and AB Code disabled, IC/profile selector, slot cards, visual-first memory coverage preview, preview/build actions | Replace controls, hard-coded copy/offset rules |
-| Replace | DP / CtrlRAM / General replace entry point | IC num selector/input, persona selector, base/reference slot cards, overlay slot cards including separate DP/LD cards when a DP Replace profile requires them, visual-first memory coverage preview, preview/build actions | Merge controls, region authorization logic in UI |
+| Merge | Normal / AB Code merge entry point | mode selector with Normal enabled and AB Code disabled, shared IC/profile context, slot cards, visual-first memory coverage preview, preview/build actions | Replace controls, hard-coded copy/offset rules |
+| Replace | DP / CtrlRAM / General replace entry point | shared IC num context, persona selector, base/reference slot cards, overlay slot cards including separate DP/LD cards when a DP Replace profile requires them, visual-first memory coverage preview, preview/build actions | Merge controls, region authorization logic in UI |
 
 ## Demo shell constraints
 
@@ -40,6 +41,7 @@ This document defines the owner-approved UI direction for the first usable NVT F
 ```text
 Shell
   Header: product, page navigation, support state
+  Device context: shared IC, IC Num, IC Num mode
   Content region
     Home launcher: Settings | Replace | Merge cards
     Settings page
@@ -53,7 +55,8 @@ Shell
 - Every build-like flow must have Preview before Build.
 - Risky processors show readiness before execution.
 - Current implementation priority is normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows; AB is deferred.
-- Replace UI requires IC num selection/input before showing profile-specific regions. First UI supports `single` and `cascade`; `numeric` remains reserved for future IC exceptions.
+- IC and IC Num remain in the same fixed Device context location across Home, Settings, Merge, and Replace.
+- Replace UI requires shared IC num selection/input before showing profile-specific regions. First UI supports `single` and `cascade`; `numeric` remains reserved for future IC exceptions.
 - Saved Rules controls remain hidden in the first UI release.
 - Reports and diagnostics are secondary surfaces opened from Preview/Build report modals; Settings may expose diagnostics configuration/export, but not run-specific evidence as a top-level page.
 - Reports must tie UI state, operation trace, external processor invocation, mutation ranges, and output hash via `runId`.
@@ -70,7 +73,8 @@ Shell
 - Memory coverage is visual-first with table support.
 - Inputs use slot cards.
 - Diagnostics and evidence are shown through Preview/Build report modals.
-- Replace includes an IC num selector/input.
+- IC and IC Num use a shared Device context row that stays in the same location on every page.
+- Replace consumes the shared IC num selector/input.
 - The UI uses a bilingual English/Chinese-ready architecture.
 - Saved Rules is hidden in the first UI release.
 - The initial default language is English.

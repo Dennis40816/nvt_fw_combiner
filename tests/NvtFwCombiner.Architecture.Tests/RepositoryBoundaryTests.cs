@@ -46,6 +46,11 @@ public sealed class RepositoryBoundaryTests
         Assert.Contains("IsReplaceVisible", shell, StringComparison.Ordinal);
         Assert.Contains("ShowDpReplaceCommand", shell, StringComparison.Ordinal);
         Assert.Contains("ShowNormalMergeCommand", shell, StringComparison.Ordinal);
+        Assert.Contains("RowDefinitions=\"Auto,Auto,*,Auto\"", shell, StringComparison.Ordinal);
+        Assert.Contains("DeviceContextTitle", shell, StringComparison.Ordinal);
+        Assert.Contains("SelectedIcLabel", shell, StringComparison.Ordinal);
+        Assert.Contains("IcNumberText", shell, StringComparison.Ordinal);
+        Assert.Contains("SelectedIcNumberMode", shell, StringComparison.Ordinal);
         Assert.Contains("Content=\"AB Code\"", shell, StringComparison.Ordinal);
         Assert.Contains("IsEnabled=\"False\"", shell, StringComparison.Ordinal);
         Assert.Contains("FontFamily=\"fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI\"", shell, StringComparison.Ordinal);
@@ -66,6 +71,7 @@ public sealed class RepositoryBoundaryTests
 
         Assert.Contains("DemoShellLanguage.ChineseTraditional", resources, StringComparison.Ordinal);
         Assert.Contains("合併", resources, StringComparison.Ordinal);
+        Assert.Contains("Device context", resources, StringComparison.Ordinal);
         Assert.Contains("DemoShellTextResources.For(language)", sampleData, StringComparison.Ordinal);
         Assert.DoesNotContain("\"Merge preview\"", sampleData, StringComparison.Ordinal);
         Assert.DoesNotContain("Saved rules", resources, StringComparison.OrdinalIgnoreCase);
@@ -112,8 +118,8 @@ public sealed class RepositoryBoundaryTests
             "docs/ui/0.1.1-demo-interface-plan.md",
             "## Replace demo content");
         Assert.True(
-            replaceBullets.Any(bullet => bullet.StartsWith("IC num selector/input", StringComparison.Ordinal)),
-            "Replace demo content must collect IC num before region choices.");
+            replaceBullets.Any(bullet => bullet.StartsWith("Shared IC num selector/input", StringComparison.Ordinal)),
+            "Replace demo content must use the shared IC num context before region choices.");
         Assert.Contains(
             replaceBullets,
             bullet => bullet.Contains("single", StringComparison.Ordinal)
@@ -129,7 +135,8 @@ public sealed class RepositoryBoundaryTests
         string[] replaceRows = ReadPlanningResourceRows("Replace");
         Assert.Contains(
             replaceRows,
-            row => row.StartsWith("IC num:", StringComparison.Ordinal));
+            row => row.StartsWith("Device context:", StringComparison.Ordinal)
+                   && row.Contains("IC Num", StringComparison.Ordinal));
         Assert.Contains(
             replaceRows,
             row => row.StartsWith("CRC/header", StringComparison.Ordinal)

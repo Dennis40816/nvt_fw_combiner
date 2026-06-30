@@ -6,6 +6,7 @@ This document describes the first `0.1.1` demo interface for Merge and Replace. 
 
 ```text
 [Header: product + compact navigation]
+[Fixed Device context: IC | IC Num | mode]
 [Large card: Settings]
 [Large card: Replace: DP | CtrlRAM | General]
 [Large card: Merge: Normal | AB Code disabled]
@@ -16,6 +17,7 @@ The home launcher must stay clean. It does not show Memory coverage, reports, di
 ## Shared page layout
 
 ```text
+[Fixed Device context: IC | IC Num | mode]
 [Page header: mode/persona, profile context, support status]
 [Primary action row: Preview | Build]
 [Slot-card input area]
@@ -26,6 +28,7 @@ The home launcher must stay clean. It does not show Memory coverage, reports, di
 Shared controls:
 
 - mode/profile selector;
+- shared Device context for IC, IC Num, and IC Num mode in the same fixed position on every page;
 - support status badge: draft / candidate / supported;
 - slot cards using only necessary firmware metadata;
 - preview issue list;
@@ -60,7 +63,7 @@ General Merge
 
 ### Normal Merge demo sections
 
-1. IC/profile selector from the supported or candidate catalog.
+1. Shared IC/profile context from the fixed Device context row.
 2. Slot cards: DP, TP, optional LD/Extra.
 3. Version token preview placeholder.
 4. Visual-first shared Memory coverage before/after preview.
@@ -108,7 +111,7 @@ General Replace
 
 ### Replace demo sections
 
-1. IC num selector/input using `single` or `cascade`; `numeric` remains reserved.
+1. Shared IC num selector/input using `single` or `cascade`; `numeric` remains reserved.
 2. Base reference BIN card.
 3. Replace persona selector.
 4. Replaceable region list.

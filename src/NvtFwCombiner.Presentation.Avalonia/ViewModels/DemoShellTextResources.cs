@@ -20,6 +20,11 @@ public sealed class DemoShellTextResources
         string previewActionLabel,
         string buildActionLabel,
         string reportModalActionLabel,
+        string deviceContextTitle,
+        string icLabel,
+        string icNumberLabel,
+        string icNumberModeLabel,
+        string deviceContextStatus,
         PlanningCardText settingsPreview,
         PlanningCardText mergePreview,
         PlanningCardText replacePreview,
@@ -31,6 +36,11 @@ public sealed class DemoShellTextResources
         PreviewActionLabel = previewActionLabel;
         BuildActionLabel = buildActionLabel;
         ReportModalActionLabel = reportModalActionLabel;
+        DeviceContextTitle = deviceContextTitle;
+        IcLabel = icLabel;
+        IcNumberLabel = icNumberLabel;
+        IcNumberModeLabel = icNumberModeLabel;
+        DeviceContextStatus = deviceContextStatus;
         SettingsPreview = settingsPreview;
         MergePreview = mergePreview;
         ReplacePreview = replacePreview;
@@ -66,6 +76,21 @@ public sealed class DemoShellTextResources
     /// <summary>Gets the report modal action label.</summary>
     public string ReportModalActionLabel { get; }
 
+    /// <summary>Gets the shared device context heading.</summary>
+    public string DeviceContextTitle { get; }
+
+    /// <summary>Gets the IC field label.</summary>
+    public string IcLabel { get; }
+
+    /// <summary>Gets the IC number field label.</summary>
+    public string IcNumberLabel { get; }
+
+    /// <summary>Gets the IC number mode field label.</summary>
+    public string IcNumberModeLabel { get; }
+
+    /// <summary>Gets the shared device context status text.</summary>
+    public string DeviceContextStatus { get; }
+
     /// <summary>Gets settings preview text.</summary>
     public PlanningCardText SettingsPreview { get; }
 
@@ -87,6 +112,11 @@ public sealed class DemoShellTextResources
             "Preview",
             "Build",
             "Report",
+            "Device context",
+            "IC",
+            "IC Num",
+            "Mode",
+            "Shared by Settings, Replace, and Merge.",
             new PlanningCardText(
                 "Settings",
                 "Configure the app before running firmware workflows.",
@@ -109,7 +139,7 @@ public sealed class DemoShellTextResources
                 "Replace",
                 "DP, CtrlRAM, and General policies.",
                 [
-                    "IC num: single or cascade",
+                    "Device context: shared IC and IC Num",
                     "DP Replace includes separate DP and LD payloads",
                     "CtrlRAM Replace uses approved CtrlRAM regions",
                     "CRC/header waits for combiner.exe details",
@@ -127,6 +157,11 @@ public sealed class DemoShellTextResources
             "Preview",
             "Build",
             "Report",
+            "Device context",
+            "IC",
+            "IC Num",
+            "Mode",
+            "Settings、Replace、Merge 共用。",
             new PlanningCardText(
                 "設定",
                 "執行韌體流程前的 app 設定。",
@@ -149,7 +184,7 @@ public sealed class DemoShellTextResources
                 "取代",
                 "DP、CtrlRAM、General policy。",
                 [
-                    "IC num：single 或 cascade",
+                    "Device context：共用 IC 與 IC Num",
                     "DP Replace 包含分開的 DP 與 LD payload",
                     "CtrlRAM Replace 使用核准的 CtrlRAM regions",
                     "CRC/header 等待 combiner.exe 細節",

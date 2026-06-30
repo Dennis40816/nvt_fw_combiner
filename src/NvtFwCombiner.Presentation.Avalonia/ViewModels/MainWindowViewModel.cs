@@ -14,6 +14,11 @@ public sealed class MainWindowViewModel : ObservableObject
         string previewActionLabel,
         string buildActionLabel,
         string reportModalActionLabel,
+        string deviceContextTitle,
+        string icLabel,
+        string icNumberLabel,
+        string icNumberModeLabel,
+        string deviceContextStatus,
         PlanningCardViewModel settingsPreview,
         PlanningCardViewModel mergePreview,
         PlanningCardViewModel replacePreview,
@@ -25,6 +30,11 @@ public sealed class MainWindowViewModel : ObservableObject
         PreviewActionLabel = previewActionLabel;
         BuildActionLabel = buildActionLabel;
         ReportModalActionLabel = reportModalActionLabel;
+        DeviceContextTitle = deviceContextTitle;
+        IcLabel = icLabel;
+        IcNumberLabel = icNumberLabel;
+        IcNumberModeLabel = icNumberModeLabel;
+        DeviceContextStatus = deviceContextStatus;
         SettingsPreview = settingsPreview;
         MergePreview = mergePreview;
         ReplacePreview = replacePreview;
@@ -56,6 +66,33 @@ public sealed class MainWindowViewModel : ObservableObject
 
     /// <summary>Gets the report modal action label.</summary>
     public string ReportModalActionLabel { get; }
+
+    /// <summary>Gets the shared device context heading.</summary>
+    public string DeviceContextTitle { get; }
+
+    /// <summary>Gets the IC field label.</summary>
+    public string IcLabel { get; }
+
+    /// <summary>Gets the IC number field label.</summary>
+    public string IcNumberLabel { get; }
+
+    /// <summary>Gets the IC number mode field label.</summary>
+    public string IcNumberModeLabel { get; }
+
+    /// <summary>Gets the shared device context status text.</summary>
+    public string DeviceContextStatus { get; }
+
+    /// <summary>Gets supported demo IC number modes.</summary>
+    public IReadOnlyList<string> IcNumberModes { get; } = ["single", "cascade"];
+
+    /// <summary>Gets or sets the selected IC id in the shared context row.</summary>
+    public string SelectedIcLabel { get; set; } = "NT51950";
+
+    /// <summary>Gets or sets the selected IC number in the shared context row.</summary>
+    public string IcNumberText { get; set; } = "51950";
+
+    /// <summary>Gets or sets the IC number input mode shown in the shared context row.</summary>
+    public string SelectedIcNumberMode { get; set; } = "single";
 
     /// <summary>Gets settings sample content.</summary>
     public PlanningCardViewModel SettingsPreview { get; }
