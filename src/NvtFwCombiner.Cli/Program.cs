@@ -1,19 +1,13 @@
-using System.Reflection;
+using NvtFwCombiner.Bootstrap;
 
-string version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown";
-if (args is ["--version"] or ["version"])
+namespace NvtFwCombiner.Cli;
+
+internal static class Program
 {
-    Console.WriteLine(version);
-    return 0;
+    public static async Task<int> Main(string[] args)
+    {
+        return await CliApplication
+            .RunAsync(args, Console.Out, Console.Error, CancellationToken.None)
+            .ConfigureAwait(false);
+    }
 }
-
-if (args is ["doctor"])
-{
-    Console.WriteLine("NVT FW Combiner repository bootstrap is healthy.");
-    Console.WriteLine($"CLI assembly version: {version}");
-    Console.WriteLine("Firmware composition commands are introduced by the Composition Core milestone.");
-    return 0;
-}
-
-Console.Error.WriteLine("Usage: nvt_fw_combiner [--version|doctor]");
-return 64;
