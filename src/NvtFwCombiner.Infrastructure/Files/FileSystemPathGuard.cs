@@ -11,6 +11,7 @@ internal static class FileSystemPathGuard
         ArgumentException.ThrowIfNullOrWhiteSpace(rootDirectory);
 
         string fullPath = Path.GetFullPath(rootDirectory);
+        RejectExistingParentReparsePoints(fullPath);
         DirectoryInfo directory = Directory.CreateDirectory(fullPath);
         RejectReparsePoint(directory.FullName);
         return EnsureTrailingSeparator(directory.FullName);
@@ -113,6 +114,22 @@ internal static class FileSystemPathGuard
             }
 
             directoryPath = Directory.GetParent(directoryPath)?.FullName;
+        }
+    }
+
+    private static void RejectExistingParentReparsePoints(string path)
+    {
+        string? currentPath = path;
+        while (!string.IsNullOrWhiteSpace(currentPath) &&
+               !File.Exists(currentPath) &&
+               !Directory.Exists(currentPath))
+        {
+            currentPath = Path.GetDirectoryName(currentPath);
+        }
+
+        if (!string.IsNullOrWhiteSpace(currentPath))
+        {
+            RejectReparsePoint(currentPath);
         }
     }
 

@@ -173,8 +173,7 @@ public static class CliApplication
             options.Values.GetValueOrDefault("--output"),
             selectedProfile.DefaultOutputFileName);
         string[] inputRoots = [.. bindings
-            .Select(binding => Path.GetDirectoryName(binding.ArtifactId)!)
-            .Distinct(StringComparer.OrdinalIgnoreCase)];
+            .Select(binding => Path.GetDirectoryName(binding.ArtifactId)!)];
         var reader = new FileArtifactReader(inputRoots);
         AtomicFileCompositionOutputWriter? writer = action == "build"
             ? new AtomicFileCompositionOutputWriter(outputTarget.OutputDirectory, options.Flags.Contains("--overwrite"))
