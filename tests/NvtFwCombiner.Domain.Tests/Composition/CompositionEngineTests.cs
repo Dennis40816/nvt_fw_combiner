@@ -120,6 +120,47 @@ public sealed class CompositionEngineTests
         Assert.Contains("exceed declared length", issue.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies CtrlRAM replace inputs may truncate oversized source bytes with a run diagnostic.</summary>
+    [Fact]
+    public void CtrlRamInputWithTruncationPolicyTruncatesBeforeReplaceRange()
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("reference-base", 4, AddressSpaceMutability.Immutable),
+            new("ctrlram-input", 2, AddressSpaceMutability.Immutable, inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+        ];
+        var plan = new CompositionPlan(
+            ImageInitialization.Reference("output-image", "reference-base", 4),
+            addressSpaces,
+            [
+                CompositionOperation.ReplaceRange(
+                    "replace-ctrlram",
+                    10,
+                    "ctrlram-input",
+                    new ByteRange(0, 2),
+                    "output-image",
+                    new ByteRange(1, 2),
+                    OverlapPolicy.Reject,
+                    "replace ctrlram"),
+            ],
+            CreateTpHardwareReplaceProvenance());
+        var input = new CompositionExecutionInput(new Dictionary<string, byte[]>
+        {
+            ["reference-base"] = [0, 0, 0, 0],
+            ["ctrlram-input"] = [0xAA, 0xBB, 0xCC, 0xDD],
+        });
+
+        CompositionExecutionResult result = CompositionEngine.Execute(plan, input);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal([0, 0xAA, 0xBB, 0], result.OutputBytes.ToArray());
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("input.address-space.truncated", issue.Code);
+        Assert.Equal("ctrlram-input", issue.OperationId);
+        Assert.Contains("from 4 to 2 bytes", issue.Message, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies caller-supplied initialized target bytes are ignored before padding normalization.</summary>
     [Fact]
     public void InitializedTargetInputBytesAreIgnoredBeforePadding()
@@ -285,6 +326,58 @@ public sealed class CompositionEngineTests
         Assert.Equal([new ByteRange(2, 1)], mutation.ChangedRanges);
     }
 
+    /// <summary>Verifies truncation diagnostics remain visible when a later processor fails.</summary>
+    [Fact]
+    public async Task ExternalProcessorFailureKeepsPriorTruncationIssue()
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("reference-base", 4, AddressSpaceMutability.Immutable),
+            new("ctrlram-input", 2, AddressSpaceMutability.Immutable, inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+        ];
+        var plan = new CompositionPlan(
+            ImageInitialization.Reference("output-image", "reference-base", 4),
+            addressSpaces,
+            [
+                CompositionOperation.ReplaceRange(
+                    "replace-ctrlram",
+                    10,
+                    "ctrlram-input",
+                    new ByteRange(0, 2),
+                    "output-image",
+                    new ByteRange(1, 2),
+                    OverlapPolicy.Reject,
+                    "replace ctrlram"),
+                CompositionOperation.RunExternalProcessor(
+                    "run-crc",
+                    20,
+                    "output-image",
+                    new ByteRange(0, 4),
+                    CreateExternalInvocation(writeRange: new ByteRange(3, 1)),
+                    OverlapPolicy.ReplaceExisting,
+                    "run crc"),
+            ],
+            CreateTpHardwareReplaceProvenance());
+        var input = new CompositionExecutionInput(new Dictionary<string, byte[]>
+        {
+            ["reference-base"] = [0, 0, 0, 0],
+            ["ctrlram-input"] = [0xAA, 0xBB, 0xCC],
+        });
+
+        CompositionExecutionResult result = await CompositionEngine.ExecuteAsync(
+            plan,
+            input,
+            (_, _, _) => ValueTask.FromResult(CompositionExternalProcessorResult.Failed([
+                new CompositionIssue("external-tool.process.failed", "processor failed", "run-crc"),
+            ])),
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
+        Assert.Contains(result.Issues, issue => issue.Code == "input.address-space.truncated");
+        Assert.Contains(result.Issues, issue => issue.Code == "external-tool.process.failed");
+    }
+
     /// <summary>Verifies external processor operations fail closed when no adapter hook is supplied.</summary>
     [Fact]
     public void ExternalProcessorOperationRequiresHook()
@@ -402,5 +495,16 @@ public sealed class CompositionEngineTests
             "tool-v1",
             [new ByteRange(0, 4)],
             [writeRange ?? new ByteRange(2, 1)]);
+    }
+
+    private static CompositionPlanProvenance CreateTpHardwareReplaceProvenance()
+    {
+        return new CompositionPlanProvenance(
+            "ctrlram-replace-profile",
+            "1.0.0",
+            "NT-SYNTHETIC",
+            "tp-hw-replace",
+            "tp-hw-replace",
+            CompositionKind.Replace);
     }
 }

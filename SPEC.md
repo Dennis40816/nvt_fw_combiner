@@ -832,15 +832,15 @@ Preview executes through plan/validation and processor dry-run capability where 
 | normal mutation | copy/fill/patch/process | replace/copy/patch/process |
 | common engine | yes | yes |
 
-### 10.2.1 Input size mismatch and padding
+### 10.2.1 Input size mismatch, padding, and truncation
 
-Profile address spaces declare the expected input length used by range validation. A supplied BIN shorter than the declared address-space length is accepted only when the profile explicitly declares an input padding byte for that immutable source/replacement address space and the profile has no CRC/header/processor dependency. Runtime/request address spaces cannot declare padding bytes. The engine pads only the transient execution buffer before copy/replace operations run; source BIN files are never modified. A supplied BIN longer than the declared length always fails closed.
+Profile address spaces declare the expected input length used by range validation. A supplied BIN shorter than the declared address-space length is accepted only when the profile explicitly declares an input padding byte for that immutable source/replacement address space and the profile has no CRC/header/processor dependency. Runtime/request address spaces cannot declare padding or truncation policy. The engine pads only the transient execution buffer before copy/replace operations run; source BIN files are never modified. Unapproved oversized input still fails closed.
 
-DP-only Replace flows that do not require CRC/header recalculation may use profile-declared padding. CtrlRAM Replace flows, including `tp-hw-replace` before the external combiner step is modeled, must use exact input length and cannot declare input padding.
+DP-only Replace flows that do not require CRC/header recalculation may use profile-declared padding. CtrlRAM Replace flows, including `tp-hw-replace` before the external combiner step is modeled, cannot declare input padding for shorter input. Because owner evidence shows CtrlRAM BINs commonly exceed the declared memory size, `tp-hw-replace` profiles may instead declare oversized-input truncation on immutable CtrlRAM replacement/source address spaces whose operations target a profile region tagged `tp-ctrlram`. Truncation keeps the leading declared bytes, discards the trailing bytes, and emits an `input.address-space.truncated` report diagnostic so the UI/CLI can show a prompt.
 
-For reference-initialized Replace, the reference/base firmware address space must always be exact length and cannot declare input padding. Mutable work buffers also cannot declare input padding. Padding applies only to eligible immutable replacement source address spaces.
+For reference-initialized Replace, the reference/base firmware address space must always be exact length and cannot declare input padding or truncation. Mutable work buffers also cannot declare input padding or truncation. Padding and truncation apply only to eligible immutable replacement source address spaces.
 
-Preview and build reports must preserve the actual supplied input size and hash. Reports should also make padded byte counts visible once the report schema grows a dedicated field.
+Preview and build reports must preserve the actual supplied input size and hash. Reports should also make padded/truncated byte counts visible once the report schema grows dedicated fields; until then, truncation uses a structured report issue.
 
 ### 10.3 Standard Merge
 

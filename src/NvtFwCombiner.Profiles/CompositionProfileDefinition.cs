@@ -92,7 +92,8 @@ public sealed record ProfileRegion
         RegionAtomicity atomicity,
         RegionWritePolicy writePolicy,
         int alignment = 1,
-        IReadOnlyList<string>? processorDependencyIds = null)
+        IReadOnlyList<string>? processorDependencyIds = null,
+        IReadOnlyList<string>? classificationTags = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(regionId);
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
@@ -108,6 +109,7 @@ public sealed record ProfileRegion
         WritePolicy = writePolicy;
         Alignment = alignment;
         ProcessorDependencyIds = processorDependencyIds ?? [];
+        ClassificationTags = classificationTags ?? [];
     }
 
     /// <summary>Stable region identifier.</summary>
@@ -130,6 +132,9 @@ public sealed record ProfileRegion
 
     /// <summary>Processors that own additional semantics for this region.</summary>
     public IReadOnlyList<string> ProcessorDependencyIds { get; }
+
+    /// <summary>Profile-owned semantic tags such as dp, tp, tp-ctrlram, header, or protected.</summary>
+    public IReadOnlyList<string> ClassificationTags { get; }
 }
 
 /// <summary>Resolved experience access rule for a profile region.</summary>

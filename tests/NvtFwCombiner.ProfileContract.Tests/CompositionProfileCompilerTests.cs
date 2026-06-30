@@ -366,7 +366,7 @@ public sealed class CompositionProfileCompilerTests
         Assert.Contains(result.Issues, issue => issue.Code == "profile.input-padding.request-not-allowed");
     }
 
-    /// <summary>Verifies CtrlRAM replace profiles keep exact input length even before processor steps are modeled.</summary>
+    /// <summary>Verifies CtrlRAM replace profiles do not use short-input padding.</summary>
     [Fact]
     public void InputPaddingRejectsTpHardwareReplaceProfile()
     {
@@ -397,6 +397,135 @@ public sealed class CompositionProfileCompilerTests
 
         Assert.False(result.IsSuccess);
         Assert.Contains(result.Issues, issue => issue.Code == "profile.input-padding.processor-conflict");
+    }
+
+    /// <summary>Verifies CtrlRAM replace profiles may declare oversized-input truncation.</summary>
+    [Fact]
+    public void InputTruncationCompilesForTpHardwareReplaceProfile()
+    {
+        CompositionProfileDefinition profile = CreateProfile(
+            CompositionKind.Replace,
+            "tp-hw-replace",
+            ImageInitialization.Reference("output-image", "source", 4),
+            addressSpaces:
+            [
+                new("source", 4, AddressSpaceMutability.Immutable),
+                new("ctrlram-replacement", 4, AddressSpaceMutability.Immutable, inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
+                new("output-image", 4, AddressSpaceMutability.Mutable),
+            ],
+            operations:
+            [
+                CompositionOperation.ReplaceRange(
+                    "replace-ctrlram",
+                    10,
+                    "ctrlram-replacement",
+                    new ByteRange(0, 3),
+                    "output-image",
+                    new ByteRange(1, 3),
+                    OverlapPolicy.Reject,
+                    "replace ctrlram"),
+            ],
+            regions:
+            [
+                new ProfileRegion(
+                    "ctrlram",
+                    "output-image",
+                    new ByteRange(1, 3),
+                    RegionAtomicity.ExplicitMapping,
+                    RegionWritePolicy.GeneralExplicit,
+                    classificationTags: ["tp-ctrlram"]),
+            ],
+            accessRules:
+            [
+                new RegionAccessRule("ctrlram", RegionAccessKind.ExplicitRange, "allow ctrlram"),
+            ]);
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
+
+        Assert.True(result.IsSuccess, FormatIssues(result.Issues));
+    }
+
+    /// <summary>Verifies TP hardware truncation must target an explicitly tagged CtrlRAM region.</summary>
+    [Fact]
+    public void InputTruncationRejectsTpHardwareReplaceNonCtrlRamRegion()
+    {
+        CompositionProfileDefinition profile = CreateProfile(
+            CompositionKind.Replace,
+            "tp-hw-replace",
+            ImageInitialization.Reference("output-image", "source", 4),
+            addressSpaces:
+            [
+                new("source", 4, AddressSpaceMutability.Immutable),
+                new("replacement", 4, AddressSpaceMutability.Immutable, inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
+                new("output-image", 4, AddressSpaceMutability.Mutable),
+            ],
+            operations:
+            [
+                CompositionOperation.ReplaceRange(
+                    "replace-non-ctrlram",
+                    10,
+                    "replacement",
+                    new ByteRange(0, 3),
+                    "output-image",
+                    new ByteRange(1, 3),
+                    OverlapPolicy.Reject,
+                    "replace non-ctrlram"),
+            ]);
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.input-truncation.ctrlram-region-required");
+    }
+
+    /// <summary>Verifies non-CtrlRAM profiles cannot opt in to oversized-input truncation.</summary>
+    [Fact]
+    public void InputTruncationRejectsNonCtrlRamProfile()
+    {
+        CompositionProfileDefinition profile = CreateProfile(
+            CompositionKind.Replace,
+            "display-replace",
+            ImageInitialization.Reference("output-image", "source", 4),
+            addressSpaces:
+            [
+                new("source", 4, AddressSpaceMutability.Immutable),
+                new("display-replacement", 4, AddressSpaceMutability.Immutable, inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
+                new("output-image", 4, AddressSpaceMutability.Mutable),
+            ]);
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.input-truncation.not-allowed");
+    }
+
+    /// <summary>Verifies request-time address spaces cannot choose truncation policy.</summary>
+    [Fact]
+    public void InputTruncationRejectsRuntimeAddressSpace()
+    {
+        CompositionProfileDefinition profile = CreateProfile(
+            CompositionKind.Merge,
+            "general-merge",
+            ImageInitialization.Blank("output-image", 4, 0),
+            addressSpaces:
+            [
+                new("output-image", 4, AddressSpaceMutability.Mutable),
+            ]);
+        ExplicitMapping mapping = CreateMapping(
+            ExplicitMappingOperationKind.CopyRange,
+            sourceBindingId: "runtime-source");
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(
+            profile,
+            [mapping],
+            [new AddressSpace(
+                "runtime-source",
+                4,
+                AddressSpaceMutability.Immutable,
+                inputOversizePolicy: InputOversizePolicy.TruncateWithWarning)]);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.input-truncation.request-not-allowed");
     }
 
     /// <summary>Verifies profile operations are validated against region access policy.</summary>

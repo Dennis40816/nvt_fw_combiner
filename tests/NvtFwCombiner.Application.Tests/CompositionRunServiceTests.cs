@@ -166,6 +166,31 @@ public sealed class CompositionRunServiceTests
         Assert.Equal(2, input.Size);
     }
 
+    /// <summary>Verifies CtrlRAM replace previews truncate oversized inputs and report the prompt diagnostic.</summary>
+    [Fact]
+    public async Task PreviewTruncatesOversizedCtrlRamInputAndReportsIssue()
+    {
+        var reader = new FakeArtifactReader(new Dictionary<string, byte[]>
+        {
+            ["reference-artifact"] = [0, 0, 0, 0],
+            ["ctrlram-artifact"] = [0xAA, 0xBB, 0xCC, 0xDD],
+        });
+        var service = new CompositionRunService(
+            reader,
+            new FakeClock([FirstTimestamp, SecondTimestamp]));
+
+        CompositionRunResult result = await service.PreviewAsync(
+            CreateCtrlRamReplaceRequest(InputOversizePolicy.TruncateWithWarning, "ctrlram-artifact"),
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal([0, 0xAA, 0xBB, 0], result.OutputBytes.ToArray());
+        Assert.Contains(result.Report.Inputs, input => input.AddressSpaceId == "ctrlram-input" && input.Size == 4);
+        CompositionIssue issue = Assert.Single(result.Report.Issues);
+        Assert.Equal("input.address-space.truncated", issue.Code);
+        Assert.Contains("from 4 to 2 bytes", issue.Message, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies seeded mutable address-space bindings are read by run service previews.</summary>
     [Fact]
     public async Task PreviewReadsSeededMutableAddressSpaceBinding()
@@ -243,6 +268,30 @@ public sealed class CompositionRunServiceTests
         Assert.Equal(withoutPadding.OutputBytes.ToArray(), withPadding.OutputBytes.ToArray());
         Assert.NotEqual(withoutPadding.PreviewToken, withPadding.PreviewToken);
     }
+
+    /// <summary>Verifies preview approval includes address-space truncation policy.</summary>
+    [Fact]
+    public async Task PreviewTokenChangesWhenInputOversizePolicyChanges()
+    {
+        var service = new CompositionRunService(
+            new FakeArtifactReader(new Dictionary<string, byte[]>
+            {
+                ["reference-artifact"] = [0, 0, 0, 0],
+                ["ctrlram-exact"] = [0xAA, 0xBB],
+            }),
+            new FakeClock([FirstTimestamp, SecondTimestamp, ThirdTimestamp, FourthTimestamp]));
+
+        CompositionRunResult withoutTruncation = await service.PreviewAsync(
+            CreateCtrlRamReplaceRequest(InputOversizePolicy.Reject, "ctrlram-exact"),
+            CancellationToken.None);
+        CompositionRunResult withTruncation = await service.PreviewAsync(
+            CreateCtrlRamReplaceRequest(InputOversizePolicy.TruncateWithWarning, "ctrlram-exact"),
+            CancellationToken.None);
+
+        Assert.Equal(withoutTruncation.OutputBytes.ToArray(), withTruncation.OutputBytes.ToArray());
+        Assert.NotEqual(withoutTruncation.PreviewToken, withTruncation.PreviewToken);
+    }
+
 
     /// <summary>Verifies preview runs external processor operations through the application port.</summary>
     [Fact]
@@ -449,6 +498,56 @@ public sealed class CompositionRunServiceTests
             plan,
             [new InputArtifactBinding("short-input", "short-safe", artifactId)],
             "padded.bin");
+    }
+
+    private static CompositionRunRequest CreateCtrlRamReplaceRequest(
+        InputOversizePolicy inputOversizePolicy,
+        string ctrlRamArtifactId)
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("reference-base", 4, AddressSpaceMutability.Immutable),
+            new("ctrlram-input", 2, AddressSpaceMutability.Immutable, inputOversizePolicy: inputOversizePolicy),
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+        ];
+        var provenance = new CompositionPlanProvenance(
+            "ctrlram-replace-profile",
+            "1.0.0",
+            "NT-SYNTHETIC",
+            "tp-hw-replace",
+            "tp-hw-replace",
+            CompositionKind.Replace);
+        var plan = new CompositionPlan(
+            ImageInitialization.Reference("output-image", "reference-base", 4),
+            addressSpaces,
+            [
+                CompositionOperation.ReplaceRange(
+                    "replace-ctrlram",
+                    10,
+                    "ctrlram-input",
+                    new ByteRange(0, 2),
+                    "output-image",
+                    new ByteRange(1, 2),
+                    OverlapPolicy.Reject,
+                    "replace ctrlram"),
+            ],
+            provenance);
+
+        return new CompositionRunRequest(
+            "run-ctrlram-replace",
+            new CompositionRunProfile(
+                provenance.ProfileId,
+                provenance.ProfileVersion,
+                provenance.IcId,
+                provenance.ModeId,
+                provenance.ExperienceId,
+                provenance.CompositionKind),
+            plan,
+            [
+                new InputArtifactBinding("reference-base", "reference-safe", "reference-artifact"),
+                new InputArtifactBinding("ctrlram-input", "ctrlram-safe", ctrlRamArtifactId),
+            ],
+            "ctrlram.bin");
     }
 
     private static CompositionRunRequest CreateOverwriteRequest(string runId, byte firstFillByte)

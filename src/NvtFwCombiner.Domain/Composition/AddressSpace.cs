@@ -8,15 +8,21 @@ public sealed class AddressSpace
         string addressSpaceId,
         long length,
         AddressSpaceMutability mutability,
-        byte? inputPaddingByte = null)
+        byte? inputPaddingByte = null,
+        InputOversizePolicy inputOversizePolicy = InputOversizePolicy.Reject)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(length);
+        if (!Enum.IsDefined(inputOversizePolicy))
+        {
+            throw new ArgumentOutOfRangeException(nameof(inputOversizePolicy), inputOversizePolicy, "Unknown input oversize policy.");
+        }
 
         AddressSpaceId = addressSpaceId;
         Length = length;
         Mutability = mutability;
         InputPaddingByte = inputPaddingByte;
+        InputOversizePolicy = inputOversizePolicy;
     }
 
     /// <summary>Stable identifier used by operations and reports.</summary>
@@ -30,6 +36,9 @@ public sealed class AddressSpace
 
     /// <summary>Byte used to extend a shorter supplied input to the declared length; null keeps exact-size validation.</summary>
     public byte? InputPaddingByte { get; }
+
+    /// <summary>Policy for supplied input bytes longer than the declared length.</summary>
+    public InputOversizePolicy InputOversizePolicy { get; }
 
     /// <summary>Returns true when <paramref name="range"/> is fully inside this address space.</summary>
     public bool Contains(ByteRange range)

@@ -195,6 +195,22 @@ public sealed class CompositionPlanTests
             []));
     }
 
+    /// <summary>Verifies replace base image bytes cannot be truncated before initialization.</summary>
+    [Fact]
+    public void ReferenceInitializationRejectsTruncatedReferenceSpace()
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("reference-base", 4, AddressSpaceMutability.Immutable, inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+        ];
+
+        _ = Assert.Throws<ArgumentException>(() => new CompositionPlan(
+            ImageInitialization.Reference("output-image", "reference-base", 4),
+            addressSpaces,
+            []));
+    }
+
     /// <summary>Verifies mutable work buffers cannot fabricate seed bytes via padding.</summary>
     [Fact]
     public void MutableAddressSpaceRejectsInputPadding()
@@ -209,6 +225,83 @@ public sealed class CompositionPlanTests
             ImageInitialization.Blank("output-image", 4, 0),
             addressSpaces,
             []));
+    }
+
+    /// <summary>Verifies mutable work buffers cannot discard seed bytes via truncation.</summary>
+    [Fact]
+    public void MutableAddressSpaceRejectsInputTruncation()
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+            new("scratch", 4, AddressSpaceMutability.Mutable, inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
+        ];
+
+        _ = Assert.Throws<ArgumentException>(() => new CompositionPlan(
+            ImageInitialization.Blank("output-image", 4, 0),
+            addressSpaces,
+            []));
+    }
+
+    /// <summary>Verifies immutable address spaces can carry explicit truncation policy without experience branching.</summary>
+    [Fact]
+    public void ImmutableAddressSpaceAcceptsInputTruncationPolicy()
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+            new("source", 4, AddressSpaceMutability.Immutable, inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
+        ];
+
+        var plan = new CompositionPlan(
+            ImageInitialization.Blank("output-image", 4, 0),
+            addressSpaces,
+            [
+                CompositionOperation.CopyRange(
+                    "copy-source",
+                    10,
+                    "source",
+                    new ByteRange(0, 4),
+                    "output-image",
+                    new ByteRange(0, 4),
+                    OverlapPolicy.Reject,
+                    "copy source"),
+            ]);
+
+        Assert.Contains("source", plan.RequiredInputAddressSpaceIds);
+    }
+
+    /// <summary>Verifies CtrlRAM replace plans may combine truncation with external CRC/header processors.</summary>
+    [Fact]
+    public void ExternalProcessorAllowsInputTruncationForTpHardwareReplace()
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("reference-base", 4, AddressSpaceMutability.Immutable),
+            new("ctrlram-input", 2, AddressSpaceMutability.Immutable, inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+        ];
+
+        var plan = new CompositionPlan(
+            ImageInitialization.Reference("output-image", "reference-base", 4),
+            addressSpaces,
+            [
+                CompositionOperation.RunExternalProcessor(
+                    "run-crc",
+                    10,
+                    "output-image",
+                    new ByteRange(0, 4),
+                    new ExternalProcessorInvocation(
+                        "crc-v1",
+                        "tool-v1",
+                        [new ByteRange(0, 4)],
+                        [new ByteRange(3, 1)]),
+                    OverlapPolicy.Reject,
+                    "run crc"),
+            ],
+            CreateTpHardwareReplaceProvenance());
+
+        Assert.Contains("ctrlram-input", plan.RequiredInputAddressSpaceIds);
     }
 
     /// <summary>Verifies processor plans cannot receive fabricated padded bytes.</summary>
@@ -250,5 +343,16 @@ public sealed class CompositionPlanTests
             ImageInitialization.Blank("output-image", 4, 0),
             addressSpaces,
             operations);
+    }
+
+    private static CompositionPlanProvenance CreateTpHardwareReplaceProvenance()
+    {
+        return new CompositionPlanProvenance(
+            "ctrlram-replace-profile",
+            "1.0.0",
+            "NT-SYNTHETIC",
+            "tp-hw-replace",
+            "tp-hw-replace",
+            CompositionKind.Replace);
     }
 }
