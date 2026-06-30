@@ -8,7 +8,7 @@ Specification package version: `0.1.0-dev.0`
 - `global.json` pins .NET SDK `10.0.301` and installers consume that value.
 - Avalonia packages are centrally pinned to `12.0.5`.
 - Root `SPEC.md`, layered AGENTS, Codex configuration and nine skills are present.
-- Replace experiences are Display, TP HW, TP FW and General; Merge experiences are Standard, AB and General.
+- Replace experiences are DP Replace, CtrlRAM Replace and General Replace; Merge experiences are Standard, AB and General.
 - `refcode/` contains exactly the two approved Python snapshots and their hashes remain validated.
 - No production project references `refcode/`.
 - Init node is `v0.1.0-dev.0` and does not claim firmware parity.

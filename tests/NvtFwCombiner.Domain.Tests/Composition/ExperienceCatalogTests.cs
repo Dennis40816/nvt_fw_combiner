@@ -5,9 +5,9 @@ namespace NvtFwCombiner.Domain.Tests.Composition;
 /// <summary>Tests for the approved experience catalog.</summary>
 public sealed class ExperienceCatalogTests
 {
-    /// <summary>Verifies that the catalog exposes the seven approved experiences in stable order.</summary>
+    /// <summary>Verifies that the catalog exposes the six approved experiences in stable order.</summary>
     [Fact]
-    public void CatalogContainsTheSevenApprovedExperiences()
+    public void CatalogContainsTheSixApprovedExperiences()
     {
         string[] ids = [.. ExperienceCatalog.All.Select(experience => experience.ExperienceId)];
 
@@ -16,9 +16,8 @@ public sealed class ExperienceCatalogTests
             "standard-merge",
             "ab-merge",
             "general-merge",
-            "display-replace",
-            "tp-hw-replace",
-            "tp-fw-replace",
+            "dp-replace",
+            "ctrlram-replace",
             "general-replace",
         ];
 
@@ -30,9 +29,8 @@ public sealed class ExperienceCatalogTests
     [InlineData("standard-merge", ImageInitializationKind.Blank)]
     [InlineData("ab-merge", ImageInitializationKind.Blank)]
     [InlineData("general-merge", ImageInitializationKind.Blank)]
-    [InlineData("display-replace", ImageInitializationKind.Reference)]
-    [InlineData("tp-hw-replace", ImageInitializationKind.Reference)]
-    [InlineData("tp-fw-replace", ImageInitializationKind.Reference)]
+    [InlineData("dp-replace", ImageInitializationKind.Reference)]
+    [InlineData("ctrlram-replace", ImageInitializationKind.Reference)]
     [InlineData("general-replace", ImageInitializationKind.Reference)]
     public void RequiredInitializationIsDerivedOnlyFromCompositionKind(
         string experienceId,

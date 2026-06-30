@@ -90,7 +90,7 @@ A promoted saved rule may appear as:
 
 - a named option inside Standard Merge;
 - a named option inside AB Merge;
-- a named option inside Display Replace / TP HW Replace / TP FW Replace;
+- a named option inside DP Replace / CtrlRAM Replace;
 - an advanced preset inside General Merge / General Replace.
 
 The rule is available only when its compatibility envelope matches the current IC/profile/mode.

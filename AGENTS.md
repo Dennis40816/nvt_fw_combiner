@@ -57,9 +57,8 @@ Do not invent a second canonical repository verification entry point.
 
 ## Locked experience rules
 
-- Display: DP whole/declared partitions; TP whole-only when visible.
-- TP HW: only TP CtrlRAM named regions/groups; DP whole-only.
-- TP FW: only declared non-CtrlRAM TP regions; DP whole-only; CtrlRAM denied by default.
+- DP Replace: DP whole/declared partitions only; no TP-persona Replace categories are exposed.
+- CtrlRAM Replace: only regions tagged `tp-ctrlram` or approved CtrlRAM groups may be replaced.
 - General Replace: explicit mappings only inside the profile-approved safety envelope.
 - General Merge: extensible BIN bindings and explicit mappings over a blank image.
 - Experience/personal labels control authoring policy, never byte-execution branches.
@@ -77,15 +76,15 @@ Do not invent a second canonical repository verification entry point.
 ## Product direction guardrails
 
 - Prioritize completing core/Application/CLI capability before UI wiring when the owner asks for spec development. Call out when C# core is ready for UI integration.
-- Current implementation priority is normal Merge and normal Replace for DP and TP CtrlRAM department workflows. AB Code Merge is deferred unless the owner explicitly reactivates it.
+- Current implementation priority is normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows. AB Code Merge is deferred unless the owner explicitly reactivates it.
 - Standard/normal Merge must include NT51950 and NT51951 after the owner provides the memory map. Do not infer their merge map from AB evidence.
 - Replace flows are expected to require legacy `combiner.exe` CRC/header recalculation. Use the external combiner runner model and wait for owner-supplied invocation, version, ranges, and golden evidence before production implementation. The owner identified 932 common FW postbuild as the reference behavior to inspect.
-- Input BIN size mismatch policy is profile-declared and integrity-aware: no-CRC/no-processor flows, such as DP-only Replace, may pad shorter immutable replacement/source inputs only with an explicit profile padding byte. TP HW CtrlRAM replace may truncate oversized immutable replacement/source inputs only with an explicit profile truncation policy whose operations target `tp-ctrlram` regions, and must surface a report/CLI warning. Runtime/request mappings, mutable work buffers, reference/base firmware, and non-CtrlRAM CRC/combiner flows must keep exact input length. Unapproved oversized input still fails closed.
+- Input BIN size mismatch policy is profile-declared and integrity-aware: no-CRC/no-processor flows, such as DP-only Replace, may pad shorter immutable replacement/source inputs only with an explicit profile padding byte. CtrlRAM Replace may truncate oversized immutable replacement/source inputs only with an explicit profile truncation policy whose operations target `tp-ctrlram` regions, and must surface a report/CLI warning. Runtime/request mappings, mutable work buffers, reference/base firmware, and non-CtrlRAM CRC/combiner flows must keep exact input length. Unapproved oversized input still fails closed.
 - UI should be modern, minimal, and low-reading-cost. Top-level product navigation is limited to Settings, Merge, and Replace unless the owner explicitly expands it.
 - UI top-level navigation uses top tabs.
 - Merge and Replace must share a consistent Memory coverage before/after visualization in the same layout position. The Memory coverage area is visual-first, with table details as supporting information.
 - Firmware inputs are represented as slot cards.
-- Replace UI must include an explicit IC num selector/input in addition to persona and file slots.
+- Replace UI must include an explicit IC num selector/input in addition to persona and file slots. First usable UI supports `single` and `cascade` IC num input modes; `numeric` is reserved in contracts for future IC exceptions and must not be enabled without owner evidence.
 - Preview/Build results open report modals for diagnostics and evidence review.
 - First UI release hides Saved Rules until the saved-rule workflow is implemented and reviewed.
 - UI implementation must support a bilingual architecture with English as the initial default language.

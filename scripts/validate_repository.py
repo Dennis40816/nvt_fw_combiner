@@ -568,7 +568,7 @@ def validate_contract_model(errors: list[str]) -> None:
             if key not in required:
                 errors.append(f"report schema does not require canonical field: {key}")
     spec = (ROOT / "SPEC.md").read_text(encoding="utf-8")
-    for term in {"display-replace", "tp-hw-replace", "tp-fw-replace", "general-replace", "general-merge", "`unknown` 絕不等同 `none`", "host-created staging copy", "legacy `combiner.exe`"}:
+    for term in {"dp-replace", "ctrlram-replace", "general-replace", "general-merge", "`unknown` 絕不等同 `none`", "host-created staging copy", "legacy `combiner.exe`"}:
         if term not in spec:
             errors.append(f"SPEC.md is missing required architecture term: {term}")
 

@@ -47,13 +47,29 @@ public sealed class CompositionProfileCompilerTests
     {
         CompositionProfileDefinition profile = CreateProfile(
             CompositionKind.Replace,
-            "display-replace",
+            "dp-replace",
             ImageInitialization.Blank("output-image", 4, 0));
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
 
         Assert.False(result.IsSuccess);
         Assert.Contains(result.Issues, issue => issue.Code == "profile.initialization-kind.mismatch");
+    }
+
+    /// <summary>Verifies typed profiles preserve IC number input modes for UI/request binding.</summary>
+    [Theory]
+    [InlineData(IcNumberInputMode.SingleSelector)]
+    [InlineData(IcNumberInputMode.CascadeSelector)]
+    [InlineData(IcNumberInputMode.NumericSelector)]
+    public void ProfileDefinitionCarriesIcNumberInputMode(IcNumberInputMode mode)
+    {
+        CompositionProfileDefinition profile = CreateProfile(
+            CompositionKind.Replace,
+            "dp-replace",
+            ImageInitialization.Reference("output-image", "source", 4),
+            icNumberInputMode: mode);
+
+        Assert.Equal(mode, profile.IcNumberInputMode);
     }
 
     /// <summary>Verifies general replace mappings compile only after region policy allows the target range.</summary>
@@ -368,11 +384,11 @@ public sealed class CompositionProfileCompilerTests
 
     /// <summary>Verifies CtrlRAM replace profiles do not use short-input padding.</summary>
     [Fact]
-    public void InputPaddingRejectsTpHardwareReplaceProfile()
+    public void InputPaddingRejectsCtrlRamReplaceProfile()
     {
         CompositionProfileDefinition profile = CreateProfile(
             CompositionKind.Replace,
-            "tp-hw-replace",
+            "ctrlram-replace",
             ImageInitialization.Reference("output-image", "source", 4),
             addressSpaces:
             [
@@ -401,11 +417,11 @@ public sealed class CompositionProfileCompilerTests
 
     /// <summary>Verifies CtrlRAM replace profiles may declare oversized-input truncation.</summary>
     [Fact]
-    public void InputTruncationCompilesForTpHardwareReplaceProfile()
+    public void InputTruncationCompilesForCtrlRamReplaceProfile()
     {
         CompositionProfileDefinition profile = CreateProfile(
             CompositionKind.Replace,
-            "tp-hw-replace",
+            "ctrlram-replace",
             ImageInitialization.Reference("output-image", "source", 4),
             addressSpaces:
             [
@@ -445,13 +461,13 @@ public sealed class CompositionProfileCompilerTests
         Assert.True(result.IsSuccess, FormatIssues(result.Issues));
     }
 
-    /// <summary>Verifies TP hardware truncation must target an explicitly tagged CtrlRAM region.</summary>
+    /// <summary>Verifies CtrlRAM truncation must target an explicitly tagged CtrlRAM region.</summary>
     [Fact]
-    public void InputTruncationRejectsTpHardwareReplaceNonCtrlRamRegion()
+    public void InputTruncationRejectsCtrlRamReplaceNonCtrlRamRegion()
     {
         CompositionProfileDefinition profile = CreateProfile(
             CompositionKind.Replace,
-            "tp-hw-replace",
+            "ctrlram-replace",
             ImageInitialization.Reference("output-image", "source", 4),
             addressSpaces:
             [
@@ -484,12 +500,12 @@ public sealed class CompositionProfileCompilerTests
     {
         CompositionProfileDefinition profile = CreateProfile(
             CompositionKind.Replace,
-            "display-replace",
+            "dp-replace",
             ImageInitialization.Reference("output-image", "source", 4),
             addressSpaces:
             [
                 new("source", 4, AddressSpaceMutability.Immutable),
-                new("display-replacement", 4, AddressSpaceMutability.Immutable, inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
+                new("dp-replacement", 4, AddressSpaceMutability.Immutable, inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
                 new("output-image", 4, AddressSpaceMutability.Mutable),
             ]);
 
@@ -534,7 +550,7 @@ public sealed class CompositionProfileCompilerTests
     {
         CompositionProfileDefinition profile = CreateProfile(
             CompositionKind.Replace,
-            "display-replace",
+            "dp-replace",
             ImageInitialization.Reference("output-image", "source", 4),
             operations:
             [
@@ -671,7 +687,8 @@ public sealed class CompositionProfileCompilerTests
         IReadOnlyList<AddressSpace>? addressSpaces = null,
         IReadOnlyList<CompositionOperation>? operations = null,
         IReadOnlyList<ProfileRegion>? regions = null,
-        IReadOnlyList<RegionAccessRule>? accessRules = null)
+        IReadOnlyList<RegionAccessRule>? accessRules = null,
+        IcNumberInputMode? icNumberInputMode = null)
     {
         AddressSpace[] defaultAddressSpaces =
         [
@@ -708,7 +725,8 @@ public sealed class CompositionProfileCompilerTests
             [
                 new RegionAccessRule("header", RegionAccessKind.Hidden, "protect header"),
                 new RegionAccessRule("payload", RegionAccessKind.ExplicitRange, "allow general mapping"),
-            ]);
+            ],
+            icNumberInputMode);
     }
 
     private static ExplicitMapping CreateMapping(

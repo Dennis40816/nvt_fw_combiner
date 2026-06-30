@@ -15,17 +15,13 @@ public static class ExperienceCatalog
     public static readonly ExperienceDescriptor GeneralMerge =
         new("general-merge", CompositionKind.Merge, AudienceKind.Advanced, LayoutPolicy.UserDefined, InputPolicy.Extensible);
 
-    /// <summary>Display replace workflow over a reference image.</summary>
-    public static readonly ExperienceDescriptor DisplayReplace =
-        new("display-replace", CompositionKind.Replace, AudienceKind.Display, LayoutPolicy.Constrained, InputPolicy.Fixed);
+    /// <summary>DP replace workflow over a reference image.</summary>
+    public static readonly ExperienceDescriptor DpReplace =
+        new("dp-replace", CompositionKind.Replace, AudienceKind.Dp, LayoutPolicy.Constrained, InputPolicy.Fixed);
 
-    /// <summary>Touch-panel hardware replace workflow over a reference image.</summary>
-    public static readonly ExperienceDescriptor TpHardwareReplace =
-        new("tp-hw-replace", CompositionKind.Replace, AudienceKind.TpHardware, LayoutPolicy.Constrained, InputPolicy.Fixed);
-
-    /// <summary>Touch-panel firmware replace workflow over a reference image.</summary>
-    public static readonly ExperienceDescriptor TpFirmwareReplace =
-        new("tp-fw-replace", CompositionKind.Replace, AudienceKind.TpFirmware, LayoutPolicy.Constrained, InputPolicy.Fixed);
+    /// <summary>CtrlRAM replace workflow over a reference image.</summary>
+    public static readonly ExperienceDescriptor CtrlRamReplace =
+        new("ctrlram-replace", CompositionKind.Replace, AudienceKind.CtrlRam, LayoutPolicy.Constrained, InputPolicy.Fixed);
 
     /// <summary>Advanced replace workflow using explicit mappings over a reference image.</summary>
     public static readonly ExperienceDescriptor GeneralReplace =
@@ -37,9 +33,8 @@ public static class ExperienceCatalog
         StandardMerge,
         AbMerge,
         GeneralMerge,
-        DisplayReplace,
-        TpHardwareReplace,
-        TpFirmwareReplace,
+        DpReplace,
+        CtrlRamReplace,
         GeneralReplace,
     ];
 

@@ -25,12 +25,12 @@ A `MemoryRegion` gives semantic meaning to a byte range. It is not just a visual
 | `range` | Half-open byte range `{ start, length }`. Internally interpreted as `[start, start + length)`. |
 | `role` | One primary product role for coarse display and grouping, such as `dp`, `tp`, `header`, `ctrlram`, `bank`, `reserved`. |
 | `classificationTags` | Multi-tag semantic classification. This is where DP/TP header split, protected status, integrity read/write, and replaceability are expressed. |
-| `atomicity` | Authoring granularity: `whole`, `partitioned`, or `explicit-mapping`. Used by Display/TP HW/TP FW/General workflows. |
+| `atomicity` | Authoring granularity: `whole`, `partitioned`, or `explicit-mapping`. Used by DP/CtrlRAM/General Replace workflows. |
 | `writePolicy` | Baseline write policy: `forbidden`, `whole-only`, `declared-parts`, or `general-explicit`. |
 | `alignment` | Minimum allowed start/length alignment for replacement/mapping. |
 | `processorDependencyIds` | Processors that must run before/after this region is considered valid, such as CRC/Header transforms. |
 | `compatibilityTags` | Optional tags used to match saved rules, input artifacts, or IC variants. |
-| `owner` | Optional human/system ownership hint for review, such as `display`, `tp-hw`, `tp-fw`, `system`. |
+| `owner` | Optional human/system ownership hint for review, such as `dp`, `ctrlram`, `system`. |
 | `description` | Human explanation for UI, reports, and review. |
 
 ## Header modeling rule
@@ -80,26 +80,17 @@ DP header example:
 }
 ```
 
-## Persona access examples
+## Replace access examples
 
-Display Replace:
+DP Replace:
 
 - may expose `dp` whole or declared DP partitions;
 - may show `dp-header` read-only;
-- treats `tp` as whole-only when TP replacement is offered;
-- must not expose `tp-header` as an independent editable region unless a profile explicitly allows it.
 
-TP HW Replace:
+CtrlRAM Replace:
 
 - may expose `tp-ctrlram` and approved CtrlRAM groups;
-- treats DP as whole-only or hidden;
 - keeps `tp-header` read-only unless the processor/tool owns it.
-
-TP FW Replace:
-
-- may expose non-CtrlRAM TP regions;
-- hides or blocks `tp-ctrlram` by default;
-- keeps DP whole-only or hidden.
 
 General Replace:
 

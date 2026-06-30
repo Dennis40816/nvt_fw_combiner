@@ -144,7 +144,7 @@ public sealed class CompositionEngineTests
                     OverlapPolicy.Reject,
                     "replace ctrlram"),
             ],
-            CreateTpHardwareReplaceProvenance());
+            CreateCtrlRamReplaceProvenance());
         var input = new CompositionExecutionInput(new Dictionary<string, byte[]>
         {
             ["reference-base"] = [0, 0, 0, 0],
@@ -358,7 +358,7 @@ public sealed class CompositionEngineTests
                     OverlapPolicy.ReplaceExisting,
                     "run crc"),
             ],
-            CreateTpHardwareReplaceProvenance());
+            CreateCtrlRamReplaceProvenance());
         var input = new CompositionExecutionInput(new Dictionary<string, byte[]>
         {
             ["reference-base"] = [0, 0, 0, 0],
@@ -497,14 +497,14 @@ public sealed class CompositionEngineTests
             [writeRange ?? new ByteRange(2, 1)]);
     }
 
-    private static CompositionPlanProvenance CreateTpHardwareReplaceProvenance()
+    private static CompositionPlanProvenance CreateCtrlRamReplaceProvenance()
     {
         return new CompositionPlanProvenance(
             "ctrlram-replace-profile",
             "1.0.0",
             "NT-SYNTHETIC",
-            "tp-hw-replace",
-            "tp-hw-replace",
+            "ctrlram-replace",
+            "ctrlram-replace",
             CompositionKind.Replace);
     }
 }

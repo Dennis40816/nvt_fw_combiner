@@ -53,7 +53,7 @@ Codex receives a constrained repository with executable rules and bounded issues
 7. **Protocol 1 CRC calculation** — C# adapter, limits, vectors, contract tests.
 8. **External combiner runner** — staged `work.bin`, tool manifest resolution, executable SHA-256 verification, timeout, changed-range diff validation.
 9. **Standard Merge parity** — one IC/mode per PR with approved golden evidence. Current owner priority includes NT51950 and NT51951 after memory maps are supplied.
-10. **Normal Replace parity** — DP and TP CtrlRAM department workflows first, with IC num required in UI/request models and legacy `combiner.exe` CRC/header post-processing once the owner supplies invocation details.
+10. **Normal Replace parity** — DP Replace and CtrlRAM Replace workflows first, with IC num `single`/`cascade` modes required in UI/request models, `numeric` reserved for future IC exceptions, and legacy `combiner.exe` CRC/header post-processing once the owner supplies invocation details.
 11. **AB Merge parity** — banks, relocation, integrity stages, output comparisons. Deferred until the owner reactivates AB work.
 12. **General modes and saved rules** — one mapping model/editor/compiler for Merge and Replace plus rule promotion.
 13. **Packaging/security** — minimal Windows package, clean-machine smoke, SBOM/provenance/signing.

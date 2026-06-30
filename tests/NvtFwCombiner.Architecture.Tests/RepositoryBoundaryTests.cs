@@ -92,7 +92,7 @@ public sealed class RepositoryBoundaryTests
 
             Assert.Contains("normal merge requested", row[1], StringComparison.OrdinalIgnoreCase);
             Assert.Contains("memory map pending", row[1], StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("DP and TP CtrlRAM priority", row[3], StringComparison.Ordinal);
+            Assert.Contains("DP and CtrlRAM priority", row[3], StringComparison.Ordinal);
             Assert.Contains("AB:", row[4], StringComparison.Ordinal);
             Assert.Contains("Replace:", row[4], StringComparison.Ordinal);
             Assert.Contains("AB", row[5], StringComparison.Ordinal);
@@ -109,6 +109,11 @@ public sealed class RepositoryBoundaryTests
         Assert.True(
             replaceBullets.Any(bullet => bullet.StartsWith("IC num selector/input", StringComparison.Ordinal)),
             "Replace demo content must collect IC num before region choices.");
+        Assert.Contains(
+            replaceBullets,
+            bullet => bullet.Contains("single", StringComparison.Ordinal)
+                && bullet.Contains("cascade", StringComparison.Ordinal)
+                && bullet.Contains("numeric", StringComparison.Ordinal));
 
         string readinessBullet = Assert.Single(
             replaceBullets,

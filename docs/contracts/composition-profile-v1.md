@@ -33,7 +33,9 @@ The reusable region contract is [`region-v1.schema.json`](region-v1.schema.json)
 
 DP and TP headers must be modeled separately. Use tags such as `dp-header` and `tp-header`; do not rely on one generic `header` tag for processor/write policy decisions.
 
-Display, TP HW, and TP FW policies are enforced by the compiler, not only by UI visibility. General Replace may author explicit ranges only where the profile enables them and never through protected regions.
+DP Replace, CtrlRAM Replace, and General Replace policies are enforced by the compiler, not only by UI visibility. General Replace may author explicit ranges only where the profile enables them and never through protected regions.
+
+Replace profiles may declare `experience.icNumInputMode` as `single`, `cascade`, or reserved `numeric`. The first usable UI supports `single` and `cascade`; `numeric` is reserved so future IC-number exceptions can be modeled without replacing the field.
 
 ## General mappings and saved rules
 
@@ -51,7 +53,7 @@ Overlap defaults to `reject`. Any overlap must be explicitly declared by `overla
 
 Typed profile definitions may declare an input padding byte on immutable source/replacement address spaces when an owner-approved map says a shorter supplied BIN can be safely extended to the declared length and the profile has no processor-dependent integrity stage. Request-time/runtime address spaces cannot declare padding bytes or truncation policy. The engine pads only the transient execution buffer; source files remain immutable and reports keep the actual supplied input size/hash. Unapproved inputs longer than the declared address-space length are rejected.
 
-Profiles with `run-external-processor` operations or processor-owned regions, including CtrlRAM Replace flows that require TP CRC/header recalculation, cannot declare short-input padding. `tp-hw-replace` profiles may declare oversized-input truncation for immutable CtrlRAM replacement/source address spaces because these inputs commonly exceed the declared memory size, but every operation using a truncating source must target a profile region tagged `tp-ctrlram`. Truncation keeps the leading declared bytes, discards trailing bytes, and emits an `input.address-space.truncated` report diagnostic.
+Profiles with `run-external-processor` operations or processor-owned regions, including CtrlRAM Replace flows that require TP CRC/header recalculation, cannot declare short-input padding. `ctrlram-replace` profiles may declare oversized-input truncation for immutable CtrlRAM replacement/source address spaces because these inputs commonly exceed the declared memory size, but every operation using a truncating source must target a profile region tagged `tp-ctrlram`. Truncation keeps the leading declared bytes, discards trailing bytes, and emits an `input.address-space.truncated` report diagnostic.
 
 Reference initialization base address spaces and mutable work buffers must keep exact input length and cannot declare input padding or truncation.
 

@@ -85,14 +85,11 @@ General Merge
 ### Persona cards
 
 ```text
-Display Replace
-  DP whole/declared partitions; TP whole-only.
+DP Replace
+  DP whole/declared partitions.
 
-TP HW Replace
-  TP CtrlRAM named regions only; DP whole-only.
-
-TP FW Replace
-  Non-CtrlRAM TP regions; DP whole-only; CtrlRAM hidden by default.
+CtrlRAM Replace
+  CtrlRAM named regions only.
 
 General Replace
   Explicit source-to-target mappings inside profile-approved safety envelope.
@@ -100,7 +97,7 @@ General Replace
 
 ### Replace demo sections
 
-1. IC num selector/input.
+1. IC num selector/input using `single` or `cascade`; `numeric` remains reserved.
 2. Base reference BIN card.
 3. Replace persona selector.
 4. Replaceable region list.

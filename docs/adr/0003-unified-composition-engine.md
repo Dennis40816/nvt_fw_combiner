@@ -6,7 +6,7 @@
 
 ## Context
 
-Standard Merge, AB Merge, General Merge, Display Replace, TP HW Replace, TP FW Replace, and General Replace all initialize and mutate firmware images. Separate executors would duplicate range checks, overlap semantics, processors, reporting, and output atomicity.
+Standard Merge, AB Merge, General Merge, DP Replace, CtrlRAM Replace, and General Replace all initialize and mutate firmware images. Separate executors would duplicate range checks, overlap semantics, processors, reporting, and output atomicity.
 
 ## Decision
 
@@ -23,9 +23,8 @@ Experience identifiers are catalog/UI/profile-policy metadata:
 standard-merge
 ab-merge
 general-merge
-display-replace
-tp-hw-replace
-tp-fw-replace
+dp-replace
+ctrlram-replace
 general-replace
 ```
 

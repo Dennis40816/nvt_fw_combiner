@@ -19,7 +19,7 @@ The `0.1.1` demo shell may introduce page structure and synthetic data, but View
 - AB relocation patch logic;
 - CRC/Header calculation or `combiner.exe` invocation;
 - protected range decisions;
-- deciding Display/TP HW/TP FW access policy;
+- deciding DP/CtrlRAM/General Replace access policy;
 - interpreting file names as IC/mode truth;
 - modifying input/output bytes;
 - shell command construction;

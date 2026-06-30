@@ -5,7 +5,7 @@ namespace NvtFwCombiner.Profiles;
 /// <summary>Compiles typed profile definitions and request mapping overlays into domain composition plans.</summary>
 public static class CompositionProfileCompiler
 {
-    private const string TpHardwareReplaceExperienceId = "tp-hw-replace";
+    private const string CtrlRamReplaceExperienceId = "ctrlram-replace";
     private const string CtrlRamClassificationTag = "tp-ctrlram";
 
     /// <summary>Compiles a profile and optional explicit mappings into a validated plan.</summary>
@@ -157,7 +157,7 @@ public static class CompositionProfileCompiler
         CompositionProfileDefinition profile,
         List<CompositionIssue> issues)
     {
-        bool allowsInputTruncation = IsTpHardwareReplaceProfile(profile);
+        bool allowsInputTruncation = IsCtrlRamReplaceProfile(profile);
         foreach (AddressSpace addressSpace in profile.AddressSpaces.Where(space =>
                      space.InputOversizePolicy != InputOversizePolicy.Reject))
         {
@@ -222,15 +222,15 @@ public static class CompositionProfileCompiler
 
     private static bool ForbidsInputPadding(CompositionProfileDefinition profile)
     {
-        return IsTpHardwareReplaceProfile(profile) ||
+        return IsCtrlRamReplaceProfile(profile) ||
             profile.Operations.Any(operation => operation.Kind == CompositionOperationKind.RunExternalProcessor) ||
             profile.Regions.Any(region => region.ProcessorDependencyIds.Count > 0);
     }
 
-    private static bool IsTpHardwareReplaceProfile(CompositionProfileDefinition profile)
+    private static bool IsCtrlRamReplaceProfile(CompositionProfileDefinition profile)
     {
         return profile.CompositionKind == CompositionKind.Replace &&
-            string.Equals(profile.ExperienceId, TpHardwareReplaceExperienceId, StringComparison.Ordinal);
+            string.Equals(profile.ExperienceId, CtrlRamReplaceExperienceId, StringComparison.Ordinal);
     }
 
     private static void AddDuplicateIssues<T>(

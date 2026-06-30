@@ -273,7 +273,7 @@ public sealed class CompositionPlanTests
 
     /// <summary>Verifies CtrlRAM replace plans may combine truncation with external CRC/header processors.</summary>
     [Fact]
-    public void ExternalProcessorAllowsInputTruncationForTpHardwareReplace()
+    public void ExternalProcessorAllowsInputTruncationForCtrlRamReplace()
     {
         AddressSpace[] addressSpaces =
         [
@@ -299,7 +299,7 @@ public sealed class CompositionPlanTests
                     OverlapPolicy.Reject,
                     "run crc"),
             ],
-            CreateTpHardwareReplaceProvenance());
+            CreateCtrlRamReplaceProvenance());
 
         Assert.Contains("ctrlram-input", plan.RequiredInputAddressSpaceIds);
     }
@@ -345,14 +345,14 @@ public sealed class CompositionPlanTests
             operations);
     }
 
-    private static CompositionPlanProvenance CreateTpHardwareReplaceProvenance()
+    private static CompositionPlanProvenance CreateCtrlRamReplaceProvenance()
     {
         return new CompositionPlanProvenance(
             "ctrlram-replace-profile",
             "1.0.0",
             "NT-SYNTHETIC",
-            "tp-hw-replace",
-            "tp-hw-replace",
+            "ctrlram-replace",
+            "ctrlram-replace",
             CompositionKind.Replace);
     }
 }

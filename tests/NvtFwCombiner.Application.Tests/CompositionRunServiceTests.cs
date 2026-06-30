@@ -514,8 +514,8 @@ public sealed class CompositionRunServiceTests
             "ctrlram-replace-profile",
             "1.0.0",
             "NT-SYNTHETIC",
-            "tp-hw-replace",
-            "tp-hw-replace",
+            "ctrlram-replace",
+            "ctrlram-replace",
             CompositionKind.Replace);
         var plan = new CompositionPlan(
             ImageInitialization.Reference("output-image", "reference-base", 4),

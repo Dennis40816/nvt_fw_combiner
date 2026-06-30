@@ -121,6 +121,13 @@
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
     },
+    "icNumInputMode": {
+      "enum": [
+        "single",
+        "cascade",
+        "numeric"
+      ]
+    },
     "byteRange": {
       "type": "object",
       "additionalProperties": false,
@@ -765,9 +772,8 @@
         "audience": {
           "enum": [
             "system",
-            "display",
-            "tp-hw",
-            "tp-fw",
+            "dp",
+            "ctrlram",
             "advanced"
           ]
         },
@@ -783,6 +789,9 @@
             "fixed",
             "extensible"
           ]
+        },
+        "icNumInputMode": {
+          "$ref": "#/$defs/icNumInputMode"
         },
         "displayNameKey": {
           "type": "string",
