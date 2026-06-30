@@ -12,6 +12,7 @@ This document defines the owner-approved UI direction for the first usable NVT F
 - Shared visualization: Merge and Replace use the same Memory coverage before/after component in the same page location; the area is visual-first and table-supported.
 - Workbench layout: Merge and Replace use a left primary workspace and a right inspector. Readiness, validation, and processor status live in the inspector instead of floating as sparse cards.
 - Active state: top navigation and workflow mode selection must visibly show the active page/mode.
+- Button system: navigation uses low-noise active tabs, workflow mode uses segmented controls, Home quick jumps use command rows, and disabled Preview/Build/Report actions stay visually light.
 - Inputs: firmware files are represented as slot cards.
 - Replace must consume the explicit shared IC num selector/input before region choices and processor readiness. Initial selector modes are `single` and `cascade`; `numeric` is contract-reserved.
 - Reports: Preview/Build opens a report modal for diagnostics and evidence review.
@@ -76,6 +77,7 @@ Shell
 - Memory coverage is visual-first with table support.
 - Workflow pages use left workspace plus right inspector.
 - Navigation and mode controls expose active selection state.
+- Buttons use distinct nav, segment, command-row, action, and disabled-action styles instead of one generic button treatment.
 - Inputs use slot cards.
 - Diagnostics and evidence are shown through Preview/Build report modals.
 - IC and IC Num use a shared Device context row that stays in the same location on every page.

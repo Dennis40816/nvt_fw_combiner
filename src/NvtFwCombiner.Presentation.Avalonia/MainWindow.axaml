@@ -13,39 +13,126 @@
     Title="NVT FW Combiner">
   <Window.Styles>
     <Style Selector="ToggleButton.nav">
-      <Setter Property="Padding" Value="14,7" />
-      <Setter Property="Background" Value="#FFFFFF" />
-      <Setter Property="BorderBrush" Value="#FFFFFF" />
+      <Setter Property="MinHeight" Value="30" />
+      <Setter Property="Padding" Value="13,6" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="Foreground" Value="#475569" />
       <Setter Property="FontSize" Value="13" />
     </Style>
+    <Style Selector="ToggleButton.nav /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
     <Style Selector="ToggleButton.nav:checked">
-      <Setter Property="Background" Value="#0F172A" />
-      <Setter Property="BorderBrush" Value="#0F172A" />
-      <Setter Property="Foreground" Value="#FFFFFF" />
+      <Setter Property="Background" Value="#F1F5F9" />
+      <Setter Property="BorderBrush" Value="#CBD5E1" />
+      <Setter Property="Foreground" Value="#0F172A" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="ToggleButton.nav:checked /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#F1F5F9" />
+      <Setter Property="BorderBrush" Value="#CBD5E1" />
     </Style>
     <Style Selector="ToggleButton.segment">
-      <Setter Property="Padding" Value="14,9" />
+      <Setter Property="MinHeight" Value="34" />
+      <Setter Property="Padding" Value="14,8" />
       <Setter Property="Background" Value="#FFFFFF" />
-      <Setter Property="BorderBrush" Value="#CBD5E1" />
+      <Setter Property="BorderBrush" Value="#E2E8F0" />
       <Setter Property="Foreground" Value="#334155" />
       <Setter Property="FontSize" Value="13" />
     </Style>
+    <Style Selector="ToggleButton.segment /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#FFFFFF" />
+      <Setter Property="BorderBrush" Value="#E2E8F0" />
+    </Style>
     <Style Selector="ToggleButton.segment:checked">
-      <Setter Property="Background" Value="#EAF2FF" />
-      <Setter Property="BorderBrush" Value="#2563EB" />
+      <Setter Property="Background" Value="#EFF6FF" />
+      <Setter Property="BorderBrush" Value="#93C5FD" />
       <Setter Property="Foreground" Value="#1D4ED8" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="ToggleButton.segment:checked /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#EFF6FF" />
+      <Setter Property="BorderBrush" Value="#93C5FD" />
     </Style>
     <Style Selector="Button.secondary">
+      <Setter Property="MinHeight" Value="34" />
       <Setter Property="Padding" Value="14,10" />
       <Setter Property="Background" Value="#FFFFFF" />
       <Setter Property="BorderBrush" Value="#CBD5E1" />
       <Setter Property="Foreground" Value="#334155" />
+      <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style Selector="Button.secondary /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#FFFFFF" />
+      <Setter Property="BorderBrush" Value="#CBD5E1" />
     </Style>
     <Style Selector="Button.secondary:disabled">
-      <Setter Property="Background" Value="#EEF1F5" />
+      <Setter Property="Background" Value="#F8FAFC" />
       <Setter Property="BorderBrush" Value="#E2E8F0" />
       <Setter Property="Foreground" Value="#94A3B8" />
+    </Style>
+    <Style Selector="Button.secondary:disabled /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#F8FAFC" />
+      <Setter Property="BorderBrush" Value="#E2E8F0" />
+    </Style>
+    <Style Selector="Button.command">
+      <Setter Property="MinHeight" Value="38" />
+      <Setter Property="Width" Value="212" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="Foreground" Value="#0F172A" />
+      <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style Selector="Button.command /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.command:disabled">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="Foreground" Value="#94A3B8" />
+    </Style>
+    <Style Selector="Button.command:disabled /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.action">
+      <Setter Property="MinHeight" Value="34" />
+      <Setter Property="MinWidth" Value="72" />
+      <Setter Property="Padding" Value="13,8" />
+      <Setter Property="Background" Value="#FFFFFF" />
+      <Setter Property="BorderBrush" Value="#CBD5E1" />
+      <Setter Property="Foreground" Value="#334155" />
+      <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style Selector="Button.action /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#FFFFFF" />
+      <Setter Property="BorderBrush" Value="#CBD5E1" />
+    </Style>
+    <Style Selector="Button.action:disabled">
+      <Setter Property="Background" Value="#F8FAFC" />
+      <Setter Property="BorderBrush" Value="#E2E8F0" />
+      <Setter Property="Foreground" Value="#94A3B8" />
+    </Style>
+    <Style Selector="Button.action:disabled /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#F8FAFC" />
+      <Setter Property="BorderBrush" Value="#E2E8F0" />
+    </Style>
+    <Style Selector="Button.segmentDisabled">
+      <Setter Property="MinHeight" Value="34" />
+      <Setter Property="Padding" Value="14,8" />
+      <Setter Property="Background" Value="#F8FAFC" />
+      <Setter Property="BorderBrush" Value="#E2E8F0" />
+      <Setter Property="Foreground" Value="#94A3B8" />
+      <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style Selector="Button.segmentDisabled /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#F8FAFC" />
+      <Setter Property="BorderBrush" Value="#E2E8F0" />
     </Style>
   </Window.Styles>
 
@@ -76,23 +163,27 @@
           <ToggleButton
               Classes="nav"
               Command="{Binding ShowHomeCommand}"
-              Content="Home"
-              IsChecked="{Binding IsHomeVisible, Mode=OneWay}" />
+              IsChecked="{Binding IsHomeVisible, Mode=OneWay}">
+            <TextBlock Foreground="#334155" Text="Home" />
+          </ToggleButton>
           <ToggleButton
               Classes="nav"
               Command="{Binding ShowSettingsCommand}"
-              Content="{Binding SettingsPreview.Title}"
-              IsChecked="{Binding IsSettingsVisible, Mode=OneWay}" />
+              IsChecked="{Binding IsSettingsVisible, Mode=OneWay}">
+            <TextBlock Foreground="#334155" Text="{Binding SettingsPreview.Title}" />
+          </ToggleButton>
           <ToggleButton
               Classes="nav"
               Command="{Binding ShowReplaceCommand}"
-              Content="{Binding ReplacePreview.Title}"
-              IsChecked="{Binding IsReplaceVisible, Mode=OneWay}" />
+              IsChecked="{Binding IsReplaceVisible, Mode=OneWay}">
+            <TextBlock Foreground="#334155" Text="{Binding ReplacePreview.Title}" />
+          </ToggleButton>
           <ToggleButton
               Classes="nav"
               Command="{Binding ShowMergeCommand}"
-              Content="{Binding MergePreview.Title}"
-              IsChecked="{Binding IsMergeVisible, Mode=OneWay}" />
+              IsChecked="{Binding IsMergeVisible, Mode=OneWay}">
+            <TextBlock Foreground="#334155" Text="{Binding MergePreview.Title}" />
+          </ToggleButton>
         </StackPanel>
 
         <Border
@@ -284,22 +375,37 @@
               </StackPanel>
               <Grid Grid.Row="1" Margin="0,18,0,0" RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
                 <Button
-                    Classes="secondary"
-                    HorizontalContentAlignment="Left"
-                    Command="{Binding ShowDpReplaceCommand}"
-                    Content="DP Replace" />
+                    Classes="command"
+                    Command="{Binding ShowDpReplaceCommand}">
+                  <Border Padding="0,8" BorderBrush="#EEF2F7" BorderThickness="0,0,0,1">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                      <TextBlock FontWeight="SemiBold" Foreground="#0F172A" Text="DP Replace" />
+                      <TextBlock Grid.Column="1" FontSize="12" Foreground="#64748B" Text="Open" />
+                    </Grid>
+                  </Border>
+                </Button>
                 <Button
                     Grid.Row="1"
-                    Classes="secondary"
-                    HorizontalContentAlignment="Left"
-                    Command="{Binding ShowCtrlRamReplaceCommand}"
-                    Content="CtrlRAM Replace" />
+                    Classes="command"
+                    Command="{Binding ShowCtrlRamReplaceCommand}">
+                  <Border Padding="0,8" BorderBrush="#EEF2F7" BorderThickness="0,0,0,1">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                      <TextBlock FontWeight="SemiBold" Foreground="#0F172A" Text="CtrlRAM Replace" />
+                      <TextBlock Grid.Column="1" FontSize="12" Foreground="#64748B" Text="Open" />
+                    </Grid>
+                  </Border>
+                </Button>
                 <Button
                     Grid.Row="2"
-                    Classes="secondary"
-                    HorizontalContentAlignment="Left"
-                    Command="{Binding ShowGeneralReplaceCommand}"
-                    Content="General Replace" />
+                    Classes="command"
+                    Command="{Binding ShowGeneralReplaceCommand}">
+                  <Border Padding="0,8" BorderBrush="#EEF2F7" BorderThickness="0,0,0,1">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                      <TextBlock FontWeight="SemiBold" Foreground="#0F172A" Text="General Replace" />
+                      <TextBlock Grid.Column="1" FontSize="12" Foreground="#64748B" Text="Open" />
+                    </Grid>
+                  </Border>
+                </Button>
               </Grid>
               <TextBlock
                   Grid.Row="2"
@@ -338,16 +444,26 @@
               </StackPanel>
               <Grid Grid.Row="1" Margin="0,18,0,0" RowDefinitions="Auto,Auto" RowSpacing="8">
                 <Button
-                    Classes="secondary"
-                    HorizontalContentAlignment="Left"
-                    Command="{Binding ShowNormalMergeCommand}"
-                    Content="Normal Merge" />
+                    Classes="command"
+                    Command="{Binding ShowNormalMergeCommand}">
+                  <Border Padding="0,8" BorderBrush="#EEF2F7" BorderThickness="0,0,0,1">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                      <TextBlock FontWeight="SemiBold" Foreground="#0F172A" Text="Normal Merge" />
+                      <TextBlock Grid.Column="1" FontSize="12" Foreground="#64748B" Text="Open" />
+                    </Grid>
+                  </Border>
+                </Button>
                 <Button
                     Grid.Row="1"
-                    Classes="secondary"
-                    HorizontalContentAlignment="Left"
-                    Content="AB Code"
-                    IsEnabled="False" />
+                    Classes="command"
+                    IsEnabled="False">
+                  <Border Padding="0,8" BorderBrush="#EEF2F7" BorderThickness="0,0,0,1">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                      <TextBlock FontWeight="SemiBold" Foreground="#94A3B8" Text="AB Code" />
+                      <TextBlock Grid.Column="1" FontSize="12" Foreground="#94A3B8" Text="Pending" />
+                    </Grid>
+                  </Border>
+                </Button>
               </Grid>
               <TextBlock
                   Grid.Row="2"
@@ -428,9 +544,9 @@
                 <TextBlock FontSize="13" Foreground="#64748B" Text="{Binding ReplacePreview.Subtitle}" />
               </StackPanel>
               <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
-                <Button Classes="secondary" Content="{Binding PreviewActionLabel}" IsEnabled="False" />
-                <Button Classes="secondary" Content="{Binding BuildActionLabel}" IsEnabled="False" />
-                <Button Classes="secondary" Content="{Binding ReportModalActionLabel}" IsEnabled="False" />
+                <Button Classes="action" Content="{Binding PreviewActionLabel}" IsEnabled="False" />
+                <Button Classes="action" Content="{Binding BuildActionLabel}" IsEnabled="False" />
+                <Button Classes="action" Content="{Binding ReportModalActionLabel}" IsEnabled="False" />
               </StackPanel>
             </Grid>
 
@@ -483,9 +599,15 @@
                   <TextBlock Grid.Column="1" FontWeight="SemiBold" Foreground="#2563EB" Text="{Binding SelectedReplaceMode}" />
                 </Grid>
                 <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
-                  <ToggleButton Classes="segment" Command="{Binding ShowDpReplaceCommand}" Content="DP" IsChecked="{Binding IsDpReplaceModeSelected, Mode=OneWay}" />
-                  <ToggleButton Grid.Column="1" Classes="segment" Command="{Binding ShowCtrlRamReplaceCommand}" Content="CtrlRAM" IsChecked="{Binding IsCtrlRamReplaceModeSelected, Mode=OneWay}" />
-                  <ToggleButton Grid.Column="2" Classes="segment" Command="{Binding ShowGeneralReplaceCommand}" Content="General" IsChecked="{Binding IsGeneralReplaceModeSelected, Mode=OneWay}" />
+                  <ToggleButton Classes="segment" Command="{Binding ShowDpReplaceCommand}" IsChecked="{Binding IsDpReplaceModeSelected, Mode=OneWay}">
+                    <TextBlock Foreground="#334155" Text="DP" />
+                  </ToggleButton>
+                  <ToggleButton Grid.Column="1" Classes="segment" Command="{Binding ShowCtrlRamReplaceCommand}" IsChecked="{Binding IsCtrlRamReplaceModeSelected, Mode=OneWay}">
+                    <TextBlock Foreground="#334155" Text="CtrlRAM" />
+                  </ToggleButton>
+                  <ToggleButton Grid.Column="2" Classes="segment" Command="{Binding ShowGeneralReplaceCommand}" IsChecked="{Binding IsGeneralReplaceModeSelected, Mode=OneWay}">
+                    <TextBlock Foreground="#334155" Text="General" />
+                  </ToggleButton>
                 </Grid>
                 <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
                   <Border Padding="12" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="7">
@@ -544,9 +666,9 @@
                 <TextBlock FontSize="13" Foreground="#64748B" Text="{Binding MergePreview.Subtitle}" />
               </StackPanel>
               <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
-                <Button Classes="secondary" Content="{Binding PreviewActionLabel}" IsEnabled="False" />
-                <Button Classes="secondary" Content="{Binding BuildActionLabel}" IsEnabled="False" />
-                <Button Classes="secondary" Content="{Binding ReportModalActionLabel}" IsEnabled="False" />
+                <Button Classes="action" Content="{Binding PreviewActionLabel}" IsEnabled="False" />
+                <Button Classes="action" Content="{Binding BuildActionLabel}" IsEnabled="False" />
+                <Button Classes="action" Content="{Binding ReportModalActionLabel}" IsEnabled="False" />
               </StackPanel>
             </Grid>
 
@@ -599,8 +721,10 @@
                   <TextBlock Grid.Column="1" FontWeight="SemiBold" Foreground="#2563EB" Text="{Binding SelectedMergeMode}" />
                 </Grid>
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                  <ToggleButton Classes="segment" Command="{Binding ShowNormalMergeCommand}" Content="Normal" IsChecked="{Binding IsNormalMergeModeSelected, Mode=OneWay}" />
-                  <Button Grid.Column="1" Classes="secondary" Content="AB Code" IsEnabled="False" />
+                  <ToggleButton Classes="segment" Command="{Binding ShowNormalMergeCommand}" IsChecked="{Binding IsNormalMergeModeSelected, Mode=OneWay}">
+                    <TextBlock Foreground="#334155" Text="Normal" />
+                  </ToggleButton>
+                  <Button Grid.Column="1" Classes="segmentDisabled" Content="AB Code" IsEnabled="False" />
                 </Grid>
                 <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
                   <Border Padding="12" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="7">

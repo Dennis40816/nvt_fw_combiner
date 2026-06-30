@@ -54,11 +54,15 @@ public sealed class RepositoryBoundaryTests
         Assert.Contains("ToggleButton", shell, StringComparison.Ordinal);
         Assert.Contains("Classes=\"nav\"", shell, StringComparison.Ordinal);
         Assert.Contains("Classes=\"segment\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"command\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"action\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"segmentDisabled\"", shell, StringComparison.Ordinal);
         Assert.Contains("INSPECTOR", shell, StringComparison.Ordinal);
         Assert.Contains("ColumnDefinitions=\"1.6*,360\"", shell, StringComparison.Ordinal);
         Assert.Contains("Content=\"AB Code\"", shell, StringComparison.Ordinal);
         Assert.Contains("IsEnabled=\"False\"", shell, StringComparison.Ordinal);
         Assert.Contains("FontFamily=\"fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI\"", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("Classes=\"secondary\" Content=\"{Binding PreviewActionLabel}\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Background=\"#0F172A\" CornerRadius=\"8\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Merge / Replace workspace", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("ColumnDefinitions=\"220,*\"", shell, StringComparison.Ordinal);
