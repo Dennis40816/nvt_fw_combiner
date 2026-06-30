@@ -35,16 +35,21 @@ public sealed class RepositoryBoundaryTests
         Assert.Contains("No `File.ReadAllBytes` or `Process.Start` in ViewModels", boundaries, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies the demo shell follows the owner-approved top-tab and report-modal direction.</summary>
+    /// <summary>Verifies the demo shell follows the owner-approved clean home and independent page direction.</summary>
     [Fact]
-    public void DemoShellUsesTopTabsAndReportModalPreview()
+    public void DemoShellUsesCleanHomeAndIndependentWorkflowPages()
     {
         string shell = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml");
 
-        Assert.Contains("ItemsPanelTemplate", shell, StringComparison.Ordinal);
-        Assert.Contains("StackPanel Orientation=\"Horizontal\"", shell, StringComparison.Ordinal);
-        Assert.Contains("ReportModalPreview", shell, StringComparison.Ordinal);
+        Assert.Contains("IsHomeVisible", shell, StringComparison.Ordinal);
+        Assert.Contains("IsMergeVisible", shell, StringComparison.Ordinal);
+        Assert.Contains("IsReplaceVisible", shell, StringComparison.Ordinal);
+        Assert.Contains("ShowDpReplaceCommand", shell, StringComparison.Ordinal);
+        Assert.Contains("ShowNormalMergeCommand", shell, StringComparison.Ordinal);
+        Assert.Contains("Content=\"AB Code\"", shell, StringComparison.Ordinal);
+        Assert.Contains("IsEnabled=\"False\"", shell, StringComparison.Ordinal);
         Assert.Contains("FontFamily=\"fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI\"", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("Merge / Replace workspace", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("ColumnDefinitions=\"220,*\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Diagnostics.", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("SavedRulesAndReports", shell, StringComparison.Ordinal);
@@ -121,13 +126,13 @@ public sealed class RepositoryBoundaryTests
         Assert.Contains("combiner.exe", readinessBullet, StringComparison.Ordinal);
         Assert.Contains("CRC/header", readinessBullet, StringComparison.Ordinal);
 
-        string[] replaceRows = ReadPlanningResourceRows("Replace preview");
+        string[] replaceRows = ReadPlanningResourceRows("Replace");
         Assert.Contains(
             replaceRows,
-            row => row.StartsWith("IC num selector/input", StringComparison.Ordinal));
+            row => row.StartsWith("IC num:", StringComparison.Ordinal));
         Assert.Contains(
             replaceRows,
-            row => row.StartsWith("Post-replace CRC/header", StringComparison.Ordinal)
+            row => row.StartsWith("CRC/header", StringComparison.Ordinal)
                    && row.Contains("combiner.exe", StringComparison.Ordinal));
 
         string[] row = FindMarkdownTableRow(

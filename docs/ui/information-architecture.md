@@ -6,8 +6,9 @@ This document defines the owner-approved UI direction for the first usable NVT F
 
 - Style: modern, minimal, and work-focused.
 - Information density: show the smallest useful amount of information; reduce reading cost before adding secondary explanations.
-- Top-level navigation: top tabs with only Settings, Merge, and Replace.
-- Shared visualization: Merge and Replace use the same Memory coverage before/after area in the same location; the area is visual-first and table-supported.
+- Home: the first screen is a clean three-card launcher for Settings, Replace, and Merge only.
+- Page separation: Replace pages show Replace-only controls; Merge pages show Merge-only controls. Shared components are reused, but workflow content is not mixed.
+- Shared visualization: Merge and Replace use the same Memory coverage before/after component in the same page location; the area is visual-first and table-supported.
 - Inputs: firmware files are represented as slot cards.
 - Replace must include an explicit IC num selector/input before region choices and processor readiness. Initial selector modes are `single` and `cascade`; `numeric` is contract-reserved.
 - Reports: Preview/Build opens a report modal for diagnostics and evidence review.
@@ -20,9 +21,10 @@ This document defines the owner-approved UI direction for the first usable NVT F
 
 | Page | Purpose | First demo content | Must not contain |
 | --- | --- | --- | --- |
+| Home | Clean launcher | three large cards: Settings, Replace quick jumps, Merge quick jumps | Memory coverage, reports, mixed workflow controls |
 | Settings | Configure folders, profile packs, strictness, theme, diagnostics access | compact settings groups, profile catalog status, log/report access | direct GitHub secret editing, firmware mutation logic |
-| Merge | Standard / AB / General merge entry point | mode selector, IC/profile selector, slot cards, visual-first memory coverage preview, preview/build actions | hard-coded copy/offset rules |
-| Replace | DP / CtrlRAM / General replace entry point | IC num selector/input, persona selector, base/reference slot cards, overlay slot cards including separate DP/LD cards when a DP Replace profile requires them, visual-first memory coverage preview, preview/build actions | region authorization logic in UI |
+| Merge | Normal / AB Code merge entry point | mode selector with Normal enabled and AB Code disabled, IC/profile selector, slot cards, visual-first memory coverage preview, preview/build actions | Replace controls, hard-coded copy/offset rules |
+| Replace | DP / CtrlRAM / General replace entry point | IC num selector/input, persona selector, base/reference slot cards, overlay slot cards including separate DP/LD cards when a DP Replace profile requires them, visual-first memory coverage preview, preview/build actions | Merge controls, region authorization logic in UI |
 
 ## Demo shell constraints
 
@@ -37,9 +39,9 @@ This document defines the owner-approved UI direction for the first usable NVT F
 
 ```text
 Shell
-  Top-level tabs: Settings | Merge | Replace
-  Header: product, selected profile/mode, support state
+  Header: product, page navigation, support state
   Content region
+    Home launcher: Settings | Replace | Merge cards
     Settings page
     Merge page
     Replace page
@@ -62,7 +64,9 @@ Shell
 
 ## Resolved UI decisions
 
-- Navigation uses top tabs.
+- Home uses three large launcher cards: Settings, Replace, and Merge.
+- Replace quick jumps are DP, CtrlRAM, and General.
+- Merge quick jumps are Normal and disabled AB Code.
 - Memory coverage is visual-first with table support.
 - Inputs use slot cards.
 - Diagnostics and evidence are shown through Preview/Build report modals.

@@ -17,17 +17,10 @@ public static class DemoShellSampleData
             text.PreviewActionLabel,
             text.BuildActionLabel,
             text.ReportModalActionLabel,
-            CreateNavigationItems(text),
+            CreatePlanningCard(text.SettingsPreview),
             CreatePlanningCard(text.MergePreview),
             CreatePlanningCard(text.ReplacePreview),
-            CreatePlanningCard(text.ReportsPreview),
-            CreatePlanningCard(text.ReportModalPreview),
             text.FooterStatus);
-    }
-
-    private static IReadOnlyList<NavigationItemViewModel> CreateNavigationItems(DemoShellTextResources text)
-    {
-        return [.. text.NavigationItems.Select(label => new NavigationItemViewModel(label))];
     }
 
     private static PlanningCardViewModel CreatePlanningCard(PlanningCardText text)

@@ -8,23 +8,25 @@
     Height="760"
     MinWidth="980"
     MinHeight="640"
-    Background="#F5F7FA"
+    Background="#EEF2F7"
     FontFamily="fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI"
     Title="NVT FW Combiner">
-  <Grid RowDefinitions="Auto,Auto,*,Auto">
+  <Grid RowDefinitions="Auto,*,Auto">
     <Border
-        Padding="28,20"
-        Background="White"
-        BorderBrush="#D6DAE1"
+        Padding="28,16"
+        Background="#FFFFFF"
+        BorderBrush="#D8DEE8"
         BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="*,Auto">
-        <StackPanel Spacing="4">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="26">
+        <StackPanel Spacing="3">
           <TextBlock
-              FontSize="24"
+              FontSize="23"
               FontWeight="SemiBold"
+              Foreground="#0F172A"
               Text="NVT FW Combiner" />
           <TextBlock
-              Foreground="#475569"
+              FontSize="13"
+              Foreground="#64748B"
               Text="{Binding ShellVersion}" />
         </StackPanel>
 
@@ -32,162 +34,465 @@
             Grid.Column="1"
             VerticalAlignment="Center"
             Orientation="Horizontal"
-            Spacing="10">
+            Spacing="6">
           <Button
-              IsEnabled="False"
-              Content="{Binding PreviewActionLabel}" />
+              Padding="14,8"
+              Background="#FFFFFF"
+              BorderBrush="#FFFFFF"
+              Command="{Binding ShowHomeCommand}"
+              Content="Home"
+              Foreground="#334155" />
           <Button
-              IsEnabled="False"
-              Content="{Binding BuildActionLabel}" />
+              Padding="14,8"
+              Background="#FFFFFF"
+              BorderBrush="#FFFFFF"
+              Command="{Binding ShowSettingsCommand}"
+              Content="{Binding SettingsPreview.Title}"
+              Foreground="#334155" />
           <Button
-              IsEnabled="False"
-              Content="{Binding ReportModalActionLabel}" />
+              Padding="14,8"
+              Background="#FFFFFF"
+              BorderBrush="#FFFFFF"
+              Command="{Binding ShowReplaceCommand}"
+              Content="{Binding ReplacePreview.Title}"
+              Foreground="#334155" />
+          <Button
+              Padding="14,8"
+              Background="#FFFFFF"
+              BorderBrush="#FFFFFF"
+              Command="{Binding ShowMergeCommand}"
+              Content="{Binding MergePreview.Title}"
+              Foreground="#334155" />
         </StackPanel>
+
+        <TextBlock
+            Grid.Column="2"
+            VerticalAlignment="Center"
+            FontSize="13"
+            Foreground="#64748B"
+            Text="Demo data only" />
       </Grid>
     </Border>
 
-    <Border
-        Grid.Row="1"
-        Padding="28,12,28,0"
-        Background="White"
-        BorderBrush="#D6DAE1"
-        BorderThickness="0,0,0,1">
-      <ItemsControl ItemsSource="{Binding NavigationItems}">
-        <ItemsControl.ItemsPanel>
-          <ItemsPanelTemplate>
-            <StackPanel Orientation="Horizontal" />
-          </ItemsPanelTemplate>
-        </ItemsControl.ItemsPanel>
-        <ItemsControl.ItemTemplate>
-          <DataTemplate x:DataType="vm:NavigationItemViewModel">
-            <Button
-                MinWidth="108"
-                Margin="0,0,8,0"
-                Padding="18,10"
-                HorizontalContentAlignment="Center"
-                Background="#F8FAFC"
-                BorderBrush="#CBD5E1"
-                BorderThickness="1"
-                Content="{Binding Label}"
-                Foreground="#111827" />
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
-    </Border>
-
-    <ScrollViewer Grid.Row="2">
-      <StackPanel Margin="28" Spacing="18">
-        <StackPanel Spacing="4">
-          <TextBlock
-              FontSize="26"
-              FontWeight="SemiBold"
-              Text="{Binding WorkspaceTitle}" />
-          <TextBlock
-              Foreground="#475569"
-              Text="{Binding WorkspaceSummary}"
-              TextWrapping="Wrap" />
-        </StackPanel>
-
-        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto">
+    <ScrollViewer Grid.Row="1">
+      <Grid Margin="28">
+        <Grid
+            ColumnDefinitions="*,*,*"
+            ColumnSpacing="18"
+            IsVisible="{Binding IsHomeVisible}">
           <Border
-              Margin="0,0,9,9"
-              Padding="18"
-              Background="White"
-              BorderBrush="#D6DAE1"
+              Padding="24"
+              Background="#FFFFFF"
+              BorderBrush="#D8DEE8"
               BorderThickness="1"
               CornerRadius="8">
-            <StackPanel Spacing="10">
-              <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding MergePreview.Title}" />
-              <TextBlock Foreground="#475569" Text="{Binding MergePreview.Subtitle}" TextWrapping="Wrap" />
-              <ItemsControl ItemsSource="{Binding MergePreview.Rows}">
+            <StackPanel Spacing="18">
+              <StackPanel Spacing="5">
+                <TextBlock
+                    FontSize="24"
+                    FontWeight="SemiBold"
+                    Foreground="#0F172A"
+                    Text="{Binding SettingsPreview.Title}" />
+                <TextBlock
+                    FontSize="14"
+                    Foreground="#64748B"
+                    Text="{Binding SettingsPreview.Subtitle}"
+                    TextWrapping="Wrap" />
+              </StackPanel>
+              <ItemsControl ItemsSource="{Binding SettingsPreview.Rows}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="x:String">
-                    <TextBlock Margin="0,0,0,10" Text="{Binding}" TextWrapping="Wrap" />
+                    <TextBlock
+                        Margin="0,0,0,8"
+                        FontSize="14"
+                        Foreground="#334155"
+                        Text="{Binding}" />
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
-              <TextBlock Foreground="#B45309" Text="{Binding MergePreview.Status}" TextWrapping="Wrap" />
+              <Button
+                  Padding="16,10"
+                  HorizontalAlignment="Left"
+                  Background="#EFF6FF"
+                  BorderBrush="#BFDBFE"
+                  Command="{Binding ShowSettingsCommand}"
+                  Content="Open settings"
+                  Foreground="#1D4ED8" />
             </StackPanel>
           </Border>
 
           <Border
               Grid.Column="1"
-              Margin="9,0,0,9"
-              Padding="18"
-              Background="White"
-              BorderBrush="#D6DAE1"
+              Padding="24"
+              Background="#FFFFFF"
+              BorderBrush="#D8DEE8"
               BorderThickness="1"
               CornerRadius="8">
-            <StackPanel Spacing="10">
-              <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding ReplacePreview.Title}" />
-              <TextBlock Foreground="#475569" Text="{Binding ReplacePreview.Subtitle}" TextWrapping="Wrap" />
-              <ItemsControl ItemsSource="{Binding ReplacePreview.Rows}">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="x:String">
-                    <TextBlock Margin="0,0,0,10" Text="{Binding}" TextWrapping="Wrap" />
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-              <TextBlock Foreground="#B45309" Text="{Binding ReplacePreview.Status}" TextWrapping="Wrap" />
+            <StackPanel Spacing="18">
+              <StackPanel Spacing="5">
+                <TextBlock
+                    FontSize="24"
+                    FontWeight="SemiBold"
+                    Foreground="#0F172A"
+                    Text="{Binding ReplacePreview.Title}" />
+                <TextBlock
+                    FontSize="14"
+                    Foreground="#64748B"
+                    Text="{Binding ReplacePreview.Subtitle}"
+                    TextWrapping="Wrap" />
+              </StackPanel>
+              <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                <Button
+                    Padding="14,12"
+                    HorizontalContentAlignment="Left"
+                    Background="#F8FAFC"
+                    BorderBrush="#CBD5E1"
+                    Command="{Binding ShowDpReplaceCommand}"
+                    Content="DP Replace"
+                    Foreground="#0F172A" />
+                <Button
+                    Grid.Row="1"
+                    Padding="14,12"
+                    HorizontalContentAlignment="Left"
+                    Background="#F8FAFC"
+                    BorderBrush="#CBD5E1"
+                    Command="{Binding ShowCtrlRamReplaceCommand}"
+                    Content="CtrlRAM Replace"
+                    Foreground="#0F172A" />
+                <Button
+                    Grid.Row="2"
+                    Padding="14,12"
+                    HorizontalContentAlignment="Left"
+                    Background="#F8FAFC"
+                    BorderBrush="#CBD5E1"
+                    Command="{Binding ShowGeneralReplaceCommand}"
+                    Content="General Replace"
+                    Foreground="#0F172A" />
+              </Grid>
+              <TextBlock
+                  FontSize="13"
+                  FontWeight="SemiBold"
+                  Foreground="#B45309"
+                  Text="{Binding ReplacePreview.Status}" />
             </StackPanel>
           </Border>
 
           <Border
-              Grid.Row="1"
-              Margin="0,9,9,0"
-              Padding="18"
-              Background="White"
-              BorderBrush="#D6DAE1"
+              Grid.Column="2"
+              Padding="24"
+              Background="#FFFFFF"
+              BorderBrush="#D8DEE8"
               BorderThickness="1"
               CornerRadius="8">
-            <StackPanel Spacing="10">
-              <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding ReportsPreview.Title}" />
-              <TextBlock Foreground="#475569" Text="{Binding ReportsPreview.Subtitle}" TextWrapping="Wrap" />
-              <ItemsControl ItemsSource="{Binding ReportsPreview.Rows}">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="x:String">
-                    <TextBlock Margin="0,0,0,10" Text="{Binding}" TextWrapping="Wrap" />
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-              <TextBlock Foreground="#B45309" Text="{Binding ReportsPreview.Status}" TextWrapping="Wrap" />
-            </StackPanel>
-          </Border>
-
-          <Border
-              Grid.Row="1"
-              Grid.Column="1"
-              Margin="9,9,0,0"
-              Padding="18"
-              Background="White"
-              BorderBrush="#D6DAE1"
-              BorderThickness="1"
-              CornerRadius="8">
-            <StackPanel Spacing="10">
-              <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding ReportModalPreview.Title}" />
-              <TextBlock Foreground="#475569" Text="{Binding ReportModalPreview.Subtitle}" TextWrapping="Wrap" />
-              <ItemsControl ItemsSource="{Binding ReportModalPreview.Rows}">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="x:String">
-                    <TextBlock Margin="0,0,0,10" Text="{Binding}" TextWrapping="Wrap" />
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-              <TextBlock Foreground="#B45309" Text="{Binding ReportModalPreview.Status}" TextWrapping="Wrap" />
+            <StackPanel Spacing="18">
+              <StackPanel Spacing="5">
+                <TextBlock
+                    FontSize="24"
+                    FontWeight="SemiBold"
+                    Foreground="#0F172A"
+                    Text="{Binding MergePreview.Title}" />
+                <TextBlock
+                    FontSize="14"
+                    Foreground="#64748B"
+                    Text="{Binding MergePreview.Subtitle}"
+                    TextWrapping="Wrap" />
+              </StackPanel>
+              <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+                <Button
+                    Padding="14,12"
+                    HorizontalContentAlignment="Left"
+                    Background="#F8FAFC"
+                    BorderBrush="#CBD5E1"
+                    Command="{Binding ShowNormalMergeCommand}"
+                    Content="Normal Merge"
+                    Foreground="#0F172A" />
+                <Button
+                    Grid.Row="1"
+                    Padding="14,12"
+                    HorizontalContentAlignment="Left"
+                    Background="#E5E7EB"
+                    BorderBrush="#D1D5DB"
+                    Content="AB Code"
+                    Foreground="#94A3B8"
+                    IsEnabled="False" />
+              </Grid>
+              <TextBlock
+                  FontSize="13"
+                  FontWeight="SemiBold"
+                  Foreground="#B45309"
+                  Text="{Binding MergePreview.Status}" />
             </StackPanel>
           </Border>
         </Grid>
-      </StackPanel>
+
+        <Grid
+            ColumnDefinitions="1.45*,0.9*"
+            ColumnSpacing="18"
+            IsVisible="{Binding IsSettingsVisible}">
+          <Border
+              Padding="24"
+              Background="#FFFFFF"
+              BorderBrush="#D8DEE8"
+              BorderThickness="1"
+              CornerRadius="8">
+            <StackPanel Spacing="18">
+              <TextBlock
+                  FontSize="26"
+                  FontWeight="SemiBold"
+                  Foreground="#0F172A"
+                  Text="{Binding SettingsPreview.Title}" />
+              <TextBlock
+                  FontSize="14"
+                  Foreground="#64748B"
+                  Text="{Binding SettingsPreview.Subtitle}"
+                  TextWrapping="Wrap" />
+              <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="14" RowSpacing="14">
+                <Border Padding="18" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="7">
+                  <StackPanel Spacing="5">
+                    <TextBlock FontWeight="SemiBold" Foreground="#0F172A" Text="Profiles" />
+                    <TextBlock FontSize="13" Foreground="#64748B" Text="Demo catalog only" />
+                  </StackPanel>
+                </Border>
+                <Border Grid.Column="1" Padding="18" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="7">
+                  <StackPanel Spacing="5">
+                    <TextBlock FontWeight="SemiBold" Foreground="#0F172A" Text="Tools" />
+                    <TextBlock FontSize="13" Foreground="#64748B" Text="combiner.exe pending" />
+                  </StackPanel>
+                </Border>
+                <Border Grid.Row="1" Padding="18" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="7">
+                  <StackPanel Spacing="5">
+                    <TextBlock FontWeight="SemiBold" Foreground="#0F172A" Text="Diagnostics" />
+                    <TextBlock FontSize="13" Foreground="#64748B" Text="Export planned" />
+                  </StackPanel>
+                </Border>
+                <Border Grid.Row="1" Grid.Column="1" Padding="18" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="7">
+                  <StackPanel Spacing="5">
+                    <TextBlock FontWeight="SemiBold" Foreground="#0F172A" Text="Language" />
+                    <TextBlock FontSize="13" Foreground="#64748B" Text="English default" />
+                  </StackPanel>
+                </Border>
+              </Grid>
+            </StackPanel>
+          </Border>
+
+          <Border
+              Grid.Column="1"
+              Padding="20"
+              Background="#FFFFFF"
+              BorderBrush="#D8DEE8"
+              BorderThickness="1"
+              CornerRadius="8">
+            <StackPanel Spacing="12">
+              <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="Readiness" />
+              <TextBlock FontSize="13" Foreground="#64748B" Text="{Binding SettingsPreview.Status}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+        </Grid>
+
+        <Grid
+            ColumnDefinitions="1.45*,0.9*"
+            ColumnSpacing="18"
+            IsVisible="{Binding IsReplaceVisible}">
+          <StackPanel Spacing="18">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Spacing="4">
+                <TextBlock
+                    FontSize="26"
+                    FontWeight="SemiBold"
+                    Foreground="#0F172A"
+                    Text="{Binding ReplacePreview.Title}" />
+                <TextBlock FontSize="14" Foreground="#64748B" Text="{Binding ReplacePreview.Subtitle}" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
+                <Button Padding="16,8" Background="#E2E8F0" BorderBrush="#CBD5E1" Content="{Binding PreviewActionLabel}" Foreground="#64748B" IsEnabled="False" />
+                <Button Padding="16,8" Background="#E2E8F0" BorderBrush="#CBD5E1" Content="{Binding BuildActionLabel}" Foreground="#64748B" IsEnabled="False" />
+                <Button Padding="16,8" Background="#E2E8F0" BorderBrush="#CBD5E1" Content="{Binding ReportModalActionLabel}" Foreground="#64748B" IsEnabled="False" />
+              </StackPanel>
+            </Grid>
+
+            <Border Padding="20" Background="#0F172A" CornerRadius="8">
+              <StackPanel Spacing="16">
+                <Grid ColumnDefinitions="*,Auto">
+                  <StackPanel Spacing="2">
+                    <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#F8FAFC" Text="Memory coverage" />
+                    <TextBlock FontSize="13" Foreground="#CBD5E1" Text="Replace before / after" />
+                  </StackPanel>
+                  <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="12" Foreground="#94A3B8" Text="0x0000 - 0xFFFF" />
+                </Grid>
+                <Grid ColumnDefinitions="62,*" RowDefinitions="Auto,Auto" RowSpacing="10">
+                  <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="#94A3B8" Text="Before" />
+                  <Grid Grid.Column="1" ColumnDefinitions="1.25*,0.55*,0.9*,0.55*">
+                    <Border Grid.Column="0" Height="18" Background="#38BDF8" CornerRadius="6,0,0,6" />
+                    <Border Grid.Column="1" Height="18" Background="#22C55E" />
+                    <Border Grid.Column="2" Height="18" Background="#F59E0B" />
+                    <Border Grid.Column="3" Height="18" Background="#334155" CornerRadius="0,6,6,0" />
+                  </Grid>
+                  <TextBlock Grid.Row="1" VerticalAlignment="Center" FontSize="12" Foreground="#94A3B8" Text="After" />
+                  <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="1.25*,0.55*,0.9*,0.55*">
+                    <Border Grid.Column="0" Height="18" Background="#0EA5E9" CornerRadius="6,0,0,6" />
+                    <Border Grid.Column="1" Height="18" Background="#16A34A" />
+                    <Border Grid.Column="2" Height="18" Background="#D97706" />
+                    <Border Grid.Column="3" Height="18" Background="#334155" CornerRadius="0,6,6,0" />
+                  </Grid>
+                </Grid>
+              </StackPanel>
+            </Border>
+
+            <Border Padding="18" Background="#FFFFFF" BorderBrush="#D8DEE8" BorderThickness="1" CornerRadius="8">
+              <StackPanel Spacing="14">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="Mode" />
+                  <TextBlock Grid.Column="1" FontWeight="SemiBold" Foreground="#2563EB" Text="{Binding SelectedReplaceMode}" />
+                </Grid>
+                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                  <Button Padding="14,12" Background="#F8FAFC" BorderBrush="#CBD5E1" Command="{Binding ShowDpReplaceCommand}" Content="DP" Foreground="#0F172A" />
+                  <Button Grid.Column="1" Padding="14,12" Background="#F8FAFC" BorderBrush="#CBD5E1" Command="{Binding ShowCtrlRamReplaceCommand}" Content="CtrlRAM" Foreground="#0F172A" />
+                  <Button Grid.Column="2" Padding="14,12" Background="#F8FAFC" BorderBrush="#CBD5E1" Command="{Binding ShowGeneralReplaceCommand}" Content="General" Foreground="#0F172A" />
+                </Grid>
+                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                  <Border Padding="12" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="7">
+                    <StackPanel Spacing="2">
+                      <TextBlock FontWeight="SemiBold" Foreground="#0F172A" Text="DP" />
+                      <TextBlock FontSize="12" Foreground="#64748B" Text="replacement bin" />
+                    </StackPanel>
+                  </Border>
+                  <Border Grid.Column="1" Padding="12" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="7">
+                    <StackPanel Spacing="2">
+                      <TextBlock FontWeight="SemiBold" Foreground="#0F172A" Text="LD" />
+                      <TextBlock FontSize="12" Foreground="#64748B" Text="separate bin" />
+                    </StackPanel>
+                  </Border>
+                  <Border Grid.Column="2" Padding="12" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="7">
+                    <StackPanel Spacing="2">
+                      <TextBlock FontWeight="SemiBold" Foreground="#0F172A" Text="CtrlRAM" />
+                      <TextBlock FontSize="12" Foreground="#64748B" Text="crc pending" />
+                    </StackPanel>
+                  </Border>
+                </Grid>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+
+          <Border Grid.Column="1" Padding="20" Background="#FFFFFF" BorderBrush="#D8DEE8" BorderThickness="1" CornerRadius="8">
+            <StackPanel Spacing="14">
+              <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="Replace readiness" />
+              <ItemsControl ItemsSource="{Binding ReplacePreview.Rows}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="x:String">
+                    <TextBlock Margin="0,0,0,8" FontSize="13" Foreground="#334155" Text="{Binding}" TextWrapping="Wrap" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#B45309" Text="{Binding ReplacePreview.Status}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+        </Grid>
+
+        <Grid
+            ColumnDefinitions="1.45*,0.9*"
+            ColumnSpacing="18"
+            IsVisible="{Binding IsMergeVisible}">
+          <StackPanel Spacing="18">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Spacing="4">
+                <TextBlock FontSize="26" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding MergePreview.Title}" />
+                <TextBlock FontSize="14" Foreground="#64748B" Text="{Binding MergePreview.Subtitle}" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
+                <Button Padding="16,8" Background="#E2E8F0" BorderBrush="#CBD5E1" Content="{Binding PreviewActionLabel}" Foreground="#64748B" IsEnabled="False" />
+                <Button Padding="16,8" Background="#E2E8F0" BorderBrush="#CBD5E1" Content="{Binding BuildActionLabel}" Foreground="#64748B" IsEnabled="False" />
+                <Button Padding="16,8" Background="#E2E8F0" BorderBrush="#CBD5E1" Content="{Binding ReportModalActionLabel}" Foreground="#64748B" IsEnabled="False" />
+              </StackPanel>
+            </Grid>
+
+            <Border Padding="20" Background="#0F172A" CornerRadius="8">
+              <StackPanel Spacing="16">
+                <Grid ColumnDefinitions="*,Auto">
+                  <StackPanel Spacing="2">
+                    <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#F8FAFC" Text="Memory coverage" />
+                    <TextBlock FontSize="13" Foreground="#CBD5E1" Text="Normal merge before / after" />
+                  </StackPanel>
+                  <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="12" Foreground="#94A3B8" Text="0x0000 - 0xFFFF" />
+                </Grid>
+                <Grid ColumnDefinitions="62,*" RowDefinitions="Auto,Auto" RowSpacing="10">
+                  <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="#94A3B8" Text="Before" />
+                  <Grid Grid.Column="1" ColumnDefinitions="1.25*,1.1*,0.55*,0.55*">
+                    <Border Grid.Column="0" Height="18" Background="#38BDF8" CornerRadius="6,0,0,6" />
+                    <Border Grid.Column="1" Height="18" Background="#A78BFA" />
+                    <Border Grid.Column="2" Height="18" Background="#22C55E" />
+                    <Border Grid.Column="3" Height="18" Background="#334155" CornerRadius="0,6,6,0" />
+                  </Grid>
+                  <TextBlock Grid.Row="1" VerticalAlignment="Center" FontSize="12" Foreground="#94A3B8" Text="After" />
+                  <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="1.25*,1.1*,0.55*,0.55*">
+                    <Border Grid.Column="0" Height="18" Background="#0EA5E9" CornerRadius="6,0,0,6" />
+                    <Border Grid.Column="1" Height="18" Background="#8B5CF6" />
+                    <Border Grid.Column="2" Height="18" Background="#16A34A" />
+                    <Border Grid.Column="3" Height="18" Background="#334155" CornerRadius="0,6,6,0" />
+                  </Grid>
+                </Grid>
+              </StackPanel>
+            </Border>
+
+            <Border Padding="18" Background="#FFFFFF" BorderBrush="#D8DEE8" BorderThickness="1" CornerRadius="8">
+              <StackPanel Spacing="14">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="Mode" />
+                  <TextBlock Grid.Column="1" FontWeight="SemiBold" Foreground="#2563EB" Text="{Binding SelectedMergeMode}" />
+                </Grid>
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                  <Button Padding="14,12" Background="#F8FAFC" BorderBrush="#CBD5E1" Command="{Binding ShowNormalMergeCommand}" Content="Normal" Foreground="#0F172A" />
+                  <Button Grid.Column="1" Padding="14,12" Background="#E5E7EB" BorderBrush="#D1D5DB" Content="AB Code" Foreground="#94A3B8" IsEnabled="False" />
+                </Grid>
+                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                  <Border Padding="12" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="7">
+                    <StackPanel Spacing="2">
+                      <TextBlock FontWeight="SemiBold" Foreground="#0F172A" Text="DP" />
+                      <TextBlock FontSize="12" Foreground="#64748B" Text="demo.bin" />
+                    </StackPanel>
+                  </Border>
+                  <Border Grid.Column="1" Padding="12" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="7">
+                    <StackPanel Spacing="2">
+                      <TextBlock FontWeight="SemiBold" Foreground="#0F172A" Text="TP" />
+                      <TextBlock FontSize="12" Foreground="#64748B" Text="demo.bin" />
+                    </StackPanel>
+                  </Border>
+                  <Border Grid.Column="2" Padding="12" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="7">
+                    <StackPanel Spacing="2">
+                      <TextBlock FontWeight="SemiBold" Foreground="#0F172A" Text="LD" />
+                      <TextBlock FontSize="12" Foreground="#64748B" Text="optional" />
+                    </StackPanel>
+                  </Border>
+                </Grid>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+
+          <Border Grid.Column="1" Padding="20" Background="#FFFFFF" BorderBrush="#D8DEE8" BorderThickness="1" CornerRadius="8">
+            <StackPanel Spacing="14">
+              <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="Merge readiness" />
+              <ItemsControl ItemsSource="{Binding MergePreview.Rows}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="x:String">
+                    <TextBlock Margin="0,0,0,8" FontSize="13" Foreground="#334155" Text="{Binding}" TextWrapping="Wrap" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#B45309" Text="{Binding MergePreview.Status}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+        </Grid>
+      </Grid>
     </ScrollViewer>
 
     <Border
-        Grid.Row="3"
+        Grid.Row="2"
         Padding="28,10"
-        Background="#F8FAFC"
-        BorderBrush="#D6DAE1"
+        Background="#FFFFFF"
+        BorderBrush="#D8DEE8"
         BorderThickness="0,1,0,0">
       <TextBlock
-          Foreground="#475569"
+          FontSize="13"
+          Foreground="#64748B"
           Text="{Binding FooterStatus}"
           TextWrapping="Wrap" />
     </Border>

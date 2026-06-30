@@ -2,10 +2,20 @@
 
 This document describes the first `0.1.1` demo interface for Merge and Replace. It is intentionally low fidelity and does not implement firmware behavior.
 
-## Shared layout
+## Home launcher
 
 ```text
-[Top tabs: Settings | Merge | Replace]
+[Header: product + compact navigation]
+[Large card: Settings]
+[Large card: Replace: DP | CtrlRAM | General]
+[Large card: Merge: Normal | AB Code disabled]
+```
+
+The home launcher must stay clean. It does not show Memory coverage, reports, diagnostics, or mixed Merge/Replace workflow details.
+
+## Shared page layout
+
+```text
 [Page header: mode/persona, profile context, support status]
 [Primary action row: Preview | Build]
 [Slot-card input area]
@@ -29,6 +39,7 @@ Shared controls:
 - Prefer compact labels, status chips, and progressive disclosure over explanatory paragraphs.
 - Avoid landing-page or marketing composition.
 - Keep Memory coverage visually stable between Merge and Replace so users can compare workflows without relearning layout.
+- Keep Merge and Replace page content independent; reusable components are allowed, mixed workflow content is not.
 - Keep display text sourced through a bilingual English/Chinese-ready architecture.
 - Use Inter for English/Latin UI text and Microsoft JhengHei UI for Traditional Chinese on Windows, falling back to Noto Sans CJK TC, Noto Sans TC, and Segoe UI. Use Cascadia Mono or Consolas only for fixed-width technical values.
 
@@ -37,7 +48,7 @@ Shared controls:
 ### Mode cards
 
 ```text
-Standard Merge
+Normal Merge
   Fixed DP/TP/LD profile-driven merge.
 
 AB Code Merge
@@ -47,7 +58,7 @@ General Merge
   Advanced mapping editor that starts from a blank image. Saved-rule controls are hidden in the first UI release.
 ```
 
-### Standard Merge demo sections
+### Normal Merge demo sections
 
 1. IC/profile selector from the supported or candidate catalog.
 2. Slot cards: DP, TP, optional LD/Extra.

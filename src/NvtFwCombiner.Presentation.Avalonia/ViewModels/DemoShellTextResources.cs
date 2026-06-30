@@ -20,11 +20,9 @@ public sealed class DemoShellTextResources
         string previewActionLabel,
         string buildActionLabel,
         string reportModalActionLabel,
-        IReadOnlyList<string> navigationItems,
+        PlanningCardText settingsPreview,
         PlanningCardText mergePreview,
         PlanningCardText replacePreview,
-        PlanningCardText reportsPreview,
-        PlanningCardText reportModalPreview,
         string footerStatus)
     {
         ShellVersion = shellVersion;
@@ -33,11 +31,9 @@ public sealed class DemoShellTextResources
         PreviewActionLabel = previewActionLabel;
         BuildActionLabel = buildActionLabel;
         ReportModalActionLabel = reportModalActionLabel;
-        NavigationItems = navigationItems;
+        SettingsPreview = settingsPreview;
         MergePreview = mergePreview;
         ReplacePreview = replacePreview;
-        ReportsPreview = reportsPreview;
-        ReportModalPreview = reportModalPreview;
         FooterStatus = footerStatus;
     }
 
@@ -70,20 +66,14 @@ public sealed class DemoShellTextResources
     /// <summary>Gets the report modal action label.</summary>
     public string ReportModalActionLabel { get; }
 
-    /// <summary>Gets localized top tab labels.</summary>
-    public IReadOnlyList<string> NavigationItems { get; }
+    /// <summary>Gets settings preview text.</summary>
+    public PlanningCardText SettingsPreview { get; }
 
     /// <summary>Gets merge preview text.</summary>
     public PlanningCardText MergePreview { get; }
 
     /// <summary>Gets replace preview text.</summary>
     public PlanningCardText ReplacePreview { get; }
-
-    /// <summary>Gets report preview text.</summary>
-    public PlanningCardText ReportsPreview { get; }
-
-    /// <summary>Gets report modal preview text.</summary>
-    public PlanningCardText ReportModalPreview { get; }
 
     /// <summary>Gets footer status text.</summary>
     public string FooterStatus { get; }
@@ -92,106 +82,80 @@ public sealed class DemoShellTextResources
     {
         return new DemoShellTextResources(
             "0.1.1 demo shell",
-            "UI planning workspace",
-            "Synthetic preview only. No firmware files are read and no external tool is executed.",
-            "Preview unavailable until 0.2.0",
-            "Build disabled until 0.2.0",
-            "Open report modal",
-            ["Settings", "Merge", "Replace"],
+            "Merge / Replace workspace",
+            "Synthetic demo state. File execution is blocked until core wiring is connected.",
+            "Preview",
+            "Build",
+            "Report",
             new PlanningCardText(
-                "Merge preview",
-                "Modes: Standard / AB / General (AB deferred)",
+                "Settings",
+                "Configure the app before running firmware workflows.",
                 [
-                    "Profile selector: demo-standard-merge",
-                    "NT51950/NT51951: map pending from owner",
-                    "Slot cards: DP demo.bin, TP demo.bin, optional LD placeholder",
-                    "Preview: visual-first shared Memory coverage before/after supplied by application core later",
+                    "Profile catalog",
+                    "Tool folders",
+                    "Diagnostics export",
                 ],
-                "Status: synthetic data, build blocked"),
+                "Demo settings only"),
             new PlanningCardText(
-                "Replace preview",
-                "Personas: DP / CtrlRAM / General",
+                "Merge",
+                "Normal merge first. AB Code is disabled.",
                 [
-                    "IC num selector/input: single or cascade; numeric reserved",
-                    "DP Replace: DP declared partitions only",
-                    "CtrlRAM Replace: CtrlRAM regions only",
-                    "Post-replace CRC/header: legacy combiner.exe transform planned",
-                    "General: profile-declared explicit ranges only; protected regions denied",
-                    "Preview: visual-first shared Memory coverage before/after and protected warnings",
+                    "Profile: demo-standard-merge",
+                    "Slots: DP, TP, optional LD",
+                    "950/951 maps pending",
                 ],
-                "Status: access policy display only"),
+                "Build blocked"),
             new PlanningCardText(
-                "Reports preview",
-                "Secondary surfaces in this shell",
+                "Replace",
+                "DP, CtrlRAM, and General policies.",
                 [
-                    "Reports: opened from Preview/Build report modals",
-                    "Settings exposes diagnostics configuration and export only",
-                    "Report export includes runId, output hash, diagnostics, and sanitized logs.",
+                    "IC num: single or cascade",
+                    "DP Replace includes separate DP and LD payloads",
+                    "CtrlRAM Replace uses approved CtrlRAM regions",
+                    "CRC/header waits for combiner.exe details",
                 ],
-                "Status: report schema wiring arrives after core execution"),
-            new PlanningCardText(
-                "Report modal preview",
-                "Opened after Preview or Build",
-                [
-                    "Run summary, output hash, mutation summary",
-                    "Validation issues and sanitized logs stay inside the modal",
-                    "Copy/export actions are scoped to the current runId",
-                ],
-                "Status: modal trigger disabled until preview core is wired"),
-            "Profile catalog: demo only | Validation: preview unavailable | Report modal: planned | Firmware mutation: none");
+                "Policy display only"),
+            "Profile catalog: demo | Preview: blocked | Report modal: planned | Firmware mutation: none");
     }
 
     private static DemoShellTextResources CreateChineseTraditional()
     {
         return new DemoShellTextResources(
             "0.1.1 展示殼層",
-            "UI 規劃工作區",
-            "僅使用合成預覽。不讀取韌體檔案，也不執行外部工具。",
-            "Preview 於 0.2.0 前暫不可用",
-            "Build 於 0.2.0 前停用",
-            "開啟報告視窗",
-            ["設定", "合併", "取代"],
+            "合併 / 取代工作區",
+            "合成展示狀態。Core 接線前不執行檔案流程。",
+            "Preview",
+            "Build",
+            "Report",
             new PlanningCardText(
-                "合併預覽",
-                "模式：Standard / AB / General（AB deferred）",
+                "設定",
+                "執行韌體流程前的 app 設定。",
                 [
-                    "Profile selector：demo-standard-merge",
-                    "NT51950/NT51951：等待 owner 提供 memory map",
-                    "Slot cards：DP demo.bin、TP demo.bin、選用 LD placeholder",
-                    "Preview：視覺優先的共用 Memory 覆蓋前後圖，之後由 application core 提供",
+                    "Profile catalog",
+                    "Tool folders",
+                    "Diagnostics export",
                 ],
-                "狀態：合成資料，Build 停用"),
+                "Demo settings only"),
             new PlanningCardText(
-                "取代預覽",
-                "情境：DP / CtrlRAM / General",
+                "合併",
+                "先支援 Normal merge。AB Code 停用。",
                 [
-                    "IC num selector/input：single 或 cascade；numeric 保留",
-                    "DP Replace：只允許 DP 宣告分區",
-                    "CtrlRAM Replace：只允許 CtrlRAM regions",
-                    "Post-replace CRC/header：規劃使用 legacy combiner.exe transform",
-                    "General：只允許 profile 宣告的明確 ranges；拒絕 protected regions",
-                    "Preview：視覺優先的共用 Memory 覆蓋前後圖與 protected warnings",
+                    "Profile：demo-standard-merge",
+                    "Slots：DP、TP、選用 LD",
+                    "950/951 maps pending",
                 ],
-                "狀態：僅顯示 access policy"),
+                "Build blocked"),
             new PlanningCardText(
-                "報告預覽",
-                "此 shell 的次要介面",
+                "取代",
+                "DP、CtrlRAM、General policy。",
                 [
-                    "Reports：由 Preview/Build report modal 開啟",
-                    "Settings 只提供 diagnostics configuration 與 export",
-                    "Report export 包含 runId、output hash、diagnostics 與 sanitized logs。",
+                    "IC num：single 或 cascade",
+                    "DP Replace 包含分開的 DP 與 LD payload",
+                    "CtrlRAM Replace 使用核准的 CtrlRAM regions",
+                    "CRC/header 等待 combiner.exe 細節",
                 ],
-                "狀態：report schema 會在 core execution 後接線"),
-            new PlanningCardText(
-                "報告視窗預覽",
-                "Preview 或 Build 後開啟",
-                [
-                    "Run summary、output hash、mutation summary",
-                    "Validation issues 與 sanitized logs 留在 modal 內",
-                    "Copy/export actions 綁定目前 runId",
-                ],
-                "狀態：modal trigger 等 preview core 接線後啟用"),
-            "Profile catalog：demo only | Validation：preview unavailable | Report modal：planned | Firmware mutation：none");
+                "Policy display only"),
+            "Profile catalog：demo | Preview：blocked | Report modal：planned | Firmware mutation：none");
     }
 }
 
