@@ -34,10 +34,13 @@ Do not invent a second canonical repository verification entry point.
 - `main` is stable. Agents must not push implementation or documentation changes directly to `main` unless the owner explicitly requests an emergency single-file administrative edit.
 - Development happens on the active milestone branch, for example `0.1.0`, or on a `feature/<topic>` branch created from the active milestone branch.
 - Work reaches `main` only by pull request review and merge. A merge commit, squash merge, or rebase merge is acceptable only when it preserves the reviewed change set and the owner-approved milestone intent.
+- Keep PR scope reviewable. Avoid PRs that mix unrelated UI, core, dependency, release, and documentation work; also avoid tiny PRs that cannot be validated independently.
 - Every PR must identify scope, risk class, affected layers, contracts/profiles/ICs, verification commands, residual evidence gaps, and whether human firmware review is required.
 - Agent-authored PRs require a reviewer other than the implementer. The implementer must run Polytail before requesting review; the reviewer must apply Polytail before approval.
+- Agent-authored PRs must request Codex review by commenting `@codex review` or the owner-requested equivalent. Inspect thread-aware Codex review comments, address actionable findings, rerun required checks, and request re-review after fixes.
 - `R2` changes require architecture/contract review. `R3` changes require human firmware-owner review and byte-level evidence before merge.
 - Do not merge with failing required checks, unresolved P0/P1 review findings, missing required tests, undocumented schema/profile drift, or private golden evidence gaps disguised as TODOs.
+- Merge PRs to `main` only after required CI is green and actionable Codex feedback is addressed or explicitly documented as non-actionable.
 - If a connector/tool cannot open a PR, push only to the milestone branch and leave a clear review handoff with commit SHA, changed files, risks, and commands run. The owner or Codex must still merge to `main` through PR review.
 
 ## Mandatory architecture boundaries
@@ -46,6 +49,7 @@ Do not invent a second canonical repository verification entry point.
 - `NvtFwCombiner.Application` owns use-case policy through ports; it does not start processes or render UI.
 - `NvtFwCombiner.Infrastructure` implements filesystem, staging, process, profile, and report adapters; it does not redefine firmware semantics.
 - UI and CLI create typed requests and call the same application services.
+- `NvtFwCombiner.Cli` remains a thin process entry point. `NvtFwCombiner.Bootstrap` may route commands, but as command count grows, `CliApplication` must stay a router and delegate command-specific parsing/execution to focused handlers. CLI and Bootstrap handlers must not duplicate firmware semantics.
 - Every workflow uses one composition planner/executor. Merge initializes blank bytes; Replace clones a required reference image.
 - General Merge and General Replace compile `explicitMappings` to normal operations; arbitrary scripts and per-run executable paths are forbidden.
 - All ranges are half-open `[start, endExclusive)` and name their address space.
@@ -68,6 +72,14 @@ Do not invent a second canonical repository verification entry point.
 - Python, legacy `combiner.exe`, and every external processor may modify only a host-created staging copy. They never modify the user's source BIN or final output path.
 - The host independently diffs staged before/after bytes and rejects every change outside declared write ranges.
 - Never add real firmware BIN files, credentials, generated releases, or private golden data to Git, except owner-approved golden fixtures under `testdata/golden/` with manifest paths, sizes, hashes, source provenance, and human approval recorded.
+- For standard merge regression, prefer owner-approved `gen_flash_bin_v2` / `gen_flash` fixtures under `testdata/golden/standard-merge-gen-flash/` as golden evidence when they cover the IC behavior being implemented.
+
+## Product direction guardrails
+
+- Prioritize completing core/Application/CLI capability before UI wiring when the owner asks for spec development. Call out when C# core is ready for UI integration.
+- UI should be modern, minimal, and low-reading-cost. Top-level product navigation is limited to Settings, Merge, and Replace unless the owner explicitly expands it.
+- Merge and Replace must share a consistent Memory coverage before/after visualization in the same layout position.
+- Release work should keep `main` capable of producing a self-contained `.exe` folder that does not require a separate C#/.NET runtime install before distribution.
 
 ## Required workflow
 

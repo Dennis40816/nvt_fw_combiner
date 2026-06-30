@@ -5,11 +5,12 @@ This document describes the first `0.1.1` demo interface for Merge and Replace. 
 ## Shared layout
 
 ```text
-[Sidebar]  [Page header: mode, IC, support status]
-           [Primary action row: Preview | Build disabled | Save rule]
-           [Input area]
-           [Memory/operation preview]
-           [Validation and diagnostics]
+[Top tabs: Settings | Merge | Replace]
+[Page header: mode/persona, IC, support status]
+[Primary action row: Preview | Build | Save rule where applicable]
+[Input area]
+[Shared Memory coverage before/after]
+[Validation and diagnostics summary]
 ```
 
 Shared controls:
@@ -17,10 +18,18 @@ Shared controls:
 - profile selector;
 - IC selector placeholder;
 - support status badge: draft / candidate / supported;
-- input file cards using synthetic metadata;
+- compact input rows/cards using only necessary metadata;
 - preview issue list;
 - diagnostics link;
 - disabled Build button until application core reports a valid preview.
+- fixed-position Memory coverage before/after area shared by Merge and Replace.
+
+## Visual style guardrails
+
+- Use a modern, minimal, work-focused style.
+- Prefer compact labels, status chips, and progressive disclosure over explanatory paragraphs.
+- Avoid landing-page or marketing composition.
+- Keep Memory coverage visually stable between Merge and Replace so users can compare workflows without relearning layout.
 
 ## Merge page
 
@@ -41,7 +50,7 @@ General Merge
 
 1. Input cards: DP, TP, optional LD/Extra.
 2. Version token preview placeholder.
-3. Target occupancy table.
+3. Shared Memory coverage before/after preview.
 4. Ordered operation preview.
 5. External processor readiness row.
 6. Output naming preview.
@@ -92,7 +101,7 @@ General Replace
 2. Replace persona selector.
 3. Replaceable region list.
 4. Overlay input rows.
-5. Before/after changed-range preview.
+5. Shared Memory coverage before/after preview.
 6. Processor/tool readiness row.
 7. Protected range warnings.
 
