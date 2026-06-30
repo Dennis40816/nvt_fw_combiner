@@ -34,7 +34,7 @@ Shared controls:
 - fixed-position visual-first Memory coverage before/after area shared by Merge and Replace, with table details as secondary support.
 - visible active state for top navigation and workflow mode selection.
 - right-side inspector for readiness, validation, and processor status.
-- separate button treatments for navigation tabs, segmented workflow modes, Home command rows, workflow actions, and disabled actions.
+- separate button treatments for navigation tabs, rounded pill workflow modes, Home command rows, workflow actions, and disabled actions.
 
 ## Visual style guardrails
 
@@ -44,6 +44,7 @@ Shared controls:
 - Keep Memory coverage visually stable between Merge and Replace so users can compare workflows without relearning layout.
 - Keep Memory coverage on a light workbench surface with labels and legends instead of a dominant dark banner.
 - Keep command rows and disabled actions visually lighter than primary workflow content.
+- Keep workflow mode selectors as full-width rounded pills rather than small rectangular buttons.
 - Keep Merge and Replace page content independent; reusable components are allowed, mixed workflow content is not.
 - Keep display text sourced through a bilingual English/Chinese-ready architecture.
 - Use Inter for English/Latin UI text and Microsoft JhengHei UI for Traditional Chinese on Windows, falling back to Noto Sans CJK TC, Noto Sans TC, and Segoe UI. Use Cascadia Mono or Consolas only for fixed-width technical values.

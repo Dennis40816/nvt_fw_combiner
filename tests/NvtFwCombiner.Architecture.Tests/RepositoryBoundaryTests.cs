@@ -57,6 +57,8 @@ public sealed class RepositoryBoundaryTests
         Assert.Contains("Classes=\"command\"", shell, StringComparison.Ordinal);
         Assert.Contains("Classes=\"action\"", shell, StringComparison.Ordinal);
         Assert.Contains("Classes=\"segmentDisabled\"", shell, StringComparison.Ordinal);
+        Assert.Contains("<Setter Property=\"MinHeight\" Value=\"44\" />", shell, StringComparison.Ordinal);
+        Assert.Contains("<Setter Property=\"CornerRadius\" Value=\"999\" />", shell, StringComparison.Ordinal);
         Assert.Contains("INSPECTOR", shell, StringComparison.Ordinal);
         Assert.Contains("ColumnDefinitions=\"1.6*,360\"", shell, StringComparison.Ordinal);
         Assert.Contains("Content=\"AB Code\"", shell, StringComparison.Ordinal);
