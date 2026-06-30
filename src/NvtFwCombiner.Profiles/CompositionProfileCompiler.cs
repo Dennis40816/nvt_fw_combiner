@@ -6,6 +6,7 @@ namespace NvtFwCombiner.Profiles;
 public static class CompositionProfileCompiler
 {
     private const string TpHardwareReplaceExperienceId = "tp-hw-replace";
+    private const string CtrlRamClassificationTag = "tp-ctrlram";
 
     /// <summary>Compiles a profile and optional explicit mappings into a validated plan.</summary>
     public static ProfileCompileResult Compile(
@@ -127,7 +128,18 @@ public static class CompositionProfileCompiler
                 addressSpace.AddressSpaceId));
         }
 
-        if (!RequiresStrictInputLength(profile))
+        foreach (AddressSpace addressSpace in requestAddressSpaces.Where(space =>
+                     space.InputOversizePolicy != InputOversizePolicy.Reject))
+        {
+            issues.Add(new CompositionIssue(
+                "profile.input-truncation.request-not-allowed",
+                $"Runtime address space '{addressSpace.AddressSpaceId}' cannot declare input truncation.",
+                addressSpace.AddressSpaceId));
+        }
+
+        ValidateInputTruncationPolicy(profile, issues);
+
+        if (!ForbidsInputPadding(profile))
         {
             return;
         }
@@ -141,11 +153,84 @@ public static class CompositionProfileCompiler
         }
     }
 
-    private static bool RequiresStrictInputLength(CompositionProfileDefinition profile)
+    private static void ValidateInputTruncationPolicy(
+        CompositionProfileDefinition profile,
+        List<CompositionIssue> issues)
     {
-        return string.Equals(profile.ExperienceId, TpHardwareReplaceExperienceId, StringComparison.Ordinal) ||
+        bool allowsInputTruncation = IsTpHardwareReplaceProfile(profile);
+        foreach (AddressSpace addressSpace in profile.AddressSpaces.Where(space =>
+                     space.InputOversizePolicy != InputOversizePolicy.Reject))
+        {
+            if (!allowsInputTruncation)
+            {
+                issues.Add(new CompositionIssue(
+                    "profile.input-truncation.not-allowed",
+                    $"Address space '{addressSpace.AddressSpaceId}' declares input truncation outside a CtrlRAM replace profile.",
+                    addressSpace.AddressSpaceId));
+                continue;
+            }
+
+            ValidateTruncatingAddressSpaceTargetsCtrlRam(profile, addressSpace, issues);
+        }
+    }
+
+    private static void ValidateTruncatingAddressSpaceTargetsCtrlRam(
+        CompositionProfileDefinition profile,
+        AddressSpace addressSpace,
+        List<CompositionIssue> issues)
+    {
+        CompositionOperation[] sourceOperations =
+        [
+            .. profile.Operations.Where(operation =>
+                string.Equals(operation.SourceSpaceId, addressSpace.AddressSpaceId, StringComparison.Ordinal)),
+        ];
+        if (sourceOperations.Length == 0)
+        {
+            issues.Add(new CompositionIssue(
+                "profile.input-truncation.ctrlram-region-required",
+                $"Address space '{addressSpace.AddressSpaceId}' declares input truncation but is not used by a CtrlRAM replacement operation.",
+                addressSpace.AddressSpaceId));
+            return;
+        }
+
+        foreach (CompositionOperation operation in sourceOperations)
+        {
+            ProfileRegion? targetRegion = ResolveTargetRegionByRange(
+                profile,
+                operation.TargetSpaceId,
+                operation.TargetRange,
+                "profile.input-truncation.target-region-unresolved",
+                "profile.input-truncation.target-region-ambiguous",
+                addressSpace.AddressSpaceId,
+                issues);
+            if (targetRegion is null)
+            {
+                continue;
+            }
+
+            if (targetRegion.ClassificationTags.Contains(CtrlRamClassificationTag, StringComparer.Ordinal))
+            {
+                continue;
+            }
+
+            issues.Add(new CompositionIssue(
+                "profile.input-truncation.ctrlram-region-required",
+                $"Address space '{addressSpace.AddressSpaceId}' declares input truncation but operation '{operation.OperationId}' targets non-CtrlRAM region '{targetRegion.RegionId}'.",
+                addressSpace.AddressSpaceId));
+        }
+    }
+
+    private static bool ForbidsInputPadding(CompositionProfileDefinition profile)
+    {
+        return IsTpHardwareReplaceProfile(profile) ||
             profile.Operations.Any(operation => operation.Kind == CompositionOperationKind.RunExternalProcessor) ||
             profile.Regions.Any(region => region.ProcessorDependencyIds.Count > 0);
+    }
+
+    private static bool IsTpHardwareReplaceProfile(CompositionProfileDefinition profile)
+    {
+        return profile.CompositionKind == CompositionKind.Replace &&
+            string.Equals(profile.ExperienceId, TpHardwareReplaceExperienceId, StringComparison.Ordinal);
     }
 
     private static void AddDuplicateIssues<T>(

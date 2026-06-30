@@ -30,8 +30,8 @@ public static class CompositionEngine
             return CompositionExecutionResult.Failed(issues);
         }
 
-        Dictionary<string, byte[]> normalizedInputs = NormalizeExecutionInputs(plan, input);
-        Dictionary<string, byte[]> mutableBuffers = InitializeMutableBuffers(plan, normalizedInputs);
+        NormalizedExecutionInputs normalizedInputs = NormalizeExecutionInputs(plan, input);
+        Dictionary<string, byte[]> mutableBuffers = InitializeMutableBuffers(plan, normalizedInputs.InputBytes);
         List<MutationRecord> mutations = [];
 
         foreach (CompositionOperation operation in plan.OrderedOperations)
@@ -50,19 +50,22 @@ public static class CompositionEngine
                     .ConfigureAwait(false);
                 if (externalFailure is not null)
                 {
-                    return externalFailure;
+                    return PrependIssues(externalFailure, normalizedInputs.Issues);
                 }
             }
             else
             {
-                ApplyHostOperation(operation, normalizedInputs, mutableBuffers);
+                ApplyHostOperation(operation, normalizedInputs.InputBytes, mutableBuffers);
             }
 
             byte[] after = ReadSlice(targetBuffer, operation.TargetRange);
             mutations.Add(CreateMutationRecord(operation, before, after));
         }
 
-        return CompositionExecutionResult.Succeeded(mutableBuffers[plan.Initialization.TargetSpaceId], mutations);
+        return CompositionExecutionResult.Succeeded(
+            mutableBuffers[plan.Initialization.TargetSpaceId],
+            mutations,
+            normalizedInputs.Issues);
     }
 
     private static List<CompositionIssue> ValidateExecutionInputs(CompositionPlan plan, CompositionExecutionInput input)
@@ -94,11 +97,17 @@ public static class CompositionEngine
                 continue;
             }
 
-            if (bytes.Length > addressSpace.Length)
+            if (bytes.Length > addressSpace.Length && addressSpace.InputOversizePolicy == InputOversizePolicy.Reject)
             {
                 issues.Add(new CompositionIssue(
                     "input.address-space.length-mismatch",
                     $"Input bytes for address space '{addressSpace.AddressSpaceId}' exceed declared length."));
+            }
+            else if (bytes.Length > addressSpace.Length && addressSpace.Length > int.MaxValue)
+            {
+                issues.Add(new CompositionIssue(
+                    "execution.capacity.unsupported",
+                    $"Truncated input bytes for address space '{addressSpace.AddressSpaceId}' exceed the supported runtime array length."));
             }
             else if (bytes.Length < addressSpace.Length && addressSpace.InputPaddingByte is null)
             {
@@ -124,9 +133,10 @@ public static class CompositionEngine
         return issues;
     }
 
-    private static Dictionary<string, byte[]> NormalizeExecutionInputs(CompositionPlan plan, CompositionExecutionInput input)
+    private static NormalizedExecutionInputs NormalizeExecutionInputs(CompositionPlan plan, CompositionExecutionInput input)
     {
         Dictionary<string, byte[]> normalizedInputs = new(StringComparer.Ordinal);
+        List<CompositionIssue> issues = [];
         foreach (AddressSpace addressSpace in plan.AddressSpaces)
         {
             if (string.Equals(addressSpace.AddressSpaceId, plan.Initialization.TargetSpaceId, StringComparison.Ordinal))
@@ -140,7 +150,16 @@ public static class CompositionEngine
             }
 
             byte[] buffer = bytes.ToArray();
-            if (buffer.LongLength < addressSpace.Length)
+            if (buffer.LongLength > addressSpace.Length)
+            {
+                long discardedByteCount = buffer.LongLength - addressSpace.Length;
+                buffer = [.. buffer.AsSpan(0, checked((int)addressSpace.Length))];
+                issues.Add(new CompositionIssue(
+                    "input.address-space.truncated",
+                    $"Input bytes for address space '{addressSpace.AddressSpaceId}' exceed declared length and were truncated from {bytes.Length} to {addressSpace.Length} bytes; {discardedByteCount} trailing bytes were discarded.",
+                    addressSpace.AddressSpaceId));
+            }
+            else if (buffer.LongLength < addressSpace.Length)
             {
                 byte[] padded = new byte[checked((int)addressSpace.Length)];
                 buffer.CopyTo(padded, 0);
@@ -155,7 +174,7 @@ public static class CompositionEngine
             normalizedInputs.Add(addressSpace.AddressSpaceId, buffer);
         }
 
-        return normalizedInputs;
+        return new NormalizedExecutionInputs(normalizedInputs, issues);
     }
 
     private static bool RequiresMutableSeed(CompositionPlan plan, AddressSpace addressSpace)
@@ -329,4 +348,17 @@ public static class CompositionEngine
     {
         return [.. buffer.AsSpan((int)range.Start, (int)range.Length)];
     }
+
+    private static CompositionExecutionResult PrependIssues(
+        CompositionExecutionResult result,
+        IReadOnlyList<CompositionIssue> issues)
+    {
+        return issues.Count == 0
+            ? result
+            : CompositionExecutionResult.Failed([.. issues, .. result.Issues]);
+    }
+
+    private sealed record NormalizedExecutionInputs(
+        Dictionary<string, byte[]> InputBytes,
+        IReadOnlyList<CompositionIssue> Issues);
 }

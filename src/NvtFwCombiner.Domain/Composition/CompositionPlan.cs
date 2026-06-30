@@ -65,9 +65,11 @@ public sealed class CompositionPlan
         Dictionary<string, AddressSpace> byId = new(StringComparer.Ordinal);
         foreach (AddressSpace addressSpace in addressSpaces)
         {
-            if (addressSpace.Mutability != AddressSpaceMutability.Immutable && addressSpace.InputPaddingByte is not null)
+            if (addressSpace.Mutability != AddressSpaceMutability.Immutable &&
+                (addressSpace.InputPaddingByte is not null ||
+                    addressSpace.InputOversizePolicy != InputOversizePolicy.Reject))
             {
-                throw new ArgumentException("Mutable address spaces cannot declare input padding.", nameof(addressSpaces));
+                throw new ArgumentException("Mutable address spaces cannot declare input size relaxation.", nameof(addressSpaces));
             }
 
             if (!byId.TryAdd(addressSpace.AddressSpaceId, addressSpace))
@@ -138,6 +140,11 @@ public sealed class CompositionPlan
         if (referenceSpace.InputPaddingByte is not null)
         {
             throw new ArgumentException("Reference address space cannot declare input padding.", nameof(Initialization));
+        }
+
+        if (referenceSpace.InputOversizePolicy != InputOversizePolicy.Reject)
+        {
+            throw new ArgumentException("Reference address space cannot declare input truncation.", nameof(Initialization));
         }
     }
 

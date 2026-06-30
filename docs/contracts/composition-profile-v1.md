@@ -47,15 +47,15 @@ Operation order is declared by `operations[].sequence`; it is not hard-coded by 
 
 Overlap defaults to `reject`. Any overlap must be explicitly declared by `overlapPolicy` and explained by validation rules and preview/mutation reports.
 
-## Input length and padding
+## Input length, padding, and truncation
 
-Typed profile definitions may declare an input padding byte on immutable source/replacement address spaces when an owner-approved map says a shorter supplied BIN can be safely extended to the declared length and the profile has no processor-dependent integrity stage. Request-time/runtime address spaces cannot declare padding bytes. The engine pads only the transient execution buffer; source files remain immutable and reports keep the actual supplied input size/hash. Inputs longer than the declared address-space length are always rejected.
+Typed profile definitions may declare an input padding byte on immutable source/replacement address spaces when an owner-approved map says a shorter supplied BIN can be safely extended to the declared length and the profile has no processor-dependent integrity stage. Request-time/runtime address spaces cannot declare padding bytes or truncation policy. The engine pads only the transient execution buffer; source files remain immutable and reports keep the actual supplied input size/hash. Unapproved inputs longer than the declared address-space length are rejected.
 
-Profiles with `run-external-processor` operations or processor-owned regions, including CtrlRAM Replace flows that require TP CRC/header recalculation, must keep exact input length and cannot declare input padding. `tp-hw-replace` is exact-length even before the external combiner step is modeled.
+Profiles with `run-external-processor` operations or processor-owned regions, including CtrlRAM Replace flows that require TP CRC/header recalculation, cannot declare short-input padding. `tp-hw-replace` profiles may declare oversized-input truncation for immutable CtrlRAM replacement/source address spaces because these inputs commonly exceed the declared memory size, but every operation using a truncating source must target a profile region tagged `tp-ctrlram`. Truncation keeps the leading declared bytes, discards trailing bytes, and emits an `input.address-space.truncated` report diagnostic.
 
-Reference initialization base address spaces and mutable work buffers must keep exact input length and cannot declare input padding.
+Reference initialization base address spaces and mutable work buffers must keep exact input length and cannot declare input padding or truncation.
 
-The JSON `schemaVersion: "1.0"` contract does not expose this field because the schema is strict (`additionalProperties: false`). A future schema minor version must add the JSON field before external JSON profiles can use padding metadata.
+The JSON `schemaVersion: "1.0"` contract does not expose these fields because the schema is strict (`additionalProperties: false`). A future schema minor version must add the JSON fields before external JSON profiles can use padding or truncation metadata.
 
 ## Integrity outcome and processor authority
 

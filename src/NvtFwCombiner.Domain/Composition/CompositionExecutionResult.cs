@@ -30,11 +30,14 @@ public sealed class CompositionExecutionResult
     public IReadOnlyList<CompositionIssue> Issues { get; }
 
     /// <summary>Creates a successful result.</summary>
-    public static CompositionExecutionResult Succeeded(byte[] outputBytes, IReadOnlyList<MutationRecord> mutations)
+    public static CompositionExecutionResult Succeeded(
+        byte[] outputBytes,
+        IReadOnlyList<MutationRecord> mutations,
+        IReadOnlyList<CompositionIssue>? issues = null)
     {
         ArgumentNullException.ThrowIfNull(outputBytes);
         ArgumentNullException.ThrowIfNull(mutations);
-        return new CompositionExecutionResult(CompositionExecutionStatus.Succeeded, outputBytes, mutations, []);
+        return new CompositionExecutionResult(CompositionExecutionStatus.Succeeded, outputBytes, mutations, issues ?? []);
     }
 
     /// <summary>Creates a failed result with no committed output bytes.</summary>
