@@ -6,7 +6,7 @@ This document describes the first `0.1.1` demo interface for Merge and Replace. 
 
 ```text
 [Top tabs: Settings | Merge | Replace]
-[Page header: mode/persona, IC, support status]
+[Page header: mode/persona, profile context, support status]
 [Primary action row: Preview | Build]
 [Slot-card input area]
 [Shared visual-first Memory coverage before/after]
@@ -15,8 +15,7 @@ This document describes the first `0.1.1` demo interface for Merge and Replace. 
 
 Shared controls:
 
-- profile selector;
-- IC selector placeholder;
+- mode/profile selector;
 - support status badge: draft / candidate / supported;
 - slot cards using only necessary firmware metadata;
 - preview issue list;
@@ -42,7 +41,7 @@ Standard Merge
   Fixed DP/TP/LD profile-driven merge.
 
 AB Code Merge
-  A/B bank model with declared container views, relocation patches, and external processing.
+  A/B bank model with declared container views, relocation patches, and external processing. Deferred for the current implementation phase.
 
 General Merge
   Advanced mapping editor that starts from a blank image. Saved-rule controls are hidden in the first UI release.
@@ -50,12 +49,14 @@ General Merge
 
 ### Standard Merge demo sections
 
-1. Slot cards: DP, TP, optional LD/Extra.
-2. Version token preview placeholder.
-3. Visual-first shared Memory coverage before/after preview.
-4. Ordered operation preview table as supporting detail.
-5. External processor readiness row.
-6. Output naming preview.
+1. IC/profile selector from the supported or candidate catalog.
+2. Slot cards: DP, TP, optional LD/Extra.
+3. Version token preview placeholder.
+4. Visual-first shared Memory coverage before/after preview.
+5. Ordered operation preview table as supporting detail.
+6. External processor readiness row.
+7. Output naming preview.
+8. NT51950/NT51951 map-pending status until owner memory maps are supplied.
 
 ### AB Merge demo sections
 
@@ -99,13 +100,14 @@ General Replace
 
 ### Replace demo sections
 
-1. Base reference BIN card.
-2. Replace persona selector.
-3. Replaceable region list.
-4. Overlay slot cards.
-5. Visual-first shared Memory coverage before/after preview.
-6. Processor/tool readiness row.
-7. Protected range warnings.
+1. IC num selector/input.
+2. Base reference BIN card.
+3. Replace persona selector.
+4. Replaceable region list.
+5. Overlay slot cards.
+6. Visual-first shared Memory coverage before/after preview.
+7. Processor/tool readiness row, including post-replace combiner.exe CRC/header requirement when declared.
+8. Protected range warnings.
 
 ## Report modal
 
