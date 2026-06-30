@@ -82,7 +82,9 @@ Do not invent a second canonical repository verification entry point.
 - Merge and Replace must share a consistent Memory coverage before/after visualization in the same layout position. The Memory coverage area is visual-first, with table details as supporting information.
 - Firmware inputs are represented as slot cards.
 - Preview/Build results open report modals for diagnostics and evidence review.
-- UI implementation must support a bilingual architecture.
+- First UI release hides Saved Rules until the saved-rule workflow is implemented and reviewed.
+- UI implementation must support a bilingual architecture with English as the initial default language.
+- UI typography uses the bundled `fonts:Inter#Inter` family for English/Latin text, Microsoft JhengHei UI with Noto Sans CJK TC/Noto Sans TC fallbacks for Traditional Chinese, and Cascadia Mono/Consolas only for fixed-width technical values.
 - Release work should keep `main` capable of producing a self-contained `.exe` folder that does not require a separate C#/.NET runtime install before distribution.
 
 ## Required workflow

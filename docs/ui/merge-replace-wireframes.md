@@ -7,7 +7,7 @@ This document describes the first `0.1.1` demo interface for Merge and Replace. 
 ```text
 [Top tabs: Settings | Merge | Replace]
 [Page header: mode/persona, IC, support status]
-[Primary action row: Preview | Build | Save rule where applicable]
+[Primary action row: Preview | Build]
 [Slot-card input area]
 [Shared visual-first Memory coverage before/after]
 [Validation and diagnostics summary]
@@ -31,6 +31,7 @@ Shared controls:
 - Avoid landing-page or marketing composition.
 - Keep Memory coverage visually stable between Merge and Replace so users can compare workflows without relearning layout.
 - Keep display text sourced through a bilingual English/Chinese-ready architecture.
+- Use Inter for English/Latin UI text and Microsoft JhengHei UI for Traditional Chinese on Windows, falling back to Noto Sans CJK TC, Noto Sans TC, and Segoe UI. Use Cascadia Mono or Consolas only for fixed-width technical values.
 
 ## Merge page
 
@@ -44,7 +45,7 @@ AB Code Merge
   A/B bank model with declared container views, relocation patches, and external processing.
 
 General Merge
-  Advanced mapping editor that starts from a blank image and can save a validated rule.
+  Advanced mapping editor that starts from a blank image. Saved-rule controls are hidden in the first UI release.
 ```
 
 ### Standard Merge demo sections
@@ -75,8 +76,8 @@ General Merge
    - target range;
    - overlap policy;
    - reason.
-3. Save as rule button.
-4. Rule promotion status.
+3. Saved-rule controls hidden until the workflow is implemented and reviewed.
+4. Saved-rule status omitted from the first UI release.
 
 ## Replace page
 

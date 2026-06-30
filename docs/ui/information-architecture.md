@@ -10,7 +10,9 @@ This document defines the owner-approved UI direction for the first usable NVT F
 - Shared visualization: Merge and Replace use the same Memory coverage before/after area in the same location; the area is visual-first and table-supported.
 - Inputs: firmware files are represented as slot cards.
 - Reports: Preview/Build opens a report modal for diagnostics and evidence review.
-- Localization: UI implementation uses a bilingual English/Chinese-ready text architecture.
+- Saved Rules: hidden in the first UI release until the saved-rule workflow is implemented and reviewed.
+- Localization: UI implementation uses a bilingual English/Chinese-ready text architecture, with English as the initial default.
+- Typography: Inter for Latin/English UI text; Microsoft JhengHei UI for Traditional Chinese on Windows, falling back to Noto Sans CJK TC, Noto Sans TC, and Segoe UI.
 - UI priority: core/Application/CLI behavior leads; UI binds to application services after the C# core is ready.
 
 ## Navigation model
@@ -47,12 +49,13 @@ Shell
 
 - Every build-like flow must have Preview before Build.
 - Risky processors show readiness before execution.
-- General mapping rows can be saved as rules after validation/review.
+- Saved Rules controls remain hidden in the first UI release.
 - Reports and diagnostics are secondary surfaces opened from Preview/Build report modals; Settings may expose diagnostics configuration/export, but not run-specific evidence as a top-level page.
 - Reports must tie UI state, operation trace, external processor invocation, mutation ranges, and output hash via `runId`.
 - Terminal/log panes are read-only and sanitized.
 - The shared Memory coverage area must support before/after display for both Merge and Replace without moving position between pages.
 - Display strings must be structured for bilingual English/Chinese support.
+- Technical fixed-width content such as addresses, byte values, hashes, and terminal snippets should use Cascadia Mono, then Consolas as fallback.
 
 ## Resolved UI decisions
 
@@ -61,8 +64,10 @@ Shell
 - Inputs use slot cards.
 - Diagnostics and evidence are shown through Preview/Build report modals.
 - The UI uses a bilingual English/Chinese-ready architecture.
+- Saved Rules is hidden in the first UI release.
+- The initial default language is English.
+- The Avalonia UI font stack is fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, and Segoe UI; technical fixed-width values use Cascadia Mono or Consolas.
 
 ## Open UI decisions for review
 
-1. Should Saved Rules be hidden until implemented, or exposed only as an action inside General Merge/Replace?
-2. What exact language should be the initial default: English or Chinese?
+No open owner decisions are currently recorded for the first demo shell.
