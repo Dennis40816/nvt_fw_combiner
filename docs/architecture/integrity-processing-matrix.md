@@ -2,6 +2,12 @@
 
 This matrix records current evidence. It is not a blanket support claim. `Unknown` must never be interpreted as `None`.
 
+Owner update 2026-06-30:
+
+- Replace is expected to require legacy `combiner.exe` CRC/header recalculation after the replacement mutations.
+- 932 common FW postbuild is the reference behavior to inspect for `combiner.exe` usage, but the repository does not yet contain a verified invocation transcript or path.
+- Do not implement production Replace CRC/header behavior until the owner supplies exact command shape, tool version, parameters, read/write ranges, execution order, and golden evidence.
+
 | IC | Mode/evidence | TPA policy | TPB policy | Current processor facts | Status |
 | --- | --- | --- | --- | --- | --- |
 | NT51929 | uploaded AB combiner | None | Address relocation only; no CRC configured | offsets `0x7164/0x7168/0x716C` | Evidence confirmed |
@@ -9,6 +15,12 @@ This matrix records current evidence. It is not a blanket support claim. `Unknow
 | NT51950 | uploaded AB combiner | Verify existing CRC | Relocate, recalculate, write CRC | CRC-32/MPEG-2, read `[0xA100,0xA130)`, write `[0xA130,0xA134)`; exact legacy combiner version/tool binding still required | Evidence confirmed; tool binding pending |
 | NT51951 | uploaded AB combiner config | Verify existing CRC | Relocate, recalculate, write CRC | same algorithm/ranges; relocation differs; exact legacy combiner version/tool binding still required | Needs golden output and tool binding |
 | Other Standard-reference ICs | `gen_flash_bin_v2` | Unknown | Unknown/not applicable | no integrity rule established by current evidence | Must inventory |
+
+## Replace processing evidence
+
+| Flow | Stage/purpose | Processor expectation | Current processor facts | Status |
+| --- | --- | --- | --- | --- |
+| Replace DP/CtrlRAM priority flows | post-replace header/integrity stage | legacy `combiner.exe` CRC/header recalculation expected | exact version/invocation/ranges pending; 932 common FW postbuild to be inspected | Direction confirmed; implementation blocked by owner data |
 
 ## Canonical integrity dispositions
 

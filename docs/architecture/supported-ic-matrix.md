@@ -2,6 +2,14 @@
 
 This is a planning inventory, not a support claim. A row becomes supported only after profile validation, integrity disposition, golden regression, and owner sign-off. `Unknown` never means `None`.
 
+Current owner priority as of 2026-06-30:
+
+- focus on normal Merge and normal Replace for DP and TP CtrlRAM department workflows;
+- defer AB Code Merge implementation for now;
+- include NT51950 and NT51951 normal Merge after owner memory maps are provided;
+- require Replace UI to collect IC num before profile-specific regions are shown;
+- expect Replace CRC/header recalculation through legacy `combiner.exe`, with exact invocation still owner-supplied.
+
 | IC | Standard Merge | AB Merge | Replace planning | Integrity evidence | Current evidence | 1.0 status |
 | --- | --- | --- | --- | --- | --- | --- |
 | NT51920 | reference candidate | no evidence | Display/TP HW/TP FW/General TBD | Unknown | `gen_flash_bin_v2` config | Candidate |
@@ -12,8 +20,8 @@ This is a planning inventory, not a support claim. A row becomes supported only 
 | NT51929 | reference candidate | DP_AB + split-DP concept | region inventory TBD | TPA/TPB CRC explicitly None; TPB relocation required | verified AB sample | Priority candidate |
 | NT51931 | reference candidate | no evidence | Display/TP HW/TP FW/General TBD | Unknown | `gen_flash_bin_v2` config | Candidate |
 | NT51932 | reference candidate | DP_AB | region inventory TBD | TPA/TPB CRC explicitly None; TPB relocation required | legacy AB reference | Priority candidate |
-| NT51950 | no Standard evidence | uploaded combiner | TP HW CtrlRAM likely relevant; Display/TP FW/General TBD | TPA verify-existing; TPB recalculate/write after relocation | verified output + CRC values | Priority candidate |
-| NT51951 | no Standard evidence | uploaded config | TP HW CtrlRAM likely relevant; Display/TP FW/General TBD | TPA verify-existing; TPB recalculate/write after relocation | no golden output | Candidate pending data |
+| NT51950 | normal merge requested; memory map pending owner | uploaded combiner; deferred | DP and TP CtrlRAM priority | AB: TPA verify existing CRC; TPB relocate/recalculate/write CRC. Replace: CRC/header expected through legacy combiner.exe; exact invocation/ranges pending | AB output + CRC values; normal merge map pending | Priority candidate pending map |
+| NT51951 | normal merge requested; memory map pending owner | uploaded config; deferred | DP and TP CtrlRAM priority | AB: TPA verify existing CRC; TPB relocate/recalculate/write CRC. Replace: CRC/header expected through legacy combiner.exe; exact invocation/ranges pending | AB config evidence; no normal merge golden output; map pending | Candidate pending map |
 
 ## Workflow promotion gate per IC/mode
 
@@ -29,5 +37,7 @@ This is a planning inventory, not a support claim. A row becomes supported only 
 
 - Display: DP partition map and confirmation that TP is whole-only;
 - TP HW: complete named CtrlRAM regions/groups and post-processing dependencies, with DP whole-only;
+- IC num: UI and request model must bind Replace to the selected IC before presenting region choices;
+- CRC/header: exact legacy `combiner.exe` version, invocation, read/write ranges, execution order, and golden evidence;
 - TP FW: declared non-CtrlRAM TP regions and required post-processing dependencies, with DP whole-only;
 - General: globally forbidden/protected ranges, alignment, overlap, and post-processing trigger rules.

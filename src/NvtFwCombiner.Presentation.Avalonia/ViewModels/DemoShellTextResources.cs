@@ -100,9 +100,10 @@ public sealed class DemoShellTextResources
             ["Settings", "Merge", "Replace"],
             new PlanningCardText(
                 "Merge preview",
-                "Modes: Standard / AB / General",
+                "Modes: Standard / AB / General (AB deferred)",
                 [
                     "Profile selector: demo-standard-merge",
+                    "NT51950/NT51951: map pending from owner",
                     "Slot cards: DP demo.bin, TP demo.bin, optional LD placeholder",
                     "Preview: visual-first shared Memory coverage before/after supplied by application core later",
                 ],
@@ -111,8 +112,10 @@ public sealed class DemoShellTextResources
                 "Replace preview",
                 "Personas: Display / TP HW / TP FW / General",
                 [
+                    "IC num selector/input: required before region choices",
                     "Display: DP declared partitions and TP whole only; CtrlRAM hidden",
                     "TP HW: CtrlRAM only; TP firmware regions denied",
+                    "Post-replace CRC/header: legacy combiner.exe transform planned",
                     "TP FW: non-CtrlRAM TP firmware regions only; CtrlRAM denied",
                     "General: profile-declared explicit ranges only; protected regions denied",
                     "Preview: visual-first shared Memory coverage before/after and protected warnings",
@@ -151,9 +154,10 @@ public sealed class DemoShellTextResources
             ["設定", "合併", "取代"],
             new PlanningCardText(
                 "合併預覽",
-                "模式：Standard / AB / General",
+                "模式：Standard / AB / General（AB deferred）",
                 [
                     "Profile selector：demo-standard-merge",
+                    "NT51950/NT51951：等待 owner 提供 memory map",
                     "Slot cards：DP demo.bin、TP demo.bin、選用 LD placeholder",
                     "Preview：視覺優先的共用 Memory 覆蓋前後圖，之後由 application core 提供",
                 ],
@@ -162,8 +166,10 @@ public sealed class DemoShellTextResources
                 "取代預覽",
                 "情境：Display / TP HW / TP FW / General",
                 [
+                    "IC num selector/input：選擇後才顯示 region choices",
                     "Display：只允許 DP 宣告分區與完整 TP；CtrlRAM 隱藏",
                     "TP HW：只允許 CtrlRAM；拒絕 TP firmware regions",
+                    "Post-replace CRC/header：規劃使用 legacy combiner.exe transform",
                     "TP FW：只允許非 CtrlRAM 的 TP firmware regions；拒絕 CtrlRAM",
                     "General：只允許 profile 宣告的明確 ranges；拒絕 protected regions",
                     "Preview：視覺優先的共用 Memory 覆蓋前後圖與 protected warnings",

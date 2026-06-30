@@ -28,6 +28,16 @@
 
 本 baseline 不宣稱任何 IC 已達 production parity。Exact legacy `combiner.exe` version, invocation, fields, order, read ranges, write ranges, and golden evidence are supplied by the owner later. Codex must not infer CRC/header behavior from reference names alone.
 
+## 0.1 Current owner priority
+
+As of 2026-06-30, near-term implementation focuses on normal Merge and normal Replace for DP and TP CtrlRAM department workflows.
+
+- AB Code Merge is intentionally deferred for now. Existing AB evidence remains reference material only; do not spend implementation effort on AB unless the owner explicitly reactivates it.
+- Normal/Standard Merge must include NT51950 and NT51951 after the owner provides their memory map. Until then their merge profile ranges remain blocked as `unknown`.
+- Replace is expected to require legacy `combiner.exe` CRC/header recalculation after replacement. The exact executable version, command shape, parameters, read/write ranges, execution order, and golden evidence are owner-supplied.
+- The owner identified 932 common FW postbuild as the reference behavior for how Replace should invoke `combiner.exe`; this repository does not yet contain a verified path or invocation transcript for that reference.
+- Replace UI must include an explicit IC num selector/input so users can bind the replace flow to the correct IC profile before region choices or processor readiness are shown.
+
 ## 1. 背景與問題定義
 
 目前有兩組重要 reference asset：
@@ -48,7 +58,7 @@
 
 Merge：
 
-- `standard-merge`：固定 profile 的正常合併。
+- `standard-merge`：固定 profile 的正常合併。Current priority covers normal DP/TP merge flows, including NT51950 and NT51951 after owner memory maps are provided.
 - `ab-merge`：固定 profile 的 A/B bank 合併、relocation 與 integrity stages。
 - `general-merge`：一或多個 BIN，使用者以 memory map drag、mapping table 或精確手動輸入設定 source/target ranges。
 
@@ -828,7 +838,7 @@ Fixed profile inputs and mappings. The user selects IC/mode and BINs; profile ow
 
 ### 10.4 AB Merge
 
-Fixed A/B bank model with explicit logical views, target banks, relocation patches, integrity stages and comparisons. DP_AB and split DPA/DPB are separate profile modes, not runtime guessing.
+Fixed A/B bank model with explicit logical views, target banks, relocation patches, integrity stages and comparisons. DP_AB and split DPA/DPB are separate profile modes, not runtime guessing. AB implementation is currently deferred while normal Merge and Replace are prioritized.
 
 ### 10.5 General Merge
 
@@ -840,6 +850,8 @@ General Merge is an advanced authoring surface, not a separate executor. User ro
 - TP HW：CtrlRAM-only on TP; DP whole-only。
 - TP FW：non-CtrlRAM TP regions; DP whole-only。
 - General：explicit mapping inside profile-approved envelope。
+
+Current Replace implementation priority is Display/DP and TP HW CtrlRAM workflows. Replace profiles must be able to schedule a post-replace legacy `combiner.exe` transform for CRC/header recalculation once the owner provides the exact 932 common FW postbuild invocation and IC-specific ranges.
 
 ### 10.7 Dev0 C# implementation milestone
 
@@ -869,7 +881,7 @@ Reports and diagnostics are secondary surfaces. Preview/Build reports and diagno
 
 ### 11.2 Merge page
 
- Must support Standard, AB, and General. General mode provides mapping table + optional visual memory map editor. Every UI edit compiles to typed mapping override. Merge uses slot cards for firmware inputs and the same fixed-position Memory coverage before/after area as Replace. Memory coverage is visual-first; tables are supporting detail.
+ Must support Standard, AB, and General at the product taxonomy level, but current implementation priority is Standard/normal Merge. AB UI implementation is deferred. General mode provides mapping table + optional visual memory map editor. Every UI edit compiles to typed mapping override. Merge uses slot cards for firmware inputs and the same fixed-position Memory coverage before/after area as Replace. Memory coverage is visual-first; tables are supporting detail. NT51950 and NT51951 normal Merge profiles are blocked until the owner provides their memory maps.
 
 ### 11.3 Replace page
 
@@ -880,7 +892,7 @@ Replace page groups experiences by user mental model：
 - TP FW Replace。
 - General Replace。
 
-The UI must make atomicity visible: whole-only, declared-parts, or explicit-range. Replace uses slot cards for firmware inputs and the same fixed-position Memory coverage before/after area as Merge. Memory coverage is visual-first; tables are supporting detail.
+The UI must make atomicity visible: whole-only, declared-parts, or explicit-range. Replace uses slot cards for firmware inputs and the same fixed-position Memory coverage before/after area as Merge. Memory coverage is visual-first; tables are supporting detail. Replace must expose an explicit IC num selector/input before profile regions and processor readiness are shown. Current implementation priority is Display/DP and TP HW CtrlRAM workflows.
 
 ### 11.4 Preview/Build separation
 
@@ -926,8 +938,8 @@ The owner requested review participation. Assistant/Codex review should focus on
 - `0.2.0`：memory core、composition operation execution、profile compiler validation。
 - `0.3.0`：standard merge parity for first IC group。
 - `0.4.0`：all standard merge profiles。
-- `0.5.0`：AB merge beta。
-- `0.6.0`：replace personas beta。
+- `0.5.0`：normal Replace priority beta for DP/CtrlRAM。
+- `0.6.0`：AB merge beta after owner reactivation。
 - `0.7.0`：settings/profile UX。
 - `0.8.0`：packaging/performance。
 - `0.9.0`：UAT RC。
