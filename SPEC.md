@@ -859,15 +859,15 @@ Initial UI shell must expose the workflow taxonomy without embedding firmware ru
 
 ### 11.1 Top-level navigation
 
-- Setup / Profile selection。
+- Settings：profile/catalog/tool folders, strictness, theme, diagnostics entry。
 - Merge。
 - Replace。
-- Reports。
-- Settings。
+
+Reports, diagnostics, and saved-rule management are secondary surfaces opened from Settings, status, preview/build results, or General Merge/Replace actions. They are not first-level navigation entries unless explicitly expanded by the owner.
 
 ### 11.2 Merge page
 
-Must support Standard, AB, and General. General mode provides mapping table + optional visual memory map editor. Every UI edit compiles to typed mapping override.
+ Must support Standard, AB, and General. General mode provides mapping table + optional visual memory map editor. Every UI edit compiles to typed mapping override. Merge uses the same fixed-position Memory coverage before/after area as Replace.
 
 ### 11.3 Replace page
 
@@ -878,7 +878,7 @@ Replace page groups experiences by user mental model：
 - TP FW Replace。
 - General Replace。
 
-The UI must make atomicity visible: whole-only, declared-parts, or explicit-range.
+The UI must make atomicity visible: whole-only, declared-parts, or explicit-range. Replace uses the same fixed-position Memory coverage before/after area as Merge.
 
 ### 11.4 Preview/Build separation
 
