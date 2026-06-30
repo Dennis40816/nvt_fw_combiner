@@ -859,15 +859,17 @@ Initial UI shell must expose the workflow taxonomy without embedding firmware ru
 
 ### 11.1 Top-level navigation
 
+Top-level navigation uses top tabs.
+
 - Settings：profile/catalog/tool folders, strictness, theme, diagnostics entry。
 - Merge。
 - Replace。
 
-Reports, diagnostics, and saved-rule management are secondary surfaces opened from Settings, status, preview/build results, or General Merge/Replace actions. They are not first-level navigation entries unless explicitly expanded by the owner.
+Reports, diagnostics, and saved-rule management are secondary surfaces. Preview/Build reports and diagnostics open in a report modal; Settings may expose diagnostics configuration/export; General Merge/Replace may expose saved-rule actions. They are not first-level navigation entries unless explicitly expanded by the owner.
 
 ### 11.2 Merge page
 
- Must support Standard, AB, and General. General mode provides mapping table + optional visual memory map editor. Every UI edit compiles to typed mapping override. Merge uses the same fixed-position Memory coverage before/after area as Replace.
+ Must support Standard, AB, and General. General mode provides mapping table + optional visual memory map editor. Every UI edit compiles to typed mapping override. Merge uses slot cards for firmware inputs and the same fixed-position Memory coverage before/after area as Replace. Memory coverage is visual-first; tables are supporting detail.
 
 ### 11.3 Replace page
 
@@ -878,11 +880,13 @@ Replace page groups experiences by user mental model：
 - TP FW Replace。
 - General Replace。
 
-The UI must make atomicity visible: whole-only, declared-parts, or explicit-range. Replace uses the same fixed-position Memory coverage before/after area as Merge.
+The UI must make atomicity visible: whole-only, declared-parts, or explicit-range. Replace uses slot cards for firmware inputs and the same fixed-position Memory coverage before/after area as Merge. Memory coverage is visual-first; tables are supporting detail.
 
 ### 11.4 Preview/Build separation
 
 Preview is mandatory before Build. Build button should be disabled when profile compile, input validation, range policy, processor/tool readiness, or integrity disposition is unresolved.
+
+Preview/Build reports and diagnostics open in a report modal after the action completes or fails; they are not first-level pages. The UI must be structured for bilingual English/Chinese text resources rather than hard-coded display strings.
 
 ## 12. Versioning, branching, and review
 

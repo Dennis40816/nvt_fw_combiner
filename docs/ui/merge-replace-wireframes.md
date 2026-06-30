@@ -8,8 +8,8 @@ This document describes the first `0.1.1` demo interface for Merge and Replace. 
 [Top tabs: Settings | Merge | Replace]
 [Page header: mode/persona, IC, support status]
 [Primary action row: Preview | Build | Save rule where applicable]
-[Input area]
-[Shared Memory coverage before/after]
+[Slot-card input area]
+[Shared visual-first Memory coverage before/after]
 [Validation and diagnostics summary]
 ```
 
@@ -18,11 +18,11 @@ Shared controls:
 - profile selector;
 - IC selector placeholder;
 - support status badge: draft / candidate / supported;
-- compact input rows/cards using only necessary metadata;
+- slot cards using only necessary firmware metadata;
 - preview issue list;
-- diagnostics link;
+- report modal entry after Preview/Build;
 - disabled Build button until application core reports a valid preview.
-- fixed-position Memory coverage before/after area shared by Merge and Replace.
+- fixed-position visual-first Memory coverage before/after area shared by Merge and Replace, with table details as secondary support.
 
 ## Visual style guardrails
 
@@ -30,6 +30,7 @@ Shared controls:
 - Prefer compact labels, status chips, and progressive disclosure over explanatory paragraphs.
 - Avoid landing-page or marketing composition.
 - Keep Memory coverage visually stable between Merge and Replace so users can compare workflows without relearning layout.
+- Keep display text sourced through a bilingual English/Chinese-ready architecture.
 
 ## Merge page
 
@@ -48,17 +49,17 @@ General Merge
 
 ### Standard Merge demo sections
 
-1. Input cards: DP, TP, optional LD/Extra.
+1. Slot cards: DP, TP, optional LD/Extra.
 2. Version token preview placeholder.
-3. Shared Memory coverage before/after preview.
-4. Ordered operation preview.
+3. Visual-first shared Memory coverage before/after preview.
+4. Ordered operation preview table as supporting detail.
 5. External processor readiness row.
 6. Output naming preview.
 
 ### AB Merge demo sections
 
 1. DP_AB or DPA/DPB input mode selector.
-2. TPA and TPB input cards.
+2. TPA and TPB slot cards.
 3. Bank A/B visual summary.
 4. Relocation patch table placeholder.
 5. External combiner/header processor readiness.
@@ -100,10 +101,14 @@ General Replace
 1. Base reference BIN card.
 2. Replace persona selector.
 3. Replaceable region list.
-4. Overlay input rows.
-5. Shared Memory coverage before/after preview.
+4. Overlay slot cards.
+5. Visual-first shared Memory coverage before/after preview.
 6. Processor/tool readiness row.
 7. Protected range warnings.
+
+## Report modal
+
+Preview and Build open a report modal after completion or failure. The modal owns output hash, mutation summary, diagnostics, sanitized logs, and export/copy actions. It must not become a top-level page.
 
 ## Build action behavior
 

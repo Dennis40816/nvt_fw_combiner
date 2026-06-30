@@ -49,7 +49,7 @@ Do not invent a second canonical repository verification entry point.
 - `NvtFwCombiner.Application` owns use-case policy through ports; it does not start processes or render UI.
 - `NvtFwCombiner.Infrastructure` implements filesystem, staging, process, profile, and report adapters; it does not redefine firmware semantics.
 - UI and CLI create typed requests and call the same application services.
-- `NvtFwCombiner.Cli` remains a thin process entry point. `NvtFwCombiner.Bootstrap` may route commands, but as command count grows, `CliApplication` must stay a router and delegate command-specific parsing/execution to focused handlers. CLI and Bootstrap handlers must not duplicate firmware semantics.
+- `NvtFwCombiner.Cli` remains a thin process entry point. `NvtFwCombiner.Bootstrap` may route commands, but new CLI command groups must be implemented as focused command handlers so `CliApplication` stays a router. CLI and Bootstrap handlers must not duplicate firmware semantics.
 - Every workflow uses one composition planner/executor. Merge initializes blank bytes; Replace clones a required reference image.
 - General Merge and General Replace compile `explicitMappings` to normal operations; arbitrary scripts and per-run executable paths are forbidden.
 - All ranges are half-open `[start, endExclusive)` and name their address space.
@@ -78,7 +78,11 @@ Do not invent a second canonical repository verification entry point.
 
 - Prioritize completing core/Application/CLI capability before UI wiring when the owner asks for spec development. Call out when C# core is ready for UI integration.
 - UI should be modern, minimal, and low-reading-cost. Top-level product navigation is limited to Settings, Merge, and Replace unless the owner explicitly expands it.
-- Merge and Replace must share a consistent Memory coverage before/after visualization in the same layout position.
+- UI top-level navigation uses top tabs.
+- Merge and Replace must share a consistent Memory coverage before/after visualization in the same layout position. The Memory coverage area is visual-first, with table details as supporting information.
+- Firmware inputs are represented as slot cards.
+- Preview/Build results open report modals for diagnostics and evidence review.
+- UI implementation must support a bilingual architecture.
 - Release work should keep `main` capable of producing a self-contained `.exe` folder that does not require a separate C#/.NET runtime install before distribution.
 
 ## Required workflow
