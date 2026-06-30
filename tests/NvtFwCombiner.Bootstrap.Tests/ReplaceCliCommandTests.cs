@@ -3,17 +3,19 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>CLI tests for Replace command groups.</summary>
 public sealed class ReplaceCliCommandTests
 {
-    /// <summary>Verifies DP Replace preview runs through the CLI and pads a short replacement input.</summary>
+    /// <summary>Verifies DP Replace build accepts separate DP and LD replacement inputs.</summary>
     [Fact]
-    public async Task DpReplacePreviewRunsWithSingleIcNumber()
+    public async Task DpReplaceBuildWritesSeparateDpAndLdPayloads()
     {
         using var workspace = TempWorkspace.Create();
         string reference = workspace.Write("reference.bin", [0, 0, 0, 0, 0, 0, 0, 0]);
         string dp = workspace.Write("dp.bin", [0x11, 0x22]);
+        string ld = workspace.Write("ld.bin", [0x33]);
+        string output = workspace.PathFor("out.bin");
 
         CliRunResult result = await RunCliAsync([
             "dp-replace",
-            "preview",
+            "build",
             "--profile",
             "synthetic-dp-replace",
             "--ic-num",
@@ -22,12 +24,20 @@ public sealed class ReplaceCliCommandTests
             reference,
             "--dp",
             dp,
+            "--ld",
+            ld,
+            "--output",
+            output,
         ]);
 
         Assert.Equal(0, result.ExitCode);
         Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
+        Assert.Contains("Committed:", result.Output, StringComparison.Ordinal);
         Assert.Contains("replace-dp", result.Output, StringComparison.Ordinal);
+        Assert.Contains("replace-ld", result.Output, StringComparison.Ordinal);
         Assert.DoesNotContain("Issues:", result.Error, StringComparison.Ordinal);
+        byte[] bytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
+        Assert.Equal([0x11, 0x22, 0xFF, 0xFF, 0, 0, 0x33, 0xFF], bytes);
     }
 
     /// <summary>Verifies CtrlRAM Replace preview reports truncation warnings while succeeding.</summary>
@@ -102,6 +112,7 @@ public sealed class ReplaceCliCommandTests
         using var workspace = TempWorkspace.Create();
         string reference = workspace.Write("reference.bin", [0, 0, 0, 0, 0, 0, 0, 0]);
         string dp = workspace.Write("dp.bin", [0x11, 0x22]);
+        string ld = workspace.Write("ld.bin", [0x33]);
 
         CliRunResult result = await RunCliAsync([
             "dp-replace",
@@ -112,6 +123,8 @@ public sealed class ReplaceCliCommandTests
             reference,
             "--dp",
             dp,
+            "--ld",
+            ld,
         ]);
 
         Assert.Equal(64, result.ExitCode);

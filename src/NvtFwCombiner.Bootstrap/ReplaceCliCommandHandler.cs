@@ -20,6 +20,7 @@ internal static class ReplaceCliCommandHandler
         {
             ["reference-base"] = "--base",
             ["dp-replacement"] = "--dp",
+            ["ld-replacement"] = "--ld",
             ["ctrlram-replacement"] = "--ctrlram",
             ["replacement-input"] = "--input",
         };
@@ -50,6 +51,7 @@ internal static class ReplaceCliCommandHandler
             "--ic-num",
             "--base",
             "--dp",
+            "--ld",
             "--ctrlram",
             "--input",
             "--source-start",
@@ -486,8 +488,8 @@ internal static class ReplaceCliCommandHandler
         switch (command)
         {
             case "dp-replace":
-                await output.WriteLineAsync("  nvt_fw_combiner dp-replace preview --profile <id|ic> --ic-num <value> --base <path> --dp <path> [--output <path>]").ConfigureAwait(false);
-                await output.WriteLineAsync("  nvt_fw_combiner dp-replace build --profile <id|ic> --ic-num <value> --base <path> --dp <path> [--output <path>] [--overwrite]").ConfigureAwait(false);
+                await output.WriteLineAsync("  nvt_fw_combiner dp-replace preview --profile <id|ic> --ic-num <value> --base <path> --dp <path> [--ld <path>] [--output <path>]").ConfigureAwait(false);
+                await output.WriteLineAsync("  nvt_fw_combiner dp-replace build --profile <id|ic> --ic-num <value> --base <path> --dp <path> [--ld <path>] [--output <path>] [--overwrite]").ConfigureAwait(false);
                 break;
             case "ctrlram-replace":
                 await output.WriteLineAsync("  nvt_fw_combiner ctrlram-replace preview --profile <id|ic> --ic-family <value> --ic-num <value> --base <path> --ctrlram <path> [--output <path>]").ConfigureAwait(false);

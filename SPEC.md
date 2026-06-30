@@ -64,7 +64,7 @@ Merge：
 
 Replace：
 
-- `dp-replace`：DP whole 或 profile-declared partitions；不再提供獨立 TP persona replace 分類。
+- `dp-replace`：DP whole 或 profile-declared partitions；LD replacement also belongs to DP Replace and may be modeled as a separate LD replacement BIN/slot from the DP BIN；不再提供獨立 TP persona replace 分類。
 - `ctrlram-replace`：只操作被標記為 `tp-ctrlram` 的 named regions/groups。
 - `general-replace`：required reference BIN 加上一或多個 replacement BIN；使用者自由建立多筆 explicit mappings，但仍受 protected ranges、alignment、overlap、processor dependency 與 Preview gate 約束。
 
@@ -532,7 +532,7 @@ This avoids duplicating memory maps for DP/CtrlRAM/General Replace while keeping
 
 ### 7.5 Replace authoring rules
 
-- **DP Replace**：DP may be whole or declared parts. TP-specific replace categories are not exposed.
+- **DP Replace**：DP may be whole or declared parts. LD replacement is treated as DP Replace and may use a separate LD replacement BIN/slot from the DP BIN. TP-specific replace categories are not exposed.
 - **CtrlRAM Replace**：only regions tagged `tp-ctrlram` or approved CtrlRAM groups may be replaced.
 - **General Replace**：explicit ranges are allowed only where profile access is `explicit-range`; protected regions remain blocked.
 - **General Merge**：input cardinality is extensible; every mapping row compiles to standard operations.
@@ -854,7 +854,7 @@ General Merge is an advanced authoring surface, not a separate executor. User ro
 
 ### 10.6 Replace experiences
 
-- DP Replace：DP-focused; DP whole/declared-part access only。
+- DP Replace：DP-focused; DP whole/declared-part access only. LD replacement is included in this experience and may be supplied as its own LD BIN。
 - CtrlRAM Replace：CtrlRAM-only on regions tagged `tp-ctrlram`。
 - General：explicit mapping inside profile-approved envelope。
 
@@ -898,7 +898,7 @@ Replace page groups experiences by user mental model：
 - CtrlRAM Replace。
 - General Replace。
 
-The UI must make atomicity visible: whole-only, declared-parts, or explicit-range. Replace uses slot cards for firmware inputs and the same fixed-position Memory coverage before/after area as Merge. Memory coverage is visual-first; tables are supporting detail. Replace must expose an explicit IC num selector/input before profile regions and processor readiness are shown. Current implementation priority is DP Replace and CtrlRAM Replace workflows. IC num mode is profile-declared: first UI supports `single` and `cascade`; `numeric` is reserved for future special cases.
+The UI must make atomicity visible: whole-only, declared-parts, or explicit-range. Replace uses slot cards for firmware inputs and the same fixed-position Memory coverage before/after area as Merge. DP Replace slot cards must allow profile-declared DP and LD payloads to be separate files when the profile requires it. Memory coverage is visual-first; tables are supporting detail. Replace must expose an explicit IC num selector/input before profile regions and processor readiness are shown. Current implementation priority is DP Replace and CtrlRAM Replace workflows. IC num mode is profile-declared: first UI supports `single` and `cascade`; `numeric` is reserved for future special cases.
 
 ### 11.4 Preview/Build separation
 

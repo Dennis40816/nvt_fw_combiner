@@ -15,7 +15,7 @@ public static class BuiltInReplaceProfiles
         SyntheticGeneralReplace,
     ];
 
-    /// <summary>Synthetic DP Replace profile with profile-declared short-input padding.</summary>
+    /// <summary>Synthetic DP Replace profile with separate DP and LD replacement payloads.</summary>
     public static CompositionProfileDefinition SyntheticDpReplace { get; } =
         new(
             "synthetic-dp-replace",
@@ -29,6 +29,7 @@ public static class BuiltInReplaceProfiles
             [
                 new AddressSpace("reference-base", 8, AddressSpaceMutability.Immutable),
                 new AddressSpace("dp-replacement", 4, AddressSpaceMutability.Immutable, inputPaddingByte: 0xFF),
+                new AddressSpace("ld-replacement", 2, AddressSpaceMutability.Immutable, inputPaddingByte: 0xFF),
                 new AddressSpace("output-image", 8, AddressSpaceMutability.Mutable),
             ],
             [
@@ -41,6 +42,15 @@ public static class BuiltInReplaceProfiles
                     new ByteRange(0, 4),
                     OverlapPolicy.Reject,
                     "Replace synthetic DP declared partition."),
+                CompositionOperation.ReplaceRange(
+                    "replace-ld",
+                    110,
+                    "ld-replacement",
+                    new ByteRange(0, 2),
+                    "output-image",
+                    new ByteRange(6, 2),
+                    OverlapPolicy.Reject,
+                    "Replace synthetic LD declared partition under DP Replace."),
             ],
             [
                 new ProfileRegion(
@@ -50,9 +60,17 @@ public static class BuiltInReplaceProfiles
                     RegionAtomicity.Partitioned,
                     RegionWritePolicy.DeclaredParts,
                     classificationTags: ["dp"]),
+                new ProfileRegion(
+                    "ld",
+                    "output-image",
+                    new ByteRange(6, 2),
+                    RegionAtomicity.Partitioned,
+                    RegionWritePolicy.DeclaredParts,
+                    classificationTags: ["dp", "ld"]),
             ],
             [
                 new RegionAccessRule("dp", RegionAccessKind.Parts, "Synthetic DP Replace profile operation."),
+                new RegionAccessRule("ld", RegionAccessKind.Parts, "Synthetic LD Replace profile operation."),
             ],
             IcNumberInputMode.SingleSelector);
 

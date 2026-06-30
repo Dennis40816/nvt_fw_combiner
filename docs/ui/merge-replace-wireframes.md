@@ -86,7 +86,7 @@ General Merge
 
 ```text
 DP Replace
-  DP whole/declared partitions.
+  DP whole/declared partitions; LD replacement stays here when profile-declared.
 
 CtrlRAM Replace
   CtrlRAM named regions only.
@@ -101,7 +101,7 @@ General Replace
 2. Base reference BIN card.
 3. Replace persona selector.
 4. Replaceable region list.
-5. Overlay slot cards.
+5. Overlay slot cards; DP Replace may show separate DP and LD cards.
 6. Visual-first shared Memory coverage before/after preview.
 7. Processor/tool readiness row, including post-replace combiner.exe CRC/header requirement when declared.
 8. Protected range warnings.

@@ -15,7 +15,7 @@ public sealed class BuiltInReplaceProfilesTests
             BuiltInReplaceProfiles.All.Select(profile => profile.ExperienceId));
     }
 
-    /// <summary>Verifies fixed DP Replace compiles with short-input padding policy.</summary>
+    /// <summary>Verifies fixed DP Replace compiles with separate DP and LD payloads.</summary>
     [Fact]
     public void SyntheticDpReplaceCompiles()
     {
@@ -26,8 +26,9 @@ public sealed class BuiltInReplaceProfilesTests
         Assert.True(result.IsSuccess, FormatIssues(result.Issues));
         Assert.Equal(IcNumberInputMode.SingleSelector, profile.IcNumberInputMode);
         Assert.Contains(profile.AddressSpaces, space => space.AddressSpaceId == "dp-replacement" && space.InputPaddingByte == 0xFF);
-        CompositionOperation operation = Assert.Single(result.Plan!.OrderedOperations);
-        Assert.Equal("replace-dp", operation.OperationId);
+        Assert.Contains(profile.AddressSpaces, space => space.AddressSpaceId == "ld-replacement" && space.InputPaddingByte == 0xFF);
+        Assert.Equal(["replace-dp", "replace-ld"], result.Plan!.OrderedOperations.Select(operation => operation.OperationId));
+        Assert.Contains(profile.Regions, region => region.RegionId == "ld" && region.ClassificationTags.Contains("ld", StringComparer.Ordinal));
     }
 
     /// <summary>Verifies fixed CtrlRAM Replace compiles with oversized-input truncation policy.</summary>

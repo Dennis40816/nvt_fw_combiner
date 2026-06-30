@@ -22,7 +22,7 @@ This document defines the owner-approved UI direction for the first usable NVT F
 | --- | --- | --- | --- |
 | Settings | Configure folders, profile packs, strictness, theme, diagnostics access | compact settings groups, profile catalog status, log/report access | direct GitHub secret editing, firmware mutation logic |
 | Merge | Standard / AB / General merge entry point | mode selector, IC/profile selector, slot cards, visual-first memory coverage preview, preview/build actions | hard-coded copy/offset rules |
-| Replace | DP / CtrlRAM / General replace entry point | IC num selector/input, persona selector, base/reference slot cards, overlay slot cards, visual-first memory coverage preview, preview/build actions | region authorization logic in UI |
+| Replace | DP / CtrlRAM / General replace entry point | IC num selector/input, persona selector, base/reference slot cards, overlay slot cards including separate DP/LD cards when a DP Replace profile requires them, visual-first memory coverage preview, preview/build actions | region authorization logic in UI |
 
 ## Demo shell constraints
 
