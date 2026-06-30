@@ -44,8 +44,10 @@ public sealed class RepositoryBoundaryTests
         Assert.Contains("ItemsPanelTemplate", shell, StringComparison.Ordinal);
         Assert.Contains("StackPanel Orientation=\"Horizontal\"", shell, StringComparison.Ordinal);
         Assert.Contains("ReportModalPreview", shell, StringComparison.Ordinal);
+        Assert.Contains("FontFamily=\"fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("ColumnDefinitions=\"220,*\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Diagnostics.", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("SavedRulesAndReports", shell, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies demo-shell copy is routed through bilingual text resources.</summary>
@@ -61,6 +63,7 @@ public sealed class RepositoryBoundaryTests
         Assert.Contains("合併", resources, StringComparison.Ordinal);
         Assert.Contains("DemoShellTextResources.For(language)", sampleData, StringComparison.Ordinal);
         Assert.DoesNotContain("\"Merge preview\"", sampleData, StringComparison.Ordinal);
+        Assert.DoesNotContain("Saved rules", resources, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string ReadText(string relativePath)

@@ -865,7 +865,7 @@ Top-level navigation uses top tabs.
 - Merge。
 - Replace。
 
-Reports, diagnostics, and saved-rule management are secondary surfaces. Preview/Build reports and diagnostics open in a report modal; Settings may expose diagnostics configuration/export; General Merge/Replace may expose saved-rule actions. They are not first-level navigation entries unless explicitly expanded by the owner.
+Reports and diagnostics are secondary surfaces. Preview/Build reports and diagnostics open in a report modal; Settings may expose diagnostics configuration/export. Saved Rules is hidden in the first UI release until the saved-rule workflow is implemented and reviewed. These surfaces are not first-level navigation entries unless explicitly expanded by the owner.
 
 ### 11.2 Merge page
 
@@ -886,7 +886,15 @@ The UI must make atomicity visible: whole-only, declared-parts, or explicit-rang
 
 Preview is mandatory before Build. Build button should be disabled when profile compile, input validation, range policy, processor/tool readiness, or integrity disposition is unresolved.
 
-Preview/Build reports and diagnostics open in a report modal after the action completes or fails; they are not first-level pages. The UI must be structured for bilingual English/Chinese text resources rather than hard-coded display strings.
+Preview/Build reports and diagnostics open in a report modal after the action completes or fails; they are not first-level pages. The UI must be structured for bilingual English/Chinese text resources rather than hard-coded display strings. The initial default language is English.
+
+### 11.5 Typography and localization defaults
+
+- Initial default language: English. Traditional Chinese is supported through the same text-resource architecture, not through duplicated XAML or ViewModel strings.
+- Latin/English UI text: Inter. It is the primary app font because it is already bundled through `Avalonia.Fonts.Inter`, reads clearly in dense controls, and keeps numeric labels stable.
+- Traditional Chinese UI text: Microsoft JhengHei UI on Windows, with Noto Sans CJK TC and Noto Sans TC as fallback families. This keeps CJK text clear in compact tool surfaces and avoids decorative display fonts.
+- Technical fixed-width content such as addresses, hex bytes, CRC values, hashes, and terminal snippets should use Cascadia Mono, then Consolas as fallback.
+- The general UI font stack is `fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI` in Avalonia. Do not introduce additional decorative fonts in the product UI without owner approval.
 
 ## 12. Versioning, branching, and review
 

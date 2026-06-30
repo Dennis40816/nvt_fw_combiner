@@ -23,7 +23,7 @@ public sealed class DemoShellTextResources
         IReadOnlyList<string> navigationItems,
         PlanningCardText mergePreview,
         PlanningCardText replacePreview,
-        PlanningCardText savedRulesAndReports,
+        PlanningCardText reportsPreview,
         PlanningCardText reportModalPreview,
         string footerStatus)
     {
@@ -36,7 +36,7 @@ public sealed class DemoShellTextResources
         NavigationItems = navigationItems;
         MergePreview = mergePreview;
         ReplacePreview = replacePreview;
-        SavedRulesAndReports = savedRulesAndReports;
+        ReportsPreview = reportsPreview;
         ReportModalPreview = reportModalPreview;
         FooterStatus = footerStatus;
     }
@@ -79,8 +79,8 @@ public sealed class DemoShellTextResources
     /// <summary>Gets replace preview text.</summary>
     public PlanningCardText ReplacePreview { get; }
 
-    /// <summary>Gets saved-rules and report text.</summary>
-    public PlanningCardText SavedRulesAndReports { get; }
+    /// <summary>Gets report preview text.</summary>
+    public PlanningCardText ReportsPreview { get; }
 
     /// <summary>Gets report modal preview text.</summary>
     public PlanningCardText ReportModalPreview { get; }
@@ -119,12 +119,12 @@ public sealed class DemoShellTextResources
                 ],
                 "Status: access policy display only"),
             new PlanningCardText(
-                "Saved rules and reports",
+                "Reports preview",
                 "Secondary surfaces in this shell",
                 [
-                    "Saved rules: General Merge/Replace action and status, not top-level navigation",
                     "Reports: opened from Preview/Build report modals",
-                    "Promotion requires validation, compatibility review, and evidence.",
+                    "Settings exposes diagnostics configuration and export only",
+                    "Report export includes runId, output hash, diagnostics, and sanitized logs.",
                 ],
                 "Status: report schema wiring arrives after core execution"),
             new PlanningCardText(
@@ -170,12 +170,12 @@ public sealed class DemoShellTextResources
                 ],
                 "狀態：僅顯示 access policy"),
             new PlanningCardText(
-                "儲存規則與報告",
+                "報告預覽",
                 "此 shell 的次要介面",
                 [
-                    "Saved rules：只在 General Merge/Replace 顯示 action 與 status，不作為頂層導覽",
                     "Reports：由 Preview/Build report modal 開啟",
-                    "Promotion 需要 validation、compatibility review 與 evidence。",
+                    "Settings 只提供 diagnostics configuration 與 export",
+                    "Report export 包含 runId、output hash、diagnostics 與 sanitized logs。",
                 ],
                 "狀態：report schema 會在 core execution 後接線"),
             new PlanningCardText(

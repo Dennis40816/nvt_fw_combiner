@@ -9,6 +9,7 @@
     MinWidth="980"
     MinHeight="640"
     Background="#F5F7FA"
+    FontFamily="fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI"
     Title="NVT FW Combiner">
   <Grid RowDefinitions="Auto,Auto,*,Auto">
     <Border
@@ -140,16 +141,16 @@
               BorderThickness="1"
               CornerRadius="8">
             <StackPanel Spacing="10">
-              <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding SavedRulesAndReports.Title}" />
-              <TextBlock Foreground="#475569" Text="{Binding SavedRulesAndReports.Subtitle}" TextWrapping="Wrap" />
-              <ItemsControl ItemsSource="{Binding SavedRulesAndReports.Rows}">
+              <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding ReportsPreview.Title}" />
+              <TextBlock Foreground="#475569" Text="{Binding ReportsPreview.Subtitle}" TextWrapping="Wrap" />
+              <ItemsControl ItemsSource="{Binding ReportsPreview.Rows}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="x:String">
                     <TextBlock Margin="0,0,0,10" Text="{Binding}" TextWrapping="Wrap" />
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
-              <TextBlock Foreground="#B45309" Text="{Binding SavedRulesAndReports.Status}" TextWrapping="Wrap" />
+              <TextBlock Foreground="#B45309" Text="{Binding ReportsPreview.Status}" TextWrapping="Wrap" />
             </StackPanel>
           </Border>
 

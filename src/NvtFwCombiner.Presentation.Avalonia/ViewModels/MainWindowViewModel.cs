@@ -14,7 +14,7 @@ public sealed class MainWindowViewModel
         IReadOnlyList<NavigationItemViewModel> navigationItems,
         PlanningCardViewModel mergePreview,
         PlanningCardViewModel replacePreview,
-        PlanningCardViewModel savedRulesAndReports,
+        PlanningCardViewModel reportsPreview,
         PlanningCardViewModel reportModalPreview,
         string footerStatus)
     {
@@ -27,7 +27,7 @@ public sealed class MainWindowViewModel
         NavigationItems = navigationItems;
         MergePreview = mergePreview;
         ReplacePreview = replacePreview;
-        SavedRulesAndReports = savedRulesAndReports;
+        ReportsPreview = reportsPreview;
         ReportModalPreview = reportModalPreview;
         FooterStatus = footerStatus;
     }
@@ -59,8 +59,8 @@ public sealed class MainWindowViewModel
     /// <summary>Gets replace preview sample content.</summary>
     public PlanningCardViewModel ReplacePreview { get; }
 
-    /// <summary>Gets saved rules and reports sample content.</summary>
-    public PlanningCardViewModel SavedRulesAndReports { get; }
+    /// <summary>Gets report sample content.</summary>
+    public PlanningCardViewModel ReportsPreview { get; }
 
     /// <summary>Gets report modal sample content.</summary>
     public PlanningCardViewModel ReportModalPreview { get; }

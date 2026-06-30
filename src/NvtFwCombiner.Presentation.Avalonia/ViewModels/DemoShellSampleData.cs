@@ -20,7 +20,7 @@ public static class DemoShellSampleData
             CreateNavigationItems(text),
             CreatePlanningCard(text.MergePreview),
             CreatePlanningCard(text.ReplacePreview),
-            CreatePlanningCard(text.SavedRulesAndReports),
+            CreatePlanningCard(text.ReportsPreview),
             CreatePlanningCard(text.ReportModalPreview),
             text.FooterStatus);
     }
