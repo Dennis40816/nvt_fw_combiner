@@ -18,11 +18,8 @@ The home launcher must stay clean. It does not show Memory coverage, reports, di
 
 ```text
 [Fixed Device context: IC | IC Num | mode]
-[Page header: mode/persona, profile context, support status]
-[Primary action row: Preview | Build]
-[Slot-card input area]
-[Shared visual-first Memory coverage before/after]
-[Validation and diagnostics summary]
+[Left primary workspace: page header, Preview | Build, Memory coverage, mode, slot cards]
+[Right inspector: profile, validation, readiness, processor status]
 ```
 
 Shared controls:
@@ -35,6 +32,8 @@ Shared controls:
 - report modal entry after Preview/Build;
 - disabled Build button until application core reports a valid preview.
 - fixed-position visual-first Memory coverage before/after area shared by Merge and Replace, with table details as secondary support.
+- visible active state for top navigation and workflow mode selection.
+- right-side inspector for readiness, validation, and processor status.
 
 ## Visual style guardrails
 
@@ -42,6 +41,7 @@ Shared controls:
 - Prefer compact labels, status chips, and progressive disclosure over explanatory paragraphs.
 - Avoid landing-page or marketing composition.
 - Keep Memory coverage visually stable between Merge and Replace so users can compare workflows without relearning layout.
+- Keep Memory coverage on a light workbench surface with labels and legends instead of a dominant dark banner.
 - Keep Merge and Replace page content independent; reusable components are allowed, mixed workflow content is not.
 - Keep display text sourced through a bilingual English/Chinese-ready architecture.
 - Use Inter for English/Latin UI text and Microsoft JhengHei UI for Traditional Chinese on Windows, falling back to Noto Sans CJK TC, Noto Sans TC, and Segoe UI. Use Cascadia Mono or Consolas only for fixed-width technical values.

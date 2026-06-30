@@ -127,6 +127,18 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <summary>True when the Replace page is visible.</summary>
     public bool IsReplaceVisible => SelectedPage == DemoShellPage.Replace;
 
+    /// <summary>True when DP Replace is selected.</summary>
+    public bool IsDpReplaceModeSelected => string.Equals(SelectedReplaceMode, "DP", StringComparison.Ordinal);
+
+    /// <summary>True when CtrlRAM Replace is selected.</summary>
+    public bool IsCtrlRamReplaceModeSelected => string.Equals(SelectedReplaceMode, "CtrlRAM", StringComparison.Ordinal);
+
+    /// <summary>True when General Replace is selected.</summary>
+    public bool IsGeneralReplaceModeSelected => string.Equals(SelectedReplaceMode, "General", StringComparison.Ordinal);
+
+    /// <summary>True when Normal Merge is selected.</summary>
+    public bool IsNormalMergeModeSelected => string.Equals(SelectedMergeMode, "Normal", StringComparison.Ordinal);
+
     /// <summary>Command that returns to the clean home view.</summary>
     public IRelayCommand ShowHomeCommand { get; }
 
@@ -157,6 +169,9 @@ public sealed class MainWindowViewModel : ObservableObject
         {
             SelectedReplaceMode = mode;
             OnPropertyChanged(nameof(SelectedReplaceMode));
+            OnPropertyChanged(nameof(IsDpReplaceModeSelected));
+            OnPropertyChanged(nameof(IsCtrlRamReplaceModeSelected));
+            OnPropertyChanged(nameof(IsGeneralReplaceModeSelected));
         }
 
         SetSelectedPage(DemoShellPage.Replace);
@@ -168,6 +183,7 @@ public sealed class MainWindowViewModel : ObservableObject
         {
             SelectedMergeMode = mode;
             OnPropertyChanged(nameof(SelectedMergeMode));
+            OnPropertyChanged(nameof(IsNormalMergeModeSelected));
         }
 
         SetSelectedPage(DemoShellPage.Merge);

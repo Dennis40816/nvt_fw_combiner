@@ -10,6 +10,8 @@ This document defines the owner-approved UI direction for the first usable NVT F
 - Page separation: Replace pages show Replace-only controls; Merge pages show Merge-only controls. Shared components are reused, but workflow content is not mixed.
 - Shared device context: IC, IC Num, and IC Num mode live in one prominent fixed row below the header on every page, including Home. Workflow pages consume that same context instead of redefining it.
 - Shared visualization: Merge and Replace use the same Memory coverage before/after component in the same page location; the area is visual-first and table-supported.
+- Workbench layout: Merge and Replace use a left primary workspace and a right inspector. Readiness, validation, and processor status live in the inspector instead of floating as sparse cards.
+- Active state: top navigation and workflow mode selection must visibly show the active page/mode.
 - Inputs: firmware files are represented as slot cards.
 - Replace must consume the explicit shared IC num selector/input before region choices and processor readiness. Initial selector modes are `single` and `cascade`; `numeric` is contract-reserved.
 - Reports: Preview/Build opens a report modal for diagnostics and evidence review.
@@ -62,6 +64,7 @@ Shell
 - Reports must tie UI state, operation trace, external processor invocation, mutation ranges, and output hash via `runId`.
 - Terminal/log panes are read-only and sanitized.
 - The shared Memory coverage area must support before/after display for both Merge and Replace without moving position between pages.
+- Memory coverage should read as a light workbench component with labels and legend, not as a dominant dark banner.
 - Display strings must be structured for bilingual English/Chinese support.
 - Technical fixed-width content such as addresses, byte values, hashes, and terminal snippets should use Cascadia Mono, then Consolas as fallback.
 
@@ -71,6 +74,8 @@ Shell
 - Replace quick jumps are DP, CtrlRAM, and General.
 - Merge quick jumps are Normal and disabled AB Code.
 - Memory coverage is visual-first with table support.
+- Workflow pages use left workspace plus right inspector.
+- Navigation and mode controls expose active selection state.
 - Inputs use slot cards.
 - Diagnostics and evidence are shown through Preview/Build report modals.
 - IC and IC Num use a shared Device context row that stays in the same location on every page.
