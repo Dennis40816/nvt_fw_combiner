@@ -47,6 +47,16 @@ Operation order is declared by `operations[].sequence`; it is not hard-coded by 
 
 Overlap defaults to `reject`. Any overlap must be explicitly declared by `overlapPolicy` and explained by validation rules and preview/mutation reports.
 
+## Input length and padding
+
+Typed profile definitions may declare an input padding byte on immutable source/replacement address spaces when an owner-approved map says a shorter supplied BIN can be safely extended to the declared length and the profile has no processor-dependent integrity stage. Request-time/runtime address spaces cannot declare padding bytes. The engine pads only the transient execution buffer; source files remain immutable and reports keep the actual supplied input size/hash. Inputs longer than the declared address-space length are always rejected.
+
+Profiles with `run-external-processor` operations or processor-owned regions, including CtrlRAM Replace flows that require TP CRC/header recalculation, must keep exact input length and cannot declare input padding. `tp-hw-replace` is exact-length even before the external combiner step is modeled.
+
+Reference initialization base address spaces and mutable work buffers must keep exact input length and cannot declare input padding.
+
+The JSON `schemaVersion: "1.0"` contract does not expose this field because the schema is strict (`additionalProperties: false`). A future schema minor version must add the JSON field before external JSON profiles can use padding metadata.
+
 ## Integrity outcome and processor authority
 
 `integrityDisposition` (`none`, `verify-existing`, `recalculate-and-write`) is distinct from `processorInvocation.authority` (`calculate`, `transform`). `unknown` is evidence-only and rejected by the supported-profile compiler.

@@ -427,6 +427,10 @@ public sealed class CompositionRunService
             AppendTokenField(builder, "plan.space.id", addressSpace.AddressSpaceId);
             AppendTokenField(builder, "plan.space.length", addressSpace.Length.ToString(CultureInfo.InvariantCulture));
             AppendTokenField(builder, "plan.space.mutability", addressSpace.Mutability.ToString());
+            AppendTokenField(
+                builder,
+                "plan.space.input-padding",
+                addressSpace.InputPaddingByte?.ToString(CultureInfo.InvariantCulture) ?? string.Empty);
         }
 
         foreach (CompositionOperation operation in plan.OrderedOperations)
