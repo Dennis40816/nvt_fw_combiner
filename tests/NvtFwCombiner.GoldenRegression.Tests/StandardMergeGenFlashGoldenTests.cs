@@ -102,7 +102,8 @@ public sealed class StandardMergeGenFlashGoldenTests
             profile.IcId,
             profile.ModeId,
             profile.ExperienceId,
-            profile.CompositionKind);
+            profile.CompositionKind,
+            profile.IcNumberInputMode);
     }
 
     private static Dictionary<string, byte[]> ReadInputs(string goldenRoot, JsonElement inputs)

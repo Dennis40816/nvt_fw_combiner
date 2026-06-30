@@ -23,5 +23,6 @@
   <Project Path="tests/NvtFwCombiner.Infrastructure.Tests/NvtFwCombiner.Infrastructure.Tests.csproj" />
   <Project Path="tests/NvtFwCombiner.ProfileContract.Tests/NvtFwCombiner.ProfileContract.Tests.csproj" />
   <Project Path="tests/NvtFwCombiner.GoldenRegression.Tests/NvtFwCombiner.GoldenRegression.Tests.csproj" />
+  <Project Path="tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj" />
   <Project Path="tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj" />
 </Solution>

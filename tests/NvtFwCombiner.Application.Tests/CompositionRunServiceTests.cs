@@ -292,6 +292,46 @@ public sealed class CompositionRunServiceTests
         Assert.NotEqual(withoutTruncation.PreviewToken, withTruncation.PreviewToken);
     }
 
+    /// <summary>Verifies Replace requests require IC number context before execution.</summary>
+    [Fact]
+    public void ReplaceRunRequestRequiresIcNumberSelection()
+    {
+        CompositionProfileDefinition profile = BuiltInReplaceProfiles.SyntheticDpReplace;
+        ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => new CompositionRunRequest(
+            "run-missing-ic",
+            ToRunProfile(profile),
+            compile.Plan!,
+            CreateDpReplaceBindings(),
+            profile.DefaultOutputFileName));
+
+        Assert.Contains("IC number selection", exception.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies preview approval binds the selected IC number context.</summary>
+    [Fact]
+    public async Task PreviewTokenChangesWhenIcNumberChanges()
+    {
+        var service = new CompositionRunService(
+            new FakeArtifactReader(new Dictionary<string, byte[]>
+            {
+                ["reference-artifact"] = [0, 0, 0, 0, 0, 0, 0, 0],
+                ["dp-artifact"] = [1, 2, 3, 4],
+            }),
+            new FakeClock([FirstTimestamp, SecondTimestamp, ThirdTimestamp, FourthTimestamp]));
+
+        CompositionRunResult first = await service.PreviewAsync(
+            CreateDpReplaceRequest("51920"),
+            CancellationToken.None);
+        CompositionRunResult second = await service.PreviewAsync(
+            CreateDpReplaceRequest("51921"),
+            CancellationToken.None);
+
+        Assert.Equal(first.OutputBytes.ToArray(), second.OutputBytes.ToArray());
+        Assert.NotEqual(first.PreviewToken, second.PreviewToken);
+    }
+
 
     /// <summary>Verifies preview runs external processor operations through the application port.</summary>
     [Fact]
@@ -541,13 +581,37 @@ public sealed class CompositionRunServiceTests
                 provenance.IcId,
                 provenance.ModeId,
                 provenance.ExperienceId,
-                provenance.CompositionKind),
+                provenance.CompositionKind,
+                IcNumberInputMode.SingleSelector),
             plan,
             [
                 new InputArtifactBinding("reference-base", "reference-safe", "reference-artifact"),
                 new InputArtifactBinding("ctrlram-input", "ctrlram-safe", ctrlRamArtifactId),
             ],
-            "ctrlram.bin");
+            "ctrlram.bin",
+            icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["SYNTHETIC"]));
+    }
+
+    private static CompositionRunRequest CreateDpReplaceRequest(string icNumber)
+    {
+        CompositionProfileDefinition profile = BuiltInReplaceProfiles.SyntheticDpReplace;
+        ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
+        return new CompositionRunRequest(
+            "run-dp-replace",
+            ToRunProfile(profile),
+            compile.Plan!,
+            CreateDpReplaceBindings(),
+            profile.DefaultOutputFileName,
+            icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, [icNumber]));
+    }
+
+    private static IReadOnlyList<InputArtifactBinding> CreateDpReplaceBindings()
+    {
+        return
+        [
+            new InputArtifactBinding("reference-base", "reference-safe", "reference-artifact"),
+            new InputArtifactBinding("dp-replacement", "dp-safe", "dp-artifact"),
+        ];
     }
 
     private static CompositionRunRequest CreateOverwriteRequest(string runId, byte firstFillByte)
@@ -645,7 +709,8 @@ public sealed class CompositionRunServiceTests
             profile.IcId,
             profile.ModeId,
             profile.ExperienceId,
-            profile.CompositionKind);
+            profile.CompositionKind,
+            profile.IcNumberInputMode);
     }
 
     private sealed class FakeArtifactReader : IArtifactReader

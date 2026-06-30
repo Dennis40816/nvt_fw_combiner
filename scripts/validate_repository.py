@@ -99,6 +99,7 @@ EXPECTED_PROJECTS = {
     "tests/NvtFwCombiner.Infrastructure.Tests/NvtFwCombiner.Infrastructure.Tests.csproj",
     "tests/NvtFwCombiner.ProfileContract.Tests/NvtFwCombiner.ProfileContract.Tests.csproj",
     "tests/NvtFwCombiner.GoldenRegression.Tests/NvtFwCombiner.GoldenRegression.Tests.csproj",
+    "tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj",
     "tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj",
 }
 
@@ -150,6 +151,9 @@ EXPECTED_PROJECT_REFERENCES = {
         "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
         "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
         "src/NvtFwCombiner.Profiles/NvtFwCombiner.Profiles.csproj",
+    },
+    "tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj": {
+        "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
     },
     "tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj": set(),
 }

@@ -400,6 +400,8 @@ public sealed class CompositionRunService
         AppendTokenField(builder, "profile.mode", request.Profile.ModeId);
         AppendTokenField(builder, "profile.experience", request.Profile.ExperienceId);
         AppendTokenField(builder, "profile.kind", request.Profile.CompositionKind.ToString());
+        AppendTokenField(builder, "profile.ic-number-mode", request.Profile.IcNumberInputMode?.ToString() ?? string.Empty);
+        AppendTokenField(builder, "run.ic-number", request.IcNumberSelection?.ToStableToken() ?? string.Empty);
         AppendTokenField(builder, "output.name", request.OutputFileName);
         AppendPlanFingerprint(builder, request.Plan);
         foreach (InputArtifactSummary input in inputSummaries.OrderBy(item => item.AddressSpaceId, StringComparer.Ordinal))

@@ -14,7 +14,8 @@ public sealed class CompositionRunRequest
         CompositionPlan plan,
         IEnumerable<InputArtifactBinding> artifactBindings,
         string outputFileName,
-        string? approvedPreviewToken = null)
+        string? approvedPreviewToken = null,
+        IcNumberSelection? icNumberSelection = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentNullException.ThrowIfNull(profile);
@@ -23,6 +24,7 @@ public sealed class CompositionRunRequest
         ArgumentException.ThrowIfNullOrWhiteSpace(outputFileName);
         ValidateOutputFileName(outputFileName);
         ValidateProfileMatchesPlan(profile, plan);
+        ValidateIcNumberSelection(profile, icNumberSelection);
 
         RunId = runId;
         Profile = profile;
@@ -30,6 +32,7 @@ public sealed class CompositionRunRequest
         _artifactBindings = CopyBindings(artifactBindings);
         OutputFileName = outputFileName;
         ApprovedPreviewToken = string.IsNullOrWhiteSpace(approvedPreviewToken) ? null : approvedPreviewToken;
+        IcNumberSelection = icNumberSelection;
     }
 
     /// <summary>Stable run id for reports and diagnostics.</summary>
@@ -50,6 +53,9 @@ public sealed class CompositionRunRequest
     /// <summary>Preview token that authorizes a matching build request.</summary>
     public string? ApprovedPreviewToken { get; }
 
+    /// <summary>IC number selected for Replace profile binding.</summary>
+    public IcNumberSelection? IcNumberSelection { get; }
+
     /// <summary>Returns a copy of this request with a preview token approved for build.</summary>
     public CompositionRunRequest WithApprovedPreviewToken(string previewToken)
     {
@@ -60,7 +66,8 @@ public sealed class CompositionRunRequest
             Plan,
             _artifactBindings.Values,
             OutputFileName,
-            previewToken);
+            previewToken,
+            IcNumberSelection);
     }
 
     private static Dictionary<string, InputArtifactBinding> CopyBindings(IEnumerable<InputArtifactBinding> bindings)
@@ -105,6 +112,43 @@ public sealed class CompositionRunRequest
             profile.CompositionKind != provenance.CompositionKind)
         {
             throw new ArgumentException("Run profile metadata must match compiled plan provenance.", nameof(profile));
+        }
+    }
+
+    private static void ValidateIcNumberSelection(
+        CompositionRunProfile profile,
+        IcNumberSelection? selection)
+    {
+        if (profile.CompositionKind != CompositionKind.Replace)
+        {
+            if (selection is not null)
+            {
+                throw new ArgumentException("IC number selection is allowed only for Replace runs.", nameof(selection));
+            }
+
+            return;
+        }
+
+        if (profile.IcNumberInputMode is null)
+        {
+            throw new ArgumentException("Replace run profile must declare an IC number input mode.", nameof(profile));
+        }
+
+        if (selection is null)
+        {
+            throw new ArgumentException("Replace runs require an IC number selection.", nameof(selection));
+        }
+
+        if (profile.IcNumberInputMode == IcNumberInputMode.NumericSelector)
+        {
+            throw new ArgumentException("Numeric IC number input mode is reserved and is not enabled yet.", nameof(profile));
+        }
+
+        if (selection.Mode != profile.IcNumberInputMode)
+        {
+            throw new ArgumentException(
+                "IC number selection mode must match the run profile IC number input mode.",
+                nameof(selection));
         }
     }
 }

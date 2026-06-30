@@ -63,6 +63,9 @@ public static class CliApplication
                 "profiles" => await RunProfilesAsync(args[1..], output, error).ConfigureAwait(false),
                 "standard-merge" => await RunStandardMergeAsync(args[1..], output, error, cancellationToken)
                     .ConfigureAwait(false),
+                "dp-replace" or "ctrlram-replace" or "general-replace" =>
+                    await ReplaceCliCommandHandler.RunAsync(args[0], args[1..], output, error, cancellationToken)
+                        .ConfigureAwait(false),
                 _ => await UnknownCommandAsync(args[0], error).ConfigureAwait(false),
             };
         }
@@ -112,6 +115,21 @@ public static class CliApplication
                     string.Create(
                         CultureInfo.InvariantCulture,
                         $"{profile.ProfileId}  ic={profile.IcId}  inputs={inputs}  default-output={profile.DefaultOutputFileName}"))
+                .ConfigureAwait(false);
+        }
+
+        await output.WriteLineAsync("Built-in replace profiles:").ConfigureAwait(false);
+        foreach (CompositionProfileDefinition profile in BuiltInReplaceProfiles.All
+                     .OrderBy(profile => profile.ProfileId, StringComparer.Ordinal))
+        {
+            ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
+            string inputs = compile.IsSuccess
+                ? string.Join(", ", compile.Plan!.RequiredInputAddressSpaceIds)
+                : "compile-error";
+            await output.WriteLineAsync(
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{profile.ProfileId}  ic={profile.IcId}  inputs={inputs}  ic-num={profile.IcNumberInputMode?.ToString() ?? "none"}  default-output={profile.DefaultOutputFileName}"))
                 .ConfigureAwait(false);
         }
 
@@ -287,7 +305,8 @@ public static class CliApplication
             profile.IcId,
             profile.ModeId,
             profile.ExperienceId,
-            profile.CompositionKind);
+            profile.CompositionKind,
+            profile.IcNumberInputMode);
     }
 
     private static async Task PrintRunResultAsync(
@@ -413,6 +432,9 @@ public static class CliApplication
         await output.WriteLineAsync("  nvt_fw_combiner profiles list").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner standard-merge preview --profile <id|ic> --dp <path> --tp <path> [--ld <path>] [--output <path>]").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner standard-merge build --profile <id|ic> --dp <path> --tp <path> [--ld <path>] [--output <path>] [--overwrite]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner dp-replace preview --profile <id|ic> --ic-num <value> --base <path> --dp <path> [--output <path>]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner ctrlram-replace preview --profile <id|ic> --ic-family <value> --ic-num <value> --base <path> --ctrlram <path> [--output <path>]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner general-replace preview --profile <id|ic> --ic-num <value> --base <path> --input <path> --source-start <n> --target-start <n> --length <n> [--output <path>]").ConfigureAwait(false);
     }
 
     private static async Task WriteProfilesUsageAsync(TextWriter output)
