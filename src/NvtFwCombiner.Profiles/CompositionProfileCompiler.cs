@@ -5,6 +5,8 @@ namespace NvtFwCombiner.Profiles;
 /// <summary>Compiles typed profile definitions and request mapping overlays into domain composition plans.</summary>
 public static class CompositionProfileCompiler
 {
+    private const string TpHardwareReplaceExperienceId = "tp-hw-replace";
+
     /// <summary>Compiles a profile and optional explicit mappings into a validated plan.</summary>
     public static ProfileCompileResult Compile(
         CompositionProfileDefinition profile,
@@ -57,6 +59,7 @@ public static class CompositionProfileCompiler
         IReadOnlyList<AddressSpace> requestAddressSpaces)
     {
         List<CompositionIssue> issues = [];
+        ValidateInputPaddingPolicy(profile, requestAddressSpaces, issues);
 
         AddDuplicateIssues(
             profile.Regions,
@@ -109,6 +112,40 @@ public static class CompositionProfileCompiler
         }
 
         return issues;
+    }
+
+    private static void ValidateInputPaddingPolicy(
+        CompositionProfileDefinition profile,
+        IReadOnlyList<AddressSpace> requestAddressSpaces,
+        List<CompositionIssue> issues)
+    {
+        foreach (AddressSpace addressSpace in requestAddressSpaces.Where(space => space.InputPaddingByte is not null))
+        {
+            issues.Add(new CompositionIssue(
+                "profile.input-padding.request-not-allowed",
+                $"Runtime address space '{addressSpace.AddressSpaceId}' cannot declare input padding.",
+                addressSpace.AddressSpaceId));
+        }
+
+        if (!RequiresStrictInputLength(profile))
+        {
+            return;
+        }
+
+        foreach (AddressSpace addressSpace in profile.AddressSpaces.Where(space => space.InputPaddingByte is not null))
+        {
+            issues.Add(new CompositionIssue(
+                "profile.input-padding.processor-conflict",
+                $"Address space '{addressSpace.AddressSpaceId}' declares input padding in a profile with processor-dependent integrity.",
+                addressSpace.AddressSpaceId));
+        }
+    }
+
+    private static bool RequiresStrictInputLength(CompositionProfileDefinition profile)
+    {
+        return string.Equals(profile.ExperienceId, TpHardwareReplaceExperienceId, StringComparison.Ordinal) ||
+            profile.Operations.Any(operation => operation.Kind == CompositionOperationKind.RunExternalProcessor) ||
+            profile.Regions.Any(region => region.ProcessorDependencyIds.Count > 0);
     }
 
     private static void AddDuplicateIssues<T>(

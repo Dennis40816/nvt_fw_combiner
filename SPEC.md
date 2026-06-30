@@ -832,6 +832,16 @@ Preview executes through plan/validation and processor dry-run capability where 
 | normal mutation | copy/fill/patch/process | replace/copy/patch/process |
 | common engine | yes | yes |
 
+### 10.2.1 Input size mismatch and padding
+
+Profile address spaces declare the expected input length used by range validation. A supplied BIN shorter than the declared address-space length is accepted only when the profile explicitly declares an input padding byte for that immutable source/replacement address space and the profile has no CRC/header/processor dependency. Runtime/request address spaces cannot declare padding bytes. The engine pads only the transient execution buffer before copy/replace operations run; source BIN files are never modified. A supplied BIN longer than the declared length always fails closed.
+
+DP-only Replace flows that do not require CRC/header recalculation may use profile-declared padding. CtrlRAM Replace flows, including `tp-hw-replace` before the external combiner step is modeled, must use exact input length and cannot declare input padding.
+
+For reference-initialized Replace, the reference/base firmware address space must always be exact length and cannot declare input padding. Mutable work buffers also cannot declare input padding. Padding applies only to eligible immutable replacement source address spaces.
+
+Preview and build reports must preserve the actual supplied input size and hash. Reports should also make padded byte counts visible once the report schema grows a dedicated field.
+
 ### 10.3 Standard Merge
 
 Fixed profile inputs and mappings. The user selects IC/mode and BINs; profile owns ranges, output naming and post-processing.

@@ -144,6 +144,28 @@ public sealed class CompositionRunServiceTests
         Assert.DoesNotContain(result.Report.Inputs, input => input.ArtifactId == hostLocator);
     }
 
+    /// <summary>Verifies previews report actual input size while execution uses profile-declared padding.</summary>
+    [Fact]
+    public async Task PreviewPadsShortInputButReportsActualInputSize()
+    {
+        var reader = new FakeArtifactReader(new Dictionary<string, byte[]>
+        {
+            ["short-artifact"] = [0x11, 0x22],
+        });
+        var service = new CompositionRunService(
+            reader,
+            new FakeClock([FirstTimestamp, SecondTimestamp]));
+
+        CompositionRunResult result = await service.PreviewAsync(
+            CreatePaddedInputRequest(inputPaddingByte: 0xFF, artifactId: "short-artifact"),
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal([0x11, 0x22, 0xFF, 0xFF], result.OutputBytes.ToArray());
+        InputArtifactSummary input = Assert.Single(result.Report.Inputs);
+        Assert.Equal(2, input.Size);
+    }
+
     /// <summary>Verifies seeded mutable address-space bindings are read by run service previews.</summary>
     [Fact]
     public async Task PreviewReadsSeededMutableAddressSpaceBinding()
@@ -198,6 +220,28 @@ public sealed class CompositionRunServiceTests
 
         Assert.Equal(first.OutputBytes.ToArray(), second.OutputBytes.ToArray());
         Assert.NotEqual(first.PreviewToken, second.PreviewToken);
+    }
+
+    /// <summary>Verifies preview approval includes address-space padding policy, not only output bytes.</summary>
+    [Fact]
+    public async Task PreviewTokenChangesWhenInputPaddingPolicyChanges()
+    {
+        var service = new CompositionRunService(
+            new FakeArtifactReader(new Dictionary<string, byte[]>
+            {
+                ["exact-artifact"] = [0x11, 0x22, 0x33, 0x44],
+            }),
+            new FakeClock([FirstTimestamp, SecondTimestamp, ThirdTimestamp, FourthTimestamp]));
+
+        CompositionRunResult withoutPadding = await service.PreviewAsync(
+            CreatePaddedInputRequest(inputPaddingByte: null, artifactId: "exact-artifact"),
+            CancellationToken.None);
+        CompositionRunResult withPadding = await service.PreviewAsync(
+            CreatePaddedInputRequest(inputPaddingByte: 0xFF, artifactId: "exact-artifact"),
+            CancellationToken.None);
+
+        Assert.Equal(withoutPadding.OutputBytes.ToArray(), withPadding.OutputBytes.ToArray());
+        Assert.NotEqual(withoutPadding.PreviewToken, withPadding.PreviewToken);
     }
 
     /// <summary>Verifies preview runs external processor operations through the application port.</summary>
@@ -362,6 +406,49 @@ public sealed class CompositionRunServiceTests
             plan,
             [new InputArtifactBinding("scratch", "scratch-safe", "scratch-artifact")],
             "scratch.bin");
+    }
+
+    private static CompositionRunRequest CreatePaddedInputRequest(byte? inputPaddingByte, string artifactId)
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+            new("short-input", 4, AddressSpaceMutability.Immutable, inputPaddingByte),
+        ];
+        var plan = new CompositionPlan(
+            ImageInitialization.Blank("output-image", 4, 0),
+            addressSpaces,
+            [
+                CompositionOperation.CopyRange(
+                    "copy-padded-input",
+                    10,
+                    "short-input",
+                    new ByteRange(0, 4),
+                    "output-image",
+                    new ByteRange(0, 4),
+                    OverlapPolicy.Reject,
+                    "copy padded input"),
+            ],
+            new CompositionPlanProvenance(
+                "padded-input-profile",
+                "1.0.0",
+                "NT-SYNTHETIC",
+                "standard-merge",
+                "standard-merge",
+                CompositionKind.Merge));
+
+        return new CompositionRunRequest(
+            "run-padded-input",
+            new CompositionRunProfile(
+                "padded-input-profile",
+                "1.0.0",
+                "NT-SYNTHETIC",
+                "standard-merge",
+                "standard-merge",
+                CompositionKind.Merge),
+            plan,
+            [new InputArtifactBinding("short-input", "short-safe", artifactId)],
+            "padded.bin");
     }
 
     private static CompositionRunRequest CreateOverwriteRequest(string runId, byte firstFillByte)

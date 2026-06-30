@@ -65,6 +65,11 @@ public sealed class CompositionPlan
         Dictionary<string, AddressSpace> byId = new(StringComparer.Ordinal);
         foreach (AddressSpace addressSpace in addressSpaces)
         {
+            if (addressSpace.Mutability != AddressSpaceMutability.Immutable && addressSpace.InputPaddingByte is not null)
+            {
+                throw new ArgumentException("Mutable address spaces cannot declare input padding.", nameof(addressSpaces));
+            }
+
             if (!byId.TryAdd(addressSpace.AddressSpaceId, addressSpace))
             {
                 throw new ArgumentException(
@@ -99,6 +104,11 @@ public sealed class CompositionPlan
         {
             ValidateReferenceInitialization();
         }
+
+        if (OrderedOperations.Any(operation => operation.Kind == CompositionOperationKind.RunExternalProcessor))
+        {
+            ValidateProcessorInputPadding();
+        }
     }
 
     private void ValidateReferenceInitialization()
@@ -123,6 +133,21 @@ public sealed class CompositionPlan
         if (referenceSpace.Length != Initialization.Capacity)
         {
             throw new ArgumentException("Reference address-space length must match initialization capacity.", nameof(Initialization));
+        }
+
+        if (referenceSpace.InputPaddingByte is not null)
+        {
+            throw new ArgumentException("Reference address space cannot declare input padding.", nameof(Initialization));
+        }
+    }
+
+    private void ValidateProcessorInputPadding()
+    {
+        if (AddressSpaces.Any(addressSpace => addressSpace.InputPaddingByte is not null))
+        {
+            throw new ArgumentException(
+                "Address spaces cannot declare input padding when an external processor operation is present.",
+                nameof(AddressSpaces));
         }
     }
 

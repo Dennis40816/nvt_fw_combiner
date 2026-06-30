@@ -80,6 +80,7 @@ Do not invent a second canonical repository verification entry point.
 - Current implementation priority is normal Merge and normal Replace for DP and TP CtrlRAM department workflows. AB Code Merge is deferred unless the owner explicitly reactivates it.
 - Standard/normal Merge must include NT51950 and NT51951 after the owner provides the memory map. Do not infer their merge map from AB evidence.
 - Replace flows are expected to require legacy `combiner.exe` CRC/header recalculation. Use the external combiner runner model and wait for owner-supplied invocation, version, ranges, and golden evidence before production implementation. The owner identified 932 common FW postbuild as the reference behavior to inspect.
+- Input BIN size mismatch policy is profile-declared and integrity-aware: no-CRC/no-processor flows, such as DP-only Replace, may pad shorter immutable replacement/source inputs only with an explicit profile padding byte. Runtime/request mappings, mutable work buffers, reference/base firmware, and CtrlRAM/CRC/combiner flows must keep exact input length. A supplied input longer than the declared length always fails closed.
 - UI should be modern, minimal, and low-reading-cost. Top-level product navigation is limited to Settings, Merge, and Replace unless the owner explicitly expands it.
 - UI top-level navigation uses top tabs.
 - Merge and Replace must share a consistent Memory coverage before/after visualization in the same layout position. The Memory coverage area is visual-first, with table details as supporting information.

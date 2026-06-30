@@ -30,7 +30,8 @@ public static class CompositionEngine
             return CompositionExecutionResult.Failed(issues);
         }
 
-        Dictionary<string, byte[]> mutableBuffers = InitializeMutableBuffers(plan, input);
+        Dictionary<string, byte[]> normalizedInputs = NormalizeExecutionInputs(plan, input);
+        Dictionary<string, byte[]> mutableBuffers = InitializeMutableBuffers(plan, normalizedInputs);
         List<MutationRecord> mutations = [];
 
         foreach (CompositionOperation operation in plan.OrderedOperations)
@@ -54,7 +55,7 @@ public static class CompositionEngine
             }
             else
             {
-                ApplyHostOperation(operation, input, mutableBuffers);
+                ApplyHostOperation(operation, normalizedInputs, mutableBuffers);
             }
 
             byte[] after = ReadSlice(targetBuffer, operation.TargetRange);
@@ -93,11 +94,23 @@ public static class CompositionEngine
                 continue;
             }
 
-            if (bytes.Length != addressSpace.Length)
+            if (bytes.Length > addressSpace.Length)
             {
                 issues.Add(new CompositionIssue(
                     "input.address-space.length-mismatch",
-                    $"Input bytes for address space '{addressSpace.AddressSpaceId}' do not match declared length."));
+                    $"Input bytes for address space '{addressSpace.AddressSpaceId}' exceed declared length."));
+            }
+            else if (bytes.Length < addressSpace.Length && addressSpace.InputPaddingByte is null)
+            {
+                issues.Add(new CompositionIssue(
+                    "input.address-space.length-mismatch",
+                    $"Input bytes for address space '{addressSpace.AddressSpaceId}' are shorter than declared length and no padding byte is declared."));
+            }
+            else if (bytes.Length < addressSpace.Length && addressSpace.Length > int.MaxValue)
+            {
+                issues.Add(new CompositionIssue(
+                    "execution.capacity.unsupported",
+                    $"Padded input bytes for address space '{addressSpace.AddressSpaceId}' exceed the supported runtime array length."));
             }
         }
 
@@ -111,6 +124,40 @@ public static class CompositionEngine
         return issues;
     }
 
+    private static Dictionary<string, byte[]> NormalizeExecutionInputs(CompositionPlan plan, CompositionExecutionInput input)
+    {
+        Dictionary<string, byte[]> normalizedInputs = new(StringComparer.Ordinal);
+        foreach (AddressSpace addressSpace in plan.AddressSpaces)
+        {
+            if (string.Equals(addressSpace.AddressSpaceId, plan.Initialization.TargetSpaceId, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (!input.TryGetBytes(addressSpace.AddressSpaceId, out ReadOnlyMemory<byte> bytes))
+            {
+                continue;
+            }
+
+            byte[] buffer = bytes.ToArray();
+            if (buffer.LongLength < addressSpace.Length)
+            {
+                byte[] padded = new byte[checked((int)addressSpace.Length)];
+                buffer.CopyTo(padded, 0);
+                Array.Fill(
+                    padded,
+                    addressSpace.InputPaddingByte!.Value,
+                    buffer.Length,
+                    padded.Length - buffer.Length);
+                buffer = padded;
+            }
+
+            normalizedInputs.Add(addressSpace.AddressSpaceId, buffer);
+        }
+
+        return normalizedInputs;
+    }
+
     private static bool RequiresMutableSeed(CompositionPlan plan, AddressSpace addressSpace)
     {
         return plan.OrderedOperations.Any(operation =>
@@ -118,7 +165,9 @@ public static class CompositionEngine
             string.Equals(operation.SourceSpaceId, addressSpace.AddressSpaceId, StringComparison.Ordinal));
     }
 
-    private static Dictionary<string, byte[]> InitializeMutableBuffers(CompositionPlan plan, CompositionExecutionInput input)
+    private static Dictionary<string, byte[]> InitializeMutableBuffers(
+        CompositionPlan plan,
+        Dictionary<string, byte[]> input)
     {
         Dictionary<string, byte[]> mutableBuffers = new(StringComparer.Ordinal);
         foreach (AddressSpace addressSpace in plan.AddressSpaces.Where(item => item.Mutability == AddressSpaceMutability.Mutable))
@@ -129,16 +178,18 @@ public static class CompositionEngine
                 continue;
             }
 
-            if (input.TryGetBytes(addressSpace.AddressSpaceId, out ReadOnlyMemory<byte> seedBytes))
+            if (input.TryGetValue(addressSpace.AddressSpaceId, out byte[]? seedBytes))
             {
-                mutableBuffers.Add(addressSpace.AddressSpaceId, seedBytes.ToArray());
+                mutableBuffers.Add(addressSpace.AddressSpaceId, [.. seedBytes]);
             }
         }
 
         return mutableBuffers;
     }
 
-    private static byte[] InitializeOutput(ImageInitialization initialization, CompositionExecutionInput input)
+    private static byte[] InitializeOutput(
+        ImageInitialization initialization,
+        Dictionary<string, byte[]> input)
     {
         if (initialization.Kind == ImageInitializationKind.Blank)
         {
@@ -147,13 +198,12 @@ public static class CompositionEngine
             return output;
         }
 
-        _ = input.TryGetBytes(initialization.ReferenceSpaceId!, out ReadOnlyMemory<byte> referenceBytes);
-        return referenceBytes.ToArray();
+        return [.. input[initialization.ReferenceSpaceId!]];
     }
 
     private static void ApplyHostOperation(
         CompositionOperation operation,
-        CompositionExecutionInput input,
+        Dictionary<string, byte[]> input,
         Dictionary<string, byte[]> mutableBuffers)
     {
         byte[] targetBuffer = mutableBuffers[operation.TargetSpaceId];
@@ -239,7 +289,7 @@ public static class CompositionEngine
 
     private static ReadOnlySpan<byte> ReadOperationSource(
         CompositionOperation operation,
-        CompositionExecutionInput input,
+        Dictionary<string, byte[]> input,
         Dictionary<string, byte[]> mutableBuffers)
     {
         ByteRange sourceRange = operation.SourceRange!.Value;
@@ -248,8 +298,8 @@ public static class CompositionEngine
             return mutableSource.AsSpan((int)sourceRange.Start, (int)sourceRange.Length);
         }
 
-        _ = input.TryGetBytes(operation.SourceSpaceId!, out ReadOnlyMemory<byte> sourceBytes);
-        return sourceBytes.Span[(int)sourceRange.Start..(int)sourceRange.EndExclusive];
+        byte[] sourceBytes = input[operation.SourceSpaceId!];
+        return sourceBytes.AsSpan((int)sourceRange.Start, (int)sourceRange.Length);
     }
 
     private static MutationRecord CreateMutationRecord(CompositionOperation operation, byte[] before, byte[] after)

@@ -64,6 +64,101 @@ public sealed class CompositionEngineTests
         Assert.Equal([1, 2, 3, 4], reference);
     }
 
+    /// <summary>Verifies profile-declared input padding extends shorter inputs before copy operations read them.</summary>
+    [Fact]
+    public void ShortInputWithDeclaredPaddingByteIsPaddedBeforeCopyRange()
+    {
+        CompositionPlan plan = CreateBlankPlan(
+            4,
+            new AddressSpace("input", 4, AddressSpaceMutability.Immutable, inputPaddingByte: 0xFF),
+            CompositionOperation.CopyRange(
+                "copy-input",
+                10,
+                "input",
+                new ByteRange(0, 4),
+                "output-image",
+                new ByteRange(0, 4),
+                OverlapPolicy.Reject,
+                "copy padded source"));
+        var input = new CompositionExecutionInput(new Dictionary<string, byte[]>
+        {
+            ["input"] = [0x11, 0x22],
+        });
+
+        CompositionExecutionResult result = CompositionEngine.Execute(plan, input);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal([0x11, 0x22, 0xFF, 0xFF], result.OutputBytes.ToArray());
+    }
+
+    /// <summary>Verifies longer-than-declared inputs remain rejected even when a padding byte is declared.</summary>
+    [Fact]
+    public void InputLongerThanDeclaredLengthFailsClosed()
+    {
+        CompositionPlan plan = CreateBlankPlan(
+            2,
+            new AddressSpace("input", 2, AddressSpaceMutability.Immutable, inputPaddingByte: 0xFF),
+            CompositionOperation.CopyRange(
+                "copy-input",
+                10,
+                "input",
+                new ByteRange(0, 2),
+                "output-image",
+                new ByteRange(0, 2),
+                OverlapPolicy.Reject,
+                "copy source"));
+        var input = new CompositionExecutionInput(new Dictionary<string, byte[]>
+        {
+            ["input"] = [0x11, 0x22, 0x33],
+        });
+
+        CompositionExecutionResult result = CompositionEngine.Execute(plan, input);
+
+        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("input.address-space.length-mismatch", issue.Code);
+        Assert.Contains("exceed declared length", issue.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies caller-supplied initialized target bytes are ignored before padding normalization.</summary>
+    [Fact]
+    public void InitializedTargetInputBytesAreIgnoredBeforePadding()
+    {
+        CompositionPlan plan = CreateBlankPlan(3);
+        var input = new CompositionExecutionInput(new Dictionary<string, byte[]>
+        {
+            ["output-image"] = [0x11],
+        });
+
+        CompositionExecutionResult result = CompositionEngine.Execute(plan, input);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal([0xFF, 0xFF, 0xFF], result.OutputBytes.ToArray());
+    }
+
+    /// <summary>Verifies padding a source beyond the runtime array limit returns a structured issue.</summary>
+    [Fact]
+    public void OversizedPaddedInputFailsWithStructuredIssue()
+    {
+        var plan = new CompositionPlan(
+            ImageInitialization.Blank("output-image", 1, 0xFF),
+            [
+                new AddressSpace("output-image", 1, AddressSpaceMutability.Mutable),
+                new AddressSpace("oversized-input", (long)int.MaxValue + 1, AddressSpaceMutability.Immutable, inputPaddingByte: 0xFF),
+            ],
+            []);
+        var input = new CompositionExecutionInput(new Dictionary<string, byte[]>
+        {
+            ["oversized-input"] = [0x11],
+        });
+
+        CompositionExecutionResult result = CompositionEngine.Execute(plan, input);
+
+        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("execution.capacity.unsupported", issue.Code);
+    }
+
     /// <summary>Verifies patch-scalar writes exactly the supplied bytes without implicit endian conversion.</summary>
     [Fact]
     public void PatchScalarWritesExactProfileBytes()
