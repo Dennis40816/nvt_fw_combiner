@@ -1,12 +1,12 @@
-# Diagnostics and Terminal Wireframe Plan
+# Report Modal and Diagnostics Wireframe Plan
 
-`0.1.1` reserves a diagnostics UI before real processors and firmware flows are implemented.
+`0.1.1` reserves report and diagnostics UI before real processors and firmware flows are implemented. Diagnostics is not a top-level page; Preview and Build open a report modal that contains evidence, sanitized logs, and diagnostics.
 
-## Diagnostics page layout
+## Report modal layout
 
 ```text
-Diagnostics
-  Run summary card
+Preview/Build report modal
+  Run summary
   Validation issue list
   External processor readiness
   Read-only terminal transcript
@@ -14,7 +14,7 @@ Diagnostics
   Copy diagnostics action
 ```
 
-## Run summary card
+## Run summary
 
 Synthetic fields for the demo:
 
@@ -50,7 +50,7 @@ Forbidden content:
 - secrets, tokens, signing material;
 - unbounded stdout/stderr.
 
-## External processor readiness card
+## External processor readiness
 
 Show these fields when a processor is declared:
 
@@ -83,7 +83,7 @@ Report
   issues
 ```
 
-The report preview helps validate UX without doing real composition.
+The report preview helps validate UX without doing real composition. Settings may link to report export or diagnostics configuration, but the run-specific evidence remains in the Preview/Build report modal.
 
 ## Copy diagnostics rule
 

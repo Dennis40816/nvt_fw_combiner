@@ -35,6 +35,34 @@ public sealed class RepositoryBoundaryTests
         Assert.Contains("No `File.ReadAllBytes` or `Process.Start` in ViewModels", boundaries, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies the demo shell follows the owner-approved top-tab and report-modal direction.</summary>
+    [Fact]
+    public void DemoShellUsesTopTabsAndReportModalPreview()
+    {
+        string shell = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml");
+
+        Assert.Contains("ItemsPanelTemplate", shell, StringComparison.Ordinal);
+        Assert.Contains("StackPanel Orientation=\"Horizontal\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ReportModalPreview", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("ColumnDefinitions=\"220,*\"", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("Diagnostics.", shell, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies demo-shell copy is routed through bilingual text resources.</summary>
+    [Fact]
+    public void DemoShellUsesBilingualTextResources()
+    {
+        string resources = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/DemoShellTextResources.cs");
+        string sampleData = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/DemoShellSampleData.cs");
+
+        Assert.Contains("DemoShellLanguage.ChineseTraditional", resources, StringComparison.Ordinal);
+        Assert.Contains("合併", resources, StringComparison.Ordinal);
+        Assert.Contains("DemoShellTextResources.For(language)", sampleData, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"Merge preview\"", sampleData, StringComparison.Ordinal);
+    }
+
     private static string ReadText(string relativePath)
     {
         string fullPath = Path.Combine(Root.FullName, relativePath.Replace('/', Path.DirectorySeparatorChar));

@@ -10,11 +10,12 @@ public sealed class MainWindowViewModel
         string workspaceSummary,
         string previewActionLabel,
         string buildActionLabel,
+        string reportModalActionLabel,
         IReadOnlyList<NavigationItemViewModel> navigationItems,
         PlanningCardViewModel mergePreview,
         PlanningCardViewModel replacePreview,
         PlanningCardViewModel savedRulesAndReports,
-        PlanningCardViewModel diagnostics,
+        PlanningCardViewModel reportModalPreview,
         string footerStatus)
     {
         ShellVersion = shellVersion;
@@ -22,11 +23,12 @@ public sealed class MainWindowViewModel
         WorkspaceSummary = workspaceSummary;
         PreviewActionLabel = previewActionLabel;
         BuildActionLabel = buildActionLabel;
+        ReportModalActionLabel = reportModalActionLabel;
         NavigationItems = navigationItems;
         MergePreview = mergePreview;
         ReplacePreview = replacePreview;
         SavedRulesAndReports = savedRulesAndReports;
-        Diagnostics = diagnostics;
+        ReportModalPreview = reportModalPreview;
         FooterStatus = footerStatus;
     }
 
@@ -45,7 +47,10 @@ public sealed class MainWindowViewModel
     /// <summary>Gets the build action label.</summary>
     public string BuildActionLabel { get; }
 
-    /// <summary>Gets the sidebar navigation items.</summary>
+    /// <summary>Gets the report modal action label.</summary>
+    public string ReportModalActionLabel { get; }
+
+    /// <summary>Gets the top tab navigation items.</summary>
     public IReadOnlyList<NavigationItemViewModel> NavigationItems { get; }
 
     /// <summary>Gets merge preview sample content.</summary>
@@ -57,8 +62,8 @@ public sealed class MainWindowViewModel
     /// <summary>Gets saved rules and reports sample content.</summary>
     public PlanningCardViewModel SavedRulesAndReports { get; }
 
-    /// <summary>Gets diagnostics sample content.</summary>
-    public PlanningCardViewModel Diagnostics { get; }
+    /// <summary>Gets report modal sample content.</summary>
+    public PlanningCardViewModel ReportModalPreview { get; }
 
     /// <summary>Gets footer status content.</summary>
     public string FooterStatus { get; }
