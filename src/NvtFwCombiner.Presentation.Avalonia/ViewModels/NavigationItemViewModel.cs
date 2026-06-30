@@ -1,9 +1,9 @@
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-/// <summary>Navigation item displayed by the planning shell sidebar.</summary>
+/// <summary>Top-level navigation item displayed by the planning shell.</summary>
 public sealed class NavigationItemViewModel
 {
-    /// <summary>Initializes a sidebar navigation item.</summary>
+    /// <summary>Initializes a top-level navigation item.</summary>
     /// <param name="label">Visible navigation label.</param>
     public NavigationItemViewModel(string label)
     {

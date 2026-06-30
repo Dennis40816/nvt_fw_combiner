@@ -25,13 +25,9 @@ public static class DemoShellSampleData
     {
         return
         [
-            new("Home"),
+            new("Settings"),
             new("Merge"),
             new("Replace"),
-            new("Saved Rules"),
-            new("Reports"),
-            new("Settings"),
-            new("Diagnostics"),
         ];
     }
 
@@ -43,7 +39,7 @@ public static class DemoShellSampleData
             [
                 "Profile selector: demo-standard-merge",
                 "Inputs: DP demo.bin, TP demo.bin, optional LD placeholder",
-                "Preview: mapping and occupancy table supplied by application core later",
+                "Preview: shared Memory coverage before/after supplied by application core later",
             ],
             "Status: synthetic data, build blocked");
     }
@@ -58,7 +54,7 @@ public static class DemoShellSampleData
                 "TP HW: CtrlRAM only; TP firmware regions denied",
                 "TP FW: non-CtrlRAM TP firmware regions only; CtrlRAM denied",
                 "General: profile-declared explicit ranges only; protected regions denied",
-                "Preview: before/after changed ranges and protected warnings",
+                "Preview: shared Memory coverage before/after and protected warnings",
             ],
             "Status: access policy display only");
     }
@@ -67,10 +63,10 @@ public static class DemoShellSampleData
     {
         return new PlanningCardViewModel(
             "Saved rules and reports",
-            "Evidence is read-only in this shell",
+            "Secondary surfaces in this shell",
             [
-                "Saved rules: draft / candidate / supported",
-                "Reports: runId, inputs, operations, processor invocations, mutations, output",
+                "Saved rules: General Merge/Replace action and status, not top-level navigation",
+                "Reports: opened from preview/build results or Settings diagnostics",
                 "Promotion requires validation, compatibility review, and evidence.",
             ],
             "Status: report schema wiring arrives after core execution");
@@ -80,12 +76,12 @@ public static class DemoShellSampleData
     {
         return new PlanningCardViewModel(
             "Diagnostics",
-            "Sanitized transcript",
+            "Secondary read-only transcript",
             [
                 "[info] Loaded candidate profile: demo-standard-merge",
                 "[info] Compiled 6 synthetic operations",
                 "[warn] Build disabled until Composition Core milestone",
-                "[info] Terminal pane is read-only and sanitized",
+                "[info] Diagnostics open from Settings/status and remain sanitized",
             ],
             "Status: no external process is invoked");
     }
