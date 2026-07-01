@@ -16,7 +16,7 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 
 ## Milestone scope
 
-Current execution priority: normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows are pulled forward. AB merge remains in the roadmap but is deferred until the owner reactivates it. NT51950/NT51951 normal Merge waits for owner memory maps; Replace CRC/header waits for owner-supplied `combiner.exe` invocation and golden evidence.
+Current execution priority: normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows are pulled forward. AB merge remains in the roadmap but is deferred until the owner reactivates it. NT51950/NT51951 normal Merge uses the confirmed DP Perspective TP overlay range `0xA000..0x36FFF` and still needs golden evidence; CtrlRAM Replace has the first Combiner 1.13.0 postbuild command core but still needs profile wiring and golden evidence.
 
 | Milestone | Scope | Implementation boundary |
 | --- | --- | --- |
@@ -26,7 +26,7 @@ Current execution priority: normal Merge and normal Replace for DP Replace and C
 | `0.2.0-dev.N` | Dev1 non-UI composition core | Profile compiler, composition plan, operation executor, preview/report core, staging workspace, fake external processor runner. |
 | `0.3.0-dev.N` | Standard merge parity | First standard IC group, golden tests, naming/version extraction. |
 | `0.4.0-dev.N` | Integrity/tool processing | Legacy combiner runner hardening, CRC/Header golden cases, packaging integration. |
-| `0.5.0-dev.N` | Normal Replace priority | DP Replace and CtrlRAM Replace workflows, IC num `single`/`cascade` selection, reserved `numeric` mode, and post-replace combiner readiness. |
+| `0.5.0-dev.N` | Normal Replace priority | DP Replace and CtrlRAM Replace workflows, IC num `single`/`cascade` selection plus approved `numeric` exceptions, and post-replace combiner readiness. |
 | `0.6.0-dev.N` | AB merge | Bank layout, relocation, compare rules, AB golden parity; deferred until the owner reactivates it. |
 | `0.7.0-dev.N` | General Merge/Replace and saved rules | Dynamic mappings, saved rule promotion, preset catalog. |
 | `0.8.0-dev.N` | Packaging/security | Release packaging, tool manifests, smoke tests. |

@@ -7,8 +7,8 @@ Rules:
 - JSON Schema Draft 2020-12.
 - UTF-8, deterministic property order, no unknown properties.
 - SHA-256 is lowercase 64-character hex.
-- Package paths are plain relative filenames.
-- Manifest lists five payload files other than itself and `SHA256SUMS.txt`.
+- Package paths are relative package paths. Base payload files are plain filenames; approved external tool payloads must live under `external-tools/`.
+- Manifest lists the five base payload files plus every shipped file under the approved `external-tools/` subtree, excluding itself and `SHA256SUMS.txt`.
 - Built-in profile/schema/processor digests describe resources embedded in the executables.
 - `licenseSpdx` is `MIT`.
 - Signing fields may be omitted only for explicitly approved unsigned beta/smoke packages.
@@ -25,7 +25,13 @@ Example:
   "runtimeIdentifier": "win-x64",
   "licenseSpdx": "MIT",
   "workerProtocolVersions": ["1.0", "2.0"],
-  "approvedProcessorIds": ["nfc.nt51950.tpb-header-crc-v1"],
+  "approvedProcessorIds": [
+    "nfc.crc32-mpeg2.calculate-v1",
+    "nfc.nt51927.ctrlram-postbuild-v1",
+    "nfc.nt51929.ctrlram-postbuild-v1",
+    "nfc.nt51950.ctrlram-postbuild-v1",
+    "nfc.nt51951.ctrlram-postbuild-v1"
+  ],
   "processorBundleSha256": "0000000000000000000000000000000000000000000000000000000000000000",
   "embeddedProfileCatalogSha256": "0000000000000000000000000000000000000000000000000000000000000000",
   "embeddedSchemaBundleSha256": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -59,6 +65,12 @@ Example:
       "size": 1,
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
       "role": "readme"
+    },
+    {
+      "path": "external-tools/legacy-combiner/1.13.0/Combiner.exe",
+      "size": 1,
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "role": "externalTool"
     }
   ],
   "sbomAsset": "NvtFwCombiner-v0.8.0-beta.1.cdx.json",
@@ -66,4 +78,4 @@ Example:
 }
 ```
 
-`approvedProcessorIds` may be empty in a pre-transform beta, but a profile requiring processor authority `transform` cannot be included unless its processor id is present and tested. `processorBundleSha256` covers the deterministic registry/parameter-schema bundle, not firmware data.
+`approvedProcessorIds` may be empty in a pre-transform beta, but a profile requiring processor authority `transform` cannot be included unless its processor id is present and tested. `processorBundleSha256` covers the deterministic registry/parameter-schema bundle, not firmware data. Shipped legacy Combiner binaries are represented as `externalTool` file entries and pinned by their own external tool manifests.

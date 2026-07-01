@@ -49,7 +49,6 @@
     "files": {
       "type": "array",
       "minItems": 5,
-      "maxItems": 5,
       "items": { "$ref": "#/$defs/file" },
       "allOf": [
         { "contains": { "properties": { "path": { "const": "NvtFwCombiner.exe" } }, "required": ["path"] }, "minContains": 1, "maxContains": 1 },
@@ -76,17 +75,32 @@
       "required": ["path", "size", "sha256", "role"],
       "properties": {
         "path": {
-          "enum": [
-            "NvtFwCombiner.exe",
-            "Nfc.CrcWorker.exe",
-            "THIRD-PARTY-NOTICES.txt",
-            "LICENSE.txt",
-            "README.txt"
+          "oneOf": [
+            {
+              "enum": [
+                "NvtFwCombiner.exe",
+                "Nfc.CrcWorker.exe",
+                "THIRD-PARTY-NOTICES.txt",
+                "LICENSE.txt",
+                "README.txt"
+              ]
+            },
+            {
+              "type": "string",
+              "pattern": "^external-tools/[A-Za-z0-9._/-]+$",
+              "not": {
+                "anyOf": [
+                  { "pattern": "\\.\\." },
+                  { "pattern": "//" },
+                  { "pattern": "/$" }
+                ]
+              }
+            }
           ]
         },
         "size": { "type": "integer", "minimum": 1 },
         "sha256": { "$ref": "#/$defs/sha256" },
-        "role": { "enum": ["application", "crcWorker", "notices", "license", "readme"] },
+        "role": { "enum": ["application", "crcWorker", "notices", "license", "readme", "externalTool"] },
         "signingIdentity": { "type": "string", "minLength": 1, "maxLength": 512 }
       }
     }

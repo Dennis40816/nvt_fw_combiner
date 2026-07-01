@@ -132,7 +132,7 @@ public sealed class DemoShellTextResources
                 [
                     "Profile: demo-standard-merge",
                     "Slots: DP, TP, optional LD",
-                    "950/951 maps pending",
+                    "950/951 TP: 0xA000-0x36FFF",
                 ],
                 "Build blocked"),
             new PlanningCardText(
@@ -142,7 +142,7 @@ public sealed class DemoShellTextResources
                     "Device context: shared IC and IC Num",
                     "DP Replace includes separate DP and LD payloads",
                     "CtrlRAM Replace uses approved CtrlRAM regions",
-                    "CRC/header waits for combiner.exe details",
+                    "CRC/header: combiner.exe postbuild core",
                 ],
                 "Policy display only"),
             "Profile catalog: demo | Preview: blocked | Report modal: planned | Firmware mutation: none");
@@ -177,7 +177,7 @@ public sealed class DemoShellTextResources
                 [
                     "Profile：demo-standard-merge",
                     "Slots：DP、TP、選用 LD",
-                    "950/951 maps pending",
+                    "950/951 TP：0xA000-0x36FFF",
                 ],
                 "Build blocked"),
             new PlanningCardText(
@@ -187,7 +187,7 @@ public sealed class DemoShellTextResources
                     "Device context：共用 IC 與 IC Num",
                     "DP Replace 包含分開的 DP 與 LD payload",
                     "CtrlRAM Replace 使用核准的 CtrlRAM regions",
-                    "CRC/header 等待 combiner.exe 細節",
+                    "CRC/header：combiner.exe postbuild core",
                 ],
                 "Policy display only"),
             "Profile catalog：demo | Preview：blocked | Report modal：planned | Firmware mutation：none");

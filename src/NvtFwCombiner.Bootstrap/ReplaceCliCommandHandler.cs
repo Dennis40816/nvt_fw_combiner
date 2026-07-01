@@ -108,7 +108,7 @@ internal static class ReplaceCliCommandHandler
         AtomicFileCompositionOutputWriter? writer = action == "build"
             ? new AtomicFileCompositionOutputWriter(outputTarget.OutputDirectory, options.Flags.Contains("--overwrite"))
             : null;
-        var service = new CompositionRunService(reader, new SystemClock(), writer);
+        var service = new CompositionRunService(reader, new SystemClock(), writer, ExternalProcessorFactory.CreateOrNull());
         var request = new CompositionRunRequest(
             CreateRunId(command, action),
             ToRunProfile(selectedProfile),
@@ -201,12 +201,6 @@ internal static class ReplaceCliCommandHandler
             return false;
         }
 
-        if (profile.IcNumberInputMode == IcNumberInputMode.NumericSelector)
-        {
-            error.WriteLine("error: numeric IC num input mode is reserved and not enabled");
-            return false;
-        }
-
         if (!RequireOption(options, "--ic-num", error, out string? icNumber))
         {
             return false;
@@ -221,6 +215,24 @@ internal static class ReplaceCliCommandHandler
             }
 
             selection = new IcNumberSelection(IcNumberInputMode.SingleSelector, [icNumber]);
+            return true;
+        }
+
+        if (profile.IcNumberInputMode == IcNumberInputMode.NumericSelector)
+        {
+            if (options.Values.ContainsKey("--ic-family"))
+            {
+                error.WriteLine("error: --ic-family is used only by cascade IC num profiles");
+                return false;
+            }
+
+            if (!int.TryParse(icNumber, out int parsedIcNumber) || parsedIcNumber <= 0)
+            {
+                error.WriteLine("error: numeric --ic-num must be a positive integer");
+                return false;
+            }
+
+            selection = new IcNumberSelection(IcNumberInputMode.NumericSelector, [icNumber]);
             return true;
         }
 

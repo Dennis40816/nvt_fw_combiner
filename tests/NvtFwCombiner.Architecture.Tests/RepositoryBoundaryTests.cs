@@ -114,11 +114,10 @@ public sealed class RepositoryBoundaryTests
             string[] row = FindMarkdownTableRow("docs/architecture/supported-ic-matrix.md", ic).Cells;
 
             Assert.Contains("normal merge requested", row[1], StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("memory map pending", row[1], StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("DP Perspective", row[1], StringComparison.OrdinalIgnoreCase);
             Assert.Contains("DP and CtrlRAM priority", row[3], StringComparison.Ordinal);
-            Assert.Contains("AB:", row[4], StringComparison.Ordinal);
-            Assert.Contains("Replace:", row[4], StringComparison.Ordinal);
-            Assert.Contains("AB", row[5], StringComparison.Ordinal);
+            Assert.Contains("DP", row[4], StringComparison.Ordinal);
+            Assert.Contains("golden", row[5], StringComparison.OrdinalIgnoreCase);
         }
     }
 
@@ -156,11 +155,12 @@ public sealed class RepositoryBoundaryTests
 
         string[] row = FindMarkdownTableRow(
             "docs/architecture/integrity-processing-matrix.md",
-            "Replace DP/CtrlRAM priority flows").Cells;
+            "CtrlRAM Replace priority flows").Cells;
 
         Assert.Contains("post-replace", row[1], StringComparison.Ordinal);
         Assert.Contains("combiner.exe", row[2], StringComparison.Ordinal);
-        Assert.Contains("932 common FW postbuild", row[3], StringComparison.Ordinal);
+        Assert.Contains("Combiner 1.13.0", row[3], StringComparison.Ordinal);
+        Assert.Contains("NT51927", row[3], StringComparison.Ordinal);
         Assert.DoesNotContain("TPB", string.Join(' ', row), StringComparison.Ordinal);
     }
 

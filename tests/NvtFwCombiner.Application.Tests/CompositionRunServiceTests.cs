@@ -88,6 +88,25 @@ public sealed class CompositionRunServiceTests
         Assert.Equal("build.preview-token.mismatch", issue.Code);
     }
 
+    /// <summary>Verifies approved numeric IC number selections can be bound to Replace run profiles.</summary>
+    [Fact]
+    public void NumericIcNumberSelectionIsAcceptedForReplaceRunProfile()
+    {
+        CompositionRunRequest request = CreateNumericReplaceRequest("2");
+
+        Assert.Equal(IcNumberInputMode.NumericSelector, request.IcNumberSelection!.Mode);
+        Assert.Equal("2", Assert.Single(request.IcNumberSelection.Parts));
+    }
+
+    /// <summary>Verifies numeric IC number selections reject non-integer values before execution.</summary>
+    [Fact]
+    public void NumericIcNumberSelectionRejectsNonIntegerValue()
+    {
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => CreateNumericReplaceRequest("cascade"));
+
+        Assert.Contains("positive integer", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>Verifies missing fixed standard merge input fails before output commit after preview gate passes.</summary>
     [Fact]
     public async Task MissingStandardMergeBindingFailsClosed()
@@ -604,6 +623,43 @@ public sealed class CompositionRunServiceTests
             CreateDpReplaceBindings(),
             profile.DefaultOutputFileName,
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, [icNumber]));
+    }
+
+    private static CompositionRunRequest CreateNumericReplaceRequest(string icCount)
+    {
+        var provenance = new CompositionPlanProvenance(
+            "numeric-replace",
+            "1.0.0",
+            "NT51927",
+            "ctrlram-replace",
+            "ctrlram-replace",
+            CompositionKind.Replace);
+        AddressSpace[] addressSpaces =
+        [
+            new("reference-base", 4, AddressSpaceMutability.Immutable),
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+        ];
+        var plan = new CompositionPlan(
+            ImageInitialization.Reference("output-image", "reference-base", 4),
+            addressSpaces,
+            [],
+            provenance);
+        var profile = new CompositionRunProfile(
+            provenance.ProfileId,
+            provenance.ProfileVersion,
+            provenance.IcId,
+            provenance.ModeId,
+            provenance.ExperienceId,
+            provenance.CompositionKind,
+            IcNumberInputMode.NumericSelector);
+
+        return new CompositionRunRequest(
+            "run-numeric-replace",
+            profile,
+            plan,
+            [new InputArtifactBinding("reference-base", "reference-safe", "reference-artifact")],
+            "numeric.bin",
+            icNumberSelection: new IcNumberSelection(IcNumberInputMode.NumericSelector, [icCount]));
     }
 
     private static IReadOnlyList<InputArtifactBinding> CreateDpReplaceBindings()

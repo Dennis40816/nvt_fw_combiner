@@ -9,6 +9,6 @@ public enum IcNumberInputMode
     /// <summary>Cascading IC number selection, such as family followed by concrete IC number.</summary>
     CascadeSelector,
 
-    /// <summary>Reserved for future numeric IC number exceptions.</summary>
+    /// <summary>Positive integer IC count for approved postbuild exceptions.</summary>
     NumericSelector,
 }

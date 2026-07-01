@@ -61,4 +61,4 @@ The host expands tokens after creating the staging directory. Profiles and users
 
 ## Repository policy
 
-Real `combiner.exe` binaries should not be committed to source control unless explicitly approved. The repository may include manifest examples and internal packaging instructions. Release packaging may add approved executables under an internal `external-tools/` layout.
+Real `combiner.exe` binaries should not be committed to source control unless explicitly approved. The repository may include manifest examples and internal packaging instructions. Release packaging may add approved executables under an internal `external-tools/` layout. Combiner `1.13.0` is the first owner-approved committed runtime package and is allowlisted by SHA-256.

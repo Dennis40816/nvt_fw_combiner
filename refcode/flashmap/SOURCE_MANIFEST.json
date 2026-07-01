@@ -1,0 +1,146 @@
+{
+  "source": "owner-upload",
+  "origin": "G:/My Drive/Working/Tools/File/word_encrypt/record/IC FlashMap.7z",
+  "snapshotDate": "2026-07-01",
+  "included": [
+    {
+      "path": "IC FlashMap/IC_FlashMap.xlsx",
+      "size": 208368,
+      "sha256": "dffa0eac16990343826d9ac7b66df56c6f7c0289313c1ec4515b47c6d59c4a1d"
+    },
+    {
+      "path": "IC FlashMap/combiner_1.13.0/Combiner.exe",
+      "size": 41472,
+      "sha256": "ed6b58289cc780f73d36b831f5424cef44ad93187ba7518d36df6a77ad0c76bf"
+    },
+    {
+      "path": "IC FlashMap/hsi_combiner_guide/JiraEntry.md",
+      "size": 2258,
+      "sha256": "734810ee8a68cd500f2c0443353e5a9e880ef02b6bb2d125b35c9e0693b9d769"
+    },
+    {
+      "path": "IC FlashMap/hsi_combiner_guide/NT51928BBASED_NORMAL_MODE.md",
+      "size": 2210,
+      "sha256": "d7c99afffadc532785c34f493d1c11af771c7acc267c4447638beead3595aa5a"
+    },
+    {
+      "path": "IC FlashMap/hsi_combiner_guide/NT51932BASED_MERGE_AB_MODE.md",
+      "size": 1474,
+      "sha256": "1d6e1ef03cb85a7f5148523d7674a5b57a5b1e37367688e1848040257d671cba"
+    },
+    {
+      "path": "IC FlashMap/hsi_combiner_guide/NT51950BASED_MERGE_AB_MODE.md",
+      "size": 1563,
+      "sha256": "d11a0d2368e8bbe5534cf413394d8eb1fdcc1b914cc787c785ceee33a742a656"
+    },
+    {
+      "path": "IC FlashMap/hsi_combiner_guide/NT51950BASED_NORMAL_MODE.md",
+      "size": 2205,
+      "sha256": "76b350db2a17f7fa9931eb1fa73e7059619cd2fcfa16c3aa56b979a8151a2b0b"
+    },
+    {
+      "path": "IC FlashMap/hsi_combiner_guide/parameters.md",
+      "size": 5845,
+      "sha256": "ed7f4645eaf8b0474ea0481c342469aa0396746341a2b5bc7d423473fbd2d49e"
+    },
+    {
+      "path": "IC FlashMap/hsi_combiner_guide/README.md",
+      "size": 1856,
+      "sha256": "f9f931addf746a332ad2e3dd306f02a186900ea6ca843b1129a4c3a3f929c55b"
+    },
+    {
+      "path": "IC FlashMap/mmap.h/51920_1.3.1_mmap.h",
+      "size": 10863,
+      "sha256": "70288c48b46c97a4ad24c78f1dba211a5f25847fa2b1398f8e45990b51314ed2"
+    },
+    {
+      "path": "IC FlashMap/mmap.h/51923_1.4.1_mmap.h",
+      "size": 13919,
+      "sha256": "41f5ae8cb21175d860329fd53e41431258b6d4ce318e68783ff5f8bfe92ae60b"
+    },
+    {
+      "path": "IC FlashMap/mmap.h/51926_2.0.0_mmap.h",
+      "size": 17672,
+      "sha256": "fa37b45efa542d10347a448f59d77ef7196a1be202a9085bb910dcb2b240280f"
+    },
+    {
+      "path": "IC FlashMap/mmap.h/51927_1.4.1_mmap.h",
+      "size": 12508,
+      "sha256": "cb90e6fb93220253bfb5ec81ccc03caa4f6236a0f327f9cf965cf7a1990cf734"
+    },
+    {
+      "path": "IC FlashMap/mmap.h/51929&51932_2.0.0_mmap.h",
+      "size": 17471,
+      "sha256": "128fb149ecaf30ce9d87c9590bc02367d434879c187fa86bd0a8c5894154922b"
+    },
+    {
+      "path": "IC FlashMap/mmap.h/51930_2.0.0_mmap.h",
+      "size": 16067,
+      "sha256": "86826dbad6463ba4881151f9381c096815624a6c75fb415f8470265f250bed94"
+    },
+    {
+      "path": "IC FlashMap/mmap.h/51931_1.3.0_mmap.h",
+      "size": 9956,
+      "sha256": "17a14b4be7da81b9a1188305f2ba4afb8fa5742df1137a379dc5ffd5afb2e192"
+    },
+    {
+      "path": "IC FlashMap/mmap.h/51950_2.0.0_mmap.h",
+      "size": 16790,
+      "sha256": "32439cec4e8e1af67f25b0f395c943a39915ee051d7dcee9c860d2d93df2628b"
+    },
+    {
+      "path": "IC FlashMap/mmap.h/mmap_overview.h",
+      "size": 17724,
+      "sha256": "4c1f9b73e3f3b5933b93682fb94cbf171284a6af8f7e3e587e0af6dcdcf10ed2"
+    },
+    {
+      "path": "IC FlashMap/postbuild/PostbuildSetup_51920_1.3.1.bat",
+      "size": 3156,
+      "sha256": "828081d0155a72c9c72d672418a416be297615c524a2fc26ed830da6bc1c3cd2"
+    },
+    {
+      "path": "IC FlashMap/postbuild/PostbuildSetup_51923_1.4.1.bat",
+      "size": 2819,
+      "sha256": "0fd65bf624a27ccae7fbcb5e30d89b19c6d874e3e3daafabe8aa4f8fce73bf56"
+    },
+    {
+      "path": "IC FlashMap/postbuild/PostbuildSetup_51926_2.0.0.bat",
+      "size": 6161,
+      "sha256": "1dedb0d2c7025bdc2b44195210f2224e80c8df8b6f630ebbdcaeda48905e3c51"
+    },
+    {
+      "path": "IC FlashMap/postbuild/PostbuildSetup_51927_1.4.1.bat",
+      "size": 7077,
+      "sha256": "c6580f4f2f4b3af43a7595cc069cf7c8d95d2213f1d0f551c36973b7e254aaee"
+    },
+    {
+      "path": "IC FlashMap/postbuild/PostbuildSetup_51930_2.0.0.bat",
+      "size": 7151,
+      "sha256": "46e6b30a046d6649a5e820d634fd723843e50723b405078a72e35c72eb843771"
+    },
+    {
+      "path": "IC FlashMap/postbuild/PostbuildSetup_51931_1.3.0.bat",
+      "size": 4080,
+      "sha256": "ff6122efbc109b45540947a93176f7d292b19731bf1b5336c3d7deb0fad6a5eb"
+    },
+    {
+      "path": "IC FlashMap/postbuild/PostbuildSetup_51932_2.0.0.bat",
+      "size": 5669,
+      "sha256": "9b570db204df0849f9962f09f9800e6e442a86d38d6dacd0988b32e18f0a514f"
+    },
+    {
+      "path": "IC FlashMap/postbuild/PostbuildSetup_51950_2.0.0.bat",
+      "size": 5676,
+      "sha256": "676b2e0d4178731034a0e8b118e9ad514b9beadf7094c5f9a6ee56ea784318a0"
+    }
+  ],
+  "excluded": [
+    "generated output",
+    "cache/temporary extraction folders"
+  ],
+  "notes": [
+    "Reference-only evidence. Production code must not load files from refcode.",
+    "Postbuild scripts are treated as behavioral truth; mmap headers explain symbol origins; TP Overview is the document baseline to correct when it conflicts.",
+    "The runtime tool package is external-tools/legacy-combiner/1.13.0."
+  ]
+}

@@ -14,7 +14,7 @@ This document defines the owner-approved UI direction for the first usable NVT F
 - Active state: top navigation and workflow mode selection must visibly show the active page/mode.
 - Button system: navigation uses low-noise active tabs, workflow mode uses rounded pill segmented controls, Home quick jumps use command rows, and disabled Preview/Build/Report actions stay visually light.
 - Inputs: firmware files are represented as slot cards.
-- Replace must consume the explicit shared IC num selector/input before region choices and processor readiness. Initial selector modes are `single` and `cascade`; `numeric` is contract-reserved.
+- Replace must consume the explicit shared IC num selector/input before region choices and processor readiness. Initial visible selector modes are `single` and `cascade`; `numeric` is hidden by default but may appear for approved profile exceptions.
 - Reports: Preview/Build opens a report modal for diagnostics and evidence review.
 - Saved Rules: hidden in the first UI release until the saved-rule workflow is implemented and reviewed.
 - Localization: UI implementation uses a bilingual English/Chinese-ready text architecture, with English as the initial default.
@@ -59,10 +59,11 @@ Shell
 - Risky processors show readiness before execution.
 - Current implementation priority is normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows; AB is deferred.
 - IC and IC Num remain in the same fixed Device context location across Home, Settings, Merge, and Replace.
-- Replace UI requires shared IC num selection/input before showing profile-specific regions. First UI supports `single` and `cascade`; `numeric` remains reserved for future IC exceptions.
+- Replace UI requires shared IC num selection/input before showing profile-specific regions. First UI supports `single` and `cascade` by default; `numeric` is exposed only for approved IC exceptions such as NT51927.
 - Saved Rules controls remain hidden in the first UI release.
 - Reports and diagnostics are secondary surfaces opened from Preview/Build report modals; Settings may expose diagnostics configuration/export, but not run-specific evidence as a top-level page.
 - Reports must tie UI state, operation trace, external processor invocation, mutation ranges, and output hash via `runId`.
+- Merge and Replace report modals must be persisted into a history view. History entries need the operation step list, IC/IC-num context, input/output hashes, external Combiner command sequence, warnings, and artifact path so a user can audit what happened after closing the modal.
 - Terminal/log panes are read-only and sanitized.
 - The shared Memory coverage area must support before/after display for both Merge and Replace without moving position between pages.
 - Memory coverage should read as a light workbench component with labels and legend, not as a dominant dark banner.

@@ -8,7 +8,8 @@
     "portRequiresRegressionTest": true,
     "allowedTopLevelCodeSnapshots": [
       "gen_flash_bin_v2",
-      "ab_code_combiner"
+      "ab_code_combiner",
+      "flashmap"
     ],
     "typescriptSnapshotAllowed": false
   },
@@ -30,6 +31,14 @@
       "snapshotPath": "refcode/ab_code_combiner",
       "purpose": "Authoritative current Python reference for AB merge, relocation, version naming, and NT51950/NT51951 CRC behavior.",
       "sourceManifest": "refcode/ab_code_combiner/SOURCE_MANIFEST.json"
+    },
+    {
+      "id": "ic-flashmap-postbuild-reference",
+      "kind": "owner-upload",
+      "origin": "G:/My Drive/Working/Tools/File/word_encrypt/record/IC FlashMap.7z",
+      "snapshotPath": "refcode/flashmap",
+      "purpose": "Authoritative owner-provided Excel/postbuild/mmap reference for CtrlRAM Replace maps, postbuild order, and Combiner 1.13.0 evidence.",
+      "sourceManifest": "refcode/flashmap/SOURCE_MANIFEST.json"
     }
   ],
   "conceptReferences": [

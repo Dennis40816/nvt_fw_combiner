@@ -2,12 +2,19 @@
 
 ## Closed allowlist
 
-The end-user ZIP contains one top-level directory with exactly seven files:
+The end-user ZIP contains one top-level directory with a closed file allowlist:
 
 ```text
 NvtFwCombiner-vX.Y.Z-win-x64/
 ├─ NvtFwCombiner.exe
 ├─ Nfc.CrcWorker.exe
+├─ external-tools/
+│  ├─ README.md
+│  └─ legacy-combiner/
+│     ├─ README.md
+│     └─ 1.13.0/
+│        ├─ Combiner.exe
+│        └─ manifest.json
 ├─ RELEASE-MANIFEST.json
 ├─ THIRD-PARTY-NOTICES.txt
 ├─ LICENSE.txt
@@ -15,7 +22,7 @@ NvtFwCombiner-vX.Y.Z-win-x64/
 └─ SHA256SUMS.txt
 ```
 
-No source/profile tree, Python runtime installation, .NET runtime installation, tests, firmware BINs, PDBs, Codex configuration, or signing material is shipped. Built-in data needed at runtime must ultimately be embedded into the app or an explicitly reviewed processor bundle.
+No source/profile tree, Python runtime installation, .NET runtime installation, tests, firmware BINs, PDBs, Codex configuration, or signing material is shipped. The only shipped external executable is an owner-approved Combiner package under `external-tools/`, and every file in that subtree is listed in `RELEASE-MANIFEST.json` and `SHA256SUMS.txt`.
 
 ## Implemented commands
 
@@ -23,7 +30,7 @@ No source/profile tree, Python runtime installation, .NET runtime installation, 
 ./scripts/package.ps1 -Version 1.0.0 -Commit <40-character-git-sha>
 ```
 
-The stable release path accepts stable SemVer only, publishes a self-contained single-file `win-x64` Avalonia app with trimming disabled, builds the worker with PyInstaller one-file mode, assembles a new empty directory, rejects paths outside the allowlist, writes the manifest and hashes, and creates the ZIP under `artifacts/release/`.
+The stable release path accepts stable SemVer only, publishes a self-contained single-file `win-x64` Avalonia app with trimming disabled, builds the worker with PyInstaller one-file mode, copies the approved external tool subtree, assembles a new empty directory, rejects paths outside the allowlist, writes the manifest and hashes, and creates the ZIP under `artifacts/release/`.
 
 `main-package.yml` runs the same packager on every `main` push with `-AllowPrerelease`, using the repository `VERSION` value. That workflow first uploads the ZIP, SBOM, and provenance files as a short-retention CI artifact. If GitHub Actions artifact storage is unavailable, it publishes the same files to a generated `main-package-<sha>` prerelease so the self-contained package remains downloadable. This fallback is not a stable release and does not replace the manually gated `release.yml` flow.
 

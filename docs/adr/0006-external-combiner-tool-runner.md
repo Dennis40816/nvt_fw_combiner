@@ -89,7 +89,7 @@ The concrete offsets above are examples only. Supported profiles require owner-a
 
 ## Tool manifest
 
-External combiner tools are declared by `docs/contracts/external-combiner-tool-manifest-v1.md` and its schema. Source control may include manifest examples and internal release manifest entries. Real `combiner.exe` binaries should not be committed unless the owner explicitly approves license, security, storage, and release policy.
+External combiner tools are declared by `docs/contracts/external-combiner-tool-manifest-v1.md` and its schema. Source control may include manifest examples and internal release manifest entries. Real `combiner.exe` binaries should not be committed unless the owner explicitly approves license, security, storage, and release policy. Combiner `1.13.0` is owner-approved for this repository and is pinned by manifest SHA-256.
 
 Recommended runtime package layout:
 

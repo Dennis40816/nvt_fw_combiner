@@ -139,16 +139,22 @@ public sealed class CompositionRunRequest
             throw new ArgumentException("Replace runs require an IC number selection.", nameof(selection));
         }
 
-        if (profile.IcNumberInputMode == IcNumberInputMode.NumericSelector)
-        {
-            throw new ArgumentException("Numeric IC number input mode is reserved and is not enabled yet.", nameof(profile));
-        }
-
         if (selection.Mode != profile.IcNumberInputMode)
         {
             throw new ArgumentException(
                 "IC number selection mode must match the run profile IC number input mode.",
                 nameof(selection));
         }
+
+        if (selection.Mode == IcNumberInputMode.NumericSelector &&
+            !IsPositiveInteger(selection.Parts[^1]))
+        {
+            throw new ArgumentException("Numeric IC number selection must be a positive integer.", nameof(selection));
+        }
+    }
+
+    private static bool IsPositiveInteger(string value)
+    {
+        return int.TryParse(value, out int parsed) && parsed > 0;
     }
 }

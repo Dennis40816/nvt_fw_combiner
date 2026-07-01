@@ -73,7 +73,7 @@ General Merge
 5. Ordered operation preview table as supporting detail.
 6. External processor readiness row.
 7. Output naming preview.
-8. NT51950/NT51951 map-pending status until owner memory maps are supplied.
+8. NT51950/NT51951 overlay/golden-pending status from DP Perspective evidence.
 
 ### AB Merge demo sections
 
@@ -114,7 +114,7 @@ General Replace
 
 ### Replace demo sections
 
-1. Shared IC num selector/input using `single` or `cascade`; `numeric` remains reserved.
+1. Shared IC num selector/input using `single` or `cascade` by default; `numeric` appears only for approved profile exceptions.
 2. Base reference BIN card.
 3. Replace persona selector.
 4. Replaceable region list.

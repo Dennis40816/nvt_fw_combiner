@@ -45,7 +45,11 @@ REQUIRED_FILES = {
     "scripts/publish-github.sh",
     "scripts/validate_repository.py",
     "scripts/verify.py",
+    "scripts/verify_flashmap_reference.py",
     "THIRD_PARTY_NOTICES.md",
+    "external-tools/README.md",
+    "external-tools/legacy-combiner/README.md",
+    "external-tools/legacy-combiner/1.13.0/manifest.json",
     "testdata/golden/standard-merge-gen-flash/manifest.json",
     "docs/adr/0003-unified-composition-engine.md",
     "docs/adr/0004-orthogonal-experience-access-policy.md",
@@ -82,6 +86,9 @@ REQUIRED_FILES = {
     "refcode/REFERENCE_MANIFEST.json",
     "refcode/gen_flash_bin_v2/SOURCE_MANIFEST.json",
     "refcode/ab_code_combiner/SOURCE_MANIFEST.json",
+    "refcode/flashmap/README.md",
+    "refcode/flashmap/SOURCE_MANIFEST.json",
+    "refcode/flashmap/VALIDATION.md",
     "tools/crc-worker/pyproject.toml",
 }
 
@@ -170,9 +177,13 @@ EXPECTED_SKILLS = {
     "polytail",
 }
 
-EXPECTED_REFCODE_SNAPSHOTS = {"gen_flash_bin_v2", "ab_code_combiner"}
+EXPECTED_REFCODE_SNAPSHOTS = {"gen_flash_bin_v2", "ab_code_combiner", "flashmap"}
 FORBIDDEN_SUFFIXES = {".bin", ".exe", ".dll", ".pdb", ".pfx", ".p12", ".pem", ".key", ".pyc"}
 ALLOWED_GOLDEN_BIN_ROOTS = {PurePosixPath("testdata/golden/standard-merge-gen-flash")}
+ALLOWED_EXECUTABLE_PAYLOADS = {
+    PurePosixPath("external-tools/legacy-combiner/1.13.0/Combiner.exe"),
+    PurePosixPath("refcode/flashmap/IC FlashMap/combiner_1.13.0/Combiner.exe"),
+}
 FORBIDDEN_DIRECTORY_NAMES = {"__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", ".venv", "venv", "artifacts", "release", "bin", "obj"}
 FORBIDDEN_REFCODE_SUFFIXES = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"}
 SNAPSHOT_CODE_SUFFIXES = {".py", ".json", ".txt", ".bat"}
@@ -243,8 +254,13 @@ def validate_forbidden_tracked_content(files: Iterable[Path], errors: list[str])
         relative = path.relative_to(ROOT)
         if any(part in FORBIDDEN_DIRECTORY_NAMES for part in relative.parts):
             errors.append(f"generated/cache path is tracked: {relative}")
-        if path.suffix.lower() in FORBIDDEN_SUFFIXES and not is_allowed_golden_bin(relative):
+        if path.suffix.lower() in FORBIDDEN_SUFFIXES and not is_allowed_binary_payload(relative):
             errors.append(f"forbidden payload/generated/secret-like file is tracked: {relative}")
+
+
+def is_allowed_binary_payload(relative: Path) -> bool:
+    normalized = PurePosixPath(relative.as_posix())
+    return is_allowed_golden_bin(relative) or normalized in ALLOWED_EXECUTABLE_PAYLOADS
 
 
 def is_allowed_golden_bin(relative: Path) -> bool:
