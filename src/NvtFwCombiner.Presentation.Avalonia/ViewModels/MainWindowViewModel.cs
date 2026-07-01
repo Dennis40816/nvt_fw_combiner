@@ -1,3 +1,4 @@
+using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -106,6 +107,12 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <summary>Gets footer status content.</summary>
     public string FooterStatus { get; }
 
+    /// <summary>Gets the loaded run report summary.</summary>
+    public ReportReviewViewModel LoadedReport { get; private set; } = ReportReviewViewModel.Empty;
+
+    /// <summary>True when a run report is loaded into the shell.</summary>
+    public bool HasLoadedReport => !LoadedReport.IsEmpty;
+
     /// <summary>Gets the selected demo-shell page.</summary>
     public DemoShellPage SelectedPage { get; private set; } = DemoShellPage.Home;
 
@@ -202,6 +209,22 @@ public sealed class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(IsSettingsVisible));
         OnPropertyChanged(nameof(IsMergeVisible));
         OnPropertyChanged(nameof(IsReplaceVisible));
+    }
+
+    /// <summary>Loads a CLI/application run report JSON into the readable report panel.</summary>
+    public void LoadReportJson(string json, string sourceName)
+    {
+        try
+        {
+            LoadedReport = ReportReviewViewModel.FromJson(json, sourceName);
+        }
+        catch (JsonException exception)
+        {
+            LoadedReport = ReportReviewViewModel.Error(sourceName, exception.Message);
+        }
+
+        OnPropertyChanged(nameof(LoadedReport));
+        OnPropertyChanged(nameof(HasLoadedReport));
     }
 }
 

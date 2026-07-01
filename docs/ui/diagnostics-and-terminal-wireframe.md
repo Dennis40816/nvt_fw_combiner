@@ -70,6 +70,17 @@ In `0.1.1`, this may be static synthetic data. Real execution starts in later mi
 
 ## Structured report preview
 
+The UI must not show raw JSON as the primary experience. A loaded report JSON should render as:
+
+```text
+Loaded report
+  summary: run, profile, IC, status, output hash
+  inputs: address space, size, short hash
+  operations: sequence, source/target ranges, processor/tool ids
+  issues: stable issue codes and messages
+  mutations: changed range, changed byte count, before/after hash
+```
+
 Show a tree/table version of the report shape:
 
 ```text

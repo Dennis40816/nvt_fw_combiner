@@ -9,6 +9,7 @@ The `0.1.1` demo shell may introduce page structure and synthetic data, but View
 - expose input card state;
 - expose validation issue summaries;
 - expose operation/report rows already produced by application services or demo providers;
+- display structured run report JSON after a file picker/result adapter has supplied the JSON text;
 - trigger commands such as Preview, Build, Save Rule, Open Report, Copy Diagnostics;
 - disable commands when the application model reports unsupported state.
 
@@ -48,6 +49,7 @@ Composition core is planned for 0.2.0-dev.N. This demo does not read firmware fi
 ## Review checklist
 
 - No `File.ReadAllBytes` or `Process.Start` in ViewModels.
+- No firmware file reads in ViewModels; structured report JSON may be supplied by UI adapters for read-only review.
 - No hex offsets hard-coded in ViewModels except synthetic display examples marked as such.
 - No `if experience == ab` byte behavior in ViewModels.
 - No executable path settings in UI before tool manifest UX is designed.

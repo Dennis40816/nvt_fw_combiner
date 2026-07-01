@@ -65,6 +65,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ColumnDefinitions=\"1.6*,360\"", shell, StringComparison.Ordinal);
         Assert.Contains("Content=\"AB Code\"", shell, StringComparison.Ordinal);
         Assert.Contains("IsEnabled=\"False\"", shell, StringComparison.Ordinal);
+        Assert.Contains("LoadReportJsonButton_OnClick", shell, StringComparison.Ordinal);
+        Assert.Contains("HasLoadedReport", shell, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.Operations", shell, StringComparison.Ordinal);
         Assert.Contains("FontFamily=\"fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Classes=\"secondary\" Content=\"{Binding PreviewActionLabel}\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Background=\"#0F172A\" CornerRadius=\"8\"", shell, StringComparison.Ordinal);
@@ -72,6 +75,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("ColumnDefinitions=\"220,*\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Diagnostics.", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("SavedRulesAndReports", shell, StringComparison.Ordinal);
+
+        string viewModel = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.cs");
+        Assert.Contains("LoadReportJson", viewModel, StringComparison.Ordinal);
+        Assert.Contains("ReportReviewViewModel", viewModel, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies demo-shell copy is routed through bilingual text resources.</summary>

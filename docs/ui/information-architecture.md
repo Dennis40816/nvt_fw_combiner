@@ -16,6 +16,7 @@ This document defines the owner-approved UI direction for the first usable NVT F
 - Inputs: firmware files are represented as slot cards.
 - Replace must consume the explicit shared IC num selector/input before region choices and processor readiness. Two-option profiles use text choices such as `single`/`cascade`; profiles with three or more concrete count choices use numeric selection, with future room for Other/custom exceptions.
 - Reports: Preview/Build opens a report modal for diagnostics and evidence review.
+- Report review: the shell may load a structured run report JSON and render it as a readable summary panel. This is a review surface for existing reports, not firmware file execution.
 - Saved Rules: hidden in the first UI release until the saved-rule workflow is implemented and reviewed.
 - Localization: UI implementation uses a bilingual English/Chinese-ready text architecture, with English as the initial default.
 - Typography: Inter for Latin/English UI text; Microsoft JhengHei UI for Traditional Chinese on Windows, falling back to Noto Sans CJK TC, Noto Sans TC, and Segoe UI.
@@ -61,7 +62,7 @@ Shell
 - IC and IC Num remain in the same fixed Device context location across Home, Settings, Merge, and Replace.
 - Replace UI requires shared IC num selection/input before showing profile-specific regions. First UI should render two-option IC count choices as text and render three-or-more concrete count choices as numeric selection, with future room for Other/custom exceptions.
 - Saved Rules controls remain hidden in the first UI release.
-- Reports and diagnostics are secondary surfaces opened from Preview/Build report modals; Settings may expose diagnostics configuration/export, but not run-specific evidence as a top-level page.
+- Reports and diagnostics are secondary surfaces opened from Preview/Build report modals; Settings may expose diagnostics configuration/export, but not run-specific evidence as a top-level page. Until the modal/history surface is complete, the shell may provide a non-navigational `Load report JSON` action that renders existing report JSON into a compact review panel.
 - Reports must tie UI state, operation trace, external processor invocation, mutation ranges, and output hash via `runId`.
 - Merge and Replace report modals must be persisted into a history view. History entries need the operation step list, IC/IC-num context, input/output hashes, external Combiner command sequence, warnings, and artifact path so a user can audit what happened after closing the modal.
 - Terminal/log panes are read-only and sanitized.
@@ -81,6 +82,7 @@ Shell
 - Buttons use distinct nav, rounded mode-pill segment, command-row, action, and disabled-action styles instead of one generic button treatment.
 - Inputs use slot cards.
 - Diagnostics and evidence are shown through Preview/Build report modals.
+- Existing report JSON can be loaded into a readable review panel for audit/debugging.
 - IC and IC Num use a shared Device context row that stays in the same location on every page.
 - Replace consumes the shared IC num selector/input.
 - The UI uses a bilingual English/Chinese-ready architecture.
