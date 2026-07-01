@@ -2,7 +2,7 @@
 
 This folder is an owner-provided reference snapshot from the updated workbook plus extracted postbuild/mmap evidence:
 
-`G:/My Drive/Working/Tools/File/word_encrypt/record/IC_FlashMap.xlsx`
+`G:/My Drive/Working/Tools/File/word_encrypt/record/IC_FlashMap_20260701.xlsx`
 
 The repository keeps the workbook and extracted support files directly so reviewers can diff workbook metadata, postbuild scripts, mmap headers, and guide text.
 
@@ -24,7 +24,7 @@ Trust order for CtrlRAM Replace map migration:
 
 1. postbuild script behavior.
 2. mmap symbol/size explanation.
-3. TP Overview and detailed Excel sheets as documentation to correct when they disagree.
+3. TP Overview and detailed Excel sheets as the owner-approved documentation baseline.
 
 Run:
 
@@ -32,4 +32,4 @@ Run:
 python scripts\verify_flashmap_reference.py --root "refcode\flashmap\IC FlashMap"
 ```
 
-Use `--strict` when documentation warnings should fail the command.
+`--strict` is kept as a compatibility flag; accepted owner decisions are reported as notes, not warnings.

@@ -198,11 +198,10 @@ MMAP_TOKEN_CHECKS = {
     ),
 }
 
-DOCUMENTATION_WARNINGS = [
-    "NT51929/NT51932 TP Overview lists FW Header Copy as 0x100 bytes, while the detailed sheet, postbuild HEADER_SZ, and mmap define a 0x200-byte header copy. Runtime follows postbuild/mmap for Combiner command equivalence.",
+ACCEPTED_REFERENCE_NOTES = [
     "NT51930 currently has no >13 IC product target; catalog intentionally maps cascade to the <=13 IC DiffDLM branch at 0x2F200 size 65024.",
-    "NT51927 is special: postbuild hard-codes MERGE_MODE plus NT51927BASED_GEN_CRC_MODE CRC32; catalog follows postbuild and TP Overview should match that command sequence.",
-    "NT51923 postbuild copies FW Config as one 2048-byte block while TP Overview splits FW Config/FW Register detail.",
+    "NT51927 is special: postbuild hard-codes MERGE_MODE plus NT51927BASED_GEN_CRC_MODE CRC32; catalog follows postbuild.",
+    "NT51923 postbuild copies FW Config as one 2048-byte block while TP Overview splits FW Config/FW Register detail; this is accepted reference detail, not a runtime conflict.",
     "Alias policy: NT51917 and NT51928 non-NB follow NT51927; NT51919 follows NT51929/NT51932; NT51951 follows NT51950. NT51928 NB is a separate IC and is not covered.",
 ]
 
@@ -247,15 +246,36 @@ def validate_workbook(root: Path, errors: list[str]) -> None:
 
     overview = workbook["TP Overview"] if "TP Overview" in sheet_names else None
     if overview is not None:
+        overview_rows = [row for row in overview.iter_rows()]
         overview_text = " ".join(
             str(cell.value).strip()
-            for row in overview.iter_rows()
+            for row in overview_rows
             for cell in row
             if cell.value is not None
         )
         for ic in ("51920", "51923", "51926", "51927", "51928", "51929", "51930", "51931", "51932", "51950", "51951"):
             if ic not in overview_text:
                 errors.append(f"TP Overview does not mention IC {ic}")
+        validate_nt51929_32_header_copy(overview_rows, errors)
+
+
+def validate_nt51929_32_header_copy(rows: Iterable[Iterable[object]], errors: list[str]) -> None:
+    """Verify the owner-fixed NT51929/NT51932 header copy size remains 0x200."""
+    row_texts = [
+        " ".join(str(getattr(cell, "value", cell)).strip().lower() for cell in row if getattr(cell, "value", cell) is not None)
+        for row in rows
+    ]
+    has_header = any(
+        "0x07000" in row and "fw header" in row and "512" in row and "0x00200" in row
+        for row in row_texts
+    )
+    has_header_copy = any(
+        "0x27ef0" in row and "fw header copy" in row and "512" in row and "0x00200" in row
+        for row in row_texts
+    )
+    if not has_header or not has_header_copy:
+        errors.append(
+            "TP Overview NT51929/NT51932 header/header-copy rows must show 512 bytes / 0x00200.")
 
 
 def validate_token_checks(root: Path, checks: dict[str, tuple[str, list[str]]], label: str, errors: list[str]) -> None:
@@ -279,7 +299,7 @@ def validate_combiner(root: Path, errors: list[str]) -> None:
 def parse_args(argv: Iterable[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=DEFAULT_FLASHMAP_ROOT)
-    parser.add_argument("--strict", action="store_true", help="Return non-zero when documentation warnings exist.")
+    parser.add_argument("--strict", action="store_true", help="Compatibility flag; accepted reference notes do not fail.")
     return parser.parse_args(argv)
 
 
@@ -303,12 +323,9 @@ def main(argv: Iterable[str] = sys.argv[1:]) -> int:
 
     print("IC FlashMap reference validation passed.")
     print("Verified postbuild-backed ICs: " + ", ".join(sorted(POSTBUILD_TOKEN_CHECKS)))
-    print(f"Documentation warnings: {len(DOCUMENTATION_WARNINGS)}")
-    for warning in DOCUMENTATION_WARNINGS:
-        print(f"WARNING: {warning}")
-
-    if args.strict and DOCUMENTATION_WARNINGS:
-        return 2
+    print(f"Accepted reference notes: {len(ACCEPTED_REFERENCE_NOTES)}")
+    for note in ACCEPTED_REFERENCE_NOTES:
+        print(f"NOTE: {note}")
     return 0
 
 

@@ -1,10 +1,10 @@
 # IC FlashMap Validation
 
-Validated on 2026-07-01 from the owner-provided updated `IC_FlashMap.xlsx` plus the previously extracted postbuild scripts, mmap headers, hsi guide, and approved Combiner evidence copy. The repository stores these references as normal files rather than as a `.7z`.
+Validated on 2026-07-01 from the owner-provided updated `IC_FlashMap_20260701.xlsx` plus the previously extracted postbuild scripts, mmap headers, hsi guide, and approved Combiner evidence copy. The repository stores these references as normal files rather than as a `.7z`.
 
 ## Trust Model
 
-Postbuild scripts are treated as the behavioral truth because CtrlRAM Replace must reproduce their Combiner command order. mmap headers are used to explain why offsets and sizes exist. TP Overview is the desired human-facing documentation baseline, but it currently has discrepancies that should be corrected before being treated as complete product documentation.
+Postbuild scripts are treated as the behavioral truth because CtrlRAM Replace must reproduce their Combiner command order. mmap headers are used to explain why offsets and sizes exist. TP Overview is now the owner-approved human-facing documentation baseline for ongoing development; accepted alias and product-scope decisions are recorded below.
 
 ## Supported By Postbuild Evidence
 
@@ -26,14 +26,18 @@ The postbuild-backed ICs verified in this snapshot are:
 
 Alias profiles are represented explicitly so reports keep the selected NT-prefixed IC id even when the command family follows another IC reference.
 
-## Documentation Warnings
+## Accepted Reference Notes
 
-These are not production-blocking for the postbuild catalog, but they mean TP Overview should be corrected:
+The following items are owner-accepted reference decisions, not validation warnings:
 
-- NT51929/NT51932: the updated TP Overview now places `NF_TABLE` at `0x1FC00`, matching mmap/postbuild naming. One documentation mismatch remains: TP Overview lists `FW Header Copy` as `0x100` bytes, while the detailed sheet, postbuild `HEADER_SZ`, and mmap define a `0x200` byte header copy. Runtime follows postbuild/mmap for Combiner command equivalence.
 - NT51930: the current product target has no `>13 IC` case. Runtime maps cascade to the `<=13 IC` branch: `DiffDLM = 0x2F200`, size `65024`.
-- NT51927: runtime follows the hard-coded postbuild command sequence. If mmap and TP Overview disagree, postbuild is authoritative and TP Overview should be updated to match it.
-- NT51923: postbuild copies FW Config as one `2048` byte block, while TP Overview splits FW Config/FW Register details. This is explainable but should be documented explicitly.
+- NT51927: runtime follows the hard-coded postbuild command sequence: `MERGE_MODE` plus `NT51927BASED_GEN_CRC_MODE CRC32`.
+- NT51923: postbuild copies FW Config as one `2048` byte block, while TP Overview splits FW Config/FW Register details. This is accepted detail, not a runtime conflict.
+- Alias policy: NT51917 and NT51928 non-NB follow NT51927; NT51919 follows NT51929/NT51932; NT51951 follows NT51950. NT51928 NB is a separate IC and is not covered.
+
+## Resolved Review Items
+
+- NT51929/NT51932: TP Overview now lists `FW Header` and `FW Header Copy` as `512` bytes / `0x00200`, matching detailed sheet, postbuild `HEADER_SZ`, and mmap. `scripts/verify_flashmap_reference.py` validates this dynamically.
 
 ## Implementation Decision
 
