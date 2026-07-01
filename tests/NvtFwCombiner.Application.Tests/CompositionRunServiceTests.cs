@@ -34,6 +34,15 @@ public sealed class CompositionRunServiceTests
         Assert.Equal(FirstTimestamp, result.Report.StartedAtUtc);
         Assert.Equal(SecondTimestamp, result.Report.CompletedAtUtc);
         Assert.Equal(["copy-dp", "copy-tp"], result.Report.Operations.Select(operation => operation.OperationId));
+        OperationRunSummary copyDp = result.Report.Operations[0];
+        Assert.Equal("dp-input", copyDp.SourceSpaceId);
+        Assert.Equal(new ByteRange(0, 4), copyDp.SourceRange);
+        Assert.Equal("output-image", copyDp.TargetSpaceId);
+        Assert.Equal(new ByteRange(0, 4), copyDp.TargetRange);
+        Assert.Equal(OverlapPolicy.Reject, copyDp.OverlapPolicy);
+        Assert.Null(copyDp.ProcessorId);
+        Assert.Empty(copyDp.ProcessorAllowedWriteRanges);
+        Assert.Equal("Copy synthetic DP input into the output DP range.", copyDp.Reason);
         Assert.Equal(2, result.Report.Inputs.Count);
         Assert.Equal(2, result.Report.Mutations.Count);
         Assert.Empty(result.Report.Issues);
@@ -383,6 +392,12 @@ public sealed class CompositionRunServiceTests
         MutationRunSummary mutation = Assert.Single(result.Report.Mutations);
         Assert.Equal(CompositionOperationKind.RunExternalProcessor, mutation.Kind);
         Assert.Equal(1, mutation.ChangedByteCount);
+        OperationRunSummary operation = Assert.Single(result.Report.Operations);
+        Assert.Equal("processor-v1", operation.ProcessorId);
+        Assert.Equal("tool-v1", operation.ToolBindingId);
+        Assert.Equal([new ByteRange(0, 4)], operation.ProcessorAllowedReadRanges);
+        Assert.Equal([new ByteRange(1, 1)], operation.ProcessorAllowedWriteRanges);
+        Assert.Equal("run synthetic external processor", operation.Reason);
         Assert.NotNull(result.PreviewToken);
     }
 

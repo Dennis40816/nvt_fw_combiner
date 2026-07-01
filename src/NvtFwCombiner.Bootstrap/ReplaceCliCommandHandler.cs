@@ -58,6 +58,7 @@ internal static class ReplaceCliCommandHandler
             "--target-start",
             "--length",
             "--output",
+            "--report",
         ];
         string[] flagOptions = action == "build" ? ["--overwrite"] : [];
         if (!TryParseOptions(args[1..], valueOptions, flagOptions, error, out ParsedOptions options))
@@ -120,6 +121,7 @@ internal static class ReplaceCliCommandHandler
         CompositionRunResult result = action == "preview"
             ? await service.PreviewAsync(request, cancellationToken).ConfigureAwait(false)
             : await BuildWithInternalPreviewAsync(service, request, cancellationToken).ConfigureAwait(false);
+        await WriteReportFileIfRequestedAsync(result, options, output, cancellationToken).ConfigureAwait(false);
         await PrintRunResultAsync(result, output, error).ConfigureAwait(false);
         return result.Status == CompositionExecutionStatus.Succeeded ? Success : CompositionFailed;
     }
@@ -366,6 +368,23 @@ internal static class ReplaceCliCommandHandler
         }
     }
 
+    private static async Task WriteReportFileIfRequestedAsync(
+        CompositionRunResult result,
+        ParsedOptions options,
+        TextWriter output,
+        CancellationToken cancellationToken)
+    {
+        if (!options.Values.TryGetValue("--report", out string? reportPath))
+        {
+            return;
+        }
+
+        string fullPath = await CliRunReportWriter
+            .WriteAsync(result.Report, reportPath, cancellationToken)
+            .ConfigureAwait(false);
+        await output.WriteLineAsync($"Report: {fullPath}").ConfigureAwait(false);
+    }
+
     private static async Task PrintIssuesAsync(
         TextWriter error,
         IReadOnlyList<CompositionIssue> issues)
@@ -500,16 +519,16 @@ internal static class ReplaceCliCommandHandler
         switch (command)
         {
             case "dp-replace":
-                await output.WriteLineAsync("  nvt_fw_combiner dp-replace preview --profile <id|ic> --ic-num <value> --base <path> --dp <path> [--ld <path>] [--output <path>]").ConfigureAwait(false);
-                await output.WriteLineAsync("  nvt_fw_combiner dp-replace build --profile <id|ic> --ic-num <value> --base <path> --dp <path> [--ld <path>] [--output <path>] [--overwrite]").ConfigureAwait(false);
+                await output.WriteLineAsync("  nvt_fw_combiner dp-replace preview --profile <id|ic> --ic-num <value> --base <path> --dp <path> [--ld <path>] [--output <path>] [--report <path>]").ConfigureAwait(false);
+                await output.WriteLineAsync("  nvt_fw_combiner dp-replace build --profile <id|ic> --ic-num <value> --base <path> --dp <path> [--ld <path>] [--output <path>] [--report <path>] [--overwrite]").ConfigureAwait(false);
                 break;
             case "ctrlram-replace":
-                await output.WriteLineAsync("  nvt_fw_combiner ctrlram-replace preview --profile <id|ic> --ic-family <value> --ic-num <value> --base <path> --ctrlram <path> [--output <path>]").ConfigureAwait(false);
-                await output.WriteLineAsync("  nvt_fw_combiner ctrlram-replace build --profile <id|ic> --ic-family <value> --ic-num <value> --base <path> --ctrlram <path> [--output <path>] [--overwrite]").ConfigureAwait(false);
+                await output.WriteLineAsync("  nvt_fw_combiner ctrlram-replace preview --profile <id|ic> --ic-family <value> --ic-num <value> --base <path> --ctrlram <path> [--output <path>] [--report <path>]").ConfigureAwait(false);
+                await output.WriteLineAsync("  nvt_fw_combiner ctrlram-replace build --profile <id|ic> --ic-family <value> --ic-num <value> --base <path> --ctrlram <path> [--output <path>] [--report <path>] [--overwrite]").ConfigureAwait(false);
                 break;
             case "general-replace":
-                await output.WriteLineAsync("  nvt_fw_combiner general-replace preview --profile <id|ic> --ic-num <value> --base <path> --input <path> --source-start <n> --target-start <n> --length <n> [--output <path>]").ConfigureAwait(false);
-                await output.WriteLineAsync("  nvt_fw_combiner general-replace build --profile <id|ic> --ic-num <value> --base <path> --input <path> --source-start <n> --target-start <n> --length <n> [--output <path>] [--overwrite]").ConfigureAwait(false);
+                await output.WriteLineAsync("  nvt_fw_combiner general-replace preview --profile <id|ic> --ic-num <value> --base <path> --input <path> --source-start <n> --target-start <n> --length <n> [--output <path>] [--report <path>]").ConfigureAwait(false);
+                await output.WriteLineAsync("  nvt_fw_combiner general-replace build --profile <id|ic> --ic-num <value> --base <path> --input <path> --source-start <n> --target-start <n> --length <n> [--output <path>] [--report <path>] [--overwrite]").ConfigureAwait(false);
                 break;
             default:
                 await output.WriteLineAsync("  nvt_fw_combiner <dp-replace|ctrlram-replace|general-replace> <preview|build> [options]").ConfigureAwait(false);

@@ -335,11 +335,7 @@ public sealed class CompositionRunService
             ? OperationRunStatus.Succeeded
             : OperationRunStatus.Skipped;
         OperationRunSummary[] operations = [
-            .. request.Plan.OrderedOperations.Select(operation => new OperationRunSummary(
-                operation.OperationId,
-                operation.Sequence,
-                operation.Kind,
-                status)),
+            .. request.Plan.OrderedOperations.Select(operation => ToOperationSummary(operation, status)),
         ];
 
         byte[] outputBytes = execution.OutputBytes.ToArray();
@@ -382,6 +378,28 @@ public sealed class CompositionRunService
             mutation.BeforeSha256.ToLowerInvariant(),
             mutation.AfterSha256.ToLowerInvariant(),
             mutation.Reason);
+    }
+
+    private static OperationRunSummary ToOperationSummary(
+        CompositionOperation operation,
+        OperationRunStatus status)
+    {
+        ExternalProcessorInvocation? invocation = operation.ExternalProcessorInvocation;
+        return new OperationRunSummary(
+            operation.OperationId,
+            operation.Sequence,
+            operation.Kind,
+            status,
+            operation.SourceSpaceId,
+            operation.SourceRange,
+            operation.TargetSpaceId,
+            operation.TargetRange,
+            operation.OverlapPolicy,
+            invocation?.ProcessorId,
+            invocation?.ToolBindingId,
+            invocation?.AllowedReadRanges ?? [],
+            invocation?.AllowedWriteRanges ?? [],
+            operation.Reason);
     }
 
     private static string ToSha256Hex(ReadOnlySpan<byte> bytes)

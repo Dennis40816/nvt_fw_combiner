@@ -155,7 +155,7 @@ public static class CliApplication
             return UsageError;
         }
 
-        string[] valueOptions = ["--profile", "--dp", "--tp", "--ld", "--output"];
+        string[] valueOptions = ["--profile", "--dp", "--tp", "--ld", "--output", "--report"];
         string[] flagOptions = action == "build" ? ["--overwrite"] : [];
         if (!TryParseOptions(args[1..], valueOptions, flagOptions, error, out ParsedOptions options))
         {
@@ -207,6 +207,7 @@ public static class CliApplication
         CompositionRunResult result = action == "preview"
             ? await service.PreviewAsync(request, cancellationToken).ConfigureAwait(false)
             : await BuildWithInternalPreviewAsync(service, request, cancellationToken).ConfigureAwait(false);
+        await WriteReportFileIfRequestedAsync(result, options, output, cancellationToken).ConfigureAwait(false);
         await PrintRunResultAsync(result, output, error).ConfigureAwait(false);
         return result.Status == CompositionExecutionStatus.Succeeded ? Success : CompositionFailed;
     }
@@ -349,6 +350,23 @@ public static class CliApplication
         }
     }
 
+    private static async Task WriteReportFileIfRequestedAsync(
+        CompositionRunResult result,
+        ParsedOptions options,
+        TextWriter output,
+        CancellationToken cancellationToken)
+    {
+        if (!options.Values.TryGetValue("--report", out string? reportPath))
+        {
+            return;
+        }
+
+        string fullPath = await CliRunReportWriter
+            .WriteAsync(result.Report, reportPath, cancellationToken)
+            .ConfigureAwait(false);
+        await output.WriteLineAsync($"Report: {fullPath}").ConfigureAwait(false);
+    }
+
     private static async Task PrintIssuesAsync(
         TextWriter error,
         IReadOnlyList<CompositionIssue> issues)
@@ -430,11 +448,11 @@ public static class CliApplication
         await output.WriteLineAsync("Usage:").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner [--version|version|doctor]").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner profiles list").ConfigureAwait(false);
-        await output.WriteLineAsync("  nvt_fw_combiner standard-merge preview --profile <id|ic> --dp <path> --tp <path> [--ld <path>] [--output <path>]").ConfigureAwait(false);
-        await output.WriteLineAsync("  nvt_fw_combiner standard-merge build --profile <id|ic> --dp <path> --tp <path> [--ld <path>] [--output <path>] [--overwrite]").ConfigureAwait(false);
-        await output.WriteLineAsync("  nvt_fw_combiner dp-replace preview --profile <id|ic> --ic-num <value> --base <path> --dp <path> [--ld <path>] [--output <path>]").ConfigureAwait(false);
-        await output.WriteLineAsync("  nvt_fw_combiner ctrlram-replace preview --profile <id|ic> --ic-family <value> --ic-num <value> --base <path> --ctrlram <path> [--output <path>]").ConfigureAwait(false);
-        await output.WriteLineAsync("  nvt_fw_combiner general-replace preview --profile <id|ic> --ic-num <value> --base <path> --input <path> --source-start <n> --target-start <n> --length <n> [--output <path>]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner standard-merge preview --profile <id|ic> --dp <path> --tp <path> [--ld <path>] [--output <path>] [--report <path>]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner standard-merge build --profile <id|ic> --dp <path> --tp <path> [--ld <path>] [--output <path>] [--report <path>] [--overwrite]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner dp-replace preview --profile <id|ic> --ic-num <value> --base <path> --dp <path> [--ld <path>] [--output <path>] [--report <path>]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner ctrlram-replace preview --profile <id|ic> --ic-family <value> --ic-num <value> --base <path> --ctrlram <path> [--output <path>] [--report <path>]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner general-replace preview --profile <id|ic> --ic-num <value> --base <path> --input <path> --source-start <n> --target-start <n> --length <n> [--output <path>] [--report <path>]").ConfigureAwait(false);
     }
 
     private static async Task WriteProfilesUsageAsync(TextWriter output)
@@ -445,8 +463,8 @@ public static class CliApplication
     private static async Task WriteStandardMergeUsageAsync(TextWriter output)
     {
         await output.WriteLineAsync("Usage:").ConfigureAwait(false);
-        await output.WriteLineAsync("  nvt_fw_combiner standard-merge preview --profile <id|ic> --dp <path> --tp <path> [--ld <path>] [--output <path>]").ConfigureAwait(false);
-        await output.WriteLineAsync("  nvt_fw_combiner standard-merge build --profile <id|ic> --dp <path> --tp <path> [--ld <path>] [--output <path>] [--overwrite]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner standard-merge preview --profile <id|ic> --dp <path> --tp <path> [--ld <path>] [--output <path>] [--report <path>]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner standard-merge build --profile <id|ic> --dp <path> --tp <path> [--ld <path>] [--output <path>] [--report <path>] [--overwrite]").ConfigureAwait(false);
     }
 
     private static string CreateRunId(string action)

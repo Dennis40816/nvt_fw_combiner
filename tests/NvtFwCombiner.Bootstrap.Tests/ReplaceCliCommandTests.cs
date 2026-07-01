@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>CLI tests for Replace command groups.</summary>
@@ -12,6 +14,7 @@ public sealed class ReplaceCliCommandTests
         string dp = workspace.Write("dp.bin", [0x11, 0x22]);
         string ld = workspace.Write("ld.bin", [0x33]);
         string output = workspace.PathFor("out.bin");
+        string report = workspace.PathFor("report.json");
 
         CliRunResult result = await RunCliAsync([
             "dp-replace",
@@ -28,16 +31,31 @@ public sealed class ReplaceCliCommandTests
             ld,
             "--output",
             output,
+            "--report",
+            report,
         ]);
 
         Assert.Equal(0, result.ExitCode);
         Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
         Assert.Contains("Committed:", result.Output, StringComparison.Ordinal);
+        Assert.Contains("Report:", result.Output, StringComparison.Ordinal);
         Assert.Contains("replace-dp", result.Output, StringComparison.Ordinal);
         Assert.Contains("replace-ld", result.Output, StringComparison.Ordinal);
         Assert.DoesNotContain("Issues:", result.Error, StringComparison.Ordinal);
         byte[] bytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
         Assert.Equal([0x11, 0x22, 0xFF, 0xFF, 0, 0, 0x33, 0xFF], bytes);
+
+        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(
+            report,
+            TestContext.Current.CancellationToken));
+        JsonElement root = document.RootElement;
+        Assert.Equal("synthetic-dp-replace", root.GetProperty("ProfileId").GetString());
+        JsonElement operation = root.GetProperty("Operations")[0];
+        Assert.Equal("replace-dp", operation.GetProperty("OperationId").GetString());
+        Assert.Equal("dp-replacement", operation.GetProperty("SourceSpaceId").GetString());
+        Assert.Equal("output-image", operation.GetProperty("TargetSpaceId").GetString());
+        Assert.Equal(4, operation.GetProperty("TargetRange").GetProperty("Length").GetInt64());
+        Assert.Equal("Replace synthetic DP declared partition.", operation.GetProperty("Reason").GetString());
     }
 
     /// <summary>Verifies CtrlRAM Replace preview reports truncation warnings while succeeding.</summary>

@@ -68,6 +68,8 @@ Every build run should have a stable `runId` that links:
 
 ## Structured report requirements
 
+CLI Preview/Build commands may write the current application run report with `--report <path>`. This JSON is the machine-readable audit output used by CMD workflows and can later back the UI report modal/history view. It is not a replacement for the canonical `composition-report-v1` contract until that wire contract is promoted.
+
 A build/preview report must include:
 
 - product/app version;
