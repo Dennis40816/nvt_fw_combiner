@@ -199,7 +199,7 @@ MMAP_TOKEN_CHECKS = {
 }
 
 DOCUMENTATION_WARNINGS = [
-    "NT51929/NT51932 TP Overview appears to place NF at 0x1F200, while postbuild/mmap identify FW_REGISTER=0x1F200 and NF_TABLE=0x1FC00.",
+    "NT51929/NT51932 TP Overview lists FW Header Copy as 0x100 bytes, while the detailed sheet, postbuild HEADER_SZ, and mmap define a 0x200-byte header copy. Runtime follows postbuild/mmap for Combiner command equivalence.",
     "NT51930 currently has no >13 IC product target; catalog intentionally maps cascade to the <=13 IC DiffDLM branch at 0x2F200 size 65024.",
     "NT51927 is special: postbuild hard-codes MERGE_MODE plus NT51927BASED_GEN_CRC_MODE CRC32; catalog follows postbuild and TP Overview should match that command sequence.",
     "NT51923 postbuild copies FW Config as one 2048-byte block while TP Overview splits FW Config/FW Register detail.",

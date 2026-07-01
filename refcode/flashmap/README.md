@@ -1,10 +1,10 @@
 # IC FlashMap Reference
 
-This folder is an owner-provided reference snapshot from:
+This folder is an owner-provided reference snapshot from the updated workbook plus extracted postbuild/mmap evidence:
 
-`G:/My Drive/Working/Tools/File/word_encrypt/record/IC FlashMap.7z`
+`G:/My Drive/Working/Tools/File/word_encrypt/record/IC_FlashMap.xlsx`
 
-The source archive is not committed. The repository keeps the extracted files directly so reviewers can diff workbook metadata, postbuild scripts, mmap headers, and guide text.
+The repository keeps the workbook and extracted support files directly so reviewers can diff workbook metadata, postbuild scripts, mmap headers, and guide text.
 
 It contains:
 
