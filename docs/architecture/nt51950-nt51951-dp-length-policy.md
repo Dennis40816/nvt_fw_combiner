@@ -8,7 +8,7 @@ The sheet shows NT51950/NT51951 DP layouts with multiple container sizes and bot
 - 2IC: 4M-bit or 8M-bit DP container variants.
 - TP FW is an overlay region in the DP perspective. The confirmed owner range is `0xA000..0x36FFF`. The following `0x37000..0x37FFF` range is customer info and must be preserved rather than overwritten by TP overlay. This matches the reference code convention where the exclusive TP end is `0x37000`.
 
-The first implementation should not split the DP perspective into all named sub-regions. Treat `0x100000` as the maximum DP container length and use it as the canonical 950/951 working length.
+The first implementation does not split the DP perspective into all named sub-regions. It treats `0x100000` as the maximum DP container length and uses it as the canonical 950/951 working length. Real DP inputs can be shorter, such as 256 KB or 512 KB variants; they are padded to the work length before TP overlay.
 
 ## Simplest Merge Rule
 
@@ -34,9 +34,10 @@ Use the replacement DP as the new base image, then restore the original TP range
 
 This implements DP Replace without requiring CRC recalculation and without enumerating every DP-owned segment. CtrlRAM Replace remains different: it must run the Combiner postbuild sequence after replacing TP/CtrlRAM content.
 
-## Required Tests Before Enabling 950/951
+## Required Tests Before 1.0 Support Claim
 
 - Merge golden for at least one 950 and one 951 max-container case.
-- DP Replace test showing shorter replacement padding to `0x100000` and larger replacement rejection.
-- DP Replace test proving the TP range is preserved byte-for-byte.
+- Standard Merge tests showing shorter DP inputs are padded to `0x100000` and larger DP inputs are rejected.
+- DP Replace tests showing shorter replacement padding to `0x100000` and larger replacement rejection after the replace model supports this initialization shape.
+- DP Replace test proving the TP range is preserved byte-for-byte after profile/model wiring.
 - A map confirmation test that locks TP overlay to `0xA000..0x36FFF` and preserves customer info at `0x37000..0x37FFF`.

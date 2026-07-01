@@ -36,6 +36,9 @@ public sealed class MemoryMapRowViewModel
     /// <summary>Source or state after the workflow operation.</summary>
     public string AfterSource { get; }
 
+    /// <summary>Compact before/after source summary.</summary>
+    public string FlowLabel => $"{BeforeSource} -> {AfterSource}";
+
     /// <summary>Short evidence or policy note.</summary>
     public string Detail { get; }
 }

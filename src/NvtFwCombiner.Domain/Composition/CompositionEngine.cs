@@ -101,7 +101,7 @@ public static class CompositionEngine
             {
                 issues.Add(new CompositionIssue(
                     "input.address-space.length-mismatch",
-                    $"Input bytes for address space '{addressSpace.AddressSpaceId}' exceed declared length."));
+                    $"Input bytes for address space '{addressSpace.AddressSpaceId}' exceed declared length (actual {bytes.Length} bytes, declared {addressSpace.Length} bytes)."));
             }
             else if (bytes.Length > addressSpace.Length && addressSpace.Length > int.MaxValue)
             {
@@ -113,7 +113,7 @@ public static class CompositionEngine
             {
                 issues.Add(new CompositionIssue(
                     "input.address-space.length-mismatch",
-                    $"Input bytes for address space '{addressSpace.AddressSpaceId}' are shorter than declared length and no padding byte is declared."));
+                    $"Input bytes for address space '{addressSpace.AddressSpaceId}' are shorter than declared length and no padding byte is declared (actual {bytes.Length} bytes, declared {addressSpace.Length} bytes)."));
             }
             else if (bytes.Length < addressSpace.Length && addressSpace.Length > int.MaxValue)
             {

@@ -1,6 +1,6 @@
 # Merge and Replace Wireframe Plan
 
-This document describes the first production-backed `0.1.1` interface for Merge and Replace. UI surfaces render catalog/service state and do not implement firmware behavior in XAML or ViewModels.
+This document describes the current production-backed workbench interface for Merge and Replace. UI surfaces render catalog/service state and do not implement firmware behavior in XAML or ViewModels.
 
 ## Home launcher
 
@@ -141,7 +141,7 @@ Preview output must come from application services or a loaded run report.
 ## No-go patterns
 
 - Do not calculate offsets in XAML or ViewModels.
-- Do not directly read BIN files from UI in `0.1.1`.
+- Do not directly read BIN files from UI code.
 - Do not call Python or legacy combiner tools.
 - Do not hide unsupported states behind green status.
 - Do not show `General` as a bypass for profile rules.

@@ -118,6 +118,8 @@ public sealed class CompositionEngineTests
         CompositionIssue issue = Assert.Single(result.Issues);
         Assert.Equal("input.address-space.length-mismatch", issue.Code);
         Assert.Contains("exceed declared length", issue.Message, StringComparison.Ordinal);
+        Assert.Contains("actual 3 bytes", issue.Message, StringComparison.Ordinal);
+        Assert.Contains("declared 2 bytes", issue.Message, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies CtrlRAM replace inputs may truncate oversized source bytes with a run diagnostic.</summary>

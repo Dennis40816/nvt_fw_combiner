@@ -116,11 +116,11 @@ public sealed class ShellTextResources
                 "Production-backed settings"),
             new PlanningCardText(
                 "Merge",
-                "Normal merge first. AB Code is disabled.",
+                "Standard Merge workflow.",
                 [
                     "Profile: built-in Standard Merge",
                     "Slots: DP, TP, optional LD",
-                    "950/951 TP: 0xA000-0x36FFF",
+                    "950/951 TP: 0x0A000..0x37000",
                 ],
                 "Preview/build wired"),
             new PlanningCardText(
@@ -159,11 +159,11 @@ public sealed class ShellTextResources
                 "Production-backed settings"),
             new PlanningCardText(
                 "合併",
-                "先支援 Normal merge。AB Code 停用。",
+                "Standard Merge 流程。",
                 [
                     "Profile：built-in Standard Merge",
                     "Slots：DP、TP、選用 LD",
-                    "950/951 TP：0xA000-0x36FFF",
+                    "950/951 TP：0x0A000..0x37000",
                 ],
                 "Preview/build wired"),
             new PlanningCardText(

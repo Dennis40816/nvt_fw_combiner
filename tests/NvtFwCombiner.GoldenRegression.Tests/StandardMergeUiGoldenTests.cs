@@ -1,12 +1,12 @@
 using System.Text.Json;
-using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.GoldenRegression.Tests;
 
-/// <summary>Golden tests that exercise the UI shell command path for Standard Merge.</summary>
+/// <summary>Golden tests that exercise the workbench command path for Standard Merge.</summary>
 public sealed class StandardMergeUiGoldenTests
 {
-    /// <summary>Verifies the UI shell can build every gen_flash golden case byte-for-byte.</summary>
+    /// <summary>Verifies the workbench facade can build every gen_flash golden case byte-for-byte.</summary>
     [Fact]
     public async Task UiShellBuildStandardMergeMatchesGenFlashGoldenBytes()
     {
@@ -41,37 +41,28 @@ public sealed class StandardMergeUiGoldenTests
         string caseRoot = Path.Combine(tempRoot, ic);
         _ = Directory.CreateDirectory(caseRoot);
 
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = $"NT{ic}";
-        viewModel.SelectedNumber = "single";
-
+        Dictionary<string, string> slotPaths = new(StringComparer.Ordinal);
         foreach (JsonProperty input in goldenCase.GetProperty("inputs").EnumerateObject())
         {
             string originalPath = ManifestPath(goldenRoot, input.Value);
             string copiedPath = Path.Combine(caseRoot, $"{input.Name}.bin");
             File.Copy(originalPath, copiedPath);
-            viewModel.SetSlotFile(SlotId(input.Name), copiedPath);
+            slotPaths[input.Name] = copiedPath;
         }
 
-        Assert.True(viewModel.BuildMergeCommand.CanExecute(null), $"{ic} UI Build command should be enabled.");
-        await viewModel.BuildMergeCommand.ExecuteAsync(null).ConfigureAwait(false);
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeAsync(
+                $"NT{ic}",
+                slotPaths,
+                build: true,
+                CancellationToken.None)
+            .ConfigureAwait(false);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.True(File.Exists(viewModel.LastRunResult.Output), viewModel.LastRunResult.Output);
+        string outputPath = result.CommittedOutputId ?? result.OutputFileName;
+        Assert.True(result.Succeeded, result.Status);
+        Assert.True(File.Exists(outputPath), outputPath);
         Assert.Equal(
             File.ReadAllBytes(ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput"))),
-            File.ReadAllBytes(viewModel.LastRunResult.Output));
-    }
-
-    private static string SlotId(string addressSpaceId)
-    {
-        return addressSpaceId switch
-        {
-            "dp-input" => "merge-dp",
-            "tp-input" => "merge-tp",
-            "ld-input" => "merge-ld",
-            _ => throw new ArgumentOutOfRangeException(nameof(addressSpaceId), addressSpaceId, "Unknown UI merge slot."),
-        };
+            File.ReadAllBytes(outputPath));
     }
 
     private static string ManifestPath(string goldenRoot, JsonElement manifestFile)

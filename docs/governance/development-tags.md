@@ -10,14 +10,14 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 ## Branch and merge policy
 
 - `0.1.0` is the dev0 contract branch.
-- `0.1.1` is the active UI planning branch.
+- `0.5.0` is the active normal Replace/settings milestone branch.
 - `main` is the stable branch.
 - Progress to `main` must happen through reviewed merge/PR, not direct unreviewed development pushes.
 - Agent/Codex work should stay on the active milestone branch until review gates pass.
 
 ## Milestone scope
 
-Current execution priority: normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows are pulled forward. AB merge remains in the roadmap but is deferred until the owner reactivates it. NT51950/NT51951 normal Merge uses the confirmed DP Perspective TP overlay range `0xA000..0x36FFF` and still needs golden evidence; CtrlRAM Replace has the first Combiner 1.13.0 postbuild command core but still needs profile wiring and golden evidence.
+Current execution priority: normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows are pulled forward. AB merge remains in the roadmap but is deferred until the owner reactivates it. Standard Merge now has executable profiles for the full v1 merge IC list, including NT51930 and NT51950/NT51951 DP Perspective variable-length DP input handling; NT51930/NT51950/NT51951 still need golden evidence. CtrlRAM Replace has the first Combiner 1.13.0 postbuild command core but still needs production profile wiring and golden evidence.
 
 | Milestone | Scope | Implementation boundary |
 | --- | --- | --- |
@@ -33,6 +33,20 @@ Current execution priority: normal Merge and normal Replace for DP Replace and C
 | `0.8.0-dev.N` | Packaging/security | Release packaging, tool manifests, smoke tests. |
 | `0.9.0-rc.N` | UAT/release candidates | UX polish, internal sign-off. |
 | `v1.0.0` | stable | Signed-off support matrix. |
+
+## First-sample `v1.0.0` release gate
+
+Before the first sample is tagged as `v1.0.0`, the owner must confirm the exact IC/mode support subset. Anything not signed off remains visible only as candidate/planning data, not as supported behavior.
+
+Required remaining work:
+
+- lock the `v1.0.0` support matrix by IC and workflow, including owner sign-off for NT51930 and NT51950/NT51951 Standard Merge golden outputs;
+- add executable production profiles for every released DP Replace and CtrlRAM Replace IC/mode, not only the current synthetic Replace contracts and postbuild command catalog;
+- complete owner-approved golden outputs for every released Standard Merge and Replace profile, including private golden evidence and firmware-owner review where ranges, CRC/header, or command order matter;
+- finish report modal/history behavior for Preview/Build so users can inspect input/output hashes, normalized ranges, combiner argv, warnings, and output artifact paths;
+- complete Settings persistence/readiness behavior for catalog/tool/preference values that affect execution or support claims;
+- pass `python scripts/verify.py --all`, private golden regression, clean Windows x64 package smoke, Polytail, Codex review, and required human review;
+- align `VERSION`, assembly metadata, changelog, release manifest, stable tag `v1.0.0`, SBOM/provenance, signing policy, and package hashes.
 
 ## Progression
 

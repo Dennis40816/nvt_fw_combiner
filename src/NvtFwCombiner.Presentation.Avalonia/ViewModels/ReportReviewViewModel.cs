@@ -28,6 +28,12 @@ public sealed class ReportReviewViewModel
         Operations = operations;
         Mutations = mutations;
         Issues = issues;
+        PrimaryIssue = issues.Count == 0 ? ReportLineViewModel.Empty : issues[0];
+        HasPrimaryIssue = issues.Count > 0;
+        HasInputs = inputs.Count > 0;
+        HasOperations = operations.Count > 0;
+        HasMutations = mutations.Count > 0;
+        HasIssues = issues.Count > 0;
     }
 
     /// <summary>Empty report placeholder.</summary>
@@ -64,14 +70,32 @@ public sealed class ReportReviewViewModel
     /// <summary>Input artifact rows.</summary>
     public IReadOnlyList<ReportLineViewModel> Inputs { get; }
 
+    /// <summary>True when input details are available.</summary>
+    public bool HasInputs { get; }
+
     /// <summary>Operation rows.</summary>
     public IReadOnlyList<ReportLineViewModel> Operations { get; }
+
+    /// <summary>True when operation details are available.</summary>
+    public bool HasOperations { get; }
 
     /// <summary>Mutation rows.</summary>
     public IReadOnlyList<ReportLineViewModel> Mutations { get; }
 
+    /// <summary>True when mutation details are available.</summary>
+    public bool HasMutations { get; }
+
     /// <summary>Issue rows.</summary>
     public IReadOnlyList<ReportLineViewModel> Issues { get; }
+
+    /// <summary>True when issue details are available.</summary>
+    public bool HasIssues { get; }
+
+    /// <summary>The first issue to show as the report's primary reason.</summary>
+    public ReportLineViewModel PrimaryIssue { get; }
+
+    /// <summary>True when the report should show a primary blocking reason.</summary>
+    public bool HasPrimaryIssue { get; }
 
     /// <summary>Loads a readable report model from run report JSON.</summary>
     public static ReportReviewViewModel FromJson(string json, string sourceName)

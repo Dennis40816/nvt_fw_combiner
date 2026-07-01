@@ -105,7 +105,7 @@ public static class CliApplication
         }
 
         await output.WriteLineAsync("Built-in standard merge profiles:").ConfigureAwait(false);
-        foreach (CompositionProfileDefinition profile in BuiltInStandardMergeProfiles.GenFlashStandardMergeProfiles
+        foreach (CompositionProfileDefinition profile in BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles
                      .OrderBy(profile => profile.IcId, StringComparer.Ordinal))
         {
             ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
@@ -285,7 +285,7 @@ public static class CliApplication
         out CompositionProfileDefinition? profile)
     {
         string normalized = selector.Trim();
-        profile = BuiltInStandardMergeProfiles.GenFlashStandardMergeProfiles.FirstOrDefault(candidate =>
+        profile = BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles.FirstOrDefault(candidate =>
             string.Equals(candidate.ProfileId, normalized, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(candidate.IcId, normalized, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(GetIcNumber(candidate.IcId), normalized, StringComparison.OrdinalIgnoreCase));

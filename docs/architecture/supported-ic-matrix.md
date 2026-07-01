@@ -12,6 +12,15 @@ Current owner priority as of 2026-06-30:
 
 The per-IC Merge/Replace flowchart reference is [`ic-workflow-flowcharts.md`](ic-workflow-flowcharts.md). Update both documents together when IC workflow status changes.
 
+## Current executable inventory
+
+| Area | IC coverage | Source of truth | What this currently means | Not enough for 1.0 until |
+| --- | --- | --- | --- | --- |
+| Standard Merge profiles | NT51917, NT51919, NT51920, NT51923, NT51926, NT51927, NT51928, NT51929, NT51930, NT51931, NT51932, NT51950, NT51951 | `BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles` | Executable profiles exist for the full v1 merge IC list. gen_flash fixtures cover the uploaded golden cases; NT51930 is flash-map derived; NT51950/NT51951 use the DP Perspective max container `0x100000`, variable-length DP input padding, TP overlay `[0x0A000, 0x37000)`, and customer-info preservation. | NT51930 and NT51950/NT51951 still need owner-approved golden outputs, report review, and firmware-owner sign-off before support claim. |
+| TP flash-map catalog | NT51917, NT51919, NT51920, NT51923, NT51926, NT51927, NT51928 non-NB, NT51929, NT51930, NT51931, NT51932, NT51950, NT51951 | `TpFlashMapCatalog` | UI can display DP, CtrlRAM, customer-info, and IC-count visibility rows from current evidence. | Every released workflow maps these rows through profiles, compiler checks, and report evidence. |
+| CtrlRAM postbuild command catalog | NT51917, NT51919, NT51920, NT51923, NT51926, NT51927, NT51928 non-NB, NT51929, NT51930, NT51931, NT51932, NT51950, NT51951 | `LegacyCombinerPostbuildCatalog`, Combiner `1.13.0` | Structured command sequences exist for single/cascade or numeric branches and are tested against argv shape. | Production CtrlRAM Replace profiles declare read/write ranges, tool execution evidence, changed-range diff policy, and golden replace outputs. |
+| Production Replace profiles | none yet for real ICs | `BuiltInReplaceProfiles` | Only synthetic DP, CtrlRAM, and General Replace contract profiles exist. | Real DP/CtrlRAM/General Replace profiles are wired per released IC/mode. |
+
 | IC | Standard Merge | AB Merge | Replace planning | Integrity evidence | Current evidence | 1.0 status |
 | --- | --- | --- | --- | --- | --- | --- |
 | NT51917 | follows NT51927 | no evidence | DP/CtrlRAM priority | CtrlRAM Replace uses the NT51927 reference flow | owner alias confirmation | Candidate; postbuild core implemented |
@@ -22,11 +31,11 @@ The per-IC Merge/Replace flowchart reference is [`ic-workflow-flowcharts.md`](ic
 | NT51927 | reference candidate | no evidence | DP/CtrlRAM priority | CtrlRAM Replace uses `MERGE_MODE` plus `NT51927BASED_GEN_CRC_MODE CRC32` | `gen_flash_bin_v2` config + IC FlashMap postbuild | Candidate; postbuild core implemented |
 | NT51928 | reference candidate + LD | no evidence | DP/CtrlRAM priority | CtrlRAM Replace uses the NT51927 reference flow for non-NB only; NT51928 NB is a separate IC and is not covered | `gen_flash_bin_v2` config + owner alias confirmation | Candidate; postbuild core implemented |
 | NT51929 | reference candidate | DP_AB + split-DP concept | DP/CtrlRAM priority | CtrlRAM Replace uses the NT51932 reference flow; TPA/TPB CRC explicitly None for AB evidence; TPB relocation required | verified AB sample + owner alias confirmation | Priority candidate; postbuild core implemented |
-| NT51930 | no built-in Standard Merge profile yet | no evidence | CtrlRAM priority; DP/General TBD | CtrlRAM Replace uses `NT51930BASED_NORMAL_MODE CRC8`; current cascade maps to `<=13 IC` DiffDLM branch | IC FlashMap postbuild + owner IC-count confirmation | Candidate; postbuild core implemented |
+| NT51930 | flash-map derived Standard Merge profile | no evidence | CtrlRAM priority; DP/General TBD | CtrlRAM Replace uses `NT51930BASED_NORMAL_MODE CRC8`; current cascade maps to `<=13 IC` DiffDLM branch | IC FlashMap postbuild + owner IC-count confirmation; normal merge golden pending | Candidate; postbuild core implemented |
 | NT51931 | reference candidate | no evidence | DP/CtrlRAM/General TBD | Unknown | `gen_flash_bin_v2` config | Candidate |
 | NT51932 | reference candidate | DP_AB | region inventory TBD | TPA/TPB CRC explicitly None; TPB relocation required | legacy AB reference | Priority candidate |
-| NT51950 | normal merge requested; DP Perspective available | uploaded combiner; deferred | DP and CtrlRAM priority | CtrlRAM Replace postbuild uses `NT51950BASED_NORMAL_MODE CRC8`; DP Merge/Replace uses DP-as-base plus confirmed TP overlay/preserve range `0xA000..0x36FFF` | IC FlashMap postbuild + DP Perspective; normal merge golden pending | Priority candidate pending golden |
-| NT51951 | normal merge requested; DP Perspective shared with 950 | uploaded config; deferred | DP and CtrlRAM priority | CtrlRAM Replace uses the NT51950 reference flow; DP Merge/Replace uses the same confirmed 950/951 DP length and TP range policy | DP Perspective evidence + owner alias confirmation; no normal merge golden output | Candidate pending golden |
+| NT51950 | normal merge requested; executable DP Perspective profile | uploaded combiner; deferred | DP and CtrlRAM priority | CtrlRAM Replace postbuild uses `NT51950BASED_NORMAL_MODE CRC8`; Standard Merge accepts variable DP input up to `0x100000`, pads shorter DP inputs, overlays TP `0xA000..0x36FFF`, and preserves customer info | IC FlashMap postbuild + DP Perspective; normal merge golden pending | Priority candidate pending golden |
+| NT51951 | normal merge requested; executable DP Perspective profile shared with 950 | uploaded config; deferred | DP and CtrlRAM priority | CtrlRAM Replace uses the NT51950 reference flow; Standard Merge uses the same confirmed 950/951 DP length and TP range policy | DP Perspective evidence + owner alias confirmation; normal merge golden pending | Candidate pending golden |
 
 ## Workflow promotion gate per IC/mode
 
