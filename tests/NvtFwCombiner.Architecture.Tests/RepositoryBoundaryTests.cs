@@ -50,6 +50,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ShowNormalMergeCommand", shell, StringComparison.Ordinal);
         Assert.Contains("RowDefinitions=\"Auto,Auto,*,Auto\"", shell, StringComparison.Ordinal);
         Assert.Contains("DeviceContextTitle", shell, StringComparison.Ordinal);
+        Assert.Contains("IsDeviceContextVisible", shell, StringComparison.Ordinal);
+        Assert.Contains("NavigationTrail", shell, StringComparison.Ordinal);
+        Assert.Contains("GoBackCommand", shell, StringComparison.Ordinal);
         Assert.Contains("IcChoices", shell, StringComparison.Ordinal);
         Assert.Contains("SelectedIc", shell, StringComparison.Ordinal);
         Assert.Contains("NumberChoices", shell, StringComparison.Ordinal);
@@ -74,6 +77,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ItemsSource=\"{Binding ReplaceSlots}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding MergeSlots}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding CtrlRamRegions}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding ReplaceMemoryRows}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding MergeMemoryRows}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding ActiveReplaceRows}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding PreviewMergeCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding BuildMergeCommand}\"", shell, StringComparison.Ordinal);
@@ -87,15 +92,21 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("Diagnostics.", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("SavedRulesAndReports", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Policy display only", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("0x0000 - 0xFFFF", shell, StringComparison.Ordinal);
 
         string viewModel = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.cs");
         Assert.Contains("LoadReportJson", viewModel, StringComparison.Ordinal);
         Assert.Contains("ReportReviewViewModel", viewModel, StringComparison.Ordinal);
         Assert.Contains("UiCompositionRunner.GetNumberChoices", viewModel, StringComparison.Ordinal);
+        Assert.Contains("UiCompositionRunner.GetStandardMergeMemoryMapRows", viewModel, StringComparison.Ordinal);
+        Assert.Contains("UiCompositionRunner.GetReplaceMemoryMapRows", viewModel, StringComparison.Ordinal);
         Assert.Contains("ReplaceModeChoices", viewModel, StringComparison.Ordinal);
         Assert.Contains("PreviewMergeCommand", viewModel, StringComparison.Ordinal);
         Assert.Contains("BuildMergeCommand", viewModel, StringComparison.Ordinal);
+        Assert.Contains("SettingsProfileRows", viewModel, StringComparison.Ordinal);
+        Assert.Contains("SettingsToolRows", viewModel, StringComparison.Ordinal);
+        Assert.Contains("NavigationPath", viewModel, StringComparison.Ordinal);
 
         string flashMapCatalog = ReadText(
             "src/NvtFwCombiner.Application/FlashMaps/TpFlashMapCatalog.cs");

@@ -6,7 +6,19 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ### Added
 
-- Reserved for changes after the initial development tag.
+- Reserved for changes after `0.5.0-dev.0`.
+
+## [0.5.0-dev.0] - 2026-07-01
+
+### Added
+
+- Catalog-backed Settings surface for profiles, tool bindings, diagnostics, preferences, and readiness.
+- Shell breadcrumb/history navigation that can return to an earlier page level.
+
+### Changed
+
+- Updated app, assembly, CLI, and desktop shell version display to `0.5.0-dev.0`.
+- Scoped Device Context to Merge and Replace workflow pages instead of showing it globally.
 
 ## [0.1.0-dev.0] - 2026-06-25
 

@@ -166,6 +166,15 @@ public static class TpFlashMapCatalog
         string icId,
         IcNumberSelection? selection)
     {
+        return GetRegions(icId, selection, TpFlashMapRegionKind.CtrlRam);
+    }
+
+    /// <summary>Gets TP Overview regions visible for the selected IC, IC-count context, and optional kind.</summary>
+    public static IReadOnlyList<TpFlashMapRegion> GetRegions(
+        string icId,
+        IcNumberSelection? selection,
+        TpFlashMapRegionKind? kind = null)
+    {
         if (!ProfilesByIc.TryGetValue(icId, out TpFlashMapProfile? profile))
         {
             return [];
@@ -175,7 +184,7 @@ public static class TpFlashMapCatalog
         bool isSingle = IsSingle(selection, count);
         return [
             .. profile.Regions
-                .Where(region => region.Kind == TpFlashMapRegionKind.CtrlRam)
+                .Where(region => kind is null || region.Kind == kind)
                 .Where(region => IsVisible(region.Visibility, isSingle, count))
         ];
     }

@@ -25,4 +25,5 @@
   <Project Path="tests/NvtFwCombiner.GoldenRegression.Tests/NvtFwCombiner.GoldenRegression.Tests.csproj" />
   <Project Path="tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj" />
   <Project Path="tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj" />
+  <Project Path="tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj" />
 </Solution>

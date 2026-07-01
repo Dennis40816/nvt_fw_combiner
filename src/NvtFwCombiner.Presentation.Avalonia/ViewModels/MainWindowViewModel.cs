@@ -63,6 +63,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// <summary>Initializes the main workbench view model.</summary>
     public MainWindowViewModel(
         string shellVersion,
+        string appVersion,
         string workspaceTitle,
         string workspaceSummary,
         string previewActionLabel,
@@ -78,6 +79,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         string footerStatus)
     {
         ShellVersion = shellVersion;
+        AppVersion = appVersion;
         WorkspaceTitle = workspaceTitle;
         WorkspaceSummary = workspaceSummary;
         PreviewActionLabel = previewActionLabel;
@@ -95,6 +97,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         ShowSettingsCommand = new RelayCommand(() => SetSelectedPage(ShellPage.Settings));
         ShowMergeCommand = new RelayCommand(() => SetSelectedPage(ShellPage.Merge));
         ShowReplaceCommand = new RelayCommand(() => SetSelectedPage(ShellPage.Replace));
+        GoBackCommand = new RelayCommand(GoBack, () => CanGoBack);
         ShowDpReplaceCommand = new RelayCommand(() => SelectReplaceMode(DpReplaceMode));
         ShowCtrlRamReplaceCommand = new RelayCommand(() => SelectReplaceMode(CtrlRamReplaceMode));
         ShowGeneralReplaceCommand = new RelayCommand(() => SelectReplaceMode(GeneralReplaceMode));
@@ -109,11 +112,16 @@ public sealed partial class MainWindowViewModel : ObservableObject
         MergeSlots.Add(_mergeDpSlot);
         MergeSlots.Add(_mergeTpSlot);
         MergeSlots.Add(_mergeLdSlot);
+        NavigationTrail.Add(CreateNavigationEntry(ShellPage.Home, isCurrent: true));
         RefreshContextState();
+        RefreshSettingsState();
     }
 
     /// <summary>Gets the shell milestone label.</summary>
     public string ShellVersion { get; }
+
+    /// <summary>Gets the product version.</summary>
+    public string AppVersion { get; }
 
     /// <summary>Gets the workspace title.</summary>
     public string WorkspaceTitle { get; }
@@ -156,6 +164,44 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// <summary>Gets settings sample content.</summary>
     public PlanningCardViewModel SettingsPreview { get; }
 
+    /// <summary>Gets profile/catalog rows shown on Settings.</summary>
+    public ObservableCollection<SettingSummaryViewModel> SettingsProfileRows { get; } = [];
+
+    /// <summary>Gets external tool rows shown on Settings.</summary>
+    public ObservableCollection<SettingSummaryViewModel> SettingsToolRows { get; } = [];
+
+    /// <summary>Gets preference rows shown on Settings.</summary>
+    public ObservableCollection<SettingSummaryViewModel> SettingsPreferenceRows { get; } = [];
+
+    /// <summary>Gets diagnostics/report rows shown on Settings.</summary>
+    public ObservableCollection<SettingSummaryViewModel> SettingsDiagnosticsRows { get; } = [];
+
+    /// <summary>Gets readiness rows shown in the Settings inspector.</summary>
+    public ObservableCollection<SettingSummaryViewModel> SettingsReadinessRows { get; } = [];
+
+    /// <summary>Gets theme choices for the settings surface.</summary>
+    public IReadOnlyList<string> ThemeChoices { get; } =
+    [
+        "System",
+        "Light",
+        "Dark",
+        "High contrast",
+    ];
+
+    /// <summary>Gets strictness choices for the settings surface.</summary>
+    public IReadOnlyList<string> StrictnessChoices { get; } =
+    [
+        "Strict",
+        "Warn only",
+    ];
+
+    /// <summary>Gets language choices for the settings surface.</summary>
+    public IReadOnlyList<string> LanguageChoices { get; } =
+    [
+        "English",
+        "Traditional Chinese",
+    ];
+
     /// <summary>Gets merge preview sample content.</summary>
     public PlanningCardViewModel MergePreview { get; }
 
@@ -164,6 +210,20 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     /// <summary>Gets footer status content.</summary>
     public string FooterStatus { get; }
+
+    /// <summary>Gets the clickable shell navigation history.</summary>
+    public ObservableCollection<ShellNavigationEntryViewModel> NavigationTrail { get; } = [];
+
+    /// <summary>Gets a compact text version of the current navigation path.</summary>
+    public string NavigationPath => string.Join(
+        " > ",
+        NavigationTrail.Select(entry => entry.Label));
+
+    /// <summary>True when the shell can return to an earlier navigation entry.</summary>
+    public bool CanGoBack => NavigationTrail.Count > 1;
+
+    /// <summary>True when the selected page needs IC and Number context.</summary>
+    public bool IsDeviceContextVisible => SelectedPage is ShellPage.Merge or ShellPage.Replace;
 
     /// <summary>Gets merge input slots.</summary>
     public ObservableCollection<FirmwareSlotViewModel> MergeSlots { get; } = [];
@@ -179,6 +239,32 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     /// <summary>Gets CtrlRAM region rows for the selected IC and Number.</summary>
     public ObservableCollection<CtrlRamRegionViewModel> CtrlRamRegions { get; } = [];
+
+    /// <summary>Gets readable memory-map rows for the selected Merge workflow.</summary>
+    public ObservableCollection<MemoryMapRowViewModel> MergeMemoryRows { get; } = [];
+
+    /// <summary>Gets readable memory-map rows for the selected Replace workflow.</summary>
+    public ObservableCollection<MemoryMapRowViewModel> ReplaceMemoryRows { get; } = [];
+
+    /// <summary>Gets Merge memory coverage text for the selected IC.</summary>
+    public string MergeMemoryRangeLabel => UiCompositionRunner.GetStandardMergeMemoryRangeLabel(SelectedIc);
+
+    /// <summary>Gets Replace memory coverage text for the selected IC and Number.</summary>
+    public string ReplaceMemoryRangeLabel => UiCompositionRunner.GetReplaceMemoryRangeLabel(SelectedIc, SelectedNumber);
+
+    /// <summary>Gets short Merge memory-map summary text.</summary>
+    public string MergeMemorySummary => IsStandardMergeSupported
+        ? "Output starts from a blank image, then copies the listed source ranges into place."
+        : "No merge profile is available for the selected IC.";
+
+    /// <summary>Gets short Replace memory-map summary text.</summary>
+    public string ReplaceMemorySummary => SelectedReplaceMode switch
+    {
+        DpReplaceMode => "Base flash is kept; only DP/LD ranges listed below are written.",
+        CtrlRamReplaceMode => "Base flash is kept; CtrlRAM ranges are staged, then combiner.exe refreshes CRC/header.",
+        GeneralReplaceMode => "Base flash is kept; the runtime selected range must pass profile validation.",
+        _ => "Select a replace mode to inspect its target ranges.",
+    };
 
     /// <summary>Gets the latest UI-triggered run summary.</summary>
     public UiRunResultViewModel LastRunResult { get; private set; } = new(
@@ -277,6 +363,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// <summary>Command that opens Replace.</summary>
     public IRelayCommand ShowReplaceCommand { get; }
 
+    /// <summary>Command that returns to the previous navigation entry.</summary>
+    public IRelayCommand GoBackCommand { get; }
+
     /// <summary>Command that opens DP Replace.</summary>
     public IRelayCommand ShowDpReplaceCommand { get; }
 
@@ -325,6 +414,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         OnPropertyChanged(nameof(LoadedReport));
         OnPropertyChanged(nameof(HasLoadedReport));
+        RefreshSettingsState();
     }
 
     private string DeviceContextRefreshSummary { get; }
@@ -342,15 +432,112 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private void RefreshContextState(bool resetRunResult = false)
     {
         RefreshCtrlRamRegions();
+        RefreshMemoryMapState();
         RefreshMergeSlotRequirements();
         RefreshMergeModeState();
         RefreshReplaceModeState();
+        RefreshSettingsState();
         RefreshCommandState();
         NotifyContextTextChanged();
         if (resetRunResult)
         {
             ResetRunResultForContextChange();
         }
+    }
+
+    private void RefreshSettingsState()
+    {
+        UiSettingsSnapshot snapshot = UiCompositionRunner.GetSettingsSnapshot();
+
+        ReplaceSettingsRows(
+            SettingsProfileRows,
+            new SettingSummaryViewModel(
+                "Built-in profiles",
+                $"{snapshot.StandardMergeProfileCount} merge / {snapshot.ReplaceProfileCount} replace",
+                "Standard Merge profiles and Replace profiles come from the production profile catalog.",
+                "Wired"),
+            new SettingSummaryViewModel(
+                "Flash-map catalog",
+                $"{snapshot.FlashMapIcCount} ICs",
+                "IC and CtrlRAM region choices are loaded from the application flash-map catalog.",
+                "Wired"),
+            new SettingSummaryViewModel(
+                "Active workflow context",
+                $"{SelectedIc} / {SelectedNumber}",
+                "The selected IC and Number only apply to Merge and Replace workflow pages.",
+                IsDeviceContextVisible ? "Visible" : "Hidden here"));
+
+        ReplaceSettingsRows(
+            SettingsToolRows,
+            new SettingSummaryViewModel(
+                "External tool binding",
+                snapshot.ToolBindingIds,
+                "CtrlRAM postbuild profiles reference approved Combiner.exe bindings by id.",
+                "Pinned"),
+            new SettingSummaryViewModel(
+                "Postbuild catalog",
+                $"{snapshot.PostbuildProfileCount} ICs",
+                "Command sequences are normalized from owner-provided postbuild evidence.",
+                "Wired"),
+            new SettingSummaryViewModel(
+                "Tool manifest",
+                snapshot.ToolManifestPath,
+                "The packaged tool manifest pins executable name, SHA-256, adapter, and timeout.",
+                "Configured"));
+
+        ReplaceSettingsRows(
+            SettingsPreferenceRows,
+            new SettingSummaryViewModel(
+                "Theme",
+                SelectedTheme,
+                "Theme selection is stored in shell state; persistence is still pending.",
+                "Local"),
+            new SettingSummaryViewModel(
+                "Strictness",
+                SelectedStrictness,
+                "Strict keeps unsupported workflow states closed until contracts are ready.",
+                "Local"),
+            new SettingSummaryViewModel(
+                "Language",
+                SelectedLanguage,
+                "Text resources support English and Traditional Chinese architecture.",
+                "Local"));
+
+        ReplaceSettingsRows(
+            SettingsDiagnosticsRows,
+            new SettingSummaryViewModel(
+                "Report review",
+                HasLoadedReport ? LoadedReport.Title : "No report loaded",
+                "Load report JSON opens a readable evidence review panel without running firmware.",
+                HasLoadedReport ? "Loaded" : "Ready"),
+            new SettingSummaryViewModel(
+                "Latest run",
+                LastRunResult.Title,
+                LastRunResult.Detail,
+                LastRunResult.Succeeded ? "OK" : "Blocked"),
+            new SettingSummaryViewModel(
+                "Diagnostics log",
+                "Read-only and sanitized",
+                "Run-specific diagnostics stay in Preview/Build report surfaces.",
+                "Planned"));
+
+        ReplaceSettingsRows(
+            SettingsReadinessRows,
+            new SettingSummaryViewModel(
+                "App version",
+                AppVersion,
+                "Assembly informational version, VERSION file, and shell header are aligned.",
+                "Updated"),
+            new SettingSummaryViewModel(
+                "Device context",
+                "Workflow pages only",
+                "IC and Number are hidden on Home and Settings, then shown for Merge and Replace.",
+                "Scoped"),
+            new SettingSummaryViewModel(
+                "Navigation",
+                NavigationPath,
+                "Breadcrumb entries keep page history so users can jump back multiple levels.",
+                CanGoBack ? "History available" : "At root"));
     }
 
     private void RefreshCtrlRamRegions()
@@ -370,6 +557,20 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         OnPropertyChanged(nameof(HasCtrlRamRegions));
         OnPropertyChanged(nameof(CtrlRamRegionSummary));
+    }
+
+    private void RefreshMemoryMapState()
+    {
+        ReplaceRows(MergeMemoryRows, UiCompositionRunner.GetStandardMergeMemoryMapRows(SelectedIc));
+        ReplaceRows(ReplaceMemoryRows, UiCompositionRunner.GetReplaceMemoryMapRows(
+            SelectedIc,
+            SelectedNumber,
+            SelectedReplaceMode));
+
+        OnPropertyChanged(nameof(MergeMemoryRangeLabel));
+        OnPropertyChanged(nameof(ReplaceMemoryRangeLabel));
+        OnPropertyChanged(nameof(MergeMemorySummary));
+        OnPropertyChanged(nameof(ReplaceMemorySummary));
     }
 
     private void RefreshMergeSlotRequirements()
@@ -460,6 +661,24 @@ public sealed partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    private static void ReplaceSettingsRows(
+        ObservableCollection<SettingSummaryViewModel> target,
+        params SettingSummaryViewModel[] rows)
+    {
+        ReplaceRows(target, rows);
+    }
+
+    private static void ReplaceRows<T>(
+        ObservableCollection<T> target,
+        IEnumerable<T> rows)
+    {
+        target.Clear();
+        foreach (T row in rows)
+        {
+            target.Add(row);
+        }
+    }
+
     private void NotifyContextTextChanged()
     {
         OnPropertyChanged(nameof(IsStandardMergeSupported));
@@ -468,6 +687,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(HomeMergeStatus));
         OnPropertyChanged(nameof(MergeReadinessStatus));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
+        OnPropertyChanged(nameof(IsDeviceContextVisible));
     }
 
     private void ResetRunResultForContextChange()
@@ -478,6 +698,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             "No output",
             succeeded: true);
         OnPropertyChanged(nameof(LastRunResult));
+        RefreshSettingsState();
     }
 
     private string GetRequiredStandardMergeSlotLabels()
@@ -548,8 +769,73 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     private void SetSelectedPage(ShellPage page)
     {
+        NavigateToPage(page);
+    }
+
+    private void NavigateToPage(ShellPage page)
+    {
+        int existingIndex = IndexOfNavigationPage(page);
+        if (existingIndex >= 0)
+        {
+            while (NavigationTrail.Count > existingIndex + 1)
+            {
+                NavigationTrail.RemoveAt(NavigationTrail.Count - 1);
+            }
+        }
+        else
+        {
+            NavigationTrail.Add(CreateNavigationEntry(page, isCurrent: false));
+        }
+
+        ApplySelectedPage(page);
+    }
+
+    private void GoBack()
+    {
+        if (!CanGoBack)
+        {
+            return;
+        }
+
+        NavigationTrail.RemoveAt(NavigationTrail.Count - 1);
+        ApplySelectedPage(NavigationTrail[^1].Page);
+    }
+
+    private ShellNavigationEntryViewModel CreateNavigationEntry(ShellPage page, bool isCurrent)
+    {
+        return new ShellNavigationEntryViewModel(page, PageLabel(page), NavigateToPage, isCurrent);
+    }
+
+    private int IndexOfNavigationPage(ShellPage page)
+    {
+        for (int index = 0; index < NavigationTrail.Count; index++)
+        {
+            if (NavigationTrail[index].Page == page)
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
+    private string PageLabel(ShellPage page)
+    {
+        return page switch
+        {
+            ShellPage.Home => "Home",
+            ShellPage.Settings => SettingsPreview.Title,
+            ShellPage.Merge => MergePreview.Title,
+            ShellPage.Replace => ReplacePreview.Title,
+            _ => page.ToString(),
+        };
+    }
+
+    private void ApplySelectedPage(ShellPage page)
+    {
         if (SelectedPage == page)
         {
+            UpdateNavigationState();
             return;
         }
 
@@ -559,6 +845,21 @@ public sealed partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(IsSettingsVisible));
         OnPropertyChanged(nameof(IsMergeVisible));
         OnPropertyChanged(nameof(IsReplaceVisible));
+        OnPropertyChanged(nameof(IsDeviceContextVisible));
+        UpdateNavigationState();
+    }
+
+    private void UpdateNavigationState()
+    {
+        foreach (ShellNavigationEntryViewModel entry in NavigationTrail)
+        {
+            entry.SetCurrent(entry.Page == SelectedPage);
+        }
+
+        OnPropertyChanged(nameof(NavigationPath));
+        OnPropertyChanged(nameof(CanGoBack));
+        GoBackCommand.NotifyCanExecuteChanged();
+        RefreshSettingsState();
     }
 
     private bool CanRunStandardMerge()
@@ -585,6 +886,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 "No output",
                 succeeded: false);
             OnPropertyChanged(nameof(LastRunResult));
+            RefreshSettingsState();
         }
     }
 
@@ -623,6 +925,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         LoadedReport = ReportReviewViewModel.FromJson(json, $"{action.ToLowerInvariant()} report");
         OnPropertyChanged(nameof(LoadedReport));
         OnPropertyChanged(nameof(HasLoadedReport));
+        RefreshSettingsState();
     }
 
     private FirmwareSlotViewModel? MergeSlotForAddressSpace(string addressSpaceId)
@@ -645,6 +948,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     partial void OnSelectedReplaceModeChanged(string value)
     {
         RefreshReplaceModeState();
+        RefreshMemoryMapState();
     }
 
     partial void OnSelectedIcChanged(string value)
@@ -656,6 +960,21 @@ public sealed partial class MainWindowViewModel : ObservableObject
     partial void OnSelectedNumberChanged(string value)
     {
         RefreshContextState(resetRunResult: true);
+    }
+
+    partial void OnSelectedThemeChanged(string value)
+    {
+        RefreshSettingsState();
+    }
+
+    partial void OnSelectedStrictnessChanged(string value)
+    {
+        RefreshSettingsState();
+    }
+
+    partial void OnSelectedLanguageChanged(string value)
+    {
+        RefreshSettingsState();
     }
 
     /// <summary>Gets selected replace mode.</summary>
@@ -681,6 +1000,18 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DeviceContextStatus))]
     public partial string SelectedNumber { get; set; } = "single";
+
+    /// <summary>Gets or sets the selected UI theme preference.</summary>
+    [ObservableProperty]
+    public partial string SelectedTheme { get; set; } = "System";
+
+    /// <summary>Gets or sets the selected validation strictness preference.</summary>
+    [ObservableProperty]
+    public partial string SelectedStrictness { get; set; } = "Strict";
+
+    /// <summary>Gets or sets the selected language preference.</summary>
+    [ObservableProperty]
+    public partial string SelectedLanguage { get; set; } = "English";
 }
 
 /// <summary>Top-level shell page state.</summary>

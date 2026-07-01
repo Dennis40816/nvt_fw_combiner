@@ -5,6 +5,7 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 ## Initial node
 
 - `v0.1.0-dev.0` — init/bootstrap and contract definition node. Includes specification, governance, .NET/Avalonia solution skeleton, installers, CI/release skeleton, two Python references, domain proof primitives, external combiner runner contracts, and no firmware-parity claim.
+- `v0.5.0-dev.0` — current working version for the production-backed settings shell, workflow-scoped Device context, breadcrumb navigation, and normal Replace priority UI state. It does not claim byte-level production parity or golden sign-off.
 
 ## Branch and merge policy
 

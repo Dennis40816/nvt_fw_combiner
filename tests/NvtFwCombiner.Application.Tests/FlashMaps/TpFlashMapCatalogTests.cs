@@ -56,6 +56,24 @@ public sealed class TpFlashMapCatalogTests
         Assert.Contains(cascade, region => region.RegionId == "diff");
     }
 
+    /// <summary>General region lookups use the same IC-count visibility policy as CtrlRAM rows.</summary>
+    [Fact]
+    public void RegionLookupAppliesNumberVisibilityAcrossKinds()
+    {
+        IReadOnlyList<TpFlashMapRegion> singleDpRegions = TpFlashMapCatalog.GetRegions(
+            "NT51950",
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
+            TpFlashMapRegionKind.Dp);
+        IReadOnlyList<TpFlashMapRegion> twoChipDpRegions = TpFlashMapCatalog.GetRegions(
+            "NT51950",
+            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]),
+            TpFlashMapRegionKind.Dp);
+
+        Assert.DoesNotContain(singleDpRegions, region => region.RegionId == "dp-2ic-only");
+        Assert.Contains(twoChipDpRegions, region => region.RegionId == "dp-2ic-only");
+        Assert.Contains(twoChipDpRegions, region => region.RegionId == "dp-ldc-51951");
+    }
+
     /// <summary>NT51950/NT51951 retain the owner-confirmed customer-info preserve window.</summary>
     [Theory]
     [InlineData("NT51950")]

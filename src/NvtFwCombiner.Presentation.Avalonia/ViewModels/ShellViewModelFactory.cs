@@ -11,7 +11,8 @@ public static class ShellViewModelFactory
         var text = ShellTextResources.For(language);
 
         return new MainWindowViewModel(
-            text.ShellVersion,
+            ApplicationVersionProvider.WorkbenchLabel,
+            ApplicationVersionProvider.InformationalVersion,
             text.WorkspaceTitle,
             text.WorkspaceSummary,
             text.PreviewActionLabel,

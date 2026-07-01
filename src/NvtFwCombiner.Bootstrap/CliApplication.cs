@@ -82,9 +82,10 @@ public static class CliApplication
     }
 
     private static string Version => (Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly())
-        .GetName()
-        .Version?
-        .ToString() ?? "unknown";
+        .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+        .InformationalVersion ??
+        (Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly()).GetName().Version?.ToString() ??
+        "unknown";
 
     private static async Task<int> RunProfilesAsync(
         string[] args,

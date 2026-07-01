@@ -14,7 +14,6 @@ public enum ShellLanguage
 public sealed class ShellTextResources
 {
     private ShellTextResources(
-        string shellVersion,
         string workspaceTitle,
         string workspaceSummary,
         string previewActionLabel,
@@ -29,7 +28,6 @@ public sealed class ShellTextResources
         PlanningCardText replacePreview,
         string footerStatus)
     {
-        ShellVersion = shellVersion;
         WorkspaceTitle = workspaceTitle;
         WorkspaceSummary = workspaceSummary;
         PreviewActionLabel = previewActionLabel;
@@ -55,9 +53,6 @@ public sealed class ShellTextResources
             _ => throw new ArgumentOutOfRangeException(nameof(language), language, null),
         };
     }
-
-    /// <summary>Gets the shell milestone label.</summary>
-    public string ShellVersion { get; }
 
     /// <summary>Gets the workspace title.</summary>
     public string WorkspaceTitle { get; }
@@ -101,7 +96,6 @@ public sealed class ShellTextResources
     private static ShellTextResources CreateEnglish()
     {
         return new ShellTextResources(
-            "0.1.1 workbench",
             "Merge / Replace workspace",
             "Production-backed shell with built-in profiles, flash-map catalog, and report review.",
             "Preview",
@@ -115,11 +109,11 @@ public sealed class ShellTextResources
                 "Settings",
                 "Configure the app before running firmware workflows.",
                 [
-                    "Profile catalog",
-                    "Tool folders",
-                    "Diagnostics export",
+                    "Catalog and profile status",
+                    "Tool binding and report access",
+                    "Theme, strictness, and language preference",
                 ],
-                "Catalog backed"),
+                "Production-backed settings"),
             new PlanningCardText(
                 "Merge",
                 "Normal merge first. AB Code is disabled.",
@@ -139,13 +133,12 @@ public sealed class ShellTextResources
                     "CRC/header: combiner.exe postbuild core",
                 ],
                 "Input collection only"),
-            "Profile catalog: built-in | Merge preview/build: wired | Replace: flash-map catalog wired, build pending");
+            "Profile catalog: built-in | Merge preview/build: wired | Replace: flash-map catalog wired, build pending | Settings: catalog-backed");
     }
 
     private static ShellTextResources CreateChineseTraditional()
     {
         return new ShellTextResources(
-            "0.1.1 workbench",
             "合併 / 取代工作區",
             "使用內建 profile、flash-map catalog 與 report review 的生產導向介面。",
             "Preview",
@@ -159,11 +152,11 @@ public sealed class ShellTextResources
                 "設定",
                 "執行韌體流程前的 app 設定。",
                 [
-                    "Profile catalog",
-                    "Tool folders",
-                    "Diagnostics export",
+                    "Catalog 與 profile 狀態",
+                    "Tool binding 與 report access",
+                    "Theme、strictness 與 language preference",
                 ],
-                "Catalog backed"),
+                "Production-backed settings"),
             new PlanningCardText(
                 "合併",
                 "先支援 Normal merge。AB Code 停用。",
@@ -183,7 +176,7 @@ public sealed class ShellTextResources
                     "CRC/header：combiner.exe postbuild core",
                 ],
                 "Input collection only"),
-            "Profile catalog：built-in | Merge preview/build：wired | Replace：flash-map catalog wired, build pending");
+            "Profile catalog：built-in | Merge preview/build：wired | Replace：flash-map catalog wired, build pending | Settings：catalog-backed");
     }
 }
 
