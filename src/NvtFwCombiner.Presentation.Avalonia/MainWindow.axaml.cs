@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -12,7 +13,7 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        DataContext = DemoShellSampleData.Create();
+        DataContext = ShellViewModelFactory.Create();
     }
 
     private async void LoadReportJsonButton_OnClick(object? sender, RoutedEventArgs e)
@@ -40,5 +41,57 @@ public sealed partial class MainWindow : Window
         using var reader = new StreamReader(stream);
         string json = await reader.ReadToEndAsync();
         viewModel.LoadReportJson(json, files[0].Name);
+    }
+
+    private void SlotDragOver_OnDragOver(object? sender, DragEventArgs e)
+    {
+        e.DragEffects = e.DataTransfer.Contains(DataFormat.File)
+            ? DragDropEffects.Copy
+            : DragDropEffects.None;
+    }
+
+    private void SlotDrop_OnDrop(object? sender, DragEventArgs e)
+    {
+        if (sender is not Control { Tag: string slotId } ||
+            DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        string? path = e.DataTransfer.TryGetFiles()?.OfType<IStorageFile>().FirstOrDefault()?.TryGetLocalPath();
+        if (!string.IsNullOrWhiteSpace(path))
+        {
+            viewModel.SetSlotFile(slotId, path);
+        }
+    }
+
+    private async void BrowseSlotButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { Tag: string slotId } ||
+            DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Select BIN file",
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType("Firmware BIN")
+                {
+                    Patterns = ["*.bin"],
+                    MimeTypes = ["application/octet-stream"],
+                },
+                FilePickerFileTypes.All,
+            ],
+        });
+
+        string? path = files.Count == 0 ? null : files[0].TryGetLocalPath();
+        if (!string.IsNullOrWhiteSpace(path))
+        {
+            viewModel.SetSlotFile(slotId, path);
+        }
     }
 }

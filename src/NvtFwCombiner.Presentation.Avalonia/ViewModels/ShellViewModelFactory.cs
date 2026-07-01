@@ -1,14 +1,14 @@
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-/// <summary>Provides separated synthetic data for the 0.1.1 planning shell.</summary>
-public static class DemoShellSampleData
+/// <summary>Creates the production-backed UI view model.</summary>
+public static class ShellViewModelFactory
 {
-    /// <summary>Creates the sample view model used before application-core wiring.</summary>
-    /// <param name="language">Requested demo-shell text language.</param>
-    /// <returns>A populated planning shell view model.</returns>
-    public static MainWindowViewModel Create(DemoShellLanguage language = DemoShellLanguage.English)
+    /// <summary>Creates the main window view model.</summary>
+    /// <param name="language">Requested shell text language.</param>
+    /// <returns>A populated main window view model.</returns>
+    public static MainWindowViewModel Create(ShellLanguage language = ShellLanguage.English)
     {
-        var text = DemoShellTextResources.For(language);
+        var text = ShellTextResources.For(language);
 
         return new MainWindowViewModel(
             text.ShellVersion,
@@ -19,8 +19,7 @@ public static class DemoShellSampleData
             text.ReportModalActionLabel,
             text.DeviceContextTitle,
             text.IcLabel,
-            text.IcNumberLabel,
-            text.IcNumberModeLabel,
+            text.NumberLabel,
             text.DeviceContextStatus,
             CreatePlanningCard(text.SettingsPreview),
             CreatePlanningCard(text.MergePreview),

@@ -8,13 +8,13 @@ This document defines the owner-approved UI direction for the first usable NVT F
 - Information density: show the smallest useful amount of information; reduce reading cost before adding secondary explanations.
 - Home: the first screen is a clean three-card launcher for Settings, Replace, and Merge only.
 - Page separation: Replace pages show Replace-only controls; Merge pages show Merge-only controls. Shared components are reused, but workflow content is not mixed.
-- Shared device context: IC, IC Num, and IC Num mode live in one prominent fixed row below the header on every page, including Home. Workflow pages consume that same context instead of redefining it.
+- Shared device context: IC and Number live in one prominent fixed row below the header on every page, including Home. IC is the target IC family/model selector; Number is the IC count/variant selector such as `single`/`cascade` or profile-specific numeric choices. Workflow pages consume that same context instead of redefining it.
 - Shared visualization: Merge and Replace use the same Memory coverage before/after component in the same page location; the area is visual-first and table-supported.
 - Workbench layout: Merge and Replace use a left primary workspace and a right inspector. Readiness, validation, and processor status live in the inspector instead of floating as sparse cards.
 - Active state: top navigation and workflow mode selection must visibly show the active page/mode.
 - Button system: navigation uses low-noise active tabs, workflow mode uses rounded pill segmented controls, Home quick jumps use command rows, and disabled Preview/Build/Report actions stay visually light.
 - Inputs: firmware files are represented as slot cards.
-- Replace must consume the explicit shared IC num selector/input before region choices and processor readiness. Two-option profiles use text choices such as `single`/`cascade`; profiles with three or more concrete count choices use numeric selection, with future room for Other/custom exceptions.
+- Replace must consume the explicit shared Number selector before region choices and processor readiness. Two-option profiles use text choices such as `single`/`cascade`; profiles with three or more concrete count choices use numeric selection, with future room for Other/custom exceptions.
 - Reports: Preview/Build opens a report modal for diagnostics and evidence review.
 - Report review: the shell may load a structured run report JSON and render it as a readable summary panel. This is a review surface for existing reports, not firmware file execution.
 - Saved Rules: hidden in the first UI release until the saved-rule workflow is implemented and reviewed.
@@ -24,28 +24,28 @@ This document defines the owner-approved UI direction for the first usable NVT F
 
 ## Navigation model
 
-| Page | Purpose | First demo content | Must not contain |
+| Page | Purpose | First production content | Must not contain |
 | --- | --- | --- | --- |
 | Home | Clean launcher | three large cards: Settings, Replace quick jumps, Merge quick jumps | Memory coverage, reports, mixed workflow controls |
 | Settings | Configure folders, profile packs, strictness, theme, diagnostics access | compact settings groups, profile catalog status, log/report access | direct GitHub secret editing, firmware mutation logic |
 | Merge | Normal / AB Code merge entry point | mode selector with Normal enabled and AB Code disabled, shared IC/profile context, slot cards, visual-first memory coverage preview, preview/build actions | Replace controls, hard-coded copy/offset rules |
-| Replace | DP / CtrlRAM / General replace entry point | shared IC num context, persona selector, base/reference slot cards, overlay slot cards including separate DP/LD cards when a DP Replace profile requires them, visual-first memory coverage preview, preview/build actions | Merge controls, region authorization logic in UI |
+| Replace | DP / CtrlRAM / General replace entry point | shared IC/Number context, persona selector, base/reference slot cards, overlay slot cards including separate DP/LD cards when a DP Replace profile requires them, visual-first memory coverage preview, preview/build actions | Merge controls, region authorization logic in UI |
 
-## Demo shell constraints
+## Production shell constraints
 
-- Demo may use static sample text or synthetic typed data.
-- Demo must not read firmware files.
-- Demo must not call `combiner.exe` or Python workers.
-- Demo must not implement range validation in ViewModels.
-- Demo must keep all operation language aligned with `SPEC.md` and `docs/architecture/*`.
-- Demo status labels must clearly distinguish planned, disabled, synthetic, and production-ready states.
+- UI data for ICs, Number choices, profiles, flash-map regions, and processor readiness must come from application/profile catalogs or application service results.
+- ViewModels must not read firmware bytes directly.
+- ViewModels must not call `combiner.exe` or Python workers directly.
+- ViewModels must not implement range validation.
+- Operation language must stay aligned with `SPEC.md` and `docs/architecture/*`.
+- Status labels must distinguish wired, pending, disabled, and unsupported production states.
 
 ## Page hierarchy
 
 ```text
 Shell
   Header: product, page navigation, support state
-  Device context: shared IC, IC Num, IC Num mode
+  Device context: shared IC, Number
   Content region
     Home launcher: Settings | Replace | Merge cards
     Settings page
@@ -59,8 +59,9 @@ Shell
 - Every build-like flow must have Preview before Build.
 - Risky processors show readiness before execution.
 - Current implementation priority is normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows; AB is deferred.
-- IC and IC Num remain in the same fixed Device context location across Home, Settings, Merge, and Replace.
-- Replace UI requires shared IC num selection/input before showing profile-specific regions. First UI should render two-option IC count choices as text and render three-or-more concrete count choices as numeric selection, with future room for Other/custom exceptions.
+- IC and Number remain in the same fixed Device context location across Home, Settings, Merge, and Replace.
+- Replace UI requires shared Number selection before showing profile-specific regions. First UI should render two-option IC count choices as text and render three-or-more concrete count choices as numeric selection, with future room for Other/custom exceptions.
+- Changing IC or Number invalidates workflow-local state that depends on profile context: available modes, selected profile, slot cards, memory coverage, validation issues, preview tokens, and build readiness must be refreshed before Preview or Build can run.
 - Saved Rules controls remain hidden in the first UI release.
 - Reports and diagnostics are secondary surfaces opened from Preview/Build report modals; Settings may expose diagnostics configuration/export, but not run-specific evidence as a top-level page. Until the modal/history surface is complete, the shell may provide a non-navigational `Load report JSON` action that renders existing report JSON into a compact review panel.
 - Reports must tie UI state, operation trace, external processor invocation, mutation ranges, and output hash via `runId`.
@@ -83,8 +84,8 @@ Shell
 - Inputs use slot cards.
 - Diagnostics and evidence are shown through Preview/Build report modals.
 - Existing report JSON can be loaded into a readable review panel for audit/debugging.
-- IC and IC Num use a shared Device context row that stays in the same location on every page.
-- Replace consumes the shared IC num selector/input.
+- IC and Number use a shared Device context row that stays in the same location on every page.
+- Replace consumes the shared Number selector.
 - The UI uses a bilingual English/Chinese-ready architecture.
 - Saved Rules is hidden in the first UI release.
 - The initial default language is English.
@@ -92,4 +93,4 @@ Shell
 
 ## Open UI decisions for review
 
-No open owner decisions are currently recorded for the first demo shell.
+No open owner decisions are currently recorded for the first production shell.

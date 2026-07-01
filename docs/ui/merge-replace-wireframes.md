@@ -1,12 +1,12 @@
 # Merge and Replace Wireframe Plan
 
-This document describes the first `0.1.1` demo interface for Merge and Replace. It is intentionally low fidelity and does not implement firmware behavior.
+This document describes the first production-backed `0.1.1` interface for Merge and Replace. UI surfaces render catalog/service state and do not implement firmware behavior in XAML or ViewModels.
 
 ## Home launcher
 
 ```text
 [Header: product + compact navigation]
-[Fixed Device context: IC | IC Num | mode]
+[Fixed Device context: IC | Number]
 [Large card: Settings]
 [Large card: Replace: DP | CtrlRAM | General]
 [Large card: Merge: Normal | AB Code disabled]
@@ -17,7 +17,7 @@ The home launcher must stay clean. It does not show Memory coverage, reports, di
 ## Shared page layout
 
 ```text
-[Fixed Device context: IC | IC Num | mode]
+[Fixed Device context: IC | Number]
 [Left primary workspace: page header, Preview | Build, Memory coverage, mode, slot cards]
 [Right inspector: profile, validation, readiness, processor status]
 ```
@@ -25,7 +25,7 @@ The home launcher must stay clean. It does not show Memory coverage, reports, di
 Shared controls:
 
 - mode/profile selector;
-- shared Device context for IC, IC Num, and IC Num mode in the same fixed position on every page;
+- shared Device context for IC and Number in the same fixed position on every page;
 - support status badge: draft / candidate / supported;
 - slot cards using only necessary firmware metadata;
 - preview issue list;
@@ -35,6 +35,7 @@ Shared controls:
 - visible active state for top navigation and workflow mode selection.
 - right-side inspector for readiness, validation, and processor status.
 - separate button treatments for navigation tabs, rounded pill workflow modes, Home command rows, workflow actions, and disabled actions.
+- changing IC or Number refreshes profile-dependent workflow state, including mode availability, slot cards, Memory coverage, validation, preview tokens, and Build readiness.
 
 ## Visual style guardrails
 
@@ -64,7 +65,7 @@ General Merge
   Advanced mapping editor that starts from a blank image. Saved-rule controls are hidden in the first UI release.
 ```
 
-### Normal Merge demo sections
+### Normal Merge sections
 
 1. Shared IC/profile context from the fixed Device context row.
 2. Slot cards: DP, TP, optional LD/Extra.
@@ -75,7 +76,7 @@ General Merge
 7. Output naming preview.
 8. NT51950/NT51951 confirmed TP overlay range and golden-pending status from DP Perspective evidence.
 
-### AB Merge demo sections
+### AB Merge sections
 
 1. DP_AB or DPA/DPB input mode selector.
 2. TPA and TPB slot cards.
@@ -84,7 +85,7 @@ General Merge
 5. External combiner/header processor readiness.
 6. Compare rule summary.
 
-### General Merge demo sections
+### General Merge sections
 
 1. Dynamic input list.
 2. Mapping table:
@@ -112,9 +113,9 @@ General Replace
   Explicit source-to-target mappings inside profile-approved safety envelope.
 ```
 
-### Replace demo sections
+### Replace sections
 
-1. Shared IC num selector/input: two-option profiles use text choices such as `single`/`cascade`; profiles with three or more concrete counts use numeric selection, with future room for Other/custom exceptions.
+1. Shared Number selector: two-option profiles use text choices such as `single`/`cascade`; profiles with three or more concrete counts use numeric selection, with future room for Other/custom exceptions.
 2. Base reference BIN card.
 3. Replace persona selector.
 4. Replaceable region list.
@@ -129,13 +130,13 @@ Preview and Build open a report modal after completion or failure. The modal own
 
 ## Build action behavior
 
-For the demo shell, Build remains disabled and explains which application-core milestone is required:
+Build remains disabled until application readiness permits it:
 
 ```text
-Build disabled: Composition core is planned for 0.2.0-dev.N.
+Build disabled: run Preview and resolve validation issues first.
 ```
 
-Preview may show static synthetic data but must be labeled as demo data.
+Preview output must come from application services or a loaded run report.
 
 ## No-go patterns
 

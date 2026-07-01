@@ -1,7 +1,7 @@
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-/// <summary>Supported demo-shell text languages.</summary>
-public enum DemoShellLanguage
+/// <summary>Supported shell text languages.</summary>
+public enum ShellLanguage
 {
     /// <summary>English UI text.</summary>
     English,
@@ -10,10 +10,10 @@ public enum DemoShellLanguage
     ChineseTraditional,
 }
 
-/// <summary>Localized text bundle for the 0.1.1 demo shell.</summary>
-public sealed class DemoShellTextResources
+/// <summary>Localized text bundle for the production-backed UI shell.</summary>
+public sealed class ShellTextResources
 {
-    private DemoShellTextResources(
+    private ShellTextResources(
         string shellVersion,
         string workspaceTitle,
         string workspaceSummary,
@@ -22,8 +22,7 @@ public sealed class DemoShellTextResources
         string reportModalActionLabel,
         string deviceContextTitle,
         string icLabel,
-        string icNumberLabel,
-        string icNumberModeLabel,
+        string numberLabel,
         string deviceContextStatus,
         PlanningCardText settingsPreview,
         PlanningCardText mergePreview,
@@ -38,8 +37,7 @@ public sealed class DemoShellTextResources
         ReportModalActionLabel = reportModalActionLabel;
         DeviceContextTitle = deviceContextTitle;
         IcLabel = icLabel;
-        IcNumberLabel = icNumberLabel;
-        IcNumberModeLabel = icNumberModeLabel;
+        NumberLabel = numberLabel;
         DeviceContextStatus = deviceContextStatus;
         SettingsPreview = settingsPreview;
         MergePreview = mergePreview;
@@ -48,12 +46,12 @@ public sealed class DemoShellTextResources
     }
 
     /// <summary>Gets the resource bundle for a language.</summary>
-    public static DemoShellTextResources For(DemoShellLanguage language)
+    public static ShellTextResources For(ShellLanguage language)
     {
         return language switch
         {
-            DemoShellLanguage.English => CreateEnglish(),
-            DemoShellLanguage.ChineseTraditional => CreateChineseTraditional(),
+            ShellLanguage.English => CreateEnglish(),
+            ShellLanguage.ChineseTraditional => CreateChineseTraditional(),
             _ => throw new ArgumentOutOfRangeException(nameof(language), language, null),
         };
     }
@@ -82,11 +80,8 @@ public sealed class DemoShellTextResources
     /// <summary>Gets the IC field label.</summary>
     public string IcLabel { get; }
 
-    /// <summary>Gets the IC number field label.</summary>
-    public string IcNumberLabel { get; }
-
-    /// <summary>Gets the IC number mode field label.</summary>
-    public string IcNumberModeLabel { get; }
+    /// <summary>Gets the IC count/variant field label.</summary>
+    public string NumberLabel { get; }
 
     /// <summary>Gets the shared device context status text.</summary>
     public string DeviceContextStatus { get; }
@@ -103,20 +98,19 @@ public sealed class DemoShellTextResources
     /// <summary>Gets footer status text.</summary>
     public string FooterStatus { get; }
 
-    private static DemoShellTextResources CreateEnglish()
+    private static ShellTextResources CreateEnglish()
     {
-        return new DemoShellTextResources(
-            "0.1.1 demo shell",
+        return new ShellTextResources(
+            "0.1.1 workbench",
             "Merge / Replace workspace",
-            "Synthetic demo state. File execution is blocked until core wiring is connected.",
+            "Production-backed shell with built-in profiles, flash-map catalog, and report review.",
             "Preview",
             "Build",
             "Report",
             "Device context",
             "IC",
-            "IC Num",
-            "Mode",
-            "Shared by Settings, Replace, and Merge.",
+            "Number",
+            "refresh profile, slots, validation",
             new PlanningCardText(
                 "Settings",
                 "Configure the app before running firmware workflows.",
@@ -125,43 +119,42 @@ public sealed class DemoShellTextResources
                     "Tool folders",
                     "Diagnostics export",
                 ],
-                "Demo settings only"),
+                "Catalog backed"),
             new PlanningCardText(
                 "Merge",
                 "Normal merge first. AB Code is disabled.",
                 [
-                    "Profile: demo-standard-merge",
+                    "Profile: built-in Standard Merge",
                     "Slots: DP, TP, optional LD",
                     "950/951 TP: 0xA000-0x36FFF",
                 ],
-                "Build blocked"),
+                "Preview/build wired"),
             new PlanningCardText(
                 "Replace",
                 "DP, CtrlRAM, and General policies.",
                 [
-                    "Device context: shared IC and IC Num",
+                    "Device context: shared IC and Number",
                     "DP Replace includes separate DP and LD payloads",
                     "CtrlRAM Replace uses approved CtrlRAM regions",
                     "CRC/header: combiner.exe postbuild core",
                 ],
-                "Policy display only"),
-            "Profile catalog: demo | Preview: blocked | Report modal: planned | Firmware mutation: none");
+                "Input collection only"),
+            "Profile catalog: built-in | Merge preview/build: wired | Replace: flash-map catalog wired, build pending");
     }
 
-    private static DemoShellTextResources CreateChineseTraditional()
+    private static ShellTextResources CreateChineseTraditional()
     {
-        return new DemoShellTextResources(
-            "0.1.1 展示殼層",
+        return new ShellTextResources(
+            "0.1.1 workbench",
             "合併 / 取代工作區",
-            "合成展示狀態。Core 接線前不執行檔案流程。",
+            "使用內建 profile、flash-map catalog 與 report review 的生產導向介面。",
             "Preview",
             "Build",
             "Report",
             "Device context",
             "IC",
-            "IC Num",
-            "Mode",
-            "Settings、Replace、Merge 共用。",
+            "Number",
+            "刷新 profile、slot、validation",
             new PlanningCardText(
                 "設定",
                 "執行韌體流程前的 app 設定。",
@@ -170,27 +163,27 @@ public sealed class DemoShellTextResources
                     "Tool folders",
                     "Diagnostics export",
                 ],
-                "Demo settings only"),
+                "Catalog backed"),
             new PlanningCardText(
                 "合併",
                 "先支援 Normal merge。AB Code 停用。",
                 [
-                    "Profile：demo-standard-merge",
+                    "Profile：built-in Standard Merge",
                     "Slots：DP、TP、選用 LD",
                     "950/951 TP：0xA000-0x36FFF",
                 ],
-                "Build blocked"),
+                "Preview/build wired"),
             new PlanningCardText(
                 "取代",
                 "DP、CtrlRAM、General policy。",
                 [
-                    "Device context：共用 IC 與 IC Num",
+                    "Device context：共用 IC 與 Number",
                     "DP Replace 包含分開的 DP 與 LD payload",
                     "CtrlRAM Replace 使用核准的 CtrlRAM regions",
                     "CRC/header：combiner.exe postbuild core",
                 ],
-                "Policy display only"),
-            "Profile catalog：demo | Preview：blocked | Report modal：planned | Firmware mutation：none");
+                "Input collection only"),
+            "Profile catalog：built-in | Merge preview/build：wired | Replace：flash-map catalog wired, build pending");
     }
 }
 

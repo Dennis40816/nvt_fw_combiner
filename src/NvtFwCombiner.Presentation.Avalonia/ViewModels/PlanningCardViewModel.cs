@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-/// <summary>Read-only planning card content for the demo shell.</summary>
+/// <summary>Read-only home card content for the shell.</summary>
 public sealed class PlanningCardViewModel
 {
     /// <summary>Initializes a planning card.</summary>

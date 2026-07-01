@@ -28,7 +28,7 @@ public sealed partial class RepositoryBoundaryTests
 
     /// <summary>Verifies UI planning documents keep firmware behavior out of ViewModels.</summary>
     [Fact]
-    public void DemoUiDocumentsForbidFirmwareSemanticsInViewModels()
+    public void UiDocumentsForbidFirmwareSemanticsInViewModels()
     {
         string boundaries = ReadText("docs/ui/viewmodel-boundaries.md");
 
@@ -37,9 +37,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("No `File.ReadAllBytes` or `Process.Start` in ViewModels", boundaries, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies the demo shell follows the owner-approved clean home and independent page direction.</summary>
+    /// <summary>Verifies the shell follows the owner-approved clean home and independent page direction.</summary>
     [Fact]
-    public void DemoShellUsesCleanHomeAndIndependentWorkflowPages()
+    public void ShellUsesCleanHomeAndIndependentWorkflowPages()
     {
         string shell = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml");
 
@@ -50,22 +50,33 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ShowNormalMergeCommand", shell, StringComparison.Ordinal);
         Assert.Contains("RowDefinitions=\"Auto,Auto,*,Auto\"", shell, StringComparison.Ordinal);
         Assert.Contains("DeviceContextTitle", shell, StringComparison.Ordinal);
-        Assert.Contains("SelectedIcLabel", shell, StringComparison.Ordinal);
-        Assert.Contains("IcNumberText", shell, StringComparison.Ordinal);
-        Assert.Contains("SelectedIcNumberMode", shell, StringComparison.Ordinal);
+        Assert.Contains("IcChoices", shell, StringComparison.Ordinal);
+        Assert.Contains("SelectedIc", shell, StringComparison.Ordinal);
+        Assert.Contains("NumberChoices", shell, StringComparison.Ordinal);
+        Assert.Contains("SelectedNumber", shell, StringComparison.Ordinal);
         Assert.Contains("ToggleButton", shell, StringComparison.Ordinal);
         Assert.Contains("Classes=\"nav\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"segment\"", shell, StringComparison.Ordinal);
         Assert.Contains("Classes=\"command\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"primary\"", shell, StringComparison.Ordinal);
         Assert.Contains("Classes=\"action\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"segmentDisabled\"", shell, StringComparison.Ordinal);
         Assert.Contains("<Setter Property=\"MinHeight\" Value=\"44\" />", shell, StringComparison.Ordinal);
         Assert.Contains("<Setter Property=\"CornerRadius\" Value=\"999\" />", shell, StringComparison.Ordinal);
         Assert.Contains("INSPECTOR", shell, StringComparison.Ordinal);
         Assert.Contains("ColumnDefinitions=\"1.6*,360\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Content=\"AB Code\"", shell, StringComparison.Ordinal);
+        Assert.Contains("AB disabled", shell, StringComparison.Ordinal);
         Assert.Contains("IsEnabled=\"False\"", shell, StringComparison.Ordinal);
         Assert.Contains("LoadReportJsonButton_OnClick", shell, StringComparison.Ordinal);
+        Assert.Contains("SlotDrop_OnDrop", shell, StringComparison.Ordinal);
+        Assert.Contains("SlotDragOver_OnDragOver", shell, StringComparison.Ordinal);
+        Assert.Contains("BrowseSlotButton_OnClick", shell, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding ReplaceModeChoices}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("SelectedItem=\"{Binding SelectedReplaceMode, Mode=TwoWay}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding ReplaceSlots}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding MergeSlots}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding CtrlRamRegions}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding ActiveReplaceRows}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding PreviewMergeCommand}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding BuildMergeCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("HasLoadedReport", shell, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.Operations", shell, StringComparison.Ordinal);
         Assert.Contains("FontFamily=\"fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI\"", shell, StringComparison.Ordinal);
@@ -75,28 +86,44 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("ColumnDefinitions=\"220,*\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Diagnostics.", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("SavedRulesAndReports", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("Policy display only", shell, StringComparison.Ordinal);
 
         string viewModel = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.cs");
         Assert.Contains("LoadReportJson", viewModel, StringComparison.Ordinal);
         Assert.Contains("ReportReviewViewModel", viewModel, StringComparison.Ordinal);
+        Assert.Contains("UiCompositionRunner.GetNumberChoices", viewModel, StringComparison.Ordinal);
+        Assert.Contains("ReplaceModeChoices", viewModel, StringComparison.Ordinal);
+        Assert.Contains("PreviewMergeCommand", viewModel, StringComparison.Ordinal);
+        Assert.Contains("BuildMergeCommand", viewModel, StringComparison.Ordinal);
+
+        string flashMapCatalog = ReadText(
+            "src/NvtFwCombiner.Application/FlashMaps/TpFlashMapCatalog.cs");
+        Assert.Contains("NF CtrlRAM", flashMapCatalog, StringComparison.Ordinal);
+        Assert.Contains("Normal CtrlRAM", flashMapCatalog, StringComparison.Ordinal);
+        Assert.Contains("DIFF CtrlRAM", flashMapCatalog, StringComparison.Ordinal);
+        Assert.Contains("Vector CtrlRAM", flashMapCatalog, StringComparison.Ordinal);
+        Assert.Contains("NT51917", flashMapCatalog, StringComparison.Ordinal);
+        Assert.DoesNotContain("CtrlRamRegionCatalog", shell, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies demo-shell copy is routed through bilingual text resources.</summary>
+    /// <summary>Verifies shell copy is routed through bilingual text resources.</summary>
     [Fact]
-    public void DemoShellUsesBilingualTextResources()
+    public void ShellUsesBilingualTextResources()
     {
         string resources = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/DemoShellTextResources.cs");
-        string sampleData = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/DemoShellSampleData.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.cs");
+        string factory = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellViewModelFactory.cs");
 
-        Assert.Contains("DemoShellLanguage.ChineseTraditional", resources, StringComparison.Ordinal);
+        Assert.Contains("ShellLanguage.ChineseTraditional", resources, StringComparison.Ordinal);
         Assert.Contains("合併", resources, StringComparison.Ordinal);
         Assert.Contains("Device context", resources, StringComparison.Ordinal);
-        Assert.Contains("DemoShellTextResources.For(language)", sampleData, StringComparison.Ordinal);
-        Assert.DoesNotContain("\"Merge preview\"", sampleData, StringComparison.Ordinal);
+        Assert.Contains("ShellTextResources.For(language)", factory, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"Merge preview\"", factory, StringComparison.Ordinal);
         Assert.DoesNotContain("Saved rules", resources, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("demo", resources, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("synthetic", resources, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>Verifies the owner-priority roadmap schedules normal Replace before deferred AB work.</summary>
@@ -162,10 +189,10 @@ public sealed partial class RepositoryBoundaryTests
     {
         string[] replaceBullets = ReadMarkdownBullets(
             "docs/ui/0.1.1-demo-interface-plan.md",
-            "## Replace demo content");
+            "## Replace content");
         Assert.True(
-            replaceBullets.Any(bullet => bullet.StartsWith("Shared IC num selector/input", StringComparison.Ordinal)),
-            "Replace demo content must use the shared IC num context before region choices.");
+            replaceBullets.Any(bullet => bullet.StartsWith("Shared Number selector", StringComparison.Ordinal)),
+            "Replace content must use the shared Number context before region choices.");
         Assert.Contains(
             replaceBullets,
             bullet => bullet.Contains("single", StringComparison.Ordinal)
@@ -182,7 +209,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains(
             replaceRows,
             row => row.StartsWith("Device context:", StringComparison.Ordinal)
-                   && row.Contains("IC Num", StringComparison.Ordinal));
+                   && row.Contains("Number", StringComparison.Ordinal));
         Assert.Contains(
             replaceRows,
             row => row.StartsWith("CRC/header", StringComparison.Ordinal)
@@ -264,7 +291,7 @@ public sealed partial class RepositoryBoundaryTests
     private static string[] ReadPlanningResourceRows(string title)
     {
         string resources = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/DemoShellTextResources.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.cs");
         int titleIndex = resources.IndexOf($"\"{title}\",", StringComparison.Ordinal);
         if (titleIndex < 0)
         {
