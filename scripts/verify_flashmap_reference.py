@@ -85,6 +85,22 @@ POSTBUILD_TOKEN_CHECKS = {
             r"NT51927BASED_GEN_CRC_MODE CRC32 output\nt51927_fw.bin",
         ],
     ),
+    "NT51917": (
+        "postbuild/PostbuildSetup_51927_1.4.1.bat",
+        [
+            r"Combiner.exe MERGE_MODE output\nt51927_fw.bin",
+            r"BIN\%Normal_Ctrlram_M% 0x0 0x177d0 12288",
+            r"NT51927BASED_GEN_CRC_MODE CRC32 output\nt51927_fw.bin",
+        ],
+    ),
+    "NT51928": (
+        "postbuild/PostbuildSetup_51927_1.4.1.bat",
+        [
+            r"Combiner.exe MERGE_MODE output\nt51927_fw.bin",
+            r"BIN\%Normal_Ctrlram_M% 0x0 0x177d0 12288",
+            r"NT51927BASED_GEN_CRC_MODE CRC32 output\nt51927_fw.bin",
+        ],
+    ),
     "NT51930": (
         "postbuild/PostbuildSetup_51930_2.0.0.bat",
         [
@@ -110,6 +126,13 @@ POSTBUILD_TOKEN_CHECKS = {
         ],
     ),
     "NT51929": (
+        "postbuild/PostbuildSetup_51932_2.0.0.bat",
+        [
+            r"Combiner.exe NT51932BASED_NORMAL_MODE CRC8 output\nt51932_fw.bin output\nt51932_fw.bin",
+            r"set CtrlramCMD=BIN\%Normal_Ctrlram% 0x0 %ctrlramAddr% %ctrlram_sz%",
+        ],
+    ),
+    "NT51919": (
         "postbuild/PostbuildSetup_51932_2.0.0.bat",
         [
             r"Combiner.exe NT51932BASED_NORMAL_MODE CRC8 output\nt51932_fw.bin output\nt51932_fw.bin",
@@ -177,10 +200,10 @@ MMAP_TOKEN_CHECKS = {
 
 DOCUMENTATION_WARNINGS = [
     "NT51929/NT51932 TP Overview appears to place NF at 0x1F200, while postbuild/mmap identify FW_REGISTER=0x1F200 and NF_TABLE=0x1FC00.",
-    "NT51930 TP Overview has a smaller <13 IC DiffDLM row; postbuild/mmap cascade DiffDLM is 0x2F200 size 143360.",
-    "NT51927 is special: postbuild uses MERGE_MODE plus NT51927BASED_GEN_CRC_MODE CRC32; catalog includes the postbuild sequence, while mmap/TP Overview offsets still need documentation cleanup.",
+    "NT51930 currently has no >13 IC product target; catalog intentionally maps cascade to the <=13 IC DiffDLM branch at 0x2F200 size 65024.",
+    "NT51927 is special: postbuild hard-codes MERGE_MODE plus NT51927BASED_GEN_CRC_MODE CRC32; catalog follows postbuild and TP Overview should match that command sequence.",
     "NT51923 postbuild copies FW Config as one 2048-byte block while TP Overview splits FW Config/FW Register detail.",
-    "NT51928 has no dedicated postbuild file in this archive. NT51929 follows the NT51932 reference flow and NT51951 follows the NT51950 reference flow by owner confirmation.",
+    "Alias policy: NT51917 and NT51928 non-NB follow NT51927; NT51919 follows NT51929/NT51932; NT51951 follows NT51950. NT51928 NB is a separate IC and is not covered.",
 ]
 
 

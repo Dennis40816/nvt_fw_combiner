@@ -29,7 +29,7 @@ Each profile compiles canonical IC regions plus experience-specific `regionAcces
 - DP Replace exposes only DP whole or declared DP partitions.
 - CtrlRAM Replace exposes only regions tagged `tp-ctrlram` or approved groups that contain them.
 - There is no separate TP firmware Replace category in the product taxonomy.
-- IC num input mode is profile-declared as `single`, `cascade`, or `numeric`; first UI may hide numeric by default, but approved profile exceptions can expose it.
+- IC num input mode is profile-declared as `single`, `cascade`, or `numeric`; two-option profiles use text choices such as `single`/`cascade`, while three-or-more concrete count profiles use numeric selection with future room for Other/custom exceptions.
 
 ## General mode
 

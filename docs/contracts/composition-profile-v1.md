@@ -35,7 +35,7 @@ DP and TP headers must be modeled separately. Use tags such as `dp-header` and `
 
 DP Replace, CtrlRAM Replace, and General Replace policies are enforced by the compiler, not only by UI visibility. General Replace may author explicit ranges only where the profile enables them and never through protected regions.
 
-Replace profiles may declare `experience.icNumInputMode` as `single`, `cascade`, or `numeric`. The first visible UI can hide numeric by default, but approved profile exceptions such as NT51927 may use numeric IC counts without changing the contract field.
+Replace profiles may declare `experience.icNumInputMode` as `single`, `cascade`, or `numeric`. UI should present two-option IC count choices such as `single`/`cascade` as text labels. Profiles with three or more concrete IC-count choices, such as NT51917/NT51927/NT51928 single/2IC/3IC flows, should use numeric selection while preserving room for a future Other/custom path.
 
 ## General mappings and saved rules
 

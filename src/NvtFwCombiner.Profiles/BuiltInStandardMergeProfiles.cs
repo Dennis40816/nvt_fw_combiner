@@ -9,6 +9,16 @@ public static class BuiltInStandardMergeProfiles
     public static IReadOnlyList<CompositionProfileDefinition> GenFlashStandardMergeProfiles { get; } =
     [
         CreateGenFlashProfile(
+            "51917",
+            flashSize: 0x40000,
+            tpRegion: new StandardMergeRegion("tp", "tp-input", 0x00000, 0x35000),
+            dpRegion: new StandardMergeRegion("dp", "dp-input", 0x3C000, 0x40000, 0x200000)),
+        CreateGenFlashProfile(
+            "51919",
+            flashSize: 0x40000,
+            tpRegion: new StandardMergeRegion("tp", "tp-input", 0x07000, 0x40000),
+            dpRegion: new StandardMergeRegion("dp", "dp-input", 0x00000, 0x06000, 0x40000)),
+        CreateGenFlashProfile(
             "51920",
             flashSize: 0x40000,
             tpRegion: new StandardMergeRegion("tp", "tp-input", 0x00000, 0x30000),
@@ -57,6 +67,9 @@ public static class BuiltInStandardMergeProfiles
         SyntheticStandardMerge,
         .. GenFlashStandardMergeProfiles,
     ];
+
+    // NT51950/NT51951 DP Perspective profiles must preserve customer info at
+    // 0x37000..0x37FFF by overlaying TP only through 0x36FFF.
 
     /// <summary>
     /// Synthetic standard merge profile that copies DP and TP inputs into non-overlapping output ranges.

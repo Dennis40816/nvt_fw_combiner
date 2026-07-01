@@ -38,9 +38,12 @@ As of 2026-06-30, near-term implementation focuses on normal Merge and normal Re
 - Owner-provided postbuild scripts are the behavioral truth for CtrlRAM Replace command order; mmap files explain offsets and sizes; TP Overview is the documentation baseline to correct when it conflicts with postbuild/mmap evidence.
 - CtrlRAM postbuild command sequences must be generated as structured command/argv data and tested against the hsi Combiner guide, not assembled as one shell command string. NT51927 requires explicit single, 2IC, and 3IC Replace branches.
 - NT51950/NT51951 normal Merge and DP Replace should use the DP image as the base container and overlay/preserve the TP range. DP length checking should use the DP Perspective maximum container length `0x100000`; shorter DP/Merge/Replace inputs are transiently padded to that working length, and larger inputs are rejected. The confirmed TP overlay range is `0xA000..0x36FFF`; `0x37000..0x37FFF` is customer info and must not be overwritten by the TP overlay.
+- NT51917 follows NT51927. NT51919 follows NT51929. NT51928 non-NB follows NT51927, while NT51928 NB is a separate IC and must not inherit that profile unless explicitly approved.
+- NT51930 currently has no `>13 IC` product target; map cascade to the `<=13 IC` DiffDLM branch (`0x2F200`, size `65024`) until owner data reactivates larger counts.
+- FW Register ranges should be captured as first-class map evidence when the owner updates TP Overview. A future REG Replace workflow may use those ranges, but current Replace scope remains DP Replace, CtrlRAM Replace, and General Replace.
 - Merge and Replace runs must produce a report modal after Preview/Build and persist run history. The report must show each operation step, input/output hashes, IC/IC-num context, normalized ranges, external Combiner command sequence, processor result, warnings, and final artifact path.
 - Real firmware golden evidence is still required before declaring end-to-end CtrlRAM Replace parity for a production IC profile.
-- Replace UI must include an explicit IC num selector/input so users can bind the replace flow to the correct IC profile before region choices or processor readiness are shown. Initial visible IC num input modes are `single` and `cascade`; `numeric` is hidden by default but available for approved special-case profiles such as NT51927.
+- Replace UI must include an explicit IC num selector/input so users can bind the replace flow to the correct IC profile before region choices or processor readiness are shown. Profiles with only `single`/`cascade` choices should use text labels. Profiles with three or more concrete IC-count choices should use numeric selection, with room for an Other/custom option for future exceptions.
 
 ## 1. 背景與問題定義
 
@@ -863,7 +866,7 @@ General Merge is an advanced authoring surface, not a separate executor. User ro
 - CtrlRAM Replace：CtrlRAM-only on regions tagged `tp-ctrlram`。
 - General：explicit mapping inside profile-approved envelope。
 
-Current Replace implementation priority is DP Replace and CtrlRAM Replace workflows. CtrlRAM postbuild command core is implemented from IC FlashMap postbuild evidence for NT51920, NT51923, NT51926, NT51927, NT51929, NT51930, NT51931, NT51932, NT51950, and NT51951, including NT51927 single/2IC/3IC branches. NT51929 follows the NT51932 reference flow; NT51951 follows the NT51950 reference flow. Remaining production work is profile wiring, UI/report/history integration, and golden replace outputs.
+Current Replace implementation priority is DP Replace and CtrlRAM Replace workflows. CtrlRAM postbuild command core is implemented from IC FlashMap postbuild evidence for NT51917, NT51919, NT51920, NT51923, NT51926, NT51927, NT51928 non-NB, NT51929, NT51930, NT51931, NT51932, NT51950, and NT51951, including NT51917/NT51927/NT51928 single/2IC/3IC branches. NT51919 and NT51929 follow the NT51932 reference flow; NT51951 follows the NT51950 reference flow. Remaining production work is profile wiring, UI/report/history integration, and golden replace outputs.
 
 ### 10.7 Dev0 C# implementation milestone
 
@@ -903,7 +906,7 @@ Replace page groups experiences by user mental model：
 - CtrlRAM Replace。
 - General Replace。
 
-The UI must make atomicity visible: whole-only, declared-parts, or explicit-range. Replace uses slot cards for firmware inputs and the same fixed-position Memory coverage before/after area as Merge. DP Replace slot cards must allow profile-declared DP and LD payloads to be separate files when the profile requires it. Memory coverage is visual-first; tables are supporting detail. Replace must expose an explicit IC num selector/input before profile regions and processor readiness are shown. Current implementation priority is DP Replace and CtrlRAM Replace workflows. IC num mode is profile-declared: first UI supports `single` and `cascade` by default; `numeric` is exposed only for approved special cases.
+The UI must make atomicity visible: whole-only, declared-parts, or explicit-range. Replace uses slot cards for firmware inputs and the same fixed-position Memory coverage before/after area as Merge. DP Replace slot cards must allow profile-declared DP and LD payloads to be separate files when the profile requires it. Memory coverage is visual-first; tables are supporting detail. Replace must expose an explicit IC num selector/input before profile regions and processor readiness are shown. Current implementation priority is DP Replace and CtrlRAM Replace workflows. IC num mode is profile-declared: two-option profiles use text choices such as `single` and `cascade`; three-or-more concrete IC-count profiles use numeric count selection with future room for Other/custom exceptions.
 
 ### 11.4 Preview/Build separation
 

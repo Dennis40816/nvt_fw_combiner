@@ -173,10 +173,13 @@ $ExternalToolEntries = @(
 )
 $ApprovedProcessorIds = @(
     'nfc.crc32-mpeg2.calculate-v1',
+    'nfc.nt51917.ctrlram-postbuild-v1',
+    'nfc.nt51919.ctrlram-postbuild-v1',
     'nfc.nt51920.ctrlram-postbuild-v1',
     'nfc.nt51923.ctrlram-postbuild-v1',
     'nfc.nt51926.ctrlram-postbuild-v1',
     'nfc.nt51927.ctrlram-postbuild-v1',
+    'nfc.nt51928.ctrlram-postbuild-v1',
     'nfc.nt51929.ctrlram-postbuild-v1',
     'nfc.nt51930.ctrlram-postbuild-v1',
     'nfc.nt51931.ctrlram-postbuild-v1',

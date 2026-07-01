@@ -14,7 +14,7 @@ This document defines the owner-approved UI direction for the first usable NVT F
 - Active state: top navigation and workflow mode selection must visibly show the active page/mode.
 - Button system: navigation uses low-noise active tabs, workflow mode uses rounded pill segmented controls, Home quick jumps use command rows, and disabled Preview/Build/Report actions stay visually light.
 - Inputs: firmware files are represented as slot cards.
-- Replace must consume the explicit shared IC num selector/input before region choices and processor readiness. Initial visible selector modes are `single` and `cascade`; `numeric` is hidden by default but may appear for approved profile exceptions.
+- Replace must consume the explicit shared IC num selector/input before region choices and processor readiness. Two-option profiles use text choices such as `single`/`cascade`; profiles with three or more concrete count choices use numeric selection, with future room for Other/custom exceptions.
 - Reports: Preview/Build opens a report modal for diagnostics and evidence review.
 - Saved Rules: hidden in the first UI release until the saved-rule workflow is implemented and reviewed.
 - Localization: UI implementation uses a bilingual English/Chinese-ready text architecture, with English as the initial default.
@@ -59,7 +59,7 @@ Shell
 - Risky processors show readiness before execution.
 - Current implementation priority is normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows; AB is deferred.
 - IC and IC Num remain in the same fixed Device context location across Home, Settings, Merge, and Replace.
-- Replace UI requires shared IC num selection/input before showing profile-specific regions. First UI supports `single` and `cascade` by default; `numeric` is exposed only for approved IC exceptions such as NT51927.
+- Replace UI requires shared IC num selection/input before showing profile-specific regions. First UI should render two-option IC count choices as text and render three-or-more concrete count choices as numeric selection, with future room for Other/custom exceptions.
 - Saved Rules controls remain hidden in the first UI release.
 - Reports and diagnostics are secondary surfaces opened from Preview/Build report modals; Settings may expose diagnostics configuration/export, but not run-specific evidence as a top-level page.
 - Reports must tie UI state, operation trace, external processor invocation, mutation ranges, and output hash via `runId`.

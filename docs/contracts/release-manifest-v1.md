@@ -27,7 +27,10 @@ Example:
   "workerProtocolVersions": ["1.0", "2.0"],
   "approvedProcessorIds": [
     "nfc.crc32-mpeg2.calculate-v1",
+    "nfc.nt51917.ctrlram-postbuild-v1",
+    "nfc.nt51919.ctrlram-postbuild-v1",
     "nfc.nt51927.ctrlram-postbuild-v1",
+    "nfc.nt51928.ctrlram-postbuild-v1",
     "nfc.nt51929.ctrlram-postbuild-v1",
     "nfc.nt51950.ctrlram-postbuild-v1",
     "nfc.nt51951.ctrlram-postbuild-v1"

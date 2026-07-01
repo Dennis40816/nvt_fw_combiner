@@ -10,10 +10,13 @@ public static class LegacyCombinerPostbuildCatalog
     /// <summary>Supported postbuild profiles in stable IC order.</summary>
     public static IReadOnlyList<LegacyCombinerPostbuildProfile> All =>
     [
+        Nt51917,
+        Nt51919,
         Nt51920,
         Nt51923,
         Nt51926,
         Nt51927,
+        Nt51928,
         Nt51929,
         Nt51930,
         Nt51931,
@@ -158,6 +161,30 @@ public static class LegacyCombinerPostbuildCatalog
         twoChipCommands: Nt51927TwoChipCommands(),
         threeChipCommands: Nt51927ThreeChipCommands());
 
+    /// <summary>NT51917 CtrlRAM postbuild profile using the owner-approved NT51927 reference flow.</summary>
+    public static LegacyCombinerPostbuildProfile Nt51917 { get; } = new(
+        "nfc.nt51917.ctrlram-postbuild-v1",
+        "NT51917",
+        ToolBindingId,
+        "nt51917_fw.bin",
+        AliasCommands("nt51927", "nt51917", Nt51927.SingleCommands),
+        AliasCommands("nt51927", "nt51917", Nt51927.CascadeCommands),
+        "IC FlashMap postbuild/PostbuildSetup_51927_1.4.1.bat; owner confirmation: NT51917 follows NT51927",
+        twoChipCommands: AliasCommands("nt51927", "nt51917", Nt51927TwoChipCommands()),
+        threeChipCommands: AliasCommands("nt51927", "nt51917", Nt51927ThreeChipCommands()));
+
+    /// <summary>NT51928 CtrlRAM postbuild profile using the owner-approved NT51927 reference flow.</summary>
+    public static LegacyCombinerPostbuildProfile Nt51928 { get; } = new(
+        "nfc.nt51928.ctrlram-postbuild-v1",
+        "NT51928",
+        ToolBindingId,
+        "nt51928_fw.bin",
+        AliasCommands("nt51927", "nt51928", Nt51927.SingleCommands),
+        AliasCommands("nt51927", "nt51928", Nt51927.CascadeCommands),
+        "IC FlashMap postbuild/PostbuildSetup_51927_1.4.1.bat; owner confirmation: NT51928 follows NT51927; NT51928 NB is not covered",
+        twoChipCommands: AliasCommands("nt51927", "nt51928", Nt51927TwoChipCommands()),
+        threeChipCommands: AliasCommands("nt51927", "nt51928", Nt51927ThreeChipCommands()));
+
     /// <summary>NT51930 CtrlRAM postbuild profile.</summary>
     public static LegacyCombinerPostbuildProfile Nt51930 { get; } = new(
         "nfc.nt51930.ctrlram-postbuild-v1",
@@ -185,7 +212,7 @@ public static class LegacyCombinerPostbuildCatalog
                 "NT51930BASED_NORMAL_MODE",
                 [
                     Bin("normal", "Normal_Ctrlram.bin", 0x0, 0x21650, 11264),
-                    Bin("diff", "DiffDLM.bin", 0x0, 0x2F200, 143360),
+                    Bin("diff", "DiffDLM.bin", 0x0, 0x2F200, 65024),
                     Bin("vn", "VN_Ctrlram.bin", 0x0, 0x27650, 6496),
                     Bin("nf", "NF_Ctrlram.bin", 0x0, 0x1FC00, 6736),
                     Fw("header-copy", 0x7000, 0x28FB0, 512),
@@ -280,6 +307,16 @@ public static class LegacyCombinerPostbuildCatalog
         AliasCommands("nt51932", "nt51929", Nt51932.SingleCommands),
         AliasCommands("nt51932", "nt51929", Nt51932.CascadeCommands),
         "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat; owner confirmation: NT51929 follows NT51932");
+
+    /// <summary>NT51919 CtrlRAM postbuild profile using the owner-approved NT51929 reference flow.</summary>
+    public static LegacyCombinerPostbuildProfile Nt51919 { get; } = new(
+        "nfc.nt51919.ctrlram-postbuild-v1",
+        "NT51919",
+        ToolBindingId,
+        "nt51919_fw.bin",
+        AliasCommands("nt51929", "nt51919", Nt51929.SingleCommands),
+        AliasCommands("nt51929", "nt51919", Nt51929.CascadeCommands),
+        "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat; owner confirmation: NT51919 follows NT51929");
 
     /// <summary>NT51950 CtrlRAM postbuild profile.</summary>
     public static LegacyCombinerPostbuildProfile Nt51950 { get; } = new(

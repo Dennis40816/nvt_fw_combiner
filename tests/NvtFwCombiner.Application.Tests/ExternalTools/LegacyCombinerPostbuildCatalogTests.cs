@@ -55,6 +55,43 @@ public sealed class LegacyCombinerPostbuildCatalogTests
             block => block.SourceFileName == "DiffDLM.bin");
     }
 
+    /// <summary>Locks NT51930 cascade support to the current owner-approved less-or-equal 13 IC DiffDLM branch.</summary>
+    [Fact]
+    public void Nt51930CascadeUsesLessOrEqual13IcDiffDlmLength()
+    {
+        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51930,
+            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
+
+        LegacyCombinerBlockArgument diffBlock = plan.Commands
+            .SelectMany(command => command.Blocks)
+            .Single(block => block.SourceFileName == "DiffDLM.bin");
+
+        Assert.Equal(new ByteRange(0x2F200, 65024), diffBlock.FirmwareRange);
+    }
+
+    /// <summary>Locks NT51917 to the owner-approved NT51927 special postbuild flow.</summary>
+    [Fact]
+    public void Nt51917AliasesNt51927PostbuildFlow()
+    {
+        AssertNt51927Alias(
+            LegacyCombinerPostbuildCatalog.Nt51917,
+            "NT51917",
+            "nt51917_fw.bin",
+            "nt51917-2chip-right-ctrlram");
+    }
+
+    /// <summary>Locks NT51928 non-NB to the owner-approved NT51927 special postbuild flow.</summary>
+    [Fact]
+    public void Nt51928AliasesNt51927PostbuildFlow()
+    {
+        AssertNt51927Alias(
+            LegacyCombinerPostbuildCatalog.Nt51928,
+            "NT51928",
+            "nt51928_fw.bin",
+            "nt51928-2chip-right-ctrlram");
+    }
+
     /// <summary>Locks NT51929 to the owner-approved NT51932-based postbuild flow.</summary>
     [Fact]
     public void Nt51929AliasesNt51932PostbuildFlow()
@@ -69,6 +106,22 @@ public sealed class LegacyCombinerPostbuildCatalogTests
         Assert.Equal("NT51932BASED_NORMAL_MODE", nt51929Command.ModeArgument);
         Assert.Equal(nt51932Command.CrcArgument, nt51929Command.CrcArgument);
         AssertEquivalentBlocks(nt51932Command.Blocks, nt51929Command.Blocks);
+    }
+
+    /// <summary>Locks NT51919 to the owner-approved NT51929/NT51932-based postbuild flow.</summary>
+    [Fact]
+    public void Nt51919AliasesNt51929PostbuildFlow()
+    {
+        Assert.Equal("NT51919", LegacyCombinerPostbuildCatalog.Nt51919.IcId);
+        Assert.Equal("nt51919_fw.bin", LegacyCombinerPostbuildCatalog.Nt51919.FirmwareFileName);
+
+        LegacyCombinerPostbuildCommand nt51919Command = LegacyCombinerPostbuildCatalog.Nt51919.SingleCommands[0];
+        LegacyCombinerPostbuildCommand nt51929Command = LegacyCombinerPostbuildCatalog.Nt51929.SingleCommands[0];
+
+        Assert.StartsWith("nt51919-", nt51919Command.CommandId, StringComparison.Ordinal);
+        Assert.Equal("NT51932BASED_NORMAL_MODE", nt51919Command.ModeArgument);
+        Assert.Equal(nt51929Command.CrcArgument, nt51919Command.CrcArgument);
+        AssertEquivalentBlocks(nt51929Command.Blocks, nt51919Command.Blocks);
     }
 
     /// <summary>Locks NT51951 to the owner-approved NT51950-based postbuild flow.</summary>
@@ -207,6 +260,29 @@ public sealed class LegacyCombinerPostbuildCatalogTests
             Assert.Equal(expected[index].SourceOffset, actual[index].SourceOffset);
             Assert.Equal(expected[index].FirmwareRange, actual[index].FirmwareRange);
         }
+    }
+
+    private static void AssertNt51927Alias(
+        LegacyCombinerPostbuildProfile profile,
+        string icId,
+        string firmwareFileName,
+        string expectedTwoChipCommandId)
+    {
+        Assert.Equal(icId, profile.IcId);
+        Assert.Equal(firmwareFileName, profile.FirmwareFileName);
+
+        LegacyCombinerPostbuildCommandPlan twoChip = LegacyCombinerPostbuildPlanner.CreatePlan(
+            profile,
+            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]));
+
+        Assert.Equal(LegacyCombinerPostbuildBranch.TwoChip, twoChip.Branch);
+        Assert.Equal(10, twoChip.Commands.Count);
+        Assert.Equal(expectedTwoChipCommandId, twoChip.Commands[4].CommandId);
+        Assert.Equal("MERGE_MODE", twoChip.Commands[0].ModeArgument);
+        Assert.Contains(twoChip.Commands, command => command.ModeArgument == "NT51927BASED_GEN_CRC_MODE");
+        AssertEquivalentBlocks(
+            LegacyCombinerPostbuildCatalog.Nt51927.TwoChipCommands![4].Blocks,
+            twoChip.Commands[4].Blocks);
     }
 
     private static void VerifyArgumentShape(

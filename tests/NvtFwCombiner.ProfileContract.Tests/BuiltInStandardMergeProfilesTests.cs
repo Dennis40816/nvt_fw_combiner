@@ -30,6 +30,8 @@ public sealed class BuiltInStandardMergeProfilesTests
     {
         string[] expectedIcIds =
         [
+            "NT51917",
+            "NT51919",
             "NT51920",
             "NT51923",
             "NT51926",
@@ -74,6 +76,8 @@ public sealed class BuiltInStandardMergeProfilesTests
     {
         Dictionary<string, Dictionary<string, long>> expectedLengths = new(StringComparer.Ordinal)
         {
+            ["NT51917"] = new(StringComparer.Ordinal) { ["dp-input"] = 0x200000, ["tp-input"] = 0x35000 },
+            ["NT51919"] = new(StringComparer.Ordinal) { ["dp-input"] = 0x40000, ["tp-input"] = 0x40000 },
             ["NT51920"] = new(StringComparer.Ordinal) { ["dp-input"] = 0x40000, ["tp-input"] = 0x30000 },
             ["NT51923"] = new(StringComparer.Ordinal) { ["dp-input"] = 0x40000, ["tp-input"] = 0x3C000 },
             ["NT51926"] = new(StringComparer.Ordinal) { ["dp-input"] = 0x40000, ["tp-input"] = 0x3C000 },
