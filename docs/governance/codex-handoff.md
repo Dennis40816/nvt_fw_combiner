@@ -39,8 +39,9 @@ Codex receives a constrained repository with executable rules and bounded issues
 6. Confirm `1.10`-style external tool versions remain strings.
 7. Confirm tests cover at least one failure path for every new risky rule.
 8. Confirm docs, schemas, C# contracts, and tests agree.
-9. Confirm `python scripts/verify.py --all` was run or the blocker is stated explicitly.
-10. Confirm `PASS` is not issued when private golden evidence or firmware-owner review is still required.
+9. Confirm `docs/architecture/ic-workflow-flowcharts.md` is synchronized when IC profiles, Replace profiles, CtrlRAM postbuild catalog entries, or 950/951 DP policy change.
+10. Confirm `python scripts/verify.py --all` was run or the blocker is stated explicitly.
+11. Confirm `PASS` is not issued when private golden evidence or firmware-owner review is still required.
 
 ## Bounded issue sequence
 

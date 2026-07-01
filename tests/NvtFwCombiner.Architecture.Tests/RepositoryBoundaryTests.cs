@@ -1,7 +1,9 @@
+using System.Text.RegularExpressions;
+
 namespace NvtFwCombiner.Architecture.Tests;
 
 /// <summary>Repository-level architecture boundary checks that do not depend on production assemblies.</summary>
-public sealed class RepositoryBoundaryTests
+public sealed partial class RepositoryBoundaryTests
 {
     private static readonly DirectoryInfo Root = LocateRepositoryRoot();
 
@@ -121,6 +123,31 @@ public sealed class RepositoryBoundaryTests
         }
     }
 
+    /// <summary>Verifies the per-IC flowchart reference stays synchronized with built-in IC lists.</summary>
+    [Fact]
+    public void IcWorkflowFlowchartReferenceCoversBuiltInIcLists()
+    {
+        string reference = ReadText("docs/architecture/ic-workflow-flowcharts.md");
+        string[] builtInIcIds =
+        [
+            .. ReadStandardMergeIcIds()
+                .Concat(ReadCtrlRamPostbuildIcIds())
+                .Distinct(StringComparer.Ordinal)
+                .Order(StringComparer.Ordinal),
+        ];
+
+        Assert.Contains("## Update rule", reference, StringComparison.Ordinal);
+        Assert.Contains("IcWorkflowFlowchartReferenceCoversBuiltInIcLists", reference, StringComparison.Ordinal);
+        Assert.Contains("NT51928 NB is not covered", reference, StringComparison.Ordinal);
+        Assert.Contains("[0x37000, 0x38000)", reference, StringComparison.Ordinal);
+        Assert.Contains("R-CTRLRAM-927", reference, StringComparison.Ordinal);
+
+        foreach (string icId in builtInIcIds)
+        {
+            Assert.Contains($"| {icId} |", reference, StringComparison.Ordinal);
+        }
+    }
+
     /// <summary>Verifies Replace planning exposes IC number and post-replace combiner readiness in the right surfaces.</summary>
     [Fact]
     public void ReplacePlanningRequiresIcNumAndCombinerPostProcessing()
@@ -163,6 +190,38 @@ public sealed class RepositoryBoundaryTests
         Assert.Contains("NT51927", row[3], StringComparison.Ordinal);
         Assert.DoesNotContain("TPB", string.Join(' ', row), StringComparison.Ordinal);
     }
+
+    private static string[] ReadStandardMergeIcIds()
+    {
+        string source = ReadText("src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles.cs");
+        return
+        [
+            .. StandardMergeProfileRegex().Matches(source)
+                .Cast<Match>()
+                .Select(match => $"NT{match.Groups["ic"].Value}")
+                .Distinct(StringComparer.Ordinal)
+                .Order(StringComparer.Ordinal),
+        ];
+    }
+
+    private static string[] ReadCtrlRamPostbuildIcIds()
+    {
+        string source = ReadText("src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.cs");
+        return
+        [
+            .. CtrlRamPostbuildProfileRegex().Matches(source)
+                .Cast<Match>()
+                .Select(match => $"NT{match.Groups["ic"].Value}")
+                .Distinct(StringComparer.Ordinal)
+                .Order(StringComparer.Ordinal),
+        ];
+    }
+
+    [GeneratedRegex(@"CreateGenFlashProfile\(\s*""(?<ic>\d{5})""")]
+    private static partial Regex StandardMergeProfileRegex();
+
+    [GeneratedRegex(@"public static LegacyCombinerPostbuildProfile Nt(?<ic>\d{5})\s*\{")]
+    private static partial Regex CtrlRamPostbuildProfileRegex();
 
     private static string ReadText(string relativePath)
     {
