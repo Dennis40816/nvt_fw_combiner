@@ -24,13 +24,13 @@ This avoids tying merge correctness to every DP sub-block name in the spreadshee
 
 ## Simplest DP Replace Rule
 
-Use the replacement DP as the new base image, then restore the original TP range from the base firmware.
+Clone the base firmware as the Replace reference image, replace the DP container, then restore the original TP range from the base firmware.
 
-1. Reject the base firmware when `base.Length > 0x100000`.
+1. Reject the base firmware unless `base.Length == 0x100000`. Repository policy keeps reference/base firmware exact-length.
 2. Reject the replacement DP when `replacement.Length > 0x100000`.
-3. Create a transient `0x100000` work image filled with the profile padding byte.
-4. Copy the replacement DP bytes to offset `0`.
-5. Copy the original base firmware TP range back into output. If the base is shorter than `0x100000`, missing bytes outside the supplied base remain padding.
+3. Pad the replacement DP to the `0x100000` work length with the profile padding byte.
+4. Replace the full output container from the padded replacement DP.
+5. Copy the original base firmware TP range back into output.
 
 This implements DP Replace without requiring CRC recalculation and without enumerating every DP-owned segment. CtrlRAM Replace remains different: it must run the Combiner postbuild sequence after replacing TP/CtrlRAM content.
 
@@ -38,6 +38,6 @@ This implements DP Replace without requiring CRC recalculation and without enume
 
 - Merge golden for at least one 950 and one 951 max-container case.
 - Standard Merge tests showing shorter DP inputs are padded to `0x100000` and larger DP inputs are rejected.
-- DP Replace tests showing shorter replacement padding to `0x100000` and larger replacement rejection after the replace model supports this initialization shape.
+- DP Replace tests showing exact base-length enforcement, shorter replacement padding to `0x100000`, and larger replacement rejection.
 - DP Replace test proving the TP range is preserved byte-for-byte after profile/model wiring.
 - A map confirmation test that locks TP overlay to `0xA000..0x36FFF` and preserves customer info at `0x37000..0x37FFF`.

@@ -27,19 +27,6 @@ public sealed partial class MainWindowViewModel : ObservableObject
         "LD BIN",
         "Required only when the selected profile uses LD",
         isOptional: true);
-    private readonly FirmwareSlotViewModel _replaceDpSlot = new(
-        "replace-dp",
-        "DP replacement BIN",
-        "DP payload; short files are padded by the profile policy");
-    private readonly FirmwareSlotViewModel _replaceLdSlot = new(
-        "replace-ld",
-        "LD replacement BIN",
-        "LD payload under DP Replace",
-        isOptional: true);
-    private readonly FirmwareSlotViewModel _replaceCtrlRamSlot = new(
-        "replace-ctrlram",
-        "CtrlRAM payload BIN",
-        "CtrlRAM payload; oversized content is truncated with warning");
     private int _generalReplaceMappingCounter;
 
     /// <summary>Initializes the main workbench view model.</summary>
@@ -93,6 +80,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
         BuildMergeCommand = new AsyncRelayCommand(
             () => RunStandardMergeAsync(build: true),
             CanRunStandardMerge);
+        PreviewReplaceCommand = new AsyncRelayCommand(
+            () => RunReplaceAsync(build: false),
+            CanRunReplace);
+        BuildReplaceCommand = new AsyncRelayCommand(
+            () => RunReplaceAsync(build: true),
+            CanRunReplace);
         ShowReportCommand = new RelayCommand(ShowReport, () => CanOpenReport);
         CloseReportCommand = new RelayCommand(CloseReport);
         DismissReportToastCommand = new RelayCommand(DismissReportToast);
@@ -202,7 +195,15 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public string StandardMergeOutputFileName => UiCompositionRunner.GetStandardMergeDefaultOutputFileName(SelectedIc);
 
     /// <summary>Gets Replace memory coverage text for the selected IC and Number.</summary>
-    public string ReplaceMemoryRangeLabel => UiCompositionRunner.GetReplaceMemoryRangeLabel(SelectedIc, SelectedNumber);
+    public string ReplaceMemoryRangeLabel => UiCompositionRunner.GetReplaceMemoryRangeLabel(
+        SelectedIc,
+        SelectedNumber,
+        SelectedReplaceMode);
+
+    /// <summary>Gets the default Replace output file name for the active mode.</summary>
+    public string ReplaceOutputFileName => UiCompositionRunner.GetReplaceDefaultOutputFileName(
+        SelectedIc,
+        SelectedReplaceMode);
 
     /// <summary>Gets short Merge memory-map summary text.</summary>
     public string MergeMemorySummary => IsStandardMergeSupported
@@ -293,6 +294,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// <summary>True when Standard Merge build can run.</summary>
     public bool CanBuildStandardMerge => CanRunStandardMerge();
 
+    /// <summary>True when Replace preview can run for the active mode.</summary>
+    public bool CanPreviewReplace => CanRunReplace();
+
+    /// <summary>True when Replace build can run for the active mode.</summary>
+    public bool CanBuildReplace => CanRunReplace();
+
     /// <summary>Command that returns to the clean home view.</summary>
     public IRelayCommand ShowHomeCommand { get; }
 
@@ -328,6 +335,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     /// <summary>Command that builds Standard Merge output through the application core.</summary>
     public IAsyncRelayCommand BuildMergeCommand { get; }
+
+    /// <summary>Command that previews Replace through the application core or workbench planner.</summary>
+    public IAsyncRelayCommand PreviewReplaceCommand { get; }
+
+    /// <summary>Command that builds Replace output or produces a gated Replace build report.</summary>
+    public IAsyncRelayCommand BuildReplaceCommand { get; }
 
     /// <summary>Sets a local file path for a UI input slot.</summary>
     public void SetSlotFile(string slotId, string path)
@@ -401,6 +414,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         OnPropertyChanged(nameof(MergeMemoryRangeLabel));
         OnPropertyChanged(nameof(ReplaceMemoryRangeLabel));
+        OnPropertyChanged(nameof(ReplaceOutputFileName));
         OnPropertyChanged(nameof(MergeMemorySummary));
         OnPropertyChanged(nameof(ReplaceMemorySummary));
         OnPropertyChanged(nameof(ReplacePreviewUnavailableReason));
@@ -415,22 +429,38 @@ public sealed partial class MainWindowViewModel : ObservableObject
         {
             case DpReplaceMode:
                 ReplaceSlots.Add(ReplaceBaseSlot);
-                ReplaceSlots.Add(_replaceDpSlot);
-                ReplaceSlots.Add(_replaceLdSlot);
+                foreach (FirmwareSlotViewModel slot in UiCompositionRunner.GetReplaceInputSlots(
+                    SelectedIc,
+                    SelectedNumber,
+                    SelectedReplaceMode))
+                {
+                    ReplaceSlots.Add(slot);
+                }
+
                 AddRows(
                     $"{SelectedIc} / {SelectedNumber}: DP Replace input policy is active.",
-                    "DP replacement can pad short DP/LD inputs when the profile permits it.",
-                    "CRC/header postbuild is not required for DP/LD replacement.",
-                    "LD is grouped under DP Replace, but remains a separate BIN slot.");
+                    SelectedIc is "NT51950" or "NT51951"
+                        ? "DP replacement is padded to 0x100000, then the original TP range is restored from base."
+                        : "Build stays gated until this IC has approved DP Replace source mapping evidence.",
+                    SelectedIc == "NT51928"
+                        ? "NT51928 exposes an explicit LDC slot; other ICs hide LDC in DP Replace."
+                        : "Only DP and TP restore regions are shown for this IC.");
                 break;
             case CtrlRamReplaceMode:
                 ReplaceSlots.Add(ReplaceBaseSlot);
-                ReplaceSlots.Add(_replaceCtrlRamSlot);
+                foreach (FirmwareSlotViewModel slot in UiCompositionRunner.GetReplaceInputSlots(
+                    SelectedIc,
+                    SelectedNumber,
+                    SelectedReplaceMode))
+                {
+                    ReplaceSlots.Add(slot);
+                }
+
                 AddRows(
-                    $"{SelectedIc} / {SelectedNumber}: {CtrlRamRegions.Count} visible CtrlRAM regions.",
-                    "Visible CtrlRAM regions come from TP Overview for the selected IC.",
-                    "Single hides DIFF/DLM and slave-only regions unless an IC override is added.",
-                    "combiner.exe postbuild will be required before final TDDI FW output.");
+                    $"{SelectedIc} / {SelectedNumber}: {Math.Max(ReplaceSlots.Count - 1, 0)} replaceable CtrlRAM regions.",
+                    "Each CtrlRAM region slot may receive its own replacement BIN; empty slots stay from base.",
+                    "Preview reports the split and generated Combiner postbuild command sequence.",
+                    "Production output remains gated until owner-approved write ranges and golden outputs are available.");
                 break;
             case GeneralReplaceMode:
                 AddRows(
@@ -448,6 +478,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(IsCtrlRamReplaceModeSelected));
         OnPropertyChanged(nameof(IsGeneralReplaceModeSelected));
         OnPropertyChanged(nameof(IsStructuredReplaceModeSelected));
+        OnPropertyChanged(nameof(ReplaceOutputFileName));
+        RefreshCommandState();
     }
 
     private void AddRows(params string[] rows)
@@ -480,6 +512,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
         OnPropertyChanged(nameof(ReplacePreviewUnavailableReason));
         OnPropertyChanged(nameof(ReplaceBuildUnavailableReason));
+        OnPropertyChanged(nameof(ReplaceOutputFileName));
         OnPropertyChanged(nameof(IsDeviceContextVisible));
     }
 
@@ -497,12 +530,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private FirmwareSlotViewModel? FindSlot(string slotId)
     {
         return MergeSlots.Concat(ReplaceSlots)
-            .Concat([
-                ReplaceBaseSlot,
-                _replaceDpSlot,
-                _replaceLdSlot,
-                _replaceCtrlRamSlot,
-            ])
+            .Concat([ReplaceBaseSlot])
             .FirstOrDefault(slot => string.Equals(slot.SlotId, slotId, StringComparison.Ordinal));
     }
 
@@ -555,9 +583,16 @@ public sealed partial class MainWindowViewModel : ObservableObject
     {
         PreviewMergeCommand.NotifyCanExecuteChanged();
         BuildMergeCommand.NotifyCanExecuteChanged();
+        PreviewReplaceCommand.NotifyCanExecuteChanged();
+        BuildReplaceCommand.NotifyCanExecuteChanged();
         ShowReportCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(CanPreviewStandardMerge));
         OnPropertyChanged(nameof(CanBuildStandardMerge));
+        OnPropertyChanged(nameof(CanPreviewReplace));
+        OnPropertyChanged(nameof(CanBuildReplace));
+        OnPropertyChanged(nameof(ReplaceReadinessStatus));
+        OnPropertyChanged(nameof(ReplacePreviewUnavailableReason));
+        OnPropertyChanged(nameof(ReplaceBuildUnavailableReason));
     }
 
     partial void OnSelectedReplaceModeChanged(string value)

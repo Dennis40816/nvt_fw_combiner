@@ -56,6 +56,29 @@ public static class UiCompositionRunner
         ];
     }
 
+    /// <summary>Gets structured Replace input slots for the selected device context.</summary>
+    public static IReadOnlyList<FirmwareSlotViewModel> GetReplaceInputSlots(
+        string icId,
+        string number,
+        string replaceMode)
+    {
+        return
+        [
+            .. WorkbenchCompositionService.GetReplaceInputSlots(icId, number, replaceMode)
+                .Select(slot => new FirmwareSlotViewModel(
+                    slot.SlotId,
+                    slot.Title,
+                    slot.Description,
+                    slot.IsOptional)),
+        ];
+    }
+
+    /// <summary>Gets the default Replace build output file name.</summary>
+    public static string GetReplaceDefaultOutputFileName(string icId, string replaceMode)
+    {
+        return WorkbenchCompositionService.GetReplaceDefaultOutputFileName(icId, replaceMode);
+    }
+
     /// <summary>Gets readable memory-map rows for the selected Standard Merge profile.</summary>
     public static IReadOnlyList<MemoryMapRowViewModel> GetStandardMergeMemoryMapRows(string icId)
     {
@@ -103,7 +126,13 @@ public static class UiCompositionRunner
     /// <summary>Gets TP Overview address coverage text for the selected Replace context.</summary>
     public static string GetReplaceMemoryRangeLabel(string icId, string number)
     {
-        return WorkbenchCompositionService.GetReplaceMemoryRangeLabel(icId, number);
+        return WorkbenchCompositionService.GetReplaceMemoryRangeLabel(icId, number, replaceMode: string.Empty);
+    }
+
+    /// <summary>Gets TP Overview address coverage text for the selected Replace context and mode.</summary>
+    public static string GetReplaceMemoryRangeLabel(string icId, string number, string replaceMode)
+    {
+        return WorkbenchCompositionService.GetReplaceMemoryRangeLabel(icId, number, replaceMode);
     }
 
     /// <summary>Gets visual coverage segments for the selected Replace mode.</summary>
@@ -120,7 +149,8 @@ public static class UiCompositionRunner
                     segment.SourceLabel,
                     segment.Detail,
                     segment.Fill,
-                    segment.BarWidth)),
+                    segment.BarWidth,
+                    segment.IsChanged)),
         ];
     }
 
@@ -139,6 +169,26 @@ public static class UiCompositionRunner
         string? outputPath = null)
     {
         return WorkbenchCompositionService.RunStandardMergeAsync(icId, slotPaths, build, cancellationToken, outputPath);
+    }
+
+    /// <summary>Runs Replace preview or build through the Bootstrap workbench facade.</summary>
+    public static ValueTask<WorkbenchRunResult> RunReplaceAsync(
+        string icId,
+        string number,
+        string replaceMode,
+        IReadOnlyDictionary<string, string> slotPaths,
+        bool build,
+        CancellationToken cancellationToken,
+        string? outputPath = null)
+    {
+        return WorkbenchCompositionService.RunReplaceAsync(
+            icId,
+            number,
+            replaceMode,
+            slotPaths,
+            build,
+            cancellationToken,
+            outputPath);
     }
 
     private static MemoryMapRowViewModel ToMemoryMapRow(WorkbenchMemoryMapRow row)

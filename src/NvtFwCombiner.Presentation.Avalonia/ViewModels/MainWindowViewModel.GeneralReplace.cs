@@ -16,6 +16,7 @@ public sealed partial class MainWindowViewModel
         }
 
         mapping.FilePath = path;
+        RefreshCommandState();
     }
 
     /// <summary>Removes a General Replace mapping row from the editable UI list.</summary>
@@ -30,6 +31,7 @@ public sealed partial class MainWindowViewModel
         GeneralReplaceMappings.Add(new GeneralReplaceMappingViewModel(
             $"general-map-{_generalReplaceMappingCounter}",
             GeneralReplaceMappings.Count + 1));
+        RefreshCommandState();
     }
 
     private void RemoveGeneralReplaceMapping(GeneralReplaceMappingViewModel? mapping)
@@ -44,5 +46,7 @@ public sealed partial class MainWindowViewModel
         {
             GeneralReplaceMappings[index].SetIndex(index + 1);
         }
+
+        RefreshCommandState();
     }
 }

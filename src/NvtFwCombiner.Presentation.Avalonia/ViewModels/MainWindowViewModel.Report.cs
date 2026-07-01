@@ -76,7 +76,10 @@ public sealed partial class MainWindowViewModel
         string icId,
         string number,
         string message,
-        IReadOnlyDictionary<string, string> slotPaths)
+        IReadOnlyDictionary<string, string> slotPaths,
+        string compositionKind = "Merge",
+        string modeId = "standard-merge",
+        string experienceId = "standard-merge")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(action);
         ArgumentNullException.ThrowIfNull(profileId);
@@ -92,9 +95,9 @@ public sealed partial class MainWindowViewModel
             ProfileId = string.IsNullOrWhiteSpace(profileId) ? "standard-merge" : profileId,
             ProfileVersion = string.Empty,
             IcId = icId,
-            ModeId = "standard-merge",
-            ExperienceId = "standard-merge",
-            CompositionKind = "Merge",
+            ModeId = modeId,
+            ExperienceId = experienceId,
+            CompositionKind = compositionKind,
             StartedAtUtc = timestamp,
             CompletedAtUtc = timestamp,
             Inputs = slotPaths

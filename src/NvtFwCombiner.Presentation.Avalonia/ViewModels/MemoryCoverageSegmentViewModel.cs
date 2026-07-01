@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Media;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -11,7 +12,8 @@ public sealed class MemoryCoverageSegmentViewModel
         string sourceLabel,
         string detail,
         string fill,
-        double barWidth)
+        double barWidth,
+        bool isChanged = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rangeLabel);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceLabel);
@@ -25,6 +27,10 @@ public sealed class MemoryCoverageSegmentViewModel
         Fill = fill;
         FillBrush = Brush.Parse(fill);
         BarWidth = barWidth;
+        IsChanged = isChanged;
+        ChangeLabel = isChanged ? "Changed" : "Preserved";
+        OutlineBrush = isChanged ? Brush.Parse("#F97316") : Brush.Parse("#CBD5E1");
+        OutlineThickness = isChanged ? new Thickness(1) : new Thickness(0);
     }
 
     /// <summary>Address range in half-open hex notation.</summary>
@@ -47,6 +53,18 @@ public sealed class MemoryCoverageSegmentViewModel
 
     /// <summary>Proportional display width in device-independent pixels.</summary>
     public double BarWidth { get; }
+
+    /// <summary>True when the segment is written by the active replace operation.</summary>
+    public bool IsChanged { get; }
+
+    /// <summary>Compact changed/preserved label for the legend.</summary>
+    public string ChangeLabel { get; }
+
+    /// <summary>Outline brush used to call out changed coverage segments.</summary>
+    public IBrush OutlineBrush { get; }
+
+    /// <summary>Outline thickness used to call out changed coverage segments.</summary>
+    public Thickness OutlineThickness { get; }
 
     private static string CreateTooltipText(
         string rangeLabel,

@@ -17,7 +17,7 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 
 ## Milestone scope
 
-Current execution priority: normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows are pulled forward. AB merge remains in the roadmap but is deferred until the owner reactivates it. Standard Merge now has executable profiles for the full v1 merge IC list, including NT51930 and NT51950/NT51951 DP Perspective variable-length DP input handling; NT51930/NT51950/NT51951 still need golden evidence. CtrlRAM Replace has the first Combiner 1.13.0 postbuild command core but still needs production profile wiring and golden evidence.
+Current execution priority: normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows are pulled forward. AB merge remains in the roadmap but is deferred until the owner reactivates it. Standard Merge now has executable profiles for the full v1 merge IC list, including NT51930 and NT51950/NT51951 DP Perspective variable-length DP input handling; NT51930/NT51950/NT51951 still need golden evidence. Replace now has NT51950/NT51951 DP Replace workbench execution and CtrlRAM per-region UI/postbuild trace reports; CtrlRAM production output still needs declared write ranges and golden evidence.
 
 | Milestone | Scope | Implementation boundary |
 | --- | --- | --- |
@@ -28,8 +28,8 @@ Current execution priority: normal Merge and normal Replace for DP Replace and C
 | `0.3.0-dev.N` | Standard merge parity | First standard IC group, golden tests, naming/version extraction. |
 | `0.4.0-dev.N` | Integrity/tool processing | Legacy combiner runner hardening, CRC/Header golden cases, packaging integration. |
 | `0.5.0-dev.N` | Normal Replace priority | DP Replace and CtrlRAM Replace workflows, IC num text choices for two-option profiles, numeric count selection for three-or-more concrete count profiles, and post-replace combiner readiness. |
-| `0.6.0-dev.N` | AB merge | Bank layout, relocation, compare rules, AB golden parity; deferred until the owner reactivates it. |
-| `0.7.0-dev.N` | General Merge/Replace and saved rules | Dynamic mappings, saved rule promotion, preset catalog. |
+| `0.6.0-dev.N` | Workflow data-model convergence | Evaluate and refactor Merge/Replace data into a unified profile/template/catalog model across ICs. No new byte behavior without evidence. |
+| `0.7.0-dev.N` | General Merge/Replace, saved rules, and deferred AB merge | Dynamic mappings, saved rule promotion, preset catalog; AB bank layout resumes only after owner reactivation and golden evidence. |
 | `0.8.0-dev.N` | Packaging/security | Release packaging, tool manifests, smoke tests. |
 | `0.9.0-rc.N` | UAT/release candidates | UX polish, internal sign-off. |
 | `v1.0.0` | stable | Signed-off support matrix. |
@@ -58,8 +58,8 @@ v0.2.0-dev.N    dev1 composition core
 v0.3.0-dev.N    standard merge parity
 v0.4.0-dev.N    worker/tool integrity
 v0.5.0-dev.N    normal Replace priority for DP/CtrlRAM
-v0.6.0-dev.N    AB merge
-v0.7.0-dev.N    General Merge/Replace saved rules
+v0.6.0-dev.N    workflow data-model convergence
+v0.7.0-dev.N    General Merge/Replace saved rules and deferred AB merge
 v0.8.0-dev.N    packaging/security
 v0.9.0-rc.N     UAT/release candidates
 v1.0.0          stable
@@ -72,3 +72,13 @@ v1.0.0          stable
 - `VERSION`, changelog, assembly/worker versions, manifest, commit, and tag must agree.
 - Development tags do not trigger stable publishing; only exact `vX.Y.Z` tags do.
 - Stable release tags are signed once the signing policy and key custody are approved.
+
+## `v0.5.0` release candidate gate
+
+`v0.5.0` can be merged to `main` and packaged only after review gates pass on the milestone branch:
+
+- Standard Merge verified against the available owner-approved golden set.
+- NT51950/NT51951 DP Replace workbench output verified for the implemented exact-base/variable-DP rule.
+- CtrlRAM Replace UI/report trace verified, with production output explicitly gated until write ranges and golden outputs exist.
+- `python scripts/verify.py --all`, Polytail, Codex review, and required human firmware review notes are complete.
+- A Windows x64 self-contained package is produced from the reviewed commit, with version metadata aligned to `0.5.0`.

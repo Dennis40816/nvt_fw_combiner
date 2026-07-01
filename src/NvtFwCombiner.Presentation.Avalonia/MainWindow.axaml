@@ -752,10 +752,17 @@
                 <TextBlock FontSize="13" Foreground="#64748B" Text="{Binding ReplacePreview.Subtitle}" />
               </StackPanel>
               <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
-                <Button Classes="iconButton" IsEnabled="False" ToolTip.Tip="{Binding ReplacePreviewUnavailableReason}">
+                <Button
+                    Classes="iconButton"
+                    Command="{Binding PreviewReplaceCommand}"
+                    ToolTip.Tip="{Binding ReplacePreviewUnavailableReason}">
                   <TextBlock Text="▷" />
                 </Button>
-                <Button Classes="iconButton" IsEnabled="False" ToolTip.Tip="{Binding ReplaceBuildUnavailableReason}">
+                <Button
+                    Classes="iconButton"
+                    Click="BuildReplaceButton_OnClick"
+                    IsEnabled="{Binding CanBuildReplace}"
+                    ToolTip.Tip="{Binding ReplaceBuildUnavailableReason}">
                   <TextBlock Text="✓" />
                 </Button>
               </StackPanel>
@@ -1007,6 +1014,8 @@
                           Width="{Binding BarWidth}"
                           Height="22"
                           Background="{Binding FillBrush}"
+                          BorderBrush="{Binding OutlineBrush}"
+                          BorderThickness="{Binding OutlineThickness}"
                           ToolTip.Tip="{Binding TooltipText}" />
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
@@ -1016,11 +1025,17 @@
               <ItemsControl ItemsSource="{Binding ReplaceCoverageSegments}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:MemoryCoverageSegmentViewModel">
-                    <Border Padding="0,6" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
-                      <Grid ColumnDefinitions="12,88,*" ColumnSpacing="8">
-                        <Border Width="10" Height="10" VerticalAlignment="Center" Background="{Binding FillBrush}" CornerRadius="2" />
+                    <Border Padding="0,7" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
+                      <Grid ColumnDefinitions="12,92,*" ColumnSpacing="8">
+                        <Border Width="10" Height="10" Margin="0,3,0,0" VerticalAlignment="Top" Background="{Binding FillBrush}" BorderBrush="{Binding OutlineBrush}" BorderThickness="{Binding OutlineThickness}" CornerRadius="2" />
                         <TextBlock Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding SourceLabel}" TextWrapping="Wrap" />
-                        <TextBlock Grid.Column="2" FontFamily="Cascadia Mono, Consolas" FontSize="12" Foreground="#0F172A" Text="{Binding RangeLabel}" TextWrapping="Wrap" />
+                        <StackPanel Grid.Column="2" Spacing="1">
+                          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" Foreground="#0F172A" Text="{Binding RangeLabel}" TextWrapping="Wrap" />
+                            <TextBlock Grid.Column="1" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding ChangeLabel}" />
+                          </Grid>
+                          <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Detail}" TextWrapping="Wrap" />
+                        </StackPanel>
                       </Grid>
                     </Border>
                   </DataTemplate>
@@ -1032,14 +1047,13 @@
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:MemoryMapRowViewModel">
                     <Border Padding="0,9" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
-                      <Grid RowDefinitions="Auto,Auto" RowSpacing="3">
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                      <Grid ColumnDefinitions="*,96" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="3">
                           <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" Foreground="#0F172A" Text="{Binding RangeLabel}" TextWrapping="Wrap" />
-                          <Border Grid.Column="1" Padding="8,3" HorizontalAlignment="Right" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
-                            <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#334155" Text="{Binding ActionLabel}" />
+                          <Border Grid.Column="1" Width="92" Padding="8,3" HorizontalAlignment="Right" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+                            <TextBlock HorizontalAlignment="Center" FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding ActionLabel}" TextAlignment="Center" TextTrimming="CharacterEllipsis" />
                           </Border>
-                        </Grid>
-                        <TextBlock Grid.Row="1" FontSize="12" Foreground="#475569" Text="{Binding Detail}" TextWrapping="Wrap" />
+                        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" FontSize="11" FontWeight="SemiBold" Foreground="#475569" Text="{Binding FlowLabel}" TextWrapping="Wrap" />
+                        <TextBlock Grid.Row="2" Grid.ColumnSpan="2" FontSize="11" Foreground="#64748B" Text="{Binding Detail}" TextWrapping="Wrap" />
                       </Grid>
                     </Border>
                   </DataTemplate>

@@ -136,6 +136,37 @@ public sealed partial class MainWindow : Window
         await viewModel.BuildStandardMergeAsync(outputPath);
     }
 
+    private async void BuildReplaceButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel || !viewModel.CanBuildReplace)
+        {
+            return;
+        }
+
+        IStorageFile? file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Save replaced firmware BIN",
+            SuggestedFileName = viewModel.ReplaceOutputFileName,
+            FileTypeChoices =
+            [
+                new FilePickerFileType("Firmware BIN")
+                {
+                    Patterns = ["*.bin"],
+                    MimeTypes = ["application/octet-stream"],
+                },
+                FilePickerFileTypes.All,
+            ],
+        });
+
+        string? outputPath = file?.TryGetLocalPath();
+        if (string.IsNullOrWhiteSpace(outputPath))
+        {
+            return;
+        }
+
+        await viewModel.BuildReplaceAsync(outputPath);
+    }
+
     private void ViewModel_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName != nameof(MainWindowViewModel.HasReportToast) ||

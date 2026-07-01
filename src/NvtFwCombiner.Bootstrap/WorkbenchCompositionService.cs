@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using NvtFwCombiner.Application.Composition;
@@ -12,8 +13,12 @@ using NvtFwCombiner.Profiles;
 namespace NvtFwCombiner.Bootstrap;
 
 /// <summary>Typed facade used by the desktop shell to query catalogs and run application services.</summary>
-public static class WorkbenchCompositionService
+public static partial class WorkbenchCompositionService
 {
+    private const string EmptySha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+    private const long Nt51950DpContainerLength = 0x100000;
+    private static readonly ByteRange Nt51950TpRestoreRange = ByteRange.FromStartEndExclusive(0x0A000, 0x37000);
+
     private static readonly JsonSerializerOptions ReportJsonOptions = new()
     {
         WriteIndented = true,
@@ -158,7 +163,8 @@ public static class WorkbenchCompositionService
                     "No profile",
                     "Standard Merge is unavailable.",
                     "#CBD5E1",
-                    280),
+                    280,
+                    false),
             ];
         }
 
@@ -172,7 +178,8 @@ public static class WorkbenchCompositionService
                     "Invalid profile",
                     FormatIssues(compile.Issues),
                     "#F97316",
-                    280),
+                    280,
+                    false),
             ];
         }
 
@@ -182,7 +189,8 @@ public static class WorkbenchCompositionService
                 new ByteRange(0, profile.Initialization.Capacity),
                 $"Blank 0x{profile.Initialization.FillByte:X2}",
                 "No source input writes this output range.",
-                "#E2E8F0"),
+                "#E2E8F0",
+                false),
         ];
 
         foreach (CompositionOperation operation in compile.Plan!.OrderedOperations)
@@ -199,7 +207,8 @@ public static class WorkbenchCompositionService
                     operation.TargetRange,
                     label,
                     detail,
-                    CoverageFill(label)));
+                    CoverageFill(label),
+                    false));
         }
 
         return
@@ -209,7 +218,8 @@ public static class WorkbenchCompositionService
                 segment.SourceLabel,
                 segment.Detail,
                 segment.Fill,
-                WidthForRange(segment.Range, profile.Initialization.Capacity))),
+                WidthForRange(segment.Range, profile.Initialization.Capacity),
+                false)),
         ];
     }
 
@@ -222,137 +232,6 @@ public static class WorkbenchCompositionService
     }
 
     /// <summary>Gets readable memory-map rows for the selected Replace mode.</summary>
-    public static IReadOnlyList<WorkbenchMemoryMapRow> GetReplaceMemoryMapRows(
-        string icId,
-        string number,
-        string replaceMode)
-    {
-        IcNumberSelection selection = ToIcNumberSelection(number);
-        IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetRegions(icId, selection);
-        return regions.Count == 0
-            ?
-            [
-                new WorkbenchMemoryMapRow(
-                    "Catalog",
-                    "No flash-map row",
-                    "Blocked",
-                    "No target",
-                    $"No TP Overview flash-map profile is available for {icId}."),
-            ]
-            : replaceMode switch
-            {
-                "DP" => CreateDpReplaceRows(regions),
-                "CtrlRAM" => CreateCtrlRamReplaceRows(regions),
-                "General" =>
-                [
-                    .. CreatePreserveRows(regions),
-                    new WorkbenchMemoryMapRow(
-                        "Runtime range",
-                        "Base flash",
-                        "Replace",
-                        "General BIN",
-                        "The selected explicit range must be approved by the compiled General Replace profile."),
-                ],
-                _ =>
-                [
-                    new WorkbenchMemoryMapRow(
-                        "Mode",
-                        "Unknown",
-                        "Select",
-                        "No target",
-                        "Select DP, CtrlRAM, or General Replace."),
-                ],
-            };
-    }
-
-    /// <summary>Gets TP Overview address coverage text for the selected Replace context.</summary>
-    public static string GetReplaceMemoryRangeLabel(string icId, string number)
-    {
-        IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetRegions(icId, ToIcNumberSelection(number));
-        return regions.Count == 0
-            ? "No flash-map profile"
-            : FormatFullRange(regions.Max(region => region.Range.EndExclusive));
-    }
-
-    /// <summary>Gets final visual coverage segments for the selected Replace view.</summary>
-    public static IReadOnlyList<WorkbenchMemoryCoverageSegment> GetReplaceCoverageSegments(
-        string icId,
-        string number,
-        string replaceMode)
-    {
-        IcNumberSelection selection = ToIcNumberSelection(number);
-        IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetRegions(icId, selection);
-        if (regions.Count == 0)
-        {
-            return
-            [
-                new WorkbenchMemoryCoverageSegment(
-                    "No range",
-                    "No profile",
-                    $"No TP Overview flash-map profile is available for {icId}.",
-                    "#CBD5E1",
-                    280),
-            ];
-        }
-
-        long capacity = regions.Max(region => region.Range.EndExclusive);
-        CoverageSegment[] segments =
-        [
-            new CoverageSegment(
-                new ByteRange(0, capacity),
-                "Base flash",
-                "Reference image is cloned before replacement.",
-                "#E2E8F0"),
-        ];
-
-        foreach (TpFlashMapRegion region in regions
-            .Where(IsPreservedRegion)
-            .OrderBy(region => region.Range.Start))
-        {
-            segments = ApplyCoverageWrite(
-                segments,
-                new CoverageSegment(
-                    region.Range,
-                    "Preserve",
-                    $"{region.DisplayName} stays from the base image.",
-                    "#94A3B8"));
-        }
-
-        IEnumerable<TpFlashMapRegion> replacementRegions = replaceMode switch
-        {
-            "DP" => regions.Where(region => region.Kind == TpFlashMapRegionKind.Dp),
-            "CtrlRAM" => regions.Where(region => region.Kind == TpFlashMapRegionKind.CtrlRam),
-            _ => [],
-        };
-
-        foreach (TpFlashMapRegion region in replacementRegions.OrderBy(region => region.Range.Start))
-        {
-            string label = replaceMode switch
-            {
-                "DP" => IsLdRegion(region) ? "LD BIN" : "DP BIN",
-                "CtrlRAM" => "CtrlRAM BIN",
-                _ => "Replacement BIN",
-            };
-            segments = ApplyCoverageWrite(
-                segments,
-                new CoverageSegment(
-                    region.Range,
-                    label,
-                    $"{region.DisplayName}; {ActionSummaryForReplaceMode(replaceMode)}",
-                    CoverageFill(label)));
-        }
-
-        return
-        [
-            .. segments.Select(segment => new WorkbenchMemoryCoverageSegment(
-                FormatDisplayRange(segment.Range),
-                segment.SourceLabel,
-                segment.Detail,
-                segment.Fill,
-                WidthForRange(segment.Range, capacity))),
-        ];
-    }
-
     /// <summary>Gets catalog and tool summary data for the Settings page.</summary>
     public static WorkbenchSettingsSnapshot GetSettingsSnapshot()
     {
@@ -480,65 +359,6 @@ public static class WorkbenchCompositionService
         return new IcNumberSelection(mode, [number]);
     }
 
-    private static IReadOnlyList<WorkbenchMemoryMapRow> CreateDpReplaceRows(
-        IReadOnlyList<TpFlashMapRegion> regions)
-    {
-        return
-        [
-            .. CreatePreserveRows(regions),
-            .. regions
-                .Where(region => region.Kind == TpFlashMapRegionKind.Dp)
-                .OrderBy(region => region.Range.Start)
-                .Select(region => new WorkbenchMemoryMapRow(
-                    FormatDisplayRange(region.Range),
-                    "Base flash",
-                    "Replace",
-                    IsLdRegion(region) ? "LD BIN" : "DP BIN",
-                    $"{region.DisplayName}; short DP/LD inputs can be padded by policy.")),
-        ];
-    }
-
-    private static IReadOnlyList<WorkbenchMemoryMapRow> CreateCtrlRamReplaceRows(
-        IReadOnlyList<TpFlashMapRegion> regions)
-    {
-        return
-        [
-            .. CreatePreserveRows(regions),
-            .. regions
-                .Where(region => region.Kind == TpFlashMapRegionKind.CtrlRam)
-                .OrderBy(region => region.Range.Start)
-                .Select(region => new WorkbenchMemoryMapRow(
-                    FormatDisplayRange(region.Range),
-                    "Base flash",
-                    "Replace + CRC",
-                    region.PostbuildFileName ?? "CtrlRAM BIN",
-                    $"{region.DisplayName}; combiner.exe postbuild refreshes CRC/header after staging.")),
-        ];
-    }
-
-    private static IReadOnlyList<WorkbenchMemoryMapRow> CreatePreserveRows(
-        IReadOnlyList<TpFlashMapRegion> regions)
-    {
-        return
-        [
-            .. regions
-                .Where(IsPreservedRegion)
-                .OrderBy(region => region.Range.Start)
-                .Select(region => new WorkbenchMemoryMapRow(
-                    FormatDisplayRange(region.Range),
-                    "Base flash",
-                    "Preserve",
-                    "Base flash",
-                    $"{region.DisplayName} is intentionally not written by this workflow.")),
-        ];
-    }
-
-    private static bool IsLdRegion(TpFlashMapRegion region)
-    {
-        return region.RegionId.Contains("ld", StringComparison.OrdinalIgnoreCase) ||
-            region.DisplayName.Contains("LDC", StringComparison.OrdinalIgnoreCase);
-    }
-
     private static InputArtifactBinding CreateBinding(
         string addressSpaceId,
         IReadOnlyDictionary<string, string> slotPaths)
@@ -547,6 +367,7 @@ public static class WorkbenchCompositionService
             ? new InputArtifactBinding(addressSpaceId, addressSpaceId, Path.GetFullPath(path))
             : throw new InvalidOperationException($"Input slot '{addressSpaceId}' is required.");
     }
+
 
     private static CompositionRunProfile ToRunProfile(CompositionProfileDefinition profile)
     {
@@ -600,6 +421,9 @@ public static class WorkbenchCompositionService
             "dp-input" => "DP BIN",
             "tp-input" => "TP BIN",
             "ld-input" => "LD BIN",
+            "reference-base" => "Base flash",
+            "dp-replacement" => "DP replacement",
+            "ldc-replacement" => "LDC replacement",
             "output-image" => "Output",
             _ => addressSpaceId,
         };
@@ -698,9 +522,13 @@ public static class WorkbenchCompositionService
         return sourceLabel switch
         {
             "DP BIN" => "#2563EB",
+            "Changed DP BIN" => "#2563EB",
             "TP BIN" => "#16A34A",
             "LD BIN" => "#F97316",
+            "Changed LDC BIN" => "#F97316",
             "CtrlRAM BIN" => "#16A34A",
+            "Changed CtrlRAM BIN" => "#16A34A",
+            "Restored TP" => "#64748B",
             "Preserve" => "#64748B",
             _ => "#CBD5E1",
         };
@@ -720,6 +548,28 @@ public static class WorkbenchCompositionService
     private static string FormatDisplayRange(ByteRange range)
     {
         return $"0x{range.Start:X5}..0x{range.EndExclusive:X5}";
+    }
+
+    private static IReadOnlyList<WorkbenchMemoryCoverageSegment> ToWorkbenchCoverageSegments(
+        IEnumerable<CoverageSegment> segments,
+        long capacity)
+    {
+        return
+        [
+            .. segments.Select(segment => new WorkbenchMemoryCoverageSegment(
+                FormatDisplayRange(segment.Range),
+                segment.SourceLabel,
+                segment.Detail,
+                segment.Fill,
+                WidthForRange(segment.Range, capacity),
+                segment.IsChanged)),
+        ];
+    }
+
+    private static string Sha256File(string path)
+    {
+        using FileStream stream = File.OpenRead(path);
+        return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
     }
 }
 
@@ -746,13 +596,24 @@ public sealed record WorkbenchMemoryCoverageSegment(
     string SourceLabel,
     string Detail,
     string Fill,
-    double BarWidth);
+    double BarWidth,
+    bool IsChanged);
+
+/// <summary>One file slot declared by the selected Replace workflow.</summary>
+public sealed record WorkbenchReplaceInputSlot(
+    string SlotId,
+    string Title,
+    string Description,
+    bool IsOptional,
+    string AddressSpaceId,
+    string? RegionId);
 
 internal sealed record CoverageSegment(
     ByteRange Range,
     string SourceLabel,
     string Detail,
-    string Fill);
+    string Fill,
+    bool IsChanged);
 
 /// <summary>One CtrlRAM region row for shell display.</summary>
 public sealed record WorkbenchCtrlRamRegion(

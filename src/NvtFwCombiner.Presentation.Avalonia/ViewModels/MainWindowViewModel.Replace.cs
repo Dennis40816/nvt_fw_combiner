@@ -1,3 +1,5 @@
+using NvtFwCombiner.Bootstrap;
+
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
@@ -5,8 +7,10 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets short Replace memory-map summary text.</summary>
     public string ReplaceMemorySummary => SelectedReplaceMode switch
     {
-        DpReplaceMode => "Base flash is kept; only DP/LD ranges listed below are written.",
-        CtrlRamReplaceMode => "Base flash is kept; CtrlRAM ranges are staged, then combiner.exe refreshes CRC/header.",
+        DpReplaceMode => SelectedIc is "NT51950" or "NT51951"
+            ? "Replacement DP fills the work image; the base TP range is restored and shown as preserved."
+            : "Base flash is kept; approved DP ranges are shown while output remains gated.",
+        CtrlRamReplaceMode => "Base flash is split into CtrlRAM regions; selected regions are replaced before postbuild.",
         GeneralReplaceMode => "Base flash is kept; explicit ranges are validated before write access.",
         _ => "Select a replace mode to inspect its target ranges.",
     };
@@ -14,8 +18,12 @@ public sealed partial class MainWindowViewModel
     /// <summary>Status shown in the replace inspector.</summary>
     public string ReplaceReadinessStatus => SelectedReplaceMode switch
     {
-        DpReplaceMode => "Preview blocked: base BIN and DP/LD replacement inputs are required.",
-        CtrlRamReplaceMode => "Preview blocked: base BIN, CtrlRAM BIN, and combiner readiness are required.",
+        DpReplaceMode => CanRunReplace()
+            ? "Ready: Preview/Build will validate DP Replace inputs and produce a report."
+            : "Preview blocked: base BIN and required DP replacement inputs are required.",
+        CtrlRamReplaceMode => CanRunReplace()
+            ? "Ready: Preview will report split, region replacements, and generated postbuild commands."
+            : "Preview blocked: base BIN and at least one CtrlRAM region BIN are required.",
         GeneralReplaceMode => "Preview blocked: base BIN, replacement BIN, and an approved range are required.",
         _ => "Preview blocked: select a Replace mode.",
     };
@@ -25,4 +33,93 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>Gets the compact reason shown on disabled Replace build.</summary>
     public string ReplaceBuildUnavailableReason => $"Build blocked: run a valid {SelectedReplaceMode} Preview first.";
+
+    /// <summary>Builds Replace output or a gated Replace build report to a user-selected path.</summary>
+    public Task BuildReplaceAsync(string outputPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
+        return RunReplaceAsync(build: true, outputPath);
+    }
+
+    private bool CanRunReplace()
+    {
+        return SelectedReplaceMode switch
+        {
+            DpReplaceMode => ReplaceSlots.Count > 0 &&
+                ReplaceSlots.Where(slot => !slot.IsOptional).All(slot => slot.HasFile),
+            CtrlRamReplaceMode => ReplaceBaseSlot.HasFile &&
+                ReplaceSlots.Any(slot => !ReferenceEquals(slot, ReplaceBaseSlot) && slot.HasFile),
+            GeneralReplaceMode => ReplaceBaseSlot.HasFile &&
+                GeneralReplaceMappings.Any(mapping =>
+                    mapping.HasFile &&
+                    !string.IsNullOrWhiteSpace(mapping.StartAddress) &&
+                    !string.IsNullOrWhiteSpace(mapping.EndAddress)),
+            _ => false,
+        };
+    }
+
+    private async Task RunReplaceAsync(bool build)
+    {
+        await RunReplaceAsync(build, outputPath: null);
+    }
+
+    private async Task RunReplaceAsync(bool build, string? outputPath)
+    {
+        try
+        {
+            WorkbenchRunResult result = await UiCompositionRunner.RunReplaceAsync(
+                SelectedIc,
+                SelectedNumber,
+                SelectedReplaceMode,
+                CreateReplaceSlotPaths(),
+                build,
+                CancellationToken.None,
+                outputPath);
+            ApplyRunResult(result, build);
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            string action = build ? "Build" : "Preview";
+            LastRunResult = new UiRunResultViewModel(
+                $"{action} failed",
+                exception.Message,
+                "No output",
+                succeeded: false);
+            OnPropertyChanged(nameof(LastRunResult));
+            LoadRunErrorReport(
+                action,
+                $"{SelectedIc.ToLowerInvariant()}-{SelectedReplaceMode.ToLowerInvariant()}-replace",
+                SelectedIc,
+                SelectedNumber,
+                exception.Message,
+                CreateReplaceSlotPaths(),
+                compositionKind: "Replace",
+                modeId: $"{SelectedReplaceMode.ToLowerInvariant()}-replace",
+                experienceId: $"{SelectedReplaceMode.ToLowerInvariant()}-replace");
+        }
+    }
+
+    private Dictionary<string, string> CreateReplaceSlotPaths()
+    {
+        Dictionary<string, string> paths = new(StringComparer.Ordinal);
+        foreach (FirmwareSlotViewModel slot in ReplaceSlots)
+        {
+            AddPath(paths, slot.SlotId, slot);
+        }
+
+        if (!ReplaceSlots.Contains(ReplaceBaseSlot))
+        {
+            AddPath(paths, ReplaceBaseSlot.SlotId, ReplaceBaseSlot);
+        }
+
+        foreach (GeneralReplaceMappingViewModel mapping in GeneralReplaceMappings)
+        {
+            if (!string.IsNullOrWhiteSpace(mapping.FilePath))
+            {
+                paths[mapping.MappingId] = mapping.FilePath;
+            }
+        }
+
+        return paths;
+    }
 }

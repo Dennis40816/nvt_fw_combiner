@@ -168,25 +168,34 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("synthetic", resources, StringComparison.OrdinalIgnoreCase);
     }
 
-    /// <summary>Verifies the owner-priority roadmap schedules normal Replace before deferred AB work.</summary>
+    /// <summary>Verifies the owner-priority roadmap schedules normal Replace before workflow convergence and deferred AB work.</summary>
     [Fact]
     public void OwnerPriorityTargetsNormalMergeReplaceBeforeAb()
     {
         (int replaceLine, string[] replaceMilestone) = FindMarkdownTableRow(
             "docs/governance/development-tags.md",
             "`0.5.0-dev.N`");
-        (int abLine, string[] abMilestone) = FindMarkdownTableRow(
+        (int convergenceLine, string[] convergenceMilestone) = FindMarkdownTableRow(
             "docs/governance/development-tags.md",
             "`0.6.0-dev.N`");
+        (int abLine, string[] abMilestone) = FindMarkdownTableRow(
+            "docs/governance/development-tags.md",
+            "`0.7.0-dev.N`");
 
-        Assert.True(replaceLine < abLine, "Normal Replace must be scheduled before deferred AB work.");
+        Assert.True(replaceLine < convergenceLine, "Normal Replace must land before the workflow data-model refactor.");
+        Assert.True(convergenceLine < abLine, "Workflow data-model convergence must happen before deferred AB work resumes.");
         Assert.Equal("Normal Replace priority", replaceMilestone[1]);
         Assert.Contains("DP", replaceMilestone[2], StringComparison.Ordinal);
         Assert.Contains("CtrlRAM", replaceMilestone[2], StringComparison.Ordinal);
         Assert.Contains("IC num", replaceMilestone[2], StringComparison.Ordinal);
         Assert.Contains("combiner", replaceMilestone[2], StringComparison.Ordinal);
-        Assert.Equal("AB merge", abMilestone[1]);
-        Assert.Contains("deferred", abMilestone[2], StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("Workflow data-model convergence", convergenceMilestone[1]);
+        Assert.Contains("unified", convergenceMilestone[2], StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Merge/Replace", convergenceMilestone[2], StringComparison.Ordinal);
+        Assert.Contains("No new byte behavior", convergenceMilestone[2], StringComparison.Ordinal);
+        Assert.Contains("AB merge", abMilestone[1], StringComparison.Ordinal);
+        Assert.Contains("owner reactivation", abMilestone[2], StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("golden evidence", abMilestone[2], StringComparison.OrdinalIgnoreCase);
 
         foreach (string ic in new[] { "NT51950", "NT51951" })
         {
