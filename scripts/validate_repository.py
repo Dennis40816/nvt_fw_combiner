@@ -45,7 +45,6 @@ REQUIRED_FILES = {
     "scripts/publish-github.sh",
     "scripts/validate_repository.py",
     "scripts/verify.py",
-    "scripts/verify_flashmap_reference.py",
     "THIRD_PARTY_NOTICES.md",
     "external-tools/README.md",
     "external-tools/legacy-combiner/README.md",
@@ -86,9 +85,6 @@ REQUIRED_FILES = {
     "refcode/REFERENCE_MANIFEST.json",
     "refcode/gen_flash_bin_v2/SOURCE_MANIFEST.json",
     "refcode/ab_code_combiner/SOURCE_MANIFEST.json",
-    "refcode/flashmap/README.md",
-    "refcode/flashmap/SOURCE_MANIFEST.json",
-    "refcode/flashmap/VALIDATION.md",
     "tools/crc-worker/pyproject.toml",
 }
 
@@ -182,12 +178,11 @@ EXPECTED_SKILLS = {
     "polytail",
 }
 
-EXPECTED_REFCODE_SNAPSHOTS = {"gen_flash_bin_v2", "ab_code_combiner", "flashmap"}
+EXPECTED_REFCODE_SNAPSHOTS = {"gen_flash_bin_v2", "ab_code_combiner"}
 FORBIDDEN_SUFFIXES = {".bin", ".exe", ".dll", ".pdb", ".pfx", ".p12", ".pem", ".key", ".pyc"}
 ALLOWED_GOLDEN_BIN_ROOTS = {PurePosixPath("testdata/golden/standard-merge-gen-flash")}
 ALLOWED_EXECUTABLE_PAYLOADS = {
     PurePosixPath("external-tools/legacy-combiner/1.13.0/Combiner.exe"),
-    PurePosixPath("refcode/flashmap/IC FlashMap/combiner_1.13.0/Combiner.exe"),
 }
 FORBIDDEN_DIRECTORY_NAMES = {"__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", ".venv", "venv", "artifacts", "release", "bin", "obj"}
 FORBIDDEN_REFCODE_SUFFIXES = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"}
