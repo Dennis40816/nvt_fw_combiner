@@ -174,10 +174,13 @@ public sealed class ReportReviewViewModel
                 string processor = GetStringOrNull(operation, "ProcessorId") is { } processorId
                     ? $" / {processorId}"
                     : string.Empty;
+                string reason = GetString(operation, "Reason");
+                (string reasonSummary, string commandBlock) = ExtractCombinerCommand(reason);
                 return new ReportLineViewModel(
                     $"{GetLong(operation, "Sequence")}. {GetString(operation, "OperationId")}",
                     $"{GetString(operation, "Kind")} {source} -> {target}",
-                    $"{GetString(operation, nameof(Status))} / {GetString(operation, "OverlapPolicy")}{processor} / {GetString(operation, "Reason")}");
+                    $"{GetString(operation, nameof(Status))} / {GetString(operation, "OverlapPolicy")}{processor} / {reasonSummary}",
+                    commandBlock);
             }),
             ];
     }
@@ -228,6 +231,25 @@ public sealed class ReportReviewViewModel
         return string.IsNullOrWhiteSpace(addressSpaceId)
             ? "(none)"
             : $"{addressSpaceId} {range ?? string.Empty}".Trim();
+    }
+
+    private static (string ReasonSummary, string CommandBlock) ExtractCombinerCommand(string reason)
+    {
+        const string marker = "Combiner command: ";
+        int markerIndex = reason.IndexOf(marker, StringComparison.Ordinal);
+        if (markerIndex < 0)
+        {
+            return (reason, string.Empty);
+        }
+
+        string summary = reason[..(markerIndex + "Combiner command".Length)].Trim();
+        string command = reason[(markerIndex + marker.Length)..].Trim();
+        if (command.EndsWith('.'))
+        {
+            command = command[..^1];
+        }
+
+        return (summary, command);
     }
 
     private static string? GetRangeOrNull(JsonElement element, string propertyName)

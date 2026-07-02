@@ -137,23 +137,28 @@
       <Setter Property="MinHeight" Value="34" />
       <Setter Property="MinWidth" Value="34" />
       <Setter Property="Padding" Value="0" />
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="Background" Value="#FFFFFF" />
+      <Setter Property="BorderBrush" Value="#CBD5E1" />
+      <Setter Property="BorderThickness" Value="1" />
       <Setter Property="Foreground" Value="#334155" />
       <Setter Property="FontSize" Value="18" />
     </Style>
     <Style Selector="Button.iconButton /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="Background" Value="#FFFFFF" />
+      <Setter Property="BorderBrush" Value="#CBD5E1" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
     </Style>
     <Style Selector="Button.iconButton:disabled">
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="Background" Value="#F8FAFC" />
+      <Setter Property="BorderBrush" Value="#E2E8F0" />
       <Setter Property="Foreground" Value="#CBD5E1" />
     </Style>
     <Style Selector="Button.iconButton:disabled /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="Background" Value="#F8FAFC" />
+      <Setter Property="BorderBrush" Value="#E2E8F0" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
     </Style>
     <Style Selector="Button.breadcrumb">
       <Setter Property="MinHeight" Value="34" />
@@ -870,8 +875,8 @@
                       <Border
                           Margin="0,0,0,10"
                           Padding="14"
-                          Background="#F8FAFC"
-                          BorderBrush="#CBD5E1"
+                          Background="{Binding SlotBackgroundBrush}"
+                          BorderBrush="{Binding SlotBorderBrush}"
                           BorderThickness="1"
                           CornerRadius="8"
                           DragDrop.AllowDrop="True"
@@ -882,8 +887,8 @@
                           <StackPanel Spacing="4">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                               <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" />
-                              <Border Padding="8,2" Background="#EAF3FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="999">
-                                <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#1D4ED8" Text="{Binding RequirementLabel}" />
+                              <Border Padding="8,2" Background="{Binding RequirementBadgeBackgroundBrush}" BorderBrush="{Binding RequirementBadgeBorderBrush}" BorderThickness="1" CornerRadius="999">
+                                <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{Binding RequirementBadgeForegroundBrush}" Text="{Binding RequirementLabel}" />
                               </Border>
                             </StackPanel>
                             <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Description}" TextWrapping="Wrap" />
@@ -919,8 +924,8 @@
 
                 <Border
                     Padding="14"
-                    Background="#F8FAFC"
-                    BorderBrush="#CBD5E1"
+                    Background="{Binding ReplaceBaseSlot.SlotBackgroundBrush}"
+                    BorderBrush="{Binding ReplaceBaseSlot.SlotBorderBrush}"
                     BorderThickness="1"
                     CornerRadius="8"
                     DragDrop.AllowDrop="True"
@@ -931,8 +936,8 @@
                     <StackPanel Spacing="4">
                       <StackPanel Orientation="Horizontal" Spacing="8">
                         <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding ReplaceBaseSlot.Title}" />
-                        <Border Padding="8,2" Background="#EAF3FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="999">
-                          <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#1D4ED8" Text="{Binding ReplaceBaseSlot.RequirementLabel}" />
+                        <Border Padding="8,2" Background="{Binding ReplaceBaseSlot.RequirementBadgeBackgroundBrush}" BorderBrush="{Binding ReplaceBaseSlot.RequirementBadgeBorderBrush}" BorderThickness="1" CornerRadius="999">
+                          <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{Binding ReplaceBaseSlot.RequirementBadgeForegroundBrush}" Text="{Binding ReplaceBaseSlot.RequirementLabel}" />
                         </Border>
                       </StackPanel>
                       <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding ReplaceBaseSlot.Description}" TextWrapping="Wrap" />
@@ -970,8 +975,8 @@
                                   HorizontalAlignment="Stretch"
                                   Margin="0,0,0,10"
                                   Padding="14"
-                                  Background="#F8FAFC"
-                                  BorderBrush="#CBD5E1"
+                                  Background="{Binding SlotBackgroundBrush}"
+                                  BorderBrush="{Binding SlotBorderBrush}"
                                   BorderThickness="1"
                                   CornerRadius="8"
                                   DragDrop.AllowDrop="True"
@@ -982,8 +987,8 @@
                                   <StackPanel Spacing="4">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                       <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" />
-                                      <Border Padding="8,2" Background="#EAF3FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="999">
-                                        <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#1D4ED8" Text="{Binding RequirementLabel}" />
+                                      <Border Padding="8,2" Background="{Binding RequirementBadgeBackgroundBrush}" BorderBrush="{Binding RequirementBadgeBorderBrush}" BorderThickness="1" CornerRadius="999">
+                                        <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{Binding RequirementBadgeForegroundBrush}" Text="{Binding RequirementLabel}" />
                                       </Border>
                                     </StackPanel>
                                     <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Description}" TextWrapping="Wrap" />
@@ -1022,8 +1027,8 @@
                 </StackPanel>
                 <Border
                     Padding="14"
-                    Background="#F8FAFC"
-                    BorderBrush="#CBD5E1"
+                    Background="{Binding ReplaceBaseSlot.SlotBackgroundBrush}"
+                    BorderBrush="{Binding ReplaceBaseSlot.SlotBorderBrush}"
                     BorderThickness="1"
                     CornerRadius="8"
                     DragDrop.AllowDrop="True"
@@ -1032,7 +1037,12 @@
                     Tag="{Binding ReplaceBaseSlot.SlotId}">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
                     <StackPanel Spacing="4">
-                      <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding ReplaceBaseSlot.Title}" />
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding ReplaceBaseSlot.Title}" />
+                        <Border Padding="8,2" Background="{Binding ReplaceBaseSlot.RequirementBadgeBackgroundBrush}" BorderBrush="{Binding ReplaceBaseSlot.RequirementBadgeBorderBrush}" BorderThickness="1" CornerRadius="999">
+                          <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{Binding ReplaceBaseSlot.RequirementBadgeForegroundBrush}" Text="{Binding ReplaceBaseSlot.RequirementLabel}" />
+                        </Border>
+                      </StackPanel>
                       <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding ReplaceBaseSlot.Description}" TextWrapping="Wrap" />
                       <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#334155" Text="{Binding ReplaceBaseSlot.DisplayName}" TextWrapping="Wrap" />
                       <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#64748B" Text="{Binding ReplaceBaseSlot.DisplayDetail}" TextWrapping="Wrap" />
@@ -1282,8 +1292,8 @@
                       <Border
                           Margin="0,0,0,10"
                           Padding="14"
-                          Background="#F8FAFC"
-                          BorderBrush="#CBD5E1"
+                          Background="{Binding SlotBackgroundBrush}"
+                          BorderBrush="{Binding SlotBorderBrush}"
                           BorderThickness="1"
                           CornerRadius="8"
                           DragDrop.AllowDrop="True"
@@ -1294,8 +1304,8 @@
                           <StackPanel Spacing="4">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                               <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" />
-                              <Border Padding="8,2" Background="#EAF3FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="999">
-                                <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#1D4ED8" Text="{Binding RequirementLabel}" />
+                              <Border Padding="8,2" Background="{Binding RequirementBadgeBackgroundBrush}" BorderBrush="{Binding RequirementBadgeBorderBrush}" BorderThickness="1" CornerRadius="999">
+                                <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{Binding RequirementBadgeForegroundBrush}" Text="{Binding RequirementLabel}" />
                               </Border>
                             </StackPanel>
                             <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Description}" TextWrapping="Wrap" />
@@ -1635,6 +1645,9 @@
                             <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
                             <TextBlock FontSize="12" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding Detail}" TextWrapping="Wrap" />
                             <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" />
+                            <Border Padding="8,6" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6" IsVisible="{Binding HasCodeBlock}">
+                              <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#0F172A" Text="{Binding CodeBlock}" TextWrapping="Wrap" />
+                            </Border>
                           </StackPanel>
                         </Border>
                       </DataTemplate>

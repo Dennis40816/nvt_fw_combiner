@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Avalonia.Media;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
@@ -80,6 +81,40 @@ public sealed class ShellViewModelTests
         viewModel.SelectedIc = "NT51928";
 
         Assert.Equal(["DP BIN", "TP BIN", "LD BIN"], viewModel.MergeSlots.Select(slot => slot.Title));
+    }
+
+    /// <summary>Verifies required slot cards change tone when selected while optional slots keep the neutral tone.</summary>
+    [Fact]
+    public void FirmwareSlotCompletionToneHighlightsOnlyRequiredInputs()
+    {
+        FirmwareSlotViewModel required = new("merge-dp", "DP BIN", "Display payload");
+
+        Assert.False(required.IsOptional);
+        Assert.False(required.HasFile);
+        AssertBrush("#FFF7F7", required.SlotBackgroundBrush);
+        AssertBrush("#FCA5A5", required.SlotBorderBrush);
+        AssertBrush("#B91C1C", required.RequirementBadgeForegroundBrush);
+
+        required.FilePath = Path.Combine(Path.GetTempPath(), "dp.bin");
+
+        Assert.True(required.HasFile);
+        AssertBrush("#F0FDF4", required.SlotBackgroundBrush);
+        AssertBrush("#86EFAC", required.SlotBorderBrush);
+        AssertBrush("#15803D", required.RequirementBadgeForegroundBrush);
+
+        FirmwareSlotViewModel optional = new("merge-ld", "LD BIN", "Optional payload", isOptional: true);
+
+        Assert.True(optional.IsOptional);
+        AssertBrush("#F8FAFC", optional.SlotBackgroundBrush);
+        AssertBrush("#CBD5E1", optional.SlotBorderBrush);
+        AssertBrush("#1D4ED8", optional.RequirementBadgeForegroundBrush);
+
+        optional.FilePath = Path.Combine(Path.GetTempPath(), "ld.bin");
+
+        Assert.True(optional.HasFile);
+        AssertBrush("#F8FAFC", optional.SlotBackgroundBrush);
+        AssertBrush("#CBD5E1", optional.SlotBorderBrush);
+        AssertBrush("#1D4ED8", optional.RequirementBadgeForegroundBrush);
     }
 
     /// <summary>Verifies General Replace authors base BIN and explicit range rows as separate UI state.</summary>
@@ -230,7 +265,9 @@ public sealed class ShellViewModelTests
             Assert.True(viewModel.HasLoadedReport);
             Assert.Contains(viewModel.LoadedReport.Operations, operation =>
                 operation.Title.Contains("postbuild-", StringComparison.Ordinal) &&
-                operation.Meta.Contains("Combiner.exe", StringComparison.Ordinal));
+                operation.Meta.Contains("Combiner command", StringComparison.Ordinal) &&
+                !operation.Meta.Contains("Combiner.exe", StringComparison.Ordinal) &&
+                operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
             Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.IsChanged);
         }
         finally
@@ -336,7 +373,8 @@ public sealed class ShellViewModelTests
             Assert.Contains(viewModel.LoadedReport.Operations, operation =>
                 operation.Title.Contains("replace-vn-slave-l", StringComparison.Ordinal));
             Assert.Contains(viewModel.LoadedReport.Operations, operation =>
-                operation.Meta.Contains("Combiner.exe", StringComparison.Ordinal));
+                operation.HasCodeBlock &&
+                operation.CodeBlock.Contains("Combiner.exe", StringComparison.Ordinal));
             Assert.Contains(viewModel.ReplaceCoverageSegments, segment =>
                 segment.SourceLabel == "VN CtrlRAM (Slave L)" &&
                 segment.RangeLabel == "0x2EBD0-0x3022F (len 0x1660)");
@@ -626,6 +664,12 @@ public sealed class ShellViewModelTests
         }
 
         return bytes;
+    }
+
+    private static void AssertBrush(string expectedHex, IBrush brush)
+    {
+        ISolidColorBrush solid = Assert.IsType<ISolidColorBrush>(brush, exactMatch: false);
+        Assert.Equal(Color.Parse(expectedHex), solid.Color);
     }
 
     private static string FindRepositoryRoot()
