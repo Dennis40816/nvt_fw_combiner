@@ -19,7 +19,7 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 
 ## Milestone scope
 
-Current execution priority: normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows are pulled forward. AB merge remains in the roadmap but is deferred until the owner reactivates it. Standard Merge now has executable profiles for the full v1 merge IC list, including NT51930 and NT51950/NT51951 DP Perspective three-size DP input handling; NT51930/NT51950/NT51951 still need golden evidence. Replace now has NT51950/NT51951 DP Replace workbench execution and CtrlRAM per-region UI/postbuild trace reports; CtrlRAM production output still needs declared write ranges and golden evidence.
+Current execution priority: normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows are pulled forward. AB merge remains in the roadmap but is deferred until the owner reactivates it. Standard Merge has executable profiles for the uploaded golden-backed gen_flash set plus NT51930 and NT51950/NT51951 DP Perspective candidates; NT51917/NT51919 alias candidates, NT51930, and NT51950/NT51951 still need golden evidence before support/exposure. Replace now has NT51950/NT51951 DP Replace workbench execution and CtrlRAM per-region UI/postbuild trace reports; CtrlRAM production output still needs declared write ranges and golden evidence.
 
 | Milestone | Scope | Implementation boundary |
 | --- | --- | --- |
@@ -42,7 +42,7 @@ Before the first sample is tagged as `v1.0.0`, the owner must confirm the exact 
 
 Required remaining work:
 
-- lock the `v1.0.0` support matrix by IC and workflow, including owner sign-off for NT51930 and NT51950/NT51951 Standard Merge golden outputs;
+- lock the `v1.0.0` support matrix by IC and workflow, including owner sign-off for NT51917/NT51919 alias candidates, NT51930, and NT51950/NT51951 Standard Merge golden outputs;
 - satisfy the owner validation package listed in `docs/architecture/supported-ic-matrix.md` for every released IC/workflow;
 - add executable production profiles for every released DP Replace and CtrlRAM Replace IC/mode, not only the current synthetic Replace contracts and postbuild command catalog;
 - complete owner-approved golden outputs for every released Standard Merge and Replace profile, including private golden evidence and firmware-owner review where ranges, CRC/header, or command order matter;
