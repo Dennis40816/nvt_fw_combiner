@@ -12,7 +12,26 @@
     Background="#F4F6FA"
     FontFamily="fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI"
     Title="NVT FW Combiner">
+  <Window.Resources>
+    <ControlTheme x:Key="StretchContentPresenterTheme" TargetType="ContentPresenter">
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </ControlTheme>
+  </Window.Resources>
+
   <Window.Styles>
+    <Style Selector="Expander">
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Expander /template/ ToggleButton">
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Expander /template/ ContentPresenter">
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
     <Style Selector="ToggleButton.nav">
       <Setter Property="MinHeight" Value="30" />
       <Setter Property="Padding" Value="13,6" />
@@ -811,7 +830,7 @@
                   <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="Input files" />
                   <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding SelectedReplaceModeDescription}" TextWrapping="Wrap" />
                 </StackPanel>
-                <ItemsControl ItemsSource="{Binding ReplaceSlots}">
+                <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSlots}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:FirmwareSlotViewModel">
                       <Border
@@ -895,12 +914,7 @@
                   </Grid>
                 </Border>
 
-                <ItemsControl HorizontalAlignment="Stretch" ItemsSource="{Binding ReplaceSlotGroups}">
-                  <ItemsControl.ItemContainerTheme>
-                    <ControlTheme TargetType="ContentPresenter">
-                      <Setter Property="HorizontalAlignment" Value="Stretch" />
-                    </ControlTheme>
-                  </ItemsControl.ItemContainerTheme>
+                <ItemsControl HorizontalAlignment="Stretch" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSlotGroups}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:FirmwareSlotGroupViewModel">
                       <Expander HorizontalAlignment="Stretch" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
@@ -915,12 +929,7 @@
                             </Border>
                           </Grid>
                         </Expander.Header>
-                        <ItemsControl HorizontalAlignment="Stretch" ItemsSource="{Binding Slots}">
-                          <ItemsControl.ItemContainerTheme>
-                            <ControlTheme TargetType="ContentPresenter">
-                              <Setter Property="HorizontalAlignment" Value="Stretch" />
-                            </ControlTheme>
-                          </ItemsControl.ItemContainerTheme>
+                        <ItemsControl HorizontalAlignment="Stretch" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding Slots}">
                           <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:FirmwareSlotViewModel">
                               <Border
@@ -1010,7 +1019,7 @@
                       <TextBlock FontSize="12" Foreground="#64748B" Text="Each row maps one explicit address range to one BIN file." TextWrapping="Wrap" />
                     </StackPanel>
                   </Grid>
-                  <ItemsControl ItemsSource="{Binding GeneralReplaceMappings}">
+                  <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding GeneralReplaceMappings}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="vm:GeneralReplaceMappingViewModel">
                         <Border
@@ -1139,12 +1148,7 @@
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
 
-              <ItemsControl HorizontalAlignment="Stretch" ItemsSource="{Binding ReplaceCoverageGroups}" IsVisible="{Binding IsReplaceCoverageGrouped}">
-                <ItemsControl.ItemContainerTheme>
-                  <ControlTheme TargetType="ContentPresenter">
-                    <Setter Property="HorizontalAlignment" Value="Stretch" />
-                  </ControlTheme>
-                </ItemsControl.ItemContainerTheme>
+              <ItemsControl HorizontalAlignment="Stretch" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceCoverageGroups}" IsVisible="{Binding IsReplaceCoverageGrouped}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:MemoryCoverageGroupViewModel">
                     <Expander HorizontalAlignment="Stretch" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
@@ -1159,12 +1163,7 @@
                           </Border>
                         </Grid>
                       </Expander.Header>
-                      <ItemsControl HorizontalAlignment="Stretch" ItemsSource="{Binding Segments}">
-                        <ItemsControl.ItemContainerTheme>
-                          <ControlTheme TargetType="ContentPresenter">
-                            <Setter Property="HorizontalAlignment" Value="Stretch" />
-                          </ControlTheme>
-                        </ItemsControl.ItemContainerTheme>
+                      <ItemsControl HorizontalAlignment="Stretch" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding Segments}">
                         <ItemsControl.ItemTemplate>
                           <DataTemplate x:DataType="vm:MemoryCoverageSegmentViewModel">
                             <Border Padding="0,7" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
@@ -1243,7 +1242,7 @@
                   <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="Input files" />
                   <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding StandardMergeSupportSummary}" TextWrapping="Wrap" />
                 </StackPanel>
-                <ItemsControl ItemsSource="{Binding MergeSlots}">
+                <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding MergeSlots}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:FirmwareSlotViewModel">
                       <Border
