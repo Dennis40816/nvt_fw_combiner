@@ -25,7 +25,7 @@
       "const": "1.0"
     },
     "toolBindingId": {
-      "$ref": "#/$defs/id"
+      "$ref": "#/$defs/bindingId"
     },
     "toolId": {
       "$ref": "#/$defs/id"
@@ -90,6 +90,10 @@
     }
   },
   "$defs": {
+    "bindingId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:-[0-9]+(?:\\.[0-9]+)*(?:[-+][0-9A-Za-z.-]+)?)?$"
+    },
     "id": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"

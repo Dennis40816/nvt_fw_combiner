@@ -1,3 +1,4 @@
+using System.Globalization;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.ExternalTools;
@@ -60,7 +61,8 @@ public static class LegacyCombinerPostbuildCatalog
                 ]),
             NormalCommand("nt51920-cascade-header-crc", [Fw("header-copy-final", 0x0, 0x26680, 256)]),
         ],
-        "IC FlashMap postbuild/PostbuildSetup_51920_1.3.1.bat");
+        "IC FlashMap postbuild/PostbuildSetup_51920_1.3.1.bat",
+        branchRules: SingleCascadeBranchRules(0, [1]));
 
     /// <summary>NT51923 CtrlRAM postbuild profile.</summary>
     public static LegacyCombinerPostbuildProfile Nt51923 { get; } = new(
@@ -96,7 +98,8 @@ public static class LegacyCombinerPostbuildCatalog
                 ]),
             NormalCommand("nt51923-cascade-header-crc", [Fw("header-copy-final", 0x0, 0x30310, 256)]),
         ],
-        "IC FlashMap postbuild/PostbuildSetup_51923_1.4.1.bat");
+        "IC FlashMap postbuild/PostbuildSetup_51923_1.4.1.bat",
+        branchRules: SingleCascadeBranchRules(1, [2, 3]));
 
     /// <summary>NT51926 CtrlRAM postbuild profile.</summary>
     public static LegacyCombinerPostbuildProfile Nt51926 { get; } = new(
@@ -131,7 +134,8 @@ public static class LegacyCombinerPostbuildCatalog
                 ]),
             NormalCommand("nt51926-cascade-header-crc", [Fw("header-copy-final", 0x0, 0x32A70, 256)]),
         ],
-        "IC FlashMap postbuild/PostbuildSetup_51926_2.0.0.bat");
+        "IC FlashMap postbuild/PostbuildSetup_51926_2.0.0.bat",
+        branchRules: SingleCascadeBranchRules(1, [2, 3]));
 
     /// <summary>NT51927 CtrlRAM postbuild profile.</summary>
     public static LegacyCombinerPostbuildProfile Nt51927 { get; } = new(
@@ -159,7 +163,8 @@ public static class LegacyCombinerPostbuildCatalog
         Nt51927ThreeChipCommands(),
         "IC FlashMap postbuild/PostbuildSetup_51927_1.4.1.bat",
         twoChipCommands: Nt51927TwoChipCommands(),
-        threeChipCommands: Nt51927ThreeChipCommands());
+        threeChipCommands: Nt51927ThreeChipCommands(),
+        branchRules: NumericOneTwoThreeBranchRules());
 
     /// <summary>NT51917 CtrlRAM postbuild profile using the owner-approved NT51927 reference flow.</summary>
     public static LegacyCombinerPostbuildProfile Nt51917 { get; } = new(
@@ -171,7 +176,8 @@ public static class LegacyCombinerPostbuildCatalog
         AliasCommands("nt51927", "nt51917", Nt51927.CascadeCommands),
         "IC FlashMap postbuild/PostbuildSetup_51927_1.4.1.bat; owner confirmation: NT51917 follows NT51927",
         twoChipCommands: AliasCommands("nt51927", "nt51917", Nt51927TwoChipCommands()),
-        threeChipCommands: AliasCommands("nt51927", "nt51917", Nt51927ThreeChipCommands()));
+        threeChipCommands: AliasCommands("nt51927", "nt51917", Nt51927ThreeChipCommands()),
+        branchRules: NumericOneTwoThreeBranchRules());
 
     /// <summary>NT51928 CtrlRAM postbuild profile using the owner-approved NT51927 reference flow.</summary>
     public static LegacyCombinerPostbuildProfile Nt51928 { get; } = new(
@@ -183,7 +189,8 @@ public static class LegacyCombinerPostbuildCatalog
         AliasCommands("nt51927", "nt51928", Nt51927.CascadeCommands),
         "IC FlashMap postbuild/PostbuildSetup_51927_1.4.1.bat; owner confirmation: NT51928 follows NT51927; NT51928 NB is not covered",
         twoChipCommands: AliasCommands("nt51927", "nt51928", Nt51927TwoChipCommands()),
-        threeChipCommands: AliasCommands("nt51927", "nt51928", Nt51927ThreeChipCommands()));
+        threeChipCommands: AliasCommands("nt51927", "nt51928", Nt51927ThreeChipCommands()),
+        branchRules: NumericOneTwoThreeBranchRules());
 
     /// <summary>NT51930 CtrlRAM postbuild profile.</summary>
     public static LegacyCombinerPostbuildProfile Nt51930 { get; } = new(
@@ -222,7 +229,8 @@ public static class LegacyCombinerPostbuildCatalog
                 "NT51930BASED_NORMAL_MODE",
                 [Fw("header-copy-final", 0x7000, 0x28FB0, 512)]),
         ],
-        "IC FlashMap postbuild/PostbuildSetup_51930_2.0.0.bat");
+        "IC FlashMap postbuild/PostbuildSetup_51930_2.0.0.bat",
+        branchRules: SingleCascadeBranchRules(1, Enumerable.Range(2, 28)));
 
     /// <summary>NT51931 CtrlRAM postbuild profile.</summary>
     public static LegacyCombinerPostbuildProfile Nt51931 { get; } = new(
@@ -257,7 +265,8 @@ public static class LegacyCombinerPostbuildCatalog
                     Bin("diff", "DiffDLM.bin", 0x0, 0x22800, 97280),
                 ]),
         ],
-        "IC FlashMap postbuild/PostbuildSetup_51931_1.3.0.bat");
+        "IC FlashMap postbuild/PostbuildSetup_51931_1.3.0.bat",
+        branchRules: SingleCascadeBranchRules(0, Enumerable.Range(1, 19)));
 
     /// <summary>NT51932 CtrlRAM postbuild profile.</summary>
     public static LegacyCombinerPostbuildProfile Nt51932 { get; } = new(
@@ -296,7 +305,8 @@ public static class LegacyCombinerPostbuildCatalog
                 "NT51932BASED_NORMAL_MODE",
                 [Fw("header-copy-final", 0x7000, 0x27EF0, 512)]),
         ],
-        "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat");
+        "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat",
+        branchRules: SingleCascadeBranchRules(1, Enumerable.Range(2, 28)));
 
     /// <summary>NT51929 CtrlRAM postbuild profile using the owner-approved NT51932 reference flow.</summary>
     public static LegacyCombinerPostbuildProfile Nt51929 { get; } = new(
@@ -306,7 +316,8 @@ public static class LegacyCombinerPostbuildCatalog
         "nt51929_fw.bin",
         AliasCommands("nt51932", "nt51929", Nt51932.SingleCommands),
         AliasCommands("nt51932", "nt51929", Nt51932.CascadeCommands),
-        "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat; owner confirmation: NT51929 follows NT51932");
+        "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat; owner confirmation: NT51929 follows NT51932",
+        branchRules: SingleCascadeBranchRules(1, Enumerable.Range(2, 28)));
 
     /// <summary>NT51919 CtrlRAM postbuild profile using the owner-approved NT51929 reference flow.</summary>
     public static LegacyCombinerPostbuildProfile Nt51919 { get; } = new(
@@ -316,7 +327,8 @@ public static class LegacyCombinerPostbuildCatalog
         "nt51919_fw.bin",
         AliasCommands("nt51929", "nt51919", Nt51929.SingleCommands),
         AliasCommands("nt51929", "nt51919", Nt51929.CascadeCommands),
-        "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat; owner confirmation: NT51919 follows NT51929");
+        "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat; owner confirmation: NT51919 follows NT51929",
+        branchRules: SingleCascadeBranchRules(1, Enumerable.Range(2, 28)));
 
     /// <summary>NT51950 CtrlRAM postbuild profile.</summary>
     public static LegacyCombinerPostbuildProfile Nt51950 { get; } = new(
@@ -355,7 +367,8 @@ public static class LegacyCombinerPostbuildCatalog
                 "NT51950BASED_NORMAL_MODE",
                 [Fw("header-copy-final", 0xA000, 0x2D30C, 512)]),
         ],
-        "IC FlashMap postbuild/PostbuildSetup_51950_2.0.0.bat");
+        "IC FlashMap postbuild/PostbuildSetup_51950_2.0.0.bat",
+        branchRules: SingleCascadeBranchRules(1, [2]));
 
     /// <summary>NT51951 CtrlRAM postbuild profile using the owner-approved NT51950 reference flow.</summary>
     public static LegacyCombinerPostbuildProfile Nt51951 { get; } = new(
@@ -365,7 +378,40 @@ public static class LegacyCombinerPostbuildCatalog
         "nt51951_fw.bin",
         AliasCommands("nt51950", "nt51951", Nt51950.SingleCommands),
         AliasCommands("nt51950", "nt51951", Nt51950.CascadeCommands),
-        "IC FlashMap postbuild/PostbuildSetup_51950_2.0.0.bat; owner confirmation: NT51951 follows NT51950");
+        "IC FlashMap postbuild/PostbuildSetup_51950_2.0.0.bat; owner confirmation: NT51951 follows NT51950",
+        branchRules: SingleCascadeBranchRules(1, [2]));
+
+    private static IReadOnlyList<LegacyCombinerPostbuildBranchRule> SingleCascadeBranchRules(
+        int singleValue,
+        IEnumerable<int> cascadeValues)
+    {
+        return [
+            BranchRule("single", LegacyCombinerPostbuildBranch.SingleChip),
+            BranchRule("cascade", LegacyCombinerPostbuildBranch.Cascade),
+            BranchRule(singleValue.ToString(CultureInfo.InvariantCulture), LegacyCombinerPostbuildBranch.SingleChip),
+            .. cascadeValues.Select(value => BranchRule(
+                value.ToString(CultureInfo.InvariantCulture),
+                LegacyCombinerPostbuildBranch.Cascade)),
+        ];
+    }
+
+    private static IReadOnlyList<LegacyCombinerPostbuildBranchRule> NumericOneTwoThreeBranchRules()
+    {
+        return [
+            BranchRule("single", LegacyCombinerPostbuildBranch.SingleChip),
+            BranchRule("cascade", LegacyCombinerPostbuildBranch.Cascade),
+            BranchRule("1", LegacyCombinerPostbuildBranch.SingleChip),
+            BranchRule("2", LegacyCombinerPostbuildBranch.TwoChip),
+            BranchRule("3", LegacyCombinerPostbuildBranch.ThreeChip),
+        ];
+    }
+
+    private static LegacyCombinerPostbuildBranchRule BranchRule(
+        string token,
+        LegacyCombinerPostbuildBranch branch)
+    {
+        return new LegacyCombinerPostbuildBranchRule(token, branch);
+    }
 
     private static IReadOnlyList<LegacyCombinerPostbuildCommand> Nt51927TwoChipCommands()
     {

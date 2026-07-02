@@ -133,6 +133,12 @@ public sealed class LegacyCombinerPostbuildProcessor : IExternalProcessor
                 return Fail("external-tool.output.missing", "External processor did not leave the staged firmware file.");
             }
 
+            CompositionIssue? unexpectedFileIssue = ValidateStagingTree(runDirectory, profile, manifest!, commandPlan);
+            if (unexpectedFileIssue is not null)
+            {
+                return ExternalProcessorResult.Failed([unexpectedFileIssue]);
+            }
+
             byte[] outputBytes = await File.ReadAllBytesAsync(firmwarePath, cancellationToken).ConfigureAwait(false);
             if (outputBytes.LongLength != inputBytes.LongLength)
             {
@@ -188,6 +194,7 @@ public sealed class LegacyCombinerPostbuildProcessor : IExternalProcessor
         string binDirectory)
     {
         Dictionary<string, byte[]> files = new(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, bool[]> written = new(StringComparer.OrdinalIgnoreCase);
         foreach (LegacyCombinerBlockArgument block in LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(commandPlan))
         {
             if (block.FirmwareRange.EndExclusive > firmwareBytes.LongLength)
@@ -200,9 +207,25 @@ public sealed class LegacyCombinerPostbuildProcessor : IExternalProcessor
 
             long requiredLength = checked(block.SourceOffset + block.FirmwareRange.Length);
             byte[] fileBytes = GetOrGrow(files, block.SourceFileName, requiredLength);
-            firmwareBytes
-                .AsSpan((int)block.FirmwareRange.Start, (int)block.FirmwareRange.Length)
-                .CopyTo(fileBytes.AsSpan((int)block.SourceOffset, (int)block.FirmwareRange.Length));
+            bool[] writtenBytes = GetOrGrow(written, block.SourceFileName, requiredLength);
+            ReadOnlySpan<byte> sourceBytes = firmwareBytes.AsSpan(
+                (int)block.FirmwareRange.Start,
+                (int)block.FirmwareRange.Length);
+            int targetStart = checked((int)block.SourceOffset);
+            for (int index = 0; index < sourceBytes.Length; index++)
+            {
+                int targetIndex = targetStart + index;
+                if (writtenBytes[targetIndex] && fileBytes[targetIndex] != sourceBytes[index])
+                {
+                    return new CompositionIssue(
+                        "legacy-combiner.staging.projection-conflict",
+                        $"Postbuild block '{block.BlockId}' writes conflicting bytes to staged file '{block.SourceFileName}' at offset 0x{targetIndex:X}.",
+                        block.BlockId);
+                }
+
+                fileBytes[targetIndex] = sourceBytes[index];
+                writtenBytes[targetIndex] = true;
+            }
         }
 
         foreach ((string fileName, byte[] bytes) in files)
@@ -236,6 +259,68 @@ public sealed class LegacyCombinerPostbuildProcessor : IExternalProcessor
         Array.Resize(ref bytes, length);
         files[fileName] = bytes;
         return bytes;
+    }
+
+    private static bool[] GetOrGrow(Dictionary<string, bool[]> files, string fileName, long requiredLength)
+    {
+        if (requiredLength > int.MaxValue)
+        {
+            throw new IOException("Staged block file exceeds supported runtime length.");
+        }
+
+        int length = checked((int)requiredLength);
+        if (!files.TryGetValue(fileName, out bool[]? bytes))
+        {
+            bytes = new bool[length];
+            files.Add(fileName, bytes);
+            return bytes;
+        }
+
+        if (bytes.Length >= length)
+        {
+            return bytes;
+        }
+
+        Array.Resize(ref bytes, length);
+        files[fileName] = bytes;
+        return bytes;
+    }
+
+    private static CompositionIssue? ValidateStagingTree(
+        string runDirectory,
+        LegacyCombinerPostbuildProfile profile,
+        ExternalCombinerToolManifest manifest,
+        LegacyCombinerPostbuildCommandPlan commandPlan)
+    {
+        HashSet<string> allowedRelativePaths = new(StringComparer.OrdinalIgnoreCase)
+        {
+            Path.Combine(OutputDirectoryName, profile.FirmwareFileName),
+        };
+        foreach (string stagedFileName in LegacyCombinerPostbuildPlanner
+            .GetStagedFileBlocks(commandPlan)
+            .Select(block => block.SourceFileName)
+            .Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            _ = allowedRelativePaths.Add(Path.Combine(BinDirectoryName, stagedFileName));
+        }
+
+        foreach (string extraFileName in manifest.AllowedExtraOutputFiles)
+        {
+            _ = allowedRelativePaths.Add(Path.Combine(OutputDirectoryName, extraFileName));
+        }
+
+        foreach (string filePath in Directory.EnumerateFiles(runDirectory, "*", SearchOption.AllDirectories))
+        {
+            string relativePath = Path.GetRelativePath(runDirectory, filePath);
+            if (!allowedRelativePaths.Contains(relativePath))
+            {
+                return new CompositionIssue(
+                    "external-tool.staging.unexpected-file",
+                    $"External processor left unexpected staging file '{relativePath}'.");
+            }
+        }
+
+        return null;
     }
 
     private bool TryResolveManifest(

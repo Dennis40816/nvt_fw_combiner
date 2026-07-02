@@ -34,6 +34,38 @@ public enum LegacyCombinerPostbuildBranch
     ThreeChip,
 }
 
+/// <summary>One accepted IC number token for selecting a legacy postbuild branch.</summary>
+public sealed class LegacyCombinerPostbuildBranchRule
+{
+    /// <summary>Creates a normalized branch rule from postbuild script evidence.</summary>
+    public LegacyCombinerPostbuildBranchRule(string token, LegacyCombinerPostbuildBranch branch)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(token);
+
+        Token = NormalizeToken(token);
+        Branch = branch;
+    }
+
+    /// <summary>Normalized user token, such as single, cascade, 1, 2, or 3.</summary>
+    public string Token { get; }
+
+    /// <summary>Branch selected by the token.</summary>
+    public LegacyCombinerPostbuildBranch Branch { get; }
+
+    internal static string NormalizeToken(string token)
+    {
+        string normalized = token.Trim();
+        if (normalized.Length >= 2 &&
+            normalized[0] == '(' &&
+            normalized[^1] == ')')
+        {
+            normalized = normalized[1..^1].Trim();
+        }
+
+        return normalized.ToLowerInvariant();
+    }
+}
+
 /// <summary>Where a combiner block argument reads its source bytes from.</summary>
 public enum LegacyCombinerBlockSourceKind
 {
@@ -154,6 +186,7 @@ public sealed class LegacyCombinerPostbuildProfile
     private readonly LegacyCombinerPostbuildCommand[] _cascadeCommands;
     private readonly LegacyCombinerPostbuildCommand[]? _twoChipCommands;
     private readonly LegacyCombinerPostbuildCommand[]? _threeChipCommands;
+    private readonly Dictionary<string, LegacyCombinerPostbuildBranch> _branchRules;
 
     /// <summary>Creates a postbuild command profile.</summary>
     public LegacyCombinerPostbuildProfile(
@@ -165,7 +198,8 @@ public sealed class LegacyCombinerPostbuildProfile
         IEnumerable<LegacyCombinerPostbuildCommand> cascadeCommands,
         string evidence,
         IEnumerable<LegacyCombinerPostbuildCommand>? twoChipCommands = null,
-        IEnumerable<LegacyCombinerPostbuildCommand>? threeChipCommands = null)
+        IEnumerable<LegacyCombinerPostbuildCommand>? threeChipCommands = null,
+        IEnumerable<LegacyCombinerPostbuildBranchRule>? branchRules = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(processorId);
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
@@ -185,6 +219,7 @@ public sealed class LegacyCombinerPostbuildProfile
         _cascadeCommands = [.. cascadeCommands];
         _twoChipCommands = twoChipCommands is null ? null : [.. twoChipCommands];
         _threeChipCommands = threeChipCommands is null ? null : [.. threeChipCommands];
+        _branchRules = BuildBranchRules(branchRules);
         if (_singleCommands.Length == 0 || _cascadeCommands.Length == 0)
         {
             throw new ArgumentException("Postbuild profile must declare both single and cascade command branches.");
@@ -226,8 +261,36 @@ public sealed class LegacyCombinerPostbuildProfile
     /// <summary>Optional explicit three-chip command branch.</summary>
     public IReadOnlyList<LegacyCombinerPostbuildCommand>? ThreeChipCommands => _threeChipCommands;
 
+    /// <summary>Profile-specific IC number tokens accepted by the source postbuild script.</summary>
+    public IReadOnlyDictionary<string, LegacyCombinerPostbuildBranch> BranchRules => _branchRules;
+
     /// <summary>Reference files that justify this command profile.</summary>
     public string Evidence { get; }
+
+    private static Dictionary<string, LegacyCombinerPostbuildBranch> BuildBranchRules(
+        IEnumerable<LegacyCombinerPostbuildBranchRule>? branchRules)
+    {
+        LegacyCombinerPostbuildBranchRule[] rules = branchRules is null
+            ? [
+                new LegacyCombinerPostbuildBranchRule("single", LegacyCombinerPostbuildBranch.SingleChip),
+                new LegacyCombinerPostbuildBranchRule("1", LegacyCombinerPostbuildBranch.SingleChip),
+                new LegacyCombinerPostbuildBranchRule("cascade", LegacyCombinerPostbuildBranch.Cascade),
+            ]
+            : [.. branchRules];
+
+        Dictionary<string, LegacyCombinerPostbuildBranch> byToken = new(StringComparer.Ordinal);
+        foreach (LegacyCombinerPostbuildBranchRule rule in rules)
+        {
+            if (!byToken.TryAdd(rule.Token, rule.Branch))
+            {
+                throw new ArgumentException(
+                    $"Postbuild branch token '{rule.Token}' is declared more than once.",
+                    nameof(branchRules));
+            }
+        }
+
+        return byToken;
+    }
 }
 
 /// <summary>Resolved postbuild command plan for one run.</summary>

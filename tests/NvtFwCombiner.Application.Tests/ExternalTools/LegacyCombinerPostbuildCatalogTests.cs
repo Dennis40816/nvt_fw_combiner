@@ -188,6 +188,34 @@ public sealed class LegacyCombinerPostbuildCatalogTests
         Assert.Equal("nt51927-3chip-left-ctrlram", threeChip.Commands[6].CommandId);
     }
 
+    /// <summary>Verifies unsupported NT51927 IC counts fail instead of falling through to a different Combiner section.</summary>
+    [Fact]
+    public void Nt51927RejectsUnsupportedNumericIcCount()
+    {
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            LegacyCombinerPostbuildPlanner.CreatePlan(
+                LegacyCombinerPostbuildCatalog.Nt51927,
+                new IcNumberSelection(IcNumberInputMode.NumericSelector, ["4"])));
+
+        Assert.Contains("is not supported", exception.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>Locks NT51931's postbuild-specific IC number mapping: 0 is single, 1 starts cascade.</summary>
+    [Fact]
+    public void Nt51931ResolvesPostbuildSpecificZeroAndOneMapping()
+    {
+        LegacyCombinerPostbuildCommandPlan single = LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51931,
+            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["NT51931", "0"]));
+        LegacyCombinerPostbuildCommandPlan cascade = LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51931,
+            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["NT51931", "1"]));
+
+        Assert.Equal(LegacyCombinerPostbuildBranch.SingleChip, single.Branch);
+        Assert.Equal(LegacyCombinerPostbuildBranch.Cascade, cascade.Branch);
+        Assert.Contains(cascade.Commands.SelectMany(command => command.Blocks), block => block.SourceFileName == "DiffDLM.bin");
+    }
+
     /// <summary>Locks the NT51927 two-chip and three-chip NF split offsets from postbuild.</summary>
     [Fact]
     public void Nt51927PostbuildKeepsDifferentRightNfOffsetsByIcCount()

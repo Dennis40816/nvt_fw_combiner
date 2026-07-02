@@ -109,6 +109,7 @@ public sealed class LegacyCombinerPostbuildProcessorTests
         using var workspace = TempWorkspace.Create();
         string sha256 = workspace.CreateToolExecutable();
         byte[] firmware = CreateFirmwareImage();
+        MakeNt51927TwoChipSharedStagedBlocksConsistent(firmware);
         List<string> modes = [];
         FakeProcessRunner runner = new(startInfo =>
         {
@@ -139,6 +140,61 @@ public sealed class LegacyCombinerPostbuildProcessorTests
         Assert.Equal(10, runner.RunCount);
         Assert.Equal(8, modes.Count(mode => mode == "MERGE_MODE"));
         Assert.Equal(2, modes.Count(mode => mode == "NT51927BASED_GEN_CRC_MODE"));
+    }
+
+    /// <summary>Rejects multiple work-image projections into the same staged file offset when bytes differ.</summary>
+    [Fact]
+    public async Task TransformRejectsConflictingStagedFileProjection()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        byte[] firmware = [0x10, 0x11, 0x20, 0x21];
+        FakeProcessRunner runner = new(_ => throw new InvalidOperationException("Process should not run."));
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [CreateProjectionConflictProfile()]);
+        ExternalProcessorRequest request = new(
+            "run-projection-conflict",
+            "nfc.test.projection-conflict-v1",
+            "legacy-combiner-1.13.0",
+            firmware,
+            [],
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("legacy-combiner.staging.projection-conflict", issue.Code);
+        Assert.Equal(0, runner.RunCount);
+    }
+
+    /// <summary>Rejects postbuild runs that leave files outside the manifest-declared staging outputs.</summary>
+    [Fact]
+    public async Task TransformRejectsUnexpectedStagingFile()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        byte[] firmware = CreateFirmwareImage();
+        FakeProcessRunner runner = new(startInfo =>
+        {
+            File.WriteAllText(Path.Combine(startInfo.WorkingDirectory, "output", "unexpected.log"), "unexpected");
+            return new ExternalProcessResult(0, false, string.Empty, string.Empty);
+        });
+        LegacyCombinerPostbuildProfile profile = CreateCrcOnlyProfile("nfc.test.unexpected-file-v1", "test_fw.bin");
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
+        ExternalProcessorRequest request = new(
+            "run-unexpected-file",
+            profile.ProcessorId,
+            "legacy-combiner-1.13.0",
+            firmware,
+            [],
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("external-tool.staging.unexpected-file", issue.Code);
+        Assert.Equal(1, runner.RunCount);
     }
 
     /// <summary>Verifies mutations outside declared postbuild authority fail closed.</summary>
@@ -188,6 +244,61 @@ public sealed class LegacyCombinerPostbuildProcessorTests
         }
 
         return bytes;
+    }
+
+    private static void MakeNt51927TwoChipSharedStagedBlocksConsistent(byte[] firmware)
+    {
+        Array.Copy(firmware, 0x16800, firmware, 0x1F800, 16);
+        Array.Copy(firmware, 0x1CBD0, firmware, 0x25BD0, 5728);
+    }
+
+    private static LegacyCombinerPostbuildProfile CreateProjectionConflictProfile()
+    {
+        var command = new LegacyCombinerPostbuildCommand(
+            "projection-conflict",
+            LegacyCombinerCommandFamily.NormalMode,
+            "CRC_Enable",
+            null,
+            [
+                new LegacyCombinerBlockArgument(
+                    "first",
+                    LegacyCombinerBlockSourceKind.StagedFile,
+                    "Same.bin",
+                    0,
+                    new ByteRange(0, 2)),
+                new LegacyCombinerBlockArgument(
+                    "second",
+                    LegacyCombinerBlockSourceKind.StagedFile,
+                    "Same.bin",
+                    0,
+                    new ByteRange(2, 2)),
+            ]);
+        return new LegacyCombinerPostbuildProfile(
+            "nfc.test.projection-conflict-v1",
+            "NTTEST",
+            "legacy-combiner-1.13.0",
+            "test_fw.bin",
+            [command],
+            [command],
+            "test projection conflict profile");
+    }
+
+    private static LegacyCombinerPostbuildProfile CreateCrcOnlyProfile(string processorId, string firmwareFileName)
+    {
+        var command = new LegacyCombinerPostbuildCommand(
+            "crc-only",
+            LegacyCombinerCommandFamily.CrcOnlyMode,
+            "NT51927BASED_GEN_CRC_MODE",
+            "CRC32",
+            []);
+        return new LegacyCombinerPostbuildProfile(
+            processorId,
+            "NTTEST",
+            "legacy-combiner-1.13.0",
+            firmwareFileName,
+            [command],
+            [command],
+            "test crc-only profile");
     }
 
     private sealed class FakeProcessRunner : IExternalProcessRunner
@@ -256,12 +367,15 @@ public sealed class LegacyCombinerPostbuildProcessorTests
             return Sha256(executablePath);
         }
 
-        internal LegacyCombinerPostbuildProcessor CreateProcessor(string executableSha256, IExternalProcessRunner runner)
+        internal LegacyCombinerPostbuildProcessor CreateProcessor(
+            string executableSha256,
+            IExternalProcessRunner runner,
+            IEnumerable<LegacyCombinerPostbuildProfile>? profiles = null)
         {
             var registry = new ExternalCombinerToolRegistry([Manifest(executableSha256)]);
             return new LegacyCombinerPostbuildProcessor(
                 registry,
-                LegacyCombinerPostbuildCatalog.All,
+                profiles ?? LegacyCombinerPostbuildCatalog.All,
                 ToolRoot,
                 StagingRoot,
                 runner);

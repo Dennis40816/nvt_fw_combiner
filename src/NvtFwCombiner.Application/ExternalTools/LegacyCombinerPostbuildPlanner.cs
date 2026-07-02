@@ -1,5 +1,4 @@
 using NvtFwCombiner.Application.Composition;
-using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.ExternalTools;
 
@@ -13,7 +12,7 @@ public static class LegacyCombinerPostbuildPlanner
     {
         ArgumentNullException.ThrowIfNull(profile);
 
-        LegacyCombinerPostbuildBranch branch = ResolveBranch(icNumberSelection);
+        LegacyCombinerPostbuildBranch branch = ResolveBranch(profile, icNumberSelection);
         IReadOnlyList<LegacyCombinerPostbuildCommand> commands = branch switch
         {
             LegacyCombinerPostbuildBranch.SingleChip => profile.SingleCommands,
@@ -41,41 +40,19 @@ public static class LegacyCombinerPostbuildPlanner
         ];
     }
 
-    private static LegacyCombinerPostbuildBranch ResolveBranch(IcNumberSelection? selection)
+    private static LegacyCombinerPostbuildBranch ResolveBranch(
+        LegacyCombinerPostbuildProfile profile,
+        IcNumberSelection? selection)
     {
         if (selection is null)
         {
             return LegacyCombinerPostbuildBranch.SingleChip;
         }
 
-        if (selection.Mode == IcNumberInputMode.SingleSelector)
-        {
-            return LegacyCombinerPostbuildBranch.SingleChip;
-        }
-
-        if (selection.Mode == IcNumberInputMode.NumericSelector)
-        {
-            return ResolveNumericBranch(selection.Parts[^1]);
-        }
-
-        string? lastPart = selection.Parts.Count == 0 ? null : selection.Parts[^1];
-        return string.Equals(lastPart, "1", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(lastPart, "single", StringComparison.OrdinalIgnoreCase)
-                ? LegacyCombinerPostbuildBranch.SingleChip
-                : LegacyCombinerPostbuildBranch.Cascade;
-    }
-
-    private static LegacyCombinerPostbuildBranch ResolveNumericBranch(string value)
-    {
-        return int.TryParse(value, out int icCount)
-            ? icCount switch
-            {
-                1 => LegacyCombinerPostbuildBranch.SingleChip,
-                2 => LegacyCombinerPostbuildBranch.TwoChip,
-                3 => LegacyCombinerPostbuildBranch.ThreeChip,
-                >= 4 => LegacyCombinerPostbuildBranch.Cascade,
-                _ => throw new ArgumentException("Numeric IC number selection must be positive."),
-            }
-            : throw new ArgumentException("Numeric IC number selection must be an integer.");
+        string token = LegacyCombinerPostbuildBranchRule.NormalizeToken(selection.Parts[^1]);
+        return profile.BranchRules.TryGetValue(token, out LegacyCombinerPostbuildBranch branch)
+            ? branch
+            : throw new ArgumentException(
+                $"IC number selection '{selection.Parts[^1]}' is not supported by postbuild profile '{profile.ProcessorId}'.");
     }
 }

@@ -149,6 +149,36 @@ public sealed class ReplaceCliCommandTests
         Assert.Contains("--ic-num is required", result.Error, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies Replace commands reject firmware inputs that the selected profile would ignore.</summary>
+    [Fact]
+    public async Task ReplacePreviewRejectsUnusedFirmwareInputOption()
+    {
+        using var workspace = TempWorkspace.Create();
+        string reference = workspace.Write("reference.bin", [0, 0, 0, 0, 0, 0, 0, 0]);
+        string ctrlram = workspace.Write("ctrlram.bin", [0xAA, 0xBB]);
+        string dp = workspace.Write("dp.bin", [0x11, 0x22]);
+
+        CliRunResult result = await RunCliAsync([
+            "ctrlram-replace",
+            "preview",
+            "--profile",
+            "synthetic-ctrlram-replace",
+            "--ic-family",
+            "NT51",
+            "--ic-num",
+            "932",
+            "--base",
+            reference,
+            "--ctrlram",
+            ctrlram,
+            "--dp",
+            dp,
+        ]);
+
+        Assert.Equal(64, result.ExitCode);
+        Assert.Contains("option '--dp' is not used", result.Error, StringComparison.Ordinal);
+    }
+
     private static async Task<CliRunResult> RunCliAsync(string[] args)
     {
         using var output = new StringWriter();

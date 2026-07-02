@@ -254,6 +254,7 @@ internal static class ReplaceCliCommandHandler
         out IReadOnlyList<InputArtifactBinding> bindings)
     {
         List<InputArtifactBinding> items = [];
+        HashSet<string> usedInputOptions = new(StringComparer.Ordinal);
         foreach (string addressSpaceId in plan.RequiredInputAddressSpaceIds.Order(StringComparer.Ordinal))
         {
             if (!FixedInputOptionsByAddressSpace.TryGetValue(addressSpaceId, out string? optionName))
@@ -271,6 +272,17 @@ internal static class ReplaceCliCommandHandler
 
             string fullPath = Path.GetFullPath(path);
             items.Add(new InputArtifactBinding(addressSpaceId, addressSpaceId, fullPath));
+            _ = usedInputOptions.Add(optionName);
+        }
+
+        foreach (string optionName in FixedInputOptionsByAddressSpace.Values.Order(StringComparer.Ordinal))
+        {
+            if (options.Values.ContainsKey(optionName) && !usedInputOptions.Contains(optionName))
+            {
+                error.WriteLine($"error: option '{optionName}' is not used by the selected replace profile");
+                bindings = [];
+                return false;
+            }
         }
 
         bindings = items;
