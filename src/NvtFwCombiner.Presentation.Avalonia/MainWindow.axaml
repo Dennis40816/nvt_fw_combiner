@@ -896,6 +896,11 @@
                 </Border>
 
                 <ItemsControl HorizontalAlignment="Stretch" ItemsSource="{Binding ReplaceSlotGroups}">
+                  <ItemsControl.ItemContainerTheme>
+                    <ControlTheme TargetType="ContentPresenter">
+                      <Setter Property="HorizontalAlignment" Value="Stretch" />
+                    </ControlTheme>
+                  </ItemsControl.ItemContainerTheme>
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:FirmwareSlotGroupViewModel">
                       <Expander HorizontalAlignment="Stretch" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
@@ -911,6 +916,11 @@
                           </Grid>
                         </Expander.Header>
                         <ItemsControl HorizontalAlignment="Stretch" ItemsSource="{Binding Slots}">
+                          <ItemsControl.ItemContainerTheme>
+                            <ControlTheme TargetType="ContentPresenter">
+                              <Setter Property="HorizontalAlignment" Value="Stretch" />
+                            </ControlTheme>
+                          </ItemsControl.ItemContainerTheme>
                           <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:FirmwareSlotViewModel">
                               <Border
@@ -1130,6 +1140,11 @@
               </ItemsControl>
 
               <ItemsControl HorizontalAlignment="Stretch" ItemsSource="{Binding ReplaceCoverageGroups}" IsVisible="{Binding IsReplaceCoverageGrouped}">
+                <ItemsControl.ItemContainerTheme>
+                  <ControlTheme TargetType="ContentPresenter">
+                    <Setter Property="HorizontalAlignment" Value="Stretch" />
+                  </ControlTheme>
+                </ItemsControl.ItemContainerTheme>
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:MemoryCoverageGroupViewModel">
                     <Expander HorizontalAlignment="Stretch" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
@@ -1145,6 +1160,11 @@
                         </Grid>
                       </Expander.Header>
                       <ItemsControl HorizontalAlignment="Stretch" ItemsSource="{Binding Segments}">
+                        <ItemsControl.ItemContainerTheme>
+                          <ControlTheme TargetType="ContentPresenter">
+                            <Setter Property="HorizontalAlignment" Value="Stretch" />
+                          </ControlTheme>
+                        </ItemsControl.ItemContainerTheme>
                         <ItemsControl.ItemTemplate>
                           <DataTemplate x:DataType="vm:MemoryCoverageSegmentViewModel">
                             <Border Padding="0,7" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
