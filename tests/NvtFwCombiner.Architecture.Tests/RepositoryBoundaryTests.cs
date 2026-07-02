@@ -95,7 +95,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Command=\"{Binding PreviewMergeCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("IsEnabled=\"{Binding CanBuildStandardMerge}\"", shell, StringComparison.Ordinal);
         Assert.Contains("HasLoadedReport", shell, StringComparison.Ordinal);
-        Assert.Contains("LoadedReport.Operations", shell, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.SummaryRows", shell, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.CommandOperations", shell, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.StepOperations", shell, StringComparison.Ordinal);
+        Assert.Contains("ColumnDefinitions=\"24,*\"", shell, StringComparison.Ordinal);
         Assert.Contains("FontFamily=\"fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Classes=\"secondary\" Content=\"{Binding PreviewActionLabel}\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Background=\"#0F172A\" CornerRadius=\"8\"", shell, StringComparison.Ordinal);

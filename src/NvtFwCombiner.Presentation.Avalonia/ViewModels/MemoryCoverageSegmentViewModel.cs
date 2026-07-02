@@ -29,6 +29,9 @@ public sealed class MemoryCoverageSegmentViewModel
         BarWidth = barWidth;
         IsChanged = isChanged;
         ChangeLabel = isChanged ? "Changed" : "Preserved";
+        ChangeBadgeBackgroundBrush = Brush.Parse(isChanged ? "#DBEAFE" : "#F8FAFC");
+        ChangeBadgeBorderBrush = Brush.Parse(isChanged ? "#BFDBFE" : "#CBD5E1");
+        ChangeBadgeForegroundBrush = Brush.Parse(isChanged ? "#1D4ED8" : "#475569");
         OutlineBrush = Brushes.Transparent;
         OutlineThickness = new Thickness(0);
     }
@@ -59,6 +62,15 @@ public sealed class MemoryCoverageSegmentViewModel
 
     /// <summary>Compact changed/preserved label for the legend.</summary>
     public string ChangeLabel { get; }
+
+    /// <summary>Badge background for changed/preserved state.</summary>
+    public IBrush ChangeBadgeBackgroundBrush { get; }
+
+    /// <summary>Badge border for changed/preserved state.</summary>
+    public IBrush ChangeBadgeBorderBrush { get; }
+
+    /// <summary>Badge text brush for changed/preserved state.</summary>
+    public IBrush ChangeBadgeForegroundBrush { get; }
 
     /// <summary>Outline brush used to call out changed coverage segments.</summary>
     public IBrush OutlineBrush { get; }

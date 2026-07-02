@@ -264,6 +264,16 @@ public sealed class ShellViewModelTests
 
             Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
             Assert.True(viewModel.HasLoadedReport);
+            Assert.True(viewModel.LoadedReport.HasCommandOperations);
+            Assert.True(viewModel.LoadedReport.HasStepOperations);
+            Assert.Contains(viewModel.LoadedReport.SummaryRows, row =>
+                row.Title == "Steps" &&
+                row.Meta.Contains("command", StringComparison.Ordinal));
+            Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
+                operation.Title.Contains("postbuild-", StringComparison.Ordinal) &&
+                operation.Meta.Contains("Combiner command", StringComparison.Ordinal) &&
+                !operation.Meta.Contains("Combiner.exe", StringComparison.Ordinal) &&
+                operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
             Assert.Contains(viewModel.LoadedReport.Operations, operation =>
                 operation.Title.Contains("postbuild-", StringComparison.Ordinal) &&
                 operation.Meta.Contains("Combiner command", StringComparison.Ordinal) &&
@@ -486,12 +496,17 @@ public sealed class ShellViewModelTests
         Assert.Contains("Preview blocked", viewModel.ReplaceSelectionStatusLabel, StringComparison.Ordinal);
         Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "Base flash BIN");
         Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "CtrlRAM replacement");
+        FirmwareSlotGroupViewModel slaveLGroup = viewModel.ReplaceSlotGroups.Single(group => group.Title == "Slave L");
+        Assert.Equal("0/4", slaveLGroup.CountLabel);
+        Assert.Equal("4 areas. None selected.", slaveLGroup.SelectionSummary);
 
         FirmwareSlotViewModel vnLeft = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Slave L)");
         viewModel.SetSlotFile("replace-base", Path.Combine(Path.GetTempPath(), "base.bin"));
         viewModel.SetSlotFile(vnLeft.SlotId, Path.Combine(Path.GetTempPath(), "vn-slave-l.bin"));
 
         Assert.Equal("1 / 12 targets selected", viewModel.ReplaceSelectionCountLabel);
+        Assert.Equal("1/4", slaveLGroup.CountLabel);
+        Assert.Equal("1 selected / 4 areas.", slaveLGroup.SelectionSummary);
         Assert.Equal("Ready for Preview", viewModel.ReplaceSelectionStatusLabel);
         Assert.Empty(viewModel.ReplaceSelectionMissingRows);
         Assert.Contains(viewModel.ReplaceSelectionRows, row =>
@@ -546,6 +561,14 @@ public sealed class ShellViewModelTests
         Assert.Equal("nt51927-standard-merge-gen-flash (NT51927).json", viewModel.ReportSaveFileName);
         Assert.True(viewModel.ShowReportCommand.CanExecute(null));
         Assert.False(viewModel.LoadedReport.HasPrimaryIssue);
+        Assert.Equal(4, viewModel.LoadedReport.SummaryRows.Count);
+        Assert.Contains(viewModel.LoadedReport.SummaryRows, row =>
+            row.Title == "Status" &&
+            row.Detail == "Succeeded" &&
+            row.Meta == "No issue");
+        Assert.Equal(0, viewModel.LoadedReport.OperationCount);
+        Assert.False(viewModel.LoadedReport.HasCommandOperations);
+        Assert.False(viewModel.LoadedReport.HasStepOperations);
 
         viewModel.ShowReportCommand.Execute(null);
 
@@ -673,6 +696,10 @@ public sealed class ShellViewModelTests
             Assert.Equal(issue.Title, viewModel.LoadedReport.PrimaryIssue.Title);
             Assert.True(viewModel.LoadedReport.HasInputs);
             Assert.True(viewModel.LoadedReport.HasOperations);
+            Assert.Contains(viewModel.LoadedReport.SummaryRows, row =>
+                row.Title == "Status" &&
+                row.Detail == "1 issue(s)" &&
+                row.Meta == issue.Title);
         }
         finally
         {
