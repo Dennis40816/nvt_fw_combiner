@@ -18,8 +18,7 @@
     <Company>Novatek</Company>
     <Product>NVT FW Combiner</Product>
     <VersionPrefix>0.5.0</VersionPrefix>
-    <VersionSuffix>dev.0</VersionSuffix>
-    <Version>$(VersionPrefix)-$(VersionSuffix)</Version>
+    <Version>$(VersionPrefix)</Version>
     <AssemblyVersion>0.5.0.0</AssemblyVersion>
     <FileVersion>0.5.0.0</FileVersion>
     <InformationalVersion>$(Version)</InformationalVersion>

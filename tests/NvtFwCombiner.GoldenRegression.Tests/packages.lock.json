@@ -166,16 +166,16 @@
       "nvtfwcombiner.application": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Contracts": "[0.5.0-dev.0, )",
-          "NvtFwCombiner.Domain": "[0.5.0-dev.0, )"
+          "NvtFwCombiner.Contracts": "[0.5.0, )",
+          "NvtFwCombiner.Domain": "[0.5.0, )"
         }
       },
       "nvtfwcombiner.bootstrap": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Application": "[0.5.0-dev.0, )",
-          "NvtFwCombiner.Infrastructure": "[0.5.0-dev.0, )",
-          "NvtFwCombiner.Profiles": "[0.5.0-dev.0, )"
+          "NvtFwCombiner.Application": "[0.5.0, )",
+          "NvtFwCombiner.Infrastructure": "[0.5.0, )",
+          "NvtFwCombiner.Profiles": "[0.5.0, )"
         }
       },
       "nvtfwcombiner.contracts": {
@@ -187,16 +187,16 @@
       "nvtfwcombiner.infrastructure": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Application": "[0.5.0-dev.0, )",
-          "NvtFwCombiner.Contracts": "[0.5.0-dev.0, )",
-          "NvtFwCombiner.Domain": "[0.5.0-dev.0, )"
+          "NvtFwCombiner.Application": "[0.5.0, )",
+          "NvtFwCombiner.Contracts": "[0.5.0, )",
+          "NvtFwCombiner.Domain": "[0.5.0, )"
         }
       },
       "nvtfwcombiner.profiles": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Contracts": "[0.5.0-dev.0, )",
-          "NvtFwCombiner.Domain": "[0.5.0-dev.0, )"
+          "NvtFwCombiner.Contracts": "[0.5.0, )",
+          "NvtFwCombiner.Domain": "[0.5.0, )"
         }
       }
     }

@@ -4,16 +4,22 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
+No changes yet. Post-`0.5.0` development is expected to target `0.6.0-dev.N`.
+
+## [0.5.0] - 2026-07-02
+
 ### Added
 
 - Bootstrap workbench facade for desktop Settings, memory-map, IC catalog, and Standard Merge run contracts.
 - First-sample `v1.0.0` readiness gates for support matrix and package release evidence.
 - Executable Standard Merge profiles for the full v1 IC merge list, including NT51930 flash-map ranges and NT51950/NT51951 DP Perspective variable-length DP input padding plus TP overlay.
+- Replace selection overview chip and modal so collapsed CtrlRAM groups still show how many replacement targets are selected and what Preview requires.
 
 ### Changed
 
 - Presentation and Golden Regression test dependencies now route through Bootstrap instead of directly referencing Application/Profile/Infrastructure firmware catalogs.
 - Supported IC matrix now separates executable profiles, flash-map catalog coverage, CtrlRAM postbuild command coverage, and production Replace profile gaps.
+- Desktop app, CLI, and package metadata are aligned to stable version `0.5.0`.
 
 ## [0.5.0-dev.0] - 2026-07-01
 

@@ -1,6 +1,6 @@
 # Repository Verification Report
 
-Specification package version: `0.5.0-dev.0`
+Specification package version: `0.5.0`
 
 ## Bootstrap assertions
 

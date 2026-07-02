@@ -172,8 +172,8 @@
       "nvtfwcombiner.profiles": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Contracts": "[1.0.0, )",
-          "NvtFwCombiner.Domain": "[1.0.0, )"
+          "NvtFwCombiner.Contracts": "[0.5.0, )",
+          "NvtFwCombiner.Domain": "[0.5.0, )"
         }
       }
     }
