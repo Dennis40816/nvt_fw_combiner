@@ -242,6 +242,60 @@ public sealed class ShellViewModelTests
         }
     }
 
+    /// <summary>Verifies one CtrlRAM Replace run can select and report multiple region replacements.</summary>
+    [Fact]
+    public async Task CtrlRamReplacePreviewReportsMultipleSelectedRegions()
+    {
+        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-ctrlram-multi-{Guid.NewGuid():N}");
+        try
+        {
+            _ = Directory.CreateDirectory(tempRoot);
+            string basePath = Path.Combine(tempRoot, "base.bin");
+            string normalRightPath = Path.Combine(tempRoot, "normal-slave-r.bin");
+            string vnLeftPath = Path.Combine(tempRoot, "vn-slave-l.bin");
+            File.WriteAllBytes(basePath, CreatePattern(0x40000, 0x20));
+            File.WriteAllBytes(normalRightPath, CreatePattern(0x3000, 0x40));
+            File.WriteAllBytes(vnLeftPath, CreatePattern(0x1660, 0x70));
+
+            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+            viewModel.SelectedIc = "NT51927";
+            viewModel.SelectedNumber = "3";
+            viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+
+            FirmwareSlotViewModel normalRight = viewModel.ReplaceSlots.Single(slot => slot.Title == "Normal CtrlRAM (Slave R)");
+            FirmwareSlotViewModel vnLeft = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Slave L)");
+            viewModel.SetSlotFile("replace-base", basePath);
+            viewModel.SetSlotFile(normalRight.SlotId, normalRightPath);
+            viewModel.SetSlotFile(vnLeft.SlotId, vnLeftPath);
+
+            Assert.Equal("2 / 12 targets selected", viewModel.ReplaceSelectionCountLabel);
+            Assert.Contains(viewModel.ReplaceSelectionRows, row => row.Title == "Normal CtrlRAM (Slave R)");
+            Assert.Contains(viewModel.ReplaceSelectionRows, row => row.Title == "VN CtrlRAM (Slave L)");
+            Assert.True(viewModel.CanPreviewReplace);
+
+            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+
+            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+            Assert.Contains(viewModel.LoadedReport.Operations, operation =>
+                operation.Title.Contains("replace-normal-slave-r", StringComparison.Ordinal));
+            Assert.Contains(viewModel.LoadedReport.Operations, operation =>
+                operation.Title.Contains("replace-vn-slave-l", StringComparison.Ordinal));
+            Assert.Contains(viewModel.ReplaceCoverageSegments, segment =>
+                segment.SourceLabel == "Normal CtrlRAM (Slave R)" &&
+                segment.RangeLabel == "0x207D0-0x237CF (len 0x3000)");
+            Assert.Contains(viewModel.ReplaceCoverageSegments, segment =>
+                segment.SourceLabel == "VN CtrlRAM (Slave L)" &&
+                segment.RangeLabel == "0x2EBD0-0x3022F (len 0x1660)");
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+    }
+
     /// <summary>Verifies CtrlRAM Replace can preview a golden-backed fake VN slot with traceable region naming.</summary>
     [Fact]
     public async Task CtrlRamReplacePreviewAcceptsGoldenBackedFakeVnSlot()
