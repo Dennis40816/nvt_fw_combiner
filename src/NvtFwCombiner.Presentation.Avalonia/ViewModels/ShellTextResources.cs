@@ -132,8 +132,8 @@ public sealed class ShellTextResources
                     "CtrlRAM Replace uses approved CtrlRAM regions",
                     "CRC/header: combiner.exe postbuild core",
                 ],
-                "Preview/report wired; CtrlRAM output gated"),
-            "Profile catalog: built-in | Merge preview/build: wired | Replace preview/report wired; CtrlRAM output gated | Settings: catalog-backed");
+                "Preview/build wired; CtrlRAM postbuild enabled"),
+            "Profile catalog: built-in | Merge preview/build: wired | Replace preview/build wired; CtrlRAM postbuild enabled | Settings: catalog-backed");
     }
 
     private static ShellTextResources CreateChineseTraditional()
@@ -175,8 +175,8 @@ public sealed class ShellTextResources
                     "CtrlRAM Replace 使用核准的 CtrlRAM regions",
                     "CRC/header：combiner.exe postbuild core",
                 ],
-                "Preview/report wired；CtrlRAM output gated"),
-            "Profile catalog：built-in | Merge preview/build：wired | Replace preview/report wired；CtrlRAM output gated | Settings：catalog-backed");
+                "Preview/build wired；CtrlRAM postbuild enabled"),
+            "Profile catalog：built-in | Merge preview/build：wired | Replace preview/build wired；CtrlRAM postbuild enabled | Settings：catalog-backed");
     }
 }
 

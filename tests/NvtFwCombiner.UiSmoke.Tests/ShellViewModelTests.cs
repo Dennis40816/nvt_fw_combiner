@@ -236,14 +236,20 @@ public sealed class ShellViewModelTests
     [Fact]
     public async Task CtrlRamReplacePreviewReportsPostbuildCommandTrace()
     {
+        string repositoryRoot = FindRepositoryRoot();
+        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
+        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
+        JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
+            .EnumerateArray()
+            .Single(testCase => testCase.GetProperty("ic").GetString() == "51927");
+        byte[] baseBytes = File.ReadAllBytes(ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
         string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-ctrlram-{Guid.NewGuid():N}");
         try
         {
             _ = Directory.CreateDirectory(tempRoot);
             string basePath = Path.Combine(tempRoot, "base.bin");
             string regionPath = Path.Combine(tempRoot, "ctrlram.bin");
-            File.WriteAllBytes(basePath, CreatePattern(0x40000, 0x10));
-            File.WriteAllBytes(regionPath, CreatePattern(0x4000, 0x50));
+            File.WriteAllBytes(basePath, baseBytes);
 
             MainWindowViewModel viewModel = ShellViewModelFactory.Create();
             viewModel.SelectedIc = "NT51927";
@@ -254,6 +260,9 @@ public sealed class ShellViewModelTests
                 slot.SlotId.StartsWith("replace-ctrlram-", StringComparison.Ordinal));
             Assert.True(regionSlot.IsOptional);
             Assert.Contains("CtrlRAM", regionSlot.Title, StringComparison.Ordinal);
+            CtrlRamRegionViewModel region = viewModel.CtrlRamRegions.Single(item => item.Name == regionSlot.Title);
+            (int start, int length) = ParseCtrlRamRegion(region);
+            File.WriteAllBytes(regionPath, baseBytes[start..(start + length)]);
 
             viewModel.SetSlotFile("replace-base", basePath);
             viewModel.SetSlotFile(regionSlot.SlotId, regionPath);
@@ -294,6 +303,13 @@ public sealed class ShellViewModelTests
     [Fact]
     public async Task CtrlRamReplacePreviewReportsMultipleSelectedRegions()
     {
+        string repositoryRoot = FindRepositoryRoot();
+        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
+        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
+        JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
+            .EnumerateArray()
+            .Single(testCase => testCase.GetProperty("ic").GetString() == "51927");
+        byte[] baseBytes = File.ReadAllBytes(ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
         string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-ctrlram-multi-{Guid.NewGuid():N}");
         try
         {
@@ -301,9 +317,7 @@ public sealed class ShellViewModelTests
             string basePath = Path.Combine(tempRoot, "base.bin");
             string normalRightPath = Path.Combine(tempRoot, "normal-slave-r.bin");
             string vnLeftPath = Path.Combine(tempRoot, "vn-slave-l.bin");
-            File.WriteAllBytes(basePath, CreatePattern(0x40000, 0x20));
-            File.WriteAllBytes(normalRightPath, CreatePattern(0x3000, 0x40));
-            File.WriteAllBytes(vnLeftPath, CreatePattern(0x1660, 0x70));
+            File.WriteAllBytes(basePath, baseBytes);
 
             MainWindowViewModel viewModel = ShellViewModelFactory.Create();
             viewModel.SelectedIc = "NT51927";
@@ -312,6 +326,12 @@ public sealed class ShellViewModelTests
 
             FirmwareSlotViewModel normalRight = viewModel.ReplaceSlots.Single(slot => slot.Title == "Normal CtrlRAM (Slave R)");
             FirmwareSlotViewModel vnLeft = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Slave L)");
+            (int normalRightStart, int normalRightLength) = ParseCtrlRamRegion(
+                viewModel.CtrlRamRegions.Single(region => region.Name == normalRight.Title));
+            (int vnLeftStart, int vnLeftLength) = ParseCtrlRamRegion(
+                viewModel.CtrlRamRegions.Single(region => region.Name == vnLeft.Title));
+            File.WriteAllBytes(normalRightPath, baseBytes[normalRightStart..(normalRightStart + normalRightLength)]);
+            File.WriteAllBytes(vnLeftPath, baseBytes[vnLeftStart..(vnLeftStart + vnLeftLength)]);
             viewModel.SetSlotFile("replace-base", basePath);
             viewModel.SetSlotFile(normalRight.SlotId, normalRightPath);
             viewModel.SetSlotFile(vnLeft.SlotId, vnLeftPath);
@@ -344,9 +364,9 @@ public sealed class ShellViewModelTests
         }
     }
 
-    /// <summary>Verifies CtrlRAM Replace can preview a golden-backed fake VN slot with traceable region naming.</summary>
+    /// <summary>Verifies CtrlRAM Replace can preview a golden-backed VN self replacement with traceable region naming.</summary>
     [Fact]
-    public async Task CtrlRamReplacePreviewAcceptsGoldenBackedFakeVnSlot()
+    public async Task CtrlRamReplacePreviewAcceptsGoldenBackedVnSelfReplacement()
     {
         string repositoryRoot = FindRepositoryRoot();
         string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
@@ -360,9 +380,9 @@ public sealed class ShellViewModelTests
         {
             _ = Directory.CreateDirectory(tempRoot);
             string basePath = Path.Combine(tempRoot, "base-from-golden.bin");
-            string fakeVnPath = Path.Combine(tempRoot, "fake-vn-ctrlram.bin");
-            File.Copy(ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")), basePath);
-            File.WriteAllBytes(fakeVnPath, CreatePattern(0x1660, 0x70));
+            string vnPath = Path.Combine(tempRoot, "vn-ctrlram.bin");
+            byte[] baseBytes = File.ReadAllBytes(ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
+            File.WriteAllBytes(basePath, baseBytes);
 
             MainWindowViewModel viewModel = ShellViewModelFactory.Create();
             viewModel.SelectedIc = "NT51927";
@@ -371,9 +391,12 @@ public sealed class ShellViewModelTests
 
             FirmwareSlotViewModel vnLeft = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Slave L)");
             Assert.Equal("Replace this area only when needed. TP position 0x2EBD0-0x3022F (len 0x1660).", vnLeft.Description);
+            (int start, int length) = ParseCtrlRamRegion(
+                viewModel.CtrlRamRegions.Single(region => region.Name == vnLeft.Title));
+            File.WriteAllBytes(vnPath, baseBytes[start..(start + length)]);
 
             viewModel.SetSlotFile("replace-base", basePath);
-            viewModel.SetSlotFile(vnLeft.SlotId, fakeVnPath);
+            viewModel.SetSlotFile(vnLeft.SlotId, vnPath);
 
             Assert.True(viewModel.CanPreviewReplace);
 
@@ -400,9 +423,9 @@ public sealed class ShellViewModelTests
         }
     }
 
-    /// <summary>Verifies a CtrlRAM replacement sliced from the same base keeps bytes unchanged before gated postbuild.</summary>
+    /// <summary>Verifies a CtrlRAM replacement sliced from the same base runs through the real postbuild path.</summary>
     [Fact]
-    public async Task CtrlRamReplacePreviewSelfReplacementKeepsOriginalBytesBeforePostbuild()
+    public async Task CtrlRamReplacePreviewSelfReplacementRunsPostbuild()
     {
         string repositoryRoot = FindRepositoryRoot();
         string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
@@ -443,11 +466,64 @@ public sealed class ShellViewModelTests
             Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
             Assert.True(viewModel.HasLoadedReport);
             Assert.Contains(viewModel.LoadedReport.Operations, operation =>
-                operation.Title.Contains("split-base-vn-slave-l", StringComparison.Ordinal));
-            Assert.Contains(viewModel.LoadedReport.Operations, operation =>
                 operation.Title.Contains("replace-vn-slave-l", StringComparison.Ordinal));
             Assert.Contains(viewModel.LoadedReport.Operations, operation =>
                 operation.HasCodeBlock &&
+                operation.CodeBlock.Contains("Combiner.exe", StringComparison.Ordinal));
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+    }
+
+    /// <summary>Verifies CtrlRAM Replace build commits a real postbuild output file.</summary>
+    [Fact]
+    public async Task CtrlRamReplaceBuildCommitsGoldenBackedSelfReplacementOutput()
+    {
+        string repositoryRoot = FindRepositoryRoot();
+        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
+        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
+        JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
+            .EnumerateArray()
+            .Single(testCase => testCase.GetProperty("ic").GetString() == "51927");
+        byte[] baseBytes = File.ReadAllBytes(ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
+        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-ctrlram-build-{Guid.NewGuid():N}");
+
+        try
+        {
+            _ = Directory.CreateDirectory(tempRoot);
+            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+            viewModel.SelectedIc = "NT51927";
+            viewModel.SelectedNumber = "single";
+            viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+
+            FirmwareSlotViewModel vnSlot = viewModel.ReplaceSlots.Single(slot =>
+                slot.Title.Contains("VN CtrlRAM", StringComparison.Ordinal));
+            CtrlRamRegionViewModel vnRegion = viewModel.CtrlRamRegions.Single(region => region.Name == vnSlot.Title);
+            (int start, int length) = ParseCtrlRamRegion(vnRegion);
+            string basePath = Path.Combine(tempRoot, "base-from-golden.bin");
+            string replacementPath = Path.Combine(tempRoot, "self-vn-ctrlram.bin");
+            string outputPath = Path.Combine(tempRoot, "ctrlram-build-output.bin");
+            File.WriteAllBytes(basePath, baseBytes);
+            File.WriteAllBytes(replacementPath, baseBytes[start..(start + length)]);
+
+            viewModel.SetSlotFile("replace-base", basePath);
+            viewModel.SetSlotFile(vnSlot.SlotId, replacementPath);
+
+            Assert.True(viewModel.CanBuildReplace);
+
+            await viewModel.BuildReplaceAsync(outputPath);
+
+            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+            Assert.Equal(outputPath, viewModel.LastRunResult.Output);
+            Assert.True(File.Exists(outputPath), outputPath);
+            Assert.Equal(baseBytes.Length, new FileInfo(outputPath).Length);
+            Assert.True(viewModel.HasLoadedReport);
+            Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
                 operation.CodeBlock.Contains("Combiner.exe", StringComparison.Ordinal));
         }
         finally

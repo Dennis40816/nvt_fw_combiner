@@ -15,10 +15,30 @@ public sealed class RangeSet
     /// <summary>Declared ranges sorted by start offset.</summary>
     public IReadOnlyList<ByteRange> Ranges => _ranges;
 
-    /// <summary>Returns true when at least one declared range fully contains <paramref name="candidate"/>.</summary>
+    /// <summary>Returns true when declared ranges cover <paramref name="candidate"/> without gaps.</summary>
     public bool Contains(ByteRange candidate)
     {
-        return _ranges.Any(range => range.Contains(candidate));
+        long coveredUntil = candidate.Start;
+        foreach (ByteRange range in _ranges)
+        {
+            if (range.EndExclusive <= coveredUntil)
+            {
+                continue;
+            }
+
+            if (range.Start > coveredUntil)
+            {
+                return false;
+            }
+
+            coveredUntil = Math.Max(coveredUntil, range.EndExclusive);
+            if (coveredUntil >= candidate.EndExclusive)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>Returns true when every range in <paramref name="candidates"/> is fully declared.</summary>

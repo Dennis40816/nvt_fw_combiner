@@ -43,10 +43,12 @@ For every external combiner transform:
 7. Infrastructure starts the process with `UseShellExecute = false`; no shell command string is assembled.
 8. The combiner may mutate only files inside the staging directory.
 9. Infrastructure reads back `work.bin` or the declared output file.
-10. Infrastructure verifies file count, expected names, unchanged length, after SHA-256, and byte diff.
+10. Infrastructure verifies file count, expected names, final imported length, after SHA-256, and byte diff.
 11. Application accepts the result only if every changed byte is inside the profile-declared `allowedWriteRanges` and all postconditions pass.
 12. The validated bytes are imported into the current work buffer/output image.
-13. Any timeout, crash, malformed output, path escape, unexpected file, length change, SHA mismatch, or out-of-range mutation fails closed.
+13. Any timeout, crash, malformed output, path escape, unexpected file, unexpected final length change, SHA mismatch, or out-of-range mutation fails closed.
+
+Some owner-provided Combiner `MERGE_MODE` postbuild commands rewrite the staging work file to the command output length rather than the full firmware image length. The adapter may normalize that known shortened command output by overlaying it back onto the original-length staging bytes only when the shortened file still covers the command's declared write coverage. The final imported firmware image length must remain unchanged and the independent byte diff must still pass `allowedWriteRanges`.
 
 The temporary firmware file is an implementation detail of the host. Profiles should name address spaces and ranges, not host filesystem paths.
 

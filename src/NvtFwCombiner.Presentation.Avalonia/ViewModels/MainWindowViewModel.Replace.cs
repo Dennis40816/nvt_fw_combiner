@@ -22,7 +22,7 @@ public sealed partial class MainWindowViewModel
             ? "Ready: Preview/Build will validate DP Replace inputs and produce a report."
             : "Preview blocked: base BIN and required DP replacement inputs are required.",
         CtrlRamReplaceMode => CanRunReplace()
-            ? "Ready: Preview will report split, region replacements, and generated postbuild commands."
+            ? "Ready: Preview/Build will replace selected CtrlRAM regions and run postbuild."
             : "Preview blocked: base BIN and at least one CtrlRAM region BIN are required.",
         GeneralReplaceMode => "Preview blocked: base BIN, replacement BIN, and an approved range are required.",
         _ => "Preview blocked: select a Replace mode.",
@@ -34,7 +34,7 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets the compact reason shown on disabled Replace build.</summary>
     public string ReplaceBuildUnavailableReason => $"Build blocked: run a valid {SelectedReplaceMode} Preview first.";
 
-    /// <summary>Builds Replace output or a gated Replace build report to a user-selected path.</summary>
+    /// <summary>Builds Replace output to a user-selected path.</summary>
     public Task BuildReplaceAsync(string outputPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);

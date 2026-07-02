@@ -50,4 +50,28 @@ public sealed class ByteDiffTests
         Assert.False(verdict.IsAllowed);
         Assert.Equal([new ByteRange(13, 2)], verdict.ViolatingRanges);
     }
+
+    /// <summary>Verifies adjacent declared write ranges authorize an observed range that spans their boundary.</summary>
+    [Fact]
+    public void ChangedRangePolicyAllowsAdjacentDeclaredRangeUnion()
+    {
+        ChangedRangePolicy policy = new([new ByteRange(10, 2), new ByteRange(12, 3)]);
+
+        ChangedRangeVerdict verdict = policy.Evaluate([new ByteRange(10, 5)]);
+
+        Assert.True(verdict.IsAllowed);
+        Assert.Empty(verdict.ViolatingRanges);
+    }
+
+    /// <summary>Verifies separated declared write ranges do not authorize a changed range through the gap.</summary>
+    [Fact]
+    public void ChangedRangePolicyRejectsRangeAcrossUndeclaredGap()
+    {
+        ChangedRangePolicy policy = new([new ByteRange(10, 2), new ByteRange(13, 2)]);
+
+        ChangedRangeVerdict verdict = policy.Evaluate([new ByteRange(10, 5)]);
+
+        Assert.False(verdict.IsAllowed);
+        Assert.Equal([new ByteRange(10, 5)], verdict.ViolatingRanges);
+    }
 }

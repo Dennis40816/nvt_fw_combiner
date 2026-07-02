@@ -144,13 +144,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
         GeneralReplaceMode,
     ];
 
-    /// <summary>Gets settings sample content.</summary>
+    /// <summary>Gets settings card content.</summary>
     public PlanningCardViewModel SettingsPreview { get; }
 
-    /// <summary>Gets merge preview sample content.</summary>
+    /// <summary>Gets merge card content.</summary>
     public PlanningCardViewModel MergePreview { get; }
 
-    /// <summary>Gets replace preview sample content.</summary>
+    /// <summary>Gets replace card content.</summary>
     public PlanningCardViewModel ReplacePreview { get; }
 
     /// <summary>Gets footer status content.</summary>
@@ -358,7 +358,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// <summary>Command that previews Replace through the application core or workbench planner.</summary>
     public IAsyncRelayCommand PreviewReplaceCommand { get; }
 
-    /// <summary>Command that builds Replace output or produces a gated Replace build report.</summary>
+    /// <summary>Command that builds Replace output through the application/workbench core.</summary>
     public IAsyncRelayCommand BuildReplaceCommand { get; }
 
     /// <summary>Command that opens the compact Replace input selection overview.</summary>
@@ -487,8 +487,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 AddRows(
                     $"{SelectedIc} / {SelectedNumber}: {Math.Max(ReplaceSlots.Count - 1, 0)} replaceable CtrlRAM regions.",
                     "Each CtrlRAM region slot may receive its own replacement BIN; empty slots stay from base.",
-                    "Preview reports the split and generated Combiner postbuild command sequence.",
-                    "Production output remains gated until owner-approved write ranges and golden outputs are available.");
+                    "Preview and Build run the staged Combiner postbuild command sequence.",
+                    "Private golden outputs are still required before support parity is claimed.");
                 break;
             case GeneralReplaceMode:
                 AddRows(

@@ -287,7 +287,7 @@ public static class CompositionProfileCompiler
             }
 
             RegionAccessRule? accessRule = FindAccessRule(profile, targetRegion.RegionId);
-            ValidateProfileOperationRegionPolicy(operation, targetRegion, accessRule, issues);
+            ValidateProfileOperationRegionPolicy(profile, operation, targetRegion, accessRule, issues);
             if (OverlapsProtectedRegion(profile, targetRegion, operation.TargetSpaceId, operation.TargetRange))
             {
                 issues.Add(new CompositionIssue(
@@ -341,6 +341,7 @@ public static class CompositionProfileCompiler
     }
 
     private static void ValidateProfileOperationRegionPolicy(
+        CompositionProfileDefinition profile,
         CompositionOperation operation,
         ProfileRegion targetRegion,
         RegionAccessRule? accessRule,
@@ -356,7 +357,8 @@ public static class CompositionProfileCompiler
                 operation.OperationId));
         }
 
-        if (targetRegion.ProcessorDependencyIds.Count > 0)
+        if (targetRegion.ProcessorDependencyIds.Count > 0 &&
+            !AllowsCtrlRamReplaceBeforeProcessor(profile, operation, targetRegion))
         {
             issues.Add(new CompositionIssue(
                 "profile.operation.processor-dependency",
@@ -383,6 +385,17 @@ public static class CompositionProfileCompiler
                 $"Operation '{operation.OperationId}' target range does not satisfy region '{targetRegion.RegionId}' alignment.",
                 operation.OperationId));
         }
+    }
+
+    private static bool AllowsCtrlRamReplaceBeforeProcessor(
+        CompositionProfileDefinition profile,
+        CompositionOperation operation,
+        ProfileRegion targetRegion)
+    {
+        return IsCtrlRamReplaceProfile(profile) &&
+            operation.Kind == CompositionOperationKind.ReplaceRange &&
+            operation.TargetRange == targetRegion.Range &&
+            targetRegion.ClassificationTags.Contains(CtrlRamClassificationTag, StringComparer.Ordinal);
     }
 
     private static List<CompositionIssue> ValidateExplicitMappings(

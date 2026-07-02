@@ -234,7 +234,13 @@ public static partial class WorkbenchCompositionService
                 build,
                 "replace.dp.profile-pending",
                 "DP Replace output is enabled only for NT51950/NT51951 until per-IC DP source mapping and golden evidence are approved."),
-            "CtrlRAM" => CreateCtrlRamPlanningRunResult(icId, number, slotPaths, build),
+            "CtrlRAM" => await RunCtrlRamReplaceAsync(
+                icId,
+                number,
+                slotPaths,
+                build,
+                outputPath,
+                cancellationToken).ConfigureAwait(false),
             "General" => CreatePlanningRunResult(
                 icId,
                 number,

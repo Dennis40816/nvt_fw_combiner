@@ -461,6 +461,53 @@ public sealed class CompositionProfileCompilerTests
         Assert.True(result.IsSuccess, FormatIssues(result.Issues));
     }
 
+    /// <summary>Verifies CtrlRAM Replace may host-copy a whole CtrlRAM region before its postbuild processor runs.</summary>
+    [Fact]
+    public void CtrlRamReplaceAllowsWholeRegionHostWriteBeforeProcessorDependency()
+    {
+        CompositionProfileDefinition profile = CreateProfile(
+            CompositionKind.Replace,
+            "ctrlram-replace",
+            ImageInitialization.Reference("output-image", "source", 4),
+            addressSpaces:
+            [
+                new("source", 4, AddressSpaceMutability.Immutable),
+                new("ctrlram-replacement", 2, AddressSpaceMutability.Immutable, inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
+                new("output-image", 4, AddressSpaceMutability.Mutable),
+            ],
+            operations:
+            [
+                CompositionOperation.ReplaceRange(
+                    "replace-ctrlram",
+                    10,
+                    "ctrlram-replacement",
+                    new ByteRange(0, 2),
+                    "output-image",
+                    new ByteRange(1, 2),
+                    OverlapPolicy.Reject,
+                    "replace ctrlram before postbuild"),
+            ],
+            regions:
+            [
+                new ProfileRegion(
+                    "ctrlram",
+                    "output-image",
+                    new ByteRange(1, 2),
+                    RegionAtomicity.Whole,
+                    RegionWritePolicy.WholeOnly,
+                    processorDependencyIds: ["legacy-combiner"],
+                    classificationTags: ["tp-ctrlram"]),
+            ],
+            accessRules:
+            [
+                new RegionAccessRule("ctrlram", RegionAccessKind.Whole, "allow whole ctrlram replacement"),
+            ]);
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
+
+        Assert.True(result.IsSuccess, FormatIssues(result.Issues));
+    }
+
     /// <summary>Verifies CtrlRAM truncation must target an explicitly tagged CtrlRAM region.</summary>
     [Fact]
     public void InputTruncationRejectsCtrlRamReplaceNonCtrlRamRegion()

@@ -2,7 +2,7 @@
   "schemaVersion": "0.1",
   "payloadClass": "private-owner-golden-firmware",
   "binaryPayloadsIncluded": true,
-  "runnerStatus": "pending-production-output",
+  "runnerStatus": "ready-for-private-golden",
   "cases": [
     {
       "id": "nt51927-vn-slave-l-example",
