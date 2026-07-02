@@ -503,7 +503,7 @@ internal static class ReplaceCliCommandHandler
     {
         return string.Create(
             CultureInfo.InvariantCulture,
-            $"0x{range.Start:X}..0x{range.EndExclusive:X} ({range.Length} bytes)");
+            $"0x{range.Start:X}-0x{range.EndExclusive - 1:X} (len 0x{range.Length:X})");
     }
 
     private static string CreateRunId(string command, string action)

@@ -6,7 +6,7 @@ The sheet shows NT51950/NT51951 DP layouts with multiple container sizes and bot
 
 - 1IC: 2M-bit, 4M-bit, or 8M-bit DP container variants depending on LDC/BK usage.
 - 2IC: 4M-bit or 8M-bit DP container variants.
-- TP FW is an overlay region in the DP perspective. The confirmed owner range is `0xA000..0x36FFF`. The following `0x37000..0x37FFF` range is customer info and must be preserved rather than overwritten by TP overlay. This matches the reference code convention where the exclusive TP end is `0x37000`.
+- TP FW is an overlay region in the DP perspective. The confirmed owner range is `0x0A000-0x36FFF (len 0x2D000)`. The following `0x37000-0x37FFF (len 0x1000)` range is customer info and must be preserved rather than overwritten by TP overlay. This matches the reference code convention where the exclusive TP end is `0x37000`.
 
 The first implementation does not split the DP perspective into all named sub-regions. It treats `0x100000` as the maximum DP container length and uses it as the canonical 950/951 working length. Real DP inputs can be shorter, such as 256 KB or 512 KB variants; they are padded to the work length before TP overlay.
 
@@ -18,7 +18,7 @@ Use the DP input as the base image, then overlay TP.
 2. Create a transient `0x100000` work image filled with the profile padding byte.
 3. Copy the supplied DP bytes to offset `0`.
 4. Overlay the TP range from the TP input into the same output range.
-5. The TP overlay range is profile data, not hard-coded workflow logic. For NT51950/NT51951 it is `0xA000..0x36FFF` inclusive.
+5. The TP overlay range is profile data, not hard-coded workflow logic. For NT51950/NT51951 it is `0x0A000-0x36FFF (len 0x2D000)`.
 
 This avoids tying merge correctness to every DP sub-block name in the spreadsheet while still accepting shorter 950/951 DP variants.
 
@@ -40,4 +40,4 @@ This implements DP Replace without requiring CRC recalculation and without enume
 - Standard Merge tests showing shorter DP inputs are padded to `0x100000` and larger DP inputs are rejected.
 - DP Replace tests showing exact base-length enforcement, shorter replacement padding to `0x100000`, and larger replacement rejection.
 - DP Replace test proving the TP range is preserved byte-for-byte after profile/model wiring.
-- A map confirmation test that locks TP overlay to `0xA000..0x36FFF` and preserves customer info at `0x37000..0x37FFF`.
+- A map confirmation test that locks TP overlay to `0x0A000-0x36FFF (len 0x2D000)` and preserves customer info at `0x37000-0x37FFF (len 0x1000)`.

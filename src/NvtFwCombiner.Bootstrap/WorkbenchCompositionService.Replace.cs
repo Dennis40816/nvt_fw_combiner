@@ -89,7 +89,7 @@ public static partial class WorkbenchCompositionService
                     "DP replacement",
                     "Restore",
                     "Base TP",
-                    "Copy original TP FW [0x0A000,0x37000) from the base firmware after DP replacement."),
+                    $"Copy original TP FW at {FormatDisplayRange(Nt51950TpRestoreRange)} from the base firmware after DP replacement."),
             ]
             :
         [
@@ -119,7 +119,7 @@ public static partial class WorkbenchCompositionService
                     "Base flash",
                     "Replace + CRC",
                     region.PostbuildFileName ?? "CtrlRAM BIN",
-                    $"{region.DisplayName}; this region can receive its own replacement BIN before combiner.exe postbuild refreshes CRC/header.")),
+                    $"{region.DisplayName} at {FormatDisplayRange(region.Range)} can receive its own replacement BIN before combiner.exe postbuild refreshes CRC/header.")),
         ];
     }
 
@@ -159,7 +159,7 @@ public static partial class WorkbenchCompositionService
                     "output-image",
                     Nt51950TpRestoreRange,
                     OverlapPolicy.ReplaceExisting,
-                    "Restore original TP FW [0x0A000,0x37000) from the base firmware after DP replacement."),
+                    $"Restore original TP FW at {FormatDisplayRange(Nt51950TpRestoreRange)} from the base firmware after DP replacement."),
             ],
             [
                 new ProfileRegion(
@@ -283,7 +283,7 @@ public static partial class WorkbenchCompositionService
                     null,
                     [],
                     [],
-                    $"Replace {region.DisplayName} with the selected BIN; oversized inputs are expected to truncate only by profile policy."));
+                    $"Replace {region.DisplayName} at {FormatDisplayRange(region.Range)} with the selected BIN; oversized inputs are expected to truncate only by profile policy."));
                 sequence += 10;
             }
         }
@@ -474,7 +474,7 @@ public static partial class WorkbenchCompositionService
                 "replace-dp",
                 "DP replacement BIN",
                 IsNt51950Or51(icId)
-                    ? "Replacement DP container; shorter files are padded to 0x100000 before the original TP range is restored."
+                    ? $"Replacement DP container {FormatDisplayRange(new ByteRange(0, Nt51950DpContainerLength))}; shorter files are padded before the original TP range is restored."
                     : "Replacement DP payload. Build stays gated until this IC has approved DP Replace mapping evidence.",
                 false,
                 "dp-replacement",
@@ -503,7 +503,7 @@ public static partial class WorkbenchCompositionService
                 .Select(region => new WorkbenchReplaceInputSlot(
                     CtrlRamSlotId(region.RegionId),
                     region.DisplayName,
-                    $"{FormatDisplayRange(region.Range)} -> {region.PostbuildFileName ?? "postbuild BIN"}",
+                    $"TP {FormatDisplayRange(region.Range)} -> {region.PostbuildFileName ?? "postbuild BIN"}",
                     true,
                     CtrlRamSlotId(region.RegionId),
                     region.RegionId)),

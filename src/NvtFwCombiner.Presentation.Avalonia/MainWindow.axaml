@@ -1019,7 +1019,7 @@
             <StackPanel Spacing="14">
               <Grid ColumnDefinitions="*,Auto">
                 <StackPanel Spacing="3">
-                  <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="Memory coverage" />
+                  <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="Flash layout" />
                   <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding ReplaceMemorySummary}" TextWrapping="Wrap" />
                 </StackPanel>
                 <TextBlock Grid.Column="1" VerticalAlignment="Center" FontFamily="Cascadia Mono, Consolas" FontSize="12" Foreground="#64748B" Text="{Binding ReplaceMemoryRangeLabel}" />
@@ -1050,7 +1050,7 @@
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:MemoryCoverageSegmentViewModel">
                     <Border Padding="0,7" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
-                      <Grid ColumnDefinitions="12,92,*" ColumnSpacing="8">
+                      <Grid ColumnDefinitions="12,118,*" ColumnSpacing="8">
                         <Border Width="10" Height="10" Margin="0,3,0,0" VerticalAlignment="Top" Background="{Binding FillBrush}" BorderBrush="{Binding OutlineBrush}" BorderThickness="{Binding OutlineThickness}" CornerRadius="2" />
                         <TextBlock Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding SourceLabel}" TextWrapping="Wrap" />
                         <StackPanel Grid.Column="2" Spacing="1">
@@ -1066,7 +1066,7 @@
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
 
-              <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#64748B" Text="Details" />
+              <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#64748B" Text="Build steps" />
               <ItemsControl ItemsSource="{Binding ReplaceMemoryRows}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:MemoryMapRowViewModel">
@@ -1169,7 +1169,7 @@
             <StackPanel Spacing="14">
               <Grid ColumnDefinitions="*,Auto">
                 <StackPanel Spacing="3">
-                  <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="Memory coverage" />
+                  <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="Flash layout" />
                   <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding MergeMemorySummary}" TextWrapping="Wrap" />
                 </StackPanel>
                 <TextBlock
@@ -1206,7 +1206,7 @@
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:MemoryCoverageSegmentViewModel">
                     <Border Padding="0,7" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
-                      <Grid ColumnDefinitions="12,88,*" ColumnSpacing="8">
+                      <Grid ColumnDefinitions="12,108,*" ColumnSpacing="8">
                         <Border Width="10" Height="10" Margin="0,3,0,0" VerticalAlignment="Top" Background="{Binding FillBrush}" CornerRadius="2" />
                         <TextBlock Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding SourceLabel}" TextWrapping="Wrap" />
                         <StackPanel Grid.Column="2" Spacing="1">

@@ -95,7 +95,7 @@ public sealed class ShellViewModelTests
         Assert.Empty(viewModel.ReplaceSlots);
         Assert.Equal("replace-base", viewModel.ReplaceBaseSlot.SlotId);
         Assert.NotEmpty(viewModel.ReplaceCoverageSegments);
-        Assert.Contains("..", viewModel.ReplaceMemoryRangeLabel, StringComparison.Ordinal);
+        Assert.Contains("len 0x", viewModel.ReplaceMemoryRangeLabel, StringComparison.Ordinal);
         Assert.Equal(
             "Preview blocked: base BIN, replacement BIN, and an approved range are required.",
             viewModel.ReplaceReadinessStatus);
@@ -111,7 +111,7 @@ public sealed class ShellViewModelTests
 
     /// <summary>Verifies Replace keeps the same visual-first coverage model as Merge.</summary>
     [Fact]
-    public void ReplaceCoverageUsesCompactHalfOpenSegments()
+    public void ReplaceCoverageUsesReadableInclusiveSegments()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
@@ -119,7 +119,12 @@ public sealed class ShellViewModelTests
 
         Assert.True(viewModel.IsReplaceVisible);
         Assert.NotEmpty(viewModel.ReplaceCoverageSegments);
-        Assert.All(viewModel.ReplaceCoverageSegments, segment => Assert.Contains("..", segment.RangeLabel, StringComparison.Ordinal));
+        Assert.All(viewModel.ReplaceCoverageSegments, segment =>
+        {
+            Assert.Contains("-", segment.RangeLabel, StringComparison.Ordinal);
+            Assert.Contains("len 0x", segment.RangeLabel, StringComparison.Ordinal);
+            Assert.DoesNotContain("..", segment.RangeLabel, StringComparison.Ordinal);
+        });
         Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.SourceLabel == "Restored TP");
         Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.SourceLabel is "Changed DP BIN" or "Changed LDC BIN");
         Assert.Equal(
@@ -237,6 +242,60 @@ public sealed class ShellViewModelTests
         }
     }
 
+    /// <summary>Verifies CtrlRAM Replace can preview a golden-backed fake VN slot with traceable region naming.</summary>
+    [Fact]
+    public async Task CtrlRamReplacePreviewAcceptsGoldenBackedFakeVnSlot()
+    {
+        string repositoryRoot = FindRepositoryRoot();
+        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
+        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
+        JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
+            .EnumerateArray()
+            .Single(testCase => testCase.GetProperty("ic").GetString() == "51927");
+        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-vn-ctrlram-{Guid.NewGuid():N}");
+
+        try
+        {
+            _ = Directory.CreateDirectory(tempRoot);
+            string basePath = Path.Combine(tempRoot, "base-from-golden.bin");
+            string fakeVnPath = Path.Combine(tempRoot, "fake-vn-ctrlram.bin");
+            File.Copy(ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")), basePath);
+            File.WriteAllBytes(fakeVnPath, CreatePattern(0x1660, 0x70));
+
+            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+            viewModel.SelectedIc = "NT51927";
+            viewModel.SelectedNumber = "3";
+            viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+
+            FirmwareSlotViewModel vnLeft = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Slave L)");
+            Assert.Equal("TP 0x2EBD0-0x3022F (len 0x1660) -> VN_Ctrlram.bin", vnLeft.Description);
+
+            viewModel.SetSlotFile("replace-base", basePath);
+            viewModel.SetSlotFile(vnLeft.SlotId, fakeVnPath);
+
+            Assert.True(viewModel.CanPreviewReplace);
+
+            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+
+            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+            Assert.True(viewModel.HasLoadedReport);
+            Assert.Contains(viewModel.LoadedReport.Operations, operation =>
+                operation.Title.Contains("replace-vn-slave-l", StringComparison.Ordinal));
+            Assert.Contains(viewModel.LoadedReport.Operations, operation =>
+                operation.Meta.Contains("Combiner.exe", StringComparison.Ordinal));
+            Assert.Contains(viewModel.ReplaceCoverageSegments, segment =>
+                segment.SourceLabel == "VN CtrlRAM (Slave L)" &&
+                segment.RangeLabel == "0x2EBD0-0x3022F (len 0x1660)");
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+    }
+
     /// <summary>Verifies NT51927 three-chip CtrlRAM Replace exposes both right and left slave slots.</summary>
     [Fact]
     public void CtrlRamReplaceSlotsIncludeNt51927RightAndLeftSlaves()
@@ -315,7 +374,7 @@ public sealed class ShellViewModelTests
 
         MemoryMapRowViewModel copyRow = Assert.Single(
             viewModel.MergeMemoryRows,
-            row => row.RangeLabel == "0x00000..0x3C000" && row.ActionLabel == "Copy");
+            row => row.RangeLabel == "0x00000-0x3BFFF (len 0x3C000)" && row.ActionLabel == "Copy");
         Assert.Equal("Blank output 0x00 -> TP BIN", copyRow.FlowLabel);
         Assert.Contains("Sequence 100", copyRow.Detail, StringComparison.Ordinal);
         Assert.Contains("Reason:", copyRow.Detail, StringComparison.Ordinal);

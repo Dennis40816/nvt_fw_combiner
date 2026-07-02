@@ -143,7 +143,7 @@ public static partial class WorkbenchCompositionService
                 new CoverageSegment(
                     new ByteRange(0, Nt51950DpContainerLength),
                     "Changed DP BIN",
-                    "Replacement DP initializes the full 0x100000 work container; shorter inputs are padded by profile policy.",
+                    $"Replacement DP fills {FormatDisplayRange(new ByteRange(0, Nt51950DpContainerLength))}; shorter inputs are padded by profile policy.",
                     "#2563EB",
                     true));
             segments = ApplyCoverageWrite(
@@ -151,7 +151,7 @@ public static partial class WorkbenchCompositionService
                 new CoverageSegment(
                     Nt51950TpRestoreRange,
                     "Restored TP",
-                    "Original TP FW [0x0A000,0x37000) is copied back from the base firmware.",
+                    $"Original TP FW at {FormatDisplayRange(Nt51950TpRestoreRange)} is copied back from the base firmware.",
                     "#64748B",
                     false));
             return ToWorkbenchCoverageSegments(segments, capacity);
@@ -183,15 +183,18 @@ public static partial class WorkbenchCompositionService
             string label = replaceMode switch
             {
                 "DP" => IsLdRegion(region) ? "Changed LDC BIN" : "Changed DP BIN",
-                "CtrlRAM" => "Changed CtrlRAM BIN",
+                "CtrlRAM" => region.DisplayName,
                 _ => "Replacement BIN",
             };
+            string detail = replaceMode == "CtrlRAM"
+                ? $"{region.PostbuildFileName ?? "CtrlRAM BIN"} fills this TP position; combiner.exe postbuild refreshes CRC/header."
+                : $"{region.DisplayName}; {ActionSummaryForReplaceMode(replaceMode)}";
             segments = ApplyCoverageWrite(
                 segments,
                 new CoverageSegment(
                     region.Range,
                     label,
-                    $"{region.DisplayName}; {ActionSummaryForReplaceMode(replaceMode)}",
+                    detail,
                     CoverageFill(label),
                     true));
         }

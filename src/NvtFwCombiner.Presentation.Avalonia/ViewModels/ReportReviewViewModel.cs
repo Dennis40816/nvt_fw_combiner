@@ -242,7 +242,7 @@ public sealed class ReportReviewViewModel
         long start = GetLong(range, "Start");
         long end = GetLong(range, "EndExclusive");
         long length = GetLong(range, "Length");
-        return string.Create(CultureInfo.InvariantCulture, $"0x{start:X}..0x{end:X} ({length})");
+        return string.Create(CultureInfo.InvariantCulture, $"0x{start:X}-0x{end - 1:X} (len 0x{length:X})");
     }
 
     private static string? GetStringOrNull(JsonElement element, string propertyName)

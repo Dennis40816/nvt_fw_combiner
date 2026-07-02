@@ -120,7 +120,7 @@ public sealed class ShellTextResources
                 [
                     "Profile: built-in Standard Merge",
                     "Slots: DP, TP, optional LD",
-                    "950/951 TP: 0x0A000..0x37000",
+                    "950/951 TP: 0x0A000-0x36FFF (len 0x2D000)",
                 ],
                 "Preview/build wired"),
             new PlanningCardText(
@@ -163,7 +163,7 @@ public sealed class ShellTextResources
                 [
                     "Profile：built-in Standard Merge",
                     "Slots：DP、TP、選用 LD",
-                    "950/951 TP：0x0A000..0x37000",
+                    "950/951 TP：0x0A000-0x36FFF (len 0x2D000)",
                 ],
                 "Preview/build wired"),
             new PlanningCardText(

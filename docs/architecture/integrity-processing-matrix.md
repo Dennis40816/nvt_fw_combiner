@@ -21,7 +21,7 @@ Owner update 2026-06-30:
 | Flow | Stage/purpose | Processor expectation | Current processor facts | Status |
 | --- | --- | --- | --- | --- |
 | CtrlRAM Replace priority flows | post-replace header/integrity stage | legacy `combiner.exe` CRC/header recalculation expected | Combiner 1.13.0 postbuild catalog implemented for NT51917, NT51919, NT51920, NT51923, NT51926, NT51927, NT51928 non-NB, NT51929, NT51930, NT51931, NT51932, NT51950, and NT51951; command sequence tests exist; real golden replace outputs still needed | Core command module implemented; golden parity pending |
-| DP Replace priority flows | no CRC/header stage unless DP evidence says otherwise | preserve or overlay TP range when DP container includes TP area | 950/951 DP Replace workbench path clones an exact `0x100000` base image, replaces the full padded DP container, then restores TP `[0x0A000,0x37000)` from base; other IC DP Replace mappings remain gated | 950/951 workbench path implemented; golden parity and production profile promotion pending |
+| DP Replace priority flows | no CRC/header stage unless DP evidence says otherwise | preserve or overlay TP range when DP container includes TP area | 950/951 DP Replace workbench path clones an exact `0x100000` base image, replaces the full padded DP container, then restores TP `0x0A000-0x36FFF (len 0x2D000)` from base; other IC DP Replace mappings remain gated | 950/951 workbench path implemented; golden parity and production profile promotion pending |
 
 ## Canonical integrity dispositions
 

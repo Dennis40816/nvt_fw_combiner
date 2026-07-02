@@ -68,7 +68,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("<Setter Property=\"MinHeight\" Value=\"44\" />", shell, StringComparison.Ordinal);
         Assert.Contains("<Setter Property=\"CornerRadius\" Value=\"999\" />", shell, StringComparison.Ordinal);
         Assert.Contains("ColumnDefinitions=\"1.15*,430\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Memory coverage", shell, StringComparison.Ordinal);
+        Assert.Contains("Flash layout", shell, StringComparison.Ordinal);
         Assert.Contains("IsEnabled=\"False\"", shell, StringComparison.Ordinal);
         Assert.Contains("LoadReportJsonButton_OnClick", shell, StringComparison.Ordinal);
         Assert.Contains("SaveReportButton_OnClick", shell, StringComparison.Ordinal);

@@ -50,8 +50,8 @@ public static class UiCompositionRunner
             .. WorkbenchCompositionService.GetCtrlRamRegions(icId, number)
                 .Select(region => new CtrlRamRegionViewModel(
                     region.DisplayName,
-                    ToHex(region.Start),
-                    ToHex(region.Length),
+                    ToRange(region.Start, region.Length),
+                    ToLength(region.Length),
                     region.IsMultiChipOnly)),
         ];
     }
@@ -201,8 +201,13 @@ public static class UiCompositionRunner
             row.Detail);
     }
 
-    private static string ToHex(long value)
+    private static string ToRange(long start, long length)
     {
-        return $"0x{value:X5}";
+        return FormattableString.Invariant($"0x{start:X5}-0x{start + length - 1:X5}");
+    }
+
+    private static string ToLength(long length)
+    {
+        return FormattableString.Invariant($"len 0x{length:X}");
     }
 }

@@ -19,10 +19,10 @@ public sealed class CtrlRamRegionViewModel
     /// <summary>Region label from TP Overview.</summary>
     public string Name { get; }
 
-    /// <summary>Flash start address from TP Overview.</summary>
+    /// <summary>Inclusive TP position range from TP Overview.</summary>
     public string StartAddress { get; }
 
-    /// <summary>Declared region size from TP Overview.</summary>
+    /// <summary>Declared byte length from TP Overview.</summary>
     public string SizeHex { get; }
 
     /// <summary>True when the row represents DIFF/DLM content hidden for single by default.</summary>

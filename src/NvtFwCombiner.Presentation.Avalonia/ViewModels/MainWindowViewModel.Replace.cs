@@ -8,10 +8,10 @@ public sealed partial class MainWindowViewModel
     public string ReplaceMemorySummary => SelectedReplaceMode switch
     {
         DpReplaceMode => SelectedIc is "NT51950" or "NT51951"
-            ? "Replacement DP fills the work image; the base TP range is restored and shown as preserved."
-            : "Base flash is kept; approved DP ranges are shown while output remains gated.",
-        CtrlRamReplaceMode => "Base flash is split into CtrlRAM regions; selected regions are replaced before postbuild.",
-        GeneralReplaceMode => "Base flash is kept; explicit ranges are validated before write access.",
+            ? "Blue shows new DP bytes; gray shows TP restored from the base firmware."
+            : "Base flash stays unchanged except approved DP replacement ranges.",
+        CtrlRamReplaceMode => "Colored blocks show replaceable CtrlRAM positions; gray stays from the base firmware.",
+        GeneralReplaceMode => "Base flash stays unchanged except approved explicit replacement ranges.",
         _ => "Select a replace mode to inspect its target ranges.",
     };
 

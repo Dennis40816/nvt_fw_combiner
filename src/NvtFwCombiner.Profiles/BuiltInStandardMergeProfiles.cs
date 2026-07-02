@@ -97,7 +97,7 @@ public static class BuiltInStandardMergeProfiles
     ];
 
     // NT51950/NT51951 DP Perspective profiles must preserve customer info at
-    // 0x37000..0x37FFF by overlaying TP only through 0x36FFF.
+    // 0x37000-0x37FFF by overlaying TP only through 0x36FFF.
 
     /// <summary>
     /// Synthetic standard merge profile that copies DP and TP inputs into non-overlapping output ranges.
@@ -238,7 +238,7 @@ public static class BuiltInStandardMergeProfiles
                     "output-image",
                     tpOverlay,
                     OverlapPolicy.ReplaceExisting,
-                    "Overlay TP FW [0x0A000,0x37000) and leave customer information [0x37000,0x38000) from DP."),
+                    "Overlay TP FW 0x0A000-0x36FFF (len 0x2D000) and leave customer information 0x37000-0x37FFF (len 0x1000) from DP."),
             ],
             [
                 new ProfileRegion(

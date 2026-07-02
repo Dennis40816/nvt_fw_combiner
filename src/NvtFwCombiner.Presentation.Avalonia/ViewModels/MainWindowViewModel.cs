@@ -209,7 +209,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     /// <summary>Gets short Merge memory-map summary text.</summary>
     public string MergeMemorySummary => IsStandardMergeSupported
-        ? "Output starts from a blank image, then copies the listed source ranges into place."
+        ? "The bar shows which input file occupies each final flash position."
         : "No merge profile is available for the selected IC.";
 
     /// <summary>Gets the latest UI-triggered run summary.</summary>

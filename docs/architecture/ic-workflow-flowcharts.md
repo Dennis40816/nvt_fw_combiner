@@ -110,7 +110,7 @@ flowchart TD
     B -- "no" --> C["Reject: DP container is larger than the maximum policy length"]
     B -- "yes" --> D["Pad variable-size DP input to a 0x100000 work image"]
     D --> E["Copy supplied DP bytes at offset 0"]
-    E --> F["Overlay TP into [0x0A000, 0x37000)"]
+    E --> F["Overlay TP into 0x0A000-0x36FFF (len 0x2D000)"]
     F --> G["Do not overwrite customer info [0x37000, 0x38000) by TP overlay"]
     G --> H["Write artifact; golden output remains the support gate"]
 ```
@@ -145,7 +145,7 @@ flowchart TD
     D -- "no" --> E["Reject oversize replacement"]
     D -- "yes" --> F["Clone exact reference into output work image"]
     F --> G["Pad replacement DP to 0x100000 and replace the full DP container"]
-    G --> H["Restore original TP range [0x0A000, 0x37000) from reference firmware"]
+    G --> H["Restore original TP range 0x0A000-0x36FFF (len 0x2D000) from reference firmware"]
     H --> I["Customer info [0x37000, 0x38000) is not part of the TP restore overlay"]
     I --> J["Write workbench artifact; keep support claim gated by golden evidence"]
 ```

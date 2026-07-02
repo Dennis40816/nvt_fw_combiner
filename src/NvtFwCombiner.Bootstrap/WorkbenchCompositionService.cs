@@ -145,7 +145,7 @@ public static partial class WorkbenchCompositionService
                 initializedState,
                 ActionLabel(operation.Kind),
                 afterSource,
-                $"Sequence {operation.Sequence}: {operation.Kind} {sourceRange} -> output-image {FormatDisplayRange(operation.TargetRange)}. Reason: {operation.Reason}"));
+                $"Sequence {operation.Sequence}: {operation.Kind} {sourceRange} -> output image {FormatDisplayRange(operation.TargetRange)}. Reason: {operation.Reason}"));
         }
 
         return rows;
@@ -530,6 +530,13 @@ public static partial class WorkbenchCompositionService
             "Changed CtrlRAM BIN" => "#16A34A",
             "Restored TP" => "#64748B",
             "Preserve" => "#64748B",
+            string label when label.Contains("NF CtrlRAM", StringComparison.OrdinalIgnoreCase) => "#DC2626",
+            string label when label.Contains("Normal CtrlRAM", StringComparison.OrdinalIgnoreCase) => "#0891B2",
+            string label when label.Contains("MP CtrlRAM", StringComparison.OrdinalIgnoreCase) => "#7C3AED",
+            string label when label.Contains("VN CtrlRAM", StringComparison.OrdinalIgnoreCase) => "#DB2777",
+            string label when label.Contains("DIFF", StringComparison.OrdinalIgnoreCase) ||
+                              label.Contains("DLM", StringComparison.OrdinalIgnoreCase) => "#D97706",
+            string label when label.Contains("Vector", StringComparison.OrdinalIgnoreCase) => "#0D9488",
             _ => "#CBD5E1",
         };
     }
@@ -542,12 +549,12 @@ public static partial class WorkbenchCompositionService
 
     private static string FormatFullRange(long capacity)
     {
-        return capacity <= 0 ? "No range" : $"0x00000..0x{capacity:X5}";
+        return capacity <= 0 ? "No range" : FormatDisplayRange(new ByteRange(0, capacity));
     }
 
     private static string FormatDisplayRange(ByteRange range)
     {
-        return $"0x{range.Start:X5}..0x{range.EndExclusive:X5}";
+        return FormattableString.Invariant($"0x{range.Start:X5}-0x{range.EndExclusive - 1:X5} (len 0x{range.Length:X})");
     }
 
     private static IReadOnlyList<WorkbenchMemoryCoverageSegment> ToWorkbenchCoverageSegments(
