@@ -32,6 +32,55 @@ public sealed class StandardMergeUiGoldenTests
         }
     }
 
+    /// <summary>Verifies the workbench command path can build owner-confirmed Standard Merge aliases.</summary>
+    [Theory]
+    [InlineData("51917", "51927")]
+    [InlineData("51919", "51929")]
+    public async Task UiShellBuildStandardMergeAliasMatchesReferenceGoldenBytes(string aliasIc, string referenceIc)
+    {
+        string repositoryRoot = FindRepositoryRoot();
+        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
+        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
+        JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
+            .EnumerateArray()
+            .Single(item => item.GetProperty("ic").GetString() == referenceIc)
+            .Clone();
+        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-alias-{aliasIc}-{Guid.NewGuid():N}");
+
+        try
+        {
+            _ = Directory.CreateDirectory(tempRoot);
+            Dictionary<string, string> slotPaths = [];
+            foreach (JsonProperty input in goldenCase.GetProperty("inputs").EnumerateObject())
+            {
+                string originalPath = ManifestPath(goldenRoot, input.Value);
+                string copiedPath = Path.Combine(tempRoot, $"{input.Name}.bin");
+                File.Copy(originalPath, copiedPath);
+                slotPaths[input.Name] = copiedPath;
+            }
+
+            WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeAsync(
+                    $"NT{aliasIc}",
+                    slotPaths,
+                    build: true,
+                    CancellationToken.None);
+
+            string outputPath = result.CommittedOutputId ?? result.OutputFileName;
+            Assert.True(result.Succeeded, result.Status);
+            Assert.True(File.Exists(outputPath), outputPath);
+            Assert.Equal(
+                File.ReadAllBytes(ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput"))),
+                File.ReadAllBytes(outputPath));
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+    }
+
     private static async ValueTask VerifyGoldenCaseAsync(
         string goldenRoot,
         string tempRoot,

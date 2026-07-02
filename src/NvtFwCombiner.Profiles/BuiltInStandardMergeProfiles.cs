@@ -51,6 +51,27 @@ public static class BuiltInStandardMergeProfiles
             dpRegion: new StandardMergeRegion("dp", "dp-input", 0x00000, 0x06000, 0x40000)),
     ];
 
+    /// <summary>Owner-confirmed Standard Merge aliases that reuse an approved gen_flash reference layout.</summary>
+    public static IReadOnlyList<CompositionProfileDefinition> OwnerConfirmedAliasStandardMergeProfiles { get; } =
+    [
+        CreateGenFlashProfile(
+            "51917",
+            flashSize: 0x40000,
+            tpRegion: new StandardMergeRegion("tp", "tp-input", 0x00000, 0x35000),
+            dpRegion: new StandardMergeRegion("dp", "dp-input", 0x3C000, 0x40000, 0x200000),
+            profileIdSuffix: "gen-flash-alias",
+            profileVersion: "0.5.0",
+            evidenceSource: "owner-confirmed NT51917 follows NT51927 standard merge source."),
+        CreateGenFlashProfile(
+            "51919",
+            flashSize: 0x40000,
+            tpRegion: new StandardMergeRegion("tp", "tp-input", 0x07000, 0x40000),
+            dpRegion: new StandardMergeRegion("dp", "dp-input", 0x00000, 0x06000, 0x40000),
+            profileIdSuffix: "gen-flash-alias",
+            profileVersion: "0.5.0",
+            evidenceSource: "owner-confirmed NT51919 follows NT51929 standard merge source."),
+    ];
+
     /// <summary>Standard merge profiles derived from owner-approved TP FlashMap evidence.</summary>
     public static IReadOnlyList<CompositionProfileDefinition> FlashMapStandardMergeProfiles { get; } =
     [
@@ -75,6 +96,7 @@ public static class BuiltInStandardMergeProfiles
     public static IReadOnlyList<CompositionProfileDefinition> ExecutableStandardMergeProfiles { get; } =
     [
         .. GenFlashStandardMergeProfiles,
+        .. OwnerConfirmedAliasStandardMergeProfiles,
         .. FlashMapStandardMergeProfiles,
         .. DpPerspectiveStandardMergeProfiles,
     ];

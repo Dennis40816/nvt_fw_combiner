@@ -13,6 +13,7 @@ Current `gen_flash_bin_v2` reference coverage:
 
 - Covered by `refcode/gen_flash_bin_v2/ic_config.json` and already mirrored by `testdata/golden/standard-merge-gen-flash`: `51920`, `51923`, `51926`, `51927`, `51928`, `51929`, `51931`, `51932`.
 - Not present in the current `gen_flash_bin_v2` config: `51917`, `51919`, `51930`, `51950`, `51951`.
+- Owner-confirmed Standard Merge aliases are executable without new payloads: `51917` follows `51927`, and `51919` follows `51929`. Direct files for those ICs are optional audit samples.
 
 High-priority folders:
 

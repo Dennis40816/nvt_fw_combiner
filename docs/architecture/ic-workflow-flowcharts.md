@@ -27,8 +27,8 @@ The architecture test `IcWorkflowFlowchartReferenceCoversBuiltInIcLists` checks 
 
 | IC | Standard Merge flow | DP Replace flow | CtrlRAM Replace flow | General Replace flow | Current status notes |
 | --- | --- | --- | --- | --- | --- |
-| NT51917 | `SM-GENFLASH-CANDIDATE`: follows NT51927 ranges, not executable until golden. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-927`: follows NT51927, numeric single/2/3 IC and cascade. | `R-GENERAL`: explicit mapping only after protected map is known. | CtrlRAM command core implemented; Standard Merge golden pending. |
-| NT51919 | `SM-GENFLASH-CANDIDATE`: follows NT51929 ranges, not executable until golden. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51932`: follows NT51929/NT51932. | `R-GENERAL`: explicit mapping only after protected map is known. | CtrlRAM command core implemented; Standard Merge golden pending. |
+| NT51917 | `SM-GENFLASH-ALIAS`: executable owner-confirmed alias of NT51927. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-927`: follows NT51927, numeric single/2/3 IC and cascade. | `R-GENERAL`: explicit mapping only after protected map is known. | Standard Merge alias regression uses NT51927 golden bytes; CtrlRAM command core implemented. |
+| NT51919 | `SM-GENFLASH-ALIAS`: executable owner-confirmed alias of NT51929. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51932`: follows NT51929/NT51932. | `R-GENERAL`: explicit mapping only after protected map is known. | Standard Merge alias regression uses NT51929 golden bytes; CtrlRAM command core implemented. |
 | NT51920 | `SM-GENFLASH`: direct gen_flash profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-LEGACY-NORMAL`: `CRC_Enable`. | `R-GENERAL`: explicit mapping only after protected map is known. | Implemented Standard Merge profile and CtrlRAM command core. |
 | NT51923 | `SM-GENFLASH`: direct gen_flash profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-LEGACY-NORMAL`: `CRC_Enable`, cascade split DiffDLM. | `R-GENERAL`: explicit mapping only after protected map is known. | Implemented Standard Merge profile and CtrlRAM command core. |
 | NT51926 | `SM-GENFLASH`: direct gen_flash profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-LEGACY-NORMAL`: `CRC_Enable`. | `R-GENERAL`: explicit mapping only after protected map is known. | Implemented Standard Merge profile and CtrlRAM command core. |
@@ -45,7 +45,7 @@ The architecture test `IcWorkflowFlowchartReferenceCoversBuiltInIcLists` checks 
 
 ### SM-GENFLASH
 
-Used by the executable golden-backed gen_flash profiles: NT51920, NT51923, NT51926, NT51927, NT51929, NT51931, and NT51932. NT51917 and NT51919 are documented alias candidates and stay hidden until owner-approved golden outputs exist.
+Used by the executable golden-backed gen_flash profiles: NT51920, NT51923, NT51926, NT51927, NT51929, NT51931, and NT51932. Owner-confirmed alias profiles reuse this same flow: NT51917 follows NT51927, and NT51919 follows NT51929.
 
 ```mermaid
 flowchart TD
@@ -59,8 +59,8 @@ flowchart TD
 
 | IC | Output size | TP range | DP range | DP input length note |
 | --- | ---: | --- | --- | --- |
-| NT51917 | `0x40000` | `[0x00000, 0x35000)` | `[0x3C000, 0x40000)` | Candidate only; declared source length `0x200000`; golden pending. |
-| NT51919 | `0x40000` | `[0x07000, 0x40000)` | `[0x00000, 0x06000)` | Candidate only; declared source length `0x40000`; golden pending. |
+| NT51917 | `0x40000` | `[0x00000, 0x35000)` | `[0x3C000, 0x40000)` | Owner-confirmed alias of NT51927; declared source length `0x200000`; alias golden regression uses NT51927 fixtures. |
+| NT51919 | `0x40000` | `[0x07000, 0x40000)` | `[0x00000, 0x06000)` | Owner-confirmed alias of NT51929; declared source length `0x40000`; alias golden regression uses NT51929 fixtures. |
 | NT51920 | `0x40000` | `[0x00000, 0x30000)` | `[0x3E000, 0x40000)` | Source length equals range end. |
 | NT51923 | `0x40000` | `[0x00000, 0x3C000)` | `[0x3E000, 0x40000)` | Source length equals range end. |
 | NT51926 | `0x40000` | `[0x00000, 0x3C000)` | `[0x3E000, 0x40000)` | Source length equals range end. |

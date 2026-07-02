@@ -4,14 +4,15 @@
 
 - Standard Merge golden exists for `51920`, `51923`, `51926`, `51927`, `51928`, `51929`, `51931`, `51932`.
 - These match the current `refcode/gen_flash_bin_v2/ic_config.json` coverage.
+- Owner confirmed `NT51917` follows `NT51927` and `NT51919` follows `NT51929`; executable alias tests reuse the corresponding golden bytes.
 
 ## Standard Merge
 
 - [ ] `NT51950`: provide `dp.bin`, `tp.bin`, and `expected.bin`.
 - [ ] `NT51951`: provide `dp.bin`, `tp.bin`, and `expected.bin`.
-- [ ] `NT51917`: provide only if this should be promoted as a Standard Merge alias instead of staying candidate-only.
-- [ ] `NT51919`: provide only if this should be promoted as a Standard Merge alias instead of staying candidate-only.
 - [ ] `NT51930`: provide only if Standard Merge should become supported for this IC.
+- [ ] Optional direct audit sample for `NT51917` if you want IC-specific files in addition to the alias regression.
+- [ ] Optional direct audit sample for `NT51919` if you want IC-specific files in addition to the alias regression.
 
 ## DP Replace
 

@@ -1,10 +1,10 @@
 """Verify the CtrlRAM Replace fixture handoff.
 
 The public smoke path exercises the current workbench planning/report flow with a
-fake VN CtrlRAM input derived from existing golden data. Private owner firmware
-fixtures remain outside Git; when present, this script validates their manifest
-and payload hashes so the same folder can be promoted to byte regression once
-production CtrlRAM output is enabled.
+    fake VN CtrlRAM input and a self-replacement input sliced from existing
+golden data. Private owner firmware fixtures remain outside Git; when present,
+this script validates their manifest and payload hashes so the same folder can
+be promoted to byte regression once production CtrlRAM output is enabled.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MANIFEST = ROOT / "testdata" / "golden" / "ctrlram-replace" / "private" / "manifest.json"
-PUBLIC_SMOKE_FILTER = "FullyQualifiedName~CtrlRamReplacePreviewAcceptsGoldenBackedFakeVnSlot"
+PUBLIC_SMOKE_FILTER = "FullyQualifiedName~CtrlRamReplacePreview"
 EXPECTED_SCHEMA_VERSION = "0.1"
 EXPECTED_PAYLOAD_CLASS = "private-owner-golden-firmware"
 PENDING_RUNNER_STATUS = "pending-production-output"
@@ -61,7 +61,7 @@ def main() -> int:
             return 2
 
         print(f"warning: {message}")
-        print("Public fake VN CtrlRAM smoke passed; private byte regression was not executed.")
+        print("Public CtrlRAM preview smoke passed; private byte regression was not executed.")
         return 0
 
     verify_private_manifest(manifest_path)

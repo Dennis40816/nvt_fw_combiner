@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Avalonia.Media;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -389,6 +390,65 @@ public sealed class ShellViewModelTests
         }
     }
 
+    /// <summary>Verifies a CtrlRAM replacement sliced from the same base keeps bytes unchanged before gated postbuild.</summary>
+    [Fact]
+    public async Task CtrlRamReplacePreviewSelfReplacementKeepsOriginalBytesBeforePostbuild()
+    {
+        string repositoryRoot = FindRepositoryRoot();
+        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
+        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
+        JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
+            .EnumerateArray()
+            .Single(testCase => testCase.GetProperty("ic").GetString() == "51927");
+        byte[] baseBytes = File.ReadAllBytes(ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
+        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-ctrlram-self-{Guid.NewGuid():N}");
+
+        try
+        {
+            _ = Directory.CreateDirectory(tempRoot);
+            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+            viewModel.SelectedIc = "NT51927";
+            viewModel.SelectedNumber = "3";
+            viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+
+            FirmwareSlotViewModel vnLeftSlot = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Slave L)");
+            CtrlRamRegionViewModel vnLeftRegion = viewModel.CtrlRamRegions.Single(region => region.Name == "VN CtrlRAM (Slave L)");
+            (int start, int length) = ParseCtrlRamRegion(vnLeftRegion);
+            string basePath = Path.Combine(tempRoot, "base-from-golden.bin");
+            string replacementPath = Path.Combine(tempRoot, "self-vn-ctrlram.bin");
+            File.WriteAllBytes(basePath, baseBytes);
+            File.WriteAllBytes(replacementPath, baseBytes[start..(start + length)]);
+
+            byte[] simulatedBeforePostbuild = [.. baseBytes];
+            File.ReadAllBytes(replacementPath).CopyTo(simulatedBeforePostbuild.AsSpan(start, length));
+            Assert.Equal(baseBytes, simulatedBeforePostbuild);
+
+            viewModel.SetSlotFile("replace-base", basePath);
+            viewModel.SetSlotFile(vnLeftSlot.SlotId, replacementPath);
+
+            Assert.True(viewModel.CanPreviewReplace);
+
+            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+
+            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+            Assert.True(viewModel.HasLoadedReport);
+            Assert.Contains(viewModel.LoadedReport.Operations, operation =>
+                operation.Title.Contains("split-base-vn-slave-l", StringComparison.Ordinal));
+            Assert.Contains(viewModel.LoadedReport.Operations, operation =>
+                operation.Title.Contains("replace-vn-slave-l", StringComparison.Ordinal));
+            Assert.Contains(viewModel.LoadedReport.Operations, operation =>
+                operation.HasCodeBlock &&
+                operation.CodeBlock.Contains("Combiner.exe", StringComparison.Ordinal));
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+    }
+
     /// <summary>Verifies NT51927 three-chip CtrlRAM Replace exposes both right and left slave slots.</summary>
     [Fact]
     public void CtrlRamReplaceSlotsIncludeNt51927RightAndLeftSlaves()
@@ -664,6 +724,15 @@ public sealed class ShellViewModelTests
         }
 
         return bytes;
+    }
+
+    private static (int Start, int Length) ParseCtrlRamRegion(CtrlRamRegionViewModel region)
+    {
+        string startHex = region.StartAddress.Split('-', StringSplitOptions.TrimEntries)[0][2..];
+        string lengthHex = region.SizeHex["len 0x".Length..];
+        return (
+            int.Parse(startHex, NumberStyles.HexNumber, CultureInfo.InvariantCulture),
+            int.Parse(lengthHex, NumberStyles.HexNumber, CultureInfo.InvariantCulture));
     }
 
     private static void AssertBrush(string expectedHex, IBrush brush)
