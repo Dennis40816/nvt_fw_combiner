@@ -188,6 +188,15 @@ public static class CliApplication
             return UsageError;
         }
 
+        selectedProfile = ResolveStandardMergeProfileForBindings(selectedProfile, bindings);
+        compile = CompositionProfileCompiler.Compile(selectedProfile, []);
+        if (!compile.IsSuccess)
+        {
+            await PrintIssuesAsync(error, compile.Issues).ConfigureAwait(false);
+            return SoftwareError;
+        }
+
+        plan = compile.Plan!;
         OutputTarget outputTarget = ResolveOutputTarget(
             options.Values.GetValueOrDefault("--output"),
             selectedProfile.DefaultOutputFileName);
@@ -273,6 +282,24 @@ public static class CliApplication
 
         bindings = items;
         return true;
+    }
+
+    private static CompositionProfileDefinition ResolveStandardMergeProfileForBindings(
+        CompositionProfileDefinition profile,
+        IReadOnlyList<InputArtifactBinding> bindings)
+    {
+        if (!BuiltInStandardMergeProfiles.IsDpPerspectiveStandardMergeProfile(profile))
+        {
+            return profile;
+        }
+
+        InputArtifactBinding? dpBinding = bindings.FirstOrDefault(binding =>
+            string.Equals(binding.AddressSpaceId, "dp-input", StringComparison.Ordinal));
+        return dpBinding is null || !File.Exists(dpBinding.ArtifactId)
+            ? profile
+            : BuiltInStandardMergeProfiles.CreateDpPerspectiveProfileForInputLength(
+                profile.IcId,
+                new FileInfo(dpBinding.ArtifactId).Length);
     }
 
     private static OutputTarget ResolveOutputTarget(string? requestedOutput, string defaultFileName)

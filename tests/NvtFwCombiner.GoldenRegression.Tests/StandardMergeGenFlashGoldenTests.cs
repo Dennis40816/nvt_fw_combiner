@@ -13,9 +13,9 @@ public sealed class StandardMergeGenFlashGoldenTests
     private static readonly DateTimeOffset StartedAtUtc = new(2026, 6, 30, 0, 0, 0, TimeSpan.Zero);
     private static readonly DateTimeOffset CompletedAtUtc = new(2026, 6, 30, 0, 0, 1, TimeSpan.Zero);
 
-    /// <summary>Verifies every gen_flash IC profile matches full-byte golden BIN output.</summary>
+    /// <summary>Verifies every owner-approved Standard Merge profile matches full-byte golden BIN output.</summary>
     [Fact]
-    public async Task GenFlashStandardMergeProfilesMatchOwnerApprovedGoldenBytes()
+    public async Task StandardMergeProfilesMatchOwnerApprovedGoldenBytes()
     {
         string repositoryRoot = FindRepositoryRoot();
         string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
@@ -34,7 +34,13 @@ public sealed class StandardMergeGenFlashGoldenTests
                 .Select(property => property.Name)
                 .Order(StringComparer.Ordinal),
         ];
-        Assert.Equal(configIcIds, cases.Select(item => item.GetProperty("ic").GetString()).Order(StringComparer.Ordinal));
+        string[] genFlashCaseIcIds = [
+            .. cases
+                .Where(IsGenFlashCase)
+                .Select(item => item.GetProperty("ic").GetString()!)
+                .Order(StringComparer.Ordinal),
+        ];
+        Assert.Equal(configIcIds, genFlashCaseIcIds);
 
         foreach (JsonElement goldenCase in cases.OrderBy(item => item.GetProperty("ic").GetString(), StringComparer.Ordinal))
         {
@@ -76,12 +82,11 @@ public sealed class StandardMergeGenFlashGoldenTests
     {
         string ic = goldenCase.GetProperty("ic").GetString()!;
         string profileId = goldenCase.GetProperty("profileId").GetString()!;
-        CompositionProfileDefinition profile = BuiltInStandardMergeProfiles.GenFlashStandardMergeProfiles
-            .Single(item => item.ProfileId == profileId && item.IcId == $"NT{ic}");
+        Dictionary<string, byte[]> inputs = ReadInputs(goldenRoot, goldenCase.GetProperty("inputs"));
+        CompositionProfileDefinition profile = CreateGoldenProfile(ic, profileId, inputs);
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         Assert.True(compile.IsSuccess, FormatIssues(compile.Issues));
 
-        Dictionary<string, byte[]> inputs = ReadInputs(goldenRoot, goldenCase.GetProperty("inputs"));
         byte[] expectedOutput = ReadManifestFile(goldenRoot, goldenCase.GetProperty("expectedOutput"));
         CompositionRunResult result = await PreviewAsync(profile, compile.Plan!, inputs).ConfigureAwait(false);
 
@@ -94,6 +99,25 @@ public sealed class StandardMergeGenFlashGoldenTests
         Assert.Equal(
             inputs.Keys.Order(StringComparer.Ordinal),
             result.Report.Inputs.Select(input => input.AddressSpaceId).Order(StringComparer.Ordinal));
+    }
+
+    private static CompositionProfileDefinition CreateGoldenProfile(
+        string ic,
+        string profileId,
+        Dictionary<string, byte[]> inputs)
+    {
+        return profileId.EndsWith("-standard-merge-dp-perspective", StringComparison.Ordinal)
+            ? BuiltInStandardMergeProfiles.CreateDpPerspectiveProfileForInputLength(
+                $"NT{ic}",
+                inputs["dp-input"].LongLength)
+            : BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles
+                .Single(item => item.ProfileId == profileId && item.IcId == $"NT{ic}");
+    }
+
+    private static bool IsGenFlashCase(JsonElement goldenCase)
+    {
+        string profileId = goldenCase.GetProperty("profileId").GetString()!;
+        return profileId.EndsWith("-standard-merge-gen-flash", StringComparison.Ordinal);
     }
 
     private static async ValueTask<CompositionRunResult> PreviewAsync(

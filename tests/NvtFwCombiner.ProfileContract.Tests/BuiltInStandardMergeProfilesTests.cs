@@ -111,6 +111,8 @@ public sealed class BuiltInStandardMergeProfilesTests
             "NT51930",
             "NT51931",
             "NT51932",
+            "NT51950",
+            "NT51951",
         ];
 
         Assert.Equal(
@@ -127,9 +129,6 @@ public sealed class BuiltInStandardMergeProfilesTests
         Assert.Contains(
             BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles,
             profile => profile.IcId == "NT51919" && profile.ProfileId == "nt51919-standard-merge-gen-flash-alias");
-        Assert.DoesNotContain(
-            BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles,
-            profile => profile.IcId is "NT51950" or "NT51951");
     }
 
     /// <summary>Verifies NT51930 Standard Merge uses the flash-map dynamic layout ranges.</summary>
@@ -172,12 +171,12 @@ public sealed class BuiltInStandardMergeProfilesTests
         Assert.Equal(0x100000, profile.Initialization.Capacity);
         AddressSpace dpInput = Assert.Single(profile.AddressSpaces, space => space.AddressSpaceId == "dp-input");
         Assert.Equal(0x100000, dpInput.Length);
-        Assert.Equal((byte?)0x00, dpInput.InputPaddingByte);
-        Assert.Equal([0x40000, 0x80000, 0x100000], dpInput.AllowedInputLengths);
+        Assert.Null(dpInput.InputPaddingByte);
+        Assert.Equal([0x100000], dpInput.AllowedInputLengths);
         Assert.Contains(profile.AddressSpaces, space =>
             space.AddressSpaceId == "dp-input" &&
             space.Length == 0x100000 &&
-            space.InputPaddingByte == 0x00);
+            space.InputPaddingByte is null);
         Assert.Contains(profile.AddressSpaces, space =>
             space.AddressSpaceId == "tp-input" &&
             space.Length == 0x37000 &&
@@ -225,15 +224,16 @@ public sealed class BuiltInStandardMergeProfilesTests
         Assert.All(output[0x38000..], value => Assert.Equal(0x11, value));
     }
 
-    /// <summary>Verifies approved NT51950/NT51951 DP variants are padded to the 0x100000 work container.</summary>
+    /// <summary>Verifies approved NT51950/NT51951 DP variants create matching output-length profiles.</summary>
     [Theory]
     [InlineData(0x40000)]
     [InlineData(0x80000)]
     [InlineData(0x100000)]
     public void DpPerspectiveExecutionAcceptsDeclaredDpInputLengths(int dpLength)
     {
-        CompositionProfileDefinition profile = BuiltInStandardMergeProfiles.DpPerspectiveStandardMergeProfiles
-            .Single(item => item.IcId == "NT51951");
+        CompositionProfileDefinition profile = BuiltInStandardMergeProfiles.CreateDpPerspectiveProfileForInputLength(
+            "NT51951",
+            dpLength);
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         Assert.True(compile.IsSuccess, FormatIssues(compile.Issues));
 
@@ -253,12 +253,11 @@ public sealed class BuiltInStandardMergeProfilesTests
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         byte[] output = result.OutputBytes.ToArray();
-        Assert.Equal(0x100000, output.Length);
+        Assert.Equal(dpLength, output.Length);
         Assert.All(output[..0x0A000], value => Assert.Equal(0x11, value));
         Assert.All(output[0x0A000..0x37000], value => Assert.Equal(0xDD, value));
         Assert.All(output[0x37000..0x38000], value => Assert.Equal(0xCA, value));
-        Assert.All(output[0x38000..dpLength], value => Assert.Equal(0x11, value));
-        Assert.All(output[dpLength..], value => Assert.Equal(0x00, value));
+        Assert.All(output[0x38000..], value => Assert.Equal(0x11, value));
     }
 
     /// <summary>Verifies NT51950/NT51951 DP Perspective merge rejects DP inputs outside the three approved sizes.</summary>
@@ -268,31 +267,18 @@ public sealed class BuiltInStandardMergeProfilesTests
     [InlineData(0x90000)]
     public void DpPerspectiveExecutionRejectsUnexpectedDpInputSize(int dpLength)
     {
-        CompositionProfileDefinition profile = BuiltInStandardMergeProfiles.DpPerspectiveStandardMergeProfiles
-            .Single(item => item.IcId == "NT51950");
-        ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
-        Assert.True(compile.IsSuccess, FormatIssues(compile.Issues));
-
-        CompositionExecutionResult result = CompositionEngine.Execute(
-            compile.Plan!,
-            new CompositionExecutionInput(new Dictionary<string, byte[]>(StringComparer.Ordinal)
-            {
-                ["dp-input"] = new byte[dpLength],
-                ["tp-input"] = new byte[0x37000],
-            }));
-
-        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
-        CompositionIssue issue = Assert.Single(result.Issues);
-        Assert.Equal("input.address-space.length-mismatch", issue.Code);
-        Assert.Contains("0x40000, 0x80000, 0x100000", issue.Message, StringComparison.Ordinal);
+        ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            BuiltInStandardMergeProfiles.CreateDpPerspectiveProfileForInputLength("NT51950", dpLength));
+        Assert.Contains("0x40000, 0x80000, or 0x100000", exception.Message, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies NT51950/NT51951 DP Perspective merge rejects DP inputs larger than the max container.</summary>
     [Fact]
     public void DpPerspectiveExecutionRejectsOversizedDpInput()
     {
-        CompositionProfileDefinition profile = BuiltInStandardMergeProfiles.DpPerspectiveStandardMergeProfiles
-            .Single(item => item.IcId == "NT51950");
+        CompositionProfileDefinition profile = BuiltInStandardMergeProfiles.CreateDpPerspectiveProfileForInputLength(
+            "NT51950",
+            0x100000);
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         Assert.True(compile.IsSuccess, FormatIssues(compile.Issues));
 
@@ -312,8 +298,9 @@ public sealed class BuiltInStandardMergeProfilesTests
     [Fact]
     public void DpPerspectiveExecutionRejectsTpInputWithoutOverlayWindow()
     {
-        CompositionProfileDefinition profile = BuiltInStandardMergeProfiles.DpPerspectiveStandardMergeProfiles
-            .Single(item => item.IcId == "NT51950");
+        CompositionProfileDefinition profile = BuiltInStandardMergeProfiles.CreateDpPerspectiveProfileForInputLength(
+            "NT51950",
+            0x40000);
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         Assert.True(compile.IsSuccess, FormatIssues(compile.Issues));
 

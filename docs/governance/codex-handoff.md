@@ -53,7 +53,7 @@ Codex receives a constrained repository with executable rules and bounded issues
 6. **Profile/request/report compiler** — strict schemas, semantic validation, stable issues, plan hash.
 7. **Protocol 1 CRC calculation** — C# adapter, limits, vectors, contract tests.
 8. **External combiner runner** — staged `work.bin`, tool manifest resolution, executable SHA-256 verification, timeout, changed-range diff validation.
-9. **Standard Merge parity** — one IC/mode per PR with approved golden evidence. Current owner priority includes NT51950 and NT51951 with confirmed DP Perspective TP overlay range `0x0A000-0x36FFF (len 0x2D000)`; golden cases are still required.
+9. **Standard Merge parity** — one IC/mode per PR with approved golden evidence. Current owner priority includes NT51950 and NT51951 with confirmed DP Perspective TP overlay range `0x0A000-0x36FFF (len 0x2D000)`; current NT51930 and NT51950/NT51951 Merge golden cases are recorded in `testdata/golden/standard-merge-gen-flash/manifest.json`.
 10. **Normal Replace parity** — DP Replace and CtrlRAM Replace workflows first, with IC num required in UI/request models. Two-option profiles use text choices such as `single`/`cascade`; three-or-more concrete count profiles use numeric selection. Legacy `combiner.exe` CRC/header post-processing must be backed by golden evidence.
 11. **AB Merge parity** — banks, relocation, integrity stages, output comparisons. Deferred until the owner reactivates AB work.
 12. **General modes and saved rules** — one mapping model/editor/compiler for Merge and Replace plus rule promotion.

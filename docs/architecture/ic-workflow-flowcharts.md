@@ -36,11 +36,11 @@ The architecture test `IcWorkflowFlowchartReferenceCoversBuiltInIcLists` checks 
 | NT51927 | `SM-GENFLASH`: direct gen_flash profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-927`: numeric single/2/3 IC and cascade. | `R-GENERAL`: explicit mapping only after protected map is known. | Implemented Standard Merge profile and special CtrlRAM command core. |
 | NT51928 | `SM-GENFLASH-LD`: includes TP, DP, and LD. | `R-DP-GENERIC`: DP/LD profile wiring pending. | `R-CTRLRAM-927`: follows NT51927 for non-NB only. | `R-GENERAL`: explicit mapping only after protected map is known. | NT51928 NB is not covered and must be a separate IC if approved later. |
 | NT51929 | `SM-GENFLASH`: direct gen_flash profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51932`: follows NT51932. | `R-GENERAL`: explicit mapping only after protected map is known. | Implemented Standard Merge profile and CtrlRAM command core; AB is deferred. |
-| NT51930 | `SM-FLASHMAP-DYNAMIC`: flash-map derived profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51930`: current cascade maps to `<=13 IC`. | `R-GENERAL`: explicit mapping only after protected map is known. | Implemented Standard Merge profile and CtrlRAM command core; normal merge golden pending. |
+| NT51930 | `SM-FLASHMAP-DYNAMIC`: flash-map derived profile with owner golden output. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51930`: current cascade maps to `<=13 IC`. | `R-GENERAL`: explicit mapping only after protected map is known. | Standard Merge golden added from `merge_bin.7z`; CtrlRAM command core implemented. |
 | NT51931 | `SM-GENFLASH`: direct gen_flash profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51930`: NT51930-based mode. | `R-GENERAL`: explicit mapping only after protected map is known. | Implemented Standard Merge profile and CtrlRAM command core. |
 | NT51932 | `SM-GENFLASH`: direct gen_flash profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51932`: direct postbuild reference. | `R-GENERAL`: explicit mapping only after protected map is known. | Implemented Standard Merge profile and CtrlRAM command core; AB is deferred. |
-| NT51950 | `SM-950-951-DP-PERSPECTIVE`: executable profile, golden pending. | `R-DP-950-951`: workbench exact-base path implemented; production profile/golden pending. | `R-CTRLRAM-51950`: direct postbuild reference. | `R-GENERAL`: explicit mapping only after protected map is known. | Standard Merge profile, DP Replace workbench path, and CtrlRAM command core implemented; golden pending. |
-| NT51951 | `SM-950-951-DP-PERSPECTIVE`: follows NT51950 profile, golden pending. | `R-DP-950-951`: follows NT51950 workbench exact-base path; production profile/golden pending. | `R-CTRLRAM-51950`: follows NT51950. | `R-GENERAL`: explicit mapping only after protected map is known. | Standard Merge profile, DP Replace workbench path, and CtrlRAM command core implemented; golden pending. |
+| NT51950 | `SM-950-951-DP-PERSPECTIVE`: executable profile with owner `0x40000` DP golden output. | `R-DP-950-951`: workbench exact-base path implemented; production profile/golden pending. | `R-CTRLRAM-51950`: direct postbuild reference. | `R-GENERAL`: explicit mapping only after protected map is known. | Standard Merge golden added from `merge_bin.7z`; DP Replace workbench path and CtrlRAM command core implemented. |
+| NT51951 | `SM-950-951-DP-PERSPECTIVE`: follows NT51950 profile with owner `0x80000` DP golden output. | `R-DP-950-951`: follows NT51950 workbench exact-base path; production profile/golden pending. | `R-CTRLRAM-51950`: follows NT51950. | `R-GENERAL`: explicit mapping only after protected map is known. | Standard Merge golden added from `merge_bin.7z`; DP Replace workbench path and CtrlRAM command core implemented. |
 
 ## Standard Merge flowcharts
 
@@ -85,7 +85,7 @@ flowchart TD
 
 | IC | Output size | TP range | DP range | Evidence note |
 | --- | ---: | --- | --- | --- |
-| NT51930 | `0x40000` | `[0x07000, 0x40000)` | `[0x00000, 0x06000)` | Derived from `IC_FlashMap.xlsx 51930 TP Flashmap`; golden pending. |
+| NT51930 | `0x40000` | `[0x07000, 0x40000)` | `[0x00000, 0x06000)` | Derived from `IC_FlashMap.xlsx 51930 TP Flashmap`; owner golden added from `merge_bin.7z`. |
 
 ### SM-GENFLASH-LD
 
@@ -103,19 +103,19 @@ flowchart TD
 
 ### SM-950-951-DP-PERSPECTIVE
 
-Used by NT51950 and NT51951. This flow is an executable built-in Standard Merge profile, but production support still needs owner golden output.
+Used by NT51950 and NT51951. This flow is an executable built-in Standard Merge profile with owner golden output for current `0x40000` and `0x80000` DP Perspective cases.
 
 ```mermaid
 flowchart TD
     A["Select NT51950/NT51951 DP Perspective merge policy"] --> B{"DP input is 0x40000, 0x80000, or 0x100000?"}
     B -- "no" --> C["Reject DP input length"]
-    B -- "yes" --> D["Pad accepted DP input to a 0x100000 work image"]
+    B -- "yes" --> D["Create output image with selected DP length"]
     D --> E{"TP input contains 0x0A000-0x36FFF?"}
     E -- "no" --> F["Reject TP input length"]
     E -- "yes" --> G["Copy supplied DP bytes at offset 0"]
     G --> H["Overlay TP into 0x0A000-0x36FFF (len 0x2D000)"]
     H --> I["Do not overwrite customer info 0x37000-0x37FFF (len 0x1000) by TP overlay"]
-    I --> J["Write artifact; golden output remains the support gate"]
+    I --> J["Write artifact with selected DP length"]
 ```
 
 ## DP Replace flowcharts
