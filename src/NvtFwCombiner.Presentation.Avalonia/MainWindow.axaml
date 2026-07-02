@@ -181,6 +181,15 @@
       <Setter Property="BorderBrush" Value="#2563EB" />
       <Setter Property="CornerRadius" Value="8" />
     </Style>
+    <Style Selector="Button.primary:disabled">
+      <Setter Property="Background" Value="#E2E8F0" />
+      <Setter Property="BorderBrush" Value="#CBD5E1" />
+      <Setter Property="Foreground" Value="#94A3B8" />
+    </Style>
+    <Style Selector="Button.primary:disabled /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#E2E8F0" />
+      <Setter Property="BorderBrush" Value="#CBD5E1" />
+    </Style>
     <Style Selector="Button.action">
       <Setter Property="MinHeight" Value="34" />
       <Setter Property="MinWidth" Value="72" />
@@ -202,6 +211,19 @@
     <Style Selector="Button.action:disabled /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="#F8FAFC" />
       <Setter Property="BorderBrush" Value="#E2E8F0" />
+    </Style>
+    <Style Selector="Button.summaryChip">
+      <Setter Property="MinHeight" Value="30" />
+      <Setter Property="Padding" Value="10,5" />
+      <Setter Property="Background" Value="#F8FAFC" />
+      <Setter Property="BorderBrush" Value="#CBD5E1" />
+      <Setter Property="Foreground" Value="#334155" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="Button.summaryChip /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#F8FAFC" />
+      <Setter Property="BorderBrush" Value="#CBD5E1" />
+      <Setter Property="CornerRadius" Value="999" />
     </Style>
     <Style Selector="Button.segmentDisabled">
       <Setter Property="MinHeight" Value="44" />
@@ -787,11 +809,23 @@
           <StackPanel Spacing="16">
             <Grid ColumnDefinitions="*,Auto">
               <StackPanel Spacing="4">
-                <TextBlock
-                    FontSize="24"
-                    FontWeight="SemiBold"
-                    Foreground="#0F172A"
-                    Text="{Binding ReplacePreview.Title}" />
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <TextBlock
+                      VerticalAlignment="Center"
+                      FontSize="24"
+                      FontWeight="SemiBold"
+                      Foreground="#0F172A"
+                      Text="{Binding ReplacePreview.Title}" />
+                  <Button
+                      Classes="summaryChip"
+                      Command="{Binding ShowReplaceSelectionCommand}"
+                      ToolTip.Tip="Review selected replacement inputs">
+                    <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="6">
+                      <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding ReplaceSelectionCountLabel}" />
+                      <TextBlock Grid.Column="1" FontSize="12" Foreground="#64748B" Text="⌄" />
+                    </Grid>
+                  </Button>
+                </StackPanel>
                 <TextBlock FontSize="13" Foreground="#64748B" Text="{Binding ReplacePreview.Subtitle}" />
               </StackPanel>
               <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
@@ -1384,6 +1418,111 @@
           <TextBlock FontSize="12" Foreground="#475569" Text="{Binding ReportToastText}" TextWrapping="Wrap" />
         </StackPanel>
       </Grid>
+    </Border>
+
+    <Border
+        Grid.RowSpan="5"
+        Background="#660F172A"
+        IsVisible="{Binding IsReplaceSelectionModalOpen}">
+      <Border
+          Width="720"
+          MaxHeight="640"
+          Padding="20"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          Background="#FFFFFF"
+          BorderBrush="#CBD5E1"
+          BorderThickness="1"
+          CornerRadius="8">
+        <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="16">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+            <StackPanel Spacing="4">
+              <TextBlock FontSize="20" FontWeight="SemiBold" Foreground="#0F172A" Text="Replace selection" />
+              <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding ReplaceSelectionSubtitle}" TextWrapping="Wrap" />
+            </StackPanel>
+            <Button
+                Grid.Column="1"
+                Classes="iconButton"
+                Command="{Binding CloseReplaceSelectionCommand}"
+                ToolTip.Tip="Close selection overview">
+              <TextBlock Text="×" />
+            </Button>
+          </Grid>
+
+          <Border Grid.Row="1" Padding="12" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+              <Border Width="8" Height="38" VerticalAlignment="Top" Background="#2563EB" CornerRadius="999" />
+              <StackPanel Grid.Column="1" Spacing="3">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                  <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding ReplaceSelectionCountLabel}" />
+                  <TextBlock Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#2563EB" Text="{Binding ReplaceSelectionStatusLabel}" TextWrapping="Wrap" />
+                </Grid>
+                <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding ReplaceSelectionRunHint}" TextWrapping="Wrap" />
+              </StackPanel>
+            </Grid>
+          </Border>
+
+          <ScrollViewer Grid.Row="2">
+            <StackPanel Spacing="14">
+              <StackPanel Spacing="6">
+                <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#64748B" Text="Selected replacements" />
+                <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSelectionRows}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ReportLineViewModel">
+                      <Border Padding="0,8" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
+                        <Grid ColumnDefinitions="180,*" ColumnSpacing="12">
+                          <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
+                          <StackPanel Grid.Column="1" Spacing="2">
+                            <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding Detail}" TextWrapping="Wrap" />
+                            <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" />
+                          </StackPanel>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+
+              <Border Padding="12" Background="#FFF7ED" BorderBrush="#FED7AA" BorderThickness="1" CornerRadius="8" IsVisible="{Binding HasReplaceSelectionMissingRows}">
+                <StackPanel Spacing="8">
+                  <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#9A3412" Text="Required before Preview" />
+                  <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSelectionMissingRows}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:ReportLineViewModel">
+                        <Grid ColumnDefinitions="180,*" ColumnSpacing="12" Margin="0,0,0,8">
+                          <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#7C2D12" Text="{Binding Title}" TextWrapping="Wrap" />
+                          <StackPanel Grid.Column="1" Spacing="2">
+                            <TextBlock FontSize="12" Foreground="#7C2D12" Text="{Binding Detail}" TextWrapping="Wrap" />
+                            <TextBlock FontSize="11" Foreground="#B45309" Text="{Binding Meta}" TextWrapping="Wrap" />
+                          </StackPanel>
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+          </ScrollViewer>
+
+          <StackPanel Grid.Row="3" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+            <Button
+                Classes="secondary"
+                Command="{Binding CloseReplaceSelectionCommand}"
+                Content="Close" />
+            <Button
+                Classes="secondary"
+                Command="{Binding PreviewReplaceCommand}"
+                Content="Preview"
+                ToolTip.Tip="{Binding ReplacePreviewUnavailableReason}" />
+            <Button
+                Classes="primary"
+                Click="BuildReplaceButton_OnClick"
+                Content="Build"
+                IsEnabled="{Binding CanBuildReplace}"
+                ToolTip.Tip="{Binding ReplaceBuildUnavailableReason}" />
+          </StackPanel>
+        </Grid>
+      </Border>
     </Border>
 
     <Border

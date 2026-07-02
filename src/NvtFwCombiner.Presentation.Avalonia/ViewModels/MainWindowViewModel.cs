@@ -89,6 +89,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         ShowReportCommand = new RelayCommand(ShowReport, () => CanOpenReport);
         CloseReportCommand = new RelayCommand(CloseReport);
         DismissReportToastCommand = new RelayCommand(DismissReportToast);
+        ShowReplaceSelectionCommand = new RelayCommand(ShowReplaceSelection);
+        CloseReplaceSelectionCommand = new RelayCommand(CloseReplaceSelection);
 
         AddGeneralReplaceMapping();
         NavigationTrail.Add(CreateNavigationEntry(ShellPage.Home, isCurrent: true));
@@ -358,6 +360,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     /// <summary>Command that builds Replace output or produces a gated Replace build report.</summary>
     public IAsyncRelayCommand BuildReplaceCommand { get; }
+
+    /// <summary>Command that opens the compact Replace input selection overview.</summary>
+    public IRelayCommand ShowReplaceSelectionCommand { get; }
+
+    /// <summary>Command that closes the compact Replace input selection overview.</summary>
+    public IRelayCommand CloseReplaceSelectionCommand { get; }
 
     /// <summary>Sets a local file path for a UI input slot.</summary>
     public void SetSlotFile(string slotId, string path)
@@ -654,6 +662,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
         OnPropertyChanged(nameof(ReplacePreviewUnavailableReason));
         OnPropertyChanged(nameof(ReplaceBuildUnavailableReason));
+        RefreshReplaceSelectionState();
     }
 
     partial void OnSelectedReplaceModeChanged(string value)

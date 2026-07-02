@@ -321,6 +321,40 @@ public sealed class ShellViewModelTests
         Assert.Contains(viewModel.ReplaceCoverageGroups, group => group.Title == "Slave L" && !group.IsExpanded);
     }
 
+    /// <summary>Verifies the Replace selection overview keeps collapsed CtrlRAM choices discoverable.</summary>
+    [Fact]
+    public void ReplaceSelectionOverviewTracksSelectedCtrlRamTargets()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51927";
+        viewModel.SelectedNumber = "3";
+        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+
+        Assert.Equal("0 / 12 targets selected", viewModel.ReplaceSelectionCountLabel);
+        Assert.Contains("Preview blocked", viewModel.ReplaceSelectionStatusLabel, StringComparison.Ordinal);
+        Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "Base flash BIN");
+        Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "CtrlRAM replacement");
+
+        FirmwareSlotViewModel vnLeft = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Slave L)");
+        viewModel.SetSlotFile("replace-base", Path.Combine(Path.GetTempPath(), "base.bin"));
+        viewModel.SetSlotFile(vnLeft.SlotId, Path.Combine(Path.GetTempPath(), "vn-slave-l.bin"));
+
+        Assert.Equal("1 / 12 targets selected", viewModel.ReplaceSelectionCountLabel);
+        Assert.Equal("Ready for Preview", viewModel.ReplaceSelectionStatusLabel);
+        Assert.Empty(viewModel.ReplaceSelectionMissingRows);
+        Assert.Contains(viewModel.ReplaceSelectionRows, row =>
+            row.Title == "VN CtrlRAM (Slave L)" &&
+            row.Detail == "vn-slave-l.bin" &&
+            row.Meta.Contains("0x2EBD0-0x3022F", StringComparison.Ordinal));
+        Assert.Contains("Preview will generate", viewModel.ReplaceSelectionRunHint, StringComparison.Ordinal);
+
+        Assert.False(viewModel.IsReplaceSelectionModalOpen);
+        viewModel.ShowReplaceSelectionCommand.Execute(null);
+        Assert.True(viewModel.IsReplaceSelectionModalOpen);
+        viewModel.CloseReplaceSelectionCommand.Execute(null);
+        Assert.False(viewModel.IsReplaceSelectionModalOpen);
+    }
+
     /// <summary>Verifies reports stay behind the icon entry until explicitly opened.</summary>
     [Fact]
     public void ReportReviewUsesToastAndModalState()

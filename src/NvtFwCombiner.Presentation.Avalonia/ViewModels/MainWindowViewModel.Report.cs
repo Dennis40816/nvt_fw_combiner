@@ -158,6 +158,7 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
+        CloseReplaceSelectionForRun();
         IsReportModalOpen = true;
         HasReportToast = false;
         ReportToastOpacity = 0;

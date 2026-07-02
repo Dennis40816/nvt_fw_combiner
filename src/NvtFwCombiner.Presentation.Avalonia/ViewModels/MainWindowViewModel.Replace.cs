@@ -65,6 +65,7 @@ public sealed partial class MainWindowViewModel
 
     private async Task RunReplaceAsync(bool build, string? outputPath)
     {
+        CloseReplaceSelectionForRun();
         try
         {
             WorkbenchRunResult result = await UiCompositionRunner.RunReplaceAsync(
