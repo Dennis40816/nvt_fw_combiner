@@ -204,6 +204,7 @@ public static class BuiltInStandardMergeProfiles
     private static CompositionProfileDefinition CreateDpPerspectiveProfile(string icNumber)
     {
         const long containerLength = 0x100000;
+        long[] allowedDpLengths = [0x40000, 0x80000, containerLength];
         var fullContainer = new ByteRange(0, containerLength);
         var tpOverlay = ByteRange.FromStartEndExclusive(0x0A000, 0x37000);
         return new CompositionProfileDefinition(
@@ -216,7 +217,12 @@ public static class BuiltInStandardMergeProfiles
             $"nt{icNumber}-standard-merge-dp-perspective.bin",
             ImageInitialization.Blank("output-image", containerLength, 0x00),
             [
-                new AddressSpace("dp-input", containerLength, AddressSpaceMutability.Immutable, inputPaddingByte: 0x00),
+                new AddressSpace(
+                    "dp-input",
+                    containerLength,
+                    AddressSpaceMutability.Immutable,
+                    inputPaddingByte: 0x00,
+                    allowedInputLengths: allowedDpLengths),
                 new AddressSpace("tp-input", 0x37000, AddressSpaceMutability.Immutable),
                 new AddressSpace("output-image", containerLength, AddressSpaceMutability.Mutable),
             ],
@@ -229,7 +235,7 @@ public static class BuiltInStandardMergeProfiles
                     "output-image",
                     fullContainer,
                     OverlapPolicy.Reject,
-                    "Copy the NT51950/NT51951 DP Perspective bytes after padding to the 0x100000 work container."),
+                    "Copy the NT51950/NT51951 DP Perspective bytes after accepting only 0x40000, 0x80000, or 0x100000 DP inputs and padding to the 0x100000 work container."),
                 CompositionOperation.CopyRange(
                     "overlay-tp",
                     200,

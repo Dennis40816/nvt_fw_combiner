@@ -453,6 +453,10 @@ public sealed class CompositionRunService
                 "plan.space.input-padding",
                 addressSpace.InputPaddingByte?.ToString(CultureInfo.InvariantCulture) ?? string.Empty);
             AppendTokenField(builder, "plan.space.input-oversize-policy", addressSpace.InputOversizePolicy.ToString());
+            AppendTokenField(
+                builder,
+                "plan.space.allowed-input-lengths",
+                string.Join(",", addressSpace.AllowedInputLengths.Select(length => length.ToString(CultureInfo.InvariantCulture))));
         }
 
         foreach (CompositionOperation operation in plan.OrderedOperations)

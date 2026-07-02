@@ -125,6 +125,10 @@ public sealed class BuiltInStandardMergeProfilesTests
 
         Assert.True(result.IsSuccess, FormatIssues(result.Issues));
         Assert.Equal(0x100000, profile.Initialization.Capacity);
+        AddressSpace dpInput = Assert.Single(profile.AddressSpaces, space => space.AddressSpaceId == "dp-input");
+        Assert.Equal(0x100000, dpInput.Length);
+        Assert.Equal((byte?)0x00, dpInput.InputPaddingByte);
+        Assert.Equal([0x40000, 0x80000, 0x100000], dpInput.AllowedInputLengths);
         Assert.Contains(profile.AddressSpaces, space =>
             space.AddressSpaceId == "dp-input" &&
             space.Length == 0x100000 &&
@@ -176,11 +180,12 @@ public sealed class BuiltInStandardMergeProfilesTests
         Assert.All(output[0x38000..], value => Assert.Equal(0x11, value));
     }
 
-    /// <summary>Verifies shorter NT51950/NT51951 DP variants are padded to the 0x100000 work container.</summary>
+    /// <summary>Verifies approved NT51950/NT51951 DP variants are padded to the 0x100000 work container.</summary>
     [Theory]
     [InlineData(0x40000)]
     [InlineData(0x80000)]
-    public void DpPerspectiveExecutionPadsShorterDpInputsToContainerLength(int dpLength)
+    [InlineData(0x100000)]
+    public void DpPerspectiveExecutionAcceptsDeclaredDpInputLengths(int dpLength)
     {
         CompositionProfileDefinition profile = BuiltInStandardMergeProfiles.DpPerspectiveStandardMergeProfiles
             .Single(item => item.IcId == "NT51951");
@@ -211,6 +216,32 @@ public sealed class BuiltInStandardMergeProfilesTests
         Assert.All(output[dpLength..], value => Assert.Equal(0x00, value));
     }
 
+    /// <summary>Verifies NT51950/NT51951 DP Perspective merge rejects DP inputs outside the three approved sizes.</summary>
+    [Theory]
+    [InlineData(0x3FFFF)]
+    [InlineData(0x60000)]
+    [InlineData(0x90000)]
+    public void DpPerspectiveExecutionRejectsUnexpectedDpInputSize(int dpLength)
+    {
+        CompositionProfileDefinition profile = BuiltInStandardMergeProfiles.DpPerspectiveStandardMergeProfiles
+            .Single(item => item.IcId == "NT51950");
+        ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
+        Assert.True(compile.IsSuccess, FormatIssues(compile.Issues));
+
+        CompositionExecutionResult result = CompositionEngine.Execute(
+            compile.Plan!,
+            new CompositionExecutionInput(new Dictionary<string, byte[]>(StringComparer.Ordinal)
+            {
+                ["dp-input"] = new byte[dpLength],
+                ["tp-input"] = new byte[0x37000],
+            }));
+
+        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("input.address-space.length-mismatch", issue.Code);
+        Assert.Contains("0x40000, 0x80000, 0x100000", issue.Message, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies NT51950/NT51951 DP Perspective merge rejects DP inputs larger than the max container.</summary>
     [Fact]
     public void DpPerspectiveExecutionRejectsOversizedDpInput()
@@ -230,6 +261,29 @@ public sealed class BuiltInStandardMergeProfilesTests
 
         Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
         Assert.Contains(result.Issues, issue => issue.Code == "input.address-space.length-mismatch");
+    }
+
+    /// <summary>Verifies NT51950/NT51951 TP input must contain the declared overlay window.</summary>
+    [Fact]
+    public void DpPerspectiveExecutionRejectsTpInputWithoutOverlayWindow()
+    {
+        CompositionProfileDefinition profile = BuiltInStandardMergeProfiles.DpPerspectiveStandardMergeProfiles
+            .Single(item => item.IcId == "NT51950");
+        ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
+        Assert.True(compile.IsSuccess, FormatIssues(compile.Issues));
+
+        CompositionExecutionResult result = CompositionEngine.Execute(
+            compile.Plan!,
+            new CompositionExecutionInput(new Dictionary<string, byte[]>(StringComparer.Ordinal)
+            {
+                ["dp-input"] = new byte[0x40000],
+                ["tp-input"] = new byte[0x36FFF],
+            }));
+
+        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("input.address-space.length-mismatch", issue.Code);
+        Assert.Contains("declared 225280 bytes", issue.Message, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies NT51928 carries the extra LD copy after TP and DP, matching gen_flash order.</summary>

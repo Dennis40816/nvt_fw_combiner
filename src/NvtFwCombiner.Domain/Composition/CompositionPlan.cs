@@ -67,7 +67,8 @@ public sealed class CompositionPlan
         {
             if (addressSpace.Mutability != AddressSpaceMutability.Immutable &&
                 (addressSpace.InputPaddingByte is not null ||
-                    addressSpace.InputOversizePolicy != InputOversizePolicy.Reject))
+                    addressSpace.InputOversizePolicy != InputOversizePolicy.Reject ||
+                    addressSpace.AllowedInputLengths.Count > 0))
             {
                 throw new ArgumentException("Mutable address spaces cannot declare input size relaxation.", nameof(addressSpaces));
             }
@@ -145,6 +146,11 @@ public sealed class CompositionPlan
         if (referenceSpace.InputOversizePolicy != InputOversizePolicy.Reject)
         {
             throw new ArgumentException("Reference address space cannot declare input truncation.", nameof(Initialization));
+        }
+
+        if (referenceSpace.AllowedInputLengths.Count > 0)
+        {
+            throw new ArgumentException("Reference address space cannot declare alternate input lengths.", nameof(Initialization));
         }
     }
 

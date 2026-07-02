@@ -131,7 +131,7 @@ public static partial class WorkbenchCompositionService
             new CoverageSegment(
                 new ByteRange(0, capacity),
                 "Base flash",
-                "Reference image is cloned before replacement.",
+                "Kept from the original base firmware unless a replacement covers it.",
                 "#E2E8F0",
                 false),
         ];
@@ -166,7 +166,7 @@ public static partial class WorkbenchCompositionService
                 new CoverageSegment(
                     region.Range,
                     "Preserve",
-                    $"{region.DisplayName} stays from the base image.",
+                    $"{region.DisplayName} stays from the original base firmware.",
                     "#94A3B8",
                     false));
         }
@@ -187,7 +187,7 @@ public static partial class WorkbenchCompositionService
                 _ => "Replacement BIN",
             };
             string detail = replaceMode == "CtrlRAM"
-                ? $"{region.PostbuildFileName ?? "CtrlRAM BIN"} fills this TP position; combiner.exe postbuild refreshes CRC/header."
+                ? $"{region.DisplayName} can be replaced here. Empty input keeps the original firmware; Preview lists the CRC/header refresh command."
                 : $"{region.DisplayName}; {ActionSummaryForReplaceMode(replaceMode)}";
             segments = ApplyCoverageWrite(
                 segments,

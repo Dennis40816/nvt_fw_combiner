@@ -544,6 +544,35 @@ public sealed class CompositionProfileCompilerTests
         Assert.Contains(result.Issues, issue => issue.Code == "profile.input-truncation.request-not-allowed");
     }
 
+    /// <summary>Verifies request-time address spaces cannot choose allowed input length policy.</summary>
+    [Fact]
+    public void AllowedInputLengthsRejectRuntimeAddressSpace()
+    {
+        CompositionProfileDefinition profile = CreateProfile(
+            CompositionKind.Merge,
+            "general-merge",
+            ImageInitialization.Blank("output-image", 4, 0),
+            addressSpaces:
+            [
+                new("output-image", 4, AddressSpaceMutability.Mutable),
+            ]);
+        ExplicitMapping mapping = CreateMapping(
+            ExplicitMappingOperationKind.CopyRange,
+            sourceBindingId: "runtime-source");
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(
+            profile,
+            [mapping],
+            [new AddressSpace(
+                "runtime-source",
+                4,
+                AddressSpaceMutability.Immutable,
+                allowedInputLengths: [2, 4])]);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.input-lengths.request-not-allowed");
+    }
+
     /// <summary>Verifies profile operations are validated against region access policy.</summary>
     [Fact]
     public void FixedProfileOperationRejectsHiddenRegion()

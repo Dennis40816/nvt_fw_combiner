@@ -137,6 +137,15 @@ public static class CompositionProfileCompiler
                 addressSpace.AddressSpaceId));
         }
 
+        foreach (AddressSpace addressSpace in requestAddressSpaces.Where(space =>
+                     space.AllowedInputLengths.Count > 0))
+        {
+            issues.Add(new CompositionIssue(
+                "profile.input-lengths.request-not-allowed",
+                $"Runtime address space '{addressSpace.AddressSpaceId}' cannot declare allowed input lengths.",
+                addressSpace.AddressSpaceId));
+        }
+
         ValidateInputTruncationPolicy(profile, issues);
 
         if (!ForbidsInputPadding(profile))

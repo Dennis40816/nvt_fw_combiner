@@ -106,13 +106,15 @@ Used by NT51950 and NT51951. This flow is an executable built-in Standard Merge 
 
 ```mermaid
 flowchart TD
-    A["Select NT51950/NT51951 DP Perspective merge policy"] --> B{"DP input length <= 0x100000?"}
-    B -- "no" --> C["Reject: DP container is larger than the maximum policy length"]
-    B -- "yes" --> D["Pad variable-size DP input to a 0x100000 work image"]
-    D --> E["Copy supplied DP bytes at offset 0"]
-    E --> F["Overlay TP into 0x0A000-0x36FFF (len 0x2D000)"]
-    F --> G["Do not overwrite customer info [0x37000, 0x38000) by TP overlay"]
-    G --> H["Write artifact; golden output remains the support gate"]
+    A["Select NT51950/NT51951 DP Perspective merge policy"] --> B{"DP input is 0x40000, 0x80000, or 0x100000?"}
+    B -- "no" --> C["Reject DP input length"]
+    B -- "yes" --> D["Pad accepted DP input to a 0x100000 work image"]
+    D --> E{"TP input contains 0x0A000-0x36FFF?"}
+    E -- "no" --> F["Reject TP input length"]
+    E -- "yes" --> G["Copy supplied DP bytes at offset 0"]
+    G --> H["Overlay TP into 0x0A000-0x36FFF (len 0x2D000)"]
+    H --> I["Do not overwrite customer info 0x37000-0x37FFF (len 0x1000) by TP overlay"]
+    I --> J["Write artifact; golden output remains the support gate"]
 ```
 
 ## DP Replace flowcharts
@@ -146,7 +148,7 @@ flowchart TD
     D -- "yes" --> F["Clone exact reference into output work image"]
     F --> G["Pad replacement DP to 0x100000 and replace the full DP container"]
     G --> H["Restore original TP range 0x0A000-0x36FFF (len 0x2D000) from reference firmware"]
-    H --> I["Customer info [0x37000, 0x38000) is not part of the TP restore overlay"]
+    H --> I["Customer info 0x37000-0x37FFF (len 0x1000) is not part of the TP restore overlay"]
     I --> J["Write workbench artifact; keep support claim gated by golden evidence"]
 ```
 

@@ -17,7 +17,7 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 
 ## Milestone scope
 
-Current execution priority: normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows are pulled forward. AB merge remains in the roadmap but is deferred until the owner reactivates it. Standard Merge now has executable profiles for the full v1 merge IC list, including NT51930 and NT51950/NT51951 DP Perspective variable-length DP input handling; NT51930/NT51950/NT51951 still need golden evidence. Replace now has NT51950/NT51951 DP Replace workbench execution and CtrlRAM per-region UI/postbuild trace reports; CtrlRAM production output still needs declared write ranges and golden evidence.
+Current execution priority: normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows are pulled forward. AB merge remains in the roadmap but is deferred until the owner reactivates it. Standard Merge now has executable profiles for the full v1 merge IC list, including NT51930 and NT51950/NT51951 DP Perspective three-size DP input handling; NT51930/NT51950/NT51951 still need golden evidence. Replace now has NT51950/NT51951 DP Replace workbench execution and CtrlRAM per-region UI/postbuild trace reports; CtrlRAM production output still needs declared write ranges and golden evidence.
 
 | Milestone | Scope | Implementation boundary |
 | --- | --- | --- |

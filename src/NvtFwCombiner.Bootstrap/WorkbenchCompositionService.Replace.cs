@@ -119,7 +119,7 @@ public static partial class WorkbenchCompositionService
                     "Base flash",
                     "Replace + CRC",
                     region.PostbuildFileName ?? "CtrlRAM BIN",
-                    $"{region.DisplayName} at {FormatDisplayRange(region.Range)} can receive its own replacement BIN before combiner.exe postbuild refreshes CRC/header.")),
+                    $"{region.DisplayName} at {FormatDisplayRange(region.Range)} can use its own replacement BIN; the report shows the CRC/header refresh command.")),
         ];
     }
 
@@ -503,7 +503,7 @@ public static partial class WorkbenchCompositionService
                 .Select(region => new WorkbenchReplaceInputSlot(
                     CtrlRamSlotId(region.RegionId),
                     region.DisplayName,
-                    $"TP {FormatDisplayRange(region.Range)} -> {region.PostbuildFileName ?? "postbuild BIN"}",
+                    $"Replace this area only when needed. TP position {FormatDisplayRange(region.Range)}.",
                     true,
                     CtrlRamSlotId(region.RegionId),
                     region.RegionId)),

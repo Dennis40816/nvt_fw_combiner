@@ -97,7 +97,14 @@ public static class CompositionEngine
                 continue;
             }
 
-            if (bytes.Length > addressSpace.Length && addressSpace.InputOversizePolicy == InputOversizePolicy.Reject)
+            if (addressSpace.AllowedInputLengths.Count > 0 &&
+                !addressSpace.AllowedInputLengths.Contains(bytes.Length))
+            {
+                issues.Add(new CompositionIssue(
+                    "input.address-space.length-mismatch",
+                    $"Input bytes for address space '{addressSpace.AddressSpaceId}' must match one of the declared lengths ({FormatAllowedLengths(addressSpace.AllowedInputLengths)}) but actual length is {bytes.Length} bytes."));
+            }
+            else if (bytes.Length > addressSpace.Length && addressSpace.InputOversizePolicy == InputOversizePolicy.Reject)
             {
                 issues.Add(new CompositionIssue(
                     "input.address-space.length-mismatch",
@@ -131,6 +138,13 @@ public static class CompositionEngine
         }
 
         return issues;
+    }
+
+    private static string FormatAllowedLengths(IReadOnlyList<long> lengths)
+    {
+        return string.Join(
+            ", ",
+            lengths.Select(length => FormattableString.Invariant($"0x{length:X}")));
     }
 
     private static NormalizedExecutionInputs NormalizeExecutionInputs(CompositionPlan plan, CompositionExecutionInput input)

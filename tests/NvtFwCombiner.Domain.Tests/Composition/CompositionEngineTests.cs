@@ -91,6 +91,41 @@ public sealed class CompositionEngineTests
         Assert.Equal([0x11, 0x22, 0xFF, 0xFF], result.OutputBytes.ToArray());
     }
 
+    /// <summary>Verifies profile-declared allowed input lengths reject unexpected source artifact sizes.</summary>
+    [Fact]
+    public void InputOutsideAllowedLengthSetFailsClosed()
+    {
+        CompositionPlan plan = CreateBlankPlan(
+            4,
+            new AddressSpace(
+                "input",
+                4,
+                AddressSpaceMutability.Immutable,
+                inputPaddingByte: 0xFF,
+                allowedInputLengths: [2, 4]),
+            CompositionOperation.CopyRange(
+                "copy-input",
+                10,
+                "input",
+                new ByteRange(0, 4),
+                "output-image",
+                new ByteRange(0, 4),
+                OverlapPolicy.Reject,
+                "copy padded source"));
+        var input = new CompositionExecutionInput(new Dictionary<string, byte[]>
+        {
+            ["input"] = [0x11, 0x22, 0x33],
+        });
+
+        CompositionExecutionResult result = CompositionEngine.Execute(plan, input);
+
+        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("input.address-space.length-mismatch", issue.Code);
+        Assert.Contains("0x2, 0x4", issue.Message, StringComparison.Ordinal);
+        Assert.Contains("actual length is 3 bytes", issue.Message, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies longer-than-declared inputs remain rejected even when a padding byte is declared.</summary>
     [Fact]
     public void InputLongerThanDeclaredLengthFailsClosed()

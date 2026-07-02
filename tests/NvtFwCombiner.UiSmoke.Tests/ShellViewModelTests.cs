@@ -268,7 +268,7 @@ public sealed class ShellViewModelTests
             viewModel.ShowCtrlRamReplaceCommand.Execute(null);
 
             FirmwareSlotViewModel vnLeft = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Slave L)");
-            Assert.Equal("TP 0x2EBD0-0x3022F (len 0x1660) -> VN_Ctrlram.bin", vnLeft.Description);
+            Assert.Equal("Replace this area only when needed. TP position 0x2EBD0-0x3022F (len 0x1660).", vnLeft.Description);
 
             viewModel.SetSlotFile("replace-base", basePath);
             viewModel.SetSlotFile(vnLeft.SlotId, fakeVnPath);
@@ -286,6 +286,7 @@ public sealed class ShellViewModelTests
             Assert.Contains(viewModel.ReplaceCoverageSegments, segment =>
                 segment.SourceLabel == "VN CtrlRAM (Slave L)" &&
                 segment.RangeLabel == "0x2EBD0-0x3022F (len 0x1660)");
+            Assert.Contains(viewModel.ReplaceCoverageGroups, group => group.Title == "Slave L");
         }
         finally
         {
@@ -311,6 +312,13 @@ public sealed class ShellViewModelTests
         Assert.Contains(viewModel.ReplaceSlots, slot => slot.Title == "MP CtrlRAM (Slave L)");
         Assert.Contains(viewModel.CtrlRamRegions, region => region.Name == "Normal CtrlRAM (Slave R)");
         Assert.Contains(viewModel.CtrlRamRegions, region => region.Name == "Normal CtrlRAM (Slave L)");
+        Assert.Contains(viewModel.ReplaceSlotGroups, group => group.Title == "Master" && group.IsExpanded);
+        Assert.Contains(viewModel.ReplaceSlotGroups, group => group.Title == "Slave R" && !group.IsExpanded);
+        Assert.Contains(viewModel.ReplaceSlotGroups, group => group.Title == "Slave L" && !group.IsExpanded);
+        Assert.True(viewModel.IsReplaceCoverageGrouped);
+        Assert.Contains(viewModel.ReplaceCoverageGroups, group => group.Title == "Master" && group.IsExpanded);
+        Assert.Contains(viewModel.ReplaceCoverageGroups, group => group.Title == "Slave R" && !group.IsExpanded);
+        Assert.Contains(viewModel.ReplaceCoverageGroups, group => group.Title == "Slave L" && !group.IsExpanded);
     }
 
     /// <summary>Verifies reports stay behind the icon entry until explicitly opened.</summary>

@@ -776,6 +776,13 @@
                 <TextBlock FontSize="13" Foreground="#64748B" Text="{Binding ReplacePreview.Subtitle}" />
               </StackPanel>
               <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
+                <StackPanel Width="150" Spacing="3">
+                  <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Mode" />
+                  <ComboBox
+                      MinHeight="32"
+                      ItemsSource="{Binding ReplaceModeChoices}"
+                      SelectedItem="{Binding SelectedReplaceMode, Mode=TwoWay}" />
+                </StackPanel>
                 <Button
                     Classes="iconButton"
                     Command="{Binding PreviewReplaceCommand}"
@@ -792,35 +799,17 @@
               </StackPanel>
             </Grid>
 
-            <Border Padding="18" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
-              <StackPanel Spacing="12">
-                <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="Replace mode" />
-                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
-                  <ToggleButton Classes="segment" Command="{Binding ShowDpReplaceCommand}" IsChecked="{Binding IsDpReplaceModeSelected, Mode=OneWay}">
-                    <TextBlock HorizontalAlignment="Center" Text="DP" />
-                  </ToggleButton>
-                  <ToggleButton Grid.Column="1" Classes="segment" Command="{Binding ShowCtrlRamReplaceCommand}" IsChecked="{Binding IsCtrlRamReplaceModeSelected, Mode=OneWay}">
-                    <TextBlock HorizontalAlignment="Center" Text="CtrlRAM" />
-                  </ToggleButton>
-                  <ToggleButton Grid.Column="2" Classes="segment" Command="{Binding ShowGeneralReplaceCommand}" IsChecked="{Binding IsGeneralReplaceModeSelected, Mode=OneWay}">
-                    <TextBlock HorizontalAlignment="Center" Text="General" />
-                  </ToggleButton>
-                </Grid>
-                <TextBlock FontSize="13" Foreground="#334155" Text="{Binding SelectedReplaceModeDescription}" TextWrapping="Wrap" />
-              </StackPanel>
-            </Border>
-
             <Border
                 Padding="18"
                 Background="#FFFFFF"
                 BorderBrush="#E2E8F0"
                 BorderThickness="1"
                 CornerRadius="8"
-                IsVisible="{Binding IsStructuredReplaceModeSelected}">
+                IsVisible="{Binding IsNonCtrlRamStructuredReplaceModeSelected}">
               <StackPanel Spacing="14">
                 <StackPanel Spacing="3">
                   <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="Input files" />
-                  <TextBlock FontSize="12" Foreground="#64748B" Text="Drop BIN files into the active Replace slots." />
+                  <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding SelectedReplaceModeDescription}" TextWrapping="Wrap" />
                 </StackPanel>
                 <ItemsControl ItemsSource="{Binding ReplaceSlots}">
                   <ItemsControl.ItemTemplate>
@@ -856,6 +845,109 @@
                               Tag="{Binding SlotId}" />
                         </Grid>
                       </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+
+            <Border
+                Padding="18"
+                Background="#FFFFFF"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="8"
+                IsVisible="{Binding IsCtrlRamReplaceModeSelected}">
+              <StackPanel Spacing="14">
+                <StackPanel Spacing="3">
+                  <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="Input files" />
+                  <TextBlock FontSize="12" Foreground="#64748B" Text="Drop files only for CtrlRAM areas you want to change. Empty areas stay from the base firmware." TextWrapping="Wrap" />
+                </StackPanel>
+
+                <Border
+                    Padding="14"
+                    Background="#F8FAFC"
+                    BorderBrush="#CBD5E1"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    DragDrop.AllowDrop="True"
+                    DragDrop.DragOver="SlotDragOver_OnDragOver"
+                    DragDrop.Drop="SlotDrop_OnDrop"
+                    Tag="{Binding ReplaceBaseSlot.SlotId}">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                    <StackPanel Spacing="4">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding ReplaceBaseSlot.Title}" />
+                        <Border Padding="8,2" Background="#EAF3FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="999">
+                          <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#1D4ED8" Text="{Binding ReplaceBaseSlot.RequirementLabel}" />
+                        </Border>
+                      </StackPanel>
+                      <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding ReplaceBaseSlot.Description}" TextWrapping="Wrap" />
+                      <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#334155" Text="{Binding ReplaceBaseSlot.DisplayName}" TextWrapping="Wrap" />
+                      <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#64748B" Text="{Binding ReplaceBaseSlot.DisplayDetail}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Button
+                        Grid.Column="1"
+                        Classes="action"
+                        Click="BrowseSlotButton_OnClick"
+                        Content="Browse"
+                        Tag="{Binding ReplaceBaseSlot.SlotId}" />
+                  </Grid>
+                </Border>
+
+                <ItemsControl ItemsSource="{Binding ReplaceSlotGroups}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:FirmwareSlotGroupViewModel">
+                      <Expander IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
+                        <Expander.Header>
+                          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <StackPanel Spacing="2">
+                              <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" />
+                              <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Summary}" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <Border Grid.Column="1" Padding="8,2" VerticalAlignment="Center" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+                              <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#334155" Text="{Binding SlotCount}" />
+                            </Border>
+                          </Grid>
+                        </Expander.Header>
+                        <ItemsControl ItemsSource="{Binding Slots}">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:FirmwareSlotViewModel">
+                              <Border
+                                  Margin="0,0,0,10"
+                                  Padding="14"
+                                  Background="#F8FAFC"
+                                  BorderBrush="#CBD5E1"
+                                  BorderThickness="1"
+                                  CornerRadius="8"
+                                  DragDrop.AllowDrop="True"
+                                  DragDrop.DragOver="SlotDragOver_OnDragOver"
+                                  DragDrop.Drop="SlotDrop_OnDrop"
+                                  Tag="{Binding SlotId}">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                                  <StackPanel Spacing="4">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                      <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" />
+                                      <Border Padding="8,2" Background="#EAF3FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="999">
+                                        <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#1D4ED8" Text="{Binding RequirementLabel}" />
+                                      </Border>
+                                    </StackPanel>
+                                    <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Description}" TextWrapping="Wrap" />
+                                    <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#334155" Text="{Binding DisplayName}" TextWrapping="Wrap" />
+                                    <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#64748B" Text="{Binding DisplayDetail}" TextWrapping="Wrap" />
+                                  </StackPanel>
+                                  <Button
+                                      Grid.Column="1"
+                                      Classes="action"
+                                      Click="BrowseSlotButton_OnClick"
+                                      Content="Browse"
+                                      Tag="{Binding SlotId}" />
+                                </Grid>
+                              </Border>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </Expander>
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
@@ -983,36 +1075,6 @@
               </StackPanel>
             </Border>
 
-            <Border
-                Padding="18"
-                Background="#FFFFFF"
-                BorderBrush="#E2E8F0"
-                BorderThickness="1"
-                CornerRadius="8"
-                IsVisible="{Binding IsCtrlRamReplaceModeSelected}">
-              <StackPanel Spacing="12">
-                <Grid ColumnDefinitions="*,Auto">
-                  <StackPanel Spacing="3">
-                    <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="CtrlRAM regions" />
-                    <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding CtrlRamRegionSummary}" TextWrapping="Wrap" />
-                  </StackPanel>
-                  <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Foreground="#2563EB" Text="{Binding SelectedIc}" />
-                </Grid>
-                <ItemsControl ItemsSource="{Binding CtrlRamRegions}">
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="vm:CtrlRamRegionViewModel">
-                      <Border Padding="0,0,0,9" BorderBrush="#EEF2F7" BorderThickness="0,0,0,1" Margin="0,0,0,8">
-                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="14">
-                          <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Name}" TextWrapping="Wrap" />
-                          <TextBlock Grid.Column="1" FontSize="12" FontFamily="Cascadia Mono, Consolas" Foreground="#475569" Text="{Binding StartAddress}" />
-                          <TextBlock Grid.Column="2" FontSize="12" FontFamily="Cascadia Mono, Consolas" Foreground="#64748B" Text="{Binding SizeHex}" />
-                        </Grid>
-                      </Border>
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-              </StackPanel>
-            </Border>
           </StackPanel>
 
           <Border Grid.Column="1" Padding="18,16" Background="#FFFFFF" BorderBrush="#EEF2F7" BorderThickness="1" CornerRadius="6">
@@ -1046,7 +1108,7 @@
                 </ItemsControl>
               </Border>
 
-              <ItemsControl ItemsSource="{Binding ReplaceCoverageSegments}">
+              <ItemsControl ItemsSource="{Binding ReplaceCoverageSegments}" IsVisible="{Binding IsReplaceCoverageFlat}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:MemoryCoverageSegmentViewModel">
                     <Border Padding="0,7" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
@@ -1062,6 +1124,45 @@
                         </StackPanel>
                       </Grid>
                     </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <ItemsControl ItemsSource="{Binding ReplaceCoverageGroups}" IsVisible="{Binding IsReplaceCoverageGrouped}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:MemoryCoverageGroupViewModel">
+                    <Expander IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
+                      <Expander.Header>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                          <StackPanel Spacing="2">
+                            <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" />
+                            <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Summary}" TextWrapping="Wrap" />
+                          </StackPanel>
+                          <Border Grid.Column="1" Padding="8,2" VerticalAlignment="Center" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+                            <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding SegmentCount}" />
+                          </Border>
+                        </Grid>
+                      </Expander.Header>
+                      <ItemsControl ItemsSource="{Binding Segments}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:MemoryCoverageSegmentViewModel">
+                            <Border Padding="0,7" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
+                              <Grid ColumnDefinitions="12,118,*" ColumnSpacing="8">
+                                <Border Width="10" Height="10" Margin="0,3,0,0" VerticalAlignment="Top" Background="{Binding FillBrush}" BorderBrush="{Binding OutlineBrush}" BorderThickness="{Binding OutlineThickness}" CornerRadius="2" />
+                                <TextBlock Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding SourceLabel}" TextWrapping="Wrap" />
+                                <StackPanel Grid.Column="2" Spacing="1">
+                                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                    <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" Foreground="#0F172A" Text="{Binding RangeLabel}" TextWrapping="Wrap" />
+                                    <TextBlock Grid.Column="1" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding ChangeLabel}" />
+                                  </Grid>
+                                  <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Detail}" TextWrapping="Wrap" />
+                                </StackPanel>
+                              </Grid>
+                            </Border>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </Expander>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>

@@ -166,6 +166,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// <summary>Gets replace input slots for the selected replace mode.</summary>
     public ObservableCollection<FirmwareSlotViewModel> ReplaceSlots { get; } = [];
 
+    /// <summary>Gets grouped CtrlRAM replacement slots for dense multi-chip layouts.</summary>
+    public ObservableCollection<FirmwareSlotGroupViewModel> ReplaceSlotGroups { get; } = [];
+
     /// <summary>Gets replace inspector rows for the selected replace mode.</summary>
     public ObservableCollection<string> ActiveReplaceRows { get; } = [];
 
@@ -183,6 +186,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     /// <summary>Gets visual coverage segments for the selected Replace workflow.</summary>
     public ObservableCollection<MemoryCoverageSegmentViewModel> ReplaceCoverageSegments { get; } = [];
+
+    /// <summary>Gets grouped Replace coverage segments for dense CtrlRAM layouts.</summary>
+    public ObservableCollection<MemoryCoverageGroupViewModel> ReplaceCoverageGroups { get; } = [];
 
     /// <summary>Gets readable memory-map rows for the selected Replace workflow.</summary>
     public ObservableCollection<MemoryMapRowViewModel> ReplaceMemoryRows { get; } = [];
@@ -269,6 +275,15 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     /// <summary>True when the selected Replace mode uses the fixed slot-card input layout.</summary>
     public bool IsStructuredReplaceModeSelected => !IsGeneralReplaceModeSelected;
+
+    /// <summary>True when the selected Replace mode uses the flat structured slot-card input layout.</summary>
+    public bool IsNonCtrlRamStructuredReplaceModeSelected => IsStructuredReplaceModeSelected && !IsCtrlRamReplaceModeSelected;
+
+    /// <summary>True when Replace coverage should use grouped segment details.</summary>
+    public bool IsReplaceCoverageGrouped => IsCtrlRamReplaceModeSelected && ReplaceCoverageGroups.Count > 0;
+
+    /// <summary>True when Replace coverage should use the flat segment details list.</summary>
+    public bool IsReplaceCoverageFlat => !IsReplaceCoverageGrouped;
 
     /// <summary>True when Normal Merge is selected.</summary>
     public bool IsNormalMergeModeSelected => string.Equals(SelectedMergeMode, "Normal", StringComparison.Ordinal);
@@ -413,6 +428,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             SelectedIc,
             SelectedNumber,
             SelectedReplaceMode));
+        RefreshReplaceCoverageGroups();
 
         OnPropertyChanged(nameof(MergeMemoryRangeLabel));
         OnPropertyChanged(nameof(ReplaceMemoryRangeLabel));
@@ -421,6 +437,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(ReplaceMemorySummary));
         OnPropertyChanged(nameof(ReplacePreviewUnavailableReason));
         OnPropertyChanged(nameof(ReplaceBuildUnavailableReason));
+        OnPropertyChanged(nameof(IsReplaceCoverageGrouped));
+        OnPropertyChanged(nameof(IsReplaceCoverageFlat));
     }
 
     private void RefreshReplaceModeState()
@@ -475,13 +493,45 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 break;
         }
 
+        RefreshReplaceSlotGroups();
         OnPropertyChanged(nameof(SelectedReplaceModeDescription));
         OnPropertyChanged(nameof(IsDpReplaceModeSelected));
         OnPropertyChanged(nameof(IsCtrlRamReplaceModeSelected));
         OnPropertyChanged(nameof(IsGeneralReplaceModeSelected));
         OnPropertyChanged(nameof(IsStructuredReplaceModeSelected));
+        OnPropertyChanged(nameof(IsNonCtrlRamStructuredReplaceModeSelected));
         OnPropertyChanged(nameof(ReplaceOutputFileName));
         RefreshCommandState();
+    }
+
+    private void RefreshReplaceSlotGroups()
+    {
+        ReplaceSlotGroups.Clear();
+        if (!IsCtrlRamReplaceModeSelected)
+        {
+            return;
+        }
+
+        foreach (FirmwareSlotGroupViewModel group in ReplaceRegionGroupBuilder.CreateSlotGroups(
+            ReplaceSlots.Where(slot => !ReferenceEquals(slot, ReplaceBaseSlot))))
+        {
+            ReplaceSlotGroups.Add(group);
+        }
+    }
+
+    private void RefreshReplaceCoverageGroups()
+    {
+        ReplaceCoverageGroups.Clear();
+        if (!IsCtrlRamReplaceModeSelected)
+        {
+            return;
+        }
+
+        foreach (MemoryCoverageGroupViewModel group in ReplaceRegionGroupBuilder.CreateCoverageGroups(
+            ReplaceCoverageSegments))
+        {
+            ReplaceCoverageGroups.Add(group);
+        }
     }
 
     private void AddRows(params string[] rows)
@@ -633,6 +683,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsCtrlRamReplaceModeSelected))]
     [NotifyPropertyChangedFor(nameof(IsGeneralReplaceModeSelected))]
     [NotifyPropertyChangedFor(nameof(IsStructuredReplaceModeSelected))]
+    [NotifyPropertyChangedFor(nameof(IsNonCtrlRamStructuredReplaceModeSelected))]
+    [NotifyPropertyChangedFor(nameof(IsReplaceCoverageGrouped))]
+    [NotifyPropertyChangedFor(nameof(IsReplaceCoverageFlat))]
     public partial string SelectedReplaceMode { get; set; } = DpReplaceMode;
 
     /// <summary>Gets supported IC count/variant choices for the selected IC.</summary>

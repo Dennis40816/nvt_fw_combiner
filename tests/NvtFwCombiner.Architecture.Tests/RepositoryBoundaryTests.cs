@@ -82,13 +82,14 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("BrowseGeneralMappingButton_OnClick", shell, StringComparison.Ordinal);
         Assert.Contains("GeneralMappingDrop_OnDrop", shell, StringComparison.Ordinal);
         Assert.Contains("RemoveGeneralMappingButton_OnClick", shell, StringComparison.Ordinal);
-        Assert.Contains("IsStructuredReplaceModeSelected", shell, StringComparison.Ordinal);
+        Assert.Contains("IsNonCtrlRamStructuredReplaceModeSelected", shell, StringComparison.Ordinal);
         Assert.Contains("ReplaceBaseSlot", shell, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding GeneralReplaceMappings}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding MergeCoverageSegments}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding ReplaceSlots}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding ReplaceSlotGroups}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding ReplaceCoverageGroups}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding MergeSlots}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding CtrlRamRegions}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding ReplaceMemoryRows}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding MergeMemoryRows}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding PreviewMergeCommand}\"", shell, StringComparison.Ordinal);
@@ -225,7 +226,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("## Update rule", reference, StringComparison.Ordinal);
         Assert.Contains("IcWorkflowFlowchartReferenceCoversBuiltInIcLists", reference, StringComparison.Ordinal);
         Assert.Contains("NT51928 NB is not covered", reference, StringComparison.Ordinal);
-        Assert.Contains("[0x37000, 0x38000)", reference, StringComparison.Ordinal);
+        Assert.Contains("0x37000-0x37FFF (len 0x1000)", reference, StringComparison.Ordinal);
         Assert.Contains("R-CTRLRAM-927", reference, StringComparison.Ordinal);
 
         foreach (string icId in builtInIcIds)
