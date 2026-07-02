@@ -52,6 +52,9 @@
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="999" />
     </Style>
+    <Style Selector="ToggleButton.segment TextBlock">
+      <Setter Property="Foreground" Value="#334155" />
+    </Style>
     <Style Selector="ToggleButton.segment:checked">
       <Setter Property="Background" Value="#EAF3FF" />
       <Setter Property="BorderBrush" Value="#60A5FA" />
@@ -63,6 +66,9 @@
       <Setter Property="BorderBrush" Value="#60A5FA" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="999" />
+    </Style>
+    <Style Selector="ToggleButton.segment:checked TextBlock">
+      <Setter Property="Foreground" Value="#0F172A" />
     </Style>
     <Style Selector="Button.secondary">
       <Setter Property="MinHeight" Value="34" />
@@ -991,7 +997,7 @@
             </Border>
           </StackPanel>
 
-          <Border Grid.Column="1" Padding="18" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
+          <Border Grid.Column="1" Padding="18,16" Background="#FFFFFF" BorderBrush="#EEF2F7" BorderThickness="1" CornerRadius="6">
             <StackPanel Spacing="14">
               <Grid ColumnDefinitions="*,Auto">
                 <StackPanel Spacing="3">
@@ -1001,7 +1007,7 @@
                 <TextBlock Grid.Column="1" VerticalAlignment="Center" FontFamily="Cascadia Mono, Consolas" FontSize="12" Foreground="#64748B" Text="{Binding ReplaceMemoryRangeLabel}" />
               </Grid>
 
-              <Border Padding="10" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
+              <Border Padding="6" Background="#EEF4FA" BorderBrush="Transparent" BorderThickness="0" CornerRadius="6">
                 <ItemsControl ItemsSource="{Binding ReplaceCoverageSegments}">
                   <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>

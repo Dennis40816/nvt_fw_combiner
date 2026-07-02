@@ -29,8 +29,8 @@ public sealed class MemoryCoverageSegmentViewModel
         BarWidth = barWidth;
         IsChanged = isChanged;
         ChangeLabel = isChanged ? "Changed" : "Preserved";
-        OutlineBrush = isChanged ? Brush.Parse("#F97316") : Brush.Parse("#CBD5E1");
-        OutlineThickness = isChanged ? new Thickness(1) : new Thickness(0);
+        OutlineBrush = Brushes.Transparent;
+        OutlineThickness = new Thickness(0);
     }
 
     /// <summary>Address range in half-open hex notation.</summary>

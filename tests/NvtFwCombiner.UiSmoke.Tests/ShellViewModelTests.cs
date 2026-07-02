@@ -214,6 +214,23 @@ public sealed class ShellViewModelTests
         }
     }
 
+    /// <summary>Verifies NT51927 three-chip CtrlRAM Replace exposes both right and left slave slots.</summary>
+    [Fact]
+    public void CtrlRamReplaceSlotsIncludeNt51927RightAndLeftSlaves()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51927";
+        viewModel.SelectedNumber = "3";
+        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+
+        Assert.Contains(viewModel.ReplaceSlots, slot => slot.Title == "Normal CtrlRAM (Slave R)");
+        Assert.Contains(viewModel.ReplaceSlots, slot => slot.Title == "Normal CtrlRAM (Slave L)");
+        Assert.Contains(viewModel.ReplaceSlots, slot => slot.Title == "MP CtrlRAM (Slave R)");
+        Assert.Contains(viewModel.ReplaceSlots, slot => slot.Title == "MP CtrlRAM (Slave L)");
+        Assert.Contains(viewModel.CtrlRamRegions, region => region.Name == "Normal CtrlRAM (Slave R)");
+        Assert.Contains(viewModel.CtrlRamRegions, region => region.Name == "Normal CtrlRAM (Slave L)");
+    }
+
     /// <summary>Verifies reports stay behind the icon entry until explicitly opened.</summary>
     [Fact]
     public void ReportReviewUsesToastAndModalState()

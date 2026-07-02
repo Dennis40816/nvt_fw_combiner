@@ -41,6 +41,20 @@ public sealed class TpFlashMapCatalogTests
         Assert.Contains(threeChip, region => region.RegionId == "normal-slave-l");
     }
 
+    /// <summary>NT51927 three-chip postbuild slots include both right and left slave CtrlRAM regions.</summary>
+    [Fact]
+    public void Nt51927PostbuildMappedCtrlRamRowsIncludeRightAndLeftSlaves()
+    {
+        IReadOnlyList<TpFlashMapRegion> mapped = TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
+            "NT51927",
+            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["3"]));
+
+        Assert.Contains(mapped, region => region.RegionId == "normal-slave-r");
+        Assert.Contains(mapped, region => region.RegionId == "normal-slave-l");
+        Assert.Contains(mapped, region => region.RegionId == "mp-slave-r");
+        Assert.Contains(mapped, region => region.RegionId == "mp-slave-l");
+    }
+
     /// <summary>Single-chip selections hide DIFF/DLM rows while cascade selections expose them.</summary>
     [Fact]
     public void SingleSelectionHidesDiffDlmRows()
