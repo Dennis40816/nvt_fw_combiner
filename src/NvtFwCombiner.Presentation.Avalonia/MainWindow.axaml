@@ -895,12 +895,12 @@
                   </Grid>
                 </Border>
 
-                <ItemsControl ItemsSource="{Binding ReplaceSlotGroups}">
+                <ItemsControl HorizontalAlignment="Stretch" ItemsSource="{Binding ReplaceSlotGroups}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:FirmwareSlotGroupViewModel">
-                      <Expander IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
+                      <Expander HorizontalAlignment="Stretch" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
                         <Expander.Header>
-                          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                          <Grid HorizontalAlignment="Stretch" ColumnDefinitions="*,Auto" ColumnSpacing="12">
                             <StackPanel Spacing="2">
                               <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" />
                               <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Summary}" TextWrapping="Wrap" />
@@ -910,10 +910,11 @@
                             </Border>
                           </Grid>
                         </Expander.Header>
-                        <ItemsControl ItemsSource="{Binding Slots}">
+                        <ItemsControl HorizontalAlignment="Stretch" ItemsSource="{Binding Slots}">
                           <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:FirmwareSlotViewModel">
                               <Border
+                                  HorizontalAlignment="Stretch"
                                   Margin="0,0,0,10"
                                   Padding="14"
                                   Background="#F8FAFC"
@@ -1128,12 +1129,12 @@
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
 
-              <ItemsControl ItemsSource="{Binding ReplaceCoverageGroups}" IsVisible="{Binding IsReplaceCoverageGrouped}">
+              <ItemsControl HorizontalAlignment="Stretch" ItemsSource="{Binding ReplaceCoverageGroups}" IsVisible="{Binding IsReplaceCoverageGrouped}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:MemoryCoverageGroupViewModel">
-                    <Expander IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
+                    <Expander HorizontalAlignment="Stretch" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
                       <Expander.Header>
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <Grid HorizontalAlignment="Stretch" ColumnDefinitions="*,Auto" ColumnSpacing="12">
                           <StackPanel Spacing="2">
                             <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" />
                             <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Summary}" TextWrapping="Wrap" />
@@ -1143,7 +1144,7 @@
                           </Border>
                         </Grid>
                       </Expander.Header>
-                      <ItemsControl ItemsSource="{Binding Segments}">
+                      <ItemsControl HorizontalAlignment="Stretch" ItemsSource="{Binding Segments}">
                         <ItemsControl.ItemTemplate>
                           <DataTemplate x:DataType="vm:MemoryCoverageSegmentViewModel">
                             <Border Padding="0,7" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
