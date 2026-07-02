@@ -43,6 +43,29 @@ public sealed class ShellViewModelTests
         Assert.Equal("Home > Settings", viewModel.NavigationPath);
     }
 
+    /// <summary>Verifies Normal Merge hides IC Number while preserving row layout space.</summary>
+    [Fact]
+    public void NormalMergeHidesNumberSelectorButKeepsPlaceholder()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        viewModel.ShowMergeCommand.Execute(null);
+
+        Assert.True(viewModel.IsMergeVisible);
+        Assert.True(viewModel.IsDeviceContextVisible);
+        Assert.True(viewModel.IsNormalMergeModeSelected);
+        Assert.False(viewModel.IsNumberSelectorVisible);
+        Assert.True(viewModel.IsNumberSelectorPlaceholderVisible);
+        Assert.Equal("NT51950: refresh profile, slots, validation", viewModel.DeviceContextStatus);
+
+        viewModel.ShowReplaceCommand.Execute(null);
+
+        Assert.True(viewModel.IsReplaceVisible);
+        Assert.True(viewModel.IsNumberSelectorVisible);
+        Assert.False(viewModel.IsNumberSelectorPlaceholderVisible);
+        Assert.Equal("NT51950 / single: refresh profile, slots, validation", viewModel.DeviceContextStatus);
+    }
+
     /// <summary>Verifies Standard Merge slots follow the selected profile instead of exposing LD globally.</summary>
     [Fact]
     public void MergeSlotsFollowSelectedProfileRequiredInputs()

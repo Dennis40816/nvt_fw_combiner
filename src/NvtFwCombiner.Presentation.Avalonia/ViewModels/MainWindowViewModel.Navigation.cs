@@ -19,6 +19,12 @@ public sealed partial class MainWindowViewModel
     /// <summary>True when the selected page needs IC and Number context.</summary>
     public bool IsDeviceContextVisible => SelectedPage is ShellPage.Merge or ShellPage.Replace;
 
+    /// <summary>True when the shared context row should expose the IC Number selector.</summary>
+    public bool IsNumberSelectorVisible => IsDeviceContextVisible && !(IsMergeVisible && IsNormalMergeModeSelected);
+
+    /// <summary>True when the hidden IC Number selector should keep its layout space.</summary>
+    public bool IsNumberSelectorPlaceholderVisible => IsDeviceContextVisible && !IsNumberSelectorVisible;
+
     /// <summary>Command that returns to the previous navigation entry.</summary>
     public IRelayCommand GoBackCommand { get; }
 

@@ -127,7 +127,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public string NumberLabel { get; }
 
     /// <summary>Gets the shared device context status text.</summary>
-    public string DeviceContextStatus => $"{SelectedIc} / {SelectedNumber}: {DeviceContextRefreshSummary}";
+    public string DeviceContextStatus => IsNumberSelectorVisible
+        ? $"{SelectedIc} / {SelectedNumber}: {DeviceContextRefreshSummary}"
+        : $"{SelectedIc}: {DeviceContextRefreshSummary}";
 
     /// <summary>Gets selectable IC choices from the current catalog.</summary>
     public IReadOnlyList<string> IcChoices { get; } = UiCompositionRunner.GetSupportedIcIds();
@@ -514,6 +516,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(ReplaceBuildUnavailableReason));
         OnPropertyChanged(nameof(ReplaceOutputFileName));
         OnPropertyChanged(nameof(IsDeviceContextVisible));
+        OnPropertyChanged(nameof(IsNumberSelectorVisible));
+        OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
+        OnPropertyChanged(nameof(DeviceContextStatus));
     }
 
     private void ResetRunResultForContextChange()
@@ -551,6 +556,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
             SelectedMergeMode = mode;
             OnPropertyChanged(nameof(SelectedMergeMode));
             OnPropertyChanged(nameof(IsNormalMergeModeSelected));
+            OnPropertyChanged(nameof(IsNumberSelectorVisible));
+            OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
+            OnPropertyChanged(nameof(DeviceContextStatus));
         }
 
         SetSelectedPage(ShellPage.Merge);
@@ -576,6 +584,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(IsMergeVisible));
         OnPropertyChanged(nameof(IsReplaceVisible));
         OnPropertyChanged(nameof(IsDeviceContextVisible));
+        OnPropertyChanged(nameof(IsNumberSelectorVisible));
+        OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
+        OnPropertyChanged(nameof(DeviceContextStatus));
         UpdateNavigationState();
     }
 
