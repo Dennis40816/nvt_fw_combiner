@@ -954,8 +954,8 @@ The owner requested review participation. Assistant/Codex review should focus on
 - `0.3.0`：standard merge parity for first IC group。
 - `0.4.0`：all standard merge profiles。
 - `0.5.0`：normal Replace priority beta for DP/CtrlRAM。
-- `0.6.0`：AB merge beta after owner reactivation。
-- `0.7.0`：settings/profile UX。
+- `0.6.0`：workflow data-model convergence for unified Merge/Replace profile, runner, and UI contracts。
+- `0.7.0`：General Merge/Replace, saved rules, and deferred AB work only after owner reactivation。
 - `0.8.0`：packaging/performance。
 - `0.9.0`：UAT RC。
 - `1.0.0`：signed-off support matrix。

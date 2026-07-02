@@ -2,7 +2,7 @@
 
 This is a planning inventory, not a support claim. A row becomes supported only after profile validation, integrity disposition, golden regression, and owner sign-off. `Unknown` never means `None`.
 
-Current owner priority as of 2026-06-30:
+Current owner priority as of 2026-07-02:
 
 - focus on normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows;
 - defer AB Code Merge implementation for now;
@@ -20,6 +20,28 @@ The per-IC Merge/Replace flowchart reference is [`ic-workflow-flowcharts.md`](ic
 | TP flash-map catalog | NT51917, NT51919, NT51920, NT51923, NT51926, NT51927, NT51928 non-NB, NT51929, NT51930, NT51931, NT51932, NT51950, NT51951 | `TpFlashMapCatalog` | UI can display DP, CtrlRAM, customer-info, and IC-count visibility rows from current evidence. | Every released workflow maps these rows through profiles, compiler checks, and report evidence. |
 | CtrlRAM postbuild command catalog | NT51917, NT51919, NT51920, NT51923, NT51926, NT51927, NT51928 non-NB, NT51929, NT51930, NT51931, NT51932, NT51950, NT51951 | `LegacyCombinerPostbuildCatalog`, Combiner `1.13.0` | Structured command sequences exist for single/cascade or numeric branches and are tested against argv shape. Workbench UI exposes per-region CtrlRAM slots and reports split/replace/postbuild command trace. | Production CtrlRAM Replace profiles declare read/write ranges, tool execution evidence, changed-range diff policy, and golden replace outputs. |
 | Production Replace profiles | NT51950/NT51951 DP Replace workbench path; no real CtrlRAM profiles yet | `WorkbenchCompositionService`, `BuiltInReplaceProfiles` | NT51950/NT51951 DP Replace builds by cloning exact-length base, replacing the padded DP container, then restoring TP `0x0A000-0x36FFF (len 0x2D000)`. Built-in Replace profiles remain synthetic contract evidence. | Real DP/CtrlRAM/General Replace profiles are wired per released IC/mode and golden signed off. |
+
+## First-sample gap priority
+
+| Priority | Gap | Current state | Needed before `v1.0.0` |
+| --- | --- | --- | --- |
+| P0 | Support matrix lock | Candidate IC/workflow rows exist, but candidates are not support claims. | Owner chooses the exact IC/workflow subset to ship; non-selected rows stay hidden or clearly candidate-only. |
+| P0 | Standard Merge golden closure | Full v1 merge IC list has executable profiles; uploaded gen_flash golden covers the existing owner fixtures. | Owner-approved golden outputs for NT51930 and NT51950/NT51951, plus firmware-owner sign-off for every released Standard Merge profile. |
+| P0 | DP Replace production closure | NT51950/NT51951 DP Replace workbench path exists; other IC DP Replace mappings remain gated. | Golden outputs for the 950/951 exact-base/variable-DP rule, and per-IC DP/LD maps for any other released DP Replace IC. |
+| P0 | CtrlRAM Replace production closure | UI slots, memory layout, postbuild command trace, and private fixture handoff exist; build output is intentionally gated. | Production profiles with declared CtrlRAM write ranges, legacy Combiner execution/diff policy, private golden outputs, and firmware-owner review. |
+| P1 | Unified workflow data model | Merge uses executable profiles; Replace still mixes synthetic profiles, workbench-specific planning, and flash-map facade data. | `0.6.0` should evaluate a unified profile/template/catalog model so UI, CLI, and tests call the same runner contracts. |
+| P1 | Report/history completeness | Preview/Build report modal exists; first-peak errors and save flow exist. | Persist report history and expose output artifact path, input/output hashes, normalized ranges, Combiner argv, warnings, and gated-state reason consistently. |
+| P1 | Settings persistence/readiness | Settings surface is catalog-backed; preference persistence is still partial. | Persist execution-affecting settings and show readiness for tool bindings, report location, and support status. |
+| P2 | Deferred workflows | AB Merge, saved rules, General profile promotion, and future REG Replace remain planned. | Reactivate only after owner evidence and support priority are explicit. |
+
+## Owner validation package needed
+
+- NT51930 Standard Merge: DP input, TP input, expected output, expected file name, input/output SHA-256, and owner approval.
+- NT51950/NT51951 Standard Merge: DP inputs for `0x40000`, `0x80000`, and `0x100000` where applicable, TP input covering `0x0A000-0x36FFF`, expected output, hashes, and confirmation that `0x37000-0x37FFF` remains preserved.
+- NT51950/NT51951 DP Replace: exact `0x100000` base firmware, replacement DP payloads for the owner-approved sizes, expected output hashes, and rejection cases for invalid base/replacement sizes.
+- CtrlRAM Replace per released IC/mode: base firmware, per-region CtrlRAM replacement BINs, expected final output after Combiner postbuild, Combiner version/tool binding, command order, declared read/write ranges, and allowed diff ranges.
+- IC aliases/counts: final owner confirmation for NT51917/NT51919/NT51928/NT51929/NT51951 alias behavior, NT51928 NB exclusion, and NT51930 `>13 IC` handling.
+- General Replace: protected ranges, allowed explicit-mapping envelope, overlap/alignment rules, and any required post-processing triggers.
 
 | IC | Standard Merge | AB Merge | Replace planning | Integrity evidence | Current evidence | 1.0 status |
 | --- | --- | --- | --- | --- | --- | --- |

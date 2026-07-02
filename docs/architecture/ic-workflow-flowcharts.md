@@ -1,6 +1,6 @@
 # IC Workflow Flowchart Reference
 
-Status: architecture reference as of 2026-07-01.
+Status: architecture reference as of 2026-07-02.
 
 This document is an index for the current Merge and Replace flows by IC. It is not a production support claim. A profile is production-ready only after profile validation, golden regression, processor diff review, and owner sign-off.
 
@@ -38,8 +38,8 @@ The architecture test `IcWorkflowFlowchartReferenceCoversBuiltInIcLists` checks 
 | NT51930 | `SM-FLASHMAP-DYNAMIC`: flash-map derived profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51930`: current cascade maps to `<=13 IC`. | `R-GENERAL`: explicit mapping only after protected map is known. | Implemented Standard Merge profile and CtrlRAM command core; normal merge golden pending. |
 | NT51931 | `SM-GENFLASH`: direct gen_flash profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51930`: NT51930-based mode. | `R-GENERAL`: explicit mapping only after protected map is known. | Implemented Standard Merge profile and CtrlRAM command core. |
 | NT51932 | `SM-GENFLASH`: direct gen_flash profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51932`: direct postbuild reference. | `R-GENERAL`: explicit mapping only after protected map is known. | Implemented Standard Merge profile and CtrlRAM command core; AB is deferred. |
-| NT51950 | `SM-950-951-DP-PERSPECTIVE`: executable profile, golden pending. | `R-DP-950-951`: DP Perspective profile/model work pending. | `R-CTRLRAM-51950`: direct postbuild reference. | `R-GENERAL`: explicit mapping only after protected map is known. | Standard Merge profile and CtrlRAM command core implemented; golden pending. |
-| NT51951 | `SM-950-951-DP-PERSPECTIVE`: follows NT51950 profile, golden pending. | `R-DP-950-951`: DP Perspective profile/model work pending. | `R-CTRLRAM-51950`: follows NT51950. | `R-GENERAL`: explicit mapping only after protected map is known. | Standard Merge profile and CtrlRAM command core implemented; golden pending. |
+| NT51950 | `SM-950-951-DP-PERSPECTIVE`: executable profile, golden pending. | `R-DP-950-951`: workbench exact-base path implemented; production profile/golden pending. | `R-CTRLRAM-51950`: direct postbuild reference. | `R-GENERAL`: explicit mapping only after protected map is known. | Standard Merge profile, DP Replace workbench path, and CtrlRAM command core implemented; golden pending. |
+| NT51951 | `SM-950-951-DP-PERSPECTIVE`: follows NT51950 profile, golden pending. | `R-DP-950-951`: follows NT51950 workbench exact-base path; production profile/golden pending. | `R-CTRLRAM-51950`: follows NT51950. | `R-GENERAL`: explicit mapping only after protected map is known. | Standard Merge profile, DP Replace workbench path, and CtrlRAM command core implemented; golden pending. |
 
 ## Standard Merge flowcharts
 
