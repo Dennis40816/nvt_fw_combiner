@@ -41,6 +41,11 @@ public static partial class WorkbenchCompositionService
             build,
             outputPath,
             profile.DefaultOutputFileName);
+        if (build)
+        {
+            EnsureOutputDoesNotAliasInputs(outputDirectory, outputFileName, bindings);
+        }
+
         FileArtifactReader reader = new(inputRoots);
         AtomicFileCompositionOutputWriter? writer = build
             ? new AtomicFileCompositionOutputWriter(outputDirectory, overwrite: true)

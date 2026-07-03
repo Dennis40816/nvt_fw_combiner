@@ -290,6 +290,11 @@ public static partial class WorkbenchCompositionService
             build,
             outputPath,
             profile.DefaultOutputFileName);
+        if (build)
+        {
+            EnsureOutputDoesNotAliasInputs(outputDirectory, outputFileName, bindings);
+        }
+
         FileArtifactReader reader = new(inputRoots);
         AtomicFileCompositionOutputWriter? writer = build
             ? new AtomicFileCompositionOutputWriter(outputDirectory, overwrite: true)
@@ -342,6 +347,29 @@ public static partial class WorkbenchCompositionService
             ? throw new ArgumentException("Output path must include a directory and file name.", nameof(outputPath))
             : (directory, fileName);
     }
+
+    private static void EnsureOutputDoesNotAliasInputs(
+        string outputDirectory,
+        string outputFileName,
+        IReadOnlyList<InputArtifactBinding> bindings)
+    {
+        string outputFullPath = Path.GetFullPath(Path.Combine(outputDirectory, outputFileName));
+        foreach (InputArtifactBinding binding in bindings)
+        {
+            string inputFullPath = Path.GetFullPath(binding.ArtifactId);
+            if (string.Equals(outputFullPath, inputFullPath, PathComparison))
+            {
+                throw new ArgumentException(
+                    $"Output path must not overwrite input artifact '{binding.BindingId}'.",
+                    nameof(outputFileName));
+            }
+        }
+    }
+
+    private static StringComparison PathComparison =>
+        OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
 
     private static IReadOnlyList<string> GetRequiredAddressSpaces(CompositionProfileDefinition profile)
     {

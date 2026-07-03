@@ -80,7 +80,14 @@ public sealed class LegacyCombinerPostbuildProcessor : IExternalProcessor
             return Fail("legacy-combiner.branch.invalid", exception.Message);
         }
 
-        string runDirectory = Path.Combine(_stagingRoot, request.RunId);
+        string runDirectory = Path.GetFullPath(Path.Combine(_stagingRoot, request.RunId));
+        if (!IsInsideDirectory(_stagingRoot, runDirectory))
+        {
+            return Fail(
+                "external-tool.staging.path-escape",
+                "External processor staging directory escapes the approved staging root.");
+        }
+
         try
         {
             if (Directory.Exists(runDirectory))

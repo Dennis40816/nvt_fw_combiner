@@ -69,8 +69,6 @@ public sealed class BuiltInStandardMergeProfilesTests
             "NT51930",
             "NT51931",
             "NT51932",
-            "NT51950",
-            "NT51951",
         ];
 
         Assert.Equal(
@@ -84,6 +82,9 @@ public sealed class BuiltInStandardMergeProfilesTests
         Assert.DoesNotContain(
             BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles,
             profile => profile.IcId is "NT51917" or "NT51919");
+        Assert.DoesNotContain(
+            BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles,
+            profile => profile.IcId is "NT51950" or "NT51951");
     }
 
     /// <summary>Verifies NT51930 Standard Merge uses the flash-map dynamic layout ranges.</summary>

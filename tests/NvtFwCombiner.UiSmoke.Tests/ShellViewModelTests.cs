@@ -528,16 +528,10 @@ public sealed class ShellViewModelTests
         }
     }
 
-    /// <summary>Verifies an NT51950 run with NT51926 TP input is blocked with a reopenable detailed report.</summary>
+    /// <summary>Verifies NT51950 Standard Merge stays gated until executable evidence is approved.</summary>
     [Fact]
-    public async Task BuildNt51950WithNt51926InputsFailsWithDetailedReportAndNoOutput()
+    public async Task BuildNt51950StandardMergeIsGatedWithDetailedReportAndNoOutput()
     {
-        string repositoryRoot = FindRepositoryRoot();
-        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
-        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
-        JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
-            .EnumerateArray()
-            .Single(testCase => testCase.GetProperty("ic").GetString() == "51926");
         string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-950-negative-{Guid.NewGuid():N}");
 
         try
@@ -546,35 +540,28 @@ public sealed class ShellViewModelTests
             MainWindowViewModel viewModel = ShellViewModelFactory.Create();
             viewModel.SelectedIc = "NT51950";
 
-            foreach (JsonProperty input in goldenCase.GetProperty("inputs").EnumerateObject())
-            {
-                string sourcePath = ManifestPath(goldenRoot, input.Value);
-                string copiedPath = Path.Combine(tempRoot, $"{input.Name}.bin");
-                File.Copy(sourcePath, copiedPath);
-                viewModel.SetSlotFile(SlotIdForAddressSpace(input.Name), copiedPath);
-            }
-
-            Assert.True(viewModel.CanBuildStandardMerge);
+            Assert.False(viewModel.IsStandardMergeSupported);
+            Assert.False(viewModel.CanBuildStandardMerge);
+            Assert.Equal("NT51950: Standard Merge is not available yet.", viewModel.MergeReadinessStatus);
 
             string outputPath = Path.Combine(tempRoot, "should-not-exist.bin");
             await viewModel.BuildStandardMergeAsync(outputPath);
 
             Assert.False(viewModel.LastRunResult.Succeeded);
-            Assert.Equal("Build blocked", viewModel.LastRunResult.Title);
+            Assert.Equal("Build failed", viewModel.LastRunResult.Title);
             Assert.Equal("No output", viewModel.LastRunResult.Output);
+            Assert.Contains("Standard Merge is not available", viewModel.LastRunResult.Detail, StringComparison.Ordinal);
             Assert.False(File.Exists(outputPath), outputPath);
             Assert.True(viewModel.HasLoadedReport);
             Assert.True(viewModel.CanOpenReport);
             Assert.True(viewModel.HasReportToast);
             ReportLineViewModel issue = Assert.Single(viewModel.LoadedReport.Issues);
-            Assert.Equal("input.address-space.length-mismatch", issue.Title);
-            Assert.Contains("tp-input", issue.Detail, StringComparison.Ordinal);
-            Assert.Contains("actual 245760 bytes", issue.Detail, StringComparison.Ordinal);
-            Assert.Contains("declared 225280 bytes", issue.Detail, StringComparison.Ordinal);
+            Assert.Equal("ui.run.failed", issue.Title);
+            Assert.Contains("Standard Merge is not available", issue.Detail, StringComparison.Ordinal);
             Assert.True(viewModel.LoadedReport.HasPrimaryIssue);
             Assert.Equal(issue.Title, viewModel.LoadedReport.PrimaryIssue.Title);
-            Assert.True(viewModel.LoadedReport.HasInputs);
-            Assert.True(viewModel.LoadedReport.HasOperations);
+            Assert.False(viewModel.LoadedReport.HasInputs);
+            Assert.False(viewModel.LoadedReport.HasOperations);
         }
         finally
         {
