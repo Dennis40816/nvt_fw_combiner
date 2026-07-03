@@ -208,7 +208,7 @@ public static class CliApplication
         CompositionRunResult result = action == "preview"
             ? await service.PreviewAsync(request, cancellationToken).ConfigureAwait(false)
             : await BuildWithInternalPreviewAsync(service, request, cancellationToken).ConfigureAwait(false);
-        await WriteReportFileIfRequestedAsync(result, options, output, cancellationToken).ConfigureAwait(false);
+        await WriteReportFileIfRequestedAsync(result, options, bindings, output, cancellationToken).ConfigureAwait(false);
         await PrintRunResultAsync(result, output, error).ConfigureAwait(false);
         return result.Status == CompositionExecutionStatus.Succeeded ? Success : CompositionFailed;
     }
@@ -354,6 +354,7 @@ public static class CliApplication
     private static async Task WriteReportFileIfRequestedAsync(
         CompositionRunResult result,
         ParsedOptions options,
+        IReadOnlyList<InputArtifactBinding> bindings,
         TextWriter output,
         CancellationToken cancellationToken)
     {
@@ -363,7 +364,7 @@ public static class CliApplication
         }
 
         string fullPath = await CliRunReportWriter
-            .WriteAsync(result.Report, reportPath, cancellationToken)
+            .WriteAsync(result.Report, reportPath, bindings.Select(binding => binding.ArtifactId), cancellationToken)
             .ConfigureAwait(false);
         await output.WriteLineAsync($"Report: {fullPath}").ConfigureAwait(false);
     }

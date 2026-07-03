@@ -45,6 +45,62 @@ public sealed class StandardMergeCliCommandTests
         Assert.Equal("copy-tp", root.GetProperty("Operations")[0].GetProperty("OperationId").GetString());
     }
 
+    /// <summary>Rejects report paths that would overwrite an input BIN.</summary>
+    [Fact]
+    public async Task StandardMergePreviewRejectsReportPathThatAliasesInput()
+    {
+        using var workspace = TempWorkspace.Create();
+        byte[] dp = new byte[0x40000];
+        byte[] tp = new byte[0x30000];
+        string dpPath = workspace.Write("dp.bin", dp);
+        string tpPath = workspace.Write("tp.bin", tp);
+
+        CliRunResult result = await RunCliAsync([
+            "standard-merge",
+            "preview",
+            "--profile",
+            "51920",
+            "--dp",
+            dpPath,
+            "--tp",
+            tpPath,
+            "--report",
+            dpPath,
+        ]);
+
+        Assert.Equal(70, result.ExitCode);
+        Assert.Contains("Report path must not overwrite an input artifact.", result.Error, StringComparison.Ordinal);
+        Assert.Equal(dp, await File.ReadAllBytesAsync(dpPath, TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>Rejects Workbench build outputs that would overwrite selected input BINs.</summary>
+    [Fact]
+    public async Task WorkbenchStandardMergeBuildRejectsOutputPathThatAliasesInput()
+    {
+        using var workspace = TempWorkspace.Create();
+        byte[] dp = new byte[0x40000];
+        byte[] tp = new byte[0x30000];
+        string dpPath = workspace.Write("dp.bin", dp);
+        string tpPath = workspace.Write("tp.bin", tp);
+
+        ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            WorkbenchCompositionService
+                .RunStandardMergeAsync(
+                    "NT51920",
+                    new Dictionary<string, string>(StringComparer.Ordinal)
+                    {
+                        ["dp-input"] = dpPath,
+                        ["tp-input"] = tpPath,
+                    },
+                    build: true,
+                    TestContext.Current.CancellationToken,
+                    outputPath: dpPath)
+                .AsTask());
+
+        Assert.Contains("Output path must not overwrite input artifact", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(dp, await File.ReadAllBytesAsync(dpPath, TestContext.Current.CancellationToken));
+    }
+
     private static async Task<CliRunResult> RunCliAsync(string[] args)
     {
         using var output = new StringWriter();

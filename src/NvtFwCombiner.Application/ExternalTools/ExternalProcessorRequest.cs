@@ -67,7 +67,8 @@ public sealed class ExternalProcessorRequest
 
     private static bool IsSafeId(string value)
     {
-        return value.All(character =>
+        return value is not ("." or "..") &&
+            value.All(character =>
             char.IsAsciiLetterOrDigit(character) ||
             character is '-' or '_' or '.');
     }
