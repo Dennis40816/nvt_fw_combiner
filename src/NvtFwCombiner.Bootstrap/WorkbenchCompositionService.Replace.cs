@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
 using NvtFwCombiner.Application.Composition;
@@ -16,7 +17,7 @@ public static partial class WorkbenchCompositionService
         string? outputPath,
         CancellationToken cancellationToken)
     {
-        CompositionProfileDefinition profile = CreateNt51950DpReplaceProfile(icId);
+        CompositionProfileDefinition profile = GetDpReplaceProfile(icId);
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         if (!compile.IsSuccess)
         {
@@ -43,29 +44,31 @@ public static partial class WorkbenchCompositionService
         string icId,
         IReadOnlyList<TpFlashMapRegion> regions)
     {
-        return IsNt51950Or51(icId)
-            ?
-            [
-                new WorkbenchMemoryMapRow(
-                    FormatDisplayRange(new ByteRange(0, Nt51950DpContainerLength)),
-                    "Base flash",
-                    "Replace",
-                    "DP replacement",
-                    "Replacement DP initializes the 0x100000 work container; shorter files are padded by profile policy."),
-                new WorkbenchMemoryMapRow(
-                    FormatDisplayRange(Nt51950TpRestoreRange),
-                    "DP replacement",
-                    "Restore",
-                    "Base TP",
-                    $"Copy original TP FW at {FormatDisplayRange(Nt51950TpRestoreRange)} from the base firmware after DP replacement."),
-                new WorkbenchMemoryMapRow(
-                    FormatDisplayRange(Nt51950CustomerInfoPreserveRange),
-                    "DP replacement",
-                    "Preserve",
-                    "Base customer info",
-                    $"Copy customer information at {FormatDisplayRange(Nt51950CustomerInfoPreserveRange)} from the base firmware after DP replacement."),
-            ]
-            :
+        if (TryGetDpReplaceProfile(icId, out CompositionProfileDefinition? profile))
+        {
+            ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
+            return !compile.IsSuccess
+                ?
+                [
+                    new WorkbenchMemoryMapRow(
+                        "Profile",
+                        "Profile",
+                        "Blocked",
+                        "No output",
+                        FormatIssues(compile.Issues)),
+                ]
+                :
+                [
+                    .. compile.Plan!.OrderedOperations.Select(operation => new WorkbenchMemoryMapRow(
+                        FormatDisplayRange(operation.TargetRange),
+                        operation.Kind == CompositionOperationKind.ReplaceRange ? "Base flash" : "DP replacement",
+                        DpReplaceActionLabel(operation),
+                        operation.SourceSpaceId is null ? "No source" : AddressSpaceLabel(operation.SourceSpaceId),
+                        $"Sequence {operation.Sequence}: {operation.Reason}")),
+                ];
+        }
+
+        return
         [
             .. CreatePreserveRows(regions),
             .. GetDpReplaceRegions(icId, regions)
@@ -95,71 +98,6 @@ public static partial class WorkbenchCompositionService
                     region.PostbuildFileName ?? "CtrlRAM BIN",
                     $"{region.DisplayName} at {FormatDisplayRange(region.Range)} can use its own replacement BIN; the report shows the CRC/header refresh command.")),
         ];
-    }
-
-    private static CompositionProfileDefinition CreateNt51950DpReplaceProfile(string icId)
-    {
-        var fullContainer = new ByteRange(0, Nt51950DpContainerLength);
-        string normalizedIc = icId.ToLowerInvariant();
-        return new CompositionProfileDefinition(
-            $"{normalizedIc}-dp-replace-dp-perspective",
-            "0.5.0",
-            icId,
-            "dp-replace",
-            CompositionKind.Replace,
-            "dp-replace",
-            $"{normalizedIc}-dp-replace.bin",
-            ImageInitialization.Reference("output-image", "reference-base", Nt51950DpContainerLength),
-            [
-                new AddressSpace("reference-base", Nt51950DpContainerLength, AddressSpaceMutability.Immutable),
-                new AddressSpace("dp-replacement", Nt51950DpContainerLength, AddressSpaceMutability.Immutable, inputPaddingByte: 0x00),
-                new AddressSpace("output-image", Nt51950DpContainerLength, AddressSpaceMutability.Mutable),
-            ],
-            [
-                CompositionOperation.ReplaceRange(
-                    "replace-dp-container",
-                    100,
-                    "dp-replacement",
-                    fullContainer,
-                    "output-image",
-                    fullContainer,
-                    OverlapPolicy.Reject,
-                    "Replace the NT51950/NT51951 DP Perspective container after padding to 0x100000."),
-                CompositionOperation.CopyRange(
-                    "restore-base-tp",
-                    200,
-                    "reference-base",
-                    Nt51950TpRestoreRange,
-                    "output-image",
-                    Nt51950TpRestoreRange,
-                    OverlapPolicy.ReplaceExisting,
-                    $"Restore original TP FW at {FormatDisplayRange(Nt51950TpRestoreRange)} from the base firmware after DP replacement."),
-                CompositionOperation.CopyRange(
-                    "restore-base-customer-info",
-                    210,
-                    "reference-base",
-                    Nt51950CustomerInfoPreserveRange,
-                    "output-image",
-                    Nt51950CustomerInfoPreserveRange,
-                    OverlapPolicy.ReplaceExisting,
-                    $"Restore customer information at {FormatDisplayRange(Nt51950CustomerInfoPreserveRange)} from the base firmware after DP replacement."),
-            ],
-            [
-                new ProfileRegion(
-                    "dp-perspective-container",
-                    "output-image",
-                    fullContainer,
-                    RegionAtomicity.Partitioned,
-                    RegionWritePolicy.DeclaredParts,
-                    classificationTags: ["dp", "tp-restore", "customer-info-preserve"]),
-            ],
-            [
-                new RegionAccessRule(
-                    "dp-perspective-container",
-                    RegionAccessKind.Parts,
-                    "NT51950/NT51951 DP Replace first copies replacement DP, then restores the original TP and customer-info ranges."),
-            ],
-            IcNumberInputMode.SingleSelector);
     }
 
     private static WorkbenchRunResult CreatePlanningRunResult(
@@ -230,56 +168,33 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetRegions(icId, selection);
         OperationRunStatus status = OperationRunStatus.Skipped;
 
-        return replaceMode == "DP" && IsNt51950Or51(icId)
+        if (replaceMode == "DP" && TryGetDpReplaceProfile(icId, out CompositionProfileDefinition? profile))
+        {
+            ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
+            return compile.IsSuccess
+                ?
+                [
+                    .. compile.Plan!.OrderedOperations.Select(operation => new OperationRunSummary(
+                        operation.OperationId,
+                        operation.Sequence,
+                        operation.Kind,
+                        status,
+                        operation.SourceSpaceId,
+                        operation.SourceRange,
+                        operation.TargetSpaceId,
+                        operation.TargetRange,
+                        operation.OverlapPolicy,
+                        operation.ExternalProcessorInvocation?.ProcessorId,
+                        operation.ExternalProcessorInvocation?.ToolBindingId,
+                        operation.ExternalProcessorInvocation?.AllowedReadRanges ?? [],
+                        operation.ExternalProcessorInvocation?.AllowedWriteRanges ?? [],
+                        operation.Reason)),
+                ]
+                : [];
+        }
+
+        return replaceMode == "DP"
             ?
-            [
-                new OperationRunSummary(
-                    "replace-dp-container",
-                    100,
-                    CompositionOperationKind.ReplaceRange,
-                    status,
-                    "dp-replacement",
-                    new ByteRange(0, Nt51950DpContainerLength),
-                    "output-image",
-                    new ByteRange(0, Nt51950DpContainerLength),
-                    OverlapPolicy.Reject,
-                    null,
-                    null,
-                    [],
-                    [],
-                    "Replace the DP perspective container."),
-                new OperationRunSummary(
-                    "restore-base-tp",
-                    200,
-                    CompositionOperationKind.CopyRange,
-                    status,
-                    "reference-base",
-                    Nt51950TpRestoreRange,
-                    "output-image",
-                    Nt51950TpRestoreRange,
-                    OverlapPolicy.ReplaceExisting,
-                    null,
-                    null,
-                    [],
-                    [],
-                    "Restore original TP FW from the base firmware."),
-                new OperationRunSummary(
-                    "restore-base-customer-info",
-                    210,
-                    CompositionOperationKind.CopyRange,
-                    status,
-                    "reference-base",
-                    Nt51950CustomerInfoPreserveRange,
-                    "output-image",
-                    Nt51950CustomerInfoPreserveRange,
-                    OverlapPolicy.ReplaceExisting,
-                    null,
-                    null,
-                    [],
-                    [],
-                    "Restore customer information from the base firmware."),
-            ]
-            :
         [
             .. GetDpReplaceRegions(icId, regions).Select((region, index) => new OperationRunSummary(
                 $"replace-{region.RegionId}",
@@ -296,7 +211,8 @@ public static partial class WorkbenchCompositionService
                 [],
                 [],
                 $"{region.DisplayName} awaits per-IC DP Replace source mapping evidence.")),
-        ];
+        ]
+            : [];
     }
 
     private static List<InputArtifactSummary> CreateInputSummaries(
@@ -326,8 +242,8 @@ public static partial class WorkbenchCompositionService
             new(
                 "replace-dp",
                 "DP replacement BIN",
-                IsNt51950Or51(icId)
-                    ? $"Replacement DP container {FormatDisplayRange(new ByteRange(0, Nt51950DpContainerLength))}; shorter files are padded before the original TP range is restored."
+                TryGetDpReplaceProfile(icId, out CompositionProfileDefinition? profile)
+                    ? $"Replacement DP container {FormatDisplayRange(new ByteRange(0, GetAddressSpaceLength(profile, "dp-replacement")))}; shorter files are padded before the original TP range is restored."
                     : "Replacement DP payload. Build stays gated until this IC has approved DP Replace mapping evidence.",
                 false,
                 "dp-replacement",
@@ -384,7 +300,49 @@ public static partial class WorkbenchCompositionService
 
     private static bool IsNt51950Or51(string icId)
     {
-        return icId is "NT51950" or "NT51951";
+        return TryGetDpReplaceProfile(icId, out _);
+    }
+
+    private static bool TryGetDpReplaceProfile(
+        string icId,
+        [NotNullWhen(true)] out CompositionProfileDefinition? profile)
+    {
+        return DpReplaceProfilesByIc.TryGetValue(icId, out profile);
+    }
+
+    private static CompositionProfileDefinition GetDpReplaceProfile(string icId)
+    {
+        return TryGetDpReplaceProfile(icId, out CompositionProfileDefinition? profile)
+            ? profile
+            : throw new InvalidOperationException($"DP Replace is not available for '{icId}'.");
+    }
+
+    private static long GetAddressSpaceLength(CompositionProfileDefinition profile, string addressSpaceId)
+    {
+        return profile.AddressSpaces
+            .Single(space => string.Equals(space.AddressSpaceId, addressSpaceId, StringComparison.Ordinal))
+            .Length;
+    }
+
+    private static string DpReplaceActionLabel(CompositionOperation operation)
+    {
+        return operation.OperationId switch
+        {
+            "restore-base-tp" => "Restore",
+            "restore-base-customer-info" => "Preserve",
+            _ => ActionLabel(operation.Kind),
+        };
+    }
+
+    private static string DpReplaceCoverageLabel(CompositionOperation operation)
+    {
+        return operation.OperationId switch
+        {
+            "replace-dp-container" => "Changed DP BIN",
+            "restore-base-tp" => "Restored TP",
+            "restore-base-customer-info" => "Preserved customer info",
+            _ => DpReplaceActionLabel(operation),
+        };
     }
 
     private static IReadOnlyList<WorkbenchMemoryMapRow> CreatePreserveRows(

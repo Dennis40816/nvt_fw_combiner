@@ -17,9 +17,6 @@ namespace NvtFwCombiner.Bootstrap;
 public static partial class WorkbenchCompositionService
 {
     private const string EmptySha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-    private const long Nt51950DpContainerLength = 0x100000;
-    private static readonly ByteRange Nt51950TpRestoreRange = ByteRange.FromStartEndExclusive(0x0A000, 0x37000);
-    private static readonly ByteRange Nt51950CustomerInfoPreserveRange = new(0x37000, 0x1000);
 
     private static readonly JsonSerializerOptions ReportJsonOptions = new()
     {
@@ -31,6 +28,12 @@ public static partial class WorkbenchCompositionService
         BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles.ToDictionary(
             profile => profile.IcId,
             StringComparer.Ordinal);
+
+    private static readonly Dictionary<string, CompositionProfileDefinition> DpReplaceProfilesByIc =
+        BuiltInReplaceProfiles.All
+            .Where(profile => string.Equals(profile.ExperienceId, "dp-replace", StringComparison.Ordinal) &&
+                !string.Equals(profile.IcId, "NT-SYNTHETIC", StringComparison.Ordinal))
+            .ToDictionary(profile => profile.IcId, StringComparer.Ordinal);
 
     /// <summary>Returns true when the selected IC has a built-in standard merge profile.</summary>
     public static bool IsStandardMergeSupported(string icId)
@@ -579,6 +582,7 @@ public static partial class WorkbenchCompositionService
             "CtrlRAM BIN" => "#16A34A",
             "Changed CtrlRAM BIN" => "#16A34A",
             "Restored TP" => "#64748B",
+            "Preserved customer info" => "#94A3B8",
             "Preserve" => "#64748B",
             string label when label.Contains("NF CtrlRAM", StringComparison.OrdinalIgnoreCase) => "#DC2626",
             string label when label.Contains("Normal CtrlRAM", StringComparison.OrdinalIgnoreCase) => "#0891B2",

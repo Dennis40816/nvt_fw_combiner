@@ -58,6 +58,49 @@ public sealed class ReplaceCliCommandTests
         Assert.Equal("Replace synthetic DP declared partition.", operation.GetProperty("Reason").GetString());
     }
 
+    /// <summary>Verifies NT51950 DP Replace is selected from the built-in Replace profile catalog.</summary>
+    [Fact]
+    public async Task DpReplaceBuildUsesNt51950CatalogProfile()
+    {
+        using var workspace = TempWorkspace.Create();
+        byte[] referenceBytes = [.. Enumerable.Repeat((byte)0xA5, 0x100000)];
+        Array.Fill(referenceBytes, (byte)0x22, 0x0A000, 0x2D000);
+        Array.Fill(referenceBytes, (byte)0x33, 0x37000, 0x1000);
+        byte[] dpBytes = [.. Enumerable.Repeat((byte)0x11, 0x40000)];
+        string reference = workspace.Write("reference.bin", referenceBytes);
+        string dp = workspace.Write("dp.bin", dpBytes);
+        string output = workspace.PathFor("nt51950-dp-replace.bin");
+
+        CliRunResult result = await RunCliAsync([
+            "dp-replace",
+            "build",
+            "--profile",
+            "NT51950",
+            "--ic-num",
+            "single",
+            "--base",
+            reference,
+            "--dp",
+            dp,
+            "--output",
+            output,
+        ]);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
+        Assert.Contains("nt51950-dp-replace-dp-perspective", result.Output, StringComparison.Ordinal);
+        byte[] bytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
+        Assert.Equal(0x100000, bytes.Length);
+        Assert.Equal(0x11, bytes[0x00000]);
+        Assert.Equal(0x11, bytes[0x09FFF]);
+        Assert.Equal(0x22, bytes[0x0A000]);
+        Assert.Equal(0x22, bytes[0x36FFF]);
+        Assert.Equal(0x33, bytes[0x37000]);
+        Assert.Equal(0x33, bytes[0x37FFF]);
+        Assert.Equal(0x11, bytes[0x38000]);
+        Assert.Equal(0x00, bytes[0x40000]);
+    }
+
     /// <summary>Verifies CtrlRAM Replace preview reports truncation warnings while succeeding.</summary>
     [Fact]
     public async Task CtrlRamReplacePreviewReportsOversizedInputTruncation()

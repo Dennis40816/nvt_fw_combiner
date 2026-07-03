@@ -12,7 +12,9 @@ public sealed class BuiltInReplaceProfilesTests
     {
         Assert.Equal(
             ["dp-replace", "ctrlram-replace", "general-replace"],
-            BuiltInReplaceProfiles.All.Select(profile => profile.ExperienceId));
+            BuiltInReplaceProfiles.All
+                .Select(profile => profile.ExperienceId)
+                .Distinct(StringComparer.Ordinal));
     }
 
     /// <summary>Verifies fixed DP Replace compiles with separate DP and LD payloads.</summary>
@@ -29,6 +31,38 @@ public sealed class BuiltInReplaceProfilesTests
         Assert.Contains(profile.AddressSpaces, space => space.AddressSpaceId == "ld-replacement" && space.InputPaddingByte == 0xFF);
         Assert.Equal(["replace-dp", "replace-ld"], result.Plan!.OrderedOperations.Select(operation => operation.OperationId));
         Assert.Contains(profile.Regions, region => region.RegionId == "ld" && region.ClassificationTags.Contains("ld", StringComparer.Ordinal));
+    }
+
+    /// <summary>Verifies NT51950/NT51951 DP Replace is catalog-owned instead of workbench-owned.</summary>
+    [Theory]
+    [InlineData("NT51950", "nt51950-dp-replace-dp-perspective")]
+    [InlineData("NT51951", "nt51951-dp-replace-dp-perspective")]
+    public void Nt51950FamilyDpReplaceCompilesFromBuiltInCatalog(string icId, string profileId)
+    {
+        CompositionProfileDefinition profile = BuiltInReplaceProfiles.All.Single(item => item.ProfileId == profileId);
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
+
+        Assert.True(result.IsSuccess, FormatIssues(result.Issues));
+        Assert.Equal(icId, profile.IcId);
+        Assert.Equal(CompositionKind.Replace, profile.CompositionKind);
+        Assert.Equal("dp-replace", profile.ExperienceId);
+        Assert.Equal(IcNumberInputMode.SingleSelector, profile.IcNumberInputMode);
+        Assert.Contains(profile.AddressSpaces, space =>
+            space.AddressSpaceId == "reference-base" && space.Length == 0x100000);
+        Assert.Contains(profile.AddressSpaces, space =>
+            space.AddressSpaceId == "dp-replacement" &&
+            space.Length == 0x100000 &&
+            space.InputPaddingByte == 0x00);
+
+        CompositionOperation[] operations = [.. result.Plan!.OrderedOperations];
+        Assert.Equal(["replace-dp-container", "restore-base-tp", "restore-base-customer-info"], operations.Select(operation => operation.OperationId));
+        Assert.Equal(new ByteRange(0, 0x100000), operations[0].TargetRange);
+        Assert.Equal(ByteRange.FromStartEndExclusive(0x0A000, 0x37000), operations[1].TargetRange);
+        Assert.Equal(new ByteRange(0x37000, 0x1000), operations[2].TargetRange);
+        Assert.Contains(profile.Regions, region =>
+            region.RegionId == "dp-perspective-container" &&
+            region.ClassificationTags.Contains("customer-info-preserve", StringComparer.Ordinal));
     }
 
     /// <summary>Verifies fixed CtrlRAM Replace compiles with oversized-input truncation policy.</summary>
