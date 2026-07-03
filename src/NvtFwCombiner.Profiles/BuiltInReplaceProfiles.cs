@@ -7,6 +7,7 @@ public static class BuiltInReplaceProfiles
 {
     private const string SyntheticIc = "NT-SYNTHETIC";
     private const long Nt51950DpContainerLength = 0x100000;
+    private static readonly long[] Nt51950AllowedDpReplacementLengths = [0x40000, 0x80000, Nt51950DpContainerLength];
     private static readonly ByteRange Nt51950DpContainerRange = new(0, Nt51950DpContainerLength);
     private static readonly ByteRange Nt51950TpRestoreRange = ByteRange.FromStartEndExclusive(0x0A000, 0x37000);
     private static readonly ByteRange Nt51950CustomerInfoPreserveRange = new(0x37000, 0x1000);
@@ -183,7 +184,12 @@ public static class BuiltInReplaceProfiles
             ImageInitialization.Reference("output-image", "reference-base", Nt51950DpContainerLength),
             [
                 new AddressSpace("reference-base", Nt51950DpContainerLength, AddressSpaceMutability.Immutable),
-                new AddressSpace("dp-replacement", Nt51950DpContainerLength, AddressSpaceMutability.Immutable, inputPaddingByte: 0x00),
+                new AddressSpace(
+                    "dp-replacement",
+                    Nt51950DpContainerLength,
+                    AddressSpaceMutability.Immutable,
+                    inputPaddingByte: 0x00,
+                    allowedInputLengths: Nt51950AllowedDpReplacementLengths),
                 new AddressSpace("output-image", Nt51950DpContainerLength, AddressSpaceMutability.Mutable),
             ],
             [
@@ -195,7 +201,7 @@ public static class BuiltInReplaceProfiles
                     "output-image",
                     Nt51950DpContainerRange,
                     OverlapPolicy.Reject,
-                    "Replace the NT51950/NT51951 DP Perspective container after padding to 0x100000."),
+                    "Replace the NT51950/NT51951 DP Perspective container after accepting only 0x40000, 0x80000, or 0x100000 DP inputs and padding to 0x100000."),
                 CompositionOperation.CopyRange(
                     "restore-base-tp",
                     200,

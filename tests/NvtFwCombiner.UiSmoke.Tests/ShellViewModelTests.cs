@@ -198,7 +198,7 @@ public sealed class ShellViewModelTests
         {
             _ = Directory.CreateDirectory(tempRoot);
             byte[] baseBytes = CreatePattern(0x100000, 0x80);
-            byte[] replacementBytes = CreatePattern(0x50000, 0x20);
+            byte[] replacementBytes = CreatePattern(0x40000, 0x20);
             string basePath = Path.Combine(tempRoot, "base.bin");
             string replacementPath = Path.Combine(tempRoot, "replacement-dp.bin");
             string outputPath = Path.Combine(tempRoot, "nt51950-dp-replace.bin");

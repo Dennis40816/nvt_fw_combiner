@@ -8,7 +8,7 @@ The sheet shows NT51950/NT51951 DP layouts with multiple container sizes and bot
 - 2IC: 4M-bit or 8M-bit DP container variants.
 - TP FW is an overlay region in the DP perspective. The confirmed owner range is `0x0A000-0x36FFF (len 0x2D000)`. The following `0x37000-0x37FFF (len 0x1000)` range is customer info and must be preserved rather than overwritten by TP overlay. This matches the reference code convention where the exclusive TP end is `0x37000`.
 
-The first implementation does not split the DP perspective into all named sub-regions. It treats `0x100000` as the maximum DP container length and uses it as the canonical 950/951 working length. Standard Merge accepts only the three owner-confirmed DP input sizes: `0x40000`, `0x80000`, and `0x100000`; accepted shorter DP inputs are padded to the work length before TP overlay.
+The first implementation does not split the DP perspective into all named sub-regions. It treats `0x100000` as the maximum DP container length and uses it as the canonical 950/951 working length. Standard Merge and DP Replace accept only the three owner-confirmed DP input sizes: `0x40000`, `0x80000`, and `0x100000`; accepted shorter DP inputs are padded to the work length before TP overlay or base-range restoration.
 
 ## Simplest Merge Rule
 
@@ -28,7 +28,7 @@ This avoids tying merge correctness to every DP sub-block name in the spreadshee
 Clone the base firmware as the Replace reference image, replace the DP container, then restore the original TP range from the base firmware.
 
 1. Reject the base firmware unless `base.Length == 0x100000`. Repository policy keeps reference/base firmware exact-length.
-2. Reject the replacement DP when `replacement.Length > 0x100000`.
+2. Reject the replacement DP unless `replacement.Length` is exactly `0x40000`, `0x80000`, or `0x100000`.
 3. Pad the replacement DP to the `0x100000` work length with the profile padding byte.
 4. Replace the full output container from the padded replacement DP.
 5. Copy the original base firmware TP range back into output.
@@ -39,6 +39,6 @@ This implements DP Replace without requiring CRC recalculation and without enume
 
 - Merge golden for at least one 950 and one 951 max-container case.
 - Standard Merge tests showing only `0x40000`, `0x80000`, and `0x100000` DP inputs are accepted and accepted shorter DP inputs are padded to `0x100000`.
-- DP Replace tests showing exact base-length enforcement, shorter replacement padding to `0x100000`, and larger replacement rejection.
+- DP Replace tests showing exact base-length enforcement, approved replacement size enforcement, shorter approved replacement padding to `0x100000`, and invalid-size rejection.
 - DP Replace test proving the TP range is preserved byte-for-byte after profile/model wiring.
 - A map confirmation test that locks TP overlay to `0x0A000-0x36FFF (len 0x2D000)` and preserves customer info at `0x37000-0x37FFF (len 0x1000)`.

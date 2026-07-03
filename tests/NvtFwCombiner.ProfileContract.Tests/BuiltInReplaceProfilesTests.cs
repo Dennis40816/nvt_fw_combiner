@@ -53,7 +53,8 @@ public sealed class BuiltInReplaceProfilesTests
         Assert.Contains(profile.AddressSpaces, space =>
             space.AddressSpaceId == "dp-replacement" &&
             space.Length == 0x100000 &&
-            space.InputPaddingByte == 0x00);
+            space.InputPaddingByte == 0x00 &&
+            space.AllowedInputLengths.SequenceEqual([0x40000, 0x80000, 0x100000]));
 
         CompositionOperation[] operations = [.. result.Plan!.OrderedOperations];
         Assert.Equal(["replace-dp-container", "restore-base-tp", "restore-base-customer-info"], operations.Select(operation => operation.OperationId));

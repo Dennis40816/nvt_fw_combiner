@@ -243,7 +243,7 @@ public static partial class WorkbenchCompositionService
                 "replace-dp",
                 "DP replacement BIN",
                 TryGetDpReplaceProfile(icId, out CompositionProfileDefinition? profile)
-                    ? $"Replacement DP container {FormatDisplayRange(new ByteRange(0, GetAddressSpaceLength(profile, "dp-replacement")))}; shorter files are padded before the original TP range is restored."
+                    ? $"Replacement DP container {FormatDisplayRange(new ByteRange(0, GetAddressSpaceLength(profile, "dp-replacement")))}; only 0x40000, 0x80000, or 0x100000 inputs are accepted, and shorter approved inputs are padded before the original TP range is restored."
                     : "Replacement DP payload. Build stays gated until this IC has approved DP Replace mapping evidence.",
                 false,
                 "dp-replacement",
