@@ -224,7 +224,7 @@ public static partial class WorkbenchCompositionService
             string fullPath = Path.GetFullPath(path);
             if (!File.Exists(fullPath))
             {
-                summaries.Add(new InputArtifactSummary(slotId, Path.GetFileName(path), 0, string.Empty));
+                summaries.Add(new InputArtifactSummary(slotId, Path.GetFileName(path), 0, EmptySha256));
                 continue;
             }
 
