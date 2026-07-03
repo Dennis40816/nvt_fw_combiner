@@ -185,9 +185,9 @@ public sealed class ShellViewModelTests
         Assert.Contains(viewModel.ReplaceSlots, slot => slot.Title == "LDC replacement BIN");
     }
 
-    /// <summary>Verifies NT51950 DP Replace writes a 0x100000 DP perspective image and restores TP bytes from base.</summary>
+    /// <summary>Verifies NT51950 DP Replace writes a 0x100000 DP image and restores protected base ranges.</summary>
     [Fact]
-    public async Task BuildNt51950DpReplaceRestoresBaseTpRange()
+    public async Task BuildNt51950DpReplaceRestoresBaseProtectedRanges()
     {
         string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-dp-replace-{Guid.NewGuid():N}");
         try
@@ -218,10 +218,13 @@ public sealed class ShellViewModelTests
             Assert.Equal(replacementBytes[0x9FFF], output[0x9FFF]);
             Assert.Equal(baseBytes[0x0A000], output[0x0A000]);
             Assert.Equal(baseBytes[0x36FFF], output[0x36FFF]);
-            Assert.Equal(replacementBytes[0x37000], output[0x37000]);
+            Assert.Equal(baseBytes[0x37000], output[0x37000]);
+            Assert.Equal(baseBytes[0x37FFF], output[0x37FFF]);
+            Assert.Equal(replacementBytes[0x38000], output[0x38000]);
             Assert.Equal(0, output[0x50000]);
             Assert.True(viewModel.HasLoadedReport);
             Assert.Contains(viewModel.LoadedReport.Operations, operation => operation.Title.Contains("restore-base-tp", StringComparison.Ordinal));
+            Assert.Contains(viewModel.LoadedReport.Operations, operation => operation.Title.Contains("restore-base-customer-info", StringComparison.Ordinal));
         }
         finally
         {

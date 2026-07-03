@@ -154,6 +154,14 @@ public static partial class WorkbenchCompositionService
                     $"Original TP FW at {FormatDisplayRange(Nt51950TpRestoreRange)} is copied back from the base firmware.",
                     "#64748B",
                     false));
+            segments = ApplyCoverageWrite(
+                segments,
+                new CoverageSegment(
+                    Nt51950CustomerInfoPreserveRange,
+                    "Preserved customer info",
+                    $"Customer information at {FormatDisplayRange(Nt51950CustomerInfoPreserveRange)} is copied back from the base firmware.",
+                    "#94A3B8",
+                    false));
             return ToWorkbenchCoverageSegments(segments, capacity);
         }
 

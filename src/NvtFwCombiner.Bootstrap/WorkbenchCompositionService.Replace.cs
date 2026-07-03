@@ -94,6 +94,12 @@ public static partial class WorkbenchCompositionService
                     "Restore",
                     "Base TP",
                     $"Copy original TP FW at {FormatDisplayRange(Nt51950TpRestoreRange)} from the base firmware after DP replacement."),
+                new WorkbenchMemoryMapRow(
+                    FormatDisplayRange(Nt51950CustomerInfoPreserveRange),
+                    "DP replacement",
+                    "Preserve",
+                    "Base customer info",
+                    $"Copy customer information at {FormatDisplayRange(Nt51950CustomerInfoPreserveRange)} from the base firmware after DP replacement."),
             ]
             :
         [
@@ -164,6 +170,15 @@ public static partial class WorkbenchCompositionService
                     Nt51950TpRestoreRange,
                     OverlapPolicy.ReplaceExisting,
                     $"Restore original TP FW at {FormatDisplayRange(Nt51950TpRestoreRange)} from the base firmware after DP replacement."),
+                CompositionOperation.CopyRange(
+                    "restore-base-customer-info",
+                    210,
+                    "reference-base",
+                    Nt51950CustomerInfoPreserveRange,
+                    "output-image",
+                    Nt51950CustomerInfoPreserveRange,
+                    OverlapPolicy.ReplaceExisting,
+                    $"Restore customer information at {FormatDisplayRange(Nt51950CustomerInfoPreserveRange)} from the base firmware after DP replacement."),
             ],
             [
                 new ProfileRegion(
@@ -172,13 +187,13 @@ public static partial class WorkbenchCompositionService
                     fullContainer,
                     RegionAtomicity.Partitioned,
                     RegionWritePolicy.DeclaredParts,
-                    classificationTags: ["dp", "tp-restore"]),
+                    classificationTags: ["dp", "tp-restore", "customer-info-preserve"]),
             ],
             [
                 new RegionAccessRule(
                     "dp-perspective-container",
                     RegionAccessKind.Parts,
-                    "NT51950/NT51951 DP Replace first copies replacement DP, then restores the original TP range."),
+                    "NT51950/NT51951 DP Replace first copies replacement DP, then restores the original TP and customer-info ranges."),
             ],
             IcNumberInputMode.SingleSelector);
     }
@@ -284,6 +299,21 @@ public static partial class WorkbenchCompositionService
                     [],
                     [],
                     "Restore original TP FW from the base firmware."),
+                new OperationRunSummary(
+                    "restore-base-customer-info",
+                    210,
+                    CompositionOperationKind.CopyRange,
+                    status,
+                    "reference-base",
+                    Nt51950CustomerInfoPreserveRange,
+                    "output-image",
+                    Nt51950CustomerInfoPreserveRange,
+                    OverlapPolicy.ReplaceExisting,
+                    null,
+                    null,
+                    [],
+                    [],
+                    "Restore customer information from the base firmware."),
             ]
             :
         [

@@ -18,6 +18,7 @@ public static partial class WorkbenchCompositionService
     private const string EmptySha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
     private const long Nt51950DpContainerLength = 0x100000;
     private static readonly ByteRange Nt51950TpRestoreRange = ByteRange.FromStartEndExclusive(0x0A000, 0x37000);
+    private static readonly ByteRange Nt51950CustomerInfoPreserveRange = new(0x37000, 0x1000);
 
     private static readonly JsonSerializerOptions ReportJsonOptions = new()
     {
