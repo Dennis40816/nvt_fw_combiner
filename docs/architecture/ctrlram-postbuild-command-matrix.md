@@ -11,6 +11,8 @@ Evidence order:
 
 The application catalog stores command sequences as structured commands, not as shell strings. Tests build argv arrays from that structure and verify they match the Combiner 1.13.0 command shapes.
 
+The imported full postbuild BAT files also call `python output\InsertSID.py output\*_fw.bin` before Combiner. Owner confirmation for CtrlRAM Replace: InsertSID/SID/PID writes target `headerStart + 0x24` and are not part of Replace mutation authority. The Replace runner therefore does not execute InsertSID and must not allow the SID/PID bytes in its external-processor write ranges.
+
 For per-IC Merge/Replace flowcharts, see [`ic-workflow-flowcharts.md`](ic-workflow-flowcharts.md).
 
 | IC | IC num mode | Branches | Combiner modes | Command count | Notes |

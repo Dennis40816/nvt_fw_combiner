@@ -172,7 +172,8 @@ public sealed class CompositionRunService
                 invocation.ToolBindingId,
                 inputBytes,
                 invocation.AllowedWriteRanges,
-                request.IcNumberSelection);
+                request.IcNumberSelection,
+                invocation.Parameters);
         }
         catch (ArgumentException exception)
         {

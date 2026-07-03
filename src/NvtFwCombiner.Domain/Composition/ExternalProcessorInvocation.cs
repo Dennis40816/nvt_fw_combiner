@@ -5,13 +5,15 @@ public sealed class ExternalProcessorInvocation
 {
     private readonly ByteRange[] _allowedReadRanges;
     private readonly ByteRange[] _allowedWriteRanges;
+    private readonly Dictionary<string, IReadOnlyList<string>> _parameters;
 
     /// <summary>Creates an external processor invocation declaration.</summary>
     public ExternalProcessorInvocation(
         string processorId,
         string toolBindingId,
         IEnumerable<ByteRange> allowedReadRanges,
-        IEnumerable<ByteRange> allowedWriteRanges)
+        IEnumerable<ByteRange> allowedWriteRanges,
+        IReadOnlyDictionary<string, IReadOnlyList<string>>? parameters = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(processorId);
         ArgumentException.ThrowIfNullOrWhiteSpace(toolBindingId);
@@ -32,6 +34,7 @@ public sealed class ExternalProcessorInvocation
 
         ProcessorId = processorId;
         ToolBindingId = toolBindingId;
+        _parameters = CopyParameters(parameters);
     }
 
     /// <summary>Profile-selected processor id.</summary>
@@ -45,4 +48,33 @@ public sealed class ExternalProcessorInvocation
 
     /// <summary>Byte ranges the processor may mutate in the staged target image.</summary>
     public IReadOnlyList<ByteRange> AllowedWriteRanges => _allowedWriteRanges;
+
+    /// <summary>Profile-compiled processor parameters with no firmware semantics in the domain layer.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<string>> Parameters => _parameters;
+
+    private static Dictionary<string, IReadOnlyList<string>> CopyParameters(
+        IReadOnlyDictionary<string, IReadOnlyList<string>>? parameters)
+    {
+        Dictionary<string, IReadOnlyList<string>> copy = new(StringComparer.Ordinal);
+        if (parameters is null)
+        {
+            return copy;
+        }
+
+        foreach ((string key, IReadOnlyList<string> values) in parameters)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(key);
+            ArgumentNullException.ThrowIfNull(values);
+
+            string[] valueCopy = [.. values];
+            if (valueCopy.Any(string.IsNullOrWhiteSpace))
+            {
+                throw new ArgumentException("External processor parameter values must not be empty.", nameof(parameters));
+            }
+
+            copy.Add(key, valueCopy);
+        }
+
+        return copy;
+    }
 }

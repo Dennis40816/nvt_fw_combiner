@@ -74,6 +74,12 @@ public sealed class LegacyCombinerPostbuildProcessor : IExternalProcessor
         try
         {
             commandPlan = LegacyCombinerPostbuildPlanner.CreatePlan(profile, request.IcNumberSelection);
+            if (request.Parameters.TryGetValue(
+                    LegacyCombinerPostbuildPlanner.CommandIdsParameterName,
+                    out IReadOnlyList<string>? commandIds))
+            {
+                commandPlan = LegacyCombinerPostbuildPlanner.FilterPlan(commandPlan, commandIds);
+            }
         }
         catch (ArgumentException exception)
         {

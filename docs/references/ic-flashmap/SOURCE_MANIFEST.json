@@ -1,0 +1,118 @@
+{
+  "manifestVersion": "1.0",
+  "purpose": "Owner-approved IC FlashMap postbuild and mmap text evidence for command/range verification. Not production code and not release-packaged.",
+  "sourceArchive": {
+    "name": "IC FlashMap.7z",
+    "sha256": "784af28a77f2348933bba0723883415def60dd6bc18dc13367031cab1eb6bfe9",
+    "lastWriteTimeTaipei": "2026-07-01T02:01:33+08:00"
+  },
+  "exclusions": [
+    "IC_FlashMap.xlsx",
+    "combiner_1.13.0/Combiner.exe",
+    "hsi_combiner_guide/*.md"
+  ],
+  "files": [
+    {
+      "path": "docs/references/ic-flashmap/mmap/51920_1.3.1_mmap.h",
+      "sourcePath": "IC FlashMap/mmap.h/51920_1.3.1_mmap.h",
+      "size": 10863,
+      "sha256": "70288c48b46c97a4ad24c78f1dba211a5f25847fa2b1398f8e45990b51314ed2"
+    },
+    {
+      "path": "docs/references/ic-flashmap/mmap/51923_1.4.1_mmap.h",
+      "sourcePath": "IC FlashMap/mmap.h/51923_1.4.1_mmap.h",
+      "size": 13919,
+      "sha256": "41f5ae8cb21175d860329fd53e41431258b6d4ce318e68783ff5f8bfe92ae60b"
+    },
+    {
+      "path": "docs/references/ic-flashmap/mmap/51926_2.0.0_mmap.h",
+      "sourcePath": "IC FlashMap/mmap.h/51926_2.0.0_mmap.h",
+      "size": 17672,
+      "sha256": "fa37b45efa542d10347a448f59d77ef7196a1be202a9085bb910dcb2b240280f"
+    },
+    {
+      "path": "docs/references/ic-flashmap/mmap/51927_1.4.1_mmap.h",
+      "sourcePath": "IC FlashMap/mmap.h/51927_1.4.1_mmap.h",
+      "size": 12508,
+      "sha256": "cb90e6fb93220253bfb5ec81ccc03caa4f6236a0f327f9cf965cf7a1990cf734"
+    },
+    {
+      "path": "docs/references/ic-flashmap/mmap/51929&51932_2.0.0_mmap.h",
+      "sourcePath": "IC FlashMap/mmap.h/51929&51932_2.0.0_mmap.h",
+      "size": 17471,
+      "sha256": "128fb149ecaf30ce9d87c9590bc02367d434879c187fa86bd0a8c5894154922b"
+    },
+    {
+      "path": "docs/references/ic-flashmap/mmap/51930_2.0.0_mmap.h",
+      "sourcePath": "IC FlashMap/mmap.h/51930_2.0.0_mmap.h",
+      "size": 16067,
+      "sha256": "86826dbad6463ba4881151f9381c096815624a6c75fb415f8470265f250bed94"
+    },
+    {
+      "path": "docs/references/ic-flashmap/mmap/51931_1.3.0_mmap.h",
+      "sourcePath": "IC FlashMap/mmap.h/51931_1.3.0_mmap.h",
+      "size": 9956,
+      "sha256": "17a14b4be7da81b9a1188305f2ba4afb8fa5742df1137a379dc5ffd5afb2e192"
+    },
+    {
+      "path": "docs/references/ic-flashmap/mmap/51950_2.0.0_mmap.h",
+      "sourcePath": "IC FlashMap/mmap.h/51950_2.0.0_mmap.h",
+      "size": 16790,
+      "sha256": "32439cec4e8e1af67f25b0f395c943a39915ee051d7dcee9c860d2d93df2628b"
+    },
+    {
+      "path": "docs/references/ic-flashmap/mmap/mmap_overview.h",
+      "sourcePath": "IC FlashMap/mmap.h/mmap_overview.h",
+      "size": 17724,
+      "sha256": "4c1f9b73e3f3b5933b93682fb94cbf171284a6af8f7e3e587e0af6dcdcf10ed2"
+    },
+    {
+      "path": "docs/references/ic-flashmap/postbuild/PostbuildSetup_51920_1.3.1.bat",
+      "sourcePath": "IC FlashMap/postbuild/PostbuildSetup_51920_1.3.1.bat",
+      "size": 3156,
+      "sha256": "828081d0155a72c9c72d672418a416be297615c524a2fc26ed830da6bc1c3cd2"
+    },
+    {
+      "path": "docs/references/ic-flashmap/postbuild/PostbuildSetup_51923_1.4.1.bat",
+      "sourcePath": "IC FlashMap/postbuild/PostbuildSetup_51923_1.4.1.bat",
+      "size": 2819,
+      "sha256": "0fd65bf624a27ccae7fbcb5e30d89b19c6d874e3e3daafabe8aa4f8fce73bf56"
+    },
+    {
+      "path": "docs/references/ic-flashmap/postbuild/PostbuildSetup_51926_2.0.0.bat",
+      "sourcePath": "IC FlashMap/postbuild/PostbuildSetup_51926_2.0.0.bat",
+      "size": 6161,
+      "sha256": "1dedb0d2c7025bdc2b44195210f2224e80c8df8b6f630ebbdcaeda48905e3c51"
+    },
+    {
+      "path": "docs/references/ic-flashmap/postbuild/PostbuildSetup_51927_1.4.1.bat",
+      "sourcePath": "IC FlashMap/postbuild/PostbuildSetup_51927_1.4.1.bat",
+      "size": 7077,
+      "sha256": "c6580f4f2f4b3af43a7595cc069cf7c8d95d2213f1d0f551c36973b7e254aaee"
+    },
+    {
+      "path": "docs/references/ic-flashmap/postbuild/PostbuildSetup_51930_2.0.0.bat",
+      "sourcePath": "IC FlashMap/postbuild/PostbuildSetup_51930_2.0.0.bat",
+      "size": 7151,
+      "sha256": "46e6b30a046d6649a5e820d634fd723843e50723b405078a72e35c72eb843771"
+    },
+    {
+      "path": "docs/references/ic-flashmap/postbuild/PostbuildSetup_51931_1.3.0.bat",
+      "sourcePath": "IC FlashMap/postbuild/PostbuildSetup_51931_1.3.0.bat",
+      "size": 4080,
+      "sha256": "ff6122efbc109b45540947a93176f7d292b19731bf1b5336c3d7deb0fad6a5eb"
+    },
+    {
+      "path": "docs/references/ic-flashmap/postbuild/PostbuildSetup_51932_2.0.0.bat",
+      "sourcePath": "IC FlashMap/postbuild/PostbuildSetup_51932_2.0.0.bat",
+      "size": 5669,
+      "sha256": "9b570db204df0849f9962f09f9800e6e442a86d38d6dacd0988b32e18f0a514f"
+    },
+    {
+      "path": "docs/references/ic-flashmap/postbuild/PostbuildSetup_51950_2.0.0.bat",
+      "sourcePath": "IC FlashMap/postbuild/PostbuildSetup_51950_2.0.0.bat",
+      "size": 5676,
+      "sha256": "676b2e0d4178731034a0e8b118e9ad514b9beadf7094c5f9a6ee56ea784318a0"
+    }
+  ]
+}

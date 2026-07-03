@@ -287,8 +287,29 @@ public sealed class ShellViewModelTests
                 operation.Title.Contains("postbuild-", StringComparison.Ordinal) &&
                 operation.Meta.Contains("Combiner command", StringComparison.Ordinal) &&
                 !operation.Meta.Contains("Combiner.exe", StringComparison.Ordinal) &&
-                operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
+                operation.CodeBlock.Contains("Combiner.exe ", StringComparison.Ordinal));
             Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.IsChanged);
+
+            using var reportDocument = JsonDocument.Parse(viewModel.LoadedReportJson);
+            JsonElement postbuildOperation = reportDocument.RootElement
+                .GetProperty("Operations")
+                .EnumerateArray()
+                .Single(operation => operation.GetProperty("OperationId").GetString()!.StartsWith(
+                    "postbuild-",
+                    StringComparison.Ordinal));
+            Assert.DoesNotContain(
+                "InsertSID",
+                postbuildOperation.GetProperty("Reason").GetString(),
+                StringComparison.Ordinal);
+            AssertDoesNotCoverRange(postbuildOperation.GetProperty("ProcessorAllowedWriteRanges"), 0x7024, 4);
+            AssertContainsRange(postbuildOperation.GetProperty("ProcessorAllowedWriteRanges"), start, length);
+            CtrlRamRegionViewModel unselectedRegion = viewModel.CtrlRamRegions.First(region =>
+                region.Name != regionSlot.Title);
+            (int unselectedStart, int unselectedLength) = ParseCtrlRamRegion(unselectedRegion);
+            AssertDoesNotCoverRange(
+                postbuildOperation.GetProperty("ProcessorAllowedWriteRanges"),
+                unselectedStart,
+                unselectedLength);
         }
         finally
         {
@@ -836,6 +857,23 @@ public sealed class ShellViewModelTests
         return (
             int.Parse(startHex, NumberStyles.HexNumber, CultureInfo.InvariantCulture),
             int.Parse(lengthHex, NumberStyles.HexNumber, CultureInfo.InvariantCulture));
+    }
+
+    private static void AssertContainsRange(JsonElement ranges, int start, int length)
+    {
+        Assert.Contains(ranges.EnumerateArray(), range =>
+            range.GetProperty("Start").GetInt64() == start &&
+            range.GetProperty("Length").GetInt64() == length);
+    }
+
+    private static void AssertDoesNotCoverRange(JsonElement ranges, int start, int length)
+    {
+        Assert.DoesNotContain(ranges.EnumerateArray(), range =>
+        {
+            long rangeStart = range.GetProperty("Start").GetInt64();
+            long rangeEnd = rangeStart + range.GetProperty("Length").GetInt64();
+            return rangeStart <= start && rangeEnd >= start + length;
+        });
     }
 
     private static void AssertBrush(string expectedHex, IBrush brush)
