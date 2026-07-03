@@ -184,6 +184,12 @@ ALLOWED_GOLDEN_BIN_ROOTS = {PurePosixPath("testdata/golden/standard-merge-gen-fl
 ALLOWED_EXECUTABLE_PAYLOADS = {
     PurePosixPath("external-tools/legacy-combiner/1.13.0/Combiner.exe"),
 }
+APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS = {
+    PurePosixPath("external-tools/README.md"),
+    PurePosixPath("external-tools/legacy-combiner/README.md"),
+    PurePosixPath("external-tools/legacy-combiner/1.13.0/Combiner.exe"),
+    PurePosixPath("external-tools/legacy-combiner/1.13.0/manifest.json"),
+}
 FORBIDDEN_DIRECTORY_NAMES = {"__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", ".venv", "venv", "artifacts", "release", "bin", "obj"}
 FORBIDDEN_REFCODE_SUFFIXES = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"}
 SNAPSHOT_CODE_SUFFIXES = {".py", ".json", ".txt", ".bat"}
@@ -628,6 +634,37 @@ def validate_workflows(errors: list[str]) -> None:
         errors.append("release workflow does not call the closed-allowlist packager")
 
 
+def validate_packaging_policy(files: Iterable[Path], errors: list[str]) -> None:
+    tracked_external_tools = {
+        PurePosixPath(path.relative_to(ROOT).as_posix())
+        for path in files
+        if path.relative_to(ROOT).parts[:1] == ("external-tools",)
+    }
+    if tracked_external_tools != APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS:
+        errors.append(
+            "tracked external-tools files differ from the release package allowlist: "
+            f"{', '.join(str(path) for path in sorted(tracked_external_tools))}"
+        )
+
+    package_script = ROOT / "scripts/package.ps1"
+    text = package_script.read_text(encoding="utf-8")
+    match = re.search(
+        r"\$ApprovedExternalToolPackagePaths\s*=\s*@\((.*?)\)\s*\|\s*Sort-Object",
+        text,
+        flags=re.DOTALL,
+    )
+    if match is None:
+        errors.append("package.ps1 must declare a fixed ApprovedExternalToolPackagePaths allowlist")
+        return
+
+    declared_paths = {PurePosixPath(path) for path in re.findall(r"'([^']+)'", match.group(1))}
+    if declared_paths != APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS:
+        errors.append(
+            "package.ps1 external tool allowlist differs from the approved package paths: "
+            f"{', '.join(str(path) for path in sorted(declared_paths))}"
+        )
+
+
 def validate_agent_files(errors: list[str]) -> None:
     if (ROOT / "AGENTS.md").stat().st_size > 32 * 1024:
         errors.append("root AGENTS.md exceeds 32 KiB")
@@ -659,6 +696,7 @@ def validate() -> list[str]:
     validate_solution_and_dependencies(errors)
     validate_contract_model(errors)
     validate_workflows(errors)
+    validate_packaging_policy(files, errors)
     validate_agent_files(errors)
     return sorted(set(errors))
 

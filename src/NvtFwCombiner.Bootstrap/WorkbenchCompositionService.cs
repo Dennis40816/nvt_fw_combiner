@@ -353,23 +353,11 @@ public static partial class WorkbenchCompositionService
         string outputFileName,
         IReadOnlyList<InputArtifactBinding> bindings)
     {
-        string outputFullPath = Path.GetFullPath(Path.Combine(outputDirectory, outputFileName));
-        foreach (InputArtifactBinding binding in bindings)
-        {
-            string inputFullPath = Path.GetFullPath(binding.ArtifactId);
-            if (string.Equals(outputFullPath, inputFullPath, PathComparison))
-            {
-                throw new ArgumentException(
-                    $"Output path must not overwrite input artifact '{binding.BindingId}'.",
-                    nameof(outputFileName));
-            }
-        }
+        ProtectedPathGuard.EnsureOutputDoesNotAliasInputs(
+            ProtectedPathGuard.CombineFullPath(outputDirectory, outputFileName),
+            bindings,
+            nameof(outputFileName));
     }
-
-    private static StringComparison PathComparison =>
-        OperatingSystem.IsWindows()
-            ? StringComparison.OrdinalIgnoreCase
-            : StringComparison.Ordinal;
 
     private static IReadOnlyList<string> GetRequiredAddressSpaces(CompositionProfileDefinition profile)
     {

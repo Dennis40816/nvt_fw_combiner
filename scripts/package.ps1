@@ -79,6 +79,13 @@ function Restore-SourcePackageLocks {
     }
 }
 
+$ApprovedExternalToolPackagePaths = @(
+    'external-tools/README.md',
+    'external-tools/legacy-combiner/README.md',
+    'external-tools/legacy-combiner/1.13.0/Combiner.exe',
+    'external-tools/legacy-combiner/1.13.0/manifest.json'
+) | Sort-Object
+
 $AppProject = Join-Path $RepoRoot 'src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj'
 $SourcePackageLockSnapshots = Save-SourcePackageLocks
 & $DotNet publish $AppProject -c Release -r win-x64 --self-contained true `
@@ -130,6 +137,14 @@ if (-not (Test-Path -LiteralPath $ExternalToolsSource -PathType Container)) {
     throw "External tools directory was not found at $ExternalToolsSource"
 }
 Copy-Item -LiteralPath $ExternalToolsSource -Destination $ExternalToolsDestination -Recurse
+$ActualExternalToolPackagePaths = @(
+    Get-ChildItem -LiteralPath $ExternalToolsDestination -File -Recurse |
+        ForEach-Object { [System.IO.Path]::GetRelativePath($PackageRoot, $_.FullName).Replace('\', '/') } |
+        Sort-Object
+)
+if (Compare-Object -ReferenceObject $ApprovedExternalToolPackagePaths -DifferenceObject $ActualExternalToolPackagePaths) {
+    throw "External tool package contents differ from the approved allowlist: $($ActualExternalToolPackagePaths -join ', ')"
+}
 
 $SelfTestRequest = '{"protocolVersion":"1.0","requestId":"package-self-test","operation":"calculate","algorithmId":"crc-32-mpeg-2","payloadBase64":"MTIzNDU2Nzg5"}'
 $SelfTestRaw = $SelfTestRequest | & $WorkerExe
@@ -164,11 +179,11 @@ $ProfileFiles = @(Get-ChildItem -LiteralPath (Join-Path $RepoRoot 'profiles') -F
 $SchemaFiles = @(Get-ChildItem -LiteralPath (Join-Path $RepoRoot 'docs/contracts') -Filter '*.schema.json' -File | ForEach-Object FullName)
 $ProfileDigest = Get-TreeDigest -Paths $ProfileFiles
 $SchemaDigest = Get-TreeDigest -Paths $SchemaFiles
-$ExternalToolFiles = @(Get-ChildItem -LiteralPath $ExternalToolsDestination -File -Recurse | ForEach-Object FullName)
 $ExternalToolEntries = @(
-    $ExternalToolFiles | Sort-Object | ForEach-Object {
-        $RelativePath = [System.IO.Path]::GetRelativePath($PackageRoot, $_).Replace('\', '/')
-        [ordered]@{ path = $RelativePath; size = (Get-Item $_).Length; sha256 = (Get-LowerSha256 $_); role = 'externalTool' }
+    $ApprovedExternalToolPackagePaths | ForEach-Object {
+        $RelativePath = $_
+        $PackagePath = Join-Path $PackageRoot $RelativePath.Replace('/', [System.IO.Path]::DirectorySeparatorChar)
+        [ordered]@{ path = $RelativePath; size = (Get-Item $PackagePath).Length; sha256 = (Get-LowerSha256 $PackagePath); role = 'externalTool' }
     }
 )
 $ApprovedProcessorIds = @(
