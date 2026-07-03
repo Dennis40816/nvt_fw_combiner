@@ -149,44 +149,6 @@ public sealed class LegacyCombinerPostbuildProcessorTests
         Assert.Equal(2, modes.Count(mode => mode == "NT51927BASED_GEN_CRC_MODE"));
     }
 
-    /// <summary>Verifies the host-compiled command id filter limits legacy postbuild execution authority.</summary>
-    [Fact]
-    public async Task TransformRunsOnlyRequestedPostbuildCommands()
-    {
-        using var workspace = TempWorkspace.Create();
-        string sha256 = workspace.CreateToolExecutable();
-        byte[] firmware = CreateFirmwareImage();
-        FakeProcessRunner runner = new(startInfo =>
-        {
-            Assert.Equal("MERGE_MODE", startInfo.Arguments[0]);
-            Assert.Contains(
-                startInfo.Arguments,
-                argument => argument.EndsWith(Path.Combine("BIN", "Normal_Ctrlram_R.bin"), StringComparison.Ordinal));
-            Assert.DoesNotContain(
-                startInfo.Arguments,
-                argument => argument.EndsWith(Path.Combine("BIN", "Normal_Ctrlram_L.bin"), StringComparison.Ordinal));
-            return new ExternalProcessResult(0, false, string.Empty, string.Empty);
-        });
-        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner);
-        ExternalProcessorRequest request = new(
-            "run-nt51927-2chip-right-only",
-            LegacyCombinerPostbuildCatalog.Nt51927.ProcessorId,
-            "legacy-combiner-1.13.0",
-            firmware,
-            [],
-            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]),
-            new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal)
-            {
-                [LegacyCombinerPostbuildPlanner.CommandIdsParameterName] =
-                    ["nt51927-2chip-right-ctrlram"],
-            });
-
-        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
-
-        Assert.True(result.Succeeded);
-        Assert.Equal(1, runner.RunCount);
-    }
-
     /// <summary>Verifies command-shortened Combiner output is normalized back to full firmware length.</summary>
     [Fact]
     public async Task TransformNormalizesCommandShortenedFirmwareWhenCoverageIsComplete()

@@ -304,12 +304,15 @@ public sealed class ShellViewModelTests
                 "InsertSID",
                 postbuildOperation.GetProperty("Reason").GetString(),
                 StringComparison.Ordinal);
+            Assert.Equal(10, CountOccurrences(
+                postbuildOperation.GetProperty("Reason").GetString()!,
+                "Combiner.exe "));
             AssertDoesNotCoverRange(postbuildOperation.GetProperty("ProcessorAllowedWriteRanges"), 0x7024, 4);
             AssertContainsRange(postbuildOperation.GetProperty("ProcessorAllowedWriteRanges"), start, length);
             CtrlRamRegionViewModel unselectedRegion = viewModel.CtrlRamRegions.First(region =>
                 region.Name != regionSlot.Title);
             (int unselectedStart, int unselectedLength) = ParseCtrlRamRegion(unselectedRegion);
-            AssertDoesNotCoverRange(
+            AssertContainsRange(
                 postbuildOperation.GetProperty("ProcessorAllowedWriteRanges"),
                 unselectedStart,
                 unselectedLength);
@@ -864,6 +867,19 @@ public sealed class ShellViewModelTests
             long rangeEnd = rangeStart + range.GetProperty("Length").GetInt64();
             return rangeStart <= start && rangeEnd >= start + length;
         });
+    }
+
+    private static int CountOccurrences(string value, string needle)
+    {
+        int count = 0;
+        int index = 0;
+        while ((index = value.IndexOf(needle, index, StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            index += needle.Length;
+        }
+
+        return count;
     }
 
     private static void AssertBrush(string expectedHex, IBrush brush)

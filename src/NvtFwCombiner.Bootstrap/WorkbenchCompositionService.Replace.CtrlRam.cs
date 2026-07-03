@@ -105,25 +105,6 @@ public static partial class WorkbenchCompositionService
             }
         }
 
-        if (commandPlan is not null && selectedRegions.Count > 0)
-        {
-            List<string> selectedCommandIds = SelectPostbuildCommandIds(
-                commandPlan,
-                selectedRegions,
-                regions);
-            if (selectedCommandIds.Count == 0)
-            {
-                validationIssues.Add(new CompositionIssue(
-                    "replace.ctrlram.postbuild-command-missing",
-                    "No approved postbuild command maps to the selected CtrlRAM replacement regions.",
-                    "postbuild"));
-            }
-            else
-            {
-                commandPlan = LegacyCombinerPostbuildPlanner.FilterPlan(commandPlan, selectedCommandIds);
-            }
-        }
-
         if (commandPlan is not null && baseLength > 0)
         {
             long requiredCapacity = CalculatePostbuildRequiredCapacity(commandPlan, selectedRegions);
@@ -155,7 +136,6 @@ public static partial class WorkbenchCompositionService
         List<ByteRange> postbuildWriteRanges = CreatePostbuildAllowedWriteRanges(
             commandPlan,
             baseLength,
-            selectedRegions,
             regions);
         if (postbuildWriteRanges.Count == 0)
         {
@@ -318,7 +298,6 @@ public static partial class WorkbenchCompositionService
                 classificationTags: ["postbuild"]));
         }
 
-        string[] postbuildCommandIds = [.. commandPlan.Commands.Select(command => command.CommandId)];
         operations.Add(CompositionOperation.RunExternalProcessor(
             $"postbuild-{commandPlan.Branch.ToString().ToLowerInvariant()}",
             sequence,
@@ -328,12 +307,7 @@ public static partial class WorkbenchCompositionService
                 postbuildProfile.ProcessorId,
                 postbuildProfile.ToolBindingId,
                 [new ByteRange(0, capacity)],
-                postbuildWriteRanges,
-                new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal)
-                {
-                    [LegacyCombinerPostbuildPlanner.CommandIdsParameterName] =
-                        postbuildCommandIds,
-                }),
+                postbuildWriteRanges),
             OverlapPolicy.ReplaceExisting,
             $"Run {commandPlan.Branch} legacy Combiner postbuild after CtrlRAM replacement. Combiner command: {FormatPostbuildCommandBlock(commandPlan)}."));
 
@@ -503,7 +477,6 @@ public static partial class WorkbenchCompositionService
     private static List<ByteRange> CreatePostbuildAllowedWriteRanges(
         LegacyCombinerPostbuildCommandPlan commandPlan,
         long capacity,
-        IReadOnlyList<TpFlashMapRegion> selectedRegions,
         IReadOnlyList<TpFlashMapRegion> ctrlRamRegions)
     {
         List<ByteRange> candidateRanges = [];
@@ -523,55 +496,11 @@ public static partial class WorkbenchCompositionService
             }
         }
 
-        return NormalizeCandidateWriteRanges(candidateRanges, selectedRegions, ctrlRamRegions);
-    }
-
-    private static List<string> SelectPostbuildCommandIds(
-        LegacyCombinerPostbuildCommandPlan commandPlan,
-        IReadOnlyList<TpFlashMapRegion> selectedRegions,
-        IReadOnlyList<TpFlashMapRegion> ctrlRamRegions)
-    {
-        ByteRange[] selectedRanges = [.. selectedRegions.Select(region => region.Range)];
-        List<string> commandIds = [];
-        bool hasSelectedPayloadCommand = false;
-
-        foreach (LegacyCombinerPostbuildCommand command in commandPlan.Commands)
-        {
-            bool writesSelectedPayload = command.Blocks.Any(block =>
-                block.SourceKind == LegacyCombinerBlockSourceKind.StagedFile &&
-                selectedRanges.Any(range => range.Overlaps(block.FirmwareRange)));
-            if (writesSelectedPayload)
-            {
-                commandIds.Add(command.CommandId);
-                hasSelectedPayloadCommand = true;
-                continue;
-            }
-
-            if (hasSelectedPayloadCommand &&
-                IsTrailingIntegrityCommand(command, ctrlRamRegions))
-            {
-                commandIds.Add(command.CommandId);
-            }
-        }
-
-        return commandIds;
-    }
-
-    private static bool IsTrailingIntegrityCommand(
-        LegacyCombinerPostbuildCommand command,
-        IReadOnlyList<TpFlashMapRegion> ctrlRamRegions)
-    {
-        return command.Family == LegacyCombinerCommandFamily.CrcOnlyMode ||
-            (command.Blocks.Count > 0 &&
-             command.Blocks.All(block => block.SourceKind == LegacyCombinerBlockSourceKind.FirmwareImage) &&
-             command.Blocks.All(block =>
-                 block.SourceOffset == block.FirmwareRange.Start ||
-                 !ctrlRamRegions.Any(region => region.Range.Overlaps(block.FirmwareRange))));
+        return NormalizeCandidateWriteRanges(candidateRanges, ctrlRamRegions);
     }
 
     private static List<ByteRange> NormalizeCandidateWriteRanges(
         List<ByteRange> candidateRanges,
-        IReadOnlyList<TpFlashMapRegion> selectedRegions,
         IReadOnlyList<TpFlashMapRegion> ctrlRamRegions)
     {
         if (candidateRanges.Count == 0)
@@ -600,20 +529,18 @@ public static partial class WorkbenchCompositionService
         for (int index = 0; index < points.Length - 1; index++)
         {
             var segment = ByteRange.FromStartEndExclusive(points[index], points[index + 1]);
-            if (!candidateRanges.Any(range => range.Contains(segment)))
-            {
-                continue;
-            }
-
-            bool isCtrlRamSegment = ctrlRamRegions.Any(region => region.Range.Overlaps(segment));
-            bool isSelectedCtrlRamSegment = selectedRegions.Any(region => region.Range.Contains(segment));
-            if (!isCtrlRamSegment || isSelectedCtrlRamSegment)
+            if (candidateRanges.Any(range => range.Contains(segment)))
             {
                 ranges.Add(segment);
             }
         }
 
-        return ranges;
+        return [
+            .. ranges
+                .Distinct()
+                .OrderBy(range => range.Start)
+                .ThenBy(range => range.Length),
+        ];
     }
 
     private static string FormatPostbuildCommandBlock(LegacyCombinerPostbuildCommandPlan commandPlan)

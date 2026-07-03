@@ -8,7 +8,6 @@ public sealed class ExternalProcessorRequest
 {
     private readonly byte[] _inputBytes;
     private readonly ByteRange[] _allowedWriteRanges;
-    private readonly Dictionary<string, IReadOnlyList<string>> _parameters;
 
     /// <summary>Creates a transform request over a host-controlled staging copy.</summary>
     public ExternalProcessorRequest(
@@ -17,8 +16,7 @@ public sealed class ExternalProcessorRequest
         string toolBindingId,
         ReadOnlyMemory<byte> inputBytes,
         IEnumerable<ByteRange> allowedWriteRanges,
-        IcNumberSelection? icNumberSelection = null,
-        IReadOnlyDictionary<string, IReadOnlyList<string>>? parameters = null)
+        IcNumberSelection? icNumberSelection = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentException.ThrowIfNullOrWhiteSpace(processorId);
@@ -41,7 +39,6 @@ public sealed class ExternalProcessorRequest
         IcNumberSelection = icNumberSelection;
         _inputBytes = inputBytes.ToArray();
         _allowedWriteRanges = [.. allowedWriteRanges.OrderBy(range => range.Start).ThenBy(range => range.Length)];
-        _parameters = CopyParameters(parameters);
     }
 
     /// <summary>Stable execution id used to name the private staging directory.</summary>
@@ -62,40 +59,11 @@ public sealed class ExternalProcessorRequest
     /// <summary>Optional IC number context used by IC-specific postbuild processors.</summary>
     public IcNumberSelection? IcNumberSelection { get; }
 
-    /// <summary>Profile-compiled processor parameters used by specialized processors.</summary>
-    public IReadOnlyDictionary<string, IReadOnlyList<string>> Parameters => _parameters;
-
     private static bool IsSafeId(string value)
     {
         return value is not ("." or "..") &&
             value.All(character =>
             char.IsAsciiLetterOrDigit(character) ||
             character is '-' or '_' or '.');
-    }
-
-    private static Dictionary<string, IReadOnlyList<string>> CopyParameters(
-        IReadOnlyDictionary<string, IReadOnlyList<string>>? parameters)
-    {
-        Dictionary<string, IReadOnlyList<string>> copy = new(StringComparer.Ordinal);
-        if (parameters is null)
-        {
-            return copy;
-        }
-
-        foreach ((string key, IReadOnlyList<string> values) in parameters)
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(key);
-            ArgumentNullException.ThrowIfNull(values);
-
-            string[] valueCopy = [.. values];
-            if (valueCopy.Any(string.IsNullOrWhiteSpace))
-            {
-                throw new ArgumentException("External processor parameter values must not be empty.", nameof(parameters));
-            }
-
-            copy.Add(key, valueCopy);
-        }
-
-        return copy;
     }
 }

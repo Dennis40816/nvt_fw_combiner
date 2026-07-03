@@ -13,6 +13,8 @@ The application catalog stores command sequences as structured commands, not as 
 
 The imported full postbuild BAT files also call `python output\InsertSID.py output\*_fw.bin` before Combiner. Owner confirmation for CtrlRAM Replace: this legacy Insert PID step writes `headerStart + 0x24`, and that address is not part of Replace mutation authority. The Replace runner therefore does not execute the BAT `InsertSID.py` step and must not allow the PID bytes in its external-processor write ranges.
 
+CtrlRAM Replace always runs the selected IC/IC-number Combiner postbuild branch once, in the command order below, after host-side CtrlRAM byte replacement. It does not shorten the Combiner command sequence to only the user-selected CtrlRAM slot; unselected CtrlRAM payloads are staged from the current work image so the full postbuild can refresh integrity consistently.
+
 For per-IC Merge/Replace flowcharts, see [`ic-workflow-flowcharts.md`](ic-workflow-flowcharts.md).
 
 | IC | IC num mode | Branches | Combiner modes | Command count | Notes |
