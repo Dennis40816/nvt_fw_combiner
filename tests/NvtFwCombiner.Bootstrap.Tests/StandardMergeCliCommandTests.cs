@@ -69,8 +69,68 @@ public sealed class StandardMergeCliCommandTests
         ]);
 
         Assert.Equal(70, result.ExitCode);
-        Assert.Contains("Report path must not overwrite an input artifact.", result.Error, StringComparison.Ordinal);
+        Assert.Contains("Report path must not overwrite input artifact", result.Error, StringComparison.Ordinal);
         Assert.Equal(dp, await File.ReadAllBytesAsync(dpPath, TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>Rejects Standard Merge build outputs that would overwrite an input BIN.</summary>
+    [Fact]
+    public async Task StandardMergeBuildRejectsOutputPathThatAliasesInput()
+    {
+        using var workspace = TempWorkspace.Create();
+        byte[] dp = new byte[0x40000];
+        byte[] tp = new byte[0x30000];
+        string dpPath = workspace.Write("dp.bin", dp);
+        string tpPath = workspace.Write("tp.bin", tp);
+
+        CliRunResult result = await RunCliAsync([
+            "standard-merge",
+            "build",
+            "--profile",
+            "51920",
+            "--dp",
+            dpPath,
+            "--tp",
+            tpPath,
+            "--output",
+            dpPath,
+            "--overwrite",
+        ]);
+
+        Assert.Equal(70, result.ExitCode);
+        Assert.Contains("Output path must not overwrite input artifact", result.Error, StringComparison.Ordinal);
+        Assert.Equal(dp, await File.ReadAllBytesAsync(dpPath, TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>Rejects report paths that would overwrite a successfully built firmware image.</summary>
+    [Fact]
+    public async Task StandardMergeBuildRejectsReportPathThatAliasesOutput()
+    {
+        using var workspace = TempWorkspace.Create();
+        byte[] dp = new byte[0x40000];
+        byte[] tp = new byte[0x30000];
+        string dpPath = workspace.Write("dp.bin", dp);
+        string tpPath = workspace.Write("tp.bin", tp);
+        string outputPath = workspace.PathFor("out.bin");
+
+        CliRunResult result = await RunCliAsync([
+            "standard-merge",
+            "build",
+            "--profile",
+            "51920",
+            "--dp",
+            dpPath,
+            "--tp",
+            tpPath,
+            "--output",
+            outputPath,
+            "--report",
+            outputPath,
+        ]);
+
+        Assert.Equal(70, result.ExitCode);
+        Assert.Contains("Report path must not overwrite built firmware output", result.Error, StringComparison.Ordinal);
+        Assert.False(File.Exists(outputPath));
     }
 
     /// <summary>Rejects Workbench build outputs that would overwrite selected input BINs.</summary>

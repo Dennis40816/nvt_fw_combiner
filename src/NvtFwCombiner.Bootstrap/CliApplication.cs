@@ -191,6 +191,13 @@ public static class CliApplication
         OutputTarget outputTarget = ResolveOutputTarget(
             options.Values.GetValueOrDefault("--output"),
             selectedProfile.DefaultOutputFileName);
+        if (action == "build")
+        {
+            EnsureOutputDoesNotAliasInputs(outputTarget, bindings);
+        }
+
+        EnsureReportDoesNotAliasProtectedPaths(options, bindings, outputTarget, action == "build");
+
         string[] inputRoots = [.. bindings
             .Select(binding => Path.GetDirectoryName(binding.ArtifactId)!)];
         var reader = new FileArtifactReader(inputRoots);
@@ -208,7 +215,8 @@ public static class CliApplication
         CompositionRunResult result = action == "preview"
             ? await service.PreviewAsync(request, cancellationToken).ConfigureAwait(false)
             : await BuildWithInternalPreviewAsync(service, request, cancellationToken).ConfigureAwait(false);
-        await WriteReportFileIfRequestedAsync(result, options, bindings, output, cancellationToken).ConfigureAwait(false);
+        await WriteReportFileIfRequestedAsync(result, options, bindings, outputTarget, action == "build", output, cancellationToken)
+            .ConfigureAwait(false);
         await PrintRunResultAsync(result, output, error).ConfigureAwait(false);
         return result.Status == CompositionExecutionStatus.Succeeded ? Success : CompositionFailed;
     }
@@ -277,6 +285,34 @@ public static class CliApplication
         return string.IsNullOrWhiteSpace(directory) || string.IsNullOrWhiteSpace(fileName)
             ? throw new ArgumentException("Output must resolve to a file path.")
             : new OutputTarget(directory, fileName);
+    }
+
+    private static void EnsureOutputDoesNotAliasInputs(
+        OutputTarget outputTarget,
+        IReadOnlyList<InputArtifactBinding> bindings)
+    {
+        ProtectedPathGuard.EnsureOutputDoesNotAliasInputs(
+            outputTarget.FullPath,
+            bindings,
+            nameof(outputTarget));
+    }
+
+    private static void EnsureReportDoesNotAliasProtectedPaths(
+        ParsedOptions options,
+        IReadOnlyList<InputArtifactBinding> bindings,
+        OutputTarget outputTarget,
+        bool protectOutput)
+    {
+        if (!options.Values.TryGetValue("--report", out string? reportPath))
+        {
+            return;
+        }
+
+        ProtectedPathGuard.EnsureReportDoesNotAliasProtectedPaths(
+            reportPath,
+            bindings,
+            protectOutput ? outputTarget.FullPath : null,
+            "--report");
     }
 
     private static bool TryFindStandardMergeProfile(
@@ -355,6 +391,8 @@ public static class CliApplication
         CompositionRunResult result,
         ParsedOptions options,
         IReadOnlyList<InputArtifactBinding> bindings,
+        OutputTarget outputTarget,
+        bool protectOutput,
         TextWriter output,
         CancellationToken cancellationToken)
     {
@@ -364,7 +402,13 @@ public static class CliApplication
         }
 
         string fullPath = await CliRunReportWriter
-            .WriteAsync(result.Report, reportPath, bindings.Select(binding => binding.ArtifactId), cancellationToken)
+            .WriteAsync(
+                result.Report,
+                reportPath,
+                ProtectedPathGuard.CreateProtectedPaths(
+                    bindings,
+                    protectOutput ? outputTarget.FullPath : null),
+                cancellationToken)
             .ConfigureAwait(false);
         await output.WriteLineAsync($"Report: {fullPath}").ConfigureAwait(false);
     }
@@ -485,5 +529,8 @@ public static class CliApplication
             new HashSet<string>(StringComparer.Ordinal));
     }
 
-    private readonly record struct OutputTarget(string OutputDirectory, string FileName);
+    private readonly record struct OutputTarget(string OutputDirectory, string FileName)
+    {
+        internal string FullPath => ProtectedPathGuard.CombineFullPath(OutputDirectory, FileName);
+    }
 }
