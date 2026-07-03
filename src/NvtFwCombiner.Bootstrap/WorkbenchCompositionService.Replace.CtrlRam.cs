@@ -11,6 +11,9 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
+    private const string CtrlRamTpWorkSpaceId = "tp-work";
+    private const string CtrlRamTpWorkBindingId = "base-tp-work";
+
     private static async ValueTask<WorkbenchRunResult> RunCtrlRamReplaceAsync(
         string icId,
         string number,
@@ -105,14 +108,19 @@ public static partial class WorkbenchCompositionService
             }
         }
 
+        long postbuildWorkLength = 0;
         if (commandPlan is not null && baseLength > 0)
         {
-            long requiredCapacity = CalculatePostbuildRequiredCapacity(commandPlan, selectedRegions);
-            if (baseLength < requiredCapacity)
+            long requiredPostbuildLength = CalculatePostbuildRequiredCapacity(commandPlan, regions);
+            // Only the 51927-family BAT hands refreshed TP_FW back to FlashMerge; in-place profiles stay full image.
+            postbuildWorkLength = postbuildProfile is not null && RequiresTpWorkAssembly(postbuildProfile)
+                ? requiredPostbuildLength
+                : baseLength;
+            if (baseLength < requiredPostbuildLength)
             {
                 validationIssues.Add(new CompositionIssue(
                     "input.address-space.length-mismatch",
-                    $"Base flash BIN is too short for {icId} / {number} CtrlRAM postbuild (actual {baseLength} bytes, required at least {requiredCapacity} bytes).",
+                    $"Base flash BIN is too short for {icId} / {number} CtrlRAM postbuild (actual {baseLength} bytes, required at least {requiredPostbuildLength} bytes).",
                     "replace-base"));
             }
         }
@@ -135,7 +143,7 @@ public static partial class WorkbenchCompositionService
 
         List<ByteRange> postbuildWriteRanges = CreatePostbuildAllowedWriteRanges(
             commandPlan,
-            baseLength,
+            postbuildWorkLength,
             regions);
         if (postbuildWriteRanges.Count == 0)
         {
@@ -159,6 +167,7 @@ public static partial class WorkbenchCompositionService
             icId,
             selection,
             baseLength,
+            postbuildWorkLength,
             regions,
             selectedRegions,
             postbuildProfile,
@@ -178,52 +187,71 @@ public static partial class WorkbenchCompositionService
                 succeeded: false);
         }
 
-        InputArtifactBinding[] bindings = CreateCtrlRamReplaceBindings(selectedRegions, slotPaths, basePath);
-        string[] inputRoots =
-        [
-            .. bindings
-                .Select(binding => Path.GetDirectoryName(binding.ArtifactId)!)
-                .Distinct(StringComparer.OrdinalIgnoreCase),
-        ];
-        (string outputDirectory, string outputFileName) = ResolveOutputTarget(
-            basePath,
-            build,
-            outputPath,
-            profile.DefaultOutputFileName);
-        FileArtifactReader reader = new(inputRoots);
-        AtomicFileCompositionOutputWriter? writer = build
-            ? new AtomicFileCompositionOutputWriter(outputDirectory, overwrite: true)
-            : null;
-        CompositionRunService service = new(reader, new SystemClock(), writer, ExternalProcessorFactory.CreateOrNull());
-        CompositionRunRequest request = new(
-            $"ui-replace-ctrlram-{(build ? "build" : "preview")}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture)}",
-            ToRunProfile(profile),
-            compile.Plan!,
-            bindings,
-            outputFileName,
-            icNumberSelection: selection);
-
-        CompositionRunResult result;
-        if (!build)
+        string? tempDirectory = null;
+        try
         {
-            result = await service.PreviewAsync(request, cancellationToken).ConfigureAwait(false);
-        }
-        else
-        {
-            CompositionRunResult preview = await service.PreviewAsync(request, cancellationToken).ConfigureAwait(false);
-            result = preview.Status == CompositionExecutionStatus.Succeeded
-                ? await service.BuildAsync(request.WithApprovedPreviewToken(preview.PreviewToken!), cancellationToken)
-                    .ConfigureAwait(false)
-                : preview;
-        }
+            string? tpWorkSeedPath = null;
+            if (RequiresTpWorkAssembly(postbuildProfile))
+            {
+                (tpWorkSeedPath, tempDirectory) = CreateTpWorkSeedFile(basePath, postbuildWorkLength);
+            }
 
-        return ToWorkbenchRunResult(result);
+            InputArtifactBinding[] bindings = CreateCtrlRamReplaceBindings(
+                selectedRegions,
+                slotPaths,
+                basePath,
+                tpWorkSeedPath);
+            string[] inputRoots =
+            [
+                .. bindings
+                    .Select(binding => Path.GetDirectoryName(binding.ArtifactId)!)
+                    .Distinct(StringComparer.OrdinalIgnoreCase),
+            ];
+            (string outputDirectory, string outputFileName) = ResolveOutputTarget(
+                basePath,
+                build,
+                outputPath,
+                profile.DefaultOutputFileName);
+            FileArtifactReader reader = new(inputRoots);
+            AtomicFileCompositionOutputWriter? writer = build
+                ? new AtomicFileCompositionOutputWriter(outputDirectory, overwrite: true)
+                : null;
+            CompositionRunService service = new(reader, new SystemClock(), writer, ExternalProcessorFactory.CreateOrNull());
+            CompositionRunRequest request = new(
+                $"ui-replace-ctrlram-{(build ? "build" : "preview")}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture)}",
+                ToRunProfile(profile),
+                compile.Plan!,
+                bindings,
+                outputFileName,
+                icNumberSelection: selection);
+
+            CompositionRunResult result;
+            if (!build)
+            {
+                result = await service.PreviewAsync(request, cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                CompositionRunResult preview = await service.PreviewAsync(request, cancellationToken).ConfigureAwait(false);
+                result = preview.Status == CompositionExecutionStatus.Succeeded
+                    ? await service.BuildAsync(request.WithApprovedPreviewToken(preview.PreviewToken!), cancellationToken)
+                        .ConfigureAwait(false)
+                    : preview;
+            }
+
+            return ToWorkbenchRunResult(result);
+        }
+        finally
+        {
+            TryDeleteDirectory(tempDirectory);
+        }
     }
 
     private static CompositionProfileDefinition CreateCtrlRamReplaceProfile(
         string icId,
         IcNumberSelection selection,
-        long capacity,
+        long finalCapacity,
+        long postbuildCapacity,
         IReadOnlyList<TpFlashMapRegion> ctrlRamRegions,
         IReadOnlyList<TpFlashMapRegion> selectedRegions,
         LegacyCombinerPostbuildProfile postbuildProfile,
@@ -231,11 +259,18 @@ public static partial class WorkbenchCompositionService
         List<ByteRange> postbuildWriteRanges)
     {
         string normalizedIc = icId.ToLowerInvariant();
+        bool requiresTpWorkAssembly = RequiresTpWorkAssembly(postbuildProfile);
+        string postbuildTargetSpaceId = requiresTpWorkAssembly ? CtrlRamTpWorkSpaceId : "output-image";
         List<AddressSpace> addressSpaces =
         [
-            new("reference-base", capacity, AddressSpaceMutability.Immutable),
-            new("output-image", capacity, AddressSpaceMutability.Mutable),
+            new("reference-base", finalCapacity, AddressSpaceMutability.Immutable),
+            new("output-image", finalCapacity, AddressSpaceMutability.Mutable),
         ];
+        if (requiresTpWorkAssembly)
+        {
+            addressSpaces.Add(new AddressSpace(CtrlRamTpWorkSpaceId, postbuildCapacity, AddressSpaceMutability.Mutable));
+        }
+
         List<CompositionOperation> operations = [];
         List<ProfileRegion> profileRegions = [];
         List<RegionAccessRule> accessRules = [];
@@ -244,7 +279,7 @@ public static partial class WorkbenchCompositionService
         {
             profileRegions.Add(new ProfileRegion(
                 region.RegionId,
-                "output-image",
+                postbuildTargetSpaceId,
                 region.Range,
                 RegionAtomicity.Whole,
                 RegionWritePolicy.WholeOnly,
@@ -270,7 +305,7 @@ public static partial class WorkbenchCompositionService
                 sequence,
                 slotId,
                 new ByteRange(0, region.Range.Length),
-                "output-image",
+                postbuildTargetSpaceId,
                 region.Range,
                 OverlapPolicy.Reject,
                 $"Replace {region.DisplayName} at {FormatDisplayRange(region.Range)} with the selected BIN; oversized inputs are truncated by CtrlRAM profile policy."));
@@ -290,7 +325,7 @@ public static partial class WorkbenchCompositionService
         {
             profileRegions.Add(new ProfileRegion(
                 FormattableString.Invariant($"postbuild-write-{index:D2}"),
-                "output-image",
+                postbuildTargetSpaceId,
                 range,
                 RegionAtomicity.ExplicitMapping,
                 RegionWritePolicy.GeneralExplicit,
@@ -301,15 +336,41 @@ public static partial class WorkbenchCompositionService
         operations.Add(CompositionOperation.RunExternalProcessor(
             $"postbuild-{commandPlan.Branch.ToString().ToLowerInvariant()}",
             sequence,
-            "output-image",
-            new ByteRange(0, capacity),
+            postbuildTargetSpaceId,
+            new ByteRange(0, postbuildCapacity),
             new ExternalProcessorInvocation(
                 postbuildProfile.ProcessorId,
                 postbuildProfile.ToolBindingId,
-                [new ByteRange(0, capacity)],
+                [new ByteRange(0, postbuildCapacity)],
                 postbuildWriteRanges),
             OverlapPolicy.ReplaceExisting,
             $"Run {commandPlan.Branch} legacy Combiner postbuild after CtrlRAM replacement. Combiner command: {FormatPostbuildCommandBlock(commandPlan)}."));
+        sequence += 10;
+
+        if (requiresTpWorkAssembly)
+        {
+            var tpAssemblyRange = new ByteRange(0, postbuildCapacity);
+            profileRegions.Add(new ProfileRegion(
+                "assembled-tp-fw",
+                "output-image",
+                tpAssemblyRange,
+                RegionAtomicity.Whole,
+                RegionWritePolicy.WholeOnly,
+                classificationTags: ["tp", "assembled"]));
+            accessRules.Add(new RegionAccessRule(
+                "assembled-tp-fw",
+                RegionAccessKind.Whole,
+                "CtrlRAM Replace assembles refreshed TP_FW back with the base DP/final flash image."));
+            operations.Add(CompositionOperation.CopyRange(
+                "assemble-refreshed-tp",
+                sequence,
+                CtrlRamTpWorkSpaceId,
+                tpAssemblyRange,
+                "output-image",
+                tpAssemblyRange,
+                OverlapPolicy.ReplaceExisting,
+                $"Assemble refreshed TP_FW {FormatDisplayRange(tpAssemblyRange)} back into the final flash while preserving base DP bytes outside that range."));
+        }
 
         return new CompositionProfileDefinition(
             $"{normalizedIc}-ctrlram-replace-workbench",
@@ -319,7 +380,7 @@ public static partial class WorkbenchCompositionService
             CompositionKind.Replace,
             "ctrlram-replace",
             $"{normalizedIc}-ctrlram-replace.bin",
-            ImageInitialization.Reference("output-image", "reference-base", capacity),
+            ImageInitialization.Reference("output-image", "reference-base", finalCapacity),
             addressSpaces,
             operations,
             profileRegions,
@@ -337,6 +398,19 @@ public static partial class WorkbenchCompositionService
         OperationRunStatus status = runnablePreview ? OperationRunStatus.Succeeded : OperationRunStatus.Skipped;
         List<OperationRunSummary> operations = [];
         long capacity = Math.Max(1, TpFlashMapCatalog.GetRegions(icId, selection).Max(region => region.Range.EndExclusive));
+        LegacyCombinerPostbuildProfile? postbuildProfile = null;
+        LegacyCombinerPostbuildCommandPlan? plan = null;
+        if (LegacyCombinerPostbuildCatalog.All.FirstOrDefault(profile =>
+                string.Equals(profile.IcId, icId, StringComparison.Ordinal)) is { } resolvedProfile)
+        {
+            postbuildProfile = resolvedProfile;
+            plan = LegacyCombinerPostbuildPlanner.CreatePlan(postbuildProfile, selection);
+            capacity = Math.Max(capacity, CalculatePostbuildRequiredCapacity(plan, regions));
+        }
+
+        string postbuildTargetSpaceId = postbuildProfile is not null && RequiresTpWorkAssembly(postbuildProfile)
+            ? CtrlRamTpWorkSpaceId
+            : "output-image";
         int sequence = 100;
         foreach (TpFlashMapRegion region in regions.OrderBy(region => region.Range.Start))
         {
@@ -367,7 +441,7 @@ public static partial class WorkbenchCompositionService
                     status,
                     slotId,
                     new ByteRange(0, region.Range.Length),
-                    "output-image",
+                    postbuildTargetSpaceId,
                     region.Range,
                     OverlapPolicy.ReplaceExisting,
                     null,
@@ -379,13 +453,11 @@ public static partial class WorkbenchCompositionService
             }
         }
 
-        if (LegacyCombinerPostbuildCatalog.All.FirstOrDefault(profile =>
-                string.Equals(profile.IcId, icId, StringComparison.Ordinal)) is not { } postbuildProfile)
+        if (postbuildProfile is null || plan is null)
         {
             return operations;
         }
 
-        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(postbuildProfile, selection);
         string firmwarePath = Path.Combine("output", postbuildProfile.FirmwareFileName);
         string binDirectory = "BIN";
         foreach (LegacyCombinerPostbuildCommand command in plan.Commands)
@@ -401,7 +473,7 @@ public static partial class WorkbenchCompositionService
                 status,
                 null,
                 null,
-                "output-image",
+                postbuildTargetSpaceId,
                 new ByteRange(0, capacity),
                 OverlapPolicy.ReplaceExisting,
                 postbuildProfile.ProcessorId,
@@ -410,6 +482,26 @@ public static partial class WorkbenchCompositionService
                 [new ByteRange(0, capacity)],
                 $"Generated {plan.Branch} Combiner command: Combiner.exe {string.Join(' ', args)}."));
             sequence += 10;
+        }
+
+        if (RequiresTpWorkAssembly(postbuildProfile))
+        {
+            var assemblyRange = new ByteRange(0, capacity);
+            operations.Add(new OperationRunSummary(
+                "assemble-refreshed-tp",
+                sequence,
+                CompositionOperationKind.CopyRange,
+                status,
+                CtrlRamTpWorkSpaceId,
+                assemblyRange,
+                "output-image",
+                assemblyRange,
+                OverlapPolicy.ReplaceExisting,
+                null,
+                null,
+                [],
+                [],
+                $"Assemble refreshed TP_FW {FormatDisplayRange(assemblyRange)} back into the final flash while preserving base DP bytes outside that range."));
         }
 
         return operations;
@@ -435,12 +527,18 @@ public static partial class WorkbenchCompositionService
     private static InputArtifactBinding[] CreateCtrlRamReplaceBindings(
         IReadOnlyList<TpFlashMapRegion> selectedRegions,
         IReadOnlyDictionary<string, string> slotPaths,
-        string basePath)
+        string basePath,
+        string? tpWorkSeedPath)
     {
         List<InputArtifactBinding> bindings =
         [
             new("reference-base", "replace-base", basePath),
         ];
+        if (!string.IsNullOrWhiteSpace(tpWorkSeedPath))
+        {
+            bindings.Add(new InputArtifactBinding(CtrlRamTpWorkSpaceId, CtrlRamTpWorkBindingId, tpWorkSeedPath));
+        }
+
         foreach (TpFlashMapRegion region in selectedRegions.OrderBy(region => region.Range.Start))
         {
             string slotId = CtrlRamSlotId(region.RegionId);
@@ -450,9 +548,72 @@ public static partial class WorkbenchCompositionService
         return [.. bindings];
     }
 
+    private static bool RequiresTpWorkAssembly(LegacyCombinerPostbuildProfile postbuildProfile)
+    {
+        return postbuildProfile.AssemblyKind == LegacyCombinerPostbuildAssemblyKind.RefreshedTpThenStandardMerge;
+    }
+
+    private static (string Path, string Directory) CreateTpWorkSeedFile(string basePath, long length)
+    {
+        if (length <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(length), "TP work seed length must be positive.");
+        }
+
+        string directory = Path.Combine(
+            Path.GetTempPath(),
+            "nvt-fw-combiner",
+            "ctrlram-tp-work",
+            Guid.NewGuid().ToString("N"));
+        _ = Directory.CreateDirectory(directory);
+        string seedPath = Path.Combine(directory, "tp-work.bin");
+
+        using FileStream input = File.OpenRead(basePath);
+        using FileStream output = File.Create(seedPath);
+        byte[] buffer = new byte[81920];
+        long remaining = length;
+        while (remaining > 0)
+        {
+            int read = input.Read(buffer, 0, (int)Math.Min(buffer.Length, remaining));
+            if (read == 0)
+            {
+                throw new IOException("Base flash ended before the TP work seed could be created.");
+            }
+
+            output.Write(buffer, 0, read);
+            remaining -= read;
+        }
+
+        return (seedPath, directory);
+    }
+
+    private static void TryDeleteDirectory(string? directory)
+    {
+        if (string.IsNullOrWhiteSpace(directory))
+        {
+            return;
+        }
+
+        try
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+        catch (IOException)
+        {
+            // Best-effort cleanup after the composition result has already been produced.
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Best-effort cleanup after the composition result has already been produced.
+        }
+    }
+
     private static long CalculatePostbuildRequiredCapacity(
         LegacyCombinerPostbuildCommandPlan commandPlan,
-        List<TpFlashMapRegion> selectedRegions)
+        IReadOnlyCollection<TpFlashMapRegion> selectedRegions)
     {
         long requiredCapacity = selectedRegions.Count == 0
             ? 1

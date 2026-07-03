@@ -92,6 +92,26 @@ public sealed class LegacyCombinerPostbuildCatalogTests
             "nt51928-2chip-right-ctrlram");
     }
 
+    /// <summary>Locks the 51927 family to TP_FW postbuild followed by final DP/TP assembly.</summary>
+    [Fact]
+    public void Nt51927FamilyDeclaresRefreshedTpAssembly()
+    {
+        LegacyCombinerPostbuildProfile[] tpAssemblyProfiles =
+        [
+            LegacyCombinerPostbuildCatalog.Nt51917,
+            LegacyCombinerPostbuildCatalog.Nt51927,
+            LegacyCombinerPostbuildCatalog.Nt51928,
+        ];
+
+        Assert.All(tpAssemblyProfiles, profile =>
+            Assert.Equal(
+                LegacyCombinerPostbuildAssemblyKind.RefreshedTpThenStandardMerge,
+                profile.AssemblyKind));
+        Assert.All(
+            LegacyCombinerPostbuildCatalog.All.Except(tpAssemblyProfiles),
+            profile => Assert.Equal(LegacyCombinerPostbuildAssemblyKind.InPlaceFirmwareImage, profile.AssemblyKind));
+    }
+
     /// <summary>Locks NT51929 to the owner-approved NT51932-based postbuild flow.</summary>
     [Fact]
     public void Nt51929AliasesNt51932PostbuildFlow()

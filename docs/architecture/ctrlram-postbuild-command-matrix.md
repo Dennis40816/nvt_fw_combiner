@@ -15,6 +15,8 @@ The imported full postbuild BAT files also call `python output\InsertSID.py outp
 
 CtrlRAM Replace always runs the selected IC/IC-number Combiner postbuild branch once, in the command order below, after host-side CtrlRAM byte replacement. It does not shorten the Combiner command sequence to only the user-selected CtrlRAM slot; unselected CtrlRAM payloads are staged from the current work image so the full postbuild can refresh integrity consistently.
 
+NT51917/NT51927/NT51928 use the special 51927 postbuild shape: the BAT copies the refreshed `output\*_fw.bin` into `output\FlashMerge\TP_FW` after Combiner finishes. NFC therefore stages Combiner against a TP work image, then assembles that refreshed TP_FW back into the cloned base flash so DP/final-flash bytes outside the TP work range stay from the base image. Other current postbuild profiles remain in-place firmware-image stages because their BAT evidence does not contain a `FlashMerge\TP_FW` handoff.
+
 For per-IC Merge/Replace flowcharts, see [`ic-workflow-flowcharts.md`](ic-workflow-flowcharts.md).
 
 | IC | IC num mode | Branches | Combiner modes | Command count | Notes |
@@ -45,4 +47,5 @@ For per-IC Merge/Replace flowcharts, see [`ic-workflow-flowcharts.md`](ic-workfl
 
 ## Open Evidence Gaps
 
+- NT51927 public standard-merge self-replacement is not byte-idempotent after the full Combiner postbuild sequence even when the replacement CtrlRAM bytes are sliced from the same base image. The observed changed ranges are six 4-byte postbuild/header ranges: `0x1E26C-0x1E26F`, `0x1E27C-0x1E27F`, `0x32FDC-0x32FDF`, `0x32FEC-0x32FEF`, `0x32FFC-0x32FFF`, and `0x3300C-0x3300F`. This remains a golden evidence gap, not an approved expected-output update.
 - NT51950/NT51951 `NT51950BASED_NORMAL_MODE CRC8` real-tool execution still needs `map.txt` staging evidence before production CtrlRAM Replace can be claimed.

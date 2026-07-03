@@ -1,6 +1,9 @@
 using System.Globalization;
 using System.Text.Json;
 using Avalonia.Media;
+using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
@@ -255,8 +258,9 @@ public sealed class ShellViewModelTests
             File.WriteAllBytes(basePath, baseBytes);
 
             MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+            const string selectedNumber = "2";
             viewModel.SelectedIc = "NT51927";
-            viewModel.SelectedNumber = "2";
+            viewModel.SelectedNumber = selectedNumber;
             viewModel.ShowCtrlRamReplaceCommand.Execute(null);
 
             FirmwareSlotViewModel regionSlot = viewModel.ReplaceSlots.First(slot =>
@@ -304,15 +308,18 @@ public sealed class ShellViewModelTests
                 "InsertSID",
                 postbuildOperation.GetProperty("Reason").GetString(),
                 StringComparison.Ordinal);
-            Assert.Equal(10, CountOccurrences(
+            LegacyCombinerPostbuildCommandPlan expectedPlan = LegacyCombinerPostbuildPlanner.CreatePlan(
+                LegacyCombinerPostbuildCatalog.Nt51927,
+                new IcNumberSelection(IcNumberInputMode.NumericSelector, [selectedNumber]));
+            Assert.Equal(expectedPlan.Commands.Count, CountOccurrences(
                 postbuildOperation.GetProperty("Reason").GetString()!,
                 "Combiner.exe "));
             AssertDoesNotCoverRange(postbuildOperation.GetProperty("ProcessorAllowedWriteRanges"), 0x7024, 4);
-            AssertContainsRange(postbuildOperation.GetProperty("ProcessorAllowedWriteRanges"), start, length);
+            AssertCoversRange(postbuildOperation.GetProperty("ProcessorAllowedWriteRanges"), start, length);
             CtrlRamRegionViewModel unselectedRegion = viewModel.CtrlRamRegions.First(region =>
                 region.Name != regionSlot.Title);
             (int unselectedStart, int unselectedLength) = ParseCtrlRamRegion(unselectedRegion);
-            AssertContainsRange(
+            AssertCoversRange(
                 postbuildOperation.GetProperty("ProcessorAllowedWriteRanges"),
                 unselectedStart,
                 unselectedLength);
@@ -852,11 +859,15 @@ public sealed class ShellViewModelTests
             int.Parse(lengthHex, NumberStyles.HexNumber, CultureInfo.InvariantCulture));
     }
 
-    private static void AssertContainsRange(JsonElement ranges, int start, int length)
+    private static void AssertCoversRange(JsonElement ranges, int start, int length)
     {
-        Assert.Contains(ranges.EnumerateArray(), range =>
-            range.GetProperty("Start").GetInt64() == start &&
-            range.GetProperty("Length").GetInt64() == length);
+        RangeSet rangeSet = new(ranges.EnumerateArray().Select(range => new ByteRange(
+            range.GetProperty("Start").GetInt64(),
+            range.GetProperty("Length").GetInt64())));
+
+        Assert.True(
+            rangeSet.Contains(new ByteRange(start, length)),
+            FormattableString.Invariant($"Expected allowed write ranges to cover [0x{start:X}, 0x{start + length:X})."));
     }
 
     private static void AssertDoesNotCoverRange(JsonElement ranges, int start, int length)

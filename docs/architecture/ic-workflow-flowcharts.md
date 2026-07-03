@@ -162,18 +162,20 @@ Used by NT51917, NT51927, and NT51928 non-NB.
 
 ```mermaid
 flowchart TD
-    A["Load reference firmware and CtrlRAM replacement bins"] --> B["Clone reference to work image"]
-    B --> C["Replace approved CtrlRAM ranges; truncate oversized CtrlRAM input with warning when profile declares it"]
-    C --> D["Stage postbuild BIN files and work firmware"]
-    D --> E{"IC num selection"}
-    E -- "single" --> F["Build 7-command NT51927 MERGE_MODE + CRC32 plan"]
-    E -- "2" --> G["Build 10-command NT51927 MERGE_MODE + CRC32 plan"]
-    E -- "3 or cascade" --> H["Build 13-command NT51927 MERGE_MODE + CRC32 plan"]
-    F --> I["Run Combiner.exe commands in order"]
-    G --> I
-    H --> I
-    I --> J["Diff transformed work firmware against declared processor write ranges"]
-    J --> K["Preview/Build report records warnings, command argv, changed ranges, and final hash"]
+    A["Load reference firmware and CtrlRAM replacement bins"] --> B["Clone reference to final output image"]
+    B --> C["Split TP work image from the base flash"]
+    C --> D["Replace approved CtrlRAM ranges in TP work; truncate oversized CtrlRAM input with warning when profile declares it"]
+    D --> E["Stage postbuild BIN files and TP work firmware"]
+    E --> F{"IC num selection"}
+    F -- "single" --> G["Build 7-command NT51927 MERGE_MODE + CRC32 plan"]
+    F -- "2" --> H["Build 10-command NT51927 MERGE_MODE + CRC32 plan"]
+    F -- "3 or cascade" --> I["Build 13-command NT51927 MERGE_MODE + CRC32 plan"]
+    G --> J["Run Combiner.exe commands in order against TP work"]
+    H --> J
+    I --> J
+    J --> K["Diff transformed TP work against declared processor write ranges"]
+    K --> L["Assemble refreshed TP_FW back into the cloned final output image"]
+    L --> M["Preview/Build report records warnings, command argv, changed ranges, assembly step, and final hash"]
 ```
 
 ### R-CTRLRAM-LEGACY-NORMAL

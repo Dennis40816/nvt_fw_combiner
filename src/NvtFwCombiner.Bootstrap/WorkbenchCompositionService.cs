@@ -441,6 +441,7 @@ public static partial class WorkbenchCompositionService
             "reference-base" => "Base flash",
             "dp-replacement" => "DP replacement",
             "ldc-replacement" => "LDC replacement",
+            "tp-work" => "TP work",
             "output-image" => "Output",
             _ => addressSpaceId,
         };

@@ -164,7 +164,8 @@ public static class LegacyCombinerPostbuildCatalog
         "IC FlashMap postbuild/PostbuildSetup_51927_1.4.1.bat",
         twoChipCommands: Nt51927TwoChipCommands(),
         threeChipCommands: Nt51927ThreeChipCommands(),
-        branchRules: NumericOneTwoThreeBranchRules());
+        branchRules: NumericOneTwoThreeBranchRules(),
+        assemblyKind: LegacyCombinerPostbuildAssemblyKind.RefreshedTpThenStandardMerge);
 
     /// <summary>NT51917 CtrlRAM postbuild profile using the owner-approved NT51927 reference flow.</summary>
     public static LegacyCombinerPostbuildProfile Nt51917 { get; } = new(
@@ -177,7 +178,8 @@ public static class LegacyCombinerPostbuildCatalog
         "IC FlashMap postbuild/PostbuildSetup_51927_1.4.1.bat; owner confirmation: NT51917 follows NT51927",
         twoChipCommands: AliasCommands("nt51927", "nt51917", Nt51927TwoChipCommands()),
         threeChipCommands: AliasCommands("nt51927", "nt51917", Nt51927ThreeChipCommands()),
-        branchRules: NumericOneTwoThreeBranchRules());
+        branchRules: NumericOneTwoThreeBranchRules(),
+        assemblyKind: LegacyCombinerPostbuildAssemblyKind.RefreshedTpThenStandardMerge);
 
     /// <summary>NT51928 CtrlRAM postbuild profile using the owner-approved NT51927 reference flow.</summary>
     public static LegacyCombinerPostbuildProfile Nt51928 { get; } = new(
@@ -190,7 +192,8 @@ public static class LegacyCombinerPostbuildCatalog
         "IC FlashMap postbuild/PostbuildSetup_51927_1.4.1.bat; owner confirmation: NT51928 follows NT51927; NT51928 NB is not covered",
         twoChipCommands: AliasCommands("nt51927", "nt51928", Nt51927TwoChipCommands()),
         threeChipCommands: AliasCommands("nt51927", "nt51928", Nt51927ThreeChipCommands()),
-        branchRules: NumericOneTwoThreeBranchRules());
+        branchRules: NumericOneTwoThreeBranchRules(),
+        assemblyKind: LegacyCombinerPostbuildAssemblyKind.RefreshedTpThenStandardMerge);
 
     /// <summary>NT51930 CtrlRAM postbuild profile.</summary>
     public static LegacyCombinerPostbuildProfile Nt51930 { get; } = new(
