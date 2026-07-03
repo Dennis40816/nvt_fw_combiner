@@ -732,9 +732,8 @@
         "audience": {
           "enum": [
             "system",
-            "display",
-            "tp-hw",
-            "tp-fw",
+            "dp",
+            "ctrlram",
             "advanced"
           ]
         },

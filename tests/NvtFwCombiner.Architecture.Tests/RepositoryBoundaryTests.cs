@@ -1,7 +1,9 @@
+using System.Text.RegularExpressions;
+
 namespace NvtFwCombiner.Architecture.Tests;
 
 /// <summary>Repository-level architecture boundary checks that do not depend on production assemblies.</summary>
-public sealed class RepositoryBoundaryTests
+public sealed partial class RepositoryBoundaryTests
 {
     private static readonly DirectoryInfo Root = LocateRepositoryRoot();
 
@@ -26,7 +28,7 @@ public sealed class RepositoryBoundaryTests
 
     /// <summary>Verifies UI planning documents keep firmware behavior out of ViewModels.</summary>
     [Fact]
-    public void DemoUiDocumentsForbidFirmwareSemanticsInViewModels()
+    public void UiDocumentsForbidFirmwareSemanticsInViewModels()
     {
         string boundaries = ReadText("docs/ui/viewmodel-boundaries.md");
 
@@ -35,67 +37,201 @@ public sealed class RepositoryBoundaryTests
         Assert.Contains("No `File.ReadAllBytes` or `Process.Start` in ViewModels", boundaries, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies the demo shell follows the owner-approved top-tab and report-modal direction.</summary>
+    /// <summary>Verifies the shell follows the owner-approved clean home and independent page direction.</summary>
     [Fact]
-    public void DemoShellUsesTopTabsAndReportModalPreview()
+    public void ShellUsesCleanHomeAndIndependentWorkflowPages()
     {
         string shell = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml");
 
-        Assert.Contains("ItemsPanelTemplate", shell, StringComparison.Ordinal);
-        Assert.Contains("StackPanel Orientation=\"Horizontal\"", shell, StringComparison.Ordinal);
-        Assert.Contains("ReportModalPreview", shell, StringComparison.Ordinal);
+        Assert.Contains("IsHomeVisible", shell, StringComparison.Ordinal);
+        Assert.Contains("IsMergeVisible", shell, StringComparison.Ordinal);
+        Assert.Contains("IsReplaceVisible", shell, StringComparison.Ordinal);
+        Assert.Contains("ShowDpReplaceCommand", shell, StringComparison.Ordinal);
+        Assert.Contains("ShowNormalMergeCommand", shell, StringComparison.Ordinal);
+        Assert.Contains("WindowState=\"Maximized\"", shell, StringComparison.Ordinal);
+        Assert.Contains("RowDefinitions=\"Auto,Auto,Auto,*,Auto\"", shell, StringComparison.Ordinal);
+        Assert.Contains("DeviceContextTitle", shell, StringComparison.Ordinal);
+        Assert.Contains("IsDeviceContextVisible", shell, StringComparison.Ordinal);
+        Assert.Contains("NavigationTrail", shell, StringComparison.Ordinal);
+        Assert.Contains("GoBackCommand", shell, StringComparison.Ordinal);
+        Assert.Contains("IcChoices", shell, StringComparison.Ordinal);
+        Assert.Contains("SelectedIc", shell, StringComparison.Ordinal);
+        Assert.Contains("NumberChoices", shell, StringComparison.Ordinal);
+        Assert.Contains("SelectedNumber", shell, StringComparison.Ordinal);
+        Assert.Contains("ToggleButton", shell, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"nav\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"command\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"iconButton\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"breadcrumb\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"primary\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"action\"", shell, StringComparison.Ordinal);
+        Assert.Contains("<Setter Property=\"MinHeight\" Value=\"44\" />", shell, StringComparison.Ordinal);
+        Assert.Contains("<Setter Property=\"CornerRadius\" Value=\"999\" />", shell, StringComparison.Ordinal);
+        Assert.Contains("ColumnDefinitions=\"1.15*,430\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Flash layout", shell, StringComparison.Ordinal);
+        Assert.Contains("IsEnabled=\"False\"", shell, StringComparison.Ordinal);
+        Assert.Contains("LoadReportJsonButton_OnClick", shell, StringComparison.Ordinal);
+        Assert.Contains("SaveReportButton_OnClick", shell, StringComparison.Ordinal);
+        Assert.Contains("BuildMergeButton_OnClick", shell, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding ShowReportCommand}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsReportModalOpen}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Tip=\"{Binding TooltipText}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("SlotDrop_OnDrop", shell, StringComparison.Ordinal);
+        Assert.Contains("SlotDragOver_OnDragOver", shell, StringComparison.Ordinal);
+        Assert.Contains("BrowseSlotButton_OnClick", shell, StringComparison.Ordinal);
+        Assert.Contains("BrowseGeneralMappingButton_OnClick", shell, StringComparison.Ordinal);
+        Assert.Contains("GeneralMappingDrop_OnDrop", shell, StringComparison.Ordinal);
+        Assert.Contains("RemoveGeneralMappingButton_OnClick", shell, StringComparison.Ordinal);
+        Assert.Contains("IsNonCtrlRamStructuredReplaceModeSelected", shell, StringComparison.Ordinal);
+        Assert.Contains("ReplaceBaseSlot", shell, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding GeneralReplaceMappings}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding MergeCoverageSegments}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding ReplaceSlots}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding ReplaceSlotGroups}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding ReplaceCoverageGroups}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding MergeSlots}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding ReplaceMemoryRows}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding MergeMemoryRows}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding PreviewMergeCommand}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("IsEnabled=\"{Binding CanBuildStandardMerge}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("HasLoadedReport", shell, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.Operations", shell, StringComparison.Ordinal);
         Assert.Contains("FontFamily=\"fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI\"", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("Classes=\"secondary\" Content=\"{Binding PreviewActionLabel}\"", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("Background=\"#0F172A\" CornerRadius=\"8\"", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("Merge / Replace workspace", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("ColumnDefinitions=\"220,*\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Diagnostics.", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("SavedRulesAndReports", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("Policy display only", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("0x0000 - 0xFFFF", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("AB disabled", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("LOADED REPORT", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("Content=\"{Binding ReportModalActionLabel}\"", shell, StringComparison.Ordinal);
+
+        string viewModel = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.cs");
+        string mergeViewModel = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Merge.cs");
+        string reportViewModel = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Report.cs");
+        string settingsViewModel = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Settings.cs");
+        string navigationViewModel = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Navigation.cs");
+        Assert.Contains("LoadReportJson", reportViewModel, StringComparison.Ordinal);
+        Assert.Contains("ReportReviewViewModel", reportViewModel, StringComparison.Ordinal);
+        Assert.Contains("CanOpenReport", reportViewModel, StringComparison.Ordinal);
+        Assert.Contains("ReportToastText", reportViewModel, StringComparison.Ordinal);
+        Assert.Contains("UiCompositionRunner.GetNumberChoices", viewModel, StringComparison.Ordinal);
+        Assert.Contains("UiCompositionRunner.GetStandardMergeMemoryMapRows", viewModel, StringComparison.Ordinal);
+        Assert.Contains("UiCompositionRunner.GetStandardMergeCoverageSegments", viewModel, StringComparison.Ordinal);
+        Assert.Contains("UiCompositionRunner.GetReplaceMemoryMapRows", viewModel, StringComparison.Ordinal);
+        Assert.Contains("ReplaceModeChoices", viewModel, StringComparison.Ordinal);
+        Assert.Contains("GeneralReplaceMappings", viewModel, StringComparison.Ordinal);
+        Assert.Contains("ReplaceBaseSlot", viewModel, StringComparison.Ordinal);
+        Assert.Contains("IsStructuredReplaceModeSelected", viewModel, StringComparison.Ordinal);
+        Assert.Contains("PreviewMergeCommand", viewModel, StringComparison.Ordinal);
+        Assert.Contains("BuildMergeCommand", viewModel, StringComparison.Ordinal);
+        Assert.Contains("BuildStandardMergeAsync", mergeViewModel, StringComparison.Ordinal);
+        Assert.Contains("UiCompositionRunner", mergeViewModel, StringComparison.Ordinal);
+        Assert.Contains("RunStandardMergeAsync", mergeViewModel, StringComparison.Ordinal);
+        Assert.Contains("SettingsProfileRows", settingsViewModel, StringComparison.Ordinal);
+        Assert.Contains("SettingsToolRows", settingsViewModel, StringComparison.Ordinal);
+        Assert.Contains("NavigationPath", navigationViewModel, StringComparison.Ordinal);
+
+        string flashMapCatalog = ReadText(
+            "src/NvtFwCombiner.Application/FlashMaps/TpFlashMapCatalog.cs");
+        Assert.Contains("NF CtrlRAM", flashMapCatalog, StringComparison.Ordinal);
+        Assert.Contains("Normal CtrlRAM", flashMapCatalog, StringComparison.Ordinal);
+        Assert.Contains("DIFF CtrlRAM", flashMapCatalog, StringComparison.Ordinal);
+        Assert.Contains("Vector CtrlRAM", flashMapCatalog, StringComparison.Ordinal);
+        Assert.Contains("NT51917", flashMapCatalog, StringComparison.Ordinal);
+        Assert.DoesNotContain("CtrlRamRegionCatalog", shell, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies demo-shell copy is routed through bilingual text resources.</summary>
+    /// <summary>Verifies shell copy is routed through bilingual text resources.</summary>
     [Fact]
-    public void DemoShellUsesBilingualTextResources()
+    public void ShellUsesBilingualTextResources()
     {
         string resources = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/DemoShellTextResources.cs");
-        string sampleData = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/DemoShellSampleData.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.cs");
+        string factory = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellViewModelFactory.cs");
 
-        Assert.Contains("DemoShellLanguage.ChineseTraditional", resources, StringComparison.Ordinal);
+        Assert.Contains("ShellLanguage.ChineseTraditional", resources, StringComparison.Ordinal);
         Assert.Contains("合併", resources, StringComparison.Ordinal);
-        Assert.Contains("DemoShellTextResources.For(language)", sampleData, StringComparison.Ordinal);
-        Assert.DoesNotContain("\"Merge preview\"", sampleData, StringComparison.Ordinal);
+        Assert.Contains("Device context", resources, StringComparison.Ordinal);
+        Assert.Contains("ShellTextResources.For(language)", factory, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"Merge preview\"", factory, StringComparison.Ordinal);
         Assert.DoesNotContain("Saved rules", resources, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("demo", resources, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("synthetic", resources, StringComparison.OrdinalIgnoreCase);
     }
 
-    /// <summary>Verifies the owner-priority roadmap schedules normal Replace before deferred AB work.</summary>
+    /// <summary>Verifies the owner-priority roadmap schedules normal Replace before workflow convergence and deferred AB work.</summary>
     [Fact]
     public void OwnerPriorityTargetsNormalMergeReplaceBeforeAb()
     {
         (int replaceLine, string[] replaceMilestone) = FindMarkdownTableRow(
             "docs/governance/development-tags.md",
             "`0.5.0-dev.N`");
-        (int abLine, string[] abMilestone) = FindMarkdownTableRow(
+        (int convergenceLine, string[] convergenceMilestone) = FindMarkdownTableRow(
             "docs/governance/development-tags.md",
             "`0.6.0-dev.N`");
+        (int abLine, string[] abMilestone) = FindMarkdownTableRow(
+            "docs/governance/development-tags.md",
+            "`0.7.0-dev.N`");
 
-        Assert.True(replaceLine < abLine, "Normal Replace must be scheduled before deferred AB work.");
+        Assert.True(replaceLine < convergenceLine, "Normal Replace must land before the workflow data-model refactor.");
+        Assert.True(convergenceLine < abLine, "Workflow data-model convergence must happen before deferred AB work resumes.");
         Assert.Equal("Normal Replace priority", replaceMilestone[1]);
         Assert.Contains("DP", replaceMilestone[2], StringComparison.Ordinal);
         Assert.Contains("CtrlRAM", replaceMilestone[2], StringComparison.Ordinal);
         Assert.Contains("IC num", replaceMilestone[2], StringComparison.Ordinal);
         Assert.Contains("combiner", replaceMilestone[2], StringComparison.Ordinal);
-        Assert.Equal("AB merge", abMilestone[1]);
-        Assert.Contains("deferred", abMilestone[2], StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("Workflow data-model convergence", convergenceMilestone[1]);
+        Assert.Contains("unified", convergenceMilestone[2], StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Merge/Replace", convergenceMilestone[2], StringComparison.Ordinal);
+        Assert.Contains("No new byte behavior", convergenceMilestone[2], StringComparison.Ordinal);
+        Assert.Contains("AB merge", abMilestone[1], StringComparison.Ordinal);
+        Assert.Contains("owner reactivation", abMilestone[2], StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("golden evidence", abMilestone[2], StringComparison.OrdinalIgnoreCase);
 
         foreach (string ic in new[] { "NT51950", "NT51951" })
         {
             string[] row = FindMarkdownTableRow("docs/architecture/supported-ic-matrix.md", ic).Cells;
 
             Assert.Contains("normal merge requested", row[1], StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("memory map pending", row[1], StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("DP and TP CtrlRAM priority", row[3], StringComparison.Ordinal);
-            Assert.Contains("AB:", row[4], StringComparison.Ordinal);
-            Assert.Contains("Replace:", row[4], StringComparison.Ordinal);
-            Assert.Contains("AB", row[5], StringComparison.Ordinal);
+            Assert.Contains("DP Perspective", row[1], StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("DP and CtrlRAM priority", row[3], StringComparison.Ordinal);
+            Assert.Contains("DP", row[4], StringComparison.Ordinal);
+            Assert.Contains("golden", row[5], StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    /// <summary>Verifies the per-IC flowchart reference stays synchronized with built-in IC lists.</summary>
+    [Fact]
+    public void IcWorkflowFlowchartReferenceCoversBuiltInIcLists()
+    {
+        string reference = ReadText("docs/architecture/ic-workflow-flowcharts.md");
+        string[] builtInIcIds =
+        [
+            .. ReadStandardMergeIcIds()
+                .Concat(ReadCtrlRamPostbuildIcIds())
+                .Distinct(StringComparer.Ordinal)
+                .Order(StringComparer.Ordinal),
+        ];
+
+        Assert.Contains("## Update rule", reference, StringComparison.Ordinal);
+        Assert.Contains("IcWorkflowFlowchartReferenceCoversBuiltInIcLists", reference, StringComparison.Ordinal);
+        Assert.Contains("NT51928 NB is not covered", reference, StringComparison.Ordinal);
+        Assert.Contains("0x37000-0x37FFF (len 0x1000)", reference, StringComparison.Ordinal);
+        Assert.Contains("R-CTRLRAM-927", reference, StringComparison.Ordinal);
+
+        foreach (string icId in builtInIcIds)
+        {
+            Assert.Contains($"| {icId} |", reference, StringComparison.Ordinal);
         }
     }
 
@@ -105,10 +241,15 @@ public sealed class RepositoryBoundaryTests
     {
         string[] replaceBullets = ReadMarkdownBullets(
             "docs/ui/0.1.1-demo-interface-plan.md",
-            "## Replace demo content");
+            "## Replace content");
         Assert.True(
-            replaceBullets.Any(bullet => bullet.StartsWith("IC num selector/input", StringComparison.Ordinal)),
-            "Replace demo content must collect IC num before region choices.");
+            replaceBullets.Any(bullet => bullet.StartsWith("Shared Number selector", StringComparison.Ordinal)),
+            "Replace content must use the shared Number context before region choices.");
+        Assert.Contains(
+            replaceBullets,
+            bullet => bullet.Contains("single", StringComparison.Ordinal)
+                && bullet.Contains("cascade", StringComparison.Ordinal)
+                && bullet.Contains("numeric", StringComparison.Ordinal));
 
         string readinessBullet = Assert.Single(
             replaceBullets,
@@ -116,24 +257,58 @@ public sealed class RepositoryBoundaryTests
         Assert.Contains("combiner.exe", readinessBullet, StringComparison.Ordinal);
         Assert.Contains("CRC/header", readinessBullet, StringComparison.Ordinal);
 
-        string[] replaceRows = ReadPlanningResourceRows("Replace preview");
+        string[] replaceRows = ReadPlanningResourceRows("Replace");
         Assert.Contains(
             replaceRows,
-            row => row.StartsWith("IC num selector/input", StringComparison.Ordinal));
+            row => row.StartsWith("Device context:", StringComparison.Ordinal)
+                   && row.Contains("Number", StringComparison.Ordinal));
         Assert.Contains(
             replaceRows,
-            row => row.StartsWith("Post-replace CRC/header", StringComparison.Ordinal)
+            row => row.StartsWith("CRC/header", StringComparison.Ordinal)
                    && row.Contains("combiner.exe", StringComparison.Ordinal));
 
         string[] row = FindMarkdownTableRow(
             "docs/architecture/integrity-processing-matrix.md",
-            "Replace DP/CtrlRAM priority flows").Cells;
+            "CtrlRAM Replace priority flows").Cells;
 
         Assert.Contains("post-replace", row[1], StringComparison.Ordinal);
         Assert.Contains("combiner.exe", row[2], StringComparison.Ordinal);
-        Assert.Contains("932 common FW postbuild", row[3], StringComparison.Ordinal);
+        Assert.Contains("Combiner 1.13.0", row[3], StringComparison.Ordinal);
+        Assert.Contains("NT51927", row[3], StringComparison.Ordinal);
         Assert.DoesNotContain("TPB", string.Join(' ', row), StringComparison.Ordinal);
     }
+
+    private static string[] ReadStandardMergeIcIds()
+    {
+        string source = ReadText("src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles.cs");
+        return
+        [
+            .. StandardMergeProfileRegex().Matches(source)
+                .Cast<Match>()
+                .Select(match => $"NT{match.Groups["ic"].Value}")
+                .Distinct(StringComparer.Ordinal)
+                .Order(StringComparer.Ordinal),
+        ];
+    }
+
+    private static string[] ReadCtrlRamPostbuildIcIds()
+    {
+        string source = ReadText("src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.cs");
+        return
+        [
+            .. CtrlRamPostbuildProfileRegex().Matches(source)
+                .Cast<Match>()
+                .Select(match => $"NT{match.Groups["ic"].Value}")
+                .Distinct(StringComparer.Ordinal)
+                .Order(StringComparer.Ordinal),
+        ];
+    }
+
+    [GeneratedRegex(@"CreateGenFlashProfile\(\s*""(?<ic>\d{5})""")]
+    private static partial Regex StandardMergeProfileRegex();
+
+    [GeneratedRegex(@"public static LegacyCombinerPostbuildProfile Nt(?<ic>\d{5})\s*\{")]
+    private static partial Regex CtrlRamPostbuildProfileRegex();
 
     private static string ReadText(string relativePath)
     {
@@ -168,7 +343,7 @@ public sealed class RepositoryBoundaryTests
     private static string[] ReadPlanningResourceRows(string title)
     {
         string resources = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/DemoShellTextResources.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.cs");
         int titleIndex = resources.IndexOf($"\"{title}\",", StringComparison.Ordinal);
         if (titleIndex < 0)
         {

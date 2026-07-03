@@ -5,7 +5,7 @@
 
 ## Context
 
-The product needs Standard/AB/General Merge and Display/TP HW/TP FW/General Replace. Encoding every page as a workflow-specific executor or closed `workflowFamily` would force core changes whenever a new role is introduced.
+The product needs Standard/AB/General Merge and DP/CtrlRAM/General Replace. Encoding every page as a workflow-specific executor or closed `workflowFamily` would force core changes whenever a new role is introduced.
 
 ## Decision
 
@@ -14,7 +14,7 @@ The core uses orthogonal `compositionKind`, image initializer, experience metada
 ## Consequences
 
 - New experiences normally add catalog/profile/UI policy, not an engine.
-- Display, TP HW and TP FW can share one canonical memory map without exposing unsafe regions.
+- DP Replace, CtrlRAM Replace and General Replace can share one canonical memory map without exposing unsafe regions.
 - Profile compiler becomes the enforcement point for atomicity/access.
 - Report records experience for audit but executor output cannot depend on UI labels.
 

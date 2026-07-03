@@ -39,8 +39,9 @@ Codex receives a constrained repository with executable rules and bounded issues
 6. Confirm `1.10`-style external tool versions remain strings.
 7. Confirm tests cover at least one failure path for every new risky rule.
 8. Confirm docs, schemas, C# contracts, and tests agree.
-9. Confirm `python scripts/verify.py --all` was run or the blocker is stated explicitly.
-10. Confirm `PASS` is not issued when private golden evidence or firmware-owner review is still required.
+9. Confirm `docs/architecture/ic-workflow-flowcharts.md` is synchronized when IC profiles, Replace profiles, CtrlRAM postbuild catalog entries, or 950/951 DP policy change.
+10. Confirm `python scripts/verify.py --all` was run or the blocker is stated explicitly.
+11. Confirm `PASS` is not issued when private golden evidence or firmware-owner review is still required.
 
 ## Bounded issue sequence
 
@@ -52,8 +53,8 @@ Codex receives a constrained repository with executable rules and bounded issues
 6. **Profile/request/report compiler** — strict schemas, semantic validation, stable issues, plan hash.
 7. **Protocol 1 CRC calculation** — C# adapter, limits, vectors, contract tests.
 8. **External combiner runner** — staged `work.bin`, tool manifest resolution, executable SHA-256 verification, timeout, changed-range diff validation.
-9. **Standard Merge parity** — one IC/mode per PR with approved golden evidence. Current owner priority includes NT51950 and NT51951 after memory maps are supplied.
-10. **Normal Replace parity** — DP and TP CtrlRAM department workflows first, with IC num required in UI/request models and legacy `combiner.exe` CRC/header post-processing once the owner supplies invocation details.
+9. **Standard Merge parity** — one IC/mode per PR with approved golden evidence. Current owner priority includes NT51950 and NT51951 with confirmed DP Perspective TP overlay range `0x0A000-0x36FFF (len 0x2D000)`; golden cases are still required.
+10. **Normal Replace parity** — DP Replace and CtrlRAM Replace workflows first, with IC num required in UI/request models. Two-option profiles use text choices such as `single`/`cascade`; three-or-more concrete count profiles use numeric selection. Legacy `combiner.exe` CRC/header post-processing must be backed by golden evidence.
 11. **AB Merge parity** — banks, relocation, integrity stages, output comparisons. Deferred until the owner reactivates AB work.
 12. **General modes and saved rules** — one mapping model/editor/compiler for Merge and Replace plus rule promotion.
 13. **Packaging/security** — minimal Windows package, clean-machine smoke, SBOM/provenance/signing.

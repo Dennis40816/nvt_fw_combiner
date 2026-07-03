@@ -34,6 +34,15 @@ public sealed class CompositionRunServiceTests
         Assert.Equal(FirstTimestamp, result.Report.StartedAtUtc);
         Assert.Equal(SecondTimestamp, result.Report.CompletedAtUtc);
         Assert.Equal(["copy-dp", "copy-tp"], result.Report.Operations.Select(operation => operation.OperationId));
+        OperationRunSummary copyDp = result.Report.Operations[0];
+        Assert.Equal("dp-input", copyDp.SourceSpaceId);
+        Assert.Equal(new ByteRange(0, 4), copyDp.SourceRange);
+        Assert.Equal("output-image", copyDp.TargetSpaceId);
+        Assert.Equal(new ByteRange(0, 4), copyDp.TargetRange);
+        Assert.Equal(OverlapPolicy.Reject, copyDp.OverlapPolicy);
+        Assert.Null(copyDp.ProcessorId);
+        Assert.Empty(copyDp.ProcessorAllowedWriteRanges);
+        Assert.Equal("Copy synthetic DP input into the output DP range.", copyDp.Reason);
         Assert.Equal(2, result.Report.Inputs.Count);
         Assert.Equal(2, result.Report.Mutations.Count);
         Assert.Empty(result.Report.Issues);
@@ -86,6 +95,25 @@ public sealed class CompositionRunServiceTests
         Assert.False(writer.WasCalled);
         CompositionIssue issue = Assert.Single(result.Report.Issues);
         Assert.Equal("build.preview-token.mismatch", issue.Code);
+    }
+
+    /// <summary>Verifies approved numeric IC number selections can be bound to Replace run profiles.</summary>
+    [Fact]
+    public void NumericIcNumberSelectionIsAcceptedForReplaceRunProfile()
+    {
+        CompositionRunRequest request = CreateNumericReplaceRequest("2");
+
+        Assert.Equal(IcNumberInputMode.NumericSelector, request.IcNumberSelection!.Mode);
+        Assert.Equal("2", Assert.Single(request.IcNumberSelection.Parts));
+    }
+
+    /// <summary>Verifies numeric IC number selections reject non-integer values before execution.</summary>
+    [Fact]
+    public void NumericIcNumberSelectionRejectsNonIntegerValue()
+    {
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => CreateNumericReplaceRequest("cascade"));
+
+        Assert.Contains("positive integer", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>Verifies missing fixed standard merge input fails before output commit after preview gate passes.</summary>
@@ -292,6 +320,47 @@ public sealed class CompositionRunServiceTests
         Assert.NotEqual(withoutTruncation.PreviewToken, withTruncation.PreviewToken);
     }
 
+    /// <summary>Verifies Replace requests require IC number context before execution.</summary>
+    [Fact]
+    public void ReplaceRunRequestRequiresIcNumberSelection()
+    {
+        CompositionProfileDefinition profile = BuiltInReplaceProfiles.SyntheticDpReplace;
+        ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => new CompositionRunRequest(
+            "run-missing-ic",
+            ToRunProfile(profile),
+            compile.Plan!,
+            CreateDpReplaceBindings(),
+            profile.DefaultOutputFileName));
+
+        Assert.Contains("IC number selection", exception.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies preview approval binds the selected IC number context.</summary>
+    [Fact]
+    public async Task PreviewTokenChangesWhenIcNumberChanges()
+    {
+        var service = new CompositionRunService(
+            new FakeArtifactReader(new Dictionary<string, byte[]>
+            {
+                ["reference-artifact"] = [0, 0, 0, 0, 0, 0, 0, 0],
+                ["dp-artifact"] = [1, 2, 3, 4],
+                ["ld-artifact"] = [5, 6],
+            }),
+            new FakeClock([FirstTimestamp, SecondTimestamp, ThirdTimestamp, FourthTimestamp]));
+
+        CompositionRunResult first = await service.PreviewAsync(
+            CreateDpReplaceRequest("51920"),
+            CancellationToken.None);
+        CompositionRunResult second = await service.PreviewAsync(
+            CreateDpReplaceRequest("51921"),
+            CancellationToken.None);
+
+        Assert.Equal(first.OutputBytes.ToArray(), second.OutputBytes.ToArray());
+        Assert.NotEqual(first.PreviewToken, second.PreviewToken);
+    }
+
 
     /// <summary>Verifies preview runs external processor operations through the application port.</summary>
     [Fact]
@@ -323,6 +392,12 @@ public sealed class CompositionRunServiceTests
         MutationRunSummary mutation = Assert.Single(result.Report.Mutations);
         Assert.Equal(CompositionOperationKind.RunExternalProcessor, mutation.Kind);
         Assert.Equal(1, mutation.ChangedByteCount);
+        OperationRunSummary operation = Assert.Single(result.Report.Operations);
+        Assert.Equal("processor-v1", operation.ProcessorId);
+        Assert.Equal("tool-v1", operation.ToolBindingId);
+        Assert.Equal([new ByteRange(0, 4)], operation.ProcessorAllowedReadRanges);
+        Assert.Equal([new ByteRange(1, 1)], operation.ProcessorAllowedWriteRanges);
+        Assert.Equal("run synthetic external processor", operation.Reason);
         Assert.NotNull(result.PreviewToken);
     }
 
@@ -514,8 +589,8 @@ public sealed class CompositionRunServiceTests
             "ctrlram-replace-profile",
             "1.0.0",
             "NT-SYNTHETIC",
-            "tp-hw-replace",
-            "tp-hw-replace",
+            "ctrlram-replace",
+            "ctrlram-replace",
             CompositionKind.Replace);
         var plan = new CompositionPlan(
             ImageInitialization.Reference("output-image", "reference-base", 4),
@@ -541,13 +616,75 @@ public sealed class CompositionRunServiceTests
                 provenance.IcId,
                 provenance.ModeId,
                 provenance.ExperienceId,
-                provenance.CompositionKind),
+                provenance.CompositionKind,
+                IcNumberInputMode.SingleSelector),
             plan,
             [
                 new InputArtifactBinding("reference-base", "reference-safe", "reference-artifact"),
                 new InputArtifactBinding("ctrlram-input", "ctrlram-safe", ctrlRamArtifactId),
             ],
-            "ctrlram.bin");
+            "ctrlram.bin",
+            icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["SYNTHETIC"]));
+    }
+
+    private static CompositionRunRequest CreateDpReplaceRequest(string icNumber)
+    {
+        CompositionProfileDefinition profile = BuiltInReplaceProfiles.SyntheticDpReplace;
+        ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
+        return new CompositionRunRequest(
+            "run-dp-replace",
+            ToRunProfile(profile),
+            compile.Plan!,
+            CreateDpReplaceBindings(),
+            profile.DefaultOutputFileName,
+            icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, [icNumber]));
+    }
+
+    private static CompositionRunRequest CreateNumericReplaceRequest(string icCount)
+    {
+        var provenance = new CompositionPlanProvenance(
+            "numeric-replace",
+            "1.0.0",
+            "NT51927",
+            "ctrlram-replace",
+            "ctrlram-replace",
+            CompositionKind.Replace);
+        AddressSpace[] addressSpaces =
+        [
+            new("reference-base", 4, AddressSpaceMutability.Immutable),
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+        ];
+        var plan = new CompositionPlan(
+            ImageInitialization.Reference("output-image", "reference-base", 4),
+            addressSpaces,
+            [],
+            provenance);
+        var profile = new CompositionRunProfile(
+            provenance.ProfileId,
+            provenance.ProfileVersion,
+            provenance.IcId,
+            provenance.ModeId,
+            provenance.ExperienceId,
+            provenance.CompositionKind,
+            IcNumberInputMode.NumericSelector);
+
+        return new CompositionRunRequest(
+            "run-numeric-replace",
+            profile,
+            plan,
+            [new InputArtifactBinding("reference-base", "reference-safe", "reference-artifact")],
+            "numeric.bin",
+            icNumberSelection: new IcNumberSelection(IcNumberInputMode.NumericSelector, [icCount]));
+    }
+
+    private static IReadOnlyList<InputArtifactBinding> CreateDpReplaceBindings()
+    {
+        return
+        [
+            new InputArtifactBinding("reference-base", "reference-safe", "reference-artifact"),
+            new InputArtifactBinding("dp-replacement", "dp-safe", "dp-artifact"),
+            new InputArtifactBinding("ld-replacement", "ld-safe", "ld-artifact"),
+        ];
     }
 
     private static CompositionRunRequest CreateOverwriteRequest(string runId, byte firstFillByte)
@@ -645,7 +782,8 @@ public sealed class CompositionRunServiceTests
             profile.IcId,
             profile.ModeId,
             profile.ExperienceId,
-            profile.CompositionKind);
+            profile.CompositionKind,
+            profile.IcNumberInputMode);
     }
 
     private sealed class FakeArtifactReader : IArtifactReader

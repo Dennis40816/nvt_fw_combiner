@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This is the stable vocabulary for Standard Merge, AB Merge, General Merge, Display Replace, TP HW Replace, TP FW Replace, and General Replace. New features extend these orthogonal variables instead of adding workflow-specific flags or executors.
+This is the stable vocabulary for Standard Merge, AB Merge, General Merge, DP Replace, CtrlRAM Replace, and General Replace. New features extend these orthogonal variables instead of adding workflow-specific flags or executors.
 
 ## Three model layers
 
@@ -46,9 +46,10 @@ ReferenceImageInitialization
 ```text
 ExperienceDescriptor
   experienceId
-  audience: system | display | tp-hw | tp-fw | advanced
+  audience: system | dp | ctrlram | advanced
   layoutPolicy: fixed | constrained | user-defined
   inputPolicy: fixed | extensible
+  icNumInputMode: single | cascade | numeric
   displayNameKey
   regionAccessRules[]
 ```
@@ -59,9 +60,8 @@ Baseline experiences:
 standard-merge
 ab-merge
 general-merge
-display-replace
-tp-hw-replace
-tp-fw-replace
+dp-replace
+ctrlram-replace
 general-replace
 ```
 
@@ -101,7 +101,7 @@ allowedPartIds[]
 reason
 ```
 
-Deny by default. Display may edit DP whole/declared parts and TP whole. TP HW may edit only `tp-ctrlram` regions/groups and DP whole. TP FW may edit declared non-CtrlRAM TP regions and DP whole. General Replace may use explicit ranges only where explicitly enabled and never through protected regions.
+Deny by default. DP Replace may edit DP whole/declared parts. CtrlRAM Replace may edit only `tp-ctrlram` regions/groups. General Replace may use explicit ranges only where explicitly enabled and never through protected regions.
 
 ## Inputs
 

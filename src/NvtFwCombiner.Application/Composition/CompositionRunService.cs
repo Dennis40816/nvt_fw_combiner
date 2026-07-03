@@ -171,7 +171,8 @@ public sealed class CompositionRunService
                 invocation.ProcessorId,
                 invocation.ToolBindingId,
                 inputBytes,
-                invocation.AllowedWriteRanges);
+                invocation.AllowedWriteRanges,
+                request.IcNumberSelection);
         }
         catch (ArgumentException exception)
         {
@@ -334,11 +335,7 @@ public sealed class CompositionRunService
             ? OperationRunStatus.Succeeded
             : OperationRunStatus.Skipped;
         OperationRunSummary[] operations = [
-            .. request.Plan.OrderedOperations.Select(operation => new OperationRunSummary(
-                operation.OperationId,
-                operation.Sequence,
-                operation.Kind,
-                status)),
+            .. request.Plan.OrderedOperations.Select(operation => ToOperationSummary(operation, status)),
         ];
 
         byte[] outputBytes = execution.OutputBytes.ToArray();
@@ -383,6 +380,28 @@ public sealed class CompositionRunService
             mutation.Reason);
     }
 
+    private static OperationRunSummary ToOperationSummary(
+        CompositionOperation operation,
+        OperationRunStatus status)
+    {
+        ExternalProcessorInvocation? invocation = operation.ExternalProcessorInvocation;
+        return new OperationRunSummary(
+            operation.OperationId,
+            operation.Sequence,
+            operation.Kind,
+            status,
+            operation.SourceSpaceId,
+            operation.SourceRange,
+            operation.TargetSpaceId,
+            operation.TargetRange,
+            operation.OverlapPolicy,
+            invocation?.ProcessorId,
+            invocation?.ToolBindingId,
+            invocation?.AllowedReadRanges ?? [],
+            invocation?.AllowedWriteRanges ?? [],
+            operation.Reason);
+    }
+
     private static string ToSha256Hex(ReadOnlySpan<byte> bytes)
     {
         return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
@@ -400,6 +419,8 @@ public sealed class CompositionRunService
         AppendTokenField(builder, "profile.mode", request.Profile.ModeId);
         AppendTokenField(builder, "profile.experience", request.Profile.ExperienceId);
         AppendTokenField(builder, "profile.kind", request.Profile.CompositionKind.ToString());
+        AppendTokenField(builder, "profile.ic-number-mode", request.Profile.IcNumberInputMode?.ToString() ?? string.Empty);
+        AppendTokenField(builder, "run.ic-number", request.IcNumberSelection?.ToStableToken() ?? string.Empty);
         AppendTokenField(builder, "output.name", request.OutputFileName);
         AppendPlanFingerprint(builder, request.Plan);
         foreach (InputArtifactSummary input in inputSummaries.OrderBy(item => item.AddressSpaceId, StringComparer.Ordinal))
@@ -432,6 +453,10 @@ public sealed class CompositionRunService
                 "plan.space.input-padding",
                 addressSpace.InputPaddingByte?.ToString(CultureInfo.InvariantCulture) ?? string.Empty);
             AppendTokenField(builder, "plan.space.input-oversize-policy", addressSpace.InputOversizePolicy.ToString());
+            AppendTokenField(
+                builder,
+                "plan.space.allowed-input-lengths",
+                string.Join(",", addressSpace.AllowedInputLengths.Select(length => length.ToString(CultureInfo.InvariantCulture))));
         }
 
         foreach (CompositionOperation operation in plan.OrderedOperations)

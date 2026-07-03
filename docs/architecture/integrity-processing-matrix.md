@@ -5,8 +5,8 @@ This matrix records current evidence. It is not a blanket support claim. `Unknow
 Owner update 2026-06-30:
 
 - Replace is expected to require legacy `combiner.exe` CRC/header recalculation after the replacement mutations.
-- 932 common FW postbuild is the reference behavior to inspect for `combiner.exe` usage, but the repository does not yet contain a verified invocation transcript or path.
-- Do not implement production Replace CRC/header behavior until the owner supplies exact command shape, tool version, parameters, read/write ranges, execution order, and golden evidence.
+- `IC FlashMap` postbuild scripts now provide the first verified legacy Combiner 1.13.0 command sequences for CtrlRAM Replace. Postbuild remains the behavioral truth; mmap and TP Overview explain/document the ranges.
+- Do not declare production Replace parity until each enabled profile has command shape, tool version, parameters, read/write ranges, execution order, and golden evidence.
 
 | IC | Mode/evidence | TPA policy | TPB policy | Current processor facts | Status |
 | --- | --- | --- | --- | --- | --- |
@@ -20,7 +20,8 @@ Owner update 2026-06-30:
 
 | Flow | Stage/purpose | Processor expectation | Current processor facts | Status |
 | --- | --- | --- | --- | --- |
-| Replace DP/CtrlRAM priority flows | post-replace header/integrity stage | legacy `combiner.exe` CRC/header recalculation expected | exact version/invocation/ranges pending; 932 common FW postbuild to be inspected | Direction confirmed; implementation blocked by owner data |
+| CtrlRAM Replace priority flows | post-replace header/integrity stage | legacy `combiner.exe` CRC/header recalculation expected | Combiner 1.13.0 postbuild catalog implemented for NT51917, NT51919, NT51920, NT51923, NT51926, NT51927, NT51928 non-NB, NT51929, NT51930, NT51931, NT51932, NT51950, and NT51951; command sequence tests exist; real golden replace outputs still needed | Core command module implemented; golden parity pending |
+| DP Replace priority flows | no CRC/header stage unless DP evidence says otherwise | preserve or overlay TP range when DP container includes TP area | 950/951 DP Replace workbench path clones an exact `0x100000` base image, replaces the full padded DP container, then restores TP `0x0A000-0x36FFF (len 0x2D000)` from base; other IC DP Replace mappings remain gated | 950/951 workbench path implemented; golden parity and production profile promotion pending |
 
 ## Canonical integrity dispositions
 

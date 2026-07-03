@@ -6,14 +6,11 @@ public enum AudienceKind
     /// <summary>System-owned workflow with fixed policy.</summary>
     System,
 
-    /// <summary>Display firmware operator workflow.</summary>
-    Display,
+    /// <summary>DP replace operator workflow.</summary>
+    Dp,
 
-    /// <summary>Touch-panel hardware operator workflow.</summary>
-    TpHardware,
-
-    /// <summary>Touch-panel firmware operator workflow.</summary>
-    TpFirmware,
+    /// <summary>CtrlRAM replace operator workflow.</summary>
+    CtrlRam,
 
     /// <summary>Advanced workflow for explicit mappings.</summary>
     Advanced,

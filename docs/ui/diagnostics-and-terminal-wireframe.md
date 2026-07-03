@@ -1,6 +1,6 @@
 # Report Modal and Diagnostics Wireframe Plan
 
-`0.1.1` reserves report and diagnostics UI before real processors and firmware flows are implemented. Diagnostics is not a top-level page; Preview and Build open a report modal that contains evidence, sanitized logs, and diagnostics.
+The report and diagnostics UI is production-backed. Diagnostics is not a top-level page; Preview and Build open a report modal that contains evidence, sanitized logs, and diagnostics from application run results.
 
 ## Report modal layout
 
@@ -16,7 +16,7 @@ Preview/Build report modal
 
 ## Run summary
 
-Synthetic fields for the demo:
+Application-backed fields:
 
 ```text
 runId
@@ -33,13 +33,13 @@ resultStatus
 
 The terminal pane is not a shell. It is a read-only transcript for approved commands and host-generated diagnostics.
 
-Allowed demo rows:
+Allowed transcript rows:
 
 ```text
-[info] Loaded candidate profile: demo-standard-merge
-[info] Compiled 6 synthetic operations
-[warn] Build disabled until Composition Core milestone
-[info] External tool binding legacy-combiner-1.10 is declared but not executable in demo
+[info] Loaded candidate profile: nfc.nt51950.standard-merge
+[info] Compiled 6 operations
+[warn] Build disabled until a valid Preview token exists
+[info] External tool binding legacy-combiner-1.13.0 is declared
 ```
 
 Forbidden content:
@@ -66,9 +66,20 @@ allowedReadRanges count
 allowedWriteRanges count
 ```
 
-In `0.1.1`, this may be static synthetic data. Real execution starts in later milestones.
+These fields must come from application catalogs, tool manifests, or run results.
 
 ## Structured report preview
+
+The UI must not show raw JSON as the primary experience. A loaded report JSON should render as:
+
+```text
+Loaded report
+  summary: run, profile, IC, status, output hash
+  inputs: address space, size, short hash
+  operations: sequence, source/target ranges, processor/tool ids
+  issues: stable issue codes and messages
+  mutations: changed range, changed byte count, before/after hash
+```
 
 Show a tree/table version of the report shape:
 
@@ -83,7 +94,7 @@ Report
   issues
 ```
 
-The report preview helps validate UX without doing real composition. Settings may link to report export or diagnostics configuration, but the run-specific evidence remains in the Preview/Build report modal.
+The report preview helps audit real or loaded composition results. Settings may link to report export or diagnostics configuration, but the run-specific evidence remains in the Preview/Build report modal.
 
 ## Copy diagnostics rule
 

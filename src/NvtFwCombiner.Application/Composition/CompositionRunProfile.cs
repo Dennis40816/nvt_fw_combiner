@@ -12,7 +12,8 @@ public sealed class CompositionRunProfile
         string icId,
         string modeId,
         string experienceId,
-        CompositionKind compositionKind)
+        CompositionKind compositionKind,
+        IcNumberInputMode? icNumberInputMode = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
         ArgumentException.ThrowIfNullOrWhiteSpace(profileVersion);
@@ -26,6 +27,7 @@ public sealed class CompositionRunProfile
         ModeId = modeId;
         ExperienceId = experienceId;
         CompositionKind = compositionKind;
+        IcNumberInputMode = icNumberInputMode;
     }
 
     /// <summary>Stable profile id.</summary>
@@ -45,4 +47,7 @@ public sealed class CompositionRunProfile
 
     /// <summary>Merge or replace composition kind.</summary>
     public CompositionKind CompositionKind { get; }
+
+    /// <summary>Profile-declared IC number input mode for Replace runs.</summary>
+    public IcNumberInputMode? IcNumberInputMode { get; }
 }

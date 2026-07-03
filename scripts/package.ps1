@@ -65,7 +65,29 @@ function Get-TreeDigest {
     return [Convert]::ToHexString($Digest).ToLowerInvariant()
 }
 
+function Save-SourcePackageLocks {
+    $Snapshots = @{}
+    Get-ChildItem -LiteralPath (Join-Path $RepoRoot 'src') -Filter 'packages.lock.json' -File -Recurse |
+        ForEach-Object { $Snapshots[$_.FullName] = [IO.File]::ReadAllBytes($_.FullName) }
+    return $Snapshots
+}
+
+function Restore-SourcePackageLocks {
+    param([Parameter(Mandatory = $true)][hashtable]$Snapshots)
+    foreach ($Snapshot in $Snapshots.GetEnumerator()) {
+        [IO.File]::WriteAllBytes($Snapshot.Key, [byte[]]$Snapshot.Value)
+    }
+}
+
+$ApprovedExternalToolPackagePaths = @(
+    'external-tools/README.md',
+    'external-tools/legacy-combiner/README.md',
+    'external-tools/legacy-combiner/1.13.0/Combiner.exe',
+    'external-tools/legacy-combiner/1.13.0/manifest.json'
+) | Sort-Object
+
 $AppProject = Join-Path $RepoRoot 'src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj'
+$SourcePackageLockSnapshots = Save-SourcePackageLocks
 & $DotNet publish $AppProject -c Release -r win-x64 --self-contained true `
     -p:Version=$SemanticVersion `
     -p:PublishSingleFile=true `
@@ -74,7 +96,9 @@ $AppProject = Join-Path $RepoRoot 'src/NvtFwCombiner.Presentation.Avalonia/NvtFw
     -p:DebugType=None `
     -p:DebugSymbols=false `
     -o $AppPublish
-if ($LASTEXITCODE -ne 0) { throw 'dotnet publish failed.' }
+$PublishExitCode = $LASTEXITCODE
+Restore-SourcePackageLocks -Snapshots $SourcePackageLockSnapshots
+if ($PublishExitCode -ne 0) { throw 'dotnet publish failed.' }
 
 $PublishedApp = Join-Path $AppPublish 'NvtFwCombiner.Presentation.Avalonia.exe'
 if (-not (Test-Path -LiteralPath $PublishedApp -PathType Leaf)) {
@@ -107,6 +131,21 @@ if (-not (Test-Path -LiteralPath $BuiltWorker -PathType Leaf)) {
 $WorkerExe = Join-Path $PackageRoot 'Nfc.CrcWorker.exe'
 Copy-Item -LiteralPath $BuiltWorker -Destination $WorkerExe
 
+$ExternalToolsSource = Join-Path $RepoRoot 'external-tools'
+$ExternalToolsDestination = Join-Path $PackageRoot 'external-tools'
+if (-not (Test-Path -LiteralPath $ExternalToolsSource -PathType Container)) {
+    throw "External tools directory was not found at $ExternalToolsSource"
+}
+Copy-Item -LiteralPath $ExternalToolsSource -Destination $ExternalToolsDestination -Recurse
+$ActualExternalToolPackagePaths = @(
+    Get-ChildItem -LiteralPath $ExternalToolsDestination -File -Recurse |
+        ForEach-Object { [System.IO.Path]::GetRelativePath($PackageRoot, $_.FullName).Replace('\', '/') } |
+        Sort-Object
+)
+if (Compare-Object -ReferenceObject $ApprovedExternalToolPackagePaths -DifferenceObject $ActualExternalToolPackagePaths) {
+    throw "External tool package contents differ from the approved allowlist: $($ActualExternalToolPackagePaths -join ', ')"
+}
+
 $SelfTestRequest = '{"protocolVersion":"1.0","requestId":"package-self-test","operation":"calculate","algorithmId":"crc-32-mpeg-2","payloadBase64":"MTIzNDU2Nzg5"}'
 $SelfTestRaw = $SelfTestRequest | & $WorkerExe
 if ($LASTEXITCODE -ne 0) { throw 'Packaged CRC worker self-test process failed.' }
@@ -123,10 +162,11 @@ NVT FW Combiner $SemanticVersion
 Contents:
 - NvtFwCombiner.exe: self-contained Windows x64 desktop application
 - Nfc.CrcWorker.exe: constrained external checksum/header worker
+- external-tools/: approved legacy Combiner runtime packages
 - RELEASE-MANIFEST.json: source and file integrity metadata
 - SHA256SUMS.txt: package file hashes
 
-This package contains no firmware samples, source code, refcode, tests, editable profiles, Python runtime installation, or .NET installation requirement.
+This package contains no firmware samples, source code, refcode, tests, editable profiles, Python runtime installation, or .NET installation requirement. External tools are pinned by manifest and SHA-256.
 "@ | Set-Content -LiteralPath (Join-Path $PackageRoot 'README.txt') -Encoding utf8NoBOM
 
 $AppHash = Get-LowerSha256 -Path $AppExe
@@ -139,6 +179,29 @@ $ProfileFiles = @(Get-ChildItem -LiteralPath (Join-Path $RepoRoot 'profiles') -F
 $SchemaFiles = @(Get-ChildItem -LiteralPath (Join-Path $RepoRoot 'docs/contracts') -Filter '*.schema.json' -File | ForEach-Object FullName)
 $ProfileDigest = Get-TreeDigest -Paths $ProfileFiles
 $SchemaDigest = Get-TreeDigest -Paths $SchemaFiles
+$ExternalToolEntries = @(
+    $ApprovedExternalToolPackagePaths | ForEach-Object {
+        $RelativePath = $_
+        $PackagePath = Join-Path $PackageRoot $RelativePath.Replace('/', [System.IO.Path]::DirectorySeparatorChar)
+        [ordered]@{ path = $RelativePath; size = (Get-Item $PackagePath).Length; sha256 = (Get-LowerSha256 $PackagePath); role = 'externalTool' }
+    }
+)
+$ApprovedProcessorIds = @(
+    'nfc.crc32-mpeg2.calculate-v1',
+    'nfc.nt51917.ctrlram-postbuild-v1',
+    'nfc.nt51919.ctrlram-postbuild-v1',
+    'nfc.nt51920.ctrlram-postbuild-v1',
+    'nfc.nt51923.ctrlram-postbuild-v1',
+    'nfc.nt51926.ctrlram-postbuild-v1',
+    'nfc.nt51927.ctrlram-postbuild-v1',
+    'nfc.nt51928.ctrlram-postbuild-v1',
+    'nfc.nt51929.ctrlram-postbuild-v1',
+    'nfc.nt51930.ctrlram-postbuild-v1',
+    'nfc.nt51931.ctrlram-postbuild-v1',
+    'nfc.nt51932.ctrlram-postbuild-v1',
+    'nfc.nt51950.ctrlram-postbuild-v1',
+    'nfc.nt51951.ctrlram-postbuild-v1'
+)
 
 $SbomName = "$PackageName.spdx.json"
 $ProvenanceName = "$PackageName.provenance.json"
@@ -148,7 +211,7 @@ $FileEntries = @(
     [ordered]@{ path = 'THIRD-PARTY-NOTICES.txt'; size = (Get-Item $NoticePath).Length; sha256 = (Get-LowerSha256 $NoticePath); role = 'notices' },
     [ordered]@{ path = 'LICENSE.txt'; size = (Get-Item $LicensePath).Length; sha256 = (Get-LowerSha256 $LicensePath); role = 'license' },
     [ordered]@{ path = 'README.txt'; size = (Get-Item $ReadmePath).Length; sha256 = (Get-LowerSha256 $ReadmePath); role = 'readme' }
-)
+) + $ExternalToolEntries
 
 $Manifest = [ordered]@{
     schemaVersion = '1.1'
@@ -159,7 +222,7 @@ $Manifest = [ordered]@{
     runtimeIdentifier = 'win-x64'
     licenseSpdx = 'MIT'
     workerProtocolVersions = @('1.0')
-    approvedProcessorIds = @('nfc.crc32-mpeg2.calculate-v1')
+    approvedProcessorIds = $ApprovedProcessorIds
     processorBundleSha256 = $WorkerHash
     embeddedProfileCatalogSha256 = $ProfileDigest
     embeddedSchemaBundleSha256 = $SchemaDigest
@@ -234,8 +297,12 @@ $Expected = @(
     'RELEASE-MANIFEST.json',
     'SHA256SUMS.txt',
     'THIRD-PARTY-NOTICES.txt'
-) | Sort-Object
-$Actual = @(Get-ChildItem -LiteralPath $PackageRoot -File | ForEach-Object Name | Sort-Object)
+) + @($ExternalToolEntries.path) | Sort-Object
+$Actual = @(
+    Get-ChildItem -LiteralPath $PackageRoot -File -Recurse |
+        ForEach-Object { [System.IO.Path]::GetRelativePath($PackageRoot, $_.FullName).Replace('\', '/') } |
+        Sort-Object
+)
 if (Compare-Object -ReferenceObject $Expected -DifferenceObject $Actual) {
     throw "Release package contents differ from the closed allowlist: $($Actual -join ', ')"
 }

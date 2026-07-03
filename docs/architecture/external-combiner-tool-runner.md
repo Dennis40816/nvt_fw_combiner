@@ -4,7 +4,7 @@ This note explains how NFC will call multiple legacy `combiner.exe` versions for
 
 ## Goal
 
-Different IC/mode/stage combinations may require different `combiner.exe` versions such as `1.9` or `1.10`. NFC must support those exact versions without hard-coding executable paths inside profiles and without allowing external tools to mutate user input files directly.
+Different IC/mode/stage combinations may require different `combiner.exe` versions such as `1.9`, `1.10`, or the owner-provided `1.13.0`. NFC must support those exact versions without hard-coding executable paths inside profiles and without allowing external tools to mutate user input files directly.
 
 ## Core flow
 
@@ -88,4 +88,4 @@ All external combiner errors fail closed:
 
 ## First implementation PR scope
 
-The first implementation PR should add the manifest model, registry, staging workspace, process runner, diff verifier, fake combiner tests, and profile compiler validation. It should not add production IC-specific CRC/Header behavior until owner-approved ranges and golden outputs exist.
+The first implementation PR should add the manifest model, registry, staging workspace, process runner, diff verifier, fake combiner tests, and profile compiler validation. IC-specific CtrlRAM postbuild profiles may be added only from owner-approved postbuild/mmap evidence; real firmware golden outputs are still required before declaring end-to-end production parity.

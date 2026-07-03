@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "0.1",
+  "payloadClass": "private-owner-golden-firmware",
+  "binaryPayloadsIncluded": true,
+  "runnerStatus": "pending-production-output",
+  "cases": [
+    {
+      "id": "nt51927-vn-slave-l-example",
+      "ic": "NT51927",
+      "icNum": "3",
+      "mode": "CtrlRAM",
+      "sourceClassification": "private-owner-firmware",
+      "ownerApproval": "TBD: owner name/date/sign-off",
+      "base": {
+        "path": "base/nt51927-base.bin",
+        "size": 0,
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "replacementInputs": [
+        {
+          "slotId": "replace-ctrlram-vn-slave-l",
+          "regionName": "VN CtrlRAM (Slave L)",
+          "file": {
+            "path": "inputs/vn-slave-l.bin",
+            "size": 0,
+            "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        }
+      ],
+      "expectedOutput": {
+        "path": "expected/nt51927-vn-slave-l.bin",
+        "size": 0,
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "notes": "Copy this file to private/manifest.json and replace sizes/hashes before running the verifier."
+    }
+  ]
+}

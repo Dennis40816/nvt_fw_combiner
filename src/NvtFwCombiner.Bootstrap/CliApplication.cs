@@ -63,6 +63,9 @@ public static class CliApplication
                 "profiles" => await RunProfilesAsync(args[1..], output, error).ConfigureAwait(false),
                 "standard-merge" => await RunStandardMergeAsync(args[1..], output, error, cancellationToken)
                     .ConfigureAwait(false),
+                "dp-replace" or "ctrlram-replace" or "general-replace" =>
+                    await ReplaceCliCommandHandler.RunAsync(args[0], args[1..], output, error, cancellationToken)
+                        .ConfigureAwait(false),
                 _ => await UnknownCommandAsync(args[0], error).ConfigureAwait(false),
             };
         }
@@ -79,9 +82,10 @@ public static class CliApplication
     }
 
     private static string Version => (Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly())
-        .GetName()
-        .Version?
-        .ToString() ?? "unknown";
+        .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+        .InformationalVersion ??
+        (Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly()).GetName().Version?.ToString() ??
+        "unknown";
 
     private static async Task<int> RunProfilesAsync(
         string[] args,
@@ -101,7 +105,7 @@ public static class CliApplication
         }
 
         await output.WriteLineAsync("Built-in standard merge profiles:").ConfigureAwait(false);
-        foreach (CompositionProfileDefinition profile in BuiltInStandardMergeProfiles.GenFlashStandardMergeProfiles
+        foreach (CompositionProfileDefinition profile in BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles
                      .OrderBy(profile => profile.IcId, StringComparer.Ordinal))
         {
             ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
@@ -112,6 +116,21 @@ public static class CliApplication
                     string.Create(
                         CultureInfo.InvariantCulture,
                         $"{profile.ProfileId}  ic={profile.IcId}  inputs={inputs}  default-output={profile.DefaultOutputFileName}"))
+                .ConfigureAwait(false);
+        }
+
+        await output.WriteLineAsync("Built-in replace profiles:").ConfigureAwait(false);
+        foreach (CompositionProfileDefinition profile in BuiltInReplaceProfiles.All
+                     .OrderBy(profile => profile.ProfileId, StringComparer.Ordinal))
+        {
+            ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
+            string inputs = compile.IsSuccess
+                ? string.Join(", ", compile.Plan!.RequiredInputAddressSpaceIds)
+                : "compile-error";
+            await output.WriteLineAsync(
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{profile.ProfileId}  ic={profile.IcId}  inputs={inputs}  ic-num={profile.IcNumberInputMode?.ToString() ?? "none"}  default-output={profile.DefaultOutputFileName}"))
                 .ConfigureAwait(false);
         }
 
@@ -137,7 +156,7 @@ public static class CliApplication
             return UsageError;
         }
 
-        string[] valueOptions = ["--profile", "--dp", "--tp", "--ld", "--output"];
+        string[] valueOptions = ["--profile", "--dp", "--tp", "--ld", "--output", "--report"];
         string[] flagOptions = action == "build" ? ["--overwrite"] : [];
         if (!TryParseOptions(args[1..], valueOptions, flagOptions, error, out ParsedOptions options))
         {
@@ -172,13 +191,20 @@ public static class CliApplication
         OutputTarget outputTarget = ResolveOutputTarget(
             options.Values.GetValueOrDefault("--output"),
             selectedProfile.DefaultOutputFileName);
+        if (action == "build")
+        {
+            EnsureOutputDoesNotAliasInputs(outputTarget, bindings);
+        }
+
+        EnsureReportDoesNotAliasProtectedPaths(options, bindings, outputTarget, action == "build");
+
         string[] inputRoots = [.. bindings
             .Select(binding => Path.GetDirectoryName(binding.ArtifactId)!)];
         var reader = new FileArtifactReader(inputRoots);
         AtomicFileCompositionOutputWriter? writer = action == "build"
             ? new AtomicFileCompositionOutputWriter(outputTarget.OutputDirectory, options.Flags.Contains("--overwrite"))
             : null;
-        var service = new CompositionRunService(reader, new SystemClock(), writer);
+        var service = new CompositionRunService(reader, new SystemClock(), writer, ExternalProcessorFactory.CreateOrNull());
         var request = new CompositionRunRequest(
             CreateRunId(action),
             ToRunProfile(selectedProfile),
@@ -189,6 +215,8 @@ public static class CliApplication
         CompositionRunResult result = action == "preview"
             ? await service.PreviewAsync(request, cancellationToken).ConfigureAwait(false)
             : await BuildWithInternalPreviewAsync(service, request, cancellationToken).ConfigureAwait(false);
+        await WriteReportFileIfRequestedAsync(result, options, bindings, outputTarget, action == "build", output, cancellationToken)
+            .ConfigureAwait(false);
         await PrintRunResultAsync(result, output, error).ConfigureAwait(false);
         return result.Status == CompositionExecutionStatus.Succeeded ? Success : CompositionFailed;
     }
@@ -259,13 +287,41 @@ public static class CliApplication
             : new OutputTarget(directory, fileName);
     }
 
+    private static void EnsureOutputDoesNotAliasInputs(
+        OutputTarget outputTarget,
+        IReadOnlyList<InputArtifactBinding> bindings)
+    {
+        ProtectedPathGuard.EnsureOutputDoesNotAliasInputs(
+            outputTarget.FullPath,
+            bindings,
+            nameof(outputTarget));
+    }
+
+    private static void EnsureReportDoesNotAliasProtectedPaths(
+        ParsedOptions options,
+        IReadOnlyList<InputArtifactBinding> bindings,
+        OutputTarget outputTarget,
+        bool protectOutput)
+    {
+        if (!options.Values.TryGetValue("--report", out string? reportPath))
+        {
+            return;
+        }
+
+        ProtectedPathGuard.EnsureReportDoesNotAliasProtectedPaths(
+            reportPath,
+            bindings,
+            protectOutput ? outputTarget.FullPath : null,
+            "--report");
+    }
+
     private static bool TryFindStandardMergeProfile(
         string selector,
         [NotNullWhen(true)]
         out CompositionProfileDefinition? profile)
     {
         string normalized = selector.Trim();
-        profile = BuiltInStandardMergeProfiles.GenFlashStandardMergeProfiles.FirstOrDefault(candidate =>
+        profile = BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles.FirstOrDefault(candidate =>
             string.Equals(candidate.ProfileId, normalized, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(candidate.IcId, normalized, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(GetIcNumber(candidate.IcId), normalized, StringComparison.OrdinalIgnoreCase));
@@ -287,7 +343,8 @@ public static class CliApplication
             profile.IcId,
             profile.ModeId,
             profile.ExperienceId,
-            profile.CompositionKind);
+            profile.CompositionKind,
+            profile.IcNumberInputMode);
     }
 
     private static async Task PrintRunResultAsync(
@@ -330,6 +387,32 @@ public static class CliApplication
         }
     }
 
+    private static async Task WriteReportFileIfRequestedAsync(
+        CompositionRunResult result,
+        ParsedOptions options,
+        IReadOnlyList<InputArtifactBinding> bindings,
+        OutputTarget outputTarget,
+        bool protectOutput,
+        TextWriter output,
+        CancellationToken cancellationToken)
+    {
+        if (!options.Values.TryGetValue("--report", out string? reportPath))
+        {
+            return;
+        }
+
+        string fullPath = await CliRunReportWriter
+            .WriteAsync(
+                result.Report,
+                reportPath,
+                ProtectedPathGuard.CreateProtectedPaths(
+                    bindings,
+                    protectOutput ? outputTarget.FullPath : null),
+                cancellationToken)
+            .ConfigureAwait(false);
+        await output.WriteLineAsync($"Report: {fullPath}").ConfigureAwait(false);
+    }
+
     private static async Task PrintIssuesAsync(
         TextWriter error,
         IReadOnlyList<CompositionIssue> issues)
@@ -346,7 +429,7 @@ public static class CliApplication
     {
         return string.Create(
             CultureInfo.InvariantCulture,
-            $"0x{range.Start:X}..0x{range.EndExclusive:X} ({range.Length} bytes)");
+            $"0x{range.Start:X}-0x{range.EndExclusive - 1:X} (len 0x{range.Length:X})");
     }
 
     private static bool TryParseOptions(
@@ -411,8 +494,11 @@ public static class CliApplication
         await output.WriteLineAsync("Usage:").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner [--version|version|doctor]").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner profiles list").ConfigureAwait(false);
-        await output.WriteLineAsync("  nvt_fw_combiner standard-merge preview --profile <id|ic> --dp <path> --tp <path> [--ld <path>] [--output <path>]").ConfigureAwait(false);
-        await output.WriteLineAsync("  nvt_fw_combiner standard-merge build --profile <id|ic> --dp <path> --tp <path> [--ld <path>] [--output <path>] [--overwrite]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner standard-merge preview --profile <id|ic> --dp <path> --tp <path> [--ld <path>] [--output <path>] [--report <path>]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner standard-merge build --profile <id|ic> --dp <path> --tp <path> [--ld <path>] [--output <path>] [--report <path>] [--overwrite]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner dp-replace preview --profile <id|ic> --ic-num <value> --base <path> --dp <path> [--ld <path>] [--output <path>] [--report <path>]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner ctrlram-replace preview --profile <id|ic> --ic-family <value> --ic-num <value> --base <path> --ctrlram <path> [--output <path>] [--report <path>]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner general-replace preview --profile <id|ic> --ic-num <value> --base <path> --input <path> --source-start <n> --target-start <n> --length <n> [--output <path>] [--report <path>]").ConfigureAwait(false);
     }
 
     private static async Task WriteProfilesUsageAsync(TextWriter output)
@@ -423,8 +509,8 @@ public static class CliApplication
     private static async Task WriteStandardMergeUsageAsync(TextWriter output)
     {
         await output.WriteLineAsync("Usage:").ConfigureAwait(false);
-        await output.WriteLineAsync("  nvt_fw_combiner standard-merge preview --profile <id|ic> --dp <path> --tp <path> [--ld <path>] [--output <path>]").ConfigureAwait(false);
-        await output.WriteLineAsync("  nvt_fw_combiner standard-merge build --profile <id|ic> --dp <path> --tp <path> [--ld <path>] [--output <path>] [--overwrite]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner standard-merge preview --profile <id|ic> --dp <path> --tp <path> [--ld <path>] [--output <path>] [--report <path>]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner standard-merge build --profile <id|ic> --dp <path> --tp <path> [--ld <path>] [--output <path>] [--report <path>] [--overwrite]").ConfigureAwait(false);
     }
 
     private static string CreateRunId(string action)
@@ -443,5 +529,8 @@ public static class CliApplication
             new HashSet<string>(StringComparer.Ordinal));
     }
 
-    private readonly record struct OutputTarget(string OutputDirectory, string FileName);
+    private readonly record struct OutputTarget(string OutputDirectory, string FileName)
+    {
+        internal string FullPath => ProtectedPathGuard.CombineFullPath(OutputDirectory, FileName);
+    }
 }

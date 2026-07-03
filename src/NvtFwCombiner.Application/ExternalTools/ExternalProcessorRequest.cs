@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.ExternalTools;
@@ -14,7 +15,8 @@ public sealed class ExternalProcessorRequest
         string processorId,
         string toolBindingId,
         ReadOnlyMemory<byte> inputBytes,
-        IEnumerable<ByteRange> allowedWriteRanges)
+        IEnumerable<ByteRange> allowedWriteRanges,
+        IcNumberSelection? icNumberSelection = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentException.ThrowIfNullOrWhiteSpace(processorId);
@@ -34,6 +36,7 @@ public sealed class ExternalProcessorRequest
         RunId = runId;
         ProcessorId = processorId;
         ToolBindingId = toolBindingId;
+        IcNumberSelection = icNumberSelection;
         _inputBytes = inputBytes.ToArray();
         _allowedWriteRanges = [.. allowedWriteRanges.OrderBy(range => range.Start).ThenBy(range => range.Length)];
     }
@@ -53,9 +56,13 @@ public sealed class ExternalProcessorRequest
     /// <summary>Declared byte ranges the external processor may change.</summary>
     public IReadOnlyList<ByteRange> AllowedWriteRanges => _allowedWriteRanges;
 
+    /// <summary>Optional IC number context used by IC-specific postbuild processors.</summary>
+    public IcNumberSelection? IcNumberSelection { get; }
+
     private static bool IsSafeId(string value)
     {
-        return value.All(character =>
+        return value is not ("." or "..") &&
+            value.All(character =>
             char.IsAsciiLetterOrDigit(character) ||
             character is '-' or '_' or '.');
     }

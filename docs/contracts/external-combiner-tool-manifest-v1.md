@@ -12,10 +12,10 @@ The manifest is intentionally separate from composition profiles:
 ```json
 {
   "schemaVersion": "1.0",
-  "toolBindingId": "legacy-combiner-1.10",
+  "toolBindingId": "legacy-combiner-1.13.0",
   "toolId": "legacy-combiner",
-  "toolVersion": "1.10",
-  "displayName": "Legacy CRC/Header Combiner 1.10",
+  "toolVersion": "1.13.0",
+  "displayName": "Legacy CRC/Header Combiner 1.13.0",
   "platform": "win-x64",
   "executableName": "combiner.exe",
   "sha256": "<64 lowercase hex chars>",
@@ -23,14 +23,14 @@ The manifest is intentionally separate from composition profiles:
   "inputMode": "in-place",
   "argumentTemplate": ["{staging.workBin}"],
   "workingDirectoryPolicy": "staging-directory",
-  "timeoutSeconds": 5,
+  "timeoutSeconds": 30,
   "allowedExtraOutputFiles": []
 }
 ```
 
 ## Version rule
 
-`toolVersion` is a string. Do not parse it as a number. `1.10` must never collapse to `1.1`.
+`toolVersion` and the version suffix in `toolBindingId` are strings. Do not parse them as numbers. `1.10` must never collapse to `1.1`.
 
 ## Input modes
 
@@ -61,4 +61,4 @@ The host expands tokens after creating the staging directory. Profiles and users
 
 ## Repository policy
 
-Real `combiner.exe` binaries should not be committed to source control unless explicitly approved. The repository may include manifest examples and internal packaging instructions. Release packaging may add approved executables under an internal `external-tools/` layout.
+Real `combiner.exe` binaries should not be committed to source control unless explicitly approved. The repository may include manifest examples and internal packaging instructions. Release packaging may add approved executables under an internal `external-tools/` layout. Combiner `1.13.0` is the first owner-approved committed runtime package and is allowlisted by SHA-256.

@@ -1,14 +1,15 @@
 # UI ViewModel Boundaries
 
-The `0.1.1` demo shell may introduce page structure and synthetic data, but ViewModels must not become a second firmware engine.
+The UI shell is production-backed: it may introduce page structure and presentation state, but ViewModels must not become a second firmware engine or maintain static firmware data.
 
 ## Allowed ViewModel responsibilities
 
 - hold selected tab/page state;
-- display profile/mode/persona labels from typed application models or synthetic demo data;
+- display profile/mode/persona labels from typed application models, profile catalogs, or flash-map catalogs;
 - expose input card state;
 - expose validation issue summaries;
-- expose operation/report rows already produced by application services or demo providers;
+- expose operation/report rows already produced by application services;
+- display structured run report JSON after a file picker/result adapter has supplied the JSON text;
 - trigger commands such as Preview, Build, Save Rule, Open Report, Copy Diagnostics;
 - disable commands when the application model reports unsupported state.
 
@@ -19,36 +20,39 @@ The `0.1.1` demo shell may introduce page structure and synthetic data, but View
 - AB relocation patch logic;
 - CRC/Header calculation or `combiner.exe` invocation;
 - protected range decisions;
-- deciding Display/TP HW/TP FW access policy;
+- deciding DP/CtrlRAM/General Replace access policy;
 - interpreting file names as IC/mode truth;
 - modifying input/output bytes;
 - shell command construction;
 - direct filesystem scanning outside file picker/result adapters.
 
-## Demo data rule
+## Production data rule
 
-Synthetic demo data must be isolated behind an explicit provider, for example:
+Firmware-affecting UI data must come from production catalogs or application services, for example:
 
 ```text
-IDemoShellDataProvider
+TpFlashMapCatalog
+BuiltInStandardMergeProfiles
+LegacyCombinerPostbuildCatalog
 ```
 
-The provider name and comments must state that it is non-production demo data. Do not place demo sample rows directly inside XAML event handlers.
+Do not place firmware maps, IC choices, number choices, command sequences, or executable workflow state directly in XAML event handlers or Presentation-only hard-coded catalogs.
 
 ## Page command shape
 
-Commands should use typed application request models later. In `0.1.1`, commands may be disabled placeholders with clear milestone messages.
+Commands should use typed application request models. Disabled commands must reflect unsupported production state, not placeholder state.
 
 Example disabled reason:
 
 ```text
-Composition core is planned for 0.2.0-dev.N. This demo does not read firmware files.
+Replace build is pending until the application profile and processor request are available.
 ```
 
 ## Review checklist
 
 - No `File.ReadAllBytes` or `Process.Start` in ViewModels.
-- No hex offsets hard-coded in ViewModels except synthetic display examples marked as such.
+- No firmware file reads in ViewModels; structured report JSON may be supplied by UI adapters for read-only review.
+- No hex offsets hard-coded in ViewModels; use application catalogs or application results.
 - No `if experience == ab` byte behavior in ViewModels.
 - No executable path settings in UI before tool manifest UX is designed.
 - No positive Build status without application-core result.
