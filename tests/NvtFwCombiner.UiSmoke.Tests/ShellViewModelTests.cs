@@ -3,6 +3,7 @@ using System.Text.Json;
 using Avalonia.Media;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -314,15 +315,64 @@ public sealed class ShellViewModelTests
             Assert.Equal(expectedPlan.Commands.Count, CountOccurrences(
                 postbuildOperation.GetProperty("Reason").GetString()!,
                 "Combiner.exe "));
+            AssertJsonRange(postbuildOperation.GetProperty("TargetRange"), 0, 0x35000);
             AssertDoesNotCoverRange(postbuildOperation.GetProperty("ProcessorAllowedWriteRanges"), 0x7024, 4);
+            AssertDoesNotCoverRange(postbuildOperation.GetProperty("ProcessorAllowedWriteRanges"), 0x1E254, 1);
+            AssertDoesNotCoverRange(postbuildOperation.GetProperty("ProcessorAllowedWriteRanges"), 0x27254, 1);
             AssertCoversRange(postbuildOperation.GetProperty("ProcessorAllowedWriteRanges"), start, length);
+            JsonElement assemblyOperation = reportDocument.RootElement
+                .GetProperty("Operations")
+                .EnumerateArray()
+                .Single(operation => operation.GetProperty("OperationId").GetString() == "assemble-refreshed-tp");
+            AssertJsonRange(assemblyOperation.GetProperty("SourceRange"), 0, 0x35000);
+            AssertJsonRange(assemblyOperation.GetProperty("TargetRange"), 0, 0x35000);
             CtrlRamRegionViewModel unselectedRegion = viewModel.CtrlRamRegions.First(region =>
                 region.Name != regionSlot.Title);
             (int unselectedStart, int unselectedLength) = ParseCtrlRamRegion(unselectedRegion);
-            AssertCoversRange(
+            AssertDoesNotCoverRange(
                 postbuildOperation.GetProperty("ProcessorAllowedWriteRanges"),
                 unselectedStart,
                 unselectedLength);
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+    }
+
+    /// <summary>Verifies unsupported CtrlRAM IC-count input returns a structured report instead of throwing.</summary>
+    [Fact]
+    public async Task CtrlRamReplacePreviewRejectsUnsupportedIcNumberWithReport()
+    {
+        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-ctrlram-bad-number-{Guid.NewGuid():N}");
+        try
+        {
+            _ = Directory.CreateDirectory(tempRoot);
+            string basePath = Path.Combine(tempRoot, "base.bin");
+            string replacementPath = Path.Combine(tempRoot, "nf.bin");
+            File.WriteAllBytes(basePath, CreatePattern(0x40000, 0x50));
+            File.WriteAllBytes(replacementPath, CreatePattern(0x0FD0, 0x70));
+            Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
+            {
+                ["replace-base"] = basePath,
+                ["replace-ctrlram-nf-master"] = replacementPath,
+            };
+
+            WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+                "NT51927",
+                "4",
+                "CtrlRAM",
+                slotPaths,
+                build: false,
+                CancellationToken.None);
+
+            Assert.False(result.Succeeded);
+            using var reportDocument = JsonDocument.Parse(result.ReportJson);
+            JsonElement issue = Assert.Single(reportDocument.RootElement.GetProperty("Issues").EnumerateArray());
+            Assert.Equal("replace.ctrlram.ic-number-unsupported", issue.GetProperty("Code").GetString());
         }
         finally
         {
@@ -878,6 +928,12 @@ public sealed class ShellViewModelTests
             long rangeEnd = rangeStart + range.GetProperty("Length").GetInt64();
             return rangeStart <= start && rangeEnd >= start + length;
         });
+    }
+
+    private static void AssertJsonRange(JsonElement range, int start, int length)
+    {
+        Assert.Equal(start, range.GetProperty("Start").GetInt64());
+        Assert.Equal(length, range.GetProperty("Length").GetInt64());
     }
 
     private static int CountOccurrences(string value, string needle)

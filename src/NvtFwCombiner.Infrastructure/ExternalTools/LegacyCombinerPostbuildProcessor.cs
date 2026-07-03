@@ -151,6 +151,12 @@ public sealed class LegacyCombinerPostbuildProcessor : IExternalProcessor
                 {
                     return ExternalProcessorResult.Failed([lengthIssue]);
                 }
+
+                CompositionIssue? perCommandUnexpectedFileIssue = ValidateStagingTree(runDirectory, profile, manifest!, commandPlan);
+                if (perCommandUnexpectedFileIssue is not null)
+                {
+                    return ExternalProcessorResult.Failed([perCommandUnexpectedFileIssue]);
+                }
             }
 
             if (!File.Exists(firmwarePath))

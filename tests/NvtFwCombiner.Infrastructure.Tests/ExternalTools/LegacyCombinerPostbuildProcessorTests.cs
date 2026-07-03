@@ -239,6 +239,36 @@ public sealed class LegacyCombinerPostbuildProcessorTests
         Assert.Equal(1, runner.RunCount);
     }
 
+    /// <summary>Rejects unexpected files after each command before a later command can reset staging.</summary>
+    [Fact]
+    public async Task TransformRejectsUnexpectedStagingFileBeforeNextCommandReset()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        byte[] firmware = CreateFirmwareImage();
+        FakeProcessRunner runner = new(startInfo =>
+        {
+            File.WriteAllText(Path.Combine(startInfo.WorkingDirectory, "BIN", "unexpected.tmp"), "unexpected");
+            return new ExternalProcessResult(0, false, string.Empty, string.Empty);
+        });
+        LegacyCombinerPostbuildProfile profile = CreateTwoCommandCrcOnlyProfile();
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
+        ExternalProcessorRequest request = new(
+            "run-unexpected-before-reset",
+            profile.ProcessorId,
+            "legacy-combiner-1.13.0",
+            firmware,
+            [],
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("external-tool.staging.unexpected-file", issue.Code);
+        Assert.Equal(1, runner.RunCount);
+    }
+
     /// <summary>Verifies mutations outside declared postbuild authority fail closed.</summary>
     [Fact]
     public async Task TransformRejectsOutOfRangePostbuildMutation()
@@ -341,6 +371,30 @@ public sealed class LegacyCombinerPostbuildProcessorTests
             [command],
             [command],
             "test crc-only profile");
+    }
+
+    private static LegacyCombinerPostbuildProfile CreateTwoCommandCrcOnlyProfile()
+    {
+        LegacyCombinerPostbuildCommand first = new(
+            "crc-only-first",
+            LegacyCombinerCommandFamily.CrcOnlyMode,
+            "NT51927BASED_GEN_CRC_MODE",
+            "CRC32",
+            []);
+        LegacyCombinerPostbuildCommand second = new(
+            "crc-only-second",
+            LegacyCombinerCommandFamily.CrcOnlyMode,
+            "NT51927BASED_GEN_CRC_MODE",
+            "CRC32",
+            []);
+        return new LegacyCombinerPostbuildProfile(
+            "nfc.test.unexpected-before-reset-v1",
+            "NTTEST",
+            "legacy-combiner-1.13.0",
+            "test_fw.bin",
+            [first, second],
+            [first, second],
+            "test multi-command unexpected file profile");
     }
 
     private static LegacyCombinerPostbuildProfile CreateShortenedOutputProfile()
