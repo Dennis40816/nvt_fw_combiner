@@ -1,10 +1,8 @@
-using System.Globalization;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Files;
-using NvtFwCombiner.Infrastructure.Time;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -79,6 +77,7 @@ public static partial class WorkbenchCompositionService
 
         string? basePath = null;
         long baseLength = 0;
+        byte[]? validatedBaseBytes = null;
         if (!slotPaths.TryGetValue("replace-base", out string? suppliedBasePath) ||
             string.IsNullOrWhiteSpace(suppliedBasePath))
         {
@@ -99,12 +98,24 @@ public static partial class WorkbenchCompositionService
             }
             else
             {
-                baseLength = new FileInfo(basePath).Length;
-                if (baseLength <= 0)
+                try
+                {
+                    FileArtifactReader baseReader = new([Path.GetDirectoryName(basePath)!]);
+                    validatedBaseBytes = (await baseReader.ReadAsync(basePath, cancellationToken).ConfigureAwait(false)).ToArray();
+                    baseLength = validatedBaseBytes.LongLength;
+                    if (baseLength <= 0)
+                    {
+                        validationIssues.Add(new CompositionIssue(
+                            "input.address-space.length-mismatch",
+                            "Base flash BIN must not be empty.",
+                            "replace-base"));
+                    }
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or DirectoryNotFoundException)
                 {
                     validationIssues.Add(new CompositionIssue(
-                        "input.address-space.length-mismatch",
-                        "Base flash BIN must not be empty.",
+                        "input.artifact.read-failed",
+                        $"Base flash BIN could not be read through the guarded artifact reader ({exception.GetType().Name}).",
                         "replace-base"));
                 }
             }
@@ -128,6 +139,7 @@ public static partial class WorkbenchCompositionService
 
         if (validationIssues.Count > 0 ||
             basePath is null ||
+            validatedBaseBytes is null ||
             postbuildProfile is null ||
             commandPlan is null ||
             postbuildWorkArea is null)
@@ -196,7 +208,7 @@ public static partial class WorkbenchCompositionService
             string? tpWorkSeedPath = null;
             if (postbuildWorkArea.RequiresFinalAssembly)
             {
-                (tpWorkSeedPath, tempDirectory) = CreateTpWorkSeedFile(basePath, postbuildWorkArea.Capacity);
+                (tpWorkSeedPath, tempDirectory) = CreateTpWorkSeedFile(validatedBaseBytes, postbuildWorkArea.Capacity);
             }
 
             InputArtifactBinding[] bindings = CreateCtrlRamReplaceBindings(
@@ -204,50 +216,16 @@ public static partial class WorkbenchCompositionService
                 slotPaths,
                 basePath,
                 tpWorkSeedPath);
-            string[] inputRoots =
-            [
-                .. bindings
-                    .Select(binding => Path.GetDirectoryName(binding.ArtifactId)!)
-                    .Distinct(StringComparer.OrdinalIgnoreCase),
-            ];
-            (string outputDirectory, string outputFileName) = ResolveOutputTarget(
-                basePath,
-                build,
-                outputPath,
-                profile.DefaultOutputFileName);
-            if (build)
-            {
-                EnsureOutputDoesNotAliasInputs(outputDirectory, outputFileName, bindings);
-            }
-
-            FileArtifactReader reader = new(inputRoots);
-            AtomicFileCompositionOutputWriter? writer = build
-                ? new AtomicFileCompositionOutputWriter(outputDirectory, overwrite: true)
-                : null;
-            CompositionRunService service = new(reader, new SystemClock(), writer, ExternalProcessorFactory.CreateOrNull());
-            CompositionRunRequest request = new(
-                $"ui-replace-ctrlram-{(build ? "build" : "preview")}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture)}",
-                ToRunProfile(profile),
+            return await RunCompiledWorkbenchProfileAsync(
+                "ui-replace-ctrlram",
+                profile,
                 compile.Plan!,
                 bindings,
-                outputFileName,
-                icNumberSelection: selection);
-
-            CompositionRunResult result;
-            if (!build)
-            {
-                result = await service.PreviewAsync(request, cancellationToken).ConfigureAwait(false);
-            }
-            else
-            {
-                CompositionRunResult preview = await service.PreviewAsync(request, cancellationToken).ConfigureAwait(false);
-                result = preview.Status == CompositionExecutionStatus.Succeeded
-                    ? await service.BuildAsync(request.WithApprovedPreviewToken(preview.PreviewToken!), cancellationToken)
-                        .ConfigureAwait(false)
-                    : preview;
-            }
-
-            return ToWorkbenchRunResult(result);
+                build,
+                outputPath,
+                cancellationToken,
+                selection,
+                ExternalProcessorFactory.CreateOrNull()).ConfigureAwait(false);
         }
         finally
         {
@@ -583,11 +561,16 @@ public static partial class WorkbenchCompositionService
         return [.. bindings];
     }
 
-    private static (string Path, string Directory) CreateTpWorkSeedFile(string basePath, long length)
+    private static (string Path, string Directory) CreateTpWorkSeedFile(byte[] baseBytes, long length)
     {
         if (length <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(length), "TP work seed length must be positive.");
+        }
+
+        if (length > baseBytes.LongLength || length > int.MaxValue)
+        {
+            throw new IOException("Base flash ended before the TP work seed could be created.");
         }
 
         string directory = Path.Combine(
@@ -598,21 +581,8 @@ public static partial class WorkbenchCompositionService
         _ = Directory.CreateDirectory(directory);
         string seedPath = Path.Combine(directory, "tp-work.bin");
 
-        using FileStream input = File.OpenRead(basePath);
         using FileStream output = File.Create(seedPath);
-        byte[] buffer = new byte[81920];
-        long remaining = length;
-        while (remaining > 0)
-        {
-            int read = input.Read(buffer, 0, (int)Math.Min(buffer.Length, remaining));
-            if (read == 0)
-            {
-                throw new IOException("Base flash ended before the TP work seed could be created.");
-            }
-
-            output.Write(buffer, 0, read);
-            remaining -= read;
-        }
+        output.Write(baseBytes, 0, checked((int)length));
 
         return (seedPath, directory);
     }

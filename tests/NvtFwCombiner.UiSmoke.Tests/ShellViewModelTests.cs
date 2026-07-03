@@ -619,6 +619,41 @@ public sealed class ShellViewModelTests
         }
     }
 
+    /// <summary>Verifies CtrlRAM self-replacement is byte-idempotent once the base is postbuild-canonical.</summary>
+    [Fact]
+    public async Task CtrlRamReplaceBuildIsIdempotentAfterPostbuildCanonicalOutput()
+    {
+        string repositoryRoot = FindRepositoryRoot();
+        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
+        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
+        JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
+            .EnumerateArray()
+            .Single(testCase => testCase.GetProperty("ic").GetString() == "51927");
+        byte[] baseBytes = File.ReadAllBytes(ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
+        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-ctrlram-idempotent-{Guid.NewGuid():N}");
+
+        try
+        {
+            _ = Directory.CreateDirectory(tempRoot);
+            string originalBasePath = Path.Combine(tempRoot, "base-from-golden.bin");
+            string canonicalOutputPath = Path.Combine(tempRoot, "canonicalized.bin");
+            string secondOutputPath = Path.Combine(tempRoot, "second-output.bin");
+            File.WriteAllBytes(originalBasePath, baseBytes);
+
+            await BuildNt51927VnSelfReplacementAsync(originalBasePath, canonicalOutputPath, tempRoot);
+            await BuildNt51927VnSelfReplacementAsync(canonicalOutputPath, secondOutputPath, tempRoot);
+
+            Assert.Equal(File.ReadAllBytes(canonicalOutputPath), File.ReadAllBytes(secondOutputPath));
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+    }
+
     /// <summary>Verifies NT51927 three-chip CtrlRAM Replace exposes both right and left slave slots.</summary>
     [Fact]
     public void CtrlRamReplaceSlotsIncludeNt51927RightAndLeftSlaves()
@@ -907,6 +942,36 @@ public sealed class ShellViewModelTests
         return (
             int.Parse(startHex, NumberStyles.HexNumber, CultureInfo.InvariantCulture),
             int.Parse(lengthHex, NumberStyles.HexNumber, CultureInfo.InvariantCulture));
+    }
+
+    private static async Task BuildNt51927VnSelfReplacementAsync(
+        string basePath,
+        string outputPath,
+        string tempRoot)
+    {
+        byte[] baseBytes = File.ReadAllBytes(basePath);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51927";
+        viewModel.SelectedNumber = "single";
+        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+
+        FirmwareSlotViewModel vnSlot = viewModel.ReplaceSlots.Single(slot =>
+            slot.Title.Contains("VN CtrlRAM", StringComparison.Ordinal));
+        CtrlRamRegionViewModel vnRegion = viewModel.CtrlRamRegions.Single(region => region.Name == vnSlot.Title);
+        (int start, int length) = ParseCtrlRamRegion(vnRegion);
+        string replacementPath = Path.Combine(tempRoot, $"self-vn-ctrlram-{Guid.NewGuid():N}.bin");
+        File.WriteAllBytes(replacementPath, baseBytes[start..(start + length)]);
+
+        viewModel.SetSlotFile("replace-base", basePath);
+        viewModel.SetSlotFile(vnSlot.SlotId, replacementPath);
+
+        Assert.True(viewModel.CanBuildReplace);
+
+        await viewModel.BuildReplaceAsync(outputPath);
+
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.Equal(outputPath, viewModel.LastRunResult.Output);
+        Assert.True(File.Exists(outputPath), outputPath);
     }
 
     private static void AssertCoversRange(JsonElement ranges, int start, int length)

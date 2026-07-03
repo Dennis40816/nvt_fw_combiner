@@ -113,7 +113,7 @@ public sealed class LegacyCombinerPostbuildProcessor : IExternalProcessor
                 }
 
                 ResetDirectory(binDirectory);
-                CompositionIssue? stagingIssue = MaterializeStagedBlockFiles(command.Blocks, commandInputBytes, binDirectory);
+                CompositionIssue? stagingIssue = MaterializeStagedBlockFiles(command.Blocks, inputBytes, binDirectory);
                 if (stagingIssue is not null)
                 {
                     return ExternalProcessorResult.Failed([stagingIssue]);

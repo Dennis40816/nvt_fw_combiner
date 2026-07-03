@@ -149,6 +149,56 @@ public sealed class LegacyCombinerPostbuildProcessorTests
         Assert.Equal(2, modes.Count(mode => mode == "NT51927BASED_GEN_CRC_MODE"));
     }
 
+    /// <summary>Verifies later NT51927 slave commands stage CtrlRAM files from the pre-postbuild seed image.</summary>
+    [Fact]
+    public async Task TransformPreservesNt51927SlaveStagedFilesFromSeedImage()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        byte[] firmware = CreateFirmwareImage();
+        const int normalRightStart = 0x207D0;
+        const int normalRightLength = 12288;
+        byte expectedNormalRightByte = firmware[normalRightStart];
+        int commandIndex = 0;
+        bool inspectedRightCtrlRam = false;
+        FakeProcessRunner runner = new(startInfo =>
+        {
+            commandIndex++;
+            string firmwarePath = startInfo.Arguments.First(argument =>
+                argument.EndsWith("nt51927_fw.bin", StringComparison.Ordinal));
+            if (commandIndex == 4)
+            {
+                byte[] output = File.ReadAllBytes(firmwarePath);
+                Array.Fill<byte>(output, 0xEE, normalRightStart, normalRightLength);
+                File.WriteAllBytes(firmwarePath, output);
+            }
+
+            if (commandIndex == 5)
+            {
+                string normalRight = Path.Combine(startInfo.WorkingDirectory, "BIN", "Normal_Ctrlram_R.bin");
+                byte[] stagedNormalRight = File.ReadAllBytes(normalRight);
+                Assert.Equal(expectedNormalRightByte, stagedNormalRight[0]);
+                Assert.NotEqual(0xEE, stagedNormalRight[0]);
+                inspectedRightCtrlRam = true;
+            }
+
+            return new ExternalProcessResult(0, false, string.Empty, string.Empty);
+        });
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner);
+        ExternalProcessorRequest request = new(
+            "run-nt51927-2chip-slave-seed",
+            LegacyCombinerPostbuildCatalog.Nt51927.ProcessorId,
+            "legacy-combiner-1.13.0",
+            firmware,
+            [new ByteRange(normalRightStart, normalRightLength)],
+            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]));
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => issue.Message)));
+        Assert.True(inspectedRightCtrlRam);
+    }
+
     /// <summary>Verifies command-shortened Combiner output is normalized back to full firmware length.</summary>
     [Fact]
     public async Task TransformNormalizesCommandShortenedFirmwareWhenCoverageIsComplete()

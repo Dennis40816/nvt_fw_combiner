@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Files;
 using NvtFwCombiner.Infrastructure.Time;
@@ -281,6 +282,36 @@ public static partial class WorkbenchCompositionService
                 .Order(StringComparer.Ordinal)
                 .Select(addressSpaceId => CreateBinding(addressSpaceId, slotPaths)),
         ];
+        return await RunCompiledWorkbenchProfileAsync(
+            "ui",
+            profile,
+            plan,
+            bindings,
+            build,
+            outputPath,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async ValueTask<WorkbenchRunResult> RunCompiledWorkbenchProfileAsync(
+        string runIdPrefix,
+        CompositionProfileDefinition profile,
+        CompositionPlan plan,
+        InputArtifactBinding[] bindings,
+        bool build,
+        string? outputPath,
+        CancellationToken cancellationToken,
+        IcNumberSelection? icNumberSelection = null,
+        IExternalProcessor? externalProcessor = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(runIdPrefix);
+        ArgumentNullException.ThrowIfNull(profile);
+        ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(bindings);
+        if (bindings.Length == 0)
+        {
+            throw new ArgumentException("At least one input binding is required.", nameof(bindings));
+        }
+
         string[] inputRoots = [
             .. bindings
                 .Select(binding => Path.GetDirectoryName(binding.ArtifactId)!)
@@ -300,13 +331,14 @@ public static partial class WorkbenchCompositionService
         AtomicFileCompositionOutputWriter? writer = build
             ? new AtomicFileCompositionOutputWriter(outputDirectory, overwrite: true)
             : null;
-        CompositionRunService service = new(reader, new SystemClock(), writer);
+        CompositionRunService service = new(reader, new SystemClock(), writer, externalProcessor);
         CompositionRunRequest request = new(
-            $"ui-{(build ? "build" : "preview")}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture)}",
+            $"{runIdPrefix}-{(build ? "build" : "preview")}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture)}",
             ToRunProfile(profile),
             plan,
             bindings,
-            outputFileName);
+            outputFileName,
+            icNumberSelection: icNumberSelection);
 
         CompositionRunResult result;
         if (!build)

@@ -14,6 +14,7 @@ Update this document in the same change when any of these sources change:
 - `docs/architecture/nt51950-nt51951-dp-length-policy.md`
 - `docs/architecture/ctrlram-postbuild-command-matrix.md`
 - `docs/architecture/supported-ic-matrix.md`
+- `docs/architecture/adding-ic-merge-replace-workflow.md`
 
 The architecture test `IcWorkflowFlowchartReferenceCoversBuiltInIcLists` checks that this document lists every IC from the built-in Standard Merge profiles and the CtrlRAM postbuild catalog. The test is a sync guard only; the C# catalog and owner evidence remain the source of behavior truth.
 

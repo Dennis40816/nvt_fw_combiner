@@ -3,8 +3,6 @@ using System.Text.Json;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Infrastructure.Files;
-using NvtFwCombiner.Infrastructure.Time;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -30,49 +28,15 @@ public static partial class WorkbenchCompositionService
             CreateBinding("reference-base", "replace-base", slotPaths),
             CreateBinding("dp-replacement", "replace-dp", slotPaths),
         ];
-        string[] inputRoots = [
-            .. bindings
-                .Select(binding => Path.GetDirectoryName(binding.ArtifactId)!)
-                .Distinct(StringComparer.OrdinalIgnoreCase),
-        ];
-        (string outputDirectory, string outputFileName) = ResolveOutputTarget(
-            bindings[0].ArtifactId,
-            build,
-            outputPath,
-            profile.DefaultOutputFileName);
-        if (build)
-        {
-            EnsureOutputDoesNotAliasInputs(outputDirectory, outputFileName, bindings);
-        }
-
-        FileArtifactReader reader = new(inputRoots);
-        AtomicFileCompositionOutputWriter? writer = build
-            ? new AtomicFileCompositionOutputWriter(outputDirectory, overwrite: true)
-            : null;
-        CompositionRunService service = new(reader, new SystemClock(), writer);
-        CompositionRunRequest request = new(
-            $"ui-replace-{(build ? "build" : "preview")}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture)}",
-            ToRunProfile(profile),
+        return await RunCompiledWorkbenchProfileAsync(
+            "ui-replace",
+            profile,
             compile.Plan!,
             bindings,
-            outputFileName,
-            icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
-
-        CompositionRunResult result;
-        if (!build)
-        {
-            result = await service.PreviewAsync(request, cancellationToken).ConfigureAwait(false);
-        }
-        else
-        {
-            CompositionRunResult preview = await service.PreviewAsync(request, cancellationToken).ConfigureAwait(false);
-            result = preview.Status == CompositionExecutionStatus.Succeeded
-                ? await service.BuildAsync(request.WithApprovedPreviewToken(preview.PreviewToken!), cancellationToken)
-                    .ConfigureAwait(false)
-                : preview;
-        }
-
-        return ToWorkbenchRunResult(result);
+            build,
+            outputPath,
+            cancellationToken,
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])).ConfigureAwait(false);
     }
 
     private static IReadOnlyList<WorkbenchMemoryMapRow> CreateDpReplaceRows(
