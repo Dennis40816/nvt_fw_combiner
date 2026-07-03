@@ -68,7 +68,7 @@ public static partial class WorkbenchCompositionService
                         "Base flash",
                         "Replace",
                         "General BIN",
-                        "The selected explicit range must be approved by the compiled General Replace profile."),
+                        "The selected explicit range must be approved by the compiled General Replace profile; TP ranges require Combiner CRC/header refresh."),
                 ],
                 _ =>
                 [
@@ -263,7 +263,7 @@ public static partial class WorkbenchCompositionService
                 slotPaths,
                 build,
                 "replace.general.profile-pending",
-                "General Replace UI authoring is available, but production build still needs compiled explicit mappings wired to the workbench runner."),
+                "General Replace UI authoring is available, but production build still needs compiled explicit mappings and TP-range Combiner refresh wired to the workbench runner."),
             _ => CreatePlanningRunResult(
                 icId,
                 number,

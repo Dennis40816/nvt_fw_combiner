@@ -74,7 +74,7 @@ Replace：
 
 - `dp-replace`：DP whole 或 profile-declared partitions；LD replacement also belongs to DP Replace and may be modeled as a separate LD replacement BIN/slot from the DP BIN；不再提供獨立 TP persona replace 分類。
 - `ctrlram-replace`：只操作被標記為 `tp-ctrlram` 的 named regions/groups。
-- `general-replace`：required reference BIN 加上一或多個 replacement BIN；使用者自由建立多筆 explicit mappings，但仍受 protected ranges、alignment、overlap、processor dependency 與 Preview gate 約束。
+- `general-replace`：required reference BIN 加上一或多個 replacement BIN；使用者自由建立多筆 explicit mappings，但仍受 protected ranges、alignment、overlap、processor dependency 與 Preview gate 約束。Any mapping that touches a TP-classified range must compile with an approved legacy Combiner CRC/header refresh after the replacement mutation.
 
 Experience 只控制 catalog、UI authoring policy 與 profile compile constraints。Executor 不依 `experienceId` 寫 workflow-specific branch。
 
@@ -543,7 +543,7 @@ This avoids duplicating memory maps for DP/CtrlRAM/General Replace while keeping
 
 - **DP Replace**：DP may be whole or declared parts. LD replacement is treated as DP Replace and may use a separate LD replacement BIN/slot from the DP BIN. TP-specific replace categories are not exposed.
 - **CtrlRAM Replace**：only regions tagged `tp-ctrlram` or approved CtrlRAM groups may be replaced.
-- **General Replace**：explicit ranges are allowed only where profile access is `explicit-range`; protected regions remain blocked.
+- **General Replace**：explicit ranges are allowed only where profile access is `explicit-range`; protected regions remain blocked. If an explicit mapping touches a TP-classified range, the compiled plan must run an approved legacy Combiner CRC/header refresh after that mapping; profiles without that post-mutation processor stage fail closed.
 - **General Merge**：input cardinality is extensible; every mapping row compiles to standard operations.
 
 ### 7.6 Operation algebra

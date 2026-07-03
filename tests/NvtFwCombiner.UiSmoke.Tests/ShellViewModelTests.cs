@@ -27,6 +27,24 @@ public sealed class ShellViewModelTests
         Assert.Contains(viewModel.SettingsToolRows, row => row.Title == "External tool binding" && row.Value.Contains("legacy-combiner-1.13.0", StringComparison.Ordinal));
         Assert.Contains(viewModel.SettingsDiagnosticsRows, row => row.Title == "Report review");
         Assert.Contains(viewModel.SettingsReadinessRows, row => row.Title == "Device context" && row.Value == "Workflow pages only");
+
+        viewModel.SelectedTheme = "Dark";
+        viewModel.SelectedStrictness = "Warn only";
+        viewModel.SelectedLanguage = "Traditional Chinese";
+
+        Assert.Equal("Dark theme is applied to this window.", viewModel.ThemePreferenceStatus);
+        Assert.Equal("Preference is recorded; firmware gates still fail closed.", viewModel.StrictnessPreferenceStatus);
+        Assert.Equal("Preference is recorded; full XAML localization is pending.", viewModel.LanguagePreferenceStatus);
+        Assert.Contains(viewModel.SettingsPreferenceRows, row =>
+            row.Title == "Theme" &&
+            row.Value == "Dark" &&
+            row.Status == "Applied");
+        Assert.Contains(viewModel.SettingsPreferenceRows, row =>
+            row.Title == "Strictness" &&
+            row.Value == "Warn only");
+        Assert.Contains(viewModel.SettingsPreferenceRows, row =>
+            row.Title == "Language" &&
+            row.Value == "Traditional Chinese");
     }
 
     /// <summary>Verifies breadcrumb history can return to an earlier page level.</summary>
@@ -98,6 +116,7 @@ public sealed class ShellViewModelTests
         Assert.False(required.HasFile);
         AssertBrush("#FFF7F7", required.SlotBackgroundBrush);
         AssertBrush("#FCA5A5", required.SlotBorderBrush);
+        Assert.Equal(new Thickness(1.5), required.SlotBorderThickness);
         AssertBrush("#B91C1C", required.RequirementBadgeForegroundBrush);
 
         required.FilePath = Path.Combine(Path.GetTempPath(), "dp.bin");
@@ -609,6 +628,26 @@ public sealed class ShellViewModelTests
             Assert.True(viewModel.HasLoadedReport);
             Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
                 operation.CodeBlock.Contains("Combiner.exe", StringComparison.Ordinal));
+
+            byte[] postbuildCleanBytes = File.ReadAllBytes(outputPath);
+            string cleanBasePath = Path.Combine(tempRoot, "postbuild-clean-base.bin");
+            string cleanReplacementPath = Path.Combine(tempRoot, "postbuild-clean-self-vn-ctrlram.bin");
+            string cleanOutputPath = Path.Combine(tempRoot, "postbuild-clean-output.bin");
+            File.WriteAllBytes(cleanBasePath, postbuildCleanBytes);
+            File.WriteAllBytes(cleanReplacementPath, postbuildCleanBytes[start..(start + length)]);
+
+            MainWindowViewModel cleanViewModel = ShellViewModelFactory.Create();
+            cleanViewModel.SelectedIc = "NT51927";
+            cleanViewModel.SelectedNumber = "single";
+            cleanViewModel.ShowCtrlRamReplaceCommand.Execute(null);
+            FirmwareSlotViewModel cleanVnSlot = cleanViewModel.ReplaceSlots.Single(slot => slot.Title == vnSlot.Title);
+            cleanViewModel.SetSlotFile("replace-base", cleanBasePath);
+            cleanViewModel.SetSlotFile(cleanVnSlot.SlotId, cleanReplacementPath);
+
+            await cleanViewModel.BuildReplaceAsync(cleanOutputPath);
+
+            Assert.True(cleanViewModel.LastRunResult.Succeeded, cleanViewModel.LastRunResult.Detail);
+            Assert.Equal(postbuildCleanBytes, File.ReadAllBytes(cleanOutputPath));
         }
         finally
         {

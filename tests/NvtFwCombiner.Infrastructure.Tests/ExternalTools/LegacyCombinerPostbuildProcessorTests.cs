@@ -199,6 +199,51 @@ public sealed class LegacyCombinerPostbuildProcessorTests
         Assert.True(inspectedRightCtrlRam);
     }
 
+    /// <summary>Verifies later commands stage BIN files from the initial post-replacement image, not a mutated work file.</summary>
+    [Fact]
+    public async Task TransformStagesEachCommandFromInitialPostReplacementImage()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        byte[] firmware = [0x10, 0x20, 0x30, 0x40, 0x99, 0x60];
+        int call = 0;
+        FakeProcessRunner runner = new(startInfo =>
+        {
+            call++;
+            string firmwarePath = startInfo.Arguments[1];
+            byte[] output = File.ReadAllBytes(firmwarePath);
+            if (call == 1)
+            {
+                output[4] = output[0];
+                File.WriteAllBytes(firmwarePath, output);
+                return new ExternalProcessResult(0, false, string.Empty, string.Empty);
+            }
+
+            string stagedReplacement = Path.Combine(startInfo.WorkingDirectory, "BIN", "Replacement.bin");
+            byte[] staged = File.ReadAllBytes(stagedReplacement);
+            Assert.Equal(0x99, Assert.Single(staged));
+            output[4] = staged[0];
+            File.WriteAllBytes(firmwarePath, output);
+            return new ExternalProcessResult(0, false, string.Empty, string.Empty);
+        });
+        LegacyCombinerPostbuildProfile profile = CreateCopyThenRestoreProfile();
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
+        ExternalProcessorRequest request = new(
+            "run-copy-then-restore",
+            profile.ProcessorId,
+            "legacy-combiner-1.13.0",
+            firmware,
+            [],
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => issue.Message)));
+        Assert.Equal(firmware, result.OutputBytes.ToArray());
+        Assert.Empty(result.ChangedRanges);
+        Assert.Equal(2, runner.RunCount);
+    }
+
     /// <summary>Verifies command-shortened Combiner output is normalized back to full firmware length.</summary>
     [Fact]
     public async Task TransformNormalizesCommandShortenedFirmwareWhenCoverageIsComplete()
@@ -403,6 +448,44 @@ public sealed class LegacyCombinerPostbuildProcessorTests
             [command],
             [command],
             "test projection conflict profile");
+    }
+
+    private static LegacyCombinerPostbuildProfile CreateCopyThenRestoreProfile()
+    {
+        var copyCommand = new LegacyCombinerPostbuildCommand(
+            "copy-window",
+            LegacyCombinerCommandFamily.MergeMode,
+            "MERGE_MODE",
+            null,
+            [
+                new LegacyCombinerBlockArgument(
+                    "copy",
+                    LegacyCombinerBlockSourceKind.FirmwareImage,
+                    "firmware",
+                    0,
+                    new ByteRange(4, 1)),
+            ]);
+        var restoreCommand = new LegacyCombinerPostbuildCommand(
+            "restore-replacement",
+            LegacyCombinerCommandFamily.MergeMode,
+            "MERGE_MODE",
+            null,
+            [
+                new LegacyCombinerBlockArgument(
+                    "replacement",
+                    LegacyCombinerBlockSourceKind.StagedFile,
+                    "Replacement.bin",
+                    0,
+                    new ByteRange(4, 1)),
+            ]);
+        return new LegacyCombinerPostbuildProfile(
+            "nfc.test.copy-then-restore-v1",
+            "NTTEST",
+            "legacy-combiner-1.13.0",
+            "test_fw.bin",
+            [copyCommand, restoreCommand],
+            [copyCommand, restoreCommand],
+            "test copy command followed by staged replacement restore");
     }
 
     private static LegacyCombinerPostbuildProfile CreateCrcOnlyProfile(string processorId, string firmwareFileName)

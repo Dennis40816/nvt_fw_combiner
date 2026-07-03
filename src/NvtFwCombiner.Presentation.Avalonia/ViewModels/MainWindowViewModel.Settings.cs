@@ -56,6 +56,32 @@ public sealed partial class MainWindowViewModel
     [ObservableProperty]
     public partial string SelectedLanguage { get; set; } = "English";
 
+    /// <summary>Gets the current theme preference effect shown next to the selector.</summary>
+    public string ThemePreferenceStatus => SelectedTheme switch
+    {
+        "System" => "Follows the operating-system theme.",
+        "Light" => "Light theme is applied to this window.",
+        "Dark" => "Dark theme is applied to this window.",
+        "High contrast" => "Uses the dark visual variant until a contrast palette is added.",
+        _ => "Theme preference is stored in this shell session.",
+    };
+
+    /// <summary>Gets the current strictness preference effect shown next to the selector.</summary>
+    public string StrictnessPreferenceStatus => SelectedStrictness switch
+    {
+        "Strict" => "Unsupported workflow states stay fail-closed.",
+        "Warn only" => "Preference is recorded; firmware gates still fail closed.",
+        _ => "Strictness preference is stored in this shell session.",
+    };
+
+    /// <summary>Gets the current language preference effect shown next to the selector.</summary>
+    public string LanguagePreferenceStatus => SelectedLanguage switch
+    {
+        "English" => "English shell resources are active.",
+        "Traditional Chinese" => "Preference is recorded; full XAML localization is pending.",
+        _ => "Language preference is stored in this shell session.",
+    };
+
     private void RefreshSettingsState()
     {
         WorkbenchSettingsSnapshot snapshot = UiCompositionRunner.GetSettingsSnapshot();
@@ -101,18 +127,18 @@ public sealed partial class MainWindowViewModel
             new SettingSummaryViewModel(
                 "Theme",
                 SelectedTheme,
-                "Theme selection is stored in shell state; persistence is still pending.",
-                "Local"),
+                ThemePreferenceStatus,
+                SelectedTheme == "System" ? "System" : SelectedTheme == "High contrast" ? "Pending" : "Session"),
             new SettingSummaryViewModel(
                 "Strictness",
                 SelectedStrictness,
-                "Strict keeps unsupported workflow states closed until contracts are ready.",
-                "Local"),
+                StrictnessPreferenceStatus,
+                "Session"),
             new SettingSummaryViewModel(
                 "Language",
                 SelectedLanguage,
-                "Text resources support English and Traditional Chinese architecture.",
-                "Local"));
+                LanguagePreferenceStatus,
+                SelectedLanguage == "English" ? "Default" : "Pending"));
 
         ReplaceSettingsRows(
             SettingsDiagnosticsRows,
@@ -160,16 +186,19 @@ public sealed partial class MainWindowViewModel
 
     partial void OnSelectedThemeChanged(string value)
     {
+        OnPropertyChanged(nameof(ThemePreferenceStatus));
         RefreshSettingsState();
     }
 
     partial void OnSelectedStrictnessChanged(string value)
     {
+        OnPropertyChanged(nameof(StrictnessPreferenceStatus));
         RefreshSettingsState();
     }
 
     partial void OnSelectedLanguageChanged(string value)
     {
+        OnPropertyChanged(nameof(LanguagePreferenceStatus));
         RefreshSettingsState();
     }
 }

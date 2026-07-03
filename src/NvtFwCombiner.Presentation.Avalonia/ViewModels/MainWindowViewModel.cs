@@ -13,20 +13,24 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private const string MergeDpSlotId = "merge-dp";
     private const string MergeTpSlotId = "merge-tp";
     private const string MergeLdSlotId = "merge-ld";
+    private const string ReplaceBaseSlotId = "replace-base";
 
     private readonly FirmwareSlotViewModel _mergeDpSlot = new(
         MergeDpSlotId,
         "DP BIN",
-        "Display payload for Standard Merge");
+        "Display payload for Standard Merge",
+        kind: FirmwareSlotKind.Dp);
     private readonly FirmwareSlotViewModel _mergeTpSlot = new(
         MergeTpSlotId,
         "TP BIN",
-        "Touch payload for Standard Merge");
+        "Touch payload for Standard Merge",
+        kind: FirmwareSlotKind.Tp);
     private readonly FirmwareSlotViewModel _mergeLdSlot = new(
         MergeLdSlotId,
         "LD BIN",
         "Required only when the selected profile uses LD",
-        isOptional: true);
+        isOptional: true,
+        kind: FirmwareSlotKind.Dp);
     private int _generalReplaceMappingCounter;
 
     /// <summary>Initializes the main workbench view model.</summary>
@@ -79,13 +83,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
             CanRunStandardMerge);
         BuildMergeCommand = new AsyncRelayCommand(
             () => RunStandardMergeAsync(build: true),
-            CanRunStandardMerge);
+            () => CanBuildStandardMerge);
         PreviewReplaceCommand = new AsyncRelayCommand(
             () => RunReplaceAsync(build: false),
             CanRunReplace);
         BuildReplaceCommand = new AsyncRelayCommand(
             () => RunReplaceAsync(build: true),
-            CanRunReplace);
+            () => CanBuildReplace);
         ShowReportCommand = new RelayCommand(ShowReport, () => CanOpenReport);
         CloseReportCommand = new RelayCommand(CloseReport);
         DismissReportToastCommand = new RelayCommand(DismissReportToast);
@@ -144,6 +148,14 @@ public sealed partial class MainWindowViewModel : ObservableObject
         GeneralReplaceMode,
     ];
 
+    /// <summary>Gets merge mode choices reserved in the product taxonomy.</summary>
+    public IReadOnlyList<string> MergeModeChoices { get; } =
+    [
+        "Normal",
+        "AB Code",
+        "General",
+    ];
+
     /// <summary>Gets settings card content.</summary>
     public PlanningCardViewModel SettingsPreview { get; }
 
@@ -161,9 +173,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     /// <summary>Gets the independent General Replace base firmware slot.</summary>
     public FirmwareSlotViewModel ReplaceBaseSlot { get; } = new(
-        "replace-base",
+        ReplaceBaseSlotId,
         "Base flash BIN",
-        "Reference firmware image before replacement");
+        "Reference firmware image before replacement",
+        kind: FirmwareSlotKind.Base);
 
     /// <summary>Gets replace input slots for the selected replace mode.</summary>
     public ObservableCollection<FirmwareSlotViewModel> ReplaceSlots { get; } = [];
@@ -208,7 +221,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public string ReplaceMemoryRangeLabel => UiCompositionRunner.GetReplaceMemoryRangeLabel(
         SelectedIc,
         SelectedNumber,
-        SelectedReplaceMode);
+        SelectedReplaceMode,
+        GetSelectedReplaceBaseLength());
 
     /// <summary>Gets the default Replace output file name for the active mode.</summary>
     public string ReplaceOutputFileName => UiCompositionRunner.GetReplaceDefaultOutputFileName(
@@ -298,7 +312,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     {
         DpReplaceMode => "Replace DP and optional LD payloads without CRC postbuild.",
         CtrlRamReplaceMode => "Replace CtrlRAM payloads, then run combiner.exe postbuild for CRC/header refresh.",
-        GeneralReplaceMode => "Replace an explicit profile-approved range with a selected input BIN.",
+        GeneralReplaceMode => "Author explicit profile-approved ranges; TP ranges require combiner.exe CRC/header refresh.",
         _ => "Select a replace mode.",
     };
 
@@ -311,13 +325,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public bool CanPreviewStandardMerge => CanRunStandardMerge();
 
     /// <summary>True when Standard Merge build can run.</summary>
-    public bool CanBuildStandardMerge => CanRunStandardMerge();
+    public bool CanBuildStandardMerge => CanRunStandardMerge() && HasCurrentStandardMergePreview();
 
     /// <summary>True when Replace preview can run for the active mode.</summary>
     public bool CanPreviewReplace => CanRunReplace();
 
     /// <summary>True when Replace build can run for the active mode.</summary>
-    public bool CanBuildReplace => CanRunReplace();
+    public bool CanBuildReplace => CanRunReplace() && HasCurrentReplacePreview();
 
     /// <summary>Command that returns to the clean home view.</summary>
     public IRelayCommand ShowHomeCommand { get; }
@@ -381,6 +395,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
         }
 
         slot.FilePath = path;
+        RefreshFirmwareFacts(slot);
+        if (slot.SlotId is MergeDpSlotId or ReplaceBaseSlotId)
+        {
+            RefreshMemoryMapState();
+        }
+
         RefreshCommandState();
     }
 
@@ -426,16 +446,20 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     private void RefreshMemoryMapState()
     {
-        ReplaceRows(MergeMemoryRows, UiCompositionRunner.GetStandardMergeMemoryMapRows(SelectedIc));
+        ReplaceRows(MergeMemoryRows, UiCompositionRunner.GetStandardMergeMemoryMapRows(
+            SelectedIc,
+            GetSelectedMergeDpInputLength()));
         ReplaceRows(MergeCoverageSegments, UiCompositionRunner.GetStandardMergeCoverageSegments(SelectedIc));
         ReplaceRows(ReplaceMemoryRows, UiCompositionRunner.GetReplaceMemoryMapRows(
             SelectedIc,
             SelectedNumber,
-            SelectedReplaceMode));
+            SelectedReplaceMode,
+            GetSelectedReplaceBaseLength()));
         ReplaceRows(ReplaceCoverageSegments, UiCompositionRunner.GetReplaceCoverageSegments(
             SelectedIc,
             SelectedNumber,
-            SelectedReplaceMode));
+            SelectedReplaceMode,
+            GetSelectedReplaceBaseLength()));
         RefreshReplaceCoverageGroups();
 
         OnPropertyChanged(nameof(MergeMemoryRangeLabel));
@@ -447,6 +471,25 @@ public sealed partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(ReplaceBuildUnavailableReason));
         OnPropertyChanged(nameof(IsReplaceCoverageGrouped));
         OnPropertyChanged(nameof(IsReplaceCoverageFlat));
+    }
+
+    private long? GetSelectedMergeDpInputLength()
+    {
+        return SelectedIc is "NT51950" or "NT51951" &&
+            !string.IsNullOrWhiteSpace(_mergeDpSlot.FilePath) &&
+            File.Exists(_mergeDpSlot.FilePath)
+                ? new FileInfo(_mergeDpSlot.FilePath).Length
+                : null;
+    }
+
+    private long? GetSelectedReplaceBaseLength()
+    {
+        return SelectedReplaceMode == DpReplaceMode &&
+            SelectedIc is "NT51950" or "NT51951" &&
+            !string.IsNullOrWhiteSpace(ReplaceBaseSlot.FilePath) &&
+            File.Exists(ReplaceBaseSlot.FilePath)
+                ? new FileInfo(ReplaceBaseSlot.FilePath).Length
+                : null;
     }
 
     private void RefreshReplaceModeState()
@@ -468,7 +511,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 AddRows(
                     $"{SelectedIc} / {SelectedNumber}: DP Replace input policy is active.",
                     SelectedIc is "NT51950" or "NT51951"
-                        ? "DP replacement is padded to 0x100000, then the original TP range is restored from base."
+                        ? "DP replacement follows the selected base BIN length: 0x40000, 0x80000, or 0x100000; the original TP range is restored from base."
                         : "Build stays gated until this IC has approved DP Replace source mapping evidence.",
                     SelectedIc == "NT51928"
                         ? "NT51928 exposes an explicit LDC slot; other ICs hide LDC in DP Replace."
@@ -494,7 +537,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 AddRows(
                     $"{SelectedIc} / {SelectedNumber}: General Replace input policy is active.",
                     "Base firmware stays separate; mapping rows define replacement ranges.",
-                    "The compiler must approve each explicit range before build.");
+                    "The compiler must approve each explicit range before build.",
+                    "Any TP-range mapping must compile with an approved Combiner CRC/header refresh.");
                 break;
             default:
                 AddRows("Select a replace mode.");
@@ -585,7 +629,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             "Context changed",
             $"{SelectedIc} / {SelectedNumber}: rerun Preview before Build.",
             "No output",
-            succeeded: true);
+            succeeded: false);
         OnPropertyChanged(nameof(LastRunResult));
         RefreshSettingsState();
     }
@@ -617,6 +661,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
             OnPropertyChanged(nameof(IsNumberSelectorVisible));
             OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
             OnPropertyChanged(nameof(DeviceContextStatus));
+            ResetRunResultForContextChange();
+            RefreshCommandState();
         }
 
         SetSelectedPage(ShellPage.Merge);
@@ -669,12 +715,16 @@ public sealed partial class MainWindowViewModel : ObservableObject
     {
         RefreshReplaceModeState();
         RefreshMemoryMapState();
+        ResetRunResultForContextChange();
+        NotifyContextTextChanged();
+        RefreshCommandState();
     }
 
     partial void OnSelectedIcChanged(string value)
     {
         RefreshNumberChoicesForSelectedIc();
         RefreshContextState(resetRunResult: true);
+        RefreshAllSelectedSlotFirmwareFacts();
     }
 
     partial void OnSelectedNumberChanged(string value)

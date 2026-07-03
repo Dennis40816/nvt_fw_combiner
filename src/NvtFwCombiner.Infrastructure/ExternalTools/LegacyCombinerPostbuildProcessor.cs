@@ -104,6 +104,10 @@ public sealed class LegacyCombinerPostbuildProcessor : IExternalProcessor
             byte[] inputBytes = request.InputBytes.ToArray();
             await File.WriteAllBytesAsync(firmwarePath, inputBytes, cancellationToken).ConfigureAwait(false);
 
+            // Staged BIN files are split from the post-replacement image, not from firmware bytes
+            // already rewritten by earlier Combiner commands in the same postbuild sequence.
+            byte[] stagedSourceBytes = [.. inputBytes];
+
             foreach (LegacyCombinerPostbuildCommand command in commandPlan.Commands)
             {
                 byte[] commandInputBytes = await File.ReadAllBytesAsync(firmwarePath, cancellationToken).ConfigureAwait(false);
@@ -113,7 +117,7 @@ public sealed class LegacyCombinerPostbuildProcessor : IExternalProcessor
                 }
 
                 ResetDirectory(binDirectory);
-                CompositionIssue? stagingIssue = MaterializeStagedBlockFiles(command.Blocks, inputBytes, binDirectory);
+                CompositionIssue? stagingIssue = MaterializeStagedBlockFiles(command.Blocks, stagedSourceBytes, binDirectory);
                 if (stagingIssue is not null)
                 {
                     return ExternalProcessorResult.Failed([stagingIssue]);
