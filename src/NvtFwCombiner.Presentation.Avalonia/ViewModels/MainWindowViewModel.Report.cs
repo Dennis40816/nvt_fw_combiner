@@ -63,6 +63,19 @@ public sealed partial class MainWindowViewModel
         RefreshSettingsState();
     }
 
+    /// <summary>Loads a report review error as the latest reopenable report.</summary>
+    public void LoadReportError(string sourceName, string message)
+    {
+        ArgumentNullException.ThrowIfNull(sourceName);
+        ArgumentNullException.ThrowIfNull(message);
+
+        LoadedReport = ReportReviewViewModel.Error(sourceName, message, "Load error", "Load failed");
+        LoadedReportJson = string.Empty;
+        SetReportToast($"Report issue: {sourceName}");
+        NotifyReportChanged();
+        RefreshSettingsState();
+    }
+
     /// <summary>Shows a compact notification after the report is written to disk.</summary>
     public void NotifyReportSaved(string destinationName)
     {
