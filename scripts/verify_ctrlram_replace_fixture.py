@@ -45,13 +45,22 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Fail when the private manifest is missing.",
     )
+    parser.add_argument(
+        "--configuration",
+        help="Optional dotnet test configuration for the public smoke test.",
+    )
+    parser.add_argument(
+        "--no-build",
+        action="store_true",
+        help="Pass --no-build to the public dotnet smoke test.",
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
     if not args.skip_public_smoke:
-        run_public_smoke()
+        run_public_smoke(args.configuration, args.no_build)
 
     manifest_path = args.manifest.resolve()
     if not manifest_path.exists():
@@ -70,7 +79,7 @@ def main() -> int:
     return 0
 
 
-def run_public_smoke() -> None:
+def run_public_smoke(configuration: str | None, no_build: bool) -> None:
     dotnet = resolve_dotnet()
     command = [
         dotnet,
@@ -81,6 +90,10 @@ def run_public_smoke() -> None:
         "-v",
         "minimal",
     ]
+    if configuration is not None:
+        command.extend(["-c", configuration])
+    if no_build:
+        command.append("--no-build")
     print(f"> {' '.join(command)}", flush=True)
     result = subprocess.run(
         command,

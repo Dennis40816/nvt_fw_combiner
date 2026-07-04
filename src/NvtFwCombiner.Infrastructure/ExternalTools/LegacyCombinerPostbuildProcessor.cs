@@ -11,6 +11,7 @@ public sealed class LegacyCombinerPostbuildProcessor : IExternalProcessor
 {
     private const string BinDirectoryName = "BIN";
     private const string OutputDirectoryName = "output";
+    private const string MapFileName = "map.txt";
 
     private readonly ExternalCombinerToolRegistry _registry;
     private readonly Dictionary<string, LegacyCombinerPostbuildProfile> _profilesByProcessorId;
@@ -103,6 +104,8 @@ public sealed class LegacyCombinerPostbuildProcessor : IExternalProcessor
             string firmwarePath = Path.Combine(outputDirectory, profile.FirmwareFileName);
             byte[] inputBytes = request.InputBytes.ToArray();
             await File.WriteAllBytesAsync(firmwarePath, inputBytes, cancellationToken).ConfigureAwait(false);
+            await File.WriteAllBytesAsync(Path.Combine(outputDirectory, MapFileName), [], cancellationToken)
+                .ConfigureAwait(false);
 
             // Staged BIN files are split from the post-replacement image, not from firmware bytes
             // already rewritten by earlier Combiner commands in the same postbuild sequence.
@@ -421,6 +424,7 @@ public sealed class LegacyCombinerPostbuildProcessor : IExternalProcessor
         HashSet<string> allowedRelativePaths = new(StringComparer.OrdinalIgnoreCase)
         {
             Path.Combine(OutputDirectoryName, profile.FirmwareFileName),
+            Path.Combine(OutputDirectoryName, MapFileName),
         };
         foreach (string stagedFileName in LegacyCombinerPostbuildPlanner
             .GetStagedFileBlocks(commandPlan)

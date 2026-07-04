@@ -13,6 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 WORKER_ROOT = ROOT / "tools" / "crc-worker"
 SOLUTION = ROOT / "NvtFwCombiner.slnx"
+CTRL_RAM_REPLACE_FIXTURE_VERIFIER = ROOT / "scripts" / "verify_ctrlram_replace_fixture.py"
 
 
 def run(command: list[str], *, cwd: Path = ROOT) -> None:
@@ -105,6 +106,7 @@ def verify_dotnet() -> None:
         [dotnet, "format", str(SOLUTION), "--verify-no-changes", "--no-restore"],
         [dotnet, "build", str(SOLUTION), "-c", "Release", "--no-restore"],
         [dotnet, "test", str(SOLUTION), "-c", "Release", "--no-build"],
+        [sys.executable, str(CTRL_RAM_REPLACE_FIXTURE_VERIFIER), "--configuration", "Release", "--no-build"],
     )
     build_log = os.environ.get("NFC_DOTNET_BUILD_LOG")
     for command in commands:

@@ -23,6 +23,9 @@ public sealed class LegacyCombinerPostbuildProcessorTests
         {
             Assert.Equal("CRC_Enable", startInfo.Arguments[0]);
             Assert.EndsWith("nt51926_fw.bin", startInfo.Arguments[1], StringComparison.Ordinal);
+            string mapPath = Path.Combine(startInfo.WorkingDirectory, "output", "map.txt");
+            Assert.True(File.Exists(mapPath));
+            Assert.Empty(File.ReadAllBytes(mapPath));
 
             if (startInfo.Arguments.Any(argument =>
                 argument.EndsWith(Path.Combine("BIN", "Normal_Ctrlram.bin"), StringComparison.Ordinal)))

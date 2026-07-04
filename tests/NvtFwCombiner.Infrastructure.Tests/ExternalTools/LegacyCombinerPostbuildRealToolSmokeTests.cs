@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Contracts.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.ExternalTools;
@@ -76,6 +77,219 @@ public sealed class LegacyCombinerPostbuildRealToolSmokeTests
                 Directory.Delete(stagingRoot, recursive: true);
             }
         }
+    }
+
+    /// <summary>Locks the accepted 16-byte direct-combiner behavior for CtrlRAM self-replacement scope.</summary>
+    [Theory]
+    [MemberData(nameof(SixteenByteSelfReplacementCases))]
+    public async Task DirectRealToolSixteenByteCasesMatchForSingleAndMultipleCtrlRamSelfReplacement(
+        string icId,
+        string manifestIc,
+        IcNumberInputMode mode,
+        string selectionToken,
+        long[] expectedChangedRangeValues)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(manifestIc);
+        ArgumentException.ThrowIfNullOrWhiteSpace(selectionToken);
+        ArgumentNullException.ThrowIfNull(expectedChangedRangeValues);
+
+        string testName = $"{icId}/{selectionToken}";
+        string repositoryRoot = FindRepositoryRoot();
+        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
+        string toolRoot = Path.Combine(repositoryRoot, "external-tools");
+        ExternalCombinerToolManifest manifest = LoadManifest(
+            Path.Combine(toolRoot, "legacy-combiner", "1.13.0", "manifest.json"));
+        string executableSource = Path.Combine(toolRoot, manifest.ToolId, manifest.ToolVersion, manifest.ExecutableName);
+        Assert.Equal(manifest.Sha256, Sha256(executableSource));
+
+        LegacyCombinerPostbuildProfile profile = LegacyCombinerPostbuildCatalog.All.Single(
+            item => string.Equals(item.IcId, icId, StringComparison.Ordinal));
+        IcNumberSelection selection = new(mode, [selectionToken]);
+        TpFlashMapRegion[] mappedRegions =
+        [
+            .. TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection)
+                .OrderBy(region => region.Range.Start)
+                .ThenBy(region => region.RegionId, StringComparer.Ordinal),
+        ];
+        Assert.True(
+            mappedRegions.Length >= 2,
+            $"{testName} must expose multiple postbuild-mapped CtrlRAM regions.");
+
+        byte[] baseBytes = File.ReadAllBytes(FindGoldenExpectedOutput(goldenRoot, manifestIc));
+        byte[] singleRegionBytes = CreateSelfReplacementBytes(baseBytes, [mappedRegions[0]]);
+        byte[] multipleRegionBytes = CreateSelfReplacementBytes(baseBytes, mappedRegions);
+        Assert.Equal(baseBytes, singleRegionBytes);
+        Assert.Equal(baseBytes, multipleRegionBytes);
+
+        List<ByteRange> expectedChangedRanges = DecodeRanges(expectedChangedRangeValues);
+        string stagingRoot = Path.Combine(Path.GetTempPath(), $"nfc-direct-combiner-16byte-{Guid.NewGuid():N}");
+        try
+        {
+            var registry = new ExternalCombinerToolRegistry([manifest]);
+            var processor = new LegacyCombinerPostbuildProcessor(
+                registry,
+                [profile],
+                toolRoot,
+                stagingRoot,
+                new SystemExternalProcessRunner());
+            byte[] singleOutput = await RunPostbuildProcessorAsync(
+                processor,
+                profile,
+                selection,
+                singleRegionBytes,
+                expectedChangedRanges,
+                $"{icId}-{selectionToken}-single-region",
+                CancellationToken.None);
+            byte[] multipleOutput = await RunPostbuildProcessorAsync(
+                processor,
+                profile,
+                selection,
+                multipleRegionBytes,
+                expectedChangedRanges,
+                $"{icId}-{selectionToken}-multiple-regions",
+                CancellationToken.None);
+
+            Assert.Equal(singleOutput, multipleOutput);
+
+            IReadOnlyList<ByteRange> changedRanges = ByteDiff.FindChangedRanges(baseBytes, singleOutput);
+            Assert.Equal(expectedChangedRanges, changedRanges);
+            Assert.Equal(16, changedRanges.Sum(range => range.Length));
+        }
+        finally
+        {
+            if (Directory.Exists(stagingRoot))
+            {
+                Directory.Delete(stagingRoot, recursive: true);
+            }
+        }
+    }
+
+    /// <summary>Accepted 16-byte direct-combiner CtrlRAM self-replacement matrix.</summary>
+    public static TheoryData<string, string, IcNumberInputMode, string, long[]> SixteenByteSelfReplacementCases()
+    {
+        return new TheoryData<string, string, IcNumberInputMode, string, long[]>
+        {
+            { "NT51920", "51920", IcNumberInputMode.SingleSelector, "single", Nt51920RangeValues() },
+            { "NT51920", "51920", IcNumberInputMode.CascadeSelector, "cascade", Nt51920RangeValues() },
+            { "NT51923", "51923", IcNumberInputMode.SingleSelector, "single", Nt51923RangeValues() },
+            { "NT51923", "51923", IcNumberInputMode.CascadeSelector, "cascade", Nt51923RangeValues() },
+            { "NT51929", "51929", IcNumberInputMode.SingleSelector, "single", Nt51929RangeValues() },
+            { "NT51929", "51929", IcNumberInputMode.CascadeSelector, "cascade", Nt51929RangeValues() },
+            { "NT51932", "51932", IcNumberInputMode.SingleSelector, "single", Nt51929RangeValues() },
+            { "NT51932", "51932", IcNumberInputMode.CascadeSelector, "cascade", Nt51929RangeValues() },
+            { "NT51950", "51950", IcNumberInputMode.SingleSelector, "single", Nt51950RangeValues() },
+            { "NT51950", "51950", IcNumberInputMode.CascadeSelector, "cascade", Nt51950RangeValues() },
+            { "NT51951", "51951", IcNumberInputMode.SingleSelector, "single", Nt51950RangeValues() },
+            { "NT51951", "51951", IcNumberInputMode.CascadeSelector, "cascade", Nt51950RangeValues() },
+        };
+    }
+
+    private static long[] Nt51920RangeValues()
+    {
+        return
+        [
+            0x1C, 4,
+            0xFC, 4,
+            0x2669C, 4,
+            0x2677C, 4,
+        ];
+    }
+
+    private static long[] Nt51923RangeValues()
+    {
+        return
+        [
+            0x1C, 4,
+            0xFC, 4,
+            0x3032C, 4,
+            0x3040C, 4,
+        ];
+    }
+
+    private static long[] Nt51929RangeValues()
+    {
+        return
+        [
+            0x7100, 4,
+            0x7118, 4,
+            0x27FF0, 4,
+            0x28008, 4,
+        ];
+    }
+
+    private static long[] Nt51950RangeValues()
+    {
+        return
+        [
+            0xA11C, 4,
+            0xA130, 4,
+            0x2D428, 4,
+            0x2D43C, 4,
+        ];
+    }
+
+    private static List<ByteRange> DecodeRanges(long[] rangeValues)
+    {
+        if (rangeValues.Length % 2 != 0)
+        {
+            throw new ArgumentException("Range values must contain start/length pairs.", nameof(rangeValues));
+        }
+
+        List<ByteRange> ranges = [];
+        for (int index = 0; index < rangeValues.Length; index += 2)
+        {
+            ranges.Add(new ByteRange(rangeValues[index], rangeValues[index + 1]));
+        }
+
+        return ranges;
+    }
+
+    private static byte[] CreateSelfReplacementBytes(
+        byte[] baseBytes,
+        IReadOnlyList<TpFlashMapRegion> selectedRegions)
+    {
+        byte[] replacementBytes = [.. baseBytes];
+        foreach (TpFlashMapRegion region in selectedRegions)
+        {
+            if (region.Range.EndExclusive > baseBytes.LongLength)
+            {
+                throw new InvalidOperationException($"Region '{region.RegionId}' exceeds the golden base image.");
+            }
+
+            baseBytes.AsSpan((int)region.Range.Start, (int)region.Range.Length)
+                .CopyTo(replacementBytes.AsSpan((int)region.Range.Start, (int)region.Range.Length));
+        }
+
+        return replacementBytes;
+    }
+
+    private static async Task<byte[]> RunPostbuildProcessorAsync(
+        LegacyCombinerPostbuildProcessor processor,
+        LegacyCombinerPostbuildProfile profile,
+        IcNumberSelection selection,
+        byte[] postReplacementBytes,
+        IReadOnlyList<ByteRange> expectedChangedRanges,
+        string runId,
+        CancellationToken cancellationToken)
+    {
+        var request = new ExternalProcessorRequest(
+            runId,
+            profile.ProcessorId,
+            "legacy-combiner-1.13.0",
+            postReplacementBytes,
+            expectedChangedRanges,
+            selection);
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, cancellationToken).ConfigureAwait(false);
+        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => $"{issue.Code}: {issue.Message}")));
+        Assert.Equal(expectedChangedRanges, result.ChangedRanges);
+        return result.OutputBytes.ToArray();
     }
 
     private static string FindGoldenExpectedOutput(string goldenRoot, string ic)

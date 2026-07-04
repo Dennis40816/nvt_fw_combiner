@@ -87,8 +87,16 @@ All external combiner errors fail closed:
 - `NvtFwCombiner.Domain` remains filesystem/process free.
 - UI and CLI never call `combiner.exe` directly.
 
-## First implementation PR scope
+## Current implementation status
 
-The first implementation PR should add the manifest model, registry, staging workspace, process runner, diff verifier, fake combiner tests, and profile compiler validation. IC-specific CtrlRAM postbuild profiles may be added only from owner-approved postbuild/mmap evidence; real firmware golden outputs are still required before declaring end-to-end production parity.
+The first runner pieces now exist: manifest model, registry, staging workspace, process runner, SHA-256 verification, staged file confinement, independent diff verification, fake-combiner tests, and the Combiner 1.13.0 CtrlRAM postbuild adapter. IC-specific CtrlRAM postbuild command profiles are populated only from owner-approved postbuild/mmap evidence.
+
+Current remaining production gates:
+
+- executable production Replace profiles for every released IC/mode;
+- declared allowed write ranges for every real postbuild parity claim;
+- private CtrlRAM Replace golden outputs and firmware-owner review;
+- clean-package smoke for any release payload that includes `external-tools/` and `reference/`;
+- owner decision for unresolved NT51926 copy-header initialization, NT51930 hidden DiffDLM-region mutation, and NT51931 Combiner 1.13.0 crash behavior.
 
 Legacy Combiner `MERGE_MODE` may shorten the staging work file to the command coverage. The postbuild adapter can overlay that command output onto the previous full-length staging image only when it still covers the command's declared write ranges. The imported output remains full length and remains subject to independent allowed-write-range diff verification.
