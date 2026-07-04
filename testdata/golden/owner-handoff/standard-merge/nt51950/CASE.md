@@ -1,5 +1,9 @@
 # NT51950 Standard Merge Handoff
 
+Current owner-approved NT51950 Standard Merge golden data covers DP size `0x40000` in `testdata/golden/standard-merge-gen-flash/manifest.json` from `merge_bin.7z`.
+
+Use this directory only for optional additional DP-size audit samples, such as `0x80000` or `0x100000`, if selected for release exposure.
+
 Requested files:
 
 - `dp.bin`

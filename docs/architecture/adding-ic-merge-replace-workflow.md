@@ -1,110 +1,183 @@
-# Adding IC Merge/Replace Workflow
+# Adding an IC Merge / Replace Workflow
 
-Status: architecture implementation guide as of 2026-07-03.
+Status: architecture runbook.
 
-This guide lists the files and verification flow for adding one IC to Merge and Replace. It is not a support claim. A new IC/workflow becomes releasable only after owner evidence, profile validation, processor diff review, golden regression, and firmware-owner sign-off.
+This runbook lists the files and review flow for adding one IC to Merge and Replace. It is not a support claim by itself. An IC/mode is releasable only after profile validation, processor diff review, golden regression, and firmware-owner sign-off.
 
-## Invariants
+## Non-negotiable model rules
 
-- Reuse an existing flow type before adding a new IC-specific execution branch.
-- Profile/catalog data owns ranges, slots, processors, validations, output names, and visibility.
-- UI labels and persona choices may affect authoring policy, but they must not create byte-execution branches.
-- All ranges use half-open notation `[start, end)`.
-- Standard Merge starts from a blank image. Replace starts from a required reference/base image.
-- CtrlRAM Replace runs the approved legacy Combiner postbuild sequence after any CtrlRAM replacement.
-- General Replace remains explicit mapping over a cloned base image and must stay inside the approved safety envelope.
-- Do not commit private BINs. Owner-approved golden fixtures under `testdata/golden/` must include manifest paths, sizes, hashes, source provenance, and human approval.
+- Merge starts from a blank output image; Replace clones an immutable reference/base image.
+- UI, CLI, and workbench paths must call the same composition profile/compiler/runner contracts.
+- All ranges are half-open `[start, end)` and name their address space.
+- IC facts live in catalogs/profiles. Do not put firmware semantics in XAML, ViewModels, CLI routing, or one-off scripts.
+- Experience selects authoring policy only. It must not create a second byte-execution branch.
+- `unknown` integrity behavior is not `none`; it cannot be promoted as supported behavior.
+- External tools may mutate only host-created staging copies, then the host must verify changed bytes against declared write ranges.
+- Real firmware BIN files stay out of Git unless the owner explicitly approves a golden fixture under `testdata/golden/`.
 
-## Evidence Intake
+## Required evidence before coding
 
-Collect these before editing production behavior:
+Collect these items before adding a production IC profile:
 
-| Evidence | Required for | Repo location when owner-approved |
+| Evidence | Required for | Notes |
 | --- | --- | --- |
-| TP flash map, mmap symbols, and region names | Merge, Replace, UI region catalog | `docs/references/ic-flashmap/mmap/` and `docs/references/ic-flashmap/SOURCE_MANIFEST.json` |
-| Postbuild BAT or exact command sequence | CtrlRAM Replace, General Replace when TP range can be affected | `docs/references/ic-flashmap/postbuild/` and `docs/architecture/ctrlram-postbuild-command-matrix.md` |
-| Combiner version, tool manifest, and argv contract | Any legacy Combiner postbuild | `external-tools/legacy-combiner/1.13.0/manifest.json` and postbuild catalog tests |
-| Standard Merge input/output sample | Standard Merge golden regression | `testdata/golden/standard-merge-gen-flash/manifest.json` or approved owner handoff path |
-| Replace base, replacement BINs, and expected output | DP Replace, CtrlRAM Replace, General Replace promotion | `testdata/golden/` only after owner approval; otherwise keep private and document the evidence gap |
-| Forbidden/protected regions and processor write ranges | Replace safety | profile/catalog code, contract tests, and architecture docs |
+| Owner-approved memory map or flash-map source | all workflows | Record source file, sheet/section, revision, owner, and hash when available. |
+| Merge source ranges and output size | Standard Merge | Normalize inclusive legacy ranges into half-open `[start, end)`. |
+| Replace base/reference length and mutable regions | DP/CtrlRAM/General Replace | Replace never writes back to the input/base artifact. |
+| Protected ranges | DP/CtrlRAM/General Replace | Header, customer info, TP CRC/header areas, and any no-touch regions must be explicit. |
+| Combiner postbuild command source | CtrlRAM Replace and TP-affecting General Replace | Prefer owner-approved postbuild and mmap references committed as documentation/reference evidence when they contain no firmware payload or secrets. |
+| FWConfig layout/version reference | postbuild category selection and UI traceability | Record Common FW version, FW/bar, and PID offsets from a reviewed source such as `ap_fwconfig.c`; commit only non-secret reference code with sanitized provenance and SHA-256 hash. |
+| External tool identity | any processor stage | Exact version string, manifest id, executable hash, timeout, and argv shape. |
+| Golden fixtures or private golden manifest | promotion | Include input sizes/hashes, expected output hash, source provenance, and owner approval. |
 
-If any range, command order, checksum/header rule, padding/truncation behavior, or golden output is inferred rather than evidenced, keep the IC as a candidate and document the gap.
+## Owner reference intake
 
-## Choose The Flow Type
+When the owner supplies a mixed folder of IC evidence, run the intake script before changing profiles or C# code:
 
-Match the new IC to one of the existing flow types in [`ic-workflow-flowcharts.md`](ic-workflow-flowcharts.md):
+```text
+python scripts/intake_ic_reference.py --source <owner-drop-folder> --ic NT51950 --mode ctrlram-replace --case single --owner <owner-or-team> --source-ref <archive-or-ticket>
+```
 
-| Workflow | Preferred reuse point | When to add a new type |
+Use `--mode standard-merge`, `--mode dp-replace`, `--mode ctrlram-replace`, `--mode general-replace`, or `--mode reference-only`. Use `--case` for branch-specific evidence such as `single`, `cascade`, `2chip`, `3chip`, or `dp-0x40000`.
+
+The script stages files under `testdata/golden/owner-handoff/<mode>/<ic>/.../intake/<run-id>/` and writes:
+
+- `handoff_manifest.json` with file sizes, SHA-256 hashes, category guesses, payload role hints, and proposed tracked destinations.
+- `NEXT_STEPS.md` with missing document families and promotion checklist.
+- `AI_PROMPT.md` with a constrained follow-up prompt for turning the evidence into a reviewed implementation change.
+
+This intake step does not promote support, does not edit C# code, and does not copy private BIN/tool payloads into tracked golden or external-tool locations. Promotion still requires the normal reviewed changes listed below.
+
+The owner drop folder should contain as many of these as apply:
+
+- flash-map workbook/export and flash header reference;
+- `mmap.h` or equivalent memory-map header;
+- postbuild BAT/CMD/script/log when TP/CtrlRAM/CRC/header processing is involved;
+- FWConfig source or layout note when postbuild category depends on Common FW version;
+- combiner source/reference code or exact external combiner tool identity;
+- golden input/output BIN files or private fixture hashes for the workflow;
+- notes identifying source archive, revision, owner, IC-number branch, expected output filename, and approval status.
+
+## Files to update
+
+Update only the rows that are relevant to the new IC/mode.
+
+| Area | File | What changes |
 | --- | --- | --- |
-| Standard Merge | `SM-GENFLASH`, `SM-GENFLASH-ALIAS`, `SM-FLASHMAP-DYNAMIC`, or `SM-950-951-DP-PERSPECTIVE` | Only when blank initialization, copy order, address spaces, or input-size policy cannot be represented by an existing profile shape. |
-| DP Replace | `R-DP-GENERIC` or `R-DP-950-951` | Only when the IC has a different declared DP/LD partition, padding policy, or post-processor requirement. |
-| CtrlRAM Replace | `R-CTRLRAM-927`, `R-CTRLRAM-LEGACY-NORMAL`, `R-CTRLRAM-51932`, `R-CTRLRAM-51930`, or `R-CTRLRAM-51950` | Only when postbuild commands or staged file semantics do not match an existing Combiner profile. |
-| General Replace | `R-GENERAL` | Only promote after protected ranges, mapping envelope, overlap/alignment rules, and post-processing triggers are known. |
+| Standard Merge profile | `src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles.cs` | Add an executable `CompositionProfileDefinition` or owner-confirmed alias. Keep operation order, fill byte, address spaces, and output naming in the profile. |
+| Replace profile | `src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.cs` | Add DP/CtrlRAM/General Replace profile definitions when the IC has real range and access evidence. Synthetic profiles stay contract-only. |
+| Profile compiler rules | `src/NvtFwCombiner.Profiles/CompositionProfileCompiler.cs` | Change only for general validation gaps, not to special-case one IC. |
+| TP/DP/CtrlRAM region catalog | `src/NvtFwCombiner.Application/FlashMaps/TpFlashMapCatalog.cs` | Add canonical flash-map rows, IC-number visibility, postbuild file names, and tags such as `tp-ctrlram`, `dp`, `protected`, or customer-info. |
+| FWConfig metadata reader/catalog | `src/NvtFwCombiner.Application/FlashMaps/FirmwareConfigMetadataReader.cs` and `TpFlashMapCatalog` | Add the IC's primary FWConfig flash start and verify Common FW/FW-bar/PID extraction with golden or owner-approved reference evidence. |
+| CtrlRAM postbuild catalog | `src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.cs` | Add structured command sequences, branch rules, staged-file names, firmware block ranges, and evidence source. Never assemble one shell command string. |
+| External tool manifest | `external-tools/legacy-combiner/.../manifest.json` | Add or update only when a new exact `combiner.exe` binding/version is approved. |
+| Golden manifest | `testdata/golden/standard-merge-gen-flash/manifest.json` or workflow-specific golden folder | Add owner-approved public fixtures only. Use private manifests for confidential firmware evidence. |
+| CtrlRAM golden template | `testdata/golden/ctrlram-replace/manifest.template.json` | Keep required private evidence fields synchronized when adding CtrlRAM Replace coverage. |
+| Architecture docs | `docs/architecture/supported-ic-matrix.md` and `docs/architecture/ic-workflow-flowcharts.md` | Add the IC/mode status, support gaps, flow id, and evidence notes in the same PR. |
+| Processor docs | `docs/architecture/ctrlram-replace-status-report.md`, `docs/architecture/ctrlram-postbuild-command-matrix.md`, and `docs/architecture/integrity-processing-matrix.md` | Update when command count, CRC/header behavior, allowed writes, processor status, experiment result, or owner conclusion changes. |
+| Tests | files under `tests/` listed below | Add contract, catalog, postbuild, CLI/UI, and golden coverage matching the risk. |
 
-Aliases are acceptable only when the owner confirms the alias and tests prove the alias profile produces the same plan/bytes as the reference IC.
+Do not add IC-specific byte behavior to:
 
-## Files To Update
+- `src/NvtFwCombiner.Presentation.Avalonia/**`
+- `src/NvtFwCombiner.Cli/**`
+- `src/NvtFwCombiner.Bootstrap/CliApplication*`
+- Workbench facade classes, unless the change is only adapting catalog/profile data into an existing request.
 
-### Reference and architecture docs
+## Standard Merge steps
 
-- `docs/references/ic-flashmap/SOURCE_MANIFEST.json`: add source provenance for imported mmap/postbuild references.
-- `docs/references/ic-flashmap/mmap/*.h`: add owner-approved mmap evidence when available.
-- `docs/references/ic-flashmap/postbuild/*.bat`: add owner-approved postbuild BAT evidence when available.
-- `docs/architecture/supported-ic-matrix.md`: add candidate/support status, golden gaps, and owner validation package needs.
-- `docs/architecture/ic-workflow-flowcharts.md`: add the IC row and update flow details if the IC changes a shared flow.
-- `docs/architecture/ctrlram-postbuild-command-matrix.md`: add CtrlRAM postbuild command count, modes, alias notes, tests, and evidence gaps.
-- `docs/architecture/nt51950-nt51951-dp-length-policy.md`: update only when the new evidence affects the NT51950/NT51951 DP rule.
+1. Normalize source evidence into output capacity, fill byte, address spaces, and copy ranges.
+2. Add or update a profile in `BuiltInStandardMergeProfiles`.
+3. Compile the profile and confirm blank initialization plus ordered copy operations.
+4. Add invalid input-size tests for every declared input length rule.
+5. Add or update golden regression:
+   - public approved fixtures under `testdata/golden/standard-merge-gen-flash/`, or
+   - private golden manifest and documented owner sign-off when firmware cannot be committed.
+6. Update `supported-ic-matrix.md` and `ic-workflow-flowcharts.md`.
 
-### Profile and catalog code
+Minimum tests:
 
-- `src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles.cs`: add or alias Standard Merge profile data.
-- `src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.cs`: add promoted Replace profile data when it is ready to move out of workbench-only behavior.
-- `src/NvtFwCombiner.Application/FlashMaps/TpFlashMapCatalog.cs`: add TP/DP/CtrlRAM/customer-info regions and IC-number visibility rows for UI/report catalog use.
-- `src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.cs`: add the structured Combiner postbuild profile and branch commands.
-- `src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildProfile.cs`: change only when the IC needs a new reusable postbuild model, not for per-IC constants.
-- `src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace*.cs`: wire only the temporary workbench path or shared helpers needed to call the existing application runner. Do not encode firmware semantics here if they can live in profiles/catalogs.
-- `src/NvtFwCombiner.Presentation.Avalonia/*`: update UI only after profile/catalog data exists; the UI should consume shared catalog state and not duplicate ranges.
+- `tests/NvtFwCombiner.ProfileContract.Tests/BuiltInStandardMergeProfilesTests.cs`
+- `tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeGenFlashGoldenTests.cs`
+- CLI/UI smoke tests only when the new IC changes surfaced selector behavior or output naming.
 
-### Tests
+## DP Replace steps
 
-- `tests/NvtFwCombiner.ProfileContract.Tests/BuiltInStandardMergeProfilesTests.cs`: lock Standard Merge profile shape, accepted input lengths, and alias behavior.
-- `tests/NvtFwCombiner.ProfileContract.Tests/BuiltInReplaceProfilesTests.cs`: lock promoted Replace profile compilation and constraints.
-- `tests/NvtFwCombiner.Application.Tests/FlashMaps/TpFlashMapCatalogTests.cs`: lock region catalog coverage and IC-number visibility.
-- `tests/NvtFwCombiner.Application.Tests/ExternalTools/LegacyCombinerPostbuildCatalogTests.cs`: lock command branches, argv shape, aliases, and processor write/read ranges.
-- `tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/LegacyCombinerPostbuildProcessorTests.cs`: lock staging behavior, external processor containment, output validation, and real-tool smoke coverage when available.
-- `tests/NvtFwCombiner.GoldenRegression.Tests/*`: add golden byte regression only for owner-approved fixtures.
-- `tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.cs`: verify the workbench exposes the right slots, plan/report text, and Preview/Build behavior without duplicating firmware rules.
-- `tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.cs`: update only when architecture sync guards intentionally change.
+1. Confirm DP/LD partition boundaries and whether replacement is whole-only or declared-parts.
+2. Confirm base/reference image length and whether shorter replacement inputs may be padded. Padding must be profile-declared.
+3. Add a Replace profile with `ImageInitialization.Reference`.
+4. Add deny-by-default access rules. DP Replace must expose only DP whole/declared partitions, not TP-persona categories.
+5. Preserve protected TP/customer-info/header ranges through profile operations, not UI logic.
+6. Add oversize, undersize, boundary, and protected-range tests.
+7. Add golden output evidence before claiming support.
 
-## Implementation Flow
+Minimum tests:
 
-1. Add or update owner-approved reference docs and manifest entries.
-2. Classify the IC against an existing Standard Merge, DP Replace, CtrlRAM Replace, and General Replace flow type.
-3. Add declarative profile/catalog data before touching UI.
-4. Add profile/catalog tests that fail if ranges, command branches, IC-number modes, or aliases drift.
-5. Add external processor tests for any CtrlRAM or General Replace path that calls legacy Combiner.
-6. Add golden regression only after owner approval of expected bytes and hashes.
-7. Update workbench/UI smoke tests to prove the shared data is surfaced correctly.
-8. Update support docs to separate executable candidate behavior from production support claims.
-9. Run the focused tests for changed layers, then run `python scripts/verify.py --all`.
-10. Run Polytail before requesting review.
+- `tests/NvtFwCombiner.ProfileContract.Tests/BuiltInReplaceProfilesTests.cs`
+- `tests/NvtFwCombiner.Bootstrap.Tests/ReplaceCliCommandTests.cs` when CLI can build the profile
+- UI smoke tests when the IC changes selector, slot, memory coverage, or report behavior
+- Golden regression or private golden evidence before support promotion
 
-## Promotion Checklist
+## CtrlRAM Replace steps
 
-- IC row exists in `supported-ic-matrix.md` and `ic-workflow-flowcharts.md`.
-- Standard Merge profile compiles and has owner-approved golden bytes, or the row remains candidate-only.
-- DP Replace declares exact base length, replacement length policy, partition map, and post-processing policy.
-- CtrlRAM Replace declares region slots, truncation policy if any, Combiner branch commands, and allowed write ranges.
-- General Replace declares allowed mapping envelope, protected ranges, overlap/alignment rules, and TP-range postbuild triggers.
-- Preview/Build report records input hashes, output hash, normalized ranges, warnings, Combiner argv, and gated-state reason.
-- CI and local `python scripts/verify.py --all` pass.
-- R3 firmware-owner review is complete for ranges, command order, checksum/header behavior, processor write ranges, and golden outputs.
+1. Add or confirm TP flash-map CtrlRAM rows in `TpFlashMapCatalog`.
+2. Add postbuild structured commands in `LegacyCombinerPostbuildCatalog` from owner-approved postbuild/mmap evidence.
+3. Declare IC-number branch rules. Use `single`/`cascade` text choices unless the owner evidence requires numeric 1/2/3 branches.
+4. Ensure selected staged-file blocks map to visible CtrlRAM rows.
+5. Ensure every CtrlRAM Replace run executes the required postbuild sequence. A raw range replacement without postbuild is not a finished image.
+6. Confirm processor allowed write ranges include every Combiner-written byte and reject all others.
+7. Run self-replacement and idempotence tests against postbuild-canonical output, then compare with owner golden output when available.
 
-## Anti-Patterns
+Minimum tests:
 
-- Adding an IC by branching on `icId` in UI code.
-- Treating `unknown` integrity behavior as `none`.
-- Running legacy Combiner on user source files or final output paths.
-- Allowing processor writes outside declared write ranges.
-- Updating expected golden bytes to match unexplained output changes.
-- Claiming support from public Standard Merge evidence when private Replace golden evidence is still missing.
+- `tests/NvtFwCombiner.Application.Tests/ExternalTools/LegacyCombinerPostbuildCatalogTests.cs`
+- `tests/NvtFwCombiner.Application.Tests/FlashMaps/TpFlashMapCatalogTests.cs`
+- processor/staging tests for command argv, staged-file seed bytes, changed-range verification, and failure cases
+- UI smoke or CLI tests proving Preview/Build records the postbuild sequence and final artifact hash
+- private CtrlRAM golden regression before support promotion
+
+## General Replace steps
+
+1. Define the allowed explicit-mapping envelope and protected ranges in the profile/catalog.
+2. Compile runtime mappings into normal `replace-range` operations; do not generate scripts.
+3. If a General Replace mapping writes any TP/TP-CtrlRAM/CRC-covered range for the selected IC, the profile must declare the same approved post-processing requirement as the normal workflow. The UI must not decide this.
+4. Reject overlap, out-of-bounds, protected-range, and unsupported post-processing cases before execution.
+5. Add exact boundary tests around protected and processor-covered ranges.
+
+## Documentation update rule
+
+Every IC workflow change must update:
+
+- `docs/architecture/supported-ic-matrix.md`
+- `docs/architecture/ic-workflow-flowcharts.md`
+
+Also update these when applicable:
+
+- `docs/architecture/ctrlram-postbuild-command-matrix.md` for CtrlRAM command count, branch, or alias changes.
+- `docs/architecture/integrity-processing-matrix.md` for CRC/header, processor, allowed read/write, or evidence changes.
+- `docs/architecture/nt51950-nt51951-dp-length-policy.md` for NT51950/NT51951 DP Perspective behavior.
+
+## Verification commands
+
+Run the narrowest meaningful tests first, then the repository gate before completion:
+
+```text
+dotnet test tests/NvtFwCombiner.ProfileContract.Tests/NvtFwCombiner.ProfileContract.Tests.csproj --configuration Release --no-restore
+dotnet test tests/NvtFwCombiner.Application.Tests/NvtFwCombiner.Application.Tests.csproj --configuration Release --no-restore
+dotnet test tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj --configuration Release --no-restore
+dotnet test tests/NvtFwCombiner.GoldenRegression.Tests/NvtFwCombiner.GoldenRegression.Tests.csproj --configuration Release --no-restore
+python scripts/verify.py --all
+```
+
+For CtrlRAM/postbuild changes, also run the tests covering `LegacyCombinerPostbuildCatalog`, staging processor diff validation, and UI/CLI Preview/Build report surfaces.
+
+## PR notes checklist
+
+Every PR that adds an IC workflow must state:
+
+- IC, mode, composition kind, experience, IC-number choices, and address spaces.
+- Evidence sources, hashes, owner, and confidentiality class.
+- Changed firmware facts: ranges, operation order, initialization, padding/truncation, processors, allowed writes, output naming.
+- Golden evidence run publicly or private evidence that remains owner-gated.
+- Commands run and any residual evidence gaps.
+- Risk class. Memory ranges, postbuild command order, processor write ranges, and golden output promotion are R3 and need firmware-owner review.

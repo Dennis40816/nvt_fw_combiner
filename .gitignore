@@ -48,3 +48,7 @@ Thumbs.db
 .packages/
 TestResults/
 *.trx
+
+# Local investigation scratch
+.tmp/
+testdata/golden/owner-handoff/**/intake/
