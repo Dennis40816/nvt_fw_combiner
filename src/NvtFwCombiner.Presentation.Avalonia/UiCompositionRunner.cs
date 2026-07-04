@@ -42,6 +42,31 @@ public static class UiCompositionRunner
         return WorkbenchCompositionService.GetNumberChoices(icId);
     }
 
+    /// <summary>Gets compact firmware facts decoded from a selected BIN file.</summary>
+    public static IReadOnlyList<FirmwareSlotFactViewModel> GetFirmwareSlotFacts(
+        string icId,
+        string path,
+        bool includeInvalid = false)
+    {
+        WorkbenchFirmwareConfigMetadata? metadata = WorkbenchCompositionService.TryReadFirmwareConfigMetadata(
+            icId,
+            path);
+        if (metadata is null || (!metadata.IsFirmwareVersionBarValid && !includeInvalid))
+        {
+            return [];
+        }
+
+        string firmwareVersion = metadata.IsFirmwareVersionBarValid
+            ? FormattableString.Invariant($"0x{metadata.FirmwareVersion:X2}.0x{metadata.FirmwareSubVersion:X2} (bar OK)")
+            : FormattableString.Invariant($"0x{metadata.FirmwareVersion:X2}.0x{metadata.FirmwareSubVersion:X2} (bar 0x{metadata.FirmwareVersionBar:X2} mismatch)");
+        return
+        [
+            new FirmwareSlotFactViewModel("Common FW", metadata.CommonFwVersion),
+            new FirmwareSlotFactViewModel("FW", firmwareVersion, !metadata.IsFirmwareVersionBarValid),
+            new FirmwareSlotFactViewModel("PID", FormattableString.Invariant($"0x{metadata.ProjectId:X4}")),
+        ];
+    }
+
     /// <summary>Gets visible CtrlRAM rows for a selected IC and IC-number context.</summary>
     public static IReadOnlyList<CtrlRamRegionViewModel> GetCtrlRamRegions(string icId, string number)
     {
