@@ -19,6 +19,14 @@ public sealed partial class MainWindowViewModel
     /// <summary>True when the report icon can open the report modal.</summary>
     public bool CanOpenReport => HasLoadedReport;
 
+    /// <summary>Gets the shell report action label.</summary>
+    public string ReportActionLabel => HasLoadedReport ? "Open report" : "No report";
+
+    /// <summary>Gets the shell report action status.</summary>
+    public string ReportActionStatus => HasLoadedReport
+        ? LoadedReport.Status
+        : "Preview or Build creates one";
+
     /// <summary>True when the latest report modal is open.</summary>
     public bool IsReportModalOpen { get; private set; }
 
@@ -220,6 +228,8 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(LoadedReportJson));
         OnPropertyChanged(nameof(HasLoadedReport));
         OnPropertyChanged(nameof(CanOpenReport));
+        OnPropertyChanged(nameof(ReportActionLabel));
+        OnPropertyChanged(nameof(ReportActionStatus));
         OnPropertyChanged(nameof(ReportSaveFileName));
         ShowReportCommand.NotifyCanExecuteChanged();
     }

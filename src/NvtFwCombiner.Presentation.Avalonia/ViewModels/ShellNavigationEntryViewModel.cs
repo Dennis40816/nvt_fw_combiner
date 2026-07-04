@@ -34,6 +34,9 @@ public sealed partial class ShellNavigationEntryViewModel : ObservableObject
     /// <summary>Gets the command that returns to this history entry.</summary>
     public IRelayCommand NavigateCommand { get; }
 
+    /// <summary>True when a separator should be shown after this entry.</summary>
+    public bool IsChevronVisible => !IsCurrent;
+
     /// <summary>Gets or sets whether this entry is the current page.</summary>
     [ObservableProperty]
     public partial bool IsCurrent { get; private set; }
@@ -42,6 +45,11 @@ public sealed partial class ShellNavigationEntryViewModel : ObservableObject
     public void SetCurrent(bool isCurrent)
     {
         IsCurrent = isCurrent;
+    }
+
+    partial void OnIsCurrentChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsChevronVisible));
     }
 
     private void Open()

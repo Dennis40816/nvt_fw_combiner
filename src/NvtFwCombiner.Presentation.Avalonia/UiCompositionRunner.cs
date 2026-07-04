@@ -105,27 +105,31 @@ public static class UiCompositionRunner
     }
 
     /// <summary>Gets readable memory-map rows for the selected Standard Merge profile.</summary>
-    public static IReadOnlyList<MemoryMapRowViewModel> GetStandardMergeMemoryMapRows(string icId)
+    public static IReadOnlyList<MemoryMapRowViewModel> GetStandardMergeMemoryMapRows(
+        string icId,
+        long? dpInputLength = null)
     {
         return
         [
-            .. WorkbenchCompositionService.GetStandardMergeMemoryMapRows(icId)
+            .. WorkbenchCompositionService.GetStandardMergeMemoryMapRows(icId, dpInputLength)
                 .Select(ToMemoryMapRow),
         ];
     }
 
     /// <summary>Gets output address coverage text for the selected Standard Merge profile.</summary>
-    public static string GetStandardMergeMemoryRangeLabel(string icId)
+    public static string GetStandardMergeMemoryRangeLabel(string icId, long? dpInputLength = null)
     {
-        return WorkbenchCompositionService.GetStandardMergeMemoryRangeLabel(icId);
+        return WorkbenchCompositionService.GetStandardMergeMemoryRangeLabel(icId, dpInputLength);
     }
 
     /// <summary>Gets final visual coverage segments for the selected Standard Merge profile.</summary>
-    public static IReadOnlyList<MemoryCoverageSegmentViewModel> GetStandardMergeCoverageSegments(string icId)
+    public static IReadOnlyList<MemoryCoverageSegmentViewModel> GetStandardMergeCoverageSegments(
+        string icId,
+        long? dpInputLength = null)
     {
         return
         [
-            .. WorkbenchCompositionService.GetStandardMergeCoverageSegments(icId)
+            .. WorkbenchCompositionService.GetStandardMergeCoverageSegments(icId, dpInputLength)
                 .Select(segment => new MemoryCoverageSegmentViewModel(
                     segment.RangeLabel,
                     segment.SourceLabel,

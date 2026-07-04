@@ -20,11 +20,11 @@ public sealed partial class GeneralReplaceMappingViewModel : ObservableObject
     /// <summary>One-based row number displayed to the user.</summary>
     public int Index { get; private set; }
 
-    /// <summary>Displayed file name or drop hint.</summary>
-    public string DisplayName => HasFile ? Path.GetFileName(FilePath!) : "Drop BIN";
+    /// <summary>Displayed file name or empty-slot state.</summary>
+    public string DisplayName => HasFile ? Path.GetFileName(FilePath!) : "No replacement BIN selected";
 
-    /// <summary>Displayed path or browse hint.</summary>
-    public string DisplayDetail => HasFile ? FilePath! : "Select or drop a replacement BIN";
+    /// <summary>Displayed selected file path.</summary>
+    public string DisplayDetail => HasFile ? FilePath! : string.Empty;
 
     /// <summary>True when a local input file is selected.</summary>
     public bool HasFile => !string.IsNullOrWhiteSpace(FilePath);

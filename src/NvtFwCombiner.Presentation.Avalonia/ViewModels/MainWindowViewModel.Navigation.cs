@@ -5,7 +5,9 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
 {
-    /// <summary>Gets the clickable shell navigation history.</summary>
+    private readonly List<ShellPage> _pageHistory = [ShellPage.Home];
+
+    /// <summary>Gets the clickable shell navigation hierarchy.</summary>
     public ObservableCollection<ShellNavigationEntryViewModel> NavigationTrail { get; } = [];
 
     /// <summary>Gets a compact text version of the current navigation path.</summary>
@@ -13,8 +15,8 @@ public sealed partial class MainWindowViewModel
         " > ",
         NavigationTrail.Select(entry => entry.Label));
 
-    /// <summary>True when the shell can return to an earlier navigation entry.</summary>
-    public bool CanGoBack => NavigationTrail.Count > 1;
+    /// <summary>True when the shell can return to the previous visited page.</summary>
+    public bool CanGoBack => _pageHistory.Count > 1;
 
     /// <summary>True when the selected page needs IC and Number context.</summary>
     public bool IsDeviceContextVisible => SelectedPage is ShellPage.Merge or ShellPage.Replace;
@@ -30,17 +32,9 @@ public sealed partial class MainWindowViewModel
 
     private void NavigateToPage(ShellPage page)
     {
-        int existingIndex = IndexOfNavigationPage(page);
-        if (existingIndex >= 0)
+        if (SelectedPage != page)
         {
-            while (NavigationTrail.Count > existingIndex + 1)
-            {
-                NavigationTrail.RemoveAt(NavigationTrail.Count - 1);
-            }
-        }
-        else
-        {
-            NavigationTrail.Add(CreateNavigationEntry(page, isCurrent: false));
+            _pageHistory.Add(page);
         }
 
         ApplySelectedPage(page);
@@ -53,26 +47,13 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
-        NavigationTrail.RemoveAt(NavigationTrail.Count - 1);
-        ApplySelectedPage(NavigationTrail[^1].Page);
+        _pageHistory.RemoveAt(_pageHistory.Count - 1);
+        ApplySelectedPage(_pageHistory[^1]);
     }
 
     private ShellNavigationEntryViewModel CreateNavigationEntry(ShellPage page, bool isCurrent)
     {
         return new ShellNavigationEntryViewModel(page, PageLabel(page), NavigateToPage, isCurrent);
-    }
-
-    private int IndexOfNavigationPage(ShellPage page)
-    {
-        for (int index = 0; index < NavigationTrail.Count; index++)
-        {
-            if (NavigationTrail[index].Page == page)
-            {
-                return index;
-            }
-        }
-
-        return -1;
     }
 
     private string PageLabel(ShellPage page)
@@ -89,6 +70,8 @@ public sealed partial class MainWindowViewModel
 
     private void UpdateNavigationState()
     {
+        RefreshNavigationTrail();
+
         foreach (ShellNavigationEntryViewModel entry in NavigationTrail)
         {
             entry.SetCurrent(entry.Page == SelectedPage);
@@ -98,5 +81,15 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(CanGoBack));
         GoBackCommand.NotifyCanExecuteChanged();
         RefreshSettingsState();
+    }
+
+    private void RefreshNavigationTrail()
+    {
+        NavigationTrail.Clear();
+        NavigationTrail.Add(CreateNavigationEntry(ShellPage.Home, SelectedPage == ShellPage.Home));
+        if (SelectedPage != ShellPage.Home)
+        {
+            NavigationTrail.Add(CreateNavigationEntry(SelectedPage, isCurrent: true));
+        }
     }
 }

@@ -386,6 +386,11 @@ public sealed class ShellViewModelTests
                 row => row.ActionLabel == "Initialize");
             Assert.Equal("0x00000-0x3FFFF (len 0x40000)", initialRow.RangeLabel);
             Assert.Contains("selected DP BIN length", initialRow.Detail, StringComparison.Ordinal);
+            Assert.Equal("0x00000-0x3FFFF (len 0x40000)", viewModel.MergeMemoryRangeLabel);
+            Assert.All(viewModel.MergeCoverageSegments, segment =>
+            {
+                Assert.DoesNotContain("0xFFFFF", segment.RangeLabel, StringComparison.Ordinal);
+            });
         }
         finally
         {

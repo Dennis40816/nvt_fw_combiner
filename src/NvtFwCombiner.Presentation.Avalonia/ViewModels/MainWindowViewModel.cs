@@ -212,7 +212,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public ObservableCollection<GeneralReplaceMappingViewModel> GeneralReplaceMappings { get; } = [];
 
     /// <summary>Gets Merge memory coverage text for the selected IC.</summary>
-    public string MergeMemoryRangeLabel => UiCompositionRunner.GetStandardMergeMemoryRangeLabel(SelectedIc);
+    public string MergeMemoryRangeLabel => UiCompositionRunner.GetStandardMergeMemoryRangeLabel(
+        SelectedIc,
+        GetSelectedMergeDpInputLength());
 
     /// <summary>Gets the profile-owned default Standard Merge output file name.</summary>
     public string StandardMergeOutputFileName => UiCompositionRunner.GetStandardMergeDefaultOutputFileName(SelectedIc);
@@ -446,10 +448,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     private void RefreshMemoryMapState()
     {
+        long? selectedMergeDpInputLength = GetSelectedMergeDpInputLength();
         ReplaceRows(MergeMemoryRows, UiCompositionRunner.GetStandardMergeMemoryMapRows(
             SelectedIc,
-            GetSelectedMergeDpInputLength()));
-        ReplaceRows(MergeCoverageSegments, UiCompositionRunner.GetStandardMergeCoverageSegments(SelectedIc));
+            selectedMergeDpInputLength));
+        ReplaceRows(MergeCoverageSegments, UiCompositionRunner.GetStandardMergeCoverageSegments(
+            SelectedIc,
+            selectedMergeDpInputLength));
         ReplaceRows(ReplaceMemoryRows, UiCompositionRunner.GetReplaceMemoryMapRows(
             SelectedIc,
             SelectedNumber,
