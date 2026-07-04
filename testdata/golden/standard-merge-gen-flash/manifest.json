@@ -190,6 +190,35 @@
       }
     },
     {
+      "caseId": "51930-flashmap",
+      "ic": "51930",
+      "profileId": "nt51930-standard-merge-flashmap",
+      "variant": "flashmap",
+      "inputs": {
+        "dp-input": {
+          "path": "inputs/51930/dp.bin",
+          "sourcePath": "merge_bin.7z!/merge/51930/NT51930TT_Initial Code_INX_4080x720_D05_20240919_GOP 6MUX.bin",
+          "sourceArchiveSha256": "1b5f836c3564bd94d268019ab8e2b72336b9d74e823ee0646ccdf5b279c4c60c",
+          "size": 262144,
+          "sha256": "2a1643f234555be75e6e92d3a9c692a733e421ed3a97230e9a31e0a8d0ac476b"
+        },
+        "tp-input": {
+          "path": "inputs/51930/tp.bin",
+          "sourcePath": "merge_bin.7z!/merge/51930/NT51930_FW_INX_STLA216_V04_20241014.bin",
+          "sourceArchiveSha256": "1b5f836c3564bd94d268019ab8e2b72336b9d74e823ee0646ccdf5b279c4c60c",
+          "size": 262144,
+          "sha256": "541b800d866ffcc5a5cd709422d749310f2450e84b139ffebe46a5767bb6eff3"
+        }
+      },
+      "expectedOutput": {
+        "path": "expected/51930/flash.bin",
+        "sourcePath": "merge_bin.7z!/merge/51930/NT51930_Flashcode_INX_STLA216_STLA_T04D05_20241014_SPI.bin",
+        "sourceArchiveSha256": "1b5f836c3564bd94d268019ab8e2b72336b9d74e823ee0646ccdf5b279c4c60c",
+        "size": 262144,
+        "sha256": "09e6a7ce689a1c3d6897392497a32e72c4ac49ee392c183369fa0924d57c55be"
+      }
+    },
+    {
       "ic": "51931",
       "profileId": "nt51931-standard-merge-gen-flash",
       "inputs": {
@@ -242,6 +271,73 @@
         "size": 262144,
         "sha256": "6a0c90b1c314536119dda9aacd1f3dfcccfc8b90aae6e43cdf713100bb308b14"
       }
+    },
+    {
+      "caseId": "51950-dp-256k",
+      "ic": "51950",
+      "profileId": "nt51950-standard-merge-dp-perspective",
+      "variant": "dp-256k",
+      "inputs": {
+        "dp-input": {
+          "path": "inputs/51950/dp-256k/dp.bin",
+          "sourcePath": "merge_bin.7z!/merge/51950_51951/dp_256k/NT51950TT_Initial Code_TM_TL161XVKS01_PRJ576 _DCC_20260428.bin",
+          "sourceArchiveSha256": "1b5f836c3564bd94d268019ab8e2b72336b9d74e823ee0646ccdf5b279c4c60c",
+          "size": 262144,
+          "sha256": "b9ac199003c86bb620d18cf08d9002678ef2e3e9b911020fbecdaa381fd887f1"
+        },
+        "tp-input": {
+          "path": "inputs/51950/dp-256k/tp.bin",
+          "sourcePath": "merge_bin.7z!/merge/51950_51951/dp_256k/NT51951_fw_TM1610_V04_20260528.bin",
+          "sourceArchiveSha256": "1b5f836c3564bd94d268019ab8e2b72336b9d74e823ee0646ccdf5b279c4c60c",
+          "size": 225280,
+          "sha256": "e76db49116af9502edd73a02df6eb0c86ed8bf2c74487d1917a1ce279bbaeab4"
+        }
+      },
+      "expectedOutput": {
+        "path": "expected/51950/dp-256k/flash.bin",
+        "sourcePath": "merge_bin.7z!/merge/51950_51951/dp_256k/NT51951_Flashcode_TM1610_Platform_2880x1800_DCCT04_20260528.bin",
+        "sourceArchiveSha256": "1b5f836c3564bd94d268019ab8e2b72336b9d74e823ee0646ccdf5b279c4c60c",
+        "size": 262144,
+        "sha256": "11932f352c3268dce75329eb80b57e3a20f31e7d1859d9ecf0700070c026f791"
+      }
+    },
+    {
+      "caseId": "51951-dp-512k",
+      "ic": "51951",
+      "profileId": "nt51951-standard-merge-dp-perspective",
+      "variant": "dp-512k",
+      "inputs": {
+        "dp-input": {
+          "path": "inputs/51951/dp-512k/dp.bin",
+          "sourcePath": "merge_bin.7z!/merge/51950_51951/dp_512k/NT51951TT_Initial Code_CSOT 17.3inch_2880x1620_CCW _D05_20260625.bin",
+          "sourceArchiveSha256": "1b5f836c3564bd94d268019ab8e2b72336b9d74e823ee0646ccdf5b279c4c60c",
+          "size": 524288,
+          "sha256": "ba4a61951b2da74cf7799885df7a0cbfefea4262ba6af56b34adc92691af1668"
+        },
+        "tp-input": {
+          "path": "inputs/51951/dp-512k/tp.bin",
+          "sourcePath": "merge_bin.7z!/merge/51950_51951/dp_512k/nt51950_fw.bin",
+          "sourceArchiveSha256": "1b5f836c3564bd94d268019ab8e2b72336b9d74e823ee0646ccdf5b279c4c60c",
+          "size": 225280,
+          "sha256": "7a2ddf9b77558a3e3a32485c21aa62e900249cf473b7f1c67bb2f89dc1ad3f4a"
+        }
+      },
+      "expectedOutput": {
+        "path": "expected/51951/dp-512k/flash.bin",
+        "sourcePath": "merge_bin.7z!/merge/51950_51951/dp_512k/NT51951_FlashCode_CSOT_1730_CCW_BQ_2880x1620_D05T03_20260626.bin",
+        "sourceArchiveSha256": "1b5f836c3564bd94d268019ab8e2b72336b9d74e823ee0646ccdf5b279c4c60c",
+        "size": 524288,
+        "sha256": "3266fae2f4873a7f21afdbcfe1b1d234c58204a2b319ff3ed09353ee84ff0e6e"
+      }
+    }
+  ],
+  "additionalSources": [
+    {
+      "name": "merge_bin.7z",
+      "archivePath": "G:/My Drive/Working/Tools/File/word_encrypt/record/merge_bin.7z",
+      "sha256": "1b5f836c3564bd94d268019ab8e2b72336b9d74e823ee0646ccdf5b279c4c60c",
+      "sourceClassification": "private-owner-approved-golden",
+      "approval": "Repository owner supplied merge_bin.7z for remaining Standard Merge golden fixtures on 2026-07-03."
     }
   ]
 }

@@ -161,6 +161,76 @@ public sealed class StandardMergeCliCommandTests
         Assert.Equal(dp, await File.ReadAllBytesAsync(dpPath, TestContext.Current.CancellationToken));
     }
 
+    /// <summary>Verifies DP Perspective Standard Merge build uses the selected DP BIN length.</summary>
+    [Fact]
+    public async Task StandardMergeBuildUsesDpLengthForDpPerspectiveGolden()
+    {
+        GoldenCasePaths golden = LoadGoldenCase("51950-dp-256k");
+        using var workspace = TempWorkspace.Create();
+        string outputPath = workspace.PathFor("out.bin");
+
+        CliRunResult result = await RunCliAsync([
+            "standard-merge",
+            "build",
+            "--profile",
+            "51950",
+            "--dp",
+            golden.DpPath,
+            "--tp",
+            golden.TpPath,
+            "--output",
+            outputPath,
+            "--overwrite",
+        ]);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
+        Assert.Contains("Profile: nt51950-standard-merge-dp-perspective (NT51950)", result.Output, StringComparison.Ordinal);
+        Assert.Contains("Size: 262144 bytes", result.Output, StringComparison.Ordinal);
+        Assert.DoesNotContain("Issues:", result.Error, StringComparison.Ordinal);
+        byte[] actual = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
+        byte[] expected = await File.ReadAllBytesAsync(golden.ExpectedPath, TestContext.Current.CancellationToken);
+        Assert.Equal(0x40000, actual.Length);
+        Assert.Equal(expected, actual);
+    }
+
+    private static GoldenCasePaths LoadGoldenCase(string caseId)
+    {
+        string goldenRoot = Path.Combine(
+            FindRepositoryRoot(),
+            "testdata",
+            "golden",
+            "standard-merge-gen-flash");
+        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
+        JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
+            .EnumerateArray()
+            .Single(item =>
+                item.TryGetProperty("caseId", out JsonElement id) &&
+                string.Equals(id.GetString(), caseId, StringComparison.Ordinal));
+
+        JsonElement inputs = goldenCase.GetProperty("inputs");
+        return new GoldenCasePaths(
+            Path.Combine(goldenRoot, inputs.GetProperty("dp-input").GetProperty("path").GetString()!),
+            Path.Combine(goldenRoot, inputs.GetProperty("tp-input").GetProperty("path").GetString()!),
+            Path.Combine(goldenRoot, goldenCase.GetProperty("expectedOutput").GetProperty("path").GetString()!));
+    }
+
+    private static string FindRepositoryRoot()
+    {
+        DirectoryInfo? directory = new(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "SPEC.md")))
+            {
+                return directory.FullName;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new InvalidOperationException("Repository root was not found.");
+    }
+
     private static async Task<CliRunResult> RunCliAsync(string[] args)
     {
         using var output = new StringWriter();
@@ -171,6 +241,8 @@ public sealed class StandardMergeCliCommandTests
     }
 
     private sealed record CliRunResult(int ExitCode, string Output, string Error);
+
+    private sealed record GoldenCasePaths(string DpPath, string TpPath, string ExpectedPath);
 
     private sealed class TempWorkspace : IDisposable
     {

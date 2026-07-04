@@ -5,6 +5,9 @@ namespace NvtFwCombiner.Profiles;
 /// <summary>Built-in standard merge profiles used as executable contract evidence.</summary>
 public static class BuiltInStandardMergeProfiles
 {
+    private const long DpPerspectiveMaxContainerLength = 0x100000;
+    private static readonly long[] DpPerspectiveAllowedOutputLengths = [0x40000, 0x80000, DpPerspectiveMaxContainerLength];
+
     /// <summary>Profiles ported from the approved gen_flash_bin_v2 standard merge reference config.</summary>
     public static IReadOnlyList<CompositionProfileDefinition> GenFlashStandardMergeProfiles { get; } =
     [
@@ -98,6 +101,7 @@ public static class BuiltInStandardMergeProfiles
         .. GenFlashStandardMergeProfiles,
         .. OwnerConfirmedAliasStandardMergeProfiles,
         .. FlashMapStandardMergeProfiles,
+        .. DpPerspectiveStandardMergeProfiles,
     ];
 
     /// <summary>All built-in standard merge profiles, including synthetic and reference-derived cases.</summary>
@@ -106,6 +110,27 @@ public static class BuiltInStandardMergeProfiles
         SyntheticStandardMerge,
         .. ExecutableStandardMergeProfiles,
     ];
+
+    /// <summary>Creates an NT51950/NT51951 DP Perspective profile matching the selected DP input length.</summary>
+    public static CompositionProfileDefinition CreateDpPerspectiveProfileForInputLength(string icId, long dpInputLength)
+    {
+        string icNumber = NormalizeDpPerspectiveIc(icId);
+        return DpPerspectiveAllowedOutputLengths.Contains(dpInputLength)
+            ? CreateDpPerspectiveProfile(icNumber, dpInputLength)
+            : throw new ArgumentOutOfRangeException(
+                nameof(dpInputLength),
+                dpInputLength,
+                "NT51950/NT51951 Standard Merge accepts DP input lengths 0x40000, 0x80000, or 0x100000.");
+    }
+
+    /// <summary>Returns true when a profile is the NT51950/NT51951 DP Perspective Standard Merge template.</summary>
+    public static bool IsDpPerspectiveStandardMergeProfile(CompositionProfileDefinition profile)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+
+        return profile.ProfileId.EndsWith("-standard-merge-dp-perspective", StringComparison.Ordinal) &&
+            IsDpPerspectiveIc(profile.IcId);
+    }
 
     // NT51950/NT51951 DP Perspective profiles must preserve customer info at
     // 0x37000-0x37FFF by overlaying TP only through 0x36FFF.
@@ -214,39 +239,41 @@ public static class BuiltInStandardMergeProfiles
 
     private static CompositionProfileDefinition CreateDpPerspectiveProfile(string icNumber)
     {
-        const long containerLength = 0x100000;
-        long[] allowedDpLengths = [0x40000, 0x80000, containerLength];
-        var fullContainer = new ByteRange(0, containerLength);
+        return CreateDpPerspectiveProfile(icNumber, DpPerspectiveMaxContainerLength);
+    }
+
+    private static CompositionProfileDefinition CreateDpPerspectiveProfile(string icNumber, long outputLength)
+    {
+        var outputRange = new ByteRange(0, outputLength);
         var tpOverlay = ByteRange.FromStartEndExclusive(0x0A000, 0x37000);
         return new CompositionProfileDefinition(
             $"nt{icNumber}-standard-merge-dp-perspective",
-            "0.5.0",
+            "0.5.1",
             $"NT{icNumber}",
             "standard-merge",
             CompositionKind.Merge,
             "standard-merge",
             $"nt{icNumber}-standard-merge-dp-perspective.bin",
-            ImageInitialization.Blank("output-image", containerLength, 0x00),
+            ImageInitialization.Blank("output-image", outputLength, 0x00),
             [
                 new AddressSpace(
                     "dp-input",
-                    containerLength,
+                    outputLength,
                     AddressSpaceMutability.Immutable,
-                    inputPaddingByte: 0x00,
-                    allowedInputLengths: allowedDpLengths),
+                    allowedInputLengths: [outputLength]),
                 new AddressSpace("tp-input", 0x37000, AddressSpaceMutability.Immutable),
-                new AddressSpace("output-image", containerLength, AddressSpaceMutability.Mutable),
+                new AddressSpace("output-image", outputLength, AddressSpaceMutability.Mutable),
             ],
             [
                 CompositionOperation.CopyRange(
                     "copy-dp-container",
                     100,
                     "dp-input",
-                    fullContainer,
+                    outputRange,
                     "output-image",
-                    fullContainer,
+                    outputRange,
                     OverlapPolicy.Reject,
-                    "Copy the NT51950/NT51951 DP Perspective bytes after accepting only 0x40000, 0x80000, or 0x100000 DP inputs and padding to the 0x100000 work container."),
+                    "Copy the NT51950/NT51951 DP Perspective bytes using the selected DP input length as the output length."),
                 CompositionOperation.CopyRange(
                     "overlay-tp",
                     200,
@@ -261,7 +288,7 @@ public static class BuiltInStandardMergeProfiles
                 new ProfileRegion(
                     "dp-perspective-container",
                     "output-image",
-                    fullContainer,
+                    outputRange,
                     RegionAtomicity.Partitioned,
                     RegionWritePolicy.DeclaredParts,
                     classificationTags: ["dp", "tp-overlay"]),
@@ -272,6 +299,22 @@ public static class BuiltInStandardMergeProfiles
                     RegionAccessKind.Parts,
                     "NT51950/NT51951 Standard Merge first copies DP, then overlays the declared TP range."),
             ]);
+    }
+
+    private static string NormalizeDpPerspectiveIc(string icId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        string icNumber = icId.StartsWith("NT", StringComparison.OrdinalIgnoreCase)
+            ? icId[2..]
+            : icId;
+        return icNumber is "51950" or "51951"
+            ? icNumber
+            : throw new ArgumentException($"'{icId}' is not an NT51950/NT51951 DP Perspective IC.", nameof(icId));
+    }
+
+    private static bool IsDpPerspectiveIc(string icId)
+    {
+        return icId is "NT51950" or "NT51951";
     }
 
     private static CompositionOperation CopyRegion(

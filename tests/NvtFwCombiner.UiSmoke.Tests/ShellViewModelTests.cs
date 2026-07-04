@@ -844,21 +844,22 @@ public sealed class ShellViewModelTests
         }
     }
 
-    /// <summary>Verifies NT51950 Standard Merge stays gated until executable evidence is approved.</summary>
+    /// <summary>Verifies unavailable Standard Merge profiles stay gated with a detailed report.</summary>
     [Fact]
-    public async Task BuildNt51950StandardMergeIsGatedWithDetailedReportAndNoOutput()
+    public async Task BuildUnavailableStandardMergeIsGatedWithDetailedReportAndNoOutput()
     {
-        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-950-negative-{Guid.NewGuid():N}");
+        const string unsupportedIc = "NT00000";
+        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-unsupported-negative-{Guid.NewGuid():N}");
 
         try
         {
             _ = Directory.CreateDirectory(tempRoot);
             MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-            viewModel.SelectedIc = "NT51950";
+            viewModel.SelectedIc = unsupportedIc;
 
             Assert.False(viewModel.IsStandardMergeSupported);
             Assert.False(viewModel.CanBuildStandardMerge);
-            Assert.Equal("NT51950: Standard Merge is not available yet.", viewModel.MergeReadinessStatus);
+            Assert.Equal($"{unsupportedIc}: Standard Merge is not available yet.", viewModel.MergeReadinessStatus);
 
             string outputPath = Path.Combine(tempRoot, "should-not-exist.bin");
             await viewModel.BuildStandardMergeAsync(outputPath);

@@ -273,6 +273,7 @@ public static partial class WorkbenchCompositionService
             throw new InvalidOperationException($"Standard Merge is not available for '{icId}'.");
         }
 
+        profile = ResolveStandardMergeProfileForInputs(profile, slotPaths);
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         if (!compile.IsSuccess)
         {
@@ -393,6 +394,20 @@ public static partial class WorkbenchCompositionService
             ProtectedPathGuard.CombineFullPath(outputDirectory, outputFileName),
             bindings,
             nameof(outputFileName));
+    }
+
+    private static CompositionProfileDefinition ResolveStandardMergeProfileForInputs(
+        CompositionProfileDefinition profile,
+        IReadOnlyDictionary<string, string> slotPaths)
+    {
+        return !BuiltInStandardMergeProfiles.IsDpPerspectiveStandardMergeProfile(profile) ||
+            !slotPaths.TryGetValue("dp-input", out string? dpPath) ||
+            string.IsNullOrWhiteSpace(dpPath) ||
+            !File.Exists(dpPath)
+                ? profile
+                : BuiltInStandardMergeProfiles.CreateDpPerspectiveProfileForInputLength(
+                    profile.IcId,
+                    new FileInfo(dpPath).Length);
     }
 
     private static IReadOnlyList<string> GetRequiredAddressSpaces(CompositionProfileDefinition profile)
