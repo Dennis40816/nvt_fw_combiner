@@ -212,6 +212,7 @@ TP Overview follow-up notes to carry back to the owner workbook:
 - NT51926 needs two documented category rows: Common FW `1.4.1` uses header copy `0x0 -> 0x32F50`, length `0x100`; Common FW `2.0.0` uses `0x0 -> 0x32A70`, length `0x100`. The current golden/base evidence reads Common FW `1.4.1`.
 - NT51930 needs two documented category rows: Common FW `1.4.0/1.x.x` evidence uses `0x7000 -> 0x28FB0`, length `0x100`, single postbuild command; Common FW `2.0.0` uses length `0x200` and includes a second header-only command. The current Standard Merge golden reads Common FW `1.3.0`, so it must not be validated against the 2.0.0 row.
 - TP Overview should include the primary `FLASHMAP_FW_REGISTER` start per IC because UI traceability and postbuild-category selection now read Common FW/FW/PID from FWConfig.
+- Allowed-write ranges must follow the selected postbuild command's full declared CRC/header/header-copy blocks. Do not carve a PID byte out of a declared header-copy block; CtrlRAM Replace does not run a separate Insert PID stage, and any PID-byte drift inside a wrong-version header-copy target is part of the postbuild-version mismatch evidence.
 - NT51931 remains a separate workbook note: official `NT51930BASED_NORMAL_MODE` with Combiner 1.13.0 crashes in current evidence, while `NT51931BASED_NORMAL_MODE` is diagnostic only until owner confirms it.
 
 NT51927 flash-header cross-check:
