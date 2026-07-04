@@ -107,9 +107,14 @@ public sealed class LegacyCombinerPostbuildProcessor : IExternalProcessor
             await File.WriteAllBytesAsync(Path.Combine(outputDirectory, MapFileName), [], cancellationToken)
                 .ConfigureAwait(false);
 
-            // Staged BIN files are split from the post-replacement image, not from firmware bytes
-            // already rewritten by earlier Combiner commands in the same postbuild sequence.
+            // Staged BIN files use selected replacement bytes as source material without
+            // pre-writing those bytes into the firmware image given to Combiner.exe.
             byte[] stagedSourceBytes = [.. inputBytes];
+            CompositionIssue? stagedSourceIssue = ApplyStagedSourceOverrides(stagedSourceBytes, request.StagedSources);
+            if (stagedSourceIssue is not null)
+            {
+                return ExternalProcessorResult.Failed([stagedSourceIssue]);
+            }
 
             foreach (LegacyCombinerPostbuildCommand command in commandPlan.Commands)
             {
@@ -224,6 +229,45 @@ public sealed class LegacyCombinerPostbuildProcessor : IExternalProcessor
         }
 
         return byProcessorId;
+    }
+
+    private static CompositionIssue? ApplyStagedSourceOverrides(
+        byte[] stagedSourceBytes,
+        IReadOnlyList<ExternalProcessorStagedSource> stagedSources)
+    {
+        if (stagedSources.Count == 0)
+        {
+            return null;
+        }
+
+        bool[] written = new bool[stagedSourceBytes.Length];
+        foreach (ExternalProcessorStagedSource source in stagedSources)
+        {
+            if (source.FirmwareRange.EndExclusive > stagedSourceBytes.LongLength)
+            {
+                return new CompositionIssue(
+                    "legacy-combiner.staged-source.range-outside-input",
+                    "Staged source bytes target a range outside the staged firmware image.");
+            }
+
+            ReadOnlySpan<byte> bytes = source.Bytes.Span;
+            int targetStart = checked((int)source.FirmwareRange.Start);
+            for (int index = 0; index < bytes.Length; index++)
+            {
+                int targetIndex = targetStart + index;
+                if (written[targetIndex] && stagedSourceBytes[targetIndex] != bytes[index])
+                {
+                    return new CompositionIssue(
+                        "legacy-combiner.staged-source.conflict",
+                        $"Staged source bytes conflict at firmware offset 0x{targetIndex:X}.");
+                }
+
+                stagedSourceBytes[targetIndex] = bytes[index];
+                written[targetIndex] = true;
+            }
+        }
+
+        return null;
     }
 
     private static CompositionIssue? MaterializeStagedBlockFiles(

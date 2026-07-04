@@ -170,6 +170,88 @@ public sealed class LegacyCombinerPostbuildRealToolSmokeTests
         }
     }
 
+    /// <summary>Verifies pure Combiner pasteback produces the same bytes as the older pre-pasted work image model.</summary>
+    [Theory]
+    [MemberData(nameof(PureCombinerPastebackEquivalenceCases))]
+    public async Task DirectRealToolPureCombinerPastebackMatchesPrePasteFlow(
+        string icId,
+        string manifestIc,
+        IcNumberInputMode mode,
+        string selectionToken)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        string repositoryRoot = FindRepositoryRoot();
+        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
+        string toolRoot = Path.Combine(repositoryRoot, "external-tools");
+        ExternalCombinerToolManifest manifest = LoadManifest(
+            Path.Combine(toolRoot, "legacy-combiner", "1.13.0", "manifest.json"));
+        string executableSource = Path.Combine(toolRoot, manifest.ToolId, manifest.ToolVersion, manifest.ExecutableName);
+        Assert.Equal(manifest.Sha256, Sha256(executableSource));
+
+        LegacyCombinerPostbuildProfile profile = LegacyCombinerPostbuildCatalog.All.Single(
+            item => string.Equals(item.IcId, icId, StringComparison.Ordinal));
+        IcNumberSelection selection = new(mode, [selectionToken]);
+        TpFlashMapRegion selectedRegion = TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection)
+            .OrderBy(region => region.Range.Start)
+            .ThenBy(region => region.RegionId, StringComparer.Ordinal)
+            .First();
+        byte[] baseBytes = File.ReadAllBytes(FindGoldenExpectedOutput(goldenRoot, manifestIc));
+        byte[] replacementBytes = baseBytes.AsSpan(
+                (int)selectedRegion.Range.Start,
+                (int)selectedRegion.Range.Length)
+            .ToArray();
+        replacementBytes[0] ^= 0x5A;
+        byte[] prePastedBytes = [.. baseBytes];
+        replacementBytes.AsSpan().CopyTo(prePastedBytes.AsSpan((int)selectedRegion.Range.Start));
+        Assert.NotEqual(baseBytes[(int)selectedRegion.Range.Start], prePastedBytes[(int)selectedRegion.Range.Start]);
+
+        List<ByteRange> allowWholeImage = [new ByteRange(0, baseBytes.LongLength)];
+        string stagingRoot = Path.Combine(Path.GetTempPath(), $"nfc-direct-combiner-pasteback-equivalence-{Guid.NewGuid():N}");
+        try
+        {
+            var registry = new ExternalCombinerToolRegistry([manifest]);
+            var processor = new LegacyCombinerPostbuildProcessor(
+                registry,
+                [profile],
+                toolRoot,
+                stagingRoot,
+                new SystemExternalProcessRunner());
+            byte[] prePastedOutput = await RunPostbuildProcessorAsync(
+                processor,
+                profile,
+                selection,
+                prePastedBytes,
+                allowWholeImage,
+                $"{icId}-{selectionToken}-pre-pasted",
+                CancellationToken.None,
+                assertChangedRanges: false);
+            byte[] purePastebackOutput = await RunPostbuildProcessorAsync(
+                processor,
+                profile,
+                selection,
+                baseBytes,
+                allowWholeImage,
+                $"{icId}-{selectionToken}-pure-pasteback",
+                CancellationToken.None,
+                [new ExternalProcessorStagedSource(selectedRegion.Range, replacementBytes)],
+                assertChangedRanges: false);
+
+            Assert.Equal(prePastedOutput, purePastebackOutput);
+            Assert.Equal(replacementBytes[0], purePastebackOutput[(int)selectedRegion.Range.Start]);
+        }
+        finally
+        {
+            if (Directory.Exists(stagingRoot))
+            {
+                Directory.Delete(stagingRoot, recursive: true);
+            }
+        }
+    }
+
     /// <summary>Accepted 16-byte direct-combiner CtrlRAM self-replacement matrix.</summary>
     public static TheoryData<string, string, IcNumberInputMode, string, long[]> SixteenByteSelfReplacementCases()
     {
@@ -187,6 +269,19 @@ public sealed class LegacyCombinerPostbuildRealToolSmokeTests
             { "NT51950", "51950", IcNumberInputMode.CascadeSelector, "cascade", Nt51950RangeValues() },
             { "NT51951", "51951", IcNumberInputMode.SingleSelector, "single", Nt51950RangeValues() },
             { "NT51951", "51951", IcNumberInputMode.CascadeSelector, "cascade", Nt51950RangeValues() },
+        };
+    }
+
+    /// <summary>Representative command-family cases used to compare pre-paste and pure Combiner pasteback.</summary>
+    public static TheoryData<string, string, IcNumberInputMode, string> PureCombinerPastebackEquivalenceCases()
+    {
+        return new TheoryData<string, string, IcNumberInputMode, string>
+        {
+            { "NT51920", "51920", IcNumberInputMode.SingleSelector, "single" },
+            { "NT51923", "51923", IcNumberInputMode.CascadeSelector, "cascade" },
+            { "NT51926", "51926", IcNumberInputMode.SingleSelector, "single" },
+            { "NT51927", "51927", IcNumberInputMode.SingleSelector, "single" },
+            { "NT51950", "51950", IcNumberInputMode.SingleSelector, "single" },
         };
     }
 
@@ -276,7 +371,9 @@ public sealed class LegacyCombinerPostbuildRealToolSmokeTests
         byte[] postReplacementBytes,
         IReadOnlyList<ByteRange> expectedChangedRanges,
         string runId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IReadOnlyList<ExternalProcessorStagedSource>? stagedSources = null,
+        bool assertChangedRanges = true)
     {
         var request = new ExternalProcessorRequest(
             runId,
@@ -284,11 +381,16 @@ public sealed class LegacyCombinerPostbuildRealToolSmokeTests
             "legacy-combiner-1.13.0",
             postReplacementBytes,
             expectedChangedRanges,
-            selection);
+            selection,
+            stagedSources);
 
         ExternalProcessorResult result = await processor.TransformAsync(request, cancellationToken).ConfigureAwait(false);
         Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => $"{issue.Code}: {issue.Message}")));
-        Assert.Equal(expectedChangedRanges, result.ChangedRanges);
+        if (assertChangedRanges)
+        {
+            Assert.Equal(expectedChangedRanges, result.ChangedRanges);
+        }
+
         return result.OutputBytes.ToArray();
     }
 

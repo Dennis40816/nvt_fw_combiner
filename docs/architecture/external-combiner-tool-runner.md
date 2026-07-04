@@ -89,7 +89,7 @@ All external combiner errors fail closed:
 
 ## Current implementation status
 
-The first runner pieces now exist: manifest model, registry, staging workspace, process runner, SHA-256 verification, staged file confinement, independent diff verification, fake-combiner tests, and the Combiner 1.13.0 CtrlRAM postbuild adapter. IC-specific CtrlRAM postbuild command profiles are populated only from owner-approved postbuild/mmap evidence.
+The first runner pieces now exist: manifest model, registry, staging workspace, process runner, SHA-256 verification, staged file confinement, independent diff verification, fake-combiner tests, and the Combiner 1.13.0 CtrlRAM postbuild adapter. Selected CtrlRAM replacement bytes are supplied as processor staged source bytes and are not pre-written into the work image before `Combiner.exe`; pasteback is performed by the normalized Combiner command blocks. IC-specific CtrlRAM postbuild command profiles are populated only from owner-approved postbuild/mmap evidence.
 
 Current remaining production gates:
 

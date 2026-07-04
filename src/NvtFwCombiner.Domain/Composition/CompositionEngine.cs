@@ -45,6 +45,7 @@ public static class CompositionEngine
                 CompositionExecutionResult? externalFailure = await ApplyExternalProcessorAsync(
                         operation,
                         targetBuffer,
+                        normalizedInputs.InputBytes,
                         externalProcessor,
                         cancellationToken)
                     .ConfigureAwait(false);
@@ -266,6 +267,7 @@ public static class CompositionEngine
     private static async ValueTask<CompositionExecutionResult?> ApplyExternalProcessorAsync(
         CompositionOperation operation,
         byte[] targetBuffer,
+        Dictionary<string, byte[]> input,
         CompositionExternalProcessor? externalProcessor,
         CancellationToken cancellationToken)
     {
@@ -280,10 +282,12 @@ public static class CompositionEngine
         }
 
         byte[] processorInput = ReadSlice(targetBuffer, operation.TargetRange);
+        List<ExternalProcessorStagedSource> stagedSources = BuildStagedSources(operation, input);
         CompositionExternalProcessorResult processorResult;
         try
         {
-            processorResult = await externalProcessor(operation, processorInput, cancellationToken).ConfigureAwait(false);
+            processorResult = await externalProcessor(operation, processorInput, stagedSources, cancellationToken)
+                .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -318,6 +322,27 @@ public static class CompositionEngine
             (int)operation.TargetRange.Start,
             (int)operation.TargetRange.Length));
         return null;
+    }
+
+    private static List<ExternalProcessorStagedSource> BuildStagedSources(
+        CompositionOperation operation,
+        Dictionary<string, byte[]> input)
+    {
+        ExternalProcessorInvocation invocation = operation.ExternalProcessorInvocation!;
+        if (invocation.StagedSourceBindings.Count == 0)
+        {
+            return [];
+        }
+
+        List<ExternalProcessorStagedSource> stagedSources = [];
+        foreach (ExternalProcessorStagedSourceBinding binding in invocation.StagedSourceBindings)
+        {
+            byte[] sourceBuffer = input[binding.SourceSpaceId];
+            byte[] sourceBytes = ReadSlice(sourceBuffer, binding.SourceRange);
+            stagedSources.Add(new ExternalProcessorStagedSource(binding.FirmwareRange, sourceBytes));
+        }
+
+        return stagedSources;
     }
 
     private static ReadOnlySpan<byte> ReadOperationSource(

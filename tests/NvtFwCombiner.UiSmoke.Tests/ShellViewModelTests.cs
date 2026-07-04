@@ -301,10 +301,7 @@ public sealed class ShellViewModelTests
             Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
             Assert.True(viewModel.HasLoadedReport);
             Assert.True(viewModel.LoadedReport.HasCommandOperations);
-            Assert.True(viewModel.LoadedReport.HasStepOperations);
-            Assert.Contains(viewModel.LoadedReport.SummaryRows, row =>
-                row.Title == "Steps" &&
-                row.Meta.Contains("command", StringComparison.Ordinal));
+            Assert.False(viewModel.LoadedReport.HasStepOperations);
             Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
                 operation.Title.Contains("postbuild-", StringComparison.Ordinal) &&
                 operation.Meta.Contains("Combiner command", StringComparison.Ordinal) &&
@@ -447,10 +444,9 @@ public sealed class ShellViewModelTests
             await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
             Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-            Assert.Contains(viewModel.LoadedReport.Operations, operation =>
-                operation.Title.Contains("replace-normal-slave-r", StringComparison.Ordinal));
-            Assert.Contains(viewModel.LoadedReport.Operations, operation =>
-                operation.Title.Contains("replace-vn-slave-l", StringComparison.Ordinal));
+            Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
+                operation.CodeBlock.Contains("Normal_Ctrlram_R.bin", StringComparison.Ordinal) &&
+                operation.CodeBlock.Contains("Normal_Ctrlram_L.bin", StringComparison.Ordinal));
             Assert.Contains(viewModel.ReplaceCoverageSegments, segment =>
                 segment.SourceLabel == "Normal CtrlRAM (Slave R)" &&
                 segment.RangeLabel == "0x207D0-0x237CF (len 0x3000)");
@@ -507,8 +503,6 @@ public sealed class ShellViewModelTests
 
             Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
             Assert.True(viewModel.HasLoadedReport);
-            Assert.Contains(viewModel.LoadedReport.Operations, operation =>
-                operation.Title.Contains("replace-vn-slave-l", StringComparison.Ordinal));
             Assert.Contains(viewModel.LoadedReport.Operations, operation =>
                 operation.HasCodeBlock &&
                 operation.CodeBlock.Contains("Combiner.exe", StringComparison.Ordinal));
@@ -568,8 +562,6 @@ public sealed class ShellViewModelTests
 
             Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
             Assert.True(viewModel.HasLoadedReport);
-            Assert.Contains(viewModel.LoadedReport.Operations, operation =>
-                operation.Title.Contains("replace-vn-slave-l", StringComparison.Ordinal));
             Assert.Contains(viewModel.LoadedReport.Operations, operation =>
                 operation.HasCodeBlock &&
                 operation.CodeBlock.Contains("Combiner.exe", StringComparison.Ordinal));

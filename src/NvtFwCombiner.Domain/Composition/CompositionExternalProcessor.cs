@@ -4,4 +4,5 @@ namespace NvtFwCombiner.Domain.Composition;
 public delegate ValueTask<CompositionExternalProcessorResult> CompositionExternalProcessor(
     CompositionOperation operation,
     ReadOnlyMemory<byte> inputBytes,
+    IReadOnlyList<ExternalProcessorStagedSource> stagedSources,
     CancellationToken cancellationToken);

@@ -92,6 +92,24 @@ Important correction:
 
 - NT51931 should not be changed to `NT51931BASED_NORMAL_MODE` based only on diagnostics. The official inspected BAT uses `NT51930BASED_NORMAL_MODE CRC8`. The current issue is that committed Combiner 1.13.0 crashes on the NT51931 golden when run with the official BAT-shaped command.
 
+## Current Adapter Pasteback Model
+
+The production adapter no longer pre-writes selected CtrlRAM replacement bytes into the work firmware image before running `Combiner.exe`.
+
+Current model:
+
+```text
+base TP work image
+-> stage selected CtrlRAM replacement BIN bytes as virtual source for BIN/*.bin
+-> stage unselected postbuild BIN bytes from the base TP work image
+-> run the normalized postbuild Combiner.exe commands
+-> Combiner.exe performs the pasteback and header/CRC refresh
+```
+
+Representative real-tool smoke tests confirmed the old pre-pasted work-image model and the current staged-source model produce identical output for NT51920, NT51923, NT51926, NT51927, and NT51950. Therefore the workbench path uses the cleaner staged-source model.
+
+The current workbench input is still the Combiner TP work image size used by the postbuild command offsets. If future UI input is a larger full-flash container, the flow must first slice the owner-confirmed TP range, run this postbuild model on that TP slice, and then reinsert the processed TP slice into the full-flash output.
+
 ## Current Per-IC Conclusions
 
 ### NT51926

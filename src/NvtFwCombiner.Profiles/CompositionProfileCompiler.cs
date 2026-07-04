@@ -191,26 +191,41 @@ public static class CompositionProfileCompiler
         AddressSpace addressSpace,
         List<CompositionIssue> issues)
     {
-        CompositionOperation[] sourceOperations =
-        [
-            .. profile.Operations.Where(operation =>
-                string.Equals(operation.SourceSpaceId, addressSpace.AddressSpaceId, StringComparison.Ordinal)),
-        ];
-        if (sourceOperations.Length == 0)
+        List<(string OperationId, string TargetSpaceId, ByteRange TargetRange)> sourceTargets = [];
+        foreach (CompositionOperation operation in profile.Operations)
+        {
+            if (string.Equals(operation.SourceSpaceId, addressSpace.AddressSpaceId, StringComparison.Ordinal))
+            {
+                sourceTargets.Add((operation.OperationId, operation.TargetSpaceId, operation.TargetRange));
+            }
+
+            if (operation.ExternalProcessorInvocation is not { } invocation)
+            {
+                continue;
+            }
+
+            foreach (ExternalProcessorStagedSourceBinding binding in invocation.StagedSourceBindings.Where(binding =>
+                         string.Equals(binding.SourceSpaceId, addressSpace.AddressSpaceId, StringComparison.Ordinal)))
+            {
+                sourceTargets.Add((operation.OperationId, operation.TargetSpaceId, binding.FirmwareRange));
+            }
+        }
+
+        if (sourceTargets.Count == 0)
         {
             issues.Add(new CompositionIssue(
                 "profile.input-truncation.ctrlram-region-required",
-                $"Address space '{addressSpace.AddressSpaceId}' declares input truncation but is not used by a CtrlRAM replacement operation.",
+                $"Address space '{addressSpace.AddressSpaceId}' declares input truncation but is not used by a CtrlRAM replacement or staged postbuild source.",
                 addressSpace.AddressSpaceId));
             return;
         }
 
-        foreach (CompositionOperation operation in sourceOperations)
+        foreach ((string operationId, string targetSpaceId, ByteRange targetRange) in sourceTargets)
         {
             ProfileRegion? targetRegion = ResolveTargetRegionByRange(
                 profile,
-                operation.TargetSpaceId,
-                operation.TargetRange,
+                targetSpaceId,
+                targetRange,
                 "profile.input-truncation.target-region-unresolved",
                 "profile.input-truncation.target-region-ambiguous",
                 addressSpace.AddressSpaceId,
@@ -227,7 +242,7 @@ public static class CompositionProfileCompiler
 
             issues.Add(new CompositionIssue(
                 "profile.input-truncation.ctrlram-region-required",
-                $"Address space '{addressSpace.AddressSpaceId}' declares input truncation but operation '{operation.OperationId}' targets non-CtrlRAM region '{targetRegion.RegionId}'.",
+                $"Address space '{addressSpace.AddressSpaceId}' declares input truncation but operation '{operationId}' targets non-CtrlRAM region '{targetRegion.RegionId}'.",
                 addressSpace.AddressSpaceId));
         }
     }

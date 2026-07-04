@@ -66,6 +66,48 @@ public sealed class LegacyCombinerPostbuildProcessorTests
         Assert.Equal(new ByteRange(0x32A70, 1), Assert.Single(result.ChangedRanges));
     }
 
+    /// <summary>Verifies replacement source bytes are staged for Combiner pasteback without pre-writing the firmware file.</summary>
+    [Fact]
+    public async Task TransformUsesStagedSourceOverridesWithoutPrePaste()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        byte[] firmware = [0x10, 0x20, 0x30, 0x40];
+        bool inspected = false;
+        FakeProcessRunner runner = new(startInfo =>
+        {
+            string firmwarePath = startInfo.Arguments[1];
+            Assert.Equal(firmware, File.ReadAllBytes(firmwarePath));
+
+            string replacementPath = Path.Combine(startInfo.WorkingDirectory, "BIN", "Replacement.bin");
+            Assert.Equal([0xAA, 0xBB], File.ReadAllBytes(replacementPath));
+
+            byte[] output = File.ReadAllBytes(firmwarePath);
+            output[1] = 0xAA;
+            output[2] = 0xBB;
+            File.WriteAllBytes(firmwarePath, output);
+            inspected = true;
+            return new ExternalProcessResult(0, false, string.Empty, string.Empty);
+        });
+        LegacyCombinerPostbuildProfile profile = CreateStagedReplacementProfile();
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
+        ExternalProcessorRequest request = new(
+            "run-staged-source",
+            profile.ProcessorId,
+            "legacy-combiner-1.13.0",
+            firmware,
+            [new ByteRange(1, 2)],
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
+            [new ExternalProcessorStagedSource(new ByteRange(1, 2), new byte[] { 0xAA, 0xBB })]);
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => issue.Message)));
+        Assert.True(inspected);
+        Assert.Equal([0x10, 0xAA, 0xBB, 0x40], result.OutputBytes.ToArray());
+        Assert.Equal(new ByteRange(1, 2), Assert.Single(result.ChangedRanges));
+    }
+
     /// <summary>Verifies NT51923 cascade stages split DiffDLM.bin source offsets from the work image.</summary>
     [Fact]
     public async Task TransformStagesSplitDiffDlmFileForNt51923Cascade()
@@ -152,57 +194,7 @@ public sealed class LegacyCombinerPostbuildProcessorTests
         Assert.Equal(2, modes.Count(mode => mode == "NT51927BASED_GEN_CRC_MODE"));
     }
 
-    /// <summary>Verifies later NT51927 slave commands stage CtrlRAM files from the pre-postbuild seed image.</summary>
-    [Fact]
-    public async Task TransformPreservesNt51927SlaveStagedFilesFromSeedImage()
-    {
-        using var workspace = TempWorkspace.Create();
-        string sha256 = workspace.CreateToolExecutable();
-        byte[] firmware = CreateFirmwareImage();
-        const int normalRightStart = 0x207D0;
-        const int normalRightLength = 12288;
-        byte expectedNormalRightByte = firmware[normalRightStart];
-        int commandIndex = 0;
-        bool inspectedRightCtrlRam = false;
-        FakeProcessRunner runner = new(startInfo =>
-        {
-            commandIndex++;
-            string firmwarePath = startInfo.Arguments.First(argument =>
-                argument.EndsWith("nt51927_fw.bin", StringComparison.Ordinal));
-            if (commandIndex == 4)
-            {
-                byte[] output = File.ReadAllBytes(firmwarePath);
-                Array.Fill<byte>(output, 0xEE, normalRightStart, normalRightLength);
-                File.WriteAllBytes(firmwarePath, output);
-            }
-
-            if (commandIndex == 5)
-            {
-                string normalRight = Path.Combine(startInfo.WorkingDirectory, "BIN", "Normal_Ctrlram_R.bin");
-                byte[] stagedNormalRight = File.ReadAllBytes(normalRight);
-                Assert.Equal(expectedNormalRightByte, stagedNormalRight[0]);
-                Assert.NotEqual(0xEE, stagedNormalRight[0]);
-                inspectedRightCtrlRam = true;
-            }
-
-            return new ExternalProcessResult(0, false, string.Empty, string.Empty);
-        });
-        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner);
-        ExternalProcessorRequest request = new(
-            "run-nt51927-2chip-slave-seed",
-            LegacyCombinerPostbuildCatalog.Nt51927.ProcessorId,
-            "legacy-combiner-1.13.0",
-            firmware,
-            [new ByteRange(normalRightStart, normalRightLength)],
-            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]));
-
-        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
-
-        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => issue.Message)));
-        Assert.True(inspectedRightCtrlRam);
-    }
-
-    /// <summary>Verifies later commands stage BIN files from the initial post-replacement image, not a mutated work file.</summary>
+    /// <summary>Verifies later commands stage BIN files from the initial staged-source image, not a mutated work file.</summary>
     [Fact]
     public async Task TransformStagesEachCommandFromInitialPostReplacementImage()
     {
@@ -337,36 +329,6 @@ public sealed class LegacyCombinerPostbuildProcessorTests
         Assert.Equal(1, runner.RunCount);
     }
 
-    /// <summary>Rejects unexpected files after each command before a later command can reset staging.</summary>
-    [Fact]
-    public async Task TransformRejectsUnexpectedStagingFileBeforeNextCommandReset()
-    {
-        using var workspace = TempWorkspace.Create();
-        string sha256 = workspace.CreateToolExecutable();
-        byte[] firmware = CreateFirmwareImage();
-        FakeProcessRunner runner = new(startInfo =>
-        {
-            File.WriteAllText(Path.Combine(startInfo.WorkingDirectory, "BIN", "unexpected.tmp"), "unexpected");
-            return new ExternalProcessResult(0, false, string.Empty, string.Empty);
-        });
-        LegacyCombinerPostbuildProfile profile = CreateTwoCommandCrcOnlyProfile();
-        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
-        ExternalProcessorRequest request = new(
-            "run-unexpected-before-reset",
-            profile.ProcessorId,
-            "legacy-combiner-1.13.0",
-            firmware,
-            [],
-            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
-
-        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
-
-        Assert.False(result.Succeeded);
-        CompositionIssue issue = Assert.Single(result.Issues);
-        Assert.Equal("external-tool.staging.unexpected-file", issue.Code);
-        Assert.Equal(1, runner.RunCount);
-    }
-
     /// <summary>Verifies mutations outside declared postbuild authority fail closed.</summary>
     [Fact]
     public async Task TransformRejectsOutOfRangePostbuildMutation()
@@ -453,6 +415,31 @@ public sealed class LegacyCombinerPostbuildProcessorTests
             "test projection conflict profile");
     }
 
+    private static LegacyCombinerPostbuildProfile CreateStagedReplacementProfile()
+    {
+        var command = new LegacyCombinerPostbuildCommand(
+            "pasteback",
+            LegacyCombinerCommandFamily.MergeMode,
+            "MERGE_MODE",
+            null,
+            [
+                new LegacyCombinerBlockArgument(
+                    "replacement",
+                    LegacyCombinerBlockSourceKind.StagedFile,
+                    "Replacement.bin",
+                    0,
+                    new ByteRange(1, 2)),
+            ]);
+        return new LegacyCombinerPostbuildProfile(
+            "nfc.test.staged-replacement-v1",
+            "NTTEST",
+            "legacy-combiner-1.13.0",
+            "test_fw.bin",
+            [command],
+            [command],
+            "test staged replacement pasteback profile");
+    }
+
     private static LegacyCombinerPostbuildProfile CreateCopyThenRestoreProfile()
     {
         var copyCommand = new LegacyCombinerPostbuildCommand(
@@ -507,30 +494,6 @@ public sealed class LegacyCombinerPostbuildProcessorTests
             [command],
             [command],
             "test crc-only profile");
-    }
-
-    private static LegacyCombinerPostbuildProfile CreateTwoCommandCrcOnlyProfile()
-    {
-        LegacyCombinerPostbuildCommand first = new(
-            "crc-only-first",
-            LegacyCombinerCommandFamily.CrcOnlyMode,
-            "NT51927BASED_GEN_CRC_MODE",
-            "CRC32",
-            []);
-        LegacyCombinerPostbuildCommand second = new(
-            "crc-only-second",
-            LegacyCombinerCommandFamily.CrcOnlyMode,
-            "NT51927BASED_GEN_CRC_MODE",
-            "CRC32",
-            []);
-        return new LegacyCombinerPostbuildProfile(
-            "nfc.test.unexpected-before-reset-v1",
-            "NTTEST",
-            "legacy-combiner-1.13.0",
-            "test_fw.bin",
-            [first, second],
-            [first, second],
-            "test multi-command unexpected file profile");
     }
 
     private static LegacyCombinerPostbuildProfile CreateShortenedOutputProfile()

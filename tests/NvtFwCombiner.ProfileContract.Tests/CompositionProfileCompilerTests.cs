@@ -662,9 +662,9 @@ public sealed class CompositionProfileCompilerTests
         Assert.True(result.IsSuccess, FormatIssues(result.Issues));
     }
 
-    /// <summary>Verifies CtrlRAM Replace may host-copy a whole CtrlRAM region before its postbuild processor runs.</summary>
+    /// <summary>Verifies CtrlRAM Replace may stage a whole CtrlRAM region for its postbuild processor.</summary>
     [Fact]
-    public void CtrlRamReplaceAllowsWholeRegionHostWriteBeforeProcessorDependency()
+    public void CtrlRamReplaceAllowsWholeRegionStagedSourceForProcessorDependency()
     {
         CompositionProfileDefinition profile = CreateProfile(
             CompositionKind.Replace,
@@ -678,15 +678,24 @@ public sealed class CompositionProfileCompilerTests
             ],
             operations:
             [
-                CompositionOperation.ReplaceRange(
-                    "replace-ctrlram",
+                CompositionOperation.RunExternalProcessor(
+                    "postbuild-ctrlram",
                     10,
-                    "ctrlram-replacement",
-                    new ByteRange(0, 2),
                     "output-image",
-                    new ByteRange(1, 2),
-                    OverlapPolicy.Reject,
-                    "replace ctrlram before postbuild"),
+                    new ByteRange(0, 4),
+                    new ExternalProcessorInvocation(
+                        "legacy-combiner",
+                        "legacy-combiner-1.13.0",
+                        [new ByteRange(0, 4)],
+                        [new ByteRange(1, 2)],
+                        [
+                            new ExternalProcessorStagedSourceBinding(
+                                "ctrlram-replacement",
+                                new ByteRange(0, 2),
+                                new ByteRange(1, 2)),
+                        ]),
+                    OverlapPolicy.ReplaceExisting,
+                    "stage ctrlram for combiner pasteback"),
             ],
             regions:
             [
