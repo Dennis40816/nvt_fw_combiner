@@ -25,6 +25,7 @@ build/
 # Firmware and generated images
 *.bin
 !testdata/golden/standard-merge-gen-flash/**/*.bin
+!testdata/golden/ctrlram-replace/fixtures/**/*.bin
 *.hex
 *.fw
 

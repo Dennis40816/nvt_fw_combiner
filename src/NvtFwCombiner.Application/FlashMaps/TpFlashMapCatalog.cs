@@ -98,6 +98,7 @@ public sealed class TpFlashMapProfile
     public TpFlashMapProfile(
         string icId,
         string overviewSource,
+        long firmwareConfigStart,
         IEnumerable<TpFlashMapRegion> regions,
         string evidence)
     {
@@ -114,6 +115,7 @@ public sealed class TpFlashMapProfile
 
         IcId = icId;
         OverviewSource = overviewSource;
+        FirmwareConfigStart = firmwareConfigStart;
         Evidence = evidence;
     }
 
@@ -122,6 +124,9 @@ public sealed class TpFlashMapProfile
 
     /// <summary>TP Overview source section label.</summary>
     public string OverviewSource { get; }
+
+    /// <summary>Primary FLASHMAP_FW_REGISTER address used for FWConfig metadata reads.</summary>
+    public long FirmwareConfigStart { get; }
 
     /// <summary>Reference evidence used to create this profile.</summary>
     public string Evidence { get; }
@@ -144,6 +149,19 @@ public static class TpFlashMapCatalog
     [
         .. ProfilesByIc.Keys.Order(StringComparer.Ordinal),
     ];
+
+    /// <summary>Returns the primary FWConfig flash start for the selected IC, when documented.</summary>
+    public static bool TryGetFirmwareConfigStart(string icId, out long start)
+    {
+        if (ProfilesByIc.TryGetValue(icId, out TpFlashMapProfile? profile))
+        {
+            start = profile.FirmwareConfigStart;
+            return true;
+        }
+
+        start = 0;
+        return false;
+    }
 
     /// <summary>Returns true when the catalog has a flash-map profile for <paramref name="icId"/>.</summary>
     public static bool TryFind(string icId, out TpFlashMapProfile? profile)
@@ -258,32 +276,33 @@ public static class TpFlashMapCatalog
         TpFlashMapRegion[] nt51950Regions = Nt51950Regions();
         return
         [
-            Profile("NT51917", "51927 & 51928 (Not NB)", nt51927Regions, "Owner confirmation: NT51917 follows NT51927."),
-            Profile("NT51919", "51929 & 51932", nt51929Regions, "Owner confirmation: NT51919 follows NT51929."),
-            Profile("NT51920", "51920", Nt51920Regions()),
-            Profile("NT51923", "51923", Nt51923Regions()),
-            Profile("NT51926", "51926", Nt51926Regions()),
-            Profile("NT51927", "51927 & 51928 (Not NB)", nt51927Regions),
-            Profile("NT51928", "51927 & 51928 (Not NB)", nt51927Regions, "NT51928 non-NB follows NT51927. NT51928 NB is not covered."),
-            Profile("NT51929", "51929 & 51932", nt51929Regions, "Owner confirmation: NT51929 follows NT51932 postbuild."),
-            Profile("NT51930", "51930", Nt51930Regions()),
-            Profile("NT51931", "51931", Nt51931Regions()),
-            Profile("NT51932", "51929 & 51932", nt51929Regions),
-            Profile("NT51950", "51950 (No Backup EN)", nt51950Regions),
-            Profile("NT51951", "51951 (No Back Up EN)", nt51950Regions, "Owner confirmation: NT51951 follows NT51950 postbuild."),
+            Profile("NT51917", "51927 & 51928 (Not NB)", 0x16000, nt51927Regions, "Owner confirmation: NT51917 follows NT51927."),
+            Profile("NT51919", "51929 & 51932", 0x1F200, nt51929Regions, "Owner confirmation: NT51919 follows NT51929."),
+            Profile("NT51920", "51920", 0x22000, Nt51920Regions()),
+            Profile("NT51923", "51923", 0x22000, Nt51923Regions()),
+            Profile("NT51926", "51926", 0x22000, Nt51926Regions()),
+            Profile("NT51927", "51927 & 51928 (Not NB)", 0x16000, nt51927Regions),
+            Profile("NT51928", "51927 & 51928 (Not NB)", 0x16000, nt51927Regions, "NT51928 non-NB follows NT51927. NT51928 NB is not covered."),
+            Profile("NT51929", "51929 & 51932", 0x1F200, nt51929Regions, "Owner confirmation: NT51929 follows NT51932 postbuild."),
+            Profile("NT51930", "51930", 0x1F200, Nt51930Regions()),
+            Profile("NT51931", "51931", 0x16000, Nt51931Regions()),
+            Profile("NT51932", "51929 & 51932", 0x1F200, nt51929Regions),
+            Profile("NT51950", "51950 (No Backup EN)", 0x22200, nt51950Regions),
+            Profile("NT51951", "51951 (No Back Up EN)", 0x22200, nt51950Regions, "Owner confirmation: NT51951 follows NT51950 postbuild."),
         ];
     }
 
     private static TpFlashMapProfile Profile(
         string icId,
         string overviewSource,
+        long firmwareConfigStart,
         IEnumerable<TpFlashMapRegion> regions,
         string? note = null)
     {
         string evidence = string.IsNullOrWhiteSpace(note)
             ? "IC_FlashMap.xlsx TP Overview and postbuild naming."
             : $"IC_FlashMap.xlsx TP Overview and postbuild naming. {note}";
-        return new TpFlashMapProfile(icId, overviewSource, regions, evidence);
+        return new TpFlashMapProfile(icId, overviewSource, firmwareConfigStart, regions, evidence);
     }
 
     private static TpFlashMapRegion[] Nt51920Regions()
@@ -325,6 +344,7 @@ public static class TpFlashMapCatalog
             Ctrl("diff", "DIFF CtrlRAM", 0x27800, 0x02800, "DiffDLM.bin", TpFlashMapRegionVisibility.MultiChipOnly, ["diff"]),
             Ctrl("nf", "NF CtrlRAM", 0x2C800, 0x02DD0, "NF_Ctrlram.bin"),
             Ctrl("vn", "VN CtrlRAM", 0x315D0, 0x0149E, "VN_Ctrlram.bin"),
+            Region("fw-config-backup", "FW Config Backup", TpFlashMapRegionKind.Other, 0x3B000, 0x00780, tags: ["backup", "postbuild"]),
             Region("project-id", "Project ID", TpFlashMapRegionKind.ProjectId, 0x3C000, 0x01000),
             Region("customer-info", "Customer information", TpFlashMapRegionKind.CustomerInfo, 0x3D000, 0x01000, tags: ["preserve"]),
             Region("dp", "DP Region", TpFlashMapRegionKind.Dp, 0x3E000, 0x02000),
@@ -347,6 +367,8 @@ public static class TpFlashMapCatalog
             Ctrl("normal-slave-l", "Normal CtrlRAM (Slave L)", 0x297D0, 0x03000, "Normal_Ctrlram_L.bin", TpFlashMapRegionVisibility.ThreeChipAndAbove, ["slave"]),
             Ctrl("mp-slave-l", "MP CtrlRAM (Slave L)", 0x2C7D0, 0x02400, "MP_Ctrlram_L.bin", TpFlashMapRegionVisibility.ThreeChipAndAbove, ["slave"]),
             Ctrl("vn-slave-l", "VN CtrlRAM (Slave L)", 0x2EBD0, 0x01660, "VN_Ctrlram.bin", TpFlashMapRegionVisibility.ThreeChipAndAbove, ["slave"]),
+            Region("header-backup", "FW Header Backup", TpFlashMapRegionKind.Other, 0x32DC0, 0x00460, tags: ["backup", "postbuild"]),
+            Region("fw-config-reg-backup", "FW Config/Reg Backup", TpFlashMapRegionKind.Other, 0x34000, 0x00800, tags: ["backup", "postbuild"]),
             Region("customer-info", "Customer information", TpFlashMapRegionKind.CustomerInfo, 0x3B000, 0x01000, tags: ["preserve"]),
             Region("dp-initial-code", "DP Region (Initial Code)", TpFlashMapRegionKind.Dp, 0x3C000, 0x04000),
             Region("dp-ldc-51928", "DP Region (LDC) - NT51928 only", TpFlashMapRegionKind.Dp, 0x40000, 0x22000),

@@ -2,9 +2,10 @@
 
 The public smoke path exercises the workbench CtrlRAM Preview/Build flow with
 self-replacement inputs sliced from existing owner-approved Standard Merge
-golden data. Private owner firmware fixtures remain outside Git; when present,
-this script validates their manifest and payload hashes so the same folder can
-be promoted to byte regression once owner golden outputs are supplied.
+golden data. Owner-approved CtrlRAM firmware fixtures may be committed under
+testdata/golden; this script validates their manifest and payload hashes so the
+same folder can be promoted to byte regression once owner golden outputs are
+supplied.
 """
 
 from __future__ import annotations
@@ -20,10 +21,10 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_MANIFEST = ROOT / "testdata" / "golden" / "ctrlram-replace" / "private" / "manifest.json"
+DEFAULT_MANIFEST = ROOT / "testdata" / "golden" / "ctrlram-replace" / "manifest.json"
 PUBLIC_SMOKE_FILTER = "FullyQualifiedName~CtrlRamReplace"
 EXPECTED_SCHEMA_VERSION = "0.1"
-EXPECTED_PAYLOAD_CLASS = "private-owner-golden-firmware"
+EXPECTED_PAYLOAD_CLASSES = {"owner-approved-golden-firmware", "private-owner-golden-firmware"}
 EXPECTED_RUNNER_STATUSES = {"ready-for-private-golden", "pending-golden-parity"}
 
 
@@ -33,7 +34,7 @@ def parse_args() -> argparse.Namespace:
         "--manifest",
         type=Path,
         default=DEFAULT_MANIFEST,
-        help=f"Private fixture manifest path. Default: {DEFAULT_MANIFEST}",
+        help=f"CtrlRAM fixture manifest path. Default: {DEFAULT_MANIFEST}",
     )
     parser.add_argument(
         "--skip-public-smoke",
@@ -41,9 +42,14 @@ def parse_args() -> argparse.Namespace:
         help="Skip the public golden-backed CtrlRAM workbench smoke test.",
     )
     parser.add_argument(
+        "--require-fixture",
+        action="store_true",
+        help="Fail when the CtrlRAM fixture manifest is missing.",
+    )
+    parser.add_argument(
         "--require-private",
         action="store_true",
-        help="Fail when the private manifest is missing.",
+        help="Deprecated alias for --require-fixture.",
     )
     parser.add_argument(
         "--configuration",
@@ -64,18 +70,18 @@ def main() -> int:
 
     manifest_path = args.manifest.resolve()
     if not manifest_path.exists():
-        message = f"private CtrlRAM fixture manifest not found: {manifest_path}"
-        if args.require_private:
+        message = f"CtrlRAM fixture manifest not found: {manifest_path}"
+        if args.require_fixture or args.require_private:
             print(f"error: {message}", file=sys.stderr)
             return 2
 
         print(f"warning: {message}")
-        print("Public CtrlRAM workbench preview/build smoke passed; private byte regression was not executed.")
+        print("Public CtrlRAM workbench preview/build smoke passed; committed/private byte regression was not executed.")
         return 0
 
-    verify_private_manifest(manifest_path)
-    print("Private CtrlRAM fixture manifest and payload hashes are valid.")
-    print("CtrlRAM workbench output runner is enabled; private golden byte parity still requires owner outputs/sign-off.")
+    verify_fixture_manifest(manifest_path)
+    print("CtrlRAM fixture manifest and payload hashes are valid.")
+    print("CtrlRAM workbench output runner is enabled; golden byte parity still requires owner outputs/sign-off.")
     return 0
 
 
@@ -121,13 +127,13 @@ def resolve_dotnet() -> str:
     raise RuntimeError("dotnet was not found. Run scripts/install-dotnet.ps1 or scripts/install-dotnet.sh first.")
 
 
-def verify_private_manifest(manifest_path: Path) -> None:
+def verify_fixture_manifest(manifest_path: Path) -> None:
     document = load_json(manifest_path)
     root = manifest_path.parent
     require(document.get("schemaVersion") == EXPECTED_SCHEMA_VERSION, "manifest schemaVersion must be 0.1")
     require(
-        document.get("payloadClass") == EXPECTED_PAYLOAD_CLASS,
-        f"manifest payloadClass must be {EXPECTED_PAYLOAD_CLASS}",
+        document.get("payloadClass") in EXPECTED_PAYLOAD_CLASSES,
+        f"manifest payloadClass must be one of {sorted(EXPECTED_PAYLOAD_CLASSES)}",
     )
     require(document.get("binaryPayloadsIncluded") is True, "manifest must declare binaryPayloadsIncluded=true")
     require(

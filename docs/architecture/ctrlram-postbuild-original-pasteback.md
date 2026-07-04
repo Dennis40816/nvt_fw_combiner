@@ -70,10 +70,12 @@ Current single-branch copy/header-refresh data:
 | --- | --- | ---: | ---: | ---: |
 | NT51920 | legacy normal | `0x0` | `0x26680` | `0x100` |
 | NT51923 | legacy normal | `0x0` | `0x30310` | `0x100` |
-| NT51926 | legacy normal | `0x0` | `0x32A70` | `0x100` |
+| NT51926 1.4.1 | legacy normal | `0x0` | `0x32F50` | `0x100` |
+| NT51926 2.0.0 | legacy normal | `0x0` | `0x32A70` | `0x100` |
 | NT51927 | merge/crc-only | `0x200` and `0x0` | `0x1E230` and `0x32DC0` | `0x190` and `0x460` |
 | NT51928 | merge/crc-only | follows NT51927 | follows NT51927 | follows NT51927 |
-| NT51930 | NT-based normal | `0x7000` | `0x28FB0` | `0x200` |
+| NT51930 1.4.0 | NT-based normal | `0x7000` | `0x28FB0` | `0x100` |
+| NT51930 2.0.0 | NT-based normal | `0x7000` | `0x28FB0` | `0x200` |
 | NT51931 | NT-based normal | `0x0` | `0x1DA30` | `0x100` |
 | NT51932 | NT-based normal | `0x7000` | `0x27EF0` | `0x200` |
 | NT51950 | NT-based normal | `0xA000` | `0x2D30C` | `0x200` |
@@ -201,29 +203,33 @@ Full single means current catalog single-branch command sequence is run on a fin
 | --- | ---: | --- | --- |
 | NT51920 | `16` | Expected CRC-generation drift | `0x1C..0x20`, `0xFC..0x100`, `0x2669C..0x266A0`, `0x2677C..0x26780` |
 | NT51923 | `16` | Expected CRC-generation drift | `0x1C..0x20`, `0xFC..0x100`, `0x3032C..0x30330`, `0x3040C..0x30410` |
-| NT51926 | `251` | Non-CRC copy-header initialization difference | `0x1C..0x20`, `0xFC..0x100`, plus most of `0x32A70..0x32B70` |
+| NT51926 | `251` | Postbuild-version mismatch candidate | `2.0.0` run changes `0x1C..0x20`, `0xFC..0x100`, plus most of `0x32A70..0x32B70`; the supplied base matches the `1.4.1` target near `0x32F50` except CRC words |
 | NT51927 | `24` | Expected CRC/header-word drift, not exactly 16 | six 4-byte CRC/header words near `0x1E26C`, `0x1E27C`, and `0x32FDC..0x33010` |
 | NT51928 | `64` | Expected CRC/header-word drift, not exactly 16 | multiple 4-byte CRC/header words near `0x23C`, `0x24C`, `0x1E24C..0x1E2B0`, and `0x32FDC..0x33040` |
 | NT51929 | `16` | Expected CRC-generation drift | `0x7100..0x7104`, `0x7118..0x711C`, `0x27FF0..0x27FF4`, `0x28008..0x2800C` |
-| NT51930 | `2901` | Unexpected for original-info no-op | includes `0x7100`, `0x7118`, copy/header area near `0x28FB0`, and extensive `0x32000` changes |
+| NT51930 | `2901` | Postbuild-version mismatch candidate | `2.0.0` run changes `0x7100`, `0x7118`, copy/header area near `0x28FB0`, and extensive `0x32000`; current golden aligns with `1.4.0` header-copy length `0x100` |
 | NT51931 | combiner crash, exit `0xC0000005` | Unexpected real-tool failure | no output diff available |
 | NT51932 | `16` | Expected CRC-generation drift | `0x7100..0x7104`, `0x7118..0x711C`, `0x27FF0..0x27FF4`, `0x28008..0x2800C` |
 | NT51950 | `16` | Expected CRC-generation drift | `0xA11C..0xA120`, `0xA130..0xA134`, `0x2D428..0x2D42C`, `0x2D43C..0x2D440` |
 | NT51951 | `16` | Expected CRC-generation drift | same ranges as NT51950 |
 
-NT51926 full-single calls:
+NT51926 full-single calls currently implemented from `2.0.0`:
 
 ```text
 Combiner.exe CRC_Enable .\nt51926_fw.bin .\BIN\Normal_Ctrlram.bin 0x0 0x22800 11264 .\BIN\MP_Ctrlram.bin 0x0 0x25400 9216 .\BIN\VN_Ctrlram.bin 0x0 0x315D0 5278 .\BIN\NF_Ctrlram.bin 0x0 0x2C800 11728 .\nt51926_fw.bin 0x22000 0x3B000 1920 .\nt51926_fw.bin 0x0 0x32A70 256
 Combiner.exe CRC_Enable .\nt51926_fw.bin .\nt51926_fw.bin 0x0 0x32A70 256
 ```
 
-NT51930 full-single calls:
+Owner-provided `PostbuildSetup_51926_1.4.1.bat` instead uses `0x32F50` for the same header-copy length and uses `VN_Ctrlram.bin` length `5728` plus FWConfig length `2048`. The 2026-07-05 NT51926 base has its initialized header-copy area at `0x32F50`, not `0x32A70`.
+
+NT51930 full-single calls currently implemented from `2.0.0`:
 
 ```text
 Combiner.exe NT51930BASED_NORMAL_MODE CRC8 .\NT51930_fw.bin .\NT51930_fw.bin .\BIN\Normal_Ctrlram.bin 0x0 0x21650 11264 .\BIN\VN_Ctrlram.bin 0x0 0x27650 6496 .\BIN\NF_Ctrlram.bin 0x0 0x1FC00 6736 .\NT51930_fw.bin 0x7000 0x28FB0 512
 Combiner.exe NT51930BASED_NORMAL_MODE CRC8 .\NT51930_fw.bin .\NT51930_fw.bin .\NT51930_fw.bin 0x7000 0x28FB0 512
 ```
+
+Owner-provided `PostbuildSetup_51930_1.4.0.bat` instead uses one command with `0x7000 -> 0x28FB0`, length `0x100`, and no second header-only command. The current 51930 golden has only one differing byte for the first `0x100` of that copy target but 40 differing bytes if interpreted as the `2.0.0` `0x200` copy target.
 
 NT51931 failing full-single call:
 
@@ -264,17 +270,19 @@ Limit:
 
 ### C. Clear or restore copy-header area to `0xFF`
 
-Status: not useful as a general fix.
+Status: not useful as a production default. Potentially useful only as a diagnostic experiment.
 
 Verified fact:
 
 - For NT51923, pre-filling `[0x30310, 0x30410)` with `0xFF` before running `Copy Header` produces the same result as re-running final golden unchanged.
 - The copy-header command overwrites the area before CRC calculation, so the initial value is irrelevant when the copy command runs.
+- This does not solve cross-version evidence mismatch. If the selected postbuild version writes a different target or length, pre-filling with `0xFF` may hide the mismatch rather than prove parity.
 
 Limit:
 
 - This does not make final golden full-postbuild idempotent.
 - It may hide whether the starting image already has a meaningful prior-generation copy header.
+- If used as a mode, it must be explicit and diagnostic-only unless firmware-owner evidence approves it as a real production transform. The prefill range must be declared as processor-owned mutable work-buffer bytes and covered by before/after range checks.
 
 ### D. Clear specific CRC words before full postbuild
 
@@ -316,14 +324,15 @@ Reasons:
 2. Use VN-only self-pasteback to verify per-region source/destination/length.
 3. Use full postbuild only for Replace/golden parity, and classify differences by per-IC declared CRC/header ranges.
 4. Stage an explicit `map.txt` for normal and NT-based merge/postbuild real-tool runs. Empty map is sufficient only for verified no-overlay cases.
-5. Do not implement "clear copy header to FF" as a general strategy.
+5. Do not implement "clear copy header to FF" as a general production strategy. If implemented later, keep it as an explicit diagnostic mode with declared ranges and golden evidence.
 6. Do not implement "restore original copy header" as a general strategy.
 7. Do not use TP flash header workbook alone to patch bytes. Combine workbook facts with command catalog, real-tool behavior, and owner-approved golden diff evidence.
 8. Treat NT51930 and NT51931 as current investigation blockers for a unified CtrlRAM self-pasteback story.
 
 ## Open Questions
 
-- Does owner-approved CtrlRAM Replace golden data for NT51926 include an initialized copy-header area, unlike the current standard-merge golden?
+- Should NT51926 CtrlRAM Replace select `1.4.1`, `2.0.0`, or a version-detected postbuild profile? The current 2026-07-05 base aligns with the `1.4.1` header-copy target.
+- Should NT51930 CtrlRAM Replace select `1.4.0`, `2.0.0`, or a version-detected postbuild profile? The current 51930 golden aligns with the `1.4.0` header-copy length.
 - What exact `map.txt` content is required for overlay-enabled firmware?
 - Is NT51931 expected to run `NT51930BASED_NORMAL_MODE CRC8` against the current standard-merge golden, or does it require a different source image/header state?
 - Should the real-tool host adapter always stage an empty `map.txt` for no-overlay normal/NT-based commands, or should profiles declare map authority explicitly?

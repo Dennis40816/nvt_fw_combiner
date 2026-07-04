@@ -1,0 +1,287 @@
+{
+  "schemaVersion": "0.1",
+  "payloadClass": "owner-approved-golden-firmware",
+  "binaryPayloadsIncluded": true,
+  "runnerStatus": "pending-golden-parity",
+  "sourceArchive": {
+    "sha256": "f4b9a72374e66fd09a03fd874f8c7e9e8bf9fa3710f67b9e0211c23b939f021e",
+    "lastWriteTimeTaipei": "2026-07-05T00:08:41+08:00",
+    "id": "owner-update-20260705"
+  },
+  "cases": [
+    {
+      "id": "nt51926-cascade-self-20260705",
+      "ic": "NT51926",
+      "icNum": "cascade",
+      "mode": "CtrlRAM",
+      "sourceClassification": "owner-approved-golden-firmware",
+      "ownerApproval": "Repository owner explicitly approved committing this golden firmware fixture to Git on 2026-07-05.",
+      "base": {
+        "path": "fixtures/20260705/base/nt51926-2ic-csot-toyota-d02t06-jira0597-20260622.bin",
+        "size": 262144,
+        "sha256": "acdfb0a03c41d6b6e40d1e8f0f6ed72f7b82d5330aa3c13cc6269c930f7d016c"
+      },
+      "replacementInputs": [
+        {
+          "slotId": "replace-ctrlram-normal",
+          "regionName": "Normal CtrlRAM",
+          "file": {
+            "path": "fixtures/20260705/inputs/nt51926-cascade-self-20260705/normal.bin",
+            "size": 11264,
+            "sha256": "3c906ea17a25e8818ed1481f26cf834221eec6f0f2cc82117369380c850868ea"
+          }
+        },
+        {
+          "slotId": "replace-ctrlram-mp",
+          "regionName": "MP CtrlRAM",
+          "file": {
+            "path": "fixtures/20260705/inputs/nt51926-cascade-self-20260705/mp.bin",
+            "size": 9216,
+            "sha256": "51d798431a70821e9b1a6431e25adc894a30f1dc9cdb3ce5990111115c04be9d"
+          }
+        },
+        {
+          "slotId": "replace-ctrlram-diff",
+          "regionName": "DIFF CtrlRAM",
+          "file": {
+            "path": "fixtures/20260705/inputs/nt51926-cascade-self-20260705/diff.bin",
+            "size": 10240,
+            "sha256": "72851fa78ce61d199b3765c5e1b392400e00b8f8ffaebe732b600238846039e3"
+          }
+        },
+        {
+          "slotId": "replace-ctrlram-nf",
+          "regionName": "NF CtrlRAM",
+          "file": {
+            "path": "fixtures/20260705/inputs/nt51926-cascade-self-20260705/nf.bin",
+            "size": 11728,
+            "sha256": "65d1f8742422b26a6162639882d29883b3372b3583e7bd4cb1c68d0fa1df7241"
+          }
+        },
+        {
+          "slotId": "replace-ctrlram-vn",
+          "regionName": "VN CtrlRAM",
+          "file": {
+            "path": "fixtures/20260705/inputs/nt51926-cascade-self-20260705/vn.bin",
+            "size": 5278,
+            "sha256": "fad9db771deef659cc03a2306bd5718c670117f25c55c2ec2358b06f92fa2c51"
+          }
+        }
+      ],
+      "notes": "Committed owner-approved self-replacement fixture. Replacement inputs are sliced from the same base firmware. Postbuild output parity remains pending because current Combiner execution recalculates header/integrity bytes."
+    },
+    {
+      "id": "nt51927-2chip-self-20260705",
+      "ic": "NT51927",
+      "icNum": "2",
+      "mode": "CtrlRAM",
+      "sourceClassification": "owner-approved-golden-firmware",
+      "ownerApproval": "Repository owner explicitly approved committing this golden firmware fixture to Git on 2026-07-05.",
+      "base": {
+        "path": "fixtures/20260705/base/nt51927-2ic-csot1560-d09t0d-jira0251-20260617.bin",
+        "size": 262144,
+        "sha256": "11700ec5580f2e07195c7aec3788f929609eef5355d773287d3f88aa1f984dae"
+      },
+      "replacementInputs": [
+        {
+          "slotId": "replace-ctrlram-nf-master",
+          "regionName": "NF CtrlRAM (Master)",
+          "file": {
+            "path": "fixtures/20260705/inputs/nt51927-2chip-self-20260705/nf-master.bin",
+            "size": 4048,
+            "sha256": "29ff13ee4b798f59af20ffca76058baa801efa5bfc83d4d94a333865dc410d58"
+          }
+        },
+        {
+          "slotId": "replace-ctrlram-normal-master",
+          "regionName": "Normal CtrlRAM (Master)",
+          "file": {
+            "path": "fixtures/20260705/inputs/nt51927-2chip-self-20260705/normal-master.bin",
+            "size": 12288,
+            "sha256": "793cc0ccef57c9bc3060e002d6a48ea96c642b16f24359d4594ff97cabc660b0"
+          }
+        },
+        {
+          "slotId": "replace-ctrlram-mp-master",
+          "regionName": "MP CtrlRAM (Master)",
+          "file": {
+            "path": "fixtures/20260705/inputs/nt51927-2chip-self-20260705/mp-master.bin",
+            "size": 9216,
+            "sha256": "e8b064e64a86b6d868ab677e0cec90ab2be66093a125962344597145cdaeec5b"
+          }
+        },
+        {
+          "slotId": "replace-ctrlram-vn-master",
+          "regionName": "VN CtrlRAM (Master)",
+          "file": {
+            "path": "fixtures/20260705/inputs/nt51927-2chip-self-20260705/vn-master.bin",
+            "size": 5728,
+            "sha256": "93a6d24b9609b57110c7f1bf4decc6d03c631ebcdc79f39c4e53f6736fbd89b8"
+          }
+        },
+        {
+          "slotId": "replace-ctrlram-nf-slave-r",
+          "regionName": "NF CtrlRAM (Slave R)",
+          "file": {
+            "path": "fixtures/20260705/inputs/nt51927-2chip-self-20260705/nf-slave-r.bin",
+            "size": 4048,
+            "sha256": "4e82e7bf8f6a22fab68e3d00a611114e87fad69b539e5fe7726bf386344671fa"
+          }
+        },
+        {
+          "slotId": "replace-ctrlram-normal-slave-r",
+          "regionName": "Normal CtrlRAM (Slave R)",
+          "file": {
+            "path": "fixtures/20260705/inputs/nt51927-2chip-self-20260705/normal-slave-r.bin",
+            "size": 12288,
+            "sha256": "b597781d0577a3a230f94c60cfcf983b9142586f76096cc794b30ac8371753bb"
+          }
+        },
+        {
+          "slotId": "replace-ctrlram-mp-slave-r",
+          "regionName": "MP CtrlRAM (Slave R)",
+          "file": {
+            "path": "fixtures/20260705/inputs/nt51927-2chip-self-20260705/mp-slave-r.bin",
+            "size": 9216,
+            "sha256": "d0bebf670c491e8d01cacc29bf5c7e77141c6bee873218a514b2bee2687a719c"
+          }
+        },
+        {
+          "slotId": "replace-ctrlram-vn-slave-r",
+          "regionName": "VN CtrlRAM (Slave R)",
+          "file": {
+            "path": "fixtures/20260705/inputs/nt51927-2chip-self-20260705/vn-slave-r.bin",
+            "size": 5728,
+            "sha256": "93a6d24b9609b57110c7f1bf4decc6d03c631ebcdc79f39c4e53f6736fbd89b8"
+          }
+        }
+      ],
+      "notes": "Committed owner-approved self-replacement fixture. Replacement inputs are sliced from the same base firmware. Postbuild output parity remains pending because current Combiner execution recalculates header/integrity bytes."
+    },
+    {
+      "id": "nt51927-3chip-self-20260705",
+      "ic": "NT51927",
+      "icNum": "3",
+      "mode": "CtrlRAM",
+      "sourceClassification": "owner-approved-golden-firmware",
+      "ownerApproval": "Repository owner explicitly approved committing this golden firmware fixture to Git on 2026-07-05.",
+      "base": {
+        "path": "fixtures/20260705/base/nt51927-3ic-tm-tl177xfks03-gm-d08t9b-20260703.bin",
+        "size": 262144,
+        "sha256": "bc44561cc1cb338b9a49bbe701e5d7cbfe78ea40deda0926197fb22002b3061c"
+      },
+      "replacementInputs": [
+        {
+          "slotId": "replace-ctrlram-nf-master",
+          "regionName": "NF CtrlRAM (Master)",
+          "file": {
+            "path": "fixtures/20260705/inputs/nt51927-3chip-self-20260705/nf-master.bin",
+            "size": 4048,
+            "sha256": "19cfabd5f0e4009c149af95b91389435e70a6518ece914b2f04e2a63f5d8f866"
+          }
+        },
+        {
+          "slotId": "replace-ctrlram-normal-master",
+          "regionName": "Normal CtrlRAM (Master)",
+          "file": {
+            "path": "fixtures/20260705/inputs/nt51927-3chip-self-20260705/normal-master.bin",
+            "size": 12288,
+            "sha256": "8df98e023232e33e303fbb8a3b8569d8bf0e135c46012488016077e28360c4b9"
+          }
+        },
+        {
+          "slotId": "replace-ctrlram-mp-master",
+          "regionName": "MP CtrlRAM (Master)",
+          "file": {
+            "path": "fixtures/20260705/inputs/nt51927-3chip-self-20260705/mp-master.bin",
+            "size": 9216,
+            "sha256": "fd5319c5281812fbb7ac6dacb624c572bdd0d52eb71de8402b989da048d0815b"
+          }
+        },
+        {
+          "slotId": "replace-ctrlram-vn-master",
+          "regionName": "VN CtrlRAM (Master)",
+          "file": {
+            "path": "fixtures/20260705/inputs/nt51927-3chip-self-20260705/vn-master.bin",
+            "size": 5728,
+            "sha256": "a692f93046699fc03c5a4795ed39a3b3cf37d1962b30c7bb2999972b9cc71b74"
+          }
+        },
+        {
+          "slotId": "replace-ctrlram-nf-slave-r",
+          "regionName": "NF CtrlRAM (Slave R)",
+          "file": {
+            "path": "fixtures/20260705/inputs/nt51927-3chip-self-20260705/nf-slave-r.bin",
+            "size": 4048,
+            "sha256": "9e00e7add8fd8f02ec605715bccdd1d6ae963f670793f2bf56e2e598717fb654"
+          }
+        },
+        {
+          "slotId": "replace-ctrlram-normal-slave-r",
+          "regionName": "Normal CtrlRAM (Slave R)",
+          "file": {
+            "path": "fixtures/20260705/inputs/nt51927-3chip-self-20260705/normal-slave-r.bin",
+            "size": 12288,
+            "sha256": "9a9a0b34edd1de2a9ee9d04b169abdfe8ebbe0a7da18dac0bccdc2d82a64a9f8"
+          }
+        },
+        {
+          "slotId": "replace-ctrlram-mp-slave-r",
+          "regionName": "MP CtrlRAM (Slave R)",
+          "file": {
+            "path": "fixtures/20260705/inputs/nt51927-3chip-self-20260705/mp-slave-r.bin",
+            "size": 9216,
+            "sha256": "8bb57729e40b279b437a368d501e00edaebf8bc68823e5ae01ac0fbc3d90de48"
+          }
+        },
+        {
+          "slotId": "replace-ctrlram-vn-slave-r",
+          "regionName": "VN CtrlRAM (Slave R)",
+          "file": {
+            "path": "fixtures/20260705/inputs/nt51927-3chip-self-20260705/vn-slave-r.bin",
+            "size": 5728,
+            "sha256": "aacd153b8d41c0e85e148654ff0feeefb42b51945c41b4a17f30fc393a25e533"
+          }
+        },
+        {
+          "slotId": "replace-ctrlram-nf-slave-l",
+          "regionName": "NF CtrlRAM (Slave L)",
+          "file": {
+            "path": "fixtures/20260705/inputs/nt51927-3chip-self-20260705/nf-slave-l.bin",
+            "size": 4048,
+            "sha256": "42af45605f6cf95899abb4a65ab92dafb31760808d7b7658c6676ea99223a2c4"
+          }
+        },
+        {
+          "slotId": "replace-ctrlram-normal-slave-l",
+          "regionName": "Normal CtrlRAM (Slave L)",
+          "file": {
+            "path": "fixtures/20260705/inputs/nt51927-3chip-self-20260705/normal-slave-l.bin",
+            "size": 12288,
+            "sha256": "42ee3488353a642c801d18516cc455333fc3edee4d41b50a5ec24d45898a7565"
+          }
+        },
+        {
+          "slotId": "replace-ctrlram-mp-slave-l",
+          "regionName": "MP CtrlRAM (Slave L)",
+          "file": {
+            "path": "fixtures/20260705/inputs/nt51927-3chip-self-20260705/mp-slave-l.bin",
+            "size": 9216,
+            "sha256": "d4504418c5be595117e9093e8210ce254f553328b466f9f612e91d9ca8b5eca7"
+          }
+        },
+        {
+          "slotId": "replace-ctrlram-vn-slave-l",
+          "regionName": "VN CtrlRAM (Slave L)",
+          "file": {
+            "path": "fixtures/20260705/inputs/nt51927-3chip-self-20260705/vn-slave-l.bin",
+            "size": 5728,
+            "sha256": "aacd153b8d41c0e85e148654ff0feeefb42b51945c41b4a17f30fc393a25e533"
+          }
+        }
+      ],
+      "notes": "Committed owner-approved self-replacement fixture. Replacement inputs are sliced from the same base firmware. Postbuild output parity remains pending because current Combiner execution recalculates header/integrity bytes."
+    }
+  ],
+  "commitApproval": "Repository owner explicitly approved committing golden BIN payloads to Git on 2026-07-05."
+}

@@ -97,6 +97,6 @@ Current remaining production gates:
 - declared allowed write ranges for every real postbuild parity claim;
 - private CtrlRAM Replace golden outputs and firmware-owner review;
 - clean-package smoke for any release payload that includes `external-tools/` and `reference/`;
-- owner decision for unresolved NT51926 copy-header initialization, NT51930 hidden DiffDLM-region mutation, and NT51931 Combiner 1.13.0 crash behavior.
+- owner decision for unresolved NT51926/NT51930 postbuild-version selection and NT51931 Combiner 1.13.0 crash behavior.
 
 Legacy Combiner `MERGE_MODE` may shorten the staging work file to the command coverage. The postbuild adapter can overlay that command output onto the previous full-length staging image only when it still covers the command's declared write ranges. The imported output remains full length and remains subject to independent allowed-write-range diff verification.
