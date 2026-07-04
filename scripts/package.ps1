@@ -79,12 +79,120 @@ function Restore-SourcePackageLocks {
     }
 }
 
-$ApprovedExternalToolPackagePaths = @(
-    'external-tools/README.md',
-    'external-tools/legacy-combiner/README.md',
-    'external-tools/legacy-combiner/1.13.0/Combiner.exe',
-    'external-tools/legacy-combiner/1.13.0/manifest.json'
-) | Sort-Object
+function Copy-PackageReferenceFile {
+    param([Parameter(Mandatory = $true)][string]$RelativePath)
+
+    $NormalizedRelativePath = $RelativePath.Replace('/', [IO.Path]::DirectorySeparatorChar)
+    $SourcePath = Join-Path $RepoRoot $NormalizedRelativePath
+    if (-not (Test-Path -LiteralPath $SourcePath -PathType Leaf)) {
+        throw "Reference file was not found at $SourcePath"
+    }
+
+    $DestinationPath = Join-Path $ReferenceDestination $NormalizedRelativePath
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $DestinationPath) | Out-Null
+    Copy-Item -LiteralPath $SourcePath -Destination $DestinationPath
+}
+
+function Copy-PackageReferenceTree {
+    param(
+        [Parameter(Mandatory = $true)][string]$RelativeRoot,
+        [Parameter(Mandatory = $true)][string[]]$AllowedExtensions
+    )
+
+    $NormalizedRelativeRoot = $RelativeRoot.Replace('/', [IO.Path]::DirectorySeparatorChar)
+    $SourceRoot = Join-Path $RepoRoot $NormalizedRelativeRoot
+    if (-not (Test-Path -LiteralPath $SourceRoot -PathType Container)) {
+        throw "Reference directory was not found at $SourceRoot"
+    }
+
+    $Allowed = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    foreach ($Extension in $AllowedExtensions) {
+        [void]$Allowed.Add($Extension)
+    }
+
+    Get-ChildItem -LiteralPath $SourceRoot -File -Recurse |
+        Where-Object { $Allowed.Contains($_.Extension) -and $_.Length -gt 0 } |
+        Sort-Object FullName |
+        ForEach-Object {
+            $RelativePath = [System.IO.Path]::GetRelativePath($RepoRoot, $_.FullName).Replace('\', '/')
+            Copy-PackageReferenceFile -RelativePath $RelativePath
+        }
+}
+
+function Add-GoldenManifestEntryPath {
+    param(
+        [Parameter(Mandatory = $true)][System.Collections.Generic.HashSet[string]]$Paths,
+        [Parameter(Mandatory = $true)][string]$GoldenRootRelative,
+        [Parameter(Mandatory = $true)]$Entry
+    )
+
+    if ($null -eq $Entry -or $Entry.PSObject.Properties.Name -notcontains 'path') {
+        throw "Standard Merge golden manifest has an entry without a path."
+    }
+
+    $ManifestRelativePath = [string]$Entry.path
+    if ([string]::IsNullOrWhiteSpace($ManifestRelativePath) -or $ManifestRelativePath.Contains('..') -or $ManifestRelativePath.StartsWith('/')) {
+        throw "Unsafe Standard Merge golden manifest path: '$ManifestRelativePath'"
+    }
+
+    [void]$Paths.Add("$GoldenRootRelative/$ManifestRelativePath")
+}
+
+function Get-DeclaredStandardMergeGoldenPaths {
+    $GoldenRootRelative = 'testdata/golden/standard-merge-gen-flash'
+    $GoldenRoot = Join-Path $RepoRoot $GoldenRootRelative
+    $ManifestPath = Join-Path $GoldenRoot 'manifest.json'
+    if (-not (Test-Path -LiteralPath $ManifestPath -PathType Leaf)) {
+        throw "Standard Merge golden manifest was not found at $ManifestPath"
+    }
+
+    $Manifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
+    if ($Manifest.payloadClass -ne 'owner-approved-golden-firmware' -or $Manifest.binaryPayloadsIncluded -ne $true) {
+        throw 'Standard Merge golden fixtures must declare owner-approved-golden-firmware with binaryPayloadsIncluded=true.'
+    }
+
+    $Paths = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($StaticFile in @('README.md', 'manifest.json')) {
+        [void]$Paths.Add("$GoldenRootRelative/$StaticFile")
+    }
+
+    if ($Manifest.PSObject.Properties.Name -contains 'supportingFiles' -and $null -ne $Manifest.supportingFiles) {
+        foreach ($Property in $Manifest.supportingFiles.PSObject.Properties) {
+            Add-GoldenManifestEntryPath -Paths $Paths -GoldenRootRelative $GoldenRootRelative -Entry $Property.Value
+        }
+    }
+
+    if ($Manifest.PSObject.Properties.Name -notcontains 'cases' -or $null -eq $Manifest.cases) {
+        throw 'Standard Merge golden manifest does not contain cases.'
+    }
+
+    foreach ($Case in $Manifest.cases) {
+        if ($Case.PSObject.Properties.Name -notcontains 'inputs' -or $null -eq $Case.inputs) {
+            throw 'Standard Merge golden manifest case has no inputs.'
+        }
+
+        foreach ($Input in $Case.inputs.PSObject.Properties) {
+            Add-GoldenManifestEntryPath -Paths $Paths -GoldenRootRelative $GoldenRootRelative -Entry $Input.Value
+        }
+
+        if ($Case.PSObject.Properties.Name -notcontains 'expectedOutput') {
+            throw 'Standard Merge golden manifest case has no expectedOutput.'
+        }
+        Add-GoldenManifestEntryPath -Paths $Paths -GoldenRootRelative $GoldenRootRelative -Entry $Case.expectedOutput
+    }
+
+    $ActualBins = @(
+        Get-ChildItem -LiteralPath $GoldenRoot -Filter '*.bin' -File -Recurse |
+            ForEach-Object { [System.IO.Path]::GetRelativePath($RepoRoot, $_.FullName).Replace('\', '/') } |
+            Sort-Object
+    )
+    $DeclaredBins = @($Paths | Where-Object { $_.EndsWith('.bin', [StringComparison]::OrdinalIgnoreCase) } | Sort-Object)
+    if (Compare-Object -ReferenceObject $DeclaredBins -DifferenceObject $ActualBins) {
+        throw 'Standard Merge golden BIN files do not exactly match manifest declarations.'
+    }
+
+    return @($Paths | Sort-Object)
+}
 
 $AppProject = Join-Path $RepoRoot 'src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj'
 $SourcePackageLockSnapshots = Save-SourcePackageLocks
@@ -137,14 +245,44 @@ if (-not (Test-Path -LiteralPath $ExternalToolsSource -PathType Container)) {
     throw "External tools directory was not found at $ExternalToolsSource"
 }
 Copy-Item -LiteralPath $ExternalToolsSource -Destination $ExternalToolsDestination -Recurse
-$ActualExternalToolPackagePaths = @(
-    Get-ChildItem -LiteralPath $ExternalToolsDestination -File -Recurse |
-        ForEach-Object { [System.IO.Path]::GetRelativePath($PackageRoot, $_.FullName).Replace('\', '/') } |
-        Sort-Object
+
+$ReferenceDestination = Join-Path $PackageRoot 'reference'
+New-Item -ItemType Directory -Force -Path $ReferenceDestination | Out-Null
+@"
+NVT FW Combiner reference payload
+
+This directory contains human-review reference evidence and owner-approved golden fixtures shipped with the release package.
+
+Included:
+- docs/references/: flash-map, postbuild, flash-header, and provenance references.
+- docs/architecture/: CtrlRAM postbuild investigation and IC workflow references.
+- testdata/golden/standard-merge-gen-flash/: owner-approved Standard Merge golden BIN fixtures declared by manifest for future packaged self-tests.
+- testdata/golden/ctrlram-replace/ and testdata/golden/owner-handoff/: non-BIN fixture notes and manifests.
+
+Private golden inputs, unmanifested BIN files, generated firmware outputs, refcode, source trees, and test projects are not shipped here.
+"@ | Set-Content -LiteralPath (Join-Path $ReferenceDestination 'README.txt') -Encoding utf8NoBOM
+
+$ReferenceFiles = @(
+    'docs/references/verification-report.md',
+    'docs/references/combiner-info-2026-07-03.md',
+    'docs/references/combiner-info-2026-07-03/TDDI_Flash_Header .xlsx',
+    'docs/architecture/ctrlram-postbuild-command-matrix.md',
+    'docs/architecture/ctrlram-postbuild-investigation-reference.md',
+    'docs/architecture/ctrlram-postbuild-original-pasteback.md',
+    'docs/architecture/ic-workflow-flowcharts.md',
+    'docs/architecture/supported-ic-matrix.md'
 )
-if (Compare-Object -ReferenceObject $ApprovedExternalToolPackagePaths -DifferenceObject $ActualExternalToolPackagePaths) {
-    throw "External tool package contents differ from the approved allowlist: $($ActualExternalToolPackagePaths -join ', ')"
+foreach ($ReferenceFile in $ReferenceFiles) {
+    Copy-PackageReferenceFile -RelativePath $ReferenceFile
 }
+
+Copy-PackageReferenceTree -RelativeRoot 'docs/references/ic-flashmap' -AllowedExtensions @('.bat', '.h', '.json', '.md', '.xlsx')
+
+foreach ($GoldenPath in (Get-DeclaredStandardMergeGoldenPaths)) {
+    Copy-PackageReferenceFile -RelativePath $GoldenPath
+}
+Copy-PackageReferenceTree -RelativeRoot 'testdata/golden/ctrlram-replace' -AllowedExtensions @('.json', '.md')
+Copy-PackageReferenceTree -RelativeRoot 'testdata/golden/owner-handoff' -AllowedExtensions @('.json', '.md')
 
 $SelfTestRequest = '{"protocolVersion":"1.0","requestId":"package-self-test","operation":"calculate","algorithmId":"crc-32-mpeg-2","payloadBase64":"MTIzNDU2Nzg5"}'
 $SelfTestRaw = $SelfTestRequest | & $WorkerExe
@@ -163,10 +301,11 @@ Contents:
 - NvtFwCombiner.exe: self-contained Windows x64 desktop application
 - Nfc.CrcWorker.exe: constrained external checksum/header worker
 - external-tools/: approved legacy Combiner runtime packages
+- reference/: owner-approved flash-map, postbuild, flash-header, and golden fixture evidence
 - RELEASE-MANIFEST.json: source and file integrity metadata
 - SHA256SUMS.txt: package file hashes
 
-This package contains no firmware samples, source code, refcode, tests, editable profiles, Python runtime installation, or .NET installation requirement. External tools are pinned by manifest and SHA-256.
+This package includes owner-approved golden firmware fixtures under reference/testdata/golden/standard-merge-gen-flash for future packaged self-tests. It contains no private golden inputs, unmanifested BIN files, generated firmware outputs, refcode, production source tree, test projects, editable profiles, Python runtime installation, or .NET installation requirement. External tools and reference files are pinned by manifest and SHA-256.
 "@ | Set-Content -LiteralPath (Join-Path $PackageRoot 'README.txt') -Encoding utf8NoBOM
 
 $AppHash = Get-LowerSha256 -Path $AppExe
@@ -179,11 +318,19 @@ $ProfileFiles = @(Get-ChildItem -LiteralPath (Join-Path $RepoRoot 'profiles') -F
 $SchemaFiles = @(Get-ChildItem -LiteralPath (Join-Path $RepoRoot 'docs/contracts') -Filter '*.schema.json' -File | ForEach-Object FullName)
 $ProfileDigest = Get-TreeDigest -Paths $ProfileFiles
 $SchemaDigest = Get-TreeDigest -Paths $SchemaFiles
+$ExternalToolFiles = @(Get-ChildItem -LiteralPath $ExternalToolsDestination -File -Recurse | ForEach-Object FullName)
 $ExternalToolEntries = @(
-    $ApprovedExternalToolPackagePaths | ForEach-Object {
-        $RelativePath = $_
-        $PackagePath = Join-Path $PackageRoot $RelativePath.Replace('/', [System.IO.Path]::DirectorySeparatorChar)
-        [ordered]@{ path = $RelativePath; size = (Get-Item $PackagePath).Length; sha256 = (Get-LowerSha256 $PackagePath); role = 'externalTool' }
+    $ExternalToolFiles | Sort-Object | ForEach-Object {
+        $RelativePath = [System.IO.Path]::GetRelativePath($PackageRoot, $_).Replace('\', '/')
+        [ordered]@{ path = $RelativePath; size = (Get-Item $_).Length; sha256 = (Get-LowerSha256 $_); role = 'externalTool' }
+    }
+)
+$ReferencePayloadFiles = @(Get-ChildItem -LiteralPath $ReferenceDestination -File -Recurse | ForEach-Object FullName)
+$ReferencePayloadEntries = @(
+    $ReferencePayloadFiles | Sort-Object | ForEach-Object {
+        $RelativePath = [System.IO.Path]::GetRelativePath($PackageRoot, $_).Replace('\', '/')
+        $Role = if ($_.EndsWith('.bin', [StringComparison]::OrdinalIgnoreCase)) { 'goldenFixture' } else { 'reference' }
+        [ordered]@{ path = $RelativePath; size = (Get-Item $_).Length; sha256 = (Get-LowerSha256 $_); role = $Role }
     }
 )
 $ApprovedProcessorIds = @(
@@ -211,7 +358,7 @@ $FileEntries = @(
     [ordered]@{ path = 'THIRD-PARTY-NOTICES.txt'; size = (Get-Item $NoticePath).Length; sha256 = (Get-LowerSha256 $NoticePath); role = 'notices' },
     [ordered]@{ path = 'LICENSE.txt'; size = (Get-Item $LicensePath).Length; sha256 = (Get-LowerSha256 $LicensePath); role = 'license' },
     [ordered]@{ path = 'README.txt'; size = (Get-Item $ReadmePath).Length; sha256 = (Get-LowerSha256 $ReadmePath); role = 'readme' }
-) + $ExternalToolEntries
+) + $ExternalToolEntries + $ReferencePayloadEntries
 
 $Manifest = [ordered]@{
     schemaVersion = '1.1'
@@ -289,7 +436,7 @@ $HashLines = foreach ($Name in $HashTargets) {
 }
 $HashLines | Set-Content -LiteralPath (Join-Path $PackageRoot 'SHA256SUMS.txt') -Encoding ascii
 
-$Expected = @(
+$Expected = (@(
     'LICENSE.txt',
     'Nfc.CrcWorker.exe',
     'NvtFwCombiner.exe',
@@ -297,7 +444,7 @@ $Expected = @(
     'RELEASE-MANIFEST.json',
     'SHA256SUMS.txt',
     'THIRD-PARTY-NOTICES.txt'
-) + @($ExternalToolEntries.path) | Sort-Object
+) + @($ExternalToolEntries.path) + @($ReferencePayloadEntries.path)) | Sort-Object
 $Actual = @(
     Get-ChildItem -LiteralPath $PackageRoot -File -Recurse |
         ForEach-Object { [System.IO.Path]::GetRelativePath($PackageRoot, $_.FullName).Replace('\', '/') } |

@@ -33,7 +33,7 @@
 As of 2026-06-30, near-term implementation focuses on normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows.
 
 - AB Code Merge is intentionally deferred for now. Existing AB evidence remains reference material only; do not spend implementation effort on AB unless the owner explicitly reactivates it.
-- Normal/Standard Merge must include NT51950 and NT51951 through the DP Perspective maximum-container policy. Golden evidence is still required before production promotion.
+- Normal/Standard Merge includes NT51950 and NT51951 through the DP Perspective maximum-container policy. Current owner golden cases are recorded; firmware-owner sign-off is still required before production promotion.
 - CtrlRAM Replace requires legacy `combiner.exe` CRC/header recalculation after replacement. Combiner `1.13.0` is imported under `external-tools/legacy-combiner/1.13.0/` and is pinned by SHA-256 manifest.
 - Owner-provided postbuild scripts are the behavioral truth for CtrlRAM Replace command order; mmap files explain offsets and sizes; TP Overview is the documentation baseline to correct when it conflicts with postbuild/mmap evidence.
 - CtrlRAM postbuild command sequences must be generated as structured command/argv data and tested against the hsi Combiner guide, not assembled as one shell command string. NT51927 requires explicit single, 2IC, and 3IC Replace branches.
@@ -66,7 +66,7 @@ As of 2026-06-30, near-term implementation focuses on normal Merge and normal Re
 
 Merge：
 
-- `standard-merge`：固定 profile 的正常合併。Current priority covers normal DP/TP merge flows, including NT51950 and NT51951 after golden cases are available.
+- `standard-merge`：固定 profile 的正常合併。Current priority covers normal DP/TP merge flows, including NT51930 flash-map evidence and NT51950/NT51951 DP Perspective golden cases, while support exposure remains gated by firmware-owner sign-off.
 - `ab-merge`：固定 profile 的 A/B bank 合併、relocation 與 integrity stages。
 - `general-merge`：一或多個 BIN，使用者以 memory map drag、mapping table 或精確手動輸入設定 source/target ranges。
 
@@ -122,15 +122,14 @@ refcode/ab_code_combiner/
 
 ### 2.5 `refcode/` 最終允許內容
 
-`refcode/` 只允許以下三個 owner-approved evidence directory：
+`refcode/` 只允許以下兩個 owner-approved Python evidence directories：
 
 ```text
 gen_flash_bin_v2/
 ab_code_combiner/
-flashmap/
 ```
 
-CI 必須拒絕未核准的頂層 snapshot、任何 `.ts/.tsx/.js`、firmware BIN、cache、venv 或 build output。`flashmap/` 可保留 owner-approved Combiner 1.13.0 evidence copy；production runtime 只能使用 `external-tools/` package。
+CI 必須拒絕未核准的頂層 snapshot、任何 `.ts/.tsx/.js`、firmware BIN、cache、venv 或 build output。IC FlashMap workbook/postbuild/mmap evidence belongs under `docs/references/ic-flashmap/`; approved runtime binaries belong under `external-tools/` and are pinned by manifest。
 
 ### 2.6 外部規範來源
 
@@ -159,7 +158,7 @@ Codex 與 agent governance 主要參考：
 7. External processors may transform only a host-created staging copy. The host owns executable resolution, SHA-256 verification, write-range policy, independent diff verification, and atomic promotion.
 8. 每個 IC/mode/stage 都要明確宣告 integrity disposition、processor id、tool binding when applicable、read/write ranges and evidence；`unknown` 不得成為 supported profile。
 9. production runtime 離線可用，不依賴網路、GitHub、系統 Python 或 package registry。
-10. release 產物最小化、可重現、可驗證 SHA-256，且不含 sample firmware。
+10. release 產物最小化、可重現、可驗證 SHA-256，且不含 private inputs、unmanifested firmware 或 generated firmware outputs；owner-approved golden fixture BINs may ship only under the manifest-declared `reference/` payload。
 11. Codex 可從 root/nested AGENTS、repo skills、project config 與單一 verify command 得到一致規則；`polytail` 必須在完成與 review 前阻擋低品質 AI code。
 12. 新增 IC/mode 時主要修改 profile、processor/tool declaration 與 golden test，不新增 one-off merge/replace script。
 
@@ -702,7 +701,7 @@ The example ranges are placeholders for documentation only. A supported profile 
 | --- | --- | --- |
 | Python CRC worker Protocol 1.0 | Implemented prototype | pure CRC calculation, no file mutation |
 | Staged transform Protocol 2.x | Reserved concept | host-created staging copy mutation with independent diff |
-| External combiner tool runner | Planned implementation | call approved legacy `combiner.exe` versions for CRC/Header transform |
+| External combiner tool runner | Staged adapter implemented for approved Combiner 1.13.0 CtrlRAM postbuild; production parity still gated by profiles/golden evidence | call approved legacy `combiner.exe` versions for CRC/Header transform |
 
 ### 9.2 Process 與 filesystem 安全規則
 

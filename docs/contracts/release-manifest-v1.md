@@ -7,8 +7,9 @@ Rules:
 - JSON Schema Draft 2020-12.
 - UTF-8, deterministic property order, no unknown properties.
 - SHA-256 is lowercase 64-character hex.
-- Package paths are relative package paths. Base payload files are plain filenames; approved external tool payloads must live under `external-tools/`.
+- Package paths are relative package paths. Base payload files are plain filenames; approved external tool payloads must live under `external-tools/`; human-review evidence and owner-approved golden fixtures must live under `reference/`.
 - Manifest lists the five base payload files plus every shipped file under the approved `external-tools/` subtree, excluding itself and `SHA256SUMS.txt`.
+- Manifest also lists every shipped file under `reference/`. Owner-approved golden firmware fixtures use role `goldenFixture`; non-BIN reference evidence uses role `reference`.
 - Built-in profile/schema/processor digests describe resources embedded in the executables.
 - `licenseSpdx` is `MIT`.
 - Signing fields may be omitted only for explicitly approved unsigned beta/smoke packages.
@@ -74,6 +75,18 @@ Example:
       "size": 1,
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
       "role": "externalTool"
+    },
+    {
+      "path": "reference/testdata/golden/standard-merge-gen-flash/expected/51927/flash.bin",
+      "size": 1,
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "role": "goldenFixture"
+    },
+    {
+      "path": "reference/docs/references/ic-flashmap/IC_FlashMap_20260701.xlsx",
+      "size": 1,
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "role": "reference"
     }
   ],
   "sbomAsset": "NvtFwCombiner-v0.8.0-beta.1.cdx.json",

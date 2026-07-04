@@ -31,4 +31,4 @@ Nfc.Profiles maps canonical profile data into Domain/Application-owned models.
 - ViewModels cannot reference binary patch/calculation implementations;
 - only Bootstrap may create concrete adapters;
 - only Infrastructure process adapter may use `Process` for CRC worker invocation;
-- no project includes files under `refcode`, `testdata`, or `artifacts` in publish output.
+- no project publish output includes files under `refcode`, `testdata`, or `artifacts`; the release packager may assemble a separate `reference/` payload only from owner-approved docs/reference files and manifest-declared golden fixtures.

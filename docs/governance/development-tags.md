@@ -11,8 +11,8 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 ## Branch and merge policy
 
 - `0.1.0` is the dev0 contract branch.
-- `0.5.0` is the active normal Replace/settings milestone branch.
-- `0.6.0` is the next development milestone after the `0.5.0` baseline is reviewed and merged.
+- `0.5.0` is the reviewed baseline train and remains the current stable version metadata until the owner chooses the next release version.
+- `0.6.0` is the active post-`0.5.0` development train for workflow data-model convergence, UI/report polish, package reference payloads, and postbuild evidence closure.
 - `main` is the stable branch.
 - Progress to `main` must happen through reviewed merge/PR, not direct unreviewed development pushes.
 - Agent/Codex work should stay on the active milestone branch until review gates pass.
