@@ -334,7 +334,6 @@
   "additionalSources": [
     {
       "name": "merge_bin.7z",
-      "archivePath": "G:/My Drive/Working/Tools/File/word_encrypt/record/merge_bin.7z",
       "sha256": "1b5f836c3564bd94d268019ab8e2b72336b9d74e823ee0646ccdf5b279c4c60c",
       "sourceClassification": "private-owner-approved-golden",
       "approval": "Repository owner supplied merge_bin.7z for remaining Standard Merge golden fixtures on 2026-07-03."

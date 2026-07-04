@@ -17,6 +17,80 @@
       <Setter Property="HorizontalAlignment" Value="Stretch" />
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
     </ControlTheme>
+    <DataTemplate x:Key="MemoryCoverageTooltipTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
+      <Border
+          MaxWidth="360"
+          Padding="10"
+          Background="#FFFFFF"
+          BorderBrush="#CBD5E1"
+          BorderThickness="1"
+          CornerRadius="8">
+        <StackPanel Spacing="8">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+            <Border
+                Width="10"
+                Height="10"
+                VerticalAlignment="Center"
+                Background="{Binding FillBrush}"
+                BorderBrush="{Binding OutlineBrush}"
+                BorderThickness="{Binding OutlineThickness}"
+                CornerRadius="2" />
+            <TextBlock
+                Grid.Column="1"
+                VerticalAlignment="Center"
+                FontSize="12"
+                FontWeight="SemiBold"
+                Foreground="#0F172A"
+                Text="{Binding SourceLabel}"
+                TextWrapping="Wrap" />
+            <Border
+                Grid.Column="2"
+                Padding="7,2"
+                VerticalAlignment="Center"
+                Background="{Binding ChangeBadgeBackgroundBrush}"
+                BorderBrush="{Binding ChangeBadgeBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="999">
+              <TextBlock
+                  FontSize="10"
+                  FontWeight="SemiBold"
+                  Foreground="{Binding ChangeBadgeForegroundBrush}"
+                  Text="{Binding ChangeLabel}" />
+            </Border>
+          </Grid>
+
+          <Grid ColumnDefinitions="54,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="5">
+            <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Range" />
+            <TextBlock
+                Grid.Column="1"
+                FontFamily="Cascadia Mono, Consolas"
+                FontSize="12"
+                Foreground="#0F172A"
+                Text="{Binding RangeLabel}"
+                TextWrapping="Wrap" />
+
+            <TextBlock Grid.Row="1" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Result" />
+            <TextBlock
+                Grid.Row="1"
+                Grid.Column="1"
+                FontSize="11"
+                Foreground="#334155"
+                Text="{Binding CompactDetail}"
+                TextWrapping="Wrap" />
+
+            <TextBlock Grid.Row="2" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Detail" />
+            <TextBlock
+                Grid.Row="2"
+                Grid.Column="1"
+                MaxWidth="280"
+                FontSize="11"
+                Foreground="#64748B"
+                Text="{Binding Detail}"
+                TextWrapping="Wrap" />
+          </Grid>
+        </StackPanel>
+      </Border>
+    </DataTemplate>
   </Window.Resources>
 
   <Window.Styles>
@@ -100,6 +174,7 @@
     <Style Selector="Button.secondary /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="#FFFFFF" />
       <Setter Property="BorderBrush" Value="#CBD5E1" />
+      <Setter Property="CornerRadius" Value="999" />
     </Style>
     <Style Selector="Button.secondary:disabled">
       <Setter Property="Background" Value="#F8FAFC" />
@@ -109,6 +184,7 @@
     <Style Selector="Button.secondary:disabled /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="#F8FAFC" />
       <Setter Property="BorderBrush" Value="#E2E8F0" />
+      <Setter Property="CornerRadius" Value="999" />
     </Style>
     <Style Selector="Button.command">
       <Setter Property="MinHeight" Value="42" />
@@ -137,6 +213,8 @@
       <Setter Property="MinHeight" Value="34" />
       <Setter Property="MinWidth" Value="34" />
       <Setter Property="Padding" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
       <Setter Property="Background" Value="#FFFFFF" />
       <Setter Property="BorderBrush" Value="#CBD5E1" />
       <Setter Property="BorderThickness" Value="1" />
@@ -147,7 +225,12 @@
       <Setter Property="Background" Value="#FFFFFF" />
       <Setter Property="BorderBrush" Value="#CBD5E1" />
       <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="CornerRadius" Value="999" />
+    </Style>
+    <Style Selector="Button.iconButton TextBlock">
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="TextAlignment" Value="Center" />
     </Style>
     <Style Selector="Button.iconButton:disabled">
       <Setter Property="Background" Value="#F8FAFC" />
@@ -158,11 +241,24 @@
       <Setter Property="Background" Value="#F8FAFC" />
       <Setter Property="BorderBrush" Value="#E2E8F0" />
       <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="CornerRadius" Value="999" />
+    </Style>
+    <Style Selector="Button.dangerIcon">
+      <Setter Property="Background" Value="#FFF7F7" />
+      <Setter Property="BorderBrush" Value="#FECACA" />
+      <Setter Property="Foreground" Value="#B91C1C" />
+    </Style>
+    <Style Selector="Button.dangerIcon /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#FFF7F7" />
+      <Setter Property="BorderBrush" Value="#FECACA" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="999" />
     </Style>
     <Style Selector="Button.breadcrumb">
       <Setter Property="MinHeight" Value="34" />
       <Setter Property="Padding" Value="4,0" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="Foreground" Value="#334155" />
@@ -171,6 +267,23 @@
     <Style Selector="Button.breadcrumb /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="ComboBox">
+      <Setter Property="MinHeight" Value="32" />
+      <Setter Property="Background" Value="#F8FAFC" />
+      <Setter Property="BorderBrush" Value="#CBD5E1" />
+      <Setter Property="FontFamily" Value="Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC" />
+      <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style Selector="ComboBoxItem">
+      <Setter Property="FontFamily" Value="Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC" />
+      <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style Selector="ComboBox.technicalSelect">
+      <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    </Style>
+    <Style Selector="ComboBox.settingsSelect">
+      <Setter Property="Width" Value="180" />
     </Style>
     <Style Selector="Button.primary">
       <Setter Property="MinHeight" Value="38" />
@@ -184,7 +297,7 @@
     <Style Selector="Button.primary /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="#2563EB" />
       <Setter Property="BorderBrush" Value="#2563EB" />
-      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="CornerRadius" Value="999" />
     </Style>
     <Style Selector="Button.primary:disabled">
       <Setter Property="Background" Value="#E2E8F0" />
@@ -194,6 +307,7 @@
     <Style Selector="Button.primary:disabled /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="#E2E8F0" />
       <Setter Property="BorderBrush" Value="#CBD5E1" />
+      <Setter Property="CornerRadius" Value="999" />
     </Style>
     <Style Selector="Button.action">
       <Setter Property="MinHeight" Value="34" />
@@ -207,6 +321,7 @@
     <Style Selector="Button.action /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="#FFFFFF" />
       <Setter Property="BorderBrush" Value="#CBD5E1" />
+      <Setter Property="CornerRadius" Value="999" />
     </Style>
     <Style Selector="Button.action:disabled">
       <Setter Property="Background" Value="#F8FAFC" />
@@ -216,10 +331,93 @@
     <Style Selector="Button.action:disabled /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="#F8FAFC" />
       <Setter Property="BorderBrush" Value="#E2E8F0" />
+      <Setter Property="CornerRadius" Value="999" />
+    </Style>
+    <Style Selector="Button.browseAction">
+      <Setter Property="Background" Value="#EFF6FF" />
+      <Setter Property="BorderBrush" Value="#93C5FD" />
+      <Setter Property="Foreground" Value="#1D4ED8" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.browseAction /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#EFF6FF" />
+      <Setter Property="BorderBrush" Value="#93C5FD" />
+      <Setter Property="CornerRadius" Value="999" />
+    </Style>
+    <Style Selector="Button.browseAction:disabled">
+      <Setter Property="Background" Value="#F8FAFC" />
+      <Setter Property="BorderBrush" Value="#E2E8F0" />
+      <Setter Property="Foreground" Value="#94A3B8" />
+    </Style>
+    <Style Selector="Button.browseAction:disabled /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#F8FAFC" />
+      <Setter Property="BorderBrush" Value="#E2E8F0" />
+      <Setter Property="CornerRadius" Value="999" />
+    </Style>
+    <Style Selector="Button.toolbarAction">
+      <Setter Property="MinHeight" Value="36" />
+      <Setter Property="MinWidth" Value="96" />
+      <Setter Property="Padding" Value="13,8" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="Background" Value="#FFFFFF" />
+      <Setter Property="BorderBrush" Value="#CBD5E1" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Foreground" Value="#334155" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.toolbarAction /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#FFFFFF" />
+      <Setter Property="BorderBrush" Value="#CBD5E1" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="999" />
+    </Style>
+    <Style Selector="Button.toolbarAction:disabled">
+      <Setter Property="Background" Value="#F8FAFC" />
+      <Setter Property="BorderBrush" Value="#E2E8F0" />
+      <Setter Property="Foreground" Value="#94A3B8" />
+    </Style>
+    <Style Selector="Button.toolbarAction:disabled /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#F8FAFC" />
+      <Setter Property="BorderBrush" Value="#E2E8F0" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="999" />
+    </Style>
+    <Style Selector="Button.reportAction">
+      <Setter Property="MinHeight" Value="42" />
+      <Setter Property="MinWidth" Value="154" />
+      <Setter Property="Padding" Value="13,7" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="Background" Value="#EFF6FF" />
+      <Setter Property="BorderBrush" Value="#93C5FD" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Foreground" Value="#1D4ED8" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="Button.reportAction /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#EFF6FF" />
+      <Setter Property="BorderBrush" Value="#93C5FD" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="999" />
+    </Style>
+    <Style Selector="Button.reportAction:disabled">
+      <Setter Property="Background" Value="#F8FAFC" />
+      <Setter Property="BorderBrush" Value="#E2E8F0" />
+      <Setter Property="Foreground" Value="#94A3B8" />
+    </Style>
+    <Style Selector="Button.reportAction:disabled /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#F8FAFC" />
+      <Setter Property="BorderBrush" Value="#E2E8F0" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="999" />
     </Style>
     <Style Selector="Button.summaryChip">
       <Setter Property="MinHeight" Value="30" />
       <Setter Property="Padding" Value="10,5" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
       <Setter Property="Background" Value="#F8FAFC" />
       <Setter Property="BorderBrush" Value="#CBD5E1" />
       <Setter Property="Foreground" Value="#334155" />
@@ -246,6 +444,53 @@
       <Setter Property="BorderBrush" Value="#E2E8F0" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="999" />
+    </Style>
+    <Style Selector="Border.slotTypeIcon">
+      <Setter Property="Width" Value="30" />
+      <Setter Property="Height" Value="22" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="6" />
+    </Style>
+    <Style Selector="Border.slotTypeIcon Path">
+      <Setter Property="Width" Value="15" />
+      <Setter Property="Height" Value="15" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Stretch" Value="Uniform" />
+      <Setter Property="StrokeThickness" Value="1.65" />
+      <Setter Property="StrokeLineCap" Value="Round" />
+    </Style>
+    <Style Selector="Border.dropZoneOverlay">
+      <Setter Property="Opacity" Value="0" />
+      <Setter Property="IsHitTestVisible" Value="False" />
+      <Setter Property="Background" Value="#EFF6FF" />
+      <Setter Property="BorderBrush" Value="#2563EB" />
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.14" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Border.fileDropZone.dragActive Border.dropZoneOverlay">
+      <Setter Property="Opacity" Value="0.82" />
+    </Style>
+    <Style Selector="TextBox.addressInput">
+      <Setter Property="MinHeight" Value="32" />
+      <Setter Property="MaxHeight" Value="32" />
+      <Setter Property="Padding" Value="8,0" />
+      <Setter Property="Background" Value="#FFFFFF" />
+      <Setter Property="BorderBrush" Value="#CBD5E1" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="TextAlignment" Value="Center" />
+      <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
   </Window.Styles>
 
@@ -305,28 +550,36 @@
             Orientation="Horizontal"
             Spacing="8">
           <Button
-              Classes="iconButton"
+              Classes="secondary"
               Click="LoadReportJsonButton_OnClick"
               ToolTip.Tip="Load report JSON">
-            <TextBlock FontSize="17" Text="↥" />
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <TextBlock VerticalAlignment="Center" FontSize="14" Text="↥" />
+              <TextBlock VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Text="Load JSON" />
+            </StackPanel>
           </Button>
-          <Grid>
-            <Button
-                Classes="iconButton"
-                Command="{Binding ShowReportCommand}"
-                ToolTip.Tip="{Binding ReportModalActionLabel}">
-              <TextBlock FontSize="17" Text="▤" />
-            </Button>
-            <Border
-                Width="7"
-                Height="7"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Top"
-                Background="#2563EB"
-                CornerRadius="999"
-                IsHitTestVisible="False"
-                IsVisible="{Binding HasLoadedReport}" />
-          </Grid>
+          <Button
+              Classes="reportAction"
+              Command="{Binding ShowReportCommand}"
+              IsEnabled="{Binding CanOpenReport}"
+              ToolTip.Tip="{Binding ReportModalActionLabel}">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="9">
+              <TextBlock
+                  VerticalAlignment="Center"
+                  FontSize="15"
+                  Text="▤" />
+              <StackPanel Grid.Column="1" Spacing="0">
+                <TextBlock
+                    FontSize="12"
+                    FontWeight="SemiBold"
+                    Text="{Binding ReportActionLabel}" />
+                <TextBlock
+                    FontSize="10"
+                    Opacity="0.82"
+                    Text="{Binding ReportActionStatus}" />
+              </StackPanel>
+            </Grid>
+          </Button>
         </StackPanel>
       </Grid>
     </Border>
@@ -356,9 +609,9 @@
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:ShellNavigationEntryViewModel">
               <Button Classes="breadcrumb" Command="{Binding NavigateCommand}">
-                <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="6">
-                  <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#334155" Text="{Binding Label}" />
-                  <TextBlock Grid.Column="1" FontSize="13" Foreground="#94A3B8" Text=">" />
+                <Grid VerticalAlignment="Center" ColumnDefinitions="Auto,Auto" ColumnSpacing="12">
+                  <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="#334155" Text="{Binding Label}" />
+                  <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="13" Foreground="#94A3B8" IsVisible="{Binding IsChevronVisible}" Text=">" />
                 </Grid>
               </Button>
             </DataTemplate>
@@ -394,12 +647,8 @@
           <ComboBox
               Grid.Row="1"
               Grid.Column="0"
+              Classes="technicalSelect"
               Width="154"
-              MinHeight="30"
-              Background="#F8FAFC"
-              BorderBrush="#CBD5E1"
-              FontFamily="Cascadia Mono, Consolas"
-              FontSize="13"
               ItemsSource="{Binding IcChoices}"
               SelectedItem="{Binding SelectedIc, Mode=TwoWay}" />
 
@@ -423,11 +672,8 @@
           <ComboBox
               Grid.Row="1"
               Grid.Column="1"
+              Classes="technicalSelect"
               Width="132"
-              MinHeight="30"
-              Background="#F8FAFC"
-              BorderBrush="#CBD5E1"
-              FontSize="13"
               IsVisible="{Binding IsNumberSelectorVisible}"
               ItemsSource="{Binding NumberChoices}"
               SelectedItem="{Binding SelectedNumber, Mode=TwoWay}" />
@@ -760,21 +1006,20 @@
                 <StackPanel Spacing="12">
                   <StackPanel Spacing="4">
                     <TextBlock FontWeight="SemiBold" Foreground="#0F172A" Text="Preferences" />
-                    <TextBlock FontSize="13" Foreground="#64748B" Text="Local shell preferences; persistence is a later adapter." TextWrapping="Wrap" />
+                    <TextBlock FontSize="13" Foreground="#64748B" Text="Runtime shell preferences; persistence remains a later adapter." TextWrapping="Wrap" />
                   </StackPanel>
-                  <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
-                    <StackPanel Spacing="4">
-                      <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Theme" />
-                      <ComboBox MinHeight="32" ItemsSource="{Binding ThemeChoices}" SelectedItem="{Binding SelectedTheme, Mode=TwoWay}" />
-                    </StackPanel>
-                    <StackPanel Grid.Row="1" Spacing="4">
-                      <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Strictness" />
-                      <ComboBox MinHeight="32" ItemsSource="{Binding StrictnessChoices}" SelectedItem="{Binding SelectedStrictness, Mode=TwoWay}" />
-                    </StackPanel>
-                    <StackPanel Grid.Row="2" Spacing="4">
-                      <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Language" />
-                      <ComboBox MinHeight="32" ItemsSource="{Binding LanguageChoices}" SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}" />
-                    </StackPanel>
+                  <Grid ColumnDefinitions="92,180,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
+                    <TextBlock VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Theme" />
+                    <ComboBox Grid.Column="1" Classes="settingsSelect" ItemsSource="{Binding ThemeChoices}" SelectedItem="{Binding SelectedTheme, Mode=TwoWay}" />
+                    <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="11" Foreground="#64748B" Text="{Binding ThemePreferenceStatus}" TextWrapping="Wrap" />
+
+                    <TextBlock Grid.Row="1" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Strictness" />
+                    <ComboBox Grid.Row="1" Grid.Column="1" Classes="settingsSelect" ItemsSource="{Binding StrictnessChoices}" SelectedItem="{Binding SelectedStrictness, Mode=TwoWay}" />
+                    <TextBlock Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" FontSize="11" Foreground="#64748B" Text="{Binding StrictnessPreferenceStatus}" TextWrapping="Wrap" />
+
+                    <TextBlock Grid.Row="2" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Language" />
+                    <ComboBox Grid.Row="2" Grid.Column="1" Classes="settingsSelect" ItemsSource="{Binding LanguageChoices}" SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}" />
+                    <TextBlock Grid.Row="2" Grid.Column="2" VerticalAlignment="Center" FontSize="11" Foreground="#64748B" Text="{Binding LanguagePreferenceStatus}" TextWrapping="Wrap" />
                   </Grid>
                 </StackPanel>
               </Border>
@@ -812,49 +1057,61 @@
             ColumnSpacing="18"
             IsVisible="{Binding IsReplaceVisible}">
           <StackPanel Spacing="16">
-            <Grid ColumnDefinitions="*,Auto">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
               <StackPanel Spacing="4">
-                <StackPanel Orientation="Horizontal" Spacing="10">
-                  <TextBlock
-                      VerticalAlignment="Center"
-                      FontSize="24"
-                      FontWeight="SemiBold"
-                      Foreground="#0F172A"
-                      Text="{Binding ReplacePreview.Title}" />
-                  <Button
-                      Classes="summaryChip"
-                      Command="{Binding ShowReplaceSelectionCommand}"
-                      ToolTip.Tip="Review selected replacement inputs">
-                    <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="6">
-                      <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding ReplaceSelectionCountLabel}" />
-                      <TextBlock Grid.Column="1" FontSize="12" Foreground="#64748B" Text="⌄" />
-                    </Grid>
-                  </Button>
-                </StackPanel>
+                <TextBlock
+                    FontSize="24"
+                    FontWeight="SemiBold"
+                    Foreground="#0F172A"
+                    Text="{Binding ReplacePreview.Title}" />
                 <TextBlock FontSize="13" Foreground="#64748B" Text="{Binding ReplacePreview.Subtitle}" />
               </StackPanel>
-              <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
-                <StackPanel Width="150" Spacing="3">
+              <Grid
+                  Grid.Column="1"
+                  ColumnDefinitions="158,Auto,Auto"
+                  ColumnSpacing="12"
+                  VerticalAlignment="Center">
+                <StackPanel Spacing="3">
                   <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Mode" />
                   <ComboBox
                       MinHeight="32"
                       ItemsSource="{Binding ReplaceModeChoices}"
                       SelectedItem="{Binding SelectedReplaceMode, Mode=TwoWay}" />
                 </StackPanel>
-                <Button
-                    Classes="iconButton"
-                    Command="{Binding PreviewReplaceCommand}"
-                    ToolTip.Tip="{Binding ReplacePreviewUnavailableReason}">
-                  <TextBlock Text="▷" />
-                </Button>
-                <Button
-                    Classes="iconButton"
-                    Click="BuildReplaceButton_OnClick"
-                    IsEnabled="{Binding CanBuildReplace}"
-                    ToolTip.Tip="{Binding ReplaceBuildUnavailableReason}">
-                  <TextBlock Text="✓" />
-                </Button>
-              </StackPanel>
+                <StackPanel Grid.Column="1" Spacing="3">
+                  <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Targets" />
+                  <Button
+                      Classes="summaryChip"
+                      Command="{Binding ShowReplaceSelectionCommand}"
+                      ToolTip.Tip="Review selected replacement inputs">
+                    <Grid VerticalAlignment="Center" ColumnDefinitions="Auto,Auto" ColumnSpacing="6">
+                      <TextBlock VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding ReplaceSelectionCountLabel}" />
+                      <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="11" Foreground="#64748B" Text="▾" />
+                    </Grid>
+                  </Button>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Margin="0,15,0,0" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
+                  <Button
+                      Classes="toolbarAction"
+                      Command="{Binding PreviewReplaceCommand}"
+                      ToolTip.Tip="{Binding ReplacePreviewUnavailableReason}">
+                    <StackPanel Orientation="Horizontal" Spacing="7">
+                      <TextBlock VerticalAlignment="Center" FontSize="13" Text="▷" />
+                      <TextBlock VerticalAlignment="Center" Text="Preview" />
+                    </StackPanel>
+                  </Button>
+                  <Button
+                      Classes="toolbarAction"
+                      Click="BuildReplaceButton_OnClick"
+                      IsEnabled="{Binding CanBuildReplace}"
+                      ToolTip.Tip="{Binding ReplaceBuildUnavailableReason}">
+                    <StackPanel Orientation="Horizontal" Spacing="7">
+                      <TextBlock VerticalAlignment="Center" FontSize="13" Text="✓" />
+                      <TextBlock VerticalAlignment="Center" Text="Build" />
+                    </StackPanel>
+                  </Button>
+                </StackPanel>
+              </Grid>
             </Grid>
 
             <Border
@@ -873,34 +1130,66 @@
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:FirmwareSlotViewModel">
                       <Border
+                          Classes="fileDropZone"
                           Margin="0,0,0,10"
-                          Padding="14"
+                          Padding="0"
                           Background="{Binding SlotBackgroundBrush}"
                           BorderBrush="{Binding SlotBorderBrush}"
-                          BorderThickness="1"
+                          BorderThickness="{Binding SlotBorderThickness}"
                           CornerRadius="8"
                           DragDrop.AllowDrop="True"
+                          DragDrop.DragEnter="DropZone_OnDragEnter"
                           DragDrop.DragOver="SlotDragOver_OnDragOver"
+                          DragDrop.DragLeave="DropZone_OnDragLeave"
                           DragDrop.Drop="SlotDrop_OnDrop"
                           Tag="{Binding SlotId}">
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                          <StackPanel Spacing="4">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                              <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" />
-                              <Border Padding="8,2" Background="{Binding RequirementBadgeBackgroundBrush}" BorderBrush="{Binding RequirementBadgeBorderBrush}" BorderThickness="1" CornerRadius="999">
-                                <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{Binding RequirementBadgeForegroundBrush}" Text="{Binding RequirementLabel}" />
-                              </Border>
+                        <Grid>
+                          <Border Classes="dropZoneOverlay" />
+                          <Grid Margin="14" ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                            <StackPanel Spacing="4">
+                              <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Border
+                                    Classes="slotTypeIcon"
+                                    Background="{Binding SlotIconBackgroundBrush}"
+                                    BorderBrush="{Binding SlotIconBorderBrush}"
+                                    ToolTip.Tip="{Binding SlotIconTooltip}">
+                                  <Path
+                                      Data="{Binding SlotIconPathData}"
+                                      Stroke="{Binding SlotIconForegroundBrush}" />
+                                </Border>
+                                <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" />
+                                <Border Padding="8,2" VerticalAlignment="Center" Background="{Binding RequirementBadgeBackgroundBrush}" BorderBrush="{Binding RequirementBadgeBorderBrush}" BorderThickness="1" CornerRadius="999">
+                                  <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{Binding RequirementBadgeForegroundBrush}" Text="{Binding RequirementLabel}" />
+                                </Border>
+                              </StackPanel>
+                              <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Description}" TextWrapping="Wrap" />
+                              <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#334155" Text="{Binding DisplayName}" TextWrapping="Wrap" />
+                              <ItemsControl IsVisible="{Binding HasFirmwareFacts}" ItemsSource="{Binding FirmwareFacts}">
+                                <ItemsControl.ItemsPanel>
+                                  <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                  </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                  <DataTemplate x:DataType="vm:FirmwareSlotFactViewModel">
+                                    <Border Margin="0,2,6,0" Padding="7,2" Background="#EEF6FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="999">
+                                      <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#475569" Text="{Binding Label}" />
+                                        <TextBlock FontSize="10" FontFamily="Cascadia Mono, Consolas" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Value}" />
+                                      </StackPanel>
+                                    </Border>
+                                  </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                              </ItemsControl>
+                              <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#64748B" IsVisible="{Binding HasFile}" Text="{Binding DisplayDetail}" TextWrapping="Wrap" />
                             </StackPanel>
-                            <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Description}" TextWrapping="Wrap" />
-                            <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#334155" Text="{Binding DisplayName}" TextWrapping="Wrap" />
-                            <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#64748B" Text="{Binding DisplayDetail}" TextWrapping="Wrap" />
-                          </StackPanel>
-                          <Button
-                              Grid.Column="1"
-                              Classes="action"
-                              Click="BrowseSlotButton_OnClick"
-                              Content="Browse"
-                              Tag="{Binding SlotId}" />
+                            <Button
+                                Grid.Column="1"
+                                Classes="action browseAction"
+                                Click="BrowseSlotButton_OnClick"
+                                Content="Browse"
+                                Tag="{Binding SlotId}" />
+                          </Grid>
                         </Grid>
                       </Border>
                     </DataTemplate>
@@ -923,33 +1212,66 @@
                 </StackPanel>
 
                 <Border
-                    Padding="14"
+                    Classes="fileDropZone"
+                    MinHeight="92"
+                    Padding="0"
                     Background="{Binding ReplaceBaseSlot.SlotBackgroundBrush}"
                     BorderBrush="{Binding ReplaceBaseSlot.SlotBorderBrush}"
-                    BorderThickness="1"
+                    BorderThickness="{Binding ReplaceBaseSlot.SlotBorderThickness}"
                     CornerRadius="8"
                     DragDrop.AllowDrop="True"
+                    DragDrop.DragEnter="DropZone_OnDragEnter"
                     DragDrop.DragOver="SlotDragOver_OnDragOver"
+                    DragDrop.DragLeave="DropZone_OnDragLeave"
                     DragDrop.Drop="SlotDrop_OnDrop"
                     Tag="{Binding ReplaceBaseSlot.SlotId}">
-                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                    <StackPanel Spacing="4">
-                      <StackPanel Orientation="Horizontal" Spacing="8">
-                        <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding ReplaceBaseSlot.Title}" />
-                        <Border Padding="8,2" Background="{Binding ReplaceBaseSlot.RequirementBadgeBackgroundBrush}" BorderBrush="{Binding ReplaceBaseSlot.RequirementBadgeBorderBrush}" BorderThickness="1" CornerRadius="999">
-                          <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{Binding ReplaceBaseSlot.RequirementBadgeForegroundBrush}" Text="{Binding ReplaceBaseSlot.RequirementLabel}" />
-                        </Border>
+                  <Grid>
+                    <Border Classes="dropZoneOverlay" />
+                    <Grid Margin="14" ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                      <StackPanel Spacing="4">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <Border
+                              Classes="slotTypeIcon"
+                              Background="{Binding ReplaceBaseSlot.SlotIconBackgroundBrush}"
+                              BorderBrush="{Binding ReplaceBaseSlot.SlotIconBorderBrush}"
+                              ToolTip.Tip="{Binding ReplaceBaseSlot.SlotIconTooltip}">
+                            <Path
+                                Data="{Binding ReplaceBaseSlot.SlotIconPathData}"
+                                Stroke="{Binding ReplaceBaseSlot.SlotIconForegroundBrush}" />
+                          </Border>
+                          <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding ReplaceBaseSlot.Title}" />
+                          <Border Padding="8,2" VerticalAlignment="Center" Background="{Binding ReplaceBaseSlot.RequirementBadgeBackgroundBrush}" BorderBrush="{Binding ReplaceBaseSlot.RequirementBadgeBorderBrush}" BorderThickness="1" CornerRadius="999">
+                            <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{Binding ReplaceBaseSlot.RequirementBadgeForegroundBrush}" Text="{Binding ReplaceBaseSlot.RequirementLabel}" />
+                          </Border>
+                        </StackPanel>
+                        <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding ReplaceBaseSlot.Description}" TextWrapping="Wrap" />
+                        <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#334155" Text="{Binding ReplaceBaseSlot.DisplayName}" TextWrapping="Wrap" />
+                        <ItemsControl IsVisible="{Binding ReplaceBaseSlot.HasFirmwareFacts}" ItemsSource="{Binding ReplaceBaseSlot.FirmwareFacts}">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                              <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:FirmwareSlotFactViewModel">
+                              <Border Margin="0,2,6,0" Padding="7,2" Background="#EEF6FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="999">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                  <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#475569" Text="{Binding Label}" />
+                                  <TextBlock FontSize="10" FontFamily="Cascadia Mono, Consolas" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Value}" />
+                                </StackPanel>
+                              </Border>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#64748B" IsVisible="{Binding ReplaceBaseSlot.HasFile}" Text="{Binding ReplaceBaseSlot.DisplayDetail}" TextWrapping="Wrap" />
                       </StackPanel>
-                      <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding ReplaceBaseSlot.Description}" TextWrapping="Wrap" />
-                      <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#334155" Text="{Binding ReplaceBaseSlot.DisplayName}" TextWrapping="Wrap" />
-                      <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#64748B" Text="{Binding ReplaceBaseSlot.DisplayDetail}" TextWrapping="Wrap" />
-                    </StackPanel>
-                    <Button
-                        Grid.Column="1"
-                        Classes="action"
-                        Click="BrowseSlotButton_OnClick"
-                        Content="Browse"
-                        Tag="{Binding ReplaceBaseSlot.SlotId}" />
+                      <Button
+                          Grid.Column="1"
+                          Classes="action browseAction"
+                          Click="BrowseSlotButton_OnClick"
+                          Content="Browse"
+                          Tag="{Binding ReplaceBaseSlot.SlotId}" />
+                    </Grid>
                   </Grid>
                 </Border>
 
@@ -972,35 +1294,67 @@
                           <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:FirmwareSlotViewModel">
                               <Border
+                                  Classes="fileDropZone"
                                   HorizontalAlignment="Stretch"
                                   Margin="0,0,0,10"
-                                  Padding="14"
+                                  Padding="0"
                                   Background="{Binding SlotBackgroundBrush}"
                                   BorderBrush="{Binding SlotBorderBrush}"
-                                  BorderThickness="1"
+                                  BorderThickness="{Binding SlotBorderThickness}"
                                   CornerRadius="8"
                                   DragDrop.AllowDrop="True"
+                                  DragDrop.DragEnter="DropZone_OnDragEnter"
                                   DragDrop.DragOver="SlotDragOver_OnDragOver"
+                                  DragDrop.DragLeave="DropZone_OnDragLeave"
                                   DragDrop.Drop="SlotDrop_OnDrop"
                                   Tag="{Binding SlotId}">
-                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                                  <StackPanel Spacing="4">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                      <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" />
-                                      <Border Padding="8,2" Background="{Binding RequirementBadgeBackgroundBrush}" BorderBrush="{Binding RequirementBadgeBorderBrush}" BorderThickness="1" CornerRadius="999">
-                                        <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{Binding RequirementBadgeForegroundBrush}" Text="{Binding RequirementLabel}" />
-                                      </Border>
+                                <Grid>
+                                  <Border Classes="dropZoneOverlay" />
+                                  <Grid Margin="14" ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                                    <StackPanel Spacing="4">
+                                      <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Border
+                                            Classes="slotTypeIcon"
+                                            Background="{Binding SlotIconBackgroundBrush}"
+                                            BorderBrush="{Binding SlotIconBorderBrush}"
+                                            ToolTip.Tip="{Binding SlotIconTooltip}">
+                                          <Path
+                                              Data="{Binding SlotIconPathData}"
+                                              Stroke="{Binding SlotIconForegroundBrush}" />
+                                        </Border>
+                                        <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" />
+                                        <Border Padding="8,2" VerticalAlignment="Center" Background="{Binding RequirementBadgeBackgroundBrush}" BorderBrush="{Binding RequirementBadgeBorderBrush}" BorderThickness="1" CornerRadius="999">
+                                          <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{Binding RequirementBadgeForegroundBrush}" Text="{Binding RequirementLabel}" />
+                                        </Border>
+                                      </StackPanel>
+                                      <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Description}" TextWrapping="Wrap" />
+                                      <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#334155" Text="{Binding DisplayName}" TextWrapping="Wrap" />
+                                      <ItemsControl IsVisible="{Binding HasFirmwareFacts}" ItemsSource="{Binding FirmwareFacts}">
+                                        <ItemsControl.ItemsPanel>
+                                          <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal" />
+                                          </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                          <DataTemplate x:DataType="vm:FirmwareSlotFactViewModel">
+                                            <Border Margin="0,2,6,0" Padding="7,2" Background="#EEF6FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="999">
+                                              <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#475569" Text="{Binding Label}" />
+                                                <TextBlock FontSize="10" FontFamily="Cascadia Mono, Consolas" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Value}" />
+                                              </StackPanel>
+                                            </Border>
+                                          </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                      </ItemsControl>
+                                      <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#64748B" IsVisible="{Binding HasFile}" Text="{Binding DisplayDetail}" TextWrapping="Wrap" />
                                     </StackPanel>
-                                    <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Description}" TextWrapping="Wrap" />
-                                    <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#334155" Text="{Binding DisplayName}" TextWrapping="Wrap" />
-                                    <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#64748B" Text="{Binding DisplayDetail}" TextWrapping="Wrap" />
-                                  </StackPanel>
-                                  <Button
-                                      Grid.Column="1"
-                                      Classes="action"
-                                      Click="BrowseSlotButton_OnClick"
-                                      Content="Browse"
-                                      Tag="{Binding SlotId}" />
+                                    <Button
+                                        Grid.Column="1"
+                                        Classes="action browseAction"
+                                        Click="BrowseSlotButton_OnClick"
+                                        Content="Browse"
+                                        Tag="{Binding SlotId}" />
+                                  </Grid>
                                 </Grid>
                               </Border>
                             </DataTemplate>
@@ -1021,70 +1375,152 @@
                 CornerRadius="8"
                 IsVisible="{Binding IsGeneralReplaceModeSelected}">
               <StackPanel Spacing="16">
-                <StackPanel Spacing="3">
-                  <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="Base BIN" />
-                  <TextBlock FontSize="12" Foreground="#64748B" Text="The reference image stays independent from explicit replacement ranges." TextWrapping="Wrap" />
-                </StackPanel>
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                  <StackPanel Spacing="3">
+                    <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="General replace mapping" />
+                    <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding SelectedReplaceModeDescription}" TextWrapping="Wrap" />
+                  </StackPanel>
+                  <Border Grid.Column="1" Padding="9,3" VerticalAlignment="Top" Background="#FFF7ED" BorderBrush="#FED7AA" BorderThickness="1" CornerRadius="999">
+                    <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#9A3412" Text="Workbench wiring pending" />
+                  </Border>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                  <Border Padding="10" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
+                    <StackPanel Spacing="2">
+                      <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#0F172A" Text="Base image" />
+                      <TextBlock FontSize="11" Foreground="#64748B" Text="Unmapped bytes stay from the selected base BIN." TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Border>
+                  <Border Grid.Column="1" Padding="10" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
+                    <StackPanel Spacing="2">
+                      <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#0F172A" Text="Target bounds" />
+                      <TextBlock FontSize="11" Foreground="#64748B" Text="Ranges must fit the base image and avoid protected regions." TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Border>
+                  <Border Grid.Column="2" Padding="10" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
+                    <StackPanel Spacing="2">
+                      <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#0F172A" Text="Input length" />
+                      <TextBlock FontSize="11" Foreground="#64748B" Text="Replacement BIN data must cover the mapped range length." TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Border>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="14">
+                  <StackPanel Spacing="8">
+                    <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Base image" />
                 <Border
-                    Padding="14"
+                    Classes="fileDropZone"
+                    Padding="0"
                     Background="{Binding ReplaceBaseSlot.SlotBackgroundBrush}"
                     BorderBrush="{Binding ReplaceBaseSlot.SlotBorderBrush}"
-                    BorderThickness="1"
+                    BorderThickness="{Binding ReplaceBaseSlot.SlotBorderThickness}"
                     CornerRadius="8"
                     DragDrop.AllowDrop="True"
+                    DragDrop.DragEnter="DropZone_OnDragEnter"
                     DragDrop.DragOver="SlotDragOver_OnDragOver"
+                    DragDrop.DragLeave="DropZone_OnDragLeave"
                     DragDrop.Drop="SlotDrop_OnDrop"
                     Tag="{Binding ReplaceBaseSlot.SlotId}">
-                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                    <StackPanel Spacing="4">
-                      <StackPanel Orientation="Horizontal" Spacing="8">
-                        <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding ReplaceBaseSlot.Title}" />
-                        <Border Padding="8,2" Background="{Binding ReplaceBaseSlot.RequirementBadgeBackgroundBrush}" BorderBrush="{Binding ReplaceBaseSlot.RequirementBadgeBorderBrush}" BorderThickness="1" CornerRadius="999">
-                          <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{Binding ReplaceBaseSlot.RequirementBadgeForegroundBrush}" Text="{Binding ReplaceBaseSlot.RequirementLabel}" />
-                        </Border>
+                  <Grid>
+                    <Border Classes="dropZoneOverlay" />
+                    <Grid Margin="14" MinHeight="60" ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                      <StackPanel VerticalAlignment="Center" Spacing="4">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <Border
+                              Classes="slotTypeIcon"
+                              Background="{Binding ReplaceBaseSlot.SlotIconBackgroundBrush}"
+                              BorderBrush="{Binding ReplaceBaseSlot.SlotIconBorderBrush}"
+                              ToolTip.Tip="{Binding ReplaceBaseSlot.SlotIconTooltip}">
+                            <Path
+                                Data="{Binding ReplaceBaseSlot.SlotIconPathData}"
+                                Stroke="{Binding ReplaceBaseSlot.SlotIconForegroundBrush}" />
+                          </Border>
+                          <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding ReplaceBaseSlot.Title}" />
+                          <Border Padding="8,2" VerticalAlignment="Center" Background="{Binding ReplaceBaseSlot.RequirementBadgeBackgroundBrush}" BorderBrush="{Binding ReplaceBaseSlot.RequirementBadgeBorderBrush}" BorderThickness="1" CornerRadius="999">
+                            <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{Binding ReplaceBaseSlot.RequirementBadgeForegroundBrush}" Text="{Binding ReplaceBaseSlot.RequirementLabel}" />
+                          </Border>
+                        </StackPanel>
+                        <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding ReplaceBaseSlot.Description}" TextWrapping="Wrap" />
+                        <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#334155" Text="{Binding ReplaceBaseSlot.DisplayName}" TextWrapping="Wrap" />
+                        <ItemsControl IsVisible="{Binding ReplaceBaseSlot.HasFirmwareFacts}" ItemsSource="{Binding ReplaceBaseSlot.FirmwareFacts}">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                              <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:FirmwareSlotFactViewModel">
+                              <Border Margin="0,2,6,0" Padding="7,2" Background="#EEF6FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="999">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                  <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#475569" Text="{Binding Label}" />
+                                  <TextBlock FontSize="10" FontFamily="Cascadia Mono, Consolas" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Value}" />
+                                </StackPanel>
+                              </Border>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#64748B" IsVisible="{Binding ReplaceBaseSlot.HasFile}" Text="{Binding ReplaceBaseSlot.DisplayDetail}" TextWrapping="Wrap" />
                       </StackPanel>
-                      <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding ReplaceBaseSlot.Description}" TextWrapping="Wrap" />
-                      <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#334155" Text="{Binding ReplaceBaseSlot.DisplayName}" TextWrapping="Wrap" />
-                      <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#64748B" Text="{Binding ReplaceBaseSlot.DisplayDetail}" TextWrapping="Wrap" />
+                      <Button
+                          Grid.Column="1"
+                          Classes="action browseAction"
+                          VerticalAlignment="Center"
+                          Click="BrowseSlotButton_OnClick"
+                          Content="Browse"
+                          Tag="{Binding ReplaceBaseSlot.SlotId}" />
+                    </Grid>
+                  </Grid>
+                </Border>
+                  </StackPanel>
+
+                  <StackPanel Grid.Column="1" Spacing="8">
+                    <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Validation" />
+                    <Border MinHeight="92" Padding="12" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
+                      <StackPanel Spacing="4">
+                        <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding ReplaceReadinessStatus}" TextWrapping="Wrap" />
+                        <TextBlock FontSize="11" Foreground="#64748B" Text="Validated execution uses compiled explicit mappings; TP ranges require approved Combiner CRC/header refresh." TextWrapping="Wrap" />
+                      </StackPanel>
+                    </Border>
+                  </StackPanel>
+                </Grid>
+
+                <StackPanel Spacing="10">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                    <StackPanel Spacing="3">
+                      <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="Explicit mappings" />
+                      <TextBlock FontSize="12" Foreground="#64748B" Text="Each row maps one inclusive target range to one replacement BIN." TextWrapping="Wrap" />
                     </StackPanel>
                     <Button
                         Grid.Column="1"
                         Classes="action"
-                        Click="BrowseSlotButton_OnClick"
-                        Content="Browse"
-                        Tag="{Binding ReplaceBaseSlot.SlotId}" />
+                        VerticalAlignment="Bottom"
+                        Command="{Binding AddGeneralReplaceMappingCommand}"
+                        Content="+ Add range" />
                   </Grid>
-                </Border>
-
-                <StackPanel Spacing="10">
-                  <Grid ColumnDefinitions="*,Auto">
-                    <StackPanel Spacing="3">
-                      <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="Replacement ranges" />
-                      <TextBlock FontSize="12" Foreground="#64748B" Text="Each row maps one explicit address range to one BIN file." TextWrapping="Wrap" />
-                    </StackPanel>
+                  <Grid ColumnDefinitions="34,128,22,128,*,82,40" ColumnSpacing="8">
+                    <TextBlock Grid.Column="0" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="#" />
+                    <TextBlock Grid.Column="1" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Start" />
+                    <TextBlock Grid.Column="3" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="End" />
+                    <TextBlock Grid.Column="4" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Replacement BIN" />
                   </Grid>
                   <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding GeneralReplaceMappings}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="vm:GeneralReplaceMappingViewModel">
                         <Border
                             Margin="0,0,0,8"
-                            Padding="10"
+                            Padding="7"
                             Background="#F8FAFC"
                             BorderBrush="#CBD5E1"
                             BorderThickness="1"
                             CornerRadius="8">
-                          <Grid ColumnDefinitions="34,110,28,110,*,38" ColumnSpacing="8">
-                            <Button
-                                Classes="iconButton"
-                                Click="RemoveGeneralMappingButton_OnClick"
-                                ToolTip.Tip="Remove range">
-                              <TextBlock FontSize="13" Text="X" />
-                            </Button>
+                          <Grid ColumnDefinitions="34,128,22,128,*,82,40" ColumnSpacing="8">
+                            <Border Width="30" Height="30" VerticalAlignment="Center" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+                              <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="#334155" Text="{Binding Index}" />
+                            </Border>
                             <TextBox
+                                Classes="addressInput"
                                 Grid.Column="1"
-                                MinHeight="34"
-                                FontFamily="Cascadia Mono, Consolas"
-                                FontSize="12"
                                 Text="{Binding StartAddress, Mode=TwoWay}"
                                 PlaceholderText="start" />
                             <TextBlock
@@ -1093,48 +1529,54 @@
                                 VerticalAlignment="Center"
                                 FontSize="12"
                                 Foreground="#64748B"
-                                Text="to" />
+                                Text="-" />
                             <TextBox
+                                Classes="addressInput"
                                 Grid.Column="3"
-                                MinHeight="34"
-                                FontFamily="Cascadia Mono, Consolas"
-                                FontSize="12"
                                 Text="{Binding EndAddress, Mode=TwoWay}"
                                 PlaceholderText="end" />
                             <Border
+                                Classes="fileDropZone"
                                 Grid.Column="4"
-                                Padding="10,7"
+                                MinHeight="32"
+                                Padding="0"
                                 Background="#FFFFFF"
                                 BorderBrush="#CBD5E1"
                                 BorderThickness="1"
                                 CornerRadius="8"
                                 DragDrop.AllowDrop="True"
+                                DragDrop.DragEnter="DropZone_OnDragEnter"
                                 DragDrop.DragOver="SlotDragOver_OnDragOver"
+                                DragDrop.DragLeave="DropZone_OnDragLeave"
                                 DragDrop.Drop="GeneralMappingDrop_OnDrop"
                                 Tag="{Binding MappingId}">
-                              <StackPanel Spacing="2">
-                                <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding DisplayName}" TextWrapping="Wrap" />
-                                <TextBlock FontSize="10" FontFamily="Cascadia Mono, Consolas" Foreground="#64748B" Text="{Binding DisplayDetail}" TextWrapping="Wrap" />
-                              </StackPanel>
+                              <Grid>
+                                <Border Classes="dropZoneOverlay" />
+                                <StackPanel Margin="10,0" VerticalAlignment="Center" Spacing="2">
+                                  <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding DisplayName}" TextWrapping="Wrap" />
+                                  <TextBlock FontSize="10" FontFamily="Cascadia Mono, Consolas" Foreground="#64748B" IsVisible="{Binding HasFile}" Text="{Binding DisplayDetail}" TextWrapping="Wrap" />
+                                </StackPanel>
+                              </Grid>
                             </Border>
                             <Button
                                 Grid.Column="5"
-                                Classes="iconButton"
+                                Classes="action browseAction"
                                 Click="BrowseGeneralMappingButton_OnClick"
+                                Content="Browse"
                                 Tag="{Binding MappingId}"
-                                ToolTip.Tip="Select replacement BIN">
-                              <TextBlock FontSize="18" Text="+" />
+                                ToolTip.Tip="Select replacement BIN" />
+                            <Button
+                                Grid.Column="6"
+                                Classes="iconButton dangerIcon"
+                                Click="RemoveGeneralMappingButton_OnClick"
+                                ToolTip.Tip="Remove range">
+                              <TextBlock FontSize="13" Text="X" />
                             </Button>
                           </Grid>
                         </Border>
                       </DataTemplate>
                     </ItemsControl.ItemTemplate>
                   </ItemsControl>
-                  <Button
-                      Classes="action"
-                      HorizontalAlignment="Left"
-                      Command="{Binding AddGeneralReplaceMappingCommand}"
-                      Content="+ Add range" />
                 </StackPanel>
               </StackPanel>
             </Border>
@@ -1145,7 +1587,7 @@
             <StackPanel Spacing="14">
               <Grid ColumnDefinitions="*,Auto">
                 <StackPanel Spacing="3">
-                  <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="Flash layout" />
+                  <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="Output layout" />
                   <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding ReplaceMemorySummary}" TextWrapping="Wrap" />
                 </StackPanel>
                 <TextBlock Grid.Column="1" VerticalAlignment="Center" FontFamily="Cascadia Mono, Consolas" FontSize="12" Foreground="#64748B" Text="{Binding ReplaceMemoryRangeLabel}" />
@@ -1165,8 +1607,11 @@
                           Height="22"
                           Background="{Binding FillBrush}"
                           BorderBrush="{Binding OutlineBrush}"
-                          BorderThickness="{Binding OutlineThickness}"
-                          ToolTip.Tip="{Binding TooltipText}" />
+                          BorderThickness="{Binding OutlineThickness}">
+                        <ToolTip.Tip>
+                          <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" />
+                        </ToolTip.Tip>
+                      </Border>
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
@@ -1175,18 +1620,16 @@
               <ItemsControl ItemsSource="{Binding ReplaceCoverageSegments}" IsVisible="{Binding IsReplaceCoverageFlat}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:MemoryCoverageSegmentViewModel">
-                    <Border Padding="0,7" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
-                      <Grid ColumnDefinitions="12,118,*" ColumnSpacing="8">
+                    <Border Padding="0,8" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
+                      <ToolTip.Tip>
+                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" />
+                      </ToolTip.Tip>
+                      <Grid ColumnDefinitions="12,*" ColumnSpacing="8">
                         <Border Width="10" Height="10" Margin="0,3,0,0" VerticalAlignment="Top" Background="{Binding FillBrush}" BorderBrush="{Binding OutlineBrush}" BorderThickness="{Binding OutlineThickness}" CornerRadius="2" />
-                        <TextBlock Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding SourceLabel}" TextWrapping="Wrap" />
-                        <StackPanel Grid.Column="2" Spacing="1">
-                          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                            <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" Foreground="#0F172A" Text="{Binding RangeLabel}" TextWrapping="Wrap" />
-                            <Border Grid.Column="1" Padding="7,2" Background="{Binding ChangeBadgeBackgroundBrush}" BorderBrush="{Binding ChangeBadgeBorderBrush}" BorderThickness="1" CornerRadius="999">
-                              <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="{Binding ChangeBadgeForegroundBrush}" Text="{Binding ChangeLabel}" />
-                            </Border>
-                          </Grid>
-                          <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Detail}" TextWrapping="Wrap" />
+                        <StackPanel Grid.Column="1" Spacing="2">
+                          <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding SourceLabel}" TextWrapping="Wrap" />
+                          <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" Foreground="#0F172A" Text="{Binding RangeLabel}" TextWrapping="Wrap" />
+                          <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding CompactDetail}" TextWrapping="Wrap" />
                         </StackPanel>
                       </Grid>
                     </Border>
@@ -1212,18 +1655,16 @@
                       <ItemsControl HorizontalAlignment="Stretch" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding Segments}">
                         <ItemsControl.ItemTemplate>
                           <DataTemplate x:DataType="vm:MemoryCoverageSegmentViewModel">
-                            <Border Padding="0,7" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
-                              <Grid ColumnDefinitions="12,118,*" ColumnSpacing="8">
+                            <Border Padding="0,8" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
+                              <ToolTip.Tip>
+                                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" />
+                              </ToolTip.Tip>
+                              <Grid ColumnDefinitions="12,*" ColumnSpacing="8">
                                 <Border Width="10" Height="10" Margin="0,3,0,0" VerticalAlignment="Top" Background="{Binding FillBrush}" BorderBrush="{Binding OutlineBrush}" BorderThickness="{Binding OutlineThickness}" CornerRadius="2" />
-                                <TextBlock Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding SourceLabel}" TextWrapping="Wrap" />
-                                <StackPanel Grid.Column="2" Spacing="1">
-                                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                    <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" Foreground="#0F172A" Text="{Binding RangeLabel}" TextWrapping="Wrap" />
-                                    <Border Grid.Column="1" Padding="7,2" Background="{Binding ChangeBadgeBackgroundBrush}" BorderBrush="{Binding ChangeBadgeBorderBrush}" BorderThickness="1" CornerRadius="999">
-                                      <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="{Binding ChangeBadgeForegroundBrush}" Text="{Binding ChangeLabel}" />
-                                    </Border>
-                                  </Grid>
-                                  <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Detail}" TextWrapping="Wrap" />
+                                <StackPanel Grid.Column="1" Spacing="2">
+                                  <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding SourceLabel}" TextWrapping="Wrap" />
+                                  <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" Foreground="#0F172A" Text="{Binding RangeLabel}" TextWrapping="Wrap" />
+                                  <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding CompactDetail}" TextWrapping="Wrap" />
                                 </StackPanel>
                               </Grid>
                             </Border>
@@ -1235,18 +1676,18 @@
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
 
-              <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#64748B" Text="Build steps" />
+              <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#64748B" Text="Plan" />
               <ItemsControl ItemsSource="{Binding ReplaceMemoryRows}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:MemoryMapRowViewModel">
-                    <Border Padding="0,9" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
-                      <Grid ColumnDefinitions="*,96" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="3">
-                          <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" Foreground="#0F172A" Text="{Binding RangeLabel}" TextWrapping="Wrap" />
-                          <Border Grid.Column="1" Width="92" Padding="8,3" HorizontalAlignment="Right" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
-                            <TextBlock HorizontalAlignment="Center" FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding ActionLabel}" TextAlignment="Center" TextTrimming="CharacterEllipsis" />
-                          </Border>
-                        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" FontSize="11" FontWeight="SemiBold" Foreground="#475569" Text="{Binding FlowLabel}" TextWrapping="Wrap" />
-                        <TextBlock Grid.Row="2" Grid.ColumnSpan="2" FontSize="11" Foreground="#64748B" Text="{Binding Detail}" TextWrapping="Wrap" />
+                    <Border Padding="0,9" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0" ToolTip.Tip="{Binding Detail}">
+                      <Grid ColumnDefinitions="90,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="3">
+                        <StackPanel Spacing="2">
+                          <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding PrimaryLabel}" TextWrapping="Wrap" />
+                          <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#2563EB" Text="{Binding ActionLabel}" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" FontFamily="Cascadia Mono, Consolas" FontSize="12" Foreground="#0F172A" Text="{Binding RangeLabel}" TextWrapping="Wrap" />
+                        <TextBlock Grid.Row="1" Grid.Column="1" FontSize="11" FontWeight="SemiBold" Foreground="#475569" Text="{Binding FlowLabel}" TextWrapping="Wrap" />
                       </Grid>
                     </Border>
                   </DataTemplate>
@@ -1265,23 +1706,39 @@
             ColumnSpacing="18"
             IsVisible="{Binding IsMergeVisible}">
           <StackPanel Spacing="16">
-            <Grid ColumnDefinitions="*,Auto">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
               <StackPanel Spacing="4">
                 <TextBlock FontSize="24" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding MergePreview.Title}" />
                 <TextBlock FontSize="13" Foreground="#64748B" Text="{Binding MergePreview.Subtitle}" />
               </StackPanel>
-              <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
-                <Button Classes="iconButton" Command="{Binding PreviewMergeCommand}" ToolTip.Tip="{Binding PreviewActionLabel}">
-                  <TextBlock Text="▷" />
-                </Button>
-                <Button
-                    Classes="iconButton"
-                    Click="BuildMergeButton_OnClick"
-                    IsEnabled="{Binding CanBuildStandardMerge}"
-                    ToolTip.Tip="{Binding BuildActionLabel}">
-                  <TextBlock Text="✓" />
-                </Button>
-              </StackPanel>
+              <Grid Grid.Column="1" ColumnDefinitions="170,Auto" ColumnSpacing="12" VerticalAlignment="Center">
+                <StackPanel Spacing="3" ToolTip.Tip="AB Code and General Merge are reserved placeholders until their workflow is implemented.">
+                  <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Mode" />
+                  <ComboBox
+                      MinHeight="32"
+                      IsEnabled="False"
+                      ItemsSource="{Binding MergeModeChoices}"
+                      SelectedItem="{Binding SelectedMergeMode, Mode=OneWay}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Margin="0,15,0,0" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
+                  <Button Classes="toolbarAction" Command="{Binding PreviewMergeCommand}" ToolTip.Tip="{Binding PreviewActionLabel}">
+                    <StackPanel Orientation="Horizontal" Spacing="7">
+                      <TextBlock VerticalAlignment="Center" FontSize="13" Text="▷" />
+                      <TextBlock VerticalAlignment="Center" Text="Preview" />
+                    </StackPanel>
+                  </Button>
+                  <Button
+                      Classes="toolbarAction"
+                      Click="BuildMergeButton_OnClick"
+                      IsEnabled="{Binding CanBuildStandardMerge}"
+                      ToolTip.Tip="{Binding BuildActionLabel}">
+                    <StackPanel Orientation="Horizontal" Spacing="7">
+                      <TextBlock VerticalAlignment="Center" FontSize="13" Text="✓" />
+                      <TextBlock VerticalAlignment="Center" Text="Build" />
+                    </StackPanel>
+                  </Button>
+                </StackPanel>
+              </Grid>
             </Grid>
 
             <Border Padding="18" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
@@ -1294,34 +1751,66 @@
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:FirmwareSlotViewModel">
                       <Border
+                          Classes="fileDropZone"
                           Margin="0,0,0,10"
-                          Padding="14"
+                          Padding="0"
                           Background="{Binding SlotBackgroundBrush}"
                           BorderBrush="{Binding SlotBorderBrush}"
-                          BorderThickness="1"
+                          BorderThickness="{Binding SlotBorderThickness}"
                           CornerRadius="8"
                           DragDrop.AllowDrop="True"
+                          DragDrop.DragEnter="DropZone_OnDragEnter"
                           DragDrop.DragOver="SlotDragOver_OnDragOver"
+                          DragDrop.DragLeave="DropZone_OnDragLeave"
                           DragDrop.Drop="SlotDrop_OnDrop"
                           Tag="{Binding SlotId}">
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                          <StackPanel Spacing="4">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                              <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" />
-                              <Border Padding="8,2" Background="{Binding RequirementBadgeBackgroundBrush}" BorderBrush="{Binding RequirementBadgeBorderBrush}" BorderThickness="1" CornerRadius="999">
-                                <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{Binding RequirementBadgeForegroundBrush}" Text="{Binding RequirementLabel}" />
-                              </Border>
+                        <Grid>
+                          <Border Classes="dropZoneOverlay" />
+                          <Grid Margin="14" ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                            <StackPanel Spacing="4">
+                              <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Border
+                                    Classes="slotTypeIcon"
+                                    Background="{Binding SlotIconBackgroundBrush}"
+                                    BorderBrush="{Binding SlotIconBorderBrush}"
+                                    ToolTip.Tip="{Binding SlotIconTooltip}">
+                                  <Path
+                                      Data="{Binding SlotIconPathData}"
+                                      Stroke="{Binding SlotIconForegroundBrush}" />
+                                </Border>
+                                <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" />
+                                <Border Padding="8,2" VerticalAlignment="Center" Background="{Binding RequirementBadgeBackgroundBrush}" BorderBrush="{Binding RequirementBadgeBorderBrush}" BorderThickness="1" CornerRadius="999">
+                                  <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{Binding RequirementBadgeForegroundBrush}" Text="{Binding RequirementLabel}" />
+                                </Border>
+                              </StackPanel>
+                              <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Description}" TextWrapping="Wrap" />
+                              <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#334155" Text="{Binding DisplayName}" TextWrapping="Wrap" />
+                              <ItemsControl IsVisible="{Binding HasFirmwareFacts}" ItemsSource="{Binding FirmwareFacts}">
+                                <ItemsControl.ItemsPanel>
+                                  <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                  </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                  <DataTemplate x:DataType="vm:FirmwareSlotFactViewModel">
+                                    <Border Margin="0,2,6,0" Padding="7,2" Background="#EEF6FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="999">
+                                      <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#475569" Text="{Binding Label}" />
+                                        <TextBlock FontSize="10" FontFamily="Cascadia Mono, Consolas" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Value}" />
+                                      </StackPanel>
+                                    </Border>
+                                  </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                              </ItemsControl>
+                              <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#64748B" IsVisible="{Binding HasFile}" Text="{Binding DisplayDetail}" TextWrapping="Wrap" />
                             </StackPanel>
-                            <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Description}" TextWrapping="Wrap" />
-                            <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#334155" Text="{Binding DisplayName}" TextWrapping="Wrap" />
-                            <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#64748B" Text="{Binding DisplayDetail}" TextWrapping="Wrap" />
-                          </StackPanel>
-                          <Button
-                              Grid.Column="1"
-                              Classes="action"
-                              Click="BrowseSlotButton_OnClick"
-                              Content="Browse"
-                              Tag="{Binding SlotId}" />
+                            <Button
+                                Grid.Column="1"
+                                Classes="action browseAction"
+                                Click="BrowseSlotButton_OnClick"
+                                Content="Browse"
+                                Tag="{Binding SlotId}" />
+                          </Grid>
                         </Grid>
                       </Border>
                     </DataTemplate>
@@ -1338,7 +1827,7 @@
             <StackPanel Spacing="14">
               <Grid ColumnDefinitions="*,Auto">
                 <StackPanel Spacing="3">
-                  <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="Flash layout" />
+                  <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="Output layout" />
                   <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding MergeMemorySummary}" TextWrapping="Wrap" />
                 </StackPanel>
                 <TextBlock
@@ -1364,8 +1853,11 @@
                       <Border
                           Width="{Binding BarWidth}"
                           Height="22"
-                          Background="{Binding FillBrush}"
-                          ToolTip.Tip="{Binding TooltipText}" />
+                          Background="{Binding FillBrush}">
+                        <ToolTip.Tip>
+                          <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" />
+                        </ToolTip.Tip>
+                      </Border>
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
@@ -1374,35 +1866,32 @@
               <ItemsControl ItemsSource="{Binding MergeCoverageSegments}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:MemoryCoverageSegmentViewModel">
-                    <Border Padding="0,7" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
-                      <Grid ColumnDefinitions="12,108,*,Auto" ColumnSpacing="8">
+                    <Border Padding="0,8" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
+                      <ToolTip.Tip>
+                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" />
+                      </ToolTip.Tip>
+                      <Grid ColumnDefinitions="12,*" ColumnSpacing="8">
                         <Border Width="10" Height="10" Margin="0,3,0,0" VerticalAlignment="Top" Background="{Binding FillBrush}" CornerRadius="2" />
-                        <TextBlock Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding SourceLabel}" TextWrapping="Wrap" />
-                        <StackPanel Grid.Column="2" Spacing="1">
-                          <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" Foreground="#0F172A" Text="{Binding RangeLabel}" />
-                          <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Detail}" TextWrapping="Wrap" />
+                        <StackPanel Grid.Column="1" Spacing="2">
+                          <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding SourceLabel}" TextWrapping="Wrap" />
+                          <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" Foreground="#0F172A" Text="{Binding RangeLabel}" TextWrapping="Wrap" />
+                          <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding CompactDetail}" TextWrapping="Wrap" />
                         </StackPanel>
-                        <Border Grid.Column="3" Padding="7,2" VerticalAlignment="Top" Background="{Binding ChangeBadgeBackgroundBrush}" BorderBrush="{Binding ChangeBadgeBorderBrush}" BorderThickness="1" CornerRadius="999">
-                          <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="{Binding ChangeBadgeForegroundBrush}" Text="{Binding ChangeLabel}" />
-                        </Border>
                       </Grid>
                     </Border>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
 
-              <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#64748B" Text="Operations" />
+              <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#64748B" Text="Plan" />
               <ItemsControl ItemsSource="{Binding MergeMemoryRows}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:MemoryMapRowViewModel">
                     <Border Padding="0,9" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0" ToolTip.Tip="{Binding Detail}">
-                      <Grid ColumnDefinitions="*,96" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="3">
-                        <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" Foreground="#0F172A" Text="{Binding RangeLabel}" TextWrapping="Wrap" />
-                        <Border Grid.Column="1" Width="92" Padding="8,3" HorizontalAlignment="Right" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
-                          <TextBlock HorizontalAlignment="Center" FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding ActionLabel}" TextAlignment="Center" TextTrimming="CharacterEllipsis" />
-                        </Border>
-                        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" FontSize="11" FontWeight="SemiBold" Foreground="#475569" Text="{Binding FlowLabel}" TextWrapping="Wrap" />
-                        <TextBlock Grid.Row="2" Grid.ColumnSpan="2" FontSize="11" Foreground="#64748B" Text="{Binding Detail}" TextWrapping="Wrap" />
+                      <Grid ColumnDefinitions="62,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="3">
+                        <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#2563EB" Text="{Binding ActionLabel}" TextWrapping="Wrap" />
+                        <TextBlock Grid.Column="1" FontFamily="Cascadia Mono, Consolas" FontSize="12" Foreground="#0F172A" Text="{Binding RangeLabel}" TextWrapping="Wrap" />
+                        <TextBlock Grid.Row="1" Grid.Column="1" FontSize="11" FontWeight="SemiBold" Foreground="#475569" Text="{Binding FlowLabel}" TextWrapping="Wrap" />
                       </Grid>
                     </Border>
                   </DataTemplate>
@@ -1547,98 +2036,152 @@
         Background="#990F172A"
         IsVisible="{Binding IsReportModalOpen}">
       <Border
-          Width="980"
-          MaxHeight="720"
-          Padding="20"
+          Width="1060"
+          MaxHeight="740"
+          Padding="0"
           HorizontalAlignment="Center"
           VerticalAlignment="Center"
           Background="#FFFFFF"
           BorderBrush="#CBD5E1"
           BorderThickness="1"
           CornerRadius="8">
-        <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="16">
-          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-            <StackPanel Spacing="4">
-              <TextBlock FontSize="20" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.Title}" TextWrapping="Wrap" />
-              <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding LoadedReport.Subtitle}" TextWrapping="Wrap" />
-            </StackPanel>
-            <Button
-                Grid.Column="1"
-                Classes="iconButton"
-                Command="{Binding CloseReportCommand}"
-                ToolTip.Tip="Close report">
-              <TextBlock Text="×" />
-            </Button>
-          </Grid>
-
-          <Border
-              Grid.Row="1"
-              Padding="14"
-              Background="#FFF7ED"
-              BorderBrush="#FDBA74"
-              BorderThickness="1"
-              CornerRadius="8"
-              IsVisible="{Binding LoadedReport.HasPrimaryIssue}">
-            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-              <Border
-                  Width="8"
-                  Height="44"
-                  VerticalAlignment="Top"
-                  Background="#EA580C"
-                  CornerRadius="999" />
-              <StackPanel Grid.Column="1" Spacing="4">
-                <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#9A3412" Text="Blocked reason" />
-                <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#7C2D12" Text="{Binding LoadedReport.PrimaryIssue.Title}" TextWrapping="Wrap" />
-                <TextBlock FontSize="13" Foreground="#7C2D12" Text="{Binding LoadedReport.PrimaryIssue.Detail}" TextWrapping="Wrap" />
-                <TextBlock FontSize="11" Foreground="#B45309" Text="{Binding LoadedReport.PrimaryIssue.Meta}" TextWrapping="Wrap" />
+        <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="0">
+          <Border Padding="22,18" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+              <StackPanel Spacing="5">
+                <TextBlock FontSize="20" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.Title}" TextWrapping="Wrap" />
+                <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding LoadedReport.Subtitle}" TextWrapping="Wrap" />
               </StackPanel>
+              <Button
+                  Grid.Column="1"
+                  Classes="iconButton"
+                  Command="{Binding CloseReportCommand}"
+                  ToolTip.Tip="Close report">
+                <TextBlock Text="×" />
+              </Button>
             </Grid>
           </Border>
 
-          <ItemsControl Grid.Row="2" ItemsSource="{Binding LoadedReport.SummaryRows}">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate>
-                <WrapPanel />
-              </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="vm:ReportLineViewModel">
-                <Border
-                    MinWidth="150"
-                    Padding="10,8"
-                    Margin="0,0,8,8"
-                    Background="#F8FAFC"
-                    BorderBrush="#E2E8F0"
-                    BorderThickness="1"
-                    CornerRadius="8">
-                  <StackPanel Spacing="2">
-                    <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Title}" />
-                    <TextBlock FontSize="15" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Detail}" TextWrapping="Wrap" />
-                    <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" />
+          <Grid Grid.Row="1" Margin="22,18,22,0" ColumnDefinitions="1.05*,1.4*" ColumnSpacing="16">
+            <Border Padding="16" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+                <Grid Width="38" Height="38" AutomationProperties.Name="{Binding LoadedReport.OutcomeAccessibilityLabel}">
+                  <Border Background="#16A34A" CornerRadius="999" IsVisible="{Binding LoadedReport.IsSuccessful}" />
+                  <Border Background="#EA580C" CornerRadius="999" IsVisible="{Binding LoadedReport.HasPrimaryIssue}" />
+                  <TextBlock
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"
+                      FontSize="16"
+                      FontWeight="SemiBold"
+                      Foreground="#FFFFFF"
+                      Text="{Binding LoadedReport.OutcomeIcon}" />
+                </Grid>
+                <StackPanel Grid.Column="1" Spacing="6">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.OutcomeTitle}" TextWrapping="Wrap" />
+                    <Border Padding="8,2" VerticalAlignment="Center" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+                      <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#334155" Text="{Binding LoadedReport.OutcomeMeta}" TextWrapping="Wrap" />
+                    </Border>
+                  </StackPanel>
+                  <TextBlock FontSize="12" Foreground="#475569" Text="{Binding LoadedReport.OutcomeDetail}" TextWrapping="Wrap" />
+                  <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.NextStepTitle}" TextWrapping="Wrap" />
+                  <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding LoadedReport.NextStepDetail}" TextWrapping="Wrap" />
+                </StackPanel>
+              </Grid>
+            </Border>
+
+            <StackPanel Grid.Column="1" Spacing="8">
+              <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#64748B" Text="Evidence map" />
+              <ItemsControl ItemsSource="{Binding LoadedReport.EvidenceRows}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ReportLineViewModel">
+                    <Border
+                        MinWidth="112"
+                        Padding="11,8"
+                        Margin="0,0,8,8"
+                        Background="#FFFFFF"
+                        BorderBrush="#E2E8F0"
+                        BorderThickness="1"
+                        CornerRadius="8">
+                      <StackPanel Spacing="2">
+                        <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Title}" />
+                        <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Detail}" TextWrapping="Wrap" />
+                        <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" />
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Grid>
+
+          <ScrollViewer Grid.Row="2" Margin="22,18,22,0">
+            <Grid ColumnDefinitions="0.95*,1.25*" ColumnSpacing="18">
+              <StackPanel Spacing="14">
+                <Border Padding="14" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
+                  <StackPanel Spacing="10">
+                    <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Where to look first" />
+                    <ItemsControl ItemsSource="{Binding LoadedReport.TriageRows}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ReportLineViewModel">
+                          <Grid ColumnDefinitions="26,*" ColumnSpacing="10" Margin="0,0,0,10">
+                            <Grid>
+                              <Border Width="2" HorizontalAlignment="Center" Background="#DBEAFE" />
+                              <Border
+                                  Width="18"
+                                  Height="18"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Top"
+                                  Background="#EFF6FF"
+                                  BorderBrush="#93C5FD"
+                                  BorderThickness="1"
+                                  CornerRadius="999" />
+                            </Grid>
+                            <StackPanel Grid.Column="1" Spacing="2">
+                              <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#1E3A8A" Text="{Binding Title}" TextWrapping="Wrap" />
+                              <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Detail}" TextWrapping="Wrap" />
+                              <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" />
+                            </StackPanel>
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                   </StackPanel>
                 </Border>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
 
-          <ScrollViewer Grid.Row="3">
-            <Grid ColumnDefinitions="1.05*,1.25*" ColumnSpacing="18">
-              <StackPanel Spacing="14">
-                <Border Padding="12" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
-                  <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="7">
-                    <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="File" />
-                    <TextBlock Grid.Column="1" FontSize="12" Foreground="#334155" Text="{Binding LoadedReport.SourceName}" TextWrapping="Wrap" />
-                    <TextBlock Grid.Row="1" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Status" />
-                    <TextBlock Grid.Row="1" Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.Status}" />
-                    <TextBlock Grid.Row="2" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Output" />
-                    <TextBlock Grid.Row="2" Grid.Column="1" FontSize="12" Foreground="#334155" Text="{Binding LoadedReport.Output}" TextWrapping="Wrap" />
-                  </Grid>
-                </Border>
+                <Expander IsExpanded="{Binding LoadedReport.ShouldExpandIssues, Mode=OneWay}" IsVisible="{Binding LoadedReport.HasIssues}">
+                  <Expander.Header>
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                      <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Issues" />
+                      <Border Grid.Column="1" Padding="7,2" Background="#FFF7ED" BorderBrush="#FED7AA" BorderThickness="1" CornerRadius="999">
+                        <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#9A3412" Text="{Binding LoadedReport.IssueCount}" />
+                      </Border>
+                    </Grid>
+                  </Expander.Header>
+                  <ItemsControl ItemsSource="{Binding LoadedReport.Issues}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:ReportLineViewModel">
+                        <Border Padding="10,8" Background="#FFF7ED" BorderBrush="#FED7AA" BorderThickness="1" CornerRadius="6" Margin="0,8,0,0">
+                          <StackPanel Spacing="2">
+                            <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#9A3412" Text="{Binding Title}" TextWrapping="Wrap" />
+                            <TextBlock FontSize="12" Foreground="#7C2D12" Text="{Binding Detail}" TextWrapping="Wrap" />
+                            <TextBlock FontSize="11" Foreground="#B45309" Text="{Binding Meta}" TextWrapping="Wrap" />
+                          </StackPanel>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </Expander>
 
                 <Expander IsExpanded="False" IsVisible="{Binding LoadedReport.HasInputs}">
                   <Expander.Header>
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                      <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Inputs" />
+                      <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Inputs and hashes" />
                       <Border Grid.Column="1" Padding="7,2" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
                         <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding LoadedReport.InputCount}" />
                       </Border>
@@ -1659,36 +2202,23 @@
                   </ItemsControl>
                 </Expander>
 
-                <Expander IsExpanded="False" IsVisible="{Binding LoadedReport.HasIssues}">
-                  <Expander.Header>
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                      <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="All issues" />
-                      <Border Grid.Column="1" Padding="7,2" Background="#FFF7ED" BorderBrush="#FED7AA" BorderThickness="1" CornerRadius="999">
-                        <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#9A3412" Text="{Binding LoadedReport.IssueCount}" />
-                      </Border>
-                    </Grid>
-                  </Expander.Header>
-                  <ItemsControl ItemsSource="{Binding LoadedReport.Issues}">
-                    <ItemsControl.ItemTemplate>
-                      <DataTemplate x:DataType="vm:ReportLineViewModel">
-                        <Border Padding="10,8" Background="#FFF7ED" BorderBrush="#FED7AA" BorderThickness="1" CornerRadius="6" Margin="0,8,0,0">
-                          <StackPanel Spacing="2">
-                            <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#9A3412" Text="{Binding Title}" TextWrapping="Wrap" />
-                            <TextBlock FontSize="12" Foreground="#7C2D12" Text="{Binding Detail}" TextWrapping="Wrap" />
-                            <TextBlock FontSize="11" Foreground="#B45309" Text="{Binding Meta}" TextWrapping="Wrap" />
-                          </StackPanel>
-                        </Border>
-                      </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                </Expander>
+                <Border Padding="12" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
+                  <Grid ColumnDefinitions="82,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="7">
+                    <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Report file" />
+                    <TextBlock Grid.Column="1" FontSize="12" Foreground="#334155" Text="{Binding LoadedReport.SourceName}" TextWrapping="Wrap" />
+                    <TextBlock Grid.Row="1" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Status" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.Status}" />
+                    <TextBlock Grid.Row="2" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Output" />
+                    <TextBlock Grid.Row="2" Grid.Column="1" FontSize="12" Foreground="#334155" Text="{Binding LoadedReport.Output}" TextWrapping="Wrap" />
+                  </Grid>
+                </Border>
               </StackPanel>
 
               <StackPanel Grid.Column="1" Spacing="14">
-                <Expander IsExpanded="True" IsVisible="{Binding LoadedReport.HasCommandOperations}">
+                <Expander IsExpanded="{Binding LoadedReport.ShouldExpandCommandOperations, Mode=OneWay}" IsVisible="{Binding LoadedReport.HasCommandOperations}">
                   <Expander.Header>
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                      <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Combiner commands" />
+                      <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="External processor commands" />
                       <Border Grid.Column="1" Padding="7,2" Background="#EAF3FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="999">
                         <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#1D4ED8" Text="{Binding LoadedReport.CommandOperationCount}" />
                       </Border>
@@ -1715,7 +2245,7 @@
                             <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
                             <TextBlock FontSize="12" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding Detail}" TextWrapping="Wrap" />
                             <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" />
-                            <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Combiner CMD" />
+                            <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Command" />
                             <Border Padding="8,6" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6" IsVisible="{Binding HasCodeBlock}">
                               <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#0F172A" Text="{Binding CodeBlock}" TextWrapping="Wrap" />
                             </Border>
@@ -1726,7 +2256,7 @@
                   </ItemsControl>
                 </Expander>
 
-                <Expander IsExpanded="False" IsVisible="{Binding LoadedReport.HasStepOperations}">
+                <Expander IsExpanded="{Binding LoadedReport.ShouldExpandStepOperations, Mode=OneWay}" IsVisible="{Binding LoadedReport.HasStepOperations}">
                   <Expander.Header>
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                       <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Operation steps" />
@@ -1766,7 +2296,7 @@
                 <Expander IsExpanded="False" IsVisible="{Binding LoadedReport.HasMutations}">
                   <Expander.Header>
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                      <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Mutations" />
+                      <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Changed ranges" />
                       <Border Grid.Column="1" Padding="7,2" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
                         <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding LoadedReport.MutationCount}" />
                       </Border>
@@ -1790,7 +2320,7 @@
             </Grid>
           </ScrollViewer>
 
-          <StackPanel Grid.Row="4" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+          <StackPanel Grid.Row="3" Margin="22,18,22,18" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
             <Button
                 Classes="secondary"
                 Command="{Binding CloseReportCommand}"

@@ -1,10 +1,8 @@
 using System.Globalization;
 using System.Text.Json;
+using Avalonia;
 using Avalonia.Media;
-using NvtFwCombiner.Application.Composition;
-using NvtFwCombiner.Application.ExternalTools;
-using NvtFwCombiner.Bootstrap;
-using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
@@ -27,26 +25,73 @@ public sealed class ShellViewModelTests
         Assert.Contains(viewModel.SettingsToolRows, row => row.Title == "External tool binding" && row.Value.Contains("legacy-combiner-1.13.0", StringComparison.Ordinal));
         Assert.Contains(viewModel.SettingsDiagnosticsRows, row => row.Title == "Report review");
         Assert.Contains(viewModel.SettingsReadinessRows, row => row.Title == "Device context" && row.Value == "Workflow pages only");
+
+        viewModel.SelectedTheme = "Dark";
+        viewModel.SelectedStrictness = "Warn only";
+        viewModel.SelectedLanguage = "Traditional Chinese";
+
+        Assert.Equal("Dark theme is applied to this window.", viewModel.ThemePreferenceStatus);
+        Assert.Equal("Preference is recorded; firmware gates still fail closed.", viewModel.StrictnessPreferenceStatus);
+        Assert.Equal("Preference is recorded; full XAML localization is pending.", viewModel.LanguagePreferenceStatus);
+        Assert.Contains(viewModel.SettingsPreferenceRows, row =>
+            row.Title == "Theme" &&
+            row.Value == "Dark" &&
+            row.Status == "Session");
+        Assert.Contains(viewModel.SettingsPreferenceRows, row =>
+            row.Title == "Strictness" &&
+            row.Value == "Warn only");
+        Assert.Contains(viewModel.SettingsPreferenceRows, row =>
+            row.Title == "Language" &&
+            row.Value == "Traditional Chinese");
     }
 
-    /// <summary>Verifies breadcrumb history can return to an earlier page level.</summary>
+    /// <summary>Verifies breadcrumbs show page hierarchy while Back returns to the previous page.</summary>
     [Fact]
-    public void NavigationTrailReturnsToEarlierPage()
+    public void NavigationTrailShowsHierarchyAndBackReturnsToPreviousPage()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.ShowSettingsCommand.Execute(null);
+        viewModel.ShowMergeCommand.Execute(null);
         viewModel.ShowReplaceCommand.Execute(null);
 
         Assert.True(viewModel.IsReplaceVisible);
         Assert.True(viewModel.IsDeviceContextVisible);
-        Assert.Equal("Home > Settings > Replace", viewModel.NavigationPath);
+        Assert.Equal("Home > Replace", viewModel.NavigationPath);
+        Assert.DoesNotContain("Merge > Replace", viewModel.NavigationPath, StringComparison.Ordinal);
+        Assert.False(viewModel.NavigationTrail[^1].IsChevronVisible);
 
-        viewModel.NavigationTrail[1].NavigateCommand.Execute(null);
+        viewModel.GoBackCommand.Execute(null);
 
-        Assert.True(viewModel.IsSettingsVisible);
-        Assert.False(viewModel.IsDeviceContextVisible);
-        Assert.Equal("Home > Settings", viewModel.NavigationPath);
+        Assert.True(viewModel.IsMergeVisible);
+        Assert.True(viewModel.IsDeviceContextVisible);
+        Assert.Equal("Home > Merge", viewModel.NavigationPath);
+    }
+
+    /// <summary>Verifies command-line launch arguments select a reviewable UI state.</summary>
+    [Fact]
+    public void UiLaunchOptionsParsePageReportAndOpenReport()
+    {
+        var options = UiLaunchOptions.Parse(
+            ["--page", "merge", "--load-report", "preview-report.json", "--open-report"]);
+
+        Assert.Equal(ShellPage.Merge, options.Page);
+        Assert.Equal("preview-report.json", options.ReportPath);
+        Assert.True(options.OpenReport);
+        Assert.Empty(options.Issues);
+    }
+
+    /// <summary>Verifies invalid UI launch arguments fail as reportable issues.</summary>
+    [Fact]
+    public void UiLaunchOptionsCollectsInvalidArguments()
+    {
+        var options = UiLaunchOptions.Parse(
+            ["--page=unknown", "--report=", "--open-report"]);
+
+        Assert.Null(options.Page);
+        Assert.Null(options.ReportPath);
+        Assert.True(options.OpenReport);
+        Assert.Contains(options.Issues, issue => issue.Contains("Unsupported --page value", StringComparison.Ordinal));
+        Assert.Contains(options.Issues, issue => issue.Contains("--report requires a value.", StringComparison.Ordinal));
     }
 
     /// <summary>Verifies Normal Merge hides IC Number while preserving row layout space.</summary>
@@ -60,6 +105,7 @@ public sealed class ShellViewModelTests
         Assert.True(viewModel.IsMergeVisible);
         Assert.True(viewModel.IsDeviceContextVisible);
         Assert.True(viewModel.IsNormalMergeModeSelected);
+        Assert.Equal(["Normal", "AB Code", "General"], viewModel.MergeModeChoices);
         Assert.False(viewModel.IsNumberSelectorVisible);
         Assert.True(viewModel.IsNumberSelectorPlaceholderVisible);
         Assert.Equal("NT51950: refresh profile, slots, validation", viewModel.DeviceContextStatus);
@@ -96,22 +142,39 @@ public sealed class ShellViewModelTests
 
         Assert.False(required.IsOptional);
         Assert.False(required.HasFile);
+        Assert.Equal(FirmwareSlotKind.Dp, required.SlotKind);
+        Assert.Equal("DP BIN", required.SlotIconTooltip);
+        AssertIconGeometry(required);
+        AssertBrush("#EFF6FF", required.SlotIconBackgroundBrush);
+        AssertBrush("#BFDBFE", required.SlotIconBorderBrush);
+        AssertBrush("#1D4ED8", required.SlotIconForegroundBrush);
+        Assert.Equal("No BIN selected", required.DisplayName);
+        Assert.Equal(string.Empty, required.DisplayDetail);
         AssertBrush("#FFF7F7", required.SlotBackgroundBrush);
         AssertBrush("#FCA5A5", required.SlotBorderBrush);
+        Assert.Equal(new Thickness(1.5), required.SlotBorderThickness);
         AssertBrush("#B91C1C", required.RequirementBadgeForegroundBrush);
 
         required.FilePath = Path.Combine(Path.GetTempPath(), "dp.bin");
 
         Assert.True(required.HasFile);
+        Assert.Equal("dp.bin", required.DisplayName);
+        Assert.Equal(required.FilePath, required.DisplayDetail);
+        AssertIconGeometry(required);
+        AssertBrush("#EFF6FF", required.SlotIconBackgroundBrush);
         AssertBrush("#F0FDF4", required.SlotBackgroundBrush);
         AssertBrush("#86EFAC", required.SlotBorderBrush);
+        Assert.Equal(new Thickness(1), required.SlotBorderThickness);
         AssertBrush("#15803D", required.RequirementBadgeForegroundBrush);
 
         FirmwareSlotViewModel optional = new("merge-ld", "LD BIN", "Optional payload", isOptional: true);
 
         Assert.True(optional.IsOptional);
+        Assert.Equal(FirmwareSlotKind.Dp, optional.SlotKind);
+        AssertIconGeometry(optional);
         AssertBrush("#F8FAFC", optional.SlotBackgroundBrush);
         AssertBrush("#CBD5E1", optional.SlotBorderBrush);
+        Assert.Equal(new Thickness(1), optional.SlotBorderThickness);
         AssertBrush("#1D4ED8", optional.RequirementBadgeForegroundBrush);
 
         optional.FilePath = Path.Combine(Path.GetTempPath(), "ld.bin");
@@ -120,6 +183,74 @@ public sealed class ShellViewModelTests
         AssertBrush("#F8FAFC", optional.SlotBackgroundBrush);
         AssertBrush("#CBD5E1", optional.SlotBorderBrush);
         AssertBrush("#1D4ED8", optional.RequirementBadgeForegroundBrush);
+    }
+
+    /// <summary>Verifies slot type icons distinguish DP, TP, CtrlRAM and base BIN inputs.</summary>
+    [Fact]
+    public void FirmwareSlotTypeIconsExposeInputCategories()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        Assert.Contains(viewModel.MergeSlots, slot =>
+            slot.Title == "DP BIN" &&
+            slot.SlotKind == FirmwareSlotKind.Dp &&
+            HasDrawableIcon(slot));
+        Assert.Contains(viewModel.MergeSlots, slot =>
+            slot.Title == "TP BIN" &&
+            slot.SlotKind == FirmwareSlotKind.Tp &&
+            HasDrawableIcon(slot));
+        Assert.Equal(FirmwareSlotKind.Base, viewModel.ReplaceBaseSlot.SlotKind);
+        AssertIconGeometry(viewModel.ReplaceBaseSlot);
+        Assert.Equal("Base firmware BIN", viewModel.ReplaceBaseSlot.SlotIconTooltip);
+
+        viewModel.ShowDpReplaceCommand.Execute(null);
+
+        Assert.Contains(viewModel.ReplaceSlots, slot =>
+            slot.SlotId == "replace-dp" &&
+            slot.SlotKind == FirmwareSlotKind.Dp &&
+            HasDrawableIcon(slot));
+
+        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+
+        Assert.All(
+            viewModel.ReplaceSlots.Where(slot => !ReferenceEquals(slot, viewModel.ReplaceBaseSlot)),
+            slot =>
+            {
+                Assert.Equal(FirmwareSlotKind.CtrlRam, slot.SlotKind);
+                Assert.Equal("CtrlRAM BIN", slot.SlotIconTooltip);
+                AssertIconGeometry(slot);
+                AssertBrush("#F5F3FF", slot.SlotIconBackgroundBrush);
+                AssertBrush("#DDD6FE", slot.SlotIconBorderBrush);
+                AssertBrush("#6D28D9", slot.SlotIconForegroundBrush);
+            });
+    }
+
+    /// <summary>Verifies base BIN slots expose FWConfig facts decoded from the selected flash image.</summary>
+    [Fact]
+    public void BaseFirmwareSlotShowsFwConfigFacts()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51926";
+        string basePath = Path.Combine(
+            FindRepositoryRoot(),
+            "testdata",
+            "golden",
+            "standard-merge-gen-flash",
+            "expected",
+            "51926",
+            "flash.bin");
+
+        viewModel.SetSlotFile("replace-base", basePath);
+
+        Assert.True(viewModel.ReplaceBaseSlot.HasFirmwareFacts);
+        Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
+            fact.Label == "Common FW" && fact.Value == "1.4.1");
+        Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
+            fact.Label == "FW" &&
+            fact.Value.Contains("0x01.0x00", StringComparison.Ordinal) &&
+            fact.Value.Contains("bar OK", StringComparison.Ordinal));
+        Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
+            fact.Label == "PID" && fact.Value == "0x5102");
     }
 
     /// <summary>Verifies General Replace authors base BIN and explicit range rows as separate UI state.</summary>
@@ -136,8 +267,10 @@ public sealed class ShellViewModelTests
         Assert.Equal("replace-base", viewModel.ReplaceBaseSlot.SlotId);
         Assert.NotEmpty(viewModel.ReplaceCoverageSegments);
         Assert.Contains("len 0x", viewModel.ReplaceMemoryRangeLabel, StringComparison.Ordinal);
+        Assert.Contains("explicit profile-approved", viewModel.SelectedReplaceModeDescription, StringComparison.Ordinal);
+        Assert.False(viewModel.CanPreviewReplace);
         Assert.Equal(
-            "Preview blocked: base BIN, replacement BIN, and an approved range are required.",
+            "Preview blocked: workbench General Replace execution wiring is pending; compiled mappings must still pass profile bounds and protected-range checks.",
             viewModel.ReplaceReadinessStatus);
         _ = Assert.Single(viewModel.GeneralReplaceMappings);
 
@@ -147,6 +280,38 @@ public sealed class ShellViewModelTests
         viewModel.RemoveGeneralReplaceMappingRow(viewModel.GeneralReplaceMappings[0]);
         _ = Assert.Single(viewModel.GeneralReplaceMappings);
         Assert.Equal(1, viewModel.GeneralReplaceMappings[0].Index);
+        Assert.Equal("No replacement BIN selected", viewModel.GeneralReplaceMappings[0].DisplayName);
+        Assert.Equal(string.Empty, viewModel.GeneralReplaceMappings[0].DisplayDetail);
+    }
+
+    /// <summary>Verifies CtrlRAM plan rows promote readable region labels over raw postbuild filenames.</summary>
+    [Fact]
+    public void CtrlRamPlanRowsExposeReadablePrimaryLabels()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        viewModel.SelectedIc = "NT51950";
+        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+
+        Assert.Contains(viewModel.ReplaceMemoryRows, row =>
+            row.ActionLabel == "Replace + CRC" &&
+            row.AfterSource == "NF_Ctrlram.bin" &&
+            row.PrimaryLabel == "NF CtrlRAM");
+        Assert.Contains(viewModel.ReplaceMemoryRows, row =>
+            row.ActionLabel == "Replace + CRC" &&
+            row.AfterSource == "Normal_Ctrlram.bin" &&
+            row.PrimaryLabel == "Normal CtrlRAM");
+        Assert.Contains(viewModel.ReplaceMemoryRows, row =>
+            row.ActionLabel == "Replace + CRC" &&
+            row.AfterSource == "VN_Ctrlram.bin" &&
+            row.PrimaryLabel == "VN CtrlRAM");
+        Assert.All(
+            viewModel.ReplaceMemoryRows.Where(row => row.ActionLabel == "Replace + CRC"),
+            row =>
+            {
+                Assert.DoesNotContain(".bin", row.PrimaryLabel, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain("_", row.PrimaryLabel, StringComparison.Ordinal);
+            });
     }
 
     /// <summary>Verifies Replace keeps the same visual-first coverage model as Merge.</summary>
@@ -173,6 +338,69 @@ public sealed class ShellViewModelTests
         Assert.Equal("Build blocked: run a valid DP Preview first.", viewModel.ReplaceBuildUnavailableReason);
     }
 
+    /// <summary>Verifies Merge coverage rows expose final ownership without report-level operation text.</summary>
+    [Fact]
+    public void MergeCoverageUsesCompactFinalOwnershipText()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        viewModel.SelectedIc = "NT51950";
+
+        MemoryMapRowViewModel initialRow = Assert.Single(
+            viewModel.MergeMemoryRows,
+            row => row.ActionLabel == "Initialize");
+        Assert.Equal("DP BIN length (max end 0xFFFFF)", initialRow.RangeLabel);
+        Assert.Contains("Max inclusive end is 0xFFFFF", initialRow.Detail, StringComparison.Ordinal);
+        Assert.Equal("No output -> Reserved", initialRow.FlowLabel);
+        Assert.Contains(viewModel.MergeCoverageSegments, segment =>
+            segment.SourceLabel == "TP BIN" &&
+            segment.CompactDetail == "Final bytes come from TP BIN.");
+        Assert.Contains(viewModel.MergeCoverageSegments, segment =>
+            segment.SourceLabel == "DP BIN" &&
+            segment.CompactDetail == "Final bytes come from DP BIN.");
+        Assert.All(viewModel.MergeCoverageSegments, segment =>
+        {
+            Assert.NotEqual("Preserved", segment.ChangeLabel);
+            Assert.DoesNotContain("CopyRange", segment.CompactDetail, StringComparison.Ordinal);
+            Assert.DoesNotContain("Copies source", segment.CompactDetail, StringComparison.Ordinal);
+        });
+    }
+
+    /// <summary>Verifies NT51950/NT51951 Initial display follows the selected DP BIN length.</summary>
+    [Fact]
+    public void Nt51950InitialRowUsesSelectedDpInputLength()
+    {
+        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-initial-{Guid.NewGuid():N}");
+        try
+        {
+            _ = Directory.CreateDirectory(tempRoot);
+            string dpPath = Path.Combine(tempRoot, "dp-40000.bin");
+            File.WriteAllBytes(dpPath, new byte[0x40000]);
+            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+            viewModel.SelectedIc = "NT51950";
+            viewModel.SetSlotFile("merge-dp", dpPath);
+
+            MemoryMapRowViewModel initialRow = Assert.Single(
+                viewModel.MergeMemoryRows,
+                row => row.ActionLabel == "Initialize");
+            Assert.Equal("0x00000-0x3FFFF (len 0x40000)", initialRow.RangeLabel);
+            Assert.Contains("selected DP BIN length", initialRow.Detail, StringComparison.Ordinal);
+            Assert.Equal("0x00000-0x3FFFF (len 0x40000)", viewModel.MergeMemoryRangeLabel);
+            Assert.All(viewModel.MergeCoverageSegments, segment =>
+            {
+                Assert.DoesNotContain("0xFFFFF", segment.RangeLabel, StringComparison.Ordinal);
+            });
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+    }
+
     /// <summary>Verifies DP Replace hides LDC except for the NT51928 evidence-backed slot.</summary>
     [Fact]
     public void DpReplaceSlotsExposeLdcOnlyForNt51928()
@@ -189,19 +417,23 @@ public sealed class ShellViewModelTests
         Assert.Contains(viewModel.ReplaceSlots, slot => slot.Title == "LDC replacement BIN");
     }
 
-    /// <summary>Verifies NT51950 DP Replace writes a 0x100000 DP image and restores protected base ranges.</summary>
-    [Fact]
-    public async Task BuildNt51950DpReplaceRestoresBaseProtectedRanges()
+    /// <summary>Verifies NT51950 DP Replace output follows the selected base length and restores TP bytes from base.</summary>
+    [Theory]
+    [InlineData(0x40000)]
+    [InlineData(0x80000)]
+    [InlineData(0x100000)]
+    public async Task BuildNt51950DpReplaceUsesSelectedBaseLengthAndRestoresBaseTpRange(int baseLength)
     {
         string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-dp-replace-{Guid.NewGuid():N}");
         try
         {
             _ = Directory.CreateDirectory(tempRoot);
-            byte[] baseBytes = CreatePattern(0x100000, 0x80);
-            byte[] replacementBytes = CreatePattern(0x40000, 0x20);
+            byte[] baseBytes = CreatePattern(baseLength, 0x80);
+            int replacementLength = baseLength - 0x1000;
+            byte[] replacementBytes = CreatePattern(replacementLength, 0x20);
             string basePath = Path.Combine(tempRoot, "base.bin");
             string replacementPath = Path.Combine(tempRoot, "replacement-dp.bin");
-            string outputPath = Path.Combine(tempRoot, "nt51950-dp-replace.bin");
+            string outputPath = Path.Combine(tempRoot, $"nt51950-dp-replace-{baseLength:X}.bin");
             File.WriteAllBytes(basePath, baseBytes);
             File.WriteAllBytes(replacementPath, replacementBytes);
 
@@ -211,6 +443,13 @@ public sealed class ShellViewModelTests
             viewModel.SetSlotFile("replace-base", basePath);
             viewModel.SetSlotFile("replace-dp", replacementPath);
 
+            Assert.True(viewModel.CanPreviewReplace);
+            Assert.False(viewModel.BuildReplaceCommand.CanExecute(null));
+            Assert.False(viewModel.CanBuildReplace);
+
+            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+
+            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
             Assert.True(viewModel.CanBuildReplace);
 
             await viewModel.BuildReplaceAsync(outputPath);
@@ -218,17 +457,158 @@ public sealed class ShellViewModelTests
             Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
             Assert.True(File.Exists(outputPath), outputPath);
             byte[] output = File.ReadAllBytes(outputPath);
-            Assert.Equal(0x100000, output.Length);
+            Assert.Equal(baseLength, output.Length);
             Assert.Equal(replacementBytes[0x9FFF], output[0x9FFF]);
             Assert.Equal(baseBytes[0x0A000], output[0x0A000]);
             Assert.Equal(baseBytes[0x36FFF], output[0x36FFF]);
-            Assert.Equal(baseBytes[0x37000], output[0x37000]);
-            Assert.Equal(baseBytes[0x37FFF], output[0x37FFF]);
-            Assert.Equal(replacementBytes[0x38000], output[0x38000]);
-            Assert.Equal(0, output[0x50000]);
+            Assert.Equal(replacementBytes[0x37000], output[0x37000]);
+            Assert.Equal(0, output[replacementLength]);
             Assert.True(viewModel.HasLoadedReport);
             Assert.Contains(viewModel.LoadedReport.Operations, operation => operation.Title.Contains("restore-base-tp", StringComparison.Ordinal));
-            Assert.Contains(viewModel.LoadedReport.Operations, operation => operation.Title.Contains("restore-base-customer-info", StringComparison.Ordinal));
+
+            using var reportDocument = JsonDocument.Parse(viewModel.LoadedReportJson);
+            Assert.Equal(baseLength, reportDocument.RootElement.GetProperty("Output").GetProperty("Size").GetInt64());
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+    }
+
+    /// <summary>Verifies golden-backed NT51950/NT51951 DP Replace accepts the real 0x40000 and 0x80000 base lengths.</summary>
+    [Theory]
+    [InlineData(
+        "NT51950",
+        "expected/51950/dp-256k/flash.bin",
+        "inputs/51950/dp-256k/dp.bin",
+        0x40000)]
+    [InlineData(
+        "NT51951",
+        "expected/51951/dp-512k/flash.bin",
+        "inputs/51951/dp-512k/dp.bin",
+        0x80000)]
+    public async Task PreviewDpReplaceAcceptsGoldenBackedBaseLengths(
+        string icId,
+        string baseRelativePath,
+        string dpRelativePath,
+        int expectedLength)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseRelativePath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(dpRelativePath);
+
+        string repositoryRoot = FindRepositoryRoot();
+        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
+        string basePath = Path.Combine(goldenRoot, baseRelativePath.Replace('/', Path.DirectorySeparatorChar));
+        string dpPath = Path.Combine(goldenRoot, dpRelativePath.Replace('/', Path.DirectorySeparatorChar));
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        viewModel.SelectedIc = icId;
+        viewModel.ShowDpReplaceCommand.Execute(null);
+        viewModel.SetSlotFile("replace-base", basePath);
+        viewModel.SetSlotFile("replace-dp", dpPath);
+
+        Assert.Contains(viewModel.ReplaceMemoryRows, row =>
+            row.ActionLabel == "Replace" &&
+            row.RangeLabel == $"0x00000-0x{expectedLength - 1:X5} (len 0x{expectedLength:X})");
+
+        await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        using var reportDocument = JsonDocument.Parse(viewModel.LoadedReportJson);
+        JsonElement root = reportDocument.RootElement;
+        Assert.Equal(expectedLength, root.GetProperty("Output").GetProperty("Size").GetInt64());
+        Assert.Equal(0, root.GetProperty("Issues").GetArrayLength());
+        Assert.Contains(root.GetProperty("Operations").EnumerateArray(), operation =>
+            operation.GetProperty("OperationId").GetString() == "replace-dp-container" &&
+            operation.GetProperty("TargetRange").GetProperty("Length").GetInt64() == expectedLength);
+    }
+
+    /// <summary>Verifies Replace Build requires a successful Preview for the exact current file set.</summary>
+    [Fact]
+    public async Task BuildReplaceRequiresFreshPreviewAfterInputChange()
+    {
+        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-replace-gate-{Guid.NewGuid():N}");
+        try
+        {
+            _ = Directory.CreateDirectory(tempRoot);
+            string basePath = Path.Combine(tempRoot, "base.bin");
+            string replacementPath = Path.Combine(tempRoot, "replacement-dp.bin");
+            string replacementPath2 = Path.Combine(tempRoot, "replacement-dp-copy.bin");
+            string outputPath = Path.Combine(tempRoot, "blocked-output.bin");
+            File.WriteAllBytes(basePath, CreatePattern(0x40000, 0x90));
+            File.WriteAllBytes(replacementPath, CreatePattern(0x3F000, 0x30));
+            File.Copy(replacementPath, replacementPath2);
+
+            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+            viewModel.SelectedIc = "NT51950";
+            viewModel.ShowDpReplaceCommand.Execute(null);
+            viewModel.SetSlotFile("replace-base", basePath);
+            viewModel.SetSlotFile("replace-dp", replacementPath);
+
+            Assert.True(viewModel.CanPreviewReplace);
+            Assert.False(viewModel.CanBuildReplace);
+
+            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+
+            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+            Assert.True(viewModel.CanBuildReplace);
+
+            viewModel.SetSlotFile("replace-dp", replacementPath2);
+
+            Assert.True(viewModel.CanPreviewReplace);
+            Assert.False(viewModel.CanBuildReplace);
+            Assert.False(viewModel.BuildReplaceCommand.CanExecute(null));
+
+            await viewModel.BuildReplaceAsync(outputPath);
+
+            Assert.False(viewModel.LastRunResult.Succeeded);
+            Assert.Equal("Build blocked", viewModel.LastRunResult.Title);
+            Assert.False(File.Exists(outputPath), outputPath);
+
+            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+
+            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+            Assert.True(viewModel.CanBuildReplace);
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+    }
+
+    /// <summary>Verifies NT51950 DP Replace rejects unapproved base lengths instead of assuming 0x100000.</summary>
+    [Fact]
+    public async Task PreviewNt51950DpReplaceRejectsUnsupportedBaseLength()
+    {
+        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-dp-replace-invalid-{Guid.NewGuid():N}");
+        try
+        {
+            _ = Directory.CreateDirectory(tempRoot);
+            string basePath = Path.Combine(tempRoot, "base-60000.bin");
+            string replacementPath = Path.Combine(tempRoot, "replacement-dp.bin");
+            File.WriteAllBytes(basePath, new byte[0x60000]);
+            File.WriteAllBytes(replacementPath, new byte[0x40000]);
+            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+            viewModel.SelectedIc = "NT51950";
+            viewModel.ShowDpReplaceCommand.Execute(null);
+            viewModel.SetSlotFile("replace-base", basePath);
+            viewModel.SetSlotFile("replace-dp", replacementPath);
+
+            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+
+            Assert.False(viewModel.LastRunResult.Succeeded);
+            Assert.Contains("0x40000 / 0x80000 / 0x100000", viewModel.LastRunResult.Detail, StringComparison.Ordinal);
+            Assert.Contains(viewModel.ReplaceMemoryRows, row =>
+                row.ActionLabel == "Replace" &&
+                row.RangeLabel == "Unsupported base BIN length 0x60000");
         }
         finally
         {
@@ -259,9 +639,8 @@ public sealed class ShellViewModelTests
             File.WriteAllBytes(basePath, baseBytes);
 
             MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-            const string selectedNumber = "2";
             viewModel.SelectedIc = "NT51927";
-            viewModel.SelectedNumber = selectedNumber;
+            viewModel.SelectedNumber = "2";
             viewModel.ShowCtrlRamReplaceCommand.Execute(null);
 
             FirmwareSlotViewModel regionSlot = viewModel.ReplaceSlots.First(slot =>
@@ -282,10 +661,7 @@ public sealed class ShellViewModelTests
             Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
             Assert.True(viewModel.HasLoadedReport);
             Assert.True(viewModel.LoadedReport.HasCommandOperations);
-            Assert.True(viewModel.LoadedReport.HasStepOperations);
-            Assert.Contains(viewModel.LoadedReport.SummaryRows, row =>
-                row.Title == "Steps" &&
-                row.Meta.Contains("command", StringComparison.Ordinal));
+            Assert.False(viewModel.LoadedReport.HasStepOperations);
             Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
                 operation.Title.Contains("postbuild-", StringComparison.Ordinal) &&
                 operation.Meta.Contains("Combiner command", StringComparison.Ordinal) &&
@@ -295,84 +671,8 @@ public sealed class ShellViewModelTests
                 operation.Title.Contains("postbuild-", StringComparison.Ordinal) &&
                 operation.Meta.Contains("Combiner command", StringComparison.Ordinal) &&
                 !operation.Meta.Contains("Combiner.exe", StringComparison.Ordinal) &&
-                operation.CodeBlock.Contains("Combiner.exe ", StringComparison.Ordinal));
+                operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
             Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.IsChanged);
-
-            using var reportDocument = JsonDocument.Parse(viewModel.LoadedReportJson);
-            JsonElement postbuildOperation = reportDocument.RootElement
-                .GetProperty("Operations")
-                .EnumerateArray()
-                .Single(operation => operation.GetProperty("OperationId").GetString()!.StartsWith(
-                    "postbuild-",
-                    StringComparison.Ordinal));
-            Assert.DoesNotContain(
-                "InsertSID",
-                postbuildOperation.GetProperty("Reason").GetString(),
-                StringComparison.Ordinal);
-            LegacyCombinerPostbuildCommandPlan expectedPlan = LegacyCombinerPostbuildPlanner.CreatePlan(
-                LegacyCombinerPostbuildCatalog.Nt51927,
-                new IcNumberSelection(IcNumberInputMode.NumericSelector, [selectedNumber]));
-            Assert.Equal(expectedPlan.Commands.Count, CountOccurrences(
-                postbuildOperation.GetProperty("Reason").GetString()!,
-                "Combiner.exe "));
-            AssertJsonRange(postbuildOperation.GetProperty("TargetRange"), 0, 0x35000);
-            AssertDoesNotCoverRange(postbuildOperation.GetProperty("ProcessorAllowedWriteRanges"), 0x7024, 4);
-            AssertDoesNotCoverRange(postbuildOperation.GetProperty("ProcessorAllowedWriteRanges"), 0x1E254, 1);
-            AssertDoesNotCoverRange(postbuildOperation.GetProperty("ProcessorAllowedWriteRanges"), 0x27254, 1);
-            AssertCoversRange(postbuildOperation.GetProperty("ProcessorAllowedWriteRanges"), start, length);
-            JsonElement assemblyOperation = reportDocument.RootElement
-                .GetProperty("Operations")
-                .EnumerateArray()
-                .Single(operation => operation.GetProperty("OperationId").GetString() == "assemble-refreshed-tp");
-            AssertJsonRange(assemblyOperation.GetProperty("SourceRange"), 0, 0x35000);
-            AssertJsonRange(assemblyOperation.GetProperty("TargetRange"), 0, 0x35000);
-            CtrlRamRegionViewModel unselectedRegion = viewModel.CtrlRamRegions.First(region =>
-                region.Name != regionSlot.Title);
-            (int unselectedStart, int unselectedLength) = ParseCtrlRamRegion(unselectedRegion);
-            AssertDoesNotCoverRange(
-                postbuildOperation.GetProperty("ProcessorAllowedWriteRanges"),
-                unselectedStart,
-                unselectedLength);
-        }
-        finally
-        {
-            if (Directory.Exists(tempRoot))
-            {
-                Directory.Delete(tempRoot, recursive: true);
-            }
-        }
-    }
-
-    /// <summary>Verifies unsupported CtrlRAM IC-count input returns a structured report instead of throwing.</summary>
-    [Fact]
-    public async Task CtrlRamReplacePreviewRejectsUnsupportedIcNumberWithReport()
-    {
-        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-ctrlram-bad-number-{Guid.NewGuid():N}");
-        try
-        {
-            _ = Directory.CreateDirectory(tempRoot);
-            string basePath = Path.Combine(tempRoot, "base.bin");
-            string replacementPath = Path.Combine(tempRoot, "nf.bin");
-            File.WriteAllBytes(basePath, CreatePattern(0x40000, 0x50));
-            File.WriteAllBytes(replacementPath, CreatePattern(0x0FD0, 0x70));
-            Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
-            {
-                ["replace-base"] = basePath,
-                ["replace-ctrlram-nf-master"] = replacementPath,
-            };
-
-            WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
-                "NT51927",
-                "4",
-                "CtrlRAM",
-                slotPaths,
-                build: false,
-                CancellationToken.None);
-
-            Assert.False(result.Succeeded);
-            using var reportDocument = JsonDocument.Parse(result.ReportJson);
-            JsonElement issue = Assert.Single(reportDocument.RootElement.GetProperty("Issues").EnumerateArray());
-            Assert.Equal("replace.ctrlram.ic-number-unsupported", issue.GetProperty("Code").GetString());
         }
         finally
         {
@@ -428,10 +728,9 @@ public sealed class ShellViewModelTests
             await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
             Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-            Assert.Contains(viewModel.LoadedReport.Operations, operation =>
-                operation.Title.Contains("replace-normal-slave-r", StringComparison.Ordinal));
-            Assert.Contains(viewModel.LoadedReport.Operations, operation =>
-                operation.Title.Contains("replace-vn-slave-l", StringComparison.Ordinal));
+            Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
+                operation.CodeBlock.Contains("Normal_Ctrlram_R.bin", StringComparison.Ordinal) &&
+                operation.CodeBlock.Contains("Normal_Ctrlram_L.bin", StringComparison.Ordinal));
             Assert.Contains(viewModel.ReplaceCoverageSegments, segment =>
                 segment.SourceLabel == "Normal CtrlRAM (Slave R)" &&
                 segment.RangeLabel == "0x207D0-0x237CF (len 0x3000)");
@@ -488,8 +787,6 @@ public sealed class ShellViewModelTests
 
             Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
             Assert.True(viewModel.HasLoadedReport);
-            Assert.Contains(viewModel.LoadedReport.Operations, operation =>
-                operation.Title.Contains("replace-vn-slave-l", StringComparison.Ordinal));
             Assert.Contains(viewModel.LoadedReport.Operations, operation =>
                 operation.HasCodeBlock &&
                 operation.CodeBlock.Contains("Combiner.exe", StringComparison.Ordinal));
@@ -550,8 +847,6 @@ public sealed class ShellViewModelTests
             Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
             Assert.True(viewModel.HasLoadedReport);
             Assert.Contains(viewModel.LoadedReport.Operations, operation =>
-                operation.Title.Contains("replace-vn-slave-l", StringComparison.Ordinal));
-            Assert.Contains(viewModel.LoadedReport.Operations, operation =>
                 operation.HasCodeBlock &&
                 operation.CodeBlock.Contains("Combiner.exe", StringComparison.Ordinal));
         }
@@ -598,6 +893,12 @@ public sealed class ShellViewModelTests
             viewModel.SetSlotFile("replace-base", basePath);
             viewModel.SetSlotFile(vnSlot.SlotId, replacementPath);
 
+            Assert.True(viewModel.CanPreviewReplace);
+            Assert.False(viewModel.CanBuildReplace);
+
+            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+
+            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
             Assert.True(viewModel.CanBuildReplace);
 
             await viewModel.BuildReplaceAsync(outputPath);
@@ -609,6 +910,29 @@ public sealed class ShellViewModelTests
             Assert.True(viewModel.HasLoadedReport);
             Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
                 operation.CodeBlock.Contains("Combiner.exe", StringComparison.Ordinal));
+
+            byte[] postbuildCleanBytes = File.ReadAllBytes(outputPath);
+            string cleanBasePath = Path.Combine(tempRoot, "postbuild-clean-base.bin");
+            string cleanReplacementPath = Path.Combine(tempRoot, "postbuild-clean-self-vn-ctrlram.bin");
+            string cleanOutputPath = Path.Combine(tempRoot, "postbuild-clean-output.bin");
+            File.WriteAllBytes(cleanBasePath, postbuildCleanBytes);
+            File.WriteAllBytes(cleanReplacementPath, postbuildCleanBytes[start..(start + length)]);
+
+            MainWindowViewModel cleanViewModel = ShellViewModelFactory.Create();
+            cleanViewModel.SelectedIc = "NT51927";
+            cleanViewModel.SelectedNumber = "single";
+            cleanViewModel.ShowCtrlRamReplaceCommand.Execute(null);
+            FirmwareSlotViewModel cleanVnSlot = cleanViewModel.ReplaceSlots.Single(slot => slot.Title == vnSlot.Title);
+            cleanViewModel.SetSlotFile("replace-base", cleanBasePath);
+            cleanViewModel.SetSlotFile(cleanVnSlot.SlotId, cleanReplacementPath);
+
+            await cleanViewModel.PreviewReplaceCommand.ExecuteAsync(null);
+            Assert.True(cleanViewModel.CanBuildReplace);
+
+            await cleanViewModel.BuildReplaceAsync(cleanOutputPath);
+
+            Assert.True(cleanViewModel.LastRunResult.Succeeded, cleanViewModel.LastRunResult.Detail);
+            Assert.Equal(postbuildCleanBytes, File.ReadAllBytes(cleanOutputPath));
         }
         finally
         {
@@ -619,37 +943,74 @@ public sealed class ShellViewModelTests
         }
     }
 
-    /// <summary>Verifies CtrlRAM self-replacement is byte-idempotent once the base is postbuild-canonical.</summary>
+    /// <summary>Verifies owner-approved CtrlRAM Replace fixtures when a manifest is present.</summary>
     [Fact]
-    public async Task CtrlRamReplaceBuildIsIdempotentAfterPostbuildCanonicalOutput()
+    public async Task CtrlRamReplaceFixtureCasesBuildWhenManifestPresent()
     {
-        string repositoryRoot = FindRepositoryRoot();
-        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
-        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
-        JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
-            .EnumerateArray()
-            .Single(testCase => testCase.GetProperty("ic").GetString() == "51927");
-        byte[] baseBytes = File.ReadAllBytes(ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
-        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-ctrlram-idempotent-{Guid.NewGuid():N}");
-
-        try
+        if (!OperatingSystem.IsWindows())
         {
-            _ = Directory.CreateDirectory(tempRoot);
-            string originalBasePath = Path.Combine(tempRoot, "base-from-golden.bin");
-            string canonicalOutputPath = Path.Combine(tempRoot, "canonicalized.bin");
-            string secondOutputPath = Path.Combine(tempRoot, "second-output.bin");
-            File.WriteAllBytes(originalBasePath, baseBytes);
-
-            await BuildNt51927VnSelfReplacementAsync(originalBasePath, canonicalOutputPath, tempRoot);
-            await BuildNt51927VnSelfReplacementAsync(canonicalOutputPath, secondOutputPath, tempRoot);
-
-            Assert.Equal(File.ReadAllBytes(canonicalOutputPath), File.ReadAllBytes(secondOutputPath));
+            return;
         }
-        finally
+
+        string repositoryRoot = FindRepositoryRoot();
+        string fixtureRoot = Path.Combine(repositoryRoot, "testdata", "golden", "ctrlram-replace");
+        string manifestPath = Path.Combine(fixtureRoot, "manifest.json");
+        if (!File.Exists(manifestPath))
         {
-            if (Directory.Exists(tempRoot))
+            return;
+        }
+
+        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(manifestPath));
+        bool enforceExpectedOutput = manifestDocument.RootElement.TryGetProperty("runnerStatus", out JsonElement runnerStatus) &&
+            runnerStatus.GetString() == "ready-for-private-golden";
+        foreach (JsonElement fixtureCase in manifestDocument.RootElement.GetProperty("cases").EnumerateArray())
+        {
+            Assert.Equal("CtrlRAM", fixtureCase.GetProperty("mode").GetString());
+            string caseId = fixtureCase.GetProperty("id").GetString()!;
+            string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-private-ctrlram-{Guid.NewGuid():N}");
+            try
             {
-                Directory.Delete(tempRoot, recursive: true);
+                _ = Directory.CreateDirectory(tempRoot);
+                MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+                viewModel.SelectedIc = fixtureCase.GetProperty("ic").GetString()!;
+                viewModel.SelectedNumber = fixtureCase.GetProperty("icNum").GetString()!;
+                viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+                viewModel.SetSlotFile(
+                    "replace-base",
+                    GoldenFixturePath(fixtureRoot, fixtureCase.GetProperty("base")));
+
+                foreach (JsonElement replacement in fixtureCase.GetProperty("replacementInputs").EnumerateArray())
+                {
+                    string slotId = replacement.GetProperty("slotId").GetString()!;
+                    Assert.Contains(viewModel.ReplaceSlots, slot => slot.SlotId == slotId);
+                    viewModel.SetSlotFile(slotId, GoldenFixturePath(fixtureRoot, replacement.GetProperty("file")));
+                }
+
+                string outputPath = Path.Combine(tempRoot, $"{caseId}.bin");
+                Assert.True(viewModel.CanPreviewReplace, caseId);
+
+                await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+                Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+                Assert.True(viewModel.CanBuildReplace, caseId);
+
+                await viewModel.BuildReplaceAsync(outputPath);
+                Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+                Assert.True(File.Exists(outputPath), outputPath);
+
+                if (enforceExpectedOutput)
+                {
+                    Assert.True(fixtureCase.TryGetProperty("expectedOutput", out JsonElement expectedOutput), caseId);
+                    Assert.Equal(
+                        File.ReadAllBytes(GoldenFixturePath(fixtureRoot, expectedOutput)),
+                        File.ReadAllBytes(outputPath));
+                }
+            }
+            finally
+            {
+                if (Directory.Exists(tempRoot))
+                {
+                    Directory.Delete(tempRoot, recursive: true);
+                }
             }
         }
     }
@@ -717,7 +1078,7 @@ public sealed class ShellViewModelTests
         Assert.False(viewModel.IsReplaceSelectionModalOpen);
     }
 
-    /// <summary>Verifies reports stay behind the icon entry until explicitly opened.</summary>
+    /// <summary>Verifies reports stay behind an explicit action until opened.</summary>
     [Fact]
     public void ReportReviewUsesToastAndModalState()
     {
@@ -745,17 +1106,32 @@ public sealed class ShellViewModelTests
 
         Assert.False(viewModel.CanOpenReport);
         Assert.False(viewModel.ShowReportCommand.CanExecute(null));
+        Assert.Equal("No report", viewModel.ReportActionLabel);
+        Assert.Equal("Preview or Build creates one", viewModel.ReportActionStatus);
 
         viewModel.LoadReportJson(json, "preview-report.json");
 
         Assert.True(viewModel.HasLoadedReport);
         Assert.True(viewModel.CanOpenReport);
+        Assert.Equal("Open report", viewModel.ReportActionLabel);
+        Assert.Equal("Succeeded", viewModel.ReportActionStatus);
         Assert.True(viewModel.HasReportToast);
         Assert.Equal(1, viewModel.ReportToastOpacity);
         Assert.Equal(json, viewModel.LoadedReportJson);
         Assert.Equal("nt51927-standard-merge-gen-flash (NT51927).json", viewModel.ReportSaveFileName);
         Assert.True(viewModel.ShowReportCommand.CanExecute(null));
         Assert.False(viewModel.LoadedReport.HasPrimaryIssue);
+        Assert.Equal("Succeeded", viewModel.LoadedReport.OutcomeTitle);
+        Assert.Contains("No reported issues", viewModel.LoadedReport.OutcomeDetail, StringComparison.Ordinal);
+        Assert.Equal("Ready for audit", viewModel.LoadedReport.NextStepTitle);
+        Assert.Contains(viewModel.LoadedReport.TriageRows, row =>
+            row.Title == "1. Result" &&
+            row.Detail == "Succeeded" &&
+            row.Meta == "No issue");
+        Assert.Contains(viewModel.LoadedReport.EvidenceRows, row =>
+            row.Title == "Issues" &&
+            row.Detail == "0" &&
+            row.Meta == "No blocking issue");
         Assert.Equal(4, viewModel.LoadedReport.SummaryRows.Count);
         Assert.Contains(viewModel.LoadedReport.SummaryRows, row =>
             row.Title == "Status" &&
@@ -776,6 +1152,115 @@ public sealed class ShellViewModelTests
         Assert.False(viewModel.IsReportModalOpen);
     }
 
+    /// <summary>Verifies report loading errors still produce a reopenable report modal.</summary>
+    [Fact]
+    public void ReportReviewErrorsUseModalState()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        viewModel.LoadReportError("Startup report", "missing preview-report.json");
+
+        Assert.True(viewModel.HasLoadedReport);
+        Assert.True(viewModel.CanOpenReport);
+        Assert.Equal(string.Empty, viewModel.LoadedReportJson);
+        Assert.Equal("Load failed", viewModel.ReportActionStatus);
+        Assert.True(viewModel.HasReportToast);
+        Assert.Equal("Report issue: Startup report", viewModel.ReportToastText);
+        Assert.True(viewModel.LoadedReport.HasPrimaryIssue);
+        Assert.Equal("Report load failed", viewModel.LoadedReport.OutcomeTitle);
+        Assert.Equal("Start with this issue", viewModel.LoadedReport.NextStepTitle);
+        Assert.Equal("Load error", viewModel.LoadedReport.PrimaryIssue.Title);
+        Assert.Contains("missing preview-report.json", viewModel.LoadedReport.PrimaryIssue.Detail, StringComparison.Ordinal);
+        Assert.Contains(viewModel.LoadedReport.EvidenceRows, row =>
+            row.Title == "Issues" &&
+            row.Detail == "1" &&
+            row.Meta == "Load error");
+
+        viewModel.ShowReportCommand.Execute(null);
+
+        Assert.True(viewModel.IsReportModalOpen);
+        Assert.False(viewModel.HasReportToast);
+    }
+
+    /// <summary>Verifies report triage points users to the first issue and command evidence.</summary>
+    [Fact]
+    public void ReportReviewTriagePrioritizesIssueAndCommandEvidence()
+    {
+        const string json = /*lang=json,strict*/ """
+            {
+              "ProfileId": "nt51927-ctrlram-replace",
+              "IcId": "NT51927",
+              "ExperienceId": "ctrlram-replace",
+              "CompositionKind": "Replace",
+              "RunId": "ui-smoke-command",
+              "StartedAtUtc": "2026-07-01T00:00:00Z",
+              "Inputs": [
+                {
+                  "AddressSpaceId": "base-input",
+                  "BindingId": "base",
+                  "Size": 524288,
+                  "Sha256": "abcdef0123456789",
+                  "ArtifactId": "base.bin"
+                }
+              ],
+              "Operations": [
+                {
+                  "Sequence": 900,
+                  "OperationId": "run-ctrlram-postbuild",
+                  "Kind": "run-external-processor",
+                  "Status": "planned",
+                  "OverlapPolicy": "reject",
+                  "TargetSpaceId": "output-image",
+                  "TargetRange": {
+                    "Start": 0,
+                    "EndExclusive": 524288,
+                    "Length": 524288
+                  },
+                  "ProcessorId": "legacy-combiner",
+                  "Reason": "Run approved staged Combiner command: Combiner.exe /bin work.bin /mmap mmap.h."
+                }
+              ],
+              "Mutations": [],
+              "Issues": [
+                {
+                  "Code": "processor.tool.missing",
+                  "Message": "Combiner executable is not available.",
+                  "OperationId": "run-ctrlram-postbuild"
+                }
+              ],
+              "Output": {
+                "FileName": "No output",
+                "Size": 0,
+                "Committed": false,
+                "Sha256": ""
+              }
+            }
+            """;
+
+        var report = ReportReviewViewModel.FromJson(json, "preview-report.json");
+
+        Assert.Equal("Needs attention", report.OutcomeTitle);
+        Assert.Equal("Start with this issue", report.NextStepTitle);
+        Assert.Equal("processor.tool.missing", report.PrimaryIssue.Title);
+        Assert.Contains(report.TriageRows, row =>
+            row.Title == "1. First issue" &&
+            row.Detail == "processor.tool.missing" &&
+            row.Meta == "run-ctrlram-postbuild");
+        Assert.Contains(report.TriageRows, row =>
+            row.Title == "3. Evidence" &&
+            row.Detail == "Combiner commands" &&
+            row.Meta == "1 external command(s)");
+        Assert.Contains(report.EvidenceRows, row =>
+            row.Title == "Commands" &&
+            row.Detail == "1" &&
+            row.Meta == "external processors");
+        Assert.True(report.ShouldExpandIssues);
+        Assert.True(report.ShouldExpandCommandOperations);
+        Assert.False(report.ShouldExpandStepOperations);
+        ReportLineViewModel command = Assert.Single(report.CommandOperations);
+        Assert.Contains("Combiner.exe", command.CodeBlock, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies memory-map rows expose readable operation details without relying on tooltips.</summary>
     [Fact]
     public void MergeMemoryRowsExposeReadableOperationDetails()
@@ -787,7 +1272,7 @@ public sealed class ShellViewModelTests
         MemoryMapRowViewModel copyRow = Assert.Single(
             viewModel.MergeMemoryRows,
             row => row.RangeLabel == "0x00000-0x3BFFF (len 0x3C000)" && row.ActionLabel == "Copy");
-        Assert.Equal("Blank output 0x00 -> TP BIN", copyRow.FlowLabel);
+        Assert.Equal("Reserved -> TP BIN", copyRow.FlowLabel);
         Assert.Contains("Sequence 100", copyRow.Detail, StringComparison.Ordinal);
         Assert.Contains("Reason:", copyRow.Detail, StringComparison.Ordinal);
     }
@@ -819,6 +1304,13 @@ public sealed class ShellViewModelTests
                 viewModel.SetSlotFile(SlotIdForAddressSpace(input.Name), copiedPath);
             }
 
+            Assert.True(viewModel.PreviewMergeCommand.CanExecute(null));
+            Assert.False(viewModel.BuildMergeCommand.CanExecute(null));
+            Assert.False(viewModel.CanBuildStandardMerge);
+
+            await viewModel.PreviewMergeCommand.ExecuteAsync(null);
+
+            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
             Assert.True(viewModel.BuildMergeCommand.CanExecute(null));
             Assert.True(viewModel.CanBuildStandardMerge);
 
@@ -844,41 +1336,116 @@ public sealed class ShellViewModelTests
         }
     }
 
-    /// <summary>Verifies unavailable Standard Merge profiles stay gated with a detailed report.</summary>
+    /// <summary>Verifies Standard Merge Build requires a successful Preview for the exact current context.</summary>
     [Fact]
-    public async Task BuildUnavailableStandardMergeIsGatedWithDetailedReportAndNoOutput()
+    public async Task BuildStandardMergeRequiresFreshPreviewAfterInputChange()
     {
-        const string unsupportedIc = "NT00000";
-        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-unsupported-negative-{Guid.NewGuid():N}");
+        string repositoryRoot = FindRepositoryRoot();
+        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
+        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
+        JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
+            .EnumerateArray()
+            .Single(testCase => testCase.GetProperty("ic").GetString() == "51926");
+        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-merge-gate-{Guid.NewGuid():N}");
 
         try
         {
             _ = Directory.CreateDirectory(tempRoot);
             MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-            viewModel.SelectedIc = unsupportedIc;
+            viewModel.SelectedIc = "NT51926";
 
-            Assert.False(viewModel.IsStandardMergeSupported);
+            foreach (JsonProperty input in goldenCase.GetProperty("inputs").EnumerateObject())
+            {
+                string sourcePath = ManifestPath(goldenRoot, input.Value);
+                string copiedPath = Path.Combine(tempRoot, $"{input.Name}.bin");
+                File.Copy(sourcePath, copiedPath);
+                viewModel.SetSlotFile(SlotIdForAddressSpace(input.Name), copiedPath);
+            }
+
+            Assert.True(viewModel.CanPreviewStandardMerge);
             Assert.False(viewModel.CanBuildStandardMerge);
-            Assert.Equal($"{unsupportedIc}: Standard Merge is not available yet.", viewModel.MergeReadinessStatus);
+
+            await viewModel.PreviewMergeCommand.ExecuteAsync(null);
+
+            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+            Assert.True(viewModel.CanBuildStandardMerge);
+
+            JsonProperty firstInput = goldenCase.GetProperty("inputs").EnumerateObject().First();
+            string replacementCopyPath = Path.Combine(tempRoot, $"{firstInput.Name}-copy.bin");
+            File.Copy(ManifestPath(goldenRoot, firstInput.Value), replacementCopyPath);
+            viewModel.SetSlotFile(SlotIdForAddressSpace(firstInput.Name), replacementCopyPath);
+
+            Assert.True(viewModel.CanPreviewStandardMerge);
+            Assert.False(viewModel.CanBuildStandardMerge);
+
+            await viewModel.PreviewMergeCommand.ExecuteAsync(null);
+
+            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+            Assert.True(viewModel.CanBuildStandardMerge);
+
+            viewModel.SelectedIc = "NT51927";
+
+            Assert.True(viewModel.CanPreviewStandardMerge);
+            Assert.False(viewModel.CanBuildStandardMerge);
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+    }
+
+    /// <summary>Verifies an NT51950 preview with NT51926 TP input is blocked with a reopenable detailed report.</summary>
+    [Fact]
+    public async Task PreviewNt51950WithNt51926InputsFailsWithDetailedReportAndNoOutput()
+    {
+        string repositoryRoot = FindRepositoryRoot();
+        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
+        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
+        JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
+            .EnumerateArray()
+            .Single(testCase => testCase.GetProperty("ic").GetString() == "51926");
+        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-950-negative-{Guid.NewGuid():N}");
+
+        try
+        {
+            _ = Directory.CreateDirectory(tempRoot);
+            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+            viewModel.SelectedIc = "NT51950";
+
+            foreach (JsonProperty input in goldenCase.GetProperty("inputs").EnumerateObject())
+            {
+                string sourcePath = ManifestPath(goldenRoot, input.Value);
+                string copiedPath = Path.Combine(tempRoot, $"{input.Name}.bin");
+                File.Copy(sourcePath, copiedPath);
+                viewModel.SetSlotFile(SlotIdForAddressSpace(input.Name), copiedPath);
+            }
+
+            Assert.True(viewModel.CanPreviewStandardMerge);
+            Assert.False(viewModel.CanBuildStandardMerge);
 
             string outputPath = Path.Combine(tempRoot, "should-not-exist.bin");
-            await viewModel.BuildStandardMergeAsync(outputPath);
+            await viewModel.PreviewMergeCommand.ExecuteAsync(null);
 
             Assert.False(viewModel.LastRunResult.Succeeded);
-            Assert.Equal("Build failed", viewModel.LastRunResult.Title);
+            Assert.Equal("Preview blocked", viewModel.LastRunResult.Title);
             Assert.Equal("No output", viewModel.LastRunResult.Output);
-            Assert.Contains("Standard Merge is not available", viewModel.LastRunResult.Detail, StringComparison.Ordinal);
             Assert.False(File.Exists(outputPath), outputPath);
+            Assert.False(viewModel.CanBuildStandardMerge);
             Assert.True(viewModel.HasLoadedReport);
             Assert.True(viewModel.CanOpenReport);
             Assert.True(viewModel.HasReportToast);
             ReportLineViewModel issue = Assert.Single(viewModel.LoadedReport.Issues);
-            Assert.Equal("ui.run.failed", issue.Title);
-            Assert.Contains("Standard Merge is not available", issue.Detail, StringComparison.Ordinal);
+            Assert.Equal("input.address-space.length-mismatch", issue.Title);
+            Assert.Contains("tp-input", issue.Detail, StringComparison.Ordinal);
+            Assert.Contains("actual 245760 bytes", issue.Detail, StringComparison.Ordinal);
+            Assert.Contains("declared 225280 bytes", issue.Detail, StringComparison.Ordinal);
             Assert.True(viewModel.LoadedReport.HasPrimaryIssue);
             Assert.Equal(issue.Title, viewModel.LoadedReport.PrimaryIssue.Title);
-            Assert.False(viewModel.LoadedReport.HasInputs);
-            Assert.False(viewModel.LoadedReport.HasOperations);
+            Assert.True(viewModel.LoadedReport.HasInputs);
+            Assert.True(viewModel.LoadedReport.HasOperations);
             Assert.Contains(viewModel.LoadedReport.SummaryRows, row =>
                 row.Title == "Status" &&
                 row.Detail == "1 issue(s)" &&
@@ -925,6 +1492,20 @@ public sealed class ShellViewModelTests
         return Path.Combine(goldenRoot, relativePath.Replace('/', Path.DirectorySeparatorChar));
     }
 
+    private static string GoldenFixturePath(string fixtureRoot, JsonElement manifestFile)
+    {
+        string relativePath = manifestFile.GetProperty("path").GetString()!;
+        string candidate = Path.GetFullPath(Path.Combine(
+            fixtureRoot,
+            relativePath.Replace('/', Path.DirectorySeparatorChar)));
+        string fullFixtureRoot = Path.GetFullPath(fixtureRoot);
+        string relativeToRoot = Path.GetRelativePath(fullFixtureRoot, candidate);
+        return !relativeToRoot.StartsWith("..", StringComparison.Ordinal) &&
+            !Path.IsPathRooted(relativeToRoot)
+            ? candidate
+            : throw new InvalidOperationException($"Private fixture path escapes root: {relativePath}");
+    }
+
     private static byte[] CreatePattern(int length, byte seed)
     {
         byte[] bytes = new byte[length];
@@ -945,80 +1526,21 @@ public sealed class ShellViewModelTests
             int.Parse(lengthHex, NumberStyles.HexNumber, CultureInfo.InvariantCulture));
     }
 
-    private static async Task BuildNt51927VnSelfReplacementAsync(
-        string basePath,
-        string outputPath,
-        string tempRoot)
-    {
-        byte[] baseBytes = File.ReadAllBytes(basePath);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51927";
-        viewModel.SelectedNumber = "single";
-        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
-
-        FirmwareSlotViewModel vnSlot = viewModel.ReplaceSlots.Single(slot =>
-            slot.Title.Contains("VN CtrlRAM", StringComparison.Ordinal));
-        CtrlRamRegionViewModel vnRegion = viewModel.CtrlRamRegions.Single(region => region.Name == vnSlot.Title);
-        (int start, int length) = ParseCtrlRamRegion(vnRegion);
-        string replacementPath = Path.Combine(tempRoot, $"self-vn-ctrlram-{Guid.NewGuid():N}.bin");
-        File.WriteAllBytes(replacementPath, baseBytes[start..(start + length)]);
-
-        viewModel.SetSlotFile("replace-base", basePath);
-        viewModel.SetSlotFile(vnSlot.SlotId, replacementPath);
-
-        Assert.True(viewModel.CanBuildReplace);
-
-        await viewModel.BuildReplaceAsync(outputPath);
-
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.Equal(outputPath, viewModel.LastRunResult.Output);
-        Assert.True(File.Exists(outputPath), outputPath);
-    }
-
-    private static void AssertCoversRange(JsonElement ranges, int start, int length)
-    {
-        RangeSet rangeSet = new(ranges.EnumerateArray().Select(range => new ByteRange(
-            range.GetProperty("Start").GetInt64(),
-            range.GetProperty("Length").GetInt64())));
-
-        Assert.True(
-            rangeSet.Contains(new ByteRange(start, length)),
-            FormattableString.Invariant($"Expected allowed write ranges to cover [0x{start:X}, 0x{start + length:X})."));
-    }
-
-    private static void AssertDoesNotCoverRange(JsonElement ranges, int start, int length)
-    {
-        Assert.DoesNotContain(ranges.EnumerateArray(), range =>
-        {
-            long rangeStart = range.GetProperty("Start").GetInt64();
-            long rangeEnd = rangeStart + range.GetProperty("Length").GetInt64();
-            return rangeStart <= start && rangeEnd >= start + length;
-        });
-    }
-
-    private static void AssertJsonRange(JsonElement range, int start, int length)
-    {
-        Assert.Equal(start, range.GetProperty("Start").GetInt64());
-        Assert.Equal(length, range.GetProperty("Length").GetInt64());
-    }
-
-    private static int CountOccurrences(string value, string needle)
-    {
-        int count = 0;
-        int index = 0;
-        while ((index = value.IndexOf(needle, index, StringComparison.Ordinal)) >= 0)
-        {
-            count++;
-            index += needle.Length;
-        }
-
-        return count;
-    }
-
     private static void AssertBrush(string expectedHex, IBrush brush)
     {
         ISolidColorBrush solid = Assert.IsType<ISolidColorBrush>(brush, exactMatch: false);
         Assert.Equal(Color.Parse(expectedHex), solid.Color);
+    }
+
+    private static void AssertIconGeometry(FirmwareSlotViewModel slot)
+    {
+        Assert.True(HasDrawableIcon(slot));
+    }
+
+    private static bool HasDrawableIcon(FirmwareSlotViewModel slot)
+    {
+        return slot.SlotIconPathData.StartsWith('M') &&
+            slot.SlotIconPathData.Contains('L');
     }
 
     private static string FindRepositoryRoot()

@@ -105,6 +105,47 @@ public sealed class TpFlashMapCatalogTests
         Assert.Contains("preserve", region.Tags);
     }
 
+    /// <summary>FWConfig primary starts are explicit profile facts used for metadata display.</summary>
+    [Theory]
+    [InlineData("NT51917", 0x16000)]
+    [InlineData("NT51919", 0x1F200)]
+    [InlineData("NT51920", 0x22000)]
+    [InlineData("NT51923", 0x22000)]
+    [InlineData("NT51926", 0x22000)]
+    [InlineData("NT51927", 0x16000)]
+    [InlineData("NT51928", 0x16000)]
+    [InlineData("NT51929", 0x1F200)]
+    [InlineData("NT51930", 0x1F200)]
+    [InlineData("NT51931", 0x16000)]
+    [InlineData("NT51932", 0x1F200)]
+    [InlineData("NT51950", 0x22200)]
+    [InlineData("NT51951", 0x22200)]
+    public void FirmwareConfigStartComesFromFlashMapReference(string icId, long expectedStart)
+    {
+        Assert.True(TpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? profile));
+        Assert.True(TpFlashMapCatalog.TryGetFirmwareConfigStart(icId, out long start));
+
+        Assert.Equal(expectedStart, profile!.FirmwareConfigStart);
+        Assert.Equal(expectedStart, start);
+    }
+
+    /// <summary>NT51926/NT51927 expose TP Overview backup rows used by postbuild traceability.</summary>
+    [Theory]
+    [InlineData("NT51926", "fw-config-backup", 0x3B000, 0x00780)]
+    [InlineData("NT51927", "header-backup", 0x32DC0, 0x00460)]
+    [InlineData("NT51927", "fw-config-reg-backup", 0x34000, 0x00800)]
+    public void BackupRowsFromTpOverviewAreDeclared(string icId, string regionId, long start, long length)
+    {
+        Assert.True(TpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? profile));
+
+        TpFlashMapRegion region = Assert.Single(profile!.Regions, candidate => candidate.RegionId == regionId);
+
+        Assert.Equal(TpFlashMapRegionKind.Other, region.Kind);
+        Assert.Equal(new ByteRange(start, length), region.Range);
+        Assert.Contains("backup", region.Tags);
+        Assert.Contains("postbuild", region.Tags);
+    }
+
     /// <summary>Every staged postbuild CtrlRAM block must overlap a TP Overview CtrlRAM row with the same BIN name.</summary>
     [Fact]
     public void PostbuildStagedBlocksMapToTpOverviewCtrlRamRows()

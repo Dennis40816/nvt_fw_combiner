@@ -18,13 +18,14 @@ public sealed class MemoryMapRowViewModel
         ArgumentException.ThrowIfNullOrWhiteSpace(detail);
 
         RangeLabel = rangeLabel;
-        BeforeSource = beforeSource;
+        BeforeSource = NormalizeSource(beforeSource);
         ActionLabel = actionLabel;
-        AfterSource = afterSource;
+        AfterSource = NormalizeSource(afterSource);
+        PrimaryLabel = ToPrimaryLabel(AfterSource);
         Detail = detail;
     }
 
-    /// <summary>Address range in inclusive hex notation.</summary>
+    /// <summary>Address range or symbolic range label for the displayed plan row.</summary>
     public string RangeLabel { get; }
 
     /// <summary>Source or state before the workflow operation.</summary>
@@ -36,9 +37,27 @@ public sealed class MemoryMapRowViewModel
     /// <summary>Source or state after the workflow operation.</summary>
     public string AfterSource { get; }
 
+    /// <summary>Readable primary label for dense plan rows.</summary>
+    public string PrimaryLabel { get; }
+
     /// <summary>Compact before/after source summary.</summary>
     public string FlowLabel => $"{BeforeSource} -> {AfterSource}";
 
     /// <summary>Short evidence or policy note.</summary>
     public string Detail { get; }
+
+    private static string NormalizeSource(string source)
+    {
+        return source.StartsWith("Blank", StringComparison.OrdinalIgnoreCase)
+            ? "Reserved"
+            : source;
+    }
+
+    private static string ToPrimaryLabel(string source)
+    {
+        string label = Path.GetFileNameWithoutExtension(source)
+            .Replace('_', ' ')
+            .Replace('-', ' ');
+        return label.Replace("Ctrlram", "CtrlRAM", StringComparison.OrdinalIgnoreCase);
+    }
 }

@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -11,6 +12,7 @@ namespace NvtFwCombiner.Presentation.Avalonia;
 /// <summary>Main desktop window for the firmware combiner UI.</summary>
 public sealed partial class MainWindow : Window
 {
+    private const string DropZoneDragActiveClass = "dragActive";
     private const double ReportToastFadeStep = 0.12;
 
     private readonly DispatcherTimer _reportToastHoldTimer = new() { Interval = TimeSpan.FromSeconds(3) };
@@ -18,14 +20,32 @@ public sealed partial class MainWindow : Window
 
     /// <summary>Initializes the main window controls.</summary>
     public MainWindow()
+        : this(UiLaunchOptions.Empty)
     {
+    }
+
+    /// <summary>Initializes the main window controls with command-line startup state.</summary>
+    public MainWindow(UiLaunchOptions launchOptions)
+    {
+        ArgumentNullException.ThrowIfNull(launchOptions);
+
         InitializeComponent();
         _reportToastHoldTimer.Tick += ReportToastHoldTimer_OnTick;
         _reportToastFadeTimer.Tick += ReportToastFadeTimer_OnTick;
         DataContext = ShellViewModelFactory.Create();
+        if (DataContext is MainWindowViewModel viewModel)
+        {
+            ApplyThemePreference(viewModel.SelectedTheme);
+        }
+
         if (DataContext is INotifyPropertyChanged notifier)
         {
             notifier.PropertyChanged += ViewModel_OnPropertyChanged;
+        }
+
+        if (DataContext is MainWindowViewModel launchViewModel)
+        {
+            ApplyLaunchOptions(launchViewModel, launchOptions);
         }
     }
 
@@ -69,6 +89,84 @@ public sealed partial class MainWindow : Window
         using var reader = new StreamReader(stream);
         string json = await reader.ReadToEndAsync();
         viewModel.LoadReportJson(json, files[0].Name);
+    }
+
+    private static void ApplyLaunchOptions(MainWindowViewModel viewModel, UiLaunchOptions launchOptions)
+    {
+        ApplyLaunchPage(viewModel, launchOptions.Page);
+        if (launchOptions.Issues.Count > 0)
+        {
+            viewModel.LoadReportError("Startup arguments", string.Join(Environment.NewLine, launchOptions.Issues));
+        }
+
+        if (!string.IsNullOrWhiteSpace(launchOptions.ReportPath))
+        {
+            LoadStartupReport(viewModel, launchOptions.ReportPath);
+        }
+
+        if (!launchOptions.OpenReport)
+        {
+            return;
+        }
+
+        if (!viewModel.ShowReportCommand.CanExecute(null))
+        {
+            viewModel.LoadReportError(
+                "Startup report",
+                "--open-report requires a loaded report. Pass --load-report <path> or --report <path>.");
+        }
+
+        if (viewModel.ShowReportCommand.CanExecute(null))
+        {
+            viewModel.ShowReportCommand.Execute(null);
+        }
+    }
+
+    private static void ApplyLaunchPage(MainWindowViewModel viewModel, ShellPage? page)
+    {
+        switch (page)
+        {
+            case ShellPage.Home:
+                viewModel.ShowHomeCommand.Execute(null);
+                break;
+            case ShellPage.Settings:
+                viewModel.ShowSettingsCommand.Execute(null);
+                break;
+            case ShellPage.Merge:
+                viewModel.ShowMergeCommand.Execute(null);
+                break;
+            case ShellPage.Replace:
+                viewModel.ShowReplaceCommand.Execute(null);
+                break;
+            default:
+                break;
+        }
+    }
+
+    private static void LoadStartupReport(MainWindowViewModel viewModel, string reportPath)
+    {
+        try
+        {
+            string fullPath = Path.GetFullPath(reportPath);
+            string json = File.ReadAllText(fullPath);
+            viewModel.LoadReportJson(json, Path.GetFileName(fullPath));
+        }
+        catch (ArgumentException exception)
+        {
+            viewModel.LoadReportError(reportPath, exception.Message);
+        }
+        catch (IOException exception)
+        {
+            viewModel.LoadReportError(reportPath, exception.Message);
+        }
+        catch (NotSupportedException exception)
+        {
+            viewModel.LoadReportError(reportPath, exception.Message);
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            viewModel.LoadReportError(reportPath, exception.Message);
+        }
     }
 
     private async void SaveReportButton_OnClick(object? sender, RoutedEventArgs e)
@@ -169,8 +267,17 @@ public sealed partial class MainWindow : Window
 
     private void ViewModel_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(MainWindowViewModel.HasReportToast) ||
-            DataContext is not MainWindowViewModel viewModel)
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        if (e.PropertyName == nameof(MainWindowViewModel.SelectedTheme))
+        {
+            ApplyThemePreference(viewModel.SelectedTheme);
+        }
+
+        if (e.PropertyName != nameof(MainWindowViewModel.HasReportToast))
         {
             return;
         }
@@ -187,6 +294,16 @@ public sealed partial class MainWindow : Window
             _reportToastHoldTimer.Stop();
             _reportToastFadeTimer.Stop();
         }
+    }
+
+    private void ApplyThemePreference(string selectedTheme)
+    {
+        RequestedThemeVariant = selectedTheme switch
+        {
+            "Light" => ThemeVariant.Light,
+            "Dark" or "High contrast" => ThemeVariant.Dark,
+            _ => ThemeVariant.Default,
+        };
     }
 
     private void ReportToastHoldTimer_OnTick(object? sender, EventArgs e)
@@ -220,15 +337,29 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private void DropZone_OnDragEnter(object? sender, DragEventArgs e)
+    {
+        bool canDrop = e.DataTransfer.Contains(DataFormat.File);
+        e.DragEffects = canDrop ? DragDropEffects.Copy : DragDropEffects.None;
+        SetDropZoneDragActive(sender, canDrop);
+    }
+
     private void SlotDragOver_OnDragOver(object? sender, DragEventArgs e)
     {
-        e.DragEffects = e.DataTransfer.Contains(DataFormat.File)
-            ? DragDropEffects.Copy
-            : DragDropEffects.None;
+        bool canDrop = e.DataTransfer.Contains(DataFormat.File);
+        e.DragEffects = canDrop ? DragDropEffects.Copy : DragDropEffects.None;
+        SetDropZoneDragActive(sender, canDrop);
+    }
+
+    private void DropZone_OnDragLeave(object? sender, DragEventArgs e)
+    {
+        SetDropZoneDragActive(sender, isActive: false);
     }
 
     private void SlotDrop_OnDrop(object? sender, DragEventArgs e)
     {
+        SetDropZoneDragActive(sender, isActive: false);
+
         if (sender is not Control { Tag: string slotId } ||
             DataContext is not MainWindowViewModel viewModel)
         {
@@ -244,6 +375,8 @@ public sealed partial class MainWindow : Window
 
     private void GeneralMappingDrop_OnDrop(object? sender, DragEventArgs e)
     {
+        SetDropZoneDragActive(sender, isActive: false);
+
         if (sender is not Control { Tag: string mappingId } ||
             DataContext is not MainWindowViewModel viewModel)
         {
@@ -254,6 +387,26 @@ public sealed partial class MainWindow : Window
         if (!string.IsNullOrWhiteSpace(path))
         {
             viewModel.SetGeneralReplaceMappingFile(mappingId, path);
+        }
+    }
+
+    private static void SetDropZoneDragActive(object? sender, bool isActive)
+    {
+        if (sender is not Control control)
+        {
+            return;
+        }
+
+        if (isActive)
+        {
+            if (!control.Classes.Contains(DropZoneDragActiveClass))
+            {
+                control.Classes.Add(DropZoneDragActiveClass);
+            }
+        }
+        else
+        {
+            _ = control.Classes.Remove(DropZoneDragActiveClass);
         }
     }
 

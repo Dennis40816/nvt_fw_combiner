@@ -346,10 +346,11 @@ public sealed class CompositionEngineTests
         CompositionExecutionResult result = await CompositionEngine.ExecuteAsync(
             plan,
             EmptyInput(),
-            (operation, inputBytes, _) =>
+            (operation, inputBytes, stagedSources, _) =>
             {
                 Assert.Equal("run-crc", operation.OperationId);
                 Assert.Equal([0xFF, 0xFF, 0xFF, 0xFF], inputBytes.ToArray());
+                Assert.Empty(stagedSources);
                 byte[] output = inputBytes.ToArray();
                 output[2] = 0x44;
                 return ValueTask.FromResult(CompositionExternalProcessorResult.Success(output));
@@ -361,6 +362,66 @@ public sealed class CompositionEngineTests
         MutationRecord mutation = Assert.Single(result.Mutations);
         Assert.Equal(CompositionOperationKind.RunExternalProcessor, mutation.OperationKind);
         Assert.Equal([new ByteRange(2, 1)], mutation.ChangedRanges);
+    }
+
+    /// <summary>Verifies staged source bytes reach the external hook without first changing the target image.</summary>
+    [Fact]
+    public async Task ExternalProcessorReceivesStagedSourcesWithoutHostPrePaste()
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("reference-base", 4, AddressSpaceMutability.Immutable),
+            new("ctrlram-input", 2, AddressSpaceMutability.Immutable, inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+        ];
+        var plan = new CompositionPlan(
+            ImageInitialization.Reference("output-image", "reference-base", 4),
+            addressSpaces,
+            [
+                CompositionOperation.RunExternalProcessor(
+                    "run-postbuild",
+                    10,
+                    "output-image",
+                    new ByteRange(0, 4),
+                    new ExternalProcessorInvocation(
+                        "processor-v1",
+                        "tool-v1",
+                        [new ByteRange(0, 4)],
+                        [new ByteRange(1, 2)],
+                        [
+                            new ExternalProcessorStagedSourceBinding(
+                                "ctrlram-input",
+                                new ByteRange(0, 2),
+                                new ByteRange(1, 2)),
+                        ]),
+                    OverlapPolicy.ReplaceExisting,
+                    "run combiner pasteback"),
+            ],
+            CreateCtrlRamReplaceProvenance());
+        var input = new CompositionExecutionInput(new Dictionary<string, byte[]>
+        {
+            ["reference-base"] = [0x10, 0x20, 0x30, 0x40],
+            ["ctrlram-input"] = [0xAA, 0xBB, 0xCC],
+        });
+
+        CompositionExecutionResult result = await CompositionEngine.ExecuteAsync(
+            plan,
+            input,
+            (_, inputBytes, stagedSources, _) =>
+            {
+                Assert.Equal([0x10, 0x20, 0x30, 0x40], inputBytes.ToArray());
+                ExternalProcessorStagedSource stagedSource = Assert.Single(stagedSources);
+                Assert.Equal(new ByteRange(1, 2), stagedSource.FirmwareRange);
+                Assert.Equal([0xAA, 0xBB], stagedSource.Bytes.ToArray());
+                byte[] output = inputBytes.ToArray();
+                stagedSource.Bytes.CopyTo(output.AsMemory((int)stagedSource.FirmwareRange.Start));
+                return ValueTask.FromResult(CompositionExternalProcessorResult.Success(output));
+            },
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal([0x10, 0xAA, 0xBB, 0x40], result.OutputBytes.ToArray());
+        Assert.Contains(result.Issues, issue => issue.Code == "input.address-space.truncated");
     }
 
     /// <summary>Verifies truncation diagnostics remain visible when a later processor fails.</summary>
@@ -405,7 +466,7 @@ public sealed class CompositionEngineTests
         CompositionExecutionResult result = await CompositionEngine.ExecuteAsync(
             plan,
             input,
-            (_, _, _) => ValueTask.FromResult(CompositionExternalProcessorResult.Failed([
+            (_, _, _, _) => ValueTask.FromResult(CompositionExternalProcessorResult.Failed([
                 new CompositionIssue("external-tool.process.failed", "processor failed", "run-crc"),
             ])),
             CancellationToken.None);

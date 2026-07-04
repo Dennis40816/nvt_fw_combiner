@@ -95,12 +95,23 @@
                   { "pattern": "/$" }
                 ]
               }
+            },
+            {
+              "type": "string",
+              "pattern": "^reference/[^\\\\]+$",
+              "not": {
+                "anyOf": [
+                  { "pattern": "\\.\\." },
+                  { "pattern": "//" },
+                  { "pattern": "/$" }
+                ]
+              }
             }
           ]
         },
         "size": { "type": "integer", "minimum": 1 },
         "sha256": { "$ref": "#/$defs/sha256" },
-        "role": { "enum": ["application", "crcWorker", "notices", "license", "readme", "externalTool"] },
+        "role": { "enum": ["application", "crcWorker", "notices", "license", "readme", "externalTool", "reference", "goldenFixture"] },
         "signingIdentity": { "type": "string", "minLength": 1, "maxLength": 512 }
       }
     }

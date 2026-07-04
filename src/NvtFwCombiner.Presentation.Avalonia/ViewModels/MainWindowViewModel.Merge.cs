@@ -90,7 +90,7 @@ public sealed partial class MainWindowViewModel
     private bool CanRunStandardMerge()
     {
         IReadOnlyList<string> requiredAddressSpaces = UiCompositionRunner.GetStandardMergeRequiredAddressSpaces(SelectedIc);
-        return requiredAddressSpaces.Count > 0 && requiredAddressSpaces.All(addressSpace =>
+        return IsNormalMergeModeSelected && requiredAddressSpaces.Count > 0 && requiredAddressSpaces.All(addressSpace =>
             MergeSlotForAddressSpace(addressSpace) is { HasFile: true });
     }
 
@@ -101,6 +101,13 @@ public sealed partial class MainWindowViewModel
 
     private async Task RunStandardMergeAsync(bool build, string? outputPath)
     {
+        string previewToken = CreateStandardMergePreviewToken();
+        if (build && !HasCurrentStandardMergePreview())
+        {
+            BlockStandardMergeBuildUntilPreview();
+            return;
+        }
+
         try
         {
             WorkbenchRunResult result = await UiCompositionRunner.RunStandardMergeAsync(
@@ -110,9 +117,11 @@ public sealed partial class MainWindowViewModel
                 CancellationToken.None,
                 outputPath);
             ApplyRunResult(result, build);
+            CompleteStandardMergeRun(build, result.Succeeded, previewToken);
         }
         catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
         {
+            CompleteStandardMergeRun(build, false, previewToken);
             string action = build ? "Build" : "Preview";
             LastRunResult = new UiRunResultViewModel(
                 $"{action} failed",

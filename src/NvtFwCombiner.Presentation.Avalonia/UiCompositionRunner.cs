@@ -42,6 +42,31 @@ public static class UiCompositionRunner
         return WorkbenchCompositionService.GetNumberChoices(icId);
     }
 
+    /// <summary>Gets compact firmware facts decoded from a selected BIN file.</summary>
+    public static IReadOnlyList<FirmwareSlotFactViewModel> GetFirmwareSlotFacts(
+        string icId,
+        string path,
+        bool includeInvalid = false)
+    {
+        WorkbenchFirmwareConfigMetadata? metadata = WorkbenchCompositionService.TryReadFirmwareConfigMetadata(
+            icId,
+            path);
+        if (metadata is null || (!metadata.IsFirmwareVersionBarValid && !includeInvalid))
+        {
+            return [];
+        }
+
+        string firmwareVersion = metadata.IsFirmwareVersionBarValid
+            ? FormattableString.Invariant($"0x{metadata.FirmwareVersion:X2}.0x{metadata.FirmwareSubVersion:X2} (bar OK)")
+            : FormattableString.Invariant($"0x{metadata.FirmwareVersion:X2}.0x{metadata.FirmwareSubVersion:X2} (bar 0x{metadata.FirmwareVersionBar:X2} mismatch)");
+        return
+        [
+            new FirmwareSlotFactViewModel("Common FW", metadata.CommonFwVersion),
+            new FirmwareSlotFactViewModel("FW", firmwareVersion, !metadata.IsFirmwareVersionBarValid),
+            new FirmwareSlotFactViewModel("PID", FormattableString.Invariant($"0x{metadata.ProjectId:X4}")),
+        ];
+    }
+
     /// <summary>Gets visible CtrlRAM rows for a selected IC and IC-number context.</summary>
     public static IReadOnlyList<CtrlRamRegionViewModel> GetCtrlRamRegions(string icId, string number)
     {
@@ -80,27 +105,31 @@ public static class UiCompositionRunner
     }
 
     /// <summary>Gets readable memory-map rows for the selected Standard Merge profile.</summary>
-    public static IReadOnlyList<MemoryMapRowViewModel> GetStandardMergeMemoryMapRows(string icId)
+    public static IReadOnlyList<MemoryMapRowViewModel> GetStandardMergeMemoryMapRows(
+        string icId,
+        long? dpInputLength = null)
     {
         return
         [
-            .. WorkbenchCompositionService.GetStandardMergeMemoryMapRows(icId)
+            .. WorkbenchCompositionService.GetStandardMergeMemoryMapRows(icId, dpInputLength)
                 .Select(ToMemoryMapRow),
         ];
     }
 
     /// <summary>Gets output address coverage text for the selected Standard Merge profile.</summary>
-    public static string GetStandardMergeMemoryRangeLabel(string icId)
+    public static string GetStandardMergeMemoryRangeLabel(string icId, long? dpInputLength = null)
     {
-        return WorkbenchCompositionService.GetStandardMergeMemoryRangeLabel(icId);
+        return WorkbenchCompositionService.GetStandardMergeMemoryRangeLabel(icId, dpInputLength);
     }
 
     /// <summary>Gets final visual coverage segments for the selected Standard Merge profile.</summary>
-    public static IReadOnlyList<MemoryCoverageSegmentViewModel> GetStandardMergeCoverageSegments(string icId)
+    public static IReadOnlyList<MemoryCoverageSegmentViewModel> GetStandardMergeCoverageSegments(
+        string icId,
+        long? dpInputLength = null)
     {
         return
         [
-            .. WorkbenchCompositionService.GetStandardMergeCoverageSegments(icId)
+            .. WorkbenchCompositionService.GetStandardMergeCoverageSegments(icId, dpInputLength)
                 .Select(segment => new MemoryCoverageSegmentViewModel(
                     segment.RangeLabel,
                     segment.SourceLabel,
@@ -114,11 +143,12 @@ public static class UiCompositionRunner
     public static IReadOnlyList<MemoryMapRowViewModel> GetReplaceMemoryMapRows(
         string icId,
         string number,
-        string replaceMode)
+        string replaceMode,
+        long? dpBaseLength = null)
     {
         return
         [
-            .. WorkbenchCompositionService.GetReplaceMemoryMapRows(icId, number, replaceMode)
+            .. WorkbenchCompositionService.GetReplaceMemoryMapRows(icId, number, replaceMode, dpBaseLength)
                 .Select(ToMemoryMapRow),
         ];
     }
@@ -130,20 +160,25 @@ public static class UiCompositionRunner
     }
 
     /// <summary>Gets TP Overview address coverage text for the selected Replace context and mode.</summary>
-    public static string GetReplaceMemoryRangeLabel(string icId, string number, string replaceMode)
+    public static string GetReplaceMemoryRangeLabel(
+        string icId,
+        string number,
+        string replaceMode,
+        long? dpBaseLength = null)
     {
-        return WorkbenchCompositionService.GetReplaceMemoryRangeLabel(icId, number, replaceMode);
+        return WorkbenchCompositionService.GetReplaceMemoryRangeLabel(icId, number, replaceMode, dpBaseLength);
     }
 
     /// <summary>Gets visual coverage segments for the selected Replace mode.</summary>
     public static IReadOnlyList<MemoryCoverageSegmentViewModel> GetReplaceCoverageSegments(
         string icId,
         string number,
-        string replaceMode)
+        string replaceMode,
+        long? dpBaseLength = null)
     {
         return
         [
-            .. WorkbenchCompositionService.GetReplaceCoverageSegments(icId, number, replaceMode)
+            .. WorkbenchCompositionService.GetReplaceCoverageSegments(icId, number, replaceMode, dpBaseLength)
                 .Select(segment => new MemoryCoverageSegmentViewModel(
                     segment.RangeLabel,
                     segment.SourceLabel,

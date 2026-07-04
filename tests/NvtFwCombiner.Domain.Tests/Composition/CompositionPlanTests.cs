@@ -179,6 +179,41 @@ public sealed class CompositionPlanTests
         Assert.Equal("scratch", addressSpaceId);
     }
 
+    /// <summary>Verifies external staged source bytes must come from immutable input address spaces.</summary>
+    [Fact]
+    public void ExternalProcessorStagedSourceRejectsMutableSourceSpace()
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+            new("scratch", 2, AddressSpaceMutability.Mutable),
+        ];
+
+        _ = Assert.Throws<ArgumentException>(() => new CompositionPlan(
+            ImageInitialization.Blank("output-image", 4, 0),
+            addressSpaces,
+            [
+                CompositionOperation.RunExternalProcessor(
+                    "run-postbuild",
+                    10,
+                    "output-image",
+                    new ByteRange(0, 4),
+                    new ExternalProcessorInvocation(
+                        "processor-v1",
+                        "tool-v1",
+                        [new ByteRange(0, 4)],
+                        [new ByteRange(1, 2)],
+                        [
+                            new ExternalProcessorStagedSourceBinding(
+                                "scratch",
+                                new ByteRange(0, 2),
+                                new ByteRange(1, 2)),
+                        ]),
+                    OverlapPolicy.ReplaceExisting,
+                    "run postbuild"),
+            ]));
+    }
+
     /// <summary>Verifies replace initialization cannot fabricate missing base image bytes via padding.</summary>
     [Fact]
     public void ReferenceInitializationRejectsPaddedReferenceSpace()

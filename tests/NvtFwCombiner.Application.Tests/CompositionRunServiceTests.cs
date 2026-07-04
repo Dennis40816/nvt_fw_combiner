@@ -401,6 +401,66 @@ public sealed class CompositionRunServiceTests
         Assert.NotNull(result.PreviewToken);
     }
 
+    /// <summary>Verifies external processor requests receive staged source bytes without pre-writing the work image.</summary>
+    [Fact]
+    public async Task PreviewPassesExternalProcessorStagedSources()
+    {
+        var processor = new FakeExternalProcessor(request =>
+        {
+            Assert.Equal([0x10, 0x20, 0x30, 0x40], request.InputBytes.ToArray());
+            ExternalProcessorStagedSource stagedSource = Assert.Single(request.StagedSources);
+            Assert.Equal(new ByteRange(1, 2), stagedSource.FirmwareRange);
+            Assert.Equal([0xAA, 0xBB], stagedSource.Bytes.ToArray());
+            byte[] output = request.InputBytes.ToArray();
+            stagedSource.Bytes.CopyTo(output.AsMemory((int)stagedSource.FirmwareRange.Start));
+            return ExternalProcessorResult.Success(output, [stagedSource.FirmwareRange]);
+        });
+        var service = new CompositionRunService(
+            new FakeArtifactReader(new Dictionary<string, byte[]>
+            {
+                ["reference-artifact"] = [0x10, 0x20, 0x30, 0x40],
+                ["ctrlram-artifact"] = [0xAA, 0xBB, 0xCC],
+            }),
+            new FakeClock([FirstTimestamp, SecondTimestamp]),
+            null,
+            processor);
+
+        CompositionRunResult result = await service.PreviewAsync(
+            CreateStagedSourceExternalProcessorRequest(),
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal([0x10, 0xAA, 0xBB, 0x40], result.OutputBytes.ToArray());
+        Assert.Contains(result.Report.Issues, issue => issue.Code == "input.address-space.truncated");
+    }
+
+    /// <summary>Verifies preview approval includes staged source-to-firmware mapping details.</summary>
+    [Fact]
+    public async Task PreviewTokenChangesWhenStagedSourceBindingChanges()
+    {
+        var processor = new FakeExternalProcessor(request =>
+            ExternalProcessorResult.Success(request.InputBytes, []));
+        var service = new CompositionRunService(
+            new FakeArtifactReader(new Dictionary<string, byte[]>
+            {
+                ["reference-artifact"] = [0x10, 0x20, 0x30, 0x40],
+                ["ctrlram-artifact"] = [0xAA, 0xBB],
+            }),
+            new FakeClock([FirstTimestamp, SecondTimestamp, ThirdTimestamp, FourthTimestamp]),
+            null,
+            processor);
+
+        CompositionRunResult first = await service.PreviewAsync(
+            CreateStagedSourceExternalProcessorRequest(new ByteRange(1, 2)),
+            CancellationToken.None);
+        CompositionRunResult second = await service.PreviewAsync(
+            CreateStagedSourceExternalProcessorRequest(new ByteRange(2, 2)),
+            CancellationToken.None);
+
+        Assert.Equal(first.OutputBytes.ToArray(), second.OutputBytes.ToArray());
+        Assert.NotEqual(first.PreviewToken, second.PreviewToken);
+    }
+
     /// <summary>Verifies external processor failures are returned as structured run issues.</summary>
     [Fact]
     public async Task PreviewPropagatesExternalProcessorFailure()
@@ -763,6 +823,57 @@ public sealed class CompositionRunServiceTests
             plan,
             [],
             "external.bin");
+    }
+
+    private static CompositionRunRequest CreateStagedSourceExternalProcessorRequest(ByteRange? firmwareRange = null)
+    {
+        ByteRange stagedFirmwareRange = firmwareRange ?? new ByteRange(1, 2);
+        AddressSpace[] addressSpaces =
+        [
+            new("reference-base", 4, AddressSpaceMutability.Immutable),
+            new("ctrlram-input", 2, AddressSpaceMutability.Immutable, inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+        ];
+        var plan = new CompositionPlan(
+            ImageInitialization.Reference("output-image", "reference-base", 4),
+            addressSpaces,
+            [
+                CompositionOperation.RunExternalProcessor(
+                    "run-postbuild",
+                    10,
+                    "output-image",
+                    new ByteRange(0, 4),
+                    new ExternalProcessorInvocation(
+                        "processor-v1",
+                        "tool-v1",
+                        [new ByteRange(0, 4)],
+                        [new ByteRange(0, 4)],
+                        [
+                            new ExternalProcessorStagedSourceBinding(
+                                "ctrlram-input",
+                                new ByteRange(0, 2),
+                                stagedFirmwareRange),
+                        ]),
+                    OverlapPolicy.ReplaceExisting,
+                    "run synthetic postbuild"),
+            ]);
+        return new CompositionRunRequest(
+            "run-staged-source",
+            new CompositionRunProfile(
+                "external-staged-source-profile",
+                "1.0.0",
+                "NT-SYNTHETIC",
+                "external",
+                "ctrlram-replace",
+                CompositionKind.Replace,
+                IcNumberInputMode.SingleSelector),
+            plan,
+            [
+                new InputArtifactBinding("reference-base", "reference-base", "reference-artifact"),
+                new InputArtifactBinding("ctrlram-input", "ctrlram-input", "ctrlram-artifact"),
+            ],
+            "external-staged-source.bin",
+            icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
     }
 
     private static IReadOnlyList<InputArtifactBinding> DefaultBindings()

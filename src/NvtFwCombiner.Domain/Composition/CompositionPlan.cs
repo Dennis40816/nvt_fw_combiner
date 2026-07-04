@@ -217,7 +217,7 @@ public sealed class CompositionPlan
         }
     }
 
-    private static void ValidateExternalProcessorRanges(
+    private void ValidateExternalProcessorRanges(
         CompositionOperation operation,
         AddressSpace targetSpace)
     {
@@ -250,6 +250,37 @@ public sealed class CompositionPlan
                 throw new ArgumentOutOfRangeException(
                     nameof(operation),
                     $"Operation '{operation.OperationId}' allowed write range is outside the staged target range.");
+            }
+        }
+
+        foreach (ExternalProcessorStagedSourceBinding binding in invocation.StagedSourceBindings)
+        {
+            if (!_addressSpacesById.TryGetValue(binding.SourceSpaceId, out AddressSpace? sourceSpace))
+            {
+                throw new ArgumentException(
+                    $"Operation '{operation.OperationId}' staged source reads undeclared address space '{binding.SourceSpaceId}'.",
+                    nameof(operation));
+            }
+
+            if (!sourceSpace.Contains(binding.SourceRange))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(operation),
+                    $"Operation '{operation.OperationId}' staged source range is outside address space '{binding.SourceSpaceId}'.");
+            }
+
+            if (sourceSpace.Mutability != AddressSpaceMutability.Immutable)
+            {
+                throw new ArgumentException(
+                    $"Operation '{operation.OperationId}' staged source address space '{binding.SourceSpaceId}' must be immutable.",
+                    nameof(operation));
+            }
+
+            if (!operation.TargetRange.Contains(binding.FirmwareRange) || !targetSpace.Contains(binding.FirmwareRange))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(operation),
+                    $"Operation '{operation.OperationId}' staged source firmware range is outside the staged target range.");
             }
         }
     }

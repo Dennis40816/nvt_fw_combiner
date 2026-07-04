@@ -6,13 +6,12 @@ This document describes the current production-backed workbench interface for Me
 
 ```text
 [Header: product + compact navigation]
-[Fixed Device context: IC | Number]
 [Large card: Settings]
 [Large card: Replace: DP | CtrlRAM | General]
 [Large card: Merge: Normal | AB Code disabled]
 ```
 
-The home launcher must stay clean. It does not show Memory coverage, reports, diagnostics, or mixed Merge/Replace workflow details.
+The home launcher must stay clean. It does not show Device context, Memory coverage, reports, diagnostics, or mixed Merge/Replace workflow details.
 
 ## Shared page layout
 

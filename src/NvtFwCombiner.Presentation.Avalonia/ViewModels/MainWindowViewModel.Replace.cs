@@ -24,7 +24,7 @@ public sealed partial class MainWindowViewModel
         CtrlRamReplaceMode => CanRunReplace()
             ? "Ready: Preview/Build will replace selected CtrlRAM regions and run postbuild."
             : "Preview blocked: base BIN and at least one CtrlRAM region BIN are required.",
-        GeneralReplaceMode => "Preview blocked: base BIN, replacement BIN, and an approved range are required.",
+        GeneralReplaceMode => "Preview blocked: workbench General Replace execution wiring is pending; compiled mappings must still pass profile bounds and protected-range checks.",
         _ => "Preview blocked: select a Replace mode.",
     };
 
@@ -49,11 +49,7 @@ public sealed partial class MainWindowViewModel
                 ReplaceSlots.Where(slot => !slot.IsOptional).All(slot => slot.HasFile),
             CtrlRamReplaceMode => ReplaceBaseSlot.HasFile &&
                 ReplaceSlots.Any(slot => !ReferenceEquals(slot, ReplaceBaseSlot) && slot.HasFile),
-            GeneralReplaceMode => ReplaceBaseSlot.HasFile &&
-                GeneralReplaceMappings.Any(mapping =>
-                    mapping.HasFile &&
-                    !string.IsNullOrWhiteSpace(mapping.StartAddress) &&
-                    !string.IsNullOrWhiteSpace(mapping.EndAddress)),
+            GeneralReplaceMode => false,
             _ => false,
         };
     }
@@ -66,6 +62,13 @@ public sealed partial class MainWindowViewModel
     private async Task RunReplaceAsync(bool build, string? outputPath)
     {
         CloseReplaceSelectionForRun();
+        string previewToken = CreateReplacePreviewToken();
+        if (build && !HasCurrentReplacePreview())
+        {
+            BlockReplaceBuildUntilPreview();
+            return;
+        }
+
         try
         {
             WorkbenchRunResult result = await UiCompositionRunner.RunReplaceAsync(
@@ -77,9 +80,11 @@ public sealed partial class MainWindowViewModel
                 CancellationToken.None,
                 outputPath);
             ApplyRunResult(result, build);
+            CompleteReplaceRun(build, result.Succeeded, previewToken);
         }
         catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
         {
+            CompleteReplaceRun(build, false, previewToken);
             string action = build ? "Build" : "Preview";
             LastRunResult = new UiRunResultViewModel(
                 $"{action} failed",

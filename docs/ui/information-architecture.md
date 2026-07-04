@@ -18,6 +18,7 @@ This document defines the owner-approved UI direction for the first usable NVT F
 - Replace must consume the explicit shared Number selector before region choices and processor readiness. Two-option profiles use text choices such as `single`/`cascade`; profiles with three or more concrete count choices use numeric selection, with future room for Other/custom exceptions.
 - Reports: Preview/Build opens a report modal for diagnostics and evidence review.
 - Report review: the shell may load a structured run report JSON and render it as a readable summary panel. This is a review surface for existing reports, not firmware file execution.
+- UI launch control: the desktop process accepts `--page home|settings|merge|replace`, `--load-report <path>` or `--report <path>`, and `--open-report` so repeatable review can open a page or report modal from command line. These arguments only shape UI state and load existing report JSON; they never execute firmware composition or change profile policy.
 - Saved Rules: hidden in the first UI release until the saved-rule workflow is implemented and reviewed.
 - Localization: UI implementation uses a bilingual English/Chinese-ready text architecture, with English as the initial default.
 - Typography: Inter for Latin/English UI text; Microsoft JhengHei UI for Traditional Chinese on Windows, falling back to Noto Sans CJK TC, Noto Sans TC, and Segoe UI.

@@ -8,6 +8,7 @@ public sealed class ExternalProcessorRequest
 {
     private readonly byte[] _inputBytes;
     private readonly ByteRange[] _allowedWriteRanges;
+    private readonly ExternalProcessorStagedSource[] _stagedSources;
 
     /// <summary>Creates a transform request over a host-controlled staging copy.</summary>
     public ExternalProcessorRequest(
@@ -16,7 +17,8 @@ public sealed class ExternalProcessorRequest
         string toolBindingId,
         ReadOnlyMemory<byte> inputBytes,
         IEnumerable<ByteRange> allowedWriteRanges,
-        IcNumberSelection? icNumberSelection = null)
+        IcNumberSelection? icNumberSelection = null,
+        IEnumerable<ExternalProcessorStagedSource>? stagedSources = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentException.ThrowIfNullOrWhiteSpace(processorId);
@@ -39,6 +41,18 @@ public sealed class ExternalProcessorRequest
         IcNumberSelection = icNumberSelection;
         _inputBytes = inputBytes.ToArray();
         _allowedWriteRanges = [.. allowedWriteRanges.OrderBy(range => range.Start).ThenBy(range => range.Length)];
+        _stagedSources = [
+            .. (stagedSources ?? [])
+                .OrderBy(source => source.FirmwareRange.Start)
+                .ThenBy(source => source.FirmwareRange.Length),
+        ];
+        foreach (ExternalProcessorStagedSource source in _stagedSources)
+        {
+            if (source.FirmwareRange.EndExclusive > inputBytes.Length)
+            {
+                throw new ArgumentException("External processor staged source range is outside the input image.", nameof(stagedSources));
+            }
+        }
     }
 
     /// <summary>Stable execution id used to name the private staging directory.</summary>
@@ -55,6 +69,9 @@ public sealed class ExternalProcessorRequest
 
     /// <summary>Declared byte ranges the external processor may change.</summary>
     public IReadOnlyList<ByteRange> AllowedWriteRanges => _allowedWriteRanges;
+
+    /// <summary>Optional source bytes staged for the processor without pre-writing them into <see cref="InputBytes"/>.</summary>
+    public IReadOnlyList<ExternalProcessorStagedSource> StagedSources => _stagedSources;
 
     /// <summary>Optional IC number context used by IC-specific postbuild processors.</summary>
     public IcNumberSelection? IcNumberSelection { get; }

@@ -151,7 +151,8 @@ public sealed class CompositionRunService
             : await CompositionEngine.ExecuteAsync(
                 request.Plan,
                 input,
-                (operation, inputBytes, token) => TransformExternalProcessorAsync(request, operation, inputBytes, token),
+                (operation, inputBytes, stagedSources, token) =>
+                    TransformExternalProcessorAsync(request, operation, inputBytes, stagedSources, token),
                 cancellationToken)
             .ConfigureAwait(false);
     }
@@ -160,6 +161,7 @@ public sealed class CompositionRunService
         CompositionRunRequest request,
         CompositionOperation operation,
         ReadOnlyMemory<byte> inputBytes,
+        IReadOnlyList<ExternalProcessorStagedSource> stagedSources,
         CancellationToken cancellationToken)
     {
         ExternalProcessorInvocation invocation = operation.ExternalProcessorInvocation!;
@@ -172,7 +174,8 @@ public sealed class CompositionRunService
                 invocation.ToolBindingId,
                 inputBytes,
                 invocation.AllowedWriteRanges,
-                request.IcNumberSelection);
+                request.IcNumberSelection,
+                stagedSources);
         }
         catch (ArgumentException exception)
         {
@@ -495,6 +498,13 @@ public sealed class CompositionRunService
         foreach (ByteRange range in invocation.AllowedWriteRanges)
         {
             AppendTokenField(builder, "plan.operation.processor.write-range", FormatRange(range));
+        }
+
+        foreach (ExternalProcessorStagedSourceBinding binding in invocation.StagedSourceBindings)
+        {
+            AppendTokenField(builder, "plan.operation.processor.staged-source.source-space", binding.SourceSpaceId);
+            AppendTokenField(builder, "plan.operation.processor.staged-source.source-range", FormatRange(binding.SourceRange));
+            AppendTokenField(builder, "plan.operation.processor.staged-source.firmware-range", FormatRange(binding.FirmwareRange));
         }
     }
 

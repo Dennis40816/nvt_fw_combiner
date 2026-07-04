@@ -1,6 +1,6 @@
 # CtrlRAM Postbuild Command Matrix
 
-This matrix records the normalized Combiner command sequences used after CtrlRAM Replace.
+This matrix records the normalized Combiner command sequences used after CtrlRAM Replace. The living experiment and conclusion tracker is [`ctrlram-replace-status-report.md`](ctrlram-replace-status-report.md).
 
 Evidence order:
 
@@ -11,12 +11,6 @@ Evidence order:
 
 The application catalog stores command sequences as structured commands, not as shell strings. Tests build argv arrays from that structure and verify they match the Combiner 1.13.0 command shapes.
 
-The imported full postbuild BAT files also call `python output\InsertSID.py output\*_fw.bin` before Combiner. Owner confirmation for CtrlRAM Replace: this legacy Insert PID step writes `headerStart + 0x24`, and that address is not part of Replace mutation authority. The Replace runner therefore does not execute the BAT `InsertSID.py` step and must not allow the PID bytes in its external-processor write ranges.
-
-CtrlRAM Replace always runs the selected IC/IC-number Combiner postbuild branch once, in the command order below, after host-side CtrlRAM byte replacement. It does not shorten the Combiner command sequence to only the user-selected CtrlRAM slot; unselected CtrlRAM payloads are staged from the current work image so the full postbuild can refresh integrity consistently.
-
-NT51917/NT51927/NT51928 use the special 51927 postbuild shape: the BAT copies the refreshed `output\*_fw.bin` into `output\FlashMerge\TP_FW` after Combiner finishes. NFC therefore stages Combiner against a TP work image, then assembles that refreshed TP_FW back into the cloned base flash so DP/final-flash bytes outside the TP work range stay from the base image. Other current postbuild profiles remain in-place firmware-image stages because their BAT evidence does not contain a `FlashMerge\TP_FW` handoff.
-
 For per-IC Merge/Replace flowcharts, see [`ic-workflow-flowcharts.md`](ic-workflow-flowcharts.md).
 
 | IC | IC num mode | Branches | Combiner modes | Command count | Notes |
@@ -25,11 +19,11 @@ For per-IC Merge/Replace flowcharts, see [`ic-workflow-flowcharts.md`](ic-workfl
 | NT51919 | single/cascade | single, cascade | `NT51932BASED_NORMAL_MODE CRC8` | 2 / 2 | Owner-approved alias of NT51929/NT51932 reference flow. |
 | NT51920 | single/cascade | single, cascade | `CRC_Enable` | 2 / 2 | Legacy Normal Mode. Cascade adds slave Normal/MP and Vector blocks. |
 | NT51923 | single/cascade | single, cascade | `CRC_Enable` | 2 / 2 | Cascade uses split `DiffDLM.bin` source offsets `0x0` and `0x1400`. |
-| NT51926 | single/cascade | single, cascade | `CRC_Enable` | 2 / 2 | Despite being 926, postbuild uses legacy Normal Mode. |
+| NT51926 | single/cascade | single, cascade | `CRC_Enable` | 2 / 2 | Despite being 926, postbuild uses legacy Normal Mode. Current catalog follows `2.0.0`; `1.4.1` reference is also archived because it uses a different header-copy target. |
 | NT51927 | numeric/single/cascade | single, 2-chip, 3-chip | `MERGE_MODE`, `NT51927BASED_GEN_CRC_MODE CRC32` | 7 / 10 / 13 | Special flow. `cascade` maps to the 3-chip sequence; numeric `2` and `3` select explicit branches. |
 | NT51928 | numeric/single/cascade | single, 2-chip, 3-chip | `MERGE_MODE`, `NT51927BASED_GEN_CRC_MODE CRC32` | 7 / 10 / 13 | Owner-approved alias of NT51927 for non-NB only. NT51928 NB is a separate IC and is not covered. |
 | NT51929 | single/cascade | single, cascade | `NT51932BASED_NORMAL_MODE CRC8` | 2 / 2 | Owner-approved alias of NT51932 reference flow. |
-| NT51930 | single/cascade | single, cascade | `NT51930BASED_NORMAL_MODE CRC8` | 2 / 2 | Current product target has no `>13 IC` case; cascade uses `DiffDLM.bin` at `0x2F200` size `65024`. |
+| NT51930 | single/cascade | single, cascade | `NT51930BASED_NORMAL_MODE CRC8` | 2 / 2 | Current catalog follows `2.0.0` with `0x200` header copy plus second header-only command. `1.4.0` reference is archived because the current golden aligns with its `0x100` header-copy shape. |
 | NT51931 | single/cascade | single, cascade | `NT51930BASED_NORMAL_MODE CRC8` | 1 / 1 | Postbuild uses NT51930-based mode for NT51931. |
 | NT51932 | single/cascade | single, cascade | `NT51932BASED_NORMAL_MODE CRC8` | 2 / 2 | Direct postbuild reference. |
 | NT51950 | single/cascade | single, cascade | `NT51950BASED_NORMAL_MODE CRC8` | 2 / 2 | Direct postbuild reference. |
@@ -43,11 +37,17 @@ For per-IC Merge/Replace flowcharts, see [`ic-workflow-flowcharts.md`](ic-workfl
 - `LegacyCombinerPostbuildCatalogTests.Nt51917AliasesNt51927PostbuildFlow`, `Nt51919AliasesNt51929PostbuildFlow`, `Nt51928AliasesNt51927PostbuildFlow`, `Nt51929AliasesNt51932PostbuildFlow`, and `Nt51951AliasesNt51950PostbuildFlow` lock owner-approved alias behavior.
 - `LegacyCombinerPostbuildCatalogTests.Nt51930CascadeUsesLessOrEqual13IcDiffDlmLength` locks current NT51930 cascade behavior to the `<=13 IC` branch.
 - `LegacyCombinerPostbuildProcessorTests.TransformRunsNt51927TwoChipMergeAndCrcSequence` verifies the staged processor actually invokes the 927 2IC `MERGE_MODE` and CRC-only sequence.
-- `LegacyCombinerPostbuildProcessorTests.TransformPreservesNt51927SlaveStagedFilesFromSeedImage` verifies 927-family slave CtrlRAM `BIN` files are projected from the pre-postbuild seed image instead of from firmware bytes overwritten by earlier slave-window copy commands.
-- `ShellViewModelTests.CtrlRamReplaceBuildIsIdempotentAfterPostbuildCanonicalOutput` verifies a 927 self-replacement is byte-identical on the second run after the first run canonicalizes the public standard-merge fixture through the full postbuild sequence.
+- `LegacyCombinerPostbuildProcessorTests.TransformStagesBinFilesAndAcceptsDeclaredChanges` verifies the staged processor creates an empty `output/map.txt` for normal-mode real-tool runs.
+- `LegacyCombinerPostbuildProcessorTests.TransformUsesStagedSourceOverridesWithoutPrePaste` verifies selected replacement bytes are staged for `BIN/*.bin` without pre-writing them into the firmware image before `Combiner.exe` runs.
 - `LegacyCombinerPostbuildRealToolSmokeTests.RealToolRunsNt51927GoldenCrcOnlyWithoutUnexpectedChanges` runs the committed Combiner 1.13.0 executable on Windows against the owner-approved NT51927 golden output. This is a smoke test for the real tool binding, not a Replace golden parity claim.
+- `LegacyCombinerPostbuildRealToolSmokeTests.DirectRealToolSixteenByteCasesMatchForSingleAndMultipleCtrlRamSelfReplacement` locks the accepted 16-byte self-replacement behavior for NT51920, NT51923, NT51929, NT51932, NT51950, and NT51951 single/cascade cases. This is still direct-combiner smoke evidence, not production CtrlRAM Replace parity.
+- `LegacyCombinerPostbuildRealToolSmokeTests.DirectRealToolPureCombinerPastebackMatchesPrePasteFlow` verifies representative NT51920, NT51923, NT51926, NT51927, and NT51950 cases produce identical output when replacement CtrlRAM bytes are pre-pasted into the work image versus supplied only as Combiner staged source bytes. The production adapter uses the staged-source path.
 
 ## Open Evidence Gaps
 
-- NT51927 public standard-merge self-replacement is not byte-identical on the first CtrlRAM Replace run even when the replacement CtrlRAM bytes are sliced from the same base image and the TP work image uses the Standard Merge TP range `0x00000-0x34FFF`. The first run changes six 4-byte postbuild/header ranges: `0x1E26C-0x1E26F`, `0x1E27C-0x1E27F`, `0x32FDC-0x32FDF`, `0x32FEC-0x32FEF`, `0x32FFC-0x32FFF`, and `0x3300C-0x3300F`. A second self-replacement run against that postbuild-canonical output is byte-identical, so the remaining gap is a private CtrlRAM Replace golden/parity evidence gap, not an approved update to the public standard-merge expected bytes.
-- NT51950/NT51951 `NT51950BASED_NORMAL_MODE CRC8` real-tool execution still needs `map.txt` staging evidence before production CtrlRAM Replace can be claimed.
+- The adapter now stages an empty `output/map.txt` for normal and NT-based postbuild commands. Empty map is verified only for no-overlay smoke cases; overlay-enabled firmware may require real map content.
+- Current workbench CtrlRAM Replace treats the base input as the Combiner TP work image. If the owner requires accepting a larger full-flash container, the flow must add an explicit TP slice and reinsertion step with owner-confirmed TP offset/range.
+- NT51926 has two inspected postbuild references: `1.4.1` copies header `0x0 -> 0x32F50`, while `2.0.0` copies header `0x0 -> 0x32A70`. Current 2026-07-05 base aligns with `1.4.1`; production selection still needs owner decision and matching golden outputs.
+- NT51930 has two inspected postbuild references: `1.4.0` copies `0x7000 -> 0x28FB0` length `0x100` once, while `2.0.0` copies the same source/target length `0x200` and runs a second header-only command. Current 51930 golden aligns with `1.4.0`; production selection still needs owner decision and matching golden outputs.
+- NT51931 official BAT shape uses `NT51930BASED_NORMAL_MODE CRC8`, but committed Combiner 1.13.0 crashes on the current standard golden. This remains a tool-version or compatible-input investigation gap.
+- End-to-end production CtrlRAM Replace still needs private golden outputs, declared allowed write ranges, and firmware-owner parity review for each released IC/mode.

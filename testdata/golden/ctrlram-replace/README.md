@@ -2,17 +2,20 @@
 
 This directory is reserved for owner-provided CtrlRAM Replace evidence.
 
-Do not commit private firmware BIN files by default. Put local/private payloads under `private/`, update `private/manifest.json` from `manifest.template.json`, then run:
+Owner-approved committed fixtures live under `fixtures/` and are listed by `manifest.json`.
+Do not commit new private firmware BIN files by default. Put unapproved local/private payloads under `private/`, update `private/manifest.json` from `manifest.template.json`, and only promote them to `fixtures/` after explicit owner approval.
+
+Run:
 
 ```text
-python scripts/verify_ctrlram_replace_fixture.py --require-private
+python scripts/verify_ctrlram_replace_fixture.py --require-fixture
 ```
 
 Current behavior:
 
 - The verifier always can run public CtrlRAM Preview/Build smoke using self-replacement inputs sliced from existing approved Standard Merge golden data.
-- When `private/manifest.json` exists, the verifier checks manifest metadata, sizes, and SHA-256 for the base firmware, replacement CtrlRAM BINs, and expected output if provided.
-- Full private byte comparison still needs owner-supplied expected outputs and firmware-owner sign-off before parity can be claimed.
+- When `manifest.json` exists, the verifier checks manifest metadata, sizes, and SHA-256 for the base firmware, replacement CtrlRAM BINs, and expected output if provided.
+- Full byte comparison still needs owner-supplied expected outputs and firmware-owner sign-off before parity can be claimed.
 
 Required owner data per case:
 

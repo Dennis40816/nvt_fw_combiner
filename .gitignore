@@ -25,6 +25,7 @@ build/
 # Firmware and generated images
 *.bin
 !testdata/golden/standard-merge-gen-flash/**/*.bin
+!testdata/golden/ctrlram-replace/fixtures/**/*.bin
 *.hex
 *.fw
 
@@ -48,3 +49,7 @@ Thumbs.db
 .packages/
 TestResults/
 *.trx
+
+# Local investigation scratch
+.tmp/
+testdata/golden/owner-handoff/**/intake/

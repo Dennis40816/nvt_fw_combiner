@@ -5,7 +5,6 @@ using System.Text.Json.Serialization;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
-using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Files;
 using NvtFwCombiner.Infrastructure.Time;
@@ -17,6 +16,9 @@ namespace NvtFwCombiner.Bootstrap;
 public static partial class WorkbenchCompositionService
 {
     private const string EmptySha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+    private const long Nt51950MaxDpContainerLength = 0x100000;
+    private static readonly long[] Nt51950SupportedDpBaseLengths = [0x40000, 0x80000, Nt51950MaxDpContainerLength];
+    private static readonly ByteRange Nt51950TpRestoreRange = ByteRange.FromStartEndExclusive(0x0A000, 0x37000);
 
     private static readonly JsonSerializerOptions ReportJsonOptions = new()
     {
@@ -28,12 +30,6 @@ public static partial class WorkbenchCompositionService
         BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles.ToDictionary(
             profile => profile.IcId,
             StringComparer.Ordinal);
-
-    private static readonly Dictionary<string, CompositionProfileDefinition> DpReplaceProfilesByIc =
-        BuiltInReplaceProfiles.All
-            .Where(profile => string.Equals(profile.ExperienceId, "dp-replace", StringComparison.Ordinal) &&
-                !string.Equals(profile.IcId, "NT-SYNTHETIC", StringComparison.Ordinal))
-            .ToDictionary(profile => profile.IcId, StringComparer.Ordinal);
 
     /// <summary>Returns true when the selected IC has a built-in standard merge profile.</summary>
     public static bool IsStandardMergeSupported(string icId)
@@ -77,6 +73,38 @@ public static partial class WorkbenchCompositionService
         return TpFlashMapCatalog.GetNumberChoices(icId);
     }
 
+    /// <summary>Reads FWConfig display metadata from a selected firmware image when the IC flash-map defines it.</summary>
+    public static WorkbenchFirmwareConfigMetadata? TryReadFirmwareConfigMetadata(string icId, string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        if (!TpFlashMapCatalog.TryGetFirmwareConfigStart(icId, out long firmwareConfigStart) ||
+            !File.Exists(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            byte[] image = File.ReadAllBytes(path);
+            return !FirmwareConfigMetadataReader.TryRead(image, firmwareConfigStart, out FirmwareConfigMetadata metadata)
+                ? null
+                : new WorkbenchFirmwareConfigMetadata(
+                    metadata.FirmwareConfigStart,
+                    metadata.CommonFwVersion,
+                    metadata.FirmwareVersion,
+                    metadata.FirmwareVersionBar,
+                    metadata.IsFirmwareVersionBarValid,
+                    metadata.FirmwareSubVersion,
+                    metadata.ProjectId);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            return null;
+        }
+    }
+
     /// <summary>Gets TP Overview CtrlRAM regions visible for a selected IC and IC-number context.</summary>
     public static IReadOnlyList<WorkbenchCtrlRamRegion> GetCtrlRamRegions(string icId, string number)
     {
@@ -97,6 +125,12 @@ public static partial class WorkbenchCompositionService
     /// <summary>Gets readable memory-map rows for the selected Standard Merge profile.</summary>
     public static IReadOnlyList<WorkbenchMemoryMapRow> GetStandardMergeMemoryMapRows(string icId)
     {
+        return GetStandardMergeMemoryMapRows(icId, dpInputLength: null);
+    }
+
+    /// <summary>Gets readable memory-map rows for the selected Standard Merge profile and DP input length.</summary>
+    public static IReadOnlyList<WorkbenchMemoryMapRow> GetStandardMergeMemoryMapRows(string icId, long? dpInputLength)
+    {
         if (!StandardMergeProfilesByIc.TryGetValue(icId, out CompositionProfileDefinition? profile))
         {
             return
@@ -107,6 +141,19 @@ public static partial class WorkbenchCompositionService
                     "Blocked",
                     "No output",
                     $"Standard Merge is not available for {icId}."),
+            ];
+        }
+
+        if (!TryResolveStandardMergeProfileForDisplay(profile, dpInputLength, out profile, out string profileIssue))
+        {
+            return
+            [
+                new WorkbenchMemoryMapRow(
+                    "Profile",
+                    "Profile",
+                    "Blocked",
+                    "No output",
+                    profileIssue),
             ];
         }
 
@@ -130,11 +177,11 @@ public static partial class WorkbenchCompositionService
         List<WorkbenchMemoryMapRow> rows =
         [
             new(
-                FormatFullRange(profile.Initialization.Capacity),
+                FormatStandardMergeInitializationRangeLabel(profile, dpInputLength),
                 "No output",
                 "Initialize",
                 initializedState,
-                "Start with the initialized image. Unlisted ranges keep this value until a later operation writes them."),
+                FormatStandardMergeInitializationDetail(profile, dpInputLength)),
         ];
 
         foreach (CompositionOperation operation in compile.Plan!.OrderedOperations)
@@ -159,6 +206,14 @@ public static partial class WorkbenchCompositionService
     /// <summary>Gets final visual coverage segments for the selected Standard Merge profile.</summary>
     public static IReadOnlyList<WorkbenchMemoryCoverageSegment> GetStandardMergeCoverageSegments(string icId)
     {
+        return GetStandardMergeCoverageSegments(icId, dpInputLength: null);
+    }
+
+    /// <summary>Gets final visual coverage segments for the selected Standard Merge profile and DP input length.</summary>
+    public static IReadOnlyList<WorkbenchMemoryCoverageSegment> GetStandardMergeCoverageSegments(
+        string icId,
+        long? dpInputLength)
+    {
         if (!StandardMergeProfilesByIc.TryGetValue(icId, out CompositionProfileDefinition? profile))
         {
             return
@@ -168,6 +223,20 @@ public static partial class WorkbenchCompositionService
                     "No profile",
                     "Standard Merge is unavailable.",
                     "#CBD5E1",
+                    280,
+                    false),
+            ];
+        }
+
+        if (!TryResolveStandardMergeProfileForDisplay(profile, dpInputLength, out profile, out string profileIssue))
+        {
+            return
+            [
+                new WorkbenchMemoryCoverageSegment(
+                    "Profile",
+                    "Invalid DP length",
+                    profileIssue,
+                    "#F97316",
                     280,
                     false),
             ];
@@ -231,12 +300,19 @@ public static partial class WorkbenchCompositionService
     /// <summary>Gets output address coverage text for the selected Standard Merge profile.</summary>
     public static string GetStandardMergeMemoryRangeLabel(string icId)
     {
-        return StandardMergeProfilesByIc.TryGetValue(icId, out CompositionProfileDefinition? profile)
-            ? FormatFullRange(profile.Initialization.Capacity)
-            : "No Standard Merge profile";
+        return GetStandardMergeMemoryRangeLabel(icId, dpInputLength: null);
     }
 
-    /// <summary>Gets readable memory-map rows for the selected Replace mode.</summary>
+    /// <summary>Gets output address coverage text for the selected Standard Merge profile and DP input length.</summary>
+    public static string GetStandardMergeMemoryRangeLabel(string icId, long? dpInputLength)
+    {
+        return !StandardMergeProfilesByIc.TryGetValue(icId, out CompositionProfileDefinition? profile)
+            ? "No Standard Merge profile"
+            : TryResolveStandardMergeProfileForDisplay(profile, dpInputLength, out profile, out string profileIssue)
+                ? FormatFullRange(profile.Initialization.Capacity)
+                : profileIssue;
+    }
+
     /// <summary>Gets catalog and tool summary data for the Settings page.</summary>
     public static WorkbenchSettingsSnapshot GetSettingsSnapshot()
     {
@@ -286,36 +362,6 @@ public static partial class WorkbenchCompositionService
                 .Order(StringComparer.Ordinal)
                 .Select(addressSpaceId => CreateBinding(addressSpaceId, slotPaths)),
         ];
-        return await RunCompiledWorkbenchProfileAsync(
-            "ui",
-            profile,
-            plan,
-            bindings,
-            build,
-            outputPath,
-            cancellationToken).ConfigureAwait(false);
-    }
-
-    private static async ValueTask<WorkbenchRunResult> RunCompiledWorkbenchProfileAsync(
-        string runIdPrefix,
-        CompositionProfileDefinition profile,
-        CompositionPlan plan,
-        InputArtifactBinding[] bindings,
-        bool build,
-        string? outputPath,
-        CancellationToken cancellationToken,
-        IcNumberSelection? icNumberSelection = null,
-        IExternalProcessor? externalProcessor = null)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(runIdPrefix);
-        ArgumentNullException.ThrowIfNull(profile);
-        ArgumentNullException.ThrowIfNull(plan);
-        ArgumentNullException.ThrowIfNull(bindings);
-        if (bindings.Length == 0)
-        {
-            throw new ArgumentException("At least one input binding is required.", nameof(bindings));
-        }
-
         string[] inputRoots = [
             .. bindings
                 .Select(binding => Path.GetDirectoryName(binding.ArtifactId)!)
@@ -328,21 +374,23 @@ public static partial class WorkbenchCompositionService
             profile.DefaultOutputFileName);
         if (build)
         {
-            EnsureOutputDoesNotAliasInputs(outputDirectory, outputFileName, bindings);
+            ProtectedPathGuard.EnsureOutputDoesNotAliasInputs(
+                ProtectedPathGuard.CombineFullPath(outputDirectory, outputFileName),
+                bindings,
+                nameof(outputPath));
         }
 
         FileArtifactReader reader = new(inputRoots);
         AtomicFileCompositionOutputWriter? writer = build
             ? new AtomicFileCompositionOutputWriter(outputDirectory, overwrite: true)
             : null;
-        CompositionRunService service = new(reader, new SystemClock(), writer, externalProcessor);
+        CompositionRunService service = new(reader, new SystemClock(), writer);
         CompositionRunRequest request = new(
-            $"{runIdPrefix}-{(build ? "build" : "preview")}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture)}",
+            $"ui-{(build ? "build" : "preview")}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture)}",
             ToRunProfile(profile),
             plan,
             bindings,
-            outputFileName,
-            icNumberSelection: icNumberSelection);
+            outputFileName);
 
         CompositionRunResult result;
         if (!build)
@@ -385,17 +433,6 @@ public static partial class WorkbenchCompositionService
             : (directory, fileName);
     }
 
-    private static void EnsureOutputDoesNotAliasInputs(
-        string outputDirectory,
-        string outputFileName,
-        IReadOnlyList<InputArtifactBinding> bindings)
-    {
-        ProtectedPathGuard.EnsureOutputDoesNotAliasInputs(
-            ProtectedPathGuard.CombineFullPath(outputDirectory, outputFileName),
-            bindings,
-            nameof(outputFileName));
-    }
-
     private static CompositionProfileDefinition ResolveStandardMergeProfileForInputs(
         CompositionProfileDefinition profile,
         IReadOnlyDictionary<string, string> slotPaths)
@@ -408,6 +445,55 @@ public static partial class WorkbenchCompositionService
                 : BuiltInStandardMergeProfiles.CreateDpPerspectiveProfileForInputLength(
                     profile.IcId,
                     new FileInfo(dpPath).Length);
+    }
+
+    private static bool TryResolveStandardMergeProfileForDisplay(
+        CompositionProfileDefinition profile,
+        long? dpInputLength,
+        out CompositionProfileDefinition resolvedProfile,
+        out string profileIssue)
+    {
+        resolvedProfile = profile;
+        profileIssue = string.Empty;
+        if (dpInputLength is null ||
+            !BuiltInStandardMergeProfiles.IsDpPerspectiveStandardMergeProfile(profile))
+        {
+            return true;
+        }
+
+        try
+        {
+            resolvedProfile = BuiltInStandardMergeProfiles.CreateDpPerspectiveProfileForInputLength(
+                profile.IcId,
+                dpInputLength.Value);
+            return true;
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            profileIssue = FormattableString.Invariant(
+                $"Selected DP BIN length 0x{dpInputLength.Value:X} is unsupported; expected 0x40000, 0x80000, or 0x100000.");
+            return false;
+        }
+    }
+
+    private static string FormatStandardMergeInitializationRangeLabel(
+        CompositionProfileDefinition profile,
+        long? dpInputLength)
+    {
+        return BuiltInStandardMergeProfiles.IsDpPerspectiveStandardMergeProfile(profile) && dpInputLength is null
+            ? "DP BIN length (max end 0xFFFFF)"
+            : FormatFullRange(profile.Initialization.Capacity);
+    }
+
+    private static string FormatStandardMergeInitializationDetail(
+        CompositionProfileDefinition profile,
+        long? dpInputLength)
+    {
+        return !BuiltInStandardMergeProfiles.IsDpPerspectiveStandardMergeProfile(profile)
+            ? "Start with the initialized image. Unlisted ranges keep this value until a later operation writes them."
+            : dpInputLength is null
+                ? "Start with the initialized image sized by the selected DP BIN length. Max inclusive end is 0xFFFFF; supported DP lengths are 0x40000, 0x80000, and 0x100000."
+                : "Start with the initialized image using the selected DP BIN length. Unlisted ranges keep this value until a later operation writes them.";
     }
 
     private static IReadOnlyList<string> GetRequiredAddressSpaces(CompositionProfileDefinition profile)
@@ -491,7 +577,6 @@ public static partial class WorkbenchCompositionService
             "reference-base" => "Base flash",
             "dp-replacement" => "DP replacement",
             "ldc-replacement" => "LDC replacement",
-            "tp-work" => "TP work",
             "output-image" => "Output",
             _ => addressSpaceId,
         };
@@ -597,7 +682,6 @@ public static partial class WorkbenchCompositionService
             "CtrlRAM BIN" => "#16A34A",
             "Changed CtrlRAM BIN" => "#16A34A",
             "Restored TP" => "#64748B",
-            "Preserved customer info" => "#94A3B8",
             "Preserve" => "#64748B",
             string label when label.Contains("NF CtrlRAM", StringComparison.OrdinalIgnoreCase) => "#DC2626",
             string label when label.Contains("Normal CtrlRAM", StringComparison.OrdinalIgnoreCase) => "#0891B2",
@@ -650,13 +734,17 @@ public static partial class WorkbenchCompositionService
 }
 
 /// <summary>Catalog and tool status used by the Settings page.</summary>
-public sealed record WorkbenchSettingsSnapshot(
-    int StandardMergeProfileCount,
-    int ReplaceProfileCount,
-    int FlashMapIcCount,
-    int PostbuildProfileCount,
-    string ToolBindingIds,
-    string ToolManifestPath);
+public sealed record WorkbenchSettingsSnapshot(int StandardMergeProfileCount, int ReplaceProfileCount, int FlashMapIcCount, int PostbuildProfileCount, string ToolBindingIds, string ToolManifestPath);
+
+/// <summary>Firmware facts read from a flash image FWConfig block.</summary>
+public sealed record WorkbenchFirmwareConfigMetadata(
+    long FirmwareConfigStart,
+    string CommonFwVersion,
+    byte FirmwareVersion,
+    byte FirmwareVersionBar,
+    bool IsFirmwareVersionBarValid,
+    byte FirmwareSubVersion,
+    ushort ProjectId);
 
 /// <summary>One readable before/after memory-map row for shell display.</summary>
 public sealed record WorkbenchMemoryMapRow(

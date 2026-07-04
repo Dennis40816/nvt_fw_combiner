@@ -89,6 +89,207 @@ public sealed class CompositionProfileCompilerTests
         Assert.Equal(CompositionOperationKind.ReplaceRange, operation.Kind);
     }
 
+    /// <summary>Verifies General Replace cannot map TP-classified ranges without a post-mapping processor refresh.</summary>
+    [Fact]
+    public void GeneralReplaceRejectsTpMappingWithoutExternalProcessor()
+    {
+        CompositionProfileDefinition profile = CreateProfile(
+            CompositionKind.Replace,
+            "general-replace",
+            ImageInitialization.Reference("output-image", "source", 4),
+            regions:
+            [
+                new ProfileRegion(
+                    "tp-payload",
+                    "output-image",
+                    new ByteRange(1, 2),
+                    RegionAtomicity.ExplicitMapping,
+                    RegionWritePolicy.GeneralExplicit,
+                    classificationTags: ["tp"]),
+            ],
+            accessRules:
+            [
+                new RegionAccessRule("tp-payload", RegionAccessKind.ExplicitRange, "allow TP payload"),
+            ]);
+        ExplicitMapping mapping = CreateMapping(
+            ExplicitMappingOperationKind.ReplaceRange,
+            targetRegionId: "tp-payload");
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, [mapping]);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.explicit-mapping.tp-processor-required");
+    }
+
+    /// <summary>Verifies General Replace detects TP child ranges even when the explicit mapping targets a parent region.</summary>
+    [Fact]
+    public void GeneralReplaceRejectsParentMappingThatTouchesTpChildRegionWithoutExternalProcessor()
+    {
+        CompositionProfileDefinition profile = CreateProfile(
+            CompositionKind.Replace,
+            "general-replace",
+            ImageInitialization.Reference("output-image", "source", 4),
+            regions:
+            [
+                new ProfileRegion(
+                    "payload",
+                    "output-image",
+                    new ByteRange(0, 4),
+                    RegionAtomicity.ExplicitMapping,
+                    RegionWritePolicy.GeneralExplicit),
+                new ProfileRegion(
+                    "tp-window",
+                    "output-image",
+                    new ByteRange(1, 2),
+                    RegionAtomicity.ExplicitMapping,
+                    RegionWritePolicy.GeneralExplicit,
+                    classificationTags: ["tp"]),
+            ],
+            accessRules:
+            [
+                new RegionAccessRule("payload", RegionAccessKind.ExplicitRange, "allow payload"),
+                new RegionAccessRule("tp-window", RegionAccessKind.ExplicitRange, "allow TP window"),
+            ]);
+        ExplicitMapping mapping = CreateMapping(
+            ExplicitMappingOperationKind.ReplaceRange,
+            targetRegionId: "payload");
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, [mapping]);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.explicit-mapping.tp-processor-required");
+    }
+
+    /// <summary>Verifies General Replace TP mappings compile only when an external processor follows the mapping.</summary>
+    [Fact]
+    public void GeneralReplaceTpMappingCompilesWithPostMappingExternalProcessor()
+    {
+        CompositionProfileDefinition profile = CreateProfile(
+            CompositionKind.Replace,
+            "general-replace",
+            ImageInitialization.Reference("output-image", "source", 4),
+            operations: [CreateExternalProcessorOperation("crc-v1", sequence: 20)],
+            regions:
+            [
+                new ProfileRegion(
+                    "tp-payload",
+                    "output-image",
+                    new ByteRange(1, 2),
+                    RegionAtomicity.ExplicitMapping,
+                    RegionWritePolicy.GeneralExplicit,
+                    classificationTags: ["tp"]),
+                new ProfileRegion(
+                    "tp-crc",
+                    "output-image",
+                    new ByteRange(3, 1),
+                    RegionAtomicity.Whole,
+                    RegionWritePolicy.Forbidden,
+                    processorDependencyIds: ["crc-v1"],
+                    classificationTags: ["tp"]),
+            ],
+            accessRules:
+            [
+                new RegionAccessRule("tp-payload", RegionAccessKind.ExplicitRange, "allow TP payload"),
+                new RegionAccessRule("tp-crc", RegionAccessKind.Hidden, "processor owned"),
+            ]);
+        ExplicitMapping mapping = CreateMapping(
+            ExplicitMappingOperationKind.ReplaceRange,
+            targetRegionId: "tp-payload");
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, [mapping]);
+
+        Assert.True(result.IsSuccess, FormatIssues(result.Issues));
+        Assert.Collection(
+            result.Plan!.OrderedOperations,
+            operation => Assert.Equal(CompositionOperationKind.ReplaceRange, operation.Kind),
+            operation => Assert.Equal(CompositionOperationKind.RunExternalProcessor, operation.Kind));
+    }
+
+    /// <summary>Verifies a post-mapping processor does not unlock direct writes to processor-owned TP regions.</summary>
+    [Fact]
+    public void GeneralReplaceRejectsProcessorOwnedTpMappingEvenWithExternalProcessor()
+    {
+        CompositionProfileDefinition profile = CreateProfile(
+            CompositionKind.Replace,
+            "general-replace",
+            ImageInitialization.Reference("output-image", "source", 4),
+            operations: [CreateExternalProcessorOperation("crc-v1", sequence: 20)],
+            regions:
+            [
+                new ProfileRegion(
+                    "tp-payload",
+                    "output-image",
+                    new ByteRange(1, 2),
+                    RegionAtomicity.ExplicitMapping,
+                    RegionWritePolicy.GeneralExplicit,
+                    processorDependencyIds: ["crc-v1"],
+                    classificationTags: ["tp"]),
+                new ProfileRegion(
+                    "tp-crc",
+                    "output-image",
+                    new ByteRange(3, 1),
+                    RegionAtomicity.Whole,
+                    RegionWritePolicy.Forbidden,
+                    processorDependencyIds: ["crc-v1"],
+                    classificationTags: ["tp"]),
+            ],
+            accessRules:
+            [
+                new RegionAccessRule("tp-payload", RegionAccessKind.ExplicitRange, "processor owned"),
+                new RegionAccessRule("tp-crc", RegionAccessKind.Hidden, "processor owned"),
+            ]);
+        ExplicitMapping mapping = CreateMapping(
+            ExplicitMappingOperationKind.ReplaceRange,
+            targetRegionId: "tp-payload");
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, [mapping]);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.explicit-mapping.processor-dependency");
+    }
+
+    /// <summary>Verifies a pre-mapping processor does not satisfy General Replace TP CRC/header refresh.</summary>
+    [Fact]
+    public void GeneralReplaceRejectsTpMappingWhenExternalProcessorRunsBeforeMapping()
+    {
+        CompositionProfileDefinition profile = CreateProfile(
+            CompositionKind.Replace,
+            "general-replace",
+            ImageInitialization.Reference("output-image", "source", 4),
+            operations: [CreateExternalProcessorOperation("crc-v1", sequence: 5)],
+            regions:
+            [
+                new ProfileRegion(
+                    "tp-payload",
+                    "output-image",
+                    new ByteRange(1, 2),
+                    RegionAtomicity.ExplicitMapping,
+                    RegionWritePolicy.GeneralExplicit,
+                    classificationTags: ["tp"]),
+                new ProfileRegion(
+                    "tp-crc",
+                    "output-image",
+                    new ByteRange(3, 1),
+                    RegionAtomicity.Whole,
+                    RegionWritePolicy.Forbidden,
+                    processorDependencyIds: ["crc-v1"],
+                    classificationTags: ["tp"]),
+            ],
+            accessRules:
+            [
+                new RegionAccessRule("tp-payload", RegionAccessKind.ExplicitRange, "allow TP payload"),
+                new RegionAccessRule("tp-crc", RegionAccessKind.Hidden, "processor owned"),
+            ]);
+        ExplicitMapping mapping = CreateMapping(
+            ExplicitMappingOperationKind.ReplaceRange,
+            targetRegionId: "tp-payload");
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, [mapping]);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.explicit-mapping.tp-processor-required");
+    }
+
     /// <summary>Verifies general replace mappings can infer the target region from an unambiguous range.</summary>
     [Fact]
     public void GeneralReplaceInfersMappingTargetRegionFromRange()
@@ -461,9 +662,9 @@ public sealed class CompositionProfileCompilerTests
         Assert.True(result.IsSuccess, FormatIssues(result.Issues));
     }
 
-    /// <summary>Verifies CtrlRAM Replace may host-copy a whole CtrlRAM region before its postbuild processor runs.</summary>
+    /// <summary>Verifies CtrlRAM Replace may stage a whole CtrlRAM region for its postbuild processor.</summary>
     [Fact]
-    public void CtrlRamReplaceAllowsWholeRegionHostWriteBeforeProcessorDependency()
+    public void CtrlRamReplaceAllowsWholeRegionStagedSourceForProcessorDependency()
     {
         CompositionProfileDefinition profile = CreateProfile(
             CompositionKind.Replace,
@@ -477,15 +678,24 @@ public sealed class CompositionProfileCompilerTests
             ],
             operations:
             [
-                CompositionOperation.ReplaceRange(
-                    "replace-ctrlram",
+                CompositionOperation.RunExternalProcessor(
+                    "postbuild-ctrlram",
                     10,
-                    "ctrlram-replacement",
-                    new ByteRange(0, 2),
                     "output-image",
-                    new ByteRange(1, 2),
-                    OverlapPolicy.Reject,
-                    "replace ctrlram before postbuild"),
+                    new ByteRange(0, 4),
+                    new ExternalProcessorInvocation(
+                        "legacy-combiner",
+                        "legacy-combiner-1.13.0",
+                        [new ByteRange(0, 4)],
+                        [new ByteRange(1, 2)],
+                        [
+                            new ExternalProcessorStagedSourceBinding(
+                                "ctrlram-replacement",
+                                new ByteRange(0, 2),
+                                new ByteRange(1, 2)),
+                        ]),
+                    OverlapPolicy.ReplaceExisting,
+                    "stage ctrlram for combiner pasteback"),
             ],
             regions:
             [
@@ -828,11 +1038,11 @@ public sealed class CompositionProfileCompilerTests
             targetRegionId);
     }
 
-    private static CompositionOperation CreateExternalProcessorOperation(string processorId)
+    private static CompositionOperation CreateExternalProcessorOperation(string processorId, int sequence = 10)
     {
         return CompositionOperation.RunExternalProcessor(
             "run-crc",
-            10,
+            sequence,
             "output-image",
             new ByteRange(0, 4),
             new ExternalProcessorInvocation(

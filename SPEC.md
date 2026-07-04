@@ -33,11 +33,11 @@
 As of 2026-06-30, near-term implementation focuses on normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows.
 
 - AB Code Merge is intentionally deferred for now. Existing AB evidence remains reference material only; do not spend implementation effort on AB unless the owner explicitly reactivates it.
-- Normal/Standard Merge must include NT51950 and NT51951 through the DP Perspective maximum-container policy. Golden evidence is still required before production promotion.
+- Normal/Standard Merge includes NT51950 and NT51951 through the DP Perspective selected-container policy. Current owner golden cases are recorded; firmware-owner sign-off is still required before production promotion.
 - CtrlRAM Replace requires legacy `combiner.exe` CRC/header recalculation after replacement. Combiner `1.13.0` is imported under `external-tools/legacy-combiner/1.13.0/` and is pinned by SHA-256 manifest.
 - Owner-provided postbuild scripts are the behavioral truth for CtrlRAM Replace command order; mmap files explain offsets and sizes; TP Overview is the documentation baseline to correct when it conflicts with postbuild/mmap evidence.
 - CtrlRAM postbuild command sequences must be generated as structured command/argv data and tested against the hsi Combiner guide, not assembled as one shell command string. NT51927 requires explicit single, 2IC, and 3IC Replace branches.
-- NT51950/NT51951 normal Merge and DP Replace should use the DP image as the base container and overlay/preserve the TP range. Standard Merge DP inputs are limited to the owner-confirmed DP Perspective sizes `0x40000`, `0x80000`, and `0x100000`; the Standard Merge output length follows the selected DP input length. The confirmed TP overlay range is `0x0A000-0x36FFF (len 0x2D000)`; `0x37000-0x37FFF (len 0x1000)` is customer info and must not be overwritten by the TP overlay. DP Replace remains a fixed `0x100000` work-container flow because it clones an exact-length base firmware image.
+- NT51950/NT51951 normal Merge and DP Replace should use the DP image as the base container and overlay/preserve the TP range. Standard Merge DP inputs are limited to the owner-confirmed DP Perspective sizes `0x40000`, `0x80000`, and `0x100000`; the Standard Merge output length follows the selected DP input length. DP Replace must derive its work length from the selected base firmware length, which must be one of `0x40000`, `0x80000`, or `0x100000`; never hard-code the maximum container as the base. The confirmed TP overlay range is `0x0A000-0x36FFF (len 0x2D000)`; `0x37000-0x37FFF (len 0x1000)` is customer info and must not be overwritten by the TP overlay.
 - NT51917 follows NT51927. NT51919 follows NT51929. NT51928 non-NB follows NT51927, while NT51928 NB is a separate IC and must not inherit that profile unless explicitly approved.
 - NT51930 currently has no `>13 IC` product target; map cascade to the `<=13 IC` DiffDLM branch (`0x2F200`, size `65024`) until owner data reactivates larger counts.
 - FW Register ranges should be captured as first-class map evidence when the owner updates TP Overview. A future REG Replace workflow may use those ranges, but current Replace scope remains DP Replace, CtrlRAM Replace, and General Replace.
@@ -66,7 +66,7 @@ As of 2026-06-30, near-term implementation focuses on normal Merge and normal Re
 
 Merge：
 
-- `standard-merge`：固定 profile 的正常合併。Current priority covers normal DP/TP merge flows, including NT51950 and NT51951 after golden cases are available.
+- `standard-merge`：固定 profile 的正常合併。Current priority covers normal DP/TP merge flows, including NT51930 flash-map evidence and NT51950/NT51951 DP Perspective golden cases, while support exposure remains gated by firmware-owner sign-off.
 - `ab-merge`：固定 profile 的 A/B bank 合併、relocation 與 integrity stages。
 - `general-merge`：一或多個 BIN，使用者以 memory map drag、mapping table 或精確手動輸入設定 source/target ranges。
 
@@ -74,7 +74,7 @@ Replace：
 
 - `dp-replace`：DP whole 或 profile-declared partitions；LD replacement also belongs to DP Replace and may be modeled as a separate LD replacement BIN/slot from the DP BIN；不再提供獨立 TP persona replace 分類。
 - `ctrlram-replace`：只操作被標記為 `tp-ctrlram` 的 named regions/groups。
-- `general-replace`：required reference BIN 加上一或多個 replacement BIN；使用者自由建立多筆 explicit mappings，但仍受 protected ranges、alignment、overlap、processor dependency 與 Preview gate 約束。
+- `general-replace`：required reference BIN 加上一或多個 replacement BIN；使用者自由建立多筆 explicit mappings，但仍受 protected ranges、alignment、overlap、processor dependency 與 Preview gate 約束。Any mapping that touches a TP-classified range must compile with an approved legacy Combiner CRC/header refresh after the replacement mutation.
 
 Experience 只控制 catalog、UI authoring policy 與 profile compile constraints。Executor 不依 `experienceId` 寫 workflow-specific branch。
 
@@ -122,15 +122,14 @@ refcode/ab_code_combiner/
 
 ### 2.5 `refcode/` 最終允許內容
 
-`refcode/` 只允許以下三個 owner-approved evidence directory：
+`refcode/` 只允許以下兩個 owner-approved Python evidence directories：
 
 ```text
 gen_flash_bin_v2/
 ab_code_combiner/
-flashmap/
 ```
 
-CI 必須拒絕未核准的頂層 snapshot、任何 `.ts/.tsx/.js`、firmware BIN、cache、venv 或 build output。`flashmap/` 可保留 owner-approved Combiner 1.13.0 evidence copy；production runtime 只能使用 `external-tools/` package。
+CI 必須拒絕未核准的頂層 snapshot、任何 `.ts/.tsx/.js`、firmware BIN、cache、venv 或 build output。IC FlashMap workbook/postbuild/mmap evidence belongs under `docs/references/ic-flashmap/`; approved runtime binaries belong under `external-tools/` and are pinned by manifest。
 
 ### 2.6 外部規範來源
 
@@ -159,7 +158,7 @@ Codex 與 agent governance 主要參考：
 7. External processors may transform only a host-created staging copy. The host owns executable resolution, SHA-256 verification, write-range policy, independent diff verification, and atomic promotion.
 8. 每個 IC/mode/stage 都要明確宣告 integrity disposition、processor id、tool binding when applicable、read/write ranges and evidence；`unknown` 不得成為 supported profile。
 9. production runtime 離線可用，不依賴網路、GitHub、系統 Python 或 package registry。
-10. release 產物最小化、可重現、可驗證 SHA-256，且不含 sample firmware。
+10. release 產物最小化、可重現、可驗證 SHA-256，且不含 private inputs、unmanifested firmware 或 generated firmware outputs；owner-approved golden fixture BINs may ship only under the manifest-declared `reference/` payload。
 11. Codex 可從 root/nested AGENTS、repo skills、project config 與單一 verify command 得到一致規則；`polytail` 必須在完成與 review 前阻擋低品質 AI code。
 12. 新增 IC/mode 時主要修改 profile、processor/tool declaration 與 golden test，不新增 one-off merge/replace script。
 
@@ -543,7 +542,7 @@ This avoids duplicating memory maps for DP/CtrlRAM/General Replace while keeping
 
 - **DP Replace**：DP may be whole or declared parts. LD replacement is treated as DP Replace and may use a separate LD replacement BIN/slot from the DP BIN. TP-specific replace categories are not exposed.
 - **CtrlRAM Replace**：only regions tagged `tp-ctrlram` or approved CtrlRAM groups may be replaced.
-- **General Replace**：explicit ranges are allowed only where profile access is `explicit-range`; protected regions remain blocked.
+- **General Replace**：explicit ranges are allowed only where profile access is `explicit-range`; protected regions remain blocked. If an explicit mapping touches a TP-classified range, the compiled plan must run an approved legacy Combiner CRC/header refresh after that mapping; profiles without that post-mutation processor stage fail closed.
 - **General Merge**：input cardinality is extensible; every mapping row compiles to standard operations.
 
 ### 7.6 Operation algebra
@@ -702,7 +701,7 @@ The example ranges are placeholders for documentation only. A supported profile 
 | --- | --- | --- |
 | Python CRC worker Protocol 1.0 | Implemented prototype | pure CRC calculation, no file mutation |
 | Staged transform Protocol 2.x | Reserved concept | host-created staging copy mutation with independent diff |
-| External combiner tool runner | Planned implementation | call approved legacy `combiner.exe` versions for CRC/Header transform |
+| External combiner tool runner | Staged adapter implemented for approved Combiner 1.13.0 CtrlRAM postbuild; production parity still gated by profiles/golden evidence | call approved legacy `combiner.exe` versions for CRC/Header transform |
 
 ### 9.2 Process 與 filesystem 安全規則
 

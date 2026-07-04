@@ -17,37 +17,16 @@ from urllib.parse import unquote
 ROOT = Path(__file__).resolve().parents[1]
 
 REQUIRED_FILES = {
-    "README.md",
-    "LICENSE",
-    "AGENTS.md",
-    "SPEC.md",
-    "CHANGELOG.md",
-    "VERSION",
-    "global.json",
-    "Directory.Build.props",
-    "Directory.Build.targets",
-    "Directory.Packages.props",
-    "NuGet.config",
-    "NvtFwCombiner.slnx",
-    ".codex/config.toml",
-    ".github/CODEOWNERS",
-    ".github/dependabot.yml",
-    ".github/pull_request_template.md",
-    ".github/workflows/ci.yml",
-    ".github/workflows/release.yml",
-    "scripts/bootstrap.ps1",
-    "scripts/bootstrap.sh",
-    "scripts/install-dotnet.ps1",
-    "scripts/install-dotnet.sh",
-    "scripts/package.ps1",
-    "scripts/polytail_check.py",
-    "scripts/publish-github.ps1",
-    "scripts/publish-github.sh",
-    "scripts/validate_repository.py",
-    "scripts/verify.py",
-    "THIRD_PARTY_NOTICES.md",
-    "external-tools/README.md",
-    "external-tools/legacy-combiner/README.md",
+    "README.md", "LICENSE", "AGENTS.md", "SPEC.md", "CHANGELOG.md", "VERSION",
+    "global.json", "Directory.Build.props", "Directory.Build.targets", "Directory.Packages.props",
+    "NuGet.config", "NvtFwCombiner.slnx", "THIRD_PARTY_NOTICES.md",
+    ".codex/config.toml", ".github/CODEOWNERS", ".github/dependabot.yml",
+    ".github/pull_request_template.md", ".github/workflows/ci.yml", ".github/workflows/release.yml",
+    "scripts/bootstrap.ps1", "scripts/bootstrap.sh", "scripts/install-dotnet.ps1",
+    "scripts/install-dotnet.sh", "scripts/package.ps1", "scripts/polytail_check.py",
+    "scripts/publish-github.ps1", "scripts/publish-github.sh", "scripts/validate_repository.py",
+    "scripts/verify_ctrlram_replace_fixture.py", "scripts/verify.py",
+    "external-tools/README.md", "external-tools/legacy-combiner/README.md",
     "external-tools/legacy-combiner/1.13.0/manifest.json",
     "testdata/golden/standard-merge-gen-flash/manifest.json",
     "docs/adr/0003-unified-composition-engine.md",
@@ -180,7 +159,10 @@ EXPECTED_SKILLS = {
 
 EXPECTED_REFCODE_SNAPSHOTS = {"gen_flash_bin_v2", "ab_code_combiner"}
 FORBIDDEN_SUFFIXES = {".bin", ".exe", ".dll", ".pdb", ".pfx", ".p12", ".pem", ".key", ".pyc"}
-ALLOWED_GOLDEN_BIN_ROOTS = {PurePosixPath("testdata/golden/standard-merge-gen-flash")}
+ALLOWED_GOLDEN_BIN_ROOTS = {
+    PurePosixPath("testdata/golden/standard-merge-gen-flash"),
+    PurePosixPath("testdata/golden/ctrlram-replace/fixtures"),
+}
 ALLOWED_EXECUTABLE_PAYLOADS = {
     PurePosixPath("external-tools/legacy-combiner/1.13.0/Combiner.exe"),
 }
@@ -408,6 +390,11 @@ def validate_source_manifest(manifest_path: Path, errors: list[str]) -> None:
 
 
 def validate_golden_fixtures(errors: list[str]) -> None:
+    validate_standard_merge_golden_fixtures(errors)
+    validate_ctrlram_replace_golden_fixtures(errors)
+
+
+def validate_standard_merge_golden_fixtures(errors: list[str]) -> None:
     manifest_path = ROOT / "testdata/golden/standard-merge-gen-flash/manifest.json"
     manifest = load_json(manifest_path, errors)
     if not isinstance(manifest, dict):
@@ -424,7 +411,7 @@ def validate_golden_fixtures(errors: list[str]) -> None:
     if isinstance(supporting, dict):
         config = supporting.get("test_ic_config")
         if isinstance(config, dict):
-            validate_golden_manifest_entry(golden_root, config, errors, require_bin=False)
+            validate_golden_manifest_entry(golden_root, config, errors, require_bin=False, label="standard-merge")
 
     cases = manifest.get("cases")
     if not isinstance(cases, list) or not cases:
@@ -441,12 +428,12 @@ def validate_golden_fixtures(errors: list[str]) -> None:
         else:
             for entry in inputs.values():
                 if isinstance(entry, dict):
-                    relative = validate_golden_manifest_entry(golden_root, entry, errors, require_bin=True)
+                    relative = validate_golden_manifest_entry(golden_root, entry, errors, require_bin=True, label="standard-merge")
                     if relative is not None:
                         declared_bins.add(relative)
         expected = item.get("expectedOutput")
         if isinstance(expected, dict):
-            relative = validate_golden_manifest_entry(golden_root, expected, errors, require_bin=True)
+            relative = validate_golden_manifest_entry(golden_root, expected, errors, require_bin=True, label="standard-merge")
             if relative is not None:
                 declared_bins.add(relative)
         else:
@@ -465,41 +452,123 @@ def validate_golden_fixtures(errors: list[str]) -> None:
         )
 
 
+def validate_ctrlram_replace_golden_fixtures(errors: list[str]) -> None:
+    manifest_path = ROOT / "testdata/golden/ctrlram-replace/manifest.json"
+    manifest = load_json(manifest_path, errors)
+    if not isinstance(manifest, dict):
+        return
+
+    if manifest.get("payloadClass") != "owner-approved-golden-firmware":
+        errors.append("ctrlram-replace golden manifest must declare owner-approved-golden-firmware payloadClass")
+    if manifest.get("binaryPayloadsIncluded") is not True:
+        errors.append("ctrlram-replace golden manifest must explicitly include binaryPayloadsIncluded=true")
+
+    golden_root = manifest_path.parent
+    declared_bins: set[PurePosixPath] = set()
+    cases = manifest.get("cases")
+    if not isinstance(cases, list) or not cases:
+        errors.append("ctrlram-replace golden manifest must contain cases")
+        return
+
+    for index, item in enumerate(cases):
+        if not isinstance(item, dict):
+            errors.append(f"invalid ctrlram-replace golden case[{index}]")
+            continue
+
+        base = item.get("base")
+        if isinstance(base, dict):
+            relative = validate_golden_manifest_entry(golden_root, base, errors, require_bin=True, label="ctrlram-replace")
+            if relative is not None:
+                declared_bins.add(relative)
+        else:
+            errors.append(f"ctrlram-replace golden case[{index}] has no base")
+
+        replacement_inputs = item.get("replacementInputs")
+        if not isinstance(replacement_inputs, list) or not replacement_inputs:
+            errors.append(f"ctrlram-replace golden case[{index}] has no replacementInputs")
+            continue
+
+        for replacement_index, replacement in enumerate(replacement_inputs):
+            if not isinstance(replacement, dict):
+                errors.append(f"invalid ctrlram-replace golden case[{index}].replacementInputs[{replacement_index}]")
+                continue
+            file_entry = replacement.get("file")
+            if isinstance(file_entry, dict):
+                relative = validate_golden_manifest_entry(
+                    golden_root,
+                    file_entry,
+                    errors,
+                    require_bin=True,
+                    label="ctrlram-replace",
+                )
+                if relative is not None:
+                    declared_bins.add(relative)
+            else:
+                errors.append(
+                    f"ctrlram-replace golden case[{index}].replacementInputs[{replacement_index}] has no file"
+                )
+
+        expected = item.get("expectedOutput")
+        if isinstance(expected, dict):
+            relative = validate_golden_manifest_entry(
+                golden_root,
+                expected,
+                errors,
+                require_bin=True,
+                label="ctrlram-replace",
+            )
+            if relative is not None:
+                declared_bins.add(relative)
+
+    actual_bins = {
+        PurePosixPath(path.relative_to(golden_root).as_posix())
+        for path in golden_root.rglob("*.bin")
+        if path.is_file()
+    }
+    if actual_bins != declared_bins:
+        errors.append(
+            "ctrlram-replace golden BIN manifest drift: "
+            f"expected={sorted(path.as_posix() for path in declared_bins)} "
+            f"actual={sorted(path.as_posix() for path in actual_bins)}"
+        )
+
+
 def validate_golden_manifest_entry(
     golden_root: Path,
     entry: dict[str, Any],
     errors: list[str],
     *,
     require_bin: bool,
+    label: str,
 ) -> PurePosixPath | None:
     relative_text = entry.get("path")
     expected_size = entry.get("size")
     expected_hash = entry.get("sha256")
     if not isinstance(relative_text, str) or not isinstance(expected_size, int) or not isinstance(expected_hash, str):
-        errors.append("invalid standard-merge golden manifest file entry")
+        errors.append(f"invalid {label} golden manifest file entry")
         return None
 
     relative = PurePosixPath(relative_text)
     if relative.is_absolute() or ".." in relative.parts:
-        errors.append(f"unsafe standard-merge golden manifest path: {relative_text}")
+        errors.append(f"unsafe {label} golden manifest path: {relative_text}")
         return None
     if require_bin and relative.suffix.lower() != ".bin":
-        errors.append(f"standard-merge golden payload is not a BIN file: {relative_text}")
+        errors.append(f"{label} golden payload is not a BIN file: {relative_text}")
         return None
 
     candidate = (golden_root / Path(*relative.parts)).resolve()
     try:
         candidate.relative_to(golden_root.resolve())
     except ValueError:
-        errors.append(f"standard-merge golden manifest path escapes fixture root: {relative_text}")
+        errors.append(f"{label} golden manifest path escapes fixture root: {relative_text}")
         return None
     if not candidate.is_file():
-        errors.append(f"standard-merge golden manifest file missing: {candidate.relative_to(ROOT)}")
+        errors.append(f"{label} golden manifest file missing: {candidate.relative_to(ROOT)}")
         return relative
     if candidate.stat().st_size != expected_size:
-        errors.append(f"standard-merge golden size drift: {candidate.relative_to(ROOT)}")
+        errors.append(f"{label} golden size drift: {candidate.relative_to(ROOT)}")
     if sha256(candidate) != expected_hash.lower():
-        errors.append(f"standard-merge golden hash drift: {candidate.relative_to(ROOT)}")
+        errors.append(f"{label} golden hash drift: {candidate.relative_to(ROOT)}")
     return relative
 
 
@@ -625,6 +694,13 @@ def validate_workflows(errors: list[str]) -> None:
             errors.append(f"CI is missing required check name: {name}")
     if "scripts/install-dotnet.ps1" not in ci:
         errors.append("CI must exercise the repository .NET installer")
+    if "python scripts/verify.py --skip-python" not in ci:
+        errors.append("CI dotnet job must run the canonical .NET verifier")
+    verifier = (ROOT / "scripts/verify.py").read_text(encoding="utf-8")
+    if '[dotnet, "test", str(SOLUTION), "-c", "Release", "--no-build"]' not in verifier:
+        errors.append("canonical verifier must run the full .NET solution test suite")
+    if "verify_ctrlram_replace_fixture.py" not in verifier:
+        errors.append("canonical verifier must include the CtrlRAM Replace fixture gate")
     release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
     if "workflow_dispatch" not in release or "stable SemVer tag" not in release:
         errors.append("release workflow must be manually gated by an existing stable SemVer tag")

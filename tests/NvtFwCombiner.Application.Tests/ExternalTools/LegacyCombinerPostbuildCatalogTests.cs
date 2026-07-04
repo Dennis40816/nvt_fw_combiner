@@ -21,6 +21,56 @@ public sealed class LegacyCombinerPostbuildCatalogTests
         Assert.Null(command.CrcArgument);
     }
 
+    /// <summary>Locks normal-mode source header CRC word writes outside explicit copy targets.</summary>
+    [Fact]
+    public void NormalModePlansDeclareKnownSourceHeaderIntegrityWrites()
+    {
+        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51926,
+            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
+
+        IReadOnlyList<ByteRange> ranges = LegacyCombinerPostbuildPlanner.GetKnownIntegrityWriteRanges(plan, 0x40000);
+
+        Assert.Contains(new ByteRange(0x1C, 4), ranges);
+        Assert.Contains(new ByteRange(0xFC, 4), ranges);
+    }
+
+    /// <summary>Locks NT-based source header CRC word writes observed in real-tool smoke evidence.</summary>
+    [Fact]
+    public void NtBasedNormalPlansDeclareKnownSourceHeaderIntegrityWrites()
+    {
+        LegacyCombinerPostbuildCommandPlan nt51932 = LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51932,
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+        LegacyCombinerPostbuildCommandPlan nt51950 = LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51950,
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+
+        IReadOnlyList<ByteRange> nt51932Ranges = LegacyCombinerPostbuildPlanner.GetKnownIntegrityWriteRanges(nt51932, 0x40000);
+        IReadOnlyList<ByteRange> nt51950Ranges = LegacyCombinerPostbuildPlanner.GetKnownIntegrityWriteRanges(nt51950, 0x40000);
+
+        Assert.Contains(new ByteRange(0x7100, 4), nt51932Ranges);
+        Assert.Contains(new ByteRange(0x7118, 4), nt51932Ranges);
+        Assert.Contains(new ByteRange(0xA11C, 4), nt51950Ranges);
+        Assert.Contains(new ByteRange(0xA130, 4), nt51950Ranges);
+    }
+
+    /// <summary>Locks NT51927-family CRC-only header integrity writes observed in owner golden self-tests.</summary>
+    [Fact]
+    public void Nt51927CrcOnlyPlansDeclareKnownHeaderIntegrityWrites()
+    {
+        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51927,
+            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]));
+
+        IReadOnlyList<ByteRange> ranges = LegacyCombinerPostbuildPlanner.GetKnownIntegrityWriteRanges(plan, 0x40000);
+
+        Assert.Contains(new ByteRange(0x23C, 4), ranges);
+        Assert.Contains(new ByteRange(0x24C, 4), ranges);
+        Assert.Contains(new ByteRange(0x26C, 4), ranges);
+        Assert.Contains(new ByteRange(0x27C, 4), ranges);
+    }
+
     /// <summary>Verifies cascade selection exposes NT51950 DiffDLM postbuild blocks.</summary>
     [Fact]
     public void Nt51950CascadePlanIncludesDiffDlm()

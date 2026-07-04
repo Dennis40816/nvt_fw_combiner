@@ -39,6 +39,20 @@ public sealed class ReportReviewViewModel
         HasMutations = mutations.Count > 0;
         HasIssues = issues.Count > 0;
         SummaryRows = CreateSummaryRows(status, output, inputs, operations, mutations, issues);
+        OutcomeTitle = CreateOutcomeTitle(status, issues);
+        OutcomeDetail = CreateOutcomeDetail(output, issues);
+        OutcomeMeta = issues.Count == 0 ? "No blocking issue" : issues[0].Meta;
+        OutcomeIcon = issues.Count == 0 ? "✓" : "!";
+        OutcomeAccessibilityLabel = issues.Count == 0 ? "Report succeeded" : "Report has issues";
+        NextStepTitle = issues.Count == 0 ? "Ready for audit" : "Start with this issue";
+        NextStepDetail = issues.Count == 0
+            ? "Use the evidence map only when you need hashes, operation order, or byte-change proof."
+            : issues[0].Detail;
+        TriageRows = CreateTriageRows(status, output, operations, issues);
+        EvidenceRows = CreateEvidenceRows(inputs, operations, mutations, issues);
+        ShouldExpandIssues = HasIssues;
+        ShouldExpandCommandOperations = HasCommandOperations;
+        ShouldExpandStepOperations = HasStepOperations && !HasCommandOperations;
     }
 
     /// <summary>Empty report placeholder.</summary>
@@ -132,8 +146,47 @@ public sealed class ReportReviewViewModel
     /// <summary>True when the report should show a primary blocking reason.</summary>
     public bool HasPrimaryIssue { get; }
 
+    /// <summary>True when the report has no issue and can use the success treatment.</summary>
+    public bool IsSuccessful => !HasPrimaryIssue;
+
     /// <summary>Compact summary chips shown at the top of the modal.</summary>
     public IReadOnlyList<ReportLineViewModel> SummaryRows { get; }
+
+    /// <summary>Primary report outcome shown before detailed evidence.</summary>
+    public string OutcomeTitle { get; }
+
+    /// <summary>Short outcome explanation that tells the user where to start.</summary>
+    public string OutcomeDetail { get; }
+
+    /// <summary>Small outcome metadata line.</summary>
+    public string OutcomeMeta { get; }
+
+    /// <summary>Short semantic status icon displayed in the report outcome badge.</summary>
+    public string OutcomeIcon { get; }
+
+    /// <summary>Readable label for the report outcome icon.</summary>
+    public string OutcomeAccessibilityLabel { get; }
+
+    /// <summary>Title for the next recommended review step.</summary>
+    public string NextStepTitle { get; }
+
+    /// <summary>Description for the next recommended review step.</summary>
+    public string NextStepDetail { get; }
+
+    /// <summary>Ordered rows that tell the user where to look first.</summary>
+    public IReadOnlyList<ReportLineViewModel> TriageRows { get; }
+
+    /// <summary>Compact counts for each available evidence category.</summary>
+    public IReadOnlyList<ReportLineViewModel> EvidenceRows { get; }
+
+    /// <summary>True when the issue list should open by default.</summary>
+    public bool ShouldExpandIssues { get; }
+
+    /// <summary>True when external command evidence should open by default.</summary>
+    public bool ShouldExpandCommandOperations { get; }
+
+    /// <summary>True when normal operation evidence should open by default.</summary>
+    public bool ShouldExpandStepOperations { get; }
 
     /// <summary>Loads a readable report model from run report JSON.</summary>
     public static ReportReviewViewModel FromJson(string json, string sourceName)
@@ -169,20 +222,24 @@ public sealed class ReportReviewViewModel
             issues);
     }
 
-    /// <summary>Creates an error report when JSON parsing fails.</summary>
-    public static ReportReviewViewModel Error(string sourceName, string message)
+    /// <summary>Creates an error report when JSON parsing or loading fails.</summary>
+    public static ReportReviewViewModel Error(
+        string sourceName,
+        string message,
+        string issueTitle = "Parse error",
+        string status = "Invalid JSON")
     {
         return new ReportReviewViewModel(
             false,
             sourceName,
             "Report could not be loaded",
             sourceName,
-            "Invalid JSON",
+            status,
             string.Empty,
             [],
             [],
             [],
-            [new ReportLineViewModel("Parse error", message, "report-json")]);
+            [new ReportLineViewModel(issueTitle, message, "report-json")]);
     }
 
     private static IReadOnlyList<ReportLineViewModel> ParseInputs(JsonElement root)
@@ -213,6 +270,89 @@ public sealed class ReportReviewViewModel
             new ReportLineViewModel("Inputs", inputs.Count.ToString(CultureInfo.InvariantCulture), "files"),
             new ReportLineViewModel("Steps", operations.Count.ToString(CultureInfo.InvariantCulture), commandCount == 0 ? "operations" : $"{commandCount} command(s)"),
             new ReportLineViewModel("Mutations", mutations.Count.ToString(CultureInfo.InvariantCulture), output),
+        ];
+    }
+
+    private static string CreateOutcomeTitle(string status, IReadOnlyList<ReportLineViewModel> issues)
+    {
+        return issues.Count == 0
+            ? status
+            : string.Equals(status, "Load failed", StringComparison.Ordinal)
+            ? "Report load failed"
+            : "Needs attention";
+    }
+
+    private static string CreateOutcomeDetail(string output, IReadOnlyList<ReportLineViewModel> issues)
+    {
+        return issues.Count == 0
+            ? "No reported issues. The detailed sections below are audit evidence, not required reading."
+            : string.IsNullOrWhiteSpace(output)
+            ? "The run did not produce an output artifact. Start with the first issue below."
+            : "Start with the first issue below, then use the evidence map to verify the related inputs, operations, and output.";
+    }
+
+    private static IReadOnlyList<ReportLineViewModel> CreateTriageRows(
+        string status,
+        string output,
+        IReadOnlyList<ReportLineViewModel> operations,
+        IReadOnlyList<ReportLineViewModel> issues)
+    {
+        int commandCount = operations.Count(operation => operation.HasCodeBlock);
+        if (issues.Count > 0)
+        {
+            ReportLineViewModel primaryIssue = issues[0];
+            return
+            [
+                new ReportLineViewModel("1. First issue", primaryIssue.Title, primaryIssue.Meta),
+                new ReportLineViewModel("2. Message", primaryIssue.Detail, "reason"),
+                new ReportLineViewModel(
+                    "3. Evidence",
+                    commandCount > 0 ? "Combiner commands" : "Operation steps",
+                    commandCount > 0 ? $"{commandCount} external command(s)" : $"{operations.Count} operation(s)"),
+            ];
+        }
+
+        return
+        [
+            new ReportLineViewModel("1. Result", status, "No issue"),
+            new ReportLineViewModel("2. Output", string.IsNullOrWhiteSpace(output) ? "No output" : output, "artifact"),
+            new ReportLineViewModel(
+                "3. Evidence",
+                commandCount > 0 ? "Combiner commands available" : "Operation trace available",
+                commandCount > 0 ? $"{commandCount} external command(s)" : $"{operations.Count} operation(s)"),
+        ];
+    }
+
+    private static IReadOnlyList<ReportLineViewModel> CreateEvidenceRows(
+        IReadOnlyList<ReportLineViewModel> inputs,
+        IReadOnlyList<ReportLineViewModel> operations,
+        IReadOnlyList<ReportLineViewModel> mutations,
+        IReadOnlyList<ReportLineViewModel> issues)
+    {
+        int commandCount = operations.Count(operation => operation.HasCodeBlock);
+        int stepCount = operations.Count - commandCount;
+        return
+        [
+            new ReportLineViewModel(
+                "Issues",
+                issues.Count.ToString(CultureInfo.InvariantCulture),
+                issues.Count == 0 ? "No blocking issue" : issues[0].Title),
+            new ReportLineViewModel(
+                "Inputs",
+                inputs.Count.ToString(CultureInfo.InvariantCulture),
+                "file hashes"),
+            new ReportLineViewModel(
+                "Commands",
+                commandCount.ToString(CultureInfo.InvariantCulture),
+                "external processors"),
+            new ReportLineViewModel(
+                "Steps",
+                stepCount.ToString(CultureInfo.InvariantCulture),
+                "copy/process order"),
+            new ReportLineViewModel(
+                "Mutations",
+                mutations.Count.ToString(CultureInfo.InvariantCulture),
+                "changed ranges"),
         ];
     }
 

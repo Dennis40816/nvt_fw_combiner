@@ -11,6 +11,7 @@ public sealed class LegacyCombinerPostbuildProcessor : IExternalProcessor
 {
     private const string BinDirectoryName = "BIN";
     private const string OutputDirectoryName = "output";
+    private const string MapFileName = "map.txt";
 
     private readonly ExternalCombinerToolRegistry _registry;
     private readonly Dictionary<string, LegacyCombinerPostbuildProfile> _profilesByProcessorId;
@@ -103,6 +104,17 @@ public sealed class LegacyCombinerPostbuildProcessor : IExternalProcessor
             string firmwarePath = Path.Combine(outputDirectory, profile.FirmwareFileName);
             byte[] inputBytes = request.InputBytes.ToArray();
             await File.WriteAllBytesAsync(firmwarePath, inputBytes, cancellationToken).ConfigureAwait(false);
+            await File.WriteAllBytesAsync(Path.Combine(outputDirectory, MapFileName), [], cancellationToken)
+                .ConfigureAwait(false);
+
+            // Staged BIN files use selected replacement bytes as source material without
+            // pre-writing those bytes into the firmware image given to Combiner.exe.
+            byte[] stagedSourceBytes = [.. inputBytes];
+            CompositionIssue? stagedSourceIssue = ApplyStagedSourceOverrides(stagedSourceBytes, request.StagedSources);
+            if (stagedSourceIssue is not null)
+            {
+                return ExternalProcessorResult.Failed([stagedSourceIssue]);
+            }
 
             foreach (LegacyCombinerPostbuildCommand command in commandPlan.Commands)
             {
@@ -113,7 +125,7 @@ public sealed class LegacyCombinerPostbuildProcessor : IExternalProcessor
                 }
 
                 ResetDirectory(binDirectory);
-                CompositionIssue? stagingIssue = MaterializeStagedBlockFiles(command.Blocks, inputBytes, binDirectory);
+                CompositionIssue? stagingIssue = MaterializeStagedBlockFiles(command.Blocks, stagedSourceBytes, binDirectory);
                 if (stagingIssue is not null)
                 {
                     return ExternalProcessorResult.Failed([stagingIssue]);
@@ -217,6 +229,45 @@ public sealed class LegacyCombinerPostbuildProcessor : IExternalProcessor
         }
 
         return byProcessorId;
+    }
+
+    private static CompositionIssue? ApplyStagedSourceOverrides(
+        byte[] stagedSourceBytes,
+        IReadOnlyList<ExternalProcessorStagedSource> stagedSources)
+    {
+        if (stagedSources.Count == 0)
+        {
+            return null;
+        }
+
+        bool[] written = new bool[stagedSourceBytes.Length];
+        foreach (ExternalProcessorStagedSource source in stagedSources)
+        {
+            if (source.FirmwareRange.EndExclusive > stagedSourceBytes.LongLength)
+            {
+                return new CompositionIssue(
+                    "legacy-combiner.staged-source.range-outside-input",
+                    "Staged source bytes target a range outside the staged firmware image.");
+            }
+
+            ReadOnlySpan<byte> bytes = source.Bytes.Span;
+            int targetStart = checked((int)source.FirmwareRange.Start);
+            for (int index = 0; index < bytes.Length; index++)
+            {
+                int targetIndex = targetStart + index;
+                if (written[targetIndex] && stagedSourceBytes[targetIndex] != bytes[index])
+                {
+                    return new CompositionIssue(
+                        "legacy-combiner.staged-source.conflict",
+                        $"Staged source bytes conflict at firmware offset 0x{targetIndex:X}.");
+                }
+
+                stagedSourceBytes[targetIndex] = bytes[index];
+                written[targetIndex] = true;
+            }
+        }
+
+        return null;
     }
 
     private static CompositionIssue? MaterializeStagedBlockFiles(
@@ -417,6 +468,7 @@ public sealed class LegacyCombinerPostbuildProcessor : IExternalProcessor
         HashSet<string> allowedRelativePaths = new(StringComparer.OrdinalIgnoreCase)
         {
             Path.Combine(OutputDirectoryName, profile.FirmwareFileName),
+            Path.Combine(OutputDirectoryName, MapFileName),
         };
         foreach (string stagedFileName in LegacyCombinerPostbuildPlanner
             .GetStagedFileBlocks(commandPlan)

@@ -4,7 +4,19 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-No changes yet. Post-`0.5.0` development is expected to target `0.6.0-dev.N`.
+Post-`0.5.0` development targets `0.6.0-dev.N`.
+
+### Added
+
+- IC FlashMap workbook, postbuild BAT, mmap, and combiner-info reference documentation for CtrlRAM postbuild investigation.
+- Release package reference payload plan for approved human-review evidence and manifest-declared Standard Merge golden fixtures.
+- Real-tool CtrlRAM postbuild smoke coverage for accepted 16-byte self-replacement cases.
+
+### Changed
+
+- Clarified current CtrlRAM postbuild gaps: empty `map.txt` staging is implemented for no-overlay smoke cases, while overlay map content, NT51926 copy-header initialization, NT51930 hidden DiffDLM mutation, and NT51931 Combiner 1.13.0 crash remain evidence gates.
+- Updated owner handoff notes so already recorded NT51930 and NT51950/NT51951 Standard Merge golden fixtures are no longer listed as required uploads.
+- Clarified that `refcode/` remains exactly two Python snapshots; FlashMap evidence lives under `docs/references/` and approved runtime binaries live under `external-tools/`.
 
 ## [0.5.0] - 2026-07-02
 
