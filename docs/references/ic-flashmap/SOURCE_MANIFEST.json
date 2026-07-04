@@ -1,17 +1,48 @@
 {
-  "manifestVersion": "1.0",
-  "purpose": "Owner-approved IC FlashMap postbuild and mmap text evidence for command/range verification. Not production code and not release-packaged.",
+  "manifestVersion": "1.1",
+  "purpose": "Owner-approved IC FlashMap workbook, postbuild BAT, and mmap header evidence for command/range verification and release-package reference. Not production code.",
   "sourceArchive": {
     "name": "IC FlashMap.7z",
     "sha256": "784af28a77f2348933bba0723883415def60dd6bc18dc13367031cab1eb6bfe9",
     "lastWriteTimeTaipei": "2026-07-01T02:01:33+08:00"
   },
+  "sourceUpdates": [
+    {
+      "name": "owner-update-20260705",
+      "sha256": "f4b9a72374e66fd09a03fd874f8c7e9e8bf9fa3710f67b9e0211c23b939f021e",
+      "lastWriteTimeTaipei": "2026-07-05T00:08:41+08:00",
+      "notes": "Owner-provided package containing an IC FlashMap workbook update and owner-approved NT51926/NT51927 firmware golden payloads."
+    }
+  ],
+  "additionalExtractedFiles": [
+    {
+      "name": "IC_FlashMap_20260701.xlsx",
+      "lastWriteTimeTaipei": "2026-07-01T22:46:56+08:00",
+      "sha256": "daf5e56a3d5f8ea343ee4605304881a41764be3fc8171d92947449f22b135e44"
+    },
+    {
+      "name": "IC_FlashMap_20260705.xlsx",
+      "lastWriteTimeTaipei": "2026-07-05T00:01:38+08:00",
+      "sha256": "e2beb9b8a16fc6532cc6907cf0a97f500291cc729b877dccc760a9ab89ccdf0a"
+    }
+  ],
   "exclusions": [
-    "IC_FlashMap.xlsx",
     "combiner_1.13.0/Combiner.exe",
-    "hsi_combiner_guide/*.md"
+    "hsi_combiner_guide/*.md",
+    "generated firmware outputs",
+    "private BIN inputs"
   ],
   "files": [
+    {
+      "path": "docs/references/ic-flashmap/IC_FlashMap_20260701.xlsx",
+      "size": 208075,
+      "sha256": "daf5e56a3d5f8ea343ee4605304881a41764be3fc8171d92947449f22b135e44"
+    },
+    {
+      "path": "docs/references/ic-flashmap/IC_FlashMap_20260705.xlsx",
+      "size": 209881,
+      "sha256": "e2beb9b8a16fc6532cc6907cf0a97f500291cc729b877dccc760a9ab89ccdf0a"
+    },
     {
       "path": "docs/references/ic-flashmap/mmap/51920_1.3.1_mmap.h",
       "sourcePath": "IC FlashMap/mmap.h/51920_1.3.1_mmap.h",
@@ -79,6 +110,12 @@
       "sha256": "0fd65bf624a27ccae7fbcb5e30d89b19c6d874e3e3daafabe8aa4f8fce73bf56"
     },
     {
+      "path": "docs/references/ic-flashmap/postbuild/PostbuildSetup_51926_1.4.1.bat",
+      "sourcePath": "IC FlashMap/postbuild/PostbuildSetup_51926_1.4.1.bat",
+      "size": 2784,
+      "sha256": "8d2021669e51f9e837e69ef6864aa9b6203674ebbe6394d39f5f81f1a0d2de3d"
+    },
+    {
       "path": "docs/references/ic-flashmap/postbuild/PostbuildSetup_51926_2.0.0.bat",
       "sourcePath": "IC FlashMap/postbuild/PostbuildSetup_51926_2.0.0.bat",
       "size": 6161,
@@ -89,6 +126,12 @@
       "sourcePath": "IC FlashMap/postbuild/PostbuildSetup_51927_1.4.1.bat",
       "size": 7077,
       "sha256": "c6580f4f2f4b3af43a7595cc069cf7c8d95d2213f1d0f551c36973b7e254aaee"
+    },
+    {
+      "path": "docs/references/ic-flashmap/postbuild/PostbuildSetup_51930_1.4.0.bat",
+      "sourcePath": "IC FlashMap/postbuild/PostbuildSetup_51930_1.4.0.bat",
+      "size": 5421,
+      "sha256": "7641ef3b25442d31048d1831714f822a225d9f40875ab059c5b6cb669ead2b08"
     },
     {
       "path": "docs/references/ic-flashmap/postbuild/PostbuildSetup_51930_2.0.0.bat",
@@ -113,6 +156,12 @@
       "sourcePath": "IC FlashMap/postbuild/PostbuildSetup_51950_2.0.0.bat",
       "size": 5676,
       "sha256": "676b2e0d4178731034a0e8b118e9ad514b9beadf7094c5f9a6ee56ea784318a0"
+    },
+    {
+      "path": "docs/references/ic-flashmap/common-fw/ap_fwconfig.c",
+      "sourcePath": "owner-provided Common FW 2.0.0 ap/ap_fwconfig.c",
+      "size": 85187,
+      "sha256": "2c4355bba359ff6085f9666d5a234839647f9c61334bc5a0d0bb672f1aab86a4"
     }
   ]
 }

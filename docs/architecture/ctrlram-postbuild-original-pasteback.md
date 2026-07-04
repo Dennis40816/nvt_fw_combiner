@@ -3,6 +3,8 @@
 Status: investigation note, not a production behavior decision.
 Date: 2026-07-03.
 
+Latest searchable conclusion reference: [`ctrlram-postbuild-investigation-reference.md`](ctrlram-postbuild-investigation-reference.md).
+
 ## Scope
 
 This note records the current understanding of CtrlRAM original-information pasteback through the legacy postbuild combiner.
