@@ -5,7 +5,6 @@ using System.Text.Json.Serialization;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
-using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Files;
 using NvtFwCombiner.Infrastructure.Time;
@@ -17,6 +16,9 @@ namespace NvtFwCombiner.Bootstrap;
 public static partial class WorkbenchCompositionService
 {
     private const string EmptySha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+    private const long Nt51950MaxDpContainerLength = 0x100000;
+    private static readonly long[] Nt51950SupportedDpBaseLengths = [0x40000, 0x80000, Nt51950MaxDpContainerLength];
+    private static readonly ByteRange Nt51950TpRestoreRange = ByteRange.FromStartEndExclusive(0x0A000, 0x37000);
 
     private static readonly JsonSerializerOptions ReportJsonOptions = new()
     {
@@ -28,12 +30,6 @@ public static partial class WorkbenchCompositionService
         BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles.ToDictionary(
             profile => profile.IcId,
             StringComparer.Ordinal);
-
-    private static readonly Dictionary<string, CompositionProfileDefinition> DpReplaceProfilesByIc =
-        BuiltInReplaceProfiles.All
-            .Where(profile => string.Equals(profile.ExperienceId, "dp-replace", StringComparison.Ordinal) &&
-                !string.Equals(profile.IcId, "NT-SYNTHETIC", StringComparison.Ordinal))
-            .ToDictionary(profile => profile.IcId, StringComparer.Ordinal);
 
     /// <summary>Returns true when the selected IC has a built-in standard merge profile.</summary>
     public static bool IsStandardMergeSupported(string icId)
@@ -75,6 +71,38 @@ public static partial class WorkbenchCompositionService
     public static IReadOnlyList<string> GetNumberChoices(string icId)
     {
         return TpFlashMapCatalog.GetNumberChoices(icId);
+    }
+
+    /// <summary>Reads FWConfig display metadata from a selected firmware image when the IC flash-map defines it.</summary>
+    public static WorkbenchFirmwareConfigMetadata? TryReadFirmwareConfigMetadata(string icId, string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        if (!TpFlashMapCatalog.TryGetFirmwareConfigStart(icId, out long firmwareConfigStart) ||
+            !File.Exists(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            byte[] image = File.ReadAllBytes(path);
+            return !FirmwareConfigMetadataReader.TryRead(image, firmwareConfigStart, out FirmwareConfigMetadata metadata)
+                ? null
+                : new WorkbenchFirmwareConfigMetadata(
+                    metadata.FirmwareConfigStart,
+                    metadata.CommonFwVersion,
+                    metadata.FirmwareVersion,
+                    metadata.FirmwareVersionBar,
+                    metadata.IsFirmwareVersionBarValid,
+                    metadata.FirmwareSubVersion,
+                    metadata.ProjectId);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            return null;
+        }
     }
 
     /// <summary>Gets TP Overview CtrlRAM regions visible for a selected IC and IC-number context.</summary>
@@ -286,36 +314,6 @@ public static partial class WorkbenchCompositionService
                 .Order(StringComparer.Ordinal)
                 .Select(addressSpaceId => CreateBinding(addressSpaceId, slotPaths)),
         ];
-        return await RunCompiledWorkbenchProfileAsync(
-            "ui",
-            profile,
-            plan,
-            bindings,
-            build,
-            outputPath,
-            cancellationToken).ConfigureAwait(false);
-    }
-
-    private static async ValueTask<WorkbenchRunResult> RunCompiledWorkbenchProfileAsync(
-        string runIdPrefix,
-        CompositionProfileDefinition profile,
-        CompositionPlan plan,
-        InputArtifactBinding[] bindings,
-        bool build,
-        string? outputPath,
-        CancellationToken cancellationToken,
-        IcNumberSelection? icNumberSelection = null,
-        IExternalProcessor? externalProcessor = null)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(runIdPrefix);
-        ArgumentNullException.ThrowIfNull(profile);
-        ArgumentNullException.ThrowIfNull(plan);
-        ArgumentNullException.ThrowIfNull(bindings);
-        if (bindings.Length == 0)
-        {
-            throw new ArgumentException("At least one input binding is required.", nameof(bindings));
-        }
-
         string[] inputRoots = [
             .. bindings
                 .Select(binding => Path.GetDirectoryName(binding.ArtifactId)!)
@@ -326,23 +324,17 @@ public static partial class WorkbenchCompositionService
             build,
             outputPath,
             profile.DefaultOutputFileName);
-        if (build)
-        {
-            EnsureOutputDoesNotAliasInputs(outputDirectory, outputFileName, bindings);
-        }
-
         FileArtifactReader reader = new(inputRoots);
         AtomicFileCompositionOutputWriter? writer = build
             ? new AtomicFileCompositionOutputWriter(outputDirectory, overwrite: true)
             : null;
-        CompositionRunService service = new(reader, new SystemClock(), writer, externalProcessor);
+        CompositionRunService service = new(reader, new SystemClock(), writer);
         CompositionRunRequest request = new(
-            $"{runIdPrefix}-{(build ? "build" : "preview")}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture)}",
+            $"ui-{(build ? "build" : "preview")}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture)}",
             ToRunProfile(profile),
             plan,
             bindings,
-            outputFileName,
-            icNumberSelection: icNumberSelection);
+            outputFileName);
 
         CompositionRunResult result;
         if (!build)
@@ -383,17 +375,6 @@ public static partial class WorkbenchCompositionService
         return string.IsNullOrWhiteSpace(directory) || string.IsNullOrWhiteSpace(fileName)
             ? throw new ArgumentException("Output path must include a directory and file name.", nameof(outputPath))
             : (directory, fileName);
-    }
-
-    private static void EnsureOutputDoesNotAliasInputs(
-        string outputDirectory,
-        string outputFileName,
-        IReadOnlyList<InputArtifactBinding> bindings)
-    {
-        ProtectedPathGuard.EnsureOutputDoesNotAliasInputs(
-            ProtectedPathGuard.CombineFullPath(outputDirectory, outputFileName),
-            bindings,
-            nameof(outputFileName));
     }
 
     private static CompositionProfileDefinition ResolveStandardMergeProfileForInputs(
@@ -491,7 +472,6 @@ public static partial class WorkbenchCompositionService
             "reference-base" => "Base flash",
             "dp-replacement" => "DP replacement",
             "ldc-replacement" => "LDC replacement",
-            "tp-work" => "TP work",
             "output-image" => "Output",
             _ => addressSpaceId,
         };
@@ -597,7 +577,6 @@ public static partial class WorkbenchCompositionService
             "CtrlRAM BIN" => "#16A34A",
             "Changed CtrlRAM BIN" => "#16A34A",
             "Restored TP" => "#64748B",
-            "Preserved customer info" => "#94A3B8",
             "Preserve" => "#64748B",
             string label when label.Contains("NF CtrlRAM", StringComparison.OrdinalIgnoreCase) => "#DC2626",
             string label when label.Contains("Normal CtrlRAM", StringComparison.OrdinalIgnoreCase) => "#0891B2",
@@ -657,6 +636,16 @@ public sealed record WorkbenchSettingsSnapshot(
     int PostbuildProfileCount,
     string ToolBindingIds,
     string ToolManifestPath);
+
+/// <summary>Firmware facts read from a flash image FWConfig block.</summary>
+public sealed record WorkbenchFirmwareConfigMetadata(
+    long FirmwareConfigStart,
+    string CommonFwVersion,
+    byte FirmwareVersion,
+    byte FirmwareVersionBar,
+    bool IsFirmwareVersionBarValid,
+    byte FirmwareSubVersion,
+    ushort ProjectId);
 
 /// <summary>One readable before/after memory-map row for shell display.</summary>
 public sealed record WorkbenchMemoryMapRow(

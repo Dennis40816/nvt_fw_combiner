@@ -1,7 +1,6 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -42,7 +41,8 @@ public static partial class WorkbenchCompositionService
     public static IReadOnlyList<WorkbenchMemoryMapRow> GetReplaceMemoryMapRows(
         string icId,
         string number,
-        string replaceMode)
+        string replaceMode,
+        long? dpBaseLength = null)
     {
         IcNumberSelection selection = ToIcNumberSelection(number);
         IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetRegions(icId, selection);
@@ -58,7 +58,7 @@ public static partial class WorkbenchCompositionService
             ]
             : replaceMode switch
             {
-                "DP" => CreateDpReplaceRows(icId, regions),
+                "DP" => CreateDpReplaceRows(icId, regions, dpBaseLength),
                 "CtrlRAM" => CreateCtrlRamReplaceRows(regions),
                 "General" =>
                 [
@@ -89,11 +89,19 @@ public static partial class WorkbenchCompositionService
     }
 
     /// <summary>Gets TP Overview address coverage text for the selected Replace context and mode.</summary>
-    public static string GetReplaceMemoryRangeLabel(string icId, string number, string replaceMode)
+    public static string GetReplaceMemoryRangeLabel(
+        string icId,
+        string number,
+        string replaceMode,
+        long? dpBaseLength = null)
     {
-        if (replaceMode == "DP" && TryGetDpReplaceProfile(icId, out CompositionProfileDefinition? profile))
+        if (replaceMode == "DP" && IsNt51950Or51(icId))
         {
-            return FormatFullRange(profile.Initialization.Capacity);
+            return dpBaseLength is long value
+                ? IsSupportedNt51950DpBaseLength(value)
+                    ? FormatFullRange(value)
+                    : $"Unsupported base BIN length {FormatHexLength(value)}"
+                : $"Base BIN length: {FormatSupportedNt51950DpBaseLengths()}";
         }
 
         IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetRegions(icId, ToIcNumberSelection(number));
@@ -106,7 +114,8 @@ public static partial class WorkbenchCompositionService
     public static IReadOnlyList<WorkbenchMemoryCoverageSegment> GetReplaceCoverageSegments(
         string icId,
         string number,
-        string replaceMode)
+        string replaceMode,
+        long? dpBaseLength = null)
     {
         IcNumberSelection selection = ToIcNumberSelection(number);
         IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetRegions(icId, selection);
@@ -124,11 +133,9 @@ public static partial class WorkbenchCompositionService
             ];
         }
 
-        CompositionProfileDefinition? dpReplaceProfile = replaceMode == "DP" &&
-            TryGetDpReplaceProfile(icId, out CompositionProfileDefinition? profile)
-                ? profile
-                : null;
-        long capacity = dpReplaceProfile?.Initialization.Capacity ?? regions.Max(region => region.Range.EndExclusive);
+        long capacity = replaceMode == "DP" && IsNt51950Or51(icId)
+            ? GetNt51950DpDisplayCapacity(dpBaseLength)
+            : regions.Max(region => region.Range.EndExclusive);
         CoverageSegment[] segments =
         [
             new CoverageSegment(
@@ -139,36 +146,30 @@ public static partial class WorkbenchCompositionService
                 false),
         ];
 
-        if (dpReplaceProfile is not null)
+        if (replaceMode == "DP" && IsNt51950Or51(icId))
         {
-            ProfileCompileResult compile = CompositionProfileCompiler.Compile(dpReplaceProfile, []);
-            if (!compile.IsSuccess)
-            {
-                return
-                [
-                    new WorkbenchMemoryCoverageSegment(
-                        "Profile",
-                        "Invalid profile",
-                        FormatIssues(compile.Issues),
-                        "#F97316",
-                        280,
-                        false),
-                ];
-            }
-
-            foreach (CompositionOperation operation in compile.Plan!.OrderedOperations)
-            {
-                string label = DpReplaceCoverageLabel(operation);
-                segments = ApplyCoverageWrite(
-                    segments,
-                    new CoverageSegment(
-                        operation.TargetRange,
-                        label,
-                        operation.Reason,
-                        CoverageFill(label),
-                        operation.Kind == CompositionOperationKind.ReplaceRange));
-            }
-
+            var dpRange = new ByteRange(0, capacity);
+            string dpDetail = dpBaseLength is long value
+                ? IsSupportedNt51950DpBaseLength(value)
+                    ? $"Replacement DP fills the selected base DP length {FormatDisplayRange(dpRange)}; shorter inputs are padded by profile policy."
+                    : $"Unsupported base BIN length {FormatHexLength(value)}; use {FormatSupportedNt51950DpBaseLengths()}."
+                : $"Select a base BIN to resolve the actual DP length ({FormatSupportedNt51950DpBaseLengths()}); Preview/Build uses that base length, not a fixed max.";
+            segments = ApplyCoverageWrite(
+                segments,
+                new CoverageSegment(
+                    dpRange,
+                    "Changed DP BIN",
+                    dpDetail,
+                    "#2563EB",
+                    true));
+            segments = ApplyCoverageWrite(
+                segments,
+                new CoverageSegment(
+                    Nt51950TpRestoreRange,
+                    "Restored TP",
+                    $"Original TP FW at {FormatDisplayRange(Nt51950TpRestoreRange)} is copied back from the base firmware.",
+                    "#64748B",
+                    false));
             return ToWorkbenchCoverageSegments(segments, capacity);
         }
 
@@ -237,6 +238,7 @@ public static partial class WorkbenchCompositionService
         {
             "DP" when IsNt51950Or51(icId) => await RunNt51950DpReplaceAsync(
                 icId,
+                number,
                 slotPaths,
                 build,
                 outputPath,

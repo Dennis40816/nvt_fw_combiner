@@ -25,11 +25,11 @@ This avoids tying merge correctness to every DP sub-block name in the spreadshee
 
 ## Simplest DP Replace Rule
 
-Clone the base firmware as the Replace reference image, replace the DP container, then restore the original TP range from the base firmware.
+Clone the base firmware as the Replace reference image, replace the DP container at the selected base length, then restore the original TP range from the base firmware.
 
-1. Reject the base firmware unless `base.Length == 0x100000`. Repository policy keeps reference/base firmware exact-length.
-2. Reject the replacement DP unless `replacement.Length` is exactly `0x40000`, `0x80000`, or `0x100000`.
-3. Pad the replacement DP to the `0x100000` work length with the profile padding byte.
+1. Reject the base firmware unless `base.Length` is exactly `0x40000`, `0x80000`, or `0x100000`. Repository policy keeps reference/base firmware exact-length to the selected container.
+2. Reject the replacement DP when `replacement.Length > base.Length`.
+3. Pad the replacement DP to the selected `base.Length` work length with the profile padding byte.
 4. Replace the full output container from the padded replacement DP.
 5. Copy the original base firmware TP range back into output.
 
@@ -39,6 +39,6 @@ This implements DP Replace without requiring CRC recalculation and without enume
 
 - Merge golden for at least one 950 and one 951 DP Perspective case.
 - Standard Merge tests showing only `0x40000`, `0x80000`, and `0x100000` DP inputs are accepted and accepted outputs keep the selected DP input length.
-- DP Replace tests showing exact base-length enforcement, shorter replacement padding to `0x100000`, and larger replacement rejection.
+- DP Replace tests showing approved base-length enforcement, shorter replacement padding to the selected base length, and larger replacement rejection.
 - DP Replace test proving the TP range is preserved byte-for-byte after profile/model wiring.
 - A map confirmation test that locks TP overlay to `0x0A000-0x36FFF (len 0x2D000)` and preserves customer info at `0x37000-0x37FFF (len 0x1000)`.

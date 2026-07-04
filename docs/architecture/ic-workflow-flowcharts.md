@@ -142,12 +142,12 @@ Used by NT51950 and NT51951 as the target DP Perspective policy. The workbench p
 
 ```mermaid
 flowchart TD
-    A["Load NT51950/NT51951 reference firmware"] --> B{"Reference length == 0x100000?"}
-    B -- "no" --> C["Reject non-exact reference"]
-    B -- "yes" --> D{"Replacement DP length <= 0x100000?"}
+    A["Load NT51950/NT51951 reference firmware"] --> B{"Reference length is 0x40000, 0x80000, or 0x100000?"}
+    B -- "no" --> C["Reject unapproved reference length"]
+    B -- "yes" --> D{"Replacement DP length <= reference length?"}
     D -- "no" --> E["Reject oversize replacement"]
     D -- "yes" --> F["Clone exact reference into output work image"]
-    F --> G["Pad replacement DP to 0x100000 and replace the full DP container"]
+    F --> G["Pad replacement DP to the selected reference length and replace the full DP container"]
     G --> H["Restore original TP range 0x0A000-0x36FFF (len 0x2D000) from reference firmware"]
     H --> I["Customer info 0x37000-0x37FFF (len 0x1000) is not part of the TP restore overlay"]
     I --> J["Write workbench artifact; keep support claim gated by golden evidence"]

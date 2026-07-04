@@ -42,6 +42,8 @@ public sealed class ReportReviewViewModel
         OutcomeTitle = CreateOutcomeTitle(status, issues);
         OutcomeDetail = CreateOutcomeDetail(output, issues);
         OutcomeMeta = issues.Count == 0 ? "No blocking issue" : issues[0].Meta;
+        OutcomeIcon = issues.Count == 0 ? "✓" : "!";
+        OutcomeAccessibilityLabel = issues.Count == 0 ? "Report succeeded" : "Report has issues";
         NextStepTitle = issues.Count == 0 ? "Ready for audit" : "Start with this issue";
         NextStepDetail = issues.Count == 0
             ? "Use the evidence map only when you need hashes, operation order, or byte-change proof."
@@ -158,6 +160,12 @@ public sealed class ReportReviewViewModel
 
     /// <summary>Small outcome metadata line.</summary>
     public string OutcomeMeta { get; }
+
+    /// <summary>Short semantic status icon displayed in the report outcome badge.</summary>
+    public string OutcomeIcon { get; }
+
+    /// <summary>Readable label for the report outcome icon.</summary>
+    public string OutcomeAccessibilityLabel { get; }
 
     /// <summary>Title for the next recommended review step.</summary>
     public string NextStepTitle { get; }

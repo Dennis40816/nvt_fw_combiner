@@ -66,6 +66,13 @@ public sealed partial class MainWindowViewModel
     private async Task RunReplaceAsync(bool build, string? outputPath)
     {
         CloseReplaceSelectionForRun();
+        string previewToken = CreateReplacePreviewToken();
+        if (build && !HasCurrentReplacePreview())
+        {
+            BlockReplaceBuildUntilPreview();
+            return;
+        }
+
         try
         {
             WorkbenchRunResult result = await UiCompositionRunner.RunReplaceAsync(
@@ -77,9 +84,11 @@ public sealed partial class MainWindowViewModel
                 CancellationToken.None,
                 outputPath);
             ApplyRunResult(result, build);
+            CompleteReplaceRun(build, result.Succeeded, previewToken);
         }
         catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
         {
+            CompleteReplaceRun(build, false, previewToken);
             string action = build ? "Build" : "Preview";
             LastRunResult = new UiRunResultViewModel(
                 $"{action} failed",

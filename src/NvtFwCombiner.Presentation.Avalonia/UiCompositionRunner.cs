@@ -114,11 +114,12 @@ public static class UiCompositionRunner
     public static IReadOnlyList<MemoryMapRowViewModel> GetReplaceMemoryMapRows(
         string icId,
         string number,
-        string replaceMode)
+        string replaceMode,
+        long? dpBaseLength = null)
     {
         return
         [
-            .. WorkbenchCompositionService.GetReplaceMemoryMapRows(icId, number, replaceMode)
+            .. WorkbenchCompositionService.GetReplaceMemoryMapRows(icId, number, replaceMode, dpBaseLength)
                 .Select(ToMemoryMapRow),
         ];
     }
@@ -130,20 +131,25 @@ public static class UiCompositionRunner
     }
 
     /// <summary>Gets TP Overview address coverage text for the selected Replace context and mode.</summary>
-    public static string GetReplaceMemoryRangeLabel(string icId, string number, string replaceMode)
+    public static string GetReplaceMemoryRangeLabel(
+        string icId,
+        string number,
+        string replaceMode,
+        long? dpBaseLength = null)
     {
-        return WorkbenchCompositionService.GetReplaceMemoryRangeLabel(icId, number, replaceMode);
+        return WorkbenchCompositionService.GetReplaceMemoryRangeLabel(icId, number, replaceMode, dpBaseLength);
     }
 
     /// <summary>Gets visual coverage segments for the selected Replace mode.</summary>
     public static IReadOnlyList<MemoryCoverageSegmentViewModel> GetReplaceCoverageSegments(
         string icId,
         string number,
-        string replaceMode)
+        string replaceMode,
+        long? dpBaseLength = null)
     {
         return
         [
-            .. WorkbenchCompositionService.GetReplaceCoverageSegments(icId, number, replaceMode)
+            .. WorkbenchCompositionService.GetReplaceCoverageSegments(icId, number, replaceMode, dpBaseLength)
                 .Select(segment => new MemoryCoverageSegmentViewModel(
                     segment.RangeLabel,
                     segment.SourceLabel,
