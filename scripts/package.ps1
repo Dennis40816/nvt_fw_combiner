@@ -79,6 +79,13 @@ function Restore-SourcePackageLocks {
     }
 }
 
+$ApprovedExternalToolPackagePaths = @(
+    'external-tools/README.md',
+    'external-tools/legacy-combiner/README.md',
+    'external-tools/legacy-combiner/1.13.0/Combiner.exe',
+    'external-tools/legacy-combiner/1.13.0/manifest.json'
+) | Sort-Object
+
 function Copy-PackageReferenceFile {
     param([Parameter(Mandatory = $true)][string]$RelativePath)
 

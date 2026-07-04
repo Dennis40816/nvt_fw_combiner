@@ -125,6 +125,12 @@ public static partial class WorkbenchCompositionService
     /// <summary>Gets readable memory-map rows for the selected Standard Merge profile.</summary>
     public static IReadOnlyList<WorkbenchMemoryMapRow> GetStandardMergeMemoryMapRows(string icId)
     {
+        return GetStandardMergeMemoryMapRows(icId, dpInputLength: null);
+    }
+
+    /// <summary>Gets readable memory-map rows for the selected Standard Merge profile and DP input length.</summary>
+    public static IReadOnlyList<WorkbenchMemoryMapRow> GetStandardMergeMemoryMapRows(string icId, long? dpInputLength)
+    {
         if (!StandardMergeProfilesByIc.TryGetValue(icId, out CompositionProfileDefinition? profile))
         {
             return
@@ -135,6 +141,19 @@ public static partial class WorkbenchCompositionService
                     "Blocked",
                     "No output",
                     $"Standard Merge is not available for {icId}."),
+            ];
+        }
+
+        if (!TryResolveStandardMergeProfileForDisplay(profile, dpInputLength, out profile, out string profileIssue))
+        {
+            return
+            [
+                new WorkbenchMemoryMapRow(
+                    "Profile",
+                    "Profile",
+                    "Blocked",
+                    "No output",
+                    profileIssue),
             ];
         }
 
@@ -158,11 +177,11 @@ public static partial class WorkbenchCompositionService
         List<WorkbenchMemoryMapRow> rows =
         [
             new(
-                FormatFullRange(profile.Initialization.Capacity),
+                FormatStandardMergeInitializationRangeLabel(profile, dpInputLength),
                 "No output",
                 "Initialize",
                 initializedState,
-                "Start with the initialized image. Unlisted ranges keep this value until a later operation writes them."),
+                FormatStandardMergeInitializationDetail(profile, dpInputLength)),
         ];
 
         foreach (CompositionOperation operation in compile.Plan!.OrderedOperations)
@@ -187,6 +206,14 @@ public static partial class WorkbenchCompositionService
     /// <summary>Gets final visual coverage segments for the selected Standard Merge profile.</summary>
     public static IReadOnlyList<WorkbenchMemoryCoverageSegment> GetStandardMergeCoverageSegments(string icId)
     {
+        return GetStandardMergeCoverageSegments(icId, dpInputLength: null);
+    }
+
+    /// <summary>Gets final visual coverage segments for the selected Standard Merge profile and DP input length.</summary>
+    public static IReadOnlyList<WorkbenchMemoryCoverageSegment> GetStandardMergeCoverageSegments(
+        string icId,
+        long? dpInputLength)
+    {
         if (!StandardMergeProfilesByIc.TryGetValue(icId, out CompositionProfileDefinition? profile))
         {
             return
@@ -196,6 +223,20 @@ public static partial class WorkbenchCompositionService
                     "No profile",
                     "Standard Merge is unavailable.",
                     "#CBD5E1",
+                    280,
+                    false),
+            ];
+        }
+
+        if (!TryResolveStandardMergeProfileForDisplay(profile, dpInputLength, out profile, out string profileIssue))
+        {
+            return
+            [
+                new WorkbenchMemoryCoverageSegment(
+                    "Profile",
+                    "Invalid DP length",
+                    profileIssue,
+                    "#F97316",
                     280,
                     false),
             ];
@@ -259,12 +300,19 @@ public static partial class WorkbenchCompositionService
     /// <summary>Gets output address coverage text for the selected Standard Merge profile.</summary>
     public static string GetStandardMergeMemoryRangeLabel(string icId)
     {
-        return StandardMergeProfilesByIc.TryGetValue(icId, out CompositionProfileDefinition? profile)
-            ? FormatFullRange(profile.Initialization.Capacity)
-            : "No Standard Merge profile";
+        return GetStandardMergeMemoryRangeLabel(icId, dpInputLength: null);
     }
 
-    /// <summary>Gets readable memory-map rows for the selected Replace mode.</summary>
+    /// <summary>Gets output address coverage text for the selected Standard Merge profile and DP input length.</summary>
+    public static string GetStandardMergeMemoryRangeLabel(string icId, long? dpInputLength)
+    {
+        return !StandardMergeProfilesByIc.TryGetValue(icId, out CompositionProfileDefinition? profile)
+            ? "No Standard Merge profile"
+            : TryResolveStandardMergeProfileForDisplay(profile, dpInputLength, out profile, out string profileIssue)
+                ? FormatFullRange(profile.Initialization.Capacity)
+                : profileIssue;
+    }
+
     /// <summary>Gets catalog and tool summary data for the Settings page.</summary>
     public static WorkbenchSettingsSnapshot GetSettingsSnapshot()
     {
@@ -324,6 +372,14 @@ public static partial class WorkbenchCompositionService
             build,
             outputPath,
             profile.DefaultOutputFileName);
+        if (build)
+        {
+            ProtectedPathGuard.EnsureOutputDoesNotAliasInputs(
+                ProtectedPathGuard.CombineFullPath(outputDirectory, outputFileName),
+                bindings,
+                nameof(outputPath));
+        }
+
         FileArtifactReader reader = new(inputRoots);
         AtomicFileCompositionOutputWriter? writer = build
             ? new AtomicFileCompositionOutputWriter(outputDirectory, overwrite: true)
@@ -389,6 +445,55 @@ public static partial class WorkbenchCompositionService
                 : BuiltInStandardMergeProfiles.CreateDpPerspectiveProfileForInputLength(
                     profile.IcId,
                     new FileInfo(dpPath).Length);
+    }
+
+    private static bool TryResolveStandardMergeProfileForDisplay(
+        CompositionProfileDefinition profile,
+        long? dpInputLength,
+        out CompositionProfileDefinition resolvedProfile,
+        out string profileIssue)
+    {
+        resolvedProfile = profile;
+        profileIssue = string.Empty;
+        if (dpInputLength is null ||
+            !BuiltInStandardMergeProfiles.IsDpPerspectiveStandardMergeProfile(profile))
+        {
+            return true;
+        }
+
+        try
+        {
+            resolvedProfile = BuiltInStandardMergeProfiles.CreateDpPerspectiveProfileForInputLength(
+                profile.IcId,
+                dpInputLength.Value);
+            return true;
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            profileIssue = FormattableString.Invariant(
+                $"Selected DP BIN length 0x{dpInputLength.Value:X} is unsupported; expected 0x40000, 0x80000, or 0x100000.");
+            return false;
+        }
+    }
+
+    private static string FormatStandardMergeInitializationRangeLabel(
+        CompositionProfileDefinition profile,
+        long? dpInputLength)
+    {
+        return BuiltInStandardMergeProfiles.IsDpPerspectiveStandardMergeProfile(profile) && dpInputLength is null
+            ? "DP BIN length (max end 0xFFFFF)"
+            : FormatFullRange(profile.Initialization.Capacity);
+    }
+
+    private static string FormatStandardMergeInitializationDetail(
+        CompositionProfileDefinition profile,
+        long? dpInputLength)
+    {
+        return !BuiltInStandardMergeProfiles.IsDpPerspectiveStandardMergeProfile(profile)
+            ? "Start with the initialized image. Unlisted ranges keep this value until a later operation writes them."
+            : dpInputLength is null
+                ? "Start with the initialized image sized by the selected DP BIN length. Max inclusive end is 0xFFFFF; supported DP lengths are 0x40000, 0x80000, and 0x100000."
+                : "Start with the initialized image using the selected DP BIN length. Unlisted ranges keep this value until a later operation writes them.";
     }
 
     private static IReadOnlyList<string> GetRequiredAddressSpaces(CompositionProfileDefinition profile)
@@ -629,13 +734,7 @@ public static partial class WorkbenchCompositionService
 }
 
 /// <summary>Catalog and tool status used by the Settings page.</summary>
-public sealed record WorkbenchSettingsSnapshot(
-    int StandardMergeProfileCount,
-    int ReplaceProfileCount,
-    int FlashMapIcCount,
-    int PostbuildProfileCount,
-    string ToolBindingIds,
-    string ToolManifestPath);
+public sealed record WorkbenchSettingsSnapshot(int StandardMergeProfileCount, int ReplaceProfileCount, int FlashMapIcCount, int PostbuildProfileCount, string ToolBindingIds, string ToolManifestPath);
 
 /// <summary>Firmware facts read from a flash image FWConfig block.</summary>
 public sealed record WorkbenchFirmwareConfigMetadata(
