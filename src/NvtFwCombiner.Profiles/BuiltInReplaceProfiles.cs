@@ -6,6 +6,11 @@ namespace NvtFwCombiner.Profiles;
 public static class BuiltInReplaceProfiles
 {
     private const string SyntheticIc = "NT-SYNTHETIC";
+    private const long Nt51950DpContainerLength = 0x100000;
+    private static readonly long[] Nt51950AllowedDpReplacementLengths = [0x40000, 0x80000, Nt51950DpContainerLength];
+    private static readonly ByteRange Nt51950DpContainerRange = new(0, Nt51950DpContainerLength);
+    private static readonly ByteRange Nt51950TpRestoreRange = ByteRange.FromStartEndExclusive(0x0A000, 0x37000);
+    private static readonly ByteRange Nt51950CustomerInfoPreserveRange = new(0x37000, 0x1000);
 
     /// <summary>All built-in Replace profiles in stable command display order.</summary>
     public static IReadOnlyList<CompositionProfileDefinition> All =>
@@ -13,6 +18,8 @@ public static class BuiltInReplaceProfiles
         SyntheticDpReplace,
         SyntheticCtrlRamReplace,
         SyntheticGeneralReplace,
+        Nt51950DpReplace,
+        Nt51951DpReplace,
     ];
 
     /// <summary>Synthetic DP Replace profile with separate DP and LD replacement payloads.</summary>
@@ -156,4 +163,79 @@ public static class BuiltInReplaceProfiles
                 new RegionAccessRule("general-payload", RegionAccessKind.ExplicitRange, "Synthetic general mapping area."),
             ],
             IcNumberInputMode.SingleSelector);
+
+    /// <summary>NT51950 DP Perspective Replace profile with base TP/customer-info restoration.</summary>
+    public static CompositionProfileDefinition Nt51950DpReplace { get; } = CreateNt51950DpReplaceProfile("NT51950");
+
+    /// <summary>NT51951 DP Perspective Replace profile using the owner-confirmed NT51950 policy.</summary>
+    public static CompositionProfileDefinition Nt51951DpReplace { get; } = CreateNt51950DpReplaceProfile("NT51951");
+
+    private static CompositionProfileDefinition CreateNt51950DpReplaceProfile(string icId)
+    {
+        string normalizedIc = icId.ToLowerInvariant();
+        return new CompositionProfileDefinition(
+            $"{normalizedIc}-dp-replace-dp-perspective",
+            "0.5.0",
+            icId,
+            "dp-replace",
+            CompositionKind.Replace,
+            "dp-replace",
+            $"{normalizedIc}-dp-replace.bin",
+            ImageInitialization.Reference("output-image", "reference-base", Nt51950DpContainerLength),
+            [
+                new AddressSpace("reference-base", Nt51950DpContainerLength, AddressSpaceMutability.Immutable),
+                new AddressSpace(
+                    "dp-replacement",
+                    Nt51950DpContainerLength,
+                    AddressSpaceMutability.Immutable,
+                    inputPaddingByte: 0x00,
+                    allowedInputLengths: Nt51950AllowedDpReplacementLengths),
+                new AddressSpace("output-image", Nt51950DpContainerLength, AddressSpaceMutability.Mutable),
+            ],
+            [
+                CompositionOperation.ReplaceRange(
+                    "replace-dp-container",
+                    100,
+                    "dp-replacement",
+                    Nt51950DpContainerRange,
+                    "output-image",
+                    Nt51950DpContainerRange,
+                    OverlapPolicy.Reject,
+                    "Replace the NT51950/NT51951 DP Perspective container after accepting only 0x40000, 0x80000, or 0x100000 DP inputs and padding to 0x100000."),
+                CompositionOperation.CopyRange(
+                    "restore-base-tp",
+                    200,
+                    "reference-base",
+                    Nt51950TpRestoreRange,
+                    "output-image",
+                    Nt51950TpRestoreRange,
+                    OverlapPolicy.ReplaceExisting,
+                    "Restore original TP FW at 0x0A000-0x36FFF from the base firmware after DP replacement."),
+                CompositionOperation.CopyRange(
+                    "restore-base-customer-info",
+                    210,
+                    "reference-base",
+                    Nt51950CustomerInfoPreserveRange,
+                    "output-image",
+                    Nt51950CustomerInfoPreserveRange,
+                    OverlapPolicy.ReplaceExisting,
+                    "Restore customer information at 0x37000-0x37FFF from the base firmware after DP replacement."),
+            ],
+            [
+                new ProfileRegion(
+                    "dp-perspective-container",
+                    "output-image",
+                    Nt51950DpContainerRange,
+                    RegionAtomicity.Partitioned,
+                    RegionWritePolicy.DeclaredParts,
+                    classificationTags: ["dp", "tp-restore", "customer-info-preserve"]),
+            ],
+            [
+                new RegionAccessRule(
+                    "dp-perspective-container",
+                    RegionAccessKind.Parts,
+                    "NT51950/NT51951 DP Replace first copies replacement DP, then restores the original TP and customer-info ranges."),
+            ],
+            IcNumberInputMode.SingleSelector);
+    }
 }

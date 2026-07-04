@@ -34,6 +34,16 @@ public enum LegacyCombinerPostbuildBranch
     ThreeChip,
 }
 
+/// <summary>How a transformed postbuild firmware image becomes the final Replace output.</summary>
+public enum LegacyCombinerPostbuildAssemblyKind
+{
+    /// <summary>The staged firmware image already uses final flash coordinates.</summary>
+    InPlaceFirmwareImage,
+
+    /// <summary>The staged firmware image is refreshed TP_FW and must be assembled back with base DP bytes.</summary>
+    RefreshedTpThenStandardMerge,
+}
+
 /// <summary>One accepted IC number token for selecting a legacy postbuild branch.</summary>
 public sealed class LegacyCombinerPostbuildBranchRule
 {
@@ -199,7 +209,8 @@ public sealed class LegacyCombinerPostbuildProfile
         string evidence,
         IEnumerable<LegacyCombinerPostbuildCommand>? twoChipCommands = null,
         IEnumerable<LegacyCombinerPostbuildCommand>? threeChipCommands = null,
-        IEnumerable<LegacyCombinerPostbuildBranchRule>? branchRules = null)
+        IEnumerable<LegacyCombinerPostbuildBranchRule>? branchRules = null,
+        LegacyCombinerPostbuildAssemblyKind assemblyKind = LegacyCombinerPostbuildAssemblyKind.InPlaceFirmwareImage)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(processorId);
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
@@ -235,6 +246,7 @@ public sealed class LegacyCombinerPostbuildProfile
         ToolBindingId = toolBindingId;
         FirmwareFileName = firmwareFileName;
         Evidence = evidence;
+        AssemblyKind = assemblyKind;
     }
 
     /// <summary>Processor id referenced by composition profiles.</summary>
@@ -266,6 +278,9 @@ public sealed class LegacyCombinerPostbuildProfile
 
     /// <summary>Reference files that justify this command profile.</summary>
     public string Evidence { get; }
+
+    /// <summary>Declares whether postbuild output is final flash or refreshed TP_FW requiring assembly.</summary>
+    public LegacyCombinerPostbuildAssemblyKind AssemblyKind { get; }
 
     private static Dictionary<string, LegacyCombinerPostbuildBranch> BuildBranchRules(
         IEnumerable<LegacyCombinerPostbuildBranchRule>? branchRules)

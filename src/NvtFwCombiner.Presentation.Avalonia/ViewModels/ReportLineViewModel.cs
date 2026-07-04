@@ -7,11 +7,13 @@ public sealed class ReportLineViewModel
     public static ReportLineViewModel Empty { get; } = new(string.Empty, string.Empty, string.Empty);
 
     /// <summary>Creates a report line.</summary>
-    public ReportLineViewModel(string title, string detail, string meta)
+    public ReportLineViewModel(string title, string detail, string meta, string codeBlock = "")
     {
         Title = title;
         Detail = detail;
         Meta = meta;
+        CodeBlock = codeBlock;
+        HasCodeBlock = !string.IsNullOrWhiteSpace(codeBlock);
     }
 
     /// <summary>Primary line text.</summary>
@@ -22,4 +24,10 @@ public sealed class ReportLineViewModel
 
     /// <summary>Small metadata line.</summary>
     public string Meta { get; }
+
+    /// <summary>Optional fixed-width command or technical block associated with this line.</summary>
+    public string CodeBlock { get; }
+
+    /// <summary>True when a fixed-width code block should be rendered for this line.</summary>
+    public bool HasCodeBlock { get; }
 }

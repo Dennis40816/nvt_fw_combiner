@@ -42,6 +42,36 @@ public sealed class StandardMergeGenFlashGoldenTests
         }
     }
 
+    /// <summary>Verifies owner-confirmed alias profiles match the referenced gen_flash golden output bytes.</summary>
+    [Theory]
+    [InlineData("51917", "51927")]
+    [InlineData("51919", "51929")]
+    public async Task OwnerConfirmedAliasProfilesMatchReferenceGoldenBytes(string aliasIc, string referenceIc)
+    {
+        string repositoryRoot = FindRepositoryRoot();
+        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
+        using JsonDocument manifestDocument = LoadJson(Path.Combine(goldenRoot, "manifest.json"));
+        JsonElement referenceCase = manifestDocument.RootElement.GetProperty("cases")
+            .EnumerateArray()
+            .Single(item => item.GetProperty("ic").GetString() == referenceIc)
+            .Clone();
+        CompositionProfileDefinition profile = BuiltInStandardMergeProfiles.OwnerConfirmedAliasStandardMergeProfiles
+            .Single(item => item.IcId == $"NT{aliasIc}");
+        ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
+        Assert.True(compile.IsSuccess, FormatIssues(compile.Issues));
+
+        Dictionary<string, byte[]> inputs = ReadInputs(goldenRoot, referenceCase.GetProperty("inputs"));
+        byte[] expectedOutput = ReadManifestFile(goldenRoot, referenceCase.GetProperty("expectedOutput"));
+        CompositionRunResult result = await PreviewAsync(profile, compile.Plan!, inputs);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Empty(result.Report.Issues);
+        Assert.Equal(expectedOutput, result.OutputBytes.ToArray());
+        Assert.Equal($"nt{aliasIc}-standard-merge-gen-flash-alias", result.Report.ProfileId);
+        Assert.Equal($"NT{aliasIc}", result.Report.IcId);
+        Assert.Equal(Sha256Hex(expectedOutput), result.Report.Output.Sha256);
+    }
+
     private static async ValueTask VerifyGoldenCaseAsync(string goldenRoot, JsonElement goldenCase)
     {
         string ic = goldenCase.GetProperty("ic").GetString()!;

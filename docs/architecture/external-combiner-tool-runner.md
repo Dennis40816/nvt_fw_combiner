@@ -16,6 +16,7 @@ Composition operation reaches run-external-processor
   -> host resolves combiner.exe from manifest and verifies SHA-256
   -> host runs combiner.exe with approved argument template
   -> host reads modified work.bin or declared output file
+  -> host normalizes known command-shortened work output back to original length when coverage is complete
   -> host independently computes byte diff
   -> host accepts only changes inside allowedWriteRanges
   -> host imports validated bytes back into the work buffer
@@ -75,7 +76,7 @@ All external combiner errors fail closed:
 - timeout;
 - path traversal;
 - unexpected file;
-- file length change;
+- unexpected final file length change;
 - changed byte outside `allowedWriteRanges`;
 - missing or invalid output.
 
@@ -89,3 +90,5 @@ All external combiner errors fail closed:
 ## First implementation PR scope
 
 The first implementation PR should add the manifest model, registry, staging workspace, process runner, diff verifier, fake combiner tests, and profile compiler validation. IC-specific CtrlRAM postbuild profiles may be added only from owner-approved postbuild/mmap evidence; real firmware golden outputs are still required before declaring end-to-end production parity.
+
+Legacy Combiner `MERGE_MODE` may shorten the staging work file to the command coverage. The postbuild adapter can overlay that command output onto the previous full-length staging image only when it still covers the command's declared write ranges. The imported output remains full length and remains subject to independent allowed-write-range diff verification.

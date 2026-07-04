@@ -58,6 +58,79 @@ public sealed class ReplaceCliCommandTests
         Assert.Equal("Replace synthetic DP declared partition.", operation.GetProperty("Reason").GetString());
     }
 
+    /// <summary>Verifies NT51950 DP Replace is selected from the built-in Replace profile catalog.</summary>
+    [Fact]
+    public async Task DpReplaceBuildUsesNt51950CatalogProfile()
+    {
+        using var workspace = TempWorkspace.Create();
+        byte[] referenceBytes = [.. Enumerable.Repeat((byte)0xA5, 0x100000)];
+        Array.Fill(referenceBytes, (byte)0x22, 0x0A000, 0x2D000);
+        Array.Fill(referenceBytes, (byte)0x33, 0x37000, 0x1000);
+        byte[] dpBytes = [.. Enumerable.Repeat((byte)0x11, 0x40000)];
+        string reference = workspace.Write("reference.bin", referenceBytes);
+        string dp = workspace.Write("dp.bin", dpBytes);
+        string output = workspace.PathFor("nt51950-dp-replace.bin");
+
+        CliRunResult result = await RunCliAsync([
+            "dp-replace",
+            "build",
+            "--profile",
+            "NT51950",
+            "--ic-num",
+            "single",
+            "--base",
+            reference,
+            "--dp",
+            dp,
+            "--output",
+            output,
+        ]);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
+        Assert.Contains("nt51950-dp-replace-dp-perspective", result.Output, StringComparison.Ordinal);
+        byte[] bytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
+        Assert.Equal(0x100000, bytes.Length);
+        Assert.Equal(0x11, bytes[0x00000]);
+        Assert.Equal(0x11, bytes[0x09FFF]);
+        Assert.Equal(0x22, bytes[0x0A000]);
+        Assert.Equal(0x22, bytes[0x36FFF]);
+        Assert.Equal(0x33, bytes[0x37000]);
+        Assert.Equal(0x33, bytes[0x37FFF]);
+        Assert.Equal(0x11, bytes[0x38000]);
+        Assert.Equal(0x00, bytes[0x40000]);
+    }
+
+    /// <summary>Verifies NT51950 DP Replace rejects unapproved replacement sizes before output commit.</summary>
+    [Fact]
+    public async Task DpReplaceBuildRejectsInvalidNt51950ReplacementSize()
+    {
+        using var workspace = TempWorkspace.Create();
+        string reference = workspace.Write("reference.bin", [.. Enumerable.Repeat((byte)0xA5, 0x100000)]);
+        string dp = workspace.Write("dp.bin", [.. Enumerable.Repeat((byte)0x11, 0x3FFFF)]);
+        string output = workspace.PathFor("nt51950-dp-replace.bin");
+
+        CliRunResult result = await RunCliAsync([
+            "dp-replace",
+            "build",
+            "--profile",
+            "NT51950",
+            "--ic-num",
+            "single",
+            "--base",
+            reference,
+            "--dp",
+            dp,
+            "--output",
+            output,
+        ]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("must match one of the declared lengths", result.Error, StringComparison.Ordinal);
+        Assert.Contains("0x40000, 0x80000, 0x100000", result.Error, StringComparison.Ordinal);
+        Assert.False(File.Exists(output));
+    }
+
     /// <summary>Verifies CtrlRAM Replace preview reports truncation warnings while succeeding.</summary>
     [Fact]
     public async Task CtrlRamReplacePreviewReportsOversizedInputTruncation()

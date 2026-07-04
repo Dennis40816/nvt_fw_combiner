@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -90,9 +91,9 @@ public static partial class WorkbenchCompositionService
     /// <summary>Gets TP Overview address coverage text for the selected Replace context and mode.</summary>
     public static string GetReplaceMemoryRangeLabel(string icId, string number, string replaceMode)
     {
-        if (replaceMode == "DP" && IsNt51950Or51(icId))
+        if (replaceMode == "DP" && TryGetDpReplaceProfile(icId, out CompositionProfileDefinition? profile))
         {
-            return FormatFullRange(Nt51950DpContainerLength);
+            return FormatFullRange(profile.Initialization.Capacity);
         }
 
         IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetRegions(icId, ToIcNumberSelection(number));
@@ -123,9 +124,11 @@ public static partial class WorkbenchCompositionService
             ];
         }
 
-        long capacity = replaceMode == "DP" && IsNt51950Or51(icId)
-            ? Nt51950DpContainerLength
-            : regions.Max(region => region.Range.EndExclusive);
+        CompositionProfileDefinition? dpReplaceProfile = replaceMode == "DP" &&
+            TryGetDpReplaceProfile(icId, out CompositionProfileDefinition? profile)
+                ? profile
+                : null;
+        long capacity = dpReplaceProfile?.Initialization.Capacity ?? regions.Max(region => region.Range.EndExclusive);
         CoverageSegment[] segments =
         [
             new CoverageSegment(
@@ -136,24 +139,36 @@ public static partial class WorkbenchCompositionService
                 false),
         ];
 
-        if (replaceMode == "DP" && IsNt51950Or51(icId))
+        if (dpReplaceProfile is not null)
         {
-            segments = ApplyCoverageWrite(
-                segments,
-                new CoverageSegment(
-                    new ByteRange(0, Nt51950DpContainerLength),
-                    "Changed DP BIN",
-                    $"Replacement DP fills {FormatDisplayRange(new ByteRange(0, Nt51950DpContainerLength))}; shorter inputs are padded by profile policy.",
-                    "#2563EB",
-                    true));
-            segments = ApplyCoverageWrite(
-                segments,
-                new CoverageSegment(
-                    Nt51950TpRestoreRange,
-                    "Restored TP",
-                    $"Original TP FW at {FormatDisplayRange(Nt51950TpRestoreRange)} is copied back from the base firmware.",
-                    "#64748B",
-                    false));
+            ProfileCompileResult compile = CompositionProfileCompiler.Compile(dpReplaceProfile, []);
+            if (!compile.IsSuccess)
+            {
+                return
+                [
+                    new WorkbenchMemoryCoverageSegment(
+                        "Profile",
+                        "Invalid profile",
+                        FormatIssues(compile.Issues),
+                        "#F97316",
+                        280,
+                        false),
+                ];
+            }
+
+            foreach (CompositionOperation operation in compile.Plan!.OrderedOperations)
+            {
+                string label = DpReplaceCoverageLabel(operation);
+                segments = ApplyCoverageWrite(
+                    segments,
+                    new CoverageSegment(
+                        operation.TargetRange,
+                        label,
+                        operation.Reason,
+                        CoverageFill(label),
+                        operation.Kind == CompositionOperationKind.ReplaceRange));
+            }
+
             return ToWorkbenchCoverageSegments(segments, capacity);
         }
 
@@ -234,7 +249,13 @@ public static partial class WorkbenchCompositionService
                 build,
                 "replace.dp.profile-pending",
                 "DP Replace output is enabled only for NT51950/NT51951 until per-IC DP source mapping and golden evidence are approved."),
-            "CtrlRAM" => CreateCtrlRamPlanningRunResult(icId, number, slotPaths, build),
+            "CtrlRAM" => await RunCtrlRamReplaceAsync(
+                icId,
+                number,
+                slotPaths,
+                build,
+                outputPath,
+                cancellationToken).ConfigureAwait(false),
             "General" => CreatePlanningRunResult(
                 icId,
                 number,

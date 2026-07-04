@@ -65,7 +65,7 @@ public sealed partial class MainWindowViewModel
             new SettingSummaryViewModel(
                 "Built-in profiles",
                 $"{snapshot.StandardMergeProfileCount} merge / {snapshot.ReplaceProfileCount} replace",
-                "Standard Merge profiles and Replace profiles come from the production profile catalog.",
+                "Standard Merge uses executable profiles; Replace workbench uses IC catalog data plus contract fixtures.",
                 "Wired"),
             new SettingSummaryViewModel(
                 "Flash-map catalog",

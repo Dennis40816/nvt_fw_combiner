@@ -14,6 +14,7 @@ Update this document in the same change when any of these sources change:
 - `docs/architecture/nt51950-nt51951-dp-length-policy.md`
 - `docs/architecture/ctrlram-postbuild-command-matrix.md`
 - `docs/architecture/supported-ic-matrix.md`
+- `docs/architecture/adding-ic-merge-replace-workflow.md`
 
 The architecture test `IcWorkflowFlowchartReferenceCoversBuiltInIcLists` checks that this document lists every IC from the built-in Standard Merge profiles and the CtrlRAM postbuild catalog. The test is a sync guard only; the C# catalog and owner evidence remain the source of behavior truth.
 
@@ -27,8 +28,8 @@ The architecture test `IcWorkflowFlowchartReferenceCoversBuiltInIcLists` checks 
 
 | IC | Standard Merge flow | DP Replace flow | CtrlRAM Replace flow | General Replace flow | Current status notes |
 | --- | --- | --- | --- | --- | --- |
-| NT51917 | `SM-GENFLASH-CANDIDATE`: follows NT51927 ranges, not executable until golden. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-927`: follows NT51927, numeric single/2/3 IC and cascade. | `R-GENERAL`: explicit mapping only after protected map is known. | CtrlRAM command core implemented; Standard Merge golden pending. |
-| NT51919 | `SM-GENFLASH-CANDIDATE`: follows NT51929 ranges, not executable until golden. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51932`: follows NT51929/NT51932. | `R-GENERAL`: explicit mapping only after protected map is known. | CtrlRAM command core implemented; Standard Merge golden pending. |
+| NT51917 | `SM-GENFLASH-ALIAS`: executable owner-confirmed alias of NT51927. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-927`: follows NT51927, numeric single/2/3 IC and cascade. | `R-GENERAL`: explicit mapping only after protected map is known. | Standard Merge alias regression uses NT51927 golden bytes; CtrlRAM command core implemented. |
+| NT51919 | `SM-GENFLASH-ALIAS`: executable owner-confirmed alias of NT51929. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51932`: follows NT51929/NT51932. | `R-GENERAL`: explicit mapping only after protected map is known. | Standard Merge alias regression uses NT51929 golden bytes; CtrlRAM command core implemented. |
 | NT51920 | `SM-GENFLASH`: direct gen_flash profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-LEGACY-NORMAL`: `CRC_Enable`. | `R-GENERAL`: explicit mapping only after protected map is known. | Implemented Standard Merge profile and CtrlRAM command core. |
 | NT51923 | `SM-GENFLASH`: direct gen_flash profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-LEGACY-NORMAL`: `CRC_Enable`, cascade split DiffDLM. | `R-GENERAL`: explicit mapping only after protected map is known. | Implemented Standard Merge profile and CtrlRAM command core. |
 | NT51926 | `SM-GENFLASH`: direct gen_flash profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-LEGACY-NORMAL`: `CRC_Enable`. | `R-GENERAL`: explicit mapping only after protected map is known. | Implemented Standard Merge profile and CtrlRAM command core. |
@@ -45,7 +46,7 @@ The architecture test `IcWorkflowFlowchartReferenceCoversBuiltInIcLists` checks 
 
 ### SM-GENFLASH
 
-Used by the executable golden-backed gen_flash profiles: NT51920, NT51923, NT51926, NT51927, NT51929, NT51931, and NT51932. NT51917 and NT51919 are documented alias candidates and stay hidden until owner-approved golden outputs exist.
+Used by the executable golden-backed gen_flash profiles: NT51920, NT51923, NT51926, NT51927, NT51929, NT51931, and NT51932. Owner-confirmed alias profiles reuse this same flow: NT51917 follows NT51927, and NT51919 follows NT51929.
 
 ```mermaid
 flowchart TD
@@ -59,8 +60,8 @@ flowchart TD
 
 | IC | Output size | TP range | DP range | DP input length note |
 | --- | ---: | --- | --- | --- |
-| NT51917 | `0x40000` | `[0x00000, 0x35000)` | `[0x3C000, 0x40000)` | Candidate only; declared source length `0x200000`; golden pending. |
-| NT51919 | `0x40000` | `[0x07000, 0x40000)` | `[0x00000, 0x06000)` | Candidate only; declared source length `0x40000`; golden pending. |
+| NT51917 | `0x40000` | `[0x00000, 0x35000)` | `[0x3C000, 0x40000)` | Owner-confirmed alias of NT51927; declared source length `0x200000`; alias golden regression uses NT51927 fixtures. |
+| NT51919 | `0x40000` | `[0x07000, 0x40000)` | `[0x00000, 0x06000)` | Owner-confirmed alias of NT51929; declared source length `0x40000`; alias golden regression uses NT51929 fixtures. |
 | NT51920 | `0x40000` | `[0x00000, 0x30000)` | `[0x3E000, 0x40000)` | Source length equals range end. |
 | NT51923 | `0x40000` | `[0x00000, 0x3C000)` | `[0x3E000, 0x40000)` | Source length equals range end. |
 | NT51926 | `0x40000` | `[0x00000, 0x3C000)` | `[0x3E000, 0x40000)` | Source length equals range end. |
@@ -162,18 +163,20 @@ Used by NT51917, NT51927, and NT51928 non-NB.
 
 ```mermaid
 flowchart TD
-    A["Load reference firmware and CtrlRAM replacement bins"] --> B["Clone reference to work image"]
-    B --> C["Replace approved CtrlRAM ranges; truncate oversized CtrlRAM input with warning when profile declares it"]
-    C --> D["Stage postbuild BIN files and work firmware"]
-    D --> E{"IC num selection"}
-    E -- "single" --> F["Build 7-command NT51927 MERGE_MODE + CRC32 plan"]
-    E -- "2" --> G["Build 10-command NT51927 MERGE_MODE + CRC32 plan"]
-    E -- "3 or cascade" --> H["Build 13-command NT51927 MERGE_MODE + CRC32 plan"]
-    F --> I["Run Combiner.exe commands in order"]
-    G --> I
-    H --> I
-    I --> J["Diff transformed work firmware against declared processor write ranges"]
-    J --> K["Preview/Build report records warnings, command argv, changed ranges, and final hash"]
+    A["Load reference firmware and CtrlRAM replacement bins"] --> B["Clone reference to final output image"]
+    B --> C["Split TP work image from the base flash"]
+    C --> D["Replace approved CtrlRAM ranges in TP work; truncate oversized CtrlRAM input with warning when profile declares it"]
+    D --> E["Stage postbuild BIN files and TP work firmware"]
+    E --> F{"IC num selection"}
+    F -- "single" --> G["Build 7-command NT51927 MERGE_MODE + CRC32 plan"]
+    F -- "2" --> H["Build 10-command NT51927 MERGE_MODE + CRC32 plan"]
+    F -- "3 or cascade" --> I["Build 13-command NT51927 MERGE_MODE + CRC32 plan"]
+    G --> J["Run Combiner.exe commands in order against TP work"]
+    H --> J
+    I --> J
+    J --> K["Diff transformed TP work against declared processor write ranges"]
+    K --> L["Assemble refreshed TP_FW back into the cloned final output image"]
+    L --> M["Preview/Build report records warnings, command argv, changed ranges, assembly step, and final hash"]
 ```
 
 ### R-CTRLRAM-LEGACY-NORMAL

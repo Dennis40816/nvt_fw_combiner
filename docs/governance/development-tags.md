@@ -19,7 +19,7 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 
 ## Milestone scope
 
-Current execution priority: normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows are pulled forward. AB merge remains in the roadmap but is deferred until the owner reactivates it. Standard Merge has executable profiles for the uploaded golden-backed gen_flash set plus NT51930 and NT51950/NT51951 DP Perspective candidates; NT51917/NT51919 alias candidates, NT51930, and NT51950/NT51951 still need golden evidence before support/exposure. Replace now has NT51950/NT51951 DP Replace workbench execution and CtrlRAM per-region UI/postbuild trace reports; CtrlRAM production output still needs declared write ranges and golden evidence.
+Current execution priority: normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows are pulled forward. AB merge remains in the roadmap but is deferred until the owner reactivates it. Standard Merge has executable profiles for the uploaded golden-backed gen_flash set, owner-confirmed NT51917/NT51919 aliases, NT51930, and NT51950/NT51951 DP Perspective candidates; NT51930 and NT51950/NT51951 still need golden evidence before support exposure. Replace now has NT51950/NT51951 DP Replace workbench execution and CtrlRAM per-region Preview/Build execution through staged Combiner postbuild; CtrlRAM parity still needs private golden outputs and firmware-owner review.
 
 | Milestone | Scope | Implementation boundary |
 | --- | --- | --- |
@@ -42,7 +42,7 @@ Before the first sample is tagged as `v1.0.0`, the owner must confirm the exact 
 
 Required remaining work:
 
-- lock the `v1.0.0` support matrix by IC and workflow, including owner sign-off for NT51917/NT51919 alias candidates, NT51930, and NT51950/NT51951 Standard Merge golden outputs;
+- lock the `v1.0.0` support matrix by IC and workflow, including owner sign-off for NT51930 and NT51950/NT51951 Standard Merge golden outputs;
 - satisfy the owner validation package listed in `docs/architecture/supported-ic-matrix.md` for every released IC/workflow;
 - add executable production profiles for every released DP Replace and CtrlRAM Replace IC/mode, not only the current synthetic Replace contracts and postbuild command catalog;
 - complete owner-approved golden outputs for every released Standard Merge and Replace profile, including private golden evidence and firmware-owner review where ranges, CRC/header, or command order matter;
@@ -82,6 +82,6 @@ v1.0.0          stable
 
 - Standard Merge verified against the available owner-approved golden set.
 - NT51950/NT51951 DP Replace workbench output verified for the implemented exact-base/variable-DP rule.
-- CtrlRAM Replace UI/report trace verified, with production output explicitly gated until write ranges and golden outputs exist.
+- CtrlRAM Replace UI/report trace and staged Combiner Preview/Build output verified, with private golden outputs and firmware-owner review still required before support parity is claimed.
 - `python scripts/verify.py --all`, Polytail, Codex review, and required human firmware review notes are complete.
 - A Windows x64 self-contained package is produced from the reviewed commit, with version metadata aligned to `0.5.0`.

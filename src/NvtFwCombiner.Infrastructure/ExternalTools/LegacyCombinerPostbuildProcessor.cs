@@ -104,14 +104,21 @@ public sealed class LegacyCombinerPostbuildProcessor : IExternalProcessor
             byte[] inputBytes = request.InputBytes.ToArray();
             await File.WriteAllBytesAsync(firmwarePath, inputBytes, cancellationToken).ConfigureAwait(false);
 
-            CompositionIssue? stagingIssue = MaterializeStagedBlockFiles(commandPlan, inputBytes, binDirectory);
-            if (stagingIssue is not null)
-            {
-                return ExternalProcessorResult.Failed([stagingIssue]);
-            }
-
             foreach (LegacyCombinerPostbuildCommand command in commandPlan.Commands)
             {
+                byte[] commandInputBytes = await File.ReadAllBytesAsync(firmwarePath, cancellationToken).ConfigureAwait(false);
+                if (commandInputBytes.LongLength != inputBytes.LongLength)
+                {
+                    return Fail("external-tool.output-length.changed", "External processor changed the firmware image length.");
+                }
+
+                ResetDirectory(binDirectory);
+                CompositionIssue? stagingIssue = MaterializeStagedBlockFiles(command.Blocks, inputBytes, binDirectory);
+                if (stagingIssue is not null)
+                {
+                    return ExternalProcessorResult.Failed([stagingIssue]);
+                }
+
                 IReadOnlyList<string> arguments = LegacyCombinerPostbuildCommandLineBuilder.CreateArguments(
                     command,
                     firmwarePath,
@@ -131,7 +138,24 @@ public sealed class LegacyCombinerPostbuildProcessor : IExternalProcessor
                 {
                     return Fail(
                         "external-tool.process.failed",
-                        $"External processor command '{command.CommandId}' exited with code {processResult.ExitCode}.");
+                        $"External processor command '{command.CommandId}' exited with code {processResult.ExitCode}. {FormatProcessOutput(processResult)}");
+                }
+
+                CompositionIssue? lengthIssue = await NormalizeShortenedFirmwareAsync(
+                        firmwarePath,
+                        commandInputBytes,
+                        command,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                if (lengthIssue is not null)
+                {
+                    return ExternalProcessorResult.Failed([lengthIssue]);
+                }
+
+                CompositionIssue? perCommandUnexpectedFileIssue = ValidateStagingTree(runDirectory, profile, manifest!, commandPlan);
+                if (perCommandUnexpectedFileIssue is not null)
+                {
+                    return ExternalProcessorResult.Failed([perCommandUnexpectedFileIssue]);
                 }
             }
 
@@ -159,7 +183,7 @@ public sealed class LegacyCombinerPostbuildProcessor : IExternalProcessor
                 : ExternalProcessorResult.Failed([
                     new CompositionIssue(
                         "external-tool.write-range.violation",
-                        "External processor changed bytes outside declared write ranges."),
+                        $"External processor changed bytes outside declared write ranges: {FormatRanges(verdict.ViolatingRanges)}."),
                 ]);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -196,13 +220,17 @@ public sealed class LegacyCombinerPostbuildProcessor : IExternalProcessor
     }
 
     private static CompositionIssue? MaterializeStagedBlockFiles(
-        LegacyCombinerPostbuildCommandPlan commandPlan,
+        IReadOnlyList<LegacyCombinerBlockArgument> blocks,
         byte[] firmwareBytes,
         string binDirectory)
     {
         Dictionary<string, byte[]> files = new(StringComparer.OrdinalIgnoreCase);
         Dictionary<string, bool[]> written = new(StringComparer.OrdinalIgnoreCase);
-        foreach (LegacyCombinerBlockArgument block in LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(commandPlan))
+        foreach (LegacyCombinerBlockArgument block in blocks
+            .Where(block => block.SourceKind == LegacyCombinerBlockSourceKind.StagedFile)
+            .OrderBy(block => block.SourceFileName, StringComparer.Ordinal)
+            .ThenBy(block => block.SourceOffset)
+            .ThenBy(block => block.FirmwareRange.Start))
         {
             if (block.FirmwareRange.EndExclusive > firmwareBytes.LongLength)
             {
@@ -241,6 +269,93 @@ public sealed class LegacyCombinerPostbuildProcessor : IExternalProcessor
         }
 
         return null;
+    }
+
+    private static void ResetDirectory(string directory)
+    {
+        foreach (string filePath in Directory.EnumerateFiles(directory))
+        {
+            File.Delete(filePath);
+        }
+    }
+
+    private static async ValueTask<CompositionIssue?> NormalizeShortenedFirmwareAsync(
+        string firmwarePath,
+        byte[] commandInputBytes,
+        LegacyCombinerPostbuildCommand command,
+        CancellationToken cancellationToken)
+    {
+        byte[] commandOutputBytes = await File.ReadAllBytesAsync(firmwarePath, cancellationToken).ConfigureAwait(false);
+        if (commandOutputBytes.LongLength == commandInputBytes.LongLength)
+        {
+            return null;
+        }
+
+        if (commandOutputBytes.LongLength > commandInputBytes.LongLength)
+        {
+            return new CompositionIssue(
+                "external-tool.output-length.changed",
+                "External processor changed the firmware image length.",
+                command.CommandId);
+        }
+
+        long minimumLength = GetMinimumCommandOutputLength(command, commandInputBytes.LongLength);
+        if (commandOutputBytes.LongLength < minimumLength)
+        {
+            return new CompositionIssue(
+                "external-tool.output-length.changed",
+                $"External processor command '{command.CommandId}' shortened the firmware image below its declared write coverage.",
+                command.CommandId);
+        }
+
+        byte[] normalizedBytes = [.. commandInputBytes];
+        commandOutputBytes.CopyTo(normalizedBytes, 0);
+        await File.WriteAllBytesAsync(firmwarePath, normalizedBytes, cancellationToken).ConfigureAwait(false);
+        return null;
+    }
+
+    private static long GetMinimumCommandOutputLength(
+        LegacyCombinerPostbuildCommand command,
+        long originalLength)
+    {
+        return command.Blocks.Count == 0
+            ? originalLength
+            : command.Blocks.Max(block => block.FirmwareRange.EndExclusive);
+    }
+
+    private static string FormatProcessOutput(ExternalProcessResult processResult)
+    {
+        string stderr = Shorten(processResult.StandardError);
+        if (!string.IsNullOrWhiteSpace(stderr))
+        {
+            return $"stderr: {stderr}";
+        }
+
+        string stdout = Shorten(processResult.StandardOutput);
+        return string.IsNullOrWhiteSpace(stdout)
+            ? "No process output was captured."
+            : $"stdout: {stdout}";
+    }
+
+    private static string FormatRanges(IReadOnlyList<ByteRange> ranges)
+    {
+        return ranges.Count == 0
+            ? "none"
+            : string.Join(
+                ", ",
+                ranges
+                    .Take(12)
+                    .Select(range => FormattableString.Invariant(
+                        $"0x{range.Start:X}-0x{range.EndExclusive - 1:X} (len 0x{range.Length:X})"))) +
+            (ranges.Count > 12
+                ? FormattableString.Invariant($" ... {ranges.Count - 12} more")
+                : string.Empty);
+    }
+
+    private static string Shorten(string value)
+    {
+        string compact = value.ReplaceLineEndings(" ").Trim();
+        return compact.Length <= 240 ? compact : $"{compact[..240]}...";
     }
 
     private static byte[] GetOrGrow(Dictionary<string, byte[]> files, string fileName, long requiredLength)

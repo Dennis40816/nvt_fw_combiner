@@ -11,6 +11,12 @@ Evidence order:
 
 The application catalog stores command sequences as structured commands, not as shell strings. Tests build argv arrays from that structure and verify they match the Combiner 1.13.0 command shapes.
 
+The imported full postbuild BAT files also call `python output\InsertSID.py output\*_fw.bin` before Combiner. Owner confirmation for CtrlRAM Replace: this legacy Insert PID step writes `headerStart + 0x24`, and that address is not part of Replace mutation authority. The Replace runner therefore does not execute the BAT `InsertSID.py` step and must not allow the PID bytes in its external-processor write ranges.
+
+CtrlRAM Replace always runs the selected IC/IC-number Combiner postbuild branch once, in the command order below, after host-side CtrlRAM byte replacement. It does not shorten the Combiner command sequence to only the user-selected CtrlRAM slot; unselected CtrlRAM payloads are staged from the current work image so the full postbuild can refresh integrity consistently.
+
+NT51917/NT51927/NT51928 use the special 51927 postbuild shape: the BAT copies the refreshed `output\*_fw.bin` into `output\FlashMerge\TP_FW` after Combiner finishes. NFC therefore stages Combiner against a TP work image, then assembles that refreshed TP_FW back into the cloned base flash so DP/final-flash bytes outside the TP work range stay from the base image. Other current postbuild profiles remain in-place firmware-image stages because their BAT evidence does not contain a `FlashMerge\TP_FW` handoff.
+
 For per-IC Merge/Replace flowcharts, see [`ic-workflow-flowcharts.md`](ic-workflow-flowcharts.md).
 
 | IC | IC num mode | Branches | Combiner modes | Command count | Notes |
@@ -37,8 +43,11 @@ For per-IC Merge/Replace flowcharts, see [`ic-workflow-flowcharts.md`](ic-workfl
 - `LegacyCombinerPostbuildCatalogTests.Nt51917AliasesNt51927PostbuildFlow`, `Nt51919AliasesNt51929PostbuildFlow`, `Nt51928AliasesNt51927PostbuildFlow`, `Nt51929AliasesNt51932PostbuildFlow`, and `Nt51951AliasesNt51950PostbuildFlow` lock owner-approved alias behavior.
 - `LegacyCombinerPostbuildCatalogTests.Nt51930CascadeUsesLessOrEqual13IcDiffDlmLength` locks current NT51930 cascade behavior to the `<=13 IC` branch.
 - `LegacyCombinerPostbuildProcessorTests.TransformRunsNt51927TwoChipMergeAndCrcSequence` verifies the staged processor actually invokes the 927 2IC `MERGE_MODE` and CRC-only sequence.
+- `LegacyCombinerPostbuildProcessorTests.TransformPreservesNt51927SlaveStagedFilesFromSeedImage` verifies 927-family slave CtrlRAM `BIN` files are projected from the pre-postbuild seed image instead of from firmware bytes overwritten by earlier slave-window copy commands.
+- `ShellViewModelTests.CtrlRamReplaceBuildIsIdempotentAfterPostbuildCanonicalOutput` verifies a 927 self-replacement is byte-identical on the second run after the first run canonicalizes the public standard-merge fixture through the full postbuild sequence.
 - `LegacyCombinerPostbuildRealToolSmokeTests.RealToolRunsNt51927GoldenCrcOnlyWithoutUnexpectedChanges` runs the committed Combiner 1.13.0 executable on Windows against the owner-approved NT51927 golden output. This is a smoke test for the real tool binding, not a Replace golden parity claim.
 
 ## Open Evidence Gaps
 
+- NT51927 public standard-merge self-replacement is not byte-identical on the first CtrlRAM Replace run even when the replacement CtrlRAM bytes are sliced from the same base image and the TP work image uses the Standard Merge TP range `0x00000-0x34FFF`. The first run changes six 4-byte postbuild/header ranges: `0x1E26C-0x1E26F`, `0x1E27C-0x1E27F`, `0x32FDC-0x32FDF`, `0x32FEC-0x32FEF`, `0x32FFC-0x32FFF`, and `0x3300C-0x3300F`. A second self-replacement run against that postbuild-canonical output is byte-identical, so the remaining gap is a private CtrlRAM Replace golden/parity evidence gap, not an approved update to the public standard-merge expected bytes.
 - NT51950/NT51951 `NT51950BASED_NORMAL_MODE CRC8` real-tool execution still needs `map.txt` staging evidence before production CtrlRAM Replace can be claimed.

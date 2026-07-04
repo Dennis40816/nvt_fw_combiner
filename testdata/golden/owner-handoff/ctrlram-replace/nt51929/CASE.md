@@ -1,0 +1,10 @@
+# NT51929 CtrlRAM Replace Handoff
+
+NT51929 currently follows the NT51932 postbuild flow.
+
+Requested case folders inside this directory:
+
+- `single/`
+- `cascade/`
+
+Requested files per case folder: `base.bin`, replacement files under `inputs/`, optional `expected.bin`, optional `combiner-cmd.txt`.

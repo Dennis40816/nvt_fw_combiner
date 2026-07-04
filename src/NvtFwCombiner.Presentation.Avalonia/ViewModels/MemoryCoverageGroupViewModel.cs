@@ -35,6 +35,17 @@ public sealed partial class MemoryCoverageGroupViewModel : ObservableObject
     /// <summary>Number of memory segments in this group.</summary>
     public int SegmentCount => Segments.Count;
 
+    /// <summary>Number of coverage segments written by the active operation type.</summary>
+    public int ChangedCount => Segments.Count(segment => segment.IsChanged);
+
+    /// <summary>Compact changed/total count shown in collapsed headers.</summary>
+    public string CountLabel => $"{ChangedCount}/{SegmentCount}";
+
+    /// <summary>Plain-language group summary that is quick to scan.</summary>
+    public string ChangeSummary => ChangedCount == 0
+        ? $"{SegmentCount} preserved areas."
+        : $"{ChangedCount} changeable / {SegmentCount} areas.";
+
     /// <summary>True when the group is expanded in the UI.</summary>
     [ObservableProperty]
     public partial bool IsExpanded { get; set; }

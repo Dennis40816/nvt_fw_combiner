@@ -26,14 +26,19 @@ public sealed class ReportReviewViewModel
         Output = output;
         Inputs = inputs;
         Operations = operations;
+        CommandOperations = [.. operations.Where(operation => operation.HasCodeBlock)];
+        StepOperations = [.. operations.Where(operation => !operation.HasCodeBlock)];
         Mutations = mutations;
         Issues = issues;
         PrimaryIssue = issues.Count == 0 ? ReportLineViewModel.Empty : issues[0];
         HasPrimaryIssue = issues.Count > 0;
         HasInputs = inputs.Count > 0;
         HasOperations = operations.Count > 0;
+        HasCommandOperations = CommandOperations.Count > 0;
+        HasStepOperations = StepOperations.Count > 0;
         HasMutations = mutations.Count > 0;
         HasIssues = issues.Count > 0;
+        SummaryRows = CreateSummaryRows(status, output, inputs, operations, mutations, issues);
     }
 
     /// <summary>Empty report placeholder.</summary>
@@ -70,23 +75,53 @@ public sealed class ReportReviewViewModel
     /// <summary>Input artifact rows.</summary>
     public IReadOnlyList<ReportLineViewModel> Inputs { get; }
 
+    /// <summary>Number of input rows.</summary>
+    public int InputCount => Inputs.Count;
+
     /// <summary>True when input details are available.</summary>
     public bool HasInputs { get; }
 
     /// <summary>Operation rows.</summary>
     public IReadOnlyList<ReportLineViewModel> Operations { get; }
 
+    /// <summary>Number of operation rows.</summary>
+    public int OperationCount => Operations.Count;
+
     /// <summary>True when operation details are available.</summary>
     public bool HasOperations { get; }
 
+    /// <summary>Operations that contain a fixed-width external command block.</summary>
+    public IReadOnlyList<ReportLineViewModel> CommandOperations { get; }
+
+    /// <summary>Number of command operation rows.</summary>
+    public int CommandOperationCount => CommandOperations.Count;
+
+    /// <summary>True when external command operations are available.</summary>
+    public bool HasCommandOperations { get; }
+
+    /// <summary>Operations that do not contain an external command block.</summary>
+    public IReadOnlyList<ReportLineViewModel> StepOperations { get; }
+
+    /// <summary>Number of non-command operation rows.</summary>
+    public int StepOperationCount => StepOperations.Count;
+
+    /// <summary>True when non-command operation details are available.</summary>
+    public bool HasStepOperations { get; }
+
     /// <summary>Mutation rows.</summary>
     public IReadOnlyList<ReportLineViewModel> Mutations { get; }
+
+    /// <summary>Number of mutation rows.</summary>
+    public int MutationCount => Mutations.Count;
 
     /// <summary>True when mutation details are available.</summary>
     public bool HasMutations { get; }
 
     /// <summary>Issue rows.</summary>
     public IReadOnlyList<ReportLineViewModel> Issues { get; }
+
+    /// <summary>Number of issue rows.</summary>
+    public int IssueCount => Issues.Count;
 
     /// <summary>True when issue details are available.</summary>
     public bool HasIssues { get; }
@@ -96,6 +131,9 @@ public sealed class ReportReviewViewModel
 
     /// <summary>True when the report should show a primary blocking reason.</summary>
     public bool HasPrimaryIssue { get; }
+
+    /// <summary>Compact summary chips shown at the top of the modal.</summary>
+    public IReadOnlyList<ReportLineViewModel> SummaryRows { get; }
 
     /// <summary>Loads a readable report model from run report JSON.</summary>
     public static ReportReviewViewModel FromJson(string json, string sourceName)
@@ -160,6 +198,24 @@ public sealed class ReportReviewViewModel
             ];
     }
 
+    private static IReadOnlyList<ReportLineViewModel> CreateSummaryRows(
+        string status,
+        string output,
+        IReadOnlyList<ReportLineViewModel> inputs,
+        IReadOnlyList<ReportLineViewModel> operations,
+        IReadOnlyList<ReportLineViewModel> mutations,
+        IReadOnlyList<ReportLineViewModel> issues)
+    {
+        int commandCount = operations.Count(operation => operation.HasCodeBlock);
+        return
+        [
+            new ReportLineViewModel("Status", status, issues.Count == 0 ? "No issue" : issues[0].Title),
+            new ReportLineViewModel("Inputs", inputs.Count.ToString(CultureInfo.InvariantCulture), "files"),
+            new ReportLineViewModel("Steps", operations.Count.ToString(CultureInfo.InvariantCulture), commandCount == 0 ? "operations" : $"{commandCount} command(s)"),
+            new ReportLineViewModel("Mutations", mutations.Count.ToString(CultureInfo.InvariantCulture), output),
+        ];
+    }
+
     private static IReadOnlyList<ReportLineViewModel> ParseOperations(JsonElement root)
     {
         return !root.TryGetProperty(nameof(Operations), out JsonElement operations) ||
@@ -174,10 +230,13 @@ public sealed class ReportReviewViewModel
                 string processor = GetStringOrNull(operation, "ProcessorId") is { } processorId
                     ? $" / {processorId}"
                     : string.Empty;
+                string reason = GetString(operation, "Reason");
+                (string reasonSummary, string commandBlock) = ExtractCombinerCommand(reason);
                 return new ReportLineViewModel(
                     $"{GetLong(operation, "Sequence")}. {GetString(operation, "OperationId")}",
                     $"{GetString(operation, "Kind")} {source} -> {target}",
-                    $"{GetString(operation, nameof(Status))} / {GetString(operation, "OverlapPolicy")}{processor} / {GetString(operation, "Reason")}");
+                    $"{GetString(operation, nameof(Status))} / {GetString(operation, "OverlapPolicy")}{processor} / {reasonSummary}",
+                    commandBlock);
             }),
             ];
     }
@@ -228,6 +287,25 @@ public sealed class ReportReviewViewModel
         return string.IsNullOrWhiteSpace(addressSpaceId)
             ? "(none)"
             : $"{addressSpaceId} {range ?? string.Empty}".Trim();
+    }
+
+    private static (string ReasonSummary, string CommandBlock) ExtractCombinerCommand(string reason)
+    {
+        const string marker = "Combiner command: ";
+        int markerIndex = reason.IndexOf(marker, StringComparison.Ordinal);
+        if (markerIndex < 0)
+        {
+            return (reason, string.Empty);
+        }
+
+        string summary = reason[..(markerIndex + "Combiner command".Length)].Trim();
+        string command = reason[(markerIndex + marker.Length)..].Trim();
+        if (command.EndsWith('.'))
+        {
+            command = command[..^1];
+        }
+
+        return (summary, command);
     }
 
     private static string? GetRangeOrNull(JsonElement element, string propertyName)
