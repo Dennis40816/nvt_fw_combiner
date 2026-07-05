@@ -72,7 +72,7 @@ Update only the rows that are relevant to the new IC/mode.
 | Profile compiler rules | `src/NvtFwCombiner.Profiles/CompositionProfileCompiler.cs` | Change only for general validation gaps, not to special-case one IC. |
 | TP/DP/CtrlRAM region catalog | `src/NvtFwCombiner.Application/FlashMaps/TpFlashMapCatalog.cs` | Add canonical flash-map rows, IC-number visibility, postbuild file names, and tags such as `tp-ctrlram`, `dp`, `protected`, or customer-info. |
 | FWConfig metadata reader/catalog | `src/NvtFwCombiner.Application/FlashMaps/FirmwareConfigMetadataReader.cs` and `TpFlashMapCatalog` | Add the IC's primary FWConfig flash start and verify Common FW/FW-bar/PID extraction with golden or owner-approved reference evidence. |
-| CtrlRAM postbuild catalog | `src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.cs` | Add structured command sequences, branch rules, staged-file names, firmware block ranges, and evidence source. Never assemble one shell command string. |
+| CtrlRAM postbuild catalog | `src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.cs` | Add structured command sequences, branch rules, staged-file names, firmware block ranges, evidence source, and `CommonFwVersionRule` metadata when one IC has multiple postbuild categories. Never assemble one shell command string. |
 | External tool manifest | `external-tools/legacy-combiner/.../manifest.json` | Add or update only when a new exact `combiner.exe` binding/version is approved. |
 | Golden manifest | `testdata/golden/standard-merge-gen-flash/manifest.json` or workflow-specific golden folder | Add owner-approved public fixtures only. Use private manifests for confidential firmware evidence. |
 | CtrlRAM golden template | `testdata/golden/ctrlram-replace/manifest.template.json` | Keep required private evidence fields synchronized when adding CtrlRAM Replace coverage. |
@@ -125,11 +125,12 @@ Minimum tests:
 
 1. Add or confirm TP flash-map CtrlRAM rows in `TpFlashMapCatalog`.
 2. Add postbuild structured commands in `LegacyCombinerPostbuildCatalog` from owner-approved postbuild/mmap evidence.
-3. Declare IC-number branch rules. Use `single`/`cascade` text choices unless the owner evidence requires numeric 1/2/3 branches.
-4. Ensure selected staged-file blocks map to visible CtrlRAM rows.
-5. Ensure every CtrlRAM Replace run executes the required postbuild sequence. A raw range replacement without postbuild is not a finished image.
-6. Confirm processor allowed write ranges include every Combiner-written byte and reject all others.
-7. Run self-replacement and idempotence tests against postbuild-canonical output, then compare with owner golden output when available.
+3. Declare Common FW category rules for versioned ICs, then lock selection with catalog tests so unsupported or ambiguous versions fail closed.
+4. Declare IC-number branch rules. Use `single`/`cascade` text choices unless the owner evidence requires numeric 1/2/3 branches.
+5. Ensure selected staged-file blocks map to visible CtrlRAM rows.
+6. Ensure every CtrlRAM Replace run executes the required postbuild sequence. A raw range replacement without postbuild is not a finished image.
+7. Confirm processor allowed write ranges include every Combiner-written byte and reject all others.
+8. Run self-replacement and idempotence tests against postbuild-canonical output, then compare with owner golden output when available.
 
 Minimum tests:
 

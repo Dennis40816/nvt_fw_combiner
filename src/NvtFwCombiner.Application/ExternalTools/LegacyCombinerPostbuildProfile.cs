@@ -47,6 +47,85 @@ public enum LegacyCombinerPostbuildAssemblyKind
     RefreshedTpThenStandardMerge,
 }
 
+/// <summary>How a postbuild profile matches FWConfig Common FW versions.</summary>
+public enum LegacyCombinerCommonFwVersionMatchKind
+{
+    /// <summary>The profile applies to exactly one Common FW semantic version.</summary>
+    Exact,
+
+    /// <summary>The profile applies to a major Common FW family, such as 1.x.x.</summary>
+    Major,
+}
+
+/// <summary>Common FW category rule for ICs with versioned postbuild scripts.</summary>
+public sealed class LegacyCombinerCommonFwVersionRule
+{
+    /// <summary>Creates an exact Common FW category rule.</summary>
+    public static LegacyCombinerCommonFwVersionRule Exact(
+        string version,
+        string postbuildSetupFileName)
+    {
+        return new LegacyCombinerCommonFwVersionRule(
+            LegacyCombinerCommonFwVersionMatchKind.Exact,
+            version,
+            $"Common FW {version} => {postbuildSetupFileName}");
+    }
+
+    /// <summary>Creates a major-version Common FW category rule.</summary>
+    public static LegacyCombinerCommonFwVersionRule Major(
+        string majorVersion,
+        string displayVersion,
+        string postbuildSetupFileName)
+    {
+        return new LegacyCombinerCommonFwVersionRule(
+            LegacyCombinerCommonFwVersionMatchKind.Major,
+            majorVersion,
+            $"Common FW {displayVersion} => {postbuildSetupFileName}");
+    }
+
+    /// <summary>Creates a Common FW category rule from owner-approved postbuild evidence.</summary>
+    public LegacyCombinerCommonFwVersionRule(
+        LegacyCombinerCommonFwVersionMatchKind matchKind,
+        string pattern,
+        string description)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(pattern);
+        ArgumentException.ThrowIfNullOrWhiteSpace(description);
+
+        MatchKind = matchKind;
+        Pattern = pattern.Trim();
+        Description = description.Trim();
+    }
+
+    /// <summary>Version matching strategy.</summary>
+    public LegacyCombinerCommonFwVersionMatchKind MatchKind { get; }
+
+    /// <summary>Exact version or major-version token used by the strategy.</summary>
+    public string Pattern { get; }
+
+    /// <summary>User-facing supported-category description.</summary>
+    public string Description { get; }
+
+    /// <summary>Returns whether the rule applies to a FWConfig Common FW version string.</summary>
+    public bool Matches(string? commonFwVersion)
+    {
+        if (string.IsNullOrWhiteSpace(commonFwVersion))
+        {
+            return false;
+        }
+
+        string version = commonFwVersion.Trim();
+        return MatchKind switch
+        {
+            LegacyCombinerCommonFwVersionMatchKind.Exact => string.Equals(version, Pattern, StringComparison.Ordinal),
+            LegacyCombinerCommonFwVersionMatchKind.Major =>
+                string.Equals(version, Pattern, StringComparison.Ordinal) ||
+                version.StartsWith(Pattern + ".", StringComparison.Ordinal),
+            _ => false,
+        };
+    }
+}
+
 /// <summary>One accepted IC number token for selecting a legacy postbuild branch.</summary>
 public sealed class LegacyCombinerPostbuildBranchRule
 {
@@ -215,7 +294,8 @@ public sealed class LegacyCombinerPostbuildProfile
         IEnumerable<LegacyCombinerPostbuildCommand>? twoChipCommands = null,
         IEnumerable<LegacyCombinerPostbuildCommand>? threeChipCommands = null,
         IEnumerable<LegacyCombinerPostbuildBranchRule>? branchRules = null,
-        LegacyCombinerPostbuildAssemblyKind assemblyKind = LegacyCombinerPostbuildAssemblyKind.InPlaceFirmwareImage)
+        LegacyCombinerPostbuildAssemblyKind assemblyKind = LegacyCombinerPostbuildAssemblyKind.InPlaceFirmwareImage,
+        LegacyCombinerCommonFwVersionRule? commonFwVersionRule = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(processorId);
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
@@ -255,6 +335,7 @@ public sealed class LegacyCombinerPostbuildProfile
         FirmwareFileName = firmwareFileName;
         Evidence = evidence;
         AssemblyKind = assemblyKind;
+        CommonFwVersionRule = commonFwVersionRule;
     }
 
     /// <summary>Processor id referenced by composition profiles.</summary>
@@ -292,6 +373,9 @@ public sealed class LegacyCombinerPostbuildProfile
 
     /// <summary>Declares whether postbuild output is final flash or refreshed TP_FW requiring assembly.</summary>
     public LegacyCombinerPostbuildAssemblyKind AssemblyKind { get; }
+
+    /// <summary>Optional Common FW category rule for ICs with versioned postbuild references.</summary>
+    public LegacyCombinerCommonFwVersionRule? CommonFwVersionRule { get; }
 
     private static Dictionary<string, LegacyCombinerPostbuildBranch> BuildBranchRules(
         IEnumerable<LegacyCombinerPostbuildBranchRule>? branchRules)
