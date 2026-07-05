@@ -139,6 +139,7 @@ public sealed class ShellViewModelTests
     [Fact]
     public void FirmwareSlotCompletionToneHighlightsOnlyRequiredInputs()
     {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-slot-tone");
         FirmwareSlotViewModel required = new("merge-dp", "DP BIN", "Display payload");
 
         Assert.False(required.IsOptional);
@@ -156,7 +157,7 @@ public sealed class ShellViewModelTests
         Assert.Equal(new Thickness(1.5), required.SlotBorderThickness);
         AssertBrush("#B91C1C", required.RequirementBadgeForegroundBrush);
 
-        required.FilePath = Path.Combine(Path.GetTempPath(), "dp.bin");
+        required.FilePath = workspace.PathFor("dp.bin");
 
         Assert.True(required.HasFile);
         Assert.Equal("dp.bin", required.DisplayName);
@@ -178,7 +179,7 @@ public sealed class ShellViewModelTests
         Assert.Equal(new Thickness(1), optional.SlotBorderThickness);
         AssertBrush("#1D4ED8", optional.RequirementBadgeForegroundBrush);
 
-        optional.FilePath = Path.Combine(Path.GetTempPath(), "ld.bin");
+        optional.FilePath = workspace.PathFor("ld.bin");
 
         Assert.True(optional.HasFile);
         AssertBrush("#F8FAFC", optional.SlotBackgroundBrush);
@@ -1329,52 +1330,33 @@ public sealed class ShellViewModelTests
         JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
             .EnumerateArray()
             .Single(testCase => testCase.GetProperty("ic").GetString() == ic);
-        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-{ic}-{Guid.NewGuid():N}");
+        using var workspace = TempWorkspace.Create($"nvt-fw-combiner-ui-{ic}");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = $"NT{ic}";
+        SetGoldenInputFiles(viewModel, workspace, goldenRoot, goldenCase);
 
-        try
-        {
-            _ = Directory.CreateDirectory(tempRoot);
-            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-            viewModel.SelectedIc = $"NT{ic}";
+        Assert.True(viewModel.PreviewMergeCommand.CanExecute(null));
+        Assert.False(viewModel.BuildMergeCommand.CanExecute(null));
+        Assert.False(viewModel.CanBuildStandardMerge);
 
-            foreach (JsonProperty input in goldenCase.GetProperty("inputs").EnumerateObject())
-            {
-                string sourcePath = RepositoryPaths.ManifestPath(goldenRoot, input.Value);
-                string copiedPath = Path.Combine(tempRoot, $"{input.Name}.bin");
-                File.Copy(sourcePath, copiedPath);
-                viewModel.SetSlotFile(SlotIdForAddressSpace(input.Name), copiedPath);
-            }
+        await viewModel.PreviewMergeCommand.ExecuteAsync(null);
 
-            Assert.True(viewModel.PreviewMergeCommand.CanExecute(null));
-            Assert.False(viewModel.BuildMergeCommand.CanExecute(null));
-            Assert.False(viewModel.CanBuildStandardMerge);
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.BuildMergeCommand.CanExecute(null));
+        Assert.True(viewModel.CanBuildStandardMerge);
 
-            await viewModel.PreviewMergeCommand.ExecuteAsync(null);
+        string outputPath = workspace.PathFor("selected-output.bin");
+        await viewModel.BuildStandardMergeAsync(outputPath);
 
-            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-            Assert.True(viewModel.BuildMergeCommand.CanExecute(null));
-            Assert.True(viewModel.CanBuildStandardMerge);
-
-            string outputPath = Path.Combine(tempRoot, "selected-output.bin");
-            await viewModel.BuildStandardMergeAsync(outputPath);
-
-            string expectedPath = RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput"));
-            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-            Assert.Equal(outputPath, viewModel.LastRunResult.Output);
-            Assert.True(File.Exists(outputPath), outputPath);
-            Assert.Equal(File.ReadAllBytes(expectedPath), File.ReadAllBytes(outputPath));
-            Assert.True(viewModel.HasLoadedReport);
-            Assert.True(viewModel.HasReportToast);
-            Assert.Equal(1, viewModel.ReportToastOpacity);
-            Assert.Equal("Build report generated", viewModel.ReportToastText);
-        }
-        finally
-        {
-            if (Directory.Exists(tempRoot))
-            {
-                Directory.Delete(tempRoot, recursive: true);
-            }
-        }
+        string expectedPath = RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput"));
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.Equal(outputPath, viewModel.LastRunResult.Output);
+        Assert.True(File.Exists(outputPath), outputPath);
+        Assert.Equal(File.ReadAllBytes(expectedPath), File.ReadAllBytes(outputPath));
+        Assert.True(viewModel.HasLoadedReport);
+        Assert.True(viewModel.HasReportToast);
+        Assert.Equal(1, viewModel.ReportToastOpacity);
+        Assert.Equal("Build report generated", viewModel.ReportToastText);
     }
 
     /// <summary>Verifies Standard Merge Build requires a successful Preview for the exact current context.</summary>
@@ -1387,55 +1369,36 @@ public sealed class ShellViewModelTests
         JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
             .EnumerateArray()
             .Single(testCase => testCase.GetProperty("ic").GetString() == "51926");
-        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-merge-gate-{Guid.NewGuid():N}");
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-merge-gate");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51926";
+        SetGoldenInputFiles(viewModel, workspace, goldenRoot, goldenCase);
 
-        try
-        {
-            _ = Directory.CreateDirectory(tempRoot);
-            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-            viewModel.SelectedIc = "NT51926";
+        Assert.True(viewModel.CanPreviewStandardMerge);
+        Assert.False(viewModel.CanBuildStandardMerge);
 
-            foreach (JsonProperty input in goldenCase.GetProperty("inputs").EnumerateObject())
-            {
-                string sourcePath = RepositoryPaths.ManifestPath(goldenRoot, input.Value);
-                string copiedPath = Path.Combine(tempRoot, $"{input.Name}.bin");
-                File.Copy(sourcePath, copiedPath);
-                viewModel.SetSlotFile(SlotIdForAddressSpace(input.Name), copiedPath);
-            }
+        await viewModel.PreviewMergeCommand.ExecuteAsync(null);
 
-            Assert.True(viewModel.CanPreviewStandardMerge);
-            Assert.False(viewModel.CanBuildStandardMerge);
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.CanBuildStandardMerge);
 
-            await viewModel.PreviewMergeCommand.ExecuteAsync(null);
+        JsonProperty firstInput = goldenCase.GetProperty("inputs").EnumerateObject().First();
+        string replacementCopyPath = workspace.PathFor($"{firstInput.Name}-copy.bin");
+        File.Copy(RepositoryPaths.ManifestPath(goldenRoot, firstInput.Value), replacementCopyPath);
+        viewModel.SetSlotFile(SlotIdForAddressSpace(firstInput.Name), replacementCopyPath);
 
-            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-            Assert.True(viewModel.CanBuildStandardMerge);
+        Assert.True(viewModel.CanPreviewStandardMerge);
+        Assert.False(viewModel.CanBuildStandardMerge);
 
-            JsonProperty firstInput = goldenCase.GetProperty("inputs").EnumerateObject().First();
-            string replacementCopyPath = Path.Combine(tempRoot, $"{firstInput.Name}-copy.bin");
-            File.Copy(RepositoryPaths.ManifestPath(goldenRoot, firstInput.Value), replacementCopyPath);
-            viewModel.SetSlotFile(SlotIdForAddressSpace(firstInput.Name), replacementCopyPath);
+        await viewModel.PreviewMergeCommand.ExecuteAsync(null);
 
-            Assert.True(viewModel.CanPreviewStandardMerge);
-            Assert.False(viewModel.CanBuildStandardMerge);
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.CanBuildStandardMerge);
 
-            await viewModel.PreviewMergeCommand.ExecuteAsync(null);
+        viewModel.SelectedIc = "NT51927";
 
-            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-            Assert.True(viewModel.CanBuildStandardMerge);
-
-            viewModel.SelectedIc = "NT51927";
-
-            Assert.True(viewModel.CanPreviewStandardMerge);
-            Assert.False(viewModel.CanBuildStandardMerge);
-        }
-        finally
-        {
-            if (Directory.Exists(tempRoot))
-            {
-                Directory.Delete(tempRoot, recursive: true);
-            }
-        }
+        Assert.True(viewModel.CanPreviewStandardMerge);
+        Assert.False(viewModel.CanBuildStandardMerge);
     }
 
     /// <summary>Verifies an NT51950 preview with NT51926 TP input is blocked with a reopenable detailed report.</summary>
@@ -1448,57 +1411,38 @@ public sealed class ShellViewModelTests
         JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
             .EnumerateArray()
             .Single(testCase => testCase.GetProperty("ic").GetString() == "51926");
-        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-950-negative-{Guid.NewGuid():N}");
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-950-negative");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51950";
+        SetGoldenInputFiles(viewModel, workspace, goldenRoot, goldenCase);
 
-        try
-        {
-            _ = Directory.CreateDirectory(tempRoot);
-            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-            viewModel.SelectedIc = "NT51950";
+        Assert.True(viewModel.CanPreviewStandardMerge);
+        Assert.False(viewModel.CanBuildStandardMerge);
 
-            foreach (JsonProperty input in goldenCase.GetProperty("inputs").EnumerateObject())
-            {
-                string sourcePath = RepositoryPaths.ManifestPath(goldenRoot, input.Value);
-                string copiedPath = Path.Combine(tempRoot, $"{input.Name}.bin");
-                File.Copy(sourcePath, copiedPath);
-                viewModel.SetSlotFile(SlotIdForAddressSpace(input.Name), copiedPath);
-            }
+        string outputPath = workspace.PathFor("should-not-exist.bin");
+        await viewModel.PreviewMergeCommand.ExecuteAsync(null);
 
-            Assert.True(viewModel.CanPreviewStandardMerge);
-            Assert.False(viewModel.CanBuildStandardMerge);
-
-            string outputPath = Path.Combine(tempRoot, "should-not-exist.bin");
-            await viewModel.PreviewMergeCommand.ExecuteAsync(null);
-
-            Assert.False(viewModel.LastRunResult.Succeeded);
-            Assert.Equal("Preview blocked", viewModel.LastRunResult.Title);
-            Assert.Equal("No output", viewModel.LastRunResult.Output);
-            Assert.False(File.Exists(outputPath), outputPath);
-            Assert.False(viewModel.CanBuildStandardMerge);
-            Assert.True(viewModel.HasLoadedReport);
-            Assert.True(viewModel.CanOpenReport);
-            Assert.True(viewModel.HasReportToast);
-            ReportLineViewModel issue = Assert.Single(viewModel.LoadedReport.Issues);
-            Assert.Equal("input.address-space.length-mismatch", issue.Title);
-            Assert.Contains("tp-input", issue.Detail, StringComparison.Ordinal);
-            Assert.Contains("actual 245760 bytes", issue.Detail, StringComparison.Ordinal);
-            Assert.Contains("declared 225280 bytes", issue.Detail, StringComparison.Ordinal);
-            Assert.True(viewModel.LoadedReport.HasPrimaryIssue);
-            Assert.Equal(issue.Title, viewModel.LoadedReport.PrimaryIssue.Title);
-            Assert.True(viewModel.LoadedReport.HasInputs);
-            Assert.True(viewModel.LoadedReport.HasOperations);
-            Assert.Contains(viewModel.LoadedReport.SummaryRows, row =>
-                row.Title == "Status" &&
-                row.Detail == "1 issue(s)" &&
-                row.Meta == issue.Title);
-        }
-        finally
-        {
-            if (Directory.Exists(tempRoot))
-            {
-                Directory.Delete(tempRoot, recursive: true);
-            }
-        }
+        Assert.False(viewModel.LastRunResult.Succeeded);
+        Assert.Equal("Preview blocked", viewModel.LastRunResult.Title);
+        Assert.Equal("No output", viewModel.LastRunResult.Output);
+        Assert.False(File.Exists(outputPath), outputPath);
+        Assert.False(viewModel.CanBuildStandardMerge);
+        Assert.True(viewModel.HasLoadedReport);
+        Assert.True(viewModel.CanOpenReport);
+        Assert.True(viewModel.HasReportToast);
+        ReportLineViewModel issue = Assert.Single(viewModel.LoadedReport.Issues);
+        Assert.Equal("input.address-space.length-mismatch", issue.Title);
+        Assert.Contains("tp-input", issue.Detail, StringComparison.Ordinal);
+        Assert.Contains("actual 245760 bytes", issue.Detail, StringComparison.Ordinal);
+        Assert.Contains("declared 225280 bytes", issue.Detail, StringComparison.Ordinal);
+        Assert.True(viewModel.LoadedReport.HasPrimaryIssue);
+        Assert.Equal(issue.Title, viewModel.LoadedReport.PrimaryIssue.Title);
+        Assert.True(viewModel.LoadedReport.HasInputs);
+        Assert.True(viewModel.LoadedReport.HasOperations);
+        Assert.Contains(viewModel.LoadedReport.SummaryRows, row =>
+            row.Title == "Status" &&
+            row.Detail == "1 issue(s)" &&
+            row.Meta == issue.Title);
     }
 
     /// <summary>Gets every owner-approved gen_flash Standard Merge golden case.</summary>
@@ -1525,6 +1469,21 @@ public sealed class ShellViewModelTests
             "ld-input" => "merge-ld",
             _ => throw new InvalidOperationException($"Unknown address space '{addressSpaceId}'."),
         };
+    }
+
+    private static void SetGoldenInputFiles(
+        MainWindowViewModel viewModel,
+        TempWorkspace workspace,
+        string goldenRoot,
+        JsonElement goldenCase)
+    {
+        foreach (JsonProperty input in goldenCase.GetProperty("inputs").EnumerateObject())
+        {
+            string sourcePath = RepositoryPaths.ManifestPath(goldenRoot, input.Value);
+            string copiedPath = workspace.PathFor($"{input.Name}.bin");
+            File.Copy(sourcePath, copiedPath);
+            viewModel.SetSlotFile(SlotIdForAddressSpace(input.Name), copiedPath);
+        }
     }
 
     private static string GoldenFixturePath(string fixtureRoot, JsonElement manifestFile)
