@@ -219,6 +219,58 @@ public sealed class LegacyCombinerPostbuildCatalogTests
         Assert.Contains("no approved postbuild category", issue, StringComparison.Ordinal);
     }
 
+    /// <summary>Locks duplicate IC postbuild rows to explicit Common FW category selection.</summary>
+    [Fact]
+    public void DuplicatePostbuildIcIdsMustHaveVersionSelectionPolicy()
+    {
+        (string IcId, string CommonFwVersion, LegacyCombinerPostbuildProfile Profile)[] versionedCases =
+        [
+            ("NT51926", "1.4.1", LegacyCombinerPostbuildCatalog.Nt51926CommonFw141),
+            ("NT51926", "2.0.0", LegacyCombinerPostbuildCatalog.Nt51926),
+            ("NT51930", "1.0.0", LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x),
+            ("NT51930", "1.3.0", LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x),
+            ("NT51930", "2.0.0", LegacyCombinerPostbuildCatalog.Nt51930),
+        ];
+        string[] duplicateIcIds = [
+            .. LegacyCombinerPostbuildCatalog.All
+                .GroupBy(profile => profile.IcId, StringComparer.Ordinal)
+                .Where(group => group.Count() > 1)
+                .Select(group => group.Key)
+                .Order(StringComparer.Ordinal),
+        ];
+
+        Assert.Equal(["NT51926", "NT51930"], duplicateIcIds);
+        foreach (string icId in duplicateIcIds)
+        {
+            Assert.False(LegacyCombinerPostbuildCatalog.TrySelectProfileForCommonFwVersion(
+                icId,
+                commonFwVersion: null,
+                out LegacyCombinerPostbuildProfile? profile,
+                out string? issue));
+            Assert.Null(profile);
+            Assert.Contains("multiple postbuild categories", issue, StringComparison.Ordinal);
+
+            string[] duplicateProfileIds = [
+                .. LegacyCombinerPostbuildCatalog.GetProfiles(icId)
+                    .Select(candidate => candidate.ProcessorId)
+                    .Order(StringComparer.Ordinal),
+            ];
+            string[] reachableProfileIds = [
+                .. versionedCases
+                    .Where(testCase => testCase.IcId == icId)
+                    .Select(testCase => testCase.Profile.ProcessorId)
+                    .Distinct(StringComparer.Ordinal)
+                    .Order(StringComparer.Ordinal),
+            ];
+            Assert.Equal(duplicateProfileIds, reachableProfileIds);
+        }
+
+        foreach ((string icId, string commonFwVersion, LegacyCombinerPostbuildProfile expectedProfile) in versionedCases)
+        {
+            AssertSelectsProfile(icId, commonFwVersion, expectedProfile);
+        }
+    }
+
     /// <summary>Locks NT51917 to the owner-approved NT51927 special postbuild flow.</summary>
     [Fact]
     public void Nt51917AliasesNt51927PostbuildFlow()
@@ -532,6 +584,21 @@ public sealed class LegacyCombinerPostbuildCatalogTests
             Assert.Equal(expected[index].SourceOffset, actual[index].SourceOffset);
             Assert.Equal(expected[index].FirmwareRange, actual[index].FirmwareRange);
         }
+    }
+
+    private static void AssertSelectsProfile(
+        string icId,
+        string commonFwVersion,
+        LegacyCombinerPostbuildProfile expectedProfile)
+    {
+        Assert.True(LegacyCombinerPostbuildCatalog.TrySelectProfileForCommonFwVersion(
+            icId,
+            commonFwVersion,
+            out LegacyCombinerPostbuildProfile? profile,
+            out string? issue), issue);
+
+        Assert.Same(expectedProfile, profile);
+        Assert.Null(issue);
     }
 
     private static void AssertNt51927Alias(
