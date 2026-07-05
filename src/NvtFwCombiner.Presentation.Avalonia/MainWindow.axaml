@@ -2127,13 +2127,15 @@
                 </Expander>
 
                 <Border Padding="12" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
-                  <Grid ColumnDefinitions="82,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="7">
+                  <Grid ColumnDefinitions="82,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="7">
                     <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Report file" />
                     <TextBlock Grid.Column="1" FontSize="12" Foreground="#334155" Text="{Binding LoadedReport.SourceName}" TextWrapping="Wrap" />
                     <TextBlock Grid.Row="1" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Status" />
                     <TextBlock Grid.Row="1" Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.Status}" />
                     <TextBlock Grid.Row="2" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Output" />
                     <TextBlock Grid.Row="2" Grid.Column="1" FontSize="12" Foreground="#334155" Text="{Binding LoadedReport.Output}" TextWrapping="Wrap" />
+                    <TextBlock Grid.Row="3" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Artifact path" IsVisible="{Binding LoadedReport.HasOutputArtifactPath}" />
+                    <TextBlock Grid.Row="3" Grid.Column="1" FontSize="12" Foreground="#334155" Text="{Binding LoadedReport.OutputArtifactPath}" TextWrapping="Wrap" IsVisible="{Binding LoadedReport.HasOutputArtifactPath}" />
                   </Grid>
                 </Border>
               </StackPanel>
