@@ -2066,7 +2066,7 @@
 
           <StackPanel Grid.Row="1" Margin="22,14,22,0" Spacing="8" IsVisible="{Binding HasReportHistory}">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-              <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#64748B" Text="Session report history" />
+              <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#64748B" Text="Report history" />
               <TextBlock Grid.Column="1" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding ReportHistorySummary}" />
             </Grid>
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
