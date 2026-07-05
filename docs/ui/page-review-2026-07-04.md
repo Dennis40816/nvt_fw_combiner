@@ -9,7 +9,7 @@ Scope reviewed: Home, Settings, Merge, Replace, and the report modal. A second A
 - P0: Build now requires a successful Preview for the exact current workflow state. IC, Number, mode, slot file path, file length, or file timestamp changes invalidate Build until Preview is rerun.
 - DP safety correction: NT51950/NT51951 DP Replace derives work length from the selected base firmware length. Approved lengths are `0x40000`, `0x80000`, and `0x100000`; `0x100000` is not a universal base assumption.
 - Settings visual consistency: non-technical settings selectors use the normal UI font, while IC and Number selectors keep the fixed-width technical font.
-- Settings readiness honesty: preference rows distinguish `Session`, `Pending`, `Default`, and `System` states instead of implying full persistence or complete localization.
+- Settings readiness honesty: preference rows distinguish saved local preferences from `Pending` work such as the incomplete high-contrast palette and full XAML localization.
 - Report modal semantics: the outcome badge now shows a success or issue icon with an accessibility label instead of the same neutral information symbol for every status.
 
 ## Reasonable Follow-Ups Not Bundled Here
