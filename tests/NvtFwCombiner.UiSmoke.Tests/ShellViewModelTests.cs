@@ -999,6 +999,89 @@ public sealed class ShellViewModelTests
         }
     }
 
+    /// <summary>Verifies sentinel CtrlRAM inputs land in each selected NT51927 multi-chip output range.</summary>
+    [Theory]
+    [InlineData("nt51927-2chip-self-20260705", 8, "replace-ctrlram-vn-slave-r")]
+    [InlineData("nt51927-3chip-self-20260705", 12, "replace-ctrlram-vn-slave-l")]
+    public async Task CtrlRamReplaceSentinelInputsReachNt51927MultiChipRanges(
+        string caseId,
+        int expectedSlotCount,
+        string expectedVnSlotId)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
+        string fixtureRoot = Path.Combine(repositoryRoot, "testdata", "golden", "ctrlram-replace");
+        string manifestPath = Path.Combine(fixtureRoot, "manifest.json");
+        if (!File.Exists(manifestPath))
+        {
+            return;
+        }
+
+        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(manifestPath));
+        JsonElement fixtureCase = manifestDocument.RootElement.GetProperty("cases")
+            .EnumerateArray()
+            .Single(testCase => testCase.GetProperty("id").GetString() == caseId);
+        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-sentinel-ctrlram-{Guid.NewGuid():N}");
+        try
+        {
+            _ = Directory.CreateDirectory(tempRoot);
+            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+            viewModel.SelectedIc = fixtureCase.GetProperty("ic").GetString()!;
+            viewModel.SelectedNumber = fixtureCase.GetProperty("icNum").GetString()!;
+            viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+            viewModel.SetSlotFile("replace-base", RepositoryPaths.ManifestPath(fixtureRoot, fixtureCase.GetProperty("base")));
+
+            List<(string SlotId, int Start, byte[] Bytes)> expectedWrites = [];
+            int seedOffset = 0;
+            foreach (JsonElement replacement in fixtureCase.GetProperty("replacementInputs").EnumerateArray())
+            {
+                string slotId = replacement.GetProperty("slotId").GetString()!;
+                string regionName = replacement.GetProperty("regionName").GetString()!;
+                FirmwareSlotViewModel slot = viewModel.ReplaceSlots.Single(candidate => candidate.SlotId == slotId);
+                CtrlRamRegionViewModel region = viewModel.CtrlRamRegions.Single(candidate => candidate.Name == regionName);
+                (int start, int length) = ParseCtrlRamRegion(region);
+                byte[] sentinel = CreatePattern(length, unchecked((byte)(0x31 + (seedOffset * 0x17))));
+                string replacementPath = Path.Combine(tempRoot, $"{slotId}.bin");
+                File.WriteAllBytes(replacementPath, sentinel);
+
+                Assert.Equal(regionName, slot.Title);
+                viewModel.SetSlotFile(slotId, replacementPath);
+                expectedWrites.Add((slotId, start, sentinel));
+                seedOffset++;
+            }
+
+            Assert.Equal(expectedSlotCount, expectedWrites.Count);
+            Assert.Contains(expectedWrites, item => item.SlotId == expectedVnSlotId && item.Bytes.Length == 0x1660);
+            Assert.True(viewModel.CanPreviewReplace, viewModel.ReplacePreviewUnavailableReason);
+
+            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+
+            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+            Assert.True(viewModel.CanBuildReplace, viewModel.ReplaceBuildUnavailableReason);
+            string outputPath = Path.Combine(tempRoot, $"{caseId}-sentinel-output.bin");
+
+            await viewModel.BuildReplaceAsync(outputPath);
+
+            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+            byte[] output = File.ReadAllBytes(outputPath);
+            foreach ((_, int start, byte[] expectedBytes) in expectedWrites)
+            {
+                Assert.Equal(expectedBytes, output[start..(start + expectedBytes.Length)]);
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+    }
+
     /// <summary>Verifies NT51927 three-chip CtrlRAM Replace exposes both right and left slave slots.</summary>
     [Fact]
     public void CtrlRamReplaceSlotsIncludeNt51927RightAndLeftSlaves()

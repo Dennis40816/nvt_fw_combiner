@@ -64,7 +64,7 @@ public static class LegacyCombinerPostbuildPlanner
                     break;
                 case LegacyCombinerCommandFamily.CrcOnlyMode
                     when command.ModeArgument == "NT51927BASED_GEN_CRC_MODE" && command.CrcArgument == "CRC32":
-                    AddNt51927BasedCrcOnlyIntegrityRanges(capacity, ranges);
+                    AddNt51927BasedCrcOnlyIntegrityRanges(plan.Branch, capacity, ranges);
                     break;
                 case LegacyCombinerCommandFamily.NormalMode:
                 case LegacyCombinerCommandFamily.MergeMode:
@@ -250,12 +250,21 @@ public static class LegacyCombinerPostbuildPlanner
             block.FirmwareRange.Length == 0x100;
     }
 
-    private static void AddNt51927BasedCrcOnlyIntegrityRanges(long capacity, List<ByteRange> ranges)
+    private static void AddNt51927BasedCrcOnlyIntegrityRanges(
+        LegacyCombinerPostbuildBranch branch,
+        long capacity,
+        List<ByteRange> ranges)
     {
         AddIfWithin(ranges, capacity, new ByteRange(0x23C, 4));
         AddIfWithin(ranges, capacity, new ByteRange(0x24C, 4));
         AddIfWithin(ranges, capacity, new ByteRange(0x26C, 4));
         AddIfWithin(ranges, capacity, new ByteRange(0x27C, 4));
+        if (branch is LegacyCombinerPostbuildBranch.Cascade or LegacyCombinerPostbuildBranch.ThreeChip)
+        {
+            AddIfWithin(ranges, capacity, new ByteRange(0x22C, 4));
+            AddIfWithin(ranges, capacity, new ByteRange(0x29C, 4));
+            AddIfWithin(ranges, capacity, new ByteRange(0x2AC, 4));
+        }
     }
 
     private static bool IsHeaderCopyBlock(LegacyCombinerBlockArgument block)
