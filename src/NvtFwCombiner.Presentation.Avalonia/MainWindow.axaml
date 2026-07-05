@@ -233,6 +233,18 @@
         </StackPanel>
       </Border>
     </DataTemplate>
+    <DataTemplate x:Key="ReportLineBadgeTemplate" DataType="vm:ReportLineBadgeViewModel">
+      <Border Margin="0,0,6,6" Padding="7,2" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+        <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding Text}" TextWrapping="Wrap" />
+      </Border>
+    </DataTemplate>
+    <DataTemplate x:Key="ReportLineFactTemplate" DataType="vm:ReportLineFactViewModel">
+      <Grid Margin="0,1" ColumnDefinitions="88,*" ColumnSpacing="8">
+        <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Label}" TextWrapping="Wrap" />
+        <TextBlock Grid.Column="1" FontSize="11" Foreground="#475569" Text="{Binding Value}" TextWrapping="Wrap" IsVisible="{Binding IsPlainText}" />
+        <TextBlock Grid.Column="1" FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding Value}" TextWrapping="Wrap" IsVisible="{Binding IsTechnical}" />
+      </Grid>
+    </DataTemplate>
     <DataTemplate x:Key="ReportCommandOperationTemplate" DataType="vm:ReportLineViewModel">
       <Grid ColumnDefinitions="24,*">
         <Grid>
@@ -251,8 +263,23 @@
         <StackPanel Grid.Column="1" Margin="0,6,0,14" Spacing="5">
           <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
           <TextBlock FontSize="12" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding Detail}" TextWrapping="Wrap" />
-          <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" />
-          <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Command" />
+          <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" IsVisible="{Binding HasMeta}" />
+          <ItemsControl ItemsSource="{Binding Badges}" IsVisible="{Binding HasBadges}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <StaticResource ResourceKey="ReportLineBadgeTemplate" />
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <ItemsControl ItemsSource="{Binding Facts}" IsVisible="{Binding HasFacts}">
+            <ItemsControl.ItemTemplate>
+              <StaticResource ResourceKey="ReportLineFactTemplate" />
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Command argv" IsVisible="{Binding HasCodeBlock}" />
           <Border Padding="8,6" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6" IsVisible="{Binding HasCodeBlock}">
             <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#0F172A" Text="{Binding CodeBlock}" TextWrapping="Wrap" />
           </Border>
@@ -277,7 +304,22 @@
         <StackPanel Grid.Column="1" Margin="0,6,0,14" Spacing="2">
           <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
           <TextBlock FontSize="12" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding Detail}" TextWrapping="Wrap" />
-          <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" />
+          <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" IsVisible="{Binding HasMeta}" />
+          <ItemsControl ItemsSource="{Binding Badges}" IsVisible="{Binding HasBadges}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <StaticResource ResourceKey="ReportLineBadgeTemplate" />
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <ItemsControl ItemsSource="{Binding Facts}" IsVisible="{Binding HasFacts}">
+            <ItemsControl.ItemTemplate>
+              <StaticResource ResourceKey="ReportLineFactTemplate" />
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
         </StackPanel>
       </Grid>
     </DataTemplate>

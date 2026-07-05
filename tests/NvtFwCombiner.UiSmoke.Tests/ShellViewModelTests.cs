@@ -1018,7 +1018,9 @@ public sealed class ShellViewModelTests
             if (caseId.StartsWith("nt51926-", StringComparison.Ordinal))
             {
                 Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
-                    operation.Meta.Contains("nfc.nt51926.ctrlram-postbuild-fw1.4.1", StringComparison.Ordinal) &&
+                    operation.Facts.Any(fact =>
+                        fact.Label == "Processor" &&
+                        fact.Value.Contains("nfc.nt51926.ctrlram-postbuild-fw1.4.1", StringComparison.Ordinal)) &&
                     operation.CodeBlock.Contains("0x32F50", StringComparison.Ordinal));
             }
 
@@ -1517,10 +1519,14 @@ public sealed class ShellViewModelTests
         Assert.False(report.ShouldExpandStepOperations);
         ReportLineViewModel command = Assert.Single(report.CommandOperations);
         Assert.Contains("Combiner.exe", command.CodeBlock, StringComparison.Ordinal);
-        Assert.Contains("processor legacy-combiner", command.Meta, StringComparison.Ordinal);
-        Assert.Contains("tool legacy-combiner-1.13.0", command.Meta, StringComparison.Ordinal);
-        Assert.Contains("read 0x0-0x7FFFF (len 0x80000)", command.Meta, StringComparison.Ordinal);
-        Assert.Contains("write 0x7100-0x7103 (len 0x4), 0x7118-0x711B (len 0x4)", command.Meta, StringComparison.Ordinal);
+        Assert.Contains(command.Badges, badge => badge.Text == "planned");
+        Assert.Contains(command.Badges, badge => badge.Text == "overlap reject");
+        Assert.Contains(command.Facts, fact => fact.Label == "Processor" && fact.Value == "legacy-combiner");
+        Assert.Contains(command.Facts, fact => fact.Label == "Tool" && fact.Value == "legacy-combiner-1.13.0");
+        Assert.Contains(command.Facts, fact => fact.Label == "Read ranges" && fact.Value == "0x0-0x7FFFF (len 0x80000)");
+        Assert.Contains(command.Facts, fact =>
+            fact.Label == "Write ranges" &&
+            fact.Value == "0x7100-0x7103 (len 0x4), 0x7118-0x711B (len 0x4)");
     }
 
     /// <summary>Verifies memory-map rows expose readable operation details without relying on tooltips.</summary>
