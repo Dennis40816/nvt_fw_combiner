@@ -1175,7 +1175,7 @@ public sealed class ShellViewModelTests
         Assert.Contains(viewModel.LoadedReport.SummaryRows, row =>
             row.Title == "Status" &&
             row.Detail == "Succeeded" &&
-            row.Meta == "No issue");
+            row.Meta == "No blocking issue");
         Assert.Equal(0, viewModel.LoadedReport.OperationCount);
         Assert.False(viewModel.LoadedReport.HasCommandOperations);
         Assert.False(viewModel.LoadedReport.HasStepOperations);
@@ -1420,6 +1420,66 @@ public sealed class ShellViewModelTests
 
         Assert.True(viewModel.IsReportModalOpen);
         Assert.False(viewModel.HasReportToast);
+    }
+
+    /// <summary>Verifies successful runs with warning diagnostics do not render as blocking issues.</summary>
+    [Fact]
+    public void ReportReviewSeparatesWarningsFromBlockingIssues()
+    {
+        const string json = /*lang=json,strict*/ """
+            {
+              "ProfileId": "nt51927-ctrlram-replace",
+              "IcId": "NT51927",
+              "ExperienceId": "ctrlram-replace",
+              "CompositionKind": "Replace",
+              "RunId": "ui-smoke-warning",
+              "StartedAtUtc": "2026-07-01T00:00:00Z",
+              "Inputs": [],
+              "Operations": [],
+              "Mutations": [],
+              "Issues": [
+                {
+                  "Code": "input.address-space.truncated",
+                  "Message": "Input ctrlram-input actual 6 bytes exceeded declared 4 bytes and was truncated.",
+                  "OperationId": "replace-ctrlram"
+                }
+              ],
+              "Output": {
+                "FileName": "preview.bin",
+                "Size": 32,
+                "Committed": false,
+                "Sha256": "abcdef012345"
+              }
+            }
+            """;
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        viewModel.LoadReportJson(json, "warning-report.json");
+
+        Assert.Equal("Succeeded with 1 warning(s)", viewModel.ReportActionStatus);
+        Assert.True(viewModel.LoadedReport.IsSuccessful);
+        Assert.False(viewModel.LoadedReport.IsClean);
+        Assert.True(viewModel.LoadedReport.HasWarnings);
+        Assert.True(viewModel.LoadedReport.HasWarningsWithoutBlockingIssues);
+        Assert.False(viewModel.LoadedReport.HasPrimaryIssue);
+        Assert.Equal(0, viewModel.LoadedReport.BlockingIssueCount);
+        Assert.Equal(1, viewModel.LoadedReport.WarningCount);
+        Assert.Equal("Succeeded with 1 warning(s)", viewModel.LoadedReport.OutcomeTitle);
+        Assert.Equal("Review warning", viewModel.LoadedReport.NextStepTitle);
+        Assert.Contains("truncated", viewModel.LoadedReport.NextStepDetail, StringComparison.Ordinal);
+        Assert.Contains(viewModel.LoadedReport.TriageRows, row =>
+            row.Title == "2. Warning" &&
+            row.Detail == "input.address-space.truncated" &&
+            row.Meta == "replace-ctrlram");
+        Assert.Contains(viewModel.LoadedReport.EvidenceRows, row =>
+            row.Title == "Issues" &&
+            row.Detail == "0" &&
+            row.Meta == "No blocking issue");
+        Assert.Contains(viewModel.LoadedReport.EvidenceRows, row =>
+            row.Title == "Warnings" &&
+            row.Detail == "1" &&
+            row.Meta == "input.address-space.truncated");
+        Assert.Equal("1 warning", Assert.Single(viewModel.ReportHistoryEntries).IssueSummary);
     }
 
     /// <summary>Verifies report triage points users to the first issue and command evidence.</summary>

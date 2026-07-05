@@ -24,7 +24,9 @@ public sealed class ReportHistoryEntryViewModel
         CommandSummary = report.HasCommandOperations
             ? FormatCount(report.CommandOperationCount, "command")
             : "No external command";
-        IssueSummary = report.HasIssues ? FormatCount(report.IssueCount, "issue") : "No issue";
+        IssueSummary = report.HasPrimaryIssue
+            ? FormatCount(report.BlockingIssueCount, "issue")
+            : report.HasWarnings ? FormatCount(report.WarningCount, "warning") : "No issue";
         ArtifactPath = report.OutputArtifactPath;
         HasArtifactPath = report.HasOutputArtifactPath;
         EvidenceSummary = $"{FormatCount(report.InputCount, "input")} / {FormatCount(report.OperationCount, "step")} / {FormatCount(report.MutationCount, "mutation")}";

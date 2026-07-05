@@ -54,8 +54,13 @@ public sealed class ReportReviewViewModel
         StepOperations = [.. operations.Where(operation => !operation.HasCodeBlock)];
         Mutations = mutations;
         Issues = issues;
-        PrimaryIssue = issues.Count == 0 ? ReportLineViewModel.Empty : issues[0];
-        HasPrimaryIssue = issues.Count > 0;
+        Warnings = [.. issues.Where(IsWarning)];
+        BlockingIssues = [.. issues.Where(issue => !IsWarning(issue))];
+        PrimaryIssue = BlockingIssues.Count == 0 ? ReportLineViewModel.Empty : BlockingIssues[0];
+        HasPrimaryIssue = BlockingIssues.Count > 0;
+        HasWarnings = Warnings.Count > 0;
+        HasWarningsWithoutBlockingIssues = HasWarnings && !HasPrimaryIssue;
+        IsClean = !HasPrimaryIssue && !HasWarnings;
         HasInputs = inputs.Count > 0;
         HasOperations = operations.Count > 0;
         HasCommandOperations = CommandOperations.Count > 0;
@@ -65,16 +70,20 @@ public sealed class ReportReviewViewModel
         SummaryRows = CreateSummaryRows(status, output, inputs, operations, mutations, issues);
         OutcomeTitle = CreateOutcomeTitle(status, issues);
         OutcomeDetail = CreateOutcomeDetail(output, issues);
-        OutcomeMeta = issues.Count == 0 ? "No blocking issue" : issues[0].Meta;
-        OutcomeIcon = issues.Count == 0 ? "✓" : "!";
-        OutcomeAccessibilityLabel = issues.Count == 0 ? "Report succeeded" : "Report has issues";
-        NextStepTitle = issues.Count == 0 ? "Ready for audit" : "Start with this issue";
-        NextStepDetail = issues.Count == 0
-            ? "Use the evidence map only when you need hashes, operation order, or byte-change proof."
-            : issues[0].Detail;
+        OutcomeMeta = CreateOutcomeMeta(issues);
+        OutcomeIcon = HasPrimaryIssue || HasWarnings ? "!" : "✓";
+        OutcomeAccessibilityLabel = HasPrimaryIssue
+            ? "Report has issues"
+            : HasWarnings ? "Report succeeded with warnings" : "Report succeeded";
+        NextStepTitle = HasPrimaryIssue ? "Start with this issue" : HasWarnings ? "Review warning" : "Ready for audit";
+        NextStepDetail = HasPrimaryIssue
+            ? PrimaryIssue.Detail
+            : HasWarnings
+            ? Warnings[0].Detail
+            : "Use the evidence map only when you need hashes, operation order, or byte-change proof.";
         TriageRows = CreateTriageRows(status, output, operations, issues);
         EvidenceRows = CreateEvidenceRows(inputs, operations, mutations, issues);
-        ShouldExpandIssues = HasIssues;
+        ShouldExpandIssues = HasIssues && (HasPrimaryIssue || HasWarnings);
         ShouldExpandCommandOperations = HasCommandOperations;
         ShouldExpandStepOperations = HasStepOperations && !HasCommandOperations;
     }
@@ -208,11 +217,29 @@ public sealed class ReportReviewViewModel
     /// <summary>Issue rows.</summary>
     public IReadOnlyList<ReportLineViewModel> Issues { get; }
 
-    /// <summary>Number of issue rows.</summary>
+    /// <summary>Number of diagnostic rows, including warnings.</summary>
     public int IssueCount => Issues.Count;
 
-    /// <summary>True when issue details are available.</summary>
+    /// <summary>True when issue or warning diagnostics are available.</summary>
     public bool HasIssues { get; }
+
+    /// <summary>Warning diagnostics that do not block a successful run.</summary>
+    public IReadOnlyList<ReportLineViewModel> Warnings { get; }
+
+    /// <summary>Number of warning diagnostics.</summary>
+    public int WarningCount => Warnings.Count;
+
+    /// <summary>True when warning diagnostics are available.</summary>
+    public bool HasWarnings { get; }
+
+    /// <summary>Blocking issue diagnostics.</summary>
+    public IReadOnlyList<ReportLineViewModel> BlockingIssues { get; }
+
+    /// <summary>Number of blocking issue diagnostics.</summary>
+    public int BlockingIssueCount => BlockingIssues.Count;
+
+    /// <summary>True when warnings exist but no blocking issue exists.</summary>
+    public bool HasWarningsWithoutBlockingIssues { get; }
 
     /// <summary>The first issue to show as the report's primary reason.</summary>
     public ReportLineViewModel PrimaryIssue { get; }
@@ -220,8 +247,11 @@ public sealed class ReportReviewViewModel
     /// <summary>True when the report should show a primary blocking reason.</summary>
     public bool HasPrimaryIssue { get; }
 
-    /// <summary>True when the report has no issue and can use the success treatment.</summary>
+    /// <summary>True when the report has no blocking issue and can use the success treatment.</summary>
     public bool IsSuccessful => !HasPrimaryIssue;
+
+    /// <summary>True when the report has neither blocking issues nor warnings.</summary>
+    public bool IsClean { get; }
 
     /// <summary>Compact summary chips shown at the top of the modal.</summary>
     public IReadOnlyList<ReportLineViewModel> SummaryRows { get; }
@@ -286,9 +316,7 @@ public sealed class ReportReviewViewModel
         IReadOnlyList<ReportLineViewModel> operations = ParseOperations(root);
         IReadOnlyList<ReportLineViewModel> mutations = ParseMutations(root);
         IReadOnlyList<ReportLineViewModel> issues = ParseIssues(root);
-        string status = issues.Count == 0
-            ? "Succeeded"
-            : string.Create(CultureInfo.InvariantCulture, $"{issues.Count} issue(s)");
+        string status = CreateStatus(issues);
 
         return new ReportReviewViewModel(
             false,
@@ -358,6 +386,42 @@ public sealed class ReportReviewViewModel
             ];
     }
 
+    private static string CreateStatus(IReadOnlyList<ReportLineViewModel> issues)
+    {
+        int blockingIssueCount = CountBlockingIssues(issues);
+        int warningCount = CountWarnings(issues);
+        return blockingIssueCount == 0
+            ? warningCount == 0
+                ? "Succeeded"
+                : string.Create(CultureInfo.InvariantCulture, $"Succeeded with {warningCount} warning(s)")
+            : warningCount == 0
+            ? string.Create(CultureInfo.InvariantCulture, $"{blockingIssueCount} issue(s)")
+            : string.Create(CultureInfo.InvariantCulture, $"{blockingIssueCount} issue(s), {warningCount} warning(s)");
+    }
+
+    private static int CountBlockingIssues(IReadOnlyList<ReportLineViewModel> issues)
+    {
+        return issues.Count(issue => !IsWarning(issue));
+    }
+
+    private static int CountWarnings(IReadOnlyList<ReportLineViewModel> issues)
+    {
+        return issues.Count(IsWarning);
+    }
+
+    private static bool IsWarning(ReportLineViewModel issue)
+    {
+        // Until the report schema has severity, only the documented truncation diagnostic is non-blocking.
+        return string.Equals(issue.Title, "input.address-space.truncated", StringComparison.Ordinal);
+    }
+
+    private static string FormatWarningMeta(int warningCount)
+    {
+        return warningCount == 0
+            ? "No blocking issue"
+            : string.Create(CultureInfo.InvariantCulture, $"{warningCount} warning(s)");
+    }
+
     private static IReadOnlyList<ReportLineViewModel> CreateSummaryRows(
         string status,
         string output,
@@ -367,9 +431,11 @@ public sealed class ReportReviewViewModel
         IReadOnlyList<ReportLineViewModel> issues)
     {
         int commandCount = operations.Count(operation => operation.HasCodeBlock);
+        ReportLineViewModel? firstBlockingIssue = issues.FirstOrDefault(issue => !IsWarning(issue));
+        int warningCount = CountWarnings(issues);
         return
         [
-            new ReportLineViewModel("Status", status, issues.Count == 0 ? "No issue" : issues[0].Title),
+            new ReportLineViewModel("Status", status, firstBlockingIssue?.Title ?? FormatWarningMeta(warningCount)),
             new ReportLineViewModel("Inputs", inputs.Count.ToString(CultureInfo.InvariantCulture), "files"),
             new ReportLineViewModel("Steps", operations.Count.ToString(CultureInfo.InvariantCulture), commandCount == 0 ? "operations" : $"{commandCount} command(s)"),
             new ReportLineViewModel("Mutations", mutations.Count.ToString(CultureInfo.InvariantCulture), output),
@@ -378,20 +444,32 @@ public sealed class ReportReviewViewModel
 
     private static string CreateOutcomeTitle(string status, IReadOnlyList<ReportLineViewModel> issues)
     {
-        return issues.Count == 0
+        int blockingIssueCount = CountBlockingIssues(issues);
+        int warningCount = CountWarnings(issues);
+        return blockingIssueCount == 0
             ? status
             : string.Equals(status, "Load failed", StringComparison.Ordinal)
             ? "Report load failed"
-            : "Needs attention";
+            : warningCount == 0 ? "Needs attention" : "Needs attention with warnings";
     }
 
     private static string CreateOutcomeDetail(string output, IReadOnlyList<ReportLineViewModel> issues)
     {
-        return issues.Count == 0
-            ? "No reported issues. The detailed sections below are audit evidence, not required reading."
+        int blockingIssueCount = CountBlockingIssues(issues);
+        int warningCount = CountWarnings(issues);
+        return blockingIssueCount == 0
+            ? warningCount == 0
+                ? "No reported issues. The detailed sections below are audit evidence, not required reading."
+                : "The run completed, but review the warning before treating the output as final evidence."
             : string.IsNullOrWhiteSpace(output)
             ? "The run did not produce an output artifact. Start with the first issue below."
             : "Start with the first issue below, then use the evidence map to verify the related inputs, operations, and output.";
+    }
+
+    private static string CreateOutcomeMeta(IReadOnlyList<ReportLineViewModel> issues)
+    {
+        ReportLineViewModel? firstBlockingIssue = issues.FirstOrDefault(issue => !IsWarning(issue));
+        return firstBlockingIssue?.Meta ?? FormatWarningMeta(CountWarnings(issues));
     }
 
     private static IReadOnlyList<ReportLineViewModel> CreateTriageRows(
@@ -401,10 +479,10 @@ public sealed class ReportReviewViewModel
         IReadOnlyList<ReportLineViewModel> issues)
     {
         int commandCount = operations.Count(operation => operation.HasCodeBlock);
-        if (issues.Count > 0)
-        {
-            ReportLineViewModel primaryIssue = issues[0];
-            return
+        ReportLineViewModel? primaryIssue = issues.FirstOrDefault(issue => !IsWarning(issue));
+        ReportLineViewModel? firstWarning = issues.FirstOrDefault(IsWarning);
+        return primaryIssue is not null
+            ?
             [
                 new ReportLineViewModel("1. First issue", primaryIssue.Title, primaryIssue.Meta),
                 new ReportLineViewModel("2. Message", primaryIssue.Detail, "reason"),
@@ -412,18 +490,26 @@ public sealed class ReportReviewViewModel
                     "3. Evidence",
                     commandCount > 0 ? "Combiner commands" : "Operation steps",
                     commandCount > 0 ? $"{commandCount} external command(s)" : $"{operations.Count} operation(s)"),
+            ]
+            : firstWarning is not null
+            ?
+            [
+                new ReportLineViewModel("1. Result", status, "No blocking issue"),
+                new ReportLineViewModel("2. Warning", firstWarning.Title, firstWarning.Meta),
+                new ReportLineViewModel(
+                    "3. Evidence",
+                    commandCount > 0 ? "Combiner commands available" : "Operation trace available",
+                    commandCount > 0 ? $"{commandCount} external command(s)" : $"{operations.Count} operation(s)"),
+            ]
+            :
+            [
+                new ReportLineViewModel("1. Result", status, "No issue"),
+                new ReportLineViewModel("2. Output", string.IsNullOrWhiteSpace(output) ? "No output" : output, "artifact"),
+                new ReportLineViewModel(
+                    "3. Evidence",
+                    commandCount > 0 ? "Combiner commands available" : "Operation trace available",
+                    commandCount > 0 ? $"{commandCount} external command(s)" : $"{operations.Count} operation(s)"),
             ];
-        }
-
-        return
-        [
-            new ReportLineViewModel("1. Result", status, "No issue"),
-            new ReportLineViewModel("2. Output", string.IsNullOrWhiteSpace(output) ? "No output" : output, "artifact"),
-            new ReportLineViewModel(
-                "3. Evidence",
-                commandCount > 0 ? "Combiner commands available" : "Operation trace available",
-                commandCount > 0 ? $"{commandCount} external command(s)" : $"{operations.Count} operation(s)"),
-        ];
     }
 
     private static IReadOnlyList<ReportLineViewModel> CreateEvidenceRows(
@@ -434,12 +520,19 @@ public sealed class ReportReviewViewModel
     {
         int commandCount = operations.Count(operation => operation.HasCodeBlock);
         int stepCount = operations.Count - commandCount;
+        int blockingIssueCount = CountBlockingIssues(issues);
+        int warningCount = CountWarnings(issues);
+        ReportLineViewModel? firstBlockingIssue = issues.FirstOrDefault(issue => !IsWarning(issue));
         return
         [
             new ReportLineViewModel(
                 "Issues",
-                issues.Count.ToString(CultureInfo.InvariantCulture),
-                issues.Count == 0 ? "No blocking issue" : issues[0].Title),
+                blockingIssueCount.ToString(CultureInfo.InvariantCulture),
+                firstBlockingIssue?.Title ?? "No blocking issue"),
+            new ReportLineViewModel(
+                "Warnings",
+                warningCount.ToString(CultureInfo.InvariantCulture),
+                warningCount == 0 ? "No warning" : issues.First(IsWarning).Title),
             new ReportLineViewModel(
                 "Inputs",
                 inputs.Count.ToString(CultureInfo.InvariantCulture),
