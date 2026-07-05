@@ -4,6 +4,7 @@ using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Contracts.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.ExternalTools;
+using SharedTempWorkspace = NvtFwCombiner.TestSupport.TempWorkspace;
 
 namespace NvtFwCombiner.Infrastructure.Tests.ExternalTools;
 
@@ -546,13 +547,14 @@ public sealed class LegacyCombinerPostbuildProcessorTests
         private const string ToolId = "legacy-combiner";
         private const string ToolVersion = "1.13.0";
         private const string ExecutableName = "Combiner.exe";
-        private static int s_workspaceId;
+        private readonly SharedTempWorkspace _workspace;
 
-        private TempWorkspace(string root)
+        private TempWorkspace(SharedTempWorkspace workspace)
         {
-            Root = root;
-            ToolRoot = Path.Combine(root, "tools");
-            StagingRoot = Path.Combine(root, "staging");
+            _workspace = workspace;
+            Root = workspace.Root;
+            ToolRoot = Path.Combine(Root, "tools");
+            StagingRoot = Path.Combine(Root, "staging");
             _ = Directory.CreateDirectory(ToolRoot);
             _ = Directory.CreateDirectory(StagingRoot);
         }
@@ -565,17 +567,7 @@ public sealed class LegacyCombinerPostbuildProcessorTests
 
         internal static TempWorkspace Create()
         {
-            int workspaceId = Interlocked.Increment(ref s_workspaceId);
-            string root = Path.Combine(
-                Path.GetTempPath(),
-                "nfc-legacy-postbuild-tests",
-                FormattableString.Invariant($"{workspaceId:D4}"));
-            if (Directory.Exists(root))
-            {
-                Directory.Delete(root, recursive: true);
-            }
-
-            return new TempWorkspace(root);
+            return new TempWorkspace(SharedTempWorkspace.Create("nfc-legacy-postbuild-tests"));
         }
 
         internal string CreateToolExecutable()
@@ -603,10 +595,7 @@ public sealed class LegacyCombinerPostbuildProcessorTests
 
         public void Dispose()
         {
-            if (Directory.Exists(Root))
-            {
-                Directory.Delete(Root, recursive: true);
-            }
+            _workspace.Dispose();
         }
 
         private static ExternalCombinerToolManifest Manifest(string executableSha256)
