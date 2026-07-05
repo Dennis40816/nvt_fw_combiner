@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 WORKER_ROOT = ROOT / "tools" / "crc-worker"
 SOLUTION = ROOT / "NvtFwCombiner.slnx"
 CTRL_RAM_REPLACE_FIXTURE_VERIFIER = ROOT / "scripts" / "verify_ctrlram_replace_fixture.py"
+CTRL_RAM_SENTINEL_CREATOR = ROOT / "scripts" / "create_ctrlram_universal_sentinel.py"
 
 
 def run(command: list[str], *, cwd: Path = ROOT) -> None:
@@ -49,6 +50,7 @@ def run_with_log(command: list[str], log_path: Path, *, cwd: Path = ROOT) -> Non
 def verify_structure() -> None:
     run([sys.executable, "scripts/validate_repository.py"])
     run([sys.executable, "scripts/polytail_check.py"])
+    run([sys.executable, str(CTRL_RAM_SENTINEL_CREATOR), "--dry-run"])
 
 
 def require_python_modules(names: tuple[str, ...]) -> None:

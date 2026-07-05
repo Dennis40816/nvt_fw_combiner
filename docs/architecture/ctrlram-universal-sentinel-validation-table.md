@@ -15,6 +15,14 @@ Recommended content:
 byte[i] = (0x5A + i) & 0xFF
 ```
 
+Generate the default file with:
+
+```powershell
+python scripts\create_ctrlram_universal_sentinel.py --output C:\temp\ctrlram-universal-sentinel.bin
+```
+
+Use `--seed 0x5B`, `--seed 0x5C`, and so on when creating per-slot variants for stronger slot-swap detection.
+
 For each row below, feed the same file into every listed replacement slot for that IC/branch. After Replace + postbuild, verify each output target range matches the first `length` bytes of the universal file, except ranges explicitly owned by postbuild header/CRC/header-copy writes in the report.
 
 For stronger slot-swap detection, duplicate this same file per slot and change the seed byte per duplicate. The one-file version is enough to verify target offsets and lengths.
@@ -85,6 +93,6 @@ Every run should record:
 - selected IC, IC number branch, Common FW version, FW/bar, PID, and postbuild category;
 - selected processor id and exact Combiner command block;
 - replacement slot id and target range for each selected slot;
-- allowed write ranges containing the selected CtrlRAM ranges and declared postbuild header/CRC/header-copy ranges only.
+- allowed write ranges containing postbuild-mapped CtrlRAM pasteback ranges plus declared postbuild header/CRC/header-copy ranges only. Unselected slots may still appear because the workbench stages base-image bytes for Combiner pasteback.
 
 Do not mark a universal sentinel pass as golden parity. Promotion still requires owner-approved final expected output bytes or hashes for the release-scope IC/mode.
