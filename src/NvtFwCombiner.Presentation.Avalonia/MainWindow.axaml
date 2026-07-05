@@ -2129,7 +2129,8 @@
             <Border Padding="16" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
               <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
                 <Grid Width="38" Height="38" AutomationProperties.Name="{Binding LoadedReport.OutcomeAccessibilityLabel}">
-                  <Border Background="#16A34A" CornerRadius="999" IsVisible="{Binding LoadedReport.IsSuccessful}" />
+                  <Border Background="#16A34A" CornerRadius="999" IsVisible="{Binding LoadedReport.IsClean}" />
+                  <Border Background="#D97706" CornerRadius="999" IsVisible="{Binding LoadedReport.HasWarningsWithoutBlockingIssues}" />
                   <Border Background="#EA580C" CornerRadius="999" IsVisible="{Binding LoadedReport.HasPrimaryIssue}" />
                   <TextBlock
                       HorizontalAlignment="Center"
