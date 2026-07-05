@@ -290,6 +290,33 @@
         </StackPanel>
       </Border>
     </DataTemplate>
+    <DataTemplate x:Key="ReportHistoryEntryTemplate" DataType="vm:ReportHistoryEntryViewModel">
+      <Button
+          MinWidth="236"
+          MaxWidth="292"
+          Margin="0,0,8,0"
+          Padding="0"
+          Background="Transparent"
+          BorderBrush="Transparent"
+          Command="{Binding $parent[Window].DataContext.OpenReportHistoryEntryCommand}"
+          CommandParameter="{Binding}">
+        <Border Padding="12" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
+          <StackPanel Spacing="5">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+              <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding SequenceLabel}" />
+              <TextBlock Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Status}" TextWrapping="Wrap" />
+              <TextBlock Grid.Column="2" FontSize="11" FontWeight="SemiBold" Foreground="#2563EB" Text="{Binding IssueSummary}" TextWrapping="Wrap" />
+            </Grid>
+            <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
+            <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Context}" TextWrapping="Wrap" />
+            <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding OutputHash}" TextWrapping="Wrap" />
+            <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding CommandSummary}" TextWrapping="Wrap" />
+            <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding EvidenceSummary}" TextWrapping="Wrap" />
+            <TextBlock FontSize="11" Foreground="#475569" Text="{Binding ArtifactPath}" TextWrapping="Wrap" IsVisible="{Binding HasArtifactPath}" />
+          </StackPanel>
+        </Border>
+      </Button>
+    </DataTemplate>
   </Window.Resources>
 
   <Window.Styles>
@@ -2020,7 +2047,7 @@
           BorderBrush="#CBD5E1"
           BorderThickness="1"
           CornerRadius="8">
-        <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="0">
+        <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="0">
           <Border Padding="22,18" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
               <StackPanel Spacing="5">
@@ -2037,7 +2064,26 @@
             </Grid>
           </Border>
 
-          <Grid Grid.Row="1" Margin="22,18,22,0" ColumnDefinitions="1.05*,1.4*" ColumnSpacing="16">
+          <StackPanel Grid.Row="1" Margin="22,14,22,0" Spacing="8" IsVisible="{Binding HasReportHistory}">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+              <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#64748B" Text="Session report history" />
+              <TextBlock Grid.Column="1" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding ReportHistorySummary}" />
+            </Grid>
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+              <ItemsControl ItemsSource="{Binding ReportHistoryEntries}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <StaticResource ResourceKey="ReportHistoryEntryTemplate" />
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </StackPanel>
+
+          <Grid Grid.Row="2" Margin="22,18,22,0" ColumnDefinitions="1.05*,1.4*" ColumnSpacing="16">
             <Border Padding="16" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
               <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
                 <Grid Width="38" Height="38" AutomationProperties.Name="{Binding LoadedReport.OutcomeAccessibilityLabel}">
@@ -2080,7 +2126,7 @@
             </StackPanel>
           </Grid>
 
-          <ScrollViewer Grid.Row="2" Margin="22,18,22,0">
+          <ScrollViewer Grid.Row="3" Margin="22,18,22,0">
             <Grid ColumnDefinitions="0.95*,1.25*" ColumnSpacing="18">
               <StackPanel Spacing="14">
                 <Border Padding="14" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
@@ -2192,7 +2238,7 @@
             </Grid>
           </ScrollViewer>
 
-          <StackPanel Grid.Row="3" Margin="22,18,22,18" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+          <StackPanel Grid.Row="4" Margin="22,18,22,18" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
             <Button
                 Classes="secondary"
                 Command="{Binding CloseReportCommand}"

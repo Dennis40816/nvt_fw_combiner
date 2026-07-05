@@ -9,10 +9,20 @@ public sealed class ReportReviewViewModel
     private ReportReviewViewModel(
         bool isEmpty,
         string sourceName,
+        string profileId,
+        string icId,
+        string modeId,
+        string experienceId,
+        string compositionKind,
+        string runId,
+        string startedAtUtc,
         string title,
         string subtitle,
         string status,
         string output,
+        string outputFileName,
+        long outputSize,
+        string outputSha256,
         string outputArtifactPath,
         IReadOnlyList<ReportLineViewModel> inputs,
         IReadOnlyList<ReportLineViewModel> operations,
@@ -21,10 +31,21 @@ public sealed class ReportReviewViewModel
     {
         IsEmpty = isEmpty;
         SourceName = sourceName;
+        ProfileId = profileId;
+        IcId = icId;
+        ModeId = modeId;
+        ExperienceId = experienceId;
+        CompositionKind = compositionKind;
+        RunId = runId;
+        StartedAtUtc = startedAtUtc;
         Title = title;
         Subtitle = subtitle;
         Status = status;
         Output = output;
+        OutputFileName = outputFileName;
+        OutputSize = outputSize;
+        OutputSha256 = outputSha256;
+        OutputHashLabel = string.IsNullOrWhiteSpace(outputSha256) ? "No output hash" : Shorten(outputSha256, 16);
         OutputArtifactPath = string.IsNullOrWhiteSpace(outputArtifactPath) ? string.Empty : outputArtifactPath;
         HasOutputArtifactPath = !string.IsNullOrWhiteSpace(OutputArtifactPath);
         Inputs = inputs;
@@ -62,9 +83,19 @@ public sealed class ReportReviewViewModel
     public static ReportReviewViewModel Empty { get; } = new(
         true,
         string.Empty,
+        string.Empty,
+        string.Empty,
+        string.Empty,
+        string.Empty,
+        string.Empty,
+        string.Empty,
+        string.Empty,
         "No report loaded",
         "Load a run report JSON to review it here.",
         "Idle",
+        string.Empty,
+        string.Empty,
+        0,
         string.Empty,
         string.Empty,
         [],
@@ -78,6 +109,27 @@ public sealed class ReportReviewViewModel
     /// <summary>File name or parser source label.</summary>
     public string SourceName { get; }
 
+    /// <summary>Profile id recorded by the run report.</summary>
+    public string ProfileId { get; }
+
+    /// <summary>IC id recorded by the run report.</summary>
+    public string IcId { get; }
+
+    /// <summary>Mode id recorded by the run report.</summary>
+    public string ModeId { get; }
+
+    /// <summary>Experience id recorded by the run report.</summary>
+    public string ExperienceId { get; }
+
+    /// <summary>Composition kind recorded by the run report.</summary>
+    public string CompositionKind { get; }
+
+    /// <summary>Run id recorded by the run report.</summary>
+    public string RunId { get; }
+
+    /// <summary>Start timestamp recorded by the run report.</summary>
+    public string StartedAtUtc { get; }
+
     /// <summary>Report title.</summary>
     public string Title { get; }
 
@@ -89,6 +141,18 @@ public sealed class ReportReviewViewModel
 
     /// <summary>Output artifact summary.</summary>
     public string Output { get; }
+
+    /// <summary>Report-safe output file name.</summary>
+    public string OutputFileName { get; }
+
+    /// <summary>Output size in bytes.</summary>
+    public long OutputSize { get; }
+
+    /// <summary>Full output SHA-256 recorded by the report.</summary>
+    public string OutputSha256 { get; }
+
+    /// <summary>Compact output hash label for dense traceability surfaces.</summary>
+    public string OutputHashLabel { get; }
 
     /// <summary>Host-side output artifact path for the current UI session, not persisted in report JSON.</summary>
     public string OutputArtifactPath { get; }
@@ -208,12 +272,16 @@ public sealed class ReportReviewViewModel
         using var document = JsonDocument.Parse(json);
         JsonElement root = document.RootElement;
 
-        string profileId = GetString(root, "ProfileId");
-        string icId = GetString(root, "IcId");
-        string experienceId = GetString(root, "ExperienceId");
-        string compositionKind = GetString(root, "CompositionKind");
-        string runId = GetString(root, "RunId");
-        string startedAt = GetString(root, "StartedAtUtc");
+        string profileId = GetString(root, nameof(ProfileId));
+        string icId = GetString(root, nameof(IcId));
+        string modeId = GetString(root, nameof(ModeId));
+        string experienceId = GetString(root, nameof(ExperienceId));
+        string compositionKind = GetString(root, nameof(CompositionKind));
+        string runId = GetString(root, nameof(RunId));
+        string startedAt = GetString(root, nameof(StartedAtUtc));
+        string outputFileName = GetOutputString(root, "FileName");
+        long outputSize = GetOutputLong(root, "Size");
+        string outputSha256 = GetOutputString(root, "Sha256");
         IReadOnlyList<ReportLineViewModel> inputs = ParseInputs(root);
         IReadOnlyList<ReportLineViewModel> operations = ParseOperations(root);
         IReadOnlyList<ReportLineViewModel> mutations = ParseMutations(root);
@@ -225,10 +293,20 @@ public sealed class ReportReviewViewModel
         return new ReportReviewViewModel(
             false,
             sourceName,
+            profileId,
+            icId,
+            modeId,
+            experienceId,
+            compositionKind,
+            runId,
+            startedAt,
             $"{profileId} ({icId})",
             $"{compositionKind} / {experienceId} / {Shorten(runId, 18)} / {startedAt}",
             status,
             ParseOutput(root),
+            outputFileName,
+            outputSize,
+            outputSha256,
             outputArtifactPath ?? string.Empty,
             inputs,
             operations,
@@ -246,9 +324,19 @@ public sealed class ReportReviewViewModel
         return new ReportReviewViewModel(
             false,
             sourceName,
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            string.Empty,
             "Report could not be loaded",
             sourceName,
             status,
+            string.Empty,
+            string.Empty,
+            0,
             string.Empty,
             string.Empty,
             [],
@@ -448,6 +536,20 @@ public sealed class ReportReviewViewModel
             ? committedElement.GetBoolean() ? "committed" : "preview"
             : "unknown";
         return $"{GetString(output, "FileName")} / {GetLong(output, "Size")} bytes / {committed} / {Shorten(GetString(output, "Sha256"), 16)}";
+    }
+
+    private static string GetOutputString(JsonElement root, string propertyName)
+    {
+        return root.TryGetProperty(nameof(Output), out JsonElement output) && output.ValueKind == JsonValueKind.Object
+            ? GetString(output, propertyName)
+            : string.Empty;
+    }
+
+    private static long GetOutputLong(JsonElement root, string propertyName)
+    {
+        return root.TryGetProperty(nameof(Output), out JsonElement output) && output.ValueKind == JsonValueKind.Object
+            ? GetLong(output, propertyName)
+            : 0;
     }
 
     private static string FormatEndpoint(string? addressSpaceId, string? range)

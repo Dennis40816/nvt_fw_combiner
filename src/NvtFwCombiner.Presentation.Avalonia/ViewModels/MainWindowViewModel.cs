@@ -93,6 +93,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         ShowReportCommand = new RelayCommand(ShowReport, () => CanOpenReport);
         CloseReportCommand = new RelayCommand(CloseReport);
         DismissReportToastCommand = new RelayCommand(DismissReportToast);
+        OpenReportHistoryEntryCommand = new RelayCommand<ReportHistoryEntryViewModel>(OpenReportHistoryEntry);
         ShowReplaceSelectionCommand = new RelayCommand(ShowReplaceSelection);
         CloseReplaceSelectionCommand = new RelayCommand(CloseReplaceSelection);
 

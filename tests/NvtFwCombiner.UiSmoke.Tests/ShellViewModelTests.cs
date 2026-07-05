@@ -1143,6 +1143,16 @@ public sealed class ShellViewModelTests
         Assert.True(viewModel.HasReportToast);
         Assert.Equal(1, viewModel.ReportToastOpacity);
         Assert.Equal(json, viewModel.LoadedReportJson);
+        Assert.True(viewModel.HasReportHistory);
+        Assert.Equal(1, viewModel.ReportHistoryCount);
+        Assert.Equal("1 report this session", viewModel.ReportHistorySummary);
+        ReportHistoryEntryViewModel historyEntry = Assert.Single(viewModel.ReportHistoryEntries);
+        Assert.Equal("#1", historyEntry.SequenceLabel);
+        Assert.Equal("nt51927-standard-merge-gen-flash (NT51927)", historyEntry.Title);
+        Assert.Equal("Merge / standard-merge / NT51927", historyEntry.Context);
+        Assert.Equal("abcdef", historyEntry.OutputHash);
+        Assert.Equal("No external command", historyEntry.CommandSummary);
+        Assert.Equal("No issue", historyEntry.IssueSummary);
         Assert.False(viewModel.LoadedReport.HasOutputArtifactPath);
         Assert.Equal(string.Empty, viewModel.LoadedReport.OutputArtifactPath);
         Assert.Equal("nt51927-standard-merge-gen-flash (NT51927).json", viewModel.ReportSaveFileName);
@@ -1186,6 +1196,94 @@ public sealed class ShellViewModelTests
         Assert.False(viewModel.IsReportModalOpen);
     }
 
+    /// <summary>Verifies report history can reopen earlier reports without adding a new run.</summary>
+    [Fact]
+    public void ReportHistoryTracksSessionReportsAndReopensEarlierEntry()
+    {
+        const string previewJson = /*lang=json,strict*/ """
+            {
+              "ProfileId": "nt51927-standard-merge-gen-flash",
+              "IcId": "NT51927",
+              "ModeId": "standard-merge",
+              "ExperienceId": "standard-merge",
+              "CompositionKind": "Merge",
+              "RunId": "preview-run",
+              "StartedAtUtc": "2026-07-01T00:00:00Z",
+              "Inputs": [],
+              "Operations": [],
+              "Mutations": [],
+              "Issues": [],
+              "Output": {
+                "FileName": "preview.bin",
+                "Size": 16,
+                "Committed": false,
+                "Sha256": "abcdef0123456789abcdef"
+              }
+            }
+            """;
+        const string buildJson = /*lang=json,strict*/ """
+            {
+              "ProfileId": "nt51927-ctrlram-replace",
+              "IcId": "NT51927",
+              "ModeId": "ctrlram-replace",
+              "ExperienceId": "ctrlram-replace",
+              "CompositionKind": "Replace",
+              "RunId": "build-run",
+              "StartedAtUtc": "2026-07-01T00:05:00Z",
+              "Inputs": [],
+              "Operations": [
+                {
+                  "Sequence": 900,
+                  "OperationId": "run-ctrlram-postbuild",
+                  "Kind": "run-external-processor",
+                  "Status": "planned",
+                  "OverlapPolicy": "reject",
+                  "TargetSpaceId": "output-image",
+                  "TargetRange": {
+                    "Start": 0,
+                    "EndExclusive": 32,
+                    "Length": 32
+                  },
+                  "ProcessorId": "legacy-combiner",
+                  "ToolBindingId": "legacy-combiner-1.13.0",
+                  "ProcessorAllowedReadRanges": [],
+                  "ProcessorAllowedWriteRanges": [],
+                  "Reason": "Run approved staged Combiner command: Combiner.exe /bin work.bin /mmap mmap.h."
+                }
+              ],
+              "Mutations": [],
+              "Issues": [],
+              "Output": {
+                "FileName": "build.bin",
+                "Size": 32,
+                "Committed": true,
+                "Sha256": "0123456789abcdef012345"
+              }
+            }
+            """;
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        viewModel.LoadReportJson(previewJson, "preview-report.json");
+        viewModel.LoadReportJson(buildJson, "build-report.json");
+
+        Assert.True(viewModel.HasReportHistory);
+        Assert.Equal(2, viewModel.ReportHistoryCount);
+        Assert.Equal("2 reports this session", viewModel.ReportHistorySummary);
+        Assert.Equal("nt51927-ctrlram-replace (NT51927)", viewModel.ReportHistoryEntries[0].Title);
+        Assert.Equal("1 command", viewModel.ReportHistoryEntries[0].CommandSummary);
+        Assert.Equal("nt51927-standard-merge-gen-flash (NT51927)", viewModel.ReportHistoryEntries[1].Title);
+        Assert.Equal("abcdef0123456789...", viewModel.ReportHistoryEntries[1].OutputHash);
+
+        viewModel.OpenReportHistoryEntryCommand.Execute(viewModel.ReportHistoryEntries[1]);
+
+        Assert.True(viewModel.IsReportModalOpen);
+        Assert.False(viewModel.HasReportToast);
+        Assert.Equal("preview-report.json", viewModel.LoadedReport.SourceName);
+        Assert.Equal("nt51927-standard-merge-gen-flash (NT51927)", viewModel.LoadedReport.Title);
+        Assert.Equal(previewJson, viewModel.LoadedReportJson);
+        Assert.Equal(2, viewModel.ReportHistoryCount);
+    }
+
     /// <summary>Verifies report loading errors still produce a reopenable report modal.</summary>
     [Fact]
     public void ReportReviewErrorsUseModalState()
@@ -1198,6 +1296,10 @@ public sealed class ShellViewModelTests
         Assert.True(viewModel.CanOpenReport);
         Assert.Equal(string.Empty, viewModel.LoadedReportJson);
         Assert.Equal("Load failed", viewModel.ReportActionStatus);
+        Assert.True(viewModel.HasReportHistory);
+        ReportHistoryEntryViewModel historyEntry = Assert.Single(viewModel.ReportHistoryEntries);
+        Assert.Equal("Report could not be loaded", historyEntry.Title);
+        Assert.Equal("No output hash", historyEntry.OutputHash);
         Assert.True(viewModel.HasReportToast);
         Assert.Equal("Report issue: Startup report", viewModel.ReportToastText);
         Assert.True(viewModel.LoadedReport.HasPrimaryIssue);

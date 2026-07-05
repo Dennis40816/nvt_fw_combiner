@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.Input;
 
@@ -5,13 +6,31 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
 {
+    private const int MaxReportHistoryEntries = 12;
     private static readonly JsonSerializerOptions RunErrorReportJsonOptions = new() { WriteIndented = true };
+    private int _reportHistorySequence;
 
     /// <summary>Gets the loaded run report summary.</summary>
     public ReportReviewViewModel LoadedReport { get; private set; } = ReportReviewViewModel.Empty;
 
     /// <summary>Gets the original report JSON used by Save report.</summary>
     public string LoadedReportJson { get; private set; } = string.Empty;
+
+    /// <summary>Gets session-local reports that can be reopened without re-running firmware workflows.</summary>
+    public ObservableCollection<ReportHistoryEntryViewModel> ReportHistoryEntries { get; } = [];
+
+    /// <summary>True when the session has at least one report.</summary>
+    public bool HasReportHistory => ReportHistoryEntries.Count > 0;
+
+    /// <summary>Number of reports captured in this UI session.</summary>
+    public int ReportHistoryCount => ReportHistoryEntries.Count;
+
+    /// <summary>Compact report history summary.</summary>
+    public string ReportHistorySummary => HasReportHistory
+        ? ReportHistoryCount == 1
+            ? "1 report this session"
+            : $"{ReportHistoryCount} reports this session"
+        : "No reports this session";
 
     /// <summary>True when a run report is loaded into the shell.</summary>
     public bool HasLoadedReport => !LoadedReport.IsEmpty;
@@ -53,6 +72,9 @@ public sealed partial class MainWindowViewModel
     /// <summary>Command that dismisses the compact report notification.</summary>
     public IRelayCommand DismissReportToastCommand { get; }
 
+    /// <summary>Command that reopens a session report history entry.</summary>
+    public IRelayCommand<ReportHistoryEntryViewModel> OpenReportHistoryEntryCommand { get; }
+
     /// <summary>Loads a CLI/application run report JSON into the readable report modal.</summary>
     public void LoadReportJson(string json, string sourceName)
     {
@@ -66,6 +88,7 @@ public sealed partial class MainWindowViewModel
         }
 
         LoadedReportJson = json;
+        CaptureLoadedReportInHistory();
         SetReportToast($"Report loaded: {sourceName}");
         NotifyReportChanged();
         RefreshSettingsState();
@@ -79,6 +102,7 @@ public sealed partial class MainWindowViewModel
 
         LoadedReport = ReportReviewViewModel.Error(sourceName, message, "Load error", "Load failed");
         LoadedReportJson = string.Empty;
+        CaptureLoadedReportInHistory();
         SetReportToast($"Report issue: {sourceName}");
         NotifyReportChanged();
         RefreshSettingsState();
@@ -154,6 +178,7 @@ public sealed partial class MainWindowViewModel
         string json = JsonSerializer.Serialize(report, RunErrorReportJsonOptions);
         LoadedReport = ReportReviewViewModel.FromJson(json, $"{action.ToLowerInvariant()} error report");
         LoadedReportJson = json;
+        CaptureLoadedReportInHistory();
         SetReportToast($"{action} report generated");
         NotifyReportChanged();
         RefreshSettingsState();
@@ -188,6 +213,26 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(ReportToastOpacity));
     }
 
+    private void OpenReportHistoryEntry(ReportHistoryEntryViewModel? entry)
+    {
+        if (entry is null)
+        {
+            return;
+        }
+
+        LoadedReport = entry.Report;
+        LoadedReportJson = entry.ReportJson;
+        CloseReplaceSelectionForRun();
+        IsReportModalOpen = true;
+        HasReportToast = false;
+        ReportToastOpacity = 0;
+        NotifyReportChanged();
+        OnPropertyChanged(nameof(IsReportModalOpen));
+        OnPropertyChanged(nameof(HasReportToast));
+        OnPropertyChanged(nameof(ReportToastOpacity));
+        RefreshSettingsState();
+    }
+
     private void CloseReport()
     {
         if (!IsReportModalOpen)
@@ -220,6 +265,33 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(ReportToastText));
         OnPropertyChanged(nameof(HasReportToast));
         OnPropertyChanged(nameof(ReportToastOpacity));
+    }
+
+    private void CaptureLoadedReportInHistory()
+    {
+        if (!HasLoadedReport)
+        {
+            return;
+        }
+
+        ReportHistoryEntries.Insert(
+            0,
+            new ReportHistoryEntryViewModel(++_reportHistorySequence, LoadedReport, LoadedReportJson));
+        while (ReportHistoryEntries.Count > MaxReportHistoryEntries)
+        {
+            ReportHistoryEntries.RemoveAt(ReportHistoryEntries.Count - 1);
+        }
+
+        NotifyReportHistoryChanged();
+    }
+
+    private void NotifyReportHistoryChanged()
+    {
+        OnPropertyChanged(nameof(ReportHistoryEntries));
+        OnPropertyChanged(nameof(HasReportHistory));
+        OnPropertyChanged(nameof(ReportHistoryCount));
+        OnPropertyChanged(nameof(ReportHistorySummary));
+        OpenReportHistoryEntryCommand.NotifyCanExecuteChanged();
     }
 
     private void NotifyReportChanged()

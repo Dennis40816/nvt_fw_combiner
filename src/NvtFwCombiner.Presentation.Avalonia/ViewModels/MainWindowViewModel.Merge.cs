@@ -178,6 +178,7 @@ public sealed partial class MainWindowViewModel
 
         LoadedReport = report;
         LoadedReportJson = result.ReportJson;
+        CaptureLoadedReportInHistory();
         SetReportToast($"{action} report generated");
         NotifyReportChanged();
         RefreshSettingsState();
