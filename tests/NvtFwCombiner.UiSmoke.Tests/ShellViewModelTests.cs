@@ -32,18 +32,25 @@ public sealed class ShellViewModelTests
         viewModel.SelectedLanguage = "Traditional Chinese";
 
         Assert.Equal("Dark theme is applied to this window.", viewModel.ThemePreferenceStatus);
-        Assert.Equal("Preference is recorded; firmware gates still fail closed.", viewModel.StrictnessPreferenceStatus);
-        Assert.Equal("Preference is recorded; full XAML localization is pending.", viewModel.LanguagePreferenceStatus);
+        Assert.Equal("Preference is saved; firmware gates still fail closed.", viewModel.StrictnessPreferenceStatus);
+        Assert.Equal("Preference is saved; full XAML localization is pending.", viewModel.LanguagePreferenceStatus);
         Assert.Contains(viewModel.SettingsPreferenceRows, row =>
             row.Title == "Theme" &&
             row.Value == "Dark" &&
-            row.Status == "Session");
+            row.Status == "Saved");
         Assert.Contains(viewModel.SettingsPreferenceRows, row =>
             row.Title == "Strictness" &&
-            row.Value == "Warn only");
+            row.Value == "Warn only" &&
+            row.Status == "Saved");
         Assert.Contains(viewModel.SettingsPreferenceRows, row =>
             row.Title == "Language" &&
             row.Value == "Traditional Chinese");
+        Assert.Contains(viewModel.SettingsDiagnosticsRows, row =>
+            row.Title == "Report history store" &&
+            row.Status == "Enabled");
+        Assert.Contains(viewModel.SettingsReadinessRows, row =>
+            row.Title == "Preferences" &&
+            row.Value == "Saved locally");
     }
 
     /// <summary>Verifies breadcrumbs show page hierarchy while Back returns to the previous page.</summary>
@@ -1395,6 +1402,39 @@ public sealed class ShellViewModelTests
         File.WriteAllText(historyPath, "{not valid json");
 
         Assert.Empty(ReportHistoryFileStore.Load(historyPath));
+    }
+
+    /// <summary>Verifies local shell preferences round-trip and invalid values keep fail-closed defaults.</summary>
+    [Fact]
+    public void ShellPreferenceFileStoreRoundTripsAndInvalidValuesFallBack()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-shell-preferences");
+        string preferencesPath = workspace.PathFor(Path.Combine("state", "preferences.v1.json"));
+        var preferences = new ShellPreferenceSnapshot("Dark", "Warn only", "Traditional Chinese");
+
+        ShellPreferenceFileStore.Save(preferencesPath, preferences);
+
+        ShellPreferenceSnapshot loaded = ShellPreferenceFileStore.Load(preferencesPath);
+        Assert.Equal(preferences, loaded);
+
+        MainWindowViewModel restoredViewModel = ShellViewModelFactory.Create();
+        restoredViewModel.LoadShellPreferences(loaded);
+
+        Assert.Equal("Dark", restoredViewModel.SelectedTheme);
+        Assert.Equal("Warn only", restoredViewModel.SelectedStrictness);
+        Assert.Equal("Traditional Chinese", restoredViewModel.SelectedLanguage);
+        Assert.Equal(preferences, restoredViewModel.ExportShellPreferences());
+
+        File.WriteAllText(preferencesPath, "{not valid json");
+
+        Assert.Equal(ShellPreferenceSnapshot.Default, ShellPreferenceFileStore.Load(preferencesPath));
+
+        MainWindowViewModel defaultViewModel = ShellViewModelFactory.Create();
+        defaultViewModel.LoadShellPreferences(new ShellPreferenceSnapshot("Blue", "Relaxed", "Klingon"));
+
+        Assert.Equal("System", defaultViewModel.SelectedTheme);
+        Assert.Equal("Strict", defaultViewModel.SelectedStrictness);
+        Assert.Equal("English", defaultViewModel.SelectedLanguage);
     }
 
     /// <summary>Verifies report loading errors still produce a reopenable report modal.</summary>

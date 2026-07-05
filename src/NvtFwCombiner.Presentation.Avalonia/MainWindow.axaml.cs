@@ -34,6 +34,7 @@ public sealed partial class MainWindow : Window
         _reportToastFadeTimer.Tick += ReportToastFadeTimer_OnTick;
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         ReportHistoryFileStore.LoadInto(viewModel);
+        ShellPreferenceFileStore.LoadInto(viewModel);
         DataContext = viewModel;
         ApplyThemePreference(viewModel.SelectedTheme);
 
@@ -273,6 +274,11 @@ public sealed partial class MainWindow : Window
             ApplyThemePreference(viewModel.SelectedTheme);
         }
 
+        if (IsShellPreferenceProperty(e.PropertyName))
+        {
+            ShellPreferenceFileStore.Save(viewModel);
+        }
+
         if (e.PropertyName == nameof(MainWindowViewModel.ReportHistoryCount))
         {
             ReportHistoryFileStore.Save(viewModel);
@@ -295,6 +301,14 @@ public sealed partial class MainWindow : Window
             _reportToastHoldTimer.Stop();
             _reportToastFadeTimer.Stop();
         }
+    }
+
+    private static bool IsShellPreferenceProperty(string? propertyName)
+    {
+        return propertyName is
+            nameof(MainWindowViewModel.SelectedTheme) or
+            nameof(MainWindowViewModel.SelectedStrictness) or
+            nameof(MainWindowViewModel.SelectedLanguage);
     }
 
     private void ApplyThemePreference(string selectedTheme)

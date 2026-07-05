@@ -63,24 +63,41 @@ public sealed partial class MainWindowViewModel
         "Light" => "Light theme is applied to this window.",
         "Dark" => "Dark theme is applied to this window.",
         "High contrast" => "Uses the dark visual variant until a contrast palette is added.",
-        _ => "Theme preference is stored in this shell session.",
+        _ => "Theme preference is saved locally.",
     };
 
     /// <summary>Gets the current strictness preference effect shown next to the selector.</summary>
     public string StrictnessPreferenceStatus => SelectedStrictness switch
     {
         "Strict" => "Unsupported workflow states stay fail-closed.",
-        "Warn only" => "Preference is recorded; firmware gates still fail closed.",
-        _ => "Strictness preference is stored in this shell session.",
+        "Warn only" => "Preference is saved; firmware gates still fail closed.",
+        _ => "Strictness preference is saved locally.",
     };
 
     /// <summary>Gets the current language preference effect shown next to the selector.</summary>
     public string LanguagePreferenceStatus => SelectedLanguage switch
     {
         "English" => "English shell resources are active.",
-        "Traditional Chinese" => "Preference is recorded; full XAML localization is pending.",
-        _ => "Language preference is stored in this shell session.",
+        "Traditional Chinese" => "Preference is saved; full XAML localization is pending.",
+        _ => "Language preference is saved locally.",
     };
+
+    /// <summary>Exports local shell preferences for best-effort UI persistence.</summary>
+    public ShellPreferenceSnapshot ExportShellPreferences()
+    {
+        return new ShellPreferenceSnapshot(SelectedTheme, SelectedStrictness, SelectedLanguage);
+    }
+
+    /// <summary>Loads local shell preferences, ignoring values that are no longer valid choices.</summary>
+    public void LoadShellPreferences(ShellPreferenceSnapshot preferences)
+    {
+        ArgumentNullException.ThrowIfNull(preferences);
+
+        SelectedTheme = NormalizePreference(preferences.Theme, ThemeChoices, SelectedTheme);
+        SelectedStrictness = NormalizePreference(preferences.Strictness, StrictnessChoices, SelectedStrictness);
+        SelectedLanguage = NormalizePreference(preferences.Language, LanguageChoices, SelectedLanguage);
+        RefreshSettingsState();
+    }
 
     private void RefreshSettingsState()
     {
@@ -128,17 +145,17 @@ public sealed partial class MainWindowViewModel
                 "Theme",
                 SelectedTheme,
                 ThemePreferenceStatus,
-                SelectedTheme == "System" ? "System" : SelectedTheme == "High contrast" ? "Pending" : "Session"),
+                SelectedTheme == "High contrast" ? "Pending" : "Saved"),
             new SettingSummaryViewModel(
                 "Strictness",
                 SelectedStrictness,
                 StrictnessPreferenceStatus,
-                "Session"),
+                "Saved"),
             new SettingSummaryViewModel(
                 "Language",
                 SelectedLanguage,
                 LanguagePreferenceStatus,
-                SelectedLanguage == "English" ? "Default" : "Pending"));
+                SelectedLanguage == "English" ? "Saved" : "Pending"));
 
         ReplaceSettingsRows(
             SettingsDiagnosticsRows,
@@ -152,6 +169,11 @@ public sealed partial class MainWindowViewModel
                 LastRunResult.Title,
                 LastRunResult.Detail,
                 LastRunResult.Succeeded ? "OK" : "Blocked"),
+            new SettingSummaryViewModel(
+                "Report history store",
+                "Local AppData",
+                "Report history is persisted locally; run report JSON can still be saved explicitly.",
+                "Enabled"),
             new SettingSummaryViewModel(
                 "Diagnostics log",
                 "Read-only and sanitized",
@@ -171,6 +193,11 @@ public sealed partial class MainWindowViewModel
                 "IC and Number are hidden on Home and Settings, then shown for Merge and Replace.",
                 "Scoped"),
             new SettingSummaryViewModel(
+                "Preferences",
+                "Saved locally",
+                "Theme, strictness, and language are restored on startup without changing firmware gates.",
+                "Ready"),
+            new SettingSummaryViewModel(
                 "Navigation",
                 NavigationPath,
                 "Breadcrumb entries keep page history so users can jump back multiple levels.",
@@ -182,6 +209,16 @@ public sealed partial class MainWindowViewModel
         params SettingSummaryViewModel[] rows)
     {
         ReplaceRows(target, rows);
+    }
+
+    private static string NormalizePreference(
+        string? value,
+        IReadOnlyList<string> choices,
+        string fallback)
+    {
+        return !string.IsNullOrWhiteSpace(value) && choices.Contains(value, StringComparer.Ordinal)
+            ? value
+            : fallback;
     }
 
     partial void OnSelectedThemeChanged(string value)
