@@ -25,7 +25,7 @@ public sealed partial class MainWindowViewModel
             ? "Ready: Preview/Build will replace selected CtrlRAM regions and run postbuild."
             : "Preview blocked: base BIN and at least one CtrlRAM region BIN are required.",
         GeneralReplaceMode => CanRunReplace()
-            ? "Ready: Preview/Build will compile explicit mappings and reject protected or TP ranges that need postbuild."
+            ? "Ready: Preview/Build will compile explicit mappings and run postbuild when TP ranges are touched."
             : "Preview blocked: base BIN and at least one explicit replacement mapping are required.",
         _ => "Preview blocked: select a Replace mode.",
     };

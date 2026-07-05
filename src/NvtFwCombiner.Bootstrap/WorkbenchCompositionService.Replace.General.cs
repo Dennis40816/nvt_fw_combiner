@@ -15,6 +15,7 @@ public static partial class WorkbenchCompositionService
     // a 0x100-byte firmware header copy block, and General Replace has no owner-approved
     // header editing workflow yet.
     private const long GeneralReplaceProtectedHeaderLength = 0x100;
+    private const int GeneralReplacePostbuildSequence = 900;
 
     private static async ValueTask<WorkbenchRunResult> RunGeneralReplaceAsync(
         string icId,
@@ -81,7 +82,6 @@ public static partial class WorkbenchCompositionService
                 "Base flash BIN must not be empty.");
         }
 
-        CompositionProfileDefinition profile = CreateGeneralReplaceProfile(icId, number, capacity, fullBasePath);
         if (!TryCreateGeneralReplaceMappings(
                 selectedMappings,
                 out IReadOnlyList<ExplicitMapping> explicitMappings,
@@ -96,10 +96,106 @@ public static partial class WorkbenchCompositionService
                 build,
                 [],
                 mappingIssues,
-                profile.DefaultOutputFileName,
+                GetReplaceDefaultOutputFileName(icId, "General"),
                 succeeded: false);
         }
 
+        IcNumberSelection selection = ToIcNumberSelection(number);
+        bool postbuildProfileResolved = TryGetPostbuildProfile(
+            icId,
+            fullBasePath,
+            out LegacyCombinerPostbuildProfile? postbuildProfile,
+            out CompositionIssue? postbuildIssue);
+        IReadOnlyList<TpFlashMapRegion> regionsForMappingPolicy = TpFlashMapCatalog.GetRegions(
+            icId,
+            selection,
+            postbuildProfileResolved ? postbuildProfile : null);
+        bool touchesTpRegion = GeneralReplaceTouchesTpRegion(regionsForMappingPolicy, explicitMappings);
+        LegacyCombinerPostbuildCommandPlan? commandPlan = null;
+        List<ByteRange> postbuildWriteRanges = [];
+        if (touchesTpRegion)
+        {
+            if (!postbuildProfileResolved)
+            {
+                return CreateReplaceReportRunResult(
+                    icId,
+                    "General",
+                    reportSlotPaths,
+                    build,
+                    CreateGeneralReplacePlanningOperations(explicitMappings),
+                    [postbuildIssue!],
+                    GetReplaceDefaultOutputFileName(icId, "General"),
+                    succeeded: false);
+            }
+
+            try
+            {
+                commandPlan = LegacyCombinerPostbuildPlanner.CreatePlan(postbuildProfile!, selection);
+            }
+            catch (ArgumentException exception)
+            {
+                return CreateReplaceReportRunResult(
+                    icId,
+                    "General",
+                    reportSlotPaths,
+                    build,
+                    CreateGeneralReplacePlanningOperations(explicitMappings),
+                    [
+                        new CompositionIssue(
+                            "replace.general.ic-number-unsupported",
+                            exception.Message,
+                            "number"),
+                    ],
+                    GetReplaceDefaultOutputFileName(icId, "General"),
+                    succeeded: false);
+            }
+
+            long requiredCapacity = CalculatePostbuildRequiredCapacity(commandPlan, []);
+            if (capacity < requiredCapacity)
+            {
+                return CreateReplaceReportRunResult(
+                    icId,
+                    "General",
+                    reportSlotPaths,
+                    build,
+                    CreateGeneralReplacePlanningOperations(explicitMappings),
+                    [
+                        new CompositionIssue(
+                            "input.address-space.length-mismatch",
+                            $"Base flash BIN is too short for {icId} / {number} General Replace postbuild (actual {capacity} bytes, required at least {requiredCapacity} bytes).",
+                            "replace-base"),
+                    ],
+                    GetReplaceDefaultOutputFileName(icId, "General"),
+                    succeeded: false);
+            }
+
+            postbuildWriteRanges = CreateGeneralPostbuildAllowedWriteRanges(commandPlan, capacity);
+            if (postbuildWriteRanges.Count == 0)
+            {
+                return CreateReplaceReportRunResult(
+                    icId,
+                    "General",
+                    reportSlotPaths,
+                    build,
+                    CreateGeneralReplacePlanningOperations(explicitMappings),
+                    [
+                        new CompositionIssue(
+                            "replace.general.postbuild-write-range-missing",
+                            "No approved postbuild write range could be derived for TP-touching General Replace.",
+                            "postbuild"),
+                    ],
+                    GetReplaceDefaultOutputFileName(icId, "General"),
+                    succeeded: false);
+            }
+        }
+
+        CompositionProfileDefinition profile = CreateGeneralReplaceProfile(
+            icId,
+            selection,
+            capacity,
+            postbuildProfileResolved ? postbuildProfile : null,
+            commandPlan,
+            postbuildWriteRanges);
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(
             profile,
             explicitMappings,
@@ -145,7 +241,11 @@ public static partial class WorkbenchCompositionService
         AtomicFileCompositionOutputWriter? writer = build
             ? new AtomicFileCompositionOutputWriter(outputDirectory, overwrite: true)
             : null;
-        CompositionRunService service = new(reader, new SystemClock(), writer);
+        CompositionRunService service = new(
+            reader,
+            new SystemClock(),
+            writer,
+            commandPlan is null ? null : ExternalProcessorFactory.CreateOrNull());
         CompositionRunRequest request = new(
             $"ui-replace-general-{(build ? "build" : "preview")}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture)}",
             ToRunProfile(profile),
@@ -173,23 +273,19 @@ public static partial class WorkbenchCompositionService
 
     private static CompositionProfileDefinition CreateGeneralReplaceProfile(
         string icId,
-        string number,
+        IcNumberSelection selection,
         long capacity,
-        string basePath)
+        LegacyCombinerPostbuildProfile? postbuildProfile,
+        LegacyCombinerPostbuildCommandPlan? commandPlan,
+        IReadOnlyList<ByteRange> postbuildWriteRanges)
     {
         string normalizedIc = icId.ToLowerInvariant();
-        IcNumberSelection selection = ToIcNumberSelection(number);
-        LegacyCombinerPostbuildProfile? postbuildProfile = TryResolvePostbuildProfileForDisplay(
-            icId,
-            basePath,
-            out LegacyCombinerPostbuildProfile? profile)
-                ? profile
-                : null;
         ProfileRegion[] regions = CreateGeneralReplaceRegions(
             icId,
             selection,
             capacity,
-            postbuildProfile);
+            postbuildProfile,
+            postbuildWriteRanges);
         RegionAccessRule[] accessRules =
         [
             .. regions.Select(region => new RegionAccessRule(
@@ -201,6 +297,23 @@ public static partial class WorkbenchCompositionService
                     ? "General Replace explicit mapping range."
                     : "Protected from General Replace.")),
         ];
+        CompositionOperation[] operations = commandPlan is null || postbuildProfile is null
+            ? []
+            :
+            [
+                CompositionOperation.RunExternalProcessor(
+                    $"postbuild-{commandPlan.Branch.ToString().ToLowerInvariant()}",
+                    GeneralReplacePostbuildSequence,
+                    "output-image",
+                    new ByteRange(0, capacity),
+                    new ExternalProcessorInvocation(
+                        postbuildProfile.ProcessorId,
+                        postbuildProfile.ToolBindingId,
+                        [new ByteRange(0, capacity)],
+                        postbuildWriteRanges),
+                    OverlapPolicy.ReplaceExisting,
+                    $"Run {commandPlan.Branch} legacy Combiner postbuild after TP-touching General Replace mappings. Combiner command: {FormatPostbuildCommandBlock(commandPlan)}."),
+            ];
 
         return new CompositionProfileDefinition(
             $"{normalizedIc}-general-replace-workbench",
@@ -215,7 +328,7 @@ public static partial class WorkbenchCompositionService
                 new AddressSpace("reference-base", capacity, AddressSpaceMutability.Immutable),
                 new AddressSpace("output-image", capacity, AddressSpaceMutability.Mutable),
             ],
-            [],
+            operations,
             regions,
             accessRules,
             selection.Mode);
@@ -225,19 +338,25 @@ public static partial class WorkbenchCompositionService
         string icId,
         IcNumberSelection selection,
         long capacity,
-        LegacyCombinerPostbuildProfile? postbuildProfile)
+        LegacyCombinerPostbuildProfile? postbuildProfile,
+        IReadOnlyList<ByteRange> postbuildWriteRanges)
     {
         List<ProfileRegion> regions = [];
+        IReadOnlyList<ByteRange> normalizedPostbuildWriteRanges = NormalizeGeneralPostbuildWriteRanges(
+            postbuildWriteRanges,
+            capacity);
         long protectedHeaderEnd = Math.Min(capacity, GeneralReplaceProtectedHeaderLength);
         if (protectedHeaderEnd > 0)
         {
-            regions.Add(new ProfileRegion(
+            AddGeneralReplaceSplitRegion(
+                regions,
                 "protected-header",
                 "output-image",
                 new ByteRange(0, protectedHeaderEnd),
                 RegionAtomicity.Whole,
                 RegionWritePolicy.Forbidden,
-                classificationTags: ["header", "protected"]));
+                ["header", "protected"],
+                normalizedPostbuildWriteRanges);
         }
 
         foreach (TpFlashMapRegion region in TpFlashMapCatalog.GetRegions(
@@ -253,16 +372,151 @@ public static partial class WorkbenchCompositionService
             }
 
             bool explicitRange = region.Kind is TpFlashMapRegionKind.Dp or TpFlashMapRegionKind.CtrlRam;
-            regions.Add(new ProfileRegion(
+            AddGeneralReplaceSplitRegion(
+                regions,
                 region.RegionId,
                 "output-image",
                 ByteRange.FromStartEndExclusive(start, end),
                 explicitRange ? RegionAtomicity.ExplicitMapping : RegionAtomicity.Whole,
                 explicitRange ? RegionWritePolicy.GeneralExplicit : RegionWritePolicy.Forbidden,
-                classificationTags: CreateGeneralReplaceRegionTags(region)));
+                CreateGeneralReplaceRegionTags(region),
+                normalizedPostbuildWriteRanges);
+        }
+
+        if (postbuildProfile is not null)
+        {
+            foreach ((ByteRange range, int index) in normalizedPostbuildWriteRanges.Select((range, index) => (range, index)))
+            {
+                regions.Add(new ProfileRegion(
+                    FormattableString.Invariant($"postbuild-write-{index:D2}"),
+                    "output-image",
+                    range,
+                    RegionAtomicity.Whole,
+                    RegionWritePolicy.Forbidden,
+                    processorDependencyIds: [postbuildProfile.ProcessorId],
+                    classificationTags: ["postbuild", "protected"]));
+            }
         }
 
         return [.. regions];
+    }
+
+    private static void AddGeneralReplaceSplitRegion(
+        List<ProfileRegion> regions,
+        string regionId,
+        string addressSpaceId,
+        ByteRange range,
+        RegionAtomicity atomicity,
+        RegionWritePolicy writePolicy,
+        IReadOnlyList<string> classificationTags,
+        IReadOnlyList<ByteRange> postbuildWriteRanges)
+    {
+        List<ByteRange> remainingSegments = SubtractRanges(range, postbuildWriteRanges);
+        bool split = remainingSegments.Count != 1 || remainingSegments[0] != range;
+        foreach ((ByteRange segment, int index) in remainingSegments.Select((segment, index) => (segment, index)))
+        {
+            regions.Add(new ProfileRegion(
+                split ? FormattableString.Invariant($"{regionId}-{index:D2}") : regionId,
+                addressSpaceId,
+                segment,
+                atomicity,
+                writePolicy,
+                classificationTags: classificationTags));
+        }
+    }
+
+    private static List<ByteRange> SubtractRanges(
+        ByteRange source,
+        IReadOnlyList<ByteRange> removedRanges)
+    {
+        ByteRange[] overlaps =
+        [
+            .. removedRanges
+                .Select(source.Intersect)
+                .Where(overlap => overlap is not null)
+                .Select(overlap => overlap!.Value),
+        ];
+        if (overlaps.Length == 0)
+        {
+            return [source];
+        }
+
+        SortedSet<long> splitPoints = [source.Start, source.EndExclusive];
+        foreach (ByteRange overlap in overlaps)
+        {
+            _ = splitPoints.Add(overlap.Start);
+            _ = splitPoints.Add(overlap.EndExclusive);
+        }
+
+        long[] points = [.. splitPoints];
+        List<ByteRange> ranges = [];
+        for (int index = 0; index < points.Length - 1; index++)
+        {
+            var segment = ByteRange.FromStartEndExclusive(points[index], points[index + 1]);
+            if (!overlaps.Any(overlap => overlap.Overlaps(segment)))
+            {
+                ranges.Add(segment);
+            }
+        }
+
+        return ranges;
+    }
+
+    private static IReadOnlyList<ByteRange> NormalizeGeneralPostbuildWriteRanges(
+        IReadOnlyList<ByteRange> postbuildWriteRanges,
+        long capacity)
+    {
+        return
+        [
+            .. postbuildWriteRanges
+                .Where(range => range.Start >= 0 && range.EndExclusive <= capacity)
+                .Distinct()
+                .OrderBy(range => range.Start)
+                .ThenBy(range => range.Length),
+        ];
+    }
+
+    private static bool GeneralReplaceTouchesTpRegion(
+        IReadOnlyList<TpFlashMapRegion> regions,
+        IReadOnlyList<ExplicitMapping> explicitMappings)
+    {
+        return explicitMappings.Any(mapping => regions.Any(region =>
+            IsGeneralReplaceTpRegion(region) &&
+            region.Range.Overlaps(mapping.TargetRange)));
+    }
+
+    private static bool IsGeneralReplaceTpRegion(TpFlashMapRegion region)
+    {
+        return region.Kind == TpFlashMapRegionKind.CtrlRam ||
+            region.Tags.Any(tag =>
+                string.Equals(tag, "tp", StringComparison.OrdinalIgnoreCase) ||
+                tag.StartsWith("tp-", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static List<ByteRange> CreateGeneralPostbuildAllowedWriteRanges(
+        LegacyCombinerPostbuildCommandPlan commandPlan,
+        long capacity)
+    {
+        List<ByteRange> candidateRanges = [];
+        foreach (LegacyCombinerPostbuildCommand command in commandPlan.Commands)
+        {
+            foreach (LegacyCombinerBlockArgument block in command.Blocks)
+            {
+                if (block.FirmwareRange.EndExclusive > capacity)
+                {
+                    continue;
+                }
+
+                if (block.SourceKind == LegacyCombinerBlockSourceKind.FirmwareImage &&
+                    block.SourceOffset != block.FirmwareRange.Start)
+                {
+                    candidateRanges.Add(block.FirmwareRange);
+                }
+            }
+        }
+
+        candidateRanges.AddRange(LegacyCombinerPostbuildPlanner.GetKnownIntegrityWriteRanges(commandPlan, capacity));
+        return NormalizeCandidateWriteRanges(candidateRanges, []);
     }
 
     private static IReadOnlyList<string> CreateGeneralReplaceRegionTags(TpFlashMapRegion region)

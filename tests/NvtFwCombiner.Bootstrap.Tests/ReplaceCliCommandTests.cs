@@ -305,13 +305,15 @@ public sealed class ReplaceCliCommandTests
         Assert.Equal(2, root.GetProperty("Operations").GetArrayLength());
     }
 
-    /// <summary>Verifies real IC General Replace CLI keeps TP/CtrlRAM mappings blocked until postbuild is approved.</summary>
+    /// <summary>Verifies real IC General Replace CLI runs postbuild when a mapping touches TP/CtrlRAM.</summary>
     [Fact]
-    public async Task GeneralReplacePreviewRejectsWorkbenchTpMappingWithoutPostbuild()
+    public async Task GeneralReplacePreviewRunsPostbuildForWorkbenchTpMapping()
     {
         using var workspace = TempWorkspace.Create();
-        string reference = workspace.Write("reference.bin", CreatePattern(0x40000, 0x30));
-        string input = workspace.Write("input.bin", [0xA5, 0x5A]);
+        string reference = GoldenPath("expected/51950/dp-256k/flash.bin");
+        byte[] baseBytes = await File.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken);
+        string input = workspace.Write("input.bin", baseBytes[0x22C00..0x22C02]);
+        string report = workspace.PathFor("general-replace-tp-report.json");
 
         CliRunResult result = await RunCliAsync([
             "general-replace",
@@ -324,11 +326,28 @@ public sealed class ReplaceCliCommandTests
             reference,
             "--mapping",
             $"0x22C00+0x2={input}",
+            "--report",
+            report,
         ]);
 
-        Assert.Equal(1, result.ExitCode);
-        Assert.Contains("Status: Blocked", result.Output, StringComparison.Ordinal);
-        Assert.Contains("profile.explicit-mapping.tp-processor-required", result.Error, StringComparison.Ordinal);
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
+        Assert.Contains("postbuild-singlechip", result.Output, StringComparison.Ordinal);
+
+        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(
+            report,
+            TestContext.Current.CancellationToken));
+        JsonElement root = document.RootElement;
+        Assert.Equal("general-replace", root.GetProperty("ExperienceId").GetString());
+        Assert.Collection(
+            root.GetProperty("Operations").EnumerateArray(),
+            operation => Assert.Equal("ReplaceRange", operation.GetProperty("Kind").GetString()),
+            operation =>
+            {
+                Assert.Equal("RunExternalProcessor", operation.GetProperty("Kind").GetString());
+                Assert.Equal("nfc.nt51950.ctrlram-postbuild-v1", operation.GetProperty("ProcessorId").GetString());
+                Assert.Equal("legacy-combiner-1.13.0", operation.GetProperty("ToolBindingId").GetString());
+            });
     }
 
     /// <summary>Verifies malformed real IC General Replace mapping paths are rejected before planning.</summary>
@@ -506,6 +525,16 @@ public sealed class ReplaceCliCommandTests
     private static string ManifestPath(string fixtureRoot, JsonElement pathElement)
     {
         return Path.Combine(fixtureRoot, pathElement.GetString()!.Replace('/', Path.DirectorySeparatorChar));
+    }
+
+    private static string GoldenPath(string relativePath)
+    {
+        return Path.Combine(
+            FindRepositoryRoot(),
+            "testdata",
+            "golden",
+            "standard-merge-gen-flash",
+            relativePath.Replace('/', Path.DirectorySeparatorChar));
     }
 
     private static byte[] CreatePattern(int length, byte seed)

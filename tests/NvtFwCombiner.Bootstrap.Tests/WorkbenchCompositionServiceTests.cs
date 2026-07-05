@@ -58,18 +58,18 @@ public sealed class WorkbenchCompositionServiceTests
         }
     }
 
-    /// <summary>Verifies General Replace refuses TP/CtrlRAM mappings until approved postbuild refresh is wired.</summary>
+    /// <summary>Verifies General Replace runs postbuild when an explicit mapping touches TP/CtrlRAM.</summary>
     [Fact]
-    public async Task GeneralReplacePreviewRejectsTpRangeWithoutPostbuild()
+    public async Task GeneralReplacePreviewRunsPostbuildForTpRange()
     {
         string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-workbench-general-tp-{Guid.NewGuid():N}");
         try
         {
             _ = Directory.CreateDirectory(tempRoot);
-            string basePath = Path.Combine(tempRoot, "base.bin");
+            string basePath = GoldenPath("expected/51950/dp-256k/flash.bin");
             string replacementPath = Path.Combine(tempRoot, "replacement.bin");
-            File.WriteAllBytes(basePath, CreatePattern(0x40000, 0x30));
-            File.WriteAllBytes(replacementPath, [0xA5, 0x5A]);
+            byte[] baseBytes = File.ReadAllBytes(basePath);
+            File.WriteAllBytes(replacementPath, baseBytes[0x22C00..0x22C02]);
             Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
             {
                 ["replace-base"] = basePath,
@@ -84,10 +84,18 @@ public sealed class WorkbenchCompositionServiceTests
                 build: false,
                 TestContext.Current.CancellationToken);
 
-            Assert.False(result.Succeeded);
+            Assert.True(result.Succeeded, result.ReportJson);
             using var document = JsonDocument.Parse(result.ReportJson);
-            JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
-            Assert.Equal("profile.explicit-mapping.tp-processor-required", issue.GetProperty("Code").GetString());
+            Assert.Empty(document.RootElement.GetProperty("Issues").EnumerateArray());
+            Assert.Collection(
+                document.RootElement.GetProperty("Operations").EnumerateArray(),
+                operation => Assert.Equal("ReplaceRange", operation.GetProperty("Kind").GetString()),
+                operation =>
+                {
+                    Assert.Equal("RunExternalProcessor", operation.GetProperty("Kind").GetString());
+                    Assert.Equal("nfc.nt51950.ctrlram-postbuild-v1", operation.GetProperty("ProcessorId").GetString());
+                    Assert.Equal("legacy-combiner-1.13.0", operation.GetProperty("ToolBindingId").GetString());
+                });
         }
         finally
         {
@@ -149,5 +157,31 @@ public sealed class WorkbenchCompositionServiceTests
         }
 
         return bytes;
+    }
+
+    private static string GoldenPath(string relativePath)
+    {
+        return Path.Combine(
+            FindRepositoryRoot(),
+            "testdata",
+            "golden",
+            "standard-merge-gen-flash",
+            relativePath.Replace('/', Path.DirectorySeparatorChar));
+    }
+
+    private static string FindRepositoryRoot()
+    {
+        string? directory = AppContext.BaseDirectory;
+        while (!string.IsNullOrWhiteSpace(directory))
+        {
+            if (File.Exists(Path.Combine(directory, "SPEC.md")))
+            {
+                return directory;
+            }
+
+            directory = Directory.GetParent(directory)?.FullName;
+        }
+
+        throw new InvalidOperationException("Unable to locate repository root.");
     }
 }

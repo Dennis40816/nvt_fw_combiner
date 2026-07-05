@@ -371,6 +371,61 @@ public sealed class ShellViewModelTests
         }
     }
 
+    /// <summary>Verifies General Replace UI routes TP-touching explicit mappings through postbuild.</summary>
+    [Fact]
+    public async Task GeneralReplacePreviewRunsPostbuildForTpMapping()
+    {
+        string repositoryRoot = FindRepositoryRoot();
+        string basePath = Path.Combine(
+            repositoryRoot,
+            "testdata",
+            "golden",
+            "standard-merge-gen-flash",
+            "expected",
+            "51950",
+            "dp-256k",
+            "flash.bin");
+        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-general-replace-tp-{Guid.NewGuid():N}");
+        try
+        {
+            _ = Directory.CreateDirectory(tempRoot);
+            byte[] baseBytes = File.ReadAllBytes(basePath);
+            string replacementPath = Path.Combine(tempRoot, "self-nf.bin");
+            File.WriteAllBytes(replacementPath, baseBytes[0x22C00..0x22C02]);
+
+            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+            viewModel.SelectedIc = "NT51950";
+            viewModel.ShowGeneralReplaceCommand.Execute(null);
+            viewModel.SetSlotFile("replace-base", basePath);
+            GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.GeneralReplaceMappings);
+            mapping.StartAddress = "0x22C00";
+            mapping.EndAddress = "0x22C01";
+            viewModel.SetGeneralReplaceMappingFile(mapping.MappingId, replacementPath);
+
+            Assert.True(viewModel.CanPreviewReplace);
+            Assert.Contains("run postbuild", viewModel.ReplaceReadinessStatus, StringComparison.Ordinal);
+
+            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+
+            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+            Assert.True(viewModel.HasLoadedReport);
+            Assert.Contains(viewModel.LoadedReport.Operations, operation =>
+                operation.Title.Contains("postbuild-", StringComparison.Ordinal) &&
+                operation.HasCodeBlock &&
+                operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
+            Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
+                operation.Title.Contains("postbuild-", StringComparison.Ordinal) &&
+                operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+    }
+
     /// <summary>Verifies CtrlRAM plan rows promote readable region labels over raw postbuild filenames.</summary>
     [Fact]
     public void CtrlRamPlanRowsExposeReadablePrimaryLabels()
