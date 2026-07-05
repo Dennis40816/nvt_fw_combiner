@@ -84,6 +84,116 @@ public static class LegacyCombinerPostbuildPlanner
         ];
     }
 
+    /// <summary>Calculates the minimum firmware image capacity needed by a postbuild plan.</summary>
+    public static long CalculateRequiredCapacity(
+        LegacyCombinerPostbuildCommandPlan plan,
+        IEnumerable<ByteRange> requiredTargetRanges)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(requiredTargetRanges);
+
+        long requiredCapacity = 1;
+        foreach (ByteRange range in requiredTargetRanges)
+        {
+            requiredCapacity = Math.Max(requiredCapacity, range.EndExclusive);
+        }
+
+        foreach (LegacyCombinerPostbuildCommand command in plan.Commands)
+        {
+            foreach (LegacyCombinerBlockArgument block in command.Blocks)
+            {
+                requiredCapacity = Math.Max(requiredCapacity, block.FirmwareRange.EndExclusive);
+                if (block.SourceKind == LegacyCombinerBlockSourceKind.FirmwareImage)
+                {
+                    requiredCapacity = Math.Max(
+                        requiredCapacity,
+                        checked(block.SourceOffset + block.FirmwareRange.Length));
+                }
+            }
+        }
+
+        return requiredCapacity;
+    }
+
+    /// <summary>Returns write ranges allowed when staged BIN sources are pasted back by Combiner.</summary>
+    public static IReadOnlyList<ByteRange> GetAllowedWriteRangesForStagedSources(
+        LegacyCombinerPostbuildCommandPlan plan,
+        long capacity,
+        IEnumerable<ByteRange> allowedStagedTargetRanges,
+        IEnumerable<ByteRange> allStagedTargetRanges)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(allowedStagedTargetRanges);
+        ArgumentNullException.ThrowIfNull(allStagedTargetRanges);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
+
+        ByteRange[] allowedStagedRanges = [.. allowedStagedTargetRanges];
+        ByteRange[] stagedRanges = [.. allStagedTargetRanges];
+        List<ByteRange> candidateRanges = [];
+        foreach (LegacyCombinerPostbuildCommand command in plan.Commands)
+        {
+            foreach (LegacyCombinerBlockArgument block in command.Blocks)
+            {
+                if (block.FirmwareRange.EndExclusive > capacity)
+                {
+                    continue;
+                }
+
+                if (block.SourceKind == LegacyCombinerBlockSourceKind.StagedFile)
+                {
+                    foreach (ByteRange allowedStagedRange in allowedStagedRanges)
+                    {
+                        ByteRange? overlap = block.FirmwareRange.Intersect(allowedStagedRange);
+                        if (overlap is not null)
+                        {
+                            candidateRanges.Add(overlap.Value);
+                        }
+                    }
+
+                    continue;
+                }
+
+                if (block.SourceOffset != block.FirmwareRange.Start)
+                {
+                    candidateRanges.Add(block.FirmwareRange);
+                }
+            }
+        }
+
+        candidateRanges.AddRange(GetKnownIntegrityWriteRanges(plan, capacity));
+        return NormalizeCandidateWriteRanges(candidateRanges, stagedRanges);
+    }
+
+    /// <summary>Returns write ranges allowed when Combiner only refreshes firmware-owned header/integrity bytes.</summary>
+    public static IReadOnlyList<ByteRange> GetAllowedWriteRangesForInPlaceRefresh(
+        LegacyCombinerPostbuildCommandPlan plan,
+        long capacity)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
+
+        List<ByteRange> candidateRanges = [];
+        foreach (LegacyCombinerPostbuildCommand command in plan.Commands)
+        {
+            foreach (LegacyCombinerBlockArgument block in command.Blocks)
+            {
+                if (block.FirmwareRange.EndExclusive > capacity)
+                {
+                    continue;
+                }
+
+                if (block.SourceKind == LegacyCombinerBlockSourceKind.FirmwareImage &&
+                    block.SourceOffset != block.FirmwareRange.Start)
+                {
+                    candidateRanges.Add(block.FirmwareRange);
+                }
+            }
+        }
+
+        candidateRanges.AddRange(GetKnownIntegrityWriteRanges(plan, capacity));
+        return NormalizeCandidateWriteRanges(candidateRanges, []);
+    }
+
     private static LegacyCombinerPostbuildBranch ResolveBranch(
         LegacyCombinerPostbuildProfile profile,
         IcNumberSelection? selection)
@@ -160,5 +270,49 @@ public static class LegacyCombinerPostbuildPlanner
         {
             ranges.Add(range);
         }
+    }
+
+    private static IReadOnlyList<ByteRange> NormalizeCandidateWriteRanges(
+        List<ByteRange> candidateRanges,
+        IReadOnlyList<ByteRange> stagedTargetRanges)
+    {
+        if (candidateRanges.Count == 0)
+        {
+            return [];
+        }
+
+        SortedSet<long> splitPoints = [];
+        foreach (ByteRange range in candidateRanges)
+        {
+            _ = splitPoints.Add(range.Start);
+            _ = splitPoints.Add(range.EndExclusive);
+            foreach (ByteRange stagedRange in stagedTargetRanges)
+            {
+                ByteRange? overlap = range.Intersect(stagedRange);
+                if (overlap is not null)
+                {
+                    _ = splitPoints.Add(overlap.Value.Start);
+                    _ = splitPoints.Add(overlap.Value.EndExclusive);
+                }
+            }
+        }
+
+        long[] points = [.. splitPoints];
+        List<ByteRange> ranges = [];
+        for (int index = 0; index < points.Length - 1; index++)
+        {
+            var segment = ByteRange.FromStartEndExclusive(points[index], points[index + 1]);
+            if (candidateRanges.Any(range => range.Contains(segment)))
+            {
+                ranges.Add(segment);
+            }
+        }
+
+        return [
+            .. ranges
+                .Distinct()
+                .OrderBy(range => range.Start)
+                .ThenBy(range => range.Length),
+        ];
     }
 }

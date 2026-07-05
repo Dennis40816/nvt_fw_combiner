@@ -117,7 +117,9 @@ public static partial class WorkbenchCompositionService
 
         if (commandPlan is not null && baseLength > 0)
         {
-            long requiredCapacity = CalculatePostbuildRequiredCapacity(commandPlan, selectedRegions);
+            long requiredCapacity = LegacyCombinerPostbuildPlanner.CalculateRequiredCapacity(
+                commandPlan,
+                selectedRegions.Select(region => region.Range));
             if (baseLength < requiredCapacity)
             {
                 validationIssues.Add(new CompositionIssue(
@@ -149,11 +151,11 @@ public static partial class WorkbenchCompositionService
                 succeeded: false);
         }
 
-        List<ByteRange> postbuildWriteRanges = CreatePostbuildAllowedWriteRanges(
+        IReadOnlyList<ByteRange> postbuildWriteRanges = LegacyCombinerPostbuildPlanner.GetAllowedWriteRangesForStagedSources(
             commandPlan,
             baseLength,
-            regions,
-            regions);
+            regions.Select(region => region.Range),
+            regions.Select(region => region.Range));
         if (postbuildWriteRanges.Count == 0)
         {
             return CreateReplaceReportRunResult(
@@ -230,7 +232,7 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<TpFlashMapRegion> selectedRegions,
         LegacyCombinerPostbuildProfile postbuildProfile,
         LegacyCombinerPostbuildCommandPlan commandPlan,
-        List<ByteRange> postbuildWriteRanges)
+        IReadOnlyList<ByteRange> postbuildWriteRanges)
     {
         string normalizedIc = icId.ToLowerInvariant();
         List<AddressSpace> addressSpaces =
@@ -519,30 +521,6 @@ public static partial class WorkbenchCompositionService
         }
 
         return [.. bindings];
-    }
-
-    private static long CalculatePostbuildRequiredCapacity(
-        LegacyCombinerPostbuildCommandPlan commandPlan,
-        List<TpFlashMapRegion> selectedRegions)
-    {
-        long requiredCapacity = selectedRegions.Count == 0
-            ? 1
-            : selectedRegions.Max(region => region.Range.EndExclusive);
-        foreach (LegacyCombinerPostbuildCommand command in commandPlan.Commands)
-        {
-            foreach (LegacyCombinerBlockArgument block in command.Blocks)
-            {
-                requiredCapacity = Math.Max(requiredCapacity, block.FirmwareRange.EndExclusive);
-                if (block.SourceKind == LegacyCombinerBlockSourceKind.FirmwareImage)
-                {
-                    requiredCapacity = Math.Max(
-                        requiredCapacity,
-                        checked(block.SourceOffset + block.FirmwareRange.Length));
-                }
-            }
-        }
-
-        return requiredCapacity;
     }
 
 }
