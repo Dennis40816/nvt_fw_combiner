@@ -13,6 +13,7 @@ public sealed class ReportReviewViewModel
         string subtitle,
         string status,
         string output,
+        string outputArtifactPath,
         IReadOnlyList<ReportLineViewModel> inputs,
         IReadOnlyList<ReportLineViewModel> operations,
         IReadOnlyList<ReportLineViewModel> mutations,
@@ -24,6 +25,8 @@ public sealed class ReportReviewViewModel
         Subtitle = subtitle;
         Status = status;
         Output = output;
+        OutputArtifactPath = string.IsNullOrWhiteSpace(outputArtifactPath) ? string.Empty : outputArtifactPath;
+        HasOutputArtifactPath = !string.IsNullOrWhiteSpace(OutputArtifactPath);
         Inputs = inputs;
         Operations = operations;
         CommandOperations = [.. operations.Where(operation => operation.HasCodeBlock)];
@@ -63,6 +66,7 @@ public sealed class ReportReviewViewModel
         "Load a run report JSON to review it here.",
         "Idle",
         string.Empty,
+        string.Empty,
         [],
         [],
         [],
@@ -85,6 +89,12 @@ public sealed class ReportReviewViewModel
 
     /// <summary>Output artifact summary.</summary>
     public string Output { get; }
+
+    /// <summary>Host-side output artifact path for the current UI session, not persisted in report JSON.</summary>
+    public string OutputArtifactPath { get; }
+
+    /// <summary>True when the current UI session knows the committed output artifact path.</summary>
+    public bool HasOutputArtifactPath { get; }
 
     /// <summary>Input artifact rows.</summary>
     public IReadOnlyList<ReportLineViewModel> Inputs { get; }
@@ -189,7 +199,10 @@ public sealed class ReportReviewViewModel
     public bool ShouldExpandStepOperations { get; }
 
     /// <summary>Loads a readable report model from run report JSON.</summary>
-    public static ReportReviewViewModel FromJson(string json, string sourceName)
+    public static ReportReviewViewModel FromJson(
+        string json,
+        string sourceName,
+        string? outputArtifactPath = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(json);
         using var document = JsonDocument.Parse(json);
@@ -216,6 +229,7 @@ public sealed class ReportReviewViewModel
             $"{compositionKind} / {experienceId} / {Shorten(runId, 18)} / {startedAt}",
             status,
             ParseOutput(root),
+            outputArtifactPath ?? string.Empty,
             inputs,
             operations,
             mutations,
@@ -235,6 +249,7 @@ public sealed class ReportReviewViewModel
             "Report could not be loaded",
             sourceName,
             status,
+            string.Empty,
             string.Empty,
             [],
             [],

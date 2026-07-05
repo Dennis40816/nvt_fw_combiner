@@ -162,7 +162,10 @@ public sealed partial class MainWindowViewModel
     private void ApplyRunResult(WorkbenchRunResult result, bool build)
     {
         string action = build ? "Build" : "Preview";
-        var report = ReportReviewViewModel.FromJson(result.ReportJson, $"{action.ToLowerInvariant()} report");
+        var report = ReportReviewViewModel.FromJson(
+            result.ReportJson,
+            $"{action.ToLowerInvariant()} report",
+            result.CommittedOutputId);
         string detail = result.Succeeded
             ? $"{result.ProfileId} / {result.OutputSize} bytes / {result.OutputSha256[..Math.Min(12, result.OutputSha256.Length)]}"
             : report.Issues.Count == 0 ? result.Status : report.Issues[0].Detail;

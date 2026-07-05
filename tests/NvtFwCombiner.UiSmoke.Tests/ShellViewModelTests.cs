@@ -941,6 +941,8 @@ public sealed class ShellViewModelTests
         Assert.True(File.Exists(outputPath), outputPath);
         Assert.Equal(baseBytes.Length, new FileInfo(outputPath).Length);
         Assert.True(viewModel.HasLoadedReport);
+        Assert.True(viewModel.LoadedReport.HasOutputArtifactPath);
+        Assert.Equal(outputPath, viewModel.LoadedReport.OutputArtifactPath);
         Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
             operation.CodeBlock.Contains("Combiner.exe", StringComparison.Ordinal));
 
@@ -963,6 +965,8 @@ public sealed class ShellViewModelTests
         await cleanViewModel.BuildReplaceAsync(cleanOutputPath);
 
         Assert.True(cleanViewModel.LastRunResult.Succeeded, cleanViewModel.LastRunResult.Detail);
+        Assert.True(cleanViewModel.LoadedReport.HasOutputArtifactPath);
+        Assert.Equal(cleanOutputPath, cleanViewModel.LoadedReport.OutputArtifactPath);
         Assert.Equal(postbuildCleanBytes, File.ReadAllBytes(cleanOutputPath));
     }
 
@@ -1139,6 +1143,8 @@ public sealed class ShellViewModelTests
         Assert.True(viewModel.HasReportToast);
         Assert.Equal(1, viewModel.ReportToastOpacity);
         Assert.Equal(json, viewModel.LoadedReportJson);
+        Assert.False(viewModel.LoadedReport.HasOutputArtifactPath);
+        Assert.Equal(string.Empty, viewModel.LoadedReport.OutputArtifactPath);
         Assert.Equal("nt51927-standard-merge-gen-flash (NT51927).json", viewModel.ReportSaveFileName);
         Assert.True(viewModel.ShowReportCommand.CanExecute(null));
         Assert.False(viewModel.LoadedReport.HasPrimaryIssue);
@@ -1161,6 +1167,13 @@ public sealed class ShellViewModelTests
         Assert.Equal(0, viewModel.LoadedReport.OperationCount);
         Assert.False(viewModel.LoadedReport.HasCommandOperations);
         Assert.False(viewModel.LoadedReport.HasStepOperations);
+
+        var reportWithSessionPath = ReportReviewViewModel.FromJson(
+            json,
+            "preview-report.json",
+            "C:/nfc/output/preview.bin");
+        Assert.True(reportWithSessionPath.HasOutputArtifactPath);
+        Assert.Equal("C:/nfc/output/preview.bin", reportWithSessionPath.OutputArtifactPath);
 
         viewModel.ShowReportCommand.Execute(null);
 
@@ -1357,6 +1370,8 @@ public sealed class ShellViewModelTests
         Assert.True(File.Exists(outputPath), outputPath);
         Assert.Equal(File.ReadAllBytes(expectedPath), File.ReadAllBytes(outputPath));
         Assert.True(viewModel.HasLoadedReport);
+        Assert.True(viewModel.LoadedReport.HasOutputArtifactPath);
+        Assert.Equal(outputPath, viewModel.LoadedReport.OutputArtifactPath);
         Assert.True(viewModel.HasReportToast);
         Assert.Equal(1, viewModel.ReportToastOpacity);
         Assert.Equal("Build report generated", viewModel.ReportToastText);
