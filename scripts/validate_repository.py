@@ -454,6 +454,11 @@ def validate_standard_merge_golden_fixtures(errors: list[str]) -> None:
 
 def validate_ctrlram_replace_golden_fixtures(errors: list[str]) -> None:
     manifest_path = ROOT / "testdata/golden/ctrlram-replace/manifest.json"
+    from verify_ctrlram_replace_fixture import verify_fixture_manifest
+    try:
+        verify_fixture_manifest(manifest_path)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        errors.append(f"ctrlram-replace golden manifest contract invalid: {exc}")
     manifest = load_json(manifest_path, errors)
     if not isinstance(manifest, dict):
         return

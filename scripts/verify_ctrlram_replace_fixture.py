@@ -49,7 +49,21 @@ FW_VERSION_BAR_OFFSET = 0x001
 COMMON_FW_MAJOR_OFFSET = 0x01A
 COMMON_FW_MINOR_OFFSET = 0x01B
 COMMON_FW_ADDITIONAL_OFFSET = 0x01C
-FWCONFIG_REQUIRED_LENGTH = COMMON_FW_ADDITIONAL_OFFSET + 1
+PROJECT_ID_OFFSET = 0x022
+FWCONFIG_REQUIRED_LENGTH = PROJECT_ID_OFFSET + 2
+DEFAULT_POSTBUILD_CATEGORIES = {
+    "NT51917": "PostbuildSetup_51927_1.4.1",
+    "NT51919": "PostbuildSetup_51932_2.0.0",
+    "NT51920": "PostbuildSetup_51920_1.3.1",
+    "NT51923": "PostbuildSetup_51923_1.4.1",
+    "NT51927": "PostbuildSetup_51927_1.4.1",
+    "NT51928": "PostbuildSetup_51927_1.4.1",
+    "NT51929": "PostbuildSetup_51932_2.0.0",
+    "NT51931": "PostbuildSetup_51931_1.3.0",
+    "NT51932": "PostbuildSetup_51932_2.0.0",
+    "NT51950": "PostbuildSetup_51950_2.0.0",
+    "NT51951": "PostbuildSetup_51950_2.0.0",
+}
 VERSIONED_POSTBUILD_CATEGORIES = {
     ("NT51926", "1.4.1"): "PostbuildSetup_51926_1.4.1",
     ("NT51926", "2.0.0"): "PostbuildSetup_51926_2.0.0",
@@ -260,6 +274,15 @@ def verify_postbuild_category(
     require(
         ic_id not in VERSIONED_POSTBUILD_ICS,
         f"{label}.commonFwVersion {common_fw_version} has no approved postbuild category for {ic_id}",
+    )
+    default_category = DEFAULT_POSTBUILD_CATEGORIES.get(ic_id)
+    require(
+        default_category is not None,
+        f"{label}.ic {ic_id} has no approved postbuild category",
+    )
+    require(
+        category == default_category,
+        f"{label}.postbuildCategory must be {default_category} for {ic_id}",
     )
 
 
