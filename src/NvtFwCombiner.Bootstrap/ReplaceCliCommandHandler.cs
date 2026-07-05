@@ -57,11 +57,17 @@ internal static partial class ReplaceCliCommandHandler
             "--source-start",
             "--target-start",
             "--length",
+            "--mapping",
             "--output",
             "--report",
         ];
         string[] flagOptions = action == "build" ? ["--overwrite"] : [];
-        string[] repeatableValueOptions = command == "ctrlram-replace" ? ["--ctrlram"] : [];
+        string[] repeatableValueOptions = command switch
+        {
+            "ctrlram-replace" => ["--ctrlram"],
+            "general-replace" => ["--mapping"],
+            _ => [],
+        };
         if (!TryParseOptions(args[1..], valueOptions, repeatableValueOptions, flagOptions, error, out ParsedOptions options))
         {
             return UsageError;
@@ -75,16 +81,26 @@ internal static partial class ReplaceCliCommandHandler
 
         if (!TryFindReplaceProfile(command, profileSelector, out CompositionProfileDefinition? selectedProfile))
         {
-            return command == "ctrlram-replace"
-                ? await RunWorkbenchCtrlRamReplaceAsync(
+            return command switch
+            {
+                "ctrlram-replace" => await RunWorkbenchCtrlRamReplaceAsync(
                         action,
                         profileSelector,
                         options,
                         output,
                         error,
                         cancellationToken)
-                    .ConfigureAwait(false)
-                : await UnknownReplaceProfileAsync(command, profileSelector, error).ConfigureAwait(false);
+                    .ConfigureAwait(false),
+                "general-replace" => await RunWorkbenchGeneralReplaceAsync(
+                        action,
+                        profileSelector,
+                        options,
+                        output,
+                        error,
+                        cancellationToken)
+                    .ConfigureAwait(false),
+                _ => await UnknownReplaceProfileAsync(command, profileSelector, error).ConfigureAwait(false),
+            };
         }
 
         if (command == "ctrlram-replace" && options.GetValues("--ctrlram").Count > 1)
@@ -628,6 +644,8 @@ internal static partial class ReplaceCliCommandHandler
             case "general-replace":
                 await output.WriteLineAsync("  nvt_fw_combiner general-replace preview --profile <id|ic> --ic-num <value> --base <path> --input <path> --source-start <n> --target-start <n> --length <n> [--output <path>] [--report <path>]").ConfigureAwait(false);
                 await output.WriteLineAsync("  nvt_fw_combiner general-replace build --profile <id|ic> --ic-num <value> --base <path> --input <path> --source-start <n> --target-start <n> --length <n> [--output <path>] [--report <path>] [--overwrite]").ConfigureAwait(false);
+                await output.WriteLineAsync("  nvt_fw_combiner general-replace preview --profile <ic> --ic-num <value> --base <path> --mapping <target-start+length=path> [--mapping <target-start+length=path> ...] [--report <path>]").ConfigureAwait(false);
+                await output.WriteLineAsync("  nvt_fw_combiner general-replace build --profile <ic> --ic-num <value> --base <path> --mapping <target-start+length=path> [--mapping <target-start+length=path> ...] [--output <path>] [--report <path>] [--overwrite]").ConfigureAwait(false);
                 break;
             default:
                 await output.WriteLineAsync("  nvt_fw_combiner <dp-replace|ctrlram-replace|general-replace> <preview|build> [options]").ConfigureAwait(false);

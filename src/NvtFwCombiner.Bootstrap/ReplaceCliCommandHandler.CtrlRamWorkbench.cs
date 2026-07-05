@@ -15,7 +15,7 @@ internal static partial class ReplaceCliCommandHandler
         TextWriter error,
         CancellationToken cancellationToken)
     {
-        if (!TryResolveWorkbenchCtrlRamIc(profileSelector, out string? icId))
+        if (!TryResolveWorkbenchIc(profileSelector, out string? icId))
         {
             return await UnknownReplaceProfileAsync("ctrlram-replace", profileSelector, error).ConfigureAwait(false);
         }
@@ -67,11 +67,11 @@ internal static partial class ReplaceCliCommandHandler
                 output,
                 cancellationToken)
             .ConfigureAwait(false);
-        await PrintWorkbenchRunResultAsync(result, icId, output, error).ConfigureAwait(false);
+        await PrintWorkbenchRunResultAsync(result, icId, "ctrlram-replace", output, error).ConfigureAwait(false);
         return result.Succeeded ? Success : CompositionFailed;
     }
 
-    private static bool TryResolveWorkbenchCtrlRamIc(
+    private static bool TryResolveWorkbenchIc(
         string selector,
         [NotNullWhen(true)] out string? icId)
     {
@@ -218,12 +218,13 @@ internal static partial class ReplaceCliCommandHandler
     private static async Task PrintWorkbenchRunResultAsync(
         WorkbenchRunResult result,
         string icId,
+        string experienceId,
         TextWriter output,
         TextWriter error)
     {
         await output.WriteLineAsync($"Status: {result.Status}").ConfigureAwait(false);
         await output.WriteLineAsync($"Profile: {result.ProfileId} ({icId})").ConfigureAwait(false);
-        await output.WriteLineAsync("Experience: ctrlram-replace").ConfigureAwait(false);
+        await output.WriteLineAsync($"Experience: {experienceId}").ConfigureAwait(false);
         await output.WriteLineAsync($"Output: {result.OutputFileName}").ConfigureAwait(false);
         await output.WriteLineAsync($"Size: {result.OutputSize.ToString(CultureInfo.InvariantCulture)} bytes").ConfigureAwait(false);
         await output.WriteLineAsync($"SHA256: {result.OutputSha256}").ConfigureAwait(false);

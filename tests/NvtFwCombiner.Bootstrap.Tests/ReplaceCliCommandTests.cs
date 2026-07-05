@@ -253,6 +253,108 @@ public sealed class ReplaceCliCommandTests
         Assert.Equal([0, 1, 0xAA, 0xBB, 4, 5, 6, 7], bytes);
     }
 
+    /// <summary>Verifies real IC General Replace CLI accepts repeated workbench mapping rows.</summary>
+    [Fact]
+    public async Task GeneralReplaceBuildAcceptsRepeatedWorkbenchMappings()
+    {
+        using var workspace = TempWorkspace.Create();
+        byte[] baseBytes = CreatePattern(0x40000, 0x40);
+        string reference = workspace.Write("reference.bin", baseBytes);
+        string firstInput = workspace.Write("first.bin", [0xA5, 0x5A]);
+        string secondInput = workspace.Write("second.bin", [0xC3]);
+        string output = workspace.PathFor("general-replace.bin");
+        string report = workspace.PathFor("general-replace-report.json");
+
+        CliRunResult result = await RunCliAsync([
+            "general-replace",
+            "build",
+            "--profile",
+            "NT51950",
+            "--ic-num",
+            "single",
+            "--base",
+            reference,
+            "--mapping",
+            $"0x100+0x2={firstInput}",
+            "--mapping",
+            $"0x38000+0x1={secondInput}",
+            "--output",
+            output,
+            "--report",
+            report,
+        ]);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
+        Assert.Contains("Experience: general-replace", result.Output, StringComparison.Ordinal);
+        Assert.Contains("nt51950-general-replace-workbench", result.Output, StringComparison.Ordinal);
+        byte[] bytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
+        Assert.Equal(baseBytes.Length, bytes.Length);
+        Assert.Equal(0xA5, bytes[0x100]);
+        Assert.Equal(0x5A, bytes[0x101]);
+        Assert.Equal(0xC3, bytes[0x38000]);
+        Assert.Equal(baseBytes[0x102], bytes[0x102]);
+
+        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(
+            report,
+            TestContext.Current.CancellationToken));
+        JsonElement root = document.RootElement;
+        Assert.Equal("nt51950-general-replace-workbench", root.GetProperty("ProfileId").GetString());
+        Assert.Equal("general-replace", root.GetProperty("ExperienceId").GetString());
+        Assert.Equal(3, root.GetProperty("Inputs").GetArrayLength());
+        Assert.Equal(2, root.GetProperty("Operations").GetArrayLength());
+    }
+
+    /// <summary>Verifies real IC General Replace CLI keeps TP/CtrlRAM mappings blocked until postbuild is approved.</summary>
+    [Fact]
+    public async Task GeneralReplacePreviewRejectsWorkbenchTpMappingWithoutPostbuild()
+    {
+        using var workspace = TempWorkspace.Create();
+        string reference = workspace.Write("reference.bin", CreatePattern(0x40000, 0x30));
+        string input = workspace.Write("input.bin", [0xA5, 0x5A]);
+
+        CliRunResult result = await RunCliAsync([
+            "general-replace",
+            "preview",
+            "--profile",
+            "NT51950",
+            "--ic-num",
+            "single",
+            "--base",
+            reference,
+            "--mapping",
+            $"0x22C00+0x2={input}",
+        ]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("Status: Blocked", result.Output, StringComparison.Ordinal);
+        Assert.Contains("profile.explicit-mapping.tp-processor-required", result.Error, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies malformed real IC General Replace mapping paths are rejected before planning.</summary>
+    [Fact]
+    public async Task GeneralReplacePreviewRejectsEmptyWorkbenchMappingPath()
+    {
+        using var workspace = TempWorkspace.Create();
+        string reference = workspace.Write("reference.bin", CreatePattern(0x40000, 0x30));
+
+        CliRunResult result = await RunCliAsync([
+            "general-replace",
+            "preview",
+            "--profile",
+            "NT51950",
+            "--ic-num",
+            "single",
+            "--base",
+            reference,
+            "--mapping",
+            "0x100+0x2=  ",
+        ]);
+
+        Assert.Equal(64, result.ExitCode);
+        Assert.Contains("--mapping path must not be empty", result.Error, StringComparison.Ordinal);
+    }
+
     /// <summary>Rejects Replace build outputs that would overwrite an input BIN.</summary>
     [Fact]
     public async Task DpReplaceBuildRejectsOutputPathThatAliasesInput()
@@ -404,6 +506,17 @@ public sealed class ReplaceCliCommandTests
     private static string ManifestPath(string fixtureRoot, JsonElement pathElement)
     {
         return Path.Combine(fixtureRoot, pathElement.GetString()!.Replace('/', Path.DirectorySeparatorChar));
+    }
+
+    private static byte[] CreatePattern(int length, byte seed)
+    {
+        byte[] bytes = new byte[length];
+        for (int index = 0; index < bytes.Length; index++)
+        {
+            bytes[index] = unchecked((byte)(seed + index));
+        }
+
+        return bytes;
     }
 
     private sealed record CliRunResult(int ExitCode, string Output, string Error);
