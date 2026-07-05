@@ -148,7 +148,7 @@ public static partial class WorkbenchCompositionService
                     succeeded: false);
             }
 
-            long requiredCapacity = CalculatePostbuildRequiredCapacity(commandPlan, []);
+            long requiredCapacity = LegacyCombinerPostbuildPlanner.CalculateRequiredCapacity(commandPlan, []);
             if (capacity < requiredCapacity)
             {
                 return CreateReplaceReportRunResult(
@@ -167,7 +167,10 @@ public static partial class WorkbenchCompositionService
                     succeeded: false);
             }
 
-            postbuildWriteRanges = CreateGeneralPostbuildAllowedWriteRanges(commandPlan, capacity);
+            postbuildWriteRanges =
+            [
+                .. LegacyCombinerPostbuildPlanner.GetAllowedWriteRangesForInPlaceRefresh(commandPlan, capacity),
+            ];
             if (postbuildWriteRanges.Count == 0)
             {
                 return CreateReplaceReportRunResult(
@@ -450,32 +453,6 @@ public static partial class WorkbenchCompositionService
             region.Tags.Any(tag =>
                 string.Equals(tag, "tp", StringComparison.OrdinalIgnoreCase) ||
                 tag.StartsWith("tp-", StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static List<ByteRange> CreateGeneralPostbuildAllowedWriteRanges(
-        LegacyCombinerPostbuildCommandPlan commandPlan,
-        long capacity)
-    {
-        List<ByteRange> candidateRanges = [];
-        foreach (LegacyCombinerPostbuildCommand command in commandPlan.Commands)
-        {
-            foreach (LegacyCombinerBlockArgument block in command.Blocks)
-            {
-                if (block.FirmwareRange.EndExclusive > capacity)
-                {
-                    continue;
-                }
-
-                if (block.SourceKind == LegacyCombinerBlockSourceKind.FirmwareImage &&
-                    block.SourceOffset != block.FirmwareRange.Start)
-                {
-                    candidateRanges.Add(block.FirmwareRange);
-                }
-            }
-        }
-
-        candidateRanges.AddRange(LegacyCombinerPostbuildPlanner.GetKnownIntegrityWriteRanges(commandPlan, capacity));
-        return NormalizeCandidateWriteRanges(candidateRanges, []);
     }
 
     private static IReadOnlyList<string> CreateGeneralReplaceRegionTags(TpFlashMapRegion region)

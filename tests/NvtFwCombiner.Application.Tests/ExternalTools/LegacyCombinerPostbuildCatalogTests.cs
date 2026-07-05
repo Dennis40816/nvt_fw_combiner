@@ -79,6 +79,62 @@ public sealed class LegacyCombinerPostbuildCatalogTests
         Assert.Contains(new ByteRange(0x27C, 4), ranges);
     }
 
+    /// <summary>Locks required capacity calculation to selected ranges and command source/target coverage.</summary>
+    [Fact]
+    public void PostbuildPlannerCalculatesRequiredCapacityFromSelectedRangesAndCommands()
+    {
+        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x,
+            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["14"]));
+
+        long requiredCapacity = LegacyCombinerPostbuildPlanner.CalculateRequiredCapacity(
+            plan,
+            [new ByteRange(0x27650, 6494)]);
+
+        Assert.Equal(0x52200, requiredCapacity);
+    }
+
+    /// <summary>Locks CtrlRAM allowed writes to staged slots plus declared postbuild/header writes.</summary>
+    [Fact]
+    public void PostbuildPlannerAllowsStagedSourceWrites()
+    {
+        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51926CommonFw141,
+            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
+        var normalRange = new ByteRange(0x22800, 11264);
+        var vnRange = new ByteRange(0x315D0, 5728);
+
+        IReadOnlyList<ByteRange> ranges = LegacyCombinerPostbuildPlanner.GetAllowedWriteRangesForStagedSources(
+            plan,
+            0x40000,
+            [normalRange, vnRange],
+            [normalRange, vnRange]);
+
+        Assert.Contains(vnRange, ranges);
+        Assert.Contains(normalRange, ranges);
+        Assert.Contains(new ByteRange(0x32F50, 256), ranges);
+        Assert.Contains(new ByteRange(0x1C, 4), ranges);
+        Assert.Contains(new ByteRange(0xFC, 4), ranges);
+    }
+
+    /// <summary>Locks General Replace postbuild refresh writes to firmware-owned header/integrity ranges.</summary>
+    [Fact]
+    public void PostbuildPlannerInPlaceRefreshExcludesStagedFileBlocks()
+    {
+        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51950,
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+
+        IReadOnlyList<ByteRange> ranges = LegacyCombinerPostbuildPlanner.GetAllowedWriteRangesForInPlaceRefresh(
+            plan,
+            0x100000);
+
+        Assert.DoesNotContain(new ByteRange(0x25610, 23552), ranges);
+        Assert.Contains(new ByteRange(0x2D30C, 512), ranges);
+        Assert.Contains(new ByteRange(0xA11C, 4), ranges);
+        Assert.Contains(new ByteRange(0xA130, 4), ranges);
+    }
+
     /// <summary>Verifies cascade selection exposes NT51950 DiffDLM postbuild blocks.</summary>
     [Fact]
     public void Nt51950CascadePlanIncludesDiffDlm()
