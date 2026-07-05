@@ -9,6 +9,8 @@
       "ic": "NT51927",
       "icNum": "3",
       "mode": "CtrlRAM",
+      "commonFwVersion": "0.0.0",
+      "postbuildCategory": "PostbuildSetup_51927_1.4.1",
       "sourceClassification": "private-owner-firmware",
       "ownerApproval": "TBD: owner name/date/sign-off",
       "base": {

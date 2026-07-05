@@ -20,6 +20,7 @@ Current behavior:
 Required owner data per case:
 
 - IC and IC number mode, for example `NT51927` / `3`.
+- Common FW version decoded from the base image and the postbuild category used for the run.
 - Base flash firmware hash and size.
 - Each replacement CtrlRAM slot id, display name, BIN hash, and size.
 - Expected final output hash and size for the staged Combiner postbuild result.
