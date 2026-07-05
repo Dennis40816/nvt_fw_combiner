@@ -1017,13 +1017,13 @@ public sealed class ShellViewModelTests
             viewModel.ShowCtrlRamReplaceCommand.Execute(null);
             viewModel.SetSlotFile(
                 "replace-base",
-                GoldenFixturePath(fixtureRoot, fixtureCase.GetProperty("base")));
+                RepositoryPaths.ManifestPath(fixtureRoot, fixtureCase.GetProperty("base")));
 
             foreach (JsonElement replacement in fixtureCase.GetProperty("replacementInputs").EnumerateArray())
             {
                 string slotId = replacement.GetProperty("slotId").GetString()!;
                 Assert.Contains(viewModel.ReplaceSlots, slot => slot.SlotId == slotId);
-                viewModel.SetSlotFile(slotId, GoldenFixturePath(fixtureRoot, replacement.GetProperty("file")));
+                viewModel.SetSlotFile(slotId, RepositoryPaths.ManifestPath(fixtureRoot, replacement.GetProperty("file")));
             }
 
             string outputPath = workspace.PathFor($"{caseId}.bin");
@@ -1050,7 +1050,7 @@ public sealed class ShellViewModelTests
             {
                 Assert.True(fixtureCase.TryGetProperty("expectedOutput", out JsonElement expectedOutput), caseId);
                 Assert.Equal(
-                    File.ReadAllBytes(GoldenFixturePath(fixtureRoot, expectedOutput)),
+                    File.ReadAllBytes(RepositoryPaths.ManifestPath(fixtureRoot, expectedOutput)),
                     File.ReadAllBytes(outputPath));
             }
         }
@@ -1716,20 +1716,6 @@ public sealed class ShellViewModelTests
             File.Copy(sourcePath, copiedPath);
             viewModel.SetSlotFile(SlotIdForAddressSpace(input.Name), copiedPath);
         }
-    }
-
-    private static string GoldenFixturePath(string fixtureRoot, JsonElement manifestFile)
-    {
-        string relativePath = manifestFile.GetProperty("path").GetString()!;
-        string candidate = Path.GetFullPath(Path.Combine(
-            fixtureRoot,
-            relativePath.Replace('/', Path.DirectorySeparatorChar)));
-        string fullFixtureRoot = Path.GetFullPath(fixtureRoot);
-        string relativeToRoot = Path.GetRelativePath(fullFixtureRoot, candidate);
-        return !relativeToRoot.StartsWith("..", StringComparison.Ordinal) &&
-            !Path.IsPathRooted(relativeToRoot)
-            ? candidate
-            : throw new InvalidOperationException($"Private fixture path escapes root: {relativePath}");
     }
 
     private static byte[] CreatePattern(int length, byte seed)
