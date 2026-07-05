@@ -1,3 +1,6 @@
+using System.ComponentModel;
+using NvtFwCombiner.Bootstrap;
+
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
@@ -28,9 +31,11 @@ public sealed partial class MainWindowViewModel
     private void AddGeneralReplaceMapping()
     {
         _generalReplaceMappingCounter++;
-        GeneralReplaceMappings.Add(new GeneralReplaceMappingViewModel(
+        var mapping = new GeneralReplaceMappingViewModel(
             $"general-map-{_generalReplaceMappingCounter}",
-            GeneralReplaceMappings.Count + 1));
+            GeneralReplaceMappings.Count + 1);
+        mapping.PropertyChanged += GeneralReplaceMappingPropertyChanged;
+        GeneralReplaceMappings.Add(mapping);
         RefreshCommandState();
     }
 
@@ -41,12 +46,32 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
+        mapping.PropertyChanged -= GeneralReplaceMappingPropertyChanged;
         _ = GeneralReplaceMappings.Remove(mapping);
         for (int index = 0; index < GeneralReplaceMappings.Count; index++)
         {
             GeneralReplaceMappings[index].SetIndex(index + 1);
         }
 
+        RefreshCommandState();
+    }
+
+    private IReadOnlyList<WorkbenchGeneralReplaceMappingInput> CreateGeneralReplaceMappingInputs()
+    {
+        return
+        [
+            .. GeneralReplaceMappings
+                .Where(mapping => mapping.HasFile)
+                .Select(mapping => new WorkbenchGeneralReplaceMappingInput(
+                    mapping.MappingId,
+                    mapping.FilePath!,
+                    mapping.StartAddress,
+                    mapping.EndAddress)),
+        ];
+    }
+
+    private void GeneralReplaceMappingPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
         RefreshCommandState();
     }
 }

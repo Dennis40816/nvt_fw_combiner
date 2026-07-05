@@ -306,7 +306,7 @@ public sealed class ShellViewModelTests
         Assert.Contains("explicit profile-approved", viewModel.SelectedReplaceModeDescription, StringComparison.Ordinal);
         Assert.False(viewModel.CanPreviewReplace);
         Assert.Equal(
-            "Preview blocked: workbench General Replace execution wiring is pending; compiled mappings must still pass profile bounds and protected-range checks.",
+            "Preview blocked: base BIN and at least one explicit replacement mapping are required.",
             viewModel.ReplaceReadinessStatus);
         _ = Assert.Single(viewModel.GeneralReplaceMappings);
 
@@ -318,6 +318,57 @@ public sealed class ShellViewModelTests
         Assert.Equal(1, viewModel.GeneralReplaceMappings[0].Index);
         Assert.Equal("No replacement BIN selected", viewModel.GeneralReplaceMappings[0].DisplayName);
         Assert.Equal(string.Empty, viewModel.GeneralReplaceMappings[0].DisplayDetail);
+    }
+
+    /// <summary>Verifies General Replace UI runs a DP explicit mapping through Preview and Build.</summary>
+    [Fact]
+    public async Task GeneralReplacePreviewAndBuildUseExplicitMappingRows()
+    {
+        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-general-replace-{Guid.NewGuid():N}");
+        try
+        {
+            _ = Directory.CreateDirectory(tempRoot);
+            byte[] baseBytes = CreatePattern(0x40000, 0x40);
+            string basePath = Path.Combine(tempRoot, "base.bin");
+            string replacementPath = Path.Combine(tempRoot, "replacement.bin");
+            string outputPath = Path.Combine(tempRoot, "general-replace.bin");
+            File.WriteAllBytes(basePath, baseBytes);
+            File.WriteAllBytes(replacementPath, [0xA5, 0x5A]);
+
+            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+            viewModel.SelectedIc = "NT51950";
+            viewModel.ShowGeneralReplaceCommand.Execute(null);
+            viewModel.SetSlotFile("replace-base", basePath);
+            GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.GeneralReplaceMappings);
+            mapping.StartAddress = "0x00100";
+            mapping.EndAddress = "0x00101";
+            viewModel.SetGeneralReplaceMappingFile(mapping.MappingId, replacementPath);
+
+            Assert.True(viewModel.CanPreviewReplace);
+            Assert.Contains("Ready", viewModel.ReplaceReadinessStatus, StringComparison.Ordinal);
+
+            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+
+            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+            Assert.True(viewModel.CanBuildReplace);
+
+            await viewModel.BuildReplaceAsync(outputPath);
+
+            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+            byte[] output = File.ReadAllBytes(outputPath);
+            Assert.Equal(0xA5, output[0x100]);
+            Assert.Equal(0x5A, output[0x101]);
+            Assert.Equal(baseBytes[0x102], output[0x102]);
+            Assert.Contains(viewModel.LoadedReport.Operations, operation =>
+                operation.Title.Contains("general-map-1", StringComparison.Ordinal));
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
     }
 
     /// <summary>Verifies CtrlRAM plan rows promote readable region labels over raw postbuild filenames.</summary>

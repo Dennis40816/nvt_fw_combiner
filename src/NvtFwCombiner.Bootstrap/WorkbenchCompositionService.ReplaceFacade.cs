@@ -255,10 +255,33 @@ public static partial class WorkbenchCompositionService
         CancellationToken cancellationToken,
         string? outputPath = null)
     {
+        return await RunReplaceAsync(
+            icId,
+            number,
+            replaceMode,
+            slotPaths,
+            [],
+            build,
+            cancellationToken,
+            outputPath).ConfigureAwait(false);
+    }
+
+    /// <summary>Runs a Replace preview or build through the workbench Replace facade.</summary>
+    public static async ValueTask<WorkbenchRunResult> RunReplaceAsync(
+        string icId,
+        string number,
+        string replaceMode,
+        IReadOnlyDictionary<string, string> slotPaths,
+        IReadOnlyList<WorkbenchGeneralReplaceMappingInput> generalReplaceMappings,
+        bool build,
+        CancellationToken cancellationToken,
+        string? outputPath = null)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(number);
         ArgumentException.ThrowIfNullOrWhiteSpace(replaceMode);
         ArgumentNullException.ThrowIfNull(slotPaths);
+        ArgumentNullException.ThrowIfNull(generalReplaceMappings);
 
         return replaceMode switch
         {
@@ -284,14 +307,14 @@ public static partial class WorkbenchCompositionService
                 build,
                 outputPath,
                 cancellationToken).ConfigureAwait(false),
-            "General" => CreatePlanningRunResult(
+            "General" => await RunGeneralReplaceAsync(
                 icId,
                 number,
-                replaceMode,
                 slotPaths,
+                generalReplaceMappings,
                 build,
-                "replace.general.profile-pending",
-                "General Replace UI authoring is available, but production build still needs compiled explicit mappings and TP-range Combiner refresh wired to the workbench runner."),
+                outputPath,
+                cancellationToken).ConfigureAwait(false),
             _ => CreatePlanningRunResult(
                 icId,
                 number,

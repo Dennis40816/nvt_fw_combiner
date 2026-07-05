@@ -254,6 +254,28 @@ public static class UiCompositionRunner
             outputPath);
     }
 
+    /// <summary>Runs Replace preview or build with workbench-authored General Replace mappings.</summary>
+    public static ValueTask<WorkbenchRunResult> RunReplaceAsync(
+        string icId,
+        string number,
+        string replaceMode,
+        IReadOnlyDictionary<string, string> slotPaths,
+        IReadOnlyList<WorkbenchGeneralReplaceMappingInput> generalReplaceMappings,
+        bool build,
+        CancellationToken cancellationToken,
+        string? outputPath = null)
+    {
+        return WorkbenchCompositionService.RunReplaceAsync(
+            icId,
+            number,
+            replaceMode,
+            slotPaths,
+            generalReplaceMappings,
+            build,
+            cancellationToken,
+            outputPath);
+    }
+
     private static MemoryMapRowViewModel ToMemoryMapRow(WorkbenchMemoryMapRow row)
     {
         return new MemoryMapRowViewModel(
