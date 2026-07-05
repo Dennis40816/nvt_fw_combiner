@@ -28,9 +28,9 @@ public sealed partial class MainWindowViewModel
     /// <summary>Compact report history summary.</summary>
     public string ReportHistorySummary => HasReportHistory
         ? ReportHistoryCount == 1
-            ? "1 report this session"
-            : $"{ReportHistoryCount} reports this session"
-        : "No reports this session";
+            ? "1 report in history"
+            : $"{ReportHistoryCount} reports in history"
+        : "No reports in history";
 
     /// <summary>True when a run report is loaded into the shell.</summary>
     public bool HasLoadedReport => !LoadedReport.IsEmpty;
@@ -72,7 +72,7 @@ public sealed partial class MainWindowViewModel
     /// <summary>Command that dismisses the compact report notification.</summary>
     public IRelayCommand DismissReportToastCommand { get; }
 
-    /// <summary>Command that reopens a session report history entry.</summary>
+    /// <summary>Command that reopens a report history entry.</summary>
     public IRelayCommand<ReportHistoryEntryViewModel> OpenReportHistoryEntryCommand { get; }
 
     /// <summary>Loads a CLI/application run report JSON into the readable report modal.</summary>
@@ -104,6 +104,53 @@ public sealed partial class MainWindowViewModel
         LoadedReportJson = string.Empty;
         CaptureLoadedReportInHistory();
         SetReportToast($"Report issue: {sourceName}");
+        NotifyReportChanged();
+        RefreshSettingsState();
+    }
+
+    /// <summary>Exports persistable report history snapshots, newest first.</summary>
+    public IReadOnlyList<ReportHistorySnapshot> ExportReportHistory()
+    {
+        return
+        [
+            .. ReportHistoryEntries
+                .Where(entry => !string.IsNullOrWhiteSpace(entry.ReportJson))
+                .Select(entry => new ReportHistorySnapshot(
+                    entry.Report.SourceName,
+                    entry.ReportJson,
+                    entry.Report.OutputArtifactPath)),
+        ];
+    }
+
+    /// <summary>Restores report history snapshots without showing a toast or re-running firmware workflows.</summary>
+    public void LoadReportHistory(IEnumerable<ReportHistorySnapshot> snapshots)
+    {
+        ArgumentNullException.ThrowIfNull(snapshots);
+
+        ReportHistoryEntries.Clear();
+        _reportHistorySequence = 0;
+        foreach (ReportHistorySnapshot snapshot in snapshots.Take(MaxReportHistoryEntries))
+        {
+            if (TryCreateReportHistoryEntry(snapshot, out ReportHistoryEntryViewModel? entry) &&
+                entry is not null)
+            {
+                ReportHistoryEntries.Add(entry);
+            }
+        }
+
+        if (ReportHistoryEntries.Count == 0)
+        {
+            LoadedReport = ReportReviewViewModel.Empty;
+            LoadedReportJson = string.Empty;
+        }
+        else
+        {
+            ReportHistoryEntryViewModel latest = ReportHistoryEntries[0];
+            LoadedReport = latest.Report;
+            LoadedReportJson = latest.ReportJson;
+        }
+
+        NotifyReportHistoryChanged();
         NotifyReportChanged();
         RefreshSettingsState();
     }
@@ -283,6 +330,31 @@ public sealed partial class MainWindowViewModel
         }
 
         NotifyReportHistoryChanged();
+    }
+
+    private bool TryCreateReportHistoryEntry(
+        ReportHistorySnapshot snapshot,
+        out ReportHistoryEntryViewModel? entry)
+    {
+        entry = null;
+        if (string.IsNullOrWhiteSpace(snapshot.ReportJson))
+        {
+            return false;
+        }
+
+        try
+        {
+            var report = ReportReviewViewModel.FromJson(
+                snapshot.ReportJson,
+                string.IsNullOrWhiteSpace(snapshot.SourceName) ? "persisted report" : snapshot.SourceName,
+                snapshot.OutputArtifactPath);
+            entry = new ReportHistoryEntryViewModel(++_reportHistorySequence, report, snapshot.ReportJson);
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
     }
 
     private void NotifyReportHistoryChanged()

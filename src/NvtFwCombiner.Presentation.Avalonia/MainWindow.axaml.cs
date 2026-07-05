@@ -32,21 +32,17 @@ public sealed partial class MainWindow : Window
         InitializeComponent();
         _reportToastHoldTimer.Tick += ReportToastHoldTimer_OnTick;
         _reportToastFadeTimer.Tick += ReportToastFadeTimer_OnTick;
-        DataContext = ShellViewModelFactory.Create();
-        if (DataContext is MainWindowViewModel viewModel)
-        {
-            ApplyThemePreference(viewModel.SelectedTheme);
-        }
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        ReportHistoryFileStore.LoadInto(viewModel);
+        DataContext = viewModel;
+        ApplyThemePreference(viewModel.SelectedTheme);
 
         if (DataContext is INotifyPropertyChanged notifier)
         {
             notifier.PropertyChanged += ViewModel_OnPropertyChanged;
         }
 
-        if (DataContext is MainWindowViewModel launchViewModel)
-        {
-            ApplyLaunchOptions(launchViewModel, launchOptions);
-        }
+        ApplyLaunchOptions(viewModel, launchOptions);
     }
 
     /// <inheritdoc />
@@ -275,6 +271,11 @@ public sealed partial class MainWindow : Window
         if (e.PropertyName == nameof(MainWindowViewModel.SelectedTheme))
         {
             ApplyThemePreference(viewModel.SelectedTheme);
+        }
+
+        if (e.PropertyName == nameof(MainWindowViewModel.ReportHistoryCount))
+        {
+            ReportHistoryFileStore.Save(viewModel);
         }
 
         if (e.PropertyName != nameof(MainWindowViewModel.HasReportToast))

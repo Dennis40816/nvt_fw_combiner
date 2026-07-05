@@ -1145,7 +1145,7 @@ public sealed class ShellViewModelTests
         Assert.Equal(json, viewModel.LoadedReportJson);
         Assert.True(viewModel.HasReportHistory);
         Assert.Equal(1, viewModel.ReportHistoryCount);
-        Assert.Equal("1 report this session", viewModel.ReportHistorySummary);
+        Assert.Equal("1 report in history", viewModel.ReportHistorySummary);
         ReportHistoryEntryViewModel historyEntry = Assert.Single(viewModel.ReportHistoryEntries);
         Assert.Equal("#1", historyEntry.SequenceLabel);
         Assert.Equal("nt51927-standard-merge-gen-flash (NT51927)", historyEntry.Title);
@@ -1268,7 +1268,7 @@ public sealed class ShellViewModelTests
 
         Assert.True(viewModel.HasReportHistory);
         Assert.Equal(2, viewModel.ReportHistoryCount);
-        Assert.Equal("2 reports this session", viewModel.ReportHistorySummary);
+        Assert.Equal("2 reports in history", viewModel.ReportHistorySummary);
         Assert.Equal("nt51927-ctrlram-replace (NT51927)", viewModel.ReportHistoryEntries[0].Title);
         Assert.Equal("1 command", viewModel.ReportHistoryEntries[0].CommandSummary);
         Assert.Equal("nt51927-standard-merge-gen-flash (NT51927)", viewModel.ReportHistoryEntries[1].Title);
@@ -1282,6 +1282,108 @@ public sealed class ShellViewModelTests
         Assert.Equal("nt51927-standard-merge-gen-flash (NT51927)", viewModel.LoadedReport.Title);
         Assert.Equal(previewJson, viewModel.LoadedReportJson);
         Assert.Equal(2, viewModel.ReportHistoryCount);
+    }
+
+    /// <summary>Verifies persisted report history snapshots restore report metadata and artifact path context.</summary>
+    [Fact]
+    public void ReportHistorySnapshotsRestoreAcrossViewModels()
+    {
+        const string json = /*lang=json,strict*/ """
+            {
+              "ProfileId": "nt51927-ctrlram-replace",
+              "IcId": "NT51927",
+              "ModeId": "ctrlram-replace",
+              "ExperienceId": "ctrlram-replace",
+              "CompositionKind": "Replace",
+              "RunId": "persisted-build-run",
+              "StartedAtUtc": "2026-07-01T00:05:00Z",
+              "Inputs": [],
+              "Operations": [],
+              "Mutations": [],
+              "Issues": [],
+              "Output": {
+                "FileName": "build.bin",
+                "Size": 32,
+                "Committed": true,
+                "Sha256": "0123456789abcdef012345"
+              }
+            }
+            """;
+        ReportHistorySnapshot snapshot = new(
+            "build-report.json",
+            json,
+            "C:/nfc/output/build.bin");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        viewModel.LoadReportHistory([snapshot]);
+
+        Assert.True(viewModel.HasLoadedReport);
+        Assert.True(viewModel.CanOpenReport);
+        Assert.False(viewModel.HasReportToast);
+        Assert.Equal("Open report", viewModel.ReportActionLabel);
+        Assert.Equal("Succeeded", viewModel.ReportActionStatus);
+        Assert.Equal("build-report.json", viewModel.LoadedReport.SourceName);
+        Assert.True(viewModel.LoadedReport.HasOutputArtifactPath);
+        Assert.Equal("C:/nfc/output/build.bin", viewModel.LoadedReport.OutputArtifactPath);
+        Assert.Equal("C:/nfc/output/build.bin", Assert.Single(viewModel.ReportHistoryEntries).ArtifactPath);
+
+        IReadOnlyList<ReportHistorySnapshot> exported = viewModel.ExportReportHistory();
+        ReportHistorySnapshot exportedSnapshot = Assert.Single(exported);
+        Assert.Equal("build-report.json", exportedSnapshot.SourceName);
+        Assert.Equal(json, exportedSnapshot.ReportJson);
+        Assert.Equal("C:/nfc/output/build.bin", exportedSnapshot.OutputArtifactPath);
+
+        MainWindowViewModel restoredViewModel = ShellViewModelFactory.Create();
+        restoredViewModel.LoadReportHistory(exported);
+
+        Assert.Equal("nt51927-ctrlram-replace (NT51927)", restoredViewModel.LoadedReport.Title);
+        Assert.Equal("C:/nfc/output/build.bin", restoredViewModel.LoadedReport.OutputArtifactPath);
+        Assert.Equal(1, restoredViewModel.ReportHistoryCount);
+    }
+
+    /// <summary>Verifies local report history persistence round-trips and fails closed for bad JSON.</summary>
+    [Fact]
+    public void ReportHistoryFileStoreRoundTripsSnapshots()
+    {
+        const string json = /*lang=json,strict*/ """
+            {
+              "ProfileId": "nt51927-standard-merge-gen-flash",
+              "IcId": "NT51927",
+              "ModeId": "standard-merge",
+              "ExperienceId": "standard-merge",
+              "CompositionKind": "Merge",
+              "RunId": "persisted-preview-run",
+              "StartedAtUtc": "2026-07-01T00:00:00Z",
+              "Inputs": [],
+              "Operations": [],
+              "Mutations": [],
+              "Issues": [],
+              "Output": {
+                "FileName": "preview.bin",
+                "Size": 16,
+                "Committed": false,
+                "Sha256": "abcdef0123456789abcdef"
+              }
+            }
+            """;
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-report-history");
+        string historyPath = workspace.PathFor(Path.Combine("state", "report-history.v1.json"));
+        ReportHistorySnapshot snapshot = new(
+            "preview-report.json",
+            json,
+            "C:/nfc/output/preview.bin");
+
+        ReportHistoryFileStore.Save(historyPath, [snapshot]);
+
+        IReadOnlyList<ReportHistorySnapshot> loaded = ReportHistoryFileStore.Load(historyPath);
+        ReportHistorySnapshot loadedSnapshot = Assert.Single(loaded);
+        Assert.Equal("preview-report.json", loadedSnapshot.SourceName);
+        Assert.Equal(json, loadedSnapshot.ReportJson);
+        Assert.Equal("C:/nfc/output/preview.bin", loadedSnapshot.OutputArtifactPath);
+
+        File.WriteAllText(historyPath, "{not valid json");
+
+        Assert.Empty(ReportHistoryFileStore.Load(historyPath));
     }
 
     /// <summary>Verifies report loading errors still produce a reopenable report modal.</summary>
