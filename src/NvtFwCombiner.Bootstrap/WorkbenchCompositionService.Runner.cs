@@ -66,7 +66,8 @@ public static partial class WorkbenchCompositionService
     private static string CreateWorkbenchRunId(string prefix, bool build)
     {
         long timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        return $"{prefix}-{(build ? "build" : "preview")}-{timestamp.ToString(CultureInfo.InvariantCulture)}";
+        string suffix = Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);
+        return $"{prefix}-{(build ? "build" : "preview")}-{timestamp.ToString(CultureInfo.InvariantCulture)}-{suffix}";
     }
 
     private static async ValueTask<CompositionRunResult> PreviewOrBuildAsync(
