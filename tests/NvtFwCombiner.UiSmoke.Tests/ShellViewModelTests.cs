@@ -240,14 +240,8 @@ public sealed class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51926";
-        string basePath = Path.Combine(
-            RepositoryPaths.FindRepositoryRoot(),
-            "testdata",
-            "golden",
-            "standard-merge-gen-flash",
-            "expected",
-            "51926",
-            "flash.bin");
+        using var golden = StandardMergeGoldenManifest.Load();
+        string basePath = golden.ExpectedOutputPath(golden.CaseByIc("51926"));
 
         viewModel.SetSlotFile("replace-base", basePath);
 
@@ -272,14 +266,8 @@ public sealed class ShellViewModelTests
         viewModel.SelectedIc = "NT51926";
         viewModel.SelectedNumber = "cascade";
         viewModel.ShowCtrlRamReplaceCommand.Execute(null);
-        string basePath = Path.Combine(
-            RepositoryPaths.FindRepositoryRoot(),
-            "testdata",
-            "golden",
-            "standard-merge-gen-flash",
-            "expected",
-            "51926",
-            "flash.bin");
+        using var golden = StandardMergeGoldenManifest.Load();
+        string basePath = golden.ExpectedOutputPath(golden.CaseByIc("51926"));
 
         Assert.Contains(viewModel.ReplaceSlots, slot =>
             slot.SlotId == "replace-ctrlram-vn" &&
@@ -371,14 +359,8 @@ public sealed class ShellViewModelTests
     [Fact]
     public async Task GeneralReplacePreviewRunsPostbuildForTpMapping()
     {
-        string basePath = RepositoryPaths.FromRepositoryRoot(
-            "testdata",
-            "golden",
-            "standard-merge-gen-flash",
-            "expected",
-            "51950",
-            "dp-256k",
-            "flash.bin");
+        using var golden = StandardMergeGoldenManifest.Load();
+        string basePath = golden.PathFromRelative("expected/51950/dp-256k/flash.bin");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-general-replace-tp");
         byte[] baseBytes = File.ReadAllBytes(basePath);
         string replacementPath = workspace.Write("self-nf.bin", baseBytes[0x22C00..0x22C02]);
@@ -623,10 +605,9 @@ public sealed class ShellViewModelTests
         ArgumentException.ThrowIfNullOrWhiteSpace(baseRelativePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(dpRelativePath);
 
-        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
-        string basePath = Path.Combine(goldenRoot, baseRelativePath.Replace('/', Path.DirectorySeparatorChar));
-        string dpPath = Path.Combine(goldenRoot, dpRelativePath.Replace('/', Path.DirectorySeparatorChar));
+        using var golden = StandardMergeGoldenManifest.Load();
+        string basePath = golden.PathFromRelative(baseRelativePath);
+        string dpPath = golden.PathFromRelative(dpRelativePath);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
         viewModel.SelectedIc = icId;
@@ -733,13 +714,8 @@ public sealed class ShellViewModelTests
     [Fact]
     public async Task CtrlRamReplacePreviewReportsPostbuildCommandTrace()
     {
-        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
-        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
-        JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
-            .EnumerateArray()
-            .Single(testCase => testCase.GetProperty("ic").GetString() == "51927");
-        byte[] baseBytes = File.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
+        using var golden = StandardMergeGoldenManifest.Load();
+        byte[] baseBytes = golden.ReadExpectedOutput(golden.CaseByIc("51927"));
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram");
         string basePath = workspace.Write("base.bin", baseBytes);
 
@@ -784,13 +760,8 @@ public sealed class ShellViewModelTests
     [Fact]
     public async Task CtrlRamReplacePreviewReportsMultipleSelectedRegions()
     {
-        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
-        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
-        JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
-            .EnumerateArray()
-            .Single(testCase => testCase.GetProperty("ic").GetString() == "51927");
-        byte[] baseBytes = File.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
+        using var golden = StandardMergeGoldenManifest.Load();
+        byte[] baseBytes = golden.ReadExpectedOutput(golden.CaseByIc("51927"));
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram-multi");
         string basePath = workspace.Write("base.bin", baseBytes);
 
@@ -834,14 +805,9 @@ public sealed class ShellViewModelTests
     [Fact]
     public async Task CtrlRamReplacePreviewAcceptsGoldenBackedVnSelfReplacement()
     {
-        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
-        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
-        JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
-            .EnumerateArray()
-            .Single(testCase => testCase.GetProperty("ic").GetString() == "51927");
+        using var golden = StandardMergeGoldenManifest.Load();
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-vn-ctrlram");
-        byte[] baseBytes = File.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
+        byte[] baseBytes = golden.ReadExpectedOutput(golden.CaseByIc("51927"));
         string basePath = workspace.Write("base-from-golden.bin", baseBytes);
 
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
@@ -877,13 +843,8 @@ public sealed class ShellViewModelTests
     [Fact]
     public async Task CtrlRamReplacePreviewSelfReplacementRunsPostbuild()
     {
-        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
-        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
-        JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
-            .EnumerateArray()
-            .Single(testCase => testCase.GetProperty("ic").GetString() == "51927");
-        byte[] baseBytes = File.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
+        using var golden = StandardMergeGoldenManifest.Load();
+        byte[] baseBytes = golden.ReadExpectedOutput(golden.CaseByIc("51927"));
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram-self");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51927";
@@ -918,13 +879,8 @@ public sealed class ShellViewModelTests
     [Fact]
     public async Task CtrlRamReplaceBuildCommitsGoldenBackedSelfReplacementOutput()
     {
-        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
-        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
-        JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
-            .EnumerateArray()
-            .Single(testCase => testCase.GetProperty("ic").GetString() == "51927");
-        byte[] baseBytes = File.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
+        using var golden = StandardMergeGoldenManifest.Load();
+        byte[] baseBytes = golden.ReadExpectedOutput(golden.CaseByIc("51927"));
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram-build");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51927";
@@ -1544,16 +1500,12 @@ public sealed class ShellViewModelTests
     [MemberData(nameof(StandardMergeGoldenCases))]
     public async Task BuildMergeFromViewModelMatchesGolden(string ic)
     {
-        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
-        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
-        JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
-            .EnumerateArray()
-            .Single(testCase => testCase.GetProperty("ic").GetString() == ic);
+        using var golden = StandardMergeGoldenManifest.Load();
+        JsonElement goldenCase = golden.CaseByIc(ic);
         using var workspace = TempWorkspace.Create($"nvt-fw-combiner-ui-{ic}");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = $"NT{ic}";
-        SetGoldenInputFiles(viewModel, workspace, goldenRoot, goldenCase);
+        golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
 
         Assert.True(viewModel.PreviewMergeCommand.CanExecute(null));
         Assert.False(viewModel.BuildMergeCommand.CanExecute(null));
@@ -1568,7 +1520,7 @@ public sealed class ShellViewModelTests
         string outputPath = workspace.PathFor("selected-output.bin");
         await viewModel.BuildStandardMergeAsync(outputPath);
 
-        string expectedPath = RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput"));
+        string expectedPath = golden.ExpectedOutputPath(goldenCase);
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.Equal(outputPath, viewModel.LastRunResult.Output);
         Assert.True(File.Exists(outputPath), outputPath);
@@ -1585,16 +1537,12 @@ public sealed class ShellViewModelTests
     [Fact]
     public async Task BuildStandardMergeRequiresFreshPreviewAfterInputChange()
     {
-        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
-        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
-        JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
-            .EnumerateArray()
-            .Single(testCase => testCase.GetProperty("ic").GetString() == "51926");
+        using var golden = StandardMergeGoldenManifest.Load();
+        JsonElement goldenCase = golden.CaseByIc("51926");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-merge-gate");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51926";
-        SetGoldenInputFiles(viewModel, workspace, goldenRoot, goldenCase);
+        golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
 
         Assert.True(viewModel.CanPreviewStandardMerge);
         Assert.False(viewModel.CanBuildStandardMerge);
@@ -1606,8 +1554,8 @@ public sealed class ShellViewModelTests
 
         JsonProperty firstInput = goldenCase.GetProperty("inputs").EnumerateObject().First();
         string replacementCopyPath = workspace.PathFor($"{firstInput.Name}-copy.bin");
-        File.Copy(RepositoryPaths.ManifestPath(goldenRoot, firstInput.Value), replacementCopyPath);
-        viewModel.SetSlotFile(SlotIdForAddressSpace(firstInput.Name), replacementCopyPath);
+        File.Copy(golden.ManifestPath(firstInput.Value), replacementCopyPath);
+        viewModel.SetSlotFile(StandardMergeGoldenManifest.SlotIdForAddressSpace(firstInput.Name), replacementCopyPath);
 
         Assert.True(viewModel.CanPreviewStandardMerge);
         Assert.False(viewModel.CanBuildStandardMerge);
@@ -1637,16 +1585,12 @@ public sealed class ShellViewModelTests
     [Fact]
     public async Task PreviewNt51950WithNt51926InputsFailsWithDetailedReportAndNoOutput()
     {
-        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
-        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
-        JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
-            .EnumerateArray()
-            .Single(testCase => testCase.GetProperty("ic").GetString() == "51926");
+        using var golden = StandardMergeGoldenManifest.Load();
+        JsonElement goldenCase = golden.CaseByIc("51926");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-950-negative");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51950";
-        SetGoldenInputFiles(viewModel, workspace, goldenRoot, goldenCase);
+        golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
 
         Assert.True(viewModel.CanPreviewStandardMerge);
         Assert.False(viewModel.CanBuildStandardMerge);
@@ -1680,42 +1624,8 @@ public sealed class ShellViewModelTests
     /// <summary>Gets every owner-approved gen_flash Standard Merge golden case.</summary>
     public static TheoryData<string> StandardMergeGoldenCases()
     {
-        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
-        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
-        TheoryData<string> cases = [];
-        foreach (JsonElement goldenCase in manifestDocument.RootElement.GetProperty("cases").EnumerateArray())
-        {
-            cases.Add(goldenCase.GetProperty("ic").GetString()!);
-        }
-
-        return cases;
-    }
-
-    private static string SlotIdForAddressSpace(string addressSpaceId)
-    {
-        return addressSpaceId switch
-        {
-            "dp-input" => "merge-dp",
-            "tp-input" => "merge-tp",
-            "ld-input" => "merge-ld",
-            _ => throw new InvalidOperationException($"Unknown address space '{addressSpaceId}'."),
-        };
-    }
-
-    private static void SetGoldenInputFiles(
-        MainWindowViewModel viewModel,
-        TempWorkspace workspace,
-        string goldenRoot,
-        JsonElement goldenCase)
-    {
-        foreach (JsonProperty input in goldenCase.GetProperty("inputs").EnumerateObject())
-        {
-            string sourcePath = RepositoryPaths.ManifestPath(goldenRoot, input.Value);
-            string copiedPath = workspace.PathFor($"{input.Name}.bin");
-            File.Copy(sourcePath, copiedPath);
-            viewModel.SetSlotFile(SlotIdForAddressSpace(input.Name), copiedPath);
-        }
+        using var golden = StandardMergeGoldenManifest.Load();
+        return golden.CaseIds();
     }
 
     private static byte[] CreatePattern(int length, byte seed)
