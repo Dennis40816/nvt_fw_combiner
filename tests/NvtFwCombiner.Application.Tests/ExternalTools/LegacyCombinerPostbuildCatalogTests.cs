@@ -7,6 +7,7 @@ namespace NvtFwCombiner.Application.Tests.ExternalTools;
 /// <summary>Executable evidence for owner-provided CtrlRAM postbuild catalog data.</summary>
 public sealed class LegacyCombinerPostbuildCatalogTests
 {
+    private const long UniversalCtrlRamSentinelLength = 0x23000;
     private static readonly string[] LegacyNormalModes = ["CRC_Enable", "CRC32_Enable", "CRC_Disable"];
     private static readonly string[] CrcMethods = ["CRC8", "CRC32"];
 
@@ -133,6 +134,22 @@ public sealed class LegacyCombinerPostbuildCatalogTests
         Assert.Contains(new ByteRange(0x2D30C, 512), ranges);
         Assert.Contains(new ByteRange(0xA11C, 4), ranges);
         Assert.Contains(new ByteRange(0xA130, 4), ranges);
+    }
+
+    /// <summary>Verifies the documented one-file sentinel covers every current staged CtrlRAM input block.</summary>
+    [Fact]
+    public void UniversalCtrlRamSentinelLengthCoversEveryStagedPostbuildBlock()
+    {
+        foreach (LegacyCombinerPostbuildCommandPlan plan in AllPlans())
+        {
+            foreach (LegacyCombinerBlockArgument block in LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(plan))
+            {
+                long requiredInputLength = checked(block.SourceOffset + block.FirmwareRange.Length);
+                Assert.True(
+                    requiredInputLength <= UniversalCtrlRamSentinelLength,
+                    $"{plan.Profile.IcId} {plan.Profile.ProcessorId} {plan.Branch} {block.BlockId} requires 0x{requiredInputLength:X}, exceeding sentinel length 0x{UniversalCtrlRamSentinelLength:X}.");
+            }
+        }
     }
 
     /// <summary>Verifies cascade selection exposes NT51950 DiffDLM postbuild blocks.</summary>
