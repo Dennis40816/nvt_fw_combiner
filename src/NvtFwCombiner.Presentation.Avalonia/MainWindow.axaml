@@ -158,6 +158,138 @@
         </Grid>
       </Border>
     </DataTemplate>
+    <DataTemplate x:Key="ReportSelectionRowTemplate" DataType="vm:ReportLineViewModel">
+      <Border Padding="0,8" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
+        <Grid ColumnDefinitions="180,*" ColumnSpacing="12">
+          <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
+          <StackPanel Grid.Column="1" Spacing="2">
+            <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding Detail}" TextWrapping="Wrap" />
+            <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" />
+          </StackPanel>
+        </Grid>
+      </Border>
+    </DataTemplate>
+    <DataTemplate x:Key="ReportMissingRequiredRowTemplate" DataType="vm:ReportLineViewModel">
+      <Grid ColumnDefinitions="180,*" ColumnSpacing="12" Margin="0,0,0,8">
+        <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#7C2D12" Text="{Binding Title}" TextWrapping="Wrap" />
+        <StackPanel Grid.Column="1" Spacing="2">
+          <TextBlock FontSize="12" Foreground="#7C2D12" Text="{Binding Detail}" TextWrapping="Wrap" />
+          <TextBlock FontSize="11" Foreground="#B45309" Text="{Binding Meta}" TextWrapping="Wrap" />
+        </StackPanel>
+      </Grid>
+    </DataTemplate>
+    <DataTemplate x:Key="ReportEvidenceChipTemplate" DataType="vm:ReportLineViewModel">
+      <Border
+          MinWidth="112"
+          Padding="11,8"
+          Margin="0,0,8,8"
+          Background="#FFFFFF"
+          BorderBrush="#E2E8F0"
+          BorderThickness="1"
+          CornerRadius="8">
+        <StackPanel Spacing="2">
+          <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Title}" />
+          <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Detail}" TextWrapping="Wrap" />
+          <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+    <DataTemplate x:Key="ReportTriageRowTemplate" DataType="vm:ReportLineViewModel">
+      <Grid ColumnDefinitions="26,*" ColumnSpacing="10" Margin="0,0,0,10">
+        <Grid>
+          <Border Width="2" HorizontalAlignment="Center" Background="#DBEAFE" />
+          <Border
+              Width="18"
+              Height="18"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Top"
+              Background="#EFF6FF"
+              BorderBrush="#93C5FD"
+              BorderThickness="1"
+              CornerRadius="999" />
+        </Grid>
+        <StackPanel Grid.Column="1" Spacing="2">
+          <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#1E3A8A" Text="{Binding Title}" TextWrapping="Wrap" />
+          <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Detail}" TextWrapping="Wrap" />
+          <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" />
+        </StackPanel>
+      </Grid>
+    </DataTemplate>
+    <DataTemplate x:Key="ReportIssueRowTemplate" DataType="vm:ReportLineViewModel">
+      <Border Padding="10,8" Background="#FFF7ED" BorderBrush="#FED7AA" BorderThickness="1" CornerRadius="6" Margin="0,8,0,0">
+        <StackPanel Spacing="2">
+          <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#9A3412" Text="{Binding Title}" TextWrapping="Wrap" />
+          <TextBlock FontSize="12" Foreground="#7C2D12" Text="{Binding Detail}" TextWrapping="Wrap" />
+          <TextBlock FontSize="11" Foreground="#B45309" Text="{Binding Meta}" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+    <DataTemplate x:Key="ReportInputRowTemplate" DataType="vm:ReportLineViewModel">
+      <Border Padding="0,8" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
+        <StackPanel Spacing="2">
+          <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
+          <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#64748B" Text="{Binding Detail}" TextWrapping="Wrap" />
+          <TextBlock FontSize="11" Foreground="#94A3B8" Text="{Binding Meta}" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+    <DataTemplate x:Key="ReportCommandOperationTemplate" DataType="vm:ReportLineViewModel">
+      <Grid ColumnDefinitions="24,*">
+        <Grid>
+          <Border Width="2" HorizontalAlignment="Center" Background="#BFDBFE" />
+          <Border
+              Width="14"
+              Height="14"
+              Margin="0,9,0,0"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Top"
+              Background="#2563EB"
+              BorderBrush="#DBEAFE"
+              BorderThickness="2"
+              CornerRadius="999" />
+        </Grid>
+        <StackPanel Grid.Column="1" Margin="0,6,0,14" Spacing="5">
+          <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
+          <TextBlock FontSize="12" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding Detail}" TextWrapping="Wrap" />
+          <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" />
+          <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Command" />
+          <Border Padding="8,6" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6" IsVisible="{Binding HasCodeBlock}">
+            <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#0F172A" Text="{Binding CodeBlock}" TextWrapping="Wrap" />
+          </Border>
+        </StackPanel>
+      </Grid>
+    </DataTemplate>
+    <DataTemplate x:Key="ReportStepOperationTemplate" DataType="vm:ReportLineViewModel">
+      <Grid ColumnDefinitions="24,*">
+        <Grid>
+          <Border Width="2" HorizontalAlignment="Center" Background="#CBD5E1" />
+          <Border
+              Width="12"
+              Height="12"
+              Margin="0,10,0,0"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Top"
+              Background="#64748B"
+              BorderBrush="#F8FAFC"
+              BorderThickness="2"
+              CornerRadius="999" />
+        </Grid>
+        <StackPanel Grid.Column="1" Margin="0,6,0,14" Spacing="2">
+          <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
+          <TextBlock FontSize="12" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding Detail}" TextWrapping="Wrap" />
+          <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" />
+        </StackPanel>
+      </Grid>
+    </DataTemplate>
+    <DataTemplate x:Key="ReportMutationRowTemplate" DataType="vm:ReportLineViewModel">
+      <Border Padding="0,8" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
+        <StackPanel Spacing="2">
+          <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
+          <TextBlock FontSize="12" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding Detail}" TextWrapping="Wrap" />
+          <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+    </DataTemplate>
   </Window.Resources>
 
   <Window.Styles>
@@ -1835,17 +1967,7 @@
                 <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#64748B" Text="Selected replacements" />
                 <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSelectionRows}">
                   <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="vm:ReportLineViewModel">
-                      <Border Padding="0,8" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
-                        <Grid ColumnDefinitions="180,*" ColumnSpacing="12">
-                          <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
-                          <StackPanel Grid.Column="1" Spacing="2">
-                            <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding Detail}" TextWrapping="Wrap" />
-                            <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" />
-                          </StackPanel>
-                        </Grid>
-                      </Border>
-                    </DataTemplate>
+                    <StaticResource ResourceKey="ReportSelectionRowTemplate" />
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
               </StackPanel>
@@ -1855,15 +1977,7 @@
                   <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#9A3412" Text="Required before Preview" />
                   <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSelectionMissingRows}">
                     <ItemsControl.ItemTemplate>
-                      <DataTemplate x:DataType="vm:ReportLineViewModel">
-                        <Grid ColumnDefinitions="180,*" ColumnSpacing="12" Margin="0,0,0,8">
-                          <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#7C2D12" Text="{Binding Title}" TextWrapping="Wrap" />
-                          <StackPanel Grid.Column="1" Spacing="2">
-                            <TextBlock FontSize="12" Foreground="#7C2D12" Text="{Binding Detail}" TextWrapping="Wrap" />
-                            <TextBlock FontSize="11" Foreground="#B45309" Text="{Binding Meta}" TextWrapping="Wrap" />
-                          </StackPanel>
-                        </Grid>
-                      </DataTemplate>
+                      <StaticResource ResourceKey="ReportMissingRequiredRowTemplate" />
                     </ItemsControl.ItemTemplate>
                   </ItemsControl>
                 </StackPanel>
@@ -1960,22 +2074,7 @@
                   </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="vm:ReportLineViewModel">
-                    <Border
-                        MinWidth="112"
-                        Padding="11,8"
-                        Margin="0,0,8,8"
-                        Background="#FFFFFF"
-                        BorderBrush="#E2E8F0"
-                        BorderThickness="1"
-                        CornerRadius="8">
-                      <StackPanel Spacing="2">
-                        <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Title}" />
-                        <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Detail}" TextWrapping="Wrap" />
-                        <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" />
-                      </StackPanel>
-                    </Border>
-                  </DataTemplate>
+                  <StaticResource ResourceKey="ReportEvidenceChipTemplate" />
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
             </StackPanel>
@@ -1989,27 +2088,7 @@
                     <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Where to look first" />
                     <ItemsControl ItemsSource="{Binding LoadedReport.TriageRows}">
                       <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:ReportLineViewModel">
-                          <Grid ColumnDefinitions="26,*" ColumnSpacing="10" Margin="0,0,0,10">
-                            <Grid>
-                              <Border Width="2" HorizontalAlignment="Center" Background="#DBEAFE" />
-                              <Border
-                                  Width="18"
-                                  Height="18"
-                                  HorizontalAlignment="Center"
-                                  VerticalAlignment="Top"
-                                  Background="#EFF6FF"
-                                  BorderBrush="#93C5FD"
-                                  BorderThickness="1"
-                                  CornerRadius="999" />
-                            </Grid>
-                            <StackPanel Grid.Column="1" Spacing="2">
-                              <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#1E3A8A" Text="{Binding Title}" TextWrapping="Wrap" />
-                              <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Detail}" TextWrapping="Wrap" />
-                              <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" />
-                            </StackPanel>
-                          </Grid>
-                        </DataTemplate>
+                        <StaticResource ResourceKey="ReportTriageRowTemplate" />
                       </ItemsControl.ItemTemplate>
                     </ItemsControl>
                   </StackPanel>
@@ -2026,15 +2105,7 @@
                   </Expander.Header>
                   <ItemsControl ItemsSource="{Binding LoadedReport.Issues}">
                     <ItemsControl.ItemTemplate>
-                      <DataTemplate x:DataType="vm:ReportLineViewModel">
-                        <Border Padding="10,8" Background="#FFF7ED" BorderBrush="#FED7AA" BorderThickness="1" CornerRadius="6" Margin="0,8,0,0">
-                          <StackPanel Spacing="2">
-                            <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#9A3412" Text="{Binding Title}" TextWrapping="Wrap" />
-                            <TextBlock FontSize="12" Foreground="#7C2D12" Text="{Binding Detail}" TextWrapping="Wrap" />
-                            <TextBlock FontSize="11" Foreground="#B45309" Text="{Binding Meta}" TextWrapping="Wrap" />
-                          </StackPanel>
-                        </Border>
-                      </DataTemplate>
+                      <StaticResource ResourceKey="ReportIssueRowTemplate" />
                     </ItemsControl.ItemTemplate>
                   </ItemsControl>
                 </Expander>
@@ -2050,15 +2121,7 @@
                   </Expander.Header>
                   <ItemsControl ItemsSource="{Binding LoadedReport.Inputs}">
                     <ItemsControl.ItemTemplate>
-                      <DataTemplate x:DataType="vm:ReportLineViewModel">
-                        <Border Padding="0,8" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
-                          <StackPanel Spacing="2">
-                            <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
-                            <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#64748B" Text="{Binding Detail}" TextWrapping="Wrap" />
-                            <TextBlock FontSize="11" Foreground="#94A3B8" Text="{Binding Meta}" TextWrapping="Wrap" />
-                          </StackPanel>
-                        </Border>
-                      </DataTemplate>
+                      <StaticResource ResourceKey="ReportInputRowTemplate" />
                     </ItemsControl.ItemTemplate>
                   </ItemsControl>
                 </Expander>
@@ -2087,32 +2150,7 @@
                   </Expander.Header>
                   <ItemsControl ItemsSource="{Binding LoadedReport.CommandOperations}">
                     <ItemsControl.ItemTemplate>
-                      <DataTemplate x:DataType="vm:ReportLineViewModel">
-                        <Grid ColumnDefinitions="24,*">
-                          <Grid>
-                            <Border Width="2" HorizontalAlignment="Center" Background="#BFDBFE" />
-                            <Border
-                                Width="14"
-                                Height="14"
-                                Margin="0,9,0,0"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Top"
-                                Background="#2563EB"
-                                BorderBrush="#DBEAFE"
-                                BorderThickness="2"
-                                CornerRadius="999" />
-                          </Grid>
-                          <StackPanel Grid.Column="1" Margin="0,6,0,14" Spacing="5">
-                            <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
-                            <TextBlock FontSize="12" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding Detail}" TextWrapping="Wrap" />
-                            <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" />
-                            <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Command" />
-                            <Border Padding="8,6" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6" IsVisible="{Binding HasCodeBlock}">
-                              <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#0F172A" Text="{Binding CodeBlock}" TextWrapping="Wrap" />
-                            </Border>
-                          </StackPanel>
-                        </Grid>
-                      </DataTemplate>
+                      <StaticResource ResourceKey="ReportCommandOperationTemplate" />
                     </ItemsControl.ItemTemplate>
                   </ItemsControl>
                 </Expander>
@@ -2128,28 +2166,7 @@
                   </Expander.Header>
                   <ItemsControl ItemsSource="{Binding LoadedReport.StepOperations}">
                     <ItemsControl.ItemTemplate>
-                      <DataTemplate x:DataType="vm:ReportLineViewModel">
-                        <Grid ColumnDefinitions="24,*">
-                          <Grid>
-                            <Border Width="2" HorizontalAlignment="Center" Background="#CBD5E1" />
-                            <Border
-                                Width="12"
-                                Height="12"
-                                Margin="0,10,0,0"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Top"
-                                Background="#64748B"
-                                BorderBrush="#F8FAFC"
-                                BorderThickness="2"
-                                CornerRadius="999" />
-                          </Grid>
-                          <StackPanel Grid.Column="1" Margin="0,6,0,14" Spacing="2">
-                            <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
-                            <TextBlock FontSize="12" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding Detail}" TextWrapping="Wrap" />
-                            <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" />
-                          </StackPanel>
-                        </Grid>
-                      </DataTemplate>
+                      <StaticResource ResourceKey="ReportStepOperationTemplate" />
                     </ItemsControl.ItemTemplate>
                   </ItemsControl>
                 </Expander>
@@ -2165,15 +2182,7 @@
                   </Expander.Header>
                   <ItemsControl ItemsSource="{Binding LoadedReport.Mutations}">
                     <ItemsControl.ItemTemplate>
-                      <DataTemplate x:DataType="vm:ReportLineViewModel">
-                        <Border Padding="0,8" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
-                          <StackPanel Spacing="2">
-                            <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
-                            <TextBlock FontSize="12" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding Detail}" TextWrapping="Wrap" />
-                            <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" />
-                          </StackPanel>
-                        </Border>
-                      </DataTemplate>
+                      <StaticResource ResourceKey="ReportMutationRowTemplate" />
                     </ItemsControl.ItemTemplate>
                   </ItemsControl>
                 </Expander>
