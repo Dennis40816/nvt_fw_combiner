@@ -434,39 +434,27 @@ public sealed class ShellViewModelTests
     [Fact]
     public void ReplaceCoverageUsesReadableInclusiveSegments()
     {
-        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-coverage-{Guid.NewGuid():N}");
-        try
-        {
-            _ = Directory.CreateDirectory(tempRoot);
-            string basePath = Path.Combine(tempRoot, "base-40000.bin");
-            File.WriteAllBytes(basePath, new byte[0x40000]);
-            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-coverage");
+        string basePath = workspace.Write("base-40000.bin", new byte[0x40000]);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-            viewModel.ShowDpReplaceCommand.Execute(null);
-            viewModel.SetSlotFile("replace-base", basePath);
+        viewModel.ShowDpReplaceCommand.Execute(null);
+        viewModel.SetSlotFile("replace-base", basePath);
 
-            Assert.True(viewModel.IsReplaceVisible);
-            Assert.NotEmpty(viewModel.ReplaceCoverageSegments);
-            Assert.All(viewModel.ReplaceCoverageSegments, segment =>
-            {
-                Assert.Contains("-", segment.RangeLabel, StringComparison.Ordinal);
-                Assert.Contains("len 0x", segment.RangeLabel, StringComparison.Ordinal);
-                Assert.DoesNotContain("..", segment.RangeLabel, StringComparison.Ordinal);
-            });
-            Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.SourceLabel == "Restored TP");
-            Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.SourceLabel is "Changed DP BIN" or "Changed LDC BIN");
-            Assert.Equal(
-                "Preview blocked: base BIN and required DP replacement inputs are required.",
-                viewModel.ReplacePreviewUnavailableReason);
-            Assert.Equal("Build blocked: run a valid DP Preview first.", viewModel.ReplaceBuildUnavailableReason);
-        }
-        finally
+        Assert.True(viewModel.IsReplaceVisible);
+        Assert.NotEmpty(viewModel.ReplaceCoverageSegments);
+        Assert.All(viewModel.ReplaceCoverageSegments, segment =>
         {
-            if (Directory.Exists(tempRoot))
-            {
-                Directory.Delete(tempRoot, recursive: true);
-            }
-        }
+            Assert.Contains("-", segment.RangeLabel, StringComparison.Ordinal);
+            Assert.Contains("len 0x", segment.RangeLabel, StringComparison.Ordinal);
+            Assert.DoesNotContain("..", segment.RangeLabel, StringComparison.Ordinal);
+        });
+        Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.SourceLabel == "Restored TP");
+        Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.SourceLabel is "Changed DP BIN" or "Changed LDC BIN");
+        Assert.Equal(
+            "Preview blocked: base BIN and required DP replacement inputs are required.",
+            viewModel.ReplacePreviewUnavailableReason);
+        Assert.Equal("Build blocked: run a valid DP Preview first.", viewModel.ReplaceBuildUnavailableReason);
     }
 
     /// <summary>Verifies NT51950 DP Replace does not draw a max-length range before the base BIN is selected.</summary>
@@ -519,35 +507,23 @@ public sealed class ShellViewModelTests
     [Fact]
     public void Nt51950InitialRowUsesSelectedDpInputLength()
     {
-        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-initial-{Guid.NewGuid():N}");
-        try
-        {
-            _ = Directory.CreateDirectory(tempRoot);
-            string dpPath = Path.Combine(tempRoot, "dp-40000.bin");
-            File.WriteAllBytes(dpPath, new byte[0x40000]);
-            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-initial");
+        string dpPath = workspace.Write("dp-40000.bin", new byte[0x40000]);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-            viewModel.SelectedIc = "NT51950";
-            viewModel.SetSlotFile("merge-dp", dpPath);
+        viewModel.SelectedIc = "NT51950";
+        viewModel.SetSlotFile("merge-dp", dpPath);
 
-            MemoryMapRowViewModel initialRow = Assert.Single(
-                viewModel.MergeMemoryRows,
-                row => row.ActionLabel == "Initialize");
-            Assert.Equal("0x00000-0x3FFFF (len 0x40000)", initialRow.RangeLabel);
-            Assert.Contains("selected DP BIN length", initialRow.Detail, StringComparison.Ordinal);
-            Assert.Equal("0x00000-0x3FFFF (len 0x40000)", viewModel.MergeMemoryRangeLabel);
-            Assert.All(viewModel.MergeCoverageSegments, segment =>
-            {
-                Assert.DoesNotContain("0xFFFFF", segment.RangeLabel, StringComparison.Ordinal);
-            });
-        }
-        finally
+        MemoryMapRowViewModel initialRow = Assert.Single(
+            viewModel.MergeMemoryRows,
+            row => row.ActionLabel == "Initialize");
+        Assert.Equal("0x00000-0x3FFFF (len 0x40000)", initialRow.RangeLabel);
+        Assert.Contains("selected DP BIN length", initialRow.Detail, StringComparison.Ordinal);
+        Assert.Equal("0x00000-0x3FFFF (len 0x40000)", viewModel.MergeMemoryRangeLabel);
+        Assert.All(viewModel.MergeCoverageSegments, segment =>
         {
-            if (Directory.Exists(tempRoot))
-            {
-                Directory.Delete(tempRoot, recursive: true);
-            }
-        }
+            Assert.DoesNotContain("0xFFFFF", segment.RangeLabel, StringComparison.Ordinal);
+        });
     }
 
     /// <summary>Verifies DP Replace hides LDC except for the NT51928 evidence-backed slot.</summary>
@@ -573,58 +549,45 @@ public sealed class ShellViewModelTests
     [InlineData(0x100000)]
     public async Task BuildNt51950DpReplaceUsesSelectedBaseLengthAndRestoresBaseTpRange(int baseLength)
     {
-        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-dp-replace-{Guid.NewGuid():N}");
-        try
-        {
-            _ = Directory.CreateDirectory(tempRoot);
-            byte[] baseBytes = CreatePattern(baseLength, 0x80);
-            int replacementLength = baseLength - 0x1000;
-            byte[] replacementBytes = CreatePattern(replacementLength, 0x20);
-            string basePath = Path.Combine(tempRoot, "base.bin");
-            string replacementPath = Path.Combine(tempRoot, "replacement-dp.bin");
-            string outputPath = Path.Combine(tempRoot, $"nt51950-dp-replace-{baseLength:X}.bin");
-            File.WriteAllBytes(basePath, baseBytes);
-            File.WriteAllBytes(replacementPath, replacementBytes);
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-dp-replace");
+        byte[] baseBytes = CreatePattern(baseLength, 0x80);
+        int replacementLength = baseLength - 0x1000;
+        byte[] replacementBytes = CreatePattern(replacementLength, 0x20);
+        string basePath = workspace.Write("base.bin", baseBytes);
+        string replacementPath = workspace.Write("replacement-dp.bin", replacementBytes);
+        string outputPath = workspace.PathFor($"nt51950-dp-replace-{baseLength:X}.bin");
 
-            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-            viewModel.SelectedIc = "NT51950";
-            viewModel.ShowDpReplaceCommand.Execute(null);
-            viewModel.SetSlotFile("replace-base", basePath);
-            viewModel.SetSlotFile("replace-dp", replacementPath);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51950";
+        viewModel.ShowDpReplaceCommand.Execute(null);
+        viewModel.SetSlotFile("replace-base", basePath);
+        viewModel.SetSlotFile("replace-dp", replacementPath);
 
-            Assert.True(viewModel.CanPreviewReplace);
-            Assert.False(viewModel.BuildReplaceCommand.CanExecute(null));
-            Assert.False(viewModel.CanBuildReplace);
+        Assert.True(viewModel.CanPreviewReplace);
+        Assert.False(viewModel.BuildReplaceCommand.CanExecute(null));
+        Assert.False(viewModel.CanBuildReplace);
 
-            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+        await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
-            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-            Assert.True(viewModel.CanBuildReplace);
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.CanBuildReplace);
 
-            await viewModel.BuildReplaceAsync(outputPath);
+        await viewModel.BuildReplaceAsync(outputPath);
 
-            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-            Assert.True(File.Exists(outputPath), outputPath);
-            byte[] output = File.ReadAllBytes(outputPath);
-            Assert.Equal(baseLength, output.Length);
-            Assert.Equal(replacementBytes[0x9FFF], output[0x9FFF]);
-            Assert.Equal(baseBytes[0x0A000], output[0x0A000]);
-            Assert.Equal(baseBytes[0x36FFF], output[0x36FFF]);
-            Assert.Equal(replacementBytes[0x37000], output[0x37000]);
-            Assert.Equal(0, output[replacementLength]);
-            Assert.True(viewModel.HasLoadedReport);
-            Assert.Contains(viewModel.LoadedReport.Operations, operation => operation.Title.Contains("restore-base-tp", StringComparison.Ordinal));
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(File.Exists(outputPath), outputPath);
+        byte[] output = File.ReadAllBytes(outputPath);
+        Assert.Equal(baseLength, output.Length);
+        Assert.Equal(replacementBytes[0x9FFF], output[0x9FFF]);
+        Assert.Equal(baseBytes[0x0A000], output[0x0A000]);
+        Assert.Equal(baseBytes[0x36FFF], output[0x36FFF]);
+        Assert.Equal(replacementBytes[0x37000], output[0x37000]);
+        Assert.Equal(0, output[replacementLength]);
+        Assert.True(viewModel.HasLoadedReport);
+        Assert.Contains(viewModel.LoadedReport.Operations, operation => operation.Title.Contains("restore-base-tp", StringComparison.Ordinal));
 
-            using var reportDocument = JsonDocument.Parse(viewModel.LoadedReportJson);
-            Assert.Equal(baseLength, reportDocument.RootElement.GetProperty("Output").GetProperty("Size").GetInt64());
-        }
-        finally
-        {
-            if (Directory.Exists(tempRoot))
-            {
-                Directory.Delete(tempRoot, recursive: true);
-            }
-        }
+        using var reportDocument = JsonDocument.Parse(viewModel.LoadedReportJson);
+        Assert.Equal(baseLength, reportDocument.RootElement.GetProperty("Output").GetProperty("Size").GetInt64());
     }
 
     /// <summary>Verifies golden-backed NT51950/NT51951 DP Replace accepts the real 0x40000 and 0x80000 base lengths.</summary>
@@ -680,96 +643,70 @@ public sealed class ShellViewModelTests
     [Fact]
     public async Task BuildReplaceRequiresFreshPreviewAfterInputChange()
     {
-        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-replace-gate-{Guid.NewGuid():N}");
-        try
-        {
-            _ = Directory.CreateDirectory(tempRoot);
-            string basePath = Path.Combine(tempRoot, "base.bin");
-            string replacementPath = Path.Combine(tempRoot, "replacement-dp.bin");
-            string replacementPath2 = Path.Combine(tempRoot, "replacement-dp-copy.bin");
-            string outputPath = Path.Combine(tempRoot, "blocked-output.bin");
-            File.WriteAllBytes(basePath, CreatePattern(0x40000, 0x90));
-            File.WriteAllBytes(replacementPath, CreatePattern(0x3F000, 0x30));
-            File.Copy(replacementPath, replacementPath2);
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-replace-gate");
+        string basePath = workspace.Write("base.bin", CreatePattern(0x40000, 0x90));
+        string replacementPath = workspace.Write("replacement-dp.bin", CreatePattern(0x3F000, 0x30));
+        string replacementPath2 = workspace.PathFor("replacement-dp-copy.bin");
+        string outputPath = workspace.PathFor("blocked-output.bin");
+        File.Copy(replacementPath, replacementPath2);
 
-            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-            viewModel.SelectedIc = "NT51950";
-            viewModel.ShowDpReplaceCommand.Execute(null);
-            viewModel.SetSlotFile("replace-base", basePath);
-            viewModel.SetSlotFile("replace-dp", replacementPath);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51950";
+        viewModel.ShowDpReplaceCommand.Execute(null);
+        viewModel.SetSlotFile("replace-base", basePath);
+        viewModel.SetSlotFile("replace-dp", replacementPath);
 
-            Assert.True(viewModel.CanPreviewReplace);
-            Assert.False(viewModel.CanBuildReplace);
+        Assert.True(viewModel.CanPreviewReplace);
+        Assert.False(viewModel.CanBuildReplace);
 
-            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+        await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
-            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-            Assert.True(viewModel.CanBuildReplace);
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.CanBuildReplace);
 
-            viewModel.SetSlotFile("replace-dp", replacementPath2);
+        viewModel.SetSlotFile("replace-dp", replacementPath2);
 
-            Assert.True(viewModel.CanPreviewReplace);
-            Assert.False(viewModel.CanBuildReplace);
-            Assert.False(viewModel.BuildReplaceCommand.CanExecute(null));
+        Assert.True(viewModel.CanPreviewReplace);
+        Assert.False(viewModel.CanBuildReplace);
+        Assert.False(viewModel.BuildReplaceCommand.CanExecute(null));
 
-            await viewModel.BuildReplaceAsync(outputPath);
+        await viewModel.BuildReplaceAsync(outputPath);
 
-            Assert.False(viewModel.LastRunResult.Succeeded);
-            Assert.Equal("Build blocked", viewModel.LastRunResult.Title);
-            Assert.False(File.Exists(outputPath), outputPath);
+        Assert.False(viewModel.LastRunResult.Succeeded);
+        Assert.Equal("Build blocked", viewModel.LastRunResult.Title);
+        Assert.False(File.Exists(outputPath), outputPath);
 
-            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+        await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
-            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-            Assert.True(viewModel.CanBuildReplace);
-        }
-        finally
-        {
-            if (Directory.Exists(tempRoot))
-            {
-                Directory.Delete(tempRoot, recursive: true);
-            }
-        }
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.CanBuildReplace);
     }
 
     /// <summary>Verifies NT51950 DP Replace rejects unapproved base lengths instead of assuming 0x100000.</summary>
     [Fact]
     public async Task PreviewNt51950DpReplaceRejectsUnsupportedBaseLength()
     {
-        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-dp-replace-invalid-{Guid.NewGuid():N}");
-        try
-        {
-            _ = Directory.CreateDirectory(tempRoot);
-            string basePath = Path.Combine(tempRoot, "base-60000.bin");
-            string replacementPath = Path.Combine(tempRoot, "replacement-dp.bin");
-            File.WriteAllBytes(basePath, new byte[0x60000]);
-            File.WriteAllBytes(replacementPath, new byte[0x40000]);
-            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-dp-replace-invalid");
+        string basePath = workspace.Write("base-60000.bin", new byte[0x60000]);
+        string replacementPath = workspace.Write("replacement-dp.bin", new byte[0x40000]);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-            viewModel.SelectedIc = "NT51950";
-            viewModel.ShowDpReplaceCommand.Execute(null);
-            viewModel.SetSlotFile("replace-base", basePath);
-            viewModel.SetSlotFile("replace-dp", replacementPath);
+        viewModel.SelectedIc = "NT51950";
+        viewModel.ShowDpReplaceCommand.Execute(null);
+        viewModel.SetSlotFile("replace-base", basePath);
+        viewModel.SetSlotFile("replace-dp", replacementPath);
 
-            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+        await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
-            Assert.False(viewModel.LastRunResult.Succeeded);
-            Assert.Contains("0x40000 / 0x80000 / 0x100000", viewModel.LastRunResult.Detail, StringComparison.Ordinal);
-            Assert.Contains(viewModel.ReplaceMemoryRows, row =>
-                row.ActionLabel == "Replace" &&
-                row.RangeLabel == "Unsupported base BIN length 0x60000");
-            MemoryCoverageSegmentViewModel segment = Assert.Single(viewModel.ReplaceCoverageSegments);
-            Assert.Equal("Unsupported 0x60000", segment.RangeLabel);
-            Assert.Equal("Unsupported base", segment.SourceLabel);
-            Assert.False(segment.IsChanged);
-        }
-        finally
-        {
-            if (Directory.Exists(tempRoot))
-            {
-                Directory.Delete(tempRoot, recursive: true);
-            }
-        }
+        Assert.False(viewModel.LastRunResult.Succeeded);
+        Assert.Contains("0x40000 / 0x80000 / 0x100000", viewModel.LastRunResult.Detail, StringComparison.Ordinal);
+        Assert.Contains(viewModel.ReplaceMemoryRows, row =>
+            row.ActionLabel == "Replace" &&
+            row.RangeLabel == "Unsupported base BIN length 0x60000");
+        MemoryCoverageSegmentViewModel segment = Assert.Single(viewModel.ReplaceCoverageSegments);
+        Assert.Equal("Unsupported 0x60000", segment.RangeLabel);
+        Assert.Equal("Unsupported base", segment.SourceLabel);
+        Assert.False(segment.IsChanged);
     }
 
     /// <summary>Verifies CtrlRAM Replace exposes per-region slots and reports generated postbuild commands.</summary>
