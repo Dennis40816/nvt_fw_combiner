@@ -470,7 +470,7 @@ public static partial class WorkbenchCompositionService
             postbuildProfile = null;
             issue = new CompositionIssue(
                 "replace.ctrlram.postbuild-category-unknown",
-                $"{icId} has multiple legacy Combiner postbuild categories, but the base BIN FWConfig Common FW version could not be read.",
+                $"{icId} has multiple legacy Combiner postbuild categories, but the base BIN FWConfig Common FW version could not be read or failed FW/bar validation.",
                 "replace-base");
             return false;
         }
@@ -507,6 +507,11 @@ public static partial class WorkbenchCompositionService
         {
             byte[] image = File.ReadAllBytes(basePath);
             if (!FirmwareConfigMetadataReader.TryRead(image, firmwareConfigStart, out FirmwareConfigMetadata metadata))
+            {
+                return false;
+            }
+
+            if (!metadata.IsFirmwareVersionBarValid)
             {
                 return false;
             }

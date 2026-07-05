@@ -120,7 +120,8 @@ public static class LegacyCombinerPostbuildPlanner
         {
             foreach (long crcWordOffset in crcWordOffsets)
             {
-                if (crcWordOffset + 4 > block.FirmwareRange.Length)
+                if (crcWordOffset + 4 > block.FirmwareRange.Length &&
+                    !IsNt51930LegacyHeaderCopy(command, block))
                 {
                     continue;
                 }
@@ -128,6 +129,15 @@ public static class LegacyCombinerPostbuildPlanner
                 AddIfWithin(ranges, capacity, new ByteRange(block.SourceOffset + crcWordOffset, 4));
             }
         }
+    }
+
+    private static bool IsNt51930LegacyHeaderCopy(
+        LegacyCombinerPostbuildCommand command,
+        LegacyCombinerBlockArgument block)
+    {
+        return command.ModeArgument == "NT51930BASED_NORMAL_MODE" &&
+            block.SourceOffset == 0x7000 &&
+            block.FirmwareRange.Length == 0x100;
     }
 
     private static void AddNt51927BasedCrcOnlyIntegrityRanges(long capacity, List<ByteRange> ranges)

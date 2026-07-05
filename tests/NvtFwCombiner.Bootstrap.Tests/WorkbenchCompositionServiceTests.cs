@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Application.FlashMaps;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -6,6 +7,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class WorkbenchCompositionServiceTests
 {
     private const string EmptySha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+    private const int FirmwareVersionBarOffset = 0x001;
 
     /// <summary>Verifies General Replace build writes a profile-approved DP explicit mapping.</summary>
     [Fact]
@@ -96,6 +98,52 @@ public sealed class WorkbenchCompositionServiceTests
                     Assert.Equal("nfc.nt51950.ctrlram-postbuild-v1", operation.GetProperty("ProcessorId").GetString());
                     Assert.Equal("legacy-combiner-1.13.0", operation.GetProperty("ToolBindingId").GetString());
                 });
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+    }
+
+    /// <summary>Verifies versioned CtrlRAM postbuild fails closed when FWConfig FW/bar is invalid.</summary>
+    [Fact]
+    public async Task CtrlRamReplaceRejectsInvalidFwVersionBarBeforePostbuildCategorySelection()
+    {
+        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-workbench-invalid-fwbar-{Guid.NewGuid():N}");
+        try
+        {
+            _ = Directory.CreateDirectory(tempRoot);
+            byte[] baseBytes = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
+            Assert.True(TpFlashMapCatalog.TryGetFirmwareConfigStart("NT51926", out long firmwareConfigStart));
+            baseBytes[checked((int)firmwareConfigStart + FirmwareVersionBarOffset)] ^= 0x01;
+
+            string basePath = Path.Combine(tempRoot, "base-invalid-fwbar.bin");
+            string replacementPath = Path.Combine(tempRoot, "normal.bin");
+            File.WriteAllBytes(basePath, baseBytes);
+            File.WriteAllBytes(replacementPath, baseBytes[0x22800..0x25400]);
+
+            Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
+            {
+                ["replace-base"] = basePath,
+                ["replace-ctrlram-normal"] = replacementPath,
+            };
+
+            WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+                "NT51926",
+                "single",
+                "CtrlRAM",
+                slotPaths,
+                build: false,
+                TestContext.Current.CancellationToken);
+
+            Assert.False(result.Succeeded);
+            using var document = JsonDocument.Parse(result.ReportJson);
+            Assert.Contains(
+                document.RootElement.GetProperty("Issues").EnumerateArray(),
+                issue => issue.GetProperty("Code").GetString() == "replace.ctrlram.postbuild-category-unknown");
         }
         finally
         {

@@ -45,12 +45,20 @@ public sealed class LegacyCombinerPostbuildCatalogTests
         LegacyCombinerPostbuildCommandPlan nt51950 = LegacyCombinerPostbuildPlanner.CreatePlan(
             LegacyCombinerPostbuildCatalog.Nt51950,
             new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+        LegacyCombinerPostbuildCommandPlan nt51930CommonFw1x = LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x,
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
 
         IReadOnlyList<ByteRange> nt51932Ranges = LegacyCombinerPostbuildPlanner.GetKnownIntegrityWriteRanges(nt51932, 0x40000);
         IReadOnlyList<ByteRange> nt51950Ranges = LegacyCombinerPostbuildPlanner.GetKnownIntegrityWriteRanges(nt51950, 0x40000);
+        IReadOnlyList<ByteRange> nt51930CommonFw1xRanges = LegacyCombinerPostbuildPlanner.GetKnownIntegrityWriteRanges(
+            nt51930CommonFw1x,
+            0x40000);
 
         Assert.Contains(new ByteRange(0x7100, 4), nt51932Ranges);
         Assert.Contains(new ByteRange(0x7118, 4), nt51932Ranges);
+        Assert.Contains(new ByteRange(0x7100, 4), nt51930CommonFw1xRanges);
+        Assert.Contains(new ByteRange(0x7118, 4), nt51930CommonFw1xRanges);
         Assert.Contains(new ByteRange(0xA11C, 4), nt51950Ranges);
         Assert.Contains(new ByteRange(0xA130, 4), nt51950Ranges);
     }
