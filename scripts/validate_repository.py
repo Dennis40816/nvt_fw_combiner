@@ -123,6 +123,7 @@ EXPECTED_PROJECT_REFERENCES = {
     "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj": {"src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj"},
     "tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj": {
         "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
+        "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj",
     },
 }
 

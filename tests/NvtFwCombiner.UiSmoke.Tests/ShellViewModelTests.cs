@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Media;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
@@ -232,7 +233,7 @@ public sealed class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51926";
         string basePath = Path.Combine(
-            FindRepositoryRoot(),
+            RepositoryPaths.FindRepositoryRoot(),
             "testdata",
             "golden",
             "standard-merge-gen-flash",
@@ -264,7 +265,7 @@ public sealed class ShellViewModelTests
         viewModel.SelectedNumber = "cascade";
         viewModel.ShowCtrlRamReplaceCommand.Execute(null);
         string basePath = Path.Combine(
-            FindRepositoryRoot(),
+            RepositoryPaths.FindRepositoryRoot(),
             "testdata",
             "golden",
             "standard-merge-gen-flash",
@@ -324,60 +325,45 @@ public sealed class ShellViewModelTests
     [Fact]
     public async Task GeneralReplacePreviewAndBuildUseExplicitMappingRows()
     {
-        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-general-replace-{Guid.NewGuid():N}");
-        try
-        {
-            _ = Directory.CreateDirectory(tempRoot);
-            byte[] baseBytes = CreatePattern(0x40000, 0x40);
-            string basePath = Path.Combine(tempRoot, "base.bin");
-            string replacementPath = Path.Combine(tempRoot, "replacement.bin");
-            string outputPath = Path.Combine(tempRoot, "general-replace.bin");
-            File.WriteAllBytes(basePath, baseBytes);
-            File.WriteAllBytes(replacementPath, [0xA5, 0x5A]);
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-general-replace");
+        byte[] baseBytes = CreatePattern(0x40000, 0x40);
+        string basePath = workspace.Write("base.bin", baseBytes);
+        string replacementPath = workspace.Write("replacement.bin", [0xA5, 0x5A]);
+        string outputPath = workspace.PathFor("general-replace.bin");
 
-            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-            viewModel.SelectedIc = "NT51950";
-            viewModel.ShowGeneralReplaceCommand.Execute(null);
-            viewModel.SetSlotFile("replace-base", basePath);
-            GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.GeneralReplaceMappings);
-            mapping.StartAddress = "0x00100";
-            mapping.EndAddress = "0x00101";
-            viewModel.SetGeneralReplaceMappingFile(mapping.MappingId, replacementPath);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51950";
+        viewModel.ShowGeneralReplaceCommand.Execute(null);
+        viewModel.SetSlotFile("replace-base", basePath);
+        GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.GeneralReplaceMappings);
+        mapping.StartAddress = "0x00100";
+        mapping.EndAddress = "0x00101";
+        viewModel.SetGeneralReplaceMappingFile(mapping.MappingId, replacementPath);
 
-            Assert.True(viewModel.CanPreviewReplace);
-            Assert.Contains("Ready", viewModel.ReplaceReadinessStatus, StringComparison.Ordinal);
+        Assert.True(viewModel.CanPreviewReplace);
+        Assert.Contains("Ready", viewModel.ReplaceReadinessStatus, StringComparison.Ordinal);
 
-            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+        await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
-            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-            Assert.True(viewModel.CanBuildReplace);
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.CanBuildReplace);
 
-            await viewModel.BuildReplaceAsync(outputPath);
+        await viewModel.BuildReplaceAsync(outputPath);
 
-            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-            byte[] output = File.ReadAllBytes(outputPath);
-            Assert.Equal(0xA5, output[0x100]);
-            Assert.Equal(0x5A, output[0x101]);
-            Assert.Equal(baseBytes[0x102], output[0x102]);
-            Assert.Contains(viewModel.LoadedReport.Operations, operation =>
-                operation.Title.Contains("general-map-1", StringComparison.Ordinal));
-        }
-        finally
-        {
-            if (Directory.Exists(tempRoot))
-            {
-                Directory.Delete(tempRoot, recursive: true);
-            }
-        }
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        byte[] output = File.ReadAllBytes(outputPath);
+        Assert.Equal(0xA5, output[0x100]);
+        Assert.Equal(0x5A, output[0x101]);
+        Assert.Equal(baseBytes[0x102], output[0x102]);
+        Assert.Contains(viewModel.LoadedReport.Operations, operation =>
+            operation.Title.Contains("general-map-1", StringComparison.Ordinal));
     }
 
     /// <summary>Verifies General Replace UI routes TP-touching explicit mappings through postbuild.</summary>
     [Fact]
     public async Task GeneralReplacePreviewRunsPostbuildForTpMapping()
     {
-        string repositoryRoot = FindRepositoryRoot();
-        string basePath = Path.Combine(
-            repositoryRoot,
+        string basePath = RepositoryPaths.FromRepositoryRoot(
             "testdata",
             "golden",
             "standard-merge-gen-flash",
@@ -385,45 +371,33 @@ public sealed class ShellViewModelTests
             "51950",
             "dp-256k",
             "flash.bin");
-        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-general-replace-tp-{Guid.NewGuid():N}");
-        try
-        {
-            _ = Directory.CreateDirectory(tempRoot);
-            byte[] baseBytes = File.ReadAllBytes(basePath);
-            string replacementPath = Path.Combine(tempRoot, "self-nf.bin");
-            File.WriteAllBytes(replacementPath, baseBytes[0x22C00..0x22C02]);
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-general-replace-tp");
+        byte[] baseBytes = File.ReadAllBytes(basePath);
+        string replacementPath = workspace.Write("self-nf.bin", baseBytes[0x22C00..0x22C02]);
 
-            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-            viewModel.SelectedIc = "NT51950";
-            viewModel.ShowGeneralReplaceCommand.Execute(null);
-            viewModel.SetSlotFile("replace-base", basePath);
-            GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.GeneralReplaceMappings);
-            mapping.StartAddress = "0x22C00";
-            mapping.EndAddress = "0x22C01";
-            viewModel.SetGeneralReplaceMappingFile(mapping.MappingId, replacementPath);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51950";
+        viewModel.ShowGeneralReplaceCommand.Execute(null);
+        viewModel.SetSlotFile("replace-base", basePath);
+        GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.GeneralReplaceMappings);
+        mapping.StartAddress = "0x22C00";
+        mapping.EndAddress = "0x22C01";
+        viewModel.SetGeneralReplaceMappingFile(mapping.MappingId, replacementPath);
 
-            Assert.True(viewModel.CanPreviewReplace);
-            Assert.Contains("run postbuild", viewModel.ReplaceReadinessStatus, StringComparison.Ordinal);
+        Assert.True(viewModel.CanPreviewReplace);
+        Assert.Contains("run postbuild", viewModel.ReplaceReadinessStatus, StringComparison.Ordinal);
 
-            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+        await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
-            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-            Assert.True(viewModel.HasLoadedReport);
-            Assert.Contains(viewModel.LoadedReport.Operations, operation =>
-                operation.Title.Contains("postbuild-", StringComparison.Ordinal) &&
-                operation.HasCodeBlock &&
-                operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
-            Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
-                operation.Title.Contains("postbuild-", StringComparison.Ordinal) &&
-                operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
-        }
-        finally
-        {
-            if (Directory.Exists(tempRoot))
-            {
-                Directory.Delete(tempRoot, recursive: true);
-            }
-        }
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.HasLoadedReport);
+        Assert.Contains(viewModel.LoadedReport.Operations, operation =>
+            operation.Title.Contains("postbuild-", StringComparison.Ordinal) &&
+            operation.HasCodeBlock &&
+            operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
+        Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
+            operation.Title.Contains("postbuild-", StringComparison.Ordinal) &&
+            operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
     }
 
     /// <summary>Verifies CtrlRAM plan rows promote readable region labels over raw postbuild filenames.</summary>
@@ -675,7 +649,7 @@ public sealed class ShellViewModelTests
         ArgumentException.ThrowIfNullOrWhiteSpace(baseRelativePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(dpRelativePath);
 
-        string repositoryRoot = FindRepositoryRoot();
+        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
         string basePath = Path.Combine(goldenRoot, baseRelativePath.Replace('/', Path.DirectorySeparatorChar));
         string dpPath = Path.Combine(goldenRoot, dpRelativePath.Replace('/', Path.DirectorySeparatorChar));
@@ -802,13 +776,13 @@ public sealed class ShellViewModelTests
     [Fact]
     public async Task CtrlRamReplacePreviewReportsPostbuildCommandTrace()
     {
-        string repositoryRoot = FindRepositoryRoot();
+        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
         using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
         JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
             .EnumerateArray()
             .Single(testCase => testCase.GetProperty("ic").GetString() == "51927");
-        byte[] baseBytes = File.ReadAllBytes(ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
+        byte[] baseBytes = File.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
         string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-ctrlram-{Guid.NewGuid():N}");
         try
         {
@@ -866,13 +840,13 @@ public sealed class ShellViewModelTests
     [Fact]
     public async Task CtrlRamReplacePreviewReportsMultipleSelectedRegions()
     {
-        string repositoryRoot = FindRepositoryRoot();
+        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
         using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
         JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
             .EnumerateArray()
             .Single(testCase => testCase.GetProperty("ic").GetString() == "51927");
-        byte[] baseBytes = File.ReadAllBytes(ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
+        byte[] baseBytes = File.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
         string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-ctrlram-multi-{Guid.NewGuid():N}");
         try
         {
@@ -930,7 +904,7 @@ public sealed class ShellViewModelTests
     [Fact]
     public async Task CtrlRamReplacePreviewAcceptsGoldenBackedVnSelfReplacement()
     {
-        string repositoryRoot = FindRepositoryRoot();
+        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
         using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
         JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
@@ -943,7 +917,7 @@ public sealed class ShellViewModelTests
             _ = Directory.CreateDirectory(tempRoot);
             string basePath = Path.Combine(tempRoot, "base-from-golden.bin");
             string vnPath = Path.Combine(tempRoot, "vn-ctrlram.bin");
-            byte[] baseBytes = File.ReadAllBytes(ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
+            byte[] baseBytes = File.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
             File.WriteAllBytes(basePath, baseBytes);
 
             MainWindowViewModel viewModel = ShellViewModelFactory.Create();
@@ -987,13 +961,13 @@ public sealed class ShellViewModelTests
     [Fact]
     public async Task CtrlRamReplacePreviewSelfReplacementRunsPostbuild()
     {
-        string repositoryRoot = FindRepositoryRoot();
+        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
         using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
         JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
             .EnumerateArray()
             .Single(testCase => testCase.GetProperty("ic").GetString() == "51927");
-        byte[] baseBytes = File.ReadAllBytes(ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
+        byte[] baseBytes = File.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
         string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-ctrlram-self-{Guid.NewGuid():N}");
 
         try
@@ -1042,13 +1016,13 @@ public sealed class ShellViewModelTests
     [Fact]
     public async Task CtrlRamReplaceBuildCommitsGoldenBackedSelfReplacementOutput()
     {
-        string repositoryRoot = FindRepositoryRoot();
+        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
         using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
         JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
             .EnumerateArray()
             .Single(testCase => testCase.GetProperty("ic").GetString() == "51927");
-        byte[] baseBytes = File.ReadAllBytes(ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
+        byte[] baseBytes = File.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
         string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-ctrlram-build-{Guid.NewGuid():N}");
 
         try
@@ -1131,7 +1105,7 @@ public sealed class ShellViewModelTests
             return;
         }
 
-        string repositoryRoot = FindRepositoryRoot();
+        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string fixtureRoot = Path.Combine(repositoryRoot, "testdata", "golden", "ctrlram-replace");
         string manifestPath = Path.Combine(fixtureRoot, "manifest.json");
         if (!File.Exists(manifestPath))
@@ -1493,7 +1467,7 @@ public sealed class ShellViewModelTests
     [MemberData(nameof(StandardMergeGoldenCases))]
     public async Task BuildMergeFromViewModelMatchesGolden(string ic)
     {
-        string repositoryRoot = FindRepositoryRoot();
+        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
         using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
         JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
@@ -1509,7 +1483,7 @@ public sealed class ShellViewModelTests
 
             foreach (JsonProperty input in goldenCase.GetProperty("inputs").EnumerateObject())
             {
-                string sourcePath = ManifestPath(goldenRoot, input.Value);
+                string sourcePath = RepositoryPaths.ManifestPath(goldenRoot, input.Value);
                 string copiedPath = Path.Combine(tempRoot, $"{input.Name}.bin");
                 File.Copy(sourcePath, copiedPath);
                 viewModel.SetSlotFile(SlotIdForAddressSpace(input.Name), copiedPath);
@@ -1528,7 +1502,7 @@ public sealed class ShellViewModelTests
             string outputPath = Path.Combine(tempRoot, "selected-output.bin");
             await viewModel.BuildStandardMergeAsync(outputPath);
 
-            string expectedPath = ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput"));
+            string expectedPath = RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput"));
             Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
             Assert.Equal(outputPath, viewModel.LastRunResult.Output);
             Assert.True(File.Exists(outputPath), outputPath);
@@ -1551,7 +1525,7 @@ public sealed class ShellViewModelTests
     [Fact]
     public async Task BuildStandardMergeRequiresFreshPreviewAfterInputChange()
     {
-        string repositoryRoot = FindRepositoryRoot();
+        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
         using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
         JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
@@ -1567,7 +1541,7 @@ public sealed class ShellViewModelTests
 
             foreach (JsonProperty input in goldenCase.GetProperty("inputs").EnumerateObject())
             {
-                string sourcePath = ManifestPath(goldenRoot, input.Value);
+                string sourcePath = RepositoryPaths.ManifestPath(goldenRoot, input.Value);
                 string copiedPath = Path.Combine(tempRoot, $"{input.Name}.bin");
                 File.Copy(sourcePath, copiedPath);
                 viewModel.SetSlotFile(SlotIdForAddressSpace(input.Name), copiedPath);
@@ -1583,7 +1557,7 @@ public sealed class ShellViewModelTests
 
             JsonProperty firstInput = goldenCase.GetProperty("inputs").EnumerateObject().First();
             string replacementCopyPath = Path.Combine(tempRoot, $"{firstInput.Name}-copy.bin");
-            File.Copy(ManifestPath(goldenRoot, firstInput.Value), replacementCopyPath);
+            File.Copy(RepositoryPaths.ManifestPath(goldenRoot, firstInput.Value), replacementCopyPath);
             viewModel.SetSlotFile(SlotIdForAddressSpace(firstInput.Name), replacementCopyPath);
 
             Assert.True(viewModel.CanPreviewStandardMerge);
@@ -1612,7 +1586,7 @@ public sealed class ShellViewModelTests
     [Fact]
     public async Task PreviewNt51950WithNt51926InputsFailsWithDetailedReportAndNoOutput()
     {
-        string repositoryRoot = FindRepositoryRoot();
+        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
         using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
         JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
@@ -1628,7 +1602,7 @@ public sealed class ShellViewModelTests
 
             foreach (JsonProperty input in goldenCase.GetProperty("inputs").EnumerateObject())
             {
-                string sourcePath = ManifestPath(goldenRoot, input.Value);
+                string sourcePath = RepositoryPaths.ManifestPath(goldenRoot, input.Value);
                 string copiedPath = Path.Combine(tempRoot, $"{input.Name}.bin");
                 File.Copy(sourcePath, copiedPath);
                 viewModel.SetSlotFile(SlotIdForAddressSpace(input.Name), copiedPath);
@@ -1674,7 +1648,7 @@ public sealed class ShellViewModelTests
     /// <summary>Gets every owner-approved gen_flash Standard Merge golden case.</summary>
     public static TheoryData<string> StandardMergeGoldenCases()
     {
-        string repositoryRoot = FindRepositoryRoot();
+        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
         using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
         TheoryData<string> cases = [];
@@ -1695,12 +1669,6 @@ public sealed class ShellViewModelTests
             "ld-input" => "merge-ld",
             _ => throw new InvalidOperationException($"Unknown address space '{addressSpaceId}'."),
         };
-    }
-
-    private static string ManifestPath(string goldenRoot, JsonElement manifestFile)
-    {
-        string relativePath = manifestFile.GetProperty("path").GetString()!;
-        return Path.Combine(goldenRoot, relativePath.Replace('/', Path.DirectorySeparatorChar));
     }
 
     private static string GoldenFixturePath(string fixtureRoot, JsonElement manifestFile)
@@ -1754,19 +1722,4 @@ public sealed class ShellViewModelTests
             slot.SlotIconPathData.Contains('L');
     }
 
-    private static string FindRepositoryRoot()
-    {
-        DirectoryInfo? directory = new(AppContext.BaseDirectory);
-        while (directory is not null)
-        {
-            if (File.Exists(Path.Combine(directory.FullName, "SPEC.md")))
-            {
-                return directory.FullName;
-            }
-
-            directory = directory.Parent;
-        }
-
-        throw new InvalidOperationException("Repository root was not found.");
-    }
 }
