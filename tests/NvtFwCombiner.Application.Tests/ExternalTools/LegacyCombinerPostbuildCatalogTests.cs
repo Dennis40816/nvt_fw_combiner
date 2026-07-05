@@ -223,6 +223,14 @@ public sealed class LegacyCombinerPostbuildCatalogTests
     [Fact]
     public void DuplicatePostbuildIcIdsMustHaveVersionSelectionPolicy()
     {
+        (string IcId, string CommonFwVersion, LegacyCombinerPostbuildProfile Profile)[] versionedCases =
+        [
+            ("NT51926", "1.4.1", LegacyCombinerPostbuildCatalog.Nt51926CommonFw141),
+            ("NT51926", "2.0.0", LegacyCombinerPostbuildCatalog.Nt51926),
+            ("NT51930", "1.0.0", LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x),
+            ("NT51930", "1.3.0", LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x),
+            ("NT51930", "2.0.0", LegacyCombinerPostbuildCatalog.Nt51930),
+        ];
         string[] duplicateIcIds = [
             .. LegacyCombinerPostbuildCatalog.All
                 .GroupBy(profile => profile.IcId, StringComparer.Ordinal)
@@ -241,13 +249,26 @@ public sealed class LegacyCombinerPostbuildCatalogTests
                 out string? issue));
             Assert.Null(profile);
             Assert.Contains("multiple postbuild categories", issue, StringComparison.Ordinal);
+
+            string[] duplicateProfileIds = [
+                .. LegacyCombinerPostbuildCatalog.GetProfiles(icId)
+                    .Select(candidate => candidate.ProcessorId)
+                    .Order(StringComparer.Ordinal),
+            ];
+            string[] reachableProfileIds = [
+                .. versionedCases
+                    .Where(testCase => testCase.IcId == icId)
+                    .Select(testCase => testCase.Profile.ProcessorId)
+                    .Distinct(StringComparer.Ordinal)
+                    .Order(StringComparer.Ordinal),
+            ];
+            Assert.Equal(duplicateProfileIds, reachableProfileIds);
         }
 
-        AssertSelectsProfile("NT51926", "1.4.1", LegacyCombinerPostbuildCatalog.Nt51926CommonFw141);
-        AssertSelectsProfile("NT51926", "2.0.0", LegacyCombinerPostbuildCatalog.Nt51926);
-        AssertSelectsProfile("NT51930", "1.0.0", LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x);
-        AssertSelectsProfile("NT51930", "1.3.0", LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x);
-        AssertSelectsProfile("NT51930", "2.0.0", LegacyCombinerPostbuildCatalog.Nt51930);
+        foreach ((string icId, string commonFwVersion, LegacyCombinerPostbuildProfile expectedProfile) in versionedCases)
+        {
+            AssertSelectsProfile(icId, commonFwVersion, expectedProfile);
+        }
     }
 
     /// <summary>Locks NT51917 to the owner-approved NT51927 special postbuild flow.</summary>
