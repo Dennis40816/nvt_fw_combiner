@@ -29,7 +29,7 @@ public static partial class WorkbenchCompositionService
             return failure!;
         }
 
-        CompositionProfileDefinition profile = CreateNt51950DpReplaceProfile(icId, capacity);
+        CompositionProfileDefinition profile = BuiltInReplaceProfiles.CreateNt51950FamilyDpReplaceProfile(icId, capacity);
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         if (!compile.IsSuccess)
         {
@@ -70,11 +70,17 @@ public static partial class WorkbenchCompositionService
                     "DP replacement",
                     DescribeNt51950DpReplaceContainer(dpBaseLength)),
                 new WorkbenchMemoryMapRow(
-                    FormatDisplayRange(Nt51950TpRestoreRange),
+                    FormatDisplayRange(BuiltInReplaceProfiles.Nt51950FamilyTpRestoreRange),
                     "DP replacement",
                     "Restore",
                     "Base TP",
-                    $"Copy original TP FW at {FormatDisplayRange(Nt51950TpRestoreRange)} from the base firmware after DP replacement."),
+                    $"Copy original TP FW at {FormatDisplayRange(BuiltInReplaceProfiles.Nt51950FamilyTpRestoreRange)} from the base firmware after DP replacement."),
+                new WorkbenchMemoryMapRow(
+                    FormatDisplayRange(BuiltInReplaceProfiles.Nt51950FamilyCustomerInfoPreserveRange),
+                    "DP replacement",
+                    "Restore",
+                    "Base customer info",
+                    $"Copy customer information at {FormatDisplayRange(BuiltInReplaceProfiles.Nt51950FamilyCustomerInfoPreserveRange)} from the base firmware after DP replacement."),
             ]
             :
         [
@@ -165,62 +171,6 @@ public static partial class WorkbenchCompositionService
         return true;
     }
 
-    private static CompositionProfileDefinition CreateNt51950DpReplaceProfile(string icId, long capacity)
-    {
-        var fullContainer = new ByteRange(0, capacity);
-        string normalizedIc = icId.ToLowerInvariant();
-        return new CompositionProfileDefinition(
-            $"{normalizedIc}-dp-replace-dp-perspective",
-            "0.5.0",
-            icId,
-            "dp-replace",
-            CompositionKind.Replace,
-            "dp-replace",
-            $"{normalizedIc}-dp-replace.bin",
-            ImageInitialization.Reference("output-image", "reference-base", capacity),
-            [
-                new AddressSpace("reference-base", capacity, AddressSpaceMutability.Immutable),
-                new AddressSpace("dp-replacement", capacity, AddressSpaceMutability.Immutable, inputPaddingByte: 0x00),
-                new AddressSpace("output-image", capacity, AddressSpaceMutability.Mutable),
-            ],
-            [
-                CompositionOperation.ReplaceRange(
-                    "replace-dp-container",
-                    100,
-                    "dp-replacement",
-                    fullContainer,
-                    "output-image",
-                    fullContainer,
-                    OverlapPolicy.Reject,
-                    $"Replace the NT51950/NT51951 DP Perspective container using the selected base length {FormatHexLength(capacity)}."),
-                CompositionOperation.CopyRange(
-                    "restore-base-tp",
-                    200,
-                    "reference-base",
-                    Nt51950TpRestoreRange,
-                    "output-image",
-                    Nt51950TpRestoreRange,
-                    OverlapPolicy.ReplaceExisting,
-                    $"Restore original TP FW at {FormatDisplayRange(Nt51950TpRestoreRange)} from the base firmware after DP replacement."),
-            ],
-            [
-                new ProfileRegion(
-                    "dp-perspective-container",
-                    "output-image",
-                    fullContainer,
-                    RegionAtomicity.Partitioned,
-                    RegionWritePolicy.DeclaredParts,
-                    classificationTags: ["dp", "tp-restore"]),
-            ],
-            [
-                new RegionAccessRule(
-                    "dp-perspective-container",
-                    RegionAccessKind.Parts,
-                    "NT51950/NT51951 DP Replace first copies replacement DP, then restores the original TP range."),
-            ],
-            IcNumberInputMode.SingleSelector);
-    }
-
     private static WorkbenchRunResult CreatePlanningRunResult(
         string icId,
         string number,
@@ -299,6 +249,8 @@ public static partial class WorkbenchCompositionService
             }
 
             var fullContainer = new ByteRange(0, capacity);
+            ByteRange tpRestoreRange = BuiltInReplaceProfiles.Nt51950FamilyTpRestoreRange;
+            ByteRange customerInfoPreserveRange = BuiltInReplaceProfiles.Nt51950FamilyCustomerInfoPreserveRange;
             return
             [
                 new OperationRunSummary(
@@ -322,15 +274,30 @@ public static partial class WorkbenchCompositionService
                     CompositionOperationKind.CopyRange,
                     status,
                     "reference-base",
-                    Nt51950TpRestoreRange,
+                    tpRestoreRange,
                     "output-image",
-                    Nt51950TpRestoreRange,
+                    tpRestoreRange,
                     OverlapPolicy.ReplaceExisting,
                     null,
                     null,
                     [],
                     [],
                     "Restore original TP FW from the base firmware."),
+                new OperationRunSummary(
+                    "restore-base-customer-info",
+                    210,
+                    CompositionOperationKind.CopyRange,
+                    status,
+                    "reference-base",
+                    customerInfoPreserveRange,
+                    "output-image",
+                    customerInfoPreserveRange,
+                    OverlapPolicy.ReplaceExisting,
+                    null,
+                    null,
+                    [],
+                    [],
+                    "Restore customer information from the base firmware."),
             ];
         }
 
@@ -448,12 +415,12 @@ public static partial class WorkbenchCompositionService
 
     private static bool IsSupportedNt51950DpBaseLength(long? length)
     {
-        return length is long value && Nt51950SupportedDpBaseLengths.Contains(value);
+        return length is long value && BuiltInReplaceProfiles.IsSupportedNt51950FamilyDpBaseLength(value);
     }
 
     private static string FormatSupportedNt51950DpBaseLengths()
     {
-        return string.Join(" / ", Nt51950SupportedDpBaseLengths.Select(FormatHexLength));
+        return string.Join(" / ", BuiltInReplaceProfiles.Nt51950FamilySupportedDpBaseLengths.Select(FormatHexLength));
     }
 
     private static string FormatHexLength(long length)
@@ -481,7 +448,7 @@ public static partial class WorkbenchCompositionService
 
     private static bool IsNt51950Or51(string icId)
     {
-        return icId is "NT51950" or "NT51951";
+        return BuiltInReplaceProfiles.IsNt51950FamilyDpReplaceIc(icId);
     }
 
     private static IReadOnlyList<WorkbenchMemoryMapRow> CreatePreserveRows(
