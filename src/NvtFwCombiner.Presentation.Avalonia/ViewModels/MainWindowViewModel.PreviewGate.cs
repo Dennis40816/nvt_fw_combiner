@@ -130,7 +130,8 @@ public sealed partial class MainWindowViewModel
             SelectedIc,
             SelectedNumber,
             message,
-            CreateStandardMergeSlotPaths());
+            CreateStandardMergeSlotPaths(),
+            issueCode: "ui.build.preview-required");
         RefreshCommandState();
     }
 
@@ -148,7 +149,8 @@ public sealed partial class MainWindowViewModel
             CreateReplaceSlotPaths(),
             compositionKind: "Replace",
             modeId: $"{SelectedReplaceMode.ToLowerInvariant()}-replace",
-            experienceId: $"{SelectedReplaceMode.ToLowerInvariant()}-replace");
+            experienceId: $"{SelectedReplaceMode.ToLowerInvariant()}-replace",
+            issueCode: "ui.build.preview-required");
         RefreshCommandState();
     }
 }
