@@ -108,8 +108,7 @@ public sealed class LegacyCombinerPostbuildRealToolSmokeTests
         string executableSource = Path.Combine(toolRoot, manifest.ToolId, manifest.ToolVersion, manifest.ExecutableName);
         Assert.Equal(manifest.Sha256, Sha256(executableSource));
 
-        LegacyCombinerPostbuildProfile profile = LegacyCombinerPostbuildCatalog.All.Single(
-            item => string.Equals(item.IcId, icId, StringComparison.Ordinal));
+        Assert.True(LegacyCombinerPostbuildCatalog.TryGetDefaultProfile(icId, out LegacyCombinerPostbuildProfile? profile));
         IcNumberSelection selection = new(mode, [selectionToken]);
         TpFlashMapRegion[] mappedRegions =
         [
@@ -134,13 +133,13 @@ public sealed class LegacyCombinerPostbuildRealToolSmokeTests
             var registry = new ExternalCombinerToolRegistry([manifest]);
             var processor = new LegacyCombinerPostbuildProcessor(
                 registry,
-                [profile],
+                [profile!],
                 toolRoot,
                 stagingRoot,
                 new SystemExternalProcessRunner());
             byte[] singleOutput = await RunPostbuildProcessorAsync(
                 processor,
-                profile,
+                profile!,
                 selection,
                 singleRegionBytes,
                 expectedChangedRanges,
@@ -148,7 +147,7 @@ public sealed class LegacyCombinerPostbuildRealToolSmokeTests
                 CancellationToken.None);
             byte[] multipleOutput = await RunPostbuildProcessorAsync(
                 processor,
-                profile,
+                profile!,
                 selection,
                 multipleRegionBytes,
                 expectedChangedRanges,
@@ -192,8 +191,7 @@ public sealed class LegacyCombinerPostbuildRealToolSmokeTests
         string executableSource = Path.Combine(toolRoot, manifest.ToolId, manifest.ToolVersion, manifest.ExecutableName);
         Assert.Equal(manifest.Sha256, Sha256(executableSource));
 
-        LegacyCombinerPostbuildProfile profile = LegacyCombinerPostbuildCatalog.All.Single(
-            item => string.Equals(item.IcId, icId, StringComparison.Ordinal));
+        Assert.True(LegacyCombinerPostbuildCatalog.TryGetDefaultProfile(icId, out LegacyCombinerPostbuildProfile? profile));
         IcNumberSelection selection = new(mode, [selectionToken]);
         TpFlashMapRegion selectedRegion = TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection)
             .OrderBy(region => region.Range.Start)
@@ -216,13 +214,13 @@ public sealed class LegacyCombinerPostbuildRealToolSmokeTests
             var registry = new ExternalCombinerToolRegistry([manifest]);
             var processor = new LegacyCombinerPostbuildProcessor(
                 registry,
-                [profile],
+                [profile!],
                 toolRoot,
                 stagingRoot,
                 new SystemExternalProcessRunner());
             byte[] prePastedOutput = await RunPostbuildProcessorAsync(
                 processor,
-                profile,
+                profile!,
                 selection,
                 prePastedBytes,
                 allowWholeImage,
@@ -231,7 +229,7 @@ public sealed class LegacyCombinerPostbuildRealToolSmokeTests
                 assertChangedRanges: false);
             byte[] purePastebackOutput = await RunPostbuildProcessorAsync(
                 processor,
-                profile,
+                profile!,
                 selection,
                 baseBytes,
                 allowWholeImage,

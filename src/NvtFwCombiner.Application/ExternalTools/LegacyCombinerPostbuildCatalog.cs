@@ -16,15 +16,105 @@ public static class LegacyCombinerPostbuildCatalog
         Nt51920,
         Nt51923,
         Nt51926,
+        Nt51926CommonFw141,
         Nt51927,
         Nt51928,
         Nt51929,
         Nt51930,
+        Nt51930CommonFw1x,
         Nt51931,
         Nt51932,
         Nt51950,
         Nt51951,
     ];
+
+    /// <summary>Gets every approved postbuild profile for an IC, including codebase-version variants.</summary>
+    public static IReadOnlyList<LegacyCombinerPostbuildProfile> GetProfiles(string icId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+
+        return [
+            .. All.Where(profile => string.Equals(profile.IcId, icId, StringComparison.Ordinal)),
+        ];
+    }
+
+    /// <summary>Gets the default postbuild profile used for catalog-only display when no base image is available.</summary>
+    public static bool TryGetDefaultProfile(
+        string icId,
+        out LegacyCombinerPostbuildProfile? postbuildProfile)
+    {
+        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = GetProfiles(icId);
+        postbuildProfile = profiles.Count == 0 ? null : profiles[0];
+        return profiles.Count > 0;
+    }
+
+    /// <summary>Selects the postbuild category for a base image Common FW version.</summary>
+    public static bool TrySelectProfileForCommonFwVersion(
+        string icId,
+        string? commonFwVersion,
+        out LegacyCombinerPostbuildProfile? postbuildProfile,
+        out string? issue)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+
+        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = GetProfiles(icId);
+        if (profiles.Count == 0)
+        {
+            postbuildProfile = null;
+            issue = $"No legacy Combiner postbuild profile is registered for {icId}.";
+            return false;
+        }
+
+        if (profiles.Count == 1)
+        {
+            postbuildProfile = profiles[0];
+            issue = null;
+            return true;
+        }
+
+        if (TryResolveVersionedProfile(icId, commonFwVersion, out postbuildProfile))
+        {
+            issue = null;
+            return true;
+        }
+
+        issue = string.IsNullOrWhiteSpace(commonFwVersion)
+            ? $"{icId} has multiple postbuild categories; base FWConfig Common FW version is required."
+            : $"{icId} Common FW {commonFwVersion} has no approved postbuild category. Supported categories: {DescribeSupportedCategories(icId)}.";
+        return false;
+    }
+
+    private static bool TryResolveVersionedProfile(
+        string icId,
+        string? commonFwVersion,
+        out LegacyCombinerPostbuildProfile? postbuildProfile)
+    {
+        postbuildProfile = null;
+        if (string.IsNullOrWhiteSpace(commonFwVersion))
+        {
+            return false;
+        }
+
+        postbuildProfile = (icId, commonFwVersion.Trim()) switch
+        {
+            ("NT51926", "1.4.1") => Nt51926CommonFw141,
+            ("NT51926", "2.0.0") => Nt51926,
+            ("NT51930", string version) when version.StartsWith("1.", StringComparison.Ordinal) => Nt51930CommonFw1x,
+            ("NT51930", "2.0.0") => Nt51930,
+            _ => null,
+        };
+        return postbuildProfile is not null;
+    }
+
+    private static string DescribeSupportedCategories(string icId)
+    {
+        return icId switch
+        {
+            "NT51926" => "Common FW 1.4.1 => PostbuildSetup_51926_1.4.1; Common FW 2.0.0 => PostbuildSetup_51926_2.0.0",
+            "NT51930" => "Common FW 1.x.x => PostbuildSetup_51930_1.4.0; Common FW 2.0.0 => PostbuildSetup_51930_2.0.0",
+            _ => "one unversioned postbuild category",
+        };
+    }
 
     /// <summary>NT51920 CtrlRAM postbuild profile.</summary>
     public static LegacyCombinerPostbuildProfile Nt51920 { get; } = new(
@@ -137,6 +227,42 @@ public static class LegacyCombinerPostbuildCatalog
         "IC FlashMap postbuild/PostbuildSetup_51926_2.0.0.bat",
         branchRules: SingleCascadeBranchRules(1, [2, 3]));
 
+    /// <summary>NT51926 Common FW 1.4.1 CtrlRAM postbuild profile.</summary>
+    public static LegacyCombinerPostbuildProfile Nt51926CommonFw141 { get; } = new(
+        "nfc.nt51926.ctrlram-postbuild-fw1.4.1",
+        "NT51926",
+        ToolBindingId,
+        "nt51926_fw.bin",
+        [
+            NormalCommand(
+                "nt51926-fw141-single-merge-crc",
+                [
+                    Bin("normal", "Normal_Ctrlram.bin", 0x0, 0x22800, 11264),
+                    Bin("mp", "MP_Ctrlram.bin", 0x0, 0x25400, 9216),
+                    Bin("vn", "VN_Ctrlram.bin", 0x0, 0x315D0, 5728),
+                    Bin("nf", "NF_Ctrlram.bin", 0x0, 0x2C800, 11728),
+                    Fw("fw-config-backup", 0x22000, 0x3B000, 2048),
+                    Fw("header-copy", 0x0, 0x32F50, 256),
+                ]),
+            NormalCommand("nt51926-fw141-single-header-crc", [Fw("header-copy-final", 0x0, 0x32F50, 256)]),
+        ],
+        [
+            NormalCommand(
+                "nt51926-fw141-cascade-merge-crc",
+                [
+                    Bin("normal", "Normal_Ctrlram.bin", 0x0, 0x22800, 11264),
+                    Bin("diff", "DiffDLM.bin", 0x0, 0x27800, 10240),
+                    Bin("mp", "MP_Ctrlram.bin", 0x0, 0x25400, 9216),
+                    Bin("vn", "VN_Ctrlram.bin", 0x0, 0x315D0, 5728),
+                    Bin("nf", "NF_Ctrlram.bin", 0x0, 0x2C800, 11728),
+                    Fw("fw-config-backup", 0x22000, 0x3B000, 2048),
+                    Fw("header-copy", 0x0, 0x32F50, 256),
+                ]),
+            NormalCommand("nt51926-fw141-cascade-header-crc", [Fw("header-copy-final", 0x0, 0x32F50, 256)]),
+        ],
+        "IC FlashMap postbuild/PostbuildSetup_51926_1.4.1.bat",
+        branchRules: SingleCascadeBranchRules(1, [2, 3]));
+
     /// <summary>NT51927 CtrlRAM postbuild profile.</summary>
     public static LegacyCombinerPostbuildProfile Nt51927 { get; } = new(
         "nfc.nt51927.ctrlram-postbuild-v1",
@@ -233,6 +359,40 @@ public static class LegacyCombinerPostbuildCatalog
                 [Fw("header-copy-final", 0x7000, 0x28FB0, 512)]),
         ],
         "IC FlashMap postbuild/PostbuildSetup_51930_2.0.0.bat",
+        branchRules: SingleCascadeBranchRules(1, Enumerable.Range(2, 28)));
+
+    /// <summary>NT51930 Common FW 1.x CtrlRAM postbuild profile.</summary>
+    public static LegacyCombinerPostbuildProfile Nt51930CommonFw1x { get; } = new(
+        "nfc.nt51930.ctrlram-postbuild-fw1.x",
+        "NT51930",
+        ToolBindingId,
+        "nt51930_fw.bin",
+        [
+            NtBasedCommand(
+                "nt51930-fw1x-single-merge-crc",
+                "NT51930BASED_NORMAL_MODE",
+                [
+                    Bin("nf", "NF_Ctrlram.bin", 0x0, 0x1FC00, 6736),
+                    Bin("normal", "Normal_Ctrlram.bin", 0x0, 0x21650, 11264),
+                    Bin("mp", "MP_Ctrlram.bin", 0x0, 0x24250, 13312),
+                    Bin("vn", "VN_Ctrlram.bin", 0x0, 0x27650, 6494),
+                    Fw("header-copy", 0x7000, 0x28FB0, 256),
+                ]),
+        ],
+        [
+            NtBasedCommand(
+                "nt51930-fw1x-cascade-merge-crc",
+                "NT51930BASED_NORMAL_MODE",
+                [
+                    Bin("nf", "NF_Ctrlram.bin", 0x0, 0x1FC00, 6736),
+                    Bin("normal", "Normal_Ctrlram.bin", 0x0, 0x21650, 11264),
+                    Bin("mp", "MP_Ctrlram.bin", 0x0, 0x24250, 13312),
+                    Bin("vn", "VN_Ctrlram.bin", 0x0, 0x27650, 6494),
+                    Fw("header-copy", 0x7000, 0x28FB0, 256),
+                    Bin("diff", "DiffDLM.bin", 0x0, 0x2F200, 65024),
+                ]),
+        ],
+        "IC FlashMap postbuild/PostbuildSetup_51930_1.4.0.bat",
         branchRules: SingleCascadeBranchRules(1, Enumerable.Range(2, 28)));
 
     /// <summary>NT51931 CtrlRAM postbuild profile.</summary>

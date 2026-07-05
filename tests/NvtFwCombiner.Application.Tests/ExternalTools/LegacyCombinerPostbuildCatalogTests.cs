@@ -120,6 +120,73 @@ public sealed class LegacyCombinerPostbuildCatalogTests
         Assert.Equal(new ByteRange(0x2F200, 65024), diffBlock.FirmwareRange);
     }
 
+    /// <summary>Locks NT51926 Common FW 1.4.1 to its owner-provided header-copy target.</summary>
+    [Fact]
+    public void Nt51926CommonFw141SelectsLegacyHeaderCopyTarget()
+    {
+        Assert.True(LegacyCombinerPostbuildCatalog.TrySelectProfileForCommonFwVersion(
+            "NT51926",
+            "1.4.1",
+            out LegacyCombinerPostbuildProfile? profile,
+            out string? issue), issue);
+
+        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(
+            profile!,
+            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
+
+        Assert.Equal("nfc.nt51926.ctrlram-postbuild-fw1.4.1", profile!.ProcessorId);
+        Assert.Contains("PostbuildSetup_51926_1.4.1.bat", profile.Evidence, StringComparison.Ordinal);
+        Assert.Contains(
+            plan.Commands.SelectMany(command => command.Blocks),
+            block => block.BlockId == "header-copy" &&
+                     block.FirmwareRange == new ByteRange(0x32F50, 256));
+        Assert.Contains(
+            plan.Commands.SelectMany(command => command.Blocks),
+            block => block.SourceFileName == "VN_Ctrlram.bin" &&
+                     block.FirmwareRange == new ByteRange(0x315D0, 5728));
+    }
+
+    /// <summary>Locks NT51930 Common FW 1.x to the 1.4.0-era command shape.</summary>
+    [Fact]
+    public void Nt51930CommonFw1xSelectsSingleLegacyHeaderCommand()
+    {
+        Assert.True(LegacyCombinerPostbuildCatalog.TrySelectProfileForCommonFwVersion(
+            "NT51930",
+            "1.3.0",
+            out LegacyCombinerPostbuildProfile? profile,
+            out string? issue), issue);
+
+        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(
+            profile!,
+            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
+
+        Assert.Equal("nfc.nt51930.ctrlram-postbuild-fw1.x", profile!.ProcessorId);
+        Assert.Contains("PostbuildSetup_51930_1.4.0.bat", profile.Evidence, StringComparison.Ordinal);
+        LegacyCombinerPostbuildCommand command = Assert.Single(plan.Commands);
+        Assert.Contains(
+            command.Blocks,
+            block => block.SourceFileName == "MP_Ctrlram.bin" &&
+                     block.FirmwareRange == new ByteRange(0x24250, 13312));
+        Assert.Contains(
+            command.Blocks,
+            block => block.BlockId == "header-copy" &&
+                     block.FirmwareRange == new ByteRange(0x28FB0, 256));
+    }
+
+    /// <summary>Locks ambiguous versioned ICs to fail closed for unsupported Common FW versions.</summary>
+    [Fact]
+    public void VersionedPostbuildSelectionRejectsUnknownCommonFw()
+    {
+        Assert.False(LegacyCombinerPostbuildCatalog.TrySelectProfileForCommonFwVersion(
+            "NT51926",
+            "1.4.0",
+            out LegacyCombinerPostbuildProfile? profile,
+            out string? issue));
+
+        Assert.Null(profile);
+        Assert.Contains("no approved postbuild category", issue, StringComparison.Ordinal);
+    }
+
     /// <summary>Locks NT51917 to the owner-approved NT51927 special postbuild flow.</summary>
     [Fact]
     public void Nt51917AliasesNt51927PostbuildFlow()

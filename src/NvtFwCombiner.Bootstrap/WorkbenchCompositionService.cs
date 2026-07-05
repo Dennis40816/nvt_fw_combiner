@@ -328,7 +328,7 @@ public static partial class WorkbenchCompositionService
             BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles.Count,
             BuiltInReplaceProfiles.All.Count,
             TpFlashMapCatalog.IcIds.Count,
-            LegacyCombinerPostbuildCatalog.All.Count,
+            LegacyCombinerPostbuildCatalog.All.Select(profile => profile.IcId).Distinct(StringComparer.Ordinal).Count(),
             string.Join(", ", toolBindingIds),
             "external-tools/legacy-combiner/1.13.0/manifest.json");
     }

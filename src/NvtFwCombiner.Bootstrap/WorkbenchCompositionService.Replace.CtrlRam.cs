@@ -34,29 +34,8 @@ public static partial class WorkbenchCompositionService
         }
 
         List<CompositionIssue> validationIssues = [];
-        if (!TryGetPostbuildProfile(icId, out LegacyCombinerPostbuildProfile? postbuildProfile))
-        {
-            validationIssues.Add(new CompositionIssue(
-                "replace.ctrlram.postbuild-profile-missing",
-                $"No legacy Combiner postbuild profile is registered for {icId}.",
-                "postbuild"));
-        }
-
+        LegacyCombinerPostbuildProfile? postbuildProfile = null;
         LegacyCombinerPostbuildCommandPlan? commandPlan = null;
-        if (postbuildProfile is not null)
-        {
-            try
-            {
-                commandPlan = LegacyCombinerPostbuildPlanner.CreatePlan(postbuildProfile, selection);
-            }
-            catch (ArgumentException exception)
-            {
-                validationIssues.Add(new CompositionIssue(
-                    "replace.ctrlram.ic-number-unsupported",
-                    exception.Message,
-                    "number"));
-            }
-        }
 
         List<TpFlashMapRegion> selectedRegions =
         [
@@ -103,6 +82,35 @@ public static partial class WorkbenchCompositionService
                         "replace-base"));
                 }
             }
+        }
+
+        if (basePath is not null && baseLength > 0)
+        {
+            if (!TryGetPostbuildProfile(icId, basePath, out postbuildProfile, out CompositionIssue? postbuildIssue))
+            {
+                validationIssues.Add(postbuildIssue!);
+            }
+            else
+            {
+                try
+                {
+                    commandPlan = LegacyCombinerPostbuildPlanner.CreatePlan(postbuildProfile!, selection);
+                }
+                catch (ArgumentException exception)
+                {
+                    validationIssues.Add(new CompositionIssue(
+                        "replace.ctrlram.ic-number-unsupported",
+                        exception.Message,
+                        "number"));
+                }
+            }
+        }
+        else if (LegacyCombinerPostbuildCatalog.GetProfiles(icId).Count == 0)
+        {
+            validationIssues.Add(new CompositionIssue(
+                "replace.ctrlram.postbuild-profile-missing",
+                $"No legacy Combiner postbuild profile is registered for {icId}.",
+                "postbuild"));
         }
 
         if (commandPlan is not null && baseLength > 0)
@@ -376,14 +384,13 @@ public static partial class WorkbenchCompositionService
             }
         }
 
-        if (LegacyCombinerPostbuildCatalog.All.FirstOrDefault(profile =>
-                string.Equals(profile.IcId, icId, StringComparison.Ordinal)) is not { } postbuildProfile)
+        if (!LegacyCombinerPostbuildCatalog.TryGetDefaultProfile(icId, out LegacyCombinerPostbuildProfile? postbuildProfile))
         {
             return operations;
         }
 
-        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(postbuildProfile, selection);
-        string firmwarePath = Path.Combine("output", postbuildProfile.FirmwareFileName);
+        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(postbuildProfile!, selection);
+        string firmwarePath = Path.Combine("output", postbuildProfile!.FirmwareFileName);
         string binDirectory = "BIN";
         foreach (LegacyCombinerPostbuildCommand command in plan.Commands)
         {
@@ -414,11 +421,76 @@ public static partial class WorkbenchCompositionService
 
     private static bool TryGetPostbuildProfile(
         string icId,
-        out LegacyCombinerPostbuildProfile? postbuildProfile)
+        string basePath,
+        out LegacyCombinerPostbuildProfile? postbuildProfile,
+        out CompositionIssue? issue)
     {
-        postbuildProfile = LegacyCombinerPostbuildCatalog.All.FirstOrDefault(profile =>
-            string.Equals(profile.IcId, icId, StringComparison.Ordinal));
-        return postbuildProfile is not null;
+        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = LegacyCombinerPostbuildCatalog.GetProfiles(icId);
+        if (profiles.Count == 0)
+        {
+            postbuildProfile = null;
+            issue = new CompositionIssue(
+                "replace.ctrlram.postbuild-profile-missing",
+                $"No legacy Combiner postbuild profile is registered for {icId}.",
+                "postbuild");
+            return false;
+        }
+
+        string? commonFwVersion = null;
+        if (profiles.Count > 1 &&
+            !TryReadBaseCommonFwVersion(icId, basePath, out commonFwVersion))
+        {
+            postbuildProfile = null;
+            issue = new CompositionIssue(
+                "replace.ctrlram.postbuild-category-unknown",
+                $"{icId} has multiple legacy Combiner postbuild categories, but the base BIN FWConfig Common FW version could not be read.",
+                "replace-base");
+            return false;
+        }
+
+        if (!LegacyCombinerPostbuildCatalog.TrySelectProfileForCommonFwVersion(
+                icId,
+                commonFwVersion,
+                out postbuildProfile,
+                out string? profileIssue))
+        {
+            issue = new CompositionIssue(
+                "replace.ctrlram.postbuild-category-unsupported",
+                profileIssue ?? $"No legacy Combiner postbuild profile is registered for {icId}.",
+                "postbuild");
+            return false;
+        }
+
+        issue = null;
+        return true;
+    }
+
+    private static bool TryReadBaseCommonFwVersion(
+        string icId,
+        string basePath,
+        out string? commonFwVersion)
+    {
+        commonFwVersion = null;
+        if (!TpFlashMapCatalog.TryGetFirmwareConfigStart(icId, out long firmwareConfigStart))
+        {
+            return false;
+        }
+
+        try
+        {
+            byte[] image = File.ReadAllBytes(basePath);
+            if (!FirmwareConfigMetadataReader.TryRead(image, firmwareConfigStart, out FirmwareConfigMetadata metadata))
+            {
+                return false;
+            }
+
+            commonFwVersion = metadata.CommonFwVersion;
+            return true;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            return false;
+        }
     }
 
     private static bool IsSlotSupplied(

@@ -991,6 +991,13 @@ public sealed class ShellViewModelTests
 
                 await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
                 Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+                if (caseId.StartsWith("nt51926-", StringComparison.Ordinal))
+                {
+                    Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
+                        operation.Meta.Contains("nfc.nt51926.ctrlram-postbuild-fw1.4.1", StringComparison.Ordinal) &&
+                        operation.CodeBlock.Contains("0x32F50", StringComparison.Ordinal));
+                }
+
                 Assert.True(viewModel.CanBuildReplace, caseId);
 
                 await viewModel.BuildReplaceAsync(outputPath);

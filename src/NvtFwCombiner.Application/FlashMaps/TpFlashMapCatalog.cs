@@ -142,7 +142,9 @@ public static class TpFlashMapCatalog
         .ToDictionary(profile => profile.IcId, StringComparer.Ordinal);
 
     private static readonly Dictionary<string, LegacyCombinerPostbuildProfile> PostbuildProfilesByIc =
-        LegacyCombinerPostbuildCatalog.All.ToDictionary(profile => profile.IcId, StringComparer.Ordinal);
+        LegacyCombinerPostbuildCatalog.All
+            .GroupBy(profile => profile.IcId, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
 
     /// <summary>Supported IC ids in stable order.</summary>
     public static IReadOnlyList<string> IcIds { get; } =
