@@ -472,29 +472,61 @@ public sealed class ReportReviewViewModel
                 string target = FormatEndpoint(GetString(operation, "TargetSpaceId"), GetRangeOrNull(operation, "TargetRange"));
                 string reason = GetString(operation, "Reason");
                 (string reasonSummary, string commandBlock) = ExtractCombinerCommand(reason);
-                string processorTrace = FormatProcessorTrace(operation);
                 return new ReportLineViewModel(
                     $"{GetLong(operation, "Sequence")}. {GetString(operation, "OperationId")}",
                     $"{GetString(operation, "Kind")} {source} -> {target}",
-                    string.IsNullOrWhiteSpace(processorTrace)
-                        ? $"{GetString(operation, nameof(Status))} / {GetString(operation, "OverlapPolicy")} / {reasonSummary}"
-                        : $"{GetString(operation, nameof(Status))} / {GetString(operation, "OverlapPolicy")} / {reasonSummary} / {processorTrace}",
-                    commandBlock);
+                    reasonSummary,
+                    commandBlock,
+                    CreateOperationBadges(operation),
+                    CreateOperationFacts(operation, source, target, reasonSummary));
             }),
             ];
     }
 
-    private static string FormatProcessorTrace(JsonElement operation)
+    private static ReportLineBadgeViewModel[] CreateOperationBadges(JsonElement operation)
     {
+        string status = GetString(operation, nameof(Status));
+        string overlapPolicy = GetString(operation, "OverlapPolicy");
+        return
+        [
+            new ReportLineBadgeViewModel(string.IsNullOrWhiteSpace(status) ? "status unknown" : status),
+            new ReportLineBadgeViewModel(string.IsNullOrWhiteSpace(overlapPolicy) ? "overlap unknown" : $"overlap {overlapPolicy}"),
+        ];
+    }
+
+    private static List<ReportLineFactViewModel> CreateOperationFacts(
+        JsonElement operation,
+        string source,
+        string target,
+        string reasonSummary)
+    {
+        List<ReportLineFactViewModel> facts =
+        [
+            new("Source", source, isTechnical: true),
+            new("Target", target, isTechnical: true),
+            new("Reason", reasonSummary),
+        ];
+
         if (GetStringOrNull(operation, "ProcessorId") is not { } processorId)
         {
-            return string.Empty;
+            return facts;
         }
 
-        string toolBinding = GetStringOrNull(operation, "ToolBindingId") is { } toolBindingId
-            ? $" / tool {toolBindingId}"
-            : string.Empty;
-        return $"processor {processorId}{toolBinding} / read {FormatRangeList(operation, "ProcessorAllowedReadRanges")} / write {FormatRangeList(operation, "ProcessorAllowedWriteRanges")}";
+        facts.Add(new ReportLineFactViewModel("Processor", processorId, isTechnical: true));
+        if (GetStringOrNull(operation, "ToolBindingId") is { } toolBindingId)
+        {
+            facts.Add(new ReportLineFactViewModel("Tool", toolBindingId, isTechnical: true));
+        }
+
+        facts.Add(new ReportLineFactViewModel(
+            "Read ranges",
+            FormatRangeList(operation, "ProcessorAllowedReadRanges"),
+            isTechnical: true));
+        facts.Add(new ReportLineFactViewModel(
+            "Write ranges",
+            FormatRangeList(operation, "ProcessorAllowedWriteRanges"),
+            isTechnical: true));
+        return facts;
     }
 
     private static IReadOnlyList<ReportLineViewModel> ParseMutations(JsonElement root)
