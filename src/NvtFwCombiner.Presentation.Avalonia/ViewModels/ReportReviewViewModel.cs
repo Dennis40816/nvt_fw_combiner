@@ -411,8 +411,10 @@ public sealed class ReportReviewViewModel
 
     private static bool IsWarning(ReportLineViewModel issue)
     {
-        // Until the report schema has severity, only the documented truncation diagnostic is non-blocking.
-        return string.Equals(issue.Title, "input.address-space.truncated", StringComparison.Ordinal);
+        return string.Equals(issue.Severity, "warning", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(issue.Severity, "info", StringComparison.OrdinalIgnoreCase) ||
+            (string.IsNullOrWhiteSpace(issue.Severity) &&
+                string.Equals(issue.Title, "input.address-space.truncated", StringComparison.Ordinal));
     }
 
     private static string FormatWarningMeta(int warningCount)
@@ -642,11 +644,26 @@ public sealed class ReportReviewViewModel
             ? []
             :
             [
-                .. issues.EnumerateArray().Select(issue => new ReportLineViewModel(
-                GetString(issue, "Code"),
-                GetString(issue, "Message"),
-                GetStringOrNull(issue, "OperationId") ?? "run")),
+                .. issues.EnumerateArray().Select(issue =>
+                {
+                    string code = GetString(issue, "Code");
+                    string severity = GetStringOrNull(issue, "Severity") ??
+                        GetStringOrNull(issue, "severity") ??
+                        LegacySeverityForIssueCode(code);
+                    return new ReportLineViewModel(
+                        code,
+                        GetString(issue, "Message"),
+                        GetStringOrNull(issue, "OperationId") ?? "run",
+                        severity: severity);
+                }),
             ];
+    }
+
+    private static string LegacySeverityForIssueCode(string code)
+    {
+        return string.Equals(code, "input.address-space.truncated", StringComparison.Ordinal)
+            ? "warning"
+            : "error";
     }
 
     private static string ParseOutput(JsonElement root)
