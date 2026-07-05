@@ -1,6 +1,4 @@
 using System.Security.Cryptography;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
@@ -12,14 +10,6 @@ namespace NvtFwCombiner.Bootstrap;
 /// <summary>Typed facade used by the desktop shell to query catalogs and run application services.</summary>
 public static partial class WorkbenchCompositionService
 {
-    private const string EmptySha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-
-    private static readonly JsonSerializerOptions ReportJsonOptions = new()
-    {
-        WriteIndented = true,
-        Converters = { new JsonStringEnumConverter() },
-    };
-
     private static readonly Dictionary<string, CompositionProfileDefinition> StandardMergeProfilesByIc =
         BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles.ToDictionary(
             profile => profile.IcId,
@@ -444,21 +434,6 @@ public static partial class WorkbenchCompositionService
             profile.ExperienceId,
             profile.CompositionKind,
             profile.IcNumberInputMode);
-    }
-
-    private static WorkbenchRunResult ToWorkbenchRunResult(CompositionRunResult result)
-    {
-        CompositionRunReport report = result.Report;
-        string reportJson = JsonSerializer.Serialize(report, ReportJsonOptions);
-        return new WorkbenchRunResult(
-            result.Status == CompositionExecutionStatus.Succeeded,
-            result.Status.ToString(),
-            report.ProfileId,
-            report.Output.Size,
-            report.Output.Sha256,
-            report.Output.FileName,
-            result.CommittedOutputId,
-            reportJson);
     }
 
     private static string FormatIssues(IEnumerable<CompositionIssue> issues)
