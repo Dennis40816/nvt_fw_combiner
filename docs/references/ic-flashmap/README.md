@@ -5,7 +5,7 @@ This directory contains owner-approved reference evidence extracted from `IC Fla
 Included:
 
 - `IC_FlashMap_20260701.xlsx` workbook evidence used for human flash-map review.
-- `IC_FlashMap_20260705.xlsx` workbook update with NT51926/NT51927 TP Overview backup-region corrections. The current 2026-07-05 10:34:14 copy is tracked by SHA-256 in `SOURCE_MANIFEST.json`; NT51926 versioned postbuild rows still need owner workbook cleanup as documented in `docs/architecture/ctrlram-universal-sentinel-validation-table.md`.
+- `IC_FlashMap_20260705.xlsx` workbook update with NT51926/NT51927 TP Overview backup-region corrections and NT51926 versioned TP Overview sections. The current 2026-07-05 10:34:14 copy is tracked by SHA-256 in `SOURCE_MANIFEST.json`.
 - `postbuild/` legacy postbuild BAT files used to verify Combiner command order and arguments.
 - `mmap/` legacy memory-map headers used to verify address ranges and header locations.
 - `common-fw/ap_fwconfig.c` FWConfig structure reference used to verify Common FW, FW/bar, and PID offsets.
