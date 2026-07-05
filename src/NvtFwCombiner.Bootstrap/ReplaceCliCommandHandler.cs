@@ -79,6 +79,19 @@ internal static partial class ReplaceCliCommandHandler
             return UsageError;
         }
 
+        if (command == "dp-replace" &&
+            TryResolveNt51950FamilyDpReplaceIc(profileSelector, out string? dpWorkbenchIcId))
+        {
+            return await RunWorkbenchDpReplaceAsync(
+                    action,
+                    dpWorkbenchIcId,
+                    options,
+                    output,
+                    error,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         if (!TryFindReplaceProfile(command, profileSelector, out CompositionProfileDefinition? selectedProfile))
         {
             return command switch
