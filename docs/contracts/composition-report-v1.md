@@ -13,6 +13,7 @@ The report is an immutable audit record for UI, CLI, CI, regression, and release
 - deterministic operation plan and statuses;
 - processor authority, purpose, protocol/worker identity, hashes, worker-claimed changes, and host-verified changes;
 - mutation traces, validation outcomes, stable issue codes, output hash, and atomic-commit status.
+- issue `severity` values are `info`, `warning`, or `error`; warnings are non-blocking diagnostics that still require audit before treating output as final evidence.
 
 `integrityDisposition` describes the required firmware outcome. `processorAuthority` separately describes what the external process may do. Reports never conflate the two.
 

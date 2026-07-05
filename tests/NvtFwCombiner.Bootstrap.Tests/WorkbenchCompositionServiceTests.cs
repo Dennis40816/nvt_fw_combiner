@@ -177,6 +177,7 @@ public sealed class WorkbenchCompositionServiceTests
 
         JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
         Assert.Equal("input.artifact.read-failed", issue.GetProperty("Code").GetString());
+        Assert.Equal("error", issue.GetProperty("Severity").GetString());
     }
 
     private static byte[] CreatePattern(int length, byte seed)

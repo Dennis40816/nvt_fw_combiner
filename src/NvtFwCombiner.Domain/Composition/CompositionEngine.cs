@@ -172,7 +172,8 @@ public static class CompositionEngine
                 issues.Add(new CompositionIssue(
                     "input.address-space.truncated",
                     $"Input bytes for address space '{addressSpace.AddressSpaceId}' exceed declared length and were truncated from {bytes.Length} to {addressSpace.Length} bytes; {discardedByteCount} trailing bytes were discarded.",
-                    addressSpace.AddressSpaceId));
+                    addressSpace.AddressSpaceId,
+                    CompositionIssueSeverity.Warning));
             }
             else if (buffer.LongLength < addressSpace.Length)
             {

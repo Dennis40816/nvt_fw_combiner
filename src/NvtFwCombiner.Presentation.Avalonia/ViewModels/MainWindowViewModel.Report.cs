@@ -211,6 +211,7 @@ public sealed partial class MainWindowViewModel
                 new
                 {
                     Code = issueCode,
+                    Severity = "error",
                     Message = message,
                     OperationId = $"{icId} / {number}",
                 },

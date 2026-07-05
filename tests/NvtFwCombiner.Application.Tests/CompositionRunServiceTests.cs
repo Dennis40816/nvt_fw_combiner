@@ -217,6 +217,7 @@ public sealed class CompositionRunServiceTests
         Assert.Contains(result.Report.Inputs, input => input.AddressSpaceId == "ctrlram-input" && input.Size == 4);
         CompositionIssue issue = Assert.Single(result.Report.Issues);
         Assert.Equal("input.address-space.truncated", issue.Code);
+        Assert.Equal(CompositionIssueSeverity.Warning, issue.Severity);
         Assert.Contains("from 4 to 2 bytes", issue.Message, StringComparison.Ordinal);
     }
 
@@ -257,6 +258,7 @@ public sealed class CompositionRunServiceTests
         Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
         Assert.Equal(2, result.Report.Issues.Count);
         Assert.All(result.Report.Issues, issue => Assert.Equal("input.artifact.read-failed", issue.Code));
+        Assert.All(result.Report.Issues, issue => Assert.Equal(CompositionIssueSeverity.Error, issue.Severity));
     }
 
     /// <summary>Verifies preview tokens include overwritten operation details, not only final output bytes.</summary>

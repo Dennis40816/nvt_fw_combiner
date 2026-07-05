@@ -1449,6 +1449,7 @@ public sealed class ShellViewModelTests
               "Issues": [
                 {
                   "Code": "input.address-space.truncated",
+                  "Severity": "warning",
                   "Message": "Input ctrlram-input actual 6 bytes exceeded declared 4 bytes and was truncated.",
                   "OperationId": "replace-ctrlram"
                 }
@@ -1471,6 +1472,7 @@ public sealed class ShellViewModelTests
         Assert.True(viewModel.LoadedReport.HasWarnings);
         Assert.True(viewModel.LoadedReport.HasWarningsWithoutBlockingIssues);
         Assert.False(viewModel.LoadedReport.HasPrimaryIssue);
+        Assert.Equal("warning", Assert.Single(viewModel.LoadedReport.Issues).Severity);
         Assert.Equal(0, viewModel.LoadedReport.BlockingIssueCount);
         Assert.Equal(1, viewModel.LoadedReport.WarningCount);
         Assert.Equal("Succeeded with 1 warning(s)", viewModel.LoadedReport.OutcomeTitle);
@@ -1489,6 +1491,89 @@ public sealed class ShellViewModelTests
             row.Detail == "1" &&
             row.Meta == "input.address-space.truncated");
         Assert.Equal("1 warning", Assert.Single(viewModel.ReportHistoryEntries).IssueSummary);
+    }
+
+    /// <summary>Verifies report review uses schema severity before legacy code-based warning fallback.</summary>
+    [Fact]
+    public void ReportReviewUsesIssueSeverityForWarnings()
+    {
+        const string json = /*lang=json,strict*/ """
+            {
+              "ProfileId": "nt51927-ctrlram-replace",
+              "IcId": "NT51927",
+              "ExperienceId": "ctrlram-replace",
+              "CompositionKind": "Replace",
+              "RunId": "ui-smoke-severity-warning",
+              "StartedAtUtc": "2026-07-01T00:00:00Z",
+              "Inputs": [],
+              "Operations": [],
+              "Mutations": [],
+              "Issues": [
+                {
+                  "Code": "processor.review-note",
+                  "Severity": "warning",
+                  "Message": "Processor completed with a review note.",
+                  "OperationId": "run-postbuild"
+                }
+              ],
+              "Output": {
+                "FileName": "preview.bin",
+                "Size": 32,
+                "Committed": false,
+                "Sha256": "abcdef012345"
+              }
+            }
+            """;
+
+        var report = ReportReviewViewModel.FromJson(json, "severity-warning.json");
+
+        Assert.True(report.HasWarningsWithoutBlockingIssues);
+        Assert.False(report.HasPrimaryIssue);
+        Assert.Equal(0, report.BlockingIssueCount);
+        Assert.Equal(1, report.WarningCount);
+        Assert.Equal("Succeeded with 1 warning(s)", report.Status);
+        ReportLineViewModel issue = Assert.Single(report.Issues);
+        Assert.Equal("processor.review-note", issue.Title);
+        Assert.Equal("warning", issue.Severity);
+    }
+
+    /// <summary>Verifies older reports without issue severity keep the documented truncation warning behavior.</summary>
+    [Fact]
+    public void ReportReviewKeepsLegacyTruncationWarningFallback()
+    {
+        const string json = /*lang=json,strict*/ """
+            {
+              "ProfileId": "nt51927-ctrlram-replace",
+              "IcId": "NT51927",
+              "ExperienceId": "ctrlram-replace",
+              "CompositionKind": "Replace",
+              "RunId": "ui-smoke-legacy-warning",
+              "StartedAtUtc": "2026-07-01T00:00:00Z",
+              "Inputs": [],
+              "Operations": [],
+              "Mutations": [],
+              "Issues": [
+                {
+                  "Code": "input.address-space.truncated",
+                  "Message": "Input ctrlram-input was truncated.",
+                  "OperationId": "replace-ctrlram"
+                }
+              ],
+              "Output": {
+                "FileName": "preview.bin",
+                "Size": 32,
+                "Committed": false,
+                "Sha256": "abcdef012345"
+              }
+            }
+            """;
+
+        var report = ReportReviewViewModel.FromJson(json, "legacy-warning.json");
+
+        Assert.True(report.HasWarningsWithoutBlockingIssues);
+        Assert.False(report.HasPrimaryIssue);
+        Assert.Equal(1, report.WarningCount);
+        Assert.Equal("warning", Assert.Single(report.Issues).Severity);
     }
 
     /// <summary>Verifies report triage points users to the first issue and command evidence.</summary>

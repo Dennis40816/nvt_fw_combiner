@@ -194,8 +194,21 @@ public sealed class CompositionEngineTests
         Assert.Equal([0, 0xAA, 0xBB, 0], result.OutputBytes.ToArray());
         CompositionIssue issue = Assert.Single(result.Issues);
         Assert.Equal("input.address-space.truncated", issue.Code);
+        Assert.Equal(CompositionIssueSeverity.Warning, issue.Severity);
         Assert.Equal("ctrlram-input", issue.OperationId);
         Assert.Contains("from 4 to 2 bytes", issue.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies report issue severity is constrained to the contract vocabulary.</summary>
+    [Fact]
+    public void CompositionIssueRejectsUnknownSeverity()
+    {
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => new CompositionIssue(
+            "issue.test",
+            "test message",
+            severity: "fatal"));
+
+        Assert.Contains("Unsupported issue severity", exception.Message, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies caller-supplied initialized target bytes are ignored before padding normalization.</summary>

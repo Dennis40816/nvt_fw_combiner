@@ -13,11 +13,13 @@ public sealed class ReportLineViewModel
         string meta,
         string codeBlock = "",
         IEnumerable<ReportLineBadgeViewModel>? badges = null,
-        IEnumerable<ReportLineFactViewModel>? facts = null)
+        IEnumerable<ReportLineFactViewModel>? facts = null,
+        string severity = "")
     {
         Title = title;
         Detail = detail;
         Meta = meta;
+        Severity = severity ?? string.Empty;
         CodeBlock = codeBlock;
         HasCodeBlock = !string.IsNullOrWhiteSpace(codeBlock);
         Badges = badges is null ? [] : [.. badges];
@@ -34,6 +36,9 @@ public sealed class ReportLineViewModel
 
     /// <summary>Small metadata line.</summary>
     public string Meta { get; }
+
+    /// <summary>Optional issue severity for report diagnostics.</summary>
+    public string Severity { get; }
 
     /// <summary>True when the metadata line contains text.</summary>
     public bool HasMeta => !string.IsNullOrWhiteSpace(Meta);
