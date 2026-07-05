@@ -460,24 +460,57 @@ public sealed class ShellViewModelTests
     [Fact]
     public void ReplaceCoverageUsesReadableInclusiveSegments()
     {
+        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-coverage-{Guid.NewGuid():N}");
+        try
+        {
+            _ = Directory.CreateDirectory(tempRoot);
+            string basePath = Path.Combine(tempRoot, "base-40000.bin");
+            File.WriteAllBytes(basePath, new byte[0x40000]);
+            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+            viewModel.ShowDpReplaceCommand.Execute(null);
+            viewModel.SetSlotFile("replace-base", basePath);
+
+            Assert.True(viewModel.IsReplaceVisible);
+            Assert.NotEmpty(viewModel.ReplaceCoverageSegments);
+            Assert.All(viewModel.ReplaceCoverageSegments, segment =>
+            {
+                Assert.Contains("-", segment.RangeLabel, StringComparison.Ordinal);
+                Assert.Contains("len 0x", segment.RangeLabel, StringComparison.Ordinal);
+                Assert.DoesNotContain("..", segment.RangeLabel, StringComparison.Ordinal);
+            });
+            Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.SourceLabel == "Restored TP");
+            Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.SourceLabel is "Changed DP BIN" or "Changed LDC BIN");
+            Assert.Equal(
+                "Preview blocked: base BIN and required DP replacement inputs are required.",
+                viewModel.ReplacePreviewUnavailableReason);
+            Assert.Equal("Build blocked: run a valid DP Preview first.", viewModel.ReplaceBuildUnavailableReason);
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+    }
+
+    /// <summary>Verifies NT51950 DP Replace does not draw a max-length range before the base BIN is selected.</summary>
+    [Fact]
+    public void Nt51950DpReplaceCoverageWaitsForSelectedBaseLength()
+    {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
+        viewModel.SelectedIc = "NT51950";
         viewModel.ShowDpReplaceCommand.Execute(null);
 
-        Assert.True(viewModel.IsReplaceVisible);
-        Assert.NotEmpty(viewModel.ReplaceCoverageSegments);
-        Assert.All(viewModel.ReplaceCoverageSegments, segment =>
-        {
-            Assert.Contains("-", segment.RangeLabel, StringComparison.Ordinal);
-            Assert.Contains("len 0x", segment.RangeLabel, StringComparison.Ordinal);
-            Assert.DoesNotContain("..", segment.RangeLabel, StringComparison.Ordinal);
-        });
-        Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.SourceLabel == "Restored TP");
-        Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.SourceLabel is "Changed DP BIN" or "Changed LDC BIN");
-        Assert.Equal(
-            "Preview blocked: base BIN and required DP replacement inputs are required.",
-            viewModel.ReplacePreviewUnavailableReason);
-        Assert.Equal("Build blocked: run a valid DP Preview first.", viewModel.ReplaceBuildUnavailableReason);
+        MemoryCoverageSegmentViewModel segment = Assert.Single(viewModel.ReplaceCoverageSegments);
+        Assert.Equal("Base BIN length: 0x40000 / 0x80000 / 0x100000", viewModel.ReplaceMemoryRangeLabel);
+        Assert.Equal("Base length pending", segment.RangeLabel);
+        Assert.Equal("DP base required", segment.SourceLabel);
+        Assert.Contains("actual DP Replace length", segment.Detail, StringComparison.Ordinal);
+        Assert.DoesNotContain("0x00000-0xFFFFF", segment.RangeLabel, StringComparison.Ordinal);
+        Assert.DoesNotContain("max", segment.Detail, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>Verifies Merge coverage rows expose final ownership without report-level operation text.</summary>
@@ -751,6 +784,10 @@ public sealed class ShellViewModelTests
             Assert.Contains(viewModel.ReplaceMemoryRows, row =>
                 row.ActionLabel == "Replace" &&
                 row.RangeLabel == "Unsupported base BIN length 0x60000");
+            MemoryCoverageSegmentViewModel segment = Assert.Single(viewModel.ReplaceCoverageSegments);
+            Assert.Equal("Unsupported 0x60000", segment.RangeLabel);
+            Assert.Equal("Unsupported base", segment.SourceLabel);
+            Assert.False(segment.IsChanged);
         }
         finally
         {

@@ -479,13 +479,6 @@ public static partial class WorkbenchCompositionService
         return length is long value && Nt51950SupportedDpBaseLengths.Contains(value);
     }
 
-    private static long GetNt51950DpDisplayCapacity(long? length)
-    {
-        return length is long value && IsSupportedNt51950DpBaseLength(value)
-            ? value
-            : Nt51950MaxDpContainerLength;
-    }
-
     private static string FormatSupportedNt51950DpBaseLengths()
     {
         return string.Join(" / ", Nt51950SupportedDpBaseLengths.Select(FormatHexLength));

@@ -159,9 +159,67 @@ public static partial class WorkbenchCompositionService
             ];
         }
 
-        long capacity = replaceMode == "DP" && IsNt51950Or51(icId)
-            ? GetNt51950DpDisplayCapacity(dpBaseLength)
-            : regions.Max(region => region.Range.EndExclusive);
+        if (replaceMode == "DP" && IsNt51950Or51(icId))
+        {
+            if (dpBaseLength is not long selectedBaseLength)
+            {
+                return
+                [
+                    new WorkbenchMemoryCoverageSegment(
+                        "Base length pending",
+                        "DP base required",
+                        $"Select a base BIN to resolve the actual DP Replace length ({FormatSupportedNt51950DpBaseLengths()}).",
+                        "#E2E8F0",
+                        280,
+                        false),
+                ];
+            }
+
+            if (!IsSupportedNt51950DpBaseLength(selectedBaseLength))
+            {
+                return
+                [
+                    new WorkbenchMemoryCoverageSegment(
+                        $"Unsupported {FormatHexLength(selectedBaseLength)}",
+                        "Unsupported base",
+                        $"This base BIN length is not approved for NT51950/NT51951 DP Replace; use {FormatSupportedNt51950DpBaseLengths()}.",
+                        "#FCA5A5",
+                        280,
+                        false),
+                ];
+            }
+
+            long selectedCapacity = selectedBaseLength;
+            CoverageSegment[] dpSegments =
+            [
+                new CoverageSegment(
+                    new ByteRange(0, selectedCapacity),
+                    "Base flash",
+                    "Kept from the original base firmware unless a replacement covers it.",
+                    "#E2E8F0",
+                    false),
+            ];
+            var dpRange = new ByteRange(0, selectedCapacity);
+            dpSegments = ApplyCoverageWrite(
+                dpSegments,
+                new CoverageSegment(
+                    dpRange,
+                    "Changed DP BIN",
+                    $"Replacement DP fills the selected base DP length {FormatDisplayRange(dpRange)}; shorter inputs are padded by profile policy.",
+                    "#2563EB",
+                    true));
+            dpSegments = ApplyCoverageWrite(
+                dpSegments,
+                new CoverageSegment(
+                    Nt51950TpRestoreRange,
+                    "Restored TP",
+                    $"Original TP FW at {FormatDisplayRange(Nt51950TpRestoreRange)} is copied back from the base firmware.",
+                    "#64748B",
+                    false));
+            return ToWorkbenchCoverageSegments(dpSegments, selectedCapacity);
+        }
+
+        long capacity = regions.Max(region => region.Range.EndExclusive);
         CoverageSegment[] segments =
         [
             new CoverageSegment(
@@ -171,33 +229,6 @@ public static partial class WorkbenchCompositionService
                 "#E2E8F0",
                 false),
         ];
-
-        if (replaceMode == "DP" && IsNt51950Or51(icId))
-        {
-            var dpRange = new ByteRange(0, capacity);
-            string dpDetail = dpBaseLength is long value
-                ? IsSupportedNt51950DpBaseLength(value)
-                    ? $"Replacement DP fills the selected base DP length {FormatDisplayRange(dpRange)}; shorter inputs are padded by profile policy."
-                    : $"Unsupported base BIN length {FormatHexLength(value)}; use {FormatSupportedNt51950DpBaseLengths()}."
-                : $"Select a base BIN to resolve the actual DP length ({FormatSupportedNt51950DpBaseLengths()}); Preview/Build uses that base length, not a fixed max.";
-            segments = ApplyCoverageWrite(
-                segments,
-                new CoverageSegment(
-                    dpRange,
-                    "Changed DP BIN",
-                    dpDetail,
-                    "#2563EB",
-                    true));
-            segments = ApplyCoverageWrite(
-                segments,
-                new CoverageSegment(
-                    Nt51950TpRestoreRange,
-                    "Restored TP",
-                    $"Original TP FW at {FormatDisplayRange(Nt51950TpRestoreRange)} is copied back from the base firmware.",
-                    "#64748B",
-                    false));
-            return ToWorkbenchCoverageSegments(segments, capacity);
-        }
 
         foreach (TpFlashMapRegion region in regions
             .Where(IsPreservedRegion)
