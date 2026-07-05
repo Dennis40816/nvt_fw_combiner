@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.1",
+  "schemaVersion": "0.2",
   "payloadClass": "owner-approved-golden-firmware",
   "binaryPayloadsIncluded": true,
   "runnerStatus": "pending-golden-parity",
@@ -14,6 +14,8 @@
       "ic": "NT51926",
       "icNum": "cascade",
       "mode": "CtrlRAM",
+      "commonFwVersion": "1.4.1",
+      "postbuildCategory": "PostbuildSetup_51926_1.4.1",
       "sourceClassification": "owner-approved-golden-firmware",
       "ownerApproval": "Repository owner explicitly approved committing this golden firmware fixture to Git on 2026-07-05.",
       "base": {
@@ -75,6 +77,8 @@
       "ic": "NT51927",
       "icNum": "2",
       "mode": "CtrlRAM",
+      "commonFwVersion": "1.3.2",
+      "postbuildCategory": "PostbuildSetup_51927_1.4.1",
       "sourceClassification": "owner-approved-golden-firmware",
       "ownerApproval": "Repository owner explicitly approved committing this golden firmware fixture to Git on 2026-07-05.",
       "base": {
@@ -163,6 +167,8 @@
       "ic": "NT51927",
       "icNum": "3",
       "mode": "CtrlRAM",
+      "commonFwVersion": "1.4.0",
+      "postbuildCategory": "PostbuildSetup_51927_1.4.1",
       "sourceClassification": "owner-approved-golden-firmware",
       "ownerApproval": "Repository owner explicitly approved committing this golden firmware fixture to Git on 2026-07-05.",
       "base": {

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.1",
+  "schemaVersion": "0.2",
   "payloadClass": "private-owner-golden-firmware",
   "binaryPayloadsIncluded": true,
   "runnerStatus": "ready-for-private-golden",
@@ -9,6 +9,8 @@
       "ic": "NT51927",
       "icNum": "3",
       "mode": "CtrlRAM",
+      "commonFwVersion": "0.0.0",
+      "postbuildCategory": "PostbuildSetup_51927_1.4.1",
       "sourceClassification": "private-owner-firmware",
       "ownerApproval": "TBD: owner name/date/sign-off",
       "base": {
