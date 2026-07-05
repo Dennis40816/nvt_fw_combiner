@@ -115,10 +115,7 @@ public sealed partial class MainWindowViewModel
         [
             .. ReportHistoryEntries
                 .Where(entry => !string.IsNullOrWhiteSpace(entry.ReportJson))
-                .Select(entry => new ReportHistorySnapshot(
-                    entry.Report.SourceName,
-                    entry.ReportJson,
-                    entry.Report.OutputArtifactPath)),
+                .Select(entry => entry.ToSnapshot()),
         ];
     }
 
