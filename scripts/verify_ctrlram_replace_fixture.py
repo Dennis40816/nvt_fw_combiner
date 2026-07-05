@@ -23,17 +23,39 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MANIFEST = ROOT / "testdata" / "golden" / "ctrlram-replace" / "manifest.json"
 PUBLIC_SMOKE_FILTER = "FullyQualifiedName~CtrlRamReplace"
-EXPECTED_SCHEMA_VERSION = "0.1"
+EXPECTED_SCHEMA_VERSION = "0.2"
 EXPECTED_PAYLOAD_CLASSES = {
     "owner-approved-golden-firmware",
     "private-owner-golden-firmware",
 }
 EXPECTED_RUNNER_STATUSES = {"ready-for-private-golden", "pending-golden-parity"}
+FWCONFIG_STARTS = {
+    "NT51917": 0x16000,
+    "NT51919": 0x1F200,
+    "NT51920": 0x22000,
+    "NT51923": 0x22000,
+    "NT51926": 0x22000,
+    "NT51927": 0x16000,
+    "NT51928": 0x16000,
+    "NT51929": 0x1F200,
+    "NT51930": 0x1F200,
+    "NT51931": 0x16000,
+    "NT51932": 0x1F200,
+    "NT51950": 0x22200,
+    "NT51951": 0x22200,
+}
+FW_VERSION_OFFSET = 0x000
+FW_VERSION_BAR_OFFSET = 0x001
+COMMON_FW_MAJOR_OFFSET = 0x01A
+COMMON_FW_MINOR_OFFSET = 0x01B
+COMMON_FW_ADDITIONAL_OFFSET = 0x01C
+FWCONFIG_REQUIRED_LENGTH = COMMON_FW_ADDITIONAL_OFFSET + 1
 VERSIONED_POSTBUILD_CATEGORIES = {
     ("NT51926", "1.4.1"): "PostbuildSetup_51926_1.4.1",
     ("NT51926", "2.0.0"): "PostbuildSetup_51926_2.0.0",
     ("NT51930", "2.0.0"): "PostbuildSetup_51930_2.0.0",
 }
+VERSIONED_POSTBUILD_ICS = {"NT51926", "NT51930"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -153,7 +175,7 @@ def verify_fixture_manifest(manifest_path: Path) -> None:
     root = manifest_path.parent
     require(
         document.get("schemaVersion") == EXPECTED_SCHEMA_VERSION,
-        "manifest schemaVersion must be 0.1",
+        f"manifest schemaVersion must be {EXPECTED_SCHEMA_VERSION}",
     )
     require(
         document.get("payloadClass") in EXPECTED_PAYLOAD_CLASSES,
@@ -193,7 +215,8 @@ def verify_case(root: Path, item: dict[str, Any], index: int) -> None:
     )
     verify_postbuild_category(ic_id, common_fw_version, postbuild_category, label)
 
-    verify_file_entry(root, item.get("base"), f"{label}.base")
+    base_payload = verify_file_entry(root, item.get("base"), f"{label}.base")
+    verify_base_common_fw_version(ic_id, common_fw_version, base_payload, label)
     replacements = require_non_empty_list(
         item.get("replacementInputs"), f"{label}.replacementInputs"
     )
@@ -232,6 +255,12 @@ def verify_postbuild_category(
             category == expected,
             f"{label}.postbuildCategory must be {expected} for {ic_id} Common FW {common_fw_version}",
         )
+        return
+
+    require(
+        ic_id not in VERSIONED_POSTBUILD_ICS,
+        f"{label}.commonFwVersion {common_fw_version} has no approved postbuild category for {ic_id}",
+    )
 
 
 def expected_postbuild_category(ic_id: str, common_fw_version: str) -> str | None:
@@ -240,7 +269,36 @@ def expected_postbuild_category(ic_id: str, common_fw_version: str) -> str | Non
     return VERSIONED_POSTBUILD_CATEGORIES.get((ic_id, common_fw_version))
 
 
-def verify_file_entry(root: Path, entry: Any, label: str) -> None:
+def verify_base_common_fw_version(
+    ic_id: str, expected_common_fw_version: str, payload: bytes, label: str
+) -> None:
+    require(
+        ic_id in FWCONFIG_STARTS,
+        f"{label}.ic {ic_id} has no verifier FWConfig start",
+    )
+    start = FWCONFIG_STARTS[ic_id]
+    require(
+        start + FWCONFIG_REQUIRED_LENGTH <= len(payload),
+        f"{label}.base is too short for FWConfig at 0x{start:X}",
+    )
+    firmware_version = payload[start + FW_VERSION_OFFSET]
+    firmware_version_bar = payload[start + FW_VERSION_BAR_OFFSET]
+    require(
+        firmware_version_bar == (~firmware_version & 0xFF),
+        f"{label}.base FWConfig FW/bar validation failed at 0x{start:X}",
+    )
+    actual_common_fw_version = (
+        f"{payload[start + COMMON_FW_MAJOR_OFFSET]}."
+        f"{payload[start + COMMON_FW_MINOR_OFFSET]}."
+        f"{payload[start + COMMON_FW_ADDITIONAL_OFFSET]}"
+    )
+    require(
+        actual_common_fw_version == expected_common_fw_version,
+        f"{label}.commonFwVersion must match base FWConfig: base has {actual_common_fw_version}, manifest declares {expected_common_fw_version}",
+    )
+
+
+def verify_file_entry(root: Path, entry: Any, label: str) -> bytes:
     require(isinstance(entry, dict), f"{label} must be an object")
     relative_path = entry.get("path")
     expected_size = entry.get("size")
@@ -272,6 +330,7 @@ def verify_file_entry(root: Path, entry: Any, label: str) -> None:
         actual_sha256 == expected_sha256.lower(),
         f"{label}.sha256 drift: expected {expected_sha256}, got {actual_sha256}",
     )
+    return payload
 
 
 def require_non_empty_string(value: Any, label: str) -> str:

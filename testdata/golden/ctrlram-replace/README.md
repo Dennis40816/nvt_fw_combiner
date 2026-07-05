@@ -14,7 +14,7 @@ python scripts/verify_ctrlram_replace_fixture.py --require-fixture
 Current behavior:
 
 - The verifier always can run public CtrlRAM Preview/Build smoke using self-replacement inputs sliced from existing approved Standard Merge golden data.
-- When `manifest.json` exists, the verifier checks manifest metadata, sizes, and SHA-256 for the base firmware, replacement CtrlRAM BINs, and expected output if provided.
+- When schema `0.2` `manifest.json` exists, the verifier checks manifest metadata, sizes, SHA-256, and base-image FWConfig Common FW version for the base firmware, replacement CtrlRAM BINs, and expected output if provided.
 - Full byte comparison still needs owner-supplied expected outputs and firmware-owner sign-off before parity can be claimed.
 
 Required owner data per case:

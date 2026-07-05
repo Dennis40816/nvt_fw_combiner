@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.1",
+  "schemaVersion": "0.2",
   "payloadClass": "private-owner-golden-firmware",
   "binaryPayloadsIncluded": true,
   "runnerStatus": "ready-for-private-golden",
