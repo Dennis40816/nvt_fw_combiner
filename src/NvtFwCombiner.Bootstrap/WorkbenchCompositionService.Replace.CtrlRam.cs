@@ -20,36 +20,10 @@ public static partial class WorkbenchCompositionService
         CancellationToken cancellationToken)
     {
         IcNumberSelection selection = ToIcNumberSelection(number);
-        IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection);
-        if (regions.Count == 0)
-        {
-            return CreatePlanningRunResult(
-                icId,
-                number,
-                "CtrlRAM",
-                slotPaths,
-                build,
-                "replace.ctrlram.no-mapped-region",
-                $"No postbuild-mapped CtrlRAM region is available for {icId} / {number}.");
-        }
-
         List<CompositionIssue> validationIssues = [];
         LegacyCombinerPostbuildProfile? postbuildProfile = null;
         LegacyCombinerPostbuildCommandPlan? commandPlan = null;
-
-        List<TpFlashMapRegion> selectedRegions =
-        [
-            .. regions
-                .Where(region => IsSlotSupplied(slotPaths, CtrlRamSlotId(region.RegionId)))
-                .OrderBy(region => region.Range.Start),
-        ];
-        if (selectedRegions.Count == 0)
-        {
-            validationIssues.Add(new CompositionIssue(
-                "replace.ctrlram.no-region-input",
-                "Select at least one CtrlRAM replacement BIN.",
-                "ctrlram-replace"));
-        }
+        IReadOnlyList<TpFlashMapRegion> regions = [];
 
         string? basePath = null;
         long baseLength = 0;
@@ -113,6 +87,37 @@ public static partial class WorkbenchCompositionService
                 "postbuild"));
         }
 
+        if (postbuildProfile is not null)
+        {
+            regions = TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile);
+        }
+        else if (basePath is null)
+        {
+            regions = TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection);
+        }
+
+        if (regions.Count == 0)
+        {
+            validationIssues.Add(new CompositionIssue(
+                "replace.ctrlram.no-mapped-region",
+                $"No postbuild-mapped CtrlRAM region is available for {icId} / {number}.",
+                "ctrlram-replace"));
+        }
+
+        List<TpFlashMapRegion> selectedRegions =
+        [
+            .. regions
+                .Where(region => IsSlotSupplied(slotPaths, CtrlRamSlotId(region.RegionId)))
+                .OrderBy(region => region.Range.Start),
+        ];
+        if (selectedRegions.Count == 0)
+        {
+            validationIssues.Add(new CompositionIssue(
+                "replace.ctrlram.no-region-input",
+                "Select at least one CtrlRAM replacement BIN.",
+                "ctrlram-replace"));
+        }
+
         if (commandPlan is not null && baseLength > 0)
         {
             long requiredCapacity = CalculatePostbuildRequiredCapacity(commandPlan, selectedRegions);
@@ -135,7 +140,13 @@ public static partial class WorkbenchCompositionService
                 "CtrlRAM",
                 slotPaths,
                 build,
-                CreateCtrlRamPlanningOperations(icId, selection, regions, slotPaths, runnablePreview: false),
+                CreateCtrlRamPlanningOperations(
+                    icId,
+                    selection,
+                    regions,
+                    slotPaths,
+                    runnablePreview: false,
+                    postbuildProfile),
                 validationIssues,
                 GetReplaceDefaultOutputFileName(icId, "CtrlRAM"),
                 succeeded: false);
@@ -153,7 +164,13 @@ public static partial class WorkbenchCompositionService
                 "CtrlRAM",
                 slotPaths,
                 build,
-                CreateCtrlRamPlanningOperations(icId, selection, regions, slotPaths, runnablePreview: false),
+                CreateCtrlRamPlanningOperations(
+                    icId,
+                    selection,
+                    regions,
+                    slotPaths,
+                    runnablePreview: false,
+                    postbuildProfile),
                 [
                     new CompositionIssue(
                         "replace.ctrlram.postbuild-write-range-missing",
@@ -181,7 +198,13 @@ public static partial class WorkbenchCompositionService
                 "CtrlRAM",
                 slotPaths,
                 build,
-                CreateCtrlRamPlanningOperations(icId, selection, regions, slotPaths, runnablePreview: false),
+                CreateCtrlRamPlanningOperations(
+                    icId,
+                    selection,
+                    regions,
+                    slotPaths,
+                    runnablePreview: false,
+                    postbuildProfile),
                 compile.Issues,
                 profile.DefaultOutputFileName,
                 succeeded: false);
@@ -337,11 +360,14 @@ public static partial class WorkbenchCompositionService
         IcNumberSelection selection,
         IReadOnlyList<TpFlashMapRegion> regions,
         IReadOnlyDictionary<string, string> slotPaths,
-        bool runnablePreview)
+        bool runnablePreview,
+        LegacyCombinerPostbuildProfile? postbuildProfile = null)
     {
         OperationRunStatus status = runnablePreview ? OperationRunStatus.Succeeded : OperationRunStatus.Skipped;
         List<OperationRunSummary> operations = [];
-        long capacity = Math.Max(1, TpFlashMapCatalog.GetRegions(icId, selection).Max(region => region.Range.EndExclusive));
+        long capacity = Math.Max(
+            1,
+            TpFlashMapCatalog.GetRegions(icId, selection, postbuildProfile).Max(region => region.Range.EndExclusive));
         int sequence = 100;
         foreach (TpFlashMapRegion region in regions.OrderBy(region => region.Range.Start))
         {
@@ -384,7 +410,8 @@ public static partial class WorkbenchCompositionService
             }
         }
 
-        if (!LegacyCombinerPostbuildCatalog.TryGetDefaultProfile(icId, out LegacyCombinerPostbuildProfile? postbuildProfile))
+        if (postbuildProfile is null &&
+            !LegacyCombinerPostbuildCatalog.TryGetDefaultProfile(icId, out postbuildProfile))
         {
             return operations;
         }

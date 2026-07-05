@@ -179,6 +179,70 @@ public sealed class TpFlashMapCatalogTests
         Assert.DoesNotContain(postbuildMapped, region => region.RegionId == "mp");
     }
 
+    /// <summary>NT51926 CtrlRAM rows follow the selected Common FW postbuild category.</summary>
+    [Fact]
+    public void Nt51926PostbuildCategoryOverridesVersionedLengths()
+    {
+        var selection = new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]);
+
+        IReadOnlyList<TpFlashMapRegion> commonFw141Regions = TpFlashMapCatalog.GetRegions(
+            "NT51926",
+            selection,
+            LegacyCombinerPostbuildCatalog.Nt51926CommonFw141);
+        IReadOnlyList<TpFlashMapRegion> commonFw200Regions = TpFlashMapCatalog.GetRegions(
+            "NT51926",
+            selection,
+            LegacyCombinerPostbuildCatalog.Nt51926);
+
+        Assert.Equal(new ByteRange(0x315D0, 0x1660), commonFw141Regions.Single(region => region.RegionId == "vn").Range);
+        Assert.Equal(
+            new ByteRange(0x3B000, 0x800),
+            commonFw141Regions.Single(region => region.RegionId == "fw-config-backup").Range);
+        Assert.Equal(new ByteRange(0x315D0, 0x149E), commonFw200Regions.Single(region => region.RegionId == "vn").Range);
+        Assert.Equal(
+            new ByteRange(0x3B000, 0x780),
+            commonFw200Regions.Single(region => region.RegionId == "fw-config-backup").Range);
+    }
+
+    /// <summary>NT51930 Common FW 1.x consumes MP CtrlRAM while 2.0.0 keeps MP overview-only.</summary>
+    [Fact]
+    public void Nt51930PostbuildCategoryControlsMpConsumption()
+    {
+        var selection = new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]);
+
+        IReadOnlyList<TpFlashMapRegion> commonFw1xMapped = TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
+            "NT51930",
+            selection,
+            LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x);
+        IReadOnlyList<TpFlashMapRegion> commonFw200Mapped = TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
+            "NT51930",
+            selection,
+            LegacyCombinerPostbuildCatalog.Nt51930);
+        IReadOnlyList<TpFlashMapRegion> commonFw1xExtendedMapped = TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
+            "NT51930",
+            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["14"]),
+            LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x);
+
+        Assert.Contains(commonFw1xMapped, region => region.RegionId == "mp" && region.Range == new ByteRange(0x24250, 0x3400));
+        Assert.Contains(commonFw1xMapped, region => region.RegionId == "vn" && region.Range == new ByteRange(0x27650, 0x195E));
+        Assert.Contains(commonFw1xExtendedMapped, region => region.RegionId == "diff" && region.Range == new ByteRange(0x2F200, 0x23000));
+        Assert.DoesNotContain(commonFw200Mapped, region => region.RegionId == "mp");
+        Assert.Contains(commonFw200Mapped, region => region.RegionId == "vn" && region.Range == new ByteRange(0x27650, 0x1960));
+    }
+
+    /// <summary>NT51930 exposes numeric choices because Common FW 1.x has an extended cascade branch.</summary>
+    [Fact]
+    public void Nt51930NumberChoicesExposeExtendedCascadeCounts()
+    {
+        IReadOnlyList<string> choices = TpFlashMapCatalog.GetNumberChoices("NT51930");
+
+        Assert.Contains("single", choices);
+        Assert.Contains("13", choices);
+        Assert.Contains("14", choices);
+        Assert.Contains("29", choices);
+        Assert.DoesNotContain("cascade", choices);
+    }
+
     private static IEnumerable<(LegacyCombinerPostbuildProfile Profile, IcNumberSelection Selection)> AllPostbuildSelections()
     {
         foreach (LegacyCombinerPostbuildProfile profile in LegacyCombinerPostbuildCatalog.All)

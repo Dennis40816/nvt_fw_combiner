@@ -173,6 +173,30 @@ public sealed class LegacyCombinerPostbuildCatalogTests
                      block.FirmwareRange == new ByteRange(0x28FB0, 256));
     }
 
+    /// <summary>Locks NT51930 Common FW 1.x large cascade counts to the archived extend branch.</summary>
+    [Fact]
+    public void Nt51930CommonFw1xSelectsExtendedCascadeDiffLength()
+    {
+        LegacyCombinerPostbuildCommandPlan normalCascade = LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x,
+            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["13"]));
+        LegacyCombinerPostbuildCommandPlan extendedCascade = LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x,
+            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["14"]));
+
+        LegacyCombinerBlockArgument normalDiff = normalCascade.Commands
+            .SelectMany(command => command.Blocks)
+            .Single(block => block.SourceFileName == "DiffDLM.bin");
+        LegacyCombinerBlockArgument extendedDiff = extendedCascade.Commands
+            .SelectMany(command => command.Blocks)
+            .Single(block => block.SourceFileName == "DiffDLM.bin");
+
+        Assert.Equal(LegacyCombinerPostbuildBranch.Cascade, normalCascade.Branch);
+        Assert.Equal(new ByteRange(0x2F200, 65024), normalDiff.FirmwareRange);
+        Assert.Equal(LegacyCombinerPostbuildBranch.CascadeExtended, extendedCascade.Branch);
+        Assert.Equal(new ByteRange(0x2F200, 143360), extendedDiff.FirmwareRange);
+    }
+
     /// <summary>Locks ambiguous versioned ICs to fail closed for unsupported Common FW versions.</summary>
     [Fact]
     public void VersionedPostbuildSelectionRejectsUnknownCommonFw()
@@ -483,6 +507,9 @@ public sealed class LegacyCombinerPostbuildCatalogTests
         yield return LegacyCombinerPostbuildPlanner.CreatePlan(
             LegacyCombinerPostbuildCatalog.Nt51927,
             new IcNumberSelection(IcNumberInputMode.NumericSelector, ["3"]));
+        yield return LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x,
+            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["14"]));
     }
 
     private static void AssertEquivalentBlocks(

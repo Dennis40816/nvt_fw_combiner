@@ -49,7 +49,8 @@ Known stable conclusions:
 - For NT51920, NT51923, NT51929, NT51932, NT51950, and NT51951, full postbuild self-replacement drift is the expected 16-byte CRC/header-word pattern.
 - For NT51927 and NT51928, drift is still CRC/header-word based, but more than 16 bytes because the flow updates multiple header/copy/backup windows.
 - Keep the CRC-changing postbuild behavior for production. It is acceptable only when the diff is constrained to declared CRC/header words or documented header-copy windows for the selected category.
-- NT51926 and NT51930 postbuild-category selection is implemented, but not production-closed until matching expected golden outputs and versioned TP Overview rows are reviewed.
+- NT51926 and NT51930 postbuild-category selection is implemented in Preview/Build and in workbench/UI slot/range display after a base BIN is loaded, but not production-closed until matching expected golden outputs and owner workbook versioned TP Overview rows are reviewed.
+- NT51930 Common FW 1.x has two cascade command shapes: numeric `2..13` uses `DiffDLM` length `0xFE00`, while numeric `14..29` uses the extended `DiffDLM` length `0x23000`.
 - NT51931 is not closed.
 
 Do not use this stronger conclusion:
@@ -113,7 +114,7 @@ The current base input is the combiner TP work image size used by the postbuild 
 | NT51927 | `MERGE_MODE` + `NT51927BASED_GEN_CRC_MODE CRC32` | inspected BAT + 2026-07-05 fixtures | 2-chip/3-chip self-replacement differences are CRC/header-word based; matching branch expected outputs still needed for parity promotion. |
 | NT51928 non-NB | NT51927 alias flow | owner alias confirmation | Non-NB only; NB is not covered. |
 | NT51929 | `NT51932BASED_NORMAL_MODE CRC8` | inspected BAT / owner model | Catalog and 16-byte drift understood. |
-| NT51930 | `NT51930BASED_NORMAL_MODE CRC8` | inspected 1.4.0/2.0.0 BAT + 51930 golden | Workbench selects `1.x.x` or `2.0.0` profile from base FWConfig Common FW version. Current 51930 golden reads `1.3.0`, so it maps to the archived `1.4.0` command shape. CtrlRAM expected output is still owner-gated. |
+| NT51930 | `NT51930BASED_NORMAL_MODE CRC8` | inspected 1.4.0/2.0.0 BAT + 51930 golden | Workbench selects `1.x.x` or `2.0.0` profile from base FWConfig Common FW version. Current 51930 golden reads `1.3.0`, so it maps to the archived `1.4.0` command shape. The `1.x` profile now distinguishes cascade `2..13` from extended cascade `14..29`. CtrlRAM expected output is still owner-gated. |
 | NT51931 | official BAT: `NT51930BASED_NORMAL_MODE CRC8` | inspected BAT | Official shape crashes with Combiner 1.13.0; `NT51931BASED_NORMAL_MODE` is only a diagnostic trial so far. |
 | NT51932 | `NT51932BASED_NORMAL_MODE CRC8` | inspected BAT | Catalog and 16-byte drift understood. |
 | NT51950 | `NT51950BASED_NORMAL_MODE CRC8` | inspected BAT | Catalog and 16-byte drift understood. |
@@ -167,7 +168,7 @@ Owner supplied NT51926/NT51927 CtrlRAM Replace fixtures on 2026-07-05. The paylo
 
 | Case | Workbench result | Diff classification | Current conclusion |
 | --- | --- | --- | --- |
-| NT51926 cascade | Build succeeds; FWConfig reads Common FW `1.4.1` and report trace uses the `1.4.1` `0x32F50` header-copy target | postbuild-category now matches the fixture codebase; final expected output still absent | Postbuild execution and version selection work. Parity promotion still needs owner expected output and TP Overview category rows because the archived `1.4.1` command uses VN length `0x1660` and FWConfig backup length `0x800`, while the current default Overview rows still reflect the shorter `2.0.0`-style lengths. |
+| NT51926 cascade | Build succeeds; FWConfig reads Common FW `1.4.1` and report trace uses the `1.4.1` `0x32F50` header-copy target | postbuild-category now matches the fixture codebase; final expected output still absent | Postbuild execution and version selection work. The committed self-replacement VN input is sliced to the archived `1.4.1` length `0x1660`; parity promotion still needs owner expected output and TP Overview category rows because the workbook still presents the shorter `2.0.0`-style length in the FLASH table. |
 | NT51927 2-chip | Build succeeds; 100 changed bytes across 25 ranges | all observed ranges are header/integrity words in main/header-copy/final-backup areas | CtrlRAM payload placement looks correct; final byte parity needs matching owner expected output for the 2-chip branch. |
 | NT51927 3-chip | Build succeeds; 105 changed bytes across 30 ranges | all observed ranges are header/integrity words in master/right/left header-copy and final-backup areas | CtrlRAM payload placement looks correct; final byte parity needs matching owner expected output for the 3-chip branch. |
 
@@ -211,8 +212,8 @@ TP Overview follow-up notes to carry back to the owner workbook:
 
 - Add an explicit postbuild codebase/category note for ICs where Common FW `1.x.x` and `2.0.0` use different header copy behavior. Do not keep a single ambiguous "current" header row for those ICs.
 - NT51926 needs two documented category rows: Common FW `1.4.1` uses header copy `0x0 -> 0x32F50`, length `0x100`, VN length `0x1660`, and FWConfig backup length `0x800`; Common FW `2.0.0` uses `0x0 -> 0x32A70`, length `0x100`, VN length `0x149E`, and FWConfig backup length `0x780`. The current golden/base evidence reads Common FW `1.4.1`.
-- NT51930 needs two documented category rows: Common FW `1.4.0/1.x.x` evidence uses `0x7000 -> 0x28FB0`, length `0x100`, single postbuild command, consumes `MP_Ctrlram.bin`, and uses VN length `0x195E`; Common FW `2.0.0` uses length `0x200`, includes a second header-only command, and does not currently consume `MP_Ctrlram.bin`. The current Standard Merge golden reads Common FW `1.3.0`, so it must not be validated against the 2.0.0 row.
-- The workbench still uses default TP Overview rows before a base image is loaded. A future UI/catalog pass should refresh visible replaceable CtrlRAM slots after FWConfig category selection so NT51930 `1.x.x` exposes MP as consumed and NT51926 `1.4.1` exposes the correct VN/FWConfig lengths.
+- NT51930 needs documented category rows: Common FW `1.4.0/1.x.x` evidence uses `0x7000 -> 0x28FB0`, length `0x100`, single postbuild command, consumes `MP_Ctrlram.bin`, uses VN length `0x195E`, and splits cascade `2..13` (`DiffDLM` len `0xFE00`) from cascade `14..29` (`DiffDLM` len `0x23000`); Common FW `2.0.0` uses length `0x200`, includes a second header-only command, and does not currently consume `MP_Ctrlram.bin`. The current Standard Merge golden reads Common FW `1.3.0`, so it must not be validated against the 2.0.0 row.
+- The workbench uses default TP Overview rows before a base image is loaded, then refreshes visible replaceable CtrlRAM slots after FWConfig category selection so NT51930 `1.x.x` exposes MP as consumed and NT51926 `1.4.1` exposes the correct VN/FWConfig lengths.
 - TP Overview should include the primary `FLASHMAP_FW_REGISTER` start per IC because UI traceability and postbuild-category selection now read Common FW/FW/PID from FWConfig.
 - Allowed-write ranges must follow the selected postbuild command's full declared CRC/header/header-copy blocks. Do not carve a PID byte out of a declared header-copy block; CtrlRAM Replace does not run a separate Insert PID stage, and any PID-byte drift inside a wrong-version header-copy target is part of the postbuild-version mismatch evidence.
 - NT51931 remains a separate workbook note: official `NT51930BASED_NORMAL_MODE` with Combiner 1.13.0 crashes in current evidence, while `NT51931BASED_NORMAL_MODE` is diagnostic only until owner confirms it.
@@ -309,9 +310,9 @@ If owner later insists on production behavior, treat it as R3 firmware behavior:
 
 | Blocker | Impact | Needed evidence/decision |
 | --- | --- | --- |
-| NT51926 expected output and versioned TP Overview rows | Version-detected profile selection is implemented, but support cannot be promoted from execution to parity. | Owner expected final output for the `1.4.1` fixture, plus workbook/catalog rows for `1.4.1` VN/FWConfig lengths and `2.0.0` equivalents. |
+| NT51926 expected output and versioned TP Overview rows | Version-detected profile selection and category-aware UI ranges are implemented, but support cannot be promoted from execution to parity. | Owner expected final output for the `1.4.1` fixture, plus workbook rows for `1.4.1` VN/FWConfig lengths and `2.0.0` equivalents. |
 | NT51927 multi-chip branch parity | Current 2-chip/3-chip fixture outputs differ only at CRC/header words, but no expected final output exists. | Matching owner 2-chip/3-chip postbuild-clean expected outputs if those branches are in release scope. |
-| NT51930 expected output and versioned TP Overview rows | Version-detected profile selection is implemented, but support cannot be promoted from execution to parity. | Owner CtrlRAM Replace expected output for a `1.x.x` base and any `2.0.0` base selected for release; workbook/catalog rows must state that `1.x.x` consumes MP while current `2.0.0` does not. |
+| NT51930 expected output and versioned TP Overview rows | Version-detected profile selection, MP consumption, and `1.x` extended cascade branching are implemented, but support cannot be promoted from execution to parity. | Owner CtrlRAM Replace expected output for a `1.x.x` base and any `2.0.0` base selected for release; workbook rows must state that `1.x.x` consumes MP and splits cascade `2..13` from `14..29`, while current `2.0.0` does not consume MP. |
 | NT51931 official command crash | Official inspected BAT shape crashes with Combiner 1.13.0. | Correct combiner version/tool hash, compatible input/header state, or owner approval to use `NT51931BASED_NORMAL_MODE`. |
 | Full-flash versus TP-work-image input | Current workbench assumes TP work image offsets. | Owner-confirmed TP slice/reinsert contract if base input may be larger full flash. |
 | Private expected outputs | Current fixtures mostly prove execution and classification, not final parity. | For each released IC/mode: base, replacement BINs, final expected output, tool version/hash, command log, and output hash. |

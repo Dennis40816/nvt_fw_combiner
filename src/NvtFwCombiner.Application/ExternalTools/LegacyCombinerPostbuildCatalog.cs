@@ -393,7 +393,21 @@ public static class LegacyCombinerPostbuildCatalog
                 ]),
         ],
         "IC FlashMap postbuild/PostbuildSetup_51930_1.4.0.bat",
-        branchRules: SingleCascadeBranchRules(1, Enumerable.Range(2, 28)));
+        cascadeExtendedCommands:
+        [
+            NtBasedCommand(
+                "nt51930-fw1x-cascade-extend-merge-crc",
+                "NT51930BASED_NORMAL_MODE",
+                [
+                    Bin("nf", "NF_Ctrlram.bin", 0x0, 0x1FC00, 6736),
+                    Bin("normal", "Normal_Ctrlram.bin", 0x0, 0x21650, 11264),
+                    Bin("mp", "MP_Ctrlram.bin", 0x0, 0x24250, 13312),
+                    Bin("vn", "VN_Ctrlram.bin", 0x0, 0x27650, 6494),
+                    Fw("header-copy", 0x7000, 0x28FB0, 256),
+                    Bin("diff-extend", "DiffDLM.bin", 0x0, 0x2F200, 143360),
+                ]),
+        ],
+        branchRules: SingleCascadeExtendBranchRules(1, Enumerable.Range(2, 12), Enumerable.Range(14, 16)));
 
     /// <summary>NT51931 CtrlRAM postbuild profile.</summary>
     public static LegacyCombinerPostbuildProfile Nt51931 { get; } = new(
@@ -555,6 +569,19 @@ public static class LegacyCombinerPostbuildCatalog
             .. cascadeValues.Select(value => BranchRule(
                 value.ToString(CultureInfo.InvariantCulture),
                 LegacyCombinerPostbuildBranch.Cascade)),
+        ];
+    }
+
+    private static IReadOnlyList<LegacyCombinerPostbuildBranchRule> SingleCascadeExtendBranchRules(
+        int singleValue,
+        IEnumerable<int> cascadeValues,
+        IEnumerable<int> cascadeExtendedValues)
+    {
+        return [
+            .. SingleCascadeBranchRules(singleValue, cascadeValues),
+            .. cascadeExtendedValues.Select(value => BranchRule(
+                value.ToString(CultureInfo.InvariantCulture),
+                LegacyCombinerPostbuildBranch.CascadeExtended)),
         ];
     }
 

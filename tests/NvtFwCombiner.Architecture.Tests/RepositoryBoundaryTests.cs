@@ -129,8 +129,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("LOADED REPORT", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Content=\"{Binding ReportModalActionLabel}\"", shell, StringComparison.Ordinal);
 
-        string viewModel = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.cs");
+        string viewModel = ReadViewModelPartials();
         string mergeViewModel = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Merge.cs");
         string reportViewModel = ReadText(
@@ -334,6 +333,20 @@ public sealed partial class RepositoryBoundaryTests
     {
         string fullPath = Path.Combine(Root.FullName, relativePath.Replace('/', Path.DirectorySeparatorChar));
         return File.ReadAllText(fullPath);
+    }
+
+    private static string ReadViewModelPartials()
+    {
+        string directory = Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Presentation.Avalonia",
+            "ViewModels");
+        return string.Join(
+            Environment.NewLine,
+            Directory.GetFiles(directory, "MainWindowViewModel*.cs")
+                .Order(StringComparer.Ordinal)
+                .Select(File.ReadAllText));
     }
 
     private static string[] ReadMarkdownBullets(string relativePath, string heading)

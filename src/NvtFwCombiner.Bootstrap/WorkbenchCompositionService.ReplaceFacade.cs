@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 
@@ -10,12 +11,13 @@ public static partial class WorkbenchCompositionService
     public static IReadOnlyList<WorkbenchReplaceInputSlot> GetReplaceInputSlots(
         string icId,
         string number,
-        string replaceMode)
+        string replaceMode,
+        string? basePath = null)
     {
         return replaceMode switch
         {
             "DP" => GetDpReplaceInputSlots(icId),
-            "CtrlRAM" => GetCtrlRamReplaceInputSlots(icId, number),
+            "CtrlRAM" => GetCtrlRamReplaceInputSlots(icId, number, basePath),
             _ => [],
         };
     }
@@ -42,10 +44,18 @@ public static partial class WorkbenchCompositionService
         string icId,
         string number,
         string replaceMode,
-        long? dpBaseLength = null)
+        long? dpBaseLength = null,
+        string? ctrlRamBasePath = null)
     {
         IcNumberSelection selection = ToIcNumberSelection(number);
-        IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetRegions(icId, selection);
+        LegacyCombinerPostbuildProfile? postbuildProfile = replaceMode == "CtrlRAM" &&
+            TryResolvePostbuildProfileForDisplay(icId, ctrlRamBasePath, out LegacyCombinerPostbuildProfile? profile)
+                ? profile
+                : null;
+        IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetRegions(
+            icId,
+            selection,
+            postbuildProfile);
         return regions.Count == 0
             ?
             [
@@ -59,7 +69,9 @@ public static partial class WorkbenchCompositionService
             : replaceMode switch
             {
                 "DP" => CreateDpReplaceRows(icId, regions, dpBaseLength),
-                "CtrlRAM" => CreateCtrlRamReplaceRows(regions),
+                "CtrlRAM" => CreateCtrlRamReplaceRows(
+                    regions,
+                    TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile)),
                 "General" =>
                 [
                     .. CreatePreserveRows(regions),
@@ -93,7 +105,8 @@ public static partial class WorkbenchCompositionService
         string icId,
         string number,
         string replaceMode,
-        long? dpBaseLength = null)
+        long? dpBaseLength = null,
+        string? ctrlRamBasePath = null)
     {
         if (replaceMode == "DP" && IsNt51950Or51(icId))
         {
@@ -104,7 +117,12 @@ public static partial class WorkbenchCompositionService
                 : $"Base BIN length: {FormatSupportedNt51950DpBaseLengths()}";
         }
 
-        IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetRegions(icId, ToIcNumberSelection(number));
+        IcNumberSelection selection = ToIcNumberSelection(number);
+        LegacyCombinerPostbuildProfile? postbuildProfile = replaceMode == "CtrlRAM" &&
+            TryResolvePostbuildProfileForDisplay(icId, ctrlRamBasePath, out LegacyCombinerPostbuildProfile? profile)
+                ? profile
+                : null;
+        IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetRegions(icId, selection, postbuildProfile);
         return regions.Count == 0
             ? "No flash-map profile"
             : FormatFullRange(regions.Max(region => region.Range.EndExclusive));
@@ -115,10 +133,18 @@ public static partial class WorkbenchCompositionService
         string icId,
         string number,
         string replaceMode,
-        long? dpBaseLength = null)
+        long? dpBaseLength = null,
+        string? ctrlRamBasePath = null)
     {
         IcNumberSelection selection = ToIcNumberSelection(number);
-        IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetRegions(icId, selection);
+        LegacyCombinerPostbuildProfile? postbuildProfile = replaceMode == "CtrlRAM" &&
+            TryResolvePostbuildProfileForDisplay(icId, ctrlRamBasePath, out LegacyCombinerPostbuildProfile? profile)
+                ? profile
+                : null;
+        IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetRegions(
+            icId,
+            selection,
+            postbuildProfile);
         if (regions.Count == 0)
         {
             return
@@ -190,7 +216,7 @@ public static partial class WorkbenchCompositionService
         IEnumerable<TpFlashMapRegion> replacementRegions = replaceMode switch
         {
             "DP" => GetDpReplaceRegions(icId, regions),
-            "CtrlRAM" => regions.Where(region => region.Kind == TpFlashMapRegionKind.CtrlRam),
+            "CtrlRAM" => TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile),
             _ => [],
         };
 

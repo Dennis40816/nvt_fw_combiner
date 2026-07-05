@@ -251,6 +251,42 @@ public sealed class ShellViewModelTests
             fact.Value.Contains("bar OK", StringComparison.Ordinal));
         Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
             fact.Label == "PID" && fact.Value == "0x5102");
+        Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
+            fact.Label == "Postbuild" && fact.Value == "PostbuildSetup_51926_1.4.1");
+    }
+
+    /// <summary>Verifies CtrlRAM slots refresh to the FWConfig-selected postbuild category after base load.</summary>
+    [Fact]
+    public void CtrlRamBaseFirmwareRefreshesVersionedNt51926Slots()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51926";
+        viewModel.SelectedNumber = "cascade";
+        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+        string basePath = Path.Combine(
+            FindRepositoryRoot(),
+            "testdata",
+            "golden",
+            "standard-merge-gen-flash",
+            "expected",
+            "51926",
+            "flash.bin");
+
+        Assert.Contains(viewModel.ReplaceSlots, slot =>
+            slot.SlotId == "replace-ctrlram-vn" &&
+            slot.Description.Contains("len 0x149E", StringComparison.Ordinal));
+
+        viewModel.SetSlotFile("replace-base", basePath);
+
+        Assert.Contains(viewModel.CtrlRamRegions, region =>
+            region.Name == "VN CtrlRAM" &&
+            region.SizeHex == "len 0x1660");
+        Assert.Contains(viewModel.ReplaceSlots, slot =>
+            slot.SlotId == "replace-ctrlram-vn" &&
+            slot.Description.Contains("len 0x1660", StringComparison.Ordinal));
+        Assert.Contains(viewModel.ReplaceCoverageSegments, segment =>
+            segment.SourceLabel == "VN CtrlRAM" &&
+            segment.RangeLabel == "0x315D0-0x32C2F (len 0x1660)");
     }
 
     /// <summary>Verifies General Replace authors base BIN and explicit range rows as separate UI state.</summary>
@@ -1067,6 +1103,7 @@ public sealed class ShellViewModelTests
         viewModel.SetSlotFile("replace-base", Path.Combine(Path.GetTempPath(), "base.bin"));
         viewModel.SetSlotFile(vnLeft.SlotId, Path.Combine(Path.GetTempPath(), "vn-slave-l.bin"));
 
+        slaveLGroup = viewModel.ReplaceSlotGroups.Single(group => group.Title == "Slave L");
         Assert.Equal("1 / 12 targets selected", viewModel.ReplaceSelectionCountLabel);
         Assert.Equal("1/4", slaveLGroup.CountLabel);
         Assert.Equal("1 selected / 4 areas.", slaveLGroup.SelectionSummary);
