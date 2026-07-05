@@ -39,8 +39,15 @@ public static class RepositoryPaths
     /// <summary>Builds a path for a manifest object containing a string <c>path</c> property.</summary>
     public static string ManifestPath(string root, JsonElement manifestFile)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(root);
+
         string relativePath = manifestFile.GetProperty("path").GetString()!;
-        return Path.Combine(root, NormalizeRelativePath(relativePath));
+        string candidate = Path.GetFullPath(Path.Combine(root, NormalizeRelativePath(relativePath)));
+        string fullRoot = Path.GetFullPath(root);
+        string relativeToRoot = Path.GetRelativePath(fullRoot, candidate);
+        return IsWithinRoot(relativeToRoot)
+            ? candidate
+            : throw new InvalidOperationException($"Manifest path escapes root: {relativePath}");
     }
 
     /// <summary>Normalizes slash-separated fixture paths for the host filesystem.</summary>
@@ -49,5 +56,13 @@ public static class RepositoryPaths
         ArgumentNullException.ThrowIfNull(relativePath);
 
         return relativePath.Replace('/', Path.DirectorySeparatorChar);
+    }
+
+    private static bool IsWithinRoot(string relativePath)
+    {
+        return !Path.IsPathRooted(relativePath) &&
+            !relativePath.Equals("..", StringComparison.Ordinal) &&
+            !relativePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal) &&
+            !relativePath.StartsWith($"..{Path.AltDirectorySeparatorChar}", StringComparison.Ordinal);
     }
 }
