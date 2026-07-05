@@ -720,57 +720,44 @@ public sealed class ShellViewModelTests
             .EnumerateArray()
             .Single(testCase => testCase.GetProperty("ic").GetString() == "51927");
         byte[] baseBytes = File.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
-        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-ctrlram-{Guid.NewGuid():N}");
-        try
-        {
-            _ = Directory.CreateDirectory(tempRoot);
-            string basePath = Path.Combine(tempRoot, "base.bin");
-            string regionPath = Path.Combine(tempRoot, "ctrlram.bin");
-            File.WriteAllBytes(basePath, baseBytes);
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram");
+        string basePath = workspace.Write("base.bin", baseBytes);
 
-            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-            viewModel.SelectedIc = "NT51927";
-            viewModel.SelectedNumber = "2";
-            viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51927";
+        viewModel.SelectedNumber = "2";
+        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
 
-            FirmwareSlotViewModel regionSlot = viewModel.ReplaceSlots.First(slot =>
-                slot.SlotId.StartsWith("replace-ctrlram-", StringComparison.Ordinal));
-            Assert.True(regionSlot.IsOptional);
-            Assert.Contains("CtrlRAM", regionSlot.Title, StringComparison.Ordinal);
-            CtrlRamRegionViewModel region = viewModel.CtrlRamRegions.Single(item => item.Name == regionSlot.Title);
-            (int start, int length) = ParseCtrlRamRegion(region);
-            File.WriteAllBytes(regionPath, baseBytes[start..(start + length)]);
+        FirmwareSlotViewModel regionSlot = viewModel.ReplaceSlots.First(slot =>
+            slot.SlotId.StartsWith("replace-ctrlram-", StringComparison.Ordinal));
+        Assert.True(regionSlot.IsOptional);
+        Assert.Contains("CtrlRAM", regionSlot.Title, StringComparison.Ordinal);
+        CtrlRamRegionViewModel region = viewModel.CtrlRamRegions.Single(item => item.Name == regionSlot.Title);
+        (int start, int length) = ParseCtrlRamRegion(region);
+        string regionPath = workspace.Write("ctrlram.bin", baseBytes[start..(start + length)]);
 
-            viewModel.SetSlotFile("replace-base", basePath);
-            viewModel.SetSlotFile(regionSlot.SlotId, regionPath);
+        viewModel.SetSlotFile("replace-base", basePath);
+        viewModel.SetSlotFile(regionSlot.SlotId, regionPath);
 
-            Assert.True(viewModel.CanPreviewReplace);
+        Assert.True(viewModel.CanPreviewReplace);
 
-            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+        await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
-            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-            Assert.True(viewModel.HasLoadedReport);
-            Assert.True(viewModel.LoadedReport.HasCommandOperations);
-            Assert.False(viewModel.LoadedReport.HasStepOperations);
-            Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
-                operation.Title.Contains("postbuild-", StringComparison.Ordinal) &&
-                operation.Meta.Contains("Combiner command", StringComparison.Ordinal) &&
-                !operation.Meta.Contains("Combiner.exe", StringComparison.Ordinal) &&
-                operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
-            Assert.Contains(viewModel.LoadedReport.Operations, operation =>
-                operation.Title.Contains("postbuild-", StringComparison.Ordinal) &&
-                operation.Meta.Contains("Combiner command", StringComparison.Ordinal) &&
-                !operation.Meta.Contains("Combiner.exe", StringComparison.Ordinal) &&
-                operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
-            Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.IsChanged);
-        }
-        finally
-        {
-            if (Directory.Exists(tempRoot))
-            {
-                Directory.Delete(tempRoot, recursive: true);
-            }
-        }
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.HasLoadedReport);
+        Assert.True(viewModel.LoadedReport.HasCommandOperations);
+        Assert.False(viewModel.LoadedReport.HasStepOperations);
+        Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
+            operation.Title.Contains("postbuild-", StringComparison.Ordinal) &&
+            operation.Meta.Contains("Combiner command", StringComparison.Ordinal) &&
+            !operation.Meta.Contains("Combiner.exe", StringComparison.Ordinal) &&
+            operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
+        Assert.Contains(viewModel.LoadedReport.Operations, operation =>
+            operation.Title.Contains("postbuild-", StringComparison.Ordinal) &&
+            operation.Meta.Contains("Combiner command", StringComparison.Ordinal) &&
+            !operation.Meta.Contains("Combiner.exe", StringComparison.Ordinal) &&
+            operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
+        Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.IsChanged);
     }
 
     /// <summary>Verifies one CtrlRAM Replace run can select and report multiple region replacements.</summary>
@@ -784,57 +771,43 @@ public sealed class ShellViewModelTests
             .EnumerateArray()
             .Single(testCase => testCase.GetProperty("ic").GetString() == "51927");
         byte[] baseBytes = File.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
-        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-ctrlram-multi-{Guid.NewGuid():N}");
-        try
-        {
-            _ = Directory.CreateDirectory(tempRoot);
-            string basePath = Path.Combine(tempRoot, "base.bin");
-            string normalRightPath = Path.Combine(tempRoot, "normal-slave-r.bin");
-            string vnLeftPath = Path.Combine(tempRoot, "vn-slave-l.bin");
-            File.WriteAllBytes(basePath, baseBytes);
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram-multi");
+        string basePath = workspace.Write("base.bin", baseBytes);
 
-            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-            viewModel.SelectedIc = "NT51927";
-            viewModel.SelectedNumber = "3";
-            viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51927";
+        viewModel.SelectedNumber = "3";
+        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
 
-            FirmwareSlotViewModel normalRight = viewModel.ReplaceSlots.Single(slot => slot.Title == "Normal CtrlRAM (Slave R)");
-            FirmwareSlotViewModel vnLeft = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Slave L)");
-            (int normalRightStart, int normalRightLength) = ParseCtrlRamRegion(
-                viewModel.CtrlRamRegions.Single(region => region.Name == normalRight.Title));
-            (int vnLeftStart, int vnLeftLength) = ParseCtrlRamRegion(
-                viewModel.CtrlRamRegions.Single(region => region.Name == vnLeft.Title));
-            File.WriteAllBytes(normalRightPath, baseBytes[normalRightStart..(normalRightStart + normalRightLength)]);
-            File.WriteAllBytes(vnLeftPath, baseBytes[vnLeftStart..(vnLeftStart + vnLeftLength)]);
-            viewModel.SetSlotFile("replace-base", basePath);
-            viewModel.SetSlotFile(normalRight.SlotId, normalRightPath);
-            viewModel.SetSlotFile(vnLeft.SlotId, vnLeftPath);
+        FirmwareSlotViewModel normalRight = viewModel.ReplaceSlots.Single(slot => slot.Title == "Normal CtrlRAM (Slave R)");
+        FirmwareSlotViewModel vnLeft = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Slave L)");
+        (int normalRightStart, int normalRightLength) = ParseCtrlRamRegion(
+            viewModel.CtrlRamRegions.Single(region => region.Name == normalRight.Title));
+        (int vnLeftStart, int vnLeftLength) = ParseCtrlRamRegion(
+            viewModel.CtrlRamRegions.Single(region => region.Name == vnLeft.Title));
+        string normalRightPath = workspace.Write("normal-slave-r.bin", baseBytes[normalRightStart..(normalRightStart + normalRightLength)]);
+        string vnLeftPath = workspace.Write("vn-slave-l.bin", baseBytes[vnLeftStart..(vnLeftStart + vnLeftLength)]);
+        viewModel.SetSlotFile("replace-base", basePath);
+        viewModel.SetSlotFile(normalRight.SlotId, normalRightPath);
+        viewModel.SetSlotFile(vnLeft.SlotId, vnLeftPath);
 
-            Assert.Equal("2 / 12 targets selected", viewModel.ReplaceSelectionCountLabel);
-            Assert.Contains(viewModel.ReplaceSelectionRows, row => row.Title == "Normal CtrlRAM (Slave R)");
-            Assert.Contains(viewModel.ReplaceSelectionRows, row => row.Title == "VN CtrlRAM (Slave L)");
-            Assert.True(viewModel.CanPreviewReplace);
+        Assert.Equal("2 / 12 targets selected", viewModel.ReplaceSelectionCountLabel);
+        Assert.Contains(viewModel.ReplaceSelectionRows, row => row.Title == "Normal CtrlRAM (Slave R)");
+        Assert.Contains(viewModel.ReplaceSelectionRows, row => row.Title == "VN CtrlRAM (Slave L)");
+        Assert.True(viewModel.CanPreviewReplace);
 
-            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+        await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
-            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-            Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
-                operation.CodeBlock.Contains("Normal_Ctrlram_R.bin", StringComparison.Ordinal) &&
-                operation.CodeBlock.Contains("Normal_Ctrlram_L.bin", StringComparison.Ordinal));
-            Assert.Contains(viewModel.ReplaceCoverageSegments, segment =>
-                segment.SourceLabel == "Normal CtrlRAM (Slave R)" &&
-                segment.RangeLabel == "0x207D0-0x237CF (len 0x3000)");
-            Assert.Contains(viewModel.ReplaceCoverageSegments, segment =>
-                segment.SourceLabel == "VN CtrlRAM (Slave L)" &&
-                segment.RangeLabel == "0x2EBD0-0x3022F (len 0x1660)");
-        }
-        finally
-        {
-            if (Directory.Exists(tempRoot))
-            {
-                Directory.Delete(tempRoot, recursive: true);
-            }
-        }
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
+            operation.CodeBlock.Contains("Normal_Ctrlram_R.bin", StringComparison.Ordinal) &&
+            operation.CodeBlock.Contains("Normal_Ctrlram_L.bin", StringComparison.Ordinal));
+        Assert.Contains(viewModel.ReplaceCoverageSegments, segment =>
+            segment.SourceLabel == "Normal CtrlRAM (Slave R)" &&
+            segment.RangeLabel == "0x207D0-0x237CF (len 0x3000)");
+        Assert.Contains(viewModel.ReplaceCoverageSegments, segment =>
+            segment.SourceLabel == "VN CtrlRAM (Slave L)" &&
+            segment.RangeLabel == "0x2EBD0-0x3022F (len 0x1660)");
     }
 
     /// <summary>Verifies CtrlRAM Replace can preview a golden-backed VN self replacement with traceable region naming.</summary>
@@ -847,51 +820,37 @@ public sealed class ShellViewModelTests
         JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
             .EnumerateArray()
             .Single(testCase => testCase.GetProperty("ic").GetString() == "51927");
-        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-vn-ctrlram-{Guid.NewGuid():N}");
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-vn-ctrlram");
+        byte[] baseBytes = File.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
+        string basePath = workspace.Write("base-from-golden.bin", baseBytes);
 
-        try
-        {
-            _ = Directory.CreateDirectory(tempRoot);
-            string basePath = Path.Combine(tempRoot, "base-from-golden.bin");
-            string vnPath = Path.Combine(tempRoot, "vn-ctrlram.bin");
-            byte[] baseBytes = File.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
-            File.WriteAllBytes(basePath, baseBytes);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51927";
+        viewModel.SelectedNumber = "3";
+        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
 
-            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-            viewModel.SelectedIc = "NT51927";
-            viewModel.SelectedNumber = "3";
-            viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+        FirmwareSlotViewModel vnLeft = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Slave L)");
+        Assert.Equal("Replace this area only when needed. TP position 0x2EBD0-0x3022F (len 0x1660).", vnLeft.Description);
+        (int start, int length) = ParseCtrlRamRegion(
+            viewModel.CtrlRamRegions.Single(region => region.Name == vnLeft.Title));
+        string vnPath = workspace.Write("vn-ctrlram.bin", baseBytes[start..(start + length)]);
 
-            FirmwareSlotViewModel vnLeft = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Slave L)");
-            Assert.Equal("Replace this area only when needed. TP position 0x2EBD0-0x3022F (len 0x1660).", vnLeft.Description);
-            (int start, int length) = ParseCtrlRamRegion(
-                viewModel.CtrlRamRegions.Single(region => region.Name == vnLeft.Title));
-            File.WriteAllBytes(vnPath, baseBytes[start..(start + length)]);
+        viewModel.SetSlotFile("replace-base", basePath);
+        viewModel.SetSlotFile(vnLeft.SlotId, vnPath);
 
-            viewModel.SetSlotFile("replace-base", basePath);
-            viewModel.SetSlotFile(vnLeft.SlotId, vnPath);
+        Assert.True(viewModel.CanPreviewReplace);
 
-            Assert.True(viewModel.CanPreviewReplace);
+        await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
-            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
-
-            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-            Assert.True(viewModel.HasLoadedReport);
-            Assert.Contains(viewModel.LoadedReport.Operations, operation =>
-                operation.HasCodeBlock &&
-                operation.CodeBlock.Contains("Combiner.exe", StringComparison.Ordinal));
-            Assert.Contains(viewModel.ReplaceCoverageSegments, segment =>
-                segment.SourceLabel == "VN CtrlRAM (Slave L)" &&
-                segment.RangeLabel == "0x2EBD0-0x3022F (len 0x1660)");
-            Assert.Contains(viewModel.ReplaceCoverageGroups, group => group.Title == "Slave L");
-        }
-        finally
-        {
-            if (Directory.Exists(tempRoot))
-            {
-                Directory.Delete(tempRoot, recursive: true);
-            }
-        }
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.HasLoadedReport);
+        Assert.Contains(viewModel.LoadedReport.Operations, operation =>
+            operation.HasCodeBlock &&
+            operation.CodeBlock.Contains("Combiner.exe", StringComparison.Ordinal));
+        Assert.Contains(viewModel.ReplaceCoverageSegments, segment =>
+            segment.SourceLabel == "VN CtrlRAM (Slave L)" &&
+            segment.RangeLabel == "0x2EBD0-0x3022F (len 0x1660)");
+        Assert.Contains(viewModel.ReplaceCoverageGroups, group => group.Title == "Slave L");
     }
 
     /// <summary>Verifies a CtrlRAM replacement sliced from the same base runs through the real postbuild path.</summary>
@@ -905,48 +864,34 @@ public sealed class ShellViewModelTests
             .EnumerateArray()
             .Single(testCase => testCase.GetProperty("ic").GetString() == "51927");
         byte[] baseBytes = File.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
-        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-ctrlram-self-{Guid.NewGuid():N}");
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram-self");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51927";
+        viewModel.SelectedNumber = "3";
+        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
 
-        try
-        {
-            _ = Directory.CreateDirectory(tempRoot);
-            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-            viewModel.SelectedIc = "NT51927";
-            viewModel.SelectedNumber = "3";
-            viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+        FirmwareSlotViewModel vnLeftSlot = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Slave L)");
+        CtrlRamRegionViewModel vnLeftRegion = viewModel.CtrlRamRegions.Single(region => region.Name == "VN CtrlRAM (Slave L)");
+        (int start, int length) = ParseCtrlRamRegion(vnLeftRegion);
+        string basePath = workspace.Write("base-from-golden.bin", baseBytes);
+        string replacementPath = workspace.Write("self-vn-ctrlram.bin", baseBytes[start..(start + length)]);
 
-            FirmwareSlotViewModel vnLeftSlot = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Slave L)");
-            CtrlRamRegionViewModel vnLeftRegion = viewModel.CtrlRamRegions.Single(region => region.Name == "VN CtrlRAM (Slave L)");
-            (int start, int length) = ParseCtrlRamRegion(vnLeftRegion);
-            string basePath = Path.Combine(tempRoot, "base-from-golden.bin");
-            string replacementPath = Path.Combine(tempRoot, "self-vn-ctrlram.bin");
-            File.WriteAllBytes(basePath, baseBytes);
-            File.WriteAllBytes(replacementPath, baseBytes[start..(start + length)]);
+        byte[] simulatedBeforePostbuild = [.. baseBytes];
+        File.ReadAllBytes(replacementPath).CopyTo(simulatedBeforePostbuild.AsSpan(start, length));
+        Assert.Equal(baseBytes, simulatedBeforePostbuild);
 
-            byte[] simulatedBeforePostbuild = [.. baseBytes];
-            File.ReadAllBytes(replacementPath).CopyTo(simulatedBeforePostbuild.AsSpan(start, length));
-            Assert.Equal(baseBytes, simulatedBeforePostbuild);
+        viewModel.SetSlotFile("replace-base", basePath);
+        viewModel.SetSlotFile(vnLeftSlot.SlotId, replacementPath);
 
-            viewModel.SetSlotFile("replace-base", basePath);
-            viewModel.SetSlotFile(vnLeftSlot.SlotId, replacementPath);
+        Assert.True(viewModel.CanPreviewReplace);
 
-            Assert.True(viewModel.CanPreviewReplace);
+        await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
-            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
-
-            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-            Assert.True(viewModel.HasLoadedReport);
-            Assert.Contains(viewModel.LoadedReport.Operations, operation =>
-                operation.HasCodeBlock &&
-                operation.CodeBlock.Contains("Combiner.exe", StringComparison.Ordinal));
-        }
-        finally
-        {
-            if (Directory.Exists(tempRoot))
-            {
-                Directory.Delete(tempRoot, recursive: true);
-            }
-        }
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.HasLoadedReport);
+        Assert.Contains(viewModel.LoadedReport.Operations, operation =>
+            operation.HasCodeBlock &&
+            operation.CodeBlock.Contains("Combiner.exe", StringComparison.Ordinal));
     }
 
     /// <summary>Verifies CtrlRAM Replace build commits a real postbuild output file.</summary>
@@ -960,77 +905,61 @@ public sealed class ShellViewModelTests
             .EnumerateArray()
             .Single(testCase => testCase.GetProperty("ic").GetString() == "51927");
         byte[] baseBytes = File.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput")));
-        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-ctrlram-build-{Guid.NewGuid():N}");
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram-build");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51927";
+        viewModel.SelectedNumber = "single";
+        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
 
-        try
-        {
-            _ = Directory.CreateDirectory(tempRoot);
-            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-            viewModel.SelectedIc = "NT51927";
-            viewModel.SelectedNumber = "single";
-            viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+        FirmwareSlotViewModel vnSlot = viewModel.ReplaceSlots.Single(slot =>
+            slot.Title.Contains("VN CtrlRAM", StringComparison.Ordinal));
+        CtrlRamRegionViewModel vnRegion = viewModel.CtrlRamRegions.Single(region => region.Name == vnSlot.Title);
+        (int start, int length) = ParseCtrlRamRegion(vnRegion);
+        string basePath = workspace.Write("base-from-golden.bin", baseBytes);
+        string replacementPath = workspace.Write("self-vn-ctrlram.bin", baseBytes[start..(start + length)]);
+        string outputPath = workspace.PathFor("ctrlram-build-output.bin");
 
-            FirmwareSlotViewModel vnSlot = viewModel.ReplaceSlots.Single(slot =>
-                slot.Title.Contains("VN CtrlRAM", StringComparison.Ordinal));
-            CtrlRamRegionViewModel vnRegion = viewModel.CtrlRamRegions.Single(region => region.Name == vnSlot.Title);
-            (int start, int length) = ParseCtrlRamRegion(vnRegion);
-            string basePath = Path.Combine(tempRoot, "base-from-golden.bin");
-            string replacementPath = Path.Combine(tempRoot, "self-vn-ctrlram.bin");
-            string outputPath = Path.Combine(tempRoot, "ctrlram-build-output.bin");
-            File.WriteAllBytes(basePath, baseBytes);
-            File.WriteAllBytes(replacementPath, baseBytes[start..(start + length)]);
+        viewModel.SetSlotFile("replace-base", basePath);
+        viewModel.SetSlotFile(vnSlot.SlotId, replacementPath);
 
-            viewModel.SetSlotFile("replace-base", basePath);
-            viewModel.SetSlotFile(vnSlot.SlotId, replacementPath);
+        Assert.True(viewModel.CanPreviewReplace);
+        Assert.False(viewModel.CanBuildReplace);
 
-            Assert.True(viewModel.CanPreviewReplace);
-            Assert.False(viewModel.CanBuildReplace);
+        await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
-            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.CanBuildReplace);
 
-            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-            Assert.True(viewModel.CanBuildReplace);
+        await viewModel.BuildReplaceAsync(outputPath);
 
-            await viewModel.BuildReplaceAsync(outputPath);
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.Equal(outputPath, viewModel.LastRunResult.Output);
+        Assert.True(File.Exists(outputPath), outputPath);
+        Assert.Equal(baseBytes.Length, new FileInfo(outputPath).Length);
+        Assert.True(viewModel.HasLoadedReport);
+        Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
+            operation.CodeBlock.Contains("Combiner.exe", StringComparison.Ordinal));
 
-            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-            Assert.Equal(outputPath, viewModel.LastRunResult.Output);
-            Assert.True(File.Exists(outputPath), outputPath);
-            Assert.Equal(baseBytes.Length, new FileInfo(outputPath).Length);
-            Assert.True(viewModel.HasLoadedReport);
-            Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
-                operation.CodeBlock.Contains("Combiner.exe", StringComparison.Ordinal));
+        byte[] postbuildCleanBytes = File.ReadAllBytes(outputPath);
+        string cleanBasePath = workspace.Write("postbuild-clean-base.bin", postbuildCleanBytes);
+        string cleanReplacementPath = workspace.Write("postbuild-clean-self-vn-ctrlram.bin", postbuildCleanBytes[start..(start + length)]);
+        string cleanOutputPath = workspace.PathFor("postbuild-clean-output.bin");
 
-            byte[] postbuildCleanBytes = File.ReadAllBytes(outputPath);
-            string cleanBasePath = Path.Combine(tempRoot, "postbuild-clean-base.bin");
-            string cleanReplacementPath = Path.Combine(tempRoot, "postbuild-clean-self-vn-ctrlram.bin");
-            string cleanOutputPath = Path.Combine(tempRoot, "postbuild-clean-output.bin");
-            File.WriteAllBytes(cleanBasePath, postbuildCleanBytes);
-            File.WriteAllBytes(cleanReplacementPath, postbuildCleanBytes[start..(start + length)]);
+        MainWindowViewModel cleanViewModel = ShellViewModelFactory.Create();
+        cleanViewModel.SelectedIc = "NT51927";
+        cleanViewModel.SelectedNumber = "single";
+        cleanViewModel.ShowCtrlRamReplaceCommand.Execute(null);
+        FirmwareSlotViewModel cleanVnSlot = cleanViewModel.ReplaceSlots.Single(slot => slot.Title == vnSlot.Title);
+        cleanViewModel.SetSlotFile("replace-base", cleanBasePath);
+        cleanViewModel.SetSlotFile(cleanVnSlot.SlotId, cleanReplacementPath);
 
-            MainWindowViewModel cleanViewModel = ShellViewModelFactory.Create();
-            cleanViewModel.SelectedIc = "NT51927";
-            cleanViewModel.SelectedNumber = "single";
-            cleanViewModel.ShowCtrlRamReplaceCommand.Execute(null);
-            FirmwareSlotViewModel cleanVnSlot = cleanViewModel.ReplaceSlots.Single(slot => slot.Title == vnSlot.Title);
-            cleanViewModel.SetSlotFile("replace-base", cleanBasePath);
-            cleanViewModel.SetSlotFile(cleanVnSlot.SlotId, cleanReplacementPath);
+        await cleanViewModel.PreviewReplaceCommand.ExecuteAsync(null);
+        Assert.True(cleanViewModel.CanBuildReplace);
 
-            await cleanViewModel.PreviewReplaceCommand.ExecuteAsync(null);
-            Assert.True(cleanViewModel.CanBuildReplace);
+        await cleanViewModel.BuildReplaceAsync(cleanOutputPath);
 
-            await cleanViewModel.BuildReplaceAsync(cleanOutputPath);
-
-            Assert.True(cleanViewModel.LastRunResult.Succeeded, cleanViewModel.LastRunResult.Detail);
-            Assert.Equal(postbuildCleanBytes, File.ReadAllBytes(cleanOutputPath));
-        }
-        finally
-        {
-            if (Directory.Exists(tempRoot))
-            {
-                Directory.Delete(tempRoot, recursive: true);
-            }
-        }
+        Assert.True(cleanViewModel.LastRunResult.Succeeded, cleanViewModel.LastRunResult.Detail);
+        Assert.Equal(postbuildCleanBytes, File.ReadAllBytes(cleanOutputPath));
     }
 
     /// <summary>Verifies owner-approved CtrlRAM Replace fixtures when a manifest is present.</summary>
@@ -1057,57 +986,46 @@ public sealed class ShellViewModelTests
         {
             Assert.Equal("CtrlRAM", fixtureCase.GetProperty("mode").GetString());
             string caseId = fixtureCase.GetProperty("id").GetString()!;
-            string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-private-ctrlram-{Guid.NewGuid():N}");
-            try
+            using var workspace = TempWorkspace.Create("nvt-fw-combiner-private-ctrlram");
+            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+            viewModel.SelectedIc = fixtureCase.GetProperty("ic").GetString()!;
+            viewModel.SelectedNumber = fixtureCase.GetProperty("icNum").GetString()!;
+            viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+            viewModel.SetSlotFile(
+                "replace-base",
+                GoldenFixturePath(fixtureRoot, fixtureCase.GetProperty("base")));
+
+            foreach (JsonElement replacement in fixtureCase.GetProperty("replacementInputs").EnumerateArray())
             {
-                _ = Directory.CreateDirectory(tempRoot);
-                MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-                viewModel.SelectedIc = fixtureCase.GetProperty("ic").GetString()!;
-                viewModel.SelectedNumber = fixtureCase.GetProperty("icNum").GetString()!;
-                viewModel.ShowCtrlRamReplaceCommand.Execute(null);
-                viewModel.SetSlotFile(
-                    "replace-base",
-                    GoldenFixturePath(fixtureRoot, fixtureCase.GetProperty("base")));
-
-                foreach (JsonElement replacement in fixtureCase.GetProperty("replacementInputs").EnumerateArray())
-                {
-                    string slotId = replacement.GetProperty("slotId").GetString()!;
-                    Assert.Contains(viewModel.ReplaceSlots, slot => slot.SlotId == slotId);
-                    viewModel.SetSlotFile(slotId, GoldenFixturePath(fixtureRoot, replacement.GetProperty("file")));
-                }
-
-                string outputPath = Path.Combine(tempRoot, $"{caseId}.bin");
-                Assert.True(viewModel.CanPreviewReplace, caseId);
-
-                await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
-                Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-                if (caseId.StartsWith("nt51926-", StringComparison.Ordinal))
-                {
-                    Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
-                        operation.Meta.Contains("nfc.nt51926.ctrlram-postbuild-fw1.4.1", StringComparison.Ordinal) &&
-                        operation.CodeBlock.Contains("0x32F50", StringComparison.Ordinal));
-                }
-
-                Assert.True(viewModel.CanBuildReplace, caseId);
-
-                await viewModel.BuildReplaceAsync(outputPath);
-                Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-                Assert.True(File.Exists(outputPath), outputPath);
-
-                if (enforceExpectedOutput)
-                {
-                    Assert.True(fixtureCase.TryGetProperty("expectedOutput", out JsonElement expectedOutput), caseId);
-                    Assert.Equal(
-                        File.ReadAllBytes(GoldenFixturePath(fixtureRoot, expectedOutput)),
-                        File.ReadAllBytes(outputPath));
-                }
+                string slotId = replacement.GetProperty("slotId").GetString()!;
+                Assert.Contains(viewModel.ReplaceSlots, slot => slot.SlotId == slotId);
+                viewModel.SetSlotFile(slotId, GoldenFixturePath(fixtureRoot, replacement.GetProperty("file")));
             }
-            finally
+
+            string outputPath = workspace.PathFor($"{caseId}.bin");
+            Assert.True(viewModel.CanPreviewReplace, caseId);
+
+            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+            if (caseId.StartsWith("nt51926-", StringComparison.Ordinal))
             {
-                if (Directory.Exists(tempRoot))
-                {
-                    Directory.Delete(tempRoot, recursive: true);
-                }
+                Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
+                    operation.Meta.Contains("nfc.nt51926.ctrlram-postbuild-fw1.4.1", StringComparison.Ordinal) &&
+                    operation.CodeBlock.Contains("0x32F50", StringComparison.Ordinal));
+            }
+
+            Assert.True(viewModel.CanBuildReplace, caseId);
+
+            await viewModel.BuildReplaceAsync(outputPath);
+            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+            Assert.True(File.Exists(outputPath), outputPath);
+
+            if (enforceExpectedOutput)
+            {
+                Assert.True(fixtureCase.TryGetProperty("expectedOutput", out JsonElement expectedOutput), caseId);
+                Assert.Equal(
+                    File.ReadAllBytes(GoldenFixturePath(fixtureRoot, expectedOutput)),
+                    File.ReadAllBytes(outputPath));
             }
         }
     }
@@ -1140,6 +1058,7 @@ public sealed class ShellViewModelTests
     [Fact]
     public void ReplaceSelectionOverviewTracksSelectedCtrlRamTargets()
     {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram-selection");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51927";
         viewModel.SelectedNumber = "3";
@@ -1154,8 +1073,8 @@ public sealed class ShellViewModelTests
         Assert.Equal("4 areas. None selected.", slaveLGroup.SelectionSummary);
 
         FirmwareSlotViewModel vnLeft = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Slave L)");
-        viewModel.SetSlotFile("replace-base", Path.Combine(Path.GetTempPath(), "base.bin"));
-        viewModel.SetSlotFile(vnLeft.SlotId, Path.Combine(Path.GetTempPath(), "vn-slave-l.bin"));
+        viewModel.SetSlotFile("replace-base", workspace.PathFor("base.bin"));
+        viewModel.SetSlotFile(vnLeft.SlotId, workspace.PathFor("vn-slave-l.bin"));
 
         slaveLGroup = viewModel.ReplaceSlotGroups.Single(group => group.Title == "Slave L");
         Assert.Equal("1 / 12 targets selected", viewModel.ReplaceSelectionCountLabel);
