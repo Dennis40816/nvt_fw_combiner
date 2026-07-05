@@ -8,7 +8,7 @@ using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
-internal static class ReplaceCliCommandHandler
+internal static partial class ReplaceCliCommandHandler
 {
     private const int Success = 0;
     private const int CompositionFailed = 1;
@@ -61,7 +61,8 @@ internal static class ReplaceCliCommandHandler
             "--report",
         ];
         string[] flagOptions = action == "build" ? ["--overwrite"] : [];
-        if (!TryParseOptions(args[1..], valueOptions, flagOptions, error, out ParsedOptions options))
+        string[] repeatableValueOptions = command == "ctrlram-replace" ? ["--ctrlram"] : [];
+        if (!TryParseOptions(args[1..], valueOptions, repeatableValueOptions, flagOptions, error, out ParsedOptions options))
         {
             return UsageError;
         }
@@ -74,7 +75,23 @@ internal static class ReplaceCliCommandHandler
 
         if (!TryFindReplaceProfile(command, profileSelector, out CompositionProfileDefinition? selectedProfile))
         {
-            await error.WriteLineAsync($"error: unknown {command} profile '{profileSelector}'").ConfigureAwait(false);
+            return command == "ctrlram-replace"
+                ? await RunWorkbenchCtrlRamReplaceAsync(
+                        action,
+                        profileSelector,
+                        options,
+                        output,
+                        error,
+                        cancellationToken)
+                    .ConfigureAwait(false)
+                : await UnknownReplaceProfileAsync(command, profileSelector, error).ConfigureAwait(false);
+        }
+
+        if (command == "ctrlram-replace" && options.GetValues("--ctrlram").Count > 1)
+        {
+            await error.WriteLineAsync(
+                    "error: built-in CtrlRAM profiles accept one --ctrlram path; use --profile <IC> with repeated --ctrlram <slot-id=path> for multi-region replacement.")
+                .ConfigureAwait(false);
             return UsageError;
         }
 
@@ -132,6 +149,15 @@ internal static class ReplaceCliCommandHandler
             .ConfigureAwait(false);
         await PrintRunResultAsync(result, output, error).ConfigureAwait(false);
         return result.Status == CompositionExecutionStatus.Succeeded ? Success : CompositionFailed;
+    }
+
+    private static async Task<int> UnknownReplaceProfileAsync(
+        string command,
+        string profileSelector,
+        TextWriter error)
+    {
+        await error.WriteLineAsync($"error: unknown {command} profile '{profileSelector}'").ConfigureAwait(false);
+        return UsageError;
     }
 
     private static bool TryCompileProfile(
@@ -457,11 +483,13 @@ internal static class ReplaceCliCommandHandler
     private static bool TryParseOptions(
         string[] args,
         IReadOnlyCollection<string> valueOptions,
+        IReadOnlyCollection<string> repeatableValueOptions,
         IReadOnlyCollection<string> flagOptions,
         TextWriter error,
         out ParsedOptions parsed)
     {
         Dictionary<string, string> values = new(StringComparer.Ordinal);
+        Dictionary<string, List<string>> multiValues = new(StringComparer.Ordinal);
         HashSet<string> flags = new(StringComparer.Ordinal);
         for (int index = 0; index < args.Length; index++)
         {
@@ -493,6 +521,19 @@ internal static class ReplaceCliCommandHandler
             }
 
             string value = args[++index];
+            if (repeatableValueOptions.Contains(name))
+            {
+                if (!multiValues.TryGetValue(name, out List<string>? items))
+                {
+                    items = [];
+                    multiValues.Add(name, items);
+                }
+
+                items.Add(value);
+                _ = values.TryAdd(name, value);
+                continue;
+            }
+
             if (!values.TryAdd(name, value))
             {
                 error.WriteLine($"error: duplicate option '{name}'");
@@ -501,7 +542,7 @@ internal static class ReplaceCliCommandHandler
             }
         }
 
-        parsed = new ParsedOptions(values, flags);
+        parsed = new ParsedOptions(values, multiValues, flags);
         return true;
     }
 
@@ -580,8 +621,9 @@ internal static class ReplaceCliCommandHandler
                 await output.WriteLineAsync("  nvt_fw_combiner dp-replace build --profile <id|ic> --ic-num <value> --base <path> --dp <path> [--ld <path>] [--output <path>] [--report <path>] [--overwrite]").ConfigureAwait(false);
                 break;
             case "ctrlram-replace":
-                await output.WriteLineAsync("  nvt_fw_combiner ctrlram-replace preview --profile <id|ic> --ic-family <value> --ic-num <value> --base <path> --ctrlram <path> [--output <path>] [--report <path>]").ConfigureAwait(false);
-                await output.WriteLineAsync("  nvt_fw_combiner ctrlram-replace build --profile <id|ic> --ic-family <value> --ic-num <value> --base <path> --ctrlram <path> [--output <path>] [--report <path>] [--overwrite]").ConfigureAwait(false);
+                await output.WriteLineAsync("  nvt_fw_combiner ctrlram-replace preview --profile <ic> --ic-num <value> --base <path> --ctrlram <slot-id=path> [--ctrlram <slot-id=path> ...] [--report <path>]").ConfigureAwait(false);
+                await output.WriteLineAsync("  nvt_fw_combiner ctrlram-replace build --profile <ic> --ic-num <value> --base <path> --ctrlram <slot-id=path> [--ctrlram <slot-id=path> ...] [--output <path>] [--report <path>] [--overwrite]").ConfigureAwait(false);
+                await output.WriteLineAsync("  nvt_fw_combiner ctrlram-replace preview --profile synthetic-ctrlram-replace --ic-family <value> --ic-num <value> --base <path> --ctrlram <path> [--report <path>]").ConfigureAwait(false);
                 break;
             case "general-replace":
                 await output.WriteLineAsync("  nvt_fw_combiner general-replace preview --profile <id|ic> --ic-num <value> --base <path> --input <path> --source-start <n> --target-start <n> --length <n> [--output <path>] [--report <path>]").ConfigureAwait(false);
@@ -595,11 +637,22 @@ internal static class ReplaceCliCommandHandler
 
     private sealed record ParsedOptions(
         IReadOnlyDictionary<string, string> Values,
+        IReadOnlyDictionary<string, List<string>> MultiValues,
         IReadOnlySet<string> Flags)
     {
         internal static ParsedOptions Empty { get; } = new(
             new Dictionary<string, string>(StringComparer.Ordinal),
+            new Dictionary<string, List<string>>(StringComparer.Ordinal),
             new HashSet<string>(StringComparer.Ordinal));
+
+        internal List<string> GetValues(string optionName)
+        {
+            return MultiValues.TryGetValue(optionName, out List<string>? values)
+                ? values
+                : Values.TryGetValue(optionName, out string? value)
+                    ? [value]
+                    : [];
+        }
     }
 
     private readonly record struct OutputTarget(string OutputDirectory, string FileName)

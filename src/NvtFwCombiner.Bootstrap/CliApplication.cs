@@ -524,7 +524,7 @@ public static class CliApplication
         await output.WriteLineAsync("  nvt_fw_combiner standard-merge preview --profile <id|ic> --dp <path> --tp <path> [--ld <path>] [--output <path>] [--report <path>]").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner standard-merge build --profile <id|ic> --dp <path> --tp <path> [--ld <path>] [--output <path>] [--report <path>] [--overwrite]").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner dp-replace preview --profile <id|ic> --ic-num <value> --base <path> --dp <path> [--ld <path>] [--output <path>] [--report <path>]").ConfigureAwait(false);
-        await output.WriteLineAsync("  nvt_fw_combiner ctrlram-replace preview --profile <id|ic> --ic-family <value> --ic-num <value> --base <path> --ctrlram <path> [--output <path>] [--report <path>]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner ctrlram-replace preview --profile <ic> --ic-num <value> --base <path> --ctrlram <slot-id=path> [--ctrlram <slot-id=path> ...] [--report <path>]").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner general-replace preview --profile <id|ic> --ic-num <value> --base <path> --input <path> --source-start <n> --target-start <n> --length <n> [--output <path>] [--report <path>]").ConfigureAwait(false);
     }
 
