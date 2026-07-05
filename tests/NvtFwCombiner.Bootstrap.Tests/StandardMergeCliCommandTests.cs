@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -197,7 +198,7 @@ public sealed class StandardMergeCliCommandTests
     private static GoldenCasePaths LoadGoldenCase(string caseId)
     {
         string goldenRoot = Path.Combine(
-            FindRepositoryRoot(),
+            RepositoryPaths.FindRepositoryRoot(),
             "testdata",
             "golden",
             "standard-merge-gen-flash");
@@ -215,22 +216,6 @@ public sealed class StandardMergeCliCommandTests
             Path.Combine(goldenRoot, goldenCase.GetProperty("expectedOutput").GetProperty("path").GetString()!));
     }
 
-    private static string FindRepositoryRoot()
-    {
-        DirectoryInfo? directory = new(AppContext.BaseDirectory);
-        while (directory is not null)
-        {
-            if (File.Exists(Path.Combine(directory.FullName, "SPEC.md")))
-            {
-                return directory.FullName;
-            }
-
-            directory = directory.Parent;
-        }
-
-        throw new InvalidOperationException("Repository root was not found.");
-    }
-
     private static async Task<CliRunResult> RunCliAsync(string[] args)
     {
         using var output = new StringWriter();
@@ -244,40 +229,4 @@ public sealed class StandardMergeCliCommandTests
 
     private sealed record GoldenCasePaths(string DpPath, string TpPath, string ExpectedPath);
 
-    private sealed class TempWorkspace : IDisposable
-    {
-        private TempWorkspace(string root)
-        {
-            Root = root;
-        }
-
-        private string Root { get; }
-
-        internal static TempWorkspace Create()
-        {
-            string root = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-{Guid.NewGuid():N}");
-            _ = Directory.CreateDirectory(root);
-            return new TempWorkspace(root);
-        }
-
-        internal string PathFor(string fileName)
-        {
-            return Path.Combine(Root, fileName);
-        }
-
-        internal string Write(string fileName, byte[] bytes)
-        {
-            string path = PathFor(fileName);
-            File.WriteAllBytes(path, bytes);
-            return path;
-        }
-
-        public void Dispose()
-        {
-            if (Directory.Exists(Root))
-            {
-                Directory.Delete(Root, recursive: true);
-            }
-        }
-    }
 }

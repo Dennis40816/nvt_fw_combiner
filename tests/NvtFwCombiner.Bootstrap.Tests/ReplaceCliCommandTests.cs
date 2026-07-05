@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -165,7 +166,7 @@ public sealed class ReplaceCliCommandTests
     public async Task CtrlRamReplacePreviewAcceptsRepeatedWorkbenchSlotInputs()
     {
         using var workspace = TempWorkspace.Create();
-        string fixtureRoot = Path.Combine(FindRepositoryRoot(), "testdata", "golden", "ctrlram-replace");
+        string fixtureRoot = RepositoryPaths.FromRepositoryRoot("testdata", "golden", "ctrlram-replace");
         using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(fixtureRoot, "manifest.json")));
         JsonElement fixtureCase = manifestDocument.RootElement.GetProperty("cases")
             .EnumerateArray()
@@ -506,22 +507,6 @@ public sealed class ReplaceCliCommandTests
         return new CliRunResult(exitCode, output.ToString(), error.ToString());
     }
 
-    private static string FindRepositoryRoot()
-    {
-        string? directory = AppContext.BaseDirectory;
-        while (!string.IsNullOrWhiteSpace(directory))
-        {
-            if (File.Exists(Path.Combine(directory, "NvtFwCombiner.slnx")))
-            {
-                return directory;
-            }
-
-            directory = Directory.GetParent(directory)?.FullName;
-        }
-
-        throw new DirectoryNotFoundException("Could not locate repository root.");
-    }
-
     private static string ManifestPath(string fixtureRoot, JsonElement pathElement)
     {
         return Path.Combine(fixtureRoot, pathElement.GetString()!.Replace('/', Path.DirectorySeparatorChar));
@@ -530,7 +515,7 @@ public sealed class ReplaceCliCommandTests
     private static string GoldenPath(string relativePath)
     {
         return Path.Combine(
-            FindRepositoryRoot(),
+            RepositoryPaths.FindRepositoryRoot(),
             "testdata",
             "golden",
             "standard-merge-gen-flash",
@@ -550,40 +535,4 @@ public sealed class ReplaceCliCommandTests
 
     private sealed record CliRunResult(int ExitCode, string Output, string Error);
 
-    private sealed class TempWorkspace : IDisposable
-    {
-        private TempWorkspace(string root)
-        {
-            Root = root;
-        }
-
-        private string Root { get; }
-
-        internal static TempWorkspace Create()
-        {
-            string root = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-{Guid.NewGuid():N}");
-            _ = Directory.CreateDirectory(root);
-            return new TempWorkspace(root);
-        }
-
-        internal string PathFor(string fileName)
-        {
-            return Path.Combine(Root, fileName);
-        }
-
-        internal string Write(string fileName, byte[] bytes)
-        {
-            string path = PathFor(fileName);
-            File.WriteAllBytes(path, bytes);
-            return path;
-        }
-
-        public void Dispose()
-        {
-            if (Directory.Exists(Root))
-            {
-                Directory.Delete(Root, recursive: true);
-            }
-        }
-    }
 }

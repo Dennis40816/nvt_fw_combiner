@@ -198,6 +198,12 @@
           "NvtFwCombiner.Contracts": "[0.5.0, )",
           "NvtFwCombiner.Domain": "[0.5.0, )"
         }
+      },
+      "nvtfwcombiner.testsupport": {
+        "type": "Project",
+        "dependencies": {
+          "NvtFwCombiner.Application": "[0.5.0, )"
+        }
       }
     }
   }

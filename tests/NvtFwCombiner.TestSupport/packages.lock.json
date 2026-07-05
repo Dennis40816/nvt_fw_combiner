@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net10.0": {
+      "nvtfwcombiner.application": {
+        "type": "Project",
+        "dependencies": {
+          "NvtFwCombiner.Contracts": "[0.5.0, )",
+          "NvtFwCombiner.Domain": "[0.5.0, )"
+        }
+      },
+      "nvtfwcombiner.contracts": {
+        "type": "Project"
+      },
+      "nvtfwcombiner.domain": {
+        "type": "Project"
+      }
+    }
+  }
+}

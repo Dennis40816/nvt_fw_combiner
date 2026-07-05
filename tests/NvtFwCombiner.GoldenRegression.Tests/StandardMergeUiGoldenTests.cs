@@ -1,5 +1,6 @@
 using System.Text.Json;
 using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.GoldenRegression.Tests;
 
@@ -10,25 +11,14 @@ public sealed class StandardMergeUiGoldenTests
     [Fact]
     public async Task UiShellBuildStandardMergeMatchesGoldenBytes()
     {
-        string repositoryRoot = FindRepositoryRoot();
+        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
         using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
-        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-golden-{Guid.NewGuid():N}");
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-golden");
 
-        try
+        foreach (JsonElement goldenCase in manifestDocument.RootElement.GetProperty("cases").EnumerateArray())
         {
-            _ = Directory.CreateDirectory(tempRoot);
-            foreach (JsonElement goldenCase in manifestDocument.RootElement.GetProperty("cases").EnumerateArray())
-            {
-                await VerifyGoldenCaseAsync(goldenRoot, tempRoot, goldenCase);
-            }
-        }
-        finally
-        {
-            if (Directory.Exists(tempRoot))
-            {
-                Directory.Delete(tempRoot, recursive: true);
-            }
+            await VerifyGoldenCaseAsync(goldenRoot, workspace.Root, goldenCase);
         }
     }
 
@@ -38,47 +28,36 @@ public sealed class StandardMergeUiGoldenTests
     [InlineData("51919", "51929")]
     public async Task UiShellBuildStandardMergeAliasMatchesReferenceGoldenBytes(string aliasIc, string referenceIc)
     {
-        string repositoryRoot = FindRepositoryRoot();
+        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
         using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
         JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
             .EnumerateArray()
             .Single(item => item.GetProperty("ic").GetString() == referenceIc)
             .Clone();
-        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-alias-{aliasIc}-{Guid.NewGuid():N}");
+        using var workspace = TempWorkspace.Create($"nvt-fw-combiner-ui-alias-{aliasIc}");
 
-        try
+        Dictionary<string, string> slotPaths = [];
+        foreach (JsonProperty input in goldenCase.GetProperty("inputs").EnumerateObject())
         {
-            _ = Directory.CreateDirectory(tempRoot);
-            Dictionary<string, string> slotPaths = [];
-            foreach (JsonProperty input in goldenCase.GetProperty("inputs").EnumerateObject())
-            {
-                string originalPath = ManifestPath(goldenRoot, input.Value);
-                string copiedPath = Path.Combine(tempRoot, $"{input.Name}.bin");
-                File.Copy(originalPath, copiedPath);
-                slotPaths[input.Name] = copiedPath;
-            }
-
-            WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeAsync(
-                    $"NT{aliasIc}",
-                    slotPaths,
-                    build: true,
-                    CancellationToken.None);
-
-            string outputPath = result.CommittedOutputId ?? result.OutputFileName;
-            Assert.True(result.Succeeded, result.Status);
-            Assert.True(File.Exists(outputPath), outputPath);
-            Assert.Equal(
-                File.ReadAllBytes(ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput"))),
-                File.ReadAllBytes(outputPath));
+            string originalPath = RepositoryPaths.ManifestPath(goldenRoot, input.Value);
+            string copiedPath = workspace.PathFor($"{input.Name}.bin");
+            File.Copy(originalPath, copiedPath);
+            slotPaths[input.Name] = copiedPath;
         }
-        finally
-        {
-            if (Directory.Exists(tempRoot))
-            {
-                Directory.Delete(tempRoot, recursive: true);
-            }
-        }
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeAsync(
+                $"NT{aliasIc}",
+                slotPaths,
+                build: true,
+                CancellationToken.None);
+
+        string outputPath = result.CommittedOutputId ?? result.OutputFileName;
+        Assert.True(result.Succeeded, result.Status);
+        Assert.True(File.Exists(outputPath), outputPath);
+        Assert.Equal(
+            File.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput"))),
+            File.ReadAllBytes(outputPath));
     }
 
     private static async ValueTask VerifyGoldenCaseAsync(
@@ -93,7 +72,7 @@ public sealed class StandardMergeUiGoldenTests
         Dictionary<string, string> slotPaths = new(StringComparer.Ordinal);
         foreach (JsonProperty input in goldenCase.GetProperty("inputs").EnumerateObject())
         {
-            string originalPath = ManifestPath(goldenRoot, input.Value);
+            string originalPath = RepositoryPaths.ManifestPath(goldenRoot, input.Value);
             string copiedPath = Path.Combine(caseRoot, $"{input.Name}.bin");
             File.Copy(originalPath, copiedPath);
             slotPaths[input.Name] = copiedPath;
@@ -110,29 +89,7 @@ public sealed class StandardMergeUiGoldenTests
         Assert.True(result.Succeeded, result.Status);
         Assert.True(File.Exists(outputPath), outputPath);
         Assert.Equal(
-            File.ReadAllBytes(ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput"))),
+            File.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput"))),
             File.ReadAllBytes(outputPath));
-    }
-
-    private static string ManifestPath(string goldenRoot, JsonElement manifestFile)
-    {
-        string relativePath = manifestFile.GetProperty("path").GetString()!;
-        return Path.Combine(goldenRoot, relativePath.Replace('/', Path.DirectorySeparatorChar));
-    }
-
-    private static string FindRepositoryRoot()
-    {
-        DirectoryInfo? directory = new(AppContext.BaseDirectory);
-        while (directory is not null)
-        {
-            if (File.Exists(Path.Combine(directory.FullName, "SPEC.md")))
-            {
-                return directory.FullName;
-            }
-
-            directory = directory.Parent;
-        }
-
-        throw new InvalidOperationException("Repository root was not found.");
     }
 }
