@@ -88,16 +88,23 @@ public sealed class MemoryCoverageSegmentViewModel
     {
         return sourceLabel switch
         {
-            "Reserved" => "No selected input writes this range.",
+            "Reserved" => "Output range remains reserved; no input writes it.",
             string label when label.Equals("Preserve", StringComparison.OrdinalIgnoreCase) ||
                 label.Equals("Base flash", StringComparison.OrdinalIgnoreCase) =>
-                "Final bytes stay from the base firmware.",
+                "Output range keeps bytes from the base firmware.",
             string label when label.Contains("Restored", StringComparison.OrdinalIgnoreCase) =>
-                "Final bytes are restored from the base firmware.",
+                "Output range restores bytes from the base firmware.",
             _ => isChanged
-                ? $"Final bytes are replaced from {sourceLabel}."
-                : $"Final bytes come from {sourceLabel}.",
+                ? $"Output range is written from {FormatSourcePhrase(sourceLabel)}."
+                : $"Output range uses bytes from {FormatSourcePhrase(sourceLabel)}.",
         };
+    }
+
+    private static string FormatSourcePhrase(string sourceLabel)
+    {
+        return sourceLabel.StartsWith("Changed ", StringComparison.OrdinalIgnoreCase)
+            ? sourceLabel["Changed ".Length..]
+            : sourceLabel;
     }
 
     private static string CreateTooltipText(

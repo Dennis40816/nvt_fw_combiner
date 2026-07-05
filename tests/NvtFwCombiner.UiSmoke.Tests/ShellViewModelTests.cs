@@ -390,10 +390,10 @@ public sealed class ShellViewModelTests
         Assert.Equal("No output -> Reserved", initialRow.FlowLabel);
         Assert.Contains(viewModel.MergeCoverageSegments, segment =>
             segment.SourceLabel == "TP BIN" &&
-            segment.CompactDetail == "Final bytes come from TP BIN.");
+            segment.CompactDetail == "Output range uses bytes from TP BIN.");
         Assert.Contains(viewModel.MergeCoverageSegments, segment =>
             segment.SourceLabel == "DP BIN" &&
-            segment.CompactDetail == "Final bytes come from DP BIN.");
+            segment.CompactDetail == "Output range uses bytes from DP BIN.");
         Assert.All(viewModel.MergeCoverageSegments, segment =>
         {
             Assert.NotEqual("Preserved", segment.ChangeLabel);
