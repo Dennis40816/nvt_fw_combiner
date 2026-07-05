@@ -951,18 +951,13 @@ public sealed class ShellViewModelTests
             return;
         }
 
-        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        string fixtureRoot = Path.Combine(repositoryRoot, "testdata", "golden", "ctrlram-replace");
-        string manifestPath = Path.Combine(fixtureRoot, "manifest.json");
-        if (!File.Exists(manifestPath))
+        using var fixtures = CtrlRamReplaceFixtureManifest.LoadIfPresent();
+        if (fixtures is null)
         {
             return;
         }
 
-        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(manifestPath));
-        bool enforceExpectedOutput = manifestDocument.RootElement.TryGetProperty("runnerStatus", out JsonElement runnerStatus) &&
-            runnerStatus.GetString() == "ready-for-private-golden";
-        foreach (JsonElement fixtureCase in manifestDocument.RootElement.GetProperty("cases").EnumerateArray())
+        foreach (JsonElement fixtureCase in fixtures.Cases)
         {
             Assert.Equal("CtrlRAM", fixtureCase.GetProperty("mode").GetString());
             string caseId = fixtureCase.GetProperty("id").GetString()!;
@@ -971,16 +966,8 @@ public sealed class ShellViewModelTests
             viewModel.SelectedIc = fixtureCase.GetProperty("ic").GetString()!;
             viewModel.SelectedNumber = fixtureCase.GetProperty("icNum").GetString()!;
             viewModel.ShowCtrlRamReplaceCommand.Execute(null);
-            viewModel.SetSlotFile(
-                "replace-base",
-                RepositoryPaths.ManifestPath(fixtureRoot, fixtureCase.GetProperty("base")));
-
-            foreach (JsonElement replacement in fixtureCase.GetProperty("replacementInputs").EnumerateArray())
-            {
-                string slotId = replacement.GetProperty("slotId").GetString()!;
-                Assert.Contains(viewModel.ReplaceSlots, slot => slot.SlotId == slotId);
-                viewModel.SetSlotFile(slotId, RepositoryPaths.ManifestPath(fixtureRoot, replacement.GetProperty("file")));
-            }
+            fixtures.SetBaseSlot(viewModel, fixtureCase);
+            fixtures.SetReplacementSlots(viewModel, fixtureCase);
 
             string outputPath = workspace.PathFor($"{caseId}.bin");
             Assert.True(viewModel.CanPreviewReplace, caseId);
@@ -1002,11 +989,11 @@ public sealed class ShellViewModelTests
             Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
             Assert.True(File.Exists(outputPath), outputPath);
 
-            if (enforceExpectedOutput)
+            if (fixtures.EnforceExpectedOutput)
             {
-                Assert.True(fixtureCase.TryGetProperty("expectedOutput", out JsonElement expectedOutput), caseId);
+                Assert.True(fixtures.TryGetExpectedOutputPath(fixtureCase, out string? expectedOutputPath), caseId);
                 Assert.Equal(
-                    File.ReadAllBytes(RepositoryPaths.ManifestPath(fixtureRoot, expectedOutput)),
+                    File.ReadAllBytes(expectedOutputPath!),
                     File.ReadAllBytes(outputPath));
             }
         }
