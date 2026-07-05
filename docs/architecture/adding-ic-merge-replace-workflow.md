@@ -58,6 +58,9 @@ The owner drop folder should contain as many of these as apply:
 - golden input/output BIN files or private fixture hashes for the workflow;
 - notes identifying source archive, revision, owner, IC-number branch, expected output filename, and approval status.
 
+For the current detailed owner checklist, sentinel BIN validation method, and 0.7.0 refactor gates, also see
+[`0.7.0-refactor-and-evidence-plan.md`](0.7.0-refactor-and-evidence-plan.md). That document is the active checklist for NT51926/NT51930 versioned postbuild categories and for universal special-value BIN validation.
+
 ## Files to update
 
 Update only the rows that are relevant to the new IC/mode.
