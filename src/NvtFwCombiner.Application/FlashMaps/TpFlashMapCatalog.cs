@@ -1,3 +1,4 @@
+using System.Globalization;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
@@ -142,7 +143,9 @@ public static class TpFlashMapCatalog
         .ToDictionary(profile => profile.IcId, StringComparer.Ordinal);
 
     private static readonly Dictionary<string, LegacyCombinerPostbuildProfile> PostbuildProfilesByIc =
-        LegacyCombinerPostbuildCatalog.All.ToDictionary(profile => profile.IcId, StringComparer.Ordinal);
+        LegacyCombinerPostbuildCatalog.All
+            .GroupBy(profile => profile.IcId, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
 
     /// <summary>Supported IC ids in stable order.</summary>
     public static IReadOnlyList<string> IcIds { get; } =
@@ -172,11 +175,27 @@ public static class TpFlashMapCatalog
     /// <summary>Gets UI number choices from the postbuild branches available for an IC.</summary>
     public static IReadOnlyList<string> GetNumberChoices(string icId)
     {
-        return !PostbuildProfilesByIc.TryGetValue(icId, out LegacyCombinerPostbuildProfile? profile)
+        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = LegacyCombinerPostbuildCatalog.GetProfiles(icId);
+        return profiles.Any(profile => profile.BranchRules.Values.Contains(LegacyCombinerPostbuildBranch.CascadeExtended))
+            ? GetExtendedNumberChoices(profiles)
+            : !PostbuildProfilesByIc.TryGetValue(icId, out LegacyCombinerPostbuildProfile? profile)
             ? ["single"]
             : profile.TwoChipCommands is not null || profile.ThreeChipCommands is not null
             ? ["single", "2", "3"]
             : ["single", "cascade"];
+    }
+
+    private static IReadOnlyList<string> GetExtendedNumberChoices(IEnumerable<LegacyCombinerPostbuildProfile> profiles)
+    {
+        return
+        [
+            "single",
+            .. profiles
+                .SelectMany(profile => profile.BranchRules.Keys)
+                .Where(token => int.TryParse(token, out int value) && value > 1)
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(token => int.Parse(token, CultureInfo.InvariantCulture)),
+        ];
     }
 
     /// <summary>Gets TP Overview CtrlRAM regions visible for the selected IC and IC-count context.</summary>
@@ -187,10 +206,29 @@ public static class TpFlashMapCatalog
         return GetRegions(icId, selection, TpFlashMapRegionKind.CtrlRam);
     }
 
+    /// <summary>Gets TP Overview CtrlRAM regions adjusted to the selected postbuild category.</summary>
+    public static IReadOnlyList<TpFlashMapRegion> GetCtrlRamRegions(
+        string icId,
+        IcNumberSelection? selection,
+        LegacyCombinerPostbuildProfile? postbuildProfile)
+    {
+        return GetRegions(icId, selection, postbuildProfile, TpFlashMapRegionKind.CtrlRam);
+    }
+
     /// <summary>Gets TP Overview regions visible for the selected IC, IC-count context, and optional kind.</summary>
     public static IReadOnlyList<TpFlashMapRegion> GetRegions(
         string icId,
         IcNumberSelection? selection,
+        TpFlashMapRegionKind? kind = null)
+    {
+        return GetRegions(icId, selection, postbuildProfile: null, kind);
+    }
+
+    /// <summary>Gets TP Overview regions adjusted to the selected postbuild category.</summary>
+    public static IReadOnlyList<TpFlashMapRegion> GetRegions(
+        string icId,
+        IcNumberSelection? selection,
+        LegacyCombinerPostbuildProfile? postbuildProfile,
         TpFlashMapRegionKind? kind = null)
     {
         if (!ProfilesByIc.TryGetValue(icId, out TpFlashMapProfile? profile))
@@ -201,10 +239,81 @@ public static class TpFlashMapCatalog
         int? count = TryGetNumericCount(selection);
         bool isSingle = IsSingle(selection, count);
         return [
-            .. profile.Regions
+            .. ApplyPostbuildRangeOverrides(
+                    profile.Regions
+                        .Where(region => kind is null || region.Kind == kind)
+                        .Where(region => IsVisible(region.Visibility, isSingle, count)),
+                    postbuildProfile,
+                    selection)
                 .Where(region => kind is null || region.Kind == kind)
-                .Where(region => IsVisible(region.Visibility, isSingle, count))
         ];
+    }
+
+    private static TpFlashMapRegion[] ApplyPostbuildRangeOverrides(
+        IEnumerable<TpFlashMapRegion> regions,
+        LegacyCombinerPostbuildProfile? postbuildProfile,
+        IcNumberSelection? selection)
+    {
+        TpFlashMapRegion[] visibleRegions =
+        [
+            .. regions,
+        ];
+        if (postbuildProfile is null)
+        {
+            return visibleRegions;
+        }
+
+        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(
+            postbuildProfile,
+            selection);
+        IReadOnlyList<LegacyCombinerBlockArgument> blocks =
+        [
+            .. plan.Commands.SelectMany(command => command.Blocks),
+        ];
+        return [
+            .. visibleRegions.Select(region => TryResolvePostbuildRange(region, blocks, out ByteRange range)
+                ? new TpFlashMapRegion(
+                    region.RegionId,
+                    region.DisplayName,
+                    region.Kind,
+                    range,
+                    region.Visibility,
+                    region.PostbuildFileName,
+                    region.Tags)
+                : region),
+        ];
+    }
+
+    private static bool TryResolvePostbuildRange(
+        TpFlashMapRegion region,
+        IReadOnlyList<LegacyCombinerBlockArgument> blocks,
+        out ByteRange range)
+    {
+        LegacyCombinerBlockArgument[] candidates =
+        [
+            .. blocks.Where(block => IsPostbuildRangeOverrideCandidate(region, block)),
+        ];
+        if (candidates.Length == 0)
+        {
+            range = default;
+            return false;
+        }
+
+        long start = candidates.Min(block => block.FirmwareRange.Start);
+        long endExclusive = candidates.Max(block => block.FirmwareRange.EndExclusive);
+        range = ByteRange.FromStartEndExclusive(start, endExclusive);
+        return true;
+    }
+
+    private static bool IsPostbuildRangeOverrideCandidate(
+        TpFlashMapRegion region,
+        LegacyCombinerBlockArgument block)
+    {
+        return region.Range.Overlaps(block.FirmwareRange) &&
+            (block.SourceKind == LegacyCombinerBlockSourceKind.StagedFile
+            ? string.Equals(region.PostbuildFileName, block.SourceFileName, StringComparison.Ordinal)
+            : region.RegionId.Contains("fw-config", StringComparison.OrdinalIgnoreCase) &&
+            block.BlockId.Contains("fw-config", StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>Gets visible CtrlRAM regions that are consumed by the selected postbuild command plan.</summary>
@@ -212,8 +321,18 @@ public static class TpFlashMapCatalog
         string icId,
         IcNumberSelection? selection)
     {
-        if (!ProfilesByIc.TryGetValue(icId, out TpFlashMapProfile? profile) ||
-            !PostbuildProfilesByIc.TryGetValue(icId, out LegacyCombinerPostbuildProfile? postbuildProfile))
+        return !PostbuildProfilesByIc.TryGetValue(icId, out LegacyCombinerPostbuildProfile? postbuildProfile)
+            ? []
+            : GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile);
+    }
+
+    /// <summary>Gets visible CtrlRAM regions that are consumed by a selected postbuild command plan.</summary>
+    public static IReadOnlyList<TpFlashMapRegion> GetPostbuildMappedCtrlRamRegions(
+        string icId,
+        IcNumberSelection? selection,
+        LegacyCombinerPostbuildProfile? postbuildProfile)
+    {
+        if (!ProfilesByIc.ContainsKey(icId) || postbuildProfile is null)
         {
             return [];
         }
@@ -223,7 +342,7 @@ public static class TpFlashMapCatalog
             selection);
         IReadOnlyList<LegacyCombinerBlockArgument> blocks = LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(plan);
         return [
-            .. GetCtrlRamRegions(icId, selection)
+            .. GetCtrlRamRegions(icId, selection, postbuildProfile)
                 .Where(region => blocks.Any(block => IsMappedBlock(region, block)))
         ];
     }

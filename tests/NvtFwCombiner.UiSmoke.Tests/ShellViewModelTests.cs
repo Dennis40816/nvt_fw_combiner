@@ -251,6 +251,42 @@ public sealed class ShellViewModelTests
             fact.Value.Contains("bar OK", StringComparison.Ordinal));
         Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
             fact.Label == "PID" && fact.Value == "0x5102");
+        Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
+            fact.Label == "Postbuild" && fact.Value == "PostbuildSetup_51926_1.4.1");
+    }
+
+    /// <summary>Verifies CtrlRAM slots refresh to the FWConfig-selected postbuild category after base load.</summary>
+    [Fact]
+    public void CtrlRamBaseFirmwareRefreshesVersionedNt51926Slots()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51926";
+        viewModel.SelectedNumber = "cascade";
+        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+        string basePath = Path.Combine(
+            FindRepositoryRoot(),
+            "testdata",
+            "golden",
+            "standard-merge-gen-flash",
+            "expected",
+            "51926",
+            "flash.bin");
+
+        Assert.Contains(viewModel.ReplaceSlots, slot =>
+            slot.SlotId == "replace-ctrlram-vn" &&
+            slot.Description.Contains("len 0x149E", StringComparison.Ordinal));
+
+        viewModel.SetSlotFile("replace-base", basePath);
+
+        Assert.Contains(viewModel.CtrlRamRegions, region =>
+            region.Name == "VN CtrlRAM" &&
+            region.SizeHex == "len 0x1660");
+        Assert.Contains(viewModel.ReplaceSlots, slot =>
+            slot.SlotId == "replace-ctrlram-vn" &&
+            slot.Description.Contains("len 0x1660", StringComparison.Ordinal));
+        Assert.Contains(viewModel.ReplaceCoverageSegments, segment =>
+            segment.SourceLabel == "VN CtrlRAM" &&
+            segment.RangeLabel == "0x315D0-0x32C2F (len 0x1660)");
     }
 
     /// <summary>Verifies General Replace authors base BIN and explicit range rows as separate UI state.</summary>
@@ -270,7 +306,7 @@ public sealed class ShellViewModelTests
         Assert.Contains("explicit profile-approved", viewModel.SelectedReplaceModeDescription, StringComparison.Ordinal);
         Assert.False(viewModel.CanPreviewReplace);
         Assert.Equal(
-            "Preview blocked: workbench General Replace execution wiring is pending; compiled mappings must still pass profile bounds and protected-range checks.",
+            "Preview blocked: base BIN and at least one explicit replacement mapping are required.",
             viewModel.ReplaceReadinessStatus);
         _ = Assert.Single(viewModel.GeneralReplaceMappings);
 
@@ -282,6 +318,112 @@ public sealed class ShellViewModelTests
         Assert.Equal(1, viewModel.GeneralReplaceMappings[0].Index);
         Assert.Equal("No replacement BIN selected", viewModel.GeneralReplaceMappings[0].DisplayName);
         Assert.Equal(string.Empty, viewModel.GeneralReplaceMappings[0].DisplayDetail);
+    }
+
+    /// <summary>Verifies General Replace UI runs a DP explicit mapping through Preview and Build.</summary>
+    [Fact]
+    public async Task GeneralReplacePreviewAndBuildUseExplicitMappingRows()
+    {
+        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-general-replace-{Guid.NewGuid():N}");
+        try
+        {
+            _ = Directory.CreateDirectory(tempRoot);
+            byte[] baseBytes = CreatePattern(0x40000, 0x40);
+            string basePath = Path.Combine(tempRoot, "base.bin");
+            string replacementPath = Path.Combine(tempRoot, "replacement.bin");
+            string outputPath = Path.Combine(tempRoot, "general-replace.bin");
+            File.WriteAllBytes(basePath, baseBytes);
+            File.WriteAllBytes(replacementPath, [0xA5, 0x5A]);
+
+            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+            viewModel.SelectedIc = "NT51950";
+            viewModel.ShowGeneralReplaceCommand.Execute(null);
+            viewModel.SetSlotFile("replace-base", basePath);
+            GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.GeneralReplaceMappings);
+            mapping.StartAddress = "0x00100";
+            mapping.EndAddress = "0x00101";
+            viewModel.SetGeneralReplaceMappingFile(mapping.MappingId, replacementPath);
+
+            Assert.True(viewModel.CanPreviewReplace);
+            Assert.Contains("Ready", viewModel.ReplaceReadinessStatus, StringComparison.Ordinal);
+
+            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+
+            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+            Assert.True(viewModel.CanBuildReplace);
+
+            await viewModel.BuildReplaceAsync(outputPath);
+
+            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+            byte[] output = File.ReadAllBytes(outputPath);
+            Assert.Equal(0xA5, output[0x100]);
+            Assert.Equal(0x5A, output[0x101]);
+            Assert.Equal(baseBytes[0x102], output[0x102]);
+            Assert.Contains(viewModel.LoadedReport.Operations, operation =>
+                operation.Title.Contains("general-map-1", StringComparison.Ordinal));
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+    }
+
+    /// <summary>Verifies General Replace UI routes TP-touching explicit mappings through postbuild.</summary>
+    [Fact]
+    public async Task GeneralReplacePreviewRunsPostbuildForTpMapping()
+    {
+        string repositoryRoot = FindRepositoryRoot();
+        string basePath = Path.Combine(
+            repositoryRoot,
+            "testdata",
+            "golden",
+            "standard-merge-gen-flash",
+            "expected",
+            "51950",
+            "dp-256k",
+            "flash.bin");
+        string tempRoot = Path.Combine(Path.GetTempPath(), $"nvt-fw-combiner-ui-general-replace-tp-{Guid.NewGuid():N}");
+        try
+        {
+            _ = Directory.CreateDirectory(tempRoot);
+            byte[] baseBytes = File.ReadAllBytes(basePath);
+            string replacementPath = Path.Combine(tempRoot, "self-nf.bin");
+            File.WriteAllBytes(replacementPath, baseBytes[0x22C00..0x22C02]);
+
+            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+            viewModel.SelectedIc = "NT51950";
+            viewModel.ShowGeneralReplaceCommand.Execute(null);
+            viewModel.SetSlotFile("replace-base", basePath);
+            GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.GeneralReplaceMappings);
+            mapping.StartAddress = "0x22C00";
+            mapping.EndAddress = "0x22C01";
+            viewModel.SetGeneralReplaceMappingFile(mapping.MappingId, replacementPath);
+
+            Assert.True(viewModel.CanPreviewReplace);
+            Assert.Contains("run postbuild", viewModel.ReplaceReadinessStatus, StringComparison.Ordinal);
+
+            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+
+            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+            Assert.True(viewModel.HasLoadedReport);
+            Assert.Contains(viewModel.LoadedReport.Operations, operation =>
+                operation.Title.Contains("postbuild-", StringComparison.Ordinal) &&
+                operation.HasCodeBlock &&
+                operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
+            Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
+                operation.Title.Contains("postbuild-", StringComparison.Ordinal) &&
+                operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
     }
 
     /// <summary>Verifies CtrlRAM plan rows promote readable region labels over raw postbuild filenames.</summary>
@@ -354,10 +496,10 @@ public sealed class ShellViewModelTests
         Assert.Equal("No output -> Reserved", initialRow.FlowLabel);
         Assert.Contains(viewModel.MergeCoverageSegments, segment =>
             segment.SourceLabel == "TP BIN" &&
-            segment.CompactDetail == "Final bytes come from TP BIN.");
+            segment.CompactDetail == "Output range uses bytes from TP BIN.");
         Assert.Contains(viewModel.MergeCoverageSegments, segment =>
             segment.SourceLabel == "DP BIN" &&
-            segment.CompactDetail == "Final bytes come from DP BIN.");
+            segment.CompactDetail == "Output range uses bytes from DP BIN.");
         Assert.All(viewModel.MergeCoverageSegments, segment =>
         {
             Assert.NotEqual("Preserved", segment.ChangeLabel);
@@ -991,6 +1133,13 @@ public sealed class ShellViewModelTests
 
                 await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
                 Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+                if (caseId.StartsWith("nt51926-", StringComparison.Ordinal))
+                {
+                    Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
+                        operation.Meta.Contains("nfc.nt51926.ctrlram-postbuild-fw1.4.1", StringComparison.Ordinal) &&
+                        operation.CodeBlock.Contains("0x32F50", StringComparison.Ordinal));
+                }
+
                 Assert.True(viewModel.CanBuildReplace, caseId);
 
                 await viewModel.BuildReplaceAsync(outputPath);
@@ -1060,6 +1209,7 @@ public sealed class ShellViewModelTests
         viewModel.SetSlotFile("replace-base", Path.Combine(Path.GetTempPath(), "base.bin"));
         viewModel.SetSlotFile(vnLeft.SlotId, Path.Combine(Path.GetTempPath(), "vn-slave-l.bin"));
 
+        slaveLGroup = viewModel.ReplaceSlotGroups.Single(group => group.Title == "Slave L");
         Assert.Equal("1 / 12 targets selected", viewModel.ReplaceSelectionCountLabel);
         Assert.Equal("1/4", slaveLGroup.CountLabel);
         Assert.Equal("1 selected / 4 areas.", slaveLGroup.SelectionSummary);

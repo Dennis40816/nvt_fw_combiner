@@ -160,6 +160,63 @@ public sealed class ReplaceCliCommandTests
         Assert.Contains("input.address-space.truncated", result.Error, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies real IC CtrlRAM Replace accepts multiple slot-specific replacement inputs in one CLI run.</summary>
+    [Fact]
+    public async Task CtrlRamReplacePreviewAcceptsRepeatedWorkbenchSlotInputs()
+    {
+        using var workspace = TempWorkspace.Create();
+        string fixtureRoot = Path.Combine(FindRepositoryRoot(), "testdata", "golden", "ctrlram-replace");
+        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(fixtureRoot, "manifest.json")));
+        JsonElement fixtureCase = manifestDocument.RootElement.GetProperty("cases")
+            .EnumerateArray()
+            .Single(testCase => testCase.GetProperty("id").GetString() == "nt51927-2chip-self-20260705");
+        string basePath = ManifestPath(fixtureRoot, fixtureCase.GetProperty("base").GetProperty("path"));
+        JsonElement normalMaster = fixtureCase.GetProperty("replacementInputs")
+            .EnumerateArray()
+            .Single(input => input.GetProperty("slotId").GetString() == "replace-ctrlram-normal-master");
+        JsonElement vnSlaveRight = fixtureCase.GetProperty("replacementInputs")
+            .EnumerateArray()
+            .Single(input => input.GetProperty("slotId").GetString() == "replace-ctrlram-vn-slave-r");
+        string normalMasterPath = ManifestPath(fixtureRoot, normalMaster.GetProperty("file").GetProperty("path"));
+        string vnSlaveRightPath = ManifestPath(fixtureRoot, vnSlaveRight.GetProperty("file").GetProperty("path"));
+        string report = workspace.PathFor("ctrlram-report.json");
+
+        CliRunResult result = await RunCliAsync([
+            "ctrlram-replace",
+            "preview",
+            "--profile",
+            "NT51927",
+            "--ic-num",
+            "2",
+            "--base",
+            basePath,
+            "--ctrlram",
+            $"replace-ctrlram-normal-master={normalMasterPath}",
+            "--ctrlram",
+            $"vn-slave-r={vnSlaveRightPath}",
+            "--report",
+            report,
+        ]);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
+        Assert.Contains("Profile: nt51927-ctrlram-replace-workbench (NT51927)", result.Output, StringComparison.Ordinal);
+        Assert.Contains("postbuild-twochip", result.Output, StringComparison.Ordinal);
+        Assert.True(File.Exists(report), report);
+        using var reportDocument = JsonDocument.Parse(await File.ReadAllTextAsync(
+            report,
+            TestContext.Current.CancellationToken));
+        JsonElement root = reportDocument.RootElement;
+        Assert.Equal("nt51927-ctrlram-replace-workbench", root.GetProperty("ProfileId").GetString());
+        Assert.Equal(3, root.GetProperty("Inputs").GetArrayLength());
+        Assert.Contains(root.GetProperty("Inputs").EnumerateArray(), input =>
+            input.GetProperty("AddressSpaceId").GetString() == "replace-ctrlram-normal-master");
+        Assert.Contains(root.GetProperty("Inputs").EnumerateArray(), input =>
+            input.GetProperty("AddressSpaceId").GetString() == "replace-ctrlram-vn-slave-r");
+        JsonElement operation = Assert.Single(root.GetProperty("Operations").EnumerateArray());
+        Assert.Equal("RunExternalProcessor", operation.GetProperty("Kind").GetString());
+    }
+
     /// <summary>Verifies General Replace build writes the mapped output after internal preview approval.</summary>
     [Fact]
     public async Task GeneralReplaceBuildWritesMappedOutput()
@@ -194,6 +251,127 @@ public sealed class ReplaceCliCommandTests
         Assert.Contains("Committed:", result.Output, StringComparison.Ordinal);
         byte[] bytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
         Assert.Equal([0, 1, 0xAA, 0xBB, 4, 5, 6, 7], bytes);
+    }
+
+    /// <summary>Verifies real IC General Replace CLI accepts repeated workbench mapping rows.</summary>
+    [Fact]
+    public async Task GeneralReplaceBuildAcceptsRepeatedWorkbenchMappings()
+    {
+        using var workspace = TempWorkspace.Create();
+        byte[] baseBytes = CreatePattern(0x40000, 0x40);
+        string reference = workspace.Write("reference.bin", baseBytes);
+        string firstInput = workspace.Write("first.bin", [0xA5, 0x5A]);
+        string secondInput = workspace.Write("second.bin", [0xC3]);
+        string output = workspace.PathFor("general-replace.bin");
+        string report = workspace.PathFor("general-replace-report.json");
+
+        CliRunResult result = await RunCliAsync([
+            "general-replace",
+            "build",
+            "--profile",
+            "NT51950",
+            "--ic-num",
+            "single",
+            "--base",
+            reference,
+            "--mapping",
+            $"0x100+0x2={firstInput}",
+            "--mapping",
+            $"0x38000+0x1={secondInput}",
+            "--output",
+            output,
+            "--report",
+            report,
+        ]);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
+        Assert.Contains("Experience: general-replace", result.Output, StringComparison.Ordinal);
+        Assert.Contains("nt51950-general-replace-workbench", result.Output, StringComparison.Ordinal);
+        byte[] bytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
+        Assert.Equal(baseBytes.Length, bytes.Length);
+        Assert.Equal(0xA5, bytes[0x100]);
+        Assert.Equal(0x5A, bytes[0x101]);
+        Assert.Equal(0xC3, bytes[0x38000]);
+        Assert.Equal(baseBytes[0x102], bytes[0x102]);
+
+        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(
+            report,
+            TestContext.Current.CancellationToken));
+        JsonElement root = document.RootElement;
+        Assert.Equal("nt51950-general-replace-workbench", root.GetProperty("ProfileId").GetString());
+        Assert.Equal("general-replace", root.GetProperty("ExperienceId").GetString());
+        Assert.Equal(3, root.GetProperty("Inputs").GetArrayLength());
+        Assert.Equal(2, root.GetProperty("Operations").GetArrayLength());
+    }
+
+    /// <summary>Verifies real IC General Replace CLI runs postbuild when a mapping touches TP/CtrlRAM.</summary>
+    [Fact]
+    public async Task GeneralReplacePreviewRunsPostbuildForWorkbenchTpMapping()
+    {
+        using var workspace = TempWorkspace.Create();
+        string reference = GoldenPath("expected/51950/dp-256k/flash.bin");
+        byte[] baseBytes = await File.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken);
+        string input = workspace.Write("input.bin", baseBytes[0x22C00..0x22C02]);
+        string report = workspace.PathFor("general-replace-tp-report.json");
+
+        CliRunResult result = await RunCliAsync([
+            "general-replace",
+            "preview",
+            "--profile",
+            "NT51950",
+            "--ic-num",
+            "single",
+            "--base",
+            reference,
+            "--mapping",
+            $"0x22C00+0x2={input}",
+            "--report",
+            report,
+        ]);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
+        Assert.Contains("postbuild-singlechip", result.Output, StringComparison.Ordinal);
+
+        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(
+            report,
+            TestContext.Current.CancellationToken));
+        JsonElement root = document.RootElement;
+        Assert.Equal("general-replace", root.GetProperty("ExperienceId").GetString());
+        Assert.Collection(
+            root.GetProperty("Operations").EnumerateArray(),
+            operation => Assert.Equal("ReplaceRange", operation.GetProperty("Kind").GetString()),
+            operation =>
+            {
+                Assert.Equal("RunExternalProcessor", operation.GetProperty("Kind").GetString());
+                Assert.Equal("nfc.nt51950.ctrlram-postbuild-v1", operation.GetProperty("ProcessorId").GetString());
+                Assert.Equal("legacy-combiner-1.13.0", operation.GetProperty("ToolBindingId").GetString());
+            });
+    }
+
+    /// <summary>Verifies malformed real IC General Replace mapping paths are rejected before planning.</summary>
+    [Fact]
+    public async Task GeneralReplacePreviewRejectsEmptyWorkbenchMappingPath()
+    {
+        using var workspace = TempWorkspace.Create();
+        string reference = workspace.Write("reference.bin", CreatePattern(0x40000, 0x30));
+
+        CliRunResult result = await RunCliAsync([
+            "general-replace",
+            "preview",
+            "--profile",
+            "NT51950",
+            "--ic-num",
+            "single",
+            "--base",
+            reference,
+            "--mapping",
+            "0x100+0x2=  ",
+        ]);
+
+        Assert.Equal(64, result.ExitCode);
+        Assert.Contains("--mapping path must not be empty", result.Error, StringComparison.Ordinal);
     }
 
     /// <summary>Rejects Replace build outputs that would overwrite an input BIN.</summary>
@@ -326,6 +504,48 @@ public sealed class ReplaceCliCommandTests
         int exitCode = await CliApplication
             .RunAsync(args, output, error, TestContext.Current.CancellationToken);
         return new CliRunResult(exitCode, output.ToString(), error.ToString());
+    }
+
+    private static string FindRepositoryRoot()
+    {
+        string? directory = AppContext.BaseDirectory;
+        while (!string.IsNullOrWhiteSpace(directory))
+        {
+            if (File.Exists(Path.Combine(directory, "NvtFwCombiner.slnx")))
+            {
+                return directory;
+            }
+
+            directory = Directory.GetParent(directory)?.FullName;
+        }
+
+        throw new DirectoryNotFoundException("Could not locate repository root.");
+    }
+
+    private static string ManifestPath(string fixtureRoot, JsonElement pathElement)
+    {
+        return Path.Combine(fixtureRoot, pathElement.GetString()!.Replace('/', Path.DirectorySeparatorChar));
+    }
+
+    private static string GoldenPath(string relativePath)
+    {
+        return Path.Combine(
+            FindRepositoryRoot(),
+            "testdata",
+            "golden",
+            "standard-merge-gen-flash",
+            relativePath.Replace('/', Path.DirectorySeparatorChar));
+    }
+
+    private static byte[] CreatePattern(int length, byte seed)
+    {
+        byte[] bytes = new byte[length];
+        for (int index = 0; index < bytes.Length; index++)
+        {
+            bytes[index] = unchecked((byte)(seed + index));
+        }
+
+        return bytes;
     }
 
     private sealed record CliRunResult(int ExitCode, string Output, string Error);

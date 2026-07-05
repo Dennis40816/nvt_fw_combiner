@@ -22,8 +22,8 @@
     },
     {
       "name": "IC_FlashMap_20260705.xlsx",
-      "lastWriteTimeTaipei": "2026-07-05T00:01:38+08:00",
-      "sha256": "e2beb9b8a16fc6532cc6907cf0a97f500291cc729b877dccc760a9ab89ccdf0a"
+      "lastWriteTimeTaipei": "2026-07-05T10:34:14+08:00",
+      "sha256": "f171e926e657e5ad68f87e8a091e97120b506589a688c35ed6b61c0f520b5ab3"
     }
   ],
   "exclusions": [
@@ -40,8 +40,8 @@
     },
     {
       "path": "docs/references/ic-flashmap/IC_FlashMap_20260705.xlsx",
-      "size": 209881,
-      "sha256": "e2beb9b8a16fc6532cc6907cf0a97f500291cc729b877dccc760a9ab89ccdf0a"
+      "size": 211625,
+      "sha256": "f171e926e657e5ad68f87e8a091e97120b506589a688c35ed6b61c0f520b5ab3"
     },
     {
       "path": "docs/references/ic-flashmap/mmap/51920_1.3.1_mmap.h",

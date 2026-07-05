@@ -24,7 +24,9 @@ public sealed partial class MainWindowViewModel
         CtrlRamReplaceMode => CanRunReplace()
             ? "Ready: Preview/Build will replace selected CtrlRAM regions and run postbuild."
             : "Preview blocked: base BIN and at least one CtrlRAM region BIN are required.",
-        GeneralReplaceMode => "Preview blocked: workbench General Replace execution wiring is pending; compiled mappings must still pass profile bounds and protected-range checks.",
+        GeneralReplaceMode => CanRunReplace()
+            ? "Ready: Preview/Build will compile explicit mappings and run postbuild when TP ranges are touched."
+            : "Preview blocked: base BIN and at least one explicit replacement mapping are required.",
         _ => "Preview blocked: select a Replace mode.",
     };
 
@@ -49,7 +51,8 @@ public sealed partial class MainWindowViewModel
                 ReplaceSlots.Where(slot => !slot.IsOptional).All(slot => slot.HasFile),
             CtrlRamReplaceMode => ReplaceBaseSlot.HasFile &&
                 ReplaceSlots.Any(slot => !ReferenceEquals(slot, ReplaceBaseSlot) && slot.HasFile),
-            GeneralReplaceMode => false,
+            GeneralReplaceMode => ReplaceBaseSlot.HasFile &&
+                GeneralReplaceMappings.Any(mapping => mapping.HasFile),
             _ => false,
         };
     }
@@ -76,6 +79,7 @@ public sealed partial class MainWindowViewModel
                 SelectedNumber,
                 SelectedReplaceMode,
                 CreateReplaceSlotPaths(),
+                CreateGeneralReplaceMappingInputs(),
                 build,
                 CancellationToken.None,
                 outputPath);

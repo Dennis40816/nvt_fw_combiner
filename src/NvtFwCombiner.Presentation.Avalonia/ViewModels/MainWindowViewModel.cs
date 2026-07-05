@@ -224,7 +224,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         SelectedIc,
         SelectedNumber,
         SelectedReplaceMode,
-        GetSelectedReplaceBaseLength());
+        GetSelectedReplaceBaseLength(),
+        GetSelectedCtrlRamBasePath());
 
     /// <summary>Gets the default Replace output file name for the active mode.</summary>
     public string ReplaceOutputFileName => UiCompositionRunner.GetReplaceDefaultOutputFileName(
@@ -398,7 +399,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         slot.FilePath = path;
         RefreshFirmwareFacts(slot);
-        if (slot.SlotId is MergeDpSlotId or ReplaceBaseSlotId)
+        if (slot.SlotId == ReplaceBaseSlotId && IsCtrlRamReplaceModeSelected)
+        {
+            RefreshCtrlRamRegions();
+            RefreshReplaceModeState(preserveSlotFiles: true);
+            RefreshMemoryMapState();
+        }
+        else if (slot.SlotId is MergeDpSlotId or ReplaceBaseSlotId)
         {
             RefreshMemoryMapState();
         }
@@ -432,133 +439,6 @@ public sealed partial class MainWindowViewModel : ObservableObject
         {
             ResetRunResultForContextChange();
         }
-    }
-
-    private void RefreshCtrlRamRegions()
-    {
-        CtrlRamRegions.Clear();
-        foreach (CtrlRamRegionViewModel region in UiCompositionRunner.GetCtrlRamRegions(SelectedIc, SelectedNumber))
-        {
-            CtrlRamRegions.Add(region);
-        }
-
-        OnPropertyChanged(nameof(HasCtrlRamRegions));
-        OnPropertyChanged(nameof(CtrlRamRegionSummary));
-    }
-
-    private void RefreshMemoryMapState()
-    {
-        long? selectedMergeDpInputLength = GetSelectedMergeDpInputLength();
-        ReplaceRows(MergeMemoryRows, UiCompositionRunner.GetStandardMergeMemoryMapRows(
-            SelectedIc,
-            selectedMergeDpInputLength));
-        ReplaceRows(MergeCoverageSegments, UiCompositionRunner.GetStandardMergeCoverageSegments(
-            SelectedIc,
-            selectedMergeDpInputLength));
-        ReplaceRows(ReplaceMemoryRows, UiCompositionRunner.GetReplaceMemoryMapRows(
-            SelectedIc,
-            SelectedNumber,
-            SelectedReplaceMode,
-            GetSelectedReplaceBaseLength()));
-        ReplaceRows(ReplaceCoverageSegments, UiCompositionRunner.GetReplaceCoverageSegments(
-            SelectedIc,
-            SelectedNumber,
-            SelectedReplaceMode,
-            GetSelectedReplaceBaseLength()));
-        RefreshReplaceCoverageGroups();
-
-        OnPropertyChanged(nameof(MergeMemoryRangeLabel));
-        OnPropertyChanged(nameof(ReplaceMemoryRangeLabel));
-        OnPropertyChanged(nameof(ReplaceOutputFileName));
-        OnPropertyChanged(nameof(MergeMemorySummary));
-        OnPropertyChanged(nameof(ReplaceMemorySummary));
-        OnPropertyChanged(nameof(ReplacePreviewUnavailableReason));
-        OnPropertyChanged(nameof(ReplaceBuildUnavailableReason));
-        OnPropertyChanged(nameof(IsReplaceCoverageGrouped));
-        OnPropertyChanged(nameof(IsReplaceCoverageFlat));
-    }
-
-    private long? GetSelectedMergeDpInputLength()
-    {
-        return SelectedIc is "NT51950" or "NT51951" &&
-            !string.IsNullOrWhiteSpace(_mergeDpSlot.FilePath) &&
-            File.Exists(_mergeDpSlot.FilePath)
-                ? new FileInfo(_mergeDpSlot.FilePath).Length
-                : null;
-    }
-
-    private long? GetSelectedReplaceBaseLength()
-    {
-        return SelectedReplaceMode == DpReplaceMode &&
-            SelectedIc is "NT51950" or "NT51951" &&
-            !string.IsNullOrWhiteSpace(ReplaceBaseSlot.FilePath) &&
-            File.Exists(ReplaceBaseSlot.FilePath)
-                ? new FileInfo(ReplaceBaseSlot.FilePath).Length
-                : null;
-    }
-
-    private void RefreshReplaceModeState()
-    {
-        ReplaceSlots.Clear();
-        ActiveReplaceRows.Clear();
-        switch (SelectedReplaceMode)
-        {
-            case DpReplaceMode:
-                ReplaceSlots.Add(ReplaceBaseSlot);
-                foreach (FirmwareSlotViewModel slot in UiCompositionRunner.GetReplaceInputSlots(
-                    SelectedIc,
-                    SelectedNumber,
-                    SelectedReplaceMode))
-                {
-                    ReplaceSlots.Add(slot);
-                }
-
-                AddRows(
-                    $"{SelectedIc} / {SelectedNumber}: DP Replace input policy is active.",
-                    SelectedIc is "NT51950" or "NT51951"
-                        ? "DP replacement follows the selected base BIN length: 0x40000, 0x80000, or 0x100000; the original TP range is restored from base."
-                        : "Build stays gated until this IC has approved DP Replace source mapping evidence.",
-                    SelectedIc == "NT51928"
-                        ? "NT51928 exposes an explicit LDC slot; other ICs hide LDC in DP Replace."
-                        : "Only DP and TP restore regions are shown for this IC.");
-                break;
-            case CtrlRamReplaceMode:
-                ReplaceSlots.Add(ReplaceBaseSlot);
-                foreach (FirmwareSlotViewModel slot in UiCompositionRunner.GetReplaceInputSlots(
-                    SelectedIc,
-                    SelectedNumber,
-                    SelectedReplaceMode))
-                {
-                    ReplaceSlots.Add(slot);
-                }
-
-                AddRows(
-                    $"{SelectedIc} / {SelectedNumber}: {Math.Max(ReplaceSlots.Count - 1, 0)} replaceable CtrlRAM regions.",
-                    "Each CtrlRAM region slot may receive its own replacement BIN; empty slots stay from base.",
-                    "Preview and Build run the staged Combiner postbuild command sequence.",
-                    "Private golden outputs are still required before support parity is claimed.");
-                break;
-            case GeneralReplaceMode:
-                AddRows(
-                    $"{SelectedIc} / {SelectedNumber}: General Replace input policy is active.",
-                    "Base firmware stays separate; mapping rows define replacement ranges.",
-                    "The compiler must approve each explicit range before build.",
-                    "Any TP-range mapping must compile with an approved Combiner CRC/header refresh.");
-                break;
-            default:
-                AddRows("Select a replace mode.");
-                break;
-        }
-
-        RefreshReplaceSlotGroups();
-        OnPropertyChanged(nameof(SelectedReplaceModeDescription));
-        OnPropertyChanged(nameof(IsDpReplaceModeSelected));
-        OnPropertyChanged(nameof(IsCtrlRamReplaceModeSelected));
-        OnPropertyChanged(nameof(IsGeneralReplaceModeSelected));
-        OnPropertyChanged(nameof(IsStructuredReplaceModeSelected));
-        OnPropertyChanged(nameof(IsNonCtrlRamStructuredReplaceModeSelected));
-        OnPropertyChanged(nameof(ReplaceOutputFileName));
-        RefreshCommandState();
     }
 
     private void RefreshReplaceSlotGroups()
@@ -718,6 +598,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     partial void OnSelectedReplaceModeChanged(string value)
     {
+        RefreshCtrlRamRegions();
         RefreshReplaceModeState();
         RefreshMemoryMapState();
         ResetRunResultForContextChange();

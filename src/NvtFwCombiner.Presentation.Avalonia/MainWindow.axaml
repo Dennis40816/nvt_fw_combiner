@@ -1585,13 +1585,15 @@
 
           <Border Grid.Column="1" Padding="18,16" Background="#FFFFFF" BorderBrush="#EEF2F7" BorderThickness="1" CornerRadius="6">
             <StackPanel Spacing="14">
-              <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Spacing="8">
                 <StackPanel Spacing="3">
                   <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="Output layout" />
                   <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding ReplaceMemorySummary}" TextWrapping="Wrap" />
                 </StackPanel>
-                <TextBlock Grid.Column="1" VerticalAlignment="Center" FontFamily="Cascadia Mono, Consolas" FontSize="12" Foreground="#64748B" Text="{Binding ReplaceMemoryRangeLabel}" />
-              </Grid>
+                <Border Padding="8,4" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6">
+                  <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" Foreground="#475569" Text="{Binding ReplaceMemoryRangeLabel}" TextWrapping="Wrap" />
+                </Border>
+              </StackPanel>
 
               <Border Padding="6" Background="#EEF4FA" BorderBrush="Transparent" BorderThickness="0" CornerRadius="6">
                 <ItemsControl ItemsSource="{Binding ReplaceCoverageSegments}">
@@ -1681,7 +1683,7 @@
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:MemoryMapRowViewModel">
                     <Border Padding="0,9" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0" ToolTip.Tip="{Binding Detail}">
-                      <Grid ColumnDefinitions="90,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="3">
+                      <Grid ColumnDefinitions="118,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="3">
                         <StackPanel Spacing="2">
                           <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding PrimaryLabel}" TextWrapping="Wrap" />
                           <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#2563EB" Text="{Binding ActionLabel}" TextWrapping="Wrap" />
@@ -1825,21 +1827,20 @@
 
           <Border Grid.Column="1" Padding="18" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
             <StackPanel Spacing="14">
-              <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Spacing="8">
                 <StackPanel Spacing="3">
                   <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="Output layout" />
                   <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding MergeMemorySummary}" TextWrapping="Wrap" />
                 </StackPanel>
-                <TextBlock
-                    Grid.Column="1"
-                    Margin="12,22,0,0"
-                    VerticalAlignment="Top"
-                    FontFamily="Cascadia Mono, Consolas"
-                    FontSize="12"
-                    Foreground="#64748B"
-                    Text="{Binding MergeMemoryRangeLabel}"
-                    TextAlignment="Right" />
-              </Grid>
+                <Border Padding="8,4" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6">
+                  <TextBlock
+                      FontFamily="Cascadia Mono, Consolas"
+                      FontSize="12"
+                      Foreground="#475569"
+                      Text="{Binding MergeMemoryRangeLabel}"
+                      TextWrapping="Wrap" />
+                </Border>
+              </StackPanel>
 
               <Border Padding="10" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
                 <ItemsControl ItemsSource="{Binding MergeCoverageSegments}">

@@ -73,55 +73,6 @@ public static partial class WorkbenchCompositionService
         return TpFlashMapCatalog.GetNumberChoices(icId);
     }
 
-    /// <summary>Reads FWConfig display metadata from a selected firmware image when the IC flash-map defines it.</summary>
-    public static WorkbenchFirmwareConfigMetadata? TryReadFirmwareConfigMetadata(string icId, string path)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-
-        if (!TpFlashMapCatalog.TryGetFirmwareConfigStart(icId, out long firmwareConfigStart) ||
-            !File.Exists(path))
-        {
-            return null;
-        }
-
-        try
-        {
-            byte[] image = File.ReadAllBytes(path);
-            return !FirmwareConfigMetadataReader.TryRead(image, firmwareConfigStart, out FirmwareConfigMetadata metadata)
-                ? null
-                : new WorkbenchFirmwareConfigMetadata(
-                    metadata.FirmwareConfigStart,
-                    metadata.CommonFwVersion,
-                    metadata.FirmwareVersion,
-                    metadata.FirmwareVersionBar,
-                    metadata.IsFirmwareVersionBarValid,
-                    metadata.FirmwareSubVersion,
-                    metadata.ProjectId);
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
-        {
-            return null;
-        }
-    }
-
-    /// <summary>Gets TP Overview CtrlRAM regions visible for a selected IC and IC-number context.</summary>
-    public static IReadOnlyList<WorkbenchCtrlRamRegion> GetCtrlRamRegions(string icId, string number)
-    {
-        return
-        [
-            .. TpFlashMapCatalog.GetCtrlRamRegions(icId, ToIcNumberSelection(number))
-                .Select(region => new WorkbenchCtrlRamRegion(
-                    region.DisplayName,
-                    region.Range.Start,
-                    region.Range.Length,
-                    region.Tags.Any(tag =>
-                        string.Equals(tag, "diff", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(tag, "dlm", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(tag, "slave", StringComparison.OrdinalIgnoreCase)))),
-        ];
-    }
-
     /// <summary>Gets readable memory-map rows for the selected Standard Merge profile.</summary>
     public static IReadOnlyList<WorkbenchMemoryMapRow> GetStandardMergeMemoryMapRows(string icId)
     {
@@ -328,7 +279,7 @@ public static partial class WorkbenchCompositionService
             BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles.Count,
             BuiltInReplaceProfiles.All.Count,
             TpFlashMapCatalog.IcIds.Count,
-            LegacyCombinerPostbuildCatalog.All.Count,
+            LegacyCombinerPostbuildCatalog.All.Select(profile => profile.IcId).Distinct(StringComparer.Ordinal).Count(),
             string.Join(", ", toolBindingIds),
             "external-tools/legacy-combiner/1.13.0/manifest.json");
     }
@@ -744,7 +695,8 @@ public sealed record WorkbenchFirmwareConfigMetadata(
     byte FirmwareVersionBar,
     bool IsFirmwareVersionBarValid,
     byte FirmwareSubVersion,
-    ushort ProjectId);
+    ushort ProjectId,
+    string? PostbuildCategory);
 
 /// <summary>One readable before/after memory-map row for shell display.</summary>
 public sealed record WorkbenchMemoryMapRow(

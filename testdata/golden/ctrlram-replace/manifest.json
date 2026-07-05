@@ -63,12 +63,12 @@
           "regionName": "VN CtrlRAM",
           "file": {
             "path": "fixtures/20260705/inputs/nt51926-cascade-self-20260705/vn.bin",
-            "size": 5278,
-            "sha256": "fad9db771deef659cc03a2306bd5718c670117f25c55c2ec2358b06f92fa2c51"
+            "size": 5728,
+            "sha256": "b855cbc3ce8f9b57e83ee16ce4c902a8089689dfc951e9138dc4294acbf6c5c7"
           }
         }
       ],
-      "notes": "Committed owner-approved self-replacement fixture. Replacement inputs are sliced from the same base firmware. Postbuild output parity remains pending because current Combiner execution recalculates header/integrity bytes."
+      "notes": "Committed owner-approved self-replacement fixture. Replacement inputs are sliced from the same base firmware. NT51926 Common FW 1.4.1 uses the archived postbuild VN length 0x1660. Postbuild output parity remains pending because current Combiner execution recalculates header/integrity bytes."
     },
     {
       "id": "nt51927-2chip-self-20260705",

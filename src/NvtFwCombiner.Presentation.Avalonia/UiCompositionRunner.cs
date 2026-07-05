@@ -59,20 +59,29 @@ public static class UiCompositionRunner
         string firmwareVersion = metadata.IsFirmwareVersionBarValid
             ? FormattableString.Invariant($"0x{metadata.FirmwareVersion:X2}.0x{metadata.FirmwareSubVersion:X2} (bar OK)")
             : FormattableString.Invariant($"0x{metadata.FirmwareVersion:X2}.0x{metadata.FirmwareSubVersion:X2} (bar 0x{metadata.FirmwareVersionBar:X2} mismatch)");
-        return
+        List<FirmwareSlotFactViewModel> facts =
         [
-            new FirmwareSlotFactViewModel("Common FW", metadata.CommonFwVersion),
-            new FirmwareSlotFactViewModel("FW", firmwareVersion, !metadata.IsFirmwareVersionBarValid),
-            new FirmwareSlotFactViewModel("PID", FormattableString.Invariant($"0x{metadata.ProjectId:X4}")),
+            new("Common FW", metadata.CommonFwVersion),
+            new("FW", firmwareVersion, !metadata.IsFirmwareVersionBarValid),
+            new("PID", FormattableString.Invariant($"0x{metadata.ProjectId:X4}")),
         ];
+        if (!string.IsNullOrWhiteSpace(metadata.PostbuildCategory))
+        {
+            facts.Add(new FirmwareSlotFactViewModel("Postbuild", metadata.PostbuildCategory));
+        }
+
+        return facts;
     }
 
     /// <summary>Gets visible CtrlRAM rows for a selected IC and IC-number context.</summary>
-    public static IReadOnlyList<CtrlRamRegionViewModel> GetCtrlRamRegions(string icId, string number)
+    public static IReadOnlyList<CtrlRamRegionViewModel> GetCtrlRamRegions(
+        string icId,
+        string number,
+        string? basePath = null)
     {
         return
         [
-            .. WorkbenchCompositionService.GetCtrlRamRegions(icId, number)
+            .. WorkbenchCompositionService.GetCtrlRamRegions(icId, number, basePath)
                 .Select(region => new CtrlRamRegionViewModel(
                     region.DisplayName,
                     ToRange(region.Start, region.Length),
@@ -85,11 +94,12 @@ public static class UiCompositionRunner
     public static IReadOnlyList<FirmwareSlotViewModel> GetReplaceInputSlots(
         string icId,
         string number,
-        string replaceMode)
+        string replaceMode,
+        string? basePath = null)
     {
         return
         [
-            .. WorkbenchCompositionService.GetReplaceInputSlots(icId, number, replaceMode)
+            .. WorkbenchCompositionService.GetReplaceInputSlots(icId, number, replaceMode, basePath)
                 .Select(slot => new FirmwareSlotViewModel(
                     slot.SlotId,
                     slot.Title,
@@ -144,11 +154,17 @@ public static class UiCompositionRunner
         string icId,
         string number,
         string replaceMode,
-        long? dpBaseLength = null)
+        long? dpBaseLength = null,
+        string? ctrlRamBasePath = null)
     {
         return
         [
-            .. WorkbenchCompositionService.GetReplaceMemoryMapRows(icId, number, replaceMode, dpBaseLength)
+            .. WorkbenchCompositionService.GetReplaceMemoryMapRows(
+                    icId,
+                    number,
+                    replaceMode,
+                    dpBaseLength,
+                    ctrlRamBasePath)
                 .Select(ToMemoryMapRow),
         ];
     }
@@ -164,9 +180,15 @@ public static class UiCompositionRunner
         string icId,
         string number,
         string replaceMode,
-        long? dpBaseLength = null)
+        long? dpBaseLength = null,
+        string? ctrlRamBasePath = null)
     {
-        return WorkbenchCompositionService.GetReplaceMemoryRangeLabel(icId, number, replaceMode, dpBaseLength);
+        return WorkbenchCompositionService.GetReplaceMemoryRangeLabel(
+            icId,
+            number,
+            replaceMode,
+            dpBaseLength,
+            ctrlRamBasePath);
     }
 
     /// <summary>Gets visual coverage segments for the selected Replace mode.</summary>
@@ -174,11 +196,17 @@ public static class UiCompositionRunner
         string icId,
         string number,
         string replaceMode,
-        long? dpBaseLength = null)
+        long? dpBaseLength = null,
+        string? ctrlRamBasePath = null)
     {
         return
         [
-            .. WorkbenchCompositionService.GetReplaceCoverageSegments(icId, number, replaceMode, dpBaseLength)
+            .. WorkbenchCompositionService.GetReplaceCoverageSegments(
+                    icId,
+                    number,
+                    replaceMode,
+                    dpBaseLength,
+                    ctrlRamBasePath)
                 .Select(segment => new MemoryCoverageSegmentViewModel(
                     segment.RangeLabel,
                     segment.SourceLabel,
@@ -221,6 +249,28 @@ public static class UiCompositionRunner
             number,
             replaceMode,
             slotPaths,
+            build,
+            cancellationToken,
+            outputPath);
+    }
+
+    /// <summary>Runs Replace preview or build with workbench-authored General Replace mappings.</summary>
+    public static ValueTask<WorkbenchRunResult> RunReplaceAsync(
+        string icId,
+        string number,
+        string replaceMode,
+        IReadOnlyDictionary<string, string> slotPaths,
+        IReadOnlyList<WorkbenchGeneralReplaceMappingInput> generalReplaceMappings,
+        bool build,
+        CancellationToken cancellationToken,
+        string? outputPath = null)
+    {
+        return WorkbenchCompositionService.RunReplaceAsync(
+            icId,
+            number,
+            replaceMode,
+            slotPaths,
+            generalReplaceMappings,
             build,
             cancellationToken,
             outputPath);

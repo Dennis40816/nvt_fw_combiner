@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Files;
@@ -118,13 +119,13 @@ public static partial class WorkbenchCompositionService
     }
 
     private static IReadOnlyList<WorkbenchMemoryMapRow> CreateCtrlRamReplaceRows(
-        IReadOnlyList<TpFlashMapRegion> regions)
+        IReadOnlyList<TpFlashMapRegion> regions,
+        IReadOnlyList<TpFlashMapRegion> postbuildMappedRegions)
     {
         return
         [
             .. CreatePreserveRows(regions),
-            .. regions
-                .Where(region => region.Kind == TpFlashMapRegionKind.CtrlRam)
+            .. postbuildMappedRegions
                 .OrderBy(region => region.Range.Start)
                 .Select(region => new WorkbenchMemoryMapRow(
                     FormatDisplayRange(region.Range),
@@ -429,11 +430,20 @@ public static partial class WorkbenchCompositionService
         return slots;
     }
 
-    private static IReadOnlyList<WorkbenchReplaceInputSlot> GetCtrlRamReplaceInputSlots(string icId, string number)
+    private static IReadOnlyList<WorkbenchReplaceInputSlot> GetCtrlRamReplaceInputSlots(
+        string icId,
+        string number,
+        string? basePath)
     {
+        LegacyCombinerPostbuildProfile? postbuildProfile = TryResolvePostbuildProfileForDisplay(
+            icId,
+            basePath,
+            out LegacyCombinerPostbuildProfile? profile)
+                ? profile
+                : null;
         return
         [
-            .. TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, ToIcNumberSelection(number))
+            .. TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, ToIcNumberSelection(number), postbuildProfile)
                 .OrderBy(region => region.Range.Start)
                 .Select(region => new WorkbenchReplaceInputSlot(
                     CtrlRamSlotId(region.RegionId),
