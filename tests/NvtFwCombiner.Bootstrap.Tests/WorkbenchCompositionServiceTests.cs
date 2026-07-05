@@ -85,6 +85,36 @@ public sealed class WorkbenchCompositionServiceTests
             });
     }
 
+    /// <summary>Rejects Workbench DP Replace build outputs that would overwrite selected input BINs.</summary>
+    [Fact]
+    public async Task DpReplaceBuildRejectsOutputPathThatAliasesInput()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-dp-alias");
+        byte[] baseBytes = CreatePattern(0x40000, 0x20);
+        string basePath = workspace.Write("base.bin", baseBytes);
+        string dpPath = workspace.Write("dp.bin", CreatePattern(0x40000, 0x80));
+        Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
+        {
+            ["replace-base"] = basePath,
+            ["replace-dp"] = dpPath,
+        };
+
+        ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            WorkbenchCompositionService
+                .RunReplaceAsync(
+                    "NT51950",
+                    "single",
+                    "DP",
+                    slotPaths,
+                    build: true,
+                    TestContext.Current.CancellationToken,
+                    outputPath: basePath)
+                .AsTask());
+
+        Assert.Contains("Output path must not overwrite input artifact", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
+    }
+
     /// <summary>Verifies versioned CtrlRAM postbuild fails closed when FWConfig FW/bar is invalid.</summary>
     [Fact]
     public async Task CtrlRamReplaceRejectsInvalidFwVersionBarBeforePostbuildCategorySelection()

@@ -3,8 +3,6 @@ using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Infrastructure.Files;
-using NvtFwCombiner.Infrastructure.Time;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -218,57 +216,18 @@ public static partial class WorkbenchCompositionService
             new("reference-base", "replace-base", fullBasePath),
             .. mappingBindings,
         ];
-        string[] inputRoots =
-        [
-            .. bindings
-                .Select(binding => Path.GetDirectoryName(binding.ArtifactId)!)
-                .Distinct(StringComparer.OrdinalIgnoreCase),
-        ];
-        (string outputDirectory, string outputFileName) = ResolveOutputTarget(
+
+        return await RunCompiledCompositionAsync(
+            "ui-replace-general",
+            profile,
+            compile.Plan!,
+            bindings,
             fullBasePath,
             build,
             outputPath,
-            profile.DefaultOutputFileName);
-        if (build)
-        {
-            ProtectedPathGuard.EnsureOutputDoesNotAliasInputs(
-                ProtectedPathGuard.CombineFullPath(outputDirectory, outputFileName),
-                bindings,
-                nameof(outputPath));
-        }
-
-        FileArtifactReader reader = new(inputRoots);
-        AtomicFileCompositionOutputWriter? writer = build
-            ? new AtomicFileCompositionOutputWriter(outputDirectory, overwrite: true)
-            : null;
-        CompositionRunService service = new(
-            reader,
-            new SystemClock(),
-            writer,
-            commandPlan is null ? null : ExternalProcessorFactory.CreateOrNull());
-        CompositionRunRequest request = new(
-            $"ui-replace-general-{(build ? "build" : "preview")}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture)}",
-            ToRunProfile(profile),
-            compile.Plan!,
-            bindings,
-            outputFileName,
-            icNumberSelection: ToIcNumberSelection(number));
-
-        CompositionRunResult result;
-        if (!build)
-        {
-            result = await service.PreviewAsync(request, cancellationToken).ConfigureAwait(false);
-        }
-        else
-        {
-            CompositionRunResult preview = await service.PreviewAsync(request, cancellationToken).ConfigureAwait(false);
-            result = preview.Status == CompositionExecutionStatus.Succeeded
-                ? await service.BuildAsync(request.WithApprovedPreviewToken(preview.PreviewToken!), cancellationToken)
-                    .ConfigureAwait(false)
-                : preview;
-        }
-
-        return ToWorkbenchRunResult(result);
+            externalProcessor: commandPlan is null ? null : ExternalProcessorFactory.CreateOrNull(),
+            icNumberSelection: ToIcNumberSelection(number),
+            cancellationToken).ConfigureAwait(false);
     }
 
     private static CompositionProfileDefinition CreateGeneralReplaceProfile(
