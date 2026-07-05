@@ -1,9 +1,9 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using NvtFwCombiner.Application.Composition;
-using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.GoldenRegression.Tests;
 
@@ -17,7 +17,7 @@ public sealed class StandardMergeGenFlashGoldenTests
     [Fact]
     public async Task StandardMergeProfilesMatchOwnerApprovedGoldenBytes()
     {
-        string repositoryRoot = FindRepositoryRoot();
+        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
         using JsonDocument manifestDocument = LoadJson(Path.Combine(goldenRoot, "manifest.json"));
         using JsonDocument configDocument = LoadJson(Path.Combine(goldenRoot, "test_ic_config.json"));
@@ -54,7 +54,7 @@ public sealed class StandardMergeGenFlashGoldenTests
     [InlineData("51919", "51929")]
     public async Task OwnerConfirmedAliasProfilesMatchReferenceGoldenBytes(string aliasIc, string referenceIc)
     {
-        string repositoryRoot = FindRepositoryRoot();
+        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
         using JsonDocument manifestDocument = LoadJson(Path.Combine(goldenRoot, "manifest.json"));
         JsonElement referenceCase = manifestDocument.RootElement.GetProperty("cases")
@@ -137,7 +137,7 @@ public sealed class StandardMergeGenFlashGoldenTests
                     addressSpaceId,
                     $"{profile.ProfileId}:{addressSpaceId}")),
         ];
-        var service = new CompositionRunService(reader, new FakeClock());
+        var service = new CompositionRunService(reader, new FakeClock([StartedAtUtc, CompletedAtUtc]));
         var request = new CompositionRunRequest(
             $"golden-{profile.IcId.ToLowerInvariant()}",
             ToRunProfile(profile),
@@ -190,22 +190,6 @@ public sealed class StandardMergeGenFlashGoldenTests
         return JsonDocument.Parse(File.ReadAllText(path));
     }
 
-    private static string FindRepositoryRoot()
-    {
-        DirectoryInfo? directory = new(AppContext.BaseDirectory);
-        while (directory is not null)
-        {
-            if (File.Exists(Path.Combine(directory.FullName, "SPEC.md")))
-            {
-                return directory.FullName;
-            }
-
-            directory = directory.Parent;
-        }
-
-        throw new InvalidOperationException("Repository root was not found.");
-    }
-
     private static string Sha256Hex(ReadOnlySpan<byte> bytes)
     {
         return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
@@ -216,25 +200,4 @@ public sealed class StandardMergeGenFlashGoldenTests
         return string.Join(Environment.NewLine, issues.Select(issue => $"{issue.Code}: {issue.Message}"));
     }
 
-    private sealed class FakeArtifactReader : IArtifactReader
-    {
-        private readonly IReadOnlyDictionary<string, byte[]> _artifacts;
-
-        internal FakeArtifactReader(IReadOnlyDictionary<string, byte[]> artifacts)
-        {
-            _artifacts = artifacts;
-        }
-
-        public ValueTask<ReadOnlyMemory<byte>> ReadAsync(string artifactId, CancellationToken cancellationToken)
-        {
-            return ValueTask.FromResult<ReadOnlyMemory<byte>>(_artifacts[artifactId]);
-        }
-    }
-
-    private sealed class FakeClock : ISystemClock
-    {
-        private int _callCount;
-
-        public DateTimeOffset UtcNow => _callCount++ == 0 ? StartedAtUtc : CompletedAtUtc;
-    }
 }

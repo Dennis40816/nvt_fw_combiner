@@ -1,4 +1,5 @@
 using NvtFwCombiner.Infrastructure.Files;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Infrastructure.Tests.Files;
 
@@ -10,7 +11,7 @@ public sealed class FileArtifactReaderTests
     public async Task ReadAsyncReadsFileUnderAllowedRoot()
     {
         using var workspace = TempWorkspace.Create();
-        string artifactPath = workspace.WriteFile("input.bin", [1, 2, 3]);
+        string artifactPath = workspace.Write("input.bin", [1, 2, 3]);
         var reader = new FileArtifactReader([workspace.Root]);
 
         ReadOnlyMemory<byte> bytes = await reader.ReadAsync(artifactPath, CancellationToken.None);
@@ -33,48 +34,5 @@ public sealed class FileArtifactReaderTests
 
         _ = await Assert.ThrowsAsync<UnauthorizedAccessException>(async () =>
             await reader.ReadAsync(artifactPath, CancellationToken.None));
-    }
-
-    private sealed class TempWorkspace : IDisposable
-    {
-        private static int s_id;
-
-        private TempWorkspace(string root)
-        {
-            Root = root;
-            _ = Directory.CreateDirectory(root);
-        }
-
-        internal string Root { get; }
-
-        internal static TempWorkspace Create()
-        {
-            int id = Interlocked.Increment(ref s_id);
-            string root = Path.Combine(
-                Path.GetTempPath(),
-                "nfc-file-reader-tests",
-                FormattableString.Invariant($"{id:D4}"));
-            if (Directory.Exists(root))
-            {
-                Directory.Delete(root, recursive: true);
-            }
-
-            return new TempWorkspace(root);
-        }
-
-        internal string WriteFile(string fileName, byte[] bytes)
-        {
-            string path = Path.Combine(Root, fileName);
-            File.WriteAllBytes(path, bytes);
-            return path;
-        }
-
-        public void Dispose()
-        {
-            if (Directory.Exists(Root))
-            {
-                Directory.Delete(Root, recursive: true);
-            }
-        }
     }
 }

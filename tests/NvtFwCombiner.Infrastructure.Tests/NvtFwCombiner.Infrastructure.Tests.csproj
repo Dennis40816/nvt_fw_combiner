@@ -9,6 +9,7 @@
     <ProjectReference Include="..\..\src\NvtFwCombiner.Application\NvtFwCombiner.Application.csproj" />
     <ProjectReference Include="..\..\src\NvtFwCombiner.Contracts\NvtFwCombiner.Contracts.csproj" />
     <ProjectReference Include="..\..\src\NvtFwCombiner.Domain\NvtFwCombiner.Domain.csproj" />
+    <ProjectReference Include="..\NvtFwCombiner.TestSupport\NvtFwCombiner.TestSupport.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />

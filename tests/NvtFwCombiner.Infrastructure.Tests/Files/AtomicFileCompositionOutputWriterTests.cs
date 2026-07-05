@@ -1,4 +1,5 @@
 using NvtFwCombiner.Infrastructure.Files;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Infrastructure.Tests.Files;
 
@@ -65,41 +66,5 @@ public sealed class AtomicFileCompositionOutputWriterTests
 
         Assert.Equal(existingPath, committedPath);
         Assert.Equal([1], await File.ReadAllBytesAsync(existingPath, CancellationToken.None));
-    }
-
-    private sealed class TempWorkspace : IDisposable
-    {
-        private static int s_id;
-
-        private TempWorkspace(string root)
-        {
-            Root = root;
-            _ = Directory.CreateDirectory(root);
-        }
-
-        internal string Root { get; }
-
-        internal static TempWorkspace Create()
-        {
-            int id = Interlocked.Increment(ref s_id);
-            string root = Path.Combine(
-                Path.GetTempPath(),
-                "nfc-output-writer-tests",
-                FormattableString.Invariant($"{id:D4}"));
-            if (Directory.Exists(root))
-            {
-                Directory.Delete(root, recursive: true);
-            }
-
-            return new TempWorkspace(root);
-        }
-
-        public void Dispose()
-        {
-            if (Directory.Exists(Root))
-            {
-                Directory.Delete(Root, recursive: true);
-            }
-        }
     }
 }

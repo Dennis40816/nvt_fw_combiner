@@ -3,6 +3,7 @@ using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Application.Tests;
 
@@ -895,33 +896,6 @@ public sealed class CompositionRunServiceTests
             profile.ExperienceId,
             profile.CompositionKind,
             profile.IcNumberInputMode);
-    }
-
-    private sealed class FakeArtifactReader : IArtifactReader
-    {
-        private readonly Dictionary<string, byte[]> _artifacts;
-
-        internal FakeArtifactReader(Dictionary<string, byte[]> artifacts)
-        {
-            _artifacts = artifacts;
-        }
-
-        public ValueTask<ReadOnlyMemory<byte>> ReadAsync(string artifactId, CancellationToken cancellationToken)
-        {
-            return ValueTask.FromResult<ReadOnlyMemory<byte>>(_artifacts[artifactId]);
-        }
-    }
-
-    private sealed class FakeClock : ISystemClock
-    {
-        private readonly Queue<DateTimeOffset> _timestamps;
-
-        internal FakeClock(IEnumerable<DateTimeOffset> timestamps)
-        {
-            _timestamps = new Queue<DateTimeOffset>(timestamps);
-        }
-
-        public DateTimeOffset UtcNow => _timestamps.Dequeue();
     }
 
     private sealed class FakeOutputWriter : ICompositionOutputWriter

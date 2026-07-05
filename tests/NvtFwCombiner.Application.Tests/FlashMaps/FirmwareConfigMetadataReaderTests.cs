@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Application.Tests.FlashMaps;
 
@@ -17,7 +18,7 @@ public sealed class FirmwareConfigMetadataReaderTests
         byte firmwareSubVersion,
         ushort projectId)
     {
-        string repositoryRoot = FindRepositoryRoot();
+        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         byte[] image = File.ReadAllBytes(Path.Combine(
             repositoryRoot,
             "testdata",
@@ -69,7 +70,7 @@ public sealed class FirmwareConfigMetadataReaderTests
 
     private static FirmwareConfigMetadata ReadGoldenMetadata(string ic, string relativePath)
     {
-        string repositoryRoot = FindRepositoryRoot();
+        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         byte[] image = File.ReadAllBytes(Path.Combine(
             repositoryRoot,
             "testdata",
@@ -85,16 +86,5 @@ public sealed class FirmwareConfigMetadataReaderTests
             out FirmwareConfigMetadata metadata));
 
         return metadata;
-    }
-
-    private static string FindRepositoryRoot()
-    {
-        DirectoryInfo? directory = new(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "SPEC.md")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("Repository root not found.");
     }
 }
