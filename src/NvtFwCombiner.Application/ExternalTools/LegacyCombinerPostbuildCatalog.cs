@@ -72,7 +72,7 @@ public static class LegacyCombinerPostbuildCatalog
             return true;
         }
 
-        if (TryResolveVersionedProfile(icId, commonFwVersion, out postbuildProfile))
+        if (TryResolveVersionedProfile(profiles, commonFwVersion, out postbuildProfile))
         {
             issue = null;
             return true;
@@ -80,12 +80,12 @@ public static class LegacyCombinerPostbuildCatalog
 
         issue = string.IsNullOrWhiteSpace(commonFwVersion)
             ? $"{icId} has multiple postbuild categories; base FWConfig Common FW version is required."
-            : $"{icId} Common FW {commonFwVersion} has no approved postbuild category. Supported categories: {DescribeSupportedCategories(icId)}.";
+            : $"{icId} Common FW {commonFwVersion} has no approved postbuild category. Supported categories: {DescribeSupportedCategories(profiles)}.";
         return false;
     }
 
     private static bool TryResolveVersionedProfile(
-        string icId,
+        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles,
         string? commonFwVersion,
         out LegacyCombinerPostbuildProfile? postbuildProfile)
     {
@@ -95,25 +95,32 @@ public static class LegacyCombinerPostbuildCatalog
             return false;
         }
 
-        postbuildProfile = (icId, commonFwVersion.Trim()) switch
+        LegacyCombinerPostbuildProfile[] matches =
+        [
+            .. profiles.Where(profile => profile.CommonFwVersionRule?.Matches(commonFwVersion) == true),
+        ];
+        if (matches.Length != 1)
         {
-            ("NT51926", "1.4.1") => Nt51926CommonFw141,
-            ("NT51926", "2.0.0") => Nt51926,
-            ("NT51930", string version) when version.StartsWith("1.", StringComparison.Ordinal) => Nt51930CommonFw1x,
-            ("NT51930", "2.0.0") => Nt51930,
-            _ => null,
-        };
-        return postbuildProfile is not null;
+            return false;
+        }
+
+        postbuildProfile = matches[0];
+        return true;
     }
 
-    private static string DescribeSupportedCategories(string icId)
+    private static string DescribeSupportedCategories(IReadOnlyList<LegacyCombinerPostbuildProfile> profiles)
     {
-        return icId switch
-        {
-            "NT51926" => "Common FW 1.4.1 => PostbuildSetup_51926_1.4.1; Common FW 2.0.0 => PostbuildSetup_51926_2.0.0",
-            "NT51930" => "Common FW 1.x.x => PostbuildSetup_51930_1.4.0; Common FW 2.0.0 => PostbuildSetup_51930_2.0.0",
-            _ => "one unversioned postbuild category",
-        };
+        string[] descriptions =
+        [
+            .. profiles
+                .Select(profile => profile.CommonFwVersionRule?.Description)
+                .Where(description => !string.IsNullOrWhiteSpace(description))
+                .Cast<string>(),
+        ];
+
+        return descriptions.Length == 0
+            ? "no versioned postbuild categories declared"
+            : string.Join("; ", descriptions);
     }
 
     /// <summary>NT51920 CtrlRAM postbuild profile.</summary>
@@ -225,7 +232,8 @@ public static class LegacyCombinerPostbuildCatalog
             NormalCommand("nt51926-cascade-header-crc", [Fw("header-copy-final", 0x0, 0x32A70, 256)]),
         ],
         "IC FlashMap postbuild/PostbuildSetup_51926_2.0.0.bat",
-        branchRules: SingleCascadeBranchRules(1, [2, 3]));
+        branchRules: SingleCascadeBranchRules(1, [2, 3]),
+        commonFwVersionRule: LegacyCombinerCommonFwVersionRule.Exact("2.0.0", "PostbuildSetup_51926_2.0.0"));
 
     /// <summary>NT51926 Common FW 1.4.1 CtrlRAM postbuild profile.</summary>
     public static LegacyCombinerPostbuildProfile Nt51926CommonFw141 { get; } = new(
@@ -261,7 +269,8 @@ public static class LegacyCombinerPostbuildCatalog
             NormalCommand("nt51926-fw141-cascade-header-crc", [Fw("header-copy-final", 0x0, 0x32F50, 256)]),
         ],
         "IC FlashMap postbuild/PostbuildSetup_51926_1.4.1.bat",
-        branchRules: SingleCascadeBranchRules(1, [2, 3]));
+        branchRules: SingleCascadeBranchRules(1, [2, 3]),
+        commonFwVersionRule: LegacyCombinerCommonFwVersionRule.Exact("1.4.1", "PostbuildSetup_51926_1.4.1"));
 
     /// <summary>NT51927 CtrlRAM postbuild profile.</summary>
     public static LegacyCombinerPostbuildProfile Nt51927 { get; } = new(
@@ -359,7 +368,8 @@ public static class LegacyCombinerPostbuildCatalog
                 [Fw("header-copy-final", 0x7000, 0x28FB0, 512)]),
         ],
         "IC FlashMap postbuild/PostbuildSetup_51930_2.0.0.bat",
-        branchRules: SingleCascadeBranchRules(1, Enumerable.Range(2, 28)));
+        branchRules: SingleCascadeBranchRules(1, Enumerable.Range(2, 28)),
+        commonFwVersionRule: LegacyCombinerCommonFwVersionRule.Exact("2.0.0", "PostbuildSetup_51930_2.0.0"));
 
     /// <summary>NT51930 Common FW 1.x CtrlRAM postbuild profile.</summary>
     public static LegacyCombinerPostbuildProfile Nt51930CommonFw1x { get; } = new(
@@ -407,7 +417,8 @@ public static class LegacyCombinerPostbuildCatalog
                     Bin("diff-extend", "DiffDLM.bin", 0x0, 0x2F200, 143360),
                 ]),
         ],
-        branchRules: SingleCascadeExtendBranchRules(1, Enumerable.Range(2, 12), Enumerable.Range(14, 16)));
+        branchRules: SingleCascadeExtendBranchRules(1, Enumerable.Range(2, 12), Enumerable.Range(14, 16)),
+        commonFwVersionRule: LegacyCombinerCommonFwVersionRule.Major("1", "1.x.x", "PostbuildSetup_51930_1.4.0"));
 
     /// <summary>NT51931 CtrlRAM postbuild profile.</summary>
     public static LegacyCombinerPostbuildProfile Nt51931 { get; } = new(

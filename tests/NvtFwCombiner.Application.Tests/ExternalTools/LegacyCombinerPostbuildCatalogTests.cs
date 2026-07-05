@@ -290,6 +290,19 @@ public sealed class LegacyCombinerPostbuildCatalogTests
 
         Assert.Null(profile);
         Assert.Contains("no approved postbuild category", issue, StringComparison.Ordinal);
+        Assert.Contains("Common FW 1.4.1 => PostbuildSetup_51926_1.4.1", issue, StringComparison.Ordinal);
+        Assert.Contains("Common FW 2.0.0 => PostbuildSetup_51926_2.0.0", issue, StringComparison.Ordinal);
+
+        Assert.False(LegacyCombinerPostbuildCatalog.TrySelectProfileForCommonFwVersion(
+            "NT51930",
+            "10.0.0",
+            out profile,
+            out issue));
+
+        Assert.Null(profile);
+        Assert.Contains("no approved postbuild category", issue, StringComparison.Ordinal);
+        Assert.Contains("Common FW 1.x.x => PostbuildSetup_51930_1.4.0", issue, StringComparison.Ordinal);
+        Assert.Contains("Common FW 2.0.0 => PostbuildSetup_51930_2.0.0", issue, StringComparison.Ordinal);
     }
 
     /// <summary>Locks duplicate IC postbuild rows to explicit Common FW category selection.</summary>
@@ -315,6 +328,10 @@ public sealed class LegacyCombinerPostbuildCatalogTests
         Assert.Equal(["NT51926", "NT51930"], duplicateIcIds);
         foreach (string icId in duplicateIcIds)
         {
+            Assert.All(
+                LegacyCombinerPostbuildCatalog.GetProfiles(icId),
+                profile => Assert.NotNull(profile.CommonFwVersionRule));
+
             Assert.False(LegacyCombinerPostbuildCatalog.TrySelectProfileForCommonFwVersion(
                 icId,
                 commonFwVersion: null,
