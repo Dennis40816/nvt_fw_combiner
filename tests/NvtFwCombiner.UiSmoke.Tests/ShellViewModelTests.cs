@@ -1367,6 +1367,26 @@ public sealed class ShellViewModelTests
                     "Length": 524288
                   },
                   "ProcessorId": "legacy-combiner",
+                  "ToolBindingId": "legacy-combiner-1.13.0",
+                  "ProcessorAllowedReadRanges": [
+                    {
+                      "Start": 0,
+                      "EndExclusive": 524288,
+                      "Length": 524288
+                    }
+                  ],
+                  "ProcessorAllowedWriteRanges": [
+                    {
+                      "Start": 28928,
+                      "EndExclusive": 28932,
+                      "Length": 4
+                    },
+                    {
+                      "Start": 28952,
+                      "EndExclusive": 28956,
+                      "Length": 4
+                    }
+                  ],
                   "Reason": "Run approved staged Combiner command: Combiner.exe /bin work.bin /mmap mmap.h."
                 }
               ],
@@ -1409,6 +1429,10 @@ public sealed class ShellViewModelTests
         Assert.False(report.ShouldExpandStepOperations);
         ReportLineViewModel command = Assert.Single(report.CommandOperations);
         Assert.Contains("Combiner.exe", command.CodeBlock, StringComparison.Ordinal);
+        Assert.Contains("processor legacy-combiner", command.Meta, StringComparison.Ordinal);
+        Assert.Contains("tool legacy-combiner-1.13.0", command.Meta, StringComparison.Ordinal);
+        Assert.Contains("read 0x0-0x7FFFF (len 0x80000)", command.Meta, StringComparison.Ordinal);
+        Assert.Contains("write 0x7100-0x7103 (len 0x4), 0x7118-0x711B (len 0x4)", command.Meta, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies memory-map rows expose readable operation details without relying on tooltips.</summary>

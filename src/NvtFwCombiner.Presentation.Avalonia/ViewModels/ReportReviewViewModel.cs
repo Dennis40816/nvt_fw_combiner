@@ -367,18 +367,31 @@ public sealed class ReportReviewViewModel
             {
                 string source = FormatEndpoint(GetStringOrNull(operation, "SourceSpaceId"), GetRangeOrNull(operation, "SourceRange"));
                 string target = FormatEndpoint(GetString(operation, "TargetSpaceId"), GetRangeOrNull(operation, "TargetRange"));
-                string processor = GetStringOrNull(operation, "ProcessorId") is { } processorId
-                    ? $" / {processorId}"
-                    : string.Empty;
                 string reason = GetString(operation, "Reason");
                 (string reasonSummary, string commandBlock) = ExtractCombinerCommand(reason);
+                string processorTrace = FormatProcessorTrace(operation);
                 return new ReportLineViewModel(
                     $"{GetLong(operation, "Sequence")}. {GetString(operation, "OperationId")}",
                     $"{GetString(operation, "Kind")} {source} -> {target}",
-                    $"{GetString(operation, nameof(Status))} / {GetString(operation, "OverlapPolicy")}{processor} / {reasonSummary}",
+                    string.IsNullOrWhiteSpace(processorTrace)
+                        ? $"{GetString(operation, nameof(Status))} / {GetString(operation, "OverlapPolicy")} / {reasonSummary}"
+                        : $"{GetString(operation, nameof(Status))} / {GetString(operation, "OverlapPolicy")} / {reasonSummary} / {processorTrace}",
                     commandBlock);
             }),
             ];
+    }
+
+    private static string FormatProcessorTrace(JsonElement operation)
+    {
+        if (GetStringOrNull(operation, "ProcessorId") is not { } processorId)
+        {
+            return string.Empty;
+        }
+
+        string toolBinding = GetStringOrNull(operation, "ToolBindingId") is { } toolBindingId
+            ? $" / tool {toolBindingId}"
+            : string.Empty;
+        return $"processor {processorId}{toolBinding} / read {FormatRangeList(operation, "ProcessorAllowedReadRanges")} / write {FormatRangeList(operation, "ProcessorAllowedWriteRanges")}";
     }
 
     private static IReadOnlyList<ReportLineViewModel> ParseMutations(JsonElement root)
@@ -453,6 +466,13 @@ public sealed class ReportReviewViewModel
         return element.TryGetProperty(propertyName, out JsonElement range) && range.ValueKind == JsonValueKind.Object
             ? FormatRange(range)
             : null;
+    }
+
+    private static string FormatRangeList(JsonElement element, string propertyName)
+    {
+        return element.TryGetProperty(propertyName, out JsonElement ranges) && ranges.ValueKind == JsonValueKind.Array
+            ? string.Join(", ", ranges.EnumerateArray().Select(FormatRange))
+            : "(none)";
     }
 
     private static string FormatRange(JsonElement range)
