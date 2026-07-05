@@ -8,9 +8,8 @@ public static class BuiltInReplaceProfiles
     private const string SyntheticIc = "NT-SYNTHETIC";
     private const long Nt51950DpContainerLength = 0x100000;
     private static readonly long[] Nt51950AllowedDpReplacementLengths = [0x40000, 0x80000, Nt51950DpContainerLength];
-    private static readonly ByteRange Nt51950DpContainerRange = new(0, Nt51950DpContainerLength);
-    private static readonly ByteRange Nt51950TpRestoreRange = ByteRange.FromStartEndExclusive(0x0A000, 0x37000);
-    private static readonly ByteRange Nt51950CustomerInfoPreserveRange = new(0x37000, 0x1000);
+    private static ByteRange Nt51950TpRestoreRange { get; } = ByteRange.FromStartEndExclusive(0x0A000, 0x37000);
+    private static ByteRange Nt51950CustomerInfoPreserveRange { get; } = new(0x37000, 0x1000);
 
     /// <summary>All built-in Replace profiles in stable command display order.</summary>
     public static IReadOnlyList<CompositionProfileDefinition> All =>
@@ -165,13 +164,64 @@ public static class BuiltInReplaceProfiles
             IcNumberInputMode.SingleSelector);
 
     /// <summary>NT51950 DP Perspective Replace profile with base TP/customer-info restoration.</summary>
-    public static CompositionProfileDefinition Nt51950DpReplace { get; } = CreateNt51950DpReplaceProfile("NT51950");
+    public static CompositionProfileDefinition Nt51950DpReplace { get; } = CreateNt51950FamilyDpReplaceProfileCore(
+        "NT51950",
+        Nt51950DpContainerLength,
+        Nt51950AllowedDpReplacementLengths);
 
     /// <summary>NT51951 DP Perspective Replace profile using the owner-confirmed NT51950 policy.</summary>
-    public static CompositionProfileDefinition Nt51951DpReplace { get; } = CreateNt51950DpReplaceProfile("NT51951");
+    public static CompositionProfileDefinition Nt51951DpReplace { get; } = CreateNt51950FamilyDpReplaceProfileCore(
+        "NT51951",
+        Nt51950DpContainerLength,
+        Nt51950AllowedDpReplacementLengths);
 
-    private static CompositionProfileDefinition CreateNt51950DpReplaceProfile(string icId)
+    /// <summary>Supported exact base firmware lengths for NT51950/NT51951 DP Perspective Replace.</summary>
+    public static IReadOnlyList<long> Nt51950FamilySupportedDpBaseLengths => [.. Nt51950AllowedDpReplacementLengths];
+
+    /// <summary>TP range restored from the base firmware after NT51950/NT51951 DP replacement.</summary>
+    public static ByteRange Nt51950FamilyTpRestoreRange => Nt51950TpRestoreRange;
+
+    /// <summary>Customer information range preserved from the base firmware after NT51950/NT51951 DP replacement.</summary>
+    public static ByteRange Nt51950FamilyCustomerInfoPreserveRange => Nt51950CustomerInfoPreserveRange;
+
+    /// <summary>Returns true for ICs that use the NT51950 DP Perspective Replace policy.</summary>
+    public static bool IsNt51950FamilyDpReplaceIc(string icId)
     {
+        return icId is "NT51950" or "NT51951";
+    }
+
+    /// <summary>Returns true when <paramref name="length" /> is an approved NT51950/NT51951 base length.</summary>
+    public static bool IsSupportedNt51950FamilyDpBaseLength(long length)
+    {
+        return Nt51950AllowedDpReplacementLengths.Contains(length);
+    }
+
+    /// <summary>Creates an NT51950/NT51951 DP Perspective Replace profile for the selected exact base length.</summary>
+    public static CompositionProfileDefinition CreateNt51950FamilyDpReplaceProfile(string icId, long capacity)
+    {
+        return CreateNt51950FamilyDpReplaceProfileCore(icId, capacity, null);
+    }
+
+    private static CompositionProfileDefinition CreateNt51950FamilyDpReplaceProfileCore(
+        string icId,
+        long capacity,
+        IReadOnlyList<long>? allowedReplacementLengths)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+
+        if (!IsNt51950FamilyDpReplaceIc(icId))
+        {
+            throw new ArgumentException($"'{icId}' is not an NT51950/NT51951 DP Perspective IC.", nameof(icId));
+        }
+
+        if (!IsSupportedNt51950FamilyDpBaseLength(capacity))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(capacity),
+                "NT51950/NT51951 DP Replace capacity must be 0x40000, 0x80000, or 0x100000.");
+        }
+
+        var dpContainerRange = new ByteRange(0, capacity);
         string normalizedIc = icId.ToLowerInvariant();
         return new CompositionProfileDefinition(
             $"{normalizedIc}-dp-replace-dp-perspective",
@@ -181,27 +231,27 @@ public static class BuiltInReplaceProfiles
             CompositionKind.Replace,
             "dp-replace",
             $"{normalizedIc}-dp-replace.bin",
-            ImageInitialization.Reference("output-image", "reference-base", Nt51950DpContainerLength),
+            ImageInitialization.Reference("output-image", "reference-base", capacity),
             [
-                new AddressSpace("reference-base", Nt51950DpContainerLength, AddressSpaceMutability.Immutable),
+                new AddressSpace("reference-base", capacity, AddressSpaceMutability.Immutable),
                 new AddressSpace(
                     "dp-replacement",
-                    Nt51950DpContainerLength,
+                    capacity,
                     AddressSpaceMutability.Immutable,
                     inputPaddingByte: 0x00,
-                    allowedInputLengths: Nt51950AllowedDpReplacementLengths),
-                new AddressSpace("output-image", Nt51950DpContainerLength, AddressSpaceMutability.Mutable),
+                    allowedInputLengths: allowedReplacementLengths),
+                new AddressSpace("output-image", capacity, AddressSpaceMutability.Mutable),
             ],
             [
                 CompositionOperation.ReplaceRange(
                     "replace-dp-container",
                     100,
                     "dp-replacement",
-                    Nt51950DpContainerRange,
+                    dpContainerRange,
                     "output-image",
-                    Nt51950DpContainerRange,
+                    dpContainerRange,
                     OverlapPolicy.Reject,
-                    "Replace the NT51950/NT51951 DP Perspective container after accepting only 0x40000, 0x80000, or 0x100000 DP inputs and padding to 0x100000."),
+                    $"Replace the NT51950/NT51951 DP Perspective container using the selected base length 0x{capacity:X}."),
                 CompositionOperation.CopyRange(
                     "restore-base-tp",
                     200,
@@ -225,7 +275,7 @@ public static class BuiltInReplaceProfiles
                 new ProfileRegion(
                     "dp-perspective-container",
                     "output-image",
-                    Nt51950DpContainerRange,
+                    dpContainerRange,
                     RegionAtomicity.Partitioned,
                     RegionWritePolicy.DeclaredParts,
                     classificationTags: ["dp", "tp-restore", "customer-info-preserve"]),

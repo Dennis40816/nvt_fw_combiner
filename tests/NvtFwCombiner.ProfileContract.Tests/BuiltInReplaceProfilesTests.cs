@@ -66,6 +66,32 @@ public sealed class BuiltInReplaceProfilesTests
             region.ClassificationTags.Contains("customer-info-preserve", StringComparer.Ordinal));
     }
 
+    /// <summary>Verifies the NT51950/NT51951 workbench profile uses the selected base length without duplicating profile semantics.</summary>
+    [Theory]
+    [InlineData("NT51950", 0x40000)]
+    [InlineData("NT51951", 0x80000)]
+    public void Nt51950FamilyDpReplaceCreatesSelectedBaseLengthProfile(string icId, long capacity)
+    {
+        CompositionProfileDefinition profile = BuiltInReplaceProfiles.CreateNt51950FamilyDpReplaceProfile(icId, capacity);
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
+
+        Assert.True(result.IsSuccess, FormatIssues(result.Issues));
+        Assert.Contains(profile.AddressSpaces, space =>
+            space.AddressSpaceId == "reference-base" && space.Length == capacity);
+        Assert.Contains(profile.AddressSpaces, space =>
+            space.AddressSpaceId == "dp-replacement" &&
+            space.Length == capacity &&
+            space.InputPaddingByte == 0x00 &&
+            space.AllowedInputLengths.Count == 0);
+        Assert.Equal(
+            ["replace-dp-container", "restore-base-tp", "restore-base-customer-info"],
+            result.Plan!.OrderedOperations.Select(operation => operation.OperationId));
+        Assert.Equal(new ByteRange(0, capacity), result.Plan.OrderedOperations[0].TargetRange);
+        Assert.Equal(BuiltInReplaceProfiles.Nt51950FamilyTpRestoreRange, result.Plan.OrderedOperations[1].TargetRange);
+        Assert.Equal(BuiltInReplaceProfiles.Nt51950FamilyCustomerInfoPreserveRange, result.Plan.OrderedOperations[2].TargetRange);
+    }
+
     /// <summary>Verifies fixed CtrlRAM Replace compiles with oversized-input truncation policy.</summary>
     [Fact]
     public void SyntheticCtrlRamReplaceCompiles()

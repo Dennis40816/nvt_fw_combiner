@@ -2,6 +2,7 @@ using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -190,6 +191,8 @@ public static partial class WorkbenchCompositionService
             }
 
             long selectedCapacity = selectedBaseLength;
+            ByteRange tpRestoreRange = BuiltInReplaceProfiles.Nt51950FamilyTpRestoreRange;
+            ByteRange customerInfoPreserveRange = BuiltInReplaceProfiles.Nt51950FamilyCustomerInfoPreserveRange;
             CoverageSegment[] dpSegments =
             [
                 new CoverageSegment(
@@ -211,9 +214,17 @@ public static partial class WorkbenchCompositionService
             dpSegments = ApplyCoverageWrite(
                 dpSegments,
                 new CoverageSegment(
-                    Nt51950TpRestoreRange,
+                    tpRestoreRange,
                     "Restored TP",
-                    $"Original TP FW at {FormatDisplayRange(Nt51950TpRestoreRange)} is copied back from the base firmware.",
+                    $"Original TP FW at {FormatDisplayRange(tpRestoreRange)} is copied back from the base firmware.",
+                    "#64748B",
+                    false));
+            dpSegments = ApplyCoverageWrite(
+                dpSegments,
+                new CoverageSegment(
+                    customerInfoPreserveRange,
+                    "Preserved customer info",
+                    $"Customer information at {FormatDisplayRange(customerInfoPreserveRange)} is copied back from the base firmware.",
                     "#64748B",
                     false));
             return ToWorkbenchCoverageSegments(dpSegments, selectedCapacity);
