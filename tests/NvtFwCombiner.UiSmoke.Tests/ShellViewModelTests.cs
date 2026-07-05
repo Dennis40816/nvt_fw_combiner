@@ -1125,26 +1125,7 @@ public sealed class ShellViewModelTests
     [Fact]
     public void ReportReviewUsesToastAndModalState()
     {
-        const string json = /*lang=json,strict*/ """
-            {
-              "ProfileId": "nt51927-standard-merge-gen-flash",
-              "IcId": "NT51927",
-              "ExperienceId": "standard-merge",
-              "CompositionKind": "Merge",
-              "RunId": "ui-smoke",
-              "StartedAtUtc": "2026-07-01T00:00:00Z",
-              "Inputs": [],
-              "Operations": [],
-              "Mutations": [],
-              "Issues": [],
-              "Output": {
-                "FileName": "preview.bin",
-                "Size": 0,
-                "Committed": false,
-                "Sha256": "abcdef"
-              }
-            }
-            """;
+        string json = ReportJsonSamples.Succeeded(runId: "ui-smoke");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
         Assert.False(viewModel.CanOpenReport);
@@ -1218,67 +1199,11 @@ public sealed class ShellViewModelTests
     [Fact]
     public void ReportHistoryTracksSessionReportsAndReopensEarlierEntry()
     {
-        const string previewJson = /*lang=json,strict*/ """
-            {
-              "ProfileId": "nt51927-standard-merge-gen-flash",
-              "IcId": "NT51927",
-              "ModeId": "standard-merge",
-              "ExperienceId": "standard-merge",
-              "CompositionKind": "Merge",
-              "RunId": "preview-run",
-              "StartedAtUtc": "2026-07-01T00:00:00Z",
-              "Inputs": [],
-              "Operations": [],
-              "Mutations": [],
-              "Issues": [],
-              "Output": {
-                "FileName": "preview.bin",
-                "Size": 16,
-                "Committed": false,
-                "Sha256": "abcdef0123456789abcdef"
-              }
-            }
-            """;
-        const string buildJson = /*lang=json,strict*/ """
-            {
-              "ProfileId": "nt51927-ctrlram-replace",
-              "IcId": "NT51927",
-              "ModeId": "ctrlram-replace",
-              "ExperienceId": "ctrlram-replace",
-              "CompositionKind": "Replace",
-              "RunId": "build-run",
-              "StartedAtUtc": "2026-07-01T00:05:00Z",
-              "Inputs": [],
-              "Operations": [
-                {
-                  "Sequence": 900,
-                  "OperationId": "run-ctrlram-postbuild",
-                  "Kind": "run-external-processor",
-                  "Status": "planned",
-                  "OverlapPolicy": "reject",
-                  "TargetSpaceId": "output-image",
-                  "TargetRange": {
-                    "Start": 0,
-                    "EndExclusive": 32,
-                    "Length": 32
-                  },
-                  "ProcessorId": "legacy-combiner",
-                  "ToolBindingId": "legacy-combiner-1.13.0",
-                  "ProcessorAllowedReadRanges": [],
-                  "ProcessorAllowedWriteRanges": [],
-                  "Reason": "Run approved staged Combiner command: Combiner.exe /bin work.bin /mmap mmap.h."
-                }
-              ],
-              "Mutations": [],
-              "Issues": [],
-              "Output": {
-                "FileName": "build.bin",
-                "Size": 32,
-                "Committed": true,
-                "Sha256": "0123456789abcdef012345"
-              }
-            }
-            """;
+        string previewJson = ReportJsonSamples.Succeeded(
+            runId: "preview-run",
+            outputSize: 16,
+            outputSha256: "abcdef0123456789abcdef");
+        string buildJson = ReportJsonSamples.CtrlRamCommandSucceeded();
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
         viewModel.LoadReportJson(previewJson, "preview-report.json");
@@ -1306,27 +1231,17 @@ public sealed class ShellViewModelTests
     [Fact]
     public void ReportHistorySnapshotsRestoreAcrossViewModels()
     {
-        const string json = /*lang=json,strict*/ """
-            {
-              "ProfileId": "nt51927-ctrlram-replace",
-              "IcId": "NT51927",
-              "ModeId": "ctrlram-replace",
-              "ExperienceId": "ctrlram-replace",
-              "CompositionKind": "Replace",
-              "RunId": "persisted-build-run",
-              "StartedAtUtc": "2026-07-01T00:05:00Z",
-              "Inputs": [],
-              "Operations": [],
-              "Mutations": [],
-              "Issues": [],
-              "Output": {
-                "FileName": "build.bin",
-                "Size": 32,
-                "Committed": true,
-                "Sha256": "0123456789abcdef012345"
-              }
-            }
-            """;
+        string json = ReportJsonSamples.Succeeded(
+            profileId: "nt51927-ctrlram-replace",
+            modeId: "ctrlram-replace",
+            experienceId: "ctrlram-replace",
+            compositionKind: "Replace",
+            runId: "persisted-build-run",
+            startedAtUtc: "2026-07-01T00:05:00Z",
+            outputFileName: "build.bin",
+            outputSize: 32,
+            committed: true,
+            outputSha256: "0123456789abcdef012345");
         ReportHistorySnapshot snapshot = new(
             "build-report.json",
             json,
@@ -1369,27 +1284,10 @@ public sealed class ShellViewModelTests
     [Fact]
     public void ReportHistoryFileStoreRoundTripsSnapshots()
     {
-        const string json = /*lang=json,strict*/ """
-            {
-              "ProfileId": "nt51927-standard-merge-gen-flash",
-              "IcId": "NT51927",
-              "ModeId": "standard-merge",
-              "ExperienceId": "standard-merge",
-              "CompositionKind": "Merge",
-              "RunId": "persisted-preview-run",
-              "StartedAtUtc": "2026-07-01T00:00:00Z",
-              "Inputs": [],
-              "Operations": [],
-              "Mutations": [],
-              "Issues": [],
-              "Output": {
-                "FileName": "preview.bin",
-                "Size": 16,
-                "Committed": false,
-                "Sha256": "abcdef0123456789abcdef"
-              }
-            }
-            """;
+        string json = ReportJsonSamples.Succeeded(
+            runId: "persisted-preview-run",
+            outputSize: 16,
+            outputSha256: "abcdef0123456789abcdef");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-report-history");
         string historyPath = workspace.PathFor(Path.Combine("state", "report-history.v1.json"));
         var metadata = new ReportHistoryMetadataSnapshot(
@@ -1516,33 +1414,7 @@ public sealed class ShellViewModelTests
     [Fact]
     public void ReportReviewSeparatesWarningsFromBlockingIssues()
     {
-        const string json = /*lang=json,strict*/ """
-            {
-              "ProfileId": "nt51927-ctrlram-replace",
-              "IcId": "NT51927",
-              "ExperienceId": "ctrlram-replace",
-              "CompositionKind": "Replace",
-              "RunId": "ui-smoke-warning",
-              "StartedAtUtc": "2026-07-01T00:00:00Z",
-              "Inputs": [],
-              "Operations": [],
-              "Mutations": [],
-              "Issues": [
-                {
-                  "Code": "input.address-space.truncated",
-                  "Severity": "warning",
-                  "Message": "Input ctrlram-input actual 6 bytes exceeded declared 4 bytes and was truncated.",
-                  "OperationId": "replace-ctrlram"
-                }
-              ],
-              "Output": {
-                "FileName": "preview.bin",
-                "Size": 32,
-                "Committed": false,
-                "Sha256": "abcdef012345"
-              }
-            }
-            """;
+        string json = ReportJsonSamples.CtrlRamWarning();
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
         viewModel.LoadReportJson(json, "warning-report.json");
@@ -1578,33 +1450,11 @@ public sealed class ShellViewModelTests
     [Fact]
     public void ReportReviewUsesIssueSeverityForWarnings()
     {
-        const string json = /*lang=json,strict*/ """
-            {
-              "ProfileId": "nt51927-ctrlram-replace",
-              "IcId": "NT51927",
-              "ExperienceId": "ctrlram-replace",
-              "CompositionKind": "Replace",
-              "RunId": "ui-smoke-severity-warning",
-              "StartedAtUtc": "2026-07-01T00:00:00Z",
-              "Inputs": [],
-              "Operations": [],
-              "Mutations": [],
-              "Issues": [
-                {
-                  "Code": "processor.review-note",
-                  "Severity": "warning",
-                  "Message": "Processor completed with a review note.",
-                  "OperationId": "run-postbuild"
-                }
-              ],
-              "Output": {
-                "FileName": "preview.bin",
-                "Size": 32,
-                "Committed": false,
-                "Sha256": "abcdef012345"
-              }
-            }
-            """;
+        string json = ReportJsonSamples.CtrlRamWarning(
+            runId: "ui-smoke-severity-warning",
+            issueCode: "processor.review-note",
+            message: "Processor completed with a review note.",
+            operationId: "run-postbuild");
 
         var report = ReportReviewViewModel.FromJson(json, "severity-warning.json");
 
@@ -1622,32 +1472,10 @@ public sealed class ShellViewModelTests
     [Fact]
     public void ReportReviewKeepsLegacyTruncationWarningFallback()
     {
-        const string json = /*lang=json,strict*/ """
-            {
-              "ProfileId": "nt51927-ctrlram-replace",
-              "IcId": "NT51927",
-              "ExperienceId": "ctrlram-replace",
-              "CompositionKind": "Replace",
-              "RunId": "ui-smoke-legacy-warning",
-              "StartedAtUtc": "2026-07-01T00:00:00Z",
-              "Inputs": [],
-              "Operations": [],
-              "Mutations": [],
-              "Issues": [
-                {
-                  "Code": "input.address-space.truncated",
-                  "Message": "Input ctrlram-input was truncated.",
-                  "OperationId": "replace-ctrlram"
-                }
-              ],
-              "Output": {
-                "FileName": "preview.bin",
-                "Size": 32,
-                "Committed": false,
-                "Sha256": "abcdef012345"
-              }
-            }
-            """;
+        string json = ReportJsonSamples.CtrlRamWarning(
+            runId: "ui-smoke-legacy-warning",
+            severity: null,
+            message: "Input ctrlram-input was truncated.");
 
         var report = ReportReviewViewModel.FromJson(json, "legacy-warning.json");
 
@@ -1661,76 +1489,7 @@ public sealed class ShellViewModelTests
     [Fact]
     public void ReportReviewTriagePrioritizesIssueAndCommandEvidence()
     {
-        const string json = /*lang=json,strict*/ """
-            {
-              "ProfileId": "nt51927-ctrlram-replace",
-              "IcId": "NT51927",
-              "ExperienceId": "ctrlram-replace",
-              "CompositionKind": "Replace",
-              "RunId": "ui-smoke-command",
-              "StartedAtUtc": "2026-07-01T00:00:00Z",
-              "Inputs": [
-                {
-                  "AddressSpaceId": "base-input",
-                  "BindingId": "base",
-                  "Size": 524288,
-                  "Sha256": "abcdef0123456789",
-                  "ArtifactId": "base.bin"
-                }
-              ],
-              "Operations": [
-                {
-                  "Sequence": 900,
-                  "OperationId": "run-ctrlram-postbuild",
-                  "Kind": "run-external-processor",
-                  "Status": "planned",
-                  "OverlapPolicy": "reject",
-                  "TargetSpaceId": "output-image",
-                  "TargetRange": {
-                    "Start": 0,
-                    "EndExclusive": 524288,
-                    "Length": 524288
-                  },
-                  "ProcessorId": "legacy-combiner",
-                  "ToolBindingId": "legacy-combiner-1.13.0",
-                  "ProcessorAllowedReadRanges": [
-                    {
-                      "Start": 0,
-                      "EndExclusive": 524288,
-                      "Length": 524288
-                    }
-                  ],
-                  "ProcessorAllowedWriteRanges": [
-                    {
-                      "Start": 28928,
-                      "EndExclusive": 28932,
-                      "Length": 4
-                    },
-                    {
-                      "Start": 28952,
-                      "EndExclusive": 28956,
-                      "Length": 4
-                    }
-                  ],
-                  "Reason": "Run approved staged Combiner command: Combiner.exe /bin work.bin /mmap mmap.h."
-                }
-              ],
-              "Mutations": [],
-              "Issues": [
-                {
-                  "Code": "processor.tool.missing",
-                  "Message": "Combiner executable is not available.",
-                  "OperationId": "run-ctrlram-postbuild"
-                }
-              ],
-              "Output": {
-                "FileName": "No output",
-                "Size": 0,
-                "Committed": false,
-                "Sha256": ""
-              }
-            }
-            """;
+        string json = ReportJsonSamples.CtrlRamCommandIssue();
 
         var report = ReportReviewViewModel.FromJson(json, "preview-report.json");
 
