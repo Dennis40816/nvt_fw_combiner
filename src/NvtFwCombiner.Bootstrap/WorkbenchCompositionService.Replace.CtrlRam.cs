@@ -1,10 +1,7 @@
-using System.Globalization;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Infrastructure.Files;
-using NvtFwCombiner.Infrastructure.Time;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -211,45 +208,18 @@ public static partial class WorkbenchCompositionService
         }
 
         InputArtifactBinding[] bindings = CreateCtrlRamReplaceBindings(selectedRegions, slotPaths, basePath);
-        string[] inputRoots =
-        [
-            .. bindings
-                .Select(binding => Path.GetDirectoryName(binding.ArtifactId)!)
-                .Distinct(StringComparer.OrdinalIgnoreCase),
-        ];
-        (string outputDirectory, string outputFileName) = ResolveOutputTarget(
+
+        return await RunCompiledCompositionAsync(
+            "ui-replace-ctrlram",
+            profile,
+            compile.Plan!,
+            bindings,
             basePath,
             build,
             outputPath,
-            profile.DefaultOutputFileName);
-        FileArtifactReader reader = new(inputRoots);
-        AtomicFileCompositionOutputWriter? writer = build
-            ? new AtomicFileCompositionOutputWriter(outputDirectory, overwrite: true)
-            : null;
-        CompositionRunService service = new(reader, new SystemClock(), writer, ExternalProcessorFactory.CreateOrNull());
-        CompositionRunRequest request = new(
-            $"ui-replace-ctrlram-{(build ? "build" : "preview")}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture)}",
-            ToRunProfile(profile),
-            compile.Plan!,
-            bindings,
-            outputFileName,
-            icNumberSelection: selection);
-
-        CompositionRunResult result;
-        if (!build)
-        {
-            result = await service.PreviewAsync(request, cancellationToken).ConfigureAwait(false);
-        }
-        else
-        {
-            CompositionRunResult preview = await service.PreviewAsync(request, cancellationToken).ConfigureAwait(false);
-            result = preview.Status == CompositionExecutionStatus.Succeeded
-                ? await service.BuildAsync(request.WithApprovedPreviewToken(preview.PreviewToken!), cancellationToken)
-                    .ConfigureAwait(false)
-                : preview;
-        }
-
-        return ToWorkbenchRunResult(result);
+            externalProcessor: ExternalProcessorFactory.CreateOrNull(),
+            icNumberSelection: selection,
+            cancellationToken).ConfigureAwait(false);
     }
 
     private static CompositionProfileDefinition CreateCtrlRamReplaceProfile(
