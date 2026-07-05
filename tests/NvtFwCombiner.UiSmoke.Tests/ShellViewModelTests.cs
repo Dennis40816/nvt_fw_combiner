@@ -679,6 +679,15 @@ public sealed class ShellViewModelTests
         Assert.False(viewModel.LastRunResult.Succeeded);
         Assert.Equal("Build blocked", viewModel.LastRunResult.Title);
         Assert.False(File.Exists(outputPath), outputPath);
+        Assert.True(viewModel.HasLoadedReport);
+        Assert.True(viewModel.CanOpenReport);
+        Assert.Equal("build error report", viewModel.LoadedReport.SourceName);
+        Assert.Equal("ui.build.preview-required", viewModel.LoadedReport.PrimaryIssue.Title);
+        Assert.Contains("Run a valid DP Replace Preview", viewModel.LoadedReport.PrimaryIssue.Detail, StringComparison.Ordinal);
+        Assert.Contains(viewModel.LoadedReport.EvidenceRows, row =>
+            row.Title == "Issues" &&
+            row.Detail == "1" &&
+            row.Meta == "ui.build.preview-required");
 
         await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
@@ -1687,6 +1696,16 @@ public sealed class ShellViewModelTests
 
         Assert.True(viewModel.CanPreviewStandardMerge);
         Assert.False(viewModel.CanBuildStandardMerge);
+
+        string outputPath = workspace.PathFor("blocked-standard-merge.bin");
+        await viewModel.BuildStandardMergeAsync(outputPath);
+
+        Assert.False(viewModel.LastRunResult.Succeeded);
+        Assert.Equal("Build blocked", viewModel.LastRunResult.Title);
+        Assert.False(File.Exists(outputPath), outputPath);
+        Assert.True(viewModel.HasLoadedReport);
+        Assert.Equal("ui.build.preview-required", viewModel.LoadedReport.PrimaryIssue.Title);
+        Assert.Contains("Run a valid Standard Merge Preview", viewModel.LoadedReport.PrimaryIssue.Detail, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies an NT51950 preview with NT51926 TP input is blocked with a reopenable detailed report.</summary>

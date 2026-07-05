@@ -171,7 +171,8 @@ public sealed partial class MainWindowViewModel
         IReadOnlyDictionary<string, string> slotPaths,
         string compositionKind = "Merge",
         string modeId = "standard-merge",
-        string experienceId = "standard-merge")
+        string experienceId = "standard-merge",
+        string issueCode = "ui.run.failed")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(action);
         ArgumentNullException.ThrowIfNull(profileId);
@@ -179,6 +180,7 @@ public sealed partial class MainWindowViewModel
         ArgumentException.ThrowIfNullOrWhiteSpace(number);
         ArgumentException.ThrowIfNullOrWhiteSpace(message);
         ArgumentNullException.ThrowIfNull(slotPaths);
+        ArgumentException.ThrowIfNullOrWhiteSpace(issueCode);
 
         DateTimeOffset timestamp = DateTimeOffset.UtcNow;
         var report = new
@@ -208,7 +210,7 @@ public sealed partial class MainWindowViewModel
             {
                 new
                 {
-                    Code = "ui.run.failed",
+                    Code = issueCode,
                     Message = message,
                     OperationId = $"{icId} / {number}",
                 },
