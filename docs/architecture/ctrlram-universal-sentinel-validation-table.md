@@ -28,9 +28,9 @@ The current `IC_FlashMap_20260705.xlsx` still presents NT51926 mostly as the Com
 | Common FW 1.4.1 postbuild | `[0x315D0,0x32C30)` len `0x1660` | `[0x3B000,0x3B800)` len `0x800` | `0x0 -> 0x32F50` len `0x100` |
 | Common FW 2.0.0 postbuild | `[0x315D0,0x32A6E)` len `0x149E` | `[0x3B000,0x3B780)` len `0x780` | `0x0 -> 0x32A70` len `0x100` |
 
-The workbook should either add explicit Common FW category rows or split NT51926 into versioned sections. A single NT51926 row is ambiguous and unsafe. The 2026-07-05 10:23:35 workbook still conflicts internally: the overview notes `V noise (5728)` while the table row keeps `VN_Ctrlram.bin` length `5278`.
+The workbook should either add explicit Common FW category rows or split NT51926 into versioned sections. A single NT51926 row is ambiguous and unsafe. The 2026-07-05 10:34:14 workbook still conflicts internally: the overview notes `V noise (5728)` while the table row keeps `VN_Ctrlram.bin` length `5278`.
 
-NT51930 has an `IC > 13, Max29` extended DiffDLM row in the 2026-07-05 10:23:35 workbook, but should still carry explicit Common FW category notes because 1.x and 2.0.0 postbuild consume different CtrlRAM slots:
+NT51930 has an `IC > 13, Max29` extended DiffDLM row in the 2026-07-05 10:34:14 workbook, but should still carry explicit Common FW category notes because 1.x and 2.0.0 postbuild consume different CtrlRAM slots:
 
 | NT51930 source | Branch | MP | VN | DiffDLM | Header copy |
 | --- | --- | --- | --- | --- | --- |
