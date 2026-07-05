@@ -142,11 +142,16 @@ public static class ReportHistoryFileStore
 
     private sealed class ReportHistoryFileEntry
     {
-        public ReportHistoryFileEntry(string sourceName, string reportJson, string outputArtifactPath)
+        public ReportHistoryFileEntry(
+            string sourceName,
+            string reportJson,
+            string outputArtifactPath,
+            ReportHistoryMetadataSnapshot? metadata = null)
         {
             SourceName = sourceName ?? string.Empty;
             ReportJson = reportJson ?? string.Empty;
             OutputArtifactPath = outputArtifactPath ?? string.Empty;
+            Metadata = metadata ?? ReportHistoryMetadataSnapshot.Empty;
         }
 
         public string SourceName { get; }
@@ -155,12 +160,15 @@ public static class ReportHistoryFileStore
 
         public string OutputArtifactPath { get; }
 
+        public ReportHistoryMetadataSnapshot Metadata { get; }
+
         public static ReportHistoryFileEntry FromSnapshot(ReportHistorySnapshot snapshot)
         {
             return new ReportHistoryFileEntry(
                 snapshot.SourceName,
                 snapshot.ReportJson,
-                snapshot.OutputArtifactPath);
+                snapshot.OutputArtifactPath,
+                snapshot.Metadata);
         }
 
         public ReportHistorySnapshot? ToSnapshot()
@@ -170,7 +178,8 @@ public static class ReportHistoryFileStore
                 : new ReportHistorySnapshot(
                     SourceName ?? string.Empty,
                     ReportJson,
-                    OutputArtifactPath ?? string.Empty);
+                    OutputArtifactPath ?? string.Empty,
+                    Metadata);
         }
     }
 }

@@ -74,6 +74,30 @@ public sealed class ReportHistoryEntryViewModel
     /// <summary>Original report JSON for Save report.</summary>
     public string ReportJson { get; }
 
+    /// <summary>Exports this entry as a persistable local history snapshot.</summary>
+    public ReportHistorySnapshot ToSnapshot()
+    {
+        return new ReportHistorySnapshot(
+            Report.SourceName,
+            ReportJson,
+            Report.OutputArtifactPath,
+            new ReportHistoryMetadataSnapshot(
+                Title,
+                Status,
+                Context,
+                Output,
+                OutputHash,
+                CommandSummary,
+                IssueSummary,
+                EvidenceSummary,
+                Report.RunId,
+                Report.StartedAtUtc,
+                Report.IcId,
+                Report.ModeId,
+                Report.ExperienceId,
+                Report.CompositionKind));
+    }
+
     private static string CreateContext(ReportReviewViewModel report)
     {
         string workflow = string.IsNullOrWhiteSpace(report.CompositionKind)

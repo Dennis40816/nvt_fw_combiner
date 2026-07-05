@@ -1350,6 +1350,12 @@ public sealed class ShellViewModelTests
         Assert.Equal("build-report.json", exportedSnapshot.SourceName);
         Assert.Equal(json, exportedSnapshot.ReportJson);
         Assert.Equal("C:/nfc/output/build.bin", exportedSnapshot.OutputArtifactPath);
+        Assert.Equal("nt51927-ctrlram-replace (NT51927)", exportedSnapshot.Metadata.Title);
+        Assert.Equal("Succeeded", exportedSnapshot.Metadata.Status);
+        Assert.Equal("Replace / ctrlram-replace / NT51927", exportedSnapshot.Metadata.Context);
+        Assert.Equal("0123456789abcdef...", exportedSnapshot.Metadata.OutputHash);
+        Assert.Equal("persisted-build-run", exportedSnapshot.Metadata.RunId);
+        Assert.Equal("0 inputs / 0 steps / 0 mutations", exportedSnapshot.Metadata.EvidenceSummary);
 
         MainWindowViewModel restoredViewModel = ShellViewModelFactory.Create();
         restoredViewModel.LoadReportHistory(exported);
@@ -1386,10 +1392,26 @@ public sealed class ShellViewModelTests
             """;
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-report-history");
         string historyPath = workspace.PathFor(Path.Combine("state", "report-history.v1.json"));
+        var metadata = new ReportHistoryMetadataSnapshot(
+            "nt51927-standard-merge-gen-flash (NT51927)",
+            "Succeeded",
+            "Merge / standard-merge / NT51927",
+            "preview.bin / 16 bytes",
+            "abcdef0123456789...",
+            "No external command",
+            "No issue",
+            "0 inputs / 0 steps / 0 mutations",
+            "persisted-preview-run",
+            "2026-07-01T00:00:00Z",
+            "NT51927",
+            "standard-merge",
+            "standard-merge",
+            "Merge");
         ReportHistorySnapshot snapshot = new(
             "preview-report.json",
             json,
-            "C:/nfc/output/preview.bin");
+            "C:/nfc/output/preview.bin",
+            metadata);
 
         ReportHistoryFileStore.Save(historyPath, [snapshot]);
 
@@ -1398,6 +1420,25 @@ public sealed class ShellViewModelTests
         Assert.Equal("preview-report.json", loadedSnapshot.SourceName);
         Assert.Equal(json, loadedSnapshot.ReportJson);
         Assert.Equal("C:/nfc/output/preview.bin", loadedSnapshot.OutputArtifactPath);
+        Assert.Equal(metadata, loadedSnapshot.Metadata);
+
+        string legacyJson = $$"""
+            {
+              "SchemaVersion": 1,
+              "Entries": [
+                {
+                  "SourceName": "legacy-report.json",
+                  "ReportJson": {{JsonSerializer.Serialize(json)}},
+                  "OutputArtifactPath": ""
+                }
+              ]
+            }
+            """;
+        File.WriteAllText(historyPath, legacyJson);
+
+        ReportHistorySnapshot legacySnapshot = Assert.Single(ReportHistoryFileStore.Load(historyPath));
+        Assert.Equal("legacy-report.json", legacySnapshot.SourceName);
+        Assert.Equal(ReportHistoryMetadataSnapshot.Empty, legacySnapshot.Metadata);
 
         File.WriteAllText(historyPath, "{not valid json");
 
