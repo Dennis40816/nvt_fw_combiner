@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -54,7 +55,7 @@ internal static class MergeCliCommandHandler
             return UsageError;
         }
 
-        if (!TryCreateMappings(options, error, out WorkbenchGeneralMergeMappingInput[]? mappings))
+        if (!TryCreateMappings(options, icId, error, out WorkbenchGeneralMergeMappingInput[]? mappings))
         {
             return UsageError;
         }
@@ -118,14 +119,33 @@ internal static class MergeCliCommandHandler
 
     private static bool TryCreateMappings(
         ParsedOptions options,
+        string icId,
         TextWriter error,
         [NotNullWhen(true)] out WorkbenchGeneralMergeMappingInput[]? mappings)
     {
         mappings = null;
         List<string> values = options.GetValues("--mapping");
+        bool usesRule = options.Values.TryGetValue("--rule", out string? rulePath);
+        if (usesRule)
+        {
+            if (values.Count > 0)
+            {
+                error.WriteLine("error: --rule cannot be combined with manual --mapping values");
+                return false;
+            }
+
+            return TryCreateMappingsFromSavedRule(rulePath!, options.GetValues("--slot"), icId, error, out mappings);
+        }
+
+        if (options.GetValues("--slot").Count > 0)
+        {
+            error.WriteLine("error: --slot can be used only with --rule");
+            return false;
+        }
+
         if (values.Count == 0)
         {
-            error.WriteLine("error: at least one --mapping <source-start+target-start+length=path> value is required for General Merge");
+            error.WriteLine("error: at least one --mapping <source-start+target-start+length=path> value or --rule <rule.json> is required for General Merge");
             return false;
         }
 
@@ -142,6 +162,128 @@ internal static class MergeCliCommandHandler
 
         mappings = [.. items];
         return true;
+    }
+
+    private static bool TryCreateMappingsFromSavedRule(
+        string rulePath,
+        IReadOnlyList<string> slotValues,
+        string icId,
+        TextWriter error,
+        [NotNullWhen(true)] out WorkbenchGeneralMergeMappingInput[]? mappings)
+    {
+        mappings = null;
+        SavedCompositionRuleLoadResult load = SavedCompositionRuleLoader.Load(rulePath);
+        if (!load.IsValid)
+        {
+            PrintSavedRuleIssues(load.Issues, error);
+            return false;
+        }
+
+        SavedCompositionRule rule = load.Rule!;
+        if (!string.Equals(rule.SourceExperience, "general-merge", StringComparison.Ordinal))
+        {
+            error.WriteLine($"error: saved rule '{rule.RuleId}' is for {rule.SourceExperience}, not general-merge");
+            return false;
+        }
+
+        if (!MatchesCompatibility(rule.Compatibility.IcIds, icId))
+        {
+            error.WriteLine($"error: saved rule '{rule.RuleId}' is not compatible with {icId}");
+            return false;
+        }
+
+        if (!TryCreateSlotBindings(slotValues, error, out Dictionary<string, string>? slotsById))
+        {
+            return false;
+        }
+
+        List<WorkbenchGeneralMergeMappingInput> items = [];
+        foreach (SavedRuleMappingRow row in rule.MappingRows)
+        {
+            if (!string.Equals(row.TargetAddressSpaceId, "output-image", StringComparison.Ordinal))
+            {
+                error.WriteLine($"error: saved rule row '{row.RowId}' targets unsupported address space '{row.TargetAddressSpaceId}'");
+                return false;
+            }
+
+            if (!string.Equals(row.OverlapPolicy, "reject", StringComparison.Ordinal))
+            {
+                error.WriteLine($"error: saved rule row '{row.RowId}' uses unsupported overlap policy '{row.OverlapPolicy}'");
+                return false;
+            }
+
+            if (row.SourceRange is not { } sourceRange)
+            {
+                error.WriteLine($"error: saved rule row '{row.RowId}' has no sourceRange for General Merge");
+                return false;
+            }
+
+            if (!slotsById.TryGetValue(row.SourceReference, out string? sourcePath))
+            {
+                error.WriteLine($"error: saved rule row '{row.RowId}' requires --slot {row.SourceReference}=<path>");
+                return false;
+            }
+
+            items.Add(new WorkbenchGeneralMergeMappingInput(
+                row.RowId,
+                sourcePath,
+                FormatHex(sourceRange.Start),
+                FormatHex(row.TargetRange.Start),
+                FormatHex(row.TargetRange.Length),
+                row.Alignment,
+                row.Reason,
+                OperationProvenance.SavedRule(rule.RuleId, rule.RuleVersion)));
+        }
+
+        mappings = [.. items];
+        return true;
+    }
+
+    private static bool TryCreateSlotBindings(
+        IReadOnlyList<string> slotValues,
+        TextWriter error,
+        [NotNullWhen(true)] out Dictionary<string, string>? slotsById)
+    {
+        slotsById = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (string value in slotValues)
+        {
+            int separatorIndex = value.IndexOf('=', StringComparison.Ordinal);
+            if (separatorIndex <= 0 || separatorIndex == value.Length - 1)
+            {
+                error.WriteLine("error: --slot must use <slot-id=path>");
+                return false;
+            }
+
+            string slotId = value[..separatorIndex].Trim();
+            string path = value[(separatorIndex + 1)..].Trim();
+            if (slotId.Length == 0 || path.Length == 0)
+            {
+                error.WriteLine("error: --slot must use non-empty slot id and path");
+                return false;
+            }
+
+            if (!slotsById.TryAdd(slotId, Path.GetFullPath(path)))
+            {
+                error.WriteLine($"error: duplicate --slot binding for '{slotId}'");
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool MatchesCompatibility(IReadOnlyList<string> values, string candidate)
+    {
+        return values.Count == 0 || values.Contains(candidate, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static void PrintSavedRuleIssues(IReadOnlyList<SavedRuleValidationIssue> issues, TextWriter error)
+    {
+        error.WriteLine("error: saved rule validation failed");
+        foreach (SavedRuleValidationIssue issue in issues)
+        {
+            error.WriteLine($"  {issue.Code} at {issue.Path}: {issue.Message}");
+        }
     }
 
     private static bool TryParseMappingValue(
@@ -314,9 +456,9 @@ internal static class MergeCliCommandHandler
             new Dictionary<string, List<string>>(StringComparer.Ordinal),
             new HashSet<string>(StringComparer.Ordinal));
         string[] valueOptions = build
-            ? ["--profile", "--size", "--mapping", "--output", "--report"]
-            : ["--profile", "--size", "--mapping", "--report"];
-        string[] repeatableOptions = ["--mapping"];
+            ? ["--profile", "--size", "--mapping", "--rule", "--slot", "--output", "--report"]
+            : ["--profile", "--size", "--mapping", "--rule", "--slot", "--report"];
+        string[] repeatableOptions = ["--mapping", "--slot"];
         string[] flags = build ? ["--overwrite"] : [];
         for (int index = 0; index < args.Length; index++)
         {
@@ -377,7 +519,9 @@ internal static class MergeCliCommandHandler
     {
         return output.WriteLineAsync(
             "usage: nvt_fw_combiner general-merge preview --profile <ic> --size <length> --mapping <source-start+target-start+length=path> [--mapping ...] [--report <path>]\n" +
-            "       nvt_fw_combiner general-merge build --profile <ic> --size <length> --mapping <source-start+target-start+length=path> [--mapping ...] [--output <path>] [--report <path>] [--overwrite]");
+            "       nvt_fw_combiner general-merge preview --profile <ic> --size <length> --rule <rule.json> --slot <slot-id=path> [--slot ...] [--report <path>]\n" +
+            "       nvt_fw_combiner general-merge build --profile <ic> --size <length> --mapping <source-start+target-start+length=path> [--mapping ...] [--output <path>] [--report <path>] [--overwrite]\n" +
+            "       nvt_fw_combiner general-merge build --profile <ic> --size <length> --rule <rule.json> --slot <slot-id=path> [--slot ...] [--output <path>] [--report <path>] [--overwrite]");
     }
 
     private sealed record OutputTarget(string FullPath, string Directory, string FileName);

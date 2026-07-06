@@ -95,6 +95,23 @@ A promoted saved rule may appear as:
 
 The rule is available only when its compatibility envelope matches the current IC/profile/mode.
 
+## Current implementation status
+
+As of `0.7.3`, saved-rule support is intentionally limited to data validation, mapping projection, operation provenance, and General Merge CLI consumption.
+
+Implemented:
+
+- `saved-rule validate <rule.json>` parses the strict saved-rule shape and rejects unknown fields, duplicate ids, invalid ranges, invalid compatibility, command/script hooks, and unsafe row shapes.
+- `saved-rule mappings <rule.json>` prints normalized mapping rows and CLI mapping fragments without reading or writing firmware bytes.
+- `general-merge preview|build --rule <rule.json> --slot <slot-id=path>` consumes General Merge saved-rule rows only after explicit slot binding, then compiles them through the same General Merge planner/executor as manual mappings.
+- Reports mark rule-driven operations with `Provenance.Kind = "saved-rule"` plus rule id/version.
+
+Not implemented yet:
+
+- UI Saved Rules navigation or rule authoring.
+- Promotion into Standard Merge, DP Replace, CtrlRAM Replace, or any normal workflow catalog.
+- General Replace saved-rule execution. TP-touching Replace still needs explicit postbuild policy and golden evidence before rule consumption is enabled.
+
 ## Versioning
 
 Saved rules use semantic versions. Any change to target ranges, processor dependencies, overlap policy, or output bytes is at least a minor version bump and may require golden re-approval. Breaking compatibility with existing profile contexts requires a major version bump or a new rule id.
