@@ -71,6 +71,13 @@ internal static class MergeCliCommandHandler
                 Path.GetFullPath(mapping.FilePath),
                 $"input mapping '{mapping.MappingId}'")),
         ];
+        if (options.Values.TryGetValue("--rule", out string? savedRulePath))
+        {
+            protectedPaths.Add(new ProtectedPathGuard.ProtectedPath(
+                Path.GetFullPath(savedRulePath),
+                "saved-rule input"));
+        }
+
         if (action == "build")
         {
             ProtectedPathGuard.EnsureDoesNotAlias(
@@ -208,6 +215,11 @@ internal static class MergeCliCommandHandler
             return false;
         }
 
+        var operationIdsByRowId = rule.OperationFragments
+            .SelectMany(fragment => fragment.MappingRowIds.Select(rowId => new KeyValuePair<string, string>(
+                rowId,
+                fragment.OperationId)))
+            .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
         List<WorkbenchGeneralMergeMappingInput> items = [];
         foreach (SavedRuleMappingRow row in rule.MappingRows)
         {
@@ -235,8 +247,14 @@ internal static class MergeCliCommandHandler
                 return false;
             }
 
+            if (!operationIdsByRowId.TryGetValue(row.RowId, out string? operationId))
+            {
+                error.WriteLine($"error: saved rule row '{row.RowId}' is not linked to a reviewed operation fragment");
+                return false;
+            }
+
             items.Add(new WorkbenchGeneralMergeMappingInput(
-                row.RowId,
+                operationId,
                 sourcePath,
                 FormatHex(sourceRange.Start),
                 FormatHex(row.TargetRange.Start),

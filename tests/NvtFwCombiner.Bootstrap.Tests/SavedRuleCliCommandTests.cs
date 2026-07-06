@@ -358,8 +358,9 @@ public sealed class SavedRuleCliCommandTests
     public async Task GeneralMergeBuildConsumesSavedRuleMappings()
     {
         using var workspace = TempWorkspace.Create();
-        string rule = workspace.PathFor("rule.json");
-        await File.WriteAllTextAsync(rule, ValidGeneralMergeRuleJson(), TestContext.Current.CancellationToken);
+        JsonObject json = ValidGeneralMergeRuleObject();
+        OperationFragments(json)[0]!.AsObject()["operationId"] = "reviewed-copy-operation";
+        string rule = await WriteRuleAsync(workspace, json);
         string source = workspace.Write("source.bin", [.. Enumerable.Range(0, 64).Select(value => (byte)value)]);
         string output = workspace.PathFor("out.bin");
         string report = workspace.PathFor("report.json");
@@ -392,11 +393,70 @@ public sealed class SavedRuleCliCommandTests
             report,
             TestContext.Current.CancellationToken));
         JsonElement operation = Assert.Single(document.RootElement.GetProperty("Operations").EnumerateArray());
-        Assert.Equal("copy-fw-window", operation.GetProperty("OperationId").GetString());
+        Assert.Equal("reviewed-copy-operation", operation.GetProperty("OperationId").GetString());
         JsonElement provenance = operation.GetProperty("Provenance");
         Assert.Equal("saved-rule", provenance.GetProperty("Kind").GetString());
         Assert.Equal("copy-display-window", provenance.GetProperty("SourceId").GetString());
         Assert.Equal("1.0.0", provenance.GetProperty("SourceVersion").GetString());
+    }
+
+    /// <summary>Rejects saved-rule report paths that would overwrite the reviewed rule JSON.</summary>
+    [Fact]
+    public async Task GeneralMergePreviewRejectsReportPathAliasingSavedRule()
+    {
+        using var workspace = TempWorkspace.Create();
+        string rule = await WriteRuleAsync(workspace, ValidGeneralMergeRuleObject());
+        string source = workspace.Write("source.bin", [.. Enumerable.Range(0, 64).Select(value => (byte)value)]);
+
+        CliRunResult result = await RunCliAsync([
+            "general-merge",
+            "preview",
+            "--profile",
+            "NT51950",
+            "--size",
+            "0x120",
+            "--rule",
+            rule,
+            "--slot",
+            $"source-bin={source}",
+            "--report",
+            rule,
+        ]);
+
+        Assert.Equal(70, result.ExitCode);
+        Assert.Contains("Report path must not overwrite saved-rule input", result.Error, StringComparison.Ordinal);
+        Assert.Contains("\"ruleId\":\"copy-display-window\"", await File.ReadAllTextAsync(
+            rule,
+            TestContext.Current.CancellationToken), StringComparison.Ordinal);
+    }
+
+    /// <summary>Rejects processor-dependent General Replace saved-rule projections until postbuild-aware rule projection exists.</summary>
+    [Theory]
+    [InlineData(true, "saved-rule.processor-dependency.unsupported")]
+    [InlineData(false, "saved-rule.operation-fragment.processor-dependency.unsupported")]
+    public async Task SavedRuleMappingsRejectsProcessorDependentGeneralReplaceRules(
+        bool rootDependency,
+        string expectedIssueCode)
+    {
+        using var workspace = TempWorkspace.Create();
+        JsonObject json = ValidGeneralReplaceRuleObject();
+        if (rootDependency)
+        {
+            json["processorDependencyIds"] = new JsonArray("legacy-combiner-postbuild");
+        }
+        else
+        {
+            OperationFragments(json)[0]!.AsObject()["processorDependencyIds"] =
+                new JsonArray("legacy-combiner-postbuild");
+        }
+
+        string rule = await WriteRuleAsync(workspace, json);
+
+        CliRunResult result = await RunCliAsync(["saved-rule", "mappings", rule]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains(expectedIssueCode, result.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("--mapping", result.Output, StringComparison.Ordinal);
     }
 
     /// <summary>Allows the reviewed scalar protected-range policy values from the saved-rule schema.</summary>
@@ -467,6 +527,16 @@ public sealed class SavedRuleCliCommandTests
     private static JsonObject ValidGeneralMergeRuleObject()
     {
         return JsonNode.Parse(ValidGeneralMergeRuleJson())!.AsObject();
+    }
+
+    private static JsonObject ValidGeneralReplaceRuleObject()
+    {
+        JsonObject json = ValidGeneralMergeRuleObject();
+        json["compositionKind"] = "replace";
+        json["sourceExperience"] = "general-replace";
+        json["compatibility"]!["modeIds"] = new JsonArray("general-replace");
+        OperationFragments(json)[0]!.AsObject()["kind"] = "replace-range";
+        return json;
     }
 
     private static JsonArray MappingRows(JsonObject json)

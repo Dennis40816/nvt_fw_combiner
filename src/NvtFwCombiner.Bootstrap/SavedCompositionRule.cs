@@ -12,7 +12,7 @@ internal sealed record SavedCompositionRule(
     string SupportStatus,
     SavedRuleCompatibility Compatibility,
     IReadOnlyList<SavedRuleMappingRow> MappingRows,
-    IReadOnlyList<string> OperationFragmentIds,
+    IReadOnlyList<SavedRuleOperationFragment> OperationFragments,
     IReadOnlyList<string> ProcessorDependencyIds,
     IReadOnlyList<string> ValidationRuleIds,
     string Owner,
@@ -34,6 +34,10 @@ internal sealed record SavedRuleMappingRow(
     string OverlapPolicy,
     int Alignment,
     string Reason);
+
+internal sealed record SavedRuleOperationFragment(
+    string OperationId,
+    IReadOnlyList<string> MappingRowIds);
 
 internal sealed record SavedRuleValidationIssue(string Code, string Message, string Path);
 

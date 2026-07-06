@@ -133,7 +133,8 @@ internal static partial class SavedCompositionRuleLoader
         SavedRuleCompatibility compatibility = ReadCompatibility(root, issues);
         HashSet<string> inputSlotTemplateIds = ReadInputSlotTemplateIds(root, issues);
         List<SavedRuleMappingRow> mappingRows = ReadMappingRows(root, compositionKind, sourceExperience, inputSlotTemplateIds, issues);
-        List<string> operationFragmentIds = ReadOperationFragments(root, compositionKind, sourceExperience, mappingRows, issues);
+        List<SavedRuleOperationFragment> operationFragments =
+            ReadOperationFragments(root, compositionKind, sourceExperience, mappingRows, issues);
         List<string> processorDependencyIds = ReadStringArray(root, "processorDependencyIds", "$.processorDependencyIds", required: false, validateId: true, issues);
         List<string> validationRuleIds = ReadStringArray(root, "validationRuleIds", "$.validationRuleIds", required: true, validateId: true, issues);
         string owner = RequiredString(root, "owner", "$.owner", issues);
@@ -146,7 +147,7 @@ internal static partial class SavedCompositionRuleLoader
             supportStatus,
             evidenceRefs,
             mappingRows,
-            operationFragmentIds,
+            operationFragments,
             processorDependencyIds,
             issues);
 
@@ -163,7 +164,7 @@ internal static partial class SavedCompositionRuleLoader
                 supportStatus,
                 compatibility,
                 mappingRows,
-                operationFragmentIds,
+                operationFragments,
                 processorDependencyIds,
                 validationRuleIds,
                 owner,
@@ -339,7 +340,7 @@ internal static partial class SavedCompositionRuleLoader
         return result;
     }
 
-    private static List<string> ReadOperationFragments(
+    private static List<SavedRuleOperationFragment> ReadOperationFragments(
         JsonElement root,
         string compositionKind,
         string sourceExperience,
@@ -356,6 +357,7 @@ internal static partial class SavedCompositionRuleLoader
         HashSet<string> mappingRowIds = new(mappingRows.Select(row => row.RowId), StringComparer.Ordinal);
         HashSet<string> referencedMappingRowIds = new(StringComparer.Ordinal);
         List<string> operationIds = [];
+        List<SavedRuleOperationFragment> result = [];
         int index = 0;
         foreach (JsonElement fragment in fragments.EnumerateArray())
         {
@@ -403,6 +405,16 @@ internal static partial class SavedCompositionRuleLoader
                     $"{path}.processorDependencyIds"));
             }
 
+            if (compositionKind == "replace" &&
+                sourceExperience == "general-replace" &&
+                fragmentProcessorDependencyIds.Count > 0)
+            {
+                issues.Add(Issue(
+                    "saved-rule.operation-fragment.processor-dependency.unsupported",
+                    "Current General Replace saved-rule projection does not support processor-dependent operation fragments.",
+                    $"{path}.processorDependencyIds"));
+            }
+
             List<string> fragmentMappingRowIds = ReadStringArray(fragment, "mappingRowIds", $"{path}.mappingRowIds", required: false, validateId: true, issues);
             if (compositionKind == "merge" &&
                 sourceExperience == "general-merge" &&
@@ -437,6 +449,7 @@ internal static partial class SavedCompositionRuleLoader
             if (!string.IsNullOrWhiteSpace(operationId))
             {
                 operationIds.Add(operationId);
+                result.Add(new SavedRuleOperationFragment(operationId, fragmentMappingRowIds));
             }
         }
 
@@ -454,7 +467,7 @@ internal static partial class SavedCompositionRuleLoader
             }
         }
 
-        return operationIds;
+        return result;
     }
 
     private static bool IsAligned(ByteRange range, int alignment)
@@ -516,7 +529,7 @@ internal static partial class SavedCompositionRuleLoader
         string supportStatus,
         List<string> evidenceRefs,
         List<SavedRuleMappingRow> mappingRows,
-        List<string> operationFragmentIds,
+        List<SavedRuleOperationFragment> operationFragments,
         List<string> processorDependencyIds,
         List<SavedRuleValidationIssue> issues)
     {
@@ -535,7 +548,7 @@ internal static partial class SavedCompositionRuleLoader
             issues.Add(Issue("saved-rule.mapping-rows.empty", "Saved rule must include at least one mapping row.", "$.mappingRows"));
         }
 
-        if (operationFragmentIds.Count == 0)
+        if (operationFragments.Count == 0)
         {
             issues.Add(Issue("saved-rule.operation-fragments.empty", "Saved rule must include at least one operation fragment.", "$.operationFragments"));
         }
@@ -545,6 +558,14 @@ internal static partial class SavedCompositionRuleLoader
             issues.Add(Issue(
                 "saved-rule.processor-dependency.unsupported",
                 "Current General Merge saved-rule CLI consumption does not support root processorDependencyIds.",
+                "$.processorDependencyIds"));
+        }
+
+        if (compositionKind == "replace" && sourceExperience == "general-replace" && processorDependencyIds.Count > 0)
+        {
+            issues.Add(Issue(
+                "saved-rule.processor-dependency.unsupported",
+                "Current General Replace saved-rule projection does not support root processorDependencyIds.",
                 "$.processorDependencyIds"));
         }
 
