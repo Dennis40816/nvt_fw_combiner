@@ -334,9 +334,8 @@
     </DataTemplate>
     <DataTemplate x:Key="ReportHistoryEntryTemplate" DataType="vm:ReportHistoryEntryViewModel">
       <Button
-          MinWidth="236"
-          MaxWidth="292"
-          Margin="0,0,8,0"
+          HorizontalAlignment="Stretch"
+          Margin="0,0,0,8"
           Padding="0"
           Background="Transparent"
           BorderBrush="Transparent"
@@ -450,6 +449,29 @@
       <Setter Property="Foreground" Value="#94A3B8" />
     </Style>
     <Style Selector="Button.secondary:disabled /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#F8FAFC" />
+      <Setter Property="BorderBrush" Value="#E2E8F0" />
+      <Setter Property="CornerRadius" Value="999" />
+    </Style>
+    <Style Selector="Button.danger">
+      <Setter Property="MinHeight" Value="34" />
+      <Setter Property="Padding" Value="14,10" />
+      <Setter Property="Background" Value="#FFF7F7" />
+      <Setter Property="BorderBrush" Value="#FECACA" />
+      <Setter Property="Foreground" Value="#B91C1C" />
+      <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style Selector="Button.danger /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#FFF7F7" />
+      <Setter Property="BorderBrush" Value="#FECACA" />
+      <Setter Property="CornerRadius" Value="999" />
+    </Style>
+    <Style Selector="Button.danger:disabled">
+      <Setter Property="Background" Value="#F8FAFC" />
+      <Setter Property="BorderBrush" Value="#E2E8F0" />
+      <Setter Property="Foreground" Value="#CBD5E1" />
+    </Style>
+    <Style Selector="Button.danger:disabled /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="#F8FAFC" />
       <Setter Property="BorderBrush" Value="#E2E8F0" />
       <Setter Property="CornerRadius" Value="999" />
@@ -2233,36 +2255,75 @@
                 <TextBlock FontSize="20" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.Title}" TextWrapping="Wrap" />
                 <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding LoadedReport.Subtitle}" TextWrapping="Wrap" />
               </StackPanel>
-              <Button
-                  Grid.Column="1"
-                  Classes="iconButton"
-                  Command="{Binding CloseReportCommand}"
-                  ToolTip.Tip="Close report">
-                <TextBlock Text="×" />
-              </Button>
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <Button
+                    Classes="secondary"
+                    Command="{Binding ShowReportHistoryCommand}"
+                    HotKey="Ctrl+H"
+                    IsVisible="{Binding HasReportHistory}"
+                    ToolTip.Tip="Open report history (Ctrl+H)">
+                  <TextBlock Text="{Binding ReportHistoryActionLabel}" />
+                </Button>
+                <Button
+                    Classes="iconButton"
+                    Command="{Binding CloseReportCommand}"
+                    ToolTip.Tip="Close report">
+                  <TextBlock Text="×" />
+                </Button>
+              </StackPanel>
             </Grid>
           </Border>
 
-          <StackPanel Grid.Row="1" Margin="22,14,22,0" Spacing="8" IsVisible="{Binding HasReportHistory}">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-              <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#64748B" Text="Report history" />
-              <TextBlock Grid.Column="1" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding ReportHistorySummary}" />
-            </Grid>
-            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-              <ItemsControl ItemsSource="{Binding ReportHistoryEntries}">
-                <ItemsControl.ItemsPanel>
-                  <ItemsPanelTemplate>
-                    <StackPanel Orientation="Horizontal" />
-                  </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                  <StaticResource ResourceKey="ReportHistoryEntryTemplate" />
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </ScrollViewer>
-          </StackPanel>
+          <Border
+              Grid.Row="1"
+              Grid.RowSpan="3"
+              Margin="22,18,22,0"
+              Padding="16"
+              Background="#FFFFFF"
+              BorderBrush="#CBD5E1"
+              BorderThickness="1"
+              CornerRadius="8"
+              IsVisible="{Binding IsReportHistoryViewOpen}">
+            <Grid RowDefinitions="Auto,Auto,*" RowSpacing="14">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <StackPanel Spacing="3">
+                  <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="Report history" />
+                  <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding ReportHistorySummary}" />
+                  <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding ReportHistoryStorageSummary}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                  <Button Classes="secondary" Command="{Binding CloseReportHistoryCommand}" Content="Back to report" />
+                  <Button
+                      Classes="danger"
+                      Command="{Binding ClearReportHistoryCommand}"
+                      HotKey="Ctrl+Shift+Delete"
+                      Content="Clear all"
+                      ToolTip.Tip="Clear all report history (Ctrl+Shift+Delete)" />
+                </StackPanel>
+              </Grid>
 
-          <Grid Grid.Row="2" Margin="22,18,22,0" ColumnDefinitions="1.05*,1.4*" ColumnSpacing="16">
+              <Border Grid.Row="1" Padding="10" Background="#FFF7ED" BorderBrush="#FED7AA" BorderThickness="1" CornerRadius="8" IsVisible="{Binding HasReportHistoryStorageWarning}">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                  <TextBlock FontSize="12" Foreground="#9A3412" Text="{Binding ReportHistoryStorageWarning}" TextWrapping="Wrap" />
+                  <Button Grid.Column="1" Classes="danger" Command="{Binding ClearReportHistoryCommand}" Content="Clear history" />
+                </Grid>
+              </Border>
+
+              <Border Grid.Row="2" Padding="18" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" IsVisible="{Binding IsReportHistoryEmpty}">
+                <TextBlock FontSize="13" Foreground="#64748B" Text="No report history." />
+              </Border>
+
+              <ScrollViewer Grid.Row="2" IsVisible="{Binding HasReportHistory}">
+                <ItemsControl ItemsSource="{Binding ReportHistoryEntries}">
+                  <ItemsControl.ItemTemplate>
+                    <StaticResource ResourceKey="ReportHistoryEntryTemplate" />
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+            </Grid>
+          </Border>
+
+          <Grid Grid.Row="2" Margin="22,18,22,0" ColumnDefinitions="1.05*,1.4*" ColumnSpacing="16" IsVisible="{Binding IsReportReviewViewOpen}">
             <Border Padding="16" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
               <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
                 <Grid Width="38" Height="38" AutomationProperties.Name="{Binding LoadedReport.OutcomeAccessibilityLabel}">
@@ -2306,7 +2367,7 @@
             </StackPanel>
           </Grid>
 
-          <ScrollViewer Grid.Row="3" Margin="22,18,22,0">
+          <ScrollViewer Grid.Row="3" Margin="22,18,22,0" IsVisible="{Binding IsReportReviewViewOpen}">
             <Grid ColumnDefinitions="0.95*,1.25*" ColumnSpacing="18">
               <StackPanel Spacing="14">
                 <Border Padding="14" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
