@@ -7,12 +7,13 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 - `v0.1.0-dev.0` — init/bootstrap and contract definition node. Includes specification, governance, .NET/Avalonia solution skeleton, installers, CI/release skeleton, two Python references, domain proof primitives, external combiner runner contracts, and no firmware-parity claim.
 - `v0.5.0-dev.0` — development node for the production-backed settings shell, workflow-scoped Device context, breadcrumb navigation, and normal Replace priority UI state. It does not claim byte-level production parity or golden sign-off.
 - `v0.5.0` — baseline candidate for the normal Merge/Replace workbench, Settings shell, report modal workflow, memory coverage visualization, and Replace DP/CtrlRAM priority UI. It does not claim `v1.0.0` full support-matrix sign-off.
+- `v0.7.0` — stable milestone for Standard Merge, DP Replace, CtrlRAM Replace, General Replace traceability, report history, and workbench run-context refactoring. It does not claim `v1.0.0` full support-matrix sign-off or complete private golden parity.
 
 ## Branch and merge policy
 
 - `0.1.0` is the dev0 contract branch.
-- `0.5.0` is the reviewed baseline train and remains the current stable version metadata until the owner chooses the next release version.
-- `0.6.0` is the active post-`0.5.0` development train for workflow data-model convergence, UI/report polish, package reference payloads, and postbuild evidence closure.
+- `0.7.0` is the reviewed stable milestone for workflow traceability, General Replace execution, report history, and workbench run-context refactoring.
+- `0.8.0` is the active post-`0.7.0` development train for packaging/security hardening and remaining release evidence closure.
 - `main` is the stable branch.
 - Progress to `main` must happen through reviewed merge/PR, not direct unreviewed development pushes.
 - Agent/Codex work should stay on the active milestone branch until review gates pass.
@@ -85,3 +86,14 @@ v1.0.0          stable
 - CtrlRAM Replace UI/report trace and staged Combiner Preview/Build output verified, with private golden outputs and firmware-owner review still required before support parity is claimed.
 - `python scripts/verify.py --all`, Polytail, Codex review, and required human firmware review notes are complete.
 - A Windows x64 self-contained package is produced from the reviewed commit, with version metadata aligned to `0.5.0`.
+
+## `v0.7.0` release gate
+
+`v0.7.0` can be merged to `main` and packaged after review gates pass on the milestone branch:
+
+- Standard Merge, DP Replace, CtrlRAM Replace, and General Replace workbench paths have local verification coverage.
+- CtrlRAM postbuild version-category behavior for NT51926 and NT51930 is documented and tested, with private parity outputs still gated.
+- NT51950/NT51951 DP Replace selected-base behavior is covered for the available approved base lengths.
+- Report history and structured operation evidence are covered by UI smoke tests.
+- During the 2026-07-06 GitHub Actions billing outage, owner-approved local `python scripts/verify.py --all` plus Codex review can temporarily substitute for remote CI, but the release evidence must record that remote CI did not execute.
+- A Windows x64 self-contained package is produced from the reviewed commit, with version metadata aligned to `0.7.0`.

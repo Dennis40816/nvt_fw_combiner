@@ -21,7 +21,8 @@ public sealed class ShellViewModelTests
 
         Assert.True(viewModel.IsSettingsVisible);
         Assert.False(viewModel.IsDeviceContextVisible);
-        Assert.Equal("0.5.0", viewModel.AppVersion);
+        string expectedVersion = File.ReadAllText(RepositoryPaths.FromRepositoryRoot("VERSION")).Trim();
+        Assert.Equal(expectedVersion, viewModel.AppVersion);
         Assert.Contains(viewModel.SettingsProfileRows, row => row.Title == "Built-in profiles" && row.Value.Contains("merge", StringComparison.Ordinal));
         Assert.Contains(viewModel.SettingsToolRows, row => row.Title == "External tool binding" && row.Value.Contains("legacy-combiner-1.13.0", StringComparison.Ordinal));
         Assert.Contains(viewModel.SettingsDiagnosticsRows, row => row.Title == "Report review");
