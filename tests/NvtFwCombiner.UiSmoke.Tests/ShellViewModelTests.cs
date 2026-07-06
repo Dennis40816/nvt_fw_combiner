@@ -189,7 +189,7 @@ public sealed class ShellViewModelTests
         AssertBrush("#1D4ED8", required.SlotIconForegroundBrush);
         Assert.Equal("No BIN selected", required.DisplayName);
         Assert.Equal(string.Empty, required.DisplayDetail);
-        AssertBrush("#FFF7F7", required.SlotBackgroundBrush);
+        AssertBrush("#FEF2F2", required.SlotBackgroundBrush);
         AssertBrush("#FCA5A5", required.SlotBorderBrush);
         Assert.Equal(new Thickness(1.5), required.SlotBorderThickness);
         AssertBrush("#B91C1C", required.RequirementBadgeForegroundBrush);
@@ -491,6 +491,9 @@ public sealed class ShellViewModelTests
         Assert.Equal("Base BIN length: 0x40000 / 0x80000 / 0x100000", viewModel.ReplaceMemoryRangeLabel);
         Assert.Equal("Base length pending", segment.RangeLabel);
         Assert.Equal("DP base required", segment.SourceLabel);
+        Assert.Equal(
+            "Output range will follow the selected base BIN length.",
+            segment.CompactDetail);
         Assert.Contains("actual DP Replace length", segment.Detail, StringComparison.Ordinal);
         Assert.DoesNotContain("0x00000-0xFFFFF", segment.RangeLabel, StringComparison.Ordinal);
         Assert.DoesNotContain("max", segment.Detail, StringComparison.OrdinalIgnoreCase);
@@ -507,15 +510,20 @@ public sealed class ShellViewModelTests
         MemoryMapRowViewModel initialRow = Assert.Single(
             viewModel.MergeMemoryRows,
             row => row.ActionLabel == "Initialize");
-        Assert.Equal("DP BIN length (max end 0xFFFFF)", initialRow.RangeLabel);
-        Assert.Contains("Max inclusive end is 0xFFFFF", initialRow.Detail, StringComparison.Ordinal);
+        Assert.Equal("Selected DP BIN length pending", initialRow.RangeLabel);
+        Assert.Contains("Supported DP lengths are 0x40000, 0x80000, and 0x100000", initialRow.Detail, StringComparison.Ordinal);
+        Assert.DoesNotContain("0xFFFFF", initialRow.Detail, StringComparison.Ordinal);
         Assert.Equal("No output -> Reserved", initialRow.FlowLabel);
-        Assert.Contains(viewModel.MergeCoverageSegments, segment =>
-            segment.SourceLabel == "TP BIN" &&
-            segment.CompactDetail == "Output range uses bytes from TP BIN.");
-        Assert.Contains(viewModel.MergeCoverageSegments, segment =>
-            segment.SourceLabel == "DP BIN" &&
-            segment.CompactDetail == "Output range uses bytes from DP BIN.");
+        Assert.Equal("Selected DP BIN length pending", viewModel.MergeMemoryRangeLabel);
+        _ = Assert.Single(viewModel.MergeMemoryRows);
+        MemoryCoverageSegmentViewModel pendingSegment = Assert.Single(viewModel.MergeCoverageSegments);
+        Assert.Equal("Selected DP BIN length pending", pendingSegment.RangeLabel);
+        Assert.Equal("DP length pending", pendingSegment.SourceLabel);
+        Assert.Equal(
+            "Output range will follow the selected DP BIN length.",
+            pendingSegment.CompactDetail);
+        Assert.Contains("Select a DP BIN before final ownership is drawn", pendingSegment.Detail, StringComparison.Ordinal);
+        Assert.DoesNotContain("0xFFFFF", pendingSegment.RangeLabel, StringComparison.Ordinal);
         Assert.All(viewModel.MergeCoverageSegments, segment =>
         {
             Assert.NotEqual("Preserved", segment.ChangeLabel);
@@ -737,6 +745,9 @@ public sealed class ShellViewModelTests
         MemoryCoverageSegmentViewModel segment = Assert.Single(viewModel.ReplaceCoverageSegments);
         Assert.Equal("Unsupported 0x60000", segment.RangeLabel);
         Assert.Equal("Unsupported base", segment.SourceLabel);
+        Assert.Equal(
+            "This base BIN length is blocked by profile policy.",
+            segment.CompactDetail);
         Assert.False(segment.IsChanged);
     }
 
@@ -1207,6 +1218,11 @@ public sealed class ShellViewModelTests
         Assert.True(viewModel.HasReportHistory);
         Assert.Equal(1, viewModel.ReportHistoryCount);
         Assert.Equal("1 report in history", viewModel.ReportHistorySummary);
+        Assert.True(viewModel.CanOpenReportHistory);
+        Assert.True(viewModel.ShowReportHistoryCommand.CanExecute(null));
+        Assert.True(viewModel.ClearReportHistoryCommand.CanExecute(null));
+        Assert.False(viewModel.IsReportHistoryViewOpen);
+        Assert.True(viewModel.IsReportReviewViewOpen);
         ReportHistoryEntryViewModel historyEntry = Assert.Single(viewModel.ReportHistoryEntries);
         Assert.Equal("#1", historyEntry.SequenceLabel);
         Assert.Equal("nt51927-standard-merge-gen-flash (NT51927)", historyEntry.Title);
@@ -1249,6 +1265,8 @@ public sealed class ShellViewModelTests
         viewModel.ShowReportCommand.Execute(null);
 
         Assert.True(viewModel.IsReportModalOpen);
+        Assert.False(viewModel.IsReportHistoryViewOpen);
+        Assert.True(viewModel.IsReportReviewViewOpen);
         Assert.False(viewModel.HasReportToast);
         Assert.Equal(0, viewModel.ReportToastOpacity);
 
@@ -1277,7 +1295,7 @@ public sealed class ShellViewModelTests
         Assert.Contains(viewModel.LoadedReport.EvidenceRows, row =>
             row.Title == "Output diff" &&
             row.Detail == "1" &&
-            row.Meta == "base vs final");
+            row.Meta == "all accepted");
     }
 
     /// <summary>Verifies report history can reopen earlier reports without adding a new run.</summary>
@@ -1302,14 +1320,58 @@ public sealed class ShellViewModelTests
         Assert.Equal("nt51927-standard-merge-gen-flash (NT51927)", viewModel.ReportHistoryEntries[1].Title);
         Assert.Equal("abcdef0123456789...", viewModel.ReportHistoryEntries[1].OutputHash);
 
+        viewModel.ShowReportHistoryCommand.Execute(null);
+
+        Assert.True(viewModel.IsReportModalOpen);
+        Assert.True(viewModel.IsReportHistoryViewOpen);
+        Assert.False(viewModel.IsReportReviewViewOpen);
+
         viewModel.OpenReportHistoryEntryCommand.Execute(viewModel.ReportHistoryEntries[1]);
 
         Assert.True(viewModel.IsReportModalOpen);
+        Assert.False(viewModel.IsReportHistoryViewOpen);
+        Assert.True(viewModel.IsReportReviewViewOpen);
         Assert.False(viewModel.HasReportToast);
         Assert.Equal("preview-report.json", viewModel.LoadedReport.SourceName);
         Assert.Equal("nt51927-standard-merge-gen-flash (NT51927)", viewModel.LoadedReport.Title);
         Assert.Equal(previewJson, viewModel.LoadedReportJson);
         Assert.Equal(2, viewModel.ReportHistoryCount);
+
+        viewModel.ShowReportHistoryCommand.Execute(null);
+        viewModel.ClearReportHistoryCommand.Execute(null);
+
+        Assert.False(viewModel.HasReportHistory);
+        Assert.True(viewModel.IsReportHistoryEmpty);
+        Assert.Equal(0, viewModel.ReportHistoryCount);
+        Assert.Equal("No reports in history", viewModel.ReportHistorySummary);
+        Assert.False(viewModel.CanOpenReportHistory);
+        Assert.False(viewModel.ShowReportHistoryCommand.CanExecute(null));
+        Assert.False(viewModel.ClearReportHistoryCommand.CanExecute(null));
+        Assert.True(viewModel.HasLoadedReport);
+        Assert.Equal("preview-report.json", viewModel.LoadedReport.SourceName);
+    }
+
+    /// <summary>Verifies local report history reports oversized storage and can be cleared in one action.</summary>
+    [Fact]
+    public void ReportHistoryFlagsOversizedStorageForOneClickCleanup()
+    {
+        string json = ReportJsonSamples.Succeeded();
+        string paddedJson = json.Insert(json.LastIndexOf('}'), $",\"Padding\":\"{new string('A', 1024 * 1024)}\"");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        viewModel.LoadReportJson(paddedJson, "large-report.json");
+        viewModel.ShowReportHistoryCommand.Execute(null);
+
+        Assert.True(viewModel.IsReportHistoryViewOpen);
+        Assert.True(viewModel.HasReportHistoryStorageWarning);
+        Assert.Contains("MB", viewModel.ReportHistoryStorageSummary, StringComparison.Ordinal);
+        Assert.Contains("Clear history", viewModel.ReportHistoryStorageWarning, StringComparison.Ordinal);
+
+        viewModel.ClearReportHistoryCommand.Execute(null);
+
+        Assert.False(viewModel.HasReportHistoryStorageWarning);
+        Assert.Equal("0 B stored locally", viewModel.ReportHistoryStorageSummary);
+        Assert.Empty(viewModel.ExportReportHistory());
     }
 
     /// <summary>Verifies persisted report history snapshots restore report metadata and artifact path context.</summary>

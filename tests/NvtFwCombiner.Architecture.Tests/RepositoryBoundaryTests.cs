@@ -89,7 +89,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("RemoveGeneralMappingButton_OnClick", shell, StringComparison.Ordinal);
         Assert.Contains("IsNonCtrlRamStructuredReplaceModeSelected", shell, StringComparison.Ordinal);
         Assert.Contains("General replace mapping", shell, StringComparison.Ordinal);
-        Assert.Contains("Workbench wiring pending", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("Workbench wiring pending", shell, StringComparison.Ordinal);
         Assert.Contains("Target bounds", shell, StringComparison.Ordinal);
         Assert.Contains("Input length", shell, StringComparison.Ordinal);
         Assert.Contains("Explicit mappings", shell, StringComparison.Ordinal);
@@ -112,6 +112,17 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("IsEnabled=\"{Binding CanOpenReport}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ReportActionLabel", shell, StringComparison.Ordinal);
         Assert.Contains("ReportActionStatus", shell, StringComparison.Ordinal);
+        Assert.Contains("<Window.KeyBindings>", shell, StringComparison.Ordinal);
+        Assert.Contains("Gesture=\"Ctrl+H\" Command=\"{Binding ShowReportHistoryCommand}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Gesture=\"Ctrl+Shift+Delete\" Command=\"{Binding ClearReportHistoryCommand}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"Open report history\"", shell, StringComparison.Ordinal);
+        int reportHeaderIndex = shell.IndexOf("Text=\"{Binding LoadedReport.Title}\"", StringComparison.Ordinal);
+        int evidenceMapIndex = shell.IndexOf("Text=\"Evidence map\"", StringComparison.Ordinal);
+        int historyActionIndex = shell.IndexOf("AutomationProperties.Name=\"Open report history\"", StringComparison.Ordinal);
+        Assert.True(
+            reportHeaderIndex >= 0 && evidenceMapIndex > reportHeaderIndex && historyActionIndex > evidenceMapIndex,
+            "Report history should remain a secondary evidence action instead of returning to the report modal header.");
+        Assert.DoesNotContain("ReportHistoryActionLabel", shell, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.OutcomeTitle", shell, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.EvidenceRows", shell, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.TriageRows", shell, StringComparison.Ordinal);

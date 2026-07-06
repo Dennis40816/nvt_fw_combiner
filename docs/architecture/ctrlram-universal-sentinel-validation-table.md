@@ -38,6 +38,8 @@ The current `IC_FlashMap_20260705.xlsx` `TP Overview` sheet splits NT51926 into 
 
 The `51926 TP Flashmap` detail sheet still carries the 2.0.0-style single table, so code and reports continue to use the selected postbuild category rather than an IC-only detail-sheet row.
 
+Committed NT51926 `1.4.1` BIN evidence has exactly one little-endian end-flag marker (`00 4E 56 54`) and it starts at `0x3BFFC`. The same check on the 2026-07-05 base, Standard Merge TP input, and Standard Merge expected flash shows `0x34FFC = 00 00 00 00`. Use the selected postbuild category for FWConfig/header-copy lengths, and do not treat the 2.0.0 mmap `FLASHMAP_ENDFLAG 0x34FFC` row as the actual marker location for the current `1.4.1` fixture.
+
 NT51930 has an `IC > 13, Max29` extended DiffDLM row and TP Overview category notes in the 2026-07-05 10:34:14 workbook. Its 1.x and 2.0.0 postbuild categories still consume different CtrlRAM slots:
 
 | NT51930 source | Branch | MP | VN | DiffDLM | Header copy |

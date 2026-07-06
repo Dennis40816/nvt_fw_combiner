@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.Input;
 
@@ -7,6 +9,7 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 public sealed partial class MainWindowViewModel
 {
     private const int MaxReportHistoryEntries = 12;
+    private const int ReportHistoryStorageWarningBytes = 1024 * 1024;
     private static readonly JsonSerializerOptions RunErrorReportJsonOptions = new() { WriteIndented = true };
     private int _reportHistorySequence;
 
@@ -22,6 +25,9 @@ public sealed partial class MainWindowViewModel
     /// <summary>True when the session has at least one report.</summary>
     public bool HasReportHistory => ReportHistoryEntries.Count > 0;
 
+    /// <summary>True when the report history list is empty.</summary>
+    public bool IsReportHistoryEmpty => !HasReportHistory;
+
     /// <summary>Number of reports captured in this UI session.</summary>
     public int ReportHistoryCount => ReportHistoryEntries.Count;
 
@@ -31,6 +37,20 @@ public sealed partial class MainWindowViewModel
             ? "1 report in history"
             : $"{ReportHistoryCount} reports in history"
         : "No reports in history";
+
+    /// <summary>Total in-memory persisted history payload size.</summary>
+    public long ReportHistoryTotalBytes => ReportHistoryEntries.Sum(entry =>
+        Encoding.UTF8.GetByteCount(entry.ReportJson) +
+        Encoding.UTF8.GetByteCount(entry.ArtifactPath));
+
+    /// <summary>Human-readable local report history storage summary.</summary>
+    public string ReportHistoryStorageSummary => $"{FormatByteCount(ReportHistoryTotalBytes)} stored locally";
+
+    /// <summary>True when local report history has crossed the cleanup warning size.</summary>
+    public bool HasReportHistoryStorageWarning => ReportHistoryTotalBytes >= ReportHistoryStorageWarningBytes;
+
+    /// <summary>Cleanup warning for oversized local report history.</summary>
+    public string ReportHistoryStorageWarning => $"History uses {FormatByteCount(ReportHistoryTotalBytes)}, above the {FormatByteCount(ReportHistoryStorageWarningBytes)} limit. Clear history to keep local UI state small.";
 
     /// <summary>True when a run report is loaded into the shell.</summary>
     public bool HasLoadedReport => !LoadedReport.IsEmpty;
@@ -48,6 +68,18 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>True when the latest report modal is open.</summary>
     public bool IsReportModalOpen { get; private set; }
+
+    /// <summary>True when the report modal shows the dedicated history view.</summary>
+    public bool IsReportHistoryViewOpen { get; private set; }
+
+    /// <summary>True when the report modal shows the current report review.</summary>
+    public bool IsReportReviewViewOpen => !IsReportHistoryViewOpen;
+
+    /// <summary>True when a report history view can be opened.</summary>
+    public bool CanOpenReportHistory => HasReportHistory;
+
+    /// <summary>True when local report history can be cleared.</summary>
+    public bool CanClearReportHistory => HasReportHistory;
 
     /// <summary>True when a compact report notification should be shown.</summary>
     public bool HasReportToast { get; private set; }
@@ -71,6 +103,15 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>Command that dismisses the compact report notification.</summary>
     public IRelayCommand DismissReportToastCommand { get; }
+
+    /// <summary>Command that opens the dedicated report history view.</summary>
+    public IRelayCommand ShowReportHistoryCommand { get; }
+
+    /// <summary>Command that returns from report history to the current report review.</summary>
+    public IRelayCommand CloseReportHistoryCommand { get; }
+
+    /// <summary>Command that clears local report history entries.</summary>
+    public IRelayCommand ClearReportHistoryCommand { get; }
 
     /// <summary>Command that reopens a report history entry.</summary>
     public IRelayCommand<ReportHistoryEntryViewModel> OpenReportHistoryEntryCommand { get; }
@@ -253,11 +294,42 @@ public sealed partial class MainWindowViewModel
 
         CloseReplaceSelectionForRun();
         IsReportModalOpen = true;
+        IsReportHistoryViewOpen = false;
         HasReportToast = false;
         ReportToastOpacity = 0;
         OnPropertyChanged(nameof(IsReportModalOpen));
+        NotifyReportViewModeChanged();
         OnPropertyChanged(nameof(HasReportToast));
         OnPropertyChanged(nameof(ReportToastOpacity));
+    }
+
+    private void ShowReportHistory()
+    {
+        if (!CanOpenReportHistory)
+        {
+            return;
+        }
+
+        CloseReplaceSelectionForRun();
+        IsReportModalOpen = true;
+        IsReportHistoryViewOpen = true;
+        HasReportToast = false;
+        ReportToastOpacity = 0;
+        OnPropertyChanged(nameof(IsReportModalOpen));
+        NotifyReportViewModeChanged();
+        OnPropertyChanged(nameof(HasReportToast));
+        OnPropertyChanged(nameof(ReportToastOpacity));
+    }
+
+    private void CloseReportHistory()
+    {
+        if (!IsReportHistoryViewOpen)
+        {
+            return;
+        }
+
+        IsReportHistoryViewOpen = false;
+        NotifyReportViewModeChanged();
     }
 
     private void OpenReportHistoryEntry(ReportHistoryEntryViewModel? entry)
@@ -271,12 +343,26 @@ public sealed partial class MainWindowViewModel
         LoadedReportJson = entry.ReportJson;
         CloseReplaceSelectionForRun();
         IsReportModalOpen = true;
+        IsReportHistoryViewOpen = false;
         HasReportToast = false;
         ReportToastOpacity = 0;
         NotifyReportChanged();
         OnPropertyChanged(nameof(IsReportModalOpen));
+        NotifyReportViewModeChanged();
         OnPropertyChanged(nameof(HasReportToast));
         OnPropertyChanged(nameof(ReportToastOpacity));
+        RefreshSettingsState();
+    }
+
+    private void ClearReportHistory()
+    {
+        if (!HasReportHistory)
+        {
+            return;
+        }
+
+        ReportHistoryEntries.Clear();
+        NotifyReportHistoryChanged();
         RefreshSettingsState();
     }
 
@@ -288,7 +374,9 @@ public sealed partial class MainWindowViewModel
         }
 
         IsReportModalOpen = false;
+        IsReportHistoryViewOpen = false;
         OnPropertyChanged(nameof(IsReportModalOpen));
+        NotifyReportViewModeChanged();
     }
 
     private void DismissReportToast()
@@ -361,9 +449,24 @@ public sealed partial class MainWindowViewModel
     {
         OnPropertyChanged(nameof(ReportHistoryEntries));
         OnPropertyChanged(nameof(HasReportHistory));
+        OnPropertyChanged(nameof(IsReportHistoryEmpty));
         OnPropertyChanged(nameof(ReportHistoryCount));
         OnPropertyChanged(nameof(ReportHistorySummary));
+        OnPropertyChanged(nameof(ReportHistoryTotalBytes));
+        OnPropertyChanged(nameof(ReportHistoryStorageSummary));
+        OnPropertyChanged(nameof(HasReportHistoryStorageWarning));
+        OnPropertyChanged(nameof(ReportHistoryStorageWarning));
+        OnPropertyChanged(nameof(CanOpenReportHistory));
+        OnPropertyChanged(nameof(CanClearReportHistory));
+        ShowReportHistoryCommand.NotifyCanExecuteChanged();
+        ClearReportHistoryCommand.NotifyCanExecuteChanged();
         OpenReportHistoryEntryCommand.NotifyCanExecuteChanged();
+    }
+
+    private void NotifyReportViewModeChanged()
+    {
+        OnPropertyChanged(nameof(IsReportHistoryViewOpen));
+        OnPropertyChanged(nameof(IsReportReviewViewOpen));
     }
 
     private void NotifyReportChanged()
@@ -389,5 +492,16 @@ public sealed partial class MainWindowViewModel
         }
 
         return candidate.Length == 0 ? "nvt-fw-combiner-report" : candidate;
+    }
+
+    private static string FormatByteCount(long byteCount)
+    {
+        const double kib = 1024;
+        const double mib = 1024 * kib;
+        return byteCount >= mib
+            ? $"{(byteCount / mib).ToString("0.0", CultureInfo.InvariantCulture)} MB"
+            : byteCount >= kib
+                ? $"{(byteCount / kib).ToString("0.0", CultureInfo.InvariantCulture)} KB"
+                : $"{byteCount.ToString(CultureInfo.InvariantCulture)} B";
     }
 }

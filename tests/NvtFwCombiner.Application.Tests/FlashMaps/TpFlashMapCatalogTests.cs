@@ -129,11 +129,13 @@ public sealed class TpFlashMapCatalogTests
         Assert.Equal(expectedStart, start);
     }
 
-    /// <summary>NT51926/NT51927 expose TP Overview backup rows used by postbuild traceability.</summary>
+    /// <summary>TP Overview backup rows used by postbuild traceability are declared explicitly.</summary>
     [Theory]
+    [InlineData("NT51920", "fw-config-backup", 0x2F000, 0x00780)]
     [InlineData("NT51926", "fw-config-backup", 0x3B000, 0x00780)]
     [InlineData("NT51927", "header-backup", 0x32DC0, 0x00460)]
     [InlineData("NT51927", "fw-config-reg-backup", 0x34000, 0x00800)]
+    [InlineData("NT51931", "fw-config-backup", 0x3B000, 0x00800)]
     public void BackupRowsFromTpOverviewAreDeclared(string icId, string regionId, long start, long length)
     {
         Assert.True(TpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? profile));
@@ -144,6 +146,45 @@ public sealed class TpFlashMapCatalogTests
         Assert.Equal(new ByteRange(start, length), region.Range);
         Assert.Contains("backup", region.Tags);
         Assert.Contains("postbuild", region.Tags);
+    }
+
+    /// <summary>Rows adjacent to the TP end flag are cataloged as protected traceability rows.</summary>
+    [Theory]
+    [InlineData("NT51920", "fw-config-backup", 0x2F000, 0x00780, "backup")]
+    [InlineData("NT51923", "fw-config-backup", 0x3B000, 0x00800, "fw-config")]
+    [InlineData("NT51927", "fw-config-reg-backup", 0x34000, 0x00800, "backup")]
+    [InlineData("NT51929", "fw-information", 0x3F000, 0x00FFC, "fw-information")]
+    [InlineData("NT51930", "fw-information-host", 0x3F000, 0x00FFC, "fw-information")]
+    [InlineData("NT51931", "fw-config-backup", 0x3B000, 0x00800, "backup")]
+    [InlineData("NT51950", "fw-information-host", 0x36000, 0x00FFC, "fw-information")]
+    [InlineData("NT51951", "fw-information-host", 0x36000, 0x00FFC, "fw-information")]
+    public void EndFlagAdjacentRowsFromTpOverviewAreDeclared(
+        string icId,
+        string regionId,
+        long start,
+        long length,
+        string expectedTag)
+    {
+        Assert.True(TpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? profile));
+
+        TpFlashMapRegion region = Assert.Single(profile!.Regions, candidate => candidate.RegionId == regionId);
+
+        Assert.Equal(TpFlashMapRegionKind.Other, region.Kind);
+        Assert.Equal(new ByteRange(start, length), region.Range);
+        Assert.Contains(expectedTag, region.Tags);
+    }
+
+    /// <summary>NT51923 keeps the workbook label distinct from postbuild's fw-config-backup block id.</summary>
+    [Fact]
+    public void Nt51923FwConfigKeepsWorkbookLabel()
+    {
+        Assert.True(TpFlashMapCatalog.TryFind("NT51923", out TpFlashMapProfile? profile));
+
+        TpFlashMapRegion region = Assert.Single(profile!.Regions, candidate => candidate.RegionId == "fw-config-backup");
+
+        Assert.Equal("FW Config", region.DisplayName);
+        Assert.DoesNotContain("backup", region.Tags);
+        Assert.Contains("workbook-label-fw-config", region.Tags);
     }
 
     /// <summary>Every staged postbuild CtrlRAM block must overlap a TP Overview CtrlRAM row with the same BIN name.</summary>

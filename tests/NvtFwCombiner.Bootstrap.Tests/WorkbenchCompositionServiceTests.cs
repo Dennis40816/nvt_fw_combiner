@@ -85,6 +85,34 @@ public sealed class WorkbenchCompositionServiceTests
             });
     }
 
+    /// <summary>Verifies General Replace keeps TP Overview information rows protected.</summary>
+    [Fact]
+    public async Task GeneralReplaceRejectsFwInformationRows()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-general-protected");
+        string basePath = workspace.Write("base.bin", CreatePattern(0x40000, 0x20));
+        string replacementPath = workspace.Write("replacement.bin", [0xA5]);
+        Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
+        {
+            ["replace-base"] = basePath,
+        };
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51950",
+            "single",
+            "General",
+            slotPaths,
+            [new WorkbenchGeneralReplaceMappingInput("general-map-1", replacementPath, "0x36000", "0x36000")],
+            build: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.Succeeded);
+        using var document = JsonDocument.Parse(result.ReportJson);
+        Assert.Contains(
+            document.RootElement.GetProperty("Issues").EnumerateArray(),
+            issue => issue.GetProperty("Code").GetString() == "profile.explicit-mapping.region-not-enabled");
+    }
+
     /// <summary>Rejects Workbench DP Replace build outputs that would overwrite selected input BINs.</summary>
     [Fact]
     public async Task DpReplaceBuildRejectsOutputPathThatAliasesInput()
