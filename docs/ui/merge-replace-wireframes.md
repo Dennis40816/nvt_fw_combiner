@@ -8,7 +8,7 @@ This document describes the current production-backed workbench interface for Me
 [Header: product + compact navigation]
 [Large card: Settings]
 [Large card: Replace: DP | CtrlRAM | General]
-[Large card: Merge: Normal | AB Code disabled]
+[Large card: Merge: Normal | General | AB Code disabled]
 ```
 
 The home launcher must stay clean. It does not show Device context, Memory coverage, reports, diagnostics, or mixed Merge/Replace workflow details.
@@ -16,7 +16,7 @@ The home launcher must stay clean. It does not show Device context, Memory cover
 ## Shared page layout
 
 ```text
-[Fixed Device context: IC | Number]
+[Fixed Device context: IC | Number where workflow requires Number]
 [Left primary workspace: page header, Preview | Build, Memory coverage, mode, slot cards]
 [Right inspector: profile, validation, readiness, processor status]
 ```
@@ -61,7 +61,7 @@ AB Code Merge
   A/B bank model with declared container views, relocation patches, and external processing. Deferred for the current implementation phase.
 
 General Merge
-  Advanced mapping editor that starts from a blank image. Saved-rule controls are hidden in the first UI release.
+  Advanced mapping editor that starts from a blank image. Saved-rule controls remain hidden until reviewed.
 ```
 
 ### Normal Merge sections
@@ -86,16 +86,17 @@ General Merge
 
 ### General Merge sections
 
-1. Dynamic input list.
-2. Mapping table:
-   - source input;
-   - source range;
-   - target address space;
-   - target range;
-   - overlap policy;
-   - reason.
-3. Saved-rule controls hidden until the workflow is implemented and reviewed.
-4. Saved-rule status omitted from the first UI release.
+1. Shared IC context from the fixed Device context row; Number is hidden because General Merge v1 has no IC-count branch.
+2. Output length field. The output starts as blank/reserved bytes and does not clone a reference image.
+3. Mapping table:
+   - source start;
+   - target start;
+   - length;
+   - source BIN.
+4. Visual-first Memory coverage showing reserved output plus explicit Source BIN writes.
+5. Ordered operation preview table as supporting detail.
+6. No postbuild command is invoked by General Merge v1. TP-touching edits that require CRC/header refresh belong to Replace, not Merge.
+7. Saved-rule controls hidden until the workflow is implemented and reviewed.
 
 ## Replace page
 

@@ -4,7 +4,20 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-Post-`0.7.1` development targets `0.8.0-dev.N`.
+Post-`0.7.2` development targets `0.8.0-dev.N`.
+
+## [0.7.2] - 2026-07-06
+
+### Added
+
+- General Merge v1 execution from CLI and UI, using explicit source-start, target-start, and length mappings over a caller-declared blank output image.
+- General Merge workbench reports now include structured operation, input, output size/hash, and committed output evidence.
+- General Merge memory coverage preview now shows reserved output bytes and explicit Source BIN writes before Preview/Build.
+
+### Changed
+
+- Merge mode selection now separates Standard Merge, General Merge, and reserved AB Code state in the desktop workbench.
+- General Merge profile versioning follows the repository `VERSION`/assembly informational version instead of duplicating a literal version in code.
 
 ## [0.7.1] - 2026-07-06
 
