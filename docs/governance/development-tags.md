@@ -10,13 +10,15 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 - `v0.7.0` — stable milestone for Standard Merge, DP Replace, CtrlRAM Replace, General Replace traceability, report history, and workbench run-context refactoring. It does not claim `v1.0.0` full support-matrix sign-off or complete private golden parity.
 - `v0.7.1` — patch milestone for Replace report output-difference traceability. It classifies final output-vs-reference differences as declared replacement, IC-number-specific postbuild CRC/header, or unexpected; it does not expand firmware support scope.
 - `v0.7.2` — patch milestone for General Merge v1. It adds CLI/UI explicit source-to-target mappings over a caller-declared blank output image and does not add saved-rule promotion, postbuild behavior, or new IC support claims.
+- `v0.7.3` — patch milestone for saved-rule validation, operation provenance, and General Merge saved-rule CLI consumption. It does not promote saved rules into normal workflows or enable General Replace saved-rule execution.
 
 ## Branch and merge policy
 
 - `0.1.0` is the dev0 contract branch.
 - `0.7.1` is the patch train for Replace report output-difference traceability on top of the reviewed `0.7.0` stable milestone.
 - `0.7.2` is the patch train for General Merge v1 on top of `0.7.1`.
-- `0.8.0` is the active post-`0.7.2` development train for packaging/security hardening and remaining release evidence closure.
+- `0.7.3` is the patch train for saved-rule validation and General Merge rule consumption on top of `0.7.2`.
+- `0.8.0` is the active post-`0.7.3` development train for packaging/security hardening and remaining release evidence closure.
 - `main` is the stable branch.
 - Progress to `main` must happen through reviewed merge/PR, not direct unreviewed development pushes.
 - Agent/Codex work should stay on the active milestone branch until review gates pass.
@@ -35,7 +37,7 @@ Current execution priority: normal Merge and normal Replace for DP Replace and C
 | `0.4.0-dev.N` | Integrity/tool processing | Legacy combiner runner hardening, CRC/Header golden cases, packaging integration. |
 | `0.5.0-dev.N` | Normal Replace priority | DP Replace and CtrlRAM Replace workflows, IC num text choices for two-option profiles, numeric count selection for three-or-more concrete count profiles, and post-replace combiner readiness. |
 | `0.6.0-dev.N` | Workflow data-model convergence | Evaluate and refactor Merge/Replace data into a unified profile/template/catalog model across ICs. No new byte behavior without evidence. |
-| `0.7.0-dev.N` | General Merge/Replace, saved rules, and deferred AB merge | Dynamic mappings, saved rule promotion, preset catalog; AB bank layout resumes only after owner reactivation and golden evidence. General Merge v1 ships in `0.7.2`; saved-rule promotion remains a later 0.7.x review item. |
+| `0.7.0-dev.N` | General Merge/Replace, saved rules, and deferred AB merge | Dynamic mappings, saved-rule validation/preset projection, and deferred promotion catalog; AB bank layout resumes only after owner reactivation and golden evidence. General Merge v1 ships in `0.7.2`; saved-rule validation and General Merge CLI consumption ship in `0.7.3`; normal-workflow promotion remains separately reviewed. |
 | `0.8.0-dev.N` | Packaging/security | Release packaging, tool manifests, smoke tests. |
 | `0.9.0-rc.N` | UAT/release candidates | UX polish, internal sign-off. |
 | `v1.0.0` | stable | Signed-off support matrix. |
@@ -68,6 +70,7 @@ v0.5.0-dev.N    normal Replace priority for DP/CtrlRAM
 v0.6.0-dev.N    workflow data-model convergence
 v0.7.0-dev.N    General Merge/Replace saved rules and deferred AB merge
 v0.7.2          General Merge v1
+v0.7.3          saved-rule validation and General Merge CLI consumption
 v0.8.0-dev.N    packaging/security
 v0.9.0-rc.N     UAT/release candidates
 v1.0.0          stable
@@ -111,4 +114,15 @@ v1.0.0          stable
 - General Merge reports include input summaries, operation details, output size/hash, and committed output path when built.
 - General Merge does not invoke legacy Combiner postbuild; TP-touching CRC/header refresh remains a Replace responsibility.
 - Saved-rule promotion remains out of scope for this patch and must be reviewed separately before exposure.
+- `python scripts/verify.py --all`, Polytail, Codex review, and required local verification are complete before tagging.
+
+## `v0.7.3` release gate
+
+`v0.7.3` can be merged after the saved-rule validation branch passes review gates:
+
+- Operation reports expose operation provenance for built-in profile operations, runtime General mappings, and saved-rule mappings.
+- `saved-rule validate` rejects unknown fields, command/script hooks, invalid compatibility, invalid ranges, duplicate ids, and unsafe source/target row shapes.
+- `saved-rule mappings` prints normalized mapping rows and CLI fragments without reading or writing firmware bytes.
+- General Merge CLI accepts `--rule <rule.json>` plus explicit `--slot <slot-id=path>` bindings and compiles resulting rows through the same General Merge planner/executor.
+- General Replace saved-rule build, UI Saved Rules, and normal-workflow promotion remain out of scope until their processor/range policy and review gates are defined.
 - `python scripts/verify.py --all`, Polytail, Codex review, and required local verification are complete before tagging.

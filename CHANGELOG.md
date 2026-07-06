@@ -4,7 +4,20 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-Post-`0.7.2` development targets `0.8.0-dev.N`.
+Post-`0.7.3` development targets `0.8.0-dev.N`.
+
+## [0.7.3] - 2026-07-06
+
+### Added
+
+- Operation reports now carry structured provenance so each operation can be traced to a built-in profile, runtime General mapping, or saved rule.
+- Saved composition rules can be validated from CLI with strict field checks that reject hidden command/script fields.
+- General Merge CLI can consume reviewed saved-rule mapping rows through `--rule <rule.json>` and explicit `--slot <slot-id=path>` bindings, compiling them back through the shared General Merge planner.
+
+### Changed
+
+- Report review operation cards now show operation source alongside status, overlap, ranges, processor/tool details, and reasons.
+- Saved-rule support remains data-first: General Replace saved-rule execution, UI Saved Rules, and promotion into normal workflows still require separate review.
 
 ## [0.7.2] - 2026-07-06
 

@@ -17,7 +17,8 @@ public sealed class CompositionOperation
         byte? fillByte,
         byte[] patchBytes,
         ExternalProcessorInvocation? externalProcessorInvocation,
-        string reason)
+        string reason,
+        OperationProvenance? provenance)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(operationId);
         ArgumentException.ThrowIfNullOrWhiteSpace(targetSpaceId);
@@ -36,6 +37,7 @@ public sealed class CompositionOperation
         _patchBytes = [.. patchBytes];
         ExternalProcessorInvocation = externalProcessorInvocation;
         Reason = reason;
+        Provenance = provenance ?? OperationProvenance.BuiltInProfile;
     }
 
     /// <summary>Stable operation id used in traces and issues.</summary>
@@ -74,6 +76,9 @@ public sealed class CompositionOperation
     /// <summary>Human-readable reason recorded in mutation traces.</summary>
     public string Reason { get; }
 
+    /// <summary>Traceable origin for this operation.</summary>
+    public OperationProvenance Provenance { get; }
+
     /// <summary>Creates a copy-range operation.</summary>
     public static CompositionOperation CopyRange(
         string operationId,
@@ -83,7 +88,8 @@ public sealed class CompositionOperation
         string targetSpaceId,
         ByteRange targetRange,
         OverlapPolicy overlapPolicy,
-        string reason)
+        string reason,
+        OperationProvenance? provenance = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceSpaceId);
         EnsureEqualLength(sourceRange, targetRange, nameof(targetRange));
@@ -99,7 +105,8 @@ public sealed class CompositionOperation
             null,
             [],
             null,
-            reason);
+            reason,
+            provenance);
     }
 
     /// <summary>Creates a replace-range operation.</summary>
@@ -111,7 +118,8 @@ public sealed class CompositionOperation
         string targetSpaceId,
         ByteRange targetRange,
         OverlapPolicy overlapPolicy,
-        string reason)
+        string reason,
+        OperationProvenance? provenance = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceSpaceId);
         EnsureEqualLength(sourceRange, targetRange, nameof(targetRange));
@@ -127,7 +135,8 @@ public sealed class CompositionOperation
             null,
             [],
             null,
-            reason);
+            reason,
+            provenance);
     }
 
     /// <summary>Creates a fill-range operation.</summary>
@@ -138,7 +147,8 @@ public sealed class CompositionOperation
         ByteRange targetRange,
         byte fillByte,
         OverlapPolicy overlapPolicy,
-        string reason)
+        string reason,
+        OperationProvenance? provenance = null)
     {
         return new CompositionOperation(
             operationId,
@@ -152,7 +162,8 @@ public sealed class CompositionOperation
             fillByte,
             [],
             null,
-            reason);
+            reason,
+            provenance);
     }
 
     /// <summary>Creates a patch-scalar operation from exact bytes supplied by the profile.</summary>
@@ -163,7 +174,8 @@ public sealed class CompositionOperation
         ByteRange targetRange,
         IReadOnlyList<byte> patchBytes,
         OverlapPolicy overlapPolicy,
-        string reason)
+        string reason,
+        OperationProvenance? provenance = null)
     {
         ArgumentNullException.ThrowIfNull(patchBytes);
         _ = patchBytes.Count == targetRange.Length
@@ -182,7 +194,8 @@ public sealed class CompositionOperation
             null,
             [.. patchBytes],
             null,
-            reason);
+            reason,
+            provenance);
     }
 
     /// <summary>Creates a run-external-processor operation over a staged target image range.</summary>
@@ -193,7 +206,8 @@ public sealed class CompositionOperation
         ByteRange targetRange,
         ExternalProcessorInvocation invocation,
         OverlapPolicy overlapPolicy,
-        string reason)
+        string reason,
+        OperationProvenance? provenance = null)
     {
         ArgumentNullException.ThrowIfNull(invocation);
         return new CompositionOperation(
@@ -208,7 +222,8 @@ public sealed class CompositionOperation
             null,
             [],
             invocation,
-            reason);
+            reason,
+            provenance);
     }
 
     private static void EnsureEqualLength(ByteRange sourceRange, ByteRange targetRange, string parameterName)

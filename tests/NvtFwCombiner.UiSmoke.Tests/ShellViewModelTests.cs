@@ -1600,6 +1600,8 @@ public sealed class ShellViewModelTests
         Assert.Contains("Combiner.exe", command.CodeBlock, StringComparison.Ordinal);
         Assert.Contains(command.Badges, badge => badge.Text == "planned");
         Assert.Contains(command.Badges, badge => badge.Text == "overlap reject");
+        Assert.Contains(command.Badges, badge => badge.Text == "built-in-profile");
+        Assert.Contains(command.Facts, fact => fact.Label == "Operation source" && fact.Value == "built-in-profile");
         Assert.Contains(command.Facts, fact => fact.Label == "Processor" && fact.Value == "legacy-combiner");
         Assert.Contains(command.Facts, fact => fact.Label == "Tool" && fact.Value == "legacy-combiner-1.13.0");
         Assert.Contains(command.Facts, fact => fact.Label == "Read ranges" && fact.Value == "0x0-0x7FFFF (len 0x80000)");

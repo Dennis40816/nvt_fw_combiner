@@ -1,7 +1,7 @@
 # NVT FW Combiner（NFC）實作規格
 
 > 文件狀態：`Repository Bootstrap Baseline`
-> 文件版本：`0.7.2`
+> 文件版本：`0.7.3`
 > 基準日期：`2026-06-25`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
@@ -154,7 +154,7 @@ Codex 與 agent governance 主要參考：
 3. Standard/AB/General Merge 與 DP/CtrlRAM/General Replace 共用同一套 composition primitives 與 executor。
 4. Merge/Replace 的根本差異只由 `ImageInitialization` 表達：`blank` 或 `reference`。
 5. UI、CLI、測試都呼叫同一個 application core；UI drag/drop 只建立 typed mappings，不直接修改 bytes。
-6. 所有 byte mutation 都要有 operation id、來源/目標 address space、target range、原因、前後 hash 與 changed ranges。
+6. 所有 byte mutation 都要有 operation id、operation provenance、來源/目標 address space、target range、原因、前後 hash 與 changed ranges。
 7. External processors may transform only a host-created staging copy. The host owns executable resolution, SHA-256 verification, write-range policy, independent diff verification, and atomic promotion.
 8. 每個 IC/mode/stage 都要明確宣告 integrity disposition、processor id、tool binding when applicable、read/write ranges and evidence；`unknown` 不得成為 supported profile。
 9. production runtime 離線可用，不依賴網路、GitHub、系統 Python 或 package registry。
@@ -325,7 +325,7 @@ The current Python worker is a constrained pure CRC calculation prototype. It is
 - Canonical runtime profile：JSON，符合 `composition-profile-v1.schema.json`。
 - Schema：JSON Schema Draft 2020-12。
 - Human authoring：第一階段直接編輯 JSON；後續可加入 Excel importer/compiler。
-- General Merge / General Replace：UI 產生 typed mapping overlay，可保存成 versioned profile；不得產生 script。
+- General Merge / General Replace：UI 或 CLI 產生 typed mapping overlay，可保存成 versioned saved rule/profile fragment；不得產生 script、shell command 或 executable path。Saved-rule validation and General Merge CLI consumption must still compile back to normal explicit mappings.
 - Processor/tool recipe：JSON/typed declaration，與 memory mapping 分離但由 profile 明確引用。
 - Reports：JSON；UI 顯示由 typed report 轉換。
 - Spec/ADR/guide：Markdown。
@@ -858,7 +858,7 @@ Fixed A/B bank model with explicit logical views, target banks, relocation patch
 
 ### 10.5 General Merge
 
-General Merge is an advanced authoring surface, not a separate executor. User rows compile to checked `copy-range`/`fill-range`/`patch-scalar`/`run-external-processor` operations. Dragging a range in UI is equivalent to editing typed mapping data.
+General Merge is an advanced authoring surface, not a separate executor. User rows compile to checked `copy-range`/`fill-range`/`patch-scalar`/`run-external-processor` operations. Dragging a range in UI is equivalent to editing typed mapping data. Reviewed saved-rule rows may be consumed by CLI only when the user supplies explicit slot bindings; they still compile through the same General Merge plan and report their provenance as `saved-rule`.
 
 ### 10.6 Replace experiences
 
@@ -892,7 +892,7 @@ Top-level navigation uses top tabs.
 - Merge。
 - Replace。
 
-Reports and diagnostics are secondary surfaces. Preview/Build reports and diagnostics open in a report modal; Settings may expose diagnostics configuration/export. Saved Rules is hidden in the first UI release until the saved-rule workflow is implemented and reviewed. These surfaces are not first-level navigation entries unless explicitly expanded by the owner.
+Reports and diagnostics are secondary surfaces. Preview/Build reports and diagnostics open in a report modal; Settings may expose diagnostics configuration/export. Saved Rules is hidden in the first UI release until the saved-rule workflow is implemented and reviewed. CLI saved-rule validation and General Merge rule consumption do not create a first-level Saved Rules navigation entry. These surfaces are not first-level navigation entries unless explicitly expanded by the owner.
 
 ### 11.2 Merge page
 

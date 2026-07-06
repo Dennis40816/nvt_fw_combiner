@@ -35,6 +35,14 @@ public static partial class WorkbenchCompositionService
         return $"{icId.ToLowerInvariant()}-general-merge.bin";
     }
 
+    /// <summary>Gets the profile id used by the General Merge workbench profile for the selected IC.</summary>
+    public static string GetGeneralMergeWorkbenchProfileId(string icId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+
+        return $"{icId.ToLowerInvariant()}-general-merge-workbench";
+    }
+
     /// <summary>Gets output address coverage text for a General Merge output length.</summary>
     public static string GetGeneralMergeMemoryRangeLabel(string outputLength)
     {
@@ -316,9 +324,10 @@ public static partial class WorkbenchCompositionService
                 "output-image",
                 targetRange,
                 OverlapPolicy.Reject,
-                alignment: 1,
-                "Copy explicit General Merge mapping.",
-                targetRegionId: "general-output"));
+                input.Alignment,
+                input.Reason ?? "Copy explicit General Merge mapping.",
+                targetRegionId: "general-output",
+                provenance: input.Provenance));
         }
 
         explicitMappings = mappings;
@@ -368,7 +377,7 @@ public static partial class WorkbenchCompositionService
     private static CompositionProfileDefinition CreateGeneralMergeProfile(string icId, long capacity)
     {
         return new CompositionProfileDefinition(
-            $"{icId.ToLowerInvariant()}-general-merge-workbench",
+            GetGeneralMergeWorkbenchProfileId(icId),
             GeneralMergeProfileVersion,
             icId,
             "general-merge",
@@ -405,7 +414,7 @@ public static partial class WorkbenchCompositionService
         bool succeeded)
     {
         DateTimeOffset timestamp = DateTimeOffset.UtcNow;
-        string profileId = $"{icId.ToLowerInvariant()}-general-merge-workbench";
+        string profileId = GetGeneralMergeWorkbenchProfileId(icId);
         var report = new CompositionRunReport(
             $"ui-merge-general-{(build ? "build" : "preview")}-{timestamp.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture)}",
             profileId,
@@ -452,7 +461,8 @@ public static partial class WorkbenchCompositionService
                 null,
                 [],
                 [],
-                mapping.Reason)),
+                mapping.Reason,
+                mapping.Provenance)),
         ];
     }
 
@@ -490,4 +500,7 @@ public sealed record WorkbenchGeneralMergeMappingInput(
     string FilePath,
     string SourceStart,
     string TargetStart,
-    string Length);
+    string Length,
+    int Alignment = 1,
+    string? Reason = null,
+    OperationProvenance? Provenance = null);

@@ -23,7 +23,8 @@ public sealed class OperationRunSummary
         string? toolBindingId,
         IReadOnlyList<ByteRange> processorAllowedReadRanges,
         IReadOnlyList<ByteRange> processorAllowedWriteRanges,
-        string reason)
+        string reason,
+        OperationProvenance? provenance = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(operationId);
         ArgumentException.ThrowIfNullOrWhiteSpace(targetSpaceId);
@@ -51,6 +52,7 @@ public sealed class OperationRunSummary
         _processorAllowedReadRanges = [.. processorAllowedReadRanges];
         _processorAllowedWriteRanges = [.. processorAllowedWriteRanges];
         Reason = reason;
+        Provenance = provenance ?? OperationProvenance.BuiltInProfile;
     }
 
     /// <summary>Stable operation id.</summary>
@@ -94,4 +96,7 @@ public sealed class OperationRunSummary
 
     /// <summary>Profile-declared reason shown in reports.</summary>
     public string Reason { get; }
+
+    /// <summary>Traceable origin for this operation.</summary>
+    public OperationProvenance Provenance { get; }
 }

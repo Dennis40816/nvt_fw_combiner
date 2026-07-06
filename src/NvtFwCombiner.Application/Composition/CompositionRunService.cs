@@ -632,7 +632,8 @@ public sealed class CompositionRunService
             invocation?.ToolBindingId,
             invocation?.AllowedReadRanges ?? [],
             invocation?.AllowedWriteRanges ?? [],
-            operation.Reason);
+            operation.Reason,
+            operation.Provenance);
     }
 
     private static string ToSha256Hex(ReadOnlySpan<byte> bytes)
@@ -711,6 +712,9 @@ public sealed class CompositionRunService
             AppendTokenField(builder, "plan.operation.patch-bytes", ToHex(operation.PatchBytes.Span));
             AppendProcessorFingerprint(builder, operation);
             AppendTokenField(builder, "plan.operation.reason", operation.Reason);
+            AppendTokenField(builder, "plan.operation.provenance.kind", operation.Provenance.Kind);
+            AppendTokenField(builder, "plan.operation.provenance.source-id", operation.Provenance.SourceId ?? string.Empty);
+            AppendTokenField(builder, "plan.operation.provenance.source-version", operation.Provenance.SourceVersion ?? string.Empty);
         }
     }
 
