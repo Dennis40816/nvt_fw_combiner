@@ -286,6 +286,15 @@ internal static partial class SavedCompositionRuleLoader
                         $"{rowPath}.targetAddressSpaceId"));
                 }
 
+                if (!string.IsNullOrWhiteSpace(targetRegionId) &&
+                    !string.Equals(targetRegionId, "general-output", StringComparison.Ordinal))
+                {
+                    issues.Add(Issue(
+                        "saved-rule.mapping-row.target-region-unsupported",
+                        "Current General Merge saved-rule CLI consumption supports only the general-output target region.",
+                        $"{rowPath}.targetRegionId"));
+                }
+
                 if (!string.IsNullOrWhiteSpace(overlapPolicy) &&
                     !string.Equals(overlapPolicy, "reject", StringComparison.Ordinal))
                 {
@@ -293,6 +302,16 @@ internal static partial class SavedCompositionRuleLoader
                         "saved-rule.mapping-row.overlap-policy-unsupported",
                         "Current General Merge saved-rule CLI consumption supports only reject overlap policy.",
                         $"{rowPath}.overlapPolicy"));
+                }
+
+                if (sourceRange is not null &&
+                    targetRange is not null &&
+                    (!IsAligned(sourceRange.Value, alignment) || !IsAligned(targetRange.Value, alignment)))
+                {
+                    issues.Add(Issue(
+                        "saved-rule.mapping-row.alignment",
+                        $"General Merge saved-rule row '{rowId}' source and target ranges must satisfy alignment {alignment}.",
+                        $"{rowPath}.alignment"));
                 }
             }
 
@@ -384,7 +403,18 @@ internal static partial class SavedCompositionRuleLoader
                     $"{path}.processorDependencyIds"));
             }
 
-            foreach (string mappingRowId in ReadStringArray(fragment, "mappingRowIds", $"{path}.mappingRowIds", required: false, validateId: true, issues))
+            List<string> fragmentMappingRowIds = ReadStringArray(fragment, "mappingRowIds", $"{path}.mappingRowIds", required: false, validateId: true, issues);
+            if (compositionKind == "merge" &&
+                sourceExperience == "general-merge" &&
+                fragmentMappingRowIds.Count != 1)
+            {
+                issues.Add(Issue(
+                    "saved-rule.operation-fragment.mapping-row-count",
+                    "Current General Merge saved-rule CLI consumption requires each operation fragment to reference exactly one mapping row.",
+                    $"{path}.mappingRowIds"));
+            }
+
+            foreach (string mappingRowId in fragmentMappingRowIds)
             {
                 if (!mappingRowIds.Contains(mappingRowId))
                 {
@@ -425,6 +455,12 @@ internal static partial class SavedCompositionRuleLoader
         }
 
         return operationIds;
+    }
+
+    private static bool IsAligned(ByteRange range, int alignment)
+    {
+        return range.Start % alignment == 0 &&
+            range.Length % alignment == 0;
     }
 
     private static HashSet<string> ReadInputSlotTemplateIds(JsonElement root, List<SavedRuleValidationIssue> issues)

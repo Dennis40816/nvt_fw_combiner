@@ -178,6 +178,35 @@ public sealed class SavedRuleCliCommandTests
         Assert.Contains("copy-fw-window", result.Error, StringComparison.Ordinal);
     }
 
+    /// <summary>Rejects General Merge fragments that authorize more than one executed mapping row.</summary>
+    [Fact]
+    public async Task SavedRuleValidateRejectsGeneralMergeFragmentsWithMultipleRows()
+    {
+        using var workspace = TempWorkspace.Create();
+        JsonObject json = ValidGeneralMergeRuleObject();
+        JsonObject row = CloneObject(MappingRows(json)[0]!);
+        row["rowId"] = "copy-second-window";
+        row["sourceRange"] = new JsonObject
+        {
+            ["start"] = 32,
+            ["length"] = 16,
+        };
+        row["targetRange"] = new JsonObject
+        {
+            ["start"] = 0,
+            ["length"] = 16,
+        };
+        MappingRows(json).Add(row);
+        OperationFragments(json)[0]!.AsObject()["mappingRowIds"] = new JsonArray("copy-fw-window", "copy-second-window");
+        string rule = await WriteRuleAsync(workspace, json);
+
+        CliRunResult result = await RunCliAsync(["saved-rule", "validate", rule]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("saved-rule.operation-fragment.mapping-row-count", result.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("saved-rule.mapping-row.unreferenced", result.Error, StringComparison.Ordinal);
+    }
+
     /// <summary>Rejects General Merge rows that saved-rule mappings cannot project without changing semantics.</summary>
     [Fact]
     public async Task SavedRuleMappingsRejectsUnsupportedGeneralMergeRows()
@@ -194,6 +223,22 @@ public sealed class SavedRuleCliCommandTests
         Assert.DoesNotContain("--mapping", result.Output, StringComparison.Ordinal);
     }
 
+    /// <summary>Rejects target regions that the current General Merge saved-rule materializer cannot preserve.</summary>
+    [Fact]
+    public async Task SavedRuleValidateRejectsUnsupportedGeneralMergeTargetRegions()
+    {
+        using var workspace = TempWorkspace.Create();
+        JsonObject json = ValidGeneralMergeRuleObject();
+        MappingRows(json)[0]!.AsObject()["targetRegionId"] = "tp-payload";
+        string rule = await WriteRuleAsync(workspace, json);
+
+        CliRunResult result = await RunCliAsync(["saved-rule", "validate", rule]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("saved-rule.mapping-row.target-region-unsupported", result.Error, StringComparison.Ordinal);
+        Assert.Contains("$.mappingRows[0].targetRegionId", result.Error, StringComparison.Ordinal);
+    }
+
     /// <summary>Rejects General Merge saved-rule overlap policies not supported by CLI consumption.</summary>
     [Fact]
     public async Task SavedRuleValidateRejectsUnsupportedGeneralMergeOverlapPolicies()
@@ -207,6 +252,28 @@ public sealed class SavedRuleCliCommandTests
 
         Assert.Equal(1, result.ExitCode);
         Assert.Contains("saved-rule.mapping-row.overlap-policy-unsupported", result.Error, StringComparison.Ordinal);
+    }
+
+    /// <summary>Rejects rows whose declared alignment would be lost by manual mapping projection.</summary>
+    [Fact]
+    public async Task SavedRuleValidateRejectsUnalignedGeneralMergeRows()
+    {
+        using var workspace = TempWorkspace.Create();
+        JsonObject json = ValidGeneralMergeRuleObject();
+        JsonObject row = MappingRows(json)[0]!.AsObject();
+        row["alignment"] = 4;
+        row["sourceRange"] = new JsonObject
+        {
+            ["start"] = 18,
+            ["length"] = 32,
+        };
+        string rule = await WriteRuleAsync(workspace, json);
+
+        CliRunResult result = await RunCliAsync(["saved-rule", "validate", rule]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("saved-rule.mapping-row.alignment", result.Error, StringComparison.Ordinal);
+        Assert.Contains("$.mappingRows[0].alignment", result.Error, StringComparison.Ordinal);
     }
 
     /// <summary>Rejects processor-dependent General Merge saved rules until processor fragments are actually supported.</summary>
