@@ -178,6 +178,7 @@ public static partial class WorkbenchCompositionService
             outputPath,
             externalProcessor: commandPlan is null ? null : ExternalProcessorFactory.CreateOrNull(),
             icNumberSelection: context.Selection,
+            overwrite: true,
             cancellationToken).ConfigureAwait(false);
     }
 

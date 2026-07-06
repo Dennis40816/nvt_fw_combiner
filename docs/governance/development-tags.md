@@ -9,12 +9,14 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 - `v0.5.0` — baseline candidate for the normal Merge/Replace workbench, Settings shell, report modal workflow, memory coverage visualization, and Replace DP/CtrlRAM priority UI. It does not claim `v1.0.0` full support-matrix sign-off.
 - `v0.7.0` — stable milestone for Standard Merge, DP Replace, CtrlRAM Replace, General Replace traceability, report history, and workbench run-context refactoring. It does not claim `v1.0.0` full support-matrix sign-off or complete private golden parity.
 - `v0.7.1` — patch milestone for Replace report output-difference traceability. It classifies final output-vs-reference differences as declared replacement, IC-number-specific postbuild CRC/header, or unexpected; it does not expand firmware support scope.
+- `v0.7.2` — patch milestone for General Merge v1. It adds CLI/UI explicit source-to-target mappings over a caller-declared blank output image and does not add saved-rule promotion, postbuild behavior, or new IC support claims.
 
 ## Branch and merge policy
 
 - `0.1.0` is the dev0 contract branch.
 - `0.7.1` is the patch train for Replace report output-difference traceability on top of the reviewed `0.7.0` stable milestone.
-- `0.8.0` is the active post-`0.7.1` development train for packaging/security hardening and remaining release evidence closure.
+- `0.7.2` is the patch train for General Merge v1 on top of `0.7.1`.
+- `0.8.0` is the active post-`0.7.2` development train for packaging/security hardening and remaining release evidence closure.
 - `main` is the stable branch.
 - Progress to `main` must happen through reviewed merge/PR, not direct unreviewed development pushes.
 - Agent/Codex work should stay on the active milestone branch until review gates pass.
@@ -33,7 +35,7 @@ Current execution priority: normal Merge and normal Replace for DP Replace and C
 | `0.4.0-dev.N` | Integrity/tool processing | Legacy combiner runner hardening, CRC/Header golden cases, packaging integration. |
 | `0.5.0-dev.N` | Normal Replace priority | DP Replace and CtrlRAM Replace workflows, IC num text choices for two-option profiles, numeric count selection for three-or-more concrete count profiles, and post-replace combiner readiness. |
 | `0.6.0-dev.N` | Workflow data-model convergence | Evaluate and refactor Merge/Replace data into a unified profile/template/catalog model across ICs. No new byte behavior without evidence. |
-| `0.7.0-dev.N` | General Merge/Replace, saved rules, and deferred AB merge | Dynamic mappings, saved rule promotion, preset catalog; AB bank layout resumes only after owner reactivation and golden evidence. |
+| `0.7.0-dev.N` | General Merge/Replace, saved rules, and deferred AB merge | Dynamic mappings, saved rule promotion, preset catalog; AB bank layout resumes only after owner reactivation and golden evidence. General Merge v1 ships in `0.7.2`; saved-rule promotion remains a later 0.7.x review item. |
 | `0.8.0-dev.N` | Packaging/security | Release packaging, tool manifests, smoke tests. |
 | `0.9.0-rc.N` | UAT/release candidates | UX polish, internal sign-off. |
 | `v1.0.0` | stable | Signed-off support matrix. |
@@ -65,6 +67,7 @@ v0.4.0-dev.N    worker/tool integrity
 v0.5.0-dev.N    normal Replace priority for DP/CtrlRAM
 v0.6.0-dev.N    workflow data-model convergence
 v0.7.0-dev.N    General Merge/Replace saved rules and deferred AB merge
+v0.7.2          General Merge v1
 v0.8.0-dev.N    packaging/security
 v0.9.0-rc.N     UAT/release candidates
 v1.0.0          stable
@@ -98,3 +101,14 @@ v1.0.0          stable
 - Report history and structured operation evidence are covered by UI smoke tests.
 - During the 2026-07-06 GitHub Actions billing outage, owner-approved local `python scripts/verify.py --all` plus Codex review can temporarily substitute for remote CI, but the release evidence must record that remote CI did not execute.
 - A Windows x64 self-contained package is produced from the reviewed commit, with version metadata aligned to `0.7.0`.
+
+## `v0.7.2` release gate
+
+`v0.7.2` can be merged after the General Merge v1 branch passes review gates:
+
+- General Merge Preview/Build is available from CLI and UI over a blank output image.
+- General Merge uses explicit `CopyRange` mappings through the shared profile compiler and rejects overlapping or out-of-bounds mappings.
+- General Merge reports include input summaries, operation details, output size/hash, and committed output path when built.
+- General Merge does not invoke legacy Combiner postbuild; TP-touching CRC/header refresh remains a Replace responsibility.
+- Saved-rule promotion remains out of scope for this patch and must be reviewed separately before exposure.
+- `python scripts/verify.py --all`, Polytail, Codex review, and required local verification are complete before tagging.

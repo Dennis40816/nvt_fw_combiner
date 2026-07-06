@@ -63,6 +63,13 @@ public static class CliApplication
                 "profiles" => await RunProfilesAsync(args[1..], output, error).ConfigureAwait(false),
                 "standard-merge" => await RunStandardMergeAsync(args[1..], output, error, cancellationToken)
                     .ConfigureAwait(false),
+                "general-merge" => await MergeCliCommandHandler.RunAsync(
+                        args[0],
+                        args[1..],
+                        output,
+                        error,
+                        cancellationToken)
+                    .ConfigureAwait(false),
                 "dp-replace" or "ctrlram-replace" or "general-replace" =>
                     await ReplaceCliCommandHandler.RunAsync(args[0], args[1..], output, error, cancellationToken)
                         .ConfigureAwait(false),
@@ -523,6 +530,8 @@ public static class CliApplication
         await output.WriteLineAsync("  nvt_fw_combiner profiles list").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner standard-merge preview --profile <id|ic> --dp <path> --tp <path> [--ld <path>] [--output <path>] [--report <path>]").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner standard-merge build --profile <id|ic> --dp <path> --tp <path> [--ld <path>] [--output <path>] [--report <path>] [--overwrite]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner general-merge preview --profile <ic> --size <length> --mapping <source-start+target-start+length=path> [--mapping ...] [--report <path>]").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner general-merge build --profile <ic> --size <length> --mapping <source-start+target-start+length=path> [--mapping ...] [--output <path>] [--report <path>] [--overwrite]").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner dp-replace preview --profile <id|ic> --ic-num <value> --base <path> --dp <path> [--ld <path>] [--output <path>] [--report <path>]").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner ctrlram-replace preview --profile <ic> --ic-num <value> --base <path> --ctrlram <slot-id=path> [--ctrlram <slot-id=path> ...] [--report <path>]").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner general-replace preview --profile <id|ic> --ic-num <value> --base <path> --input <path> --source-start <n> --target-start <n> --length <n> [--output <path>] [--report <path>]").ConfigureAwait(false);

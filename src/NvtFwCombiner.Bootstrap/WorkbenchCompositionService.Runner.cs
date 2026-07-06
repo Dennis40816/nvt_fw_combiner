@@ -20,6 +20,7 @@ public static partial class WorkbenchCompositionService
         string? outputPath,
         IExternalProcessor? externalProcessor,
         IcNumberSelection? icNumberSelection,
+        bool overwrite,
         CancellationToken cancellationToken)
     {
         string[] inputRoots =
@@ -43,7 +44,7 @@ public static partial class WorkbenchCompositionService
 
         FileArtifactReader reader = new(inputRoots);
         AtomicFileCompositionOutputWriter? writer = build
-            ? new AtomicFileCompositionOutputWriter(outputDirectory, overwrite: true)
+            ? new AtomicFileCompositionOutputWriter(outputDirectory, overwrite)
             : null;
         CompositionRunService service = new(reader, new SystemClock(), writer, externalProcessor);
         CompositionRunRequest request = new(

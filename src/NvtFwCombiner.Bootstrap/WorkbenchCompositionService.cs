@@ -308,6 +308,7 @@ public static partial class WorkbenchCompositionService
             outputPath,
             externalProcessor: null,
             icNumberSelection: null,
+            overwrite: true,
             cancellationToken).ConfigureAwait(false);
     }
 
@@ -538,6 +539,7 @@ public static partial class WorkbenchCompositionService
 
             if (pending.Range.EndExclusive == segment.Range.Start &&
                 string.Equals(pending.SourceLabel, segment.SourceLabel, StringComparison.Ordinal) &&
+                string.Equals(pending.Detail, segment.Detail, StringComparison.Ordinal) &&
                 string.Equals(pending.Fill, segment.Fill, StringComparison.Ordinal))
             {
                 pending = pending with
@@ -568,6 +570,7 @@ public static partial class WorkbenchCompositionService
             "Changed LDC BIN" => "#F97316",
             "CtrlRAM BIN" => "#16A34A",
             "Changed CtrlRAM BIN" => "#16A34A",
+            "Source BIN" => "#0D9488",
             "Restored TP" => "#64748B",
             "Preserved customer info" => "#64748B",
             "Preserve" => "#64748B",

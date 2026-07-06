@@ -127,6 +127,35 @@ public sealed class ShellViewModelTests
         Assert.Equal("NT51950 / single: refresh profile, slots, validation", viewModel.DeviceContextStatus);
     }
 
+    /// <summary>Verifies General Merge uses its own mapping editor state and hides IC Number context.</summary>
+    [Fact]
+    public void GeneralMergeUsesEditableMappingsAndOwnOutputLength()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.SelectedMergeMode = "General";
+
+        Assert.True(viewModel.IsGeneralMergeModeSelected);
+        Assert.False(viewModel.IsNormalMergeModeSelected);
+        Assert.True(viewModel.IsDeviceContextVisible);
+        Assert.False(viewModel.IsNumberSelectorVisible);
+        Assert.True(viewModel.IsNumberSelectorPlaceholderVisible);
+        Assert.Equal("NT51950: refresh profile, slots, validation", viewModel.DeviceContextStatus);
+        Assert.Equal("0x100000", viewModel.GeneralMergeOutputLength);
+        Assert.Equal("nt51950-general-merge.bin", viewModel.MergeOutputFileName);
+        _ = Assert.Single(viewModel.GeneralMergeMappings);
+
+        viewModel.AddGeneralMergeMappingCommand.Execute(null);
+
+        Assert.Equal(2, viewModel.GeneralMergeMappings.Count);
+        viewModel.RemoveGeneralMergeMappingRow(viewModel.GeneralMergeMappings[0]);
+        GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.GeneralMergeMappings);
+        Assert.Equal(1, mapping.Index);
+        Assert.Equal("No source BIN selected", mapping.DisplayName);
+        Assert.Contains("reserved", viewModel.MergeMemorySummary, StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>Verifies Standard Merge slots follow the selected profile instead of exposing LD globally.</summary>
     [Fact]
     public void MergeSlotsFollowSelectedProfileRequiredInputs()
@@ -1631,6 +1660,61 @@ public sealed class ShellViewModelTests
         Assert.True(viewModel.HasReportToast);
         Assert.Equal(1, viewModel.ReportToastOpacity);
         Assert.Equal("Build report generated", viewModel.ReportToastText);
+    }
+
+    /// <summary>Verifies General Merge UI runs explicit mapping rows through Preview and Build.</summary>
+    [Fact]
+    public async Task GeneralMergePreviewAndBuildUseExplicitMappingRows()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-general-merge");
+        string source = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13, 0x14]);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.SelectedMergeMode = "General";
+        viewModel.GeneralMergeOutputLength = "0x10";
+        GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.GeneralMergeMappings);
+        mapping.SourceStartAddress = "0x1";
+        mapping.TargetStartAddress = "0x4";
+        mapping.Length = "0x3";
+        List<string> propertyChanges = [];
+        viewModel.PropertyChanged += (_, args) =>
+        {
+            if (!string.IsNullOrWhiteSpace(args.PropertyName))
+            {
+                propertyChanges.Add(args.PropertyName);
+            }
+        };
+
+        Assert.True(viewModel.SetGeneralMergeMappingFile(mapping.MappingId, source));
+
+        Assert.Contains(nameof(MainWindowViewModel.MergeReadinessStatus), propertyChanges);
+        Assert.Contains("maps 1 source BIN", viewModel.MergeReadinessStatus, StringComparison.Ordinal);
+        Assert.True(viewModel.CanPreviewMerge);
+        Assert.False(viewModel.CanBuildMerge);
+        Assert.False(viewModel.CanBuildStandardMerge);
+
+        await viewModel.PreviewMergeCommand.ExecuteAsync(null);
+
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.CanBuildMerge);
+        Assert.False(viewModel.CanBuildStandardMerge);
+
+        string outputPath = workspace.PathFor("general-merge.bin");
+        await viewModel.BuildMergeAsync(outputPath);
+
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.Equal(outputPath, viewModel.LastRunResult.Output);
+        Assert.Equal(
+            [0, 0, 0, 0, 0x11, 0x12, 0x13, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            File.ReadAllBytes(outputPath));
+
+        using var document = JsonDocument.Parse(viewModel.LoadedReportJson);
+        JsonElement root = document.RootElement;
+        Assert.Equal("nt51950-general-merge-workbench", root.GetProperty("ProfileId").GetString());
+        Assert.Equal("general-merge", root.GetProperty("ExperienceId").GetString());
+        JsonElement operation = Assert.Single(root.GetProperty("Operations").EnumerateArray());
+        Assert.Equal("CopyRange", operation.GetProperty("Kind").GetString());
+        Assert.Equal("Succeeded", operation.GetProperty("Status").GetString());
     }
 
     /// <summary>Verifies Standard Merge Build requires a successful Preview for the exact current context.</summary>

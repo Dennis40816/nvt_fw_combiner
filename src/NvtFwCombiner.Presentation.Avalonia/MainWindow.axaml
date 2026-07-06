@@ -1839,13 +1839,12 @@
                 <TextBlock FontSize="13" Foreground="#64748B" Text="{Binding MergePreview.Subtitle}" />
               </StackPanel>
               <Grid Grid.Column="1" ColumnDefinitions="170,Auto" ColumnSpacing="12" VerticalAlignment="Center">
-                <StackPanel Spacing="3" ToolTip.Tip="AB Code and General Merge are reserved placeholders until their workflow is implemented.">
+                <StackPanel Spacing="3" ToolTip.Tip="Select Standard, reserved AB Code, or high-freedom General Merge.">
                   <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Mode" />
                   <ComboBox
                       MinHeight="32"
-                      IsEnabled="False"
                       ItemsSource="{Binding MergeModeChoices}"
-                      SelectedItem="{Binding SelectedMergeMode, Mode=OneWay}" />
+                      SelectedItem="{Binding SelectedMergeMode, Mode=TwoWay}" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Margin="0,15,0,0" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
                   <Button Classes="toolbarAction" Command="{Binding PreviewMergeCommand}" ToolTip.Tip="{Binding PreviewActionLabel}">
@@ -1857,7 +1856,7 @@
                   <Button
                       Classes="toolbarAction"
                       Click="BuildMergeButton_OnClick"
-                      IsEnabled="{Binding CanBuildStandardMerge}"
+                      IsEnabled="{Binding CanBuildMerge}"
                       ToolTip.Tip="{Binding BuildActionLabel}">
                     <StackPanel Orientation="Horizontal" Spacing="7">
                       <TextBlock VerticalAlignment="Center" FontSize="13" Text="✓" />
@@ -1868,7 +1867,13 @@
               </Grid>
             </Grid>
 
-            <Border Padding="18" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
+            <Border
+                Padding="18"
+                Background="#FFFFFF"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="8"
+                IsVisible="{Binding IsNormalMergeModeSelected}">
               <StackPanel Spacing="14">
                 <StackPanel Spacing="3">
                   <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="Input files" />
@@ -1882,6 +1887,141 @@
                 <Border Padding="10,8" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
                   <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#475569" Text="{Binding MergeReadinessStatus}" TextWrapping="Wrap" />
                 </Border>
+              </StackPanel>
+            </Border>
+
+            <Border
+                Padding="18"
+                Background="#FFFFFF"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="8"
+                IsVisible="{Binding IsGeneralMergeModeSelected}">
+              <StackPanel Spacing="16">
+                <Grid ColumnDefinitions="*,180" ColumnSpacing="14">
+                  <StackPanel Spacing="3">
+                    <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="General merge mapping" />
+                    <TextBlock FontSize="12" Foreground="#64748B" Text="Copy explicit source BIN ranges into a blank output image. No postbuild command runs." TextWrapping="Wrap" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Spacing="4">
+                    <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Output length" />
+                    <TextBox
+                        Classes="addressInput"
+                        Text="{Binding GeneralMergeOutputLength, Mode=TwoWay}"
+                        PlaceholderText="0x100000" />
+                  </StackPanel>
+                </Grid>
+
+                <StackPanel Spacing="10">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                    <StackPanel Spacing="3">
+                      <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="Explicit mappings" />
+                      <TextBlock FontSize="12" Foreground="#64748B" Text="Each row copies one source BIN range to one output target range." TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Button
+                        Grid.Column="1"
+                        Classes="action"
+                        VerticalAlignment="Bottom"
+                        Command="{Binding AddGeneralMergeMappingCommand}"
+                        Content="+ Add mapping" />
+                  </Grid>
+
+                  <Grid ColumnDefinitions="34,118,118,108,*,82,40" ColumnSpacing="8">
+                    <TextBlock Grid.Column="0" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="#" />
+                    <TextBlock Grid.Column="1" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Source start" />
+                    <TextBlock Grid.Column="2" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Target start" />
+                    <TextBlock Grid.Column="3" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Length" />
+                    <TextBlock Grid.Column="4" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Source BIN" />
+                  </Grid>
+                  <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding GeneralMergeMappings}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:GeneralMergeMappingViewModel">
+                        <Border
+                            Margin="0,0,0,8"
+                            Padding="7"
+                            Background="#F8FAFC"
+                            BorderBrush="#CBD5E1"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                          <Grid ColumnDefinitions="34,118,118,108,*,82,40" ColumnSpacing="8">
+                            <Border Width="30" Height="30" VerticalAlignment="Center" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+                              <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="#334155" Text="{Binding Index}" />
+                            </Border>
+                            <TextBox
+                                Classes="addressInput"
+                                Grid.Column="1"
+                                Text="{Binding SourceStartAddress, Mode=TwoWay}"
+                                PlaceholderText="source" />
+                            <TextBox
+                                Classes="addressInput"
+                                Grid.Column="2"
+                                Text="{Binding TargetStartAddress, Mode=TwoWay}"
+                                PlaceholderText="target" />
+                            <TextBox
+                                Classes="addressInput"
+                                Grid.Column="3"
+                                Text="{Binding Length, Mode=TwoWay}"
+                                PlaceholderText="length" />
+                            <Border
+                                Classes="fileDropZone"
+                                Grid.Column="4"
+                                MinHeight="32"
+                                Padding="0"
+                                Background="#FFFFFF"
+                                BorderBrush="#CBD5E1"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                DragDrop.AllowDrop="True"
+                                DragDrop.DragEnter="DropZone_OnDragEnter"
+                                DragDrop.DragOver="SlotDragOver_OnDragOver"
+                                DragDrop.DragLeave="DropZone_OnDragLeave"
+                                DragDrop.Drop="GeneralMergeMappingDrop_OnDrop"
+                                Tag="{Binding MappingId}">
+                              <Grid>
+                                <Border Classes="dropZoneOverlay" />
+                                <StackPanel Margin="10,0" VerticalAlignment="Center" Spacing="2">
+                                  <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding DisplayName}" TextWrapping="Wrap" />
+                                  <TextBlock FontSize="10" FontFamily="Cascadia Mono, Consolas" Foreground="#64748B" IsVisible="{Binding HasFile}" Text="{Binding DisplayDetail}" TextWrapping="Wrap" />
+                                </StackPanel>
+                              </Grid>
+                            </Border>
+                            <Button
+                                Grid.Column="5"
+                                Classes="action browseAction"
+                                Click="BrowseGeneralMergeMappingButton_OnClick"
+                                Content="Browse"
+                                Tag="{Binding MappingId}"
+                                ToolTip.Tip="Select source BIN" />
+                            <Button
+                                Grid.Column="6"
+                                Classes="iconButton dangerIcon"
+                                Click="RemoveGeneralMergeMappingButton_OnClick"
+                                ToolTip.Tip="Remove mapping">
+                              <TextBlock FontSize="13" Text="X" />
+                            </Button>
+                          </Grid>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+
+                <Border Padding="10,8" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
+                  <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#475569" Text="{Binding MergeReadinessStatus}" TextWrapping="Wrap" />
+                </Border>
+              </StackPanel>
+            </Border>
+
+            <Border
+                Padding="18"
+                Background="#FFFFFF"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="8"
+                IsVisible="{Binding IsAbCodeMergeModeSelected}">
+              <StackPanel Spacing="8">
+                <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="AB Code Merge" />
+                <TextBlock FontSize="12" Foreground="#64748B" Text="Reserved until the dedicated AB Code profile and TP CRC/start-address behavior are approved." TextWrapping="Wrap" />
               </StackPanel>
             </Border>
           </StackPanel>

@@ -46,6 +46,7 @@ public static partial class WorkbenchCompositionService
             outputPath,
             externalProcessor: null,
             icNumberSelection: context.Selection,
+            overwrite: true,
             cancellationToken).ConfigureAwait(false);
     }
 
