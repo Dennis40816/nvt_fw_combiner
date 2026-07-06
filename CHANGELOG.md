@@ -4,19 +4,27 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-Post-`0.5.0` development targets `0.6.0-dev.N`.
+Post-`0.7.0` development targets `0.8.0-dev.N`.
+
+## [0.7.0] - 2026-07-06
 
 ### Added
 
 - IC FlashMap workbook, postbuild BAT, mmap, and combiner-info reference documentation for CtrlRAM postbuild investigation.
 - Release package reference payload plan for approved human-review evidence and manifest-declared Standard Merge golden fixtures.
 - Real-tool CtrlRAM postbuild smoke coverage for accepted 16-byte self-replacement cases.
+- General Replace execution path for explicit mappings, including TP-touch postbuild refresh and structured report evidence.
+- Local report history persistence for Preview/Build reports, including reopenable report metadata and warning severity display.
 
 ### Changed
 
 - Clarified current CtrlRAM postbuild gaps: empty `map.txt` staging is implemented for no-overlay smoke cases, while overlay map content, NT51926 copy-header initialization, NT51930 hidden DiffDLM mutation, and NT51931 Combiner 1.13.0 crash remain evidence gates.
 - Updated owner handoff notes so already recorded NT51930 and NT51950/NT51951 Standard Merge golden fixtures are no longer listed as required uploads.
 - Clarified that `refcode/` remains exactly two Python snapshots; FlashMap evidence lives under `docs/references/` and approved runtime binaries live under `external-tools/`.
+- Split shared workbench run context from workflow-specific Merge/Replace planning, including General Replace, CtrlRAM Replace, and DP Replace adapters.
+- Centralized product version metadata on the repository `VERSION` file for MSBuild assembly/package metadata and shell display.
+- NT51950/NT51951 DP Replace now derives the displayed and executable DP range from the selected base image instead of a fixed maximum length.
+- NT51926 and NT51930 CtrlRAM postbuild selection is category-aware from FWConfig Common FW version, with TP Overview notes aligned to the selected category.
 
 ## [0.5.0] - 2026-07-02
 

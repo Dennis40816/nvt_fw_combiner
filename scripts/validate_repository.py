@@ -587,6 +587,7 @@ def validate_version_license_and_sdk(errors: list[str]) -> None:
     report = (ROOT / "docs/references/verification-report.md").read_text(encoding="utf-8")
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     tags = (ROOT / "docs/governance/development-tags.md").read_text(encoding="utf-8")
+    build_props = (ROOT / "Directory.Build.props").read_text(encoding="utf-8")
     if f"文件版本：`{version}`" not in spec:
         errors.append("VERSION and SPEC.md document version disagree")
     if f"Specification package version: `{version}`" not in report:
@@ -595,6 +596,12 @@ def validate_version_license_and_sdk(errors: list[str]) -> None:
         errors.append("VERSION has no changelog section")
     if f"v{version}" not in tags:
         errors.append("VERSION has no development-tag node")
+    has_repository_version_file = (
+        "<RepositoryVersionFile>$(MSBuildThisFileDirectory)VERSION</RepositoryVersionFile>" in build_props
+    )
+    has_version_file_read = "ReadAllText('$(RepositoryVersionFile)')" in build_props
+    if not has_repository_version_file or not has_version_file_read:
+        errors.append("Directory.Build.props must derive product version metadata from VERSION")
     if not (ROOT / "LICENSE").read_text(encoding="utf-8").startswith("MIT License"):
         errors.append("root LICENSE is not the MIT License")
     global_json = load_json(ROOT / "global.json", errors)

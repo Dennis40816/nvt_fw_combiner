@@ -319,16 +319,16 @@
       "nvtfwcombiner.application": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Contracts": "[0.5.0, )",
-          "NvtFwCombiner.Domain": "[0.5.0, )"
+          "NvtFwCombiner.Contracts": "[0.7.0, )",
+          "NvtFwCombiner.Domain": "[0.7.0, )"
         }
       },
       "nvtfwcombiner.bootstrap": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Application": "[0.5.0, )",
-          "NvtFwCombiner.Infrastructure": "[0.5.0, )",
-          "NvtFwCombiner.Profiles": "[0.5.0, )"
+          "NvtFwCombiner.Application": "[0.7.0, )",
+          "NvtFwCombiner.Infrastructure": "[0.7.0, )",
+          "NvtFwCombiner.Profiles": "[0.7.0, )"
         }
       },
       "nvtfwcombiner.contracts": {
@@ -340,9 +340,9 @@
       "nvtfwcombiner.infrastructure": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Application": "[0.5.0, )",
-          "NvtFwCombiner.Contracts": "[0.5.0, )",
-          "NvtFwCombiner.Domain": "[0.5.0, )"
+          "NvtFwCombiner.Application": "[0.7.0, )",
+          "NvtFwCombiner.Contracts": "[0.7.0, )",
+          "NvtFwCombiner.Domain": "[0.7.0, )"
         }
       },
       "nvtfwcombiner.presentation.avalonia": {
@@ -353,20 +353,20 @@
           "Avalonia.Fonts.Inter": "[12.0.5, )",
           "Avalonia.Themes.Fluent": "[12.0.5, )",
           "CommunityToolkit.Mvvm": "[8.4.2, )",
-          "NvtFwCombiner.Bootstrap": "[0.5.0, )"
+          "NvtFwCombiner.Bootstrap": "[0.7.0, )"
         }
       },
       "nvtfwcombiner.profiles": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Contracts": "[0.5.0, )",
-          "NvtFwCombiner.Domain": "[0.5.0, )"
+          "NvtFwCombiner.Contracts": "[0.7.0, )",
+          "NvtFwCombiner.Domain": "[0.7.0, )"
         }
       },
       "nvtfwcombiner.testsupport": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Application": "[0.5.0, )"
+          "NvtFwCombiner.Application": "[0.7.0, )"
         }
       },
       "Avalonia": {
