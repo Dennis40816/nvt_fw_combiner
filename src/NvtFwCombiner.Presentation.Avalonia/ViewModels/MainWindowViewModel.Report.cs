@@ -81,11 +81,6 @@ public sealed partial class MainWindowViewModel
     /// <summary>True when local report history can be cleared.</summary>
     public bool CanClearReportHistory => HasReportHistory;
 
-    /// <summary>Compact report history entry action label.</summary>
-    public string ReportHistoryActionLabel => HasReportHistory
-        ? $"History ({ReportHistoryCount.ToString(CultureInfo.InvariantCulture)})"
-        : "History";
-
     /// <summary>True when a compact report notification should be shown.</summary>
     public bool HasReportToast { get; private set; }
 
@@ -463,7 +458,6 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(ReportHistoryStorageWarning));
         OnPropertyChanged(nameof(CanOpenReportHistory));
         OnPropertyChanged(nameof(CanClearReportHistory));
-        OnPropertyChanged(nameof(ReportHistoryActionLabel));
         ShowReportHistoryCommand.NotifyCanExecuteChanged();
         ClearReportHistoryCommand.NotifyCanExecuteChanged();
         OpenReportHistoryEntryCommand.NotifyCanExecuteChanged();
