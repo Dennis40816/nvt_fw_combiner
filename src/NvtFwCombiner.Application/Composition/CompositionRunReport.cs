@@ -20,7 +20,8 @@ public sealed class CompositionRunReport
         IReadOnlyList<OperationRunSummary> operations,
         IReadOnlyList<MutationRunSummary> mutations,
         IReadOnlyList<CompositionIssue> issues,
-        OutputArtifactSummary output)
+        OutputArtifactSummary output,
+        IReadOnlyList<OutputDifferenceSummary>? outputDifferences = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
@@ -48,6 +49,7 @@ public sealed class CompositionRunReport
         Mutations = mutations;
         Issues = issues;
         Output = output;
+        OutputDifferences = outputDifferences is null ? [] : [.. outputDifferences];
     }
 
     /// <summary>Stable run id.</summary>
@@ -91,4 +93,7 @@ public sealed class CompositionRunReport
 
     /// <summary>Output artifact summary.</summary>
     public OutputArtifactSummary Output { get; }
+
+    /// <summary>Replace final-output differences compared with the reference base.</summary>
+    public IReadOnlyList<OutputDifferenceSummary> OutputDifferences { get; }
 }

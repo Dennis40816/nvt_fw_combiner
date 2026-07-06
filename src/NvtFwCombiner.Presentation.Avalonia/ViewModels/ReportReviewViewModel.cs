@@ -4,7 +4,7 @@ using System.Text.Json;
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Readable UI projection of a CLI/application run report JSON file.</summary>
-public sealed class ReportReviewViewModel
+public sealed partial class ReportReviewViewModel
 {
     private ReportReviewViewModel(
         bool isEmpty,
@@ -27,6 +27,7 @@ public sealed class ReportReviewViewModel
         IReadOnlyList<ReportLineViewModel> inputs,
         IReadOnlyList<ReportLineViewModel> operations,
         IReadOnlyList<ReportLineViewModel> mutations,
+        IReadOnlyList<ReportLineViewModel> outputDifferences,
         IReadOnlyList<ReportLineViewModel> issues)
     {
         IsEmpty = isEmpty;
@@ -53,6 +54,7 @@ public sealed class ReportReviewViewModel
         CommandOperations = [.. operations.Where(operation => operation.HasCodeBlock)];
         StepOperations = [.. operations.Where(operation => !operation.HasCodeBlock)];
         Mutations = mutations;
+        OutputDifferences = outputDifferences;
         Issues = issues;
         Warnings = [.. issues.Where(IsWarning)];
         BlockingIssues = [.. issues.Where(issue => !IsWarning(issue))];
@@ -66,6 +68,7 @@ public sealed class ReportReviewViewModel
         HasCommandOperations = CommandOperations.Count > 0;
         HasStepOperations = StepOperations.Count > 0;
         HasMutations = mutations.Count > 0;
+        HasOutputDifferences = outputDifferences.Count > 0;
         HasIssues = issues.Count > 0;
         SummaryRows = CreateSummaryRows(status, output, inputs, operations, mutations, issues);
         OutcomeTitle = CreateOutcomeTitle(status, issues);
@@ -82,7 +85,7 @@ public sealed class ReportReviewViewModel
             ? Warnings[0].Detail
             : "Use the evidence map only when you need hashes, operation order, or byte-change proof.";
         TriageRows = CreateTriageRows(status, output, operations, issues);
-        EvidenceRows = CreateEvidenceRows(inputs, operations, mutations, issues);
+        EvidenceRows = CreateEvidenceRows(inputs, operations, mutations, outputDifferences, issues);
         ShouldExpandIssues = HasIssues && (HasPrimaryIssue || HasWarnings);
         ShouldExpandCommandOperations = HasCommandOperations;
         ShouldExpandStepOperations = HasStepOperations && !HasCommandOperations;
@@ -107,6 +110,7 @@ public sealed class ReportReviewViewModel
         0,
         string.Empty,
         string.Empty,
+        [],
         [],
         [],
         [],
@@ -214,6 +218,15 @@ public sealed class ReportReviewViewModel
     /// <summary>True when mutation details are available.</summary>
     public bool HasMutations { get; }
 
+    /// <summary>Final output-vs-reference difference rows.</summary>
+    public IReadOnlyList<ReportLineViewModel> OutputDifferences { get; }
+
+    /// <summary>Number of final output-vs-reference difference rows.</summary>
+    public int OutputDifferenceCount => OutputDifferences.Count;
+
+    /// <summary>True when output difference details are available.</summary>
+    public bool HasOutputDifferences { get; }
+
     /// <summary>Issue rows.</summary>
     public IReadOnlyList<ReportLineViewModel> Issues { get; }
 
@@ -315,6 +328,7 @@ public sealed class ReportReviewViewModel
         IReadOnlyList<ReportLineViewModel> inputs = ParseInputs(root);
         IReadOnlyList<ReportLineViewModel> operations = ParseOperations(root);
         IReadOnlyList<ReportLineViewModel> mutations = ParseMutations(root);
+        IReadOnlyList<ReportLineViewModel> outputDifferences = ParseOutputDifferences(root);
         IReadOnlyList<ReportLineViewModel> issues = ParseIssues(root);
         string status = CreateStatus(issues);
 
@@ -339,6 +353,7 @@ public sealed class ReportReviewViewModel
             inputs,
             operations,
             mutations,
+            outputDifferences,
             issues);
     }
 
@@ -367,6 +382,7 @@ public sealed class ReportReviewViewModel
             0,
             string.Empty,
             string.Empty,
+            [],
             [],
             [],
             [],
@@ -518,6 +534,7 @@ public sealed class ReportReviewViewModel
         IReadOnlyList<ReportLineViewModel> inputs,
         IReadOnlyList<ReportLineViewModel> operations,
         IReadOnlyList<ReportLineViewModel> mutations,
+        IReadOnlyList<ReportLineViewModel> outputDifferences,
         IReadOnlyList<ReportLineViewModel> issues)
     {
         int commandCount = operations.Count(operation => operation.HasCodeBlock);
@@ -551,6 +568,10 @@ public sealed class ReportReviewViewModel
                 "Mutations",
                 mutations.Count.ToString(CultureInfo.InvariantCulture),
                 "changed ranges"),
+            new ReportLineViewModel(
+                "Output diff",
+                outputDifferences.Count.ToString(CultureInfo.InvariantCulture),
+                outputDifferences.Count == 0 ? "same as base or non-Replace" : "base vs final"),
         ];
     }
 
@@ -759,6 +780,13 @@ public sealed class ReportReviewViewModel
         return element.TryGetProperty(propertyName, out JsonElement value) && value.TryGetInt64(out long number)
             ? number
             : 0;
+    }
+
+    private static bool GetBool(JsonElement element, string propertyName)
+    {
+        return element.TryGetProperty(propertyName, out JsonElement value) &&
+            value.ValueKind is JsonValueKind.True or JsonValueKind.False &&
+            value.GetBoolean();
     }
 
     private static string Shorten(string text, int keep)

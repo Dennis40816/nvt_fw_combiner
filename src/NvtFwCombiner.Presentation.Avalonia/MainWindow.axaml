@@ -2262,6 +2262,22 @@
                   </ItemsControl>
                 </Expander>
 
+                <Expander IsExpanded="True" IsVisible="{Binding LoadedReport.HasOutputDifferences}">
+                  <Expander.Header>
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                      <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Output differences" />
+                      <Border Grid.Column="1" Padding="7,2" Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="999">
+                        <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#166534" Text="{Binding LoadedReport.OutputDifferenceCount}" />
+                      </Border>
+                    </Grid>
+                  </Expander.Header>
+                  <ItemsControl ItemsSource="{Binding LoadedReport.OutputDifferences}">
+                    <ItemsControl.ItemTemplate>
+                      <StaticResource ResourceKey="ReportStepOperationTemplate" />
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </Expander>
+
                 <Expander IsExpanded="False" IsVisible="{Binding LoadedReport.HasMutations}">
                   <Expander.Header>
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">

@@ -61,6 +61,36 @@ internal static class ReportJsonSamples
             "0123456789abcdef012345");
     }
 
+    public static string ReplaceWithAcceptedOutputDifferences(string runId = "replace-diff")
+    {
+        return Create(
+            "nt51927-ctrlram-replace",
+            "NT51927",
+            "ctrlram-replace",
+            "ctrlram-replace",
+            "Replace",
+            runId,
+            "2026-07-01T00:05:00Z",
+            [],
+            [CommandOperation(32, [Range(28, 32)])],
+            [],
+            "build.bin",
+            32,
+            committed: true,
+            "0123456789abcdef012345",
+            outputDifferences:
+            [
+                OutputDifference(
+                    "diff-001",
+                    Range(28, 32),
+                    4,
+                    "PostbuildCrcHeader",
+                    isAccepted: true,
+                    "postbuild-single: legacy-combiner",
+                    "Accepted: this range is inside the NT51927 / single approved postbuild CRC/header write ranges."),
+            ]);
+    }
+
     public static string CtrlRamWarning(
         string runId = "ui-smoke-warning",
         string issueCode = "input.address-space.truncated",
@@ -118,7 +148,8 @@ internal static class ReportJsonSamples
         string outputFileName,
         long outputSize,
         bool committed,
-        string outputSha256)
+        string outputSha256,
+        IReadOnlyList<object>? outputDifferences = null)
     {
         var report = new
         {
@@ -132,6 +163,7 @@ internal static class ReportJsonSamples
             Inputs = inputs,
             Operations = operations,
             Mutations = Array.Empty<object>(),
+            OutputDifferences = outputDifferences ?? [],
             Issues = issues,
             Output = new
             {
@@ -142,6 +174,29 @@ internal static class ReportJsonSamples
             },
         };
         return JsonSerializer.Serialize(report, JsonOptions);
+    }
+
+    private static object OutputDifference(
+        string differenceId,
+        object range,
+        long changedByteCount,
+        string classification,
+        bool isAccepted,
+        string evidence,
+        string explanation)
+    {
+        return new
+        {
+            DifferenceId = differenceId,
+            Range = range,
+            ChangedByteCount = changedByteCount,
+            Classification = classification,
+            IsAccepted = isAccepted,
+            Evidence = evidence,
+            Explanation = explanation,
+            BeforeSha256 = "11111111111111111111",
+            AfterSha256 = "22222222222222222222",
+        };
     }
 
     private static object Input()

@@ -1222,6 +1222,29 @@ public sealed class ShellViewModelTests
         Assert.False(viewModel.IsReportModalOpen);
     }
 
+    /// <summary>Verifies Replace reports surface accepted final-output CRC/header differences.</summary>
+    [Fact]
+    public void ReportReviewShowsAcceptedOutputDifferences()
+    {
+        string json = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences();
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        viewModel.LoadReportJson(json, "replace-report.json");
+
+        Assert.True(viewModel.LoadedReport.HasOutputDifferences);
+        ReportLineViewModel difference = Assert.Single(viewModel.LoadedReport.OutputDifferences);
+        Assert.Equal("diff-001", difference.Title);
+        Assert.Contains("0x1C-0x1F", difference.Detail, StringComparison.Ordinal);
+        Assert.Contains("changed=4", difference.Detail, StringComparison.Ordinal);
+        Assert.Contains("approved postbuild CRC/header", difference.Meta, StringComparison.Ordinal);
+        Assert.Contains(difference.Badges, badge => badge.Text == "accepted");
+        Assert.Contains(difference.Badges, badge => badge.Text == "PostbuildCrcHeader");
+        Assert.Contains(viewModel.LoadedReport.EvidenceRows, row =>
+            row.Title == "Output diff" &&
+            row.Detail == "1" &&
+            row.Meta == "base vs final");
+    }
+
     /// <summary>Verifies report history can reopen earlier reports without adding a new run.</summary>
     [Fact]
     public void ReportHistoryTracksSessionReportsAndReopensEarlierEntry()
