@@ -64,6 +64,26 @@ public sealed class SavedRuleCliCommandTests
         Assert.DoesNotContain("Rule: copy-display-window", result.Output, StringComparison.Ordinal);
     }
 
+    /// <summary>Rejects optional saved-rule fields whose shapes are not part of the reviewed schema.</summary>
+    [Fact]
+    public async Task SavedRuleValidateRejectsUnsupportedOptionalFieldShapes()
+    {
+        using var workspace = TempWorkspace.Create();
+        JsonObject json = ValidGeneralMergeRuleObject();
+        json["description"] = new JsonObject { ["shellCommand"] = "Combiner.exe /danger" };
+        json["reviewers"] = new JsonArray(new JsonObject { ["name"] = "firmware-owner" });
+        json["inputSlotTemplates"]!.AsArray()[0]!.AsObject()["acceptedExtensions"] =
+            new JsonObject { ["shellCommand"] = "Combiner.exe /danger" };
+        string rule = await WriteRuleAsync(workspace, json);
+
+        CliRunResult result = await RunCliAsync(["saved-rule", "validate", rule]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("$.description", result.Error, StringComparison.Ordinal);
+        Assert.Contains("$.reviewers[0]", result.Error, StringComparison.Ordinal);
+        Assert.Contains("$.inputSlotTemplates[0].acceptedExtensions", result.Error, StringComparison.Ordinal);
+    }
+
     /// <summary>Rejects duplicate row identifiers so operation fragments cannot ambiguously bind rows.</summary>
     [Fact]
     public async Task SavedRuleValidateRejectsDuplicateMappingRowIds()
@@ -78,6 +98,22 @@ public sealed class SavedRuleCliCommandTests
 
         Assert.Equal(1, result.ExitCode);
         Assert.Contains("saved-rule.mapping-row.duplicate", result.Error, StringComparison.Ordinal);
+    }
+
+    /// <summary>Rejects mapping rows that bind to undeclared slot templates.</summary>
+    [Fact]
+    public async Task SavedRuleValidateRejectsDanglingSourceSlotTemplateIds()
+    {
+        using var workspace = TempWorkspace.Create();
+        JsonObject json = ValidGeneralMergeRuleObject();
+        MappingRows(json)[0]!.AsObject()["sourceSlotTemplateId"] = "missing-source";
+        string rule = await WriteRuleAsync(workspace, json);
+
+        CliRunResult result = await RunCliAsync(["saved-rule", "validate", rule]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("saved-rule.mapping-row.source-slot-template-unknown", result.Error, StringComparison.Ordinal);
+        Assert.Contains("missing-source", result.Error, StringComparison.Ordinal);
     }
 
     /// <summary>Current General Merge rule consumption supports only copy-range operation fragments.</summary>
@@ -122,6 +158,55 @@ public sealed class SavedRuleCliCommandTests
         Assert.Equal(1, result.ExitCode);
         Assert.Contains("saved-rule.mapping-row.unreferenced", result.Error, StringComparison.Ordinal);
         Assert.Contains("copy-second-window", result.Error, StringComparison.Ordinal);
+    }
+
+    /// <summary>Rejects reviewed fragment sets that reference the same mapping row more than once.</summary>
+    [Fact]
+    public async Task SavedRuleValidateRejectsMappingRowsReferencedByMultipleFragments()
+    {
+        using var workspace = TempWorkspace.Create();
+        JsonObject json = ValidGeneralMergeRuleObject();
+        JsonObject fragment = CloneObject(OperationFragments(json)[0]!);
+        fragment["operationId"] = "copy-fw-window-again";
+        OperationFragments(json).Add(fragment);
+        string rule = await WriteRuleAsync(workspace, json);
+
+        CliRunResult result = await RunCliAsync(["saved-rule", "validate", rule]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("saved-rule.operation-fragment.mapping-row-duplicate-reference", result.Error, StringComparison.Ordinal);
+        Assert.Contains("copy-fw-window", result.Error, StringComparison.Ordinal);
+    }
+
+    /// <summary>Rejects General Merge rows that saved-rule mappings cannot project without changing semantics.</summary>
+    [Fact]
+    public async Task SavedRuleMappingsRejectsUnsupportedGeneralMergeRows()
+    {
+        using var workspace = TempWorkspace.Create();
+        JsonObject json = ValidGeneralMergeRuleObject();
+        MappingRows(json)[0]!.AsObject()["targetAddressSpaceId"] = "tp-image";
+        string rule = await WriteRuleAsync(workspace, json);
+
+        CliRunResult result = await RunCliAsync(["saved-rule", "mappings", rule]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("saved-rule.mapping-row.target-address-space-unsupported", result.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("--mapping", result.Output, StringComparison.Ordinal);
+    }
+
+    /// <summary>Rejects General Merge saved-rule overlap policies not supported by CLI consumption.</summary>
+    [Fact]
+    public async Task SavedRuleValidateRejectsUnsupportedGeneralMergeOverlapPolicies()
+    {
+        using var workspace = TempWorkspace.Create();
+        JsonObject json = ValidGeneralMergeRuleObject();
+        MappingRows(json)[0]!.AsObject()["overlapPolicy"] = "replace-existing";
+        string rule = await WriteRuleAsync(workspace, json);
+
+        CliRunResult result = await RunCliAsync(["saved-rule", "validate", rule]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("saved-rule.mapping-row.overlap-policy-unsupported", result.Error, StringComparison.Ordinal);
     }
 
     /// <summary>Rejects processor-dependent General Merge saved rules until processor fragments are actually supported.</summary>

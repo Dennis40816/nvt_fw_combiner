@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -129,16 +128,18 @@ internal static partial class SavedCompositionRuleLoader
         string compositionKind = RequiredEnum(root, "compositionKind", "$.compositionKind", ["merge", "replace"], issues);
         string sourceExperience = RequiredEnum(root, "sourceExperience", "$.sourceExperience", ["general-merge", "general-replace"], issues);
         string supportStatus = RequiredEnum(root, "supportStatus", "$.supportStatus", ["draft", "candidate", "supported", "deprecated"], issues);
+        _ = OptionalString(root, "description", "$.description", issues);
         _ = OptionalEnum(root, "protectedRangePolicy", "$.protectedRangePolicy", ["deny-crossing", "deny-touch", "profile-defined"], issues);
         SavedRuleCompatibility compatibility = ReadCompatibility(root, issues);
-        List<SavedRuleMappingRow> mappingRows = ReadMappingRows(root, compositionKind, sourceExperience, issues);
+        HashSet<string> inputSlotTemplateIds = ReadInputSlotTemplateIds(root, issues);
+        List<SavedRuleMappingRow> mappingRows = ReadMappingRows(root, compositionKind, sourceExperience, inputSlotTemplateIds, issues);
         List<string> operationFragmentIds = ReadOperationFragments(root, compositionKind, sourceExperience, mappingRows, issues);
         List<string> processorDependencyIds = ReadStringArray(root, "processorDependencyIds", "$.processorDependencyIds", required: false, validateId: true, issues);
         List<string> validationRuleIds = ReadStringArray(root, "validationRuleIds", "$.validationRuleIds", required: true, validateId: true, issues);
         string owner = RequiredString(root, "owner", "$.owner", issues);
+        _ = ReadStringArray(root, "reviewers", "$.reviewers", required: false, validateId: false, issues);
         List<string> evidenceRefs = ReadStringArray(root, "evidenceRefs", "$.evidenceRefs", required: true, validateId: false, issues);
 
-        ValidateInputSlotTemplates(root, issues);
         ValidateRuleCompatibility(
             compositionKind,
             sourceExperience,
@@ -202,6 +203,7 @@ internal static partial class SavedCompositionRuleLoader
         JsonElement root,
         string compositionKind,
         string sourceExperience,
+        HashSet<string> inputSlotTemplateIds,
         List<SavedRuleValidationIssue> issues)
     {
         if (!root.TryGetProperty("mappingRows", out JsonElement rows) || rows.ValueKind != JsonValueKind.Array)
@@ -231,6 +233,14 @@ internal static partial class SavedCompositionRuleLoader
                     "saved-rule.mapping-row.source-reference",
                     "Mapping row must declare exactly one of sourceBindingId or sourceSlotTemplateId.",
                     rowPath));
+            }
+            else if (!string.IsNullOrWhiteSpace(sourceSlotTemplateId) &&
+                !inputSlotTemplateIds.Contains(sourceSlotTemplateId))
+            {
+                issues.Add(Issue(
+                    "saved-rule.mapping-row.source-slot-template-unknown",
+                    $"Mapping row references undeclared sourceSlotTemplateId '{sourceSlotTemplateId}'.",
+                    $"{rowPath}.sourceSlotTemplateId"));
             }
 
             ByteRange? sourceRange = OptionalByteRange(row, "sourceRange", $"{rowPath}.sourceRange", issues);
@@ -263,6 +273,27 @@ internal static partial class SavedCompositionRuleLoader
                     "saved-rule.mapping-row.replace-source-offset-unsupported",
                     "Current General Replace CLI materialization supports replacement files from source offset 0 only.",
                     $"{rowPath}.sourceRange"));
+            }
+
+            if (compositionKind == "merge" && sourceExperience == "general-merge")
+            {
+                if (!string.IsNullOrWhiteSpace(targetAddressSpaceId) &&
+                    !string.Equals(targetAddressSpaceId, "output-image", StringComparison.Ordinal))
+                {
+                    issues.Add(Issue(
+                        "saved-rule.mapping-row.target-address-space-unsupported",
+                        "Current General Merge saved-rule CLI consumption supports only output-image target rows.",
+                        $"{rowPath}.targetAddressSpaceId"));
+                }
+
+                if (!string.IsNullOrWhiteSpace(overlapPolicy) &&
+                    !string.Equals(overlapPolicy, "reject", StringComparison.Ordinal))
+                {
+                    issues.Add(Issue(
+                        "saved-rule.mapping-row.overlap-policy-unsupported",
+                        "Current General Merge saved-rule CLI consumption supports only reject overlap policy.",
+                        $"{rowPath}.overlapPolicy"));
+                }
             }
 
             if (targetRange is not null)
@@ -364,7 +395,13 @@ internal static partial class SavedCompositionRuleLoader
                     continue;
                 }
 
-                _ = referencedMappingRowIds.Add(mappingRowId);
+                if (!referencedMappingRowIds.Add(mappingRowId))
+                {
+                    issues.Add(Issue(
+                        "saved-rule.operation-fragment.mapping-row-duplicate-reference",
+                        $"General Merge saved-rule mapping row '{mappingRowId}' is referenced by more than one operation fragment.",
+                        $"{path}.mappingRowIds"));
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(operationId))
@@ -390,19 +427,21 @@ internal static partial class SavedCompositionRuleLoader
         return operationIds;
     }
 
-    private static void ValidateInputSlotTemplates(JsonElement root, List<SavedRuleValidationIssue> issues)
+    private static HashSet<string> ReadInputSlotTemplateIds(JsonElement root, List<SavedRuleValidationIssue> issues)
     {
+        HashSet<string> ids = new(StringComparer.Ordinal);
         if (!root.TryGetProperty("inputSlotTemplates", out JsonElement templates))
         {
-            return;
+            return ids;
         }
 
         if (templates.ValueKind != JsonValueKind.Array)
         {
             issues.Add(Issue("saved-rule.input-slot-templates.invalid", "inputSlotTemplates must be an array.", "$.inputSlotTemplates"));
-            return;
+            return ids;
         }
 
+        List<string> values = [];
         int index = 0;
         foreach (JsonElement template in templates.EnumerateArray())
         {
@@ -414,10 +453,25 @@ internal static partial class SavedCompositionRuleLoader
             }
 
             ValidateProperties(template, InputSlotTemplateProperties, path, issues);
-            _ = RequiredId(template, "slotTemplateId", $"{path}.slotTemplateId", issues);
+            string slotTemplateId = RequiredId(template, "slotTemplateId", $"{path}.slotTemplateId", issues);
+            if (!string.IsNullOrWhiteSpace(slotTemplateId))
+            {
+                values.Add(slotTemplateId);
+                _ = ids.Add(slotTemplateId);
+            }
+
             _ = RequiredString(template, "role", $"{path}.role", issues);
             _ = RequiredEnum(template, "cardinality", $"{path}.cardinality", ["one", "many"], issues);
+            _ = ReadExtensionArray(template, "acceptedExtensions", $"{path}.acceptedExtensions", issues);
         }
+
+        AddDuplicateIssues(
+            values,
+            "saved-rule.input-slot-template.duplicate",
+            "Input slot template id is duplicated.",
+            "$.inputSlotTemplates",
+            issues);
+        return ids;
     }
 
     private static void ValidateRuleCompatibility(
@@ -464,308 +518,4 @@ internal static partial class SavedCompositionRuleLoader
         }
     }
 
-    private static void ValidateProperties(
-        JsonElement element,
-        HashSet<string> allowed,
-        string path,
-        List<SavedRuleValidationIssue> issues)
-    {
-        HashSet<string> seen = [];
-        foreach (JsonProperty property in element.EnumerateObject())
-        {
-            string propertyPath = $"{path}.{property.Name}";
-            if (!seen.Add(property.Name))
-            {
-                issues.Add(Issue("saved-rule.property.duplicate", $"Property '{property.Name}' is duplicated.", propertyPath));
-            }
-
-            if (!allowed.Contains(property.Name))
-            {
-                issues.Add(Issue("saved-rule.property.unknown", $"Property '{property.Name}' is not allowed in a saved rule.", propertyPath));
-            }
-        }
-    }
-
-    private static List<string> ReadStringArray(
-        JsonElement element,
-        string propertyName,
-        string path,
-        bool required,
-        bool validateId,
-        List<SavedRuleValidationIssue> issues)
-    {
-        if (!element.TryGetProperty(propertyName, out JsonElement array))
-        {
-            if (required)
-            {
-                issues.Add(Issue("saved-rule.array.required", $"Property '{propertyName}' is required.", path));
-            }
-
-            return [];
-        }
-
-        if (array.ValueKind != JsonValueKind.Array)
-        {
-            issues.Add(Issue("saved-rule.array.invalid", $"Property '{propertyName}' must be an array.", path));
-            return [];
-        }
-
-        List<string> values = [];
-        int index = 0;
-        foreach (JsonElement item in array.EnumerateArray())
-        {
-            string itemPath = string.Create(CultureInfo.InvariantCulture, $"{path}[{index++}]");
-            if (item.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(item.GetString()))
-            {
-                issues.Add(Issue("saved-rule.array-item.invalid", $"Property '{propertyName}' entries must be non-empty strings.", itemPath));
-                continue;
-            }
-
-            string value = item.GetString()!;
-            if (validateId && !IdRegex().IsMatch(value))
-            {
-                issues.Add(Issue("saved-rule.id.invalid", $"Identifier '{value}' does not match the saved-rule id grammar.", itemPath));
-            }
-
-            values.Add(value);
-        }
-
-        AddDuplicateIssues(values, "saved-rule.array.duplicate", $"Property '{propertyName}' contains duplicate values.", path, issues);
-        return values;
-    }
-
-    private static ByteRange? RequiredByteRange(
-        JsonElement element,
-        string propertyName,
-        string path,
-        List<SavedRuleValidationIssue> issues)
-    {
-        if (!element.TryGetProperty(propertyName, out JsonElement range))
-        {
-            issues.Add(Issue("saved-rule.range.required", $"Property '{propertyName}' is required.", path));
-            return null;
-        }
-
-        return ParseByteRange(range, path, issues);
-    }
-
-    private static ByteRange? OptionalByteRange(
-        JsonElement element,
-        string propertyName,
-        string path,
-        List<SavedRuleValidationIssue> issues)
-    {
-        return element.TryGetProperty(propertyName, out JsonElement range)
-            ? ParseByteRange(range, path, issues)
-            : null;
-    }
-
-    private static ByteRange? ParseByteRange(JsonElement range, string path, List<SavedRuleValidationIssue> issues)
-    {
-        if (range.ValueKind != JsonValueKind.Object)
-        {
-            issues.Add(Issue("saved-rule.range.invalid", "Range must be an object.", path));
-            return null;
-        }
-
-        ValidateProperties(range, ByteRangeProperties, path, issues);
-        if (!TryReadNonNegativeLong(range, "start", $"{path}.start", out long start, issues) ||
-            !TryReadNonNegativeLong(range, "length", $"{path}.length", out long length, issues))
-        {
-            return null;
-        }
-
-        if (length <= 0)
-        {
-            issues.Add(Issue("saved-rule.range.length", "Range length must be positive.", $"{path}.length"));
-            return null;
-        }
-
-        try
-        {
-            return new ByteRange(start, length);
-        }
-        catch (Exception exception) when (exception is ArgumentOutOfRangeException or OverflowException)
-        {
-            issues.Add(Issue("saved-rule.range.overflow", "Range exceeds the supported address size.", path));
-            return null;
-        }
-    }
-
-    private static bool TryReadNonNegativeLong(
-        JsonElement element,
-        string propertyName,
-        string path,
-        out long value,
-        List<SavedRuleValidationIssue> issues)
-    {
-        value = 0;
-        if (!element.TryGetProperty(propertyName, out JsonElement property) || !property.TryGetInt64(out value))
-        {
-            issues.Add(Issue("saved-rule.integer.required", $"Property '{propertyName}' must be an integer.", path));
-            return false;
-        }
-
-        if (value < 0)
-        {
-            issues.Add(Issue("saved-rule.integer.negative", $"Property '{propertyName}' must be non-negative.", path));
-            return false;
-        }
-
-        return true;
-    }
-
-    private static string RequiredString(
-        JsonElement element,
-        string propertyName,
-        string path,
-        List<SavedRuleValidationIssue> issues)
-    {
-        if (!element.TryGetProperty(propertyName, out JsonElement property) ||
-            property.ValueKind != JsonValueKind.String ||
-            string.IsNullOrWhiteSpace(property.GetString()))
-        {
-            issues.Add(Issue("saved-rule.string.required", $"Property '{propertyName}' must be a non-empty string.", path));
-            return string.Empty;
-        }
-
-        return property.GetString()!;
-    }
-
-    private static string RequiredEnum(
-        JsonElement element,
-        string propertyName,
-        string path,
-        IReadOnlyList<string> allowed,
-        List<SavedRuleValidationIssue> issues)
-    {
-        string value = RequiredString(element, propertyName, path, issues);
-        if (!string.IsNullOrWhiteSpace(value) && !allowed.Contains(value, StringComparer.Ordinal))
-        {
-            issues.Add(Issue(
-                "saved-rule.enum.invalid",
-                $"Property '{propertyName}' must be one of: {string.Join(", ", allowed)}.",
-                path));
-        }
-
-        return value;
-    }
-
-    private static string? OptionalEnum(
-        JsonElement element,
-        string propertyName,
-        string path,
-        IReadOnlyList<string> allowed,
-        List<SavedRuleValidationIssue> issues)
-    {
-        return element.TryGetProperty(propertyName, out _)
-            ? RequiredEnum(element, propertyName, path, allowed, issues)
-            : null;
-    }
-
-    private static string RequiredId(
-        JsonElement element,
-        string propertyName,
-        string path,
-        List<SavedRuleValidationIssue> issues)
-    {
-        string value = RequiredString(element, propertyName, path, issues);
-        if (!string.IsNullOrWhiteSpace(value) && !IdRegex().IsMatch(value))
-        {
-            issues.Add(Issue("saved-rule.id.invalid", $"Identifier '{value}' does not match the saved-rule id grammar.", path));
-        }
-
-        return value;
-    }
-
-    private static string? OptionalId(
-        JsonElement element,
-        string propertyName,
-        string path,
-        List<SavedRuleValidationIssue> issues)
-    {
-        if (!element.TryGetProperty(propertyName, out JsonElement property))
-        {
-            return null;
-        }
-
-        if (property.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(property.GetString()))
-        {
-            issues.Add(Issue("saved-rule.id.invalid", $"Property '{propertyName}' must be a non-empty id.", path));
-            return null;
-        }
-
-        string value = property.GetString()!;
-        if (!IdRegex().IsMatch(value))
-        {
-            issues.Add(Issue("saved-rule.id.invalid", $"Identifier '{value}' does not match the saved-rule id grammar.", path));
-        }
-
-        return value;
-    }
-
-    private static string RequiredSemver(
-        JsonElement element,
-        string propertyName,
-        string path,
-        List<SavedRuleValidationIssue> issues)
-    {
-        string value = RequiredString(element, propertyName, path, issues);
-        if (!string.IsNullOrWhiteSpace(value) && !SemverRegex().IsMatch(value))
-        {
-            issues.Add(Issue("saved-rule.semver.invalid", $"Property '{propertyName}' must be semantic version text.", path));
-        }
-
-        return value;
-    }
-
-    private static int? OptionalPositiveInt(
-        JsonElement element,
-        string propertyName,
-        string path,
-        List<SavedRuleValidationIssue> issues)
-    {
-        if (!element.TryGetProperty(propertyName, out JsonElement property))
-        {
-            return null;
-        }
-
-        if (!property.TryGetInt32(out int value) || value <= 0)
-        {
-            issues.Add(Issue("saved-rule.integer.positive", $"Property '{propertyName}' must be a positive integer.", path));
-            return null;
-        }
-
-        return value;
-    }
-
-    private static void AddDuplicateIssues(
-        IReadOnlyList<string> values,
-        string code,
-        string message,
-        string path,
-        List<SavedRuleValidationIssue> issues)
-    {
-        foreach (string duplicate in values
-                     .GroupBy(value => value, StringComparer.Ordinal)
-                     .Where(group => group.Count() > 1)
-                     .Select(group => group.Key))
-        {
-            issues.Add(Issue(code, $"{message} Duplicate: '{duplicate}'.", path));
-        }
-    }
-
-    private static SavedRuleValidationIssue Issue(string code, string message, string path)
-    {
-        return new SavedRuleValidationIssue(code, message, path);
-    }
-
-    [GeneratedRegex("^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$", RegexOptions.CultureInvariant)]
-    private static partial Regex IdRegex();
-
-    [GeneratedRegex("^NT[0-9A-Za-z-]+$", RegexOptions.CultureInvariant)]
-    private static partial Regex IcIdRegex();
-
-    [GeneratedRegex("^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$", RegexOptions.CultureInvariant)]
-    private static partial Regex SemverRegex();
 }
