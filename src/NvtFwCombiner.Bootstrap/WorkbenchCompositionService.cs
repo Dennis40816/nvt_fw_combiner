@@ -79,6 +79,19 @@ public static partial class WorkbenchCompositionService
             ];
         }
 
+        if (IsDpPerspectiveLengthPending(profile, dpInputLength))
+        {
+            return
+            [
+                new WorkbenchMemoryMapRow(
+                    FormatStandardMergeInitializationRangeLabel(profile, dpInputLength),
+                    "No output",
+                    "Initialize",
+                    $"Blank output 0x{profile.Initialization.FillByte:X2}",
+                    FormatStandardMergeInitializationDetail(profile, dpInputLength)),
+            ];
+        }
+
         if (!TryResolveStandardMergeProfileForDisplay(profile, dpInputLength, out profile, out string profileIssue))
         {
             return
@@ -157,6 +170,20 @@ public static partial class WorkbenchCompositionService
                     "No range",
                     "No profile",
                     "Standard Merge is unavailable.",
+                    "#CBD5E1",
+                    280,
+                    false),
+            ];
+        }
+
+        if (IsDpPerspectiveLengthPending(profile, dpInputLength))
+        {
+            return
+            [
+                new WorkbenchMemoryCoverageSegment(
+                    "Selected DP BIN length pending",
+                    "DP length pending",
+                    "Select a DP BIN before final ownership is drawn. Supported DP lengths are 0x40000, 0x80000, and 0x100000.",
                     "#CBD5E1",
                     280,
                     false),
@@ -243,9 +270,11 @@ public static partial class WorkbenchCompositionService
     {
         return !StandardMergeProfilesByIc.TryGetValue(icId, out CompositionProfileDefinition? profile)
             ? "No Standard Merge profile"
-            : TryResolveStandardMergeProfileForDisplay(profile, dpInputLength, out profile, out string profileIssue)
-                ? FormatFullRange(profile.Initialization.Capacity)
-                : profileIssue;
+            : IsDpPerspectiveLengthPending(profile, dpInputLength)
+                ? "Selected DP BIN length pending"
+                : TryResolveStandardMergeProfileForDisplay(profile, dpInputLength, out profile, out string profileIssue)
+                    ? FormatFullRange(profile.Initialization.Capacity)
+                    : profileIssue;
     }
 
     /// <summary>Gets catalog and tool summary data for the Settings page.</summary>
@@ -379,11 +408,19 @@ public static partial class WorkbenchCompositionService
         }
     }
 
+    private static bool IsDpPerspectiveLengthPending(
+        CompositionProfileDefinition profile,
+        long? dpInputLength)
+    {
+        return BuiltInStandardMergeProfiles.IsDpPerspectiveStandardMergeProfile(profile) &&
+            dpInputLength is null;
+    }
+
     private static string FormatStandardMergeInitializationRangeLabel(
         CompositionProfileDefinition profile,
         long? dpInputLength)
     {
-        return BuiltInStandardMergeProfiles.IsDpPerspectiveStandardMergeProfile(profile) && dpInputLength is null
+        return IsDpPerspectiveLengthPending(profile, dpInputLength)
             ? "Selected DP BIN length pending"
             : FormatFullRange(profile.Initialization.Capacity);
     }

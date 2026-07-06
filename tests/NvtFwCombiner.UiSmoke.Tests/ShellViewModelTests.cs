@@ -511,12 +511,13 @@ public sealed class ShellViewModelTests
         Assert.Contains("Supported DP lengths are 0x40000, 0x80000, and 0x100000", initialRow.Detail, StringComparison.Ordinal);
         Assert.DoesNotContain("0xFFFFF", initialRow.Detail, StringComparison.Ordinal);
         Assert.Equal("No output -> Reserved", initialRow.FlowLabel);
-        Assert.Contains(viewModel.MergeCoverageSegments, segment =>
-            segment.SourceLabel == "TP BIN" &&
-            segment.CompactDetail == "Output range uses bytes from TP BIN.");
-        Assert.Contains(viewModel.MergeCoverageSegments, segment =>
-            segment.SourceLabel == "DP BIN" &&
-            segment.CompactDetail == "Output range uses bytes from DP BIN.");
+        Assert.Equal("Selected DP BIN length pending", viewModel.MergeMemoryRangeLabel);
+        _ = Assert.Single(viewModel.MergeMemoryRows);
+        MemoryCoverageSegmentViewModel pendingSegment = Assert.Single(viewModel.MergeCoverageSegments);
+        Assert.Equal("Selected DP BIN length pending", pendingSegment.RangeLabel);
+        Assert.Equal("DP length pending", pendingSegment.SourceLabel);
+        Assert.Contains("Select a DP BIN before final ownership is drawn", pendingSegment.Detail, StringComparison.Ordinal);
+        Assert.DoesNotContain("0xFFFFF", pendingSegment.RangeLabel, StringComparison.Ordinal);
         Assert.All(viewModel.MergeCoverageSegments, segment =>
         {
             Assert.NotEqual("Preserved", segment.ChangeLabel);
