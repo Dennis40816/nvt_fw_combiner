@@ -189,7 +189,7 @@ public sealed class ShellViewModelTests
         AssertBrush("#1D4ED8", required.SlotIconForegroundBrush);
         Assert.Equal("No BIN selected", required.DisplayName);
         Assert.Equal(string.Empty, required.DisplayDetail);
-        AssertBrush("#FFF7F7", required.SlotBackgroundBrush);
+        AssertBrush("#FEF2F2", required.SlotBackgroundBrush);
         AssertBrush("#FCA5A5", required.SlotBorderBrush);
         Assert.Equal(new Thickness(1.5), required.SlotBorderThickness);
         AssertBrush("#B91C1C", required.RequirementBadgeForegroundBrush);
@@ -491,6 +491,9 @@ public sealed class ShellViewModelTests
         Assert.Equal("Base BIN length: 0x40000 / 0x80000 / 0x100000", viewModel.ReplaceMemoryRangeLabel);
         Assert.Equal("Base length pending", segment.RangeLabel);
         Assert.Equal("DP base required", segment.SourceLabel);
+        Assert.Equal(
+            "Output range will follow the selected base BIN length.",
+            segment.CompactDetail);
         Assert.Contains("actual DP Replace length", segment.Detail, StringComparison.Ordinal);
         Assert.DoesNotContain("0x00000-0xFFFFF", segment.RangeLabel, StringComparison.Ordinal);
         Assert.DoesNotContain("max", segment.Detail, StringComparison.OrdinalIgnoreCase);
@@ -516,6 +519,9 @@ public sealed class ShellViewModelTests
         MemoryCoverageSegmentViewModel pendingSegment = Assert.Single(viewModel.MergeCoverageSegments);
         Assert.Equal("Selected DP BIN length pending", pendingSegment.RangeLabel);
         Assert.Equal("DP length pending", pendingSegment.SourceLabel);
+        Assert.Equal(
+            "Output range will follow the selected DP BIN length.",
+            pendingSegment.CompactDetail);
         Assert.Contains("Select a DP BIN before final ownership is drawn", pendingSegment.Detail, StringComparison.Ordinal);
         Assert.DoesNotContain("0xFFFFF", pendingSegment.RangeLabel, StringComparison.Ordinal);
         Assert.All(viewModel.MergeCoverageSegments, segment =>
@@ -739,6 +745,9 @@ public sealed class ShellViewModelTests
         MemoryCoverageSegmentViewModel segment = Assert.Single(viewModel.ReplaceCoverageSegments);
         Assert.Equal("Unsupported 0x60000", segment.RangeLabel);
         Assert.Equal("Unsupported base", segment.SourceLabel);
+        Assert.Equal(
+            "This base BIN length is blocked by profile policy.",
+            segment.CompactDetail);
         Assert.False(segment.IsChanged);
     }
 

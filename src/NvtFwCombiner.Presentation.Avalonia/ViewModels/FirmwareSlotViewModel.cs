@@ -38,7 +38,7 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
     private static readonly IBrush OptionalBadgeBackground = Brush.Parse("#EAF3FF");
     private static readonly IBrush OptionalBadgeBorder = Brush.Parse("#BFDBFE");
     private static readonly IBrush OptionalBadgeForeground = Brush.Parse("#1D4ED8");
-    private static readonly IBrush MissingRequiredSlotBackground = Brush.Parse("#FFF7F7");
+    private static readonly IBrush MissingRequiredSlotBackground = Brush.Parse("#FEF2F2");
     private static readonly IBrush MissingRequiredSlotBorder = Brush.Parse("#FCA5A5");
     private static readonly IBrush MissingRequiredBadgeBackground = Brush.Parse("#FEE2E2");
     private static readonly IBrush MissingRequiredBadgeBorder = Brush.Parse("#FECACA");
