@@ -112,6 +112,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("IsEnabled=\"{Binding CanOpenReport}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ReportActionLabel", shell, StringComparison.Ordinal);
         Assert.Contains("ReportActionStatus", shell, StringComparison.Ordinal);
+        Assert.Contains("<Window.KeyBindings>", shell, StringComparison.Ordinal);
+        Assert.Contains("Gesture=\"Ctrl+H\" Command=\"{Binding ShowReportHistoryCommand}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Gesture=\"Ctrl+Shift+Delete\" Command=\"{Binding ClearReportHistoryCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.OutcomeTitle", shell, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.EvidenceRows", shell, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.TriageRows", shell, StringComparison.Ordinal);

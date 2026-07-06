@@ -12,6 +12,10 @@
     Background="#F4F6FA"
     FontFamily="fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI"
     Title="NVT FW Combiner">
+  <Window.KeyBindings>
+    <KeyBinding Gesture="Ctrl+H" Command="{Binding ShowReportHistoryCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+Delete" Command="{Binding ClearReportHistoryCommand}" />
+  </Window.KeyBindings>
   <Window.Resources>
     <ControlTheme x:Key="StretchContentPresenterTheme" TargetType="ContentPresenter">
       <Setter Property="HorizontalAlignment" Value="Stretch" />
@@ -2259,7 +2263,6 @@
                 <Button
                     Classes="secondary"
                     Command="{Binding ShowReportHistoryCommand}"
-                    HotKey="Ctrl+H"
                     IsVisible="{Binding HasReportHistory}"
                     ToolTip.Tip="Open report history (Ctrl+H)">
                   <TextBlock Text="{Binding ReportHistoryActionLabel}" />
@@ -2296,7 +2299,6 @@
                   <Button
                       Classes="danger"
                       Command="{Binding ClearReportHistoryCommand}"
-                      HotKey="Ctrl+Shift+Delete"
                       Content="Clear all"
                       ToolTip.Tip="Clear all report history (Ctrl+Shift+Delete)" />
                 </StackPanel>
