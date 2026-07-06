@@ -874,6 +874,8 @@ public sealed class ShellViewModelTests
         Assert.Contains(viewModel.LoadedReport.Operations, operation =>
             operation.HasCodeBlock &&
             operation.CodeBlock.Contains("Combiner.exe", StringComparison.Ordinal));
+        using var reportDocument = JsonDocument.Parse(viewModel.LoadedReportJson);
+        AssertAcceptedPostbuildOnlyOutputDifferences(reportDocument.RootElement, "postbuild-threechip");
     }
 
     /// <summary>Verifies CtrlRAM Replace build commits a real postbuild output file.</summary>
@@ -918,6 +920,8 @@ public sealed class ShellViewModelTests
         Assert.Equal(outputPath, viewModel.LoadedReport.OutputArtifactPath);
         Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
             operation.CodeBlock.Contains("Combiner.exe", StringComparison.Ordinal));
+        using var firstReportDocument = JsonDocument.Parse(viewModel.LoadedReportJson);
+        AssertAcceptedPostbuildOnlyOutputDifferences(firstReportDocument.RootElement, "postbuild-single");
 
         byte[] postbuildCleanBytes = File.ReadAllBytes(outputPath);
         string cleanBasePath = workspace.Write("postbuild-clean-base.bin", postbuildCleanBytes);
@@ -941,6 +945,8 @@ public sealed class ShellViewModelTests
         Assert.True(cleanViewModel.LoadedReport.HasOutputArtifactPath);
         Assert.Equal(cleanOutputPath, cleanViewModel.LoadedReport.OutputArtifactPath);
         Assert.Equal(postbuildCleanBytes, File.ReadAllBytes(cleanOutputPath));
+        using var cleanReportDocument = JsonDocument.Parse(cleanViewModel.LoadedReportJson);
+        AssertNoOutputDifferences(cleanReportDocument.RootElement);
     }
 
     /// <summary>Verifies owner-approved CtrlRAM Replace fixtures when a manifest is present.</summary>
@@ -1720,6 +1726,38 @@ public sealed class ShellViewModelTests
     {
         using var golden = StandardMergeGoldenManifest.Load();
         return golden.CaseIds();
+    }
+
+    private static void AssertAcceptedPostbuildOnlyOutputDifferences(
+        JsonElement root,
+        string expectedOperationId)
+    {
+        AssertNoUnexpectedOutputDifferenceIssue(root);
+        JsonElement[] differences = [.. root.GetProperty("OutputDifferences").EnumerateArray()];
+        Assert.NotEmpty(differences);
+        Assert.All(differences, difference =>
+        {
+            Assert.Equal("PostbuildCrcHeader", difference.GetProperty("Classification").GetString());
+            Assert.True(difference.GetProperty("IsAccepted").GetBoolean());
+            Assert.Contains(
+                expectedOperationId,
+                difference.GetProperty("Evidence").GetString(),
+                StringComparison.Ordinal);
+            Assert.True(difference.GetProperty("ChangedByteCount").GetInt64() > 0);
+            Assert.True(difference.GetProperty("Range").GetProperty("Length").GetInt64() > 0);
+        });
+    }
+
+    private static void AssertNoOutputDifferences(JsonElement root)
+    {
+        AssertNoUnexpectedOutputDifferenceIssue(root);
+        Assert.Empty(root.GetProperty("OutputDifferences").EnumerateArray());
+    }
+
+    private static void AssertNoUnexpectedOutputDifferenceIssue(JsonElement root)
+    {
+        Assert.DoesNotContain(root.GetProperty("Issues").EnumerateArray(), issue =>
+            issue.GetProperty("Code").GetString() == "report.output-difference.unexpected");
     }
 
     private static byte[] CreatePattern(int length, byte seed)

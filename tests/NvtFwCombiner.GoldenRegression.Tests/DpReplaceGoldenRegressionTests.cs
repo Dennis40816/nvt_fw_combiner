@@ -56,6 +56,7 @@ public sealed class DpReplaceGoldenRegressionTests
         Assert.Empty(root.GetProperty("Issues").EnumerateArray());
         Assert.Equal(expectedBaseBytes.LongLength, root.GetProperty("Output").GetProperty("Size").GetInt64());
         Assert.Equal(Sha256Hex(expectedBaseBytes), root.GetProperty("Output").GetProperty("Sha256").GetString());
+        Assert.Empty(root.GetProperty("OutputDifferences").EnumerateArray());
         Assert.Equal(
             ExpectedDpReplaceOperations,
             root.GetProperty("Operations").EnumerateArray()
