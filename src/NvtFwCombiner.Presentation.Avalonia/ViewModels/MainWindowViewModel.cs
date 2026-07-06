@@ -10,6 +10,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private const string DpReplaceMode = "DP";
     private const string CtrlRamReplaceMode = "CtrlRAM";
     private const string GeneralReplaceMode = "General";
+    private const string NormalMergeMode = "Normal";
+    private const string AbCodeMergeMode = "AB Code";
+    private const string GeneralMergeMode = "General";
     private const string MergeDpSlotId = "merge-dp";
     private const string MergeTpSlotId = "merge-tp";
     private const string MergeLdSlotId = "merge-ld";
@@ -32,6 +35,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         isOptional: true,
         kind: FirmwareSlotKind.Dp);
     private int _generalReplaceMappingCounter;
+    private int _generalMergeMappingCounter;
+    private string _selectedMergeMode = NormalMergeMode;
 
     /// <summary>Initializes the main workbench view model.</summary>
     public MainWindowViewModel(
@@ -74,16 +79,19 @@ public sealed partial class MainWindowViewModel : ObservableObject
         ShowDpReplaceCommand = new RelayCommand(() => SelectReplaceMode(DpReplaceMode));
         ShowCtrlRamReplaceCommand = new RelayCommand(() => SelectReplaceMode(CtrlRamReplaceMode));
         ShowGeneralReplaceCommand = new RelayCommand(() => SelectReplaceMode(GeneralReplaceMode));
-        ShowNormalMergeCommand = new RelayCommand(() => SelectMergeMode("Normal"));
+        ShowNormalMergeCommand = new RelayCommand(() => SelectMergeMode(NormalMergeMode));
         AddGeneralReplaceMappingCommand = new RelayCommand(AddGeneralReplaceMapping);
         RemoveGeneralReplaceMappingCommand = new RelayCommand<GeneralReplaceMappingViewModel>(
             RemoveGeneralReplaceMapping);
+        AddGeneralMergeMappingCommand = new RelayCommand(AddGeneralMergeMapping);
+        RemoveGeneralMergeMappingCommand = new RelayCommand<GeneralMergeMappingViewModel>(
+            RemoveGeneralMergeMapping);
         PreviewMergeCommand = new AsyncRelayCommand(
-            () => RunStandardMergeAsync(build: false),
-            CanRunStandardMerge);
+            () => RunMergeAsync(build: false),
+            CanRunMerge);
         BuildMergeCommand = new AsyncRelayCommand(
-            () => RunStandardMergeAsync(build: true),
-            () => CanBuildStandardMerge);
+            () => RunMergeAsync(build: true),
+            () => CanBuildMerge);
         PreviewReplaceCommand = new AsyncRelayCommand(
             () => RunReplaceAsync(build: false),
             CanRunReplace);
@@ -98,6 +106,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         CloseReplaceSelectionCommand = new RelayCommand(CloseReplaceSelection);
 
         AddGeneralReplaceMapping();
+        AddGeneralMergeMapping();
         NavigationTrail.Add(CreateNavigationEntry(ShellPage.Home, isCurrent: true));
         RefreshContextState();
         RefreshSettingsState();
@@ -152,9 +161,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// <summary>Gets merge mode choices reserved in the product taxonomy.</summary>
     public IReadOnlyList<string> MergeModeChoices { get; } =
     [
-        "Normal",
-        "AB Code",
-        "General",
+        NormalMergeMode,
+        AbCodeMergeMode,
+        GeneralMergeMode,
     ];
 
     /// <summary>Gets settings card content.</summary>
@@ -212,13 +221,26 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// <summary>Gets editable General Replace mapping rows.</summary>
     public ObservableCollection<GeneralReplaceMappingViewModel> GeneralReplaceMappings { get; } = [];
 
+    /// <summary>Gets editable General Merge mapping rows.</summary>
+    public ObservableCollection<GeneralMergeMappingViewModel> GeneralMergeMappings { get; } = [];
+
     /// <summary>Gets Merge memory coverage text for the selected IC.</summary>
-    public string MergeMemoryRangeLabel => UiCompositionRunner.GetStandardMergeMemoryRangeLabel(
-        SelectedIc,
-        GetSelectedMergeDpInputLength());
+    public string MergeMemoryRangeLabel => IsGeneralMergeModeSelected
+        ? UiCompositionRunner.GetGeneralMergeMemoryRangeLabel(GeneralMergeOutputLength)
+        : UiCompositionRunner.GetStandardMergeMemoryRangeLabel(
+            SelectedIc,
+            GetSelectedMergeDpInputLength());
 
     /// <summary>Gets the profile-owned default Standard Merge output file name.</summary>
     public string StandardMergeOutputFileName => UiCompositionRunner.GetStandardMergeDefaultOutputFileName(SelectedIc);
+
+    /// <summary>Gets the default General Merge output file name.</summary>
+    public string GeneralMergeOutputFileName => UiCompositionRunner.GetGeneralMergeDefaultOutputFileName(SelectedIc);
+
+    /// <summary>Gets the active Merge output file name.</summary>
+    public string MergeOutputFileName => IsGeneralMergeModeSelected
+        ? GeneralMergeOutputFileName
+        : StandardMergeOutputFileName;
 
     /// <summary>Gets Replace memory coverage text for the selected IC and Number.</summary>
     public string ReplaceMemoryRangeLabel => UiCompositionRunner.GetReplaceMemoryRangeLabel(
@@ -234,9 +256,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
         SelectedReplaceMode);
 
     /// <summary>Gets short Merge memory-map summary text.</summary>
-    public string MergeMemorySummary => IsStandardMergeSupported
-        ? "The bar shows which input file occupies each final flash position."
-        : "No merge profile is available for the selected IC.";
+    public string MergeMemorySummary => SelectedMergeMode switch
+    {
+        NormalMergeMode when IsStandardMergeSupported => "The bar shows which input file occupies each final flash position.",
+        NormalMergeMode => "No merge profile is available for the selected IC.",
+        GeneralMergeMode => "The bar starts reserved and marks each explicit source mapping written into the output.",
+        _ => "This merge mode is reserved.",
+    };
 
     /// <summary>Gets the latest UI-triggered run summary.</summary>
     public UiRunResultViewModel LastRunResult { get; private set; } = new(
@@ -269,8 +295,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// <summary>Gets the selected shell page.</summary>
     public ShellPage SelectedPage { get; private set; } = ShellPage.Home;
 
-    /// <summary>Gets the selected Merge quick-jump mode.</summary>
-    public string SelectedMergeMode { get; private set; } = "Normal";
+    /// <summary>Gets or sets the selected Merge quick-jump mode.</summary>
+    public string SelectedMergeMode
+    {
+        get => _selectedMergeMode;
+        set => SelectMergeMode(value);
+    }
 
     /// <summary>True when the clean home view is visible.</summary>
     public bool IsHomeVisible => SelectedPage == ShellPage.Home;
@@ -306,7 +336,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public bool IsReplaceCoverageFlat => !IsReplaceCoverageGrouped;
 
     /// <summary>True when Normal Merge is selected.</summary>
-    public bool IsNormalMergeModeSelected => string.Equals(SelectedMergeMode, "Normal", StringComparison.Ordinal);
+    public bool IsNormalMergeModeSelected => string.Equals(SelectedMergeMode, NormalMergeMode, StringComparison.Ordinal);
+
+    /// <summary>True when General Merge is selected.</summary>
+    public bool IsGeneralMergeModeSelected => string.Equals(SelectedMergeMode, GeneralMergeMode, StringComparison.Ordinal);
+
+    /// <summary>True when the reserved AB Code Merge option is selected.</summary>
+    public bool IsAbCodeMergeModeSelected => string.Equals(SelectedMergeMode, AbCodeMergeMode, StringComparison.Ordinal);
 
     /// <summary>True when selected IC has a built-in standard merge profile.</summary>
     public bool IsStandardMergeSupported => UiCompositionRunner.IsStandardMergeSupported(SelectedIc);
@@ -321,15 +357,27 @@ public sealed partial class MainWindowViewModel : ObservableObject
     };
 
     /// <summary>Status shown in the merge inspector.</summary>
-    public string MergeReadinessStatus => IsStandardMergeSupported
-        ? $"{SelectedIc} / {SelectedNumber}: drop {GetRequiredStandardMergeSlotLabels()} BIN files."
-        : $"{SelectedIc}: Standard Merge is not available yet.";
+    public string MergeReadinessStatus => SelectedMergeMode switch
+    {
+        NormalMergeMode when IsStandardMergeSupported => $"{SelectedIc}: drop {GetRequiredStandardMergeSlotLabels()} BIN files.",
+        NormalMergeMode => $"{SelectedIc}: Standard Merge is not available yet.",
+        GeneralMergeMode => GeneralMergeMappings.Any(mapping => mapping.HasFile)
+            ? $"{SelectedIc}: General Merge maps {GeneralMergeMappings.Count(mapping => mapping.HasFile)} source BIN file(s) into a blank output."
+            : $"{SelectedIc}: add at least one source BIN mapping.",
+        _ => "AB Code Merge is reserved for a later workflow.",
+    };
 
     /// <summary>True when Standard Merge preview can run.</summary>
     public bool CanPreviewStandardMerge => CanRunStandardMerge();
 
     /// <summary>True when Standard Merge build can run.</summary>
     public bool CanBuildStandardMerge => CanRunStandardMerge() && HasCurrentStandardMergePreview();
+
+    /// <summary>True when active Merge preview can run.</summary>
+    public bool CanPreviewMerge => CanRunMerge();
+
+    /// <summary>True when active Merge build can run.</summary>
+    public bool CanBuildMerge => CanRunMerge() && HasCurrentMergePreview();
 
     /// <summary>True when Replace preview can run for the active mode.</summary>
     public bool CanPreviewReplace => CanRunReplace();
@@ -367,6 +415,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// <summary>Command that removes a General Replace mapping row.</summary>
     public IRelayCommand<GeneralReplaceMappingViewModel> RemoveGeneralReplaceMappingCommand { get; }
 
+    /// <summary>Command that adds a General Merge mapping row.</summary>
+    public IRelayCommand AddGeneralMergeMappingCommand { get; }
+
+    /// <summary>Command that removes a General Merge mapping row.</summary>
+    public IRelayCommand<GeneralMergeMappingViewModel> RemoveGeneralMergeMappingCommand { get; }
+
     /// <summary>Command that previews Standard Merge through the application core.</summary>
     public IAsyncRelayCommand PreviewMergeCommand { get; }
 
@@ -394,6 +448,11 @@ public sealed partial class MainWindowViewModel : ObservableObject
         FirmwareSlotViewModel? slot = FindSlot(slotId);
         if (slot is null)
         {
+            if (SetGeneralMergeMappingFile(slotId, path))
+            {
+                return;
+            }
+
             SetGeneralReplaceMappingFile(slotId, path);
             return;
         }
@@ -496,6 +555,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(IsStandardMergeSupported));
         OnPropertyChanged(nameof(StandardMergeSupportSummary));
         OnPropertyChanged(nameof(StandardMergeOutputFileName));
+        OnPropertyChanged(nameof(GeneralMergeOutputFileName));
+        OnPropertyChanged(nameof(MergeOutputFileName));
         OnPropertyChanged(nameof(HomeReplaceStatus));
         OnPropertyChanged(nameof(HomeMergeStatus));
         OnPropertyChanged(nameof(MergeReadinessStatus));
@@ -539,15 +600,24 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     private void SelectMergeMode(string mode)
     {
-        if (!string.Equals(SelectedMergeMode, mode, StringComparison.Ordinal))
+        string nextMode = MergeModeChoices.Contains(mode, StringComparer.Ordinal)
+            ? mode
+            : NormalMergeMode;
+        if (!string.Equals(_selectedMergeMode, nextMode, StringComparison.Ordinal))
         {
-            SelectedMergeMode = mode;
+            _selectedMergeMode = nextMode;
             OnPropertyChanged(nameof(SelectedMergeMode));
             OnPropertyChanged(nameof(IsNormalMergeModeSelected));
+            OnPropertyChanged(nameof(IsGeneralMergeModeSelected));
+            OnPropertyChanged(nameof(IsAbCodeMergeModeSelected));
             OnPropertyChanged(nameof(IsNumberSelectorVisible));
             OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
             OnPropertyChanged(nameof(DeviceContextStatus));
+            OnPropertyChanged(nameof(MergeOutputFileName));
+            OnPropertyChanged(nameof(MergeReadinessStatus));
+            OnPropertyChanged(nameof(MergeMemorySummary));
             ResetRunResultForContextChange();
+            RefreshMemoryMapState();
             RefreshCommandState();
         }
 
@@ -589,6 +659,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         ShowReportCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(CanPreviewStandardMerge));
         OnPropertyChanged(nameof(CanBuildStandardMerge));
+        OnPropertyChanged(nameof(CanPreviewMerge));
+        OnPropertyChanged(nameof(CanBuildMerge));
         OnPropertyChanged(nameof(CanPreviewReplace));
         OnPropertyChanged(nameof(CanBuildReplace));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
@@ -610,6 +682,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     partial void OnSelectedIcChanged(string value)
     {
         RefreshNumberChoicesForSelectedIc();
+        GeneralMergeOutputLength = UiCompositionRunner.GetGeneralMergeDefaultOutputLength(value);
         RefreshContextState(resetRunResult: true);
         RefreshAllSelectedSlotFirmwareFacts();
     }
@@ -617,6 +690,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
     partial void OnSelectedNumberChanged(string value)
     {
         RefreshContextState(resetRunResult: true);
+    }
+
+    partial void OnGeneralMergeOutputLengthChanged(string value)
+    {
+        RefreshMemoryMapState();
+        ResetRunResultForContextChange();
+        RefreshCommandState();
     }
 
     /// <summary>Gets selected replace mode.</summary>
@@ -648,6 +728,15 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DeviceContextStatus))]
     public partial string SelectedNumber { get; set; } = "single";
+
+    /// <summary>Gets or sets General Merge output length text.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MergeMemoryRangeLabel))]
+    [NotifyPropertyChangedFor(nameof(MergeReadinessStatus))]
+    [NotifyPropertyChangedFor(nameof(CanPreviewMerge))]
+    [NotifyPropertyChangedFor(nameof(CanBuildMerge))]
+    public partial string GeneralMergeOutputLength { get; set; } =
+        UiCompositionRunner.GetGeneralMergeDefaultOutputLength("NT51950");
 
 }
 

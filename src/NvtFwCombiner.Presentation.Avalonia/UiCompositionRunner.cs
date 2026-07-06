@@ -30,6 +30,18 @@ public static class UiCompositionRunner
         return WorkbenchCompositionService.GetStandardMergeDefaultOutputFileName(icId);
     }
 
+    /// <summary>Gets the default General Merge output length text for the selected IC.</summary>
+    public static string GetGeneralMergeDefaultOutputLength(string icId)
+    {
+        return WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(icId);
+    }
+
+    /// <summary>Gets the default General Merge output file name for the selected IC.</summary>
+    public static string GetGeneralMergeDefaultOutputFileName(string icId)
+    {
+        return WorkbenchCompositionService.GetGeneralMergeDefaultOutputFileName(icId);
+    }
+
     /// <summary>Gets selectable IC ids from the workbench catalog.</summary>
     public static IReadOnlyList<string> GetSupportedIcIds()
     {
@@ -149,6 +161,42 @@ public static class UiCompositionRunner
         ];
     }
 
+    /// <summary>Gets readable memory-map rows for the selected General Merge authoring state.</summary>
+    public static IReadOnlyList<MemoryMapRowViewModel> GetGeneralMergeMemoryMapRows(
+        string outputLength,
+        IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappings)
+    {
+        return
+        [
+            .. WorkbenchCompositionService.GetGeneralMergeMemoryMapRows(outputLength, mappings)
+                .Select(ToMemoryMapRow),
+        ];
+    }
+
+    /// <summary>Gets output address coverage text for the selected General Merge output length.</summary>
+    public static string GetGeneralMergeMemoryRangeLabel(string outputLength)
+    {
+        return WorkbenchCompositionService.GetGeneralMergeMemoryRangeLabel(outputLength);
+    }
+
+    /// <summary>Gets visual coverage segments for the selected General Merge authoring state.</summary>
+    public static IReadOnlyList<MemoryCoverageSegmentViewModel> GetGeneralMergeCoverageSegments(
+        string outputLength,
+        IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappings)
+    {
+        return
+        [
+            .. WorkbenchCompositionService.GetGeneralMergeCoverageSegments(outputLength, mappings)
+                .Select(segment => new MemoryCoverageSegmentViewModel(
+                    segment.RangeLabel,
+                    segment.SourceLabel,
+                    segment.Detail,
+                    segment.Fill,
+                    segment.BarWidth,
+                    segment.IsChanged)),
+        ];
+    }
+
     /// <summary>Gets readable memory-map rows for the selected Replace mode.</summary>
     public static IReadOnlyList<MemoryMapRowViewModel> GetReplaceMemoryMapRows(
         string icId,
@@ -232,6 +280,24 @@ public static class UiCompositionRunner
         string? outputPath = null)
     {
         return WorkbenchCompositionService.RunStandardMergeAsync(icId, slotPaths, build, cancellationToken, outputPath);
+    }
+
+    /// <summary>Runs General Merge preview or build through the Bootstrap workbench facade.</summary>
+    public static ValueTask<WorkbenchRunResult> RunGeneralMergeAsync(
+        string icId,
+        string outputLength,
+        IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappings,
+        bool build,
+        CancellationToken cancellationToken,
+        string? outputPath = null)
+    {
+        return WorkbenchCompositionService.RunGeneralMergeAsync(
+            icId,
+            outputLength,
+            mappings,
+            build,
+            cancellationToken,
+            outputPath);
     }
 
     /// <summary>Runs Replace preview or build through the Bootstrap workbench facade.</summary>

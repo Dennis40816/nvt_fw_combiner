@@ -1,3 +1,5 @@
+using NvtFwCombiner.Bootstrap;
+
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
@@ -20,12 +22,26 @@ public sealed partial class MainWindowViewModel
     private void RefreshMemoryMapState()
     {
         long? selectedMergeDpInputLength = GetSelectedMergeDpInputLength();
-        ReplaceRows(MergeMemoryRows, UiCompositionRunner.GetStandardMergeMemoryMapRows(
-            SelectedIc,
-            selectedMergeDpInputLength));
-        ReplaceRows(MergeCoverageSegments, UiCompositionRunner.GetStandardMergeCoverageSegments(
-            SelectedIc,
-            selectedMergeDpInputLength));
+        if (IsGeneralMergeModeSelected)
+        {
+            IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappings = CreateGeneralMergeMappingInputs();
+            ReplaceRows(MergeMemoryRows, UiCompositionRunner.GetGeneralMergeMemoryMapRows(
+                GeneralMergeOutputLength,
+                mappings));
+            ReplaceRows(MergeCoverageSegments, UiCompositionRunner.GetGeneralMergeCoverageSegments(
+                GeneralMergeOutputLength,
+                mappings));
+        }
+        else
+        {
+            ReplaceRows(MergeMemoryRows, UiCompositionRunner.GetStandardMergeMemoryMapRows(
+                SelectedIc,
+                selectedMergeDpInputLength));
+            ReplaceRows(MergeCoverageSegments, UiCompositionRunner.GetStandardMergeCoverageSegments(
+                SelectedIc,
+                selectedMergeDpInputLength));
+        }
+
         ReplaceRows(ReplaceMemoryRows, UiCompositionRunner.GetReplaceMemoryMapRows(
             SelectedIc,
             SelectedNumber,

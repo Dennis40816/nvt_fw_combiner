@@ -202,7 +202,7 @@ public sealed partial class MainWindow : Window
 
     private async void BuildMergeButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not MainWindowViewModel viewModel || !viewModel.CanBuildStandardMerge)
+        if (DataContext is not MainWindowViewModel viewModel || !viewModel.CanBuildMerge)
         {
             return;
         }
@@ -210,7 +210,7 @@ public sealed partial class MainWindow : Window
         IStorageFile? file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
             Title = "Save merged firmware BIN",
-            SuggestedFileName = viewModel.StandardMergeOutputFileName,
+            SuggestedFileName = viewModel.MergeOutputFileName,
             FileTypeChoices =
             [
                 new FilePickerFileType("Firmware BIN")
@@ -228,7 +228,7 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        await viewModel.BuildStandardMergeAsync(outputPath);
+        await viewModel.BuildMergeAsync(outputPath);
     }
 
     private async void BuildReplaceButton_OnClick(object? sender, RoutedEventArgs e)
@@ -405,6 +405,23 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private void GeneralMergeMappingDrop_OnDrop(object? sender, DragEventArgs e)
+    {
+        SetDropZoneDragActive(sender, isActive: false);
+
+        if (sender is not Control { Tag: string mappingId } ||
+            DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        string? path = e.DataTransfer.TryGetFiles()?.OfType<IStorageFile>().FirstOrDefault()?.TryGetLocalPath();
+        if (!string.IsNullOrWhiteSpace(path))
+        {
+            _ = viewModel.SetGeneralMergeMappingFile(mappingId, path);
+        }
+    }
+
     private static void SetDropZoneDragActive(object? sender, bool isActive)
     {
         if (sender is not Control control)
@@ -485,6 +502,36 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private async void BrowseGeneralMergeMappingButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { Tag: string mappingId } ||
+            DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Select source BIN",
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType("Firmware BIN")
+                {
+                    Patterns = ["*.bin"],
+                    MimeTypes = ["application/octet-stream"],
+                },
+                FilePickerFileTypes.All,
+            ],
+        });
+
+        string? path = files.Count == 0 ? null : files[0].TryGetLocalPath();
+        if (!string.IsNullOrWhiteSpace(path))
+        {
+            _ = viewModel.SetGeneralMergeMappingFile(mappingId, path);
+        }
+    }
+
     private void RemoveGeneralMappingButton_OnClick(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { DataContext: GeneralReplaceMappingViewModel mapping } ||
@@ -494,5 +541,16 @@ public sealed partial class MainWindow : Window
         }
 
         viewModel.RemoveGeneralReplaceMappingRow(mapping);
+    }
+
+    private void RemoveGeneralMergeMappingButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: GeneralMergeMappingViewModel mapping } ||
+            DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        viewModel.RemoveGeneralMergeMappingRow(mapping);
     }
 }

@@ -103,7 +103,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ItemsSource=\"{Binding ReplaceMemoryRows}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding MergeMemoryRows}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding PreviewMergeCommand}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("IsEnabled=\"{Binding CanBuildStandardMerge}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("IsEnabled=\"{Binding CanBuildMerge}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("General merge mapping", shell, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding GeneralMergeMappings}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("GeneralMergeMappingDrop_OnDrop", shell, StringComparison.Ordinal);
+        Assert.Contains("BrowseGeneralMergeMappingButton_OnClick", shell, StringComparison.Ordinal);
         Assert.Contains("Button.reportAction", shell, StringComparison.Ordinal);
         Assert.Contains("IsEnabled=\"{Binding CanOpenReport}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ReportActionLabel", shell, StringComparison.Ordinal);

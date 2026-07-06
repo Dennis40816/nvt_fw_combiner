@@ -7,9 +7,14 @@ public sealed partial class MainWindowViewModel
 
     private bool HasCurrentStandardMergePreview()
     {
+        return IsNormalMergeModeSelected && HasCurrentMergePreview();
+    }
+
+    private bool HasCurrentMergePreview()
+    {
         return string.Equals(
             _approvedStandardMergePreviewToken,
-            CreateStandardMergePreviewToken(),
+            CreateMergePreviewToken(),
             StringComparison.Ordinal);
     }
 
@@ -23,15 +28,35 @@ public sealed partial class MainWindowViewModel
 
     private string CreateStandardMergePreviewToken()
     {
-        return string.Join(
-            "\n",
-            "standard-merge",
+        return CreateMergePreviewToken();
+    }
+
+    private string CreateMergePreviewToken()
+    {
+        List<string> parts =
+        [
+            "merge",
             SelectedIc,
             SelectedNumber,
             SelectedMergeMode,
-            SlotToken(_mergeDpSlot),
-            SlotToken(_mergeTpSlot),
-            SlotToken(_mergeLdSlot));
+        ];
+
+        if (IsGeneralMergeModeSelected)
+        {
+            parts.Add($"output-length|{GeneralMergeOutputLength}");
+            parts.AddRange(GeneralMergeMappings
+                .OrderBy(mapping => mapping.MappingId, StringComparer.Ordinal)
+                .Select(mapping =>
+                    $"map|{mapping.MappingId}|{mapping.SourceStartAddress}|{mapping.TargetStartAddress}|{mapping.Length}|{FileToken(mapping.FilePath)}"));
+        }
+        else
+        {
+            parts.Add(SlotToken(_mergeDpSlot));
+            parts.Add(SlotToken(_mergeTpSlot));
+            parts.Add(SlotToken(_mergeLdSlot));
+        }
+
+        return string.Join("\n", parts);
     }
 
     private string CreateReplacePreviewToken()
@@ -101,6 +126,11 @@ public sealed partial class MainWindowViewModel
 
     private void CompleteStandardMergeRun(bool build, bool succeeded, string previewToken)
     {
+        CompleteMergeRun(build, succeeded, previewToken);
+    }
+
+    private void CompleteMergeRun(bool build, bool succeeded, string previewToken)
+    {
         if (!build)
         {
             _approvedStandardMergePreviewToken = succeeded ? previewToken : null;
@@ -131,6 +161,28 @@ public sealed partial class MainWindowViewModel
             SelectedNumber,
             message,
             CreateStandardMergeSlotPaths(),
+            issueCode: "ui.build.preview-required");
+        RefreshCommandState();
+    }
+
+    private void BlockMergeBuildUntilPreview()
+    {
+        string mode = IsGeneralMergeModeSelected ? "General Merge" : "Merge";
+        string message = $"Run a valid {mode} Preview after the latest IC/mode/file change before Build.";
+        LastRunResult = new UiRunResultViewModel("Build blocked", message, "No output", succeeded: false);
+        OnPropertyChanged(nameof(LastRunResult));
+        LoadRunErrorReport(
+            "Build",
+            IsGeneralMergeModeSelected
+                ? $"{SelectedIc.ToLowerInvariant()}-general-merge-workbench"
+                : UiCompositionRunner.GetStandardMergeProfileId(SelectedIc) ?? "standard-merge",
+            SelectedIc,
+            SelectedNumber,
+            message,
+            IsGeneralMergeModeSelected ? CreateGeneralMergeSlotPaths() : CreateStandardMergeSlotPaths(),
+            compositionKind: "Merge",
+            modeId: IsGeneralMergeModeSelected ? "general-merge" : "standard-merge",
+            experienceId: IsGeneralMergeModeSelected ? "general-merge" : "standard-merge",
             issueCode: "ui.build.preview-required");
         RefreshCommandState();
     }

@@ -4,6 +4,13 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
 {
+    /// <summary>Builds the active Merge output to a user-selected path.</summary>
+    public Task BuildMergeAsync(string outputPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
+        return RunMergeAsync(build: true, outputPath);
+    }
+
     /// <summary>Builds Standard Merge output to a user-selected path.</summary>
     public Task BuildStandardMergeAsync(string outputPath)
     {
@@ -37,6 +44,25 @@ public sealed partial class MainWindowViewModel
     private void RefreshMergeModeState()
     {
         ActiveMergeRows.Clear();
+        if (IsGeneralMergeModeSelected)
+        {
+            AddMergeRows(
+                $"{SelectedIc}: General Merge input policy is active.",
+                "Output starts as reserved bytes; mapping rows copy explicit source ranges into it.",
+                "No postbuild command is invoked by General Merge.",
+                $"Output length: {GeneralMergeOutputLength}");
+            return;
+        }
+
+        if (IsAbCodeMergeModeSelected)
+        {
+            AddMergeRows(
+                "AB Code Merge is reserved.",
+                "This mode will need a dedicated profile because it has TP CRC/start-address behavior.",
+                "Use Standard Merge or General Merge for current 0.7.x workflows.");
+            return;
+        }
+
         string? profileId = UiCompositionRunner.GetStandardMergeProfileId(SelectedIc);
         if (profileId is null)
         {
@@ -94,9 +120,36 @@ public sealed partial class MainWindowViewModel
             MergeSlotForAddressSpace(addressSpace) is { HasFile: true });
     }
 
-    private async Task RunStandardMergeAsync(bool build)
+    private bool CanRunGeneralMerge()
     {
-        await RunStandardMergeAsync(build, outputPath: null);
+        return IsGeneralMergeModeSelected &&
+            !string.IsNullOrWhiteSpace(GeneralMergeOutputLength) &&
+            GeneralMergeMappings.Any(mapping => mapping.HasFile);
+    }
+
+    private bool CanRunMerge()
+    {
+        return SelectedMergeMode switch
+        {
+            NormalMergeMode => CanRunStandardMerge(),
+            GeneralMergeMode => CanRunGeneralMerge(),
+            _ => false,
+        };
+    }
+
+    private Task RunMergeAsync(bool build)
+    {
+        return RunMergeAsync(build, outputPath: null);
+    }
+
+    private Task RunMergeAsync(bool build, string? outputPath)
+    {
+        return SelectedMergeMode switch
+        {
+            NormalMergeMode => RunStandardMergeAsync(build, outputPath),
+            GeneralMergeMode => RunGeneralMergeAsync(build, outputPath),
+            _ => Task.CompletedTask,
+        };
     }
 
     private async Task RunStandardMergeAsync(bool build, string? outputPath)
@@ -139,12 +192,70 @@ public sealed partial class MainWindowViewModel
         }
     }
 
+    private async Task RunGeneralMergeAsync(bool build, string? outputPath)
+    {
+        string previewToken = CreateMergePreviewToken();
+        if (build && !HasCurrentMergePreview())
+        {
+            BlockMergeBuildUntilPreview();
+            return;
+        }
+
+        try
+        {
+            WorkbenchRunResult result = await UiCompositionRunner.RunGeneralMergeAsync(
+                SelectedIc,
+                GeneralMergeOutputLength,
+                CreateGeneralMergeMappingInputs(),
+                build,
+                CancellationToken.None,
+                outputPath);
+            ApplyRunResult(result, build);
+            CompleteMergeRun(build, result.Succeeded, previewToken);
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            CompleteMergeRun(build, false, previewToken);
+            string action = build ? "Build" : "Preview";
+            LastRunResult = new UiRunResultViewModel(
+                $"{action} failed",
+                exception.Message,
+                "No output",
+                succeeded: false);
+            OnPropertyChanged(nameof(LastRunResult));
+            LoadRunErrorReport(
+                action,
+                UiCompositionRunner.GetGeneralMergeDefaultOutputFileName(SelectedIc),
+                SelectedIc,
+                SelectedNumber,
+                exception.Message,
+                CreateGeneralMergeSlotPaths(),
+                compositionKind: "Merge",
+                modeId: "general-merge",
+                experienceId: "general-merge");
+        }
+    }
+
     private Dictionary<string, string> CreateStandardMergeSlotPaths()
     {
         Dictionary<string, string> paths = new(StringComparer.Ordinal);
         AddPath(paths, "dp-input", _mergeDpSlot);
         AddPath(paths, "tp-input", _mergeTpSlot);
         AddPath(paths, "ld-input", _mergeLdSlot);
+        return paths;
+    }
+
+    private Dictionary<string, string> CreateGeneralMergeSlotPaths()
+    {
+        Dictionary<string, string> paths = new(StringComparer.Ordinal);
+        foreach (GeneralMergeMappingViewModel mapping in GeneralMergeMappings)
+        {
+            if (!string.IsNullOrWhiteSpace(mapping.FilePath))
+            {
+                paths[mapping.MappingId] = mapping.FilePath;
+            }
+        }
+
         return paths;
     }
 
