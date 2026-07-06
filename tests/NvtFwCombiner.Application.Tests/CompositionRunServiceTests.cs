@@ -46,6 +46,7 @@ public sealed class CompositionRunServiceTests
         Assert.Equal("Copy synthetic DP input into the output DP range.", copyDp.Reason);
         Assert.Equal(2, result.Report.Inputs.Count);
         Assert.Equal(2, result.Report.Mutations.Count);
+        Assert.Empty(result.Report.OutputDifferences);
         Assert.Empty(result.Report.Issues);
     }
 
@@ -435,6 +436,49 @@ public sealed class CompositionRunServiceTests
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Equal([0x10, 0xAA, 0xBB, 0x40], result.OutputBytes.ToArray());
         Assert.Contains(result.Report.Issues, issue => issue.Code == "input.address-space.truncated");
+    }
+
+    /// <summary>Verifies Replace reports classify final output differences against reference base and postbuild write ranges.</summary>
+    [Fact]
+    public async Task ReplaceReportClassifiesOutputDifferences()
+    {
+        var processor = new FakeExternalProcessor(request =>
+        {
+            byte[] output = request.InputBytes.ToArray();
+            ExternalProcessorStagedSource stagedSource = Assert.Single(request.StagedSources);
+            stagedSource.Bytes.CopyTo(output.AsMemory((int)stagedSource.FirmwareRange.Start));
+            output[3] = 0x7E;
+            return ExternalProcessorResult.Success(
+                output,
+                [stagedSource.FirmwareRange, new ByteRange(3, 1)]);
+        });
+        var service = new CompositionRunService(
+            new FakeArtifactReader(new Dictionary<string, byte[]>
+            {
+                ["reference-artifact"] = [0x10, 0x20, 0x30, 0x40],
+                ["ctrlram-artifact"] = [0xAA, 0xBB],
+            }),
+            new FakeClock([FirstTimestamp, SecondTimestamp]),
+            null,
+            processor);
+
+        CompositionRunResult result = await service.PreviewAsync(
+            CreateStagedSourceExternalProcessorRequest(),
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal(2, result.Report.OutputDifferences.Count);
+        OutputDifferenceSummary replacement = result.Report.OutputDifferences[0];
+        Assert.Equal(new ByteRange(1, 2), replacement.Range);
+        Assert.True(replacement.IsAccepted);
+        Assert.Equal("DeclaredReplacement", replacement.Classification);
+        Assert.Contains("staged replacement source", replacement.Explanation, StringComparison.Ordinal);
+        OutputDifferenceSummary crcHeader = result.Report.OutputDifferences[1];
+        Assert.Equal(new ByteRange(3, 1), crcHeader.Range);
+        Assert.True(crcHeader.IsAccepted);
+        Assert.Equal("PostbuildCrcHeader", crcHeader.Classification);
+        Assert.Contains("approved postbuild CRC/header", crcHeader.Explanation, StringComparison.Ordinal);
+        Assert.DoesNotContain(result.Report.Issues, issue => issue.Code == "report.output-difference.unexpected");
     }
 
     /// <summary>Verifies preview approval includes staged source-to-firmware mapping details.</summary>

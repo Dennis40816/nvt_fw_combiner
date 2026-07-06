@@ -4,7 +4,14 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-Post-`0.7.0` development targets `0.8.0-dev.N`.
+Post-`0.7.1` development targets `0.8.0-dev.N`.
+
+## [0.7.1] - 2026-07-06
+
+### Added
+
+- Replace reports now include final output-vs-reference difference rows, with accepted classifications for declared replacement ranges and IC/IC-number-specific postbuild CRC/header ranges.
+- Report review UI now surfaces the accepted output-difference table alongside operations, external Combiner commands, and mutation evidence.
 
 ## [0.7.0] - 2026-07-06
 
