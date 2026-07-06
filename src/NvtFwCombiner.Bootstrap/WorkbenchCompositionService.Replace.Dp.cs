@@ -1,5 +1,4 @@
 using System.Globalization;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
@@ -16,40 +15,37 @@ public static partial class WorkbenchCompositionService
         string? outputPath,
         CancellationToken cancellationToken)
     {
-        if (!TryGetNt51950DpReplaceCapacity(
+        if (!TryCreateNt51950DpReplaceRunContext(
                 icId,
                 number,
                 slotPaths,
                 build,
-                out long capacity,
+                out Nt51950DpReplaceRunContext? context,
                 out WorkbenchRunResult? failure))
         {
             return failure!;
         }
 
-        CompositionProfileDefinition profile = BuiltInReplaceProfiles.CreateNt51950FamilyDpReplaceProfile(icId, capacity);
+        CompositionProfileDefinition profile = BuiltInReplaceProfiles.CreateNt51950FamilyDpReplaceProfile(
+            icId,
+            context!.Capacity);
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         if (!compile.IsSuccess)
         {
             throw new InvalidOperationException(FormatIssues(compile.Issues));
         }
 
-        InputArtifactBinding[] bindings =
-        [
-            CreateBinding("reference-base", "replace-base", slotPaths),
-            CreateBinding("dp-replacement", "replace-dp", slotPaths),
-        ];
-
+        CompositionPlan plan = compile.Plan!;
         return await RunCompiledCompositionAsync(
             "ui-replace",
             profile,
-            compile.Plan!,
-            bindings,
-            bindings[0].ArtifactId,
+            plan,
+            context.Bindings,
+            context.BasePath,
             build,
             outputPath,
             externalProcessor: null,
-            icNumberSelection: ToIcNumberSelection(number),
+            icNumberSelection: context.Selection,
             cancellationToken).ConfigureAwait(false);
     }
 
@@ -92,63 +88,6 @@ public static partial class WorkbenchCompositionService
                     IsLdRegion(region) ? "LDC BIN" : "DP BIN",
                     $"{region.DisplayName}; source mapping is blocked until per-IC DP Replace evidence is approved.")),
         ];
-    }
-
-    private static bool TryGetNt51950DpReplaceCapacity(
-        string icId,
-        string number,
-        IReadOnlyDictionary<string, string> slotPaths,
-        bool build,
-        out long capacity,
-        out WorkbenchRunResult? failure)
-    {
-        capacity = 0;
-        failure = null;
-        if (!slotPaths.TryGetValue("replace-base", out string? basePath) ||
-            string.IsNullOrWhiteSpace(basePath))
-        {
-            failure = CreatePlanningRunResult(
-                icId,
-                number,
-                "DP",
-                slotPaths,
-                build,
-                "ui.input.missing",
-                "Base flash BIN is required before NT51950/NT51951 DP Replace can determine the DP base length.");
-            return false;
-        }
-
-        string fullPath = Path.GetFullPath(basePath);
-        if (!File.Exists(fullPath))
-        {
-            failure = CreatePlanningRunResult(
-                icId,
-                number,
-                "DP",
-                slotPaths,
-                build,
-                "input.artifact.read-failed",
-                "Base flash BIN path does not exist.");
-            return false;
-        }
-
-        long baseLength = new FileInfo(fullPath).Length;
-        if (!IsSupportedNt51950DpBaseLength(baseLength))
-        {
-            failure = CreatePlanningRunResult(
-                icId,
-                number,
-                "DP",
-                slotPaths,
-                build,
-                "input.address-space.length-mismatch",
-                $"{icId} DP Replace base flash BIN length must be one of {FormatSupportedNt51950DpBaseLengths()} (actual {FormatHexLength(baseLength)}).",
-                baseLength);
-            return false;
-        }
-
-        capacity = baseLength;
-        return true;
     }
 
     private static List<WorkbenchReplaceInputSlot> GetDpReplaceInputSlots(string icId)
