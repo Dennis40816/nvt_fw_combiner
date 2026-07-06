@@ -89,7 +89,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("RemoveGeneralMappingButton_OnClick", shell, StringComparison.Ordinal);
         Assert.Contains("IsNonCtrlRamStructuredReplaceModeSelected", shell, StringComparison.Ordinal);
         Assert.Contains("General replace mapping", shell, StringComparison.Ordinal);
-        Assert.Contains("Workbench wiring pending", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("Workbench wiring pending", shell, StringComparison.Ordinal);
         Assert.Contains("Target bounds", shell, StringComparison.Ordinal);
         Assert.Contains("Input length", shell, StringComparison.Ordinal);
         Assert.Contains("Explicit mappings", shell, StringComparison.Ordinal);

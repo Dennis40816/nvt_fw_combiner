@@ -507,8 +507,9 @@ public sealed class ShellViewModelTests
         MemoryMapRowViewModel initialRow = Assert.Single(
             viewModel.MergeMemoryRows,
             row => row.ActionLabel == "Initialize");
-        Assert.Equal("DP BIN length (max end 0xFFFFF)", initialRow.RangeLabel);
-        Assert.Contains("Max inclusive end is 0xFFFFF", initialRow.Detail, StringComparison.Ordinal);
+        Assert.Equal("Selected DP BIN length pending", initialRow.RangeLabel);
+        Assert.Contains("Supported DP lengths are 0x40000, 0x80000, and 0x100000", initialRow.Detail, StringComparison.Ordinal);
+        Assert.DoesNotContain("0xFFFFF", initialRow.Detail, StringComparison.Ordinal);
         Assert.Equal("No output -> Reserved", initialRow.FlowLabel);
         Assert.Contains(viewModel.MergeCoverageSegments, segment =>
             segment.SourceLabel == "TP BIN" &&
@@ -1277,7 +1278,7 @@ public sealed class ShellViewModelTests
         Assert.Contains(viewModel.LoadedReport.EvidenceRows, row =>
             row.Title == "Output diff" &&
             row.Detail == "1" &&
-            row.Meta == "base vs final");
+            row.Meta == "all accepted");
     }
 
     /// <summary>Verifies report history can reopen earlier reports without adding a new run.</summary>

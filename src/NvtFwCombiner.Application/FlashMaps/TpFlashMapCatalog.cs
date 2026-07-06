@@ -435,6 +435,7 @@ public static class TpFlashMapCatalog
             Ctrl("nf", "NF CtrlRAM", 0x2A780, 0x01F90, "NF_Ctrlram.bin"),
             Ctrl("vn", "VN CtrlRAM", 0x2C710, 0x01018, "VN_Ctrlram.bin"),
             Ctrl("vector", "Vector CtrlRAM", 0x2D728, 0x00258, "Vector_Ctrlram.bin", TpFlashMapRegionVisibility.MultiChipOnly, ["vector"]),
+            Region("fw-config-backup", "FW Config Backup", TpFlashMapRegionKind.Other, 0x2F000, 0x00780, tags: ["backup", "postbuild"]),
             Region("dp", "DP Region", TpFlashMapRegionKind.Dp, 0x3E000, 0x02000),
         ];
     }
@@ -448,6 +449,7 @@ public static class TpFlashMapCatalog
             Ctrl("diff", "DIFF CtrlRAM", 0x28800, 0x01800, "DiffDLM.bin", TpFlashMapRegionVisibility.MultiChipOnly, ["diff"]),
             Ctrl("nf", "NF CtrlRAM", 0x2A000, 0x044B0, "NF_Ctrlram.bin"),
             Ctrl("vn", "VN CtrlRAM", 0x2E800, 0x01660, "VN_Ctrlram.bin"),
+            Region("fw-config-backup", "FW Config", TpFlashMapRegionKind.Other, 0x3B000, 0x00800, tags: ["fw-config", "postbuild", "workbook-label-fw-config"]),
             Region("project-id", "Project ID", TpFlashMapRegionKind.ProjectId, 0x3C000, 0x01000),
             Region("customer-info", "Customer information", TpFlashMapRegionKind.CustomerInfo, 0x3D000, 0x01000, tags: ["preserve"]),
             Region("dp", "DP Region", TpFlashMapRegionKind.Dp, 0x3E000, 0x02000),
@@ -504,6 +506,7 @@ public static class TpFlashMapCatalog
             Ctrl("normal", "Normal CtrlRAM", 0x21B90, 0x04A00, "Normal_Ctrlram.bin"),
             Ctrl("vn", "VN CtrlRAM", 0x26590, 0x01960, "VN_Ctrlram.bin"),
             Ctrl("diff", "DIFF CtrlRAM", 0x2D100, 0x08C00, "DiffDLM.bin", TpFlashMapRegionVisibility.MultiChipOnly, ["diff"]),
+            Region("fw-information", "FW Information", TpFlashMapRegionKind.Other, 0x3F000, 0x00FFC, tags: ["fw-information", "protected"]),
         ];
     }
 
@@ -518,6 +521,7 @@ public static class TpFlashMapCatalog
             Ctrl("vn", "VN CtrlRAM", 0x27650, 0x01960, "VN_Ctrlram.bin"),
             Ctrl("diff", "DIFF CtrlRAM", 0x2F200, 0x0FE00, "DiffDLM.bin", TpFlashMapRegionVisibility.MultiChipOnly, ["diff", "<=13ic"]),
             Ctrl("nf", "NF CtrlRAM", 0x1FC00, 0x01A50, "NF_Ctrlram.bin"),
+            Region("fw-information-host", "FW Information For Host", TpFlashMapRegionKind.Other, 0x3F000, 0x00FFC, tags: ["fw-information", "host", "protected"]),
         ];
     }
 
@@ -530,6 +534,7 @@ public static class TpFlashMapCatalog
             Ctrl("mp", "MP CtrlRAM", 0x19FD0, 0x02400, "MP_Ctrlram.bin"),
             Ctrl("vn", "VN CtrlRAM", 0x1C3D0, 0x01660, "VN_Ctrlram.bin"),
             Ctrl("dlm", "DLM CtrlRAM", 0x22800, 0x17C00, "DiffDLM.bin", TpFlashMapRegionVisibility.MultiChipOnly, ["diff", "dlm"]),
+            Region("fw-config-backup", "FW Config Backup", TpFlashMapRegionKind.Other, 0x3B000, 0x00800, tags: ["backup", "postbuild"]),
             Region("dp", "DP Region", TpFlashMapRegionKind.Dp, 0x3E000, 0x02000),
         ];
     }
@@ -543,6 +548,7 @@ public static class TpFlashMapCatalog
             Ctrl("normal", "Normal CtrlRAM", 0x25610, 0x05C00, "Normal_Ctrlram.bin"),
             Ctrl("vn", "VN CtrlRAM", 0x2B210, 0x020FC, "VN_Ctrlram.bin"),
             Ctrl("diff", "DIFF CtrlRAM", 0x33200, 0x01400, "DiffDLM.bin", TpFlashMapRegionVisibility.MultiChipOnly, ["diff"]),
+            Region("fw-information-host", "FW Information for Host", TpFlashMapRegionKind.Other, 0x36000, 0x00FFC, tags: ["fw-information", "host", "protected"]),
             // 0x37000-0x37FFF is customer information. Merge/Replace must preserve it unless
             // a future explicit customer-info workflow authorizes writes to this region.
             Region("customer-info", "Customer information", TpFlashMapRegionKind.CustomerInfo, 0x37000, 0x01000, tags: ["preserve"]),

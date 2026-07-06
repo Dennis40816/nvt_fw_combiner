@@ -1507,14 +1507,11 @@
                 CornerRadius="8"
                 IsVisible="{Binding IsGeneralReplaceModeSelected}">
               <StackPanel Spacing="16">
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                <Grid ColumnDefinitions="*" ColumnSpacing="16">
                   <StackPanel Spacing="3">
                     <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="General replace mapping" />
                     <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding SelectedReplaceModeDescription}" TextWrapping="Wrap" />
                   </StackPanel>
-                  <Border Grid.Column="1" Padding="9,3" VerticalAlignment="Top" Background="#FFF7ED" BorderBrush="#FED7AA" BorderThickness="1" CornerRadius="999">
-                    <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#9A3412" Text="Workbench wiring pending" />
-                  </Border>
                 </Grid>
 
                 <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
@@ -2370,6 +2367,22 @@
               </StackPanel>
 
               <StackPanel Grid.Column="1" Spacing="14">
+                <Expander IsExpanded="True" IsVisible="{Binding LoadedReport.HasOutputDifferences}">
+                  <Expander.Header>
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                      <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Output differences" />
+                      <Border Grid.Column="1" Padding="7,2" Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="999">
+                        <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#166534" Text="{Binding LoadedReport.OutputDifferenceCount}" />
+                      </Border>
+                    </Grid>
+                  </Expander.Header>
+                  <ItemsControl ItemsSource="{Binding LoadedReport.OutputDifferences}">
+                    <ItemsControl.ItemTemplate>
+                      <StaticResource ResourceKey="ReportStepOperationTemplate" />
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </Expander>
+
                 <Expander IsExpanded="{Binding LoadedReport.ShouldExpandCommandOperations, Mode=OneWay}" IsVisible="{Binding LoadedReport.HasCommandOperations}">
                   <Expander.Header>
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
@@ -2396,22 +2409,6 @@
                     </Grid>
                   </Expander.Header>
                   <ItemsControl ItemsSource="{Binding LoadedReport.StepOperations}">
-                    <ItemsControl.ItemTemplate>
-                      <StaticResource ResourceKey="ReportStepOperationTemplate" />
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                </Expander>
-
-                <Expander IsExpanded="True" IsVisible="{Binding LoadedReport.HasOutputDifferences}">
-                  <Expander.Header>
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                      <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Output differences" />
-                      <Border Grid.Column="1" Padding="7,2" Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="999">
-                        <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#166534" Text="{Binding LoadedReport.OutputDifferenceCount}" />
-                      </Border>
-                    </Grid>
-                  </Expander.Header>
-                  <ItemsControl ItemsSource="{Binding LoadedReport.OutputDifferences}">
                     <ItemsControl.ItemTemplate>
                       <StaticResource ResourceKey="ReportStepOperationTemplate" />
                     </ItemsControl.ItemTemplate>

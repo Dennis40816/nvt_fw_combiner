@@ -384,7 +384,7 @@ public static partial class WorkbenchCompositionService
         long? dpInputLength)
     {
         return BuiltInStandardMergeProfiles.IsDpPerspectiveStandardMergeProfile(profile) && dpInputLength is null
-            ? "DP BIN length (max end 0xFFFFF)"
+            ? "Selected DP BIN length pending"
             : FormatFullRange(profile.Initialization.Capacity);
     }
 
@@ -395,7 +395,7 @@ public static partial class WorkbenchCompositionService
         return !BuiltInStandardMergeProfiles.IsDpPerspectiveStandardMergeProfile(profile)
             ? "Start with the initialized image. Unlisted ranges keep this value until a later operation writes them."
             : dpInputLength is null
-                ? "Start with the initialized image sized by the selected DP BIN length. Max inclusive end is 0xFFFFF; supported DP lengths are 0x40000, 0x80000, and 0x100000."
+                ? "Start with the initialized image after selecting a DP BIN. Supported DP lengths are 0x40000, 0x80000, and 0x100000."
                 : "Start with the initialized image using the selected DP BIN length. Unlisted ranges keep this value until a later operation writes them.";
     }
 

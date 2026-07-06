@@ -571,8 +571,24 @@ public sealed partial class ReportReviewViewModel
             new ReportLineViewModel(
                 "Output diff",
                 outputDifferences.Count.ToString(CultureInfo.InvariantCulture),
-                outputDifferences.Count == 0 ? "same as base or non-Replace" : "base vs final"),
+                CreateOutputDifferenceMeta(outputDifferences)),
         ];
+    }
+
+    private static string CreateOutputDifferenceMeta(IReadOnlyList<ReportLineViewModel> outputDifferences)
+    {
+        if (outputDifferences.Count == 0)
+        {
+            return "same as base or non-Replace";
+        }
+
+        int acceptedCount = outputDifferences.Count(
+            difference => difference.Badges.Any(
+                badge => string.Equals(badge.Text, "accepted", StringComparison.OrdinalIgnoreCase)));
+        int reviewCount = outputDifferences.Count - acceptedCount;
+        return reviewCount == 0
+            ? "all accepted"
+            : $"{acceptedCount.ToString(CultureInfo.InvariantCulture)} accepted / {reviewCount.ToString(CultureInfo.InvariantCulture)} review";
     }
 
     private static IReadOnlyList<ReportLineViewModel> ParseMutations(JsonElement root)
