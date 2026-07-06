@@ -116,6 +116,12 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Gesture=\"Ctrl+H\" Command=\"{Binding ShowReportHistoryCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Gesture=\"Ctrl+Shift+Delete\" Command=\"{Binding ClearReportHistoryCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"Open report history\"", shell, StringComparison.Ordinal);
+        int reportHeaderIndex = shell.IndexOf("Text=\"{Binding LoadedReport.Title}\"", StringComparison.Ordinal);
+        int evidenceMapIndex = shell.IndexOf("Text=\"Evidence map\"", StringComparison.Ordinal);
+        int historyActionIndex = shell.IndexOf("AutomationProperties.Name=\"Open report history\"", StringComparison.Ordinal);
+        Assert.True(
+            reportHeaderIndex >= 0 && evidenceMapIndex > reportHeaderIndex && historyActionIndex > evidenceMapIndex,
+            "Report history should remain a secondary evidence action instead of returning to the report modal header.");
         Assert.DoesNotContain("ReportHistoryActionLabel", shell, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.OutcomeTitle", shell, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.EvidenceRows", shell, StringComparison.Ordinal);

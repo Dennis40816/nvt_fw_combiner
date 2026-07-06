@@ -2262,20 +2262,6 @@
               <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                 <Button
                     Classes="iconButton"
-                    AutomationProperties.Name="Open report history"
-                    Command="{Binding ShowReportHistoryCommand}"
-                    IsVisible="{Binding HasReportHistory}"
-                    ToolTip.Tip="Open report history (Ctrl+H)">
-                  <Path
-                      Width="18"
-                      Height="18"
-                      Data="M10,2 A8,8 0 1 1 2,10 M2,10 L2,4 M2,10 L8,10 M10,6 L10,10 L13,12"
-                      Stretch="Uniform"
-                      Stroke="#334155"
-                      StrokeThickness="1.7" />
-                </Button>
-                <Button
-                    Classes="iconButton"
                     Command="{Binding CloseReportCommand}"
                     ToolTip.Tip="Close report">
                   <TextBlock Text="×" />
@@ -2362,7 +2348,29 @@
             </Border>
 
             <StackPanel Grid.Column="1" Spacing="8">
-              <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#64748B" Text="Evidence map" />
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <TextBlock
+                    VerticalAlignment="Center"
+                    FontSize="12"
+                    FontWeight="SemiBold"
+                    Foreground="#64748B"
+                    Text="Evidence map" />
+                <Button
+                    Grid.Column="1"
+                    Classes="iconButton"
+                    AutomationProperties.Name="Open report history"
+                    Command="{Binding ShowReportHistoryCommand}"
+                    IsVisible="{Binding HasReportHistory}"
+                    ToolTip.Tip="Open report history (Ctrl+H)">
+                  <Path
+                      Width="16"
+                      Height="16"
+                      Data="M10,2 A8,8 0 1 1 2,10 M2,10 L2,4 M2,10 L8,10 M10,6 L10,10 L13,12"
+                      Stretch="Uniform"
+                      Stroke="#475569"
+                      StrokeThickness="1.7" />
+                </Button>
+              </Grid>
               <ItemsControl ItemsSource="{Binding LoadedReport.EvidenceRows}">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate>
