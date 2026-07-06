@@ -1,0 +1,153 @@
+using System.Text.Json;
+using NvtFwCombiner.TestSupport;
+
+namespace NvtFwCombiner.Bootstrap.Tests;
+
+/// <summary>CLI and workbench facade tests for General Merge command groups.</summary>
+public sealed class GeneralMergeCliCommandTests
+{
+    /// <summary>Verifies General Merge build copies explicit source ranges over a blank output image.</summary>
+    [Fact]
+    public async Task GeneralMergeBuildWritesExplicitMappingsOverBlankOutput()
+    {
+        using var workspace = TempWorkspace.Create();
+        string source = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13, 0x14]);
+        string output = workspace.PathFor("out.bin");
+        string report = workspace.PathFor("report.json");
+
+        CliRunResult result = await RunCliAsync([
+            "general-merge",
+            "build",
+            "--profile",
+            "51950",
+            "--size",
+            "0x10",
+            "--mapping",
+            $"0x1+0x4+0x3={source}",
+            "--output",
+            output,
+            "--report",
+            report,
+        ]);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
+        Assert.Contains("Experience: general-merge", result.Output, StringComparison.Ordinal);
+        Assert.DoesNotContain("Issues:", result.Error, StringComparison.Ordinal);
+        Assert.Equal(
+            [0, 0, 0, 0, 0x11, 0x12, 0x13, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken));
+
+        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(
+            report,
+            TestContext.Current.CancellationToken));
+        JsonElement root = document.RootElement;
+        Assert.Equal("nt51950-general-merge-workbench", root.GetProperty("ProfileId").GetString());
+        Assert.Equal("general-merge", root.GetProperty("ExperienceId").GetString());
+        Assert.Equal("Merge", root.GetProperty("CompositionKind").GetString());
+        JsonElement operation = Assert.Single(root.GetProperty("Operations").EnumerateArray());
+        Assert.Equal("general-merge-map-1", operation.GetProperty("OperationId").GetString());
+        Assert.Equal("CopyRange", operation.GetProperty("Kind").GetString());
+        Assert.Equal("Succeeded", operation.GetProperty("Status").GetString());
+        Assert.Equal(1, operation.GetProperty("SourceRange").GetProperty("Start").GetInt64());
+        Assert.Equal(3, operation.GetProperty("SourceRange").GetProperty("Length").GetInt64());
+        Assert.Equal(4, operation.GetProperty("TargetRange").GetProperty("Start").GetInt64());
+        Assert.Equal(3, operation.GetProperty("TargetRange").GetProperty("Length").GetInt64());
+    }
+
+    /// <summary>Rejects General Merge requests without explicit mappings.</summary>
+    [Fact]
+    public async Task GeneralMergePreviewRejectsMissingMapping()
+    {
+        CliRunResult result = await RunCliAsync([
+            "general-merge",
+            "preview",
+            "--profile",
+            "NT51950",
+            "--size",
+            "0x10",
+        ]);
+
+        Assert.Equal(64, result.ExitCode);
+        Assert.Contains("at least one --mapping", result.Error, StringComparison.Ordinal);
+    }
+
+    /// <summary>Rejects output paths on preview because preview must not commit firmware bytes.</summary>
+    [Fact]
+    public async Task GeneralMergePreviewRejectsOutputOption()
+    {
+        using var workspace = TempWorkspace.Create();
+        string source = workspace.Write("source.bin", [0x10]);
+
+        CliRunResult result = await RunCliAsync([
+            "general-merge",
+            "preview",
+            "--profile",
+            "NT51950",
+            "--size",
+            "0x10",
+            "--mapping",
+            $"0x0+0x0+0x1={source}",
+            "--output",
+            workspace.PathFor("out.bin"),
+        ]);
+
+        Assert.Equal(64, result.ExitCode);
+        Assert.Contains("unknown option '--output'", result.Error, StringComparison.Ordinal);
+    }
+
+    /// <summary>Reports source bounds violations before running the composition executor.</summary>
+    [Fact]
+    public async Task GeneralMergePreviewRejectsSourceRangePastInputLength()
+    {
+        using var workspace = TempWorkspace.Create();
+        string source = workspace.Write("source.bin", [0x10, 0x11]);
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralMergeAsync(
+            "NT51950",
+            "0x10",
+            [new WorkbenchGeneralMergeMappingInput("general-merge-map-1", source, "0x1", "0x4", "0x3")],
+            build: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.Succeeded);
+        using var document = JsonDocument.Parse(result.ReportJson);
+        JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
+        Assert.Equal("ui.general-merge.source-out-of-bounds", issue.GetProperty("Code").GetString());
+    }
+
+    /// <summary>Rejects overlapping General Merge target mappings through the shared profile compiler.</summary>
+    [Fact]
+    public async Task GeneralMergePreviewRejectsOverlappingTargetMappings()
+    {
+        using var workspace = TempWorkspace.Create();
+        string source = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13]);
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralMergeAsync(
+            "NT51950",
+            "0x10",
+            [
+                new WorkbenchGeneralMergeMappingInput("general-merge-map-1", source, "0x0", "0x4", "0x3"),
+                new WorkbenchGeneralMergeMappingInput("general-merge-map-2", source, "0x1", "0x5", "0x2"),
+            ],
+            build: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.Succeeded);
+        using var document = JsonDocument.Parse(result.ReportJson);
+        JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
+        Assert.Equal("profile.plan.invalid", issue.GetProperty("Code").GetString());
+        Assert.Contains("overlaps earlier operation", issue.GetProperty("Message").GetString(), StringComparison.Ordinal);
+    }
+
+    private static async Task<CliRunResult> RunCliAsync(string[] args)
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        int exitCode = await CliApplication
+            .RunAsync(args, output, error, TestContext.Current.CancellationToken);
+        return new CliRunResult(exitCode, output.ToString(), error.ToString());
+    }
+
+    private sealed record CliRunResult(int ExitCode, string Output, string Error);
+}

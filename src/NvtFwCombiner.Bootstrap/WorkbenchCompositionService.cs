@@ -568,6 +568,7 @@ public static partial class WorkbenchCompositionService
             "Changed LDC BIN" => "#F97316",
             "CtrlRAM BIN" => "#16A34A",
             "Changed CtrlRAM BIN" => "#16A34A",
+            "Source BIN" => "#0D9488",
             "Restored TP" => "#64748B",
             "Preserved customer info" => "#64748B",
             "Preserve" => "#64748B",
