@@ -68,16 +68,36 @@ public sealed class LegacyCombinerPostbuildCatalogTests
     [Fact]
     public void Nt51927CrcOnlyPlansDeclareKnownHeaderIntegrityWrites()
     {
-        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(
+        LegacyCombinerPostbuildCommandPlan twoChip = LegacyCombinerPostbuildPlanner.CreatePlan(
             LegacyCombinerPostbuildCatalog.Nt51927,
             new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]));
+        LegacyCombinerPostbuildCommandPlan threeChip = LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51927,
+            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["3"]));
+        LegacyCombinerPostbuildCommandPlan cascade = LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51927,
+            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
 
-        IReadOnlyList<ByteRange> ranges = LegacyCombinerPostbuildPlanner.GetKnownIntegrityWriteRanges(plan, 0x40000);
+        IReadOnlyList<ByteRange> twoChipRanges = LegacyCombinerPostbuildPlanner.GetKnownIntegrityWriteRanges(
+            twoChip,
+            0x40000);
+        IReadOnlyList<ByteRange> threeChipRanges = LegacyCombinerPostbuildPlanner.GetKnownIntegrityWriteRanges(
+            threeChip,
+            0x40000);
+        IReadOnlyList<ByteRange> cascadeRanges = LegacyCombinerPostbuildPlanner.GetKnownIntegrityWriteRanges(
+            cascade,
+            0x40000);
 
-        Assert.Contains(new ByteRange(0x23C, 4), ranges);
-        Assert.Contains(new ByteRange(0x24C, 4), ranges);
-        Assert.Contains(new ByteRange(0x26C, 4), ranges);
-        Assert.Contains(new ByteRange(0x27C, 4), ranges);
+        Assert.Contains(new ByteRange(0x23C, 4), twoChipRanges);
+        Assert.Contains(new ByteRange(0x24C, 4), twoChipRanges);
+        Assert.Contains(new ByteRange(0x26C, 4), twoChipRanges);
+        Assert.Contains(new ByteRange(0x27C, 4), twoChipRanges);
+        Assert.Contains(new ByteRange(0x22C, 4), threeChipRanges);
+        Assert.Contains(new ByteRange(0x29C, 4), threeChipRanges);
+        Assert.Contains(new ByteRange(0x2AC, 4), threeChipRanges);
+        Assert.Contains(new ByteRange(0x22C, 4), cascadeRanges);
+        Assert.Contains(new ByteRange(0x29C, 4), cascadeRanges);
+        Assert.Contains(new ByteRange(0x2AC, 4), cascadeRanges);
     }
 
     /// <summary>Locks required capacity calculation to selected ranges and command source/target coverage.</summary>

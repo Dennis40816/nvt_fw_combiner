@@ -172,6 +172,8 @@ Owner supplied NT51926/NT51927 CtrlRAM Replace fixtures on 2026-07-05. The paylo
 | NT51927 2-chip | Build succeeds; 100 changed bytes across 25 ranges | all observed ranges are header/integrity words in main/header-copy/final-backup areas | CtrlRAM payload placement looks correct; final byte parity needs matching owner expected output for the 2-chip branch. |
 | NT51927 3-chip | Build succeeds; 105 changed bytes across 30 ranges | all observed ranges are header/integrity words in master/right/left header-copy and final-backup areas | CtrlRAM payload placement looks correct; final byte parity needs matching owner expected output for the 3-chip branch. |
 
+The 2026-07-05 NT51927 synthetic sentinel run replaced every selected 2-chip and 3-chip CtrlRAM slot with non-golden byte patterns. The 2-chip branch stayed within the existing declarations. The 3-chip branch exposed additional CRC-only main-header word writes at `[0x22C,0x230)`, `[0x29C,0x2A0)`, and `[0x2AC,0x2B0)` that self-replacement did not necessarily surface. These ranges align with the `51927_1.4.1_mmap.h` cascade header CRC offsets and descriptor/header CRC-word rule below, so the allowed-write catalog declares them only for the 3-chip/cascade branch. This remains R3 firmware evidence and requires firmware-owner review before production-support promotion.
+
 NT51930 Standard Merge golden cross-check:
 
 - `PostbuildSetup_51930_1.4.0.bat` uses `output\nt51930_fw.bin 0x7000 0x28FB0 256`.
@@ -223,6 +225,7 @@ NT51927 flash-header cross-check:
 - `IC_FlashMap_20260705.xlsx` records `0x00200` Common Header, `0x00220` Flash Header, `0x1E230` Master header copy, `0x27230` Slave R header copy, `0x30230` Slave L header copy, and `0x32DC0` Header backup.
 - `51927_1.4.1_mmap.h` records cascade header CRC offsets.
 - Observed changed words align with 16-byte descriptor CRC positions (`descriptor + 0x0C`), including split 3-chip diff ranges where one byte in a 4-byte word happened to match.
+- Synthetic sentinel replacement confirmed the real Combiner 1.13.0 path can update additional 3-chip main-header CRC words that self-replacement did not necessarily surface.
 
 ### 4. NT51931 official crash and `NT51931BASED` diagnostic
 
