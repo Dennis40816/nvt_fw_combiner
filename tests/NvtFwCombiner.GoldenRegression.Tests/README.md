@@ -14,3 +14,5 @@ Golden payload handling is constrained:
 - require owner sign-off before marking any IC/mode as supported.
 
 The current `testdata/golden/standard-merge-gen-flash` cases verify complete output bytes plus SHA-256 for ICs declared by `gen_flash_bin_v2/test/test_ic_config.json`. They are firmware parity regression evidence for standard merge copy ranges, copy order, fill byte, and source artifact sizes.
+
+DP Replace golden self-replacement uses the same owner-approved Standard Merge output as the base image and the corresponding golden DP input as the replacement. The run must reproduce the base bytes, preserve the output SHA-256, and leave the Replace report `OutputDifferences` table empty. CtrlRAM Replace golden-backed self-replacement is covered by UI smoke because it exercises the workbench postbuild path: the report may contain `PostbuildCrcHeader` rows only when they are accepted, and a postbuild-clean self-replacement must return to an empty difference table.

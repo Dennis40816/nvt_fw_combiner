@@ -12,6 +12,7 @@ Post-`0.7.1` development targets `0.8.0-dev.N`.
 
 - Replace reports now include final output-vs-reference difference rows, with accepted classifications for declared replacement ranges and IC/IC-number-specific postbuild CRC/header ranges.
 - Report review UI now surfaces the accepted output-difference table alongside operations, external Combiner commands, and mutation evidence.
+- Golden self-replacement tests now verify Replace report differences: DP self-replacement must produce no output-difference rows, while CtrlRAM postbuild self-replacement may produce only accepted CRC/header rows.
 
 ## [0.7.0] - 2026-07-06
 

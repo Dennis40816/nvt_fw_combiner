@@ -45,6 +45,7 @@ For per-IC Merge/Replace flowcharts, see [`ic-workflow-flowcharts.md`](ic-workfl
 - `LegacyCombinerPostbuildRealToolSmokeTests.RealToolRunsNt51927GoldenCrcOnlyWithoutUnexpectedChanges` runs the committed Combiner 1.13.0 executable on Windows against the owner-approved NT51927 golden output. This is a smoke test for the real tool binding, not a Replace golden parity claim.
 - `LegacyCombinerPostbuildRealToolSmokeTests.DirectRealToolSixteenByteCasesMatchForSingleAndMultipleCtrlRamSelfReplacement` locks the accepted 16-byte self-replacement behavior for NT51920, NT51923, NT51929, NT51932, NT51950, and NT51951 single/cascade cases. This is still direct-combiner smoke evidence, not production CtrlRAM Replace parity.
 - `LegacyCombinerPostbuildRealToolSmokeTests.DirectRealToolPureCombinerPastebackMatchesPrePasteFlow` verifies representative NT51920, NT51923, NT51926, NT51927, and NT51950 cases produce identical output when replacement CtrlRAM bytes are pre-pasted into the work image versus supplied only as Combiner staged source bytes. The production adapter uses the staged-source path.
+- `ShellViewModelTests.CtrlRamReplacePreviewSelfReplacementRunsPostbuild` and `CtrlRamReplaceBuildCommitsGoldenBackedSelfReplacementOutput` now inspect the generated Replace report from golden-backed self-replacement: postbuild drift must be accepted `PostbuildCrcHeader` only, and a postbuild-clean self-replacement must produce no output-difference rows.
 
 ## Open Evidence Gaps
 
