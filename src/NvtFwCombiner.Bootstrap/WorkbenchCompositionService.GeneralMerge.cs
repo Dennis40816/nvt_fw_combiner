@@ -35,6 +35,14 @@ public static partial class WorkbenchCompositionService
         return $"{icId.ToLowerInvariant()}-general-merge.bin";
     }
 
+    /// <summary>Gets the profile id used by the General Merge workbench profile for the selected IC.</summary>
+    public static string GetGeneralMergeWorkbenchProfileId(string icId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+
+        return $"{icId.ToLowerInvariant()}-general-merge-workbench";
+    }
+
     /// <summary>Gets output address coverage text for a General Merge output length.</summary>
     public static string GetGeneralMergeMemoryRangeLabel(string outputLength)
     {
@@ -369,7 +377,7 @@ public static partial class WorkbenchCompositionService
     private static CompositionProfileDefinition CreateGeneralMergeProfile(string icId, long capacity)
     {
         return new CompositionProfileDefinition(
-            $"{icId.ToLowerInvariant()}-general-merge-workbench",
+            GetGeneralMergeWorkbenchProfileId(icId),
             GeneralMergeProfileVersion,
             icId,
             "general-merge",
@@ -406,7 +414,7 @@ public static partial class WorkbenchCompositionService
         bool succeeded)
     {
         DateTimeOffset timestamp = DateTimeOffset.UtcNow;
-        string profileId = $"{icId.ToLowerInvariant()}-general-merge-workbench";
+        string profileId = GetGeneralMergeWorkbenchProfileId(icId);
         var report = new CompositionRunReport(
             $"ui-merge-general-{(build ? "build" : "preview")}-{timestamp.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture)}",
             profileId,

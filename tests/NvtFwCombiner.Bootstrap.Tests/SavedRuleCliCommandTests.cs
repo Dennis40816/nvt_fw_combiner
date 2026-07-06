@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -42,6 +43,144 @@ public sealed class SavedRuleCliCommandTests
         Assert.Equal(1, result.ExitCode);
         Assert.Contains("saved-rule.property.unknown", result.Error, StringComparison.Ordinal);
         Assert.Contains("$.shellCommand", result.Error, StringComparison.Ordinal);
+    }
+
+    /// <summary>Rejects protectedRangePolicy objects instead of allowing hidden nested rule data.</summary>
+    [Fact]
+    public async Task SavedRuleValidateRejectsNestedProtectedRangePolicy()
+    {
+        using var workspace = TempWorkspace.Create();
+        JsonObject json = ValidGeneralMergeRuleObject();
+        json["protectedRangePolicy"] = new JsonObject
+        {
+            ["shellCommand"] = "Combiner.exe /danger",
+        };
+        string rule = await WriteRuleAsync(workspace, json);
+
+        CliRunResult result = await RunCliAsync(["saved-rule", "validate", rule]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("$.protectedRangePolicy", result.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("Rule: copy-display-window", result.Output, StringComparison.Ordinal);
+    }
+
+    /// <summary>Rejects duplicate row identifiers so operation fragments cannot ambiguously bind rows.</summary>
+    [Fact]
+    public async Task SavedRuleValidateRejectsDuplicateMappingRowIds()
+    {
+        using var workspace = TempWorkspace.Create();
+        JsonObject json = ValidGeneralMergeRuleObject();
+        JsonObject row = CloneObject(MappingRows(json)[0]!);
+        MappingRows(json).Add(row);
+        string rule = await WriteRuleAsync(workspace, json);
+
+        CliRunResult result = await RunCliAsync(["saved-rule", "validate", rule]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("saved-rule.mapping-row.duplicate", result.Error, StringComparison.Ordinal);
+    }
+
+    /// <summary>Current General Merge rule consumption supports only copy-range operation fragments.</summary>
+    [Fact]
+    public async Task SavedRuleValidateRejectsUnsupportedGeneralMergeFragmentKinds()
+    {
+        using var workspace = TempWorkspace.Create();
+        JsonObject json = ValidGeneralMergeRuleObject();
+        OperationFragments(json)[0]!["kind"] = "run-external-processor";
+        string rule = await WriteRuleAsync(workspace, json);
+
+        CliRunResult result = await RunCliAsync(["saved-rule", "validate", rule]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("saved-rule.operation-fragment.kind-unsupported", result.Error, StringComparison.Ordinal);
+        Assert.Contains("$.operationFragments[0].kind", result.Error, StringComparison.Ordinal);
+    }
+
+    /// <summary>Rejects rows that are present in mappingRows but absent from reviewed operation fragments.</summary>
+    [Fact]
+    public async Task SavedRuleValidateRejectsUnfragmentedGeneralMergeRows()
+    {
+        using var workspace = TempWorkspace.Create();
+        JsonObject json = ValidGeneralMergeRuleObject();
+        JsonObject row = CloneObject(MappingRows(json)[0]!);
+        row["rowId"] = "copy-second-window";
+        row["sourceRange"] = new JsonObject
+        {
+            ["start"] = 0,
+            ["length"] = 16,
+        };
+        row["targetRange"] = new JsonObject
+        {
+            ["start"] = 0,
+            ["length"] = 16,
+        };
+        MappingRows(json).Add(row);
+        string rule = await WriteRuleAsync(workspace, json);
+
+        CliRunResult result = await RunCliAsync(["saved-rule", "validate", rule]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("saved-rule.mapping-row.unreferenced", result.Error, StringComparison.Ordinal);
+        Assert.Contains("copy-second-window", result.Error, StringComparison.Ordinal);
+    }
+
+    /// <summary>Rejects processor-dependent General Merge saved rules until processor fragments are actually supported.</summary>
+    [Fact]
+    public async Task GeneralMergePreviewRejectsProcessorDependentSavedRule()
+    {
+        using var workspace = TempWorkspace.Create();
+        JsonObject json = ValidGeneralMergeRuleObject();
+        json["processorDependencyIds"] = new JsonArray("crc-v1");
+        string rule = await WriteRuleAsync(workspace, json);
+        string source = workspace.Write("source.bin", [.. Enumerable.Range(0, 64).Select(value => (byte)value)]);
+
+        CliRunResult result = await RunCliAsync([
+            "general-merge",
+            "preview",
+            "--profile",
+            "NT51950",
+            "--size",
+            "0x120",
+            "--rule",
+            rule,
+            "--slot",
+            $"source-bin={source}",
+        ]);
+
+        Assert.Equal(64, result.ExitCode);
+        Assert.Contains("saved-rule.processor-dependency.unsupported", result.Error, StringComparison.Ordinal);
+    }
+
+    /// <summary>Requires a saved-rule compatibility envelope to match IC, derived profile id, and mode.</summary>
+    [Theory]
+    [InlineData("profileIds", "nt51951-general-merge-workbench")]
+    [InlineData("modeIds", "standard-merge")]
+    public async Task GeneralMergePreviewRequiresFullSavedRuleCompatibilityEnvelope(string propertyName, string incompatibleId)
+    {
+        using var workspace = TempWorkspace.Create();
+        JsonObject json = ValidGeneralMergeRuleObject();
+        json["compatibility"]![propertyName] = new JsonArray(incompatibleId);
+        string rule = await WriteRuleAsync(workspace, json);
+        string source = workspace.Write("source.bin", [.. Enumerable.Range(0, 64).Select(value => (byte)value)]);
+
+        CliRunResult result = await RunCliAsync([
+            "general-merge",
+            "preview",
+            "--profile",
+            "NT51950",
+            "--size",
+            "0x120",
+            "--rule",
+            rule,
+            "--slot",
+            $"source-bin={source}",
+        ]);
+
+        Assert.Equal(64, result.ExitCode);
+        Assert.Contains(
+            "not compatible with NT51950 / nt51950-general-merge-workbench / general-merge",
+            result.Error,
+            StringComparison.Ordinal);
     }
 
     /// <summary>Verifies General Merge can consume a saved rule through slot bindings and preserve report provenance.</summary>
@@ -88,6 +227,21 @@ public sealed class SavedRuleCliCommandTests
         Assert.Equal("saved-rule", provenance.GetProperty("Kind").GetString());
         Assert.Equal("copy-display-window", provenance.GetProperty("SourceId").GetString());
         Assert.Equal("1.0.0", provenance.GetProperty("SourceVersion").GetString());
+    }
+
+    /// <summary>Allows the reviewed scalar protected-range policy values from the saved-rule schema.</summary>
+    [Fact]
+    public async Task SavedRuleValidateAcceptsScalarProtectedRangePolicy()
+    {
+        using var workspace = TempWorkspace.Create();
+        JsonObject json = ValidGeneralMergeRuleObject();
+        json["protectedRangePolicy"] = "profile-defined";
+        string rule = await WriteRuleAsync(workspace, json);
+
+        CliRunResult result = await RunCliAsync(["saved-rule", "validate", rule]);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(string.Empty, result.Error);
     }
 
     private static string ValidGeneralMergeRuleJson()
@@ -138,6 +292,33 @@ public sealed class SavedRuleCliCommandTests
               "evidenceRefs": []
             }
             """;
+    }
+
+    private static JsonObject ValidGeneralMergeRuleObject()
+    {
+        return JsonNode.Parse(ValidGeneralMergeRuleJson())!.AsObject();
+    }
+
+    private static JsonArray MappingRows(JsonObject json)
+    {
+        return json["mappingRows"]!.AsArray();
+    }
+
+    private static JsonArray OperationFragments(JsonObject json)
+    {
+        return json["operationFragments"]!.AsArray();
+    }
+
+    private static JsonObject CloneObject(JsonNode node)
+    {
+        return JsonNode.Parse(node.ToJsonString())!.AsObject();
+    }
+
+    private static async Task<string> WriteRuleAsync(TempWorkspace workspace, JsonObject json)
+    {
+        string rule = workspace.PathFor("rule.json");
+        await File.WriteAllTextAsync(rule, json.ToJsonString(), TestContext.Current.CancellationToken);
+        return rule;
     }
 
     private static async Task<CliRunResult> RunCliAsync(string[] args)

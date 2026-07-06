@@ -102,6 +102,7 @@ As of `0.7.3`, saved-rule support is intentionally limited to data validation, m
 Implemented:
 
 - `saved-rule validate <rule.json>` parses the strict saved-rule shape and rejects unknown fields, duplicate ids, invalid ranges, invalid compatibility, command/script hooks, and unsafe row shapes.
+- General Merge saved-rule validation currently accepts only reviewed `copy-range` operation fragments, requires every mapping row to be referenced by at least one operation fragment, rejects root or fragment processor dependencies, and treats `protectedRangePolicy` as a scalar schema enum only.
 - `saved-rule mappings <rule.json>` prints normalized mapping rows and CLI mapping fragments without reading or writing firmware bytes.
 - `general-merge preview|build --rule <rule.json> --slot <slot-id=path>` consumes General Merge saved-rule rows only after explicit slot binding, then compiles them through the same General Merge planner/executor as manual mappings.
 - Reports mark rule-driven operations with `Provenance.Kind = "saved-rule"` plus rule id/version.

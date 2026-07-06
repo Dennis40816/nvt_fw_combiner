@@ -129,16 +129,25 @@ internal static partial class SavedCompositionRuleLoader
         string compositionKind = RequiredEnum(root, "compositionKind", "$.compositionKind", ["merge", "replace"], issues);
         string sourceExperience = RequiredEnum(root, "sourceExperience", "$.sourceExperience", ["general-merge", "general-replace"], issues);
         string supportStatus = RequiredEnum(root, "supportStatus", "$.supportStatus", ["draft", "candidate", "supported", "deprecated"], issues);
+        _ = OptionalEnum(root, "protectedRangePolicy", "$.protectedRangePolicy", ["deny-crossing", "deny-touch", "profile-defined"], issues);
         SavedRuleCompatibility compatibility = ReadCompatibility(root, issues);
         List<SavedRuleMappingRow> mappingRows = ReadMappingRows(root, compositionKind, sourceExperience, issues);
-        List<string> operationFragmentIds = ReadOperationFragments(root, mappingRows, issues);
+        List<string> operationFragmentIds = ReadOperationFragments(root, compositionKind, sourceExperience, mappingRows, issues);
         List<string> processorDependencyIds = ReadStringArray(root, "processorDependencyIds", "$.processorDependencyIds", required: false, validateId: true, issues);
         List<string> validationRuleIds = ReadStringArray(root, "validationRuleIds", "$.validationRuleIds", required: true, validateId: true, issues);
         string owner = RequiredString(root, "owner", "$.owner", issues);
         List<string> evidenceRefs = ReadStringArray(root, "evidenceRefs", "$.evidenceRefs", required: true, validateId: false, issues);
 
         ValidateInputSlotTemplates(root, issues);
-        ValidateRuleCompatibility(compositionKind, sourceExperience, supportStatus, evidenceRefs, mappingRows, operationFragmentIds, issues);
+        ValidateRuleCompatibility(
+            compositionKind,
+            sourceExperience,
+            supportStatus,
+            evidenceRefs,
+            mappingRows,
+            operationFragmentIds,
+            processorDependencyIds,
+            issues);
 
         return issues.Count > 0
             ? new SavedCompositionRuleLoadResult(null, issues)
@@ -271,11 +280,19 @@ internal static partial class SavedCompositionRuleLoader
             }
         }
 
+        AddDuplicateIssues(
+            [.. result.Select(row => row.RowId).Where(rowId => !string.IsNullOrWhiteSpace(rowId))],
+            "saved-rule.mapping-row.duplicate",
+            "Mapping row id is duplicated.",
+            "$.mappingRows",
+            issues);
         return result;
     }
 
     private static List<string> ReadOperationFragments(
         JsonElement root,
+        string compositionKind,
+        string sourceExperience,
         List<SavedRuleMappingRow> mappingRows,
         List<SavedRuleValidationIssue> issues)
     {
@@ -286,7 +303,8 @@ internal static partial class SavedCompositionRuleLoader
             return [];
         }
 
-        HashSet<string> mappingRowIds = [.. mappingRows.Select(row => row.RowId)];
+        HashSet<string> mappingRowIds = new(mappingRows.Select(row => row.RowId), StringComparer.Ordinal);
+        HashSet<string> referencedMappingRowIds = new(StringComparer.Ordinal);
         List<string> operationIds = [];
         int index = 0;
         foreach (JsonElement fragment in fragments.EnumerateArray())
@@ -300,13 +318,41 @@ internal static partial class SavedCompositionRuleLoader
 
             ValidateProperties(fragment, OperationFragmentProperties, path, issues);
             string operationId = RequiredId(fragment, "operationId", $"{path}.operationId", issues);
-            _ = RequiredEnum(
+            string kind = RequiredEnum(
                 fragment,
                 "kind",
                 $"{path}.kind",
                 ["copy-range", "fill-range", "patch-scalar", "replace-range", "run-external-processor", "assert-range", "validate-checksum"],
                 issues);
+            if (compositionKind == "merge" &&
+                sourceExperience == "general-merge" &&
+                !string.IsNullOrWhiteSpace(kind) &&
+                !string.Equals(kind, "copy-range", StringComparison.Ordinal))
+            {
+                issues.Add(Issue(
+                    "saved-rule.operation-fragment.kind-unsupported",
+                    "Current General Merge saved-rule CLI consumption supports only copy-range operation fragments.",
+                    $"{path}.kind"));
+            }
+
             _ = RequiredString(fragment, "reason", $"{path}.reason", issues);
+            List<string> fragmentProcessorDependencyIds = ReadStringArray(
+                fragment,
+                "processorDependencyIds",
+                $"{path}.processorDependencyIds",
+                required: false,
+                validateId: true,
+                issues);
+            if (compositionKind == "merge" &&
+                sourceExperience == "general-merge" &&
+                fragmentProcessorDependencyIds.Count > 0)
+            {
+                issues.Add(Issue(
+                    "saved-rule.operation-fragment.processor-dependency.unsupported",
+                    "Current General Merge saved-rule CLI consumption does not support processor-dependent operation fragments.",
+                    $"{path}.processorDependencyIds"));
+            }
+
             foreach (string mappingRowId in ReadStringArray(fragment, "mappingRowIds", $"{path}.mappingRowIds", required: false, validateId: true, issues))
             {
                 if (!mappingRowIds.Contains(mappingRowId))
@@ -315,7 +361,10 @@ internal static partial class SavedCompositionRuleLoader
                         "saved-rule.operation-fragment.mapping-row-unknown",
                         $"Operation fragment references unknown mapping row '{mappingRowId}'.",
                         $"{path}.mappingRowIds"));
+                    continue;
                 }
+
+                _ = referencedMappingRowIds.Add(mappingRowId);
             }
 
             if (!string.IsNullOrWhiteSpace(operationId))
@@ -325,6 +374,19 @@ internal static partial class SavedCompositionRuleLoader
         }
 
         AddDuplicateIssues(operationIds, "saved-rule.operation-fragment.duplicate", "Operation fragment id is duplicated.", "$.operationFragments", issues);
+        if (compositionKind == "merge" && sourceExperience == "general-merge")
+        {
+            foreach (SavedRuleMappingRow row in mappingRows.Where(row =>
+                         !string.IsNullOrWhiteSpace(row.RowId) &&
+                         !referencedMappingRowIds.Contains(row.RowId)))
+            {
+                issues.Add(Issue(
+                    "saved-rule.mapping-row.unreferenced",
+                    $"General Merge saved-rule mapping row '{row.RowId}' is not referenced by any supported operation fragment.",
+                    "$.mappingRows"));
+            }
+        }
+
         return operationIds;
     }
 
@@ -365,6 +427,7 @@ internal static partial class SavedCompositionRuleLoader
         List<string> evidenceRefs,
         List<SavedRuleMappingRow> mappingRows,
         List<string> operationFragmentIds,
+        List<string> processorDependencyIds,
         List<SavedRuleValidationIssue> issues)
     {
         if (compositionKind == "merge" && sourceExperience != "general-merge")
@@ -385,6 +448,14 @@ internal static partial class SavedCompositionRuleLoader
         if (operationFragmentIds.Count == 0)
         {
             issues.Add(Issue("saved-rule.operation-fragments.empty", "Saved rule must include at least one operation fragment.", "$.operationFragments"));
+        }
+
+        if (compositionKind == "merge" && sourceExperience == "general-merge" && processorDependencyIds.Count > 0)
+        {
+            issues.Add(Issue(
+                "saved-rule.processor-dependency.unsupported",
+                "Current General Merge saved-rule CLI consumption does not support root processorDependencyIds.",
+                "$.processorDependencyIds"));
         }
 
         if (supportStatus is "candidate" or "supported" && evidenceRefs.Count == 0)
@@ -578,6 +649,18 @@ internal static partial class SavedCompositionRuleLoader
         }
 
         return value;
+    }
+
+    private static string? OptionalEnum(
+        JsonElement element,
+        string propertyName,
+        string path,
+        IReadOnlyList<string> allowed,
+        List<SavedRuleValidationIssue> issues)
+    {
+        return element.TryGetProperty(propertyName, out _)
+            ? RequiredEnum(element, propertyName, path, allowed, issues)
+            : null;
     }
 
     private static string RequiredId(

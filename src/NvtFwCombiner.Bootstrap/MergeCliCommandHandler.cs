@@ -11,6 +11,7 @@ internal static class MergeCliCommandHandler
     private const int CompositionFailed = 1;
     private const int UsageError = 64;
     private const int SoftwareError = 70;
+    private const string GeneralMergeModeId = "general-merge";
 
     internal static async Task<int> RunAsync(
         string command,
@@ -180,15 +181,25 @@ internal static class MergeCliCommandHandler
         }
 
         SavedCompositionRule rule = load.Rule!;
-        if (!string.Equals(rule.SourceExperience, "general-merge", StringComparison.Ordinal))
+        if (!string.Equals(rule.CompositionKind, "merge", StringComparison.Ordinal) ||
+            !string.Equals(rule.SourceExperience, GeneralMergeModeId, StringComparison.Ordinal))
         {
-            error.WriteLine($"error: saved rule '{rule.RuleId}' is for {rule.SourceExperience}, not general-merge");
+            error.WriteLine($"error: saved rule '{rule.RuleId}' is for {rule.CompositionKind} / {rule.SourceExperience}, not merge / {GeneralMergeModeId}");
             return false;
         }
 
-        if (!MatchesCompatibility(rule.Compatibility.IcIds, icId))
+        string profileId = WorkbenchCompositionService.GetGeneralMergeWorkbenchProfileId(icId);
+        if (!MatchesCompatibility(rule.Compatibility.IcIds, icId, StringComparer.OrdinalIgnoreCase) ||
+            !MatchesCompatibility(rule.Compatibility.ProfileIds, profileId, StringComparer.Ordinal) ||
+            !MatchesCompatibility(rule.Compatibility.ModeIds, GeneralMergeModeId, StringComparer.Ordinal))
         {
-            error.WriteLine($"error: saved rule '{rule.RuleId}' is not compatible with {icId}");
+            error.WriteLine($"error: saved rule '{rule.RuleId}' is not compatible with {icId} / {profileId} / {GeneralMergeModeId}");
+            return false;
+        }
+
+        if (rule.ProcessorDependencyIds.Count > 0)
+        {
+            error.WriteLine($"error: saved rule '{rule.RuleId}' requires processors that General Merge saved-rule CLI consumption does not support yet");
             return false;
         }
 
@@ -272,9 +283,12 @@ internal static class MergeCliCommandHandler
         return true;
     }
 
-    private static bool MatchesCompatibility(IReadOnlyList<string> values, string candidate)
+    private static bool MatchesCompatibility(
+        IReadOnlyList<string> values,
+        string candidate,
+        IEqualityComparer<string> comparer)
     {
-        return values.Count == 0 || values.Contains(candidate, StringComparer.OrdinalIgnoreCase);
+        return values.Count == 0 || values.Contains(candidate, comparer);
     }
 
     private static void PrintSavedRuleIssues(IReadOnlyList<SavedRuleValidationIssue> issues, TextWriter error)
