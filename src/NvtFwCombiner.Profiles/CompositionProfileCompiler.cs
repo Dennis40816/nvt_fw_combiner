@@ -683,7 +683,8 @@ public static class CompositionProfileCompiler
                     mapping.TargetSpaceId,
                     mapping.TargetRange,
                     mapping.OverlapPolicy,
-                    mapping.Reason),
+                    mapping.Reason,
+                    mapping.Provenance),
             ExplicitMappingOperationKind.ReplaceRange when profile.CompositionKind == CompositionKind.Replace =>
                 CompositionOperation.ReplaceRange(
                     mapping.MappingId,
@@ -693,7 +694,8 @@ public static class CompositionProfileCompiler
                     mapping.TargetSpaceId,
                     mapping.TargetRange,
                     mapping.OverlapPolicy,
-                    mapping.Reason),
+                    mapping.Reason,
+                    mapping.Provenance),
             _ => throw new ArgumentException(
                 $"Explicit mapping '{mapping.MappingId}' kind is incompatible with profile composition kind '{profile.CompositionKind}'.",
                 nameof(mapping)),

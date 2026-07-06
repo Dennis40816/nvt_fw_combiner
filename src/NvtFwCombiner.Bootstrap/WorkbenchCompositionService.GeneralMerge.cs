@@ -316,9 +316,10 @@ public static partial class WorkbenchCompositionService
                 "output-image",
                 targetRange,
                 OverlapPolicy.Reject,
-                alignment: 1,
-                "Copy explicit General Merge mapping.",
-                targetRegionId: "general-output"));
+                input.Alignment,
+                input.Reason ?? "Copy explicit General Merge mapping.",
+                targetRegionId: "general-output",
+                provenance: input.Provenance));
         }
 
         explicitMappings = mappings;
@@ -452,7 +453,8 @@ public static partial class WorkbenchCompositionService
                 null,
                 [],
                 [],
-                mapping.Reason)),
+                mapping.Reason,
+                mapping.Provenance)),
         ];
     }
 
@@ -490,4 +492,7 @@ public sealed record WorkbenchGeneralMergeMappingInput(
     string FilePath,
     string SourceStart,
     string TargetStart,
-    string Length);
+    string Length,
+    int Alignment = 1,
+    string? Reason = null,
+    OperationProvenance? Provenance = null);

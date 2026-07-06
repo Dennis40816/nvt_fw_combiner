@@ -15,7 +15,8 @@ public sealed record ExplicitMapping
         OverlapPolicy overlapPolicy,
         int alignment,
         string reason,
-        string? targetRegionId = null)
+        string? targetRegionId = null,
+        OperationProvenance? provenance = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(mappingId);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceBindingId);
@@ -48,6 +49,7 @@ public sealed record ExplicitMapping
         OverlapPolicy = overlapPolicy;
         Alignment = alignment;
         Reason = reason;
+        Provenance = provenance ?? OperationProvenance.RuntimeGeneralMapping(mappingId);
     }
 
     /// <summary>Stable identifier for this mapping.</summary>
@@ -82,4 +84,7 @@ public sealed record ExplicitMapping
 
     /// <summary>Human-readable evidence for why the explicit mapping is allowed.</summary>
     public string Reason { get; }
+
+    /// <summary>Traceable origin for the operation compiled from this mapping.</summary>
+    public OperationProvenance Provenance { get; }
 }

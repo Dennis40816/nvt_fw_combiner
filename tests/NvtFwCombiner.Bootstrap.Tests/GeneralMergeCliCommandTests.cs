@@ -53,6 +53,9 @@ public sealed class GeneralMergeCliCommandTests
         Assert.Equal(3, operation.GetProperty("SourceRange").GetProperty("Length").GetInt64());
         Assert.Equal(4, operation.GetProperty("TargetRange").GetProperty("Start").GetInt64());
         Assert.Equal(3, operation.GetProperty("TargetRange").GetProperty("Length").GetInt64());
+        JsonElement provenance = operation.GetProperty("Provenance");
+        Assert.Equal("runtime-general-mapping", provenance.GetProperty("Kind").GetString());
+        Assert.Equal("general-merge-map-1", provenance.GetProperty("SourceId").GetString());
     }
 
     /// <summary>Rejects General Merge requests without explicit mappings.</summary>

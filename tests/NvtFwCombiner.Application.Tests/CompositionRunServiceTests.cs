@@ -44,6 +44,8 @@ public sealed class CompositionRunServiceTests
         Assert.Null(copyDp.ProcessorId);
         Assert.Empty(copyDp.ProcessorAllowedWriteRanges);
         Assert.Equal("Copy synthetic DP input into the output DP range.", copyDp.Reason);
+        Assert.Equal("built-in-profile", copyDp.Provenance.Kind);
+        Assert.Null(copyDp.Provenance.SourceId);
         Assert.Equal(2, result.Report.Inputs.Count);
         Assert.Equal(2, result.Report.Mutations.Count);
         Assert.Empty(result.Report.OutputDifferences);

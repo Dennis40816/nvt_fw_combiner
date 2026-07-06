@@ -226,6 +226,10 @@ internal static class ReportJsonSamples
             ToolBindingId = "legacy-combiner-1.13.0",
             ProcessorAllowedReadRanges = new[] { Range(0, length) },
             ProcessorAllowedWriteRanges = allowedWriteRanges,
+            Provenance = new
+            {
+                Kind = "built-in-profile",
+            },
             Reason = "Run approved staged Combiner command: Combiner.exe /bin work.bin /mmap mmap.h.",
         };
     }

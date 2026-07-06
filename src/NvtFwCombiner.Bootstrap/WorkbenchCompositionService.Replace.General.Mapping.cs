@@ -124,7 +124,8 @@ public static partial class WorkbenchCompositionService
                 null,
                 [],
                 [],
-                mapping.Reason)),
+                mapping.Reason,
+                mapping.Provenance)),
         ];
     }
 
