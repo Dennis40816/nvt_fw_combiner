@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Text.Json;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -101,15 +102,17 @@ internal static class MergeCliCommandHandler
                 mappings,
                 action == "build",
                 cancellationToken,
-                outputPath)
+                outputPath,
+                overwrite: options.Flags.Contains("--overwrite"))
             .ConfigureAwait(false);
-        if (options.Values.TryGetValue("--report", out string? requestedReportPath))
+        bool reportWritten = options.Values.TryGetValue("--report", out string? requestedReportPath);
+        if (reportWritten)
         {
-            await WriteReportAsync(requestedReportPath, result.ReportJson, output, cancellationToken)
+            await WriteReportAsync(requestedReportPath!, result.ReportJson, output, cancellationToken)
                 .ConfigureAwait(false);
         }
 
-        await PrintResultAsync(result, icId, output, error).ConfigureAwait(false);
+        await PrintResultAsync(result, icId, output, error, reportWritten).ConfigureAwait(false);
         return result.Succeeded ? Success : CompositionFailed;
     }
 
@@ -188,7 +191,8 @@ internal static class MergeCliCommandHandler
         WorkbenchRunResult result,
         string icId,
         TextWriter output,
-        TextWriter error)
+        TextWriter error,
+        bool reportWritten)
     {
         await output.WriteLineAsync($"Status: {result.Status}").ConfigureAwait(false);
         await output.WriteLineAsync($"Profile: {result.ProfileId} ({icId})").ConfigureAwait(false);
@@ -206,7 +210,43 @@ internal static class MergeCliCommandHandler
             return;
         }
 
-        await error.WriteLineAsync("General Merge failed; inspect the JSON report for issues.").ConfigureAwait(false);
+        if (reportWritten)
+        {
+            await error.WriteLineAsync("General Merge failed; inspect the JSON report for issues.").ConfigureAwait(false);
+            return;
+        }
+
+        await error.WriteLineAsync("General Merge failed; no JSON report was written. Issues:").ConfigureAwait(false);
+        await PrintReportIssuesAsync(result.ReportJson, error).ConfigureAwait(false);
+    }
+
+    private static async Task PrintReportIssuesAsync(string reportJson, TextWriter error)
+    {
+        using var document = JsonDocument.Parse(reportJson);
+        if (!document.RootElement.TryGetProperty("Issues", out JsonElement issues) ||
+            issues.ValueKind != JsonValueKind.Array ||
+            issues.GetArrayLength() == 0)
+        {
+            await error.WriteLineAsync("  - Unknown issue: no issue rows were recorded.").ConfigureAwait(false);
+            return;
+        }
+
+        foreach (JsonElement issue in issues.EnumerateArray())
+        {
+            string code = GetJsonString(issue, "Code", "unknown");
+            string source = GetJsonString(issue, "Source", "general-merge");
+            string message = GetJsonString(issue, "Message", "No message.");
+            await error.WriteLineAsync($"  - {code} [{source}]: {message}").ConfigureAwait(false);
+        }
+    }
+
+    private static string GetJsonString(JsonElement element, string propertyName, string fallback)
+    {
+        return element.TryGetProperty(propertyName, out JsonElement value) &&
+            value.ValueKind == JsonValueKind.String &&
+            !string.IsNullOrWhiteSpace(value.GetString())
+                ? value.GetString()!
+                : fallback;
     }
 
     private static async Task WriteReportAsync(

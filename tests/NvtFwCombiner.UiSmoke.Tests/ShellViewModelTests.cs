@@ -1676,8 +1676,19 @@ public sealed class ShellViewModelTests
         mapping.SourceStartAddress = "0x1";
         mapping.TargetStartAddress = "0x4";
         mapping.Length = "0x3";
+        List<string> propertyChanges = [];
+        viewModel.PropertyChanged += (_, args) =>
+        {
+            if (!string.IsNullOrWhiteSpace(args.PropertyName))
+            {
+                propertyChanges.Add(args.PropertyName);
+            }
+        };
+
         Assert.True(viewModel.SetGeneralMergeMappingFile(mapping.MappingId, source));
 
+        Assert.Contains(nameof(MainWindowViewModel.MergeReadinessStatus), propertyChanges);
+        Assert.Contains("maps 1 source BIN", viewModel.MergeReadinessStatus, StringComparison.Ordinal);
         Assert.True(viewModel.CanPreviewMerge);
         Assert.False(viewModel.CanBuildMerge);
         Assert.False(viewModel.CanBuildStandardMerge);

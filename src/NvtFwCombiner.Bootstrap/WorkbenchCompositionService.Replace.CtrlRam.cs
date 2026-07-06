@@ -106,6 +106,7 @@ public static partial class WorkbenchCompositionService
             outputPath,
             externalProcessor: ExternalProcessorFactory.CreateOrNull(),
             icNumberSelection: context.Selection,
+            overwrite: true,
             cancellationToken).ConfigureAwait(false);
     }
 }

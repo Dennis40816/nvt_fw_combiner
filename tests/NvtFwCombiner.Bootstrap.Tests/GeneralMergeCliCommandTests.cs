@@ -116,6 +116,86 @@ public sealed class GeneralMergeCliCommandTests
         Assert.Equal("ui.general-merge.source-out-of-bounds", issue.GetProperty("Code").GetString());
     }
 
+    /// <summary>Prints General Merge issues directly when no report path is requested.</summary>
+    [Fact]
+    public async Task GeneralMergePreviewPrintsIssuesWhenReportIsNotRequested()
+    {
+        using var workspace = TempWorkspace.Create();
+        string source = workspace.Write("source.bin", [0x10, 0x11]);
+
+        CliRunResult result = await RunCliAsync([
+            "general-merge",
+            "preview",
+            "--profile",
+            "NT51950",
+            "--size",
+            "0x10",
+            "--mapping",
+            $"0x1+0x4+0x3={source}",
+        ]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("General Merge failed; no JSON report was written. Issues:", result.Error, StringComparison.Ordinal);
+        Assert.Contains("ui.general-merge.source-out-of-bounds", result.Error, StringComparison.Ordinal);
+        Assert.Contains("source range exceeds the selected input file length", result.Error, StringComparison.Ordinal);
+    }
+
+    /// <summary>Turns a blank output length into a report issue instead of throwing.</summary>
+    [Fact]
+    public async Task GeneralMergeBlankOutputLengthProducesReportIssue()
+    {
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralMergeAsync(
+            "NT51950",
+            "",
+            [],
+            build: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.Succeeded);
+        using var document = JsonDocument.Parse(result.ReportJson);
+        JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
+        Assert.Equal("ui.general-merge.capacity-invalid", issue.GetProperty("Code").GetString());
+    }
+
+    /// <summary>Preserves no-overwrite behavior at the final commit boundary.</summary>
+    [Fact]
+    public async Task GeneralMergeBuildDoesNotOverwriteExistingOutputWhenOverwriteIsFalse()
+    {
+        using var workspace = TempWorkspace.Create();
+        string source = workspace.Write("source.bin", [0x10, 0x11, 0x12]);
+        string output = workspace.Write("out.bin", [0xFE, 0xED]);
+
+        _ = await Assert.ThrowsAsync<IOException>(() =>
+            WorkbenchCompositionService.RunGeneralMergeAsync(
+                    "NT51950",
+                    "0x4",
+                    [new WorkbenchGeneralMergeMappingInput("general-merge-map-1", source, "0x0", "0x0", "0x2")],
+                    build: true,
+                    TestContext.Current.CancellationToken,
+                    output,
+                    overwrite: false)
+                .AsTask());
+
+        Assert.Equal([0xFE, 0xED], await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>Keeps adjacent General Merge mappings visually distinct even when they use the same color.</summary>
+    [Fact]
+    public void GeneralMergeCoverageKeepsAdjacentMappingRowsDistinct()
+    {
+        IReadOnlyList<WorkbenchMemoryCoverageSegment> segments = WorkbenchCompositionService.GetGeneralMergeCoverageSegments(
+            "0x10",
+            [
+                new WorkbenchGeneralMergeMappingInput("general-merge-map-1", "first.bin", "0x0", "0x0", "0x4"),
+                new WorkbenchGeneralMergeMappingInput("general-merge-map-2", "second.bin", "0x0", "0x4", "0x4"),
+            ]);
+
+        WorkbenchMemoryCoverageSegment[] changed = [.. segments.Where(segment => segment.IsChanged)];
+        Assert.Equal(2, changed.Length);
+        Assert.Contains("general-merge-map-1", changed[0].Detail, StringComparison.Ordinal);
+        Assert.Contains("general-merge-map-2", changed[1].Detail, StringComparison.Ordinal);
+    }
+
     /// <summary>Rejects overlapping General Merge target mappings through the shared profile compiler.</summary>
     [Fact]
     public async Task GeneralMergePreviewRejectsOverlappingTargetMappings()

@@ -661,6 +661,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(CanBuildStandardMerge));
         OnPropertyChanged(nameof(CanPreviewMerge));
         OnPropertyChanged(nameof(CanBuildMerge));
+        OnPropertyChanged(nameof(MergeReadinessStatus));
         OnPropertyChanged(nameof(CanPreviewReplace));
         OnPropertyChanged(nameof(CanBuildReplace));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));

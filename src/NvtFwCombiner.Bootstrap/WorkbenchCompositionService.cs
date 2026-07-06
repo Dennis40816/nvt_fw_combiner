@@ -308,6 +308,7 @@ public static partial class WorkbenchCompositionService
             outputPath,
             externalProcessor: null,
             icNumberSelection: null,
+            overwrite: true,
             cancellationToken).ConfigureAwait(false);
     }
 
@@ -538,6 +539,7 @@ public static partial class WorkbenchCompositionService
 
             if (pending.Range.EndExclusive == segment.Range.Start &&
                 string.Equals(pending.SourceLabel, segment.SourceLabel, StringComparison.Ordinal) &&
+                string.Equals(pending.Detail, segment.Detail, StringComparison.Ordinal) &&
                 string.Equals(pending.Fill, segment.Fill, StringComparison.Ordinal))
             {
                 pending = pending with

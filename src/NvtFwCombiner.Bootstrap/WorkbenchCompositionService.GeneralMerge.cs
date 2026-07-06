@@ -38,8 +38,6 @@ public static partial class WorkbenchCompositionService
     /// <summary>Gets output address coverage text for a General Merge output length.</summary>
     public static string GetGeneralMergeMemoryRangeLabel(string outputLength)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(outputLength);
-
         return TryParseGeneralMergeCapacity(outputLength, out long capacity, out _)
             ? FormatFullRange(capacity)
             : "Enter a valid output length";
@@ -50,7 +48,6 @@ public static partial class WorkbenchCompositionService
         string outputLength,
         IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappingInputs)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(outputLength);
         ArgumentNullException.ThrowIfNull(mappingInputs);
 
         if (!TryParseGeneralMergeCapacity(outputLength, out long capacity, out CompositionIssue? issue))
@@ -109,7 +106,6 @@ public static partial class WorkbenchCompositionService
         string outputLength,
         IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappingInputs)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(outputLength);
         ArgumentNullException.ThrowIfNull(mappingInputs);
 
         if (!TryParseGeneralMergeCapacity(outputLength, out long capacity, out _))
@@ -165,10 +161,10 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappingInputs,
         bool build,
         CancellationToken cancellationToken,
-        string? outputPath = null)
+        string? outputPath = null,
+        bool overwrite = true)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(outputLength);
         ArgumentNullException.ThrowIfNull(mappingInputs);
 
         Dictionary<string, string> reportSlotPaths = CreateGeneralMergeReportSlotPaths(mappingInputs);
@@ -244,6 +240,7 @@ public static partial class WorkbenchCompositionService
             outputPath,
             externalProcessor: null,
             icNumberSelection: null,
+            overwrite: overwrite,
             cancellationToken).ConfigureAwait(false);
     }
 
