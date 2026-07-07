@@ -141,7 +141,7 @@ public sealed partial class MainWindowViewModel
                 AddRows(
                     $"{SelectedIc} / {SelectedNumber}: {Math.Max(ReplaceSlots.Count - 1, 0)} replaceable CtrlRAM regions.",
                     "Each CtrlRAM region slot may receive its own replacement BIN; empty slots stay from base.",
-                    "Preview and Build run the staged Combiner postbuild command sequence.",
+                    "Build validates first, then runs the staged Combiner postbuild command sequence.",
                     "Private golden outputs are still required before support parity is claimed.");
                 break;
             case GeneralReplaceMode:

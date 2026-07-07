@@ -102,8 +102,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ItemsSource=\"{Binding MergeSlots}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding ReplaceMemoryRows}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding MergeMemoryRows}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Command=\"{Binding PreviewMergeCommand}\"", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("Command=\"{Binding PreviewMergeCommand}\"", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("Command=\"{Binding PreviewReplaceCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("IsEnabled=\"{Binding CanBuildMerge}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Tip=\"{Binding MergeBuildActionTip}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Tip=\"{Binding ReplaceBuildActionTip}\"", shell, StringComparison.Ordinal);
         Assert.Contains("General merge mapping", shell, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding GeneralMergeMappings}\"", shell, StringComparison.Ordinal);
         Assert.Contains("GeneralMergeMappingDrop_OnDrop", shell, StringComparison.Ordinal);
@@ -117,20 +120,37 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Gesture=\"Ctrl+Shift+Delete\" Command=\"{Binding ClearReportHistoryCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"Open report history\"", shell, StringComparison.Ordinal);
         int reportHeaderIndex = shell.IndexOf("Text=\"{Binding LoadedReport.Title}\"", StringComparison.Ordinal);
-        int evidenceMapIndex = shell.IndexOf("Text=\"Evidence map\"", StringComparison.Ordinal);
+        int auditDetailsIndex = shell.IndexOf("Text=\"Evidence\"", StringComparison.Ordinal);
         int historyActionIndex = shell.IndexOf("AutomationProperties.Name=\"Open report history\"", StringComparison.Ordinal);
         Assert.True(
-            reportHeaderIndex >= 0 && evidenceMapIndex > reportHeaderIndex && historyActionIndex > evidenceMapIndex,
+            reportHeaderIndex >= 0 && auditDetailsIndex > reportHeaderIndex && historyActionIndex > reportHeaderIndex,
             "Report history should remain a secondary evidence action instead of returning to the report modal header.");
         Assert.DoesNotContain("ReportHistoryActionLabel", shell, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.OutcomeTitle", shell, StringComparison.Ordinal);
-        Assert.Contains("LoadedReport.EvidenceRows", shell, StringComparison.Ordinal);
-        Assert.Contains("LoadedReport.TriageRows", shell, StringComparison.Ordinal);
-        Assert.Contains("Where to look first", shell, StringComparison.Ordinal);
-        Assert.Contains("Evidence map", shell, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.ByteDifferenceTitle", shell, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.OutputDifferenceSummaryRows", shell, StringComparison.Ordinal);
+        Assert.Contains("Change review", shell, StringComparison.Ordinal);
+        Assert.Contains("Evidence", shell, StringComparison.Ordinal);
+        Assert.Contains("ReportDifferenceSummaryChipTemplate", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("Choose IC and Number inside", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("HomeReplaceStatus", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("HomeMergeStatus", shell, StringComparison.Ordinal);
+        Assert.Contains("Range table", shell, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding RangeRows}\"", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("Where to look first", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("Evidence map", shell, StringComparison.Ordinal);
+        Assert.Contains("<TabControl", shell, StringComparison.Ordinal);
+        Assert.Contains("Header=\"Inputs\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Header=\"Changes\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Header=\"Operations\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Header=\"Postbuild\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Header=\"Issues\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Header=\"Raw\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ReportOutputDifferenceRowTemplate", shell, StringComparison.Ordinal);
+        Assert.Contains("OperationKind", shell, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.CommandOperations", shell, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.StepOperations", shell, StringComparison.Ordinal);
-        Assert.Contains("ColumnDefinitions=\"24,*\"", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("ColumnDefinitions=\"24,*\"", shell, StringComparison.Ordinal);
         Assert.Contains("FontFamily=\"fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Classes=\"secondary\" Content=\"{Binding PreviewActionLabel}\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Background=\"#0F172A\" CornerRadius=\"8\"", shell, StringComparison.Ordinal);

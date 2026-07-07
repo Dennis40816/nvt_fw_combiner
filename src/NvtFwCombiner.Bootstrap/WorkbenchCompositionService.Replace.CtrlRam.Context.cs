@@ -114,7 +114,7 @@ public static partial class WorkbenchCompositionService
         {
             validationIssues.Add(new CompositionIssue(
                 "ui.input.missing",
-                "Base flash BIN is required before CtrlRAM Replace preview/build can run.",
+                "Base flash BIN is required before CtrlRAM Replace can run.",
                 "replace-base"));
             return (null, 0);
         }

@@ -58,7 +58,7 @@ Shell
 
 ## Required UX concepts
 
-- Every build-like flow must have Preview before Build.
+- Build automatically performs Preview validation before committing output; the Preview action remains available as an explicit dry run.
 - Risky processors show readiness before execution.
 - Current implementation priority is normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows; AB is deferred.
 - IC and Number remain in the same fixed Device context location across Merge and Replace, and are hidden on Home and Settings.

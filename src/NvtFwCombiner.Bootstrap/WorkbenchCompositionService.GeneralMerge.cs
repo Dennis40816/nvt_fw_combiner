@@ -136,7 +136,7 @@ public static partial class WorkbenchCompositionService
                 new ByteRange(0, capacity),
                 $"Blank 0x{GeneralMergeFillByte:X2}",
                 "No source mapping writes this output range.",
-                "#E2E8F0",
+                "#CBD5E1",
                 false),
         ];
 

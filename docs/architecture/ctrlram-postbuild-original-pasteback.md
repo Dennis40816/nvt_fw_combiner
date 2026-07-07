@@ -40,8 +40,8 @@ Invariants:
 
 Primary evidence:
 
-- `docs/references/combiner-info-2026-07-03/Combiner.c`, version string `1.6.0.1`, used as source-level evidence for legacy normal-mode behavior.
-- `docs/references/combiner-info-2026-07-03/TDDI_Flash_Header .xlsx`, used as TP header descriptor layout evidence.
+- `docs/references/tddi-flash-header/Combiner.c`, version string `1.6.0.1`, used as source-level evidence for legacy normal-mode behavior.
+- `docs/references/tddi-flash-header/TDDI_Flash_Header.xlsx`, used as TP header descriptor layout evidence.
 - `external-tools/legacy-combiner/1.13.0/Combiner.exe`, used for real-tool experiments.
 - `testdata/golden/standard-merge-gen-flash/expected/*/flash.bin`, used only as existing owner-approved firmware outputs for self-pasteback experiments.
 

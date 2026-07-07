@@ -96,10 +96,16 @@
       </Border>
     </DataTemplate>
     <DataTemplate x:Key="FirmwareSlotFactTemplate" DataType="vm:FirmwareSlotFactViewModel">
-      <Border Margin="0,2,6,0" Padding="7,2" Background="#EEF6FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="999">
+      <Border
+          Margin="0,2,6,0"
+          Padding="7,2"
+          Background="{Binding BackgroundBrush}"
+          BorderBrush="{Binding BorderBrush}"
+          BorderThickness="1"
+          CornerRadius="999">
         <StackPanel Orientation="Horizontal" Spacing="4">
-          <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#475569" Text="{Binding Label}" />
-          <TextBlock FontSize="10" FontFamily="Cascadia Mono, Consolas" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Value}" />
+          <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="{Binding LabelForegroundBrush}" Text="{Binding Label}" />
+          <TextBlock FontSize="10" FontFamily="Cascadia Mono, Consolas" FontWeight="SemiBold" Foreground="{Binding ValueForegroundBrush}" Text="{Binding Value}" />
         </StackPanel>
       </Border>
     </DataTemplate>
@@ -184,9 +190,9 @@
     </DataTemplate>
     <DataTemplate x:Key="ReportEvidenceChipTemplate" DataType="vm:ReportLineViewModel">
       <Border
-          MinWidth="112"
+          Width="128"
+          MinHeight="76"
           Padding="11,8"
-          Margin="0,0,8,8"
           Background="#FFFFFF"
           BorderBrush="#E2E8F0"
           BorderThickness="1"
@@ -196,6 +202,40 @@
           <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Detail}" TextWrapping="Wrap" />
           <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" />
         </StackPanel>
+      </Border>
+    </DataTemplate>
+    <DataTemplate x:Key="ReportDifferenceSummaryRowTemplate" DataType="vm:ReportDifferenceSummaryRowViewModel">
+      <Border Padding="0,9" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
+        <Grid ColumnDefinitions="*,54,76" ColumnSpacing="10">
+          <StackPanel Spacing="2">
+            <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Label}" TextWrapping="Wrap" />
+            <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Detail}" TextWrapping="Wrap" />
+          </StackPanel>
+          <TextBlock
+              Grid.Column="1"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Center"
+              FontSize="16"
+              FontFamily="Cascadia Mono, Consolas"
+              FontWeight="SemiBold"
+              Foreground="#0F172A"
+              Text="{Binding Count}" />
+          <Border Grid.Column="2" Padding="7,2" VerticalAlignment="Center" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+            <TextBlock HorizontalAlignment="Center" FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding Status}" />
+          </Border>
+        </Grid>
+      </Border>
+    </DataTemplate>
+    <DataTemplate x:Key="ReportDifferenceSummaryChipTemplate" DataType="vm:ReportDifferenceSummaryRowViewModel">
+      <Border Width="154" Margin="0,0,8,8" Padding="9,7" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="7">
+        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="3">
+          <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Label}" TextWrapping="Wrap" />
+          <TextBlock Grid.Column="1" FontSize="15" FontFamily="Cascadia Mono, Consolas" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Count}" />
+          <TextBlock Grid.Row="1" FontSize="10" Foreground="#64748B" Text="{Binding Detail}" TextWrapping="Wrap" />
+          <Border Grid.Row="1" Grid.Column="1" Padding="6,1" VerticalAlignment="Top" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+            <TextBlock FontSize="9" FontWeight="SemiBold" Foreground="#334155" Text="{Binding Status}" />
+          </Border>
+        </Grid>
       </Border>
     </DataTemplate>
     <DataTemplate x:Key="ReportTriageRowTemplate" DataType="vm:ReportLineViewModel">
@@ -249,24 +289,45 @@
         <TextBlock Grid.Column="1" FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding Value}" TextWrapping="Wrap" IsVisible="{Binding IsTechnical}" />
       </Grid>
     </DataTemplate>
-    <DataTemplate x:Key="ReportCommandOperationTemplate" DataType="vm:ReportLineViewModel">
-      <Grid ColumnDefinitions="24,*">
-        <Grid>
-          <Border Width="2" HorizontalAlignment="Center" Background="#BFDBFE" />
-          <Border
-              Width="14"
-              Height="14"
-              Margin="0,9,0,0"
-              HorizontalAlignment="Center"
-              VerticalAlignment="Top"
-              Background="#2563EB"
-              BorderBrush="#DBEAFE"
-              BorderThickness="2"
-              CornerRadius="999" />
+    <DataTemplate x:Key="ReportRangeTableRowTemplate" DataType="vm:ReportRangeTableRowViewModel">
+      <Border Padding="0,6" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+        <Grid ColumnDefinitions="112,128,*,150" ColumnSpacing="10">
+          <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Kind}" TextWrapping="Wrap" />
+          <TextBlock Grid.Column="1" FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding AddressSpace}" TextWrapping="Wrap" />
+          <TextBlock Grid.Column="2" FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#0F172A" Text="{Binding Range}" TextWrapping="Wrap" />
+          <TextBlock Grid.Column="3" FontSize="11" Foreground="#64748B" Text="{Binding Source}" TextWrapping="Wrap" />
         </Grid>
-        <StackPanel Grid.Column="1" Margin="0,6,0,14" Spacing="5">
-          <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
-          <TextBlock FontSize="12" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding Detail}" TextWrapping="Wrap" />
+      </Border>
+    </DataTemplate>
+    <DataTemplate x:Key="ReportRangeTableTemplate" DataType="vm:ReportLineViewModel">
+      <Border Padding="9,8" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6">
+        <StackPanel Spacing="5">
+          <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Range table" />
+          <Grid ColumnDefinitions="112,128,*,150" ColumnSpacing="10">
+            <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Kind" />
+            <TextBlock Grid.Column="1" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Address space" />
+            <TextBlock Grid.Column="2" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Range" />
+            <TextBlock Grid.Column="3" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Source" />
+          </Grid>
+          <ItemsControl ItemsSource="{Binding RangeRows}">
+            <ItemsControl.ItemTemplate>
+              <StaticResource ResourceKey="ReportRangeTableRowTemplate" />
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+    <DataTemplate x:Key="ReportCommandOperationTemplate" DataType="vm:ReportLineViewModel">
+      <Border Padding="10,9" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+        <StackPanel Spacing="8">
+          <Grid ColumnDefinitions="150,150,*,*,150,90" ColumnSpacing="10">
+            <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
+            <TextBlock Grid.Column="1" FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding OperationKind}" TextWrapping="Wrap" />
+            <TextBlock Grid.Column="2" FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#0F172A" Text="{Binding OperationSource}" TextWrapping="Wrap" />
+            <TextBlock Grid.Column="3" FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#0F172A" Text="{Binding OperationTarget}" TextWrapping="Wrap" />
+            <TextBlock Grid.Column="4" FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding OperationProcessor}" TextWrapping="Wrap" />
+            <TextBlock Grid.Column="5" FontSize="11" FontWeight="SemiBold" Foreground="#334155" Text="{Binding OperationStatus}" TextWrapping="Wrap" />
+          </Grid>
           <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" IsVisible="{Binding HasMeta}" />
           <ItemsControl ItemsSource="{Binding Badges}" IsVisible="{Binding HasBadges}">
             <ItemsControl.ItemsPanel>
@@ -278,37 +339,64 @@
               <StaticResource ResourceKey="ReportLineBadgeTemplate" />
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <ItemsControl ItemsSource="{Binding Facts}" IsVisible="{Binding HasFacts}">
-            <ItemsControl.ItemTemplate>
-              <StaticResource ResourceKey="ReportLineFactTemplate" />
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
+          <ContentControl
+              Content="{Binding}"
+              ContentTemplate="{StaticResource ReportRangeTableTemplate}"
+              IsVisible="{Binding HasRangeRows}" />
           <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Command argv" IsVisible="{Binding HasCodeBlock}" />
           <Border Padding="8,6" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6" IsVisible="{Binding HasCodeBlock}">
             <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#0F172A" Text="{Binding CodeBlock}" TextWrapping="Wrap" />
           </Border>
+          <ItemsControl ItemsSource="{Binding Facts}" IsVisible="{Binding HasFacts}">
+            <ItemsControl.ItemTemplate>
+              <StaticResource ResourceKey="ReportLineFactTemplate" />
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
         </StackPanel>
-      </Grid>
+      </Border>
     </DataTemplate>
     <DataTemplate x:Key="ReportStepOperationTemplate" DataType="vm:ReportLineViewModel">
-      <Grid ColumnDefinitions="24,*">
-        <Grid>
-          <Border Width="2" HorizontalAlignment="Center" Background="#CBD5E1" />
-          <Border
-              Width="12"
-              Height="12"
-              Margin="0,10,0,0"
-              HorizontalAlignment="Center"
-              VerticalAlignment="Top"
-              Background="#64748B"
-              BorderBrush="#F8FAFC"
-              BorderThickness="2"
-              CornerRadius="999" />
-        </Grid>
-        <StackPanel Grid.Column="1" Margin="0,6,0,14" Spacing="2">
-          <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
-          <TextBlock FontSize="12" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding Detail}" TextWrapping="Wrap" />
+      <Border Padding="10,9" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+        <StackPanel Spacing="8">
+          <Grid ColumnDefinitions="150,150,*,*,150,90" ColumnSpacing="10">
+            <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
+            <TextBlock Grid.Column="1" FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding OperationKind}" TextWrapping="Wrap" />
+            <TextBlock Grid.Column="2" FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#0F172A" Text="{Binding OperationSource}" TextWrapping="Wrap" />
+            <TextBlock Grid.Column="3" FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#0F172A" Text="{Binding OperationTarget}" TextWrapping="Wrap" />
+            <TextBlock Grid.Column="4" FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding OperationProcessor}" TextWrapping="Wrap" />
+            <TextBlock Grid.Column="5" FontSize="11" FontWeight="SemiBold" Foreground="#334155" Text="{Binding OperationStatus}" TextWrapping="Wrap" />
+          </Grid>
           <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" IsVisible="{Binding HasMeta}" />
+          <ItemsControl ItemsSource="{Binding Badges}" IsVisible="{Binding HasBadges}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <StaticResource ResourceKey="ReportLineBadgeTemplate" />
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <ContentControl
+              Content="{Binding}"
+              ContentTemplate="{StaticResource ReportRangeTableTemplate}"
+              IsVisible="{Binding HasRangeRows}" />
+          <ItemsControl ItemsSource="{Binding Facts}" IsVisible="{Binding HasFacts}">
+            <ItemsControl.ItemTemplate>
+              <StaticResource ResourceKey="ReportLineFactTemplate" />
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+    <DataTemplate x:Key="ReportOutputDifferenceRowTemplate" DataType="vm:ReportLineViewModel">
+      <Border Padding="10,9" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+        <StackPanel Spacing="7">
+          <Grid ColumnDefinitions="130,210,*" ColumnSpacing="10">
+            <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
+            <TextBlock Grid.Column="1" FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#0F172A" Text="{Binding Detail}" TextWrapping="Wrap" />
+            <TextBlock Grid.Column="2" FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" />
+          </Grid>
           <ItemsControl ItemsSource="{Binding Badges}" IsVisible="{Binding HasBadges}">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate>
@@ -325,7 +413,7 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
         </StackPanel>
-      </Grid>
+      </Border>
     </DataTemplate>
     <DataTemplate x:Key="ReportMutationRowTemplate" DataType="vm:ReportLineViewModel">
       <Border Padding="0,8" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
@@ -337,30 +425,40 @@
       </Border>
     </DataTemplate>
     <DataTemplate x:Key="ReportHistoryEntryTemplate" DataType="vm:ReportHistoryEntryViewModel">
-      <Button
-          HorizontalAlignment="Stretch"
-          Margin="0,0,0,8"
-          Padding="0"
-          Background="Transparent"
-          BorderBrush="Transparent"
-          Command="{Binding $parent[Window].DataContext.OpenReportHistoryEntryCommand}"
-          CommandParameter="{Binding}">
-        <Border Padding="12" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
-          <StackPanel Spacing="5">
-            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-              <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding SequenceLabel}" />
-              <TextBlock Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Status}" TextWrapping="Wrap" />
-              <TextBlock Grid.Column="2" FontSize="11" FontWeight="SemiBold" Foreground="#2563EB" Text="{Binding IssueSummary}" TextWrapping="Wrap" />
-            </Grid>
-            <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
-            <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Context}" TextWrapping="Wrap" />
-            <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding OutputHash}" TextWrapping="Wrap" />
-            <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding CommandSummary}" TextWrapping="Wrap" />
-            <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding EvidenceSummary}" TextWrapping="Wrap" />
-            <TextBlock FontSize="11" Foreground="#475569" Text="{Binding ArtifactPath}" TextWrapping="Wrap" IsVisible="{Binding HasArtifactPath}" />
-          </StackPanel>
-        </Border>
-      </Button>
+      <Grid Margin="0,0,0,8" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+        <Button
+            HorizontalAlignment="Stretch"
+            Padding="0"
+            Background="Transparent"
+            BorderBrush="Transparent"
+            Command="{Binding $parent[Window].DataContext.OpenReportHistoryEntryCommand}"
+            CommandParameter="{Binding}">
+          <Border Padding="12" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
+            <StackPanel Spacing="5">
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding SequenceLabel}" />
+                <TextBlock Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Status}" TextWrapping="Wrap" />
+                <TextBlock Grid.Column="2" FontSize="11" FontWeight="SemiBold" Foreground="#2563EB" Text="{Binding IssueSummary}" TextWrapping="Wrap" />
+              </Grid>
+              <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
+              <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Context}" TextWrapping="Wrap" />
+              <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding OutputHash}" TextWrapping="Wrap" />
+              <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding CommandSummary}" TextWrapping="Wrap" />
+              <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding EvidenceSummary}" TextWrapping="Wrap" />
+              <TextBlock FontSize="11" Foreground="#475569" Text="{Binding ArtifactPath}" TextWrapping="Wrap" IsVisible="{Binding HasArtifactPath}" />
+            </StackPanel>
+          </Border>
+        </Button>
+        <Button
+            Grid.Column="1"
+            Classes="iconButton dangerIcon"
+            VerticalAlignment="Top"
+            Command="{Binding $parent[Window].DataContext.RemoveReportHistoryEntryCommand}"
+            CommandParameter="{Binding}"
+            ToolTip.Tip="Delete this report">
+          <TextBlock FontSize="13" Text="X" />
+        </Button>
+      </Grid>
     </DataTemplate>
   </Window.Resources>
 
@@ -437,6 +535,8 @@
     <Style Selector="Button.secondary">
       <Setter Property="MinHeight" Value="34" />
       <Setter Property="Padding" Value="14,10" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
       <Setter Property="Background" Value="#FFFFFF" />
       <Setter Property="BorderBrush" Value="#CBD5E1" />
       <Setter Property="Foreground" Value="#334155" />
@@ -460,6 +560,8 @@
     <Style Selector="Button.danger">
       <Setter Property="MinHeight" Value="34" />
       <Setter Property="Padding" Value="14,10" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
       <Setter Property="Background" Value="#FFF7F7" />
       <Setter Property="BorderBrush" Value="#FECACA" />
       <Setter Property="Foreground" Value="#B91C1C" />
@@ -485,6 +587,7 @@
       <Setter Property="HorizontalAlignment" Value="Stretch" />
       <Setter Property="Padding" Value="0" />
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="Foreground" Value="#0F172A" />
@@ -576,6 +679,9 @@
     <Style Selector="ComboBox.technicalSelect">
       <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
     </Style>
+    <Style Selector="ComboBox.technicalSelect ComboBoxItem">
+      <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    </Style>
     <Style Selector="ComboBox.settingsSelect">
       <Setter Property="Width" Value="180" />
     </Style>
@@ -607,6 +713,8 @@
       <Setter Property="MinHeight" Value="34" />
       <Setter Property="MinWidth" Value="72" />
       <Setter Property="Padding" Value="13,8" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
       <Setter Property="Background" Value="#FFFFFF" />
       <Setter Property="BorderBrush" Value="#CBD5E1" />
       <Setter Property="Foreground" Value="#334155" />
@@ -741,19 +849,36 @@
     </Style>
     <Style Selector="Border.slotTypeIcon">
       <Setter Property="Width" Value="30" />
-      <Setter Property="Height" Value="22" />
+      <Setter Property="Height" Value="30" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
       <Setter Property="VerticalAlignment" Value="Center" />
       <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="CornerRadius" Value="8" />
     </Style>
     <Style Selector="Border.slotTypeIcon Path">
-      <Setter Property="Width" Value="15" />
-      <Setter Property="Height" Value="15" />
+      <Setter Property="Width" Value="16" />
+      <Setter Property="Height" Value="16" />
       <Setter Property="HorizontalAlignment" Value="Center" />
       <Setter Property="VerticalAlignment" Value="Center" />
       <Setter Property="Stretch" Value="Uniform" />
       <Setter Property="StrokeThickness" Value="1.65" />
       <Setter Property="StrokeLineCap" Value="Round" />
+    </Style>
+    <Style Selector="Border.workflowCard">
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.12" />
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.12" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Button.command:pointerover Border.workflowCard">
+      <Setter Property="Background" Value="#FFFFFF" />
+      <Setter Property="BorderBrush" Value="#93C5FD" />
+    </Style>
+    <Style Selector="Button.command:pressed Border.workflowCard">
+      <Setter Property="Background" Value="#EAF3FF" />
+      <Setter Property="BorderBrush" Value="#60A5FA" />
     </Style>
     <Style Selector="Border.dropZoneOverlay">
       <Setter Property="Opacity" Value="0" />
@@ -944,7 +1069,13 @@
               Classes="technicalSelect"
               Width="154"
               ItemsSource="{Binding IcChoices}"
-              SelectedItem="{Binding SelectedIc, Mode=TwoWay}" />
+              SelectedItem="{Binding SelectedIc, Mode=TwoWay}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="13" Text="{Binding}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
 
           <Border
               Grid.Row="0"
@@ -970,7 +1101,13 @@
               Width="132"
               IsVisible="{Binding IsNumberSelectorVisible}"
               ItemsSource="{Binding NumberChoices}"
-              SelectedItem="{Binding SelectedNumber, Mode=TwoWay}" />
+              SelectedItem="{Binding SelectedNumber, Mode=TwoWay}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="13" Text="{Binding}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
           <StackPanel
               Grid.Row="1"
               Grid.Column="2"
@@ -1057,7 +1194,7 @@
               BorderBrush="#E2E8F0"
               BorderThickness="1"
               CornerRadius="8">
-            <Grid RowDefinitions="Auto,Auto,Auto">
+            <Grid RowDefinitions="Auto,Auto">
               <StackPanel Spacing="6">
                 <TextBlock
                     FontSize="12"
@@ -1079,7 +1216,7 @@
                 <Button
                     Classes="command"
                     Command="{Binding ShowDpReplaceCommand}">
-                  <Border Padding="12,9" Background="#F8FAFC" BorderBrush="#D7E1ED" BorderThickness="1" CornerRadius="10">
+                  <Border Classes="workflowCard" Padding="12,9" Background="#F8FAFC" BorderBrush="#D7E1ED" BorderThickness="1" CornerRadius="10">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
                       <TextBlock FontWeight="SemiBold" Foreground="#0F172A" Text="DP Replace" />
                       <Border Grid.Column="1" Padding="10,4" Background="#EAF3FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="999">
@@ -1092,7 +1229,7 @@
                     Grid.Row="1"
                     Classes="command"
                     Command="{Binding ShowCtrlRamReplaceCommand}">
-                  <Border Padding="12,9" Background="#F8FAFC" BorderBrush="#D7E1ED" BorderThickness="1" CornerRadius="10">
+                  <Border Classes="workflowCard" Padding="12,9" Background="#F8FAFC" BorderBrush="#D7E1ED" BorderThickness="1" CornerRadius="10">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
                       <TextBlock FontWeight="SemiBold" Foreground="#0F172A" Text="CtrlRAM Replace" />
                       <Border Grid.Column="1" Padding="10,4" Background="#EAF3FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="999">
@@ -1105,7 +1242,7 @@
                     Grid.Row="2"
                     Classes="command"
                     Command="{Binding ShowGeneralReplaceCommand}">
-                  <Border Padding="12,9" Background="#F8FAFC" BorderBrush="#D7E1ED" BorderThickness="1" CornerRadius="10">
+                  <Border Classes="workflowCard" Padding="12,9" Background="#F8FAFC" BorderBrush="#D7E1ED" BorderThickness="1" CornerRadius="10">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
                       <TextBlock FontWeight="SemiBold" Foreground="#0F172A" Text="General Replace" />
                       <Border Grid.Column="1" Padding="10,4" Background="#EAF3FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="999">
@@ -1115,22 +1252,6 @@
                   </Border>
                 </Button>
               </Grid>
-              <Border
-                  Grid.Row="2"
-                  Margin="0,14,0,0"
-                  Padding="10,6"
-                  HorizontalAlignment="Left"
-                  Background="#FFF7ED"
-                  BorderBrush="#FED7AA"
-                  BorderThickness="1"
-                  CornerRadius="999">
-                <TextBlock
-                    FontSize="12"
-                    FontWeight="SemiBold"
-                    Foreground="#B45309"
-                    Text="{Binding HomeReplaceStatus}"
-                    TextTrimming="CharacterEllipsis" />
-              </Border>
             </Grid>
           </Border>
 
@@ -1142,7 +1263,7 @@
               BorderBrush="#E2E8F0"
               BorderThickness="1"
               CornerRadius="8">
-            <Grid RowDefinitions="Auto,Auto,Auto">
+            <Grid RowDefinitions="Auto,Auto">
               <StackPanel Spacing="6">
                 <TextBlock
                     FontSize="12"
@@ -1164,7 +1285,7 @@
                 <Button
                     Classes="command"
                     Command="{Binding ShowNormalMergeCommand}">
-                  <Border Padding="12,9" Background="#F8FAFC" BorderBrush="#D7E1ED" BorderThickness="1" CornerRadius="10">
+                  <Border Classes="workflowCard" Padding="12,9" Background="#F8FAFC" BorderBrush="#D7E1ED" BorderThickness="1" CornerRadius="10">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
                       <TextBlock FontWeight="SemiBold" Foreground="#0F172A" Text="Normal Merge" />
                       <Border Grid.Column="1" Padding="10,4" Background="#EAF3FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="999">
@@ -1177,7 +1298,7 @@
                     Grid.Row="1"
                     Classes="command"
                     IsEnabled="False">
-                  <Border Padding="12,9" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10">
+                  <Border Classes="workflowCard" Padding="12,9" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
                       <TextBlock FontWeight="SemiBold" Foreground="#94A3B8" Text="AB Code" />
                       <Border Grid.Column="1" Padding="10,4" Background="#F1F5F9" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="999">
@@ -1187,22 +1308,6 @@
                   </Border>
                 </Button>
               </Grid>
-              <Border
-                  Grid.Row="2"
-                  Margin="0,14,0,0"
-                  Padding="10,6"
-                  HorizontalAlignment="Left"
-                  Background="#EFF6FF"
-                  BorderBrush="#BFDBFE"
-                  BorderThickness="1"
-                  CornerRadius="999">
-                <TextBlock
-                    FontSize="12"
-                    FontWeight="SemiBold"
-                    Foreground="#1D4ED8"
-                    Text="{Binding HomeMergeStatus}"
-                    TextTrimming="CharacterEllipsis" />
-              </Border>
             </Grid>
           </Border>
         </Grid>
@@ -1251,8 +1356,8 @@
               <Border Grid.Column="1" Padding="18" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
                 <StackPanel Spacing="12">
                   <StackPanel Spacing="4">
-                    <TextBlock FontWeight="SemiBold" Foreground="#0F172A" Text="Tools" />
-                    <TextBlock FontSize="13" Foreground="#64748B" Text="Approved external tool binding and postbuild catalog." TextWrapping="Wrap" />
+                    <TextBlock FontWeight="SemiBold" Foreground="#0F172A" Text="Runtime checks" />
+                    <TextBlock FontSize="13" Foreground="#64748B" Text="Packaged validation and header refresh readiness." TextWrapping="Wrap" />
                   </StackPanel>
                   <ItemsControl ItemsSource="{Binding SettingsToolRows}">
                     <ItemsControl.ItemTemplate>
@@ -1387,18 +1492,9 @@
                 <StackPanel Grid.Column="2" Margin="0,15,0,0" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
                   <Button
                       Classes="toolbarAction"
-                      Command="{Binding PreviewReplaceCommand}"
-                      ToolTip.Tip="{Binding ReplacePreviewUnavailableReason}">
-                    <StackPanel Orientation="Horizontal" Spacing="7">
-                      <TextBlock VerticalAlignment="Center" FontSize="13" Text="▷" />
-                      <TextBlock VerticalAlignment="Center" Text="Preview" />
-                    </StackPanel>
-                  </Button>
-                  <Button
-                      Classes="toolbarAction"
                       Click="BuildReplaceButton_OnClick"
                       IsEnabled="{Binding CanBuildReplace}"
-                      ToolTip.Tip="{Binding ReplaceBuildUnavailableReason}">
+                      ToolTip.Tip="{Binding ReplaceBuildActionTip}">
                     <StackPanel Orientation="Horizontal" Spacing="7">
                       <TextBlock VerticalAlignment="Center" FontSize="13" Text="✓" />
                       <TextBlock VerticalAlignment="Center" Text="Build" />
@@ -1870,17 +1966,11 @@
                       SelectedItem="{Binding SelectedMergeMode, Mode=TwoWay}" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Margin="0,15,0,0" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
-                  <Button Classes="toolbarAction" Command="{Binding PreviewMergeCommand}" ToolTip.Tip="{Binding PreviewActionLabel}">
-                    <StackPanel Orientation="Horizontal" Spacing="7">
-                      <TextBlock VerticalAlignment="Center" FontSize="13" Text="▷" />
-                      <TextBlock VerticalAlignment="Center" Text="Preview" />
-                    </StackPanel>
-                  </Button>
                   <Button
                       Classes="toolbarAction"
                       Click="BuildMergeButton_OnClick"
                       IsEnabled="{Binding CanBuildMerge}"
-                      ToolTip.Tip="{Binding BuildActionLabel}">
+                      ToolTip.Tip="{Binding MergeBuildActionTip}">
                     <StackPanel Orientation="Horizontal" Spacing="7">
                       <TextBlock VerticalAlignment="Center" FontSize="13" Text="✓" />
                       <TextBlock VerticalAlignment="Center" Text="Build" />
@@ -1949,12 +2039,12 @@
                         Content="+ Add mapping" />
                   </Grid>
 
-                  <Grid ColumnDefinitions="34,118,118,108,*,82,40" ColumnSpacing="8">
-                    <TextBlock Grid.Column="0" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="#" />
-                    <TextBlock Grid.Column="1" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Source start" />
-                    <TextBlock Grid.Column="2" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Target start" />
-                    <TextBlock Grid.Column="3" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Length" />
-                    <TextBlock Grid.Column="4" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Source BIN" />
+                  <Grid Margin="7,0,7,0" ColumnDefinitions="34,118,118,108,*,82,40" ColumnSpacing="8">
+                    <TextBlock Grid.Column="0" HorizontalAlignment="Center" TextAlignment="Center" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="#" />
+                    <TextBlock Grid.Column="1" HorizontalAlignment="Center" TextAlignment="Center" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Source start" />
+                    <TextBlock Grid.Column="2" HorizontalAlignment="Center" TextAlignment="Center" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Target start" />
+                    <TextBlock Grid.Column="3" HorizontalAlignment="Center" TextAlignment="Center" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Length" />
+                    <TextBlock Grid.Column="4" Margin="10,0,0,0" HorizontalAlignment="Left" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Source BIN" />
                   </Grid>
                   <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding GeneralMergeMappings}">
                     <ItemsControl.ItemTemplate>
@@ -2206,7 +2296,7 @@
 
               <Border Padding="12" Background="#FFF7ED" BorderBrush="#FED7AA" BorderThickness="1" CornerRadius="8" IsVisible="{Binding HasReplaceSelectionMissingRows}">
                 <StackPanel Spacing="8">
-                  <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#9A3412" Text="Required before Preview" />
+                  <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#9A3412" Text="Required before Build" />
                   <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSelectionMissingRows}">
                     <ItemsControl.ItemTemplate>
                       <StaticResource ResourceKey="ReportMissingRequiredRowTemplate" />
@@ -2223,16 +2313,11 @@
                 Command="{Binding CloseReplaceSelectionCommand}"
                 Content="Close" />
             <Button
-                Classes="secondary"
-                Command="{Binding PreviewReplaceCommand}"
-                Content="Preview"
-                ToolTip.Tip="{Binding ReplacePreviewUnavailableReason}" />
-            <Button
                 Classes="primary"
                 Click="BuildReplaceButton_OnClick"
                 Content="Build"
                 IsEnabled="{Binding CanBuildReplace}"
-                ToolTip.Tip="{Binding ReplaceBuildUnavailableReason}" />
+                ToolTip.Tip="{Binding ReplaceBuildActionTip}" />
           </StackPanel>
         </Grid>
       </Border>
@@ -2243,11 +2328,13 @@
         Background="#990F172A"
         IsVisible="{Binding IsReportModalOpen}">
       <Border
-          Width="1060"
-          MaxHeight="740"
+          MinWidth="980"
+          MaxWidth="1500"
+          MaxHeight="940"
+          Margin="22,16"
           Padding="0"
-          HorizontalAlignment="Center"
-          VerticalAlignment="Center"
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch"
           Background="#FFFFFF"
           BorderBrush="#CBD5E1"
           BorderThickness="1"
@@ -2318,199 +2405,303 @@
             </Grid>
           </Border>
 
-          <Grid Grid.Row="2" Margin="22,18,22,0" ColumnDefinitions="1.05*,1.4*" ColumnSpacing="16" IsVisible="{Binding IsReportReviewViewOpen}">
-            <Border Padding="16" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
-              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
-                <Grid Width="38" Height="38" AutomationProperties.Name="{Binding LoadedReport.OutcomeAccessibilityLabel}">
+          <Border Grid.Row="2" Margin="22,16,22,0" Padding="14" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8" IsVisible="{Binding IsReportReviewViewOpen}">
+            <Grid ColumnDefinitions="1.05*,1.15*,1.45*,Auto" ColumnSpacing="16">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                <Grid Width="36" Height="36" AutomationProperties.Name="{Binding LoadedReport.OutcomeAccessibilityLabel}">
                   <Border Background="#16A34A" CornerRadius="999" IsVisible="{Binding LoadedReport.IsClean}" />
                   <Border Background="#D97706" CornerRadius="999" IsVisible="{Binding LoadedReport.HasWarningsWithoutBlockingIssues}" />
                   <Border Background="#EA580C" CornerRadius="999" IsVisible="{Binding LoadedReport.HasPrimaryIssue}" />
                   <TextBlock
                       HorizontalAlignment="Center"
                       VerticalAlignment="Center"
-                      FontSize="16"
+                      FontSize="15"
                       FontWeight="SemiBold"
                       Foreground="#FFFFFF"
                       Text="{Binding LoadedReport.OutcomeIcon}" />
                 </Grid>
-                <StackPanel Grid.Column="1" Spacing="6">
-                  <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.OutcomeTitle}" TextWrapping="Wrap" />
-                    <Border Padding="8,2" VerticalAlignment="Center" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
-                      <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#334155" Text="{Binding LoadedReport.OutcomeMeta}" TextWrapping="Wrap" />
+                <StackPanel Grid.Column="1" Spacing="4">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Run" />
+                    <Border Grid.Column="1" Padding="7,2" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+                      <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding LoadedReport.OutcomeMeta}" TextWrapping="Wrap" />
                     </Border>
-                  </StackPanel>
+                  </Grid>
+                  <TextBlock FontSize="17" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.OutcomeTitle}" TextWrapping="Wrap" />
                   <TextBlock FontSize="12" Foreground="#475569" Text="{Binding LoadedReport.OutcomeDetail}" TextWrapping="Wrap" />
                   <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.NextStepTitle}" TextWrapping="Wrap" />
-                  <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding LoadedReport.NextStepDetail}" TextWrapping="Wrap" />
                 </StackPanel>
               </Grid>
-            </Border>
 
-            <StackPanel Grid.Column="1" Spacing="8">
-              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                <TextBlock
-                    VerticalAlignment="Center"
-                    FontSize="12"
-                    FontWeight="SemiBold"
-                    Foreground="#64748B"
-                    Text="Evidence map" />
-                <Button
-                    Grid.Column="1"
-                    Classes="iconButton"
-                    AutomationProperties.Name="Open report history"
-                    Command="{Binding ShowReportHistoryCommand}"
-                    IsVisible="{Binding HasReportHistory}"
-                    ToolTip.Tip="Open report history (Ctrl+H)">
-                  <Path
-                      Width="16"
-                      Height="16"
-                      Data="M10,2 A8,8 0 1 1 2,10 M2,10 L2,4 M2,10 L8,10 M10,6 L10,10 L13,12"
-                      Stretch="Uniform"
-                      Stroke="#475569"
-                      StrokeThickness="1.7" />
-                </Button>
-              </Grid>
-              <ItemsControl ItemsSource="{Binding LoadedReport.EvidenceRows}">
-                <ItemsControl.ItemsPanel>
-                  <ItemsPanelTemplate>
-                    <WrapPanel />
-                  </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                  <StaticResource ResourceKey="ReportEvidenceChipTemplate" />
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </StackPanel>
-          </Grid>
+              <Border Grid.Column="1" Padding="14,0,0,0" BorderBrush="#E2E8F0" BorderThickness="1,0,0,0">
+                <StackPanel Spacing="5">
+                  <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Output" />
+                  <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.OutputFileName}" TextWrapping="Wrap" />
+                  <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding LoadedReport.OutputHashLabel}" TextWrapping="Wrap" />
+                  <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding LoadedReport.OutputArtifactPath}" TextWrapping="Wrap" IsVisible="{Binding LoadedReport.HasOutputArtifactPath}" />
+                </StackPanel>
+              </Border>
 
-          <ScrollViewer Grid.Row="3" Margin="22,18,22,0" IsVisible="{Binding IsReportReviewViewOpen}">
-            <Grid ColumnDefinitions="0.95*,1.25*" ColumnSpacing="18">
-              <StackPanel Spacing="14">
-                <Border Padding="14" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
-                  <StackPanel Spacing="10">
-                    <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Where to look first" />
-                    <ItemsControl ItemsSource="{Binding LoadedReport.TriageRows}">
-                      <ItemsControl.ItemTemplate>
-                        <StaticResource ResourceKey="ReportTriageRowTemplate" />
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                  </StackPanel>
-                </Border>
-
-                <Expander IsExpanded="{Binding LoadedReport.ShouldExpandIssues, Mode=OneWay}" IsVisible="{Binding LoadedReport.HasIssues}">
-                  <Expander.Header>
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                      <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Issues" />
-                      <Border Grid.Column="1" Padding="7,2" Background="#FFF7ED" BorderBrush="#FED7AA" BorderThickness="1" CornerRadius="999">
-                        <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#9A3412" Text="{Binding LoadedReport.IssueCount}" />
-                      </Border>
-                    </Grid>
-                  </Expander.Header>
-                  <ItemsControl ItemsSource="{Binding LoadedReport.Issues}">
-                    <ItemsControl.ItemTemplate>
-                      <StaticResource ResourceKey="ReportIssueRowTemplate" />
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                </Expander>
-
-                <Expander IsExpanded="False" IsVisible="{Binding LoadedReport.HasInputs}">
-                  <Expander.Header>
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                      <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Inputs and hashes" />
-                      <Border Grid.Column="1" Padding="7,2" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
-                        <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding LoadedReport.InputCount}" />
-                      </Border>
-                    </Grid>
-                  </Expander.Header>
-                  <ItemsControl ItemsSource="{Binding LoadedReport.Inputs}">
-                    <ItemsControl.ItemTemplate>
-                      <StaticResource ResourceKey="ReportInputRowTemplate" />
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                </Expander>
-
-                <Border Padding="12" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
-                  <Grid ColumnDefinitions="82,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="7">
-                    <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Report file" />
-                    <TextBlock Grid.Column="1" FontSize="12" Foreground="#334155" Text="{Binding LoadedReport.SourceName}" TextWrapping="Wrap" />
-                    <TextBlock Grid.Row="1" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Status" />
-                    <TextBlock Grid.Row="1" Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.Status}" />
-                    <TextBlock Grid.Row="2" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Output" />
-                    <TextBlock Grid.Row="2" Grid.Column="1" FontSize="12" Foreground="#334155" Text="{Binding LoadedReport.Output}" TextWrapping="Wrap" />
-                    <TextBlock Grid.Row="3" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Artifact path" IsVisible="{Binding LoadedReport.HasOutputArtifactPath}" />
-                    <TextBlock Grid.Row="3" Grid.Column="1" FontSize="12" Foreground="#334155" Text="{Binding LoadedReport.OutputArtifactPath}" TextWrapping="Wrap" IsVisible="{Binding LoadedReport.HasOutputArtifactPath}" />
+              <Border Grid.Column="2" Padding="14,0,0,0" BorderBrush="#E2E8F0" BorderThickness="1,0,0,0">
+                <StackPanel Spacing="8">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                    <StackPanel Spacing="3">
+                      <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Change review" />
+                      <TextBlock FontSize="17" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.ByteDifferenceTitle}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Border Grid.Column="1" Padding="8,2" VerticalAlignment="Top" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+                      <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#334155" Text="{Binding LoadedReport.ByteDifferenceMeta}" />
+                    </Border>
                   </Grid>
-                </Border>
-              </StackPanel>
-
-              <StackPanel Grid.Column="1" Spacing="14">
-                <Expander IsExpanded="True" IsVisible="{Binding LoadedReport.HasOutputDifferences}">
-                  <Expander.Header>
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                      <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Output differences" />
-                      <Border Grid.Column="1" Padding="7,2" Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="999">
-                        <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#166534" Text="{Binding LoadedReport.OutputDifferenceCount}" />
-                      </Border>
-                    </Grid>
-                  </Expander.Header>
-                  <ItemsControl ItemsSource="{Binding LoadedReport.OutputDifferences}">
+                  <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding LoadedReport.ByteDifferenceDetail}" TextWrapping="Wrap" />
+                  <ItemsControl ItemsSource="{Binding LoadedReport.OutputDifferenceSummaryRows}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <WrapPanel />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
-                      <StaticResource ResourceKey="ReportStepOperationTemplate" />
+                      <StaticResource ResourceKey="ReportDifferenceSummaryChipTemplate" />
                     </ItemsControl.ItemTemplate>
                   </ItemsControl>
-                </Expander>
+                </StackPanel>
+              </Border>
 
-                <Expander IsExpanded="{Binding LoadedReport.ShouldExpandCommandOperations, Mode=OneWay}" IsVisible="{Binding LoadedReport.HasCommandOperations}">
-                  <Expander.Header>
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                      <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="External processor commands" />
-                      <Border Grid.Column="1" Padding="7,2" Background="#EAF3FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="999">
-                        <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#1D4ED8" Text="{Binding LoadedReport.CommandOperationCount}" />
-                      </Border>
-                    </Grid>
-                  </Expander.Header>
-                  <ItemsControl ItemsSource="{Binding LoadedReport.CommandOperations}">
-                    <ItemsControl.ItemTemplate>
-                      <StaticResource ResourceKey="ReportCommandOperationTemplate" />
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                </Expander>
-
-                <Expander IsExpanded="{Binding LoadedReport.ShouldExpandStepOperations, Mode=OneWay}" IsVisible="{Binding LoadedReport.HasStepOperations}">
-                  <Expander.Header>
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                      <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Operation steps" />
-                      <Border Grid.Column="1" Padding="7,2" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
-                        <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding LoadedReport.StepOperationCount}" />
-                      </Border>
-                    </Grid>
-                  </Expander.Header>
-                  <ItemsControl ItemsSource="{Binding LoadedReport.StepOperations}">
-                    <ItemsControl.ItemTemplate>
-                      <StaticResource ResourceKey="ReportStepOperationTemplate" />
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                </Expander>
-
-                <Expander IsExpanded="False" IsVisible="{Binding LoadedReport.HasMutations}">
-                  <Expander.Header>
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                      <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Changed ranges" />
-                      <Border Grid.Column="1" Padding="7,2" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
-                        <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding LoadedReport.MutationCount}" />
-                      </Border>
-                    </Grid>
-                  </Expander.Header>
-                  <ItemsControl ItemsSource="{Binding LoadedReport.Mutations}">
-                    <ItemsControl.ItemTemplate>
-                      <StaticResource ResourceKey="ReportMutationRowTemplate" />
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                </Expander>
-              </StackPanel>
+              <Button
+                  Grid.Column="3"
+                  Classes="iconButton"
+                  VerticalAlignment="Top"
+                  AutomationProperties.Name="Open report history"
+                  Command="{Binding ShowReportHistoryCommand}"
+                  IsVisible="{Binding HasReportHistory}"
+                  ToolTip.Tip="Open report history (Ctrl+H)">
+                <Path
+                    Width="16"
+                    Height="16"
+                    Data="M10,2 A8,8 0 1 1 2,10 M2,10 L2,4 M2,10 L8,10 M10,6 L10,10 L13,12"
+                    Stretch="Uniform"
+                    Stroke="#475569"
+                    StrokeThickness="1.7" />
+              </Button>
             </Grid>
-          </ScrollViewer>
+          </Border>
+
+          <Border Grid.Row="3" Margin="22,16,22,0" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8" IsVisible="{Binding IsReportReviewViewOpen}">
+            <Grid RowDefinitions="Auto,*">
+              <Grid Margin="16,14,16,8" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <StackPanel Spacing="2">
+                  <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Evidence" />
+                  <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding LoadedReport.AuditSummary}" TextWrapping="Wrap" />
+                </StackPanel>
+                <Border Grid.Column="1" Padding="7,2" VerticalAlignment="Center" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+                  <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="trace" />
+                </Border>
+              </Grid>
+
+              <TabControl Grid.Row="1" Margin="12,0,12,12" FontSize="13">
+                <TabItem Header="Inputs">
+                  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,12,0,0" Spacing="12">
+                      <Border Padding="12" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6">
+                        <StackPanel Spacing="10">
+                          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Run metadata" />
+                            <Border Grid.Column="1" Padding="7,2" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+                              <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding LoadedReport.Status}" />
+                            </Border>
+                          </Grid>
+                          <Grid ColumnDefinitions="96,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="7">
+                            <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Report file" />
+                            <TextBlock Grid.Column="1" FontSize="12" Foreground="#334155" Text="{Binding LoadedReport.SourceName}" TextWrapping="Wrap" />
+                            <TextBlock Grid.Row="1" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Status" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.Status}" />
+                            <TextBlock Grid.Row="2" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Output" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" FontSize="12" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding LoadedReport.Output}" TextWrapping="Wrap" />
+                            <TextBlock Grid.Row="3" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="Artifact path" IsVisible="{Binding LoadedReport.HasOutputArtifactPath}" />
+                            <TextBlock Grid.Row="3" Grid.Column="1" FontSize="12" Foreground="#334155" Text="{Binding LoadedReport.OutputArtifactPath}" TextWrapping="Wrap" IsVisible="{Binding LoadedReport.HasOutputArtifactPath}" />
+                          </Grid>
+                        </StackPanel>
+                      </Border>
+
+                      <Border Padding="12" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6" IsVisible="{Binding LoadedReport.HasInputs}">
+                        <StackPanel Spacing="10">
+                          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Inputs and hashes" />
+                            <Border Grid.Column="1" Padding="7,2" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+                              <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding LoadedReport.InputCount}" />
+                            </Border>
+                          </Grid>
+                          <ItemsControl ItemsSource="{Binding LoadedReport.Inputs}">
+                            <ItemsControl.ItemTemplate>
+                              <StaticResource ResourceKey="ReportInputRowTemplate" />
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                        </StackPanel>
+                      </Border>
+
+                      <Border Padding="14" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" IsVisible="{Binding LoadedReport.HasNoInputs}">
+                        <TextBlock FontSize="12" Foreground="#64748B" Text="No input artifact rows were recorded in this report." TextWrapping="Wrap" />
+                      </Border>
+                    </StackPanel>
+                  </ScrollViewer>
+                </TabItem>
+
+                <TabItem Header="Changes">
+                  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,12,0,0" Spacing="12">
+                      <Border Padding="14" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" IsVisible="{Binding LoadedReport.HasNoByteChanges}">
+                        <TextBlock FontSize="12" Foreground="#64748B" Text="No output differences or changed ranges were recorded." TextWrapping="Wrap" />
+                      </Border>
+
+                      <Border Padding="12" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6" IsVisible="{Binding LoadedReport.HasOutputDifferences}">
+                        <StackPanel Spacing="10">
+                          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Output changes" />
+                            <Border Grid.Column="1" Padding="7,2" Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="999">
+                              <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#166534" Text="{Binding LoadedReport.OutputDifferenceCount}" />
+                            </Border>
+                          </Grid>
+                          <Grid ColumnDefinitions="130,210,*" ColumnSpacing="10">
+                            <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Diff" />
+                            <TextBlock Grid.Column="1" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Range" />
+                            <TextBlock Grid.Column="2" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Explanation" />
+                          </Grid>
+                          <ItemsControl ItemsSource="{Binding LoadedReport.OutputDifferences}">
+                            <ItemsControl.ItemTemplate>
+                              <StaticResource ResourceKey="ReportOutputDifferenceRowTemplate" />
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                        </StackPanel>
+                      </Border>
+
+                      <Border Padding="12" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6" IsVisible="{Binding LoadedReport.HasMutations}">
+                        <StackPanel Spacing="10">
+                          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Changed ranges" />
+                            <Border Grid.Column="1" Padding="7,2" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+                              <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding LoadedReport.MutationCount}" />
+                            </Border>
+                          </Grid>
+                          <ItemsControl ItemsSource="{Binding LoadedReport.Mutations}">
+                            <ItemsControl.ItemTemplate>
+                              <StaticResource ResourceKey="ReportMutationRowTemplate" />
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                        </StackPanel>
+                      </Border>
+                    </StackPanel>
+                  </ScrollViewer>
+                </TabItem>
+
+                <TabItem Header="Operations">
+                  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,12,0,0" Spacing="12">
+                      <Border Padding="14" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" IsVisible="{Binding LoadedReport.HasNoStepOperations}">
+                        <TextBlock FontSize="12" Foreground="#64748B" Text="No copy/process operation steps were recorded." TextWrapping="Wrap" />
+                      </Border>
+
+                      <Border Padding="12" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6" IsVisible="{Binding LoadedReport.HasStepOperations}">
+                        <StackPanel Spacing="8">
+                          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Operation steps" />
+                            <Border Grid.Column="1" Padding="7,2" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+                              <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding LoadedReport.StepOperationCount}" />
+                            </Border>
+                          </Grid>
+                          <Grid ColumnDefinitions="150,150,*,*,150,90" ColumnSpacing="10">
+                            <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Step" />
+                            <TextBlock Grid.Column="1" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Kind" />
+                            <TextBlock Grid.Column="2" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Source" />
+                            <TextBlock Grid.Column="3" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Target" />
+                            <TextBlock Grid.Column="4" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Processor" />
+                            <TextBlock Grid.Column="5" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Status" />
+                          </Grid>
+                          <ItemsControl ItemsSource="{Binding LoadedReport.StepOperations}">
+                            <ItemsControl.ItemTemplate>
+                              <StaticResource ResourceKey="ReportStepOperationTemplate" />
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                        </StackPanel>
+                      </Border>
+                    </StackPanel>
+                  </ScrollViewer>
+                </TabItem>
+
+                <TabItem Header="Postbuild">
+                  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,12,0,0" Spacing="12">
+                      <Border Padding="14" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" IsVisible="{Binding LoadedReport.HasNoCommandOperations}">
+                        <TextBlock FontSize="12" Foreground="#64748B" Text="No external postbuild/header refresh command was recorded." TextWrapping="Wrap" />
+                      </Border>
+
+                      <Border Padding="12" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6" IsVisible="{Binding LoadedReport.HasCommandOperations}">
+                        <StackPanel Spacing="8">
+                          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Header refresh trace" />
+                            <Border Grid.Column="1" Padding="7,2" Background="#EAF3FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="999">
+                              <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#1D4ED8" Text="{Binding LoadedReport.CommandOperationCount}" />
+                            </Border>
+                          </Grid>
+                          <Grid ColumnDefinitions="150,150,*,*,150,90" ColumnSpacing="10">
+                            <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Step" />
+                            <TextBlock Grid.Column="1" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Kind" />
+                            <TextBlock Grid.Column="2" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Source" />
+                            <TextBlock Grid.Column="3" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Target" />
+                            <TextBlock Grid.Column="4" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Processor" />
+                            <TextBlock Grid.Column="5" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="Status" />
+                          </Grid>
+                          <ItemsControl ItemsSource="{Binding LoadedReport.CommandOperations}">
+                            <ItemsControl.ItemTemplate>
+                              <StaticResource ResourceKey="ReportCommandOperationTemplate" />
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                        </StackPanel>
+                      </Border>
+                    </StackPanel>
+                  </ScrollViewer>
+                </TabItem>
+
+                <TabItem Header="Issues">
+                  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,12,0,0" Spacing="12">
+                      <Border Padding="14" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" IsVisible="{Binding LoadedReport.HasNoIssues}">
+                        <TextBlock FontSize="12" Foreground="#64748B" Text="No issues or warnings were recorded." TextWrapping="Wrap" />
+                      </Border>
+
+                      <Border Padding="12" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6" IsVisible="{Binding LoadedReport.HasIssues}">
+                        <StackPanel Spacing="10">
+                          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="Issues and warnings" />
+                            <Border Grid.Column="1" Padding="7,2" Background="#FFF7ED" BorderBrush="#FED7AA" BorderThickness="1" CornerRadius="999">
+                              <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#9A3412" Text="{Binding LoadedReport.IssueCount}" />
+                            </Border>
+                          </Grid>
+                          <ItemsControl ItemsSource="{Binding LoadedReport.Issues}">
+                            <ItemsControl.ItemTemplate>
+                              <StaticResource ResourceKey="ReportIssueRowTemplate" />
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                        </StackPanel>
+                      </Border>
+                    </StackPanel>
+                  </ScrollViewer>
+                </TabItem>
+
+                <TabItem Header="Raw">
+                  <Border Margin="0,12,0,0" Padding="10" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6">
+                    <TextBox
+                        MinHeight="320"
+                        AcceptsReturn="True"
+                        FontFamily="Cascadia Mono, Consolas"
+                        FontSize="11"
+                        IsReadOnly="True"
+                        Text="{Binding LoadedReportJson, Mode=OneWay}"
+                        TextWrapping="NoWrap" />
+                  </Border>
+                </TabItem>
+              </TabControl>
+            </Grid>
+          </Border>
 
           <StackPanel Grid.Row="4" Margin="22,18,22,18" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
             <Button

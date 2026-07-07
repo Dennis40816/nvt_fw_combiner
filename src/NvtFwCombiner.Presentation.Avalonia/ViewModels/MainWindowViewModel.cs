@@ -105,6 +105,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         CloseReportHistoryCommand = new RelayCommand(CloseReportHistory);
         ClearReportHistoryCommand = new RelayCommand(ClearReportHistory, () => CanClearReportHistory);
         OpenReportHistoryEntryCommand = new RelayCommand<ReportHistoryEntryViewModel>(OpenReportHistoryEntry);
+        RemoveReportHistoryEntryCommand = new RelayCommand<ReportHistoryEntryViewModel>(RemoveReportHistoryEntry);
         ShowReplaceSelectionCommand = new RelayCommand(ShowReplaceSelection);
         CloseReplaceSelectionCommand = new RelayCommand(CloseReplaceSelection);
 
@@ -235,10 +236,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
             GetSelectedMergeDpInputLength());
 
     /// <summary>Gets the profile-owned default Standard Merge output file name.</summary>
-    public string StandardMergeOutputFileName => UiCompositionRunner.GetStandardMergeDefaultOutputFileName(SelectedIc);
+    public string StandardMergeOutputFileName => CreateFlashCodeOutputFileName();
 
     /// <summary>Gets the default General Merge output file name.</summary>
-    public string GeneralMergeOutputFileName => UiCompositionRunner.GetGeneralMergeDefaultOutputFileName(SelectedIc);
+    public string GeneralMergeOutputFileName => CreateFlashCodeOutputFileName();
 
     /// <summary>Gets the active Merge output file name.</summary>
     public string MergeOutputFileName => IsGeneralMergeModeSelected
@@ -254,9 +255,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         GetSelectedCtrlRamBasePath());
 
     /// <summary>Gets the default Replace output file name for the active mode.</summary>
-    public string ReplaceOutputFileName => UiCompositionRunner.GetReplaceDefaultOutputFileName(
-        SelectedIc,
-        SelectedReplaceMode);
+    public string ReplaceOutputFileName => CreateFlashCodeOutputFileName();
 
     /// <summary>Gets short Merge memory-map summary text.</summary>
     public string MergeMemorySummary => SelectedMergeMode switch
@@ -270,7 +269,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// <summary>Gets the latest UI-triggered run summary.</summary>
     public UiRunResultViewModel LastRunResult { get; private set; } = new(
         "No run yet",
-        "Drop required BIN files, then run Preview.",
+        "Drop required BIN files, then run Build.",
         "No output",
         succeeded: true);
 
@@ -286,14 +285,6 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public string StandardMergeSupportSummary => IsStandardMergeSupported
         ? $"{SelectedIc}: Standard Merge profile found. Required slots: {GetRequiredStandardMergeSlotLabels()}."
         : $"{SelectedIc}: no Standard Merge profile yet.";
-
-    /// <summary>Gets the Replace card status for the home screen.</summary>
-    public string HomeReplaceStatus => $"{SelectedIc} / {SelectedNumber}: {CtrlRamRegions.Count} CtrlRAM regions";
-
-    /// <summary>Gets the Merge card status for the home screen.</summary>
-    public string HomeMergeStatus => IsStandardMergeSupported
-        ? $"{SelectedIc}: standard merge ready"
-        : $"{SelectedIc}: no merge profile";
 
     /// <summary>Gets the selected shell page.</summary>
     public ShellPage SelectedPage { get; private set; } = ShellPage.Home;
@@ -370,23 +361,29 @@ public sealed partial class MainWindowViewModel : ObservableObject
         _ => "AB Code Merge is reserved for a later workflow.",
     };
 
+    /// <summary>One-line Build action hint for Merge.</summary>
+    public string MergeBuildActionTip => CreateBuildActionTip(MergeReadinessStatus, CanRunMerge());
+
+    /// <summary>One-line Build action hint for Replace.</summary>
+    public string ReplaceBuildActionTip => CreateBuildActionTip(ReplaceReadinessStatus, CanRunReplace());
+
     /// <summary>True when Standard Merge preview can run.</summary>
     public bool CanPreviewStandardMerge => CanRunStandardMerge();
 
     /// <summary>True when Standard Merge build can run.</summary>
-    public bool CanBuildStandardMerge => CanRunStandardMerge() && HasCurrentStandardMergePreview();
+    public bool CanBuildStandardMerge => CanRunStandardMerge();
 
     /// <summary>True when active Merge preview can run.</summary>
     public bool CanPreviewMerge => CanRunMerge();
 
     /// <summary>True when active Merge build can run.</summary>
-    public bool CanBuildMerge => CanRunMerge() && HasCurrentMergePreview();
+    public bool CanBuildMerge => CanRunMerge();
 
     /// <summary>True when Replace preview can run for the active mode.</summary>
     public bool CanPreviewReplace => CanRunReplace();
 
     /// <summary>True when Replace build can run for the active mode.</summary>
-    public bool CanBuildReplace => CanRunReplace() && HasCurrentReplacePreview();
+    public bool CanBuildReplace => CanRunReplace();
 
     /// <summary>Command that returns to the clean home view.</summary>
     public IRelayCommand ShowHomeCommand { get; }
@@ -462,6 +459,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         slot.FilePath = path;
         RefreshFirmwareFacts(slot);
+        OnPropertyChanged(nameof(StandardMergeOutputFileName));
+        OnPropertyChanged(nameof(GeneralMergeOutputFileName));
+        OnPropertyChanged(nameof(MergeOutputFileName));
+        OnPropertyChanged(nameof(ReplaceOutputFileName));
         if (slot.SlotId == ReplaceBaseSlotId && IsCtrlRamReplaceModeSelected)
         {
             RefreshCtrlRamRegions();
@@ -560,12 +561,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(StandardMergeOutputFileName));
         OnPropertyChanged(nameof(GeneralMergeOutputFileName));
         OnPropertyChanged(nameof(MergeOutputFileName));
-        OnPropertyChanged(nameof(HomeReplaceStatus));
-        OnPropertyChanged(nameof(HomeMergeStatus));
         OnPropertyChanged(nameof(MergeReadinessStatus));
+        OnPropertyChanged(nameof(MergeBuildActionTip));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
         OnPropertyChanged(nameof(ReplacePreviewUnavailableReason));
         OnPropertyChanged(nameof(ReplaceBuildUnavailableReason));
+        OnPropertyChanged(nameof(ReplaceBuildActionTip));
         OnPropertyChanged(nameof(ReplaceOutputFileName));
         OnPropertyChanged(nameof(IsDeviceContextVisible));
         OnPropertyChanged(nameof(IsNumberSelectorVisible));
@@ -577,10 +578,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
     {
         LastRunResult = new UiRunResultViewModel(
             "Context changed",
-            $"{SelectedIc} / {SelectedNumber}: rerun Preview before Build.",
+            $"{SelectedIc} / {SelectedNumber}: run Build to validate the latest context.",
             "No output",
             succeeded: false);
         OnPropertyChanged(nameof(LastRunResult));
+        OnPropertyChanged(nameof(MergeBuildActionTip));
+        OnPropertyChanged(nameof(ReplaceBuildActionTip));
         RefreshSettingsState();
     }
 
@@ -665,11 +668,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(CanPreviewMerge));
         OnPropertyChanged(nameof(CanBuildMerge));
         OnPropertyChanged(nameof(MergeReadinessStatus));
+        OnPropertyChanged(nameof(MergeBuildActionTip));
         OnPropertyChanged(nameof(CanPreviewReplace));
         OnPropertyChanged(nameof(CanBuildReplace));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
         OnPropertyChanged(nameof(ReplacePreviewUnavailableReason));
         OnPropertyChanged(nameof(ReplaceBuildUnavailableReason));
+        OnPropertyChanged(nameof(ReplaceBuildActionTip));
         RefreshReplaceSelectionState();
     }
 

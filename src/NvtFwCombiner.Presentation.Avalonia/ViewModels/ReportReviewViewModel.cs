@@ -70,6 +70,15 @@ public sealed partial class ReportReviewViewModel
         HasMutations = mutations.Count > 0;
         HasOutputDifferences = outputDifferences.Count > 0;
         HasIssues = issues.Count > 0;
+        HasNoInputs = !HasInputs;
+        HasNoCommandOperations = !HasCommandOperations;
+        HasNoStepOperations = !HasStepOperations;
+        HasNoMutations = !HasMutations;
+        HasNoOutputDifferences = !HasOutputDifferences;
+        HasNoIssues = !HasIssues;
+        HasNoByteChanges = !HasOutputDifferences && !HasMutations;
+        HasOutputFileName = !string.IsNullOrWhiteSpace(outputFileName) &&
+            !string.Equals(outputFileName, "No output", StringComparison.OrdinalIgnoreCase);
         SummaryRows = CreateSummaryRows(status, output, inputs, operations, mutations, issues);
         OutcomeTitle = CreateOutcomeTitle(status, issues);
         OutcomeDetail = CreateOutcomeDetail(output, issues);
@@ -78,12 +87,17 @@ public sealed partial class ReportReviewViewModel
         OutcomeAccessibilityLabel = HasPrimaryIssue
             ? "Report has issues"
             : HasWarnings ? "Report succeeded with warnings" : "Report succeeded";
-        NextStepTitle = HasPrimaryIssue ? "Start with this issue" : HasWarnings ? "Review warning" : "Ready for audit";
+        NextStepTitle = HasPrimaryIssue ? CreateNextStepTitle(PrimaryIssue) : HasWarnings ? "Review warning" : "Ready for audit";
         NextStepDetail = HasPrimaryIssue
-            ? PrimaryIssue.Detail
+            ? CreateIssueAction(PrimaryIssue)
             : HasWarnings
             ? Warnings[0].Detail
-            : "Use the evidence map only when you need hashes, operation order, or byte-change proof.";
+            : "Inputs, changes, operation order, and postbuild refresh are available in Evidence.";
+        ByteDifferenceTitle = CreateByteDifferenceTitle(compositionKind, outputDifferences);
+        ByteDifferenceDetail = CreateByteDifferenceDetail(compositionKind, outputDifferences);
+        ByteDifferenceMeta = CreateByteDifferenceMeta(outputDifferences);
+        OutputDifferenceSummaryRows = CreateOutputDifferenceSummaryRows(outputDifferences);
+        AuditSummary = CreateAuditSummary(inputs, operations, mutations, outputDifferences, issues);
         TriageRows = CreateTriageRows(status, output, operations, issues);
         EvidenceRows = CreateEvidenceRows(inputs, operations, mutations, outputDifferences, issues);
         ShouldExpandIssues = HasIssues && (HasPrimaryIssue || HasWarnings);
@@ -158,6 +172,9 @@ public sealed partial class ReportReviewViewModel
     /// <summary>Report-safe output file name.</summary>
     public string OutputFileName { get; }
 
+    /// <summary>True when the report contains an output file name to show in the primary result panel.</summary>
+    public bool HasOutputFileName { get; }
+
     /// <summary>Output size in bytes.</summary>
     public long OutputSize { get; }
 
@@ -182,6 +199,9 @@ public sealed partial class ReportReviewViewModel
     /// <summary>True when input details are available.</summary>
     public bool HasInputs { get; }
 
+    /// <summary>True when no input details are available.</summary>
+    public bool HasNoInputs { get; }
+
     /// <summary>Operation rows.</summary>
     public IReadOnlyList<ReportLineViewModel> Operations { get; }
 
@@ -200,6 +220,9 @@ public sealed partial class ReportReviewViewModel
     /// <summary>True when external command operations are available.</summary>
     public bool HasCommandOperations { get; }
 
+    /// <summary>True when no external command operations are available.</summary>
+    public bool HasNoCommandOperations { get; }
+
     /// <summary>Operations that do not contain an external command block.</summary>
     public IReadOnlyList<ReportLineViewModel> StepOperations { get; }
 
@@ -208,6 +231,9 @@ public sealed partial class ReportReviewViewModel
 
     /// <summary>True when non-command operation details are available.</summary>
     public bool HasStepOperations { get; }
+
+    /// <summary>True when no non-command operation details are available.</summary>
+    public bool HasNoStepOperations { get; }
 
     /// <summary>Mutation rows.</summary>
     public IReadOnlyList<ReportLineViewModel> Mutations { get; }
@@ -218,6 +244,9 @@ public sealed partial class ReportReviewViewModel
     /// <summary>True when mutation details are available.</summary>
     public bool HasMutations { get; }
 
+    /// <summary>True when no mutation details are available.</summary>
+    public bool HasNoMutations { get; }
+
     /// <summary>Final output-vs-reference difference rows.</summary>
     public IReadOnlyList<ReportLineViewModel> OutputDifferences { get; }
 
@@ -227,6 +256,27 @@ public sealed partial class ReportReviewViewModel
     /// <summary>True when output difference details are available.</summary>
     public bool HasOutputDifferences { get; }
 
+    /// <summary>True when no output difference details are available.</summary>
+    public bool HasNoOutputDifferences { get; }
+
+    /// <summary>True when no output differences or changed ranges are available.</summary>
+    public bool HasNoByteChanges { get; }
+
+    /// <summary>Simplified output-difference rows for the primary report view.</summary>
+    public IReadOnlyList<ReportDifferenceSummaryRowViewModel> OutputDifferenceSummaryRows { get; }
+
+    /// <summary>Primary byte-difference verdict title.</summary>
+    public string ByteDifferenceTitle { get; }
+
+    /// <summary>Primary byte-difference verdict detail.</summary>
+    public string ByteDifferenceDetail { get; }
+
+    /// <summary>Small byte-difference verdict metadata.</summary>
+    public string ByteDifferenceMeta { get; }
+
+    /// <summary>Compact audit-detail summary for the collapsed traceability section.</summary>
+    public string AuditSummary { get; }
+
     /// <summary>Issue rows.</summary>
     public IReadOnlyList<ReportLineViewModel> Issues { get; }
 
@@ -235,6 +285,9 @@ public sealed partial class ReportReviewViewModel
 
     /// <summary>True when issue or warning diagnostics are available.</summary>
     public bool HasIssues { get; }
+
+    /// <summary>True when no issue or warning diagnostics are available.</summary>
+    public bool HasNoIssues { get; }
 
     /// <summary>Warning diagnostics that do not block a successful run.</summary>
     public IReadOnlyList<ReportLineViewModel> Warnings { get; }
@@ -389,19 +442,6 @@ public sealed partial class ReportReviewViewModel
             [new ReportLineViewModel(issueTitle, message, "report-json")]);
     }
 
-    private static IReadOnlyList<ReportLineViewModel> ParseInputs(JsonElement root)
-    {
-        return !root.TryGetProperty(nameof(Inputs), out JsonElement inputs) || inputs.ValueKind != JsonValueKind.Array
-            ? []
-            :
-            [
-                .. inputs.EnumerateArray().Select(input => new ReportLineViewModel(
-                $"{GetString(input, "AddressSpaceId")} ({GetLong(input, "Size")} bytes)",
-                Shorten(GetString(input, "Sha256"), 16),
-                GetString(input, "ArtifactId"))),
-            ];
-    }
-
     private static string CreateStatus(IReadOnlyList<ReportLineViewModel> issues)
     {
         int blockingIssueCount = CountBlockingIssues(issues);
@@ -477,17 +517,36 @@ public sealed partial class ReportReviewViewModel
         int warningCount = CountWarnings(issues);
         return blockingIssueCount == 0
             ? warningCount == 0
-                ? "No reported issues. The detailed sections below are audit evidence, not required reading."
+                ? "No issues reported. Evidence is organized below for audit."
                 : "The run completed, but review the warning before treating the output as final evidence."
             : string.IsNullOrWhiteSpace(output)
             ? "The run did not produce an output artifact. Start with the first issue below."
-            : "Start with the first issue below, then use the evidence map to verify the related inputs, operations, and output.";
+            : "Start with the first issue below, then verify the related inputs, operations, and output evidence.";
     }
 
     private static string CreateOutcomeMeta(IReadOnlyList<ReportLineViewModel> issues)
     {
         ReportLineViewModel? firstBlockingIssue = issues.FirstOrDefault(issue => !IsWarning(issue));
         return firstBlockingIssue?.Meta ?? FormatWarningMeta(CountWarnings(issues));
+    }
+
+    private static string CreateNextStepTitle(ReportLineViewModel issue)
+    {
+        return string.Equals(issue.Title, "input.address-space.length-mismatch", StringComparison.Ordinal)
+            ? "Fix input size"
+            : "Start with this issue";
+    }
+
+    private static string CreateIssueAction(ReportLineViewModel issue)
+    {
+        return issue.Title switch
+        {
+            "input.address-space.length-mismatch" =>
+                "Use a BIN whose byte length matches the selected IC/profile range, or switch to a workflow that explicitly allows padding/truncation. This run stays blocked because no relaxation policy applies.",
+            "input.address-space.truncated" =>
+                "The selected profile allowed truncation for this CtrlRAM input. Review the warning and output differences before using the artifact as evidence.",
+            _ => "Fix the reported issue, then run Build again.",
+        };
     }
 
     private static IReadOnlyList<ReportLineViewModel> CreateTriageRows(
@@ -503,11 +562,12 @@ public sealed partial class ReportReviewViewModel
             ?
             [
                 new ReportLineViewModel("1. First issue", primaryIssue.Title, primaryIssue.Meta),
-                new ReportLineViewModel("2. Message", primaryIssue.Detail, "reason"),
+                new ReportLineViewModel("2. Recommended action", CreateIssueAction(primaryIssue), "action"),
+                new ReportLineViewModel("3. Message", primaryIssue.Detail, "reason"),
                 new ReportLineViewModel(
-                    "3. Evidence",
-                    commandCount > 0 ? "Combiner commands" : "Operation steps",
-                    commandCount > 0 ? $"{commandCount} external command(s)" : $"{operations.Count} operation(s)"),
+                    "4. Evidence",
+                    commandCount > 0 ? "Refresh commands" : "Operation steps",
+                    commandCount > 0 ? $"{commandCount} command(s)" : $"{operations.Count} operation(s)"),
             ]
             : firstWarning is not null
             ?
@@ -516,8 +576,8 @@ public sealed partial class ReportReviewViewModel
                 new ReportLineViewModel("2. Warning", firstWarning.Title, firstWarning.Meta),
                 new ReportLineViewModel(
                     "3. Evidence",
-                    commandCount > 0 ? "Combiner commands available" : "Operation trace available",
-                    commandCount > 0 ? $"{commandCount} external command(s)" : $"{operations.Count} operation(s)"),
+                    commandCount > 0 ? "Refresh commands available" : "Operation trace available",
+                    commandCount > 0 ? $"{commandCount} command(s)" : $"{operations.Count} operation(s)"),
             ]
             :
             [
@@ -525,8 +585,8 @@ public sealed partial class ReportReviewViewModel
                 new ReportLineViewModel("2. Output", string.IsNullOrWhiteSpace(output) ? "No output" : output, "artifact"),
                 new ReportLineViewModel(
                     "3. Evidence",
-                    commandCount > 0 ? "Combiner commands available" : "Operation trace available",
-                    commandCount > 0 ? $"{commandCount} external command(s)" : $"{operations.Count} operation(s)"),
+                    commandCount > 0 ? "Refresh commands available" : "Operation trace available",
+                    commandCount > 0 ? $"{commandCount} command(s)" : $"{operations.Count} operation(s)"),
             ];
     }
 
@@ -591,76 +651,6 @@ public sealed partial class ReportReviewViewModel
             : $"{acceptedCount.ToString(CultureInfo.InvariantCulture)} accepted / {reviewCount.ToString(CultureInfo.InvariantCulture)} review";
     }
 
-    private static IReadOnlyList<ReportLineViewModel> ParseMutations(JsonElement root)
-    {
-        return !root.TryGetProperty(nameof(Mutations), out JsonElement mutations) ||
-               mutations.ValueKind != JsonValueKind.Array
-            ? []
-            :
-            [
-                .. mutations.EnumerateArray().Select(mutation => new ReportLineViewModel(
-                GetString(mutation, "OperationId"),
-                $"{GetString(mutation, "TargetSpaceId")} {GetRangeOrNull(mutation, "TargetRange")} changed={GetLong(mutation, "ChangedByteCount")}",
-                $"{Shorten(GetString(mutation, "BeforeSha256"), 10)} -> {Shorten(GetString(mutation, "AfterSha256"), 10)}")),
-            ];
-    }
-
-    private static IReadOnlyList<ReportLineViewModel> ParseIssues(JsonElement root)
-    {
-        return !root.TryGetProperty(nameof(Issues), out JsonElement issues) || issues.ValueKind != JsonValueKind.Array
-            ? []
-            :
-            [
-                .. issues.EnumerateArray().Select(issue =>
-                {
-                    string code = GetString(issue, "Code");
-                    string severity = GetStringOrNull(issue, "Severity") ??
-                        GetStringOrNull(issue, "severity") ??
-                        LegacySeverityForIssueCode(code);
-                    return new ReportLineViewModel(
-                        code,
-                        GetString(issue, "Message"),
-                        GetStringOrNull(issue, "OperationId") ?? "run",
-                        severity: severity);
-                }),
-            ];
-    }
-
-    private static string LegacySeverityForIssueCode(string code)
-    {
-        return string.Equals(code, "input.address-space.truncated", StringComparison.Ordinal)
-            ? "warning"
-            : "error";
-    }
-
-    private static string ParseOutput(JsonElement root)
-    {
-        if (!root.TryGetProperty(nameof(Output), out JsonElement output) || output.ValueKind != JsonValueKind.Object)
-        {
-            return "No output";
-        }
-
-        string committed = output.TryGetProperty("Committed", out JsonElement committedElement) &&
-                           committedElement.ValueKind is JsonValueKind.True or JsonValueKind.False
-            ? committedElement.GetBoolean() ? "committed" : "preview"
-            : "unknown";
-        return $"{GetString(output, "FileName")} / {GetLong(output, "Size")} bytes / {committed} / {Shorten(GetString(output, "Sha256"), 16)}";
-    }
-
-    private static string GetOutputString(JsonElement root, string propertyName)
-    {
-        return root.TryGetProperty(nameof(Output), out JsonElement output) && output.ValueKind == JsonValueKind.Object
-            ? GetString(output, propertyName)
-            : string.Empty;
-    }
-
-    private static long GetOutputLong(JsonElement root, string propertyName)
-    {
-        return root.TryGetProperty(nameof(Output), out JsonElement output) && output.ValueKind == JsonValueKind.Object
-            ? GetLong(output, propertyName)
-            : 0;
-    }
-
     private static string FormatEndpoint(string? addressSpaceId, string? range)
     {
         return string.IsNullOrWhiteSpace(addressSpaceId)
@@ -689,16 +679,16 @@ public sealed partial class ReportReviewViewModel
 
     private static string? GetRangeOrNull(JsonElement element, string propertyName)
     {
-        return element.TryGetProperty(propertyName, out JsonElement range) && range.ValueKind == JsonValueKind.Object
+        return TryGetRange(element, propertyName) is { } range
             ? FormatRange(range)
             : null;
     }
 
-    private static string FormatRangeList(JsonElement element, string propertyName)
+    private static JsonElement? TryGetRange(JsonElement element, string propertyName)
     {
-        return element.TryGetProperty(propertyName, out JsonElement ranges) && ranges.ValueKind == JsonValueKind.Array
-            ? string.Join(", ", ranges.EnumerateArray().Select(FormatRange))
-            : "(none)";
+        return element.TryGetProperty(propertyName, out JsonElement range) && range.ValueKind == JsonValueKind.Object
+            ? range
+            : null;
     }
 
     private static string FormatRange(JsonElement range)

@@ -9,7 +9,7 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 public sealed partial class FirmwareSlotViewModel : ObservableObject
 {
     private const string BaseIconPathData =
-        "M5,2 L12,2 L16,6 L16,18 L5,18 Z M12,2 L12,6 L16,6 M7,10 L14,10 M7,13 L14,13";
+        "M4,5 L16,5 L16,15 L4,15 Z M7,3 L7,5 M10,3 L10,5 M13,3 L13,5 M7,15 L7,17 M10,15 L10,17 M13,15 L13,17 M7,8 L13,8 M7,11 L13,11";
     private const string DpIconPathData =
         "M3,4 L17,4 L17,14 L3,14 Z M8,18 L12,18 M10,14 L10,18";
     private const string TpIconPathData =
@@ -18,9 +18,9 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         "M6,5 L14,5 L15,6 L15,14 L14,15 L6,15 L5,14 L5,6 Z M8,8 L12,8 L12,12 L8,12 Z M8,2 L8,5 M12,2 L12,5 M8,15 L8,18 M12,15 L12,18 M2,8 L5,8 M2,12 L5,12 M15,8 L18,8 M15,12 L18,12";
     private const string BinIconPathData =
         "M5,3 L15,3 L15,17 L5,17 Z M7,7 L13,7 M7,10 L13,10 M7,13 L11,13";
-    private static readonly IBrush BaseIconBackground = Brush.Parse("#F8FAFC");
-    private static readonly IBrush BaseIconBorder = Brush.Parse("#CBD5E1");
-    private static readonly IBrush BaseIconForeground = Brush.Parse("#475569");
+    private static readonly IBrush BaseIconBackground = Brush.Parse("#EEF2FF");
+    private static readonly IBrush BaseIconBorder = Brush.Parse("#C7D2FE");
+    private static readonly IBrush BaseIconForeground = Brush.Parse("#4338CA");
     private static readonly IBrush DpIconBackground = Brush.Parse("#EFF6FF");
     private static readonly IBrush DpIconBorder = Brush.Parse("#BFDBFE");
     private static readonly IBrush DpIconForeground = Brush.Parse("#1D4ED8");
@@ -246,7 +246,29 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
 }
 
 /// <summary>One compact firmware fact displayed below a selected BIN file name.</summary>
-public sealed record FirmwareSlotFactViewModel(string Label, string Value, bool IsWarning = false);
+public sealed record FirmwareSlotFactViewModel(string Label, string Value, bool IsWarning = false)
+{
+    private static readonly IBrush NormalBackground = Brush.Parse("#EEF6FF");
+    private static readonly IBrush NormalBorder = Brush.Parse("#BFDBFE");
+    private static readonly IBrush NormalLabelForeground = Brush.Parse("#475569");
+    private static readonly IBrush NormalValueForeground = Brush.Parse("#0F172A");
+    private static readonly IBrush WarningBackground = Brush.Parse("#FFF7ED");
+    private static readonly IBrush WarningBorder = Brush.Parse("#FDBA74");
+    private static readonly IBrush WarningLabelForeground = Brush.Parse("#9A3412");
+    private static readonly IBrush WarningValueForeground = Brush.Parse("#9A3412");
+
+    /// <summary>Fact badge background.</summary>
+    public IBrush BackgroundBrush => IsWarning ? WarningBackground : NormalBackground;
+
+    /// <summary>Fact badge border.</summary>
+    public IBrush BorderBrush => IsWarning ? WarningBorder : NormalBorder;
+
+    /// <summary>Fact label foreground.</summary>
+    public IBrush LabelForegroundBrush => IsWarning ? WarningLabelForeground : NormalLabelForeground;
+
+    /// <summary>Fact value foreground.</summary>
+    public IBrush ValueForegroundBrush => IsWarning ? WarningValueForeground : NormalValueForeground;
+}
 
 /// <summary>Display-only firmware slot category for consistent input card icons.</summary>
 public enum FirmwareSlotKind

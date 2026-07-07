@@ -24,13 +24,13 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>Gets the Replace selection readiness label.</summary>
     public string ReplaceSelectionStatusLabel => CanRunReplace()
-        ? "Ready for Preview"
+        ? "Ready for Build"
         : ReplaceReadinessStatus;
 
-    /// <summary>Gets a concise explanation of how selection review feeds Preview and Build.</summary>
+    /// <summary>Gets a concise explanation of how selection review feeds Build.</summary>
     public string ReplaceSelectionRunHint => CanRunReplace()
-        ? "Preview will generate the operation trace and report. Build asks for an output BIN path, then records the same report details."
-        : "Complete the required inputs before Preview can generate the operation trace.";
+        ? "Build will validate selected inputs, ask for an output BIN path, then record the report details."
+        : "Complete the required inputs before Build can validate the operation trace.";
 
     /// <summary>Gets selected replacement inputs visible even when groups are collapsed.</summary>
     public IReadOnlyList<ReportLineViewModel> ReplaceSelectionRows
@@ -52,7 +52,7 @@ public sealed partial class MainWindowViewModel
         }
     }
 
-    /// <summary>Gets required Replace inputs that are still missing before Preview can run.</summary>
+    /// <summary>Gets required Replace inputs that are still missing before Build can run.</summary>
     public IReadOnlyList<ReportLineViewModel> ReplaceSelectionMissingRows => CreateReplaceSelectionMissingRows();
 
     /// <summary>True when the Replace selection overview has missing required inputs.</summary>
@@ -145,7 +145,7 @@ public sealed partial class MainWindowViewModel
             rows.Add(new ReportLineViewModel(
                 ReplaceBaseSlot.Title,
                 ReplaceBaseSlot.DisplayName,
-                "Required reference firmware before any Replace preview."));
+                "Required reference firmware before any Replace build."));
         }
 
         if (IsGeneralReplaceModeSelected)
@@ -155,7 +155,7 @@ public sealed partial class MainWindowViewModel
                 rows.Add(new ReportLineViewModel(
                     "Replacement mapping",
                     "No mapping row has a BIN file selected.",
-                    "Add a range and choose a replacement BIN before Preview."));
+                    "Add a range and choose a replacement BIN before Build."));
             }
 
             return rows;

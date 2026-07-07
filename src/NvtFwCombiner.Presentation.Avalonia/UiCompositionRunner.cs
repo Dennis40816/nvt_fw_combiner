@@ -69,7 +69,7 @@ public static class UiCompositionRunner
         }
 
         string firmwareVersion = metadata.IsFirmwareVersionBarValid
-            ? FormattableString.Invariant($"0x{metadata.FirmwareVersion:X2}.0x{metadata.FirmwareSubVersion:X2} (bar OK)")
+            ? FormattableString.Invariant($"0x{metadata.FirmwareVersion:X2}.0x{metadata.FirmwareSubVersion:X2}")
             : FormattableString.Invariant($"0x{metadata.FirmwareVersion:X2}.0x{metadata.FirmwareSubVersion:X2} (bar 0x{metadata.FirmwareVersionBar:X2} mismatch)");
         List<FirmwareSlotFactViewModel> facts =
         [
@@ -79,10 +79,59 @@ public static class UiCompositionRunner
         ];
         if (!string.IsNullOrWhiteSpace(metadata.PostbuildCategory))
         {
-            facts.Add(new FirmwareSlotFactViewModel("Postbuild", metadata.PostbuildCategory));
+            facts.Add(new FirmwareSlotFactViewModel("Refresh", ShortenPostbuildCategory(metadata.PostbuildCategory)));
         }
 
         return facts;
+    }
+
+    /// <summary>Gets compact DP version facts decoded using gen_flash standard-merge version rules.</summary>
+    public static IReadOnlyList<FirmwareSlotFactViewModel> GetDpFirmwareSlotFacts(string icId, string path)
+    {
+        WorkbenchDpVersionMetadata? metadata = WorkbenchCompositionService.TryReadDpVersionMetadata(
+            icId,
+            path);
+        return metadata is null
+            ? [new FirmwareSlotFactViewModel("DP", "D??", true)]
+            : [new FirmwareSlotFactViewModel("DP", metadata.DisplayVersion)];
+    }
+
+    private static string ShortenPostbuildCategory(string category)
+    {
+        const string prefix = "PostbuildSetup_";
+        return category.StartsWith(prefix, StringComparison.Ordinal)
+            ? category[prefix.Length..]
+            : category;
+    }
+
+    /// <summary>Gets the compact FW+subversion token used in UI suggested output names.</summary>
+    public static string? TryGetFirmwareVersionToken(string icId, string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        WorkbenchFirmwareConfigMetadata? metadata = WorkbenchCompositionService.TryReadFirmwareConfigMetadata(
+            icId,
+            path);
+        return metadata is { IsFirmwareVersionBarValid: true }
+            ? FormattableString.Invariant($"{metadata.FirmwareVersion:X2}{metadata.FirmwareSubVersion:X2}")
+            : null;
+    }
+
+    /// <summary>Gets the DP version token used in UI suggested output names.</summary>
+    public static string? TryGetDpVersionToken(string icId, string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        WorkbenchDpVersionMetadata? metadata = WorkbenchCompositionService.TryReadDpVersionMetadata(
+            icId,
+            path);
+        return metadata?.VersionToken;
     }
 
     /// <summary>Gets visible CtrlRAM rows for a selected IC and IC-number context.</summary>

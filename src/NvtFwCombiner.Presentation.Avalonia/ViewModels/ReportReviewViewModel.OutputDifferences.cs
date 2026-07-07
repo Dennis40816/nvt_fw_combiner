@@ -15,8 +15,8 @@ public sealed partial class ReportReviewViewModel
                 {
                     string classification = GetString(difference, "Classification");
                     bool accepted = GetBool(difference, "IsAccepted");
-                    string before = Shorten(GetString(difference, "BeforeSha256"), 10);
-                    string after = Shorten(GetString(difference, "AfterSha256"), 10);
+                    string before = GetString(difference, "BeforeSha256");
+                    string after = GetString(difference, "AfterSha256");
                     return new ReportLineViewModel(
                         GetString(difference, "DifferenceId"),
                         $"{GetRangeOrNull(difference, "Range")} changed={GetLong(difference, "ChangedByteCount")}",
@@ -31,7 +31,9 @@ public sealed partial class ReportReviewViewModel
                             new ReportLineFactViewModel("Evidence", GetString(difference, "Evidence"), isTechnical: true),
                             new ReportLineFactViewModel("Before", before, isTechnical: true),
                             new ReportLineFactViewModel("After", after, isTechnical: true),
-                        ]);
+                        ],
+                        classification: classification,
+                        isAccepted: accepted);
                 }),
             ];
     }

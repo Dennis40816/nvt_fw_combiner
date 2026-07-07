@@ -124,20 +124,15 @@ public sealed partial class MainWindowViewModel
         ReplaceSettingsRows(
             SettingsToolRows,
             new SettingSummaryViewModel(
-                "External tool binding",
-                snapshot.ToolBindingIds,
-                "CtrlRAM postbuild profiles reference approved Combiner.exe bindings by id.",
+                "CRC/header refresh",
+                "Configured",
+                "Packaged processor support is available for approved postbuild refresh steps.",
                 "Pinned"),
             new SettingSummaryViewModel(
                 "Postbuild catalog",
                 $"{snapshot.PostbuildProfileCount} ICs",
-                "Command sequences are normalized from owner-provided postbuild evidence.",
-                "Wired"),
-            new SettingSummaryViewModel(
-                "Tool manifest",
-                snapshot.ToolManifestPath,
-                "The packaged tool manifest pins executable name, SHA-256, adapter, and timeout.",
-                "Configured"));
+                "Profile evidence is normalized into deterministic refresh plans.",
+                "Wired"));
 
         ReplaceSettingsRows(
             SettingsPreferenceRows,
@@ -177,7 +172,7 @@ public sealed partial class MainWindowViewModel
             new SettingSummaryViewModel(
                 "Diagnostics log",
                 "Read-only and sanitized",
-                "Run-specific diagnostics stay in Preview/Build report surfaces.",
+                "Run-specific diagnostics stay in Build report surfaces.",
                 "Planned"));
 
         ReplaceSettingsRows(

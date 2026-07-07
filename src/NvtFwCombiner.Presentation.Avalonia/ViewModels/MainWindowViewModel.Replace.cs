@@ -19,22 +19,22 @@ public sealed partial class MainWindowViewModel
     public string ReplaceReadinessStatus => SelectedReplaceMode switch
     {
         DpReplaceMode => CanRunReplace()
-            ? "Ready: Preview/Build will validate DP Replace inputs and produce a report."
-            : "Preview blocked: base BIN and required DP replacement inputs are required.",
+            ? "Ready: Build will validate DP Replace inputs, then write output and report."
+            : "Build blocked: base BIN and required DP replacement inputs are required.",
         CtrlRamReplaceMode => CanRunReplace()
-            ? "Ready: Preview/Build will replace selected CtrlRAM regions and run postbuild."
-            : "Preview blocked: base BIN and at least one CtrlRAM region BIN are required.",
+            ? "Ready: Build will replace selected CtrlRAM regions and run postbuild."
+            : "Build blocked: base BIN and at least one CtrlRAM region BIN are required.",
         GeneralReplaceMode => CanRunReplace()
-            ? "Ready: Preview/Build will compile explicit mappings and run postbuild when TP ranges are touched."
-            : "Preview blocked: base BIN and at least one explicit replacement mapping are required.",
-        _ => "Preview blocked: select a Replace mode.",
+            ? "Ready: Build will compile explicit mappings and run postbuild when TP ranges are touched."
+            : "Build blocked: base BIN and at least one explicit replacement mapping are required.",
+        _ => "Build blocked: select a Replace mode.",
     };
 
     /// <summary>Gets the compact reason shown on disabled Replace preview.</summary>
     public string ReplacePreviewUnavailableReason => ReplaceReadinessStatus;
 
     /// <summary>Gets the compact reason shown on disabled Replace build.</summary>
-    public string ReplaceBuildUnavailableReason => $"Build blocked: run a valid {SelectedReplaceMode} Preview first.";
+    public string ReplaceBuildUnavailableReason => ReplaceReadinessStatus;
 
     /// <summary>Builds Replace output to a user-selected path.</summary>
     public Task BuildReplaceAsync(string outputPath)
@@ -65,13 +65,6 @@ public sealed partial class MainWindowViewModel
     private async Task RunReplaceAsync(bool build, string? outputPath)
     {
         CloseReplaceSelectionForRun();
-        string previewToken = CreateReplacePreviewToken();
-        if (build && !HasCurrentReplacePreview())
-        {
-            BlockReplaceBuildUntilPreview();
-            return;
-        }
-
         try
         {
             WorkbenchRunResult result = await UiCompositionRunner.RunReplaceAsync(
@@ -84,11 +77,11 @@ public sealed partial class MainWindowViewModel
                 CancellationToken.None,
                 outputPath);
             ApplyRunResult(result, build);
-            CompleteReplaceRun(build, result.Succeeded, previewToken);
+            RefreshCommandState();
         }
         catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
         {
-            CompleteReplaceRun(build, false, previewToken);
+            RefreshCommandState();
             string action = build ? "Build" : "Preview";
             LastRunResult = new UiRunResultViewModel(
                 $"{action} failed",

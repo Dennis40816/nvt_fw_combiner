@@ -68,7 +68,7 @@ public sealed partial class MainWindowViewModel
         {
             AddMergeRows(
                 $"Profile: not available for {SelectedIc}",
-                "Preview and Build stay disabled until a profile is added.",
+                "Build stays disabled until a profile is added.",
                 $"{SelectedIc} / {SelectedNumber} still refreshes Replace region policy.");
             return;
         }
@@ -154,13 +154,6 @@ public sealed partial class MainWindowViewModel
 
     private async Task RunStandardMergeAsync(bool build, string? outputPath)
     {
-        string previewToken = CreateStandardMergePreviewToken();
-        if (build && !HasCurrentStandardMergePreview())
-        {
-            BlockStandardMergeBuildUntilPreview();
-            return;
-        }
-
         try
         {
             WorkbenchRunResult result = await UiCompositionRunner.RunStandardMergeAsync(
@@ -170,11 +163,11 @@ public sealed partial class MainWindowViewModel
                 CancellationToken.None,
                 outputPath);
             ApplyRunResult(result, build);
-            CompleteStandardMergeRun(build, result.Succeeded, previewToken);
+            RefreshCommandState();
         }
         catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
         {
-            CompleteStandardMergeRun(build, false, previewToken);
+            RefreshCommandState();
             string action = build ? "Build" : "Preview";
             LastRunResult = new UiRunResultViewModel(
                 $"{action} failed",
@@ -194,13 +187,6 @@ public sealed partial class MainWindowViewModel
 
     private async Task RunGeneralMergeAsync(bool build, string? outputPath)
     {
-        string previewToken = CreateMergePreviewToken();
-        if (build && !HasCurrentMergePreview())
-        {
-            BlockMergeBuildUntilPreview();
-            return;
-        }
-
         try
         {
             WorkbenchRunResult result = await UiCompositionRunner.RunGeneralMergeAsync(
@@ -211,11 +197,11 @@ public sealed partial class MainWindowViewModel
                 CancellationToken.None,
                 outputPath);
             ApplyRunResult(result, build);
-            CompleteMergeRun(build, result.Succeeded, previewToken);
+            RefreshCommandState();
         }
         catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
         {
-            CompleteMergeRun(build, false, previewToken);
+            RefreshCommandState();
             string action = build ? "Build" : "Preview";
             LastRunResult = new UiRunResultViewModel(
                 $"{action} failed",

@@ -14,18 +14,35 @@ public sealed class ReportLineViewModel
         string codeBlock = "",
         IEnumerable<ReportLineBadgeViewModel>? badges = null,
         IEnumerable<ReportLineFactViewModel>? facts = null,
-        string severity = "")
+        IEnumerable<ReportRangeTableRowViewModel>? rangeRows = null,
+        string operationKind = "",
+        string operationSource = "",
+        string operationTarget = "",
+        string operationProcessor = "",
+        string operationStatus = "",
+        string severity = "",
+        string classification = "",
+        bool isAccepted = false)
     {
         Title = title;
         Detail = detail;
         Meta = meta;
+        OperationKind = operationKind ?? string.Empty;
+        OperationSource = operationSource ?? string.Empty;
+        OperationTarget = operationTarget ?? string.Empty;
+        OperationProcessor = operationProcessor ?? string.Empty;
+        OperationStatus = operationStatus ?? string.Empty;
         Severity = severity ?? string.Empty;
+        Classification = classification ?? string.Empty;
+        IsAccepted = isAccepted;
         CodeBlock = codeBlock;
         HasCodeBlock = !string.IsNullOrWhiteSpace(codeBlock);
         Badges = badges is null ? [] : [.. badges];
         HasBadges = Badges.Count > 0;
         Facts = facts is null ? [] : [.. facts];
         HasFacts = Facts.Count > 0;
+        RangeRows = rangeRows is null ? [] : [.. rangeRows];
+        HasRangeRows = RangeRows.Count > 0;
     }
 
     /// <summary>Primary line text.</summary>
@@ -37,8 +54,29 @@ public sealed class ReportLineViewModel
     /// <summary>Small metadata line.</summary>
     public string Meta { get; }
 
+    /// <summary>Operation kind rendered in the report operation table.</summary>
+    public string OperationKind { get; }
+
+    /// <summary>Operation source rendered in the report operation table.</summary>
+    public string OperationSource { get; }
+
+    /// <summary>Operation target rendered in the report operation table.</summary>
+    public string OperationTarget { get; }
+
+    /// <summary>External processor or tool binding rendered in the report operation table.</summary>
+    public string OperationProcessor { get; }
+
+    /// <summary>Operation status rendered in the report operation table.</summary>
+    public string OperationStatus { get; }
+
     /// <summary>Optional issue severity for report diagnostics.</summary>
     public string Severity { get; }
+
+    /// <summary>Optional output-difference classification.</summary>
+    public string Classification { get; }
+
+    /// <summary>True when an output difference was classified as accepted by the report.</summary>
+    public bool IsAccepted { get; }
 
     /// <summary>True when the metadata line contains text.</summary>
     public bool HasMeta => !string.IsNullOrWhiteSpace(Meta);
@@ -60,6 +98,12 @@ public sealed class ReportLineViewModel
 
     /// <summary>True when the line has structured traceability facts.</summary>
     public bool HasFacts { get; }
+
+    /// <summary>Structured source, target, and processor range evidence rows.</summary>
+    public IReadOnlyList<ReportRangeTableRowViewModel> RangeRows { get; }
+
+    /// <summary>True when the line has range evidence rows.</summary>
+    public bool HasRangeRows { get; }
 }
 
 /// <summary>Small badge shown on dense report evidence rows.</summary>
@@ -99,3 +143,17 @@ public sealed class ReportLineFactViewModel
     /// <summary>True when the value should use normal typography.</summary>
     public bool IsPlainText { get; }
 }
+
+/// <summary>One table row for operation source/target and processor read/write ranges.</summary>
+public sealed record ReportRangeTableRowViewModel(
+    string Kind,
+    string AddressSpace,
+    string Range,
+    string Source);
+
+/// <summary>One row in the simplified byte-difference summary table.</summary>
+public sealed record ReportDifferenceSummaryRowViewModel(
+    string Label,
+    string Count,
+    string Status,
+    string Detail);

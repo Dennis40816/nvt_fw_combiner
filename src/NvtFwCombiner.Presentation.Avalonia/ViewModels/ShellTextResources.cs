@@ -122,7 +122,7 @@ public sealed class ShellTextResources
                     "Slots: DP, TP, optional LD",
                     "950/951 TP: 0x0A000-0x36FFF (len 0x2D000)",
                 ],
-                "Preview/build wired"),
+                "Build wired"),
             new PlanningCardText(
                 "Replace",
                 "DP, CtrlRAM, and General policies.",
@@ -132,8 +132,8 @@ public sealed class ShellTextResources
                     "CtrlRAM Replace uses approved CtrlRAM regions",
                     "CRC/header: combiner.exe postbuild core",
                 ],
-                "Preview/build wired; CtrlRAM postbuild enabled"),
-            "Profile catalog: built-in | Merge preview/build: wired | Replace preview/build wired; CtrlRAM postbuild enabled | Settings: catalog-backed");
+                "Build wired; CtrlRAM postbuild enabled"),
+            "Profile catalog: built-in | Merge build: wired | Replace build wired; CtrlRAM postbuild enabled | Settings: catalog-backed");
     }
 
     private static ShellTextResources CreateChineseTraditional()
@@ -165,7 +165,7 @@ public sealed class ShellTextResources
                     "Slots：DP、TP、選用 LD",
                     "950/951 TP：0x0A000-0x36FFF (len 0x2D000)",
                 ],
-                "Preview/build wired"),
+                "Build wired"),
             new PlanningCardText(
                 "取代",
                 "DP、CtrlRAM、General policy。",
@@ -175,8 +175,8 @@ public sealed class ShellTextResources
                     "CtrlRAM Replace 使用核准的 CtrlRAM regions",
                     "CRC/header：combiner.exe postbuild core",
                 ],
-                "Preview/build wired；CtrlRAM postbuild enabled"),
-            "Profile catalog：built-in | Merge preview/build：wired | Replace preview/build wired；CtrlRAM postbuild enabled | Settings：catalog-backed");
+                "Build wired；CtrlRAM postbuild enabled"),
+            "Profile catalog：built-in | Merge build：wired | Replace build wired；CtrlRAM postbuild enabled | Settings：catalog-backed");
     }
 }
 

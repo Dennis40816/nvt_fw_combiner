@@ -64,7 +64,7 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets the shell report action status.</summary>
     public string ReportActionStatus => HasLoadedReport
         ? LoadedReport.Status
-        : "Preview or Build creates one";
+        : "Build creates one";
 
     /// <summary>True when the latest report modal is open.</summary>
     public bool IsReportModalOpen { get; private set; }
@@ -95,6 +95,19 @@ public sealed partial class MainWindowViewModel
         ? $"{SanitizeFileName(LoadedReport.Title)}.json"
         : "nvt-fw-combiner-report.json";
 
+    private string CreateBuildActionTip(string readinessStatus, bool canBuild)
+    {
+        return true switch
+        {
+            _ when HasLoadedReport && LoadedReport.HasPrimaryIssue =>
+                $"{TrimOneLine(LoadedReport.PrimaryIssue.Detail, 150)} Open report for details.",
+            _ when HasLoadedReport && !LastRunResult.Succeeded =>
+                $"{TrimOneLine(LastRunResult.Detail, 150)} Open report for details.",
+            _ when canBuild => $"{readinessStatus} Build validates first, then writes output and report.",
+            _ => readinessStatus,
+        };
+    }
+
     /// <summary>Command that opens the latest report modal.</summary>
     public IRelayCommand ShowReportCommand { get; }
 
@@ -115,6 +128,9 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>Command that reopens a report history entry.</summary>
     public IRelayCommand<ReportHistoryEntryViewModel> OpenReportHistoryEntryCommand { get; }
+
+    /// <summary>Command that removes one local report history entry.</summary>
+    public IRelayCommand<ReportHistoryEntryViewModel> RemoveReportHistoryEntryCommand { get; }
 
     /// <summary>Loads a CLI/application run report JSON into the readable report modal.</summary>
     public void LoadReportJson(string json, string sourceName)
@@ -366,6 +382,23 @@ public sealed partial class MainWindowViewModel
         RefreshSettingsState();
     }
 
+    private void RemoveReportHistoryEntry(ReportHistoryEntryViewModel? entry)
+    {
+        if (entry is null || !ReportHistoryEntries.Remove(entry))
+        {
+            return;
+        }
+
+        NotifyReportHistoryChanged();
+        if (!HasReportHistory)
+        {
+            IsReportHistoryViewOpen = false;
+            NotifyReportViewModeChanged();
+        }
+
+        RefreshSettingsState();
+    }
+
     private void CloseReport()
     {
         if (!IsReportModalOpen)
@@ -461,6 +494,7 @@ public sealed partial class MainWindowViewModel
         ShowReportHistoryCommand.NotifyCanExecuteChanged();
         ClearReportHistoryCommand.NotifyCanExecuteChanged();
         OpenReportHistoryEntryCommand.NotifyCanExecuteChanged();
+        RemoveReportHistoryEntryCommand.NotifyCanExecuteChanged();
     }
 
     private void NotifyReportViewModeChanged()
@@ -478,6 +512,8 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(ReportActionLabel));
         OnPropertyChanged(nameof(ReportActionStatus));
         OnPropertyChanged(nameof(ReportSaveFileName));
+        OnPropertyChanged(nameof(MergeBuildActionTip));
+        OnPropertyChanged(nameof(ReplaceBuildActionTip));
         ShowReportCommand.NotifyCanExecuteChanged();
     }
 
@@ -492,6 +528,14 @@ public sealed partial class MainWindowViewModel
         }
 
         return candidate.Length == 0 ? "nvt-fw-combiner-report" : candidate;
+    }
+
+    private static string TrimOneLine(string value, int maxLength)
+    {
+        string oneLine = string.Join(" ", value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        return oneLine.Length <= maxLength
+            ? oneLine
+            : string.Concat(oneLine.AsSpan(0, Math.Max(0, maxLength - 3)), "...");
     }
 
     private static string FormatByteCount(long byteCount)

@@ -5,6 +5,47 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
+    /// <summary>Returns true when the IC has a gen_flash-backed DP version-byte rule.</summary>
+    public static bool HasDpVersionMetadataRule(string icId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        return GenFlashVersionCatalog.TryGetDpVersionRule(icId, out _);
+    }
+
+    /// <summary>Reads gen_flash-backed DP version metadata from a selected DP payload.</summary>
+    public static WorkbenchDpVersionMetadata? TryReadDpVersionMetadata(string icId, string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            byte[] image = File.ReadAllBytes(path);
+            return GenFlashVersionCatalog.TryReadDpVersion(
+                icId,
+                image,
+                out GenFlashDpVersionMetadata metadata)
+                    ? new WorkbenchDpVersionMetadata(
+                        metadata.IcId,
+                        metadata.Prefix,
+                        metadata.VersionToken,
+                        metadata.DisplayVersion,
+                        metadata.InputReadOffset,
+                        metadata.OutputAbsoluteAddress,
+                        metadata.EvidenceSource)
+                    : null;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            return null;
+        }
+    }
+
     /// <summary>Reads FWConfig display metadata from a selected firmware image when the IC flash-map defines it.</summary>
     public static WorkbenchFirmwareConfigMetadata? TryReadFirmwareConfigMetadata(string icId, string path)
     {

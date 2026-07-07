@@ -225,7 +225,7 @@ public static partial class WorkbenchCompositionService
                 new ByteRange(0, profile.Initialization.Capacity),
                 $"Blank 0x{profile.Initialization.FillByte:X2}",
                 "No source input writes this output range.",
-                "#E2E8F0",
+                "#CBD5E1",
                 false),
         ];
 
@@ -674,6 +674,16 @@ public sealed record WorkbenchFirmwareConfigMetadata(
     byte FirmwareSubVersion,
     ushort ProjectId,
     string? PostbuildCategory);
+
+/// <summary>DP version facts read using gen_flash standard-merge version-byte rules.</summary>
+public sealed record WorkbenchDpVersionMetadata(
+    string IcId,
+    string Prefix,
+    string VersionToken,
+    string DisplayVersion,
+    long InputReadOffset,
+    long OutputAbsoluteAddress,
+    string EvidenceSource);
 
 /// <summary>One readable before/after memory-map row for shell display.</summary>
 public sealed record WorkbenchMemoryMapRow(

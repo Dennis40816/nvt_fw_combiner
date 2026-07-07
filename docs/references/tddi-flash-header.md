@@ -1,4 +1,4 @@
-# Combiner Info Evidence - 2026-07-03
+# TDDI Flash Header Evidence - 2026-07-03
 
 ## Scope
 
@@ -24,15 +24,15 @@ Recovered archive:
 | CJK14 file id | `daa3fa85466b43ffa6a4422f487312c8` |
 | CJK14 parts | `2` |
 
-The archive itself is not committed because it contains a real firmware BIN fixture. Per owner request, the C source and workbook are committed as reference artifacts under `docs/references/combiner-info-2026-07-03/`; executable, map, and BIN payloads remain uncommitted.
+The archive itself is not committed because it contains a real firmware BIN fixture. Per owner request, the C source and workbook are committed as reference artifacts under `docs/references/tddi-flash-header/`; executable, map, and BIN payloads remain uncommitted.
 
 Extracted archive inventory:
 
 | Relative path | Bytes | SHA-256 | Commit policy |
 | --- | ---: | --- | --- |
-| `togo/TDDI_Flash_Header .xlsx` | `316493` | `930fb3e9a3cd652ab493817fc02006bcf4046a5b648b2fd32494c42ff4174fa4` | committed as `docs/references/combiner-info-2026-07-03/TDDI_Flash_Header .xlsx` |
+| `togo/TDDI_Flash_Header .xlsx` | `316493` | `930fb3e9a3cd652ab493817fc02006bcf4046a5b648b2fd32494c42ff4174fa4` | committed as `docs/references/tddi-flash-header/TDDI_Flash_Header.xlsx` |
 | `togo/Combiner_20250418_0951_ReleaseToNK_71fe7ddd1381238f29d0cea0ae21a6c303d09b25_/Combiner` | `30368` | `9ef149beff10f510e0b15a52abf76258daaf52c91c9d0fc0adf3e3ddef22e983` | not committed |
-| `togo/Combiner_20250418_0951_ReleaseToNK_71fe7ddd1381238f29d0cea0ae21a6c303d09b25_/Combiner.c` | `34471` | `5ce2048b9a2e07e970119733c62939f6007ccf061dae6b350194e629171f386c` | committed as `docs/references/combiner-info-2026-07-03/Combiner.c` |
+| `togo/Combiner_20250418_0951_ReleaseToNK_71fe7ddd1381238f29d0cea0ae21a6c303d09b25_/Combiner.c` | `34471` | `5ce2048b9a2e07e970119733c62939f6007ccf061dae6b350194e629171f386c` | committed as `docs/references/tddi-flash-header/Combiner.c` |
 | `togo/Combiner_20250418_0951_ReleaseToNK_71fe7ddd1381238f29d0cea0ae21a6c303d09b25_/Test/map.txt` | `648415` | `4821125eb2cf601c06dcbcb5d95acc248cfbd17805039f33d5838f246456e204` | summarized only |
 | `togo/Combiner_20250418_0951_ReleaseToNK_71fe7ddd1381238f29d0cea0ae21a6c303d09b25_/Test/NT51925_154_D05_T06_20241024.bin` | `262144` | `19fbb0533bbd588ba3f2528a0bc46711f5c23c75852bdac06f38ef804b7f5be5` | not committed; real firmware BIN |
 
@@ -62,7 +62,7 @@ Interpretation:
 
 ## TP Header Workbook Findings
 
-`TDDI_Flash_Header .xlsx` contains separate sheets for `920&923`, `925&926`, and `926NB`.
+`TDDI_Flash_Header.xlsx` contains separate sheets for `920&923`, `925&926`, and `926NB`.
 
 For `920&923` and `925&926`, the normal header layout is structurally aligned:
 

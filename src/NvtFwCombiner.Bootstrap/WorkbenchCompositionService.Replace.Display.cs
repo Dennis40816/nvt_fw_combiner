@@ -153,7 +153,7 @@ public static partial class WorkbenchCompositionService
                         "Base length pending",
                         "DP base required",
                         $"Select a base BIN to resolve the actual DP Replace length ({FormatSupportedNt51950DpBaseLengths()}).",
-                        "#E2E8F0",
+                        "#CBD5E1",
                         280,
                         false),
                 ];
@@ -182,7 +182,7 @@ public static partial class WorkbenchCompositionService
                     new ByteRange(0, selectedCapacity),
                     "Base flash",
                     "Kept from the original base firmware unless a replacement covers it.",
-                    "#E2E8F0",
+                    "#CBD5E1",
                     false),
             ];
             var dpRange = new ByteRange(0, selectedCapacity);
@@ -220,7 +220,7 @@ public static partial class WorkbenchCompositionService
                 new ByteRange(0, capacity),
                 "Base flash",
                 "Kept from the original base firmware unless a replacement covers it.",
-                "#E2E8F0",
+                "#CBD5E1",
                 false),
         ];
 

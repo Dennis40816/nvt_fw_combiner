@@ -74,7 +74,7 @@ Replace：
 
 - `dp-replace`：DP whole 或 profile-declared partitions；LD replacement also belongs to DP Replace and may be modeled as a separate LD replacement BIN/slot from the DP BIN；不再提供獨立 TP persona replace 分類。
 - `ctrlram-replace`：只操作被標記為 `tp-ctrlram` 的 named regions/groups。
-- `general-replace`：required reference BIN 加上一或多個 replacement BIN；使用者自由建立多筆 explicit mappings，但仍受 protected ranges、alignment、overlap、processor dependency 與 Preview gate 約束。Any mapping that touches a TP-classified range must compile with an approved legacy Combiner CRC/header refresh after the replacement mutation.
+- `general-replace`：required reference BIN 加上一或多個 replacement BIN；使用者自由建立多筆 explicit mappings，但仍受 protected ranges、alignment、overlap、processor dependency 與 Preview/Build validation 約束。Any mapping that touches a TP-classified range must compile with an approved legacy Combiner CRC/header refresh after the replacement mutation.
 
 Experience 只控制 catalog、UI authoring policy 與 profile compile constraints。Executor 不依 `experienceId` 寫 workflow-specific branch。
 
@@ -910,7 +910,7 @@ The UI must make atomicity visible: whole-only, declared-parts, or explicit-rang
 
 ### 11.4 Preview/Build separation
 
-Preview is mandatory before Build. Build button should be disabled when profile compile, input validation, range policy, processor/tool readiness, or integrity disposition is unresolved.
+Build automatically runs the same validation path as Preview before committing output. Build remains disabled only when required UI inputs are missing; profile compile, input validation, range policy, processor/tool readiness, and integrity disposition failures must produce a Preview/Build report instead of relying on a stale manual Preview gate.
 
 Preview/Build reports and diagnostics open in a report modal after the action completes or fails; they are not first-level pages. The UI must be structured for bilingual English/Chinese text resources rather than hard-coded display strings. The initial default language is English.
 
