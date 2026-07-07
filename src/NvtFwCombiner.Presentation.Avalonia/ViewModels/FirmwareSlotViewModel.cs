@@ -50,6 +50,9 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
     private static readonly IBrush SelectedRequiredBadgeForeground = Brush.Parse("#15803D");
     private static readonly Thickness NormalSlotBorderThickness = new(1);
     private static readonly Thickness MissingRequiredSlotBorderThickness = new(1.5);
+    private string RequiredText { get; set; } = "Required";
+    private string OptionalText { get; set; } = "Optional";
+    private string EmptyDisplayName { get; set; } = "No BIN selected";
 
     /// <summary>Creates a firmware slot.</summary>
     public FirmwareSlotViewModel(
@@ -74,10 +77,10 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
     public string SlotId { get; }
 
     /// <summary>Displayed slot title.</summary>
-    public string Title { get; }
+    public string Title { get; private set; }
 
     /// <summary>Short slot description.</summary>
-    public string Description { get; }
+    public string Description { get; private set; }
 
     /// <summary>Display-only slot kind used by the slot card icon.</summary>
     public FirmwareSlotKind SlotKind { get; }
@@ -138,13 +141,13 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
     };
 
     /// <summary>Requirement label for the active workflow.</summary>
-    public string RequirementLabel => IsOptional ? "Optional" : "Required";
+    public string RequirementLabel => IsOptional ? OptionalText : RequiredText;
 
     /// <summary>True when a local file is selected.</summary>
     public bool HasFile => !string.IsNullOrWhiteSpace(FilePath);
 
     /// <summary>Displayed file name or empty-slot state.</summary>
-    public string DisplayName => HasFile ? Path.GetFileName(FilePath!) : "No BIN selected";
+    public string DisplayName => HasFile ? Path.GetFileName(FilePath!) : EmptyDisplayName;
 
     /// <summary>Displayed selected file path.</summary>
     public string DisplayDetail => HasFile ? FilePath! : string.Empty;
@@ -208,6 +211,32 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(RequirementBadgeBorderBrush))]
     [NotifyPropertyChangedFor(nameof(RequirementBadgeForegroundBrush))]
     public partial bool IsOptional { get; set; }
+
+    /// <summary>Updates localizable display-only slot text without changing the stable slot id or file state.</summary>
+    public void ApplyDisplayText(
+        string title,
+        string description,
+        string requiredLabel,
+        string optionalLabel,
+        string emptyDisplayName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(title);
+        ArgumentException.ThrowIfNullOrWhiteSpace(description);
+        ArgumentException.ThrowIfNullOrWhiteSpace(requiredLabel);
+        ArgumentException.ThrowIfNullOrWhiteSpace(optionalLabel);
+        ArgumentException.ThrowIfNullOrWhiteSpace(emptyDisplayName);
+
+        Title = title;
+        Description = description;
+        RequiredText = requiredLabel;
+        OptionalText = optionalLabel;
+        EmptyDisplayName = emptyDisplayName;
+
+        OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(Description));
+        OnPropertyChanged(nameof(RequirementLabel));
+        OnPropertyChanged(nameof(DisplayName));
+    }
 
     /// <summary>Replaces decoded firmware facts for this slot.</summary>
     public void SetFirmwareFacts(IEnumerable<FirmwareSlotFactViewModel> facts)

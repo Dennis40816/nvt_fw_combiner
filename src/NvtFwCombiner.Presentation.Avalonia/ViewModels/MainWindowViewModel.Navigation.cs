@@ -61,7 +61,7 @@ public sealed partial class MainWindowViewModel
     {
         return page switch
         {
-            ShellPage.Home => "Home",
+            ShellPage.Home => Text.HomeLabel,
             ShellPage.Settings => SettingsPreview.Title,
             ShellPage.Merge => MergePreview.Title,
             ShellPage.Replace => ReplacePreview.Title,

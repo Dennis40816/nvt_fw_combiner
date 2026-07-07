@@ -32,11 +32,7 @@ public sealed partial class MainWindowViewModel
     public int ReportHistoryCount => ReportHistoryEntries.Count;
 
     /// <summary>Compact report history summary.</summary>
-    public string ReportHistorySummary => HasReportHistory
-        ? ReportHistoryCount == 1
-            ? "1 report in history"
-            : $"{ReportHistoryCount} reports in history"
-        : "No reports in history";
+    public string ReportHistorySummary => Text.GetReportHistorySummary(ReportHistoryCount);
 
     /// <summary>Total in-memory persisted history payload size.</summary>
     public long ReportHistoryTotalBytes => ReportHistoryEntries.Sum(entry =>
@@ -44,13 +40,15 @@ public sealed partial class MainWindowViewModel
         Encoding.UTF8.GetByteCount(entry.ArtifactPath));
 
     /// <summary>Human-readable local report history storage summary.</summary>
-    public string ReportHistoryStorageSummary => $"{FormatByteCount(ReportHistoryTotalBytes)} stored locally";
+    public string ReportHistoryStorageSummary => Text.GetReportHistoryStorageSummary(FormatByteCount(ReportHistoryTotalBytes));
 
     /// <summary>True when local report history has crossed the cleanup warning size.</summary>
     public bool HasReportHistoryStorageWarning => ReportHistoryTotalBytes >= ReportHistoryStorageWarningBytes;
 
     /// <summary>Cleanup warning for oversized local report history.</summary>
-    public string ReportHistoryStorageWarning => $"History uses {FormatByteCount(ReportHistoryTotalBytes)}, above the {FormatByteCount(ReportHistoryStorageWarningBytes)} limit. Clear history to keep local UI state small.";
+    public string ReportHistoryStorageWarning => Text.GetReportHistoryStorageWarning(
+        FormatByteCount(ReportHistoryTotalBytes),
+        FormatByteCount(ReportHistoryStorageWarningBytes));
 
     /// <summary>True when a run report is loaded into the shell.</summary>
     public bool HasLoadedReport => !LoadedReport.IsEmpty;
@@ -59,12 +57,12 @@ public sealed partial class MainWindowViewModel
     public bool CanOpenReport => HasLoadedReport;
 
     /// <summary>Gets the shell report action label.</summary>
-    public string ReportActionLabel => HasLoadedReport ? "Open report" : "No report";
+    public string ReportActionLabel => Text.GetReportActionLabel(HasLoadedReport);
 
     /// <summary>Gets the shell report action status.</summary>
     public string ReportActionStatus => HasLoadedReport
         ? LoadedReport.Status
-        : "Build creates one";
+        : Text.GetReportActionStatus(hasLoadedReport: false, LoadedReport.Status);
 
     /// <summary>True when the latest report modal is open.</summary>
     public bool IsReportModalOpen { get; private set; }
@@ -100,10 +98,10 @@ public sealed partial class MainWindowViewModel
         return true switch
         {
             _ when HasLoadedReport && LoadedReport.HasPrimaryIssue =>
-                $"{TrimOneLine(LoadedReport.PrimaryIssue.Detail, 150)} Open report for details.",
+                $"{TrimOneLine(LoadedReport.PrimaryIssue.Detail, 150)} {Text.GetOpenReportForDetailsSentence()}",
             _ when HasLoadedReport && !LastRunResult.Succeeded =>
-                $"{TrimOneLine(LastRunResult.Detail, 150)} Open report for details.",
-            _ when canBuild => $"{readinessStatus} Build validates first, then writes output and report.",
+                $"{TrimOneLine(LastRunResult.Detail, 150)} {Text.GetOpenReportForDetailsSentence()}",
+            _ when canBuild => Text.GetBuildActionTip(readinessStatus, canBuild: true),
             _ => readinessStatus,
         };
     }
@@ -137,16 +135,16 @@ public sealed partial class MainWindowViewModel
     {
         try
         {
-            LoadedReport = ReportReviewViewModel.FromJson(json, sourceName);
+            LoadedReport = ReportReviewViewModel.FromJson(json, sourceName, language: Text.Language);
         }
         catch (JsonException exception)
         {
-            LoadedReport = ReportReviewViewModel.Error(sourceName, exception.Message);
+            LoadedReport = ReportReviewViewModel.Error(sourceName, exception.Message, language: Text.Language);
         }
 
         LoadedReportJson = json;
         CaptureLoadedReportInHistory();
-        SetReportToast($"Report loaded: {sourceName}");
+        SetReportToast(Text.FormatReportLoadedToast(sourceName));
         NotifyReportChanged();
         RefreshSettingsState();
     }
@@ -157,10 +155,10 @@ public sealed partial class MainWindowViewModel
         ArgumentNullException.ThrowIfNull(sourceName);
         ArgumentNullException.ThrowIfNull(message);
 
-        LoadedReport = ReportReviewViewModel.Error(sourceName, message, "Load error", "Load failed");
+        LoadedReport = ReportReviewViewModel.Error(sourceName, message, "Load error", "Load failed", Text.Language);
         LoadedReportJson = string.Empty;
         CaptureLoadedReportInHistory();
-        SetReportToast($"Report issue: {sourceName}");
+        SetReportToast(Text.FormatReportIssueToast(sourceName));
         NotifyReportChanged();
         RefreshSettingsState();
     }
@@ -212,7 +210,7 @@ public sealed partial class MainWindowViewModel
     /// <summary>Shows a compact notification after the report is written to disk.</summary>
     public void NotifyReportSaved(string destinationName)
     {
-        SetReportToast($"Report saved: {destinationName}");
+        SetReportToast(Text.FormatReportSavedToast(destinationName));
     }
 
     /// <summary>Loads a UI-triggered run failure as the latest reopenable report.</summary>
@@ -280,10 +278,10 @@ public sealed partial class MainWindowViewModel
         };
 
         string json = JsonSerializer.Serialize(report, RunErrorReportJsonOptions);
-        LoadedReport = ReportReviewViewModel.FromJson(json, $"{action.ToLowerInvariant()} error report");
+        LoadedReport = ReportReviewViewModel.FromJson(json, $"{action.ToLowerInvariant()} error report", language: Text.Language);
         LoadedReportJson = json;
         CaptureLoadedReportInHistory();
-        SetReportToast($"{action} report generated");
+        SetReportToast(Text.FormatReportGeneratedToast(action));
         NotifyReportChanged();
         RefreshSettingsState();
     }
@@ -468,7 +466,8 @@ public sealed partial class MainWindowViewModel
             var report = ReportReviewViewModel.FromJson(
                 snapshot.ReportJson,
                 string.IsNullOrWhiteSpace(snapshot.SourceName) ? "persisted report" : snapshot.SourceName,
-                snapshot.OutputArtifactPath);
+                snapshot.OutputArtifactPath,
+                Text.Language);
             entry = new ReportHistoryEntryViewModel(++_reportHistorySequence, report, snapshot.ReportJson);
             return true;
         }
@@ -515,6 +514,43 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(MergeBuildActionTip));
         OnPropertyChanged(nameof(ReplaceBuildActionTip));
         ShowReportCommand.NotifyCanExecuteChanged();
+    }
+
+    private void RelocalizeLoadedReport()
+    {
+        if (string.IsNullOrWhiteSpace(LoadedReportJson))
+        {
+            return;
+        }
+
+        try
+        {
+            LoadedReport = ReportReviewViewModel.FromJson(
+                LoadedReportJson,
+                LoadedReport.SourceName,
+                LoadedReport.OutputArtifactPath,
+                Text.Language);
+            for (int index = 0; index < ReportHistoryEntries.Count; index++)
+            {
+                ReportHistoryEntryViewModel entry = ReportHistoryEntries[index];
+                if (!string.Equals(entry.ReportJson, LoadedReportJson, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                ReportHistoryEntries[index] = new ReportHistoryEntryViewModel(
+                    entry.Sequence,
+                    LoadedReport,
+                    entry.ReportJson);
+                break;
+            }
+
+            NotifyReportChanged();
+            NotifyReportHistoryChanged();
+        }
+        catch (JsonException)
+        {
+        }
     }
 
     private static string SanitizeFileName(string title)

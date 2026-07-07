@@ -68,19 +68,19 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("<Setter Property=\"MinHeight\" Value=\"44\" />", shell, StringComparison.Ordinal);
         Assert.Contains("<Setter Property=\"CornerRadius\" Value=\"999\" />", shell, StringComparison.Ordinal);
         Assert.Contains("ColumnDefinitions=\"1.15*,430\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Output layout", shell, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.OutputLayoutTitle}\"", shell, StringComparison.Ordinal);
         Assert.Contains("IsEnabled=\"False\"", shell, StringComparison.Ordinal);
         Assert.Contains("LoadReportJsonButton_OnClick", shell, StringComparison.Ordinal);
         Assert.Contains("SaveReportButton_OnClick", shell, StringComparison.Ordinal);
         Assert.Contains("BuildMergeButton_OnClick", shell, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding ShowReportCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsReportModalOpen}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Text=\"Targets\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.TargetsLabel}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding ShowReplaceSelectionCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("MemoryCoverageTooltipTemplate", shell, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource MemoryCoverageTooltipTemplate}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Text=\"Range\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Text=\"Result\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding #RootWindow.DataContext.Text.RangeLabel}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding #RootWindow.DataContext.Text.ResultLabel}\"", shell, StringComparison.Ordinal);
         Assert.Contains("SlotDrop_OnDrop", shell, StringComparison.Ordinal);
         Assert.Contains("SlotDragOver_OnDragOver", shell, StringComparison.Ordinal);
         Assert.Contains("BrowseSlotButton_OnClick", shell, StringComparison.Ordinal);
@@ -88,11 +88,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("GeneralMappingDrop_OnDrop", shell, StringComparison.Ordinal);
         Assert.Contains("RemoveGeneralMappingButton_OnClick", shell, StringComparison.Ordinal);
         Assert.Contains("IsNonCtrlRamStructuredReplaceModeSelected", shell, StringComparison.Ordinal);
-        Assert.Contains("General replace mapping", shell, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.GeneralReplaceMappingTitle}\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Workbench wiring pending", shell, StringComparison.Ordinal);
-        Assert.Contains("Target bounds", shell, StringComparison.Ordinal);
-        Assert.Contains("Input length", shell, StringComparison.Ordinal);
-        Assert.Contains("Explicit mappings", shell, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.GeneralReplaceRuleBoundsTitle}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.GeneralReplaceRuleLengthTitle}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.ExplicitMappingsTitle}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ReplaceBaseSlot", shell, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding GeneralReplaceMappings}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding MergeCoverageSegments}\"", shell, StringComparison.Ordinal);
@@ -107,7 +107,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("IsEnabled=\"{Binding CanBuildMerge}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"{Binding MergeBuildActionTip}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"{Binding ReplaceBuildActionTip}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("General merge mapping", shell, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.GeneralMergeMappingTitle}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding GeneralMergeMappings}\"", shell, StringComparison.Ordinal);
         Assert.Contains("GeneralMergeMappingDrop_OnDrop", shell, StringComparison.Ordinal);
         Assert.Contains("BrowseGeneralMergeMappingButton_OnClick", shell, StringComparison.Ordinal);
@@ -118,10 +118,12 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("<Window.KeyBindings>", shell, StringComparison.Ordinal);
         Assert.Contains("Gesture=\"Ctrl+H\" Command=\"{Binding ShowReportHistoryCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Gesture=\"Ctrl+Shift+Delete\" Command=\"{Binding ClearReportHistoryCommand}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.Name=\"Open report history\"", shell, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding Text.OpenReportHistoryAutomationName}\"", shell, StringComparison.Ordinal);
         int reportHeaderIndex = shell.IndexOf("Text=\"{Binding LoadedReport.Title}\"", StringComparison.Ordinal);
-        int auditDetailsIndex = shell.IndexOf("Text=\"Evidence\"", StringComparison.Ordinal);
-        int historyActionIndex = shell.IndexOf("AutomationProperties.Name=\"Open report history\"", StringComparison.Ordinal);
+        int auditDetailsIndex = shell.IndexOf("Text=\"{Binding Text.EvidenceTitle}\"", StringComparison.Ordinal);
+        int historyActionIndex = shell.IndexOf(
+            "AutomationProperties.Name=\"{Binding Text.OpenReportHistoryAutomationName}\"",
+            StringComparison.Ordinal);
         Assert.True(
             reportHeaderIndex >= 0 && auditDetailsIndex > reportHeaderIndex && historyActionIndex > reportHeaderIndex,
             "Report history should remain a secondary evidence action instead of returning to the report modal header.");
@@ -129,23 +131,23 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("LoadedReport.OutcomeTitle", shell, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.ByteDifferenceTitle", shell, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.OutputDifferenceSummaryRows", shell, StringComparison.Ordinal);
-        Assert.Contains("Change review", shell, StringComparison.Ordinal);
-        Assert.Contains("Evidence", shell, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.ChangeReviewTitle}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.EvidenceTitle}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ReportDifferenceSummaryChipTemplate", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Choose IC and Number inside", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("HomeReplaceStatus", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("HomeMergeStatus", shell, StringComparison.Ordinal);
-        Assert.Contains("Range table", shell, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding #RootWindow.DataContext.Text.RangeTableTitle}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding RangeRows}\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Where to look first", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Evidence map", shell, StringComparison.Ordinal);
         Assert.Contains("<TabControl", shell, StringComparison.Ordinal);
-        Assert.Contains("Header=\"Inputs\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Header=\"Changes\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Header=\"Operations\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Header=\"Postbuild\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Header=\"Issues\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Header=\"Raw\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Header=\"{Binding Text.ReportTabInputs}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Header=\"{Binding Text.ReportTabChanges}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Header=\"{Binding Text.ReportTabOperations}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Header=\"{Binding Text.ReportTabPostbuild}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Header=\"{Binding Text.ReportTabIssues}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Header=\"{Binding Text.ReportTabRaw}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ReportOutputDifferenceRowTemplate", shell, StringComparison.Ordinal);
         Assert.Contains("OperationKind", shell, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.CommandOperations", shell, StringComparison.Ordinal);
@@ -208,15 +210,20 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void ShellUsesBilingualTextResources()
     {
-        string resources = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.cs");
+        string resources = ReadShellTextResourcesPartials();
         string factory = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellViewModelFactory.cs");
+        string viewModel = ReadViewModelPartials();
+        string shell = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml");
 
         Assert.Contains("ShellLanguage.ChineseTraditional", resources, StringComparison.Ordinal);
         Assert.Contains("合併", resources, StringComparison.Ordinal);
         Assert.Contains("Device context", resources, StringComparison.Ordinal);
-        Assert.Contains("ShellTextResources.For(language)", factory, StringComparison.Ordinal);
+        Assert.Contains("ShellTextResources.For(language)", viewModel, StringComparison.Ordinal);
+        Assert.Contains("ApplyTextResources(ShellTextResources.LanguageFromPreference(value))", viewModel, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.SettingsPreferencesTitle}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.LanguageLabel}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Header=\"{Binding Text.ReportTabInputs}\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("\"Merge preview\"", factory, StringComparison.Ordinal);
         Assert.DoesNotContain("Saved rules", resources, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("demo", resources, StringComparison.OrdinalIgnoreCase);
@@ -410,8 +417,7 @@ public sealed partial class RepositoryBoundaryTests
 
     private static string[] ReadPlanningResourceRows(string title)
     {
-        string resources = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.cs");
+        string resources = ReadShellTextResourcesPartials();
         int titleIndex = resources.IndexOf($"\"{title}\",", StringComparison.Ordinal);
         if (titleIndex < 0)
         {
@@ -429,6 +435,20 @@ public sealed partial class RepositoryBoundaryTests
             .Where(line => line.StartsWith('"'))
             .Select(line => line.TrimEnd(',').Trim('"'))
             ];
+    }
+
+    private static string ReadShellTextResourcesPartials()
+    {
+        string directory = Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Presentation.Avalonia",
+            "ViewModels");
+        return string.Join(
+            Environment.NewLine,
+            Directory.GetFiles(directory, "ShellTextResources*.cs")
+                .Order(StringComparer.Ordinal)
+                .Select(File.ReadAllText));
     }
 
     private static (int Line, string[] Cells) FindMarkdownTableRow(string relativePath, string firstCell)

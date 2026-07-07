@@ -28,7 +28,8 @@ public sealed partial class ReportReviewViewModel
         IReadOnlyList<ReportLineViewModel> operations,
         IReadOnlyList<ReportLineViewModel> mutations,
         IReadOnlyList<ReportLineViewModel> outputDifferences,
-        IReadOnlyList<ReportLineViewModel> issues)
+        IReadOnlyList<ReportLineViewModel> issues,
+        ShellLanguage language = ShellLanguage.English)
     {
         IsEmpty = isEmpty;
         SourceName = sourceName;
@@ -46,7 +47,9 @@ public sealed partial class ReportReviewViewModel
         OutputFileName = outputFileName;
         OutputSize = outputSize;
         OutputSha256 = outputSha256;
-        OutputHashLabel = string.IsNullOrWhiteSpace(outputSha256) ? "No output hash" : Shorten(outputSha256, 16);
+        OutputHashLabel = string.IsNullOrWhiteSpace(outputSha256)
+            ? T(language, "No output hash", "無輸出雜湊")
+            : Shorten(outputSha256, 16);
         OutputArtifactPath = string.IsNullOrWhiteSpace(outputArtifactPath) ? string.Empty : outputArtifactPath;
         HasOutputArtifactPath = !string.IsNullOrWhiteSpace(OutputArtifactPath);
         Inputs = inputs;
@@ -79,27 +82,33 @@ public sealed partial class ReportReviewViewModel
         HasNoByteChanges = !HasOutputDifferences && !HasMutations;
         HasOutputFileName = !string.IsNullOrWhiteSpace(outputFileName) &&
             !string.Equals(outputFileName, "No output", StringComparison.OrdinalIgnoreCase);
-        SummaryRows = CreateSummaryRows(status, output, inputs, operations, mutations, issues);
-        OutcomeTitle = CreateOutcomeTitle(status, issues);
-        OutcomeDetail = CreateOutcomeDetail(output, issues);
-        OutcomeMeta = CreateOutcomeMeta(issues);
+        SummaryRows = CreateSummaryRows(status, output, inputs, operations, mutations, issues, language);
+        OutcomeTitle = CreateOutcomeTitle(status, issues, language);
+        OutcomeDetail = CreateOutcomeDetail(output, issues, language);
+        OutcomeMeta = CreateOutcomeMeta(issues, language);
         OutcomeIcon = HasPrimaryIssue || HasWarnings ? "!" : "✓";
         OutcomeAccessibilityLabel = HasPrimaryIssue
-            ? "Report has issues"
-            : HasWarnings ? "Report succeeded with warnings" : "Report succeeded";
-        NextStepTitle = HasPrimaryIssue ? CreateNextStepTitle(PrimaryIssue) : HasWarnings ? "Review warning" : "Ready for audit";
+            ? T(language, "Report has issues", "Report 有問題")
+            : HasWarnings
+                ? T(language, "Report succeeded with warnings", "Report 成功但有警告")
+                : T(language, "Report succeeded", "Report 成功");
+        NextStepTitle = HasPrimaryIssue
+            ? CreateNextStepTitle(PrimaryIssue, language)
+            : HasWarnings
+                ? T(language, "Review warning", "查看警告")
+                : T(language, "Ready for audit", "可進行審查");
         NextStepDetail = HasPrimaryIssue
-            ? CreateIssueAction(PrimaryIssue)
+            ? CreateIssueAction(PrimaryIssue, language)
             : HasWarnings
             ? Warnings[0].Detail
-            : "Inputs, changes, operation order, and postbuild refresh are available in Evidence.";
-        ByteDifferenceTitle = CreateByteDifferenceTitle(compositionKind, outputDifferences);
-        ByteDifferenceDetail = CreateByteDifferenceDetail(compositionKind, outputDifferences);
-        ByteDifferenceMeta = CreateByteDifferenceMeta(outputDifferences);
-        OutputDifferenceSummaryRows = CreateOutputDifferenceSummaryRows(outputDifferences);
-        AuditSummary = CreateAuditSummary(inputs, operations, mutations, outputDifferences, issues);
-        TriageRows = CreateTriageRows(status, output, operations, issues);
-        EvidenceRows = CreateEvidenceRows(inputs, operations, mutations, outputDifferences, issues);
+            : T(language, "Inputs, changes, operation order, and postbuild refresh are available in Evidence.", "輸入、差異、操作順序與 postbuild refresh 證據已整理在下方。");
+        ByteDifferenceTitle = CreateByteDifferenceTitle(compositionKind, outputDifferences, language);
+        ByteDifferenceDetail = CreateByteDifferenceDetail(compositionKind, outputDifferences, language);
+        ByteDifferenceMeta = CreateByteDifferenceMeta(outputDifferences, language);
+        OutputDifferenceSummaryRows = CreateOutputDifferenceSummaryRows(outputDifferences, language);
+        AuditSummary = CreateAuditSummary(inputs, operations, mutations, outputDifferences, issues, language);
+        TriageRows = CreateTriageRows(status, output, operations, issues, language);
+        EvidenceRows = CreateEvidenceRows(inputs, operations, mutations, outputDifferences, issues, language);
         ShouldExpandIssues = HasIssues && (HasPrimaryIssue || HasWarnings);
         ShouldExpandCommandOperations = HasCommandOperations;
         ShouldExpandStepOperations = HasStepOperations && !HasCommandOperations;
@@ -362,7 +371,8 @@ public sealed partial class ReportReviewViewModel
     public static ReportReviewViewModel FromJson(
         string json,
         string sourceName,
-        string? outputArtifactPath = null)
+        string? outputArtifactPath = null,
+        ShellLanguage language = ShellLanguage.English)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(json);
         using var document = JsonDocument.Parse(json);
@@ -381,9 +391,9 @@ public sealed partial class ReportReviewViewModel
         IReadOnlyList<ReportLineViewModel> inputs = ParseInputs(root);
         IReadOnlyList<ReportLineViewModel> operations = ParseOperations(root);
         IReadOnlyList<ReportLineViewModel> mutations = ParseMutations(root);
-        IReadOnlyList<ReportLineViewModel> outputDifferences = ParseOutputDifferences(root);
+        IReadOnlyList<ReportLineViewModel> outputDifferences = ParseOutputDifferences(root, language);
         IReadOnlyList<ReportLineViewModel> issues = ParseIssues(root);
-        string status = CreateStatus(issues);
+        string status = CreateStatus(issues, language);
 
         return new ReportReviewViewModel(
             false,
@@ -407,7 +417,8 @@ public sealed partial class ReportReviewViewModel
             operations,
             mutations,
             outputDifferences,
-            issues);
+            issues,
+            language);
     }
 
     /// <summary>Creates an error report when JSON parsing or loading fails.</summary>
@@ -415,7 +426,8 @@ public sealed partial class ReportReviewViewModel
         string sourceName,
         string message,
         string issueTitle = "Parse error",
-        string status = "Invalid JSON")
+        string status = "Invalid JSON",
+        ShellLanguage language = ShellLanguage.English)
     {
         return new ReportReviewViewModel(
             false,
@@ -439,20 +451,30 @@ public sealed partial class ReportReviewViewModel
             [],
             [],
             [],
-            [new ReportLineViewModel(issueTitle, message, "report-json")]);
+            [new ReportLineViewModel(issueTitle, message, "report-json")],
+            language);
     }
 
-    private static string CreateStatus(IReadOnlyList<ReportLineViewModel> issues)
+    private static string CreateStatus(IReadOnlyList<ReportLineViewModel> issues, ShellLanguage language)
     {
         int blockingIssueCount = CountBlockingIssues(issues);
         int warningCount = CountWarnings(issues);
         return blockingIssueCount == 0
             ? warningCount == 0
-                ? "Succeeded"
-                : string.Create(CultureInfo.InvariantCulture, $"Succeeded with {warningCount} warning(s)")
+                ? T(language, "Succeeded", "成功")
+                : T(
+                    language,
+                    string.Create(CultureInfo.InvariantCulture, $"Succeeded with {warningCount} warning(s)"),
+                    string.Create(CultureInfo.InvariantCulture, $"成功，含 {warningCount} 個警告"))
             : warningCount == 0
-            ? string.Create(CultureInfo.InvariantCulture, $"{blockingIssueCount} issue(s)")
-            : string.Create(CultureInfo.InvariantCulture, $"{blockingIssueCount} issue(s), {warningCount} warning(s)");
+            ? T(
+                language,
+                string.Create(CultureInfo.InvariantCulture, $"{blockingIssueCount} issue(s)"),
+                string.Create(CultureInfo.InvariantCulture, $"{blockingIssueCount} 個問題"))
+            : T(
+                language,
+                string.Create(CultureInfo.InvariantCulture, $"{blockingIssueCount} issue(s), {warningCount} warning(s)"),
+                string.Create(CultureInfo.InvariantCulture, $"{blockingIssueCount} 個問題，{warningCount} 個警告"));
     }
 
     private static int CountBlockingIssues(IReadOnlyList<ReportLineViewModel> issues)
@@ -465,6 +487,11 @@ public sealed partial class ReportReviewViewModel
         return issues.Count(IsWarning);
     }
 
+    private static string T(ShellLanguage language, string english, string chineseTraditional)
+    {
+        return language == ShellLanguage.ChineseTraditional ? chineseTraditional : english;
+    }
+
     private static bool IsWarning(ReportLineViewModel issue)
     {
         return string.Equals(issue.Severity, "warning", StringComparison.OrdinalIgnoreCase) ||
@@ -473,11 +500,14 @@ public sealed partial class ReportReviewViewModel
                 string.Equals(issue.Title, "input.address-space.truncated", StringComparison.Ordinal));
     }
 
-    private static string FormatWarningMeta(int warningCount)
+    private static string FormatWarningMeta(int warningCount, ShellLanguage language)
     {
         return warningCount == 0
-            ? "No blocking issue"
-            : string.Create(CultureInfo.InvariantCulture, $"{warningCount} warning(s)");
+            ? T(language, "No blocking issue", "沒有阻擋問題")
+            : T(
+                language,
+                string.Create(CultureInfo.InvariantCulture, $"{warningCount} warning(s)"),
+                string.Create(CultureInfo.InvariantCulture, $"{warningCount} 個警告"));
     }
 
     private static IReadOnlyList<ReportLineViewModel> CreateSummaryRows(
@@ -486,66 +516,89 @@ public sealed partial class ReportReviewViewModel
         IReadOnlyList<ReportLineViewModel> inputs,
         IReadOnlyList<ReportLineViewModel> operations,
         IReadOnlyList<ReportLineViewModel> mutations,
-        IReadOnlyList<ReportLineViewModel> issues)
+        IReadOnlyList<ReportLineViewModel> issues,
+        ShellLanguage language)
     {
         int commandCount = operations.Count(operation => operation.HasCodeBlock);
         ReportLineViewModel? firstBlockingIssue = issues.FirstOrDefault(issue => !IsWarning(issue));
         int warningCount = CountWarnings(issues);
         return
         [
-            new ReportLineViewModel("Status", status, firstBlockingIssue?.Title ?? FormatWarningMeta(warningCount)),
-            new ReportLineViewModel("Inputs", inputs.Count.ToString(CultureInfo.InvariantCulture), "files"),
-            new ReportLineViewModel("Steps", operations.Count.ToString(CultureInfo.InvariantCulture), commandCount == 0 ? "operations" : $"{commandCount} command(s)"),
-            new ReportLineViewModel("Mutations", mutations.Count.ToString(CultureInfo.InvariantCulture), output),
+            new ReportLineViewModel(T(language, "Status", "狀態"), status, firstBlockingIssue?.Title ?? FormatWarningMeta(warningCount, language)),
+            new ReportLineViewModel(T(language, "Inputs", "輸入"), inputs.Count.ToString(CultureInfo.InvariantCulture), T(language, "files", "檔案")),
+            new ReportLineViewModel(
+                T(language, "Steps", "步驟"),
+                operations.Count.ToString(CultureInfo.InvariantCulture),
+                commandCount == 0
+                    ? T(language, "operations", "操作")
+                    : T(
+                        language,
+                        $"{commandCount.ToString(CultureInfo.InvariantCulture)} command(s)",
+                        $"{commandCount.ToString(CultureInfo.InvariantCulture)} 個 command")),
+            new ReportLineViewModel(T(language, "Mutations", "變更"), mutations.Count.ToString(CultureInfo.InvariantCulture), output),
         ];
     }
 
-    private static string CreateOutcomeTitle(string status, IReadOnlyList<ReportLineViewModel> issues)
+    private static string CreateOutcomeTitle(
+        string status,
+        IReadOnlyList<ReportLineViewModel> issues,
+        ShellLanguage language)
     {
         int blockingIssueCount = CountBlockingIssues(issues);
         int warningCount = CountWarnings(issues);
         return blockingIssueCount == 0
             ? status
             : string.Equals(status, "Load failed", StringComparison.Ordinal)
-            ? "Report load failed"
-            : warningCount == 0 ? "Needs attention" : "Needs attention with warnings";
+            ? T(language, "Report load failed", "Report 載入失敗")
+            : warningCount == 0
+                ? T(language, "Needs attention", "需要處理")
+                : T(language, "Needs attention with warnings", "需要處理，且有警告");
     }
 
-    private static string CreateOutcomeDetail(string output, IReadOnlyList<ReportLineViewModel> issues)
+    private static string CreateOutcomeDetail(
+        string output,
+        IReadOnlyList<ReportLineViewModel> issues,
+        ShellLanguage language)
     {
         int blockingIssueCount = CountBlockingIssues(issues);
         int warningCount = CountWarnings(issues);
         return blockingIssueCount == 0
             ? warningCount == 0
-                ? "No issues reported. Evidence is organized below for audit."
-                : "The run completed, but review the warning before treating the output as final evidence."
+                ? T(language, "No issues reported. Evidence is organized below for audit.", "沒有回報問題；審查證據已整理在下方。")
+                : T(language, "The run completed, but review the warning before treating the output as final evidence.", "流程已完成，但請先確認警告再把輸出視為最終證據。")
             : string.IsNullOrWhiteSpace(output)
-            ? "The run did not produce an output artifact. Start with the first issue below."
-            : "Start with the first issue below, then verify the related inputs, operations, and output evidence.";
+            ? T(language, "The run did not produce an output artifact. Start with the first issue below.", "此次執行沒有產生輸出檔；請先查看第一個問題。")
+            : T(language, "Start with the first issue below, then verify the related inputs, operations, and output evidence.", "請先查看第一個問題，再確認相關輸入、操作與輸出證據。");
     }
 
-    private static string CreateOutcomeMeta(IReadOnlyList<ReportLineViewModel> issues)
+    private static string CreateOutcomeMeta(IReadOnlyList<ReportLineViewModel> issues, ShellLanguage language)
     {
         ReportLineViewModel? firstBlockingIssue = issues.FirstOrDefault(issue => !IsWarning(issue));
-        return firstBlockingIssue?.Meta ?? FormatWarningMeta(CountWarnings(issues));
+        return firstBlockingIssue?.Meta ?? FormatWarningMeta(CountWarnings(issues), language);
     }
 
-    private static string CreateNextStepTitle(ReportLineViewModel issue)
+    private static string CreateNextStepTitle(ReportLineViewModel issue, ShellLanguage language)
     {
         return string.Equals(issue.Title, "input.address-space.length-mismatch", StringComparison.Ordinal)
-            ? "Fix input size"
-            : "Start with this issue";
+            ? T(language, "Fix input size", "修正輸入大小")
+            : T(language, "Start with this issue", "先查看此問題");
     }
 
-    private static string CreateIssueAction(ReportLineViewModel issue)
+    private static string CreateIssueAction(ReportLineViewModel issue, ShellLanguage language)
     {
         return issue.Title switch
         {
             "input.address-space.length-mismatch" =>
-                "Use a BIN whose byte length matches the selected IC/profile range, or switch to a workflow that explicitly allows padding/truncation. This run stays blocked because no relaxation policy applies.",
+                T(
+                    language,
+                    "Use a BIN whose byte length matches the selected IC/profile range, or switch to a workflow that explicitly allows padding/truncation. This run stays blocked because no relaxation policy applies.",
+                    "請使用 byte 長度符合所選 IC/profile 範圍的 BIN，或改用明確允許 padding/truncation 的流程。此執行沒有放寬 policy，因此會阻擋。"),
             "input.address-space.truncated" =>
-                "The selected profile allowed truncation for this CtrlRAM input. Review the warning and output differences before using the artifact as evidence.",
-            _ => "Fix the reported issue, then run Build again.",
+                T(
+                    language,
+                    "The selected profile allowed truncation for this CtrlRAM input. Review the warning and output differences before using the artifact as evidence.",
+                    "所選 profile 允許此 CtrlRAM input truncation；使用輸出作為證據前，請確認警告與輸出差異。"),
+            _ => T(language, "Fix the reported issue, then run Build again.", "修正回報問題後再重新建立。"),
         };
     }
 
@@ -553,7 +606,8 @@ public sealed partial class ReportReviewViewModel
         string status,
         string output,
         IReadOnlyList<ReportLineViewModel> operations,
-        IReadOnlyList<ReportLineViewModel> issues)
+        IReadOnlyList<ReportLineViewModel> issues,
+        ShellLanguage language)
     {
         int commandCount = operations.Count(operation => operation.HasCodeBlock);
         ReportLineViewModel? primaryIssue = issues.FirstOrDefault(issue => !IsWarning(issue));
@@ -561,32 +615,38 @@ public sealed partial class ReportReviewViewModel
         return primaryIssue is not null
             ?
             [
-                new ReportLineViewModel("1. First issue", primaryIssue.Title, primaryIssue.Meta),
-                new ReportLineViewModel("2. Recommended action", CreateIssueAction(primaryIssue), "action"),
-                new ReportLineViewModel("3. Message", primaryIssue.Detail, "reason"),
+                new ReportLineViewModel(T(language, "1. First issue", "1. 第一個問題"), primaryIssue.Title, primaryIssue.Meta),
+                new ReportLineViewModel(T(language, "2. Recommended action", "2. 建議處理"), CreateIssueAction(primaryIssue, language), T(language, "action", "處理方式")),
+                new ReportLineViewModel(T(language, "3. Message", "3. 訊息"), primaryIssue.Detail, T(language, "reason", "原因")),
                 new ReportLineViewModel(
-                    "4. Evidence",
-                    commandCount > 0 ? "Refresh commands" : "Operation steps",
-                    commandCount > 0 ? $"{commandCount} command(s)" : $"{operations.Count} operation(s)"),
+                    T(language, "4. Evidence", "4. 證據"),
+                    commandCount > 0 ? T(language, "Refresh commands", "Refresh commands") : T(language, "Operation steps", "操作步驟"),
+                    commandCount > 0
+                        ? T(language, $"{commandCount.ToString(CultureInfo.InvariantCulture)} command(s)", $"{commandCount.ToString(CultureInfo.InvariantCulture)} 個 command")
+                        : T(language, $"{operations.Count.ToString(CultureInfo.InvariantCulture)} operation(s)", $"{operations.Count.ToString(CultureInfo.InvariantCulture)} 個操作")),
             ]
             : firstWarning is not null
             ?
             [
-                new ReportLineViewModel("1. Result", status, "No blocking issue"),
-                new ReportLineViewModel("2. Warning", firstWarning.Title, firstWarning.Meta),
+                new ReportLineViewModel(T(language, "1. Result", "1. 結果"), status, T(language, "No blocking issue", "沒有阻擋問題")),
+                new ReportLineViewModel(T(language, "2. Warning", "2. 警告"), firstWarning.Title, firstWarning.Meta),
                 new ReportLineViewModel(
-                    "3. Evidence",
-                    commandCount > 0 ? "Refresh commands available" : "Operation trace available",
-                    commandCount > 0 ? $"{commandCount} command(s)" : $"{operations.Count} operation(s)"),
+                    T(language, "3. Evidence", "3. 證據"),
+                    commandCount > 0 ? T(language, "Refresh commands available", "有 refresh command 證據") : T(language, "Operation trace available", "有操作 trace"),
+                    commandCount > 0
+                        ? T(language, $"{commandCount.ToString(CultureInfo.InvariantCulture)} command(s)", $"{commandCount.ToString(CultureInfo.InvariantCulture)} 個 command")
+                        : T(language, $"{operations.Count.ToString(CultureInfo.InvariantCulture)} operation(s)", $"{operations.Count.ToString(CultureInfo.InvariantCulture)} 個操作")),
             ]
             :
             [
-                new ReportLineViewModel("1. Result", status, "No issue"),
-                new ReportLineViewModel("2. Output", string.IsNullOrWhiteSpace(output) ? "No output" : output, "artifact"),
+                new ReportLineViewModel(T(language, "1. Result", "1. 結果"), status, T(language, "No issue", "沒有問題")),
+                new ReportLineViewModel("2. Output", string.IsNullOrWhiteSpace(output) ? T(language, "No output", "無輸出") : output, "artifact"),
                 new ReportLineViewModel(
-                    "3. Evidence",
-                    commandCount > 0 ? "Refresh commands available" : "Operation trace available",
-                    commandCount > 0 ? $"{commandCount} command(s)" : $"{operations.Count} operation(s)"),
+                    T(language, "3. Evidence", "3. 證據"),
+                    commandCount > 0 ? T(language, "Refresh commands available", "有 refresh command 證據") : T(language, "Operation trace available", "有操作 trace"),
+                    commandCount > 0
+                        ? T(language, $"{commandCount.ToString(CultureInfo.InvariantCulture)} command(s)", $"{commandCount.ToString(CultureInfo.InvariantCulture)} 個 command")
+                        : T(language, $"{operations.Count.ToString(CultureInfo.InvariantCulture)} operation(s)", $"{operations.Count.ToString(CultureInfo.InvariantCulture)} 個操作")),
             ];
     }
 
@@ -595,7 +655,8 @@ public sealed partial class ReportReviewViewModel
         IReadOnlyList<ReportLineViewModel> operations,
         IReadOnlyList<ReportLineViewModel> mutations,
         IReadOnlyList<ReportLineViewModel> outputDifferences,
-        IReadOnlyList<ReportLineViewModel> issues)
+        IReadOnlyList<ReportLineViewModel> issues,
+        ShellLanguage language)
     {
         int commandCount = operations.Count(operation => operation.HasCodeBlock);
         int stepCount = operations.Count - commandCount;
@@ -605,50 +666,53 @@ public sealed partial class ReportReviewViewModel
         return
         [
             new ReportLineViewModel(
-                "Issues",
+                T(language, "Issues", "問題"),
                 blockingIssueCount.ToString(CultureInfo.InvariantCulture),
-                firstBlockingIssue?.Title ?? "No blocking issue"),
+                firstBlockingIssue?.Title ?? T(language, "No blocking issue", "沒有阻擋問題")),
             new ReportLineViewModel(
-                "Warnings",
+                T(language, "Warnings", "警告"),
                 warningCount.ToString(CultureInfo.InvariantCulture),
-                warningCount == 0 ? "No warning" : issues.First(IsWarning).Title),
+                warningCount == 0 ? T(language, "No warning", "沒有警告") : issues.First(IsWarning).Title),
             new ReportLineViewModel(
-                "Inputs",
+                T(language, "Inputs", "輸入"),
                 inputs.Count.ToString(CultureInfo.InvariantCulture),
-                "file hashes"),
+                T(language, "file hashes", "檔案雜湊")),
             new ReportLineViewModel(
                 "Commands",
                 commandCount.ToString(CultureInfo.InvariantCulture),
-                "external processors"),
+                T(language, "external processors", "外部處理器")),
             new ReportLineViewModel(
-                "Steps",
+                T(language, "Steps", "步驟"),
                 stepCount.ToString(CultureInfo.InvariantCulture),
-                "copy/process order"),
+                T(language, "copy/process order", "copy/process 順序")),
             new ReportLineViewModel(
-                "Mutations",
+                T(language, "Mutations", "變更"),
                 mutations.Count.ToString(CultureInfo.InvariantCulture),
-                "changed ranges"),
+                T(language, "changed ranges", "變更範圍")),
             new ReportLineViewModel(
                 "Output diff",
                 outputDifferences.Count.ToString(CultureInfo.InvariantCulture),
-                CreateOutputDifferenceMeta(outputDifferences)),
+                CreateOutputDifferenceMeta(outputDifferences, language)),
         ];
     }
 
-    private static string CreateOutputDifferenceMeta(IReadOnlyList<ReportLineViewModel> outputDifferences)
+    private static string CreateOutputDifferenceMeta(
+        IReadOnlyList<ReportLineViewModel> outputDifferences,
+        ShellLanguage language)
     {
         if (outputDifferences.Count == 0)
         {
-            return "same as base or non-Replace";
+            return T(language, "same as base or non-Replace", "與 base 相同或非 Replace");
         }
 
-        int acceptedCount = outputDifferences.Count(
-            difference => difference.Badges.Any(
-                badge => string.Equals(badge.Text, "accepted", StringComparison.OrdinalIgnoreCase)));
+        int acceptedCount = outputDifferences.Count(difference => difference.IsAccepted);
         int reviewCount = outputDifferences.Count - acceptedCount;
         return reviewCount == 0
-            ? "all accepted"
-            : $"{acceptedCount.ToString(CultureInfo.InvariantCulture)} accepted / {reviewCount.ToString(CultureInfo.InvariantCulture)} review";
+            ? T(language, "all accepted", "全部可接受")
+            : T(
+                language,
+                $"{acceptedCount.ToString(CultureInfo.InvariantCulture)} accepted / {reviewCount.ToString(CultureInfo.InvariantCulture)} review",
+                $"{acceptedCount.ToString(CultureInfo.InvariantCulture)} 可接受 / {reviewCount.ToString(CultureInfo.InvariantCulture)} 待審查");
     }
 
     private static string FormatEndpoint(string? addressSpaceId, string? range)

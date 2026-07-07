@@ -4,7 +4,19 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-Post-`0.7.4` development targets `0.8.0-dev.N`.
+Post-`0.7.5` development targets `0.8.0-dev.N`.
+
+## [0.7.5] - 2026-07-08
+
+### Added
+
+- The Avalonia shell now uses English and Traditional Chinese text resources for the primary Home, Settings, Merge, Replace, and Report surfaces.
+- Settings language selection now switches the visible UI immediately and is restored through the existing preference store.
+
+### Changed
+
+- Settings preference, catalog, tool, diagnostics, and report-history rows now describe the real current state instead of showing placeholder or pending wording.
+- Report and workflow action labels are routed through the shared text-resource model so bilingual polish does not fork the XAML or ViewModel flow.
 
 ## [0.7.4] - 2026-07-08
 

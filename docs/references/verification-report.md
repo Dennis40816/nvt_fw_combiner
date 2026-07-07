@@ -2,7 +2,7 @@
 
 Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
 
-Specification package version: `0.7.4`
+Specification package version: `0.7.5`
 
 ## Bootstrap assertions
 

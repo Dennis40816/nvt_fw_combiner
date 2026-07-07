@@ -8,32 +8,9 @@ public static class ShellViewModelFactory
     /// <returns>A populated main window view model.</returns>
     public static MainWindowViewModel Create(ShellLanguage language = ShellLanguage.English)
     {
-        var text = ShellTextResources.For(language);
-
         return new MainWindowViewModel(
             ApplicationVersionProvider.WorkbenchLabel,
             ApplicationVersionProvider.InformationalVersion,
-            text.WorkspaceTitle,
-            text.WorkspaceSummary,
-            text.PreviewActionLabel,
-            text.BuildActionLabel,
-            text.ReportModalActionLabel,
-            text.DeviceContextTitle,
-            text.IcLabel,
-            text.NumberLabel,
-            text.DeviceContextStatus,
-            CreatePlanningCard(text.SettingsPreview),
-            CreatePlanningCard(text.MergePreview),
-            CreatePlanningCard(text.ReplacePreview),
-            text.FooterStatus);
-    }
-
-    private static PlanningCardViewModel CreatePlanningCard(PlanningCardText text)
-    {
-        return new PlanningCardViewModel(
-            text.Title,
-            text.Subtitle,
-            text.Rows,
-            text.Status);
+            language);
     }
 }

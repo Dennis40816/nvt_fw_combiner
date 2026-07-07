@@ -262,7 +262,8 @@ public sealed partial class MainWindowViewModel
         var report = ReportReviewViewModel.FromJson(
             result.ReportJson,
             $"{action.ToLowerInvariant()} report",
-            result.CommittedOutputId);
+            result.CommittedOutputId,
+            Text.Language);
         string detail = result.Succeeded
             ? $"{result.ProfileId} / {result.OutputSize} bytes / {result.OutputSha256[..Math.Min(12, result.OutputSha256.Length)]}"
             : report.Issues.Count == 0 ? result.Status : report.Issues[0].Detail;
@@ -276,7 +277,7 @@ public sealed partial class MainWindowViewModel
         LoadedReport = report;
         LoadedReportJson = result.ReportJson;
         CaptureLoadedReportInHistory();
-        SetReportToast($"{action} report generated");
+        SetReportToast(Text.FormatReportGeneratedToast(action));
         NotifyReportChanged();
         RefreshSettingsState();
     }

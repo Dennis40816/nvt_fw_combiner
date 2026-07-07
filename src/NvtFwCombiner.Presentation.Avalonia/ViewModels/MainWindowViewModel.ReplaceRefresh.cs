@@ -156,6 +156,7 @@ public sealed partial class MainWindowViewModel
                 break;
         }
 
+        ApplyFirmwareSlotText();
         RefreshReplaceSlotGroups();
         OnPropertyChanged(nameof(SelectedReplaceModeDescription));
         OnPropertyChanged(nameof(IsDpReplaceModeSelected));

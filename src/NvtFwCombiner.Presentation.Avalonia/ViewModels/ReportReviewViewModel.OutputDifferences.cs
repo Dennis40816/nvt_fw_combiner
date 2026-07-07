@@ -4,7 +4,9 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class ReportReviewViewModel
 {
-    private static IReadOnlyList<ReportLineViewModel> ParseOutputDifferences(JsonElement root)
+    private static IReadOnlyList<ReportLineViewModel> ParseOutputDifferences(
+        JsonElement root,
+        ShellLanguage language)
     {
         return !root.TryGetProperty(nameof(OutputDifferences), out JsonElement differences) ||
                differences.ValueKind != JsonValueKind.Array
@@ -23,14 +25,14 @@ public sealed partial class ReportReviewViewModel
                         GetString(difference, "Explanation"),
                         badges:
                         [
-                            new ReportLineBadgeViewModel(accepted ? "accepted" : "review"),
+                            new ReportLineBadgeViewModel(accepted ? T(language, "accepted", "可接受") : T(language, "review", "待審查")),
                             new ReportLineBadgeViewModel(classification),
                         ],
                         facts:
                         [
-                            new ReportLineFactViewModel("Evidence", GetString(difference, "Evidence"), isTechnical: true),
-                            new ReportLineFactViewModel("Before", before, isTechnical: true),
-                            new ReportLineFactViewModel("After", after, isTechnical: true),
+                            new ReportLineFactViewModel(T(language, "Evidence", "證據"), GetString(difference, "Evidence"), isTechnical: true),
+                            new ReportLineFactViewModel(T(language, "Before", "之前"), before, isTechnical: true),
+                            new ReportLineFactViewModel(T(language, "After", "之後"), after, isTechnical: true),
                         ],
                         classification: classification,
                         isAccepted: accepted);

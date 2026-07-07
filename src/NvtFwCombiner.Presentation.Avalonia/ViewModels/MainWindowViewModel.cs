@@ -42,35 +42,11 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public MainWindowViewModel(
         string shellVersion,
         string appVersion,
-        string workspaceTitle,
-        string workspaceSummary,
-        string previewActionLabel,
-        string buildActionLabel,
-        string reportModalActionLabel,
-        string deviceContextTitle,
-        string icLabel,
-        string numberLabel,
-        string deviceContextStatus,
-        PlanningCardViewModel settingsPreview,
-        PlanningCardViewModel mergePreview,
-        PlanningCardViewModel replacePreview,
-        string footerStatus)
+        ShellLanguage language = ShellLanguage.English)
     {
         ShellVersion = shellVersion;
         AppVersion = appVersion;
-        WorkspaceTitle = workspaceTitle;
-        WorkspaceSummary = workspaceSummary;
-        PreviewActionLabel = previewActionLabel;
-        BuildActionLabel = buildActionLabel;
-        ReportModalActionLabel = reportModalActionLabel;
-        DeviceContextTitle = deviceContextTitle;
-        IcLabel = icLabel;
-        NumberLabel = numberLabel;
-        DeviceContextRefreshSummary = deviceContextStatus;
-        SettingsPreview = settingsPreview;
-        MergePreview = mergePreview;
-        ReplacePreview = replacePreview;
-        FooterStatus = footerStatus;
+        ApplyTextResources(language, notify: false);
         ShowHomeCommand = new RelayCommand(() => SetSelectedPage(ShellPage.Home));
         ShowSettingsCommand = new RelayCommand(() => SetSelectedPage(ShellPage.Settings));
         ShowMergeCommand = new RelayCommand(() => SetSelectedPage(ShellPage.Merge));
@@ -122,29 +98,32 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// <summary>Gets the product version.</summary>
     public string AppVersion { get; }
 
+    /// <summary>Gets the active localized text bundle.</summary>
+    public ShellTextResources Text { get; private set; } = ShellTextResources.For(ShellLanguage.English);
+
     /// <summary>Gets the workspace title.</summary>
-    public string WorkspaceTitle { get; }
+    public string WorkspaceTitle { get; private set; } = string.Empty;
 
     /// <summary>Gets the workspace summary.</summary>
-    public string WorkspaceSummary { get; }
+    public string WorkspaceSummary { get; private set; } = string.Empty;
 
     /// <summary>Gets the preview action label.</summary>
-    public string PreviewActionLabel { get; }
+    public string PreviewActionLabel { get; private set; } = string.Empty;
 
     /// <summary>Gets the build action label.</summary>
-    public string BuildActionLabel { get; }
+    public string BuildActionLabel { get; private set; } = string.Empty;
 
     /// <summary>Gets the report modal action label.</summary>
-    public string ReportModalActionLabel { get; }
+    public string ReportModalActionLabel { get; private set; } = string.Empty;
 
     /// <summary>Gets the shared device context heading.</summary>
-    public string DeviceContextTitle { get; }
+    public string DeviceContextTitle { get; private set; } = string.Empty;
 
     /// <summary>Gets the IC field label.</summary>
-    public string IcLabel { get; }
+    public string IcLabel { get; private set; } = string.Empty;
 
     /// <summary>Gets the IC count/variant field label.</summary>
-    public string NumberLabel { get; }
+    public string NumberLabel { get; private set; } = string.Empty;
 
     /// <summary>Gets the shared device context status text.</summary>
     public string DeviceContextStatus => IsNumberSelectorVisible
@@ -171,16 +150,16 @@ public sealed partial class MainWindowViewModel : ObservableObject
     ];
 
     /// <summary>Gets settings card content.</summary>
-    public PlanningCardViewModel SettingsPreview { get; }
+    public PlanningCardViewModel SettingsPreview { get; private set; } = CreatePlanningCard(ShellTextResources.For(ShellLanguage.English).SettingsPreview);
 
     /// <summary>Gets merge card content.</summary>
-    public PlanningCardViewModel MergePreview { get; }
+    public PlanningCardViewModel MergePreview { get; private set; } = CreatePlanningCard(ShellTextResources.For(ShellLanguage.English).MergePreview);
 
     /// <summary>Gets replace card content.</summary>
-    public PlanningCardViewModel ReplacePreview { get; }
+    public PlanningCardViewModel ReplacePreview { get; private set; } = CreatePlanningCard(ShellTextResources.For(ShellLanguage.English).ReplacePreview);
 
     /// <summary>Gets footer status content.</summary>
-    public string FooterStatus { get; }
+    public string FooterStatus { get; private set; } = string.Empty;
 
     /// <summary>Gets merge input slots.</summary>
     public ObservableCollection<FirmwareSlotViewModel> MergeSlots { get; } = [];
@@ -258,13 +237,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public string ReplaceOutputFileName => CreateFlashCodeOutputFileName();
 
     /// <summary>Gets short Merge memory-map summary text.</summary>
-    public string MergeMemorySummary => SelectedMergeMode switch
-    {
-        NormalMergeMode when IsStandardMergeSupported => "The bar shows which input file occupies each final flash position.",
-        NormalMergeMode => "No merge profile is available for the selected IC.",
-        GeneralMergeMode => "The bar starts reserved and marks each explicit source mapping written into the output.",
-        _ => "This merge mode is reserved.",
-    };
+    public string MergeMemorySummary => Text.GetMergeMemorySummary(
+        SelectedMergeMode,
+        IsStandardMergeSupported,
+        GeneralMergeMappings.Any(mapping => mapping.HasFile));
 
     /// <summary>Gets the latest UI-triggered run summary.</summary>
     public UiRunResultViewModel LastRunResult { get; private set; } = new(
@@ -277,14 +253,18 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public bool HasCtrlRamRegions => CtrlRamRegions.Count > 0;
 
     /// <summary>Gets selected CtrlRAM row summary text.</summary>
-    public string CtrlRamRegionSummary => string.Equals(SelectedNumber, "single", StringComparison.OrdinalIgnoreCase)
-        ? $"{SelectedIc} single: TP Overview regions that require multi-chip context are hidden."
-        : $"{SelectedIc} {SelectedNumber}: TP Overview CtrlRAM regions are loaded from the production flash-map catalog.";
+    public string CtrlRamRegionSummary => Text.GetCtrlRamRegionSummary(SelectedIc, SelectedNumber);
 
     /// <summary>Gets the standard merge support summary for the selected IC.</summary>
     public string StandardMergeSupportSummary => IsStandardMergeSupported
-        ? $"{SelectedIc}: Standard Merge profile found. Required slots: {GetRequiredStandardMergeSlotLabels()}."
-        : $"{SelectedIc}: no Standard Merge profile yet.";
+        ? Text.GetStandardMergeSupportSummary(
+            SelectedIc,
+            supported: true,
+            GetRequiredStandardMergeSlotLabels())
+        : Text.GetStandardMergeSupportSummary(
+            SelectedIc,
+            supported: false,
+            GetRequiredStandardMergeSlotLabels());
 
     /// <summary>Gets the selected shell page.</summary>
     public ShellPage SelectedPage { get; private set; } = ShellPage.Home;
@@ -342,24 +322,15 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public bool IsStandardMergeSupported => UiCompositionRunner.IsStandardMergeSupported(SelectedIc);
 
     /// <summary>Description shown under the selected replace mode.</summary>
-    public string SelectedReplaceModeDescription => SelectedReplaceMode switch
-    {
-        DpReplaceMode => "Replace DP and optional LD payloads without CRC postbuild.",
-        CtrlRamReplaceMode => "Replace CtrlRAM payloads, then run combiner.exe postbuild for CRC/header refresh.",
-        GeneralReplaceMode => "Author explicit profile-approved ranges; TP ranges require combiner.exe CRC/header refresh.",
-        _ => "Select a replace mode.",
-    };
+    public string SelectedReplaceModeDescription => Text.GetReplaceModeDescription(SelectedReplaceMode);
 
     /// <summary>Status shown in the merge inspector.</summary>
-    public string MergeReadinessStatus => SelectedMergeMode switch
-    {
-        NormalMergeMode when IsStandardMergeSupported => $"{SelectedIc}: drop {GetRequiredStandardMergeSlotLabels()} BIN files.",
-        NormalMergeMode => $"{SelectedIc}: Standard Merge is not available yet.",
-        GeneralMergeMode => GeneralMergeMappings.Any(mapping => mapping.HasFile)
-            ? $"{SelectedIc}: General Merge maps {GeneralMergeMappings.Count(mapping => mapping.HasFile)} source BIN file(s) into a blank output."
-            : $"{SelectedIc}: add at least one source BIN mapping.",
-        _ => "AB Code Merge is reserved for a later workflow.",
-    };
+    public string MergeReadinessStatus => Text.GetMergeReadinessStatus(
+        SelectedMergeMode,
+        SelectedIc,
+        GetRequiredStandardMergeSlotLabels(),
+        IsStandardMergeSupported,
+        GeneralMergeMappings.Count(mapping => mapping.HasFile));
 
     /// <summary>One-line Build action hint for Merge.</summary>
     public string MergeBuildActionTip => CreateBuildActionTip(MergeReadinessStatus, CanRunMerge());
@@ -477,7 +448,16 @@ public sealed partial class MainWindowViewModel : ObservableObject
         RefreshCommandState();
     }
 
-    private string DeviceContextRefreshSummary { get; }
+    private string DeviceContextRefreshSummary { get; set; } = string.Empty;
+
+    private static PlanningCardViewModel CreatePlanningCard(PlanningCardText text)
+    {
+        return new PlanningCardViewModel(
+            text.Title,
+            text.Subtitle,
+            text.Rows,
+            text.Status);
+    }
 
     private void RefreshNumberChoicesForSelectedIc()
     {

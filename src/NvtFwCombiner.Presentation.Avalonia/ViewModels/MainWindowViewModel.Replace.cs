@@ -5,30 +5,10 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 public sealed partial class MainWindowViewModel
 {
     /// <summary>Gets short Replace memory-map summary text.</summary>
-    public string ReplaceMemorySummary => SelectedReplaceMode switch
-    {
-        DpReplaceMode => SelectedIc is "NT51950" or "NT51951"
-            ? "Blue shows new DP bytes; gray shows TP restored from the base firmware."
-            : "Base flash stays unchanged except approved DP replacement ranges.",
-        CtrlRamReplaceMode => "Colored blocks show replaceable CtrlRAM positions; gray stays from the base firmware.",
-        GeneralReplaceMode => "Base flash stays unchanged except approved explicit replacement ranges.",
-        _ => "Select a replace mode to inspect its target ranges.",
-    };
+    public string ReplaceMemorySummary => Text.GetReplaceMemorySummary(SelectedReplaceMode, SelectedIc);
 
     /// <summary>Status shown in the replace inspector.</summary>
-    public string ReplaceReadinessStatus => SelectedReplaceMode switch
-    {
-        DpReplaceMode => CanRunReplace()
-            ? "Ready: Build will validate DP Replace inputs, then write output and report."
-            : "Build blocked: base BIN and required DP replacement inputs are required.",
-        CtrlRamReplaceMode => CanRunReplace()
-            ? "Ready: Build will replace selected CtrlRAM regions and run postbuild."
-            : "Build blocked: base BIN and at least one CtrlRAM region BIN are required.",
-        GeneralReplaceMode => CanRunReplace()
-            ? "Ready: Build will compile explicit mappings and run postbuild when TP ranges are touched."
-            : "Build blocked: base BIN and at least one explicit replacement mapping are required.",
-        _ => "Build blocked: select a Replace mode.",
-    };
+    public string ReplaceReadinessStatus => Text.GetReplaceReadinessStatus(SelectedReplaceMode, CanRunReplace());
 
     /// <summary>Gets the compact reason shown on disabled Replace preview.</summary>
     public string ReplacePreviewUnavailableReason => ReplaceReadinessStatus;
