@@ -6,6 +6,6 @@
 - `python-worker / verify`
 - `dotnet / build-test`
 
-`release.yml` is manually dispatched only for an existing approved stable `vX.Y.Z` tag. Development tags such as `v0.1.0-dev.0` never publish a release.
+`release.yml` runs for pushed stable `vX.Y.Z` tags and can also be manually dispatched for the same existing tag form. The job still validates that the tag is exact, stable SemVer, reachable from `main`, and approved through the protected `release` environment. Development tags such as `v0.1.0-dev.0` never publish a release.
 
 All external actions are pinned to full immutable commit SHAs. Workflow permissions are least-privilege per workflow, checkout credentials are not persisted, and pull-request jobs receive no release environment secrets. Reviewed source copies are retained under `docs/ci/workflow-templates/` for change review; the executable source of truth remains `.github/workflows/`.

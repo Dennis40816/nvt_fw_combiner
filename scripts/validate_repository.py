@@ -697,9 +697,12 @@ def validate_workflows(errors: list[str]) -> None:
         errors.append("canonical verifier must include the CtrlRAM Replace fixture gate")
     release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
     if "workflow_dispatch" not in release or "stable SemVer tag" not in release:
-        errors.append("release workflow must be manually gated by an existing stable SemVer tag")
+        errors.append("release workflow must accept an existing stable SemVer tag")
     if "push:" in release and "tags:" in release:
-        errors.append("development tags must not automatically trigger the stable release workflow")
+        if "v[0-9]*.[0-9]*.[0-9]*" not in release:
+            errors.append("stable release workflow tag trigger must be constrained to vX.Y.Z-like tags")
+        if "!contains(github.ref_name, '-')" not in release:
+            errors.append("development tags must not enter the stable release publish job")
     if "scripts/package.ps1" not in release:
         errors.append("release workflow does not call the closed-allowlist packager")
 
