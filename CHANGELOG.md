@@ -4,7 +4,20 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-Post-`0.7.3` development targets `0.8.0-dev.N`.
+Post-`0.7.4` development targets `0.8.0-dev.N`.
+
+## [0.7.4] - 2026-07-08
+
+### Added
+
+- DP BIN slots now show gen_flash-derived DP version badges where evidence exists, with a warning badge when a selected IC still lacks a DP version rule.
+- Report review now uses a wider evidence modal with Inputs, Changes, Operations, Postbuild, Issues, and Raw sections, including table-style operation range evidence.
+
+### Changed
+
+- Merge and Replace workbench pages now use a Build-first interaction model; Build validates current inputs automatically and disabled states surface the blocking reason in-page.
+- Home workflow cards no longer show IC/Number selection hints that are only relevant inside Merge or Replace.
+- The reference folder formerly named combiner info is now exposed as TDDI Flash Header for clearer owner-facing terminology.
 
 ## [0.7.3] - 2026-07-06
 

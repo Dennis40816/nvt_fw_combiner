@@ -11,6 +11,7 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 - `v0.7.1` — patch milestone for Replace report output-difference traceability. It classifies final output-vs-reference differences as declared replacement, IC-number-specific postbuild CRC/header, or unexpected; it does not expand firmware support scope.
 - `v0.7.2` — patch milestone for General Merge v1. It adds CLI/UI explicit source-to-target mappings over a caller-declared blank output image and does not add saved-rule promotion, postbuild behavior, or new IC support claims.
 - `v0.7.3` — patch milestone for saved-rule validation, operation provenance, and General Merge saved-rule CLI consumption. It does not promote saved rules into normal workflows or enable General Replace saved-rule execution.
+- `v0.7.4` — patch milestone for report review readability, Build-first workbench interaction, DP version badges from gen_flash evidence, and TDDI Flash Header reference naming. It does not expand firmware support scope or private golden parity claims.
 
 ## Branch and merge policy
 
@@ -18,7 +19,8 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 - `0.7.1` is the patch train for Replace report output-difference traceability on top of the reviewed `0.7.0` stable milestone.
 - `0.7.2` is the patch train for General Merge v1 on top of `0.7.1`.
 - `0.7.3` is the patch train for saved-rule validation and General Merge rule consumption on top of `0.7.2`.
-- `0.8.0` is the active post-`0.7.3` development train for packaging/security hardening and remaining release evidence closure.
+- `0.7.4` is the patch train for report readability, Build-first workbench UI, DP version badges, and reference naming on top of `0.7.3`.
+- `0.8.0` is the active post-`0.7.4` development train for packaging/security hardening and remaining release evidence closure.
 - `main` is the stable branch.
 - Progress to `main` must happen through reviewed merge/PR, not direct unreviewed development pushes.
 - Agent/Codex work should stay on the active milestone branch until review gates pass.
@@ -71,6 +73,7 @@ v0.6.0-dev.N    workflow data-model convergence
 v0.7.0-dev.N    General Merge/Replace saved rules and deferred AB merge
 v0.7.2          General Merge v1
 v0.7.3          saved-rule validation and General Merge CLI consumption
+v0.7.4          report readability and Build-first workbench UI
 v0.8.0-dev.N    packaging/security
 v0.9.0-rc.N     UAT/release candidates
 v1.0.0          stable
@@ -125,4 +128,15 @@ v1.0.0          stable
 - `saved-rule mappings` prints normalized mapping rows and CLI fragments without reading or writing firmware bytes.
 - General Merge CLI accepts `--rule <rule.json>` plus explicit `--slot <slot-id=path>` bindings and compiles resulting rows through the same General Merge planner/executor.
 - General Replace saved-rule build, UI Saved Rules, and normal-workflow promotion remain out of scope until their processor/range policy and review gates are defined.
+- `python scripts/verify.py --all`, Polytail, Codex review, and required local verification are complete before tagging.
+
+## `v0.7.4` release gate
+
+`v0.7.4` can be tagged after the report/build-first UI branch passes local verification and review gates:
+
+- Report review uses a wide, sectioned evidence modal with readable operation range tables and concise output-difference summaries.
+- Merge and Replace workbench pages expose Build as the primary action, with Build performing validation on current inputs before writing output.
+- Home workflow cards avoid IC/Number hints that only apply inside workflow pages.
+- DP version badges are derived from gen_flash evidence when rules exist; unsupported ICs show an explicit warning badge rather than a silent or guessed value.
+- TDDI Flash Header reference naming is used for owner-facing reference evidence.
 - `python scripts/verify.py --all`, Polytail, Codex review, and required local verification are complete before tagging.
