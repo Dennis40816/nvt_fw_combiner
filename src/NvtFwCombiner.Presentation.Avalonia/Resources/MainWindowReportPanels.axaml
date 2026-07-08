@@ -1,0 +1,153 @@
+<ResourceDictionary
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
+
+<DataTemplate x:Key="ReportModalHeaderTemplate" DataType="vm:MainWindowViewModel">
+  <Border Padding="22,18" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+      <StackPanel Spacing="5">
+        <TextBlock FontSize="20" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.Title}" TextWrapping="Wrap" />
+        <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding LoadedReport.Subtitle}" TextWrapping="Wrap" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+        <Button
+            Classes="iconButton"
+            Command="{Binding CloseReportCommand}"
+            ToolTip.Tip="{Binding Text.CloseReportTooltip}">
+          <TextBlock Text="×" />
+        </Button>
+      </StackPanel>
+    </Grid>
+  </Border>
+</DataTemplate>
+
+<DataTemplate x:Key="ReportHistoryPanelTemplate" DataType="vm:MainWindowViewModel">
+  <Border
+      Margin="22,18,22,0"
+      Padding="16"
+      Background="#FFFFFF"
+      BorderBrush="#CBD5E1"
+      BorderThickness="1"
+      CornerRadius="8">
+    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="14">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <StackPanel Spacing="3">
+          <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.ReportHistoryTitle}" />
+          <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding ReportHistorySummary}" />
+          <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding ReportHistoryStorageSummary}" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+          <Button Classes="secondary" Command="{Binding CloseReportHistoryCommand}" Content="{Binding Text.BackToReportLabel}" />
+          <Button
+              Classes="danger"
+              Command="{Binding ClearReportHistoryCommand}"
+              Content="{Binding Text.ClearAllLabel}"
+              ToolTip.Tip="{Binding Text.ClearHistoryTooltip}" />
+        </StackPanel>
+      </Grid>
+
+      <Border Grid.Row="1" Padding="10" Background="#FFF7ED" BorderBrush="#FED7AA" BorderThickness="1" CornerRadius="8" IsVisible="{Binding HasReportHistoryStorageWarning}">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+          <TextBlock FontSize="12" Foreground="#9A3412" Text="{Binding ReportHistoryStorageWarning}" TextWrapping="Wrap" />
+          <Button Grid.Column="1" Classes="danger" Command="{Binding ClearReportHistoryCommand}" Content="{Binding Text.ClearHistoryLabel}" />
+        </Grid>
+      </Border>
+
+      <Border Grid.Row="2" Padding="18" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" IsVisible="{Binding IsReportHistoryEmpty}">
+        <TextBlock FontSize="13" Foreground="#64748B" Text="{Binding Text.NoReportHistoryLabel}" />
+      </Border>
+
+      <ScrollViewer Grid.Row="2" IsVisible="{Binding HasReportHistory}">
+        <ItemsControl ItemsSource="{Binding ReportHistoryEntries}">
+          <ItemsControl.ItemTemplate>
+            <StaticResource ResourceKey="ReportHistoryEntryTemplate" />
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Grid>
+  </Border>
+</DataTemplate>
+
+<DataTemplate x:Key="ReportSummaryPanelTemplate" DataType="vm:MainWindowViewModel">
+  <Border Margin="22,16,22,0" Padding="14" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
+    <Grid ColumnDefinitions="1.05*,1.15*,1.45*,Auto" ColumnSpacing="16">
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+        <Grid Width="36" Height="36" AutomationProperties.Name="{Binding LoadedReport.OutcomeAccessibilityLabel}">
+          <Border Background="#16A34A" CornerRadius="999" IsVisible="{Binding LoadedReport.IsClean}" />
+          <Border Background="#D97706" CornerRadius="999" IsVisible="{Binding LoadedReport.HasWarningsWithoutBlockingIssues}" />
+          <Border Background="#EA580C" CornerRadius="999" IsVisible="{Binding LoadedReport.HasPrimaryIssue}" />
+          <TextBlock
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              FontSize="15"
+              FontWeight="SemiBold"
+              Foreground="#FFFFFF"
+              Text="{Binding LoadedReport.OutcomeIcon}" />
+        </Grid>
+        <StackPanel Grid.Column="1" Spacing="4">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.RunLabel}" />
+            <Border Grid.Column="1" Padding="7,2" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+              <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding LoadedReport.OutcomeMeta}" TextWrapping="Wrap" />
+            </Border>
+          </Grid>
+          <TextBlock FontSize="17" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.OutcomeTitle}" TextWrapping="Wrap" />
+          <TextBlock FontSize="12" Foreground="#475569" Text="{Binding LoadedReport.OutcomeDetail}" TextWrapping="Wrap" />
+          <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.NextStepTitle}" TextWrapping="Wrap" />
+        </StackPanel>
+      </Grid>
+
+      <Border Grid.Column="1" Padding="14,0,0,0" BorderBrush="#E2E8F0" BorderThickness="1,0,0,0">
+        <StackPanel Spacing="5">
+          <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.OutputLabel}" />
+          <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.OutputFileName}" TextWrapping="Wrap" />
+          <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding LoadedReport.OutputArtifactPath}" TextWrapping="Wrap" IsVisible="{Binding LoadedReport.HasOutputArtifactPath}" />
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Column="2" Padding="14,0,0,0" BorderBrush="#E2E8F0" BorderThickness="1,0,0,0">
+        <StackPanel Spacing="8">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+            <StackPanel Spacing="3">
+              <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.ChangeReviewTitle}" />
+              <TextBlock FontSize="17" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.ByteDifferenceTitle}" TextWrapping="Wrap" />
+            </StackPanel>
+            <Border Grid.Column="1" Padding="8,2" VerticalAlignment="Top" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+              <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#334155" Text="{Binding LoadedReport.ByteDifferenceMeta}" />
+            </Border>
+          </Grid>
+          <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding LoadedReport.ByteDifferenceDetail}" TextWrapping="Wrap" />
+          <ItemsControl ItemsSource="{Binding LoadedReport.OutputDifferenceSummaryRows}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <StaticResource ResourceKey="ReportDifferenceSummaryChipTemplate" />
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <Button
+          Grid.Column="3"
+          Classes="iconButton"
+          VerticalAlignment="Top"
+          AutomationProperties.Name="{Binding Text.OpenReportHistoryAutomationName}"
+          Command="{Binding ShowReportHistoryCommand}"
+          IsVisible="{Binding HasReportHistory}"
+          ToolTip.Tip="{Binding Text.OpenReportHistoryTooltip}">
+        <Path
+            Width="16"
+            Height="16"
+            Data="M10,2 A8,8 0 1 1 2,10 M2,10 L2,4 M2,10 L8,10 M10,6 L10,10 L13,12"
+            Stretch="Uniform"
+            Stroke="#475569"
+            StrokeThickness="1.7" />
+      </Button>
+    </Grid>
+  </Border>
+</DataTemplate>
+</ResourceDictionary>

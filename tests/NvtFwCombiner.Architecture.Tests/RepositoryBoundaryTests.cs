@@ -74,8 +74,9 @@ public sealed partial class RepositoryBoundaryTests
         string shellStyles = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowStyles.axaml");
         string sharedTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml");
         string reportTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportTemplates.axaml");
+        string reportPanels = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportPanels.axaml");
         string pageTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowPageTemplates.axaml");
-        string shellSurface = string.Join(Environment.NewLine, shell, pageTemplates);
+        string shellSurface = string.Join(Environment.NewLine, shell, pageTemplates, reportPanels);
 
         Assert.Contains("IsHomeVisible", shell, StringComparison.Ordinal);
         Assert.Contains("IsMergeVisible", shell, StringComparison.Ordinal);
@@ -102,6 +103,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("MainWindowStyles.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("MainWindowSharedTemplates.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("MainWindowReportTemplates.axaml", shell, StringComparison.Ordinal);
+        Assert.Contains("MainWindowReportPanels.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("MainWindowPageTemplates.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource HomePageTemplate}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource SettingsPageTemplate}\"", shell, StringComparison.Ordinal);
@@ -166,23 +168,26 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("<Window.KeyBindings>", shell, StringComparison.Ordinal);
         Assert.Contains("Gesture=\"Ctrl+H\" Command=\"{Binding ShowReportHistoryCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Gesture=\"Ctrl+Shift+Delete\" Command=\"{Binding ClearReportHistoryCommand}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.Name=\"{Binding Text.OpenReportHistoryAutomationName}\"", shell, StringComparison.Ordinal);
-        int reportHeaderIndex = shell.IndexOf("Text=\"{Binding LoadedReport.Title}\"", StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding Text.OpenReportHistoryAutomationName}\"", reportPanels, StringComparison.Ordinal);
+        int reportHeaderIndex = reportPanels.IndexOf("Text=\"{Binding LoadedReport.Title}\"", StringComparison.Ordinal);
         bool hasAuditDetailsTemplate = reportTemplates.Contains("ReportAuditDetailsPanelTemplate", StringComparison.Ordinal);
-        int historyActionIndex = shell.IndexOf(
+        int historyActionIndex = reportPanels.IndexOf(
             "AutomationProperties.Name=\"{Binding Text.OpenReportHistoryAutomationName}\"",
             StringComparison.Ordinal);
         Assert.True(
             reportHeaderIndex >= 0 && hasAuditDetailsTemplate && historyActionIndex > reportHeaderIndex,
             "Report history should remain a secondary evidence action instead of returning to the report modal header.");
         Assert.DoesNotContain("ReportHistoryActionLabel", shell, StringComparison.Ordinal);
-        Assert.Contains("LoadedReport.OutcomeTitle", shell, StringComparison.Ordinal);
-        Assert.Contains("LoadedReport.ByteDifferenceTitle", shell, StringComparison.Ordinal);
-        Assert.Contains("LoadedReport.OutputDifferenceSummaryRows", shell, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding Text.ChangeReviewTitle}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{StaticResource ReportModalHeaderTemplate}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{StaticResource ReportHistoryPanelTemplate}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{StaticResource ReportSummaryPanelTemplate}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.OutcomeTitle", reportPanels, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.ByteDifferenceTitle", reportPanels, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.OutputDifferenceSummaryRows", reportPanels, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.ChangeReviewTitle}\"", reportPanels, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource ReportAuditDetailsPanelTemplate}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.EvidenceTitle}\"", reportTemplates, StringComparison.Ordinal);
-        Assert.Contains("ReportDifferenceSummaryChipTemplate", shell, StringComparison.Ordinal);
+        Assert.Contains("ReportDifferenceSummaryChipTemplate", reportPanels, StringComparison.Ordinal);
         Assert.DoesNotContain("Choose IC and Number inside", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("HomeReplaceStatus", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("HomeMergeStatus", shell, StringComparison.Ordinal);
@@ -266,7 +271,8 @@ public sealed partial class RepositoryBoundaryTests
         string shell = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml");
         string pageTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowPageTemplates.axaml");
         string reportTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportTemplates.axaml");
-        string shellSurface = string.Join(Environment.NewLine, shell, pageTemplates, reportTemplates);
+        string reportPanels = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportPanels.axaml");
+        string shellSurface = string.Join(Environment.NewLine, shell, pageTemplates, reportTemplates, reportPanels);
 
         Assert.Contains("ShellLanguage.ChineseTraditional", resources, StringComparison.Ordinal);
         Assert.Contains("合併", resources, StringComparison.Ordinal);
