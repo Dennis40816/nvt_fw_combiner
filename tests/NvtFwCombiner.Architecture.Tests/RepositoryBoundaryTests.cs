@@ -361,7 +361,7 @@ public sealed partial class RepositoryBoundaryTests
 
     private static string[] ReadCtrlRamPostbuildIcIds()
     {
-        string source = ReadText("src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.cs");
+        string source = ReadPostbuildCatalogPartials();
         return
         [
             .. CtrlRamPostbuildProfileRegex().Matches(source)
@@ -454,6 +454,20 @@ public sealed partial class RepositoryBoundaryTests
         return string.Join(
             Environment.NewLine,
             Directory.GetFiles(directory, "ShellTextResources*.cs")
+                .Order(StringComparer.Ordinal)
+                .Select(File.ReadAllText));
+    }
+
+    private static string ReadPostbuildCatalogPartials()
+    {
+        string directory = Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Application",
+            "ExternalTools");
+        return string.Join(
+            Environment.NewLine,
+            Directory.GetFiles(directory, "LegacyCombinerPostbuildCatalog*.cs")
                 .Order(StringComparer.Ordinal)
                 .Select(File.ReadAllText));
     }
