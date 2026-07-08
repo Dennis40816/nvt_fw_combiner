@@ -288,17 +288,50 @@ public sealed class TpFlashMapCatalogTests
     {
         foreach (LegacyCombinerPostbuildProfile profile in LegacyCombinerPostbuildCatalog.All)
         {
-            yield return (profile, new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
-            yield return (profile, new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
-            if (profile.TwoChipCommands is not null)
+            foreach (IcNumberSelection selection in GetCatalogSelections(profile))
             {
-                yield return (profile, new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]));
-            }
-
-            if (profile.ThreeChipCommands is not null)
-            {
-                yield return (profile, new IcNumberSelection(IcNumberInputMode.NumericSelector, ["3"]));
+                yield return (profile, selection);
             }
         }
+    }
+
+    private static IEnumerable<IcNumberSelection> GetCatalogSelections(LegacyCombinerPostbuildProfile profile)
+    {
+        HashSet<string> selectionKeys = [];
+        foreach (string token in profile.BranchRules.Keys)
+        {
+            if (TryCreateCatalogSelection(token, out IcNumberSelection? selection) &&
+                selection is not null &&
+                selectionKeys.Add($"{selection.Mode}:{string.Join("|", selection.Parts)}"))
+            {
+                yield return selection;
+            }
+        }
+    }
+
+    private static bool TryCreateCatalogSelection(
+        string token,
+        out IcNumberSelection? selection)
+    {
+        if (IcNumberSelectionTokens.IsSingle(token))
+        {
+            selection = new IcNumberSelection(IcNumberInputMode.SingleSelector, [token]);
+            return true;
+        }
+
+        if (string.Equals(token, IcNumberSelectionTokens.Cascade, StringComparison.Ordinal))
+        {
+            selection = new IcNumberSelection(IcNumberInputMode.CascadeSelector, [token]);
+            return true;
+        }
+
+        if (int.TryParse(token, out int numericValue) && numericValue > 1)
+        {
+            selection = new IcNumberSelection(IcNumberInputMode.NumericSelector, [token]);
+            return true;
+        }
+
+        selection = null;
+        return false;
     }
 }
