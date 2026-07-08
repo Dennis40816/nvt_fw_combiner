@@ -2,6 +2,7 @@ using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -63,7 +64,7 @@ public static partial class WorkbenchCompositionService
             validationIssues.Add(new CompositionIssue(
                 "replace.ctrlram.no-mapped-region",
                 $"No postbuild-mapped CtrlRAM region is available for {icId} / {number}.",
-                "ctrlram-replace"));
+                IcWorkflowIds.CtrlRamReplace));
         }
 
         List<TpFlashMapRegion> selectedRegions =
@@ -77,7 +78,7 @@ public static partial class WorkbenchCompositionService
             validationIssues.Add(new CompositionIssue(
                 "replace.ctrlram.no-region-input",
                 "Select at least one CtrlRAM replacement BIN.",
-                "ctrlram-replace"));
+                IcWorkflowIds.CtrlRamReplace));
         }
 
         if (commandPlan is not null && baseLength > 0)

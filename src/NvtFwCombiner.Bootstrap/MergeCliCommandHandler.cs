@@ -1,3 +1,5 @@
+using NvtFwCombiner.Profiles;
+
 namespace NvtFwCombiner.Bootstrap;
 
 internal static partial class MergeCliCommandHandler
@@ -6,7 +8,7 @@ internal static partial class MergeCliCommandHandler
     private const int CompositionFailed = 1;
     private const int UsageError = 64;
     private const int SoftwareError = 70;
-    private const string GeneralMergeModeId = "general-merge";
+    private const string GeneralMergeModeId = IcWorkflowIds.GeneralMerge;
 
     internal static async Task<int> RunAsync(
         string command,
@@ -15,7 +17,7 @@ internal static partial class MergeCliCommandHandler
         TextWriter error,
         CancellationToken cancellationToken)
     {
-        if (command != "general-merge")
+        if (command != IcWorkflowIds.GeneralMerge)
         {
             await error.WriteLineAsync($"error: unknown merge command '{command}'").ConfigureAwait(false);
             return UsageError;

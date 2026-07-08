@@ -163,7 +163,7 @@ public static partial class WorkbenchCompositionService
                     new CompositionIssue(
                         "ui.general-merge.mapping-required",
                         "General Merge requires at least one explicit source-to-target mapping.",
-                        "general-merge"),
+                        IcWorkflowIds.GeneralMerge),
                 ],
                 defaultOutputFileName,
                 succeeded: false);

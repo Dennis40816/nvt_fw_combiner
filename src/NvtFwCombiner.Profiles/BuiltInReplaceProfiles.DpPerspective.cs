@@ -62,9 +62,9 @@ public static partial class BuiltInReplaceProfiles
             $"{normalizedProfileIc}-dp-replace-dp-perspective",
             "0.5.0",
             normalizedIc,
-            "dp-replace",
+            IcWorkflowIds.DpReplace,
             CompositionKind.Replace,
-            "dp-replace",
+            IcWorkflowIds.DpReplace,
             $"{normalizedProfileIc}-dp-replace.bin",
             ImageInitialization.Reference("output-image", "reference-base", capacity),
             [

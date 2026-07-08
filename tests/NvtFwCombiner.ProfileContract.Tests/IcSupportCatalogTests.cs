@@ -1,3 +1,4 @@
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
@@ -38,6 +39,18 @@ public sealed class IcSupportCatalogTests
             ],
             IcWorkflowIds.All);
         Assert.All(IcWorkflowIds.All, workflowId => Assert.True(IcWorkflowIds.IsKnown(workflowId), workflowId));
+    }
+
+    /// <summary>Every IC workflow id maps to a runtime experience descriptor.</summary>
+    [Fact]
+    public void KnownWorkflowIdsExistInDomainExperienceCatalog()
+    {
+        HashSet<string> domainExperienceIds =
+        [
+            .. ExperienceCatalog.All.Select(experience => experience.ExperienceId),
+        ];
+
+        Assert.All(IcWorkflowIds.All, workflowId => Assert.Contains(workflowId, domainExperienceIds));
     }
 
     /// <summary>Unknown or empty workflow declarations fail before an invalid IC row can be surfaced.</summary>

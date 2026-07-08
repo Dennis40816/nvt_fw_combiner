@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -16,7 +17,7 @@ internal static partial class ReplaceCliCommandHandler
     {
         if (!TryResolveWorkbenchIc(profileSelector, out string? icId))
         {
-            return await UnknownReplaceProfileAsync("general-replace", profileSelector, error).ConfigureAwait(false);
+            return await UnknownReplaceProfileAsync(IcWorkflowIds.GeneralReplace, profileSelector, error).ConfigureAwait(false);
         }
 
         if (!RequireOption(options, "--ic-num", error, out string? icNumber) ||
@@ -82,7 +83,7 @@ internal static partial class ReplaceCliCommandHandler
                 output,
                 cancellationToken)
             .ConfigureAwait(false);
-        await PrintWorkbenchRunResultAsync(result, icId, "general-replace", output, error).ConfigureAwait(false);
+        await PrintWorkbenchRunResultAsync(result, icId, IcWorkflowIds.GeneralReplace, output, error).ConfigureAwait(false);
         return result.Succeeded ? Success : CompositionFailed;
     }
 

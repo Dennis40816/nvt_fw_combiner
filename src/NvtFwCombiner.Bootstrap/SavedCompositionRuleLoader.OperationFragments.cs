@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -42,7 +43,7 @@ internal static partial class SavedCompositionRuleLoader
                 OperationFragmentKindValues,
                 issues);
             if (compositionKind == "merge" &&
-                sourceExperience == "general-merge" &&
+                sourceExperience == IcWorkflowIds.GeneralMerge &&
                 !string.IsNullOrWhiteSpace(kind) &&
                 !string.Equals(kind, "copy-range", StringComparison.Ordinal))
             {
@@ -61,7 +62,7 @@ internal static partial class SavedCompositionRuleLoader
                 validateId: true,
                 issues);
             if (compositionKind == "merge" &&
-                sourceExperience == "general-merge" &&
+                sourceExperience == IcWorkflowIds.GeneralMerge &&
                 fragmentProcessorDependencyIds.Count > 0)
             {
                 issues.Add(Issue(
@@ -71,7 +72,7 @@ internal static partial class SavedCompositionRuleLoader
             }
 
             if (compositionKind == "replace" &&
-                sourceExperience == "general-replace" &&
+                sourceExperience == IcWorkflowIds.GeneralReplace &&
                 fragmentProcessorDependencyIds.Count > 0)
             {
                 issues.Add(Issue(
@@ -82,7 +83,7 @@ internal static partial class SavedCompositionRuleLoader
 
             List<string> fragmentMappingRowIds = ReadStringArray(fragment, "mappingRowIds", $"{path}.mappingRowIds", required: false, validateId: true, issues);
             if (compositionKind == "merge" &&
-                sourceExperience == "general-merge" &&
+                sourceExperience == IcWorkflowIds.GeneralMerge &&
                 fragmentMappingRowIds.Count != 1)
             {
                 issues.Add(Issue(
@@ -119,7 +120,7 @@ internal static partial class SavedCompositionRuleLoader
         }
 
         AddDuplicateIssues(operationIds, "saved-rule.operation-fragment.duplicate", "Operation fragment id is duplicated.", "$.operationFragments", issues);
-        if (compositionKind == "merge" && sourceExperience == "general-merge")
+        if (compositionKind == "merge" && sourceExperience == IcWorkflowIds.GeneralMerge)
         {
             foreach (SavedRuleMappingRow row in mappingRows.Where(row =>
                          !string.IsNullOrWhiteSpace(row.RowId) &&

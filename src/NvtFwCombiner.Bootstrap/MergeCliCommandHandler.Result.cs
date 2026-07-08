@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Text.Json;
 
+using NvtFwCombiner.Profiles;
+
 namespace NvtFwCombiner.Bootstrap;
 
 internal static partial class MergeCliCommandHandler
@@ -52,7 +54,7 @@ internal static partial class MergeCliCommandHandler
         foreach (JsonElement issue in issues.EnumerateArray())
         {
             string code = GetJsonString(issue, "Code", "unknown");
-            string source = GetJsonString(issue, "Source", "general-merge");
+            string source = GetJsonString(issue, "Source", IcWorkflowIds.GeneralMerge);
             string message = GetJsonString(issue, "Message", "No message.");
             await error.WriteLineAsync($"  - {code} [{source}]: {message}").ConfigureAwait(false);
         }

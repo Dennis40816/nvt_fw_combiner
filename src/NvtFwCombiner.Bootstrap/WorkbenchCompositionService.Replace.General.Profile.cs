@@ -65,9 +65,9 @@ public static partial class WorkbenchCompositionService
             $"{normalizedIc}-general-replace-workbench",
             "0.7.0",
             icId,
-            "general-replace",
+            IcWorkflowIds.GeneralReplace,
             CompositionKind.Replace,
-            "general-replace",
+            IcWorkflowIds.GeneralReplace,
             $"{normalizedIc}-general-replace.bin",
             ImageInitialization.Reference("output-image", "reference-base", capacity),
             [

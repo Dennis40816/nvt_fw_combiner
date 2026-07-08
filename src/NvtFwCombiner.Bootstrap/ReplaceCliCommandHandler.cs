@@ -63,8 +63,8 @@ internal static partial class ReplaceCliCommandHandler
         string[] flagOptions = action == "build" ? ["--overwrite"] : [];
         string[] repeatableValueOptions = command switch
         {
-            "ctrlram-replace" => ["--ctrlram"],
-            "general-replace" => ["--mapping"],
+            IcWorkflowIds.CtrlRamReplace => ["--ctrlram"],
+            IcWorkflowIds.GeneralReplace => ["--mapping"],
             _ => [],
         };
         if (!TryParseOptions(args[1..], valueOptions, repeatableValueOptions, flagOptions, error, out ParsedOptions options))
@@ -78,7 +78,7 @@ internal static partial class ReplaceCliCommandHandler
             return UsageError;
         }
 
-        if (command == "dp-replace" &&
+        if (command == IcWorkflowIds.DpReplace &&
             TryResolveDpPerspectiveDpReplaceIc(profileSelector, out string? dpWorkbenchIcId))
         {
             return await RunWorkbenchDpReplaceAsync(
@@ -95,7 +95,7 @@ internal static partial class ReplaceCliCommandHandler
         {
             return command switch
             {
-                "ctrlram-replace" => await RunWorkbenchCtrlRamReplaceAsync(
+                IcWorkflowIds.CtrlRamReplace => await RunWorkbenchCtrlRamReplaceAsync(
                         action,
                         profileSelector,
                         options,
@@ -103,7 +103,7 @@ internal static partial class ReplaceCliCommandHandler
                         error,
                         cancellationToken)
                     .ConfigureAwait(false),
-                "general-replace" => await RunWorkbenchGeneralReplaceAsync(
+                IcWorkflowIds.GeneralReplace => await RunWorkbenchGeneralReplaceAsync(
                         action,
                         profileSelector,
                         options,
@@ -115,7 +115,7 @@ internal static partial class ReplaceCliCommandHandler
             };
         }
 
-        if (command == "ctrlram-replace" && options.GetValues("--ctrlram").Count > 1)
+        if (command == IcWorkflowIds.CtrlRamReplace && options.GetValues("--ctrlram").Count > 1)
         {
             await error.WriteLineAsync(
                     "error: built-in CtrlRAM profiles accept one --ctrlram path; use --profile <IC> with repeated --ctrlram <slot-id=path> for multi-region replacement.")

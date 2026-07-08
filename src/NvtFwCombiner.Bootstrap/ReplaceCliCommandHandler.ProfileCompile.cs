@@ -12,7 +12,7 @@ internal static partial class ReplaceCliCommandHandler
         TextWriter error,
         out ProfileCompileResult compile)
     {
-        if (profile.ExperienceId != "general-replace")
+        if (profile.ExperienceId != IcWorkflowIds.GeneralReplace)
         {
             compile = CompositionProfileCompiler.Compile(profile, []);
             return true;

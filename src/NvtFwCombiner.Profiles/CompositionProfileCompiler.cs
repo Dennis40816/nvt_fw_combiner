@@ -5,8 +5,8 @@ namespace NvtFwCombiner.Profiles;
 /// <summary>Compiles typed profile definitions and request mapping overlays into domain composition plans.</summary>
 public static partial class CompositionProfileCompiler
 {
-    private const string CtrlRamReplaceExperienceId = "ctrlram-replace";
-    private const string GeneralReplaceExperienceId = "general-replace";
+    private const string CtrlRamReplaceExperienceId = IcWorkflowIds.CtrlRamReplace;
+    private const string GeneralReplaceExperienceId = IcWorkflowIds.GeneralReplace;
     private const string CtrlRamClassificationTag = "tp-ctrlram";
     private const string TpClassificationTag = "tp";
     private const string TpClassificationTagPrefix = "tp-";

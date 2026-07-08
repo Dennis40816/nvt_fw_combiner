@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -42,12 +43,12 @@ internal static partial class SavedCompositionRuleLoader
         List<string> processorDependencyIds,
         List<SavedRuleValidationIssue> issues)
     {
-        if (compositionKind == "merge" && sourceExperience != "general-merge")
+        if (compositionKind == "merge" && sourceExperience != IcWorkflowIds.GeneralMerge)
         {
             issues.Add(Issue("saved-rule.experience-kind.mismatch", "Merge saved rules must use sourceExperience general-merge.", "$.sourceExperience"));
         }
 
-        if (compositionKind == "replace" && sourceExperience != "general-replace")
+        if (compositionKind == "replace" && sourceExperience != IcWorkflowIds.GeneralReplace)
         {
             issues.Add(Issue("saved-rule.experience-kind.mismatch", "Replace saved rules must use sourceExperience general-replace.", "$.sourceExperience"));
         }
@@ -62,7 +63,7 @@ internal static partial class SavedCompositionRuleLoader
             issues.Add(Issue("saved-rule.operation-fragments.empty", "Saved rule must include at least one operation fragment.", "$.operationFragments"));
         }
 
-        if (compositionKind == "merge" && sourceExperience == "general-merge" && processorDependencyIds.Count > 0)
+        if (compositionKind == "merge" && sourceExperience == IcWorkflowIds.GeneralMerge && processorDependencyIds.Count > 0)
         {
             issues.Add(Issue(
                 "saved-rule.processor-dependency.unsupported",
@@ -70,7 +71,7 @@ internal static partial class SavedCompositionRuleLoader
                 "$.processorDependencyIds"));
         }
 
-        if (compositionKind == "replace" && sourceExperience == "general-replace" && processorDependencyIds.Count > 0)
+        if (compositionKind == "replace" && sourceExperience == IcWorkflowIds.GeneralReplace && processorDependencyIds.Count > 0)
         {
             issues.Add(Issue(
                 "saved-rule.processor-dependency.unsupported",

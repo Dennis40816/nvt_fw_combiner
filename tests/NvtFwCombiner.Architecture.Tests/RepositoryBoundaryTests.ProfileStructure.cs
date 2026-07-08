@@ -51,6 +51,45 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("StandardMergeRegion", dpPerspective, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies workflow ids stay catalog-owned instead of being duplicated in profile adapters.</summary>
+    [Fact]
+    public void WorkflowIdsStayCatalogOwned()
+    {
+        string catalog = ReadText("src/NvtFwCombiner.Profiles/IcSupportCatalog.cs");
+        string profileSources = ReadProfileSources();
+        string profilesWithoutCatalog = profileSources.Replace(catalog, string.Empty, StringComparison.Ordinal);
+        string bootstrapSources = ReadBootstrapSources();
+
+        Assert.Contains("public const string StandardMerge = \"standard-merge\"", catalog, StringComparison.Ordinal);
+        Assert.Contains("public const string DpReplace = \"dp-replace\"", catalog, StringComparison.Ordinal);
+        Assert.Contains("public const string CtrlRamReplace = \"ctrlram-replace\"", catalog, StringComparison.Ordinal);
+        Assert.Contains("public const string GeneralMerge = \"general-merge\"", catalog, StringComparison.Ordinal);
+        Assert.Contains("public const string GeneralReplace = \"general-replace\"", catalog, StringComparison.Ordinal);
+        Assert.Contains("IcWorkflowIds.GeneralMerge", catalog, StringComparison.Ordinal);
+        Assert.Contains("IcWorkflowIds.StandardMerge", profilesWithoutCatalog, StringComparison.Ordinal);
+        Assert.Contains("IcWorkflowIds.DpReplace", profilesWithoutCatalog, StringComparison.Ordinal);
+        Assert.Contains("IcWorkflowIds.CtrlRamReplace", profilesWithoutCatalog, StringComparison.Ordinal);
+        Assert.Contains("IcWorkflowIds.GeneralReplace", profilesWithoutCatalog, StringComparison.Ordinal);
+        Assert.Contains("IcWorkflowIds.StandardMerge", bootstrapSources, StringComparison.Ordinal);
+        Assert.Contains("IcWorkflowIds.DpReplace", bootstrapSources, StringComparison.Ordinal);
+        Assert.Contains("IcWorkflowIds.CtrlRamReplace", bootstrapSources, StringComparison.Ordinal);
+        Assert.Contains("IcWorkflowIds.GeneralMerge", bootstrapSources, StringComparison.Ordinal);
+        Assert.Contains("IcWorkflowIds.GeneralReplace", bootstrapSources, StringComparison.Ordinal);
+
+        foreach (string workflowLiteral in new[]
+        {
+            "\"standard-merge\"",
+            "\"dp-replace\"",
+            "\"ctrlram-replace\"",
+            "\"general-merge\"",
+            "\"general-replace\"",
+        })
+        {
+            Assert.DoesNotContain(workflowLiteral, profilesWithoutCatalog, StringComparison.Ordinal);
+            Assert.DoesNotContain(workflowLiteral, bootstrapSources, StringComparison.Ordinal);
+        }
+    }
+
     /// <summary>Verifies alias-heavy postbuild profile rows stay grouped by IC family.</summary>
     [Fact]
     public void LegacyPostbuildProfileRowsStaySplitByFamily()

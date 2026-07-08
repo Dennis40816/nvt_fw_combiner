@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -74,7 +75,7 @@ internal static partial class SavedCompositionRuleLoader
                     rowPath));
             }
 
-            if (sourceExperience == "general-replace" && sourceRange is not null && sourceRange.Value.Start != 0)
+            if (sourceExperience == IcWorkflowIds.GeneralReplace && sourceRange is not null && sourceRange.Value.Start != 0)
             {
                 issues.Add(Issue(
                     "saved-rule.mapping-row.replace-source-offset-unsupported",
@@ -82,7 +83,7 @@ internal static partial class SavedCompositionRuleLoader
                     $"{rowPath}.sourceRange"));
             }
 
-            if (compositionKind == "merge" && sourceExperience == "general-merge")
+            if (compositionKind == "merge" && sourceExperience == IcWorkflowIds.GeneralMerge)
             {
                 if (!string.IsNullOrWhiteSpace(targetAddressSpaceId) &&
                     !string.Equals(targetAddressSpaceId, "output-image", StringComparison.Ordinal))

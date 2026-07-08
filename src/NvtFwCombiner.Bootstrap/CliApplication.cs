@@ -1,4 +1,5 @@
 using System.Reflection;
+using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -46,9 +47,9 @@ public static partial class CliApplication
             return args[0] switch
             {
                 "profiles" => await RunProfilesAsync(args[1..], output, error).ConfigureAwait(false),
-                "standard-merge" => await RunStandardMergeAsync(args[1..], output, error, cancellationToken)
+                IcWorkflowIds.StandardMerge => await RunStandardMergeAsync(args[1..], output, error, cancellationToken)
                     .ConfigureAwait(false),
-                "general-merge" => await MergeCliCommandHandler.RunAsync(
+                IcWorkflowIds.GeneralMerge => await MergeCliCommandHandler.RunAsync(
                         args[0],
                         args[1..],
                         output,
@@ -61,7 +62,7 @@ public static partial class CliApplication
                         error,
                         cancellationToken)
                     .ConfigureAwait(false),
-                "dp-replace" or "ctrlram-replace" or "general-replace" =>
+                IcWorkflowIds.DpReplace or IcWorkflowIds.CtrlRamReplace or IcWorkflowIds.GeneralReplace =>
                     await ReplaceCliCommandHandler.RunAsync(args[0], args[1..], output, error, cancellationToken)
                         .ConfigureAwait(false),
                 _ => await UnknownCommandAsync(args[0], error).ConfigureAwait(false),

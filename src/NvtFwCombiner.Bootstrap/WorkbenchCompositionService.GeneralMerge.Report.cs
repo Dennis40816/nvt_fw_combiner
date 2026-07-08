@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -23,8 +24,8 @@ public static partial class WorkbenchCompositionService
             profileId,
             GeneralMergeProfileVersion,
             icId,
-            "general-merge",
-            "general-merge",
+            IcWorkflowIds.GeneralMerge,
+            IcWorkflowIds.GeneralMerge,
             CompositionKind.Merge,
             timestamp,
             timestamp,

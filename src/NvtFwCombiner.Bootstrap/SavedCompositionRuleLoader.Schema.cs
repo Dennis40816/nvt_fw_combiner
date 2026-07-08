@@ -1,3 +1,5 @@
+using NvtFwCombiner.Profiles;
+
 namespace NvtFwCombiner.Bootstrap;
 
 internal static partial class SavedCompositionRuleLoader
@@ -68,7 +70,7 @@ internal static partial class SavedCompositionRuleLoader
     ];
 
     private static readonly string[] CompositionKindValues = ["merge", "replace"];
-    private static readonly string[] SourceExperienceValues = ["general-merge", "general-replace"];
+    private static readonly string[] SourceExperienceValues = [IcWorkflowIds.GeneralMerge, IcWorkflowIds.GeneralReplace];
     private static readonly string[] SupportStatusValues = ["draft", "candidate", "supported", "deprecated"];
     private static readonly string[] ProtectedRangePolicyValues = ["deny-crossing", "deny-touch", "profile-defined"];
     private static readonly string[] InputSlotCardinalityValues = ["one", "many"];

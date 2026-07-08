@@ -12,9 +12,9 @@ public static partial class BuiltInStandardMergeProfiles
             "synthetic-standard-merge",
             "0.3.0",
             "NT-SYNTHETIC",
-            "standard-merge",
+            IcWorkflowIds.StandardMerge,
             CompositionKind.Merge,
-            "standard-merge",
+            IcWorkflowIds.StandardMerge,
             "synthetic-standard-merge.bin",
             ImageInitialization.Blank("output-image", 8, 0xFF),
             [

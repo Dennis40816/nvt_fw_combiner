@@ -74,9 +74,9 @@ public static partial class WorkbenchCompositionService
             GetGeneralMergeWorkbenchProfileId(icId),
             GeneralMergeProfileVersion,
             icId,
-            "general-merge",
+            IcWorkflowIds.GeneralMerge,
             CompositionKind.Merge,
-            "general-merge",
+            IcWorkflowIds.GeneralMerge,
             GetGeneralMergeDefaultOutputFileName(icId),
             ImageInitialization.Blank("output-image", capacity, GeneralMergeFillByte),
             [
@@ -90,7 +90,7 @@ public static partial class WorkbenchCompositionService
                     new ByteRange(0, capacity),
                     RegionAtomicity.ExplicitMapping,
                     RegionWritePolicy.GeneralExplicit,
-                    classificationTags: ["general-merge"]),
+                    classificationTags: [IcWorkflowIds.GeneralMerge]),
             ],
             [
                 new RegionAccessRule("general-output", RegionAccessKind.ExplicitRange, "General Merge explicit mapping output."),

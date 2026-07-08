@@ -78,7 +78,7 @@ internal static partial class ReplaceCliCommandHandler
                 output,
                 cancellationToken)
             .ConfigureAwait(false);
-        await PrintWorkbenchRunResultAsync(result, icId, "dp-replace", output, error).ConfigureAwait(false);
+        await PrintWorkbenchRunResultAsync(result, icId, IcWorkflowIds.DpReplace, output, error).ConfigureAwait(false);
         return result.Succeeded ? Success : CompositionFailed;
     }
 
@@ -88,7 +88,7 @@ internal static partial class ReplaceCliCommandHandler
     {
         string normalized = selector.Trim();
         foreach (CompositionProfileDefinition profile in BuiltInReplaceProfiles.All.Where(profile =>
-                     profile.ExperienceId == "dp-replace" &&
+                     profile.ExperienceId == IcWorkflowIds.DpReplace &&
                      BuiltInReplaceProfiles.IsDpPerspectiveDpReplaceIc(profile.IcId)))
         {
             if (string.Equals(profile.ProfileId, normalized, StringComparison.OrdinalIgnoreCase) ||

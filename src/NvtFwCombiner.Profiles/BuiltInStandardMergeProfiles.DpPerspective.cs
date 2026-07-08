@@ -46,9 +46,9 @@ public static partial class BuiltInStandardMergeProfiles
             $"nt{icNumber}-standard-merge-dp-perspective",
             "0.5.1",
             normalizedIc,
-            "standard-merge",
+            IcWorkflowIds.StandardMerge,
             CompositionKind.Merge,
-            "standard-merge",
+            IcWorkflowIds.StandardMerge,
             $"nt{icNumber}-standard-merge-dp-perspective.bin",
             ImageInitialization.Blank("output-image", outputLength, 0x00),
             [
