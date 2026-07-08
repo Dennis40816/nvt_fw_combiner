@@ -18,13 +18,13 @@ public static partial class CompositionEngine
                 if (addressSpace.Mutability == AddressSpaceMutability.Immutable)
                 {
                     issues.Add(new CompositionIssue(
-                        "input.address-space.missing",
+                        CompositionIssueCodes.InputAddressSpaceMissing,
                         $"Input bytes for address space '{addressSpace.AddressSpaceId}' are missing."));
                 }
                 else if (RequiresMutableSeed(plan, addressSpace))
                 {
                     issues.Add(new CompositionIssue(
-                        "input.mutable-address-space.missing",
+                        CompositionIssueCodes.InputMutableAddressSpaceMissing,
                         $"Mutable address space '{addressSpace.AddressSpaceId}' requires seed bytes before execution."));
                 }
 
@@ -35,31 +35,31 @@ public static partial class CompositionEngine
                 !addressSpace.AllowedInputLengths.Contains(bytes.Length))
             {
                 issues.Add(new CompositionIssue(
-                    "input.address-space.length-mismatch",
+                    CompositionIssueCodes.InputAddressSpaceLengthMismatch,
                     $"Input bytes for address space '{addressSpace.AddressSpaceId}' must match one of the declared lengths ({FormatAllowedLengths(addressSpace.AllowedInputLengths)}) but actual length is {bytes.Length} bytes."));
             }
             else if (bytes.Length > addressSpace.Length && addressSpace.InputOversizePolicy == InputOversizePolicy.Reject)
             {
                 issues.Add(new CompositionIssue(
-                    "input.address-space.length-mismatch",
+                    CompositionIssueCodes.InputAddressSpaceLengthMismatch,
                     $"Input bytes for address space '{addressSpace.AddressSpaceId}' exceed declared length (actual {bytes.Length} bytes, declared {addressSpace.Length} bytes)."));
             }
             else if (bytes.Length > addressSpace.Length && addressSpace.Length > int.MaxValue)
             {
                 issues.Add(new CompositionIssue(
-                    "execution.capacity.unsupported",
+                    CompositionIssueCodes.ExecutionCapacityUnsupported,
                     $"Truncated input bytes for address space '{addressSpace.AddressSpaceId}' exceed the supported runtime array length."));
             }
             else if (bytes.Length < addressSpace.Length && addressSpace.InputPaddingByte is null)
             {
                 issues.Add(new CompositionIssue(
-                    "input.address-space.length-mismatch",
+                    CompositionIssueCodes.InputAddressSpaceLengthMismatch,
                     $"Input bytes for address space '{addressSpace.AddressSpaceId}' are shorter than declared length and no padding byte is declared (actual {bytes.Length} bytes, declared {addressSpace.Length} bytes)."));
             }
             else if (bytes.Length < addressSpace.Length && addressSpace.Length > int.MaxValue)
             {
                 issues.Add(new CompositionIssue(
-                    "execution.capacity.unsupported",
+                    CompositionIssueCodes.ExecutionCapacityUnsupported,
                     $"Padded input bytes for address space '{addressSpace.AddressSpaceId}' exceed the supported runtime array length."));
             }
         }
@@ -67,7 +67,7 @@ public static partial class CompositionEngine
         if (plan.Initialization.Capacity > int.MaxValue)
         {
             issues.Add(new CompositionIssue(
-                "execution.capacity.unsupported",
+                CompositionIssueCodes.ExecutionCapacityUnsupported,
                 "In-memory composition capacity exceeds the supported runtime array length."));
         }
 
@@ -103,7 +103,7 @@ public static partial class CompositionEngine
                 long discardedByteCount = buffer.LongLength - addressSpace.Length;
                 buffer = [.. buffer.AsSpan(0, checked((int)addressSpace.Length))];
                 issues.Add(new CompositionIssue(
-                    "input.address-space.truncated",
+                    CompositionIssueCodes.InputAddressSpaceTruncated,
                     $"Input bytes for address space '{addressSpace.AddressSpaceId}' exceed declared length and were truncated from {bytes.Length} to {addressSpace.Length} bytes; {discardedByteCount} trailing bytes were discarded.",
                     addressSpace.AddressSpaceId,
                     CompositionIssueSeverity.Warning));

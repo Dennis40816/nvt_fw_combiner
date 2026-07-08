@@ -90,7 +90,7 @@ public sealed partial class CompositionEngineTests
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Equal([0x10, 0xAA, 0xBB, 0x40], result.OutputBytes.ToArray());
-        Assert.Contains(result.Issues, issue => issue.Code == "input.address-space.truncated");
+        Assert.Contains(result.Issues, issue => issue.Code == CompositionIssueCodes.InputAddressSpaceTruncated);
     }
 
     /// <summary>Verifies truncation diagnostics remain visible when a later processor fails.</summary>
@@ -141,7 +141,7 @@ public sealed partial class CompositionEngineTests
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
-        Assert.Contains(result.Issues, issue => issue.Code == "input.address-space.truncated");
+        Assert.Contains(result.Issues, issue => issue.Code == CompositionIssueCodes.InputAddressSpaceTruncated);
         Assert.Contains(result.Issues, issue => issue.Code == "external-tool.process.failed");
     }
 
@@ -157,7 +157,7 @@ public sealed partial class CompositionEngineTests
 
         Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
         CompositionIssue issue = Assert.Single(result.Issues);
-        Assert.Equal("execution.external-processor.unavailable", issue.Code);
+        Assert.Equal(CompositionIssueCodes.ExecutionExternalProcessorUnavailable, issue.Code);
         Assert.Equal("run-crc", issue.OperationId);
     }
 

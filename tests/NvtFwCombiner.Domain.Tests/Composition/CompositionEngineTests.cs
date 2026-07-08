@@ -121,7 +121,7 @@ public sealed partial class CompositionEngineTests
 
         Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
         CompositionIssue issue = Assert.Single(result.Issues);
-        Assert.Equal("input.address-space.length-mismatch", issue.Code);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, issue.Code);
         Assert.Contains("0x2, 0x4", issue.Message, StringComparison.Ordinal);
         Assert.Contains("actual length is 3 bytes", issue.Message, StringComparison.Ordinal);
     }
@@ -151,7 +151,7 @@ public sealed partial class CompositionEngineTests
 
         Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
         CompositionIssue issue = Assert.Single(result.Issues);
-        Assert.Equal("input.address-space.length-mismatch", issue.Code);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, issue.Code);
         Assert.Contains("exceed declared length", issue.Message, StringComparison.Ordinal);
         Assert.Contains("actual 3 bytes", issue.Message, StringComparison.Ordinal);
         Assert.Contains("declared 2 bytes", issue.Message, StringComparison.Ordinal);
@@ -193,7 +193,7 @@ public sealed partial class CompositionEngineTests
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Equal([0, 0xAA, 0xBB, 0], result.OutputBytes.ToArray());
         CompositionIssue issue = Assert.Single(result.Issues);
-        Assert.Equal("input.address-space.truncated", issue.Code);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceTruncated, issue.Code);
         Assert.Equal(CompositionIssueSeverity.Warning, issue.Severity);
         Assert.Equal("ctrlram-input", issue.OperationId);
         Assert.Contains("from 4 to 2 bytes", issue.Message, StringComparison.Ordinal);
@@ -247,7 +247,7 @@ public sealed partial class CompositionEngineTests
 
         Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
         CompositionIssue issue = Assert.Single(result.Issues);
-        Assert.Equal("execution.capacity.unsupported", issue.Code);
+        Assert.Equal(CompositionIssueCodes.ExecutionCapacityUnsupported, issue.Code);
     }
 
     /// <summary>Verifies patch-scalar writes exactly the supplied bytes without implicit endian conversion.</summary>
@@ -314,7 +314,7 @@ public sealed partial class CompositionEngineTests
 
         Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
         CompositionIssue issue = Assert.Single(result.Issues);
-        Assert.Equal("input.address-space.missing", issue.Code);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceMissing, issue.Code);
         Assert.Empty(result.OutputBytes.ToArray());
     }
 
@@ -345,7 +345,7 @@ public sealed partial class CompositionEngineTests
 
         Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
         CompositionIssue issue = Assert.Single(result.Issues);
-        Assert.Equal("input.mutable-address-space.missing", issue.Code);
+        Assert.Equal(CompositionIssueCodes.InputMutableAddressSpaceMissing, issue.Code);
     }
 
 }

@@ -217,7 +217,7 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal([0, 0xAA, 0xBB, 0], result.OutputBytes.ToArray());
         Assert.Contains(result.Report.Inputs, input => input.AddressSpaceId == "ctrlram-input" && input.Size == 4);
         CompositionIssue issue = Assert.Single(result.Report.Issues);
-        Assert.Equal("input.address-space.truncated", issue.Code);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceTruncated, issue.Code);
         Assert.Equal(CompositionIssueSeverity.Warning, issue.Severity);
         Assert.Contains("from 4 to 2 bytes", issue.Message, StringComparison.Ordinal);
     }

@@ -1,0 +1,29 @@
+namespace NvtFwCombiner.Domain.Composition;
+
+/// <summary>Stable issue codes emitted by the shared composition engine.</summary>
+public static class CompositionIssueCodes
+{
+    /// <summary>Required immutable input bytes are missing.</summary>
+    public const string InputAddressSpaceMissing = "input.address-space.missing";
+
+    /// <summary>Required mutable seed bytes are missing.</summary>
+    public const string InputMutableAddressSpaceMissing = "input.mutable-address-space.missing";
+
+    /// <summary>Input bytes do not satisfy the declared address-space length policy.</summary>
+    public const string InputAddressSpaceLengthMismatch = "input.address-space.length-mismatch";
+
+    /// <summary>Input bytes were truncated by an explicitly declared oversize policy.</summary>
+    public const string InputAddressSpaceTruncated = "input.address-space.truncated";
+
+    /// <summary>The requested runtime capacity exceeds the in-memory executor limit.</summary>
+    public const string ExecutionCapacityUnsupported = "execution.capacity.unsupported";
+
+    /// <summary>An operation requires an external processor but none was supplied.</summary>
+    public const string ExecutionExternalProcessorUnavailable = "execution.external-processor.unavailable";
+
+    /// <summary>An external processor adapter failed while running an operation.</summary>
+    public const string ExecutionExternalProcessorFailed = "execution.external-processor.failed";
+
+    /// <summary>An external processor changed the staged byte length.</summary>
+    public const string ExecutionExternalProcessorLengthMismatch = "execution.external-processor.length-mismatch";
+}

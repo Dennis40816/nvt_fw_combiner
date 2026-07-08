@@ -13,7 +13,7 @@ public static partial class CompositionEngine
         {
             return CompositionExecutionResult.Failed([
                 new CompositionIssue(
-                    "execution.external-processor.unavailable",
+                    CompositionIssueCodes.ExecutionExternalProcessorUnavailable,
                     $"Operation '{operation.OperationId}' requires an external processor adapter.",
                     operation.OperationId),
             ]);
@@ -35,7 +35,7 @@ public static partial class CompositionEngine
         {
             return CompositionExecutionResult.Failed([
                 new CompositionIssue(
-                    "execution.external-processor.failed",
+                    CompositionIssueCodes.ExecutionExternalProcessorFailed,
                     $"Operation '{operation.OperationId}' external processor failed ({exception.GetType().Name}).",
                     operation.OperationId),
             ]);
@@ -50,7 +50,7 @@ public static partial class CompositionEngine
         {
             return CompositionExecutionResult.Failed([
                 new CompositionIssue(
-                    "execution.external-processor.length-mismatch",
+                    CompositionIssueCodes.ExecutionExternalProcessorLengthMismatch,
                     $"Operation '{operation.OperationId}' external processor changed the staged byte length.",
                     operation.OperationId),
             ]);

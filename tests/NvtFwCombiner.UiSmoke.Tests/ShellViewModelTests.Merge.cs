@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -221,7 +222,7 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("Build blocked", viewModel.LastRunResult.Title);
         Assert.False(File.Exists(outputPath), outputPath);
         Assert.True(viewModel.HasLoadedReport);
-        Assert.Equal("input.address-space.length-mismatch", viewModel.LoadedReport.PrimaryIssue.Title);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, viewModel.LoadedReport.PrimaryIssue.Title);
         Assert.Contains("tp-input", viewModel.LoadedReport.PrimaryIssue.Detail, StringComparison.Ordinal);
     }
 
@@ -251,7 +252,7 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.CanOpenReport);
         Assert.True(viewModel.HasReportToast);
         ReportLineViewModel issue = Assert.Single(viewModel.LoadedReport.Issues);
-        Assert.Equal("input.address-space.length-mismatch", issue.Title);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, issue.Title);
         Assert.Contains("tp-input", issue.Detail, StringComparison.Ordinal);
         Assert.Contains("actual 245760 bytes", issue.Detail, StringComparison.Ordinal);
         Assert.Contains("declared 225280 bytes", issue.Detail, StringComparison.Ordinal);

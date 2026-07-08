@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using NvtFwCombiner.Contracts.Reports;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
@@ -95,7 +96,7 @@ internal static class ReportJsonSamples
 
     public static string CtrlRamWarning(
         string runId = "ui-smoke-warning",
-        string issueCode = "input.address-space.truncated",
+        string issueCode = CompositionIssueCodes.InputAddressSpaceTruncated,
         string? severity = "warning",
         string message = "Input ctrlram-input actual 6 bytes exceeded declared 4 bytes and was truncated.",
         string operationId = "replace-ctrlram")

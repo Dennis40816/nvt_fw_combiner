@@ -215,6 +215,54 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("\"cascade\"", postbuildHelpers, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies shared composition engine issue codes stay Domain-owned.</summary>
+    [Fact]
+    public void CoreCompositionIssueCodesStayDomainOwned()
+    {
+        string issueCodes = ReadText("src/NvtFwCombiner.Domain/Composition/CompositionIssueCodes.cs");
+        string domainSources = string.Join(
+            Environment.NewLine,
+            Directory.GetFiles(
+                    Path.Combine(Root.FullName, "src", "NvtFwCombiner.Domain"),
+                    "*.cs",
+                    SearchOption.AllDirectories)
+                .Order(StringComparer.Ordinal)
+                .Select(File.ReadAllText));
+        string testSources = string.Join(
+            Environment.NewLine,
+            Directory.GetFiles(
+                    Path.Combine(Root.FullName, "tests"),
+                    "*.cs",
+                    SearchOption.AllDirectories)
+                .Where(path => !HasPathSegment(path, "bin") && !HasPathSegment(path, "obj"))
+                .Order(StringComparer.Ordinal)
+                .Select(File.ReadAllText));
+        string sourcesWithoutCatalog = (domainSources + Environment.NewLine + testSources)
+            .Replace(issueCodes, string.Empty, StringComparison.Ordinal);
+
+        Assert.Contains("CompositionIssueCodes.InputAddressSpaceLengthMismatch", domainSources, StringComparison.Ordinal);
+        Assert.Contains("CompositionIssueCodes.InputAddressSpaceTruncated", testSources, StringComparison.Ordinal);
+        foreach (string issueCodeLiteral in new[]
+        {
+            QuotedIssueCode("input", "address-space.missing"),
+            QuotedIssueCode("input", "mutable-address-space.missing"),
+            QuotedIssueCode("input", "address-space.length-mismatch"),
+            QuotedIssueCode("input", "address-space.truncated"),
+            QuotedIssueCode("execution", "capacity.unsupported"),
+            QuotedIssueCode("execution", "external-processor.unavailable"),
+            QuotedIssueCode("execution", "external-processor.failed"),
+            QuotedIssueCode("execution", "external-processor.length-mismatch"),
+        })
+        {
+            Assert.DoesNotContain(issueCodeLiteral, sourcesWithoutCatalog, StringComparison.Ordinal);
+        }
+    }
+
+    private static string QuotedIssueCode(string prefix, string suffix)
+    {
+        return $"\"{prefix}.{suffix}\"";
+    }
+
     /// <summary>Verifies alias-heavy postbuild profile rows stay grouped by IC family.</summary>
     [Fact]
     public void LegacyPostbuildProfileRowsStaySplitByFamily()

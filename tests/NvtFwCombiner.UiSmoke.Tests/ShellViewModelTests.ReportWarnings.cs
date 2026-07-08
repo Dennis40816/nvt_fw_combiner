@@ -1,3 +1,4 @@
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
@@ -27,7 +28,7 @@ public sealed partial class ShellViewModelTests
         Assert.Contains("truncated", viewModel.LoadedReport.NextStepDetail, StringComparison.Ordinal);
         Assert.Contains(viewModel.LoadedReport.TriageRows, row =>
             row.Title == "2. Warning" &&
-            row.Detail == "input.address-space.truncated" &&
+            row.Detail == CompositionIssueCodes.InputAddressSpaceTruncated &&
             row.Meta == "replace-ctrlram");
         Assert.Contains(viewModel.LoadedReport.EvidenceRows, row =>
             row.Title == "Issues" &&
@@ -36,7 +37,7 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(viewModel.LoadedReport.EvidenceRows, row =>
             row.Title == "Warnings" &&
             row.Detail == "1" &&
-            row.Meta == "input.address-space.truncated");
+            row.Meta == CompositionIssueCodes.InputAddressSpaceTruncated);
         Assert.Equal("1 warning", Assert.Single(viewModel.ReportHistoryEntries).IssueSummary);
     }
 

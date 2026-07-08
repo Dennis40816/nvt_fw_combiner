@@ -140,7 +140,7 @@ public sealed partial class BuiltInStandardMergeProfilesTests
             }));
 
         Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
-        Assert.Contains(result.Issues, issue => issue.Code == "input.address-space.length-mismatch");
+        Assert.Contains(result.Issues, issue => issue.Code == CompositionIssueCodes.InputAddressSpaceLengthMismatch);
     }
 
     /// <summary>Verifies NT51950/NT51951 TP input must contain the declared overlay window.</summary>
@@ -163,7 +163,7 @@ public sealed partial class BuiltInStandardMergeProfilesTests
 
         Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
         CompositionIssue issue = Assert.Single(result.Issues);
-        Assert.Equal("input.address-space.length-mismatch", issue.Code);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, issue.Code);
         Assert.Contains("declared 225280 bytes", issue.Message, StringComparison.Ordinal);
     }
 }

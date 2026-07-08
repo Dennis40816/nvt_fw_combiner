@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -130,7 +131,7 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("input.address-space.length-mismatch", result.Error, StringComparison.Ordinal);
+        Assert.Contains(CompositionIssueCodes.InputAddressSpaceLengthMismatch, result.Error, StringComparison.Ordinal);
         Assert.False(File.Exists(output));
     }
 

@@ -78,7 +78,7 @@ public sealed partial class CompositionRunServiceTests
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Equal([0x10, 0xAA, 0xBB, 0x40], result.OutputBytes.ToArray());
-        Assert.Contains(result.Report.Issues, issue => issue.Code == "input.address-space.truncated");
+        Assert.Contains(result.Report.Issues, issue => issue.Code == CompositionIssueCodes.InputAddressSpaceTruncated);
     }
 
     /// <summary>Verifies Replace reports classify final output differences against reference base and postbuild write ranges.</summary>

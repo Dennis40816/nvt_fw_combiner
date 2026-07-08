@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -34,12 +35,12 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Equal(0, result.ExitCode);
         Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
         Assert.Contains("replace-ctrlram", result.Output, StringComparison.Ordinal);
-        Assert.Contains("input.address-space.truncated", result.Error, StringComparison.Ordinal);
+        Assert.Contains(CompositionIssueCodes.InputAddressSpaceTruncated, result.Error, StringComparison.Ordinal);
         using var document = JsonDocument.Parse(await File.ReadAllTextAsync(
             report,
             TestContext.Current.CancellationToken));
         JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
-        Assert.Equal("input.address-space.truncated", issue.GetProperty("Code").GetString());
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceTruncated, issue.GetProperty("Code").GetString());
         Assert.Equal("warning", issue.GetProperty("Severity").GetString());
     }
 
