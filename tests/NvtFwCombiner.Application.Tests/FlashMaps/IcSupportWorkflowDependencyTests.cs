@@ -23,6 +23,18 @@ public sealed class IcSupportWorkflowDependencyTests
         }
     }
 
+    /// <summary>Flash-map rows must be reachable through the IC support catalog instead of becoming hidden IC facts.</summary>
+    [Fact]
+    public void FlashMapProfilesHaveIcSupportRows()
+    {
+        HashSet<string> supportedIcIds = [.. IcSupportCatalog.IcIds];
+
+        foreach (string icId in TpFlashMapCatalog.IcIds)
+        {
+            Assert.Contains(icId, supportedIcIds);
+        }
+    }
+
     /// <summary>CtrlRAM Replace exposure must be backed by postbuild profiles and selectable IC-number choices.</summary>
     [Fact]
     public void CtrlRamReplaceSupportHasPostbuildAndNumberChoiceCoverage()
@@ -44,6 +56,25 @@ public sealed class IcSupportWorkflowDependencyTests
                     profiles,
                     profile => CanCreatePostbuildPlan(profile, selection));
             }
+        }
+    }
+
+    /// <summary>Postbuild profiles must be exposed through CtrlRAM Replace support instead of becoming hidden processor facts.</summary>
+    [Fact]
+    public void PostbuildProfilesHaveCtrlRamReplaceSupportRows()
+    {
+        HashSet<string> ctrlRamReplaceIcIds =
+        [
+            .. IcSupportCatalog.All
+                .Where(entry => entry.SupportsWorkflow(IcWorkflowIds.CtrlRamReplace))
+                .Select(entry => entry.IcId),
+        ];
+
+        foreach (string icId in LegacyCombinerPostbuildCatalog.All
+                     .Select(profile => profile.IcId)
+                     .Distinct(StringComparer.Ordinal))
+        {
+            Assert.Contains(icId, ctrlRamReplaceIcIds);
         }
     }
 
