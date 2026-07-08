@@ -68,7 +68,7 @@ General Merge
 
 1. Shared IC/profile context from the fixed Device context row.
 2. Slot cards: DP, TP, optional LD/Extra.
-3. Version token preview placeholder.
+3. Output name/version badge preview from catalog-backed firmware metadata.
 4. Visual-first shared Memory coverage before/after preview.
 5. Ordered operation preview table as supporting detail.
 6. External processor readiness row.
@@ -80,7 +80,7 @@ General Merge
 1. DP_AB or DPA/DPB input mode selector.
 2. TPA and TPB slot cards.
 3. Bank A/B visual summary.
-4. Relocation patch table placeholder.
+4. Relocation patch table remains deferred while AB Code is disabled.
 5. External combiner/header processor readiness.
 6. Compare rule summary.
 

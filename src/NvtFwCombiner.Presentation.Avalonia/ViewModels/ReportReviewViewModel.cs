@@ -116,7 +116,7 @@ public sealed partial class ReportReviewViewModel
         ShouldExpandStepOperations = HasStepOperations && !HasCommandOperations;
     }
 
-    /// <summary>Empty report placeholder.</summary>
+    /// <summary>Empty report sentinel.</summary>
     public static ReportReviewViewModel Empty { get; } = new(
         true,
         string.Empty,
