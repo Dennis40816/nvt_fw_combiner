@@ -13,8 +13,7 @@ public static class BuiltInReplaceProfiles
         SyntheticDpReplace,
         SyntheticCtrlRamReplace,
         SyntheticGeneralReplace,
-        Nt51950DpReplace,
-        Nt51951DpReplace,
+        .. DpPerspectiveDpReplaceProfiles,
     ];
 
     /// <summary>Synthetic DP Replace profile with separate DP and LD replacement payloads.</summary>
@@ -159,17 +158,14 @@ public static class BuiltInReplaceProfiles
             ],
             IcNumberInputMode.SingleSelector);
 
-    /// <summary>NT51950 DP Perspective Replace profile with base TP/customer-info restoration.</summary>
-    public static CompositionProfileDefinition Nt51950DpReplace { get; } = CreateNt51950FamilyDpReplaceProfileCore(
-        "NT51950",
-        DpPerspectiveCatalog.MaxContainerLength,
-        DpPerspectiveCatalog.SupportedContainerLengths);
-
-    /// <summary>NT51951 DP Perspective Replace profile using the owner-confirmed NT51950 policy.</summary>
-    public static CompositionProfileDefinition Nt51951DpReplace { get; } = CreateNt51950FamilyDpReplaceProfileCore(
-        "NT51951",
-        DpPerspectiveCatalog.MaxContainerLength,
-        DpPerspectiveCatalog.SupportedContainerLengths);
+    /// <summary>DP Perspective Replace profiles generated from the shared owner-approved IC list.</summary>
+    public static IReadOnlyList<CompositionProfileDefinition> DpPerspectiveDpReplaceProfiles { get; } =
+    [
+        .. DpPerspectiveCatalog.SupportedIcIds.Select(icId => CreateDpPerspectiveDpReplaceProfileCore(
+            icId,
+            DpPerspectiveCatalog.MaxContainerLength,
+            DpPerspectiveCatalog.SupportedContainerLengths)),
+    ];
 
     /// <summary>Supported exact base firmware lengths for NT51950/NT51951 DP Perspective Replace.</summary>
     public static IReadOnlyList<long> Nt51950FamilySupportedDpBaseLengths => DpPerspectiveCatalog.SupportedContainerLengths;
@@ -213,10 +209,10 @@ public static class BuiltInReplaceProfiles
     /// <summary>Creates a DP Perspective Replace profile for the selected exact base length.</summary>
     public static CompositionProfileDefinition CreateDpPerspectiveDpReplaceProfile(string icId, long capacity)
     {
-        return CreateNt51950FamilyDpReplaceProfileCore(icId, capacity, null);
+        return CreateDpPerspectiveDpReplaceProfileCore(icId, capacity, null);
     }
 
-    private static CompositionProfileDefinition CreateNt51950FamilyDpReplaceProfileCore(
+    private static CompositionProfileDefinition CreateDpPerspectiveDpReplaceProfileCore(
         string icId,
         long capacity,
         IReadOnlyList<long>? allowedReplacementLengths)

@@ -73,8 +73,7 @@ public static partial class BuiltInStandardMergeProfiles
     /// <summary>Standard merge profiles for NT51950/NT51951 DP Perspective containers.</summary>
     public static IReadOnlyList<CompositionProfileDefinition> DpPerspectiveStandardMergeProfiles { get; } =
     [
-        CreateDpPerspectiveProfile("51950"),
-        CreateDpPerspectiveProfile("51951"),
+        .. DpPerspectiveCatalog.SupportedIcIds.Select(icId => CreateDpPerspectiveProfile(icId)),
     ];
 
     /// <summary>All executable built-in standard merge profiles exposed by CLI/UI.</summary>

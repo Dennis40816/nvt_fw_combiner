@@ -7,9 +7,9 @@ public static partial class BuiltInStandardMergeProfiles
     /// <summary>Creates an NT51950/NT51951 DP Perspective profile matching the selected DP input length.</summary>
     public static CompositionProfileDefinition CreateDpPerspectiveProfileForInputLength(string icId, long dpInputLength)
     {
-        string icNumber = DpPerspectiveCatalog.NormalizeIcNumber(icId);
+        string normalizedIc = DpPerspectiveCatalog.NormalizeIcId(icId);
         return DpPerspectiveCatalog.IsSupportedContainerLength(dpInputLength)
-            ? CreateDpPerspectiveProfile(icNumber, dpInputLength)
+            ? CreateDpPerspectiveProfile(normalizedIc, dpInputLength)
             : throw new ArgumentOutOfRangeException(
                 nameof(dpInputLength),
                 dpInputLength,
@@ -25,19 +25,21 @@ public static partial class BuiltInStandardMergeProfiles
             DpPerspectiveCatalog.IsSupportedIc(profile.IcId);
     }
 
-    private static CompositionProfileDefinition CreateDpPerspectiveProfile(string icNumber)
+    private static CompositionProfileDefinition CreateDpPerspectiveProfile(string icId)
     {
-        return CreateDpPerspectiveProfile(icNumber, DpPerspectiveCatalog.MaxContainerLength);
+        return CreateDpPerspectiveProfile(icId, DpPerspectiveCatalog.MaxContainerLength);
     }
 
-    private static CompositionProfileDefinition CreateDpPerspectiveProfile(string icNumber, long outputLength)
+    private static CompositionProfileDefinition CreateDpPerspectiveProfile(string icId, long outputLength)
     {
+        string normalizedIc = DpPerspectiveCatalog.NormalizeIcId(icId);
+        string icNumber = normalizedIc[2..];
         var outputRange = new ByteRange(0, outputLength);
         ByteRange tpOverlay = DpPerspectiveCatalog.TpOverlayRange;
         return new CompositionProfileDefinition(
             $"nt{icNumber}-standard-merge-dp-perspective",
             "0.5.1",
-            $"NT{icNumber}",
+            normalizedIc,
             "standard-merge",
             CompositionKind.Merge,
             "standard-merge",

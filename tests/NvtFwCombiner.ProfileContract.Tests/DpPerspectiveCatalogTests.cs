@@ -21,6 +21,12 @@ public sealed class DpPerspectiveCatalogTests
         Assert.Equal(
             DpPerspectiveCatalog.SupportedContainerLengths,
             BuiltInReplaceProfiles.Nt51950FamilySupportedDpBaseLengths);
+        Assert.Equal(
+            DpPerspectiveCatalog.SupportedIcIds,
+            BuiltInStandardMergeProfiles.DpPerspectiveStandardMergeProfiles.Select(profile => profile.IcId));
+        Assert.Equal(
+            DpPerspectiveCatalog.SupportedIcIds,
+            BuiltInReplaceProfiles.DpPerspectiveDpReplaceProfiles.Select(profile => profile.IcId));
     }
 
     /// <summary>TP overlay and customer-info preserve ranges are shared by Standard Merge and DP Replace profiles.</summary>
