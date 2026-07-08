@@ -17,6 +17,22 @@ public static class IcWorkflowIds
 
     /// <summary>General Replace workbench workflow.</summary>
     public const string GeneralReplace = "general-replace";
+
+    /// <summary>All workflow ids that may be declared by the IC support catalog.</summary>
+    public static IReadOnlyList<string> All { get; } =
+    [
+        StandardMerge,
+        DpReplace,
+        CtrlRamReplace,
+        GeneralMerge,
+        GeneralReplace,
+    ];
+
+    /// <summary>Returns true when a workflow id is owned by the IC support catalog contract.</summary>
+    public static bool IsKnown(string workflowId)
+    {
+        return All.Contains(workflowId, StringComparer.Ordinal);
+    }
 }
 
 /// <summary>One IC onboarding entry that defines workflow exposure and alias/family facts.</summary>
@@ -33,8 +49,25 @@ public sealed class IcSupportEntry
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentNullException.ThrowIfNull(workflowIds);
 
+        string[] distinctWorkflowIds =
+        [
+            .. workflowIds.Distinct(StringComparer.Ordinal),
+        ];
+        if (distinctWorkflowIds.Length == 0)
+        {
+            throw new ArgumentException("At least one supported workflow id is required.", nameof(workflowIds));
+        }
+
+        foreach (string workflowId in distinctWorkflowIds)
+        {
+            if (!IcWorkflowIds.IsKnown(workflowId))
+            {
+                throw new ArgumentException($"Unknown IC workflow id '{workflowId}'.", nameof(workflowIds));
+            }
+        }
+
         IcId = NormalizeIcId(icId);
-        WorkflowIds = [.. workflowIds.Distinct(StringComparer.Ordinal)];
+        WorkflowIds = distinctWorkflowIds;
         StandardMergeSourceIcId = string.IsNullOrWhiteSpace(standardMergeSourceIcId)
             ? null
             : NormalizeIcId(standardMergeSourceIcId);

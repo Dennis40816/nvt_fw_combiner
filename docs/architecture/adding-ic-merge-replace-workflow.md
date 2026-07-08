@@ -70,7 +70,7 @@ Update only the rows that are relevant to the new IC/mode.
 
 | Area | File | What changes |
 | --- | --- | --- |
-| IC support / exposure catalog | `src/NvtFwCombiner.Profiles/IcSupportCatalog.cs` | Add the IC id, supported workflow ids, owner-approved alias facts, and short onboarding notes. This is the first C# row to update when introducing a new IC/mode. |
+| IC support / exposure catalog | `src/NvtFwCombiner.Profiles/IcSupportCatalog.cs` | Add the IC id, supported workflow ids, owner-approved alias facts, and short onboarding notes. This is the first C# row to update when introducing a new IC/mode. Workflow ids must come from `IcWorkflowIds.All`; unknown ids fail catalog construction. |
 | Family policy catalog | `src/NvtFwCombiner.Profiles/DpPerspectiveCatalog.cs` or another dedicated catalog | Add shared family policy only when multiple workflows need the same lengths/ranges/rules. Current example: NT51950/NT51951 DP Perspective supported IC ids, supported lengths, and TP/customer-info preservation ranges. Shared family catalogs should also drive generated Standard Merge/Replace profile lists when possible. Do not duplicate these constants in Standard Merge, Replace, UI, or CLI code. |
 | Standard Merge profile | `src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles.cs` | Add an executable `CompositionProfileDefinition` or owner-confirmed alias. Keep operation order, fill byte, address spaces, and output naming in the profile. |
 | Replace profile | `src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.cs` | Add DP/CtrlRAM/General Replace profile definitions when the IC has real range and access evidence. Synthetic profiles stay contract-only. |

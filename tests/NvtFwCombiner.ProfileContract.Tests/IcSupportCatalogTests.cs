@@ -5,15 +5,6 @@ namespace NvtFwCombiner.ProfileContract.Tests;
 /// <summary>Tests the centralized IC onboarding support catalog.</summary>
 public sealed class IcSupportCatalogTests
 {
-    private static readonly string[] KnownWorkflowIds =
-    [
-        IcWorkflowIds.StandardMerge,
-        IcWorkflowIds.DpReplace,
-        IcWorkflowIds.CtrlRamReplace,
-        IcWorkflowIds.GeneralMerge,
-        IcWorkflowIds.GeneralReplace,
-    ];
-
     /// <summary>IC onboarding rows are unique and use only documented workflow ids.</summary>
     [Fact]
     public void IcSupportRowsAreUniqueAndUseKnownWorkflowIds()
@@ -29,8 +20,37 @@ public sealed class IcSupportCatalogTests
                 entry.WorkflowIds.Count,
                 entry.WorkflowIds.Distinct(StringComparer.Ordinal).Count());
             Assert.All(entry.WorkflowIds, workflowId =>
-                Assert.Contains(workflowId, KnownWorkflowIds));
+                Assert.Contains(workflowId, IcWorkflowIds.All));
         }
+    }
+
+    /// <summary>The workflow id list is owned by production catalog code instead of test-only constants.</summary>
+    [Fact]
+    public void KnownWorkflowIdsAreCatalogOwned()
+    {
+        Assert.Equal(
+            [
+                "standard-merge",
+                "dp-replace",
+                "ctrlram-replace",
+                "general-merge",
+                "general-replace",
+            ],
+            IcWorkflowIds.All);
+        Assert.All(IcWorkflowIds.All, workflowId => Assert.True(IcWorkflowIds.IsKnown(workflowId), workflowId));
+    }
+
+    /// <summary>Unknown or empty workflow declarations fail before an invalid IC row can be surfaced.</summary>
+    [Fact]
+    public void IcSupportEntryRejectsInvalidWorkflowDeclarations()
+    {
+        ArgumentException empty = Assert.Throws<ArgumentException>(() =>
+            new IcSupportEntry("NT51999", []));
+        ArgumentException unknown = Assert.Throws<ArgumentException>(() =>
+            new IcSupportEntry("NT51999", ["unsupported-workflow"]));
+
+        Assert.Contains("At least one supported workflow id", empty.Message, StringComparison.Ordinal);
+        Assert.Contains("Unknown IC workflow id 'unsupported-workflow'", unknown.Message, StringComparison.Ordinal);
     }
 
     /// <summary>The shell default IC is a catalog-owned onboarding decision, not a UI constant.</summary>

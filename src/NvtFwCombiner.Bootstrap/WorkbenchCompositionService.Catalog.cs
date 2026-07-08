@@ -6,7 +6,7 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    /// <summary>Gets selectable IC ids from the TP flash-map catalog.</summary>
+    /// <summary>Gets selectable IC ids from the IC support catalog.</summary>
     public static IReadOnlyList<string> GetSupportedIcIds()
     {
         return IcSupportCatalog.IcIds;
