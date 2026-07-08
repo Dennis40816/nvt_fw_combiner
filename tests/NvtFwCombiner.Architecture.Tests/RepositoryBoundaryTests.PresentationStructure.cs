@@ -250,4 +250,22 @@ public sealed partial class RepositoryBoundaryTests
             Assert.DoesNotContain(classificationLiteral, presentationSource, StringComparison.Ordinal);
         }
     }
+
+    /// <summary>Verifies Presentation reads composition issue codes through Bootstrap tokens.</summary>
+    [Fact]
+    public void PresentationUsesBootstrapCompositionIssueCodes()
+    {
+        string presentationSource = ReadPresentationSources();
+
+        Assert.Contains("WorkbenchCompositionIssueCodes.InputAddressSpaceLengthMismatch", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionIssueCodes.InputAddressSpaceTruncated", presentationSource, StringComparison.Ordinal);
+        foreach (string issueCodeLiteral in new[]
+        {
+            "\"input.address-space.length-mismatch\"",
+            "\"input.address-space.truncated\"",
+        })
+        {
+            Assert.DoesNotContain(issueCodeLiteral, presentationSource, StringComparison.Ordinal);
+        }
+    }
 }

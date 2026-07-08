@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -74,7 +75,7 @@ public static partial class WorkbenchCompositionService
                 WorkbenchReplaceModes.General,
                 reportSlotPaths,
                 build,
-                "input.address-space.length-mismatch",
+                CompositionIssueCodes.InputAddressSpaceLengthMismatch,
                 "Base flash BIN must not be empty.");
             return false;
         }

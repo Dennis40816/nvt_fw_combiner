@@ -71,7 +71,7 @@ public sealed partial class ReportReviewViewModel
 
     private static string LegacySeverityForIssueCode(string code)
     {
-        return string.Equals(code, "input.address-space.truncated", StringComparison.Ordinal)
+        return string.Equals(code, WorkbenchCompositionIssueCodes.InputAddressSpaceTruncated, StringComparison.Ordinal)
             ? "warning"
             : "error";
     }

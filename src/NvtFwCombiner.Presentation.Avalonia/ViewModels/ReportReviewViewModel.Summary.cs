@@ -1,4 +1,5 @@
 using System.Globalization;
+using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -105,7 +106,7 @@ public sealed partial class ReportReviewViewModel
 
     private static string CreateNextStepTitle(ReportLineViewModel issue, ShellLanguage language)
     {
-        return string.Equals(issue.Title, "input.address-space.length-mismatch", StringComparison.Ordinal)
+        return string.Equals(issue.Title, WorkbenchCompositionIssueCodes.InputAddressSpaceLengthMismatch, StringComparison.Ordinal)
             ? T(language, "Fix input size", "修正輸入大小")
             : T(language, "Start with this issue", "先查看此問題");
     }
@@ -114,12 +115,12 @@ public sealed partial class ReportReviewViewModel
     {
         return issue.Title switch
         {
-            "input.address-space.length-mismatch" =>
+            WorkbenchCompositionIssueCodes.InputAddressSpaceLengthMismatch =>
                 T(
                     language,
                     "Use a BIN whose byte length matches the selected IC/profile range, or switch to a workflow that explicitly allows padding/truncation. This run stays blocked because no relaxation policy applies.",
                     "請使用 byte 長度符合所選 IC/profile 範圍的 BIN，或改用明確允許 padding/truncation 的流程。此執行沒有放寬 policy，因此會阻擋。"),
-            "input.address-space.truncated" =>
+            WorkbenchCompositionIssueCodes.InputAddressSpaceTruncated =>
                 T(
                     language,
                     "The selected profile allowed truncation for this CtrlRAM input. Review the warning and output differences before using the artifact as evidence.",

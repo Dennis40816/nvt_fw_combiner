@@ -89,7 +89,7 @@ public static partial class WorkbenchCompositionService
             if (baseLength < requiredCapacity)
             {
                 validationIssues.Add(new CompositionIssue(
-                    "input.address-space.length-mismatch",
+                    CompositionIssueCodes.InputAddressSpaceLengthMismatch,
                     $"Base flash BIN is too short for {icId} / {number} CtrlRAM postbuild (actual {baseLength} bytes, required at least {requiredCapacity} bytes).",
                     WorkbenchSlotIds.ReplaceBase));
             }
@@ -134,7 +134,7 @@ public static partial class WorkbenchCompositionService
         if (baseLength <= 0)
         {
             validationIssues.Add(new CompositionIssue(
-                "input.address-space.length-mismatch",
+                CompositionIssueCodes.InputAddressSpaceLengthMismatch,
                 "Base flash BIN must not be empty.",
                 WorkbenchSlotIds.ReplaceBase));
         }

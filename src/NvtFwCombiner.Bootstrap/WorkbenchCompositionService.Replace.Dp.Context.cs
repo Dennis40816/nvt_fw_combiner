@@ -52,7 +52,7 @@ public static partial class WorkbenchCompositionService
                 WorkbenchReplaceModes.Dp,
                 slotPaths,
                 build,
-                "input.address-space.length-mismatch",
+                CompositionIssueCodes.InputAddressSpaceLengthMismatch,
                 $"{icId} DP Replace base flash BIN length must be one of {FormatSupportedDpPerspectiveBaseLengths()} (actual {FormatHexLength(baseLength)}).",
                 baseLength);
             return false;

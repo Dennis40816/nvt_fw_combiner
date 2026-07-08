@@ -107,7 +107,7 @@ public static partial class WorkbenchCompositionService
                     CreateGeneralReplacePlanningOperations(explicitMappings),
                     [
                         new CompositionIssue(
-                            "input.address-space.length-mismatch",
+                            CompositionIssueCodes.InputAddressSpaceLengthMismatch,
                             $"Base flash BIN is too short for {icId} / {number} General Replace postbuild (actual {context.Capacity} bytes, required at least {requiredCapacity} bytes).",
                             WorkbenchSlotIds.ReplaceBase),
                     ],

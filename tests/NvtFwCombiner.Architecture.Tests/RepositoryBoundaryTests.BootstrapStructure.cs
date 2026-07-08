@@ -134,6 +134,19 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("\"Unexpected\"", classifications, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies UI-facing composition issue codes are projected from the Domain contract.</summary>
+    [Fact]
+    public void BootstrapProjectsCompositionIssueCodes()
+    {
+        string bootstrapSource = ReadBootstrapSources();
+        string issueCodes = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionIssueCodes.cs");
+
+        Assert.Contains("CompositionIssueCodes.InputAddressSpaceLengthMismatch", bootstrapSource, StringComparison.Ordinal);
+        Assert.Contains("CompositionIssueCodes.InputAddressSpaceTruncated", issueCodes, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"input.address-space.length-mismatch\"", bootstrapSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"input.address-space.truncated\"", bootstrapSource, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies General mapping text parsing is owned by one Bootstrap helper.</summary>
     [Fact]
     public void BootstrapRangeTextOwnsGeneralMappingParsing()
