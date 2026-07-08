@@ -167,4 +167,30 @@ public sealed partial class ReportReviewViewModel
             ? kind
             : string.IsNullOrWhiteSpace(sourceVersion) ? $"{kind}: {sourceId}" : $"{kind}: {sourceId}@{sourceVersion}";
     }
+
+    private static string FormatEndpoint(string? addressSpaceId, string? range)
+    {
+        return string.IsNullOrWhiteSpace(addressSpaceId)
+            ? "(none)"
+            : $"{addressSpaceId} {range ?? string.Empty}".Trim();
+    }
+
+    private static (string ReasonSummary, string CommandBlock) ExtractCombinerCommand(string reason)
+    {
+        const string marker = "Combiner command: ";
+        int markerIndex = reason.IndexOf(marker, StringComparison.Ordinal);
+        if (markerIndex < 0)
+        {
+            return (reason, string.Empty);
+        }
+
+        string summary = reason[..(markerIndex + "Combiner command".Length)].Trim();
+        string command = reason[(markerIndex + marker.Length)..].Trim();
+        if (command.EndsWith('.'))
+        {
+            command = command[..^1];
+        }
+
+        return (summary, command);
+    }
 }
