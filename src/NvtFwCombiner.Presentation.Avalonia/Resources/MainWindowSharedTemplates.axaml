@@ -83,6 +83,120 @@
   </Border>
 </DataTemplate>
 
+<DataTemplate x:Key="MemoryCoverageSegmentBarTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
+  <Border
+      Width="{Binding BarWidth}"
+      Height="22"
+      Background="{Binding FillBrush}"
+      BorderBrush="{Binding OutlineBrush}"
+      BorderThickness="{Binding OutlineThickness}">
+    <ToolTip.Tip>
+      <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" />
+    </ToolTip.Tip>
+  </Border>
+</DataTemplate>
+
+<DataTemplate x:Key="MemoryCoveragePlainSegmentBarTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
+  <Border
+      Width="{Binding BarWidth}"
+      Height="22"
+      Background="{Binding FillBrush}">
+    <ToolTip.Tip>
+      <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" />
+    </ToolTip.Tip>
+  </Border>
+</DataTemplate>
+
+<DataTemplate x:Key="MemoryCoverageSegmentListTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
+  <Border Padding="0,8" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
+    <ToolTip.Tip>
+      <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" />
+    </ToolTip.Tip>
+    <Grid ColumnDefinitions="12,*" ColumnSpacing="8">
+      <Border
+          Width="10"
+          Height="10"
+          Margin="0,3,0,0"
+          VerticalAlignment="Top"
+          Background="{Binding FillBrush}"
+          BorderBrush="{Binding OutlineBrush}"
+          BorderThickness="{Binding OutlineThickness}"
+          CornerRadius="2" />
+      <StackPanel Grid.Column="1" Spacing="2">
+        <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding SourceLabel}" TextWrapping="Wrap" />
+        <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" Foreground="#0F172A" Text="{Binding RangeLabel}" TextWrapping="Wrap" />
+        <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding CompactDetail}" TextWrapping="Wrap" />
+      </StackPanel>
+    </Grid>
+  </Border>
+</DataTemplate>
+
+<DataTemplate x:Key="MemoryCoveragePlainSegmentListTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
+  <Border Padding="0,8" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
+    <ToolTip.Tip>
+      <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" />
+    </ToolTip.Tip>
+    <Grid ColumnDefinitions="12,*" ColumnSpacing="8">
+      <Border
+          Width="10"
+          Height="10"
+          Margin="0,3,0,0"
+          VerticalAlignment="Top"
+          Background="{Binding FillBrush}"
+          CornerRadius="2" />
+      <StackPanel Grid.Column="1" Spacing="2">
+        <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding SourceLabel}" TextWrapping="Wrap" />
+        <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" Foreground="#0F172A" Text="{Binding RangeLabel}" TextWrapping="Wrap" />
+        <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding CompactDetail}" TextWrapping="Wrap" />
+      </StackPanel>
+    </Grid>
+  </Border>
+</DataTemplate>
+
+<DataTemplate x:Key="MemoryCoverageGroupTemplate" DataType="vm:MemoryCoverageGroupViewModel">
+  <Expander HorizontalAlignment="Stretch" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
+    <Expander.Header>
+      <Grid HorizontalAlignment="Stretch" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <StackPanel Spacing="2">
+          <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" />
+          <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding ChangeSummary}" TextWrapping="Wrap" />
+        </StackPanel>
+        <Border Grid.Column="1" Padding="8,2" VerticalAlignment="Center" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+          <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding CountLabel}" />
+        </Border>
+      </Grid>
+    </Expander.Header>
+    <ItemsControl
+        HorizontalAlignment="Stretch"
+        ItemContainerTheme="{StaticResource StretchContentPresenterTheme}"
+        ItemTemplate="{StaticResource MemoryCoverageSegmentListTemplate}"
+        ItemsSource="{Binding Segments}" />
+  </Expander>
+</DataTemplate>
+
+<DataTemplate x:Key="ReplaceMemoryMapRowTemplate" DataType="vm:MemoryMapRowViewModel">
+  <Border Padding="0,9" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0" ToolTip.Tip="{Binding Detail}">
+    <Grid ColumnDefinitions="118,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="3">
+      <StackPanel Spacing="2">
+        <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding PrimaryLabel}" TextWrapping="Wrap" />
+        <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#2563EB" Text="{Binding ActionLabel}" TextWrapping="Wrap" />
+      </StackPanel>
+      <TextBlock Grid.Column="1" FontFamily="Cascadia Mono, Consolas" FontSize="12" Foreground="#0F172A" Text="{Binding RangeLabel}" TextWrapping="Wrap" />
+      <TextBlock Grid.Row="1" Grid.Column="1" FontSize="11" FontWeight="SemiBold" Foreground="#475569" Text="{Binding FlowLabel}" TextWrapping="Wrap" />
+    </Grid>
+  </Border>
+</DataTemplate>
+
+<DataTemplate x:Key="MergeMemoryMapRowTemplate" DataType="vm:MemoryMapRowViewModel">
+  <Border Padding="0,9" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0" ToolTip.Tip="{Binding Detail}">
+    <Grid ColumnDefinitions="62,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="3">
+      <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#2563EB" Text="{Binding ActionLabel}" TextWrapping="Wrap" />
+      <TextBlock Grid.Column="1" FontFamily="Cascadia Mono, Consolas" FontSize="12" Foreground="#0F172A" Text="{Binding RangeLabel}" TextWrapping="Wrap" />
+      <TextBlock Grid.Row="1" Grid.Column="1" FontSize="11" FontWeight="SemiBold" Foreground="#475569" Text="{Binding FlowLabel}" TextWrapping="Wrap" />
+    </Grid>
+  </Border>
+</DataTemplate>
+
 <DataTemplate x:Key="FirmwareSlotFactTemplate" DataType="vm:FirmwareSlotFactViewModel">
   <Border
       Margin="0,2,6,0"

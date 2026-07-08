@@ -119,8 +119,13 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("IsVisible=\"{Binding IsReportModalOpen}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.TargetsLabel}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding ShowReplaceSelectionCommand}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("MemoryCoverageTooltipTemplate", shell, StringComparison.Ordinal);
-        Assert.Contains("ContentTemplate=\"{StaticResource MemoryCoverageTooltipTemplate}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("MemoryCoverageSegmentBarTemplate", shell, StringComparison.Ordinal);
+        Assert.Contains("MemoryCoveragePlainSegmentBarTemplate", shell, StringComparison.Ordinal);
+        Assert.Contains("MemoryCoverageGroupTemplate", shell, StringComparison.Ordinal);
+        Assert.Contains("ReplaceMemoryMapRowTemplate", shell, StringComparison.Ordinal);
+        Assert.Contains("MergeMemoryMapRowTemplate", shell, StringComparison.Ordinal);
+        Assert.Contains("MemoryCoverageTooltipTemplate", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{StaticResource MemoryCoverageTooltipTemplate}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("Text=\"{ReflectionBinding $parent[Window].DataContext.Text.RangeLabel}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("Text=\"{ReflectionBinding $parent[Window].DataContext.Text.ResultLabel}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("DataTemplate x:Key=\"FirmwareSlotFactTemplate\"", sharedTemplates, StringComparison.Ordinal);
