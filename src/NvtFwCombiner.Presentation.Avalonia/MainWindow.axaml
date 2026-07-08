@@ -37,6 +37,8 @@
 
   <Window.Styles>
     <StyleInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowStyles.axaml" />
+    <StyleInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowButtonStyles.axaml" />
+    <StyleInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowVisualStyles.axaml" />
   </Window.Styles>
 
   <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">

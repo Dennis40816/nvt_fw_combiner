@@ -1,0 +1,51 @@
+<Styles xmlns="https://github.com/avaloniaui">
+  <Style Selector="Border.slotTypeIcon">
+    <Setter Property="Width" Value="30" />
+    <Setter Property="Height" Value="30" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+  <Style Selector="Border.slotTypeIcon Path">
+    <Setter Property="Width" Value="16" />
+    <Setter Property="Height" Value="16" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Stretch" Value="Uniform" />
+    <Setter Property="StrokeThickness" Value="1.65" />
+    <Setter Property="StrokeLineCap" Value="Round" />
+  </Style>
+  <Style Selector="Border.workflowCard">
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.12" />
+        <BrushTransition Property="BorderBrush" Duration="0:0:0.12" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Button.command:pointerover Border.workflowCard">
+    <Setter Property="Background" Value="#FFFFFF" />
+    <Setter Property="BorderBrush" Value="#93C5FD" />
+  </Style>
+  <Style Selector="Button.command:pressed Border.workflowCard">
+    <Setter Property="Background" Value="#EAF3FF" />
+    <Setter Property="BorderBrush" Value="#60A5FA" />
+  </Style>
+  <Style Selector="Border.dropZoneOverlay">
+    <Setter Property="Opacity" Value="0" />
+    <Setter Property="IsHitTestVisible" Value="False" />
+    <Setter Property="Background" Value="#EFF6FF" />
+    <Setter Property="BorderBrush" Value="#2563EB" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <DoubleTransition Property="Opacity" Duration="0:0:0.14" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Border.fileDropZone.dragActive Border.dropZoneOverlay">
+    <Setter Property="Opacity" Value="0.82" />
+  </Style>
+</Styles>

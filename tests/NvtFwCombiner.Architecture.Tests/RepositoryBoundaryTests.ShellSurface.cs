@@ -8,6 +8,8 @@ public sealed partial class RepositoryBoundaryTests
     {
         string shell = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml");
         string shellStyles = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowStyles.axaml");
+        string buttonStyles = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowButtonStyles.axaml");
+        string visualStyles = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowVisualStyles.axaml");
         string sharedTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml");
         string reportTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportTemplates.axaml");
         string reportAuditTemplates = ReadText(
@@ -63,6 +65,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Classes=\"primary\"", shellSurface, StringComparison.Ordinal);
         Assert.Contains("Classes=\"action\"", shellSurface, StringComparison.Ordinal);
         Assert.Contains("MainWindowStyles.axaml", shell, StringComparison.Ordinal);
+        Assert.Contains("MainWindowButtonStyles.axaml", shell, StringComparison.Ordinal);
+        Assert.Contains("MainWindowVisualStyles.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("MainWindowSharedTemplates.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("MainWindowReportTemplates.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("MainWindowReportAuditTemplates.axaml", shell, StringComparison.Ordinal);
@@ -148,7 +152,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("RemoveButton_OnClick", generalMergeMappingRow, StringComparison.Ordinal);
         Assert.Contains("SetGeneralMergeMappingFile", generalMergeMappingRowCode, StringComparison.Ordinal);
         Assert.Contains("RemoveGeneralMergeMappingRow", generalMergeMappingRowCode, StringComparison.Ordinal);
-        Assert.Contains("Button.reportAction", shellStyles, StringComparison.Ordinal);
+        Assert.Contains("Button.reportAction", buttonStyles, StringComparison.Ordinal);
+        Assert.Contains("Border.workflowCard", visualStyles, StringComparison.Ordinal);
         Assert.Contains("IsEnabled=\"{Binding CanOpenReport}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ReportActionLabel", shell, StringComparison.Ordinal);
         Assert.Contains("ReportActionStatus", shell, StringComparison.Ordinal);
