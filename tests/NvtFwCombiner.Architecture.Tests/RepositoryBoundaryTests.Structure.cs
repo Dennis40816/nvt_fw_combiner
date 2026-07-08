@@ -206,6 +206,36 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private static Task WriteUsageAsync", usage, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies saved-rule loading keeps schema shape, compatibility policy, and input slots out of the root parser.</summary>
+    [Fact]
+    public void SavedCompositionRuleLoaderConcernsStaySplit()
+    {
+        string root = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.cs");
+        string schema = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.Schema.cs");
+        string compatibility = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.Compatibility.cs");
+        string inputSlots = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.InputSlots.cs");
+        string mappingRows = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.MappingRows.cs");
+        string operationFragments = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.OperationFragments.cs");
+        string json = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.Json.cs");
+
+        Assert.Contains("public static SavedCompositionRuleLoadResult Load", root, StringComparison.Ordinal);
+        Assert.Contains("private static SavedCompositionRuleLoadResult Parse", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static readonly HashSet<string> TopLevelProperties", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static SavedRuleCompatibility ReadCompatibility", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static HashSet<string> ReadInputSlotTemplateIds", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static void ValidateRuleCompatibility", root, StringComparison.Ordinal);
+        Assert.Contains("TopLevelProperties", schema, StringComparison.Ordinal);
+        Assert.Contains("MappingRowProperties", schema, StringComparison.Ordinal);
+        Assert.Contains("OperationFragmentKindValues", schema, StringComparison.Ordinal);
+        Assert.Contains("private static SavedRuleCompatibility ReadCompatibility", compatibility, StringComparison.Ordinal);
+        Assert.Contains("private static void ValidateRuleCompatibility", compatibility, StringComparison.Ordinal);
+        Assert.Contains("private static HashSet<string> ReadInputSlotTemplateIds", inputSlots, StringComparison.Ordinal);
+        Assert.Contains("private static List<SavedRuleMappingRow> ReadMappingRows", mappingRows, StringComparison.Ordinal);
+        Assert.Contains("private static List<SavedRuleOperationFragment> ReadOperationFragments", operationFragments, StringComparison.Ordinal);
+        Assert.Contains("private static ByteRange? ParseByteRange", json, StringComparison.Ordinal);
+        Assert.Contains("private static string RequiredEnum", json, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies the Workbench facade stays split into catalog, Standard Merge, and shared adapter helpers.</summary>
     [Fact]
     public void WorkbenchCompositionServiceConcernsStaySplit()

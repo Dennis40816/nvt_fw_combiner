@@ -54,7 +54,7 @@ internal static partial class SavedCompositionRuleLoader
             string targetAddressSpaceId = RequiredId(row, "targetAddressSpaceId", $"{rowPath}.targetAddressSpaceId", issues);
             string? targetRegionId = OptionalId(row, "targetRegionId", $"{rowPath}.targetRegionId", issues);
             ByteRange? targetRange = RequiredByteRange(row, "targetRange", $"{rowPath}.targetRange", issues);
-            string overlapPolicy = RequiredEnum(row, "overlapPolicy", $"{rowPath}.overlapPolicy", ["reject", "allow-declared", "replace-existing"], issues);
+            string overlapPolicy = RequiredEnum(row, "overlapPolicy", $"{rowPath}.overlapPolicy", MappingOverlapPolicyValues, issues);
             int alignment = OptionalPositiveInt(row, "alignment", $"{rowPath}.alignment", issues) ?? 1;
             string reason = RequiredString(row, "reason", $"{rowPath}.reason", issues);
 

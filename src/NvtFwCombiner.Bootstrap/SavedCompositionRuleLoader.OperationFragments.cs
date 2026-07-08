@@ -39,7 +39,7 @@ internal static partial class SavedCompositionRuleLoader
                 fragment,
                 "kind",
                 $"{path}.kind",
-                ["copy-range", "fill-range", "patch-scalar", "replace-range", "run-external-processor", "assert-range", "validate-checksum"],
+                OperationFragmentKindValues,
                 issues);
             if (compositionKind == "merge" &&
                 sourceExperience == "general-merge" &&
