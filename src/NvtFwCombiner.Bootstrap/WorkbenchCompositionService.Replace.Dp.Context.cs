@@ -4,12 +4,12 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    private static bool TryCreateNt51950DpReplaceRunContext(
+    private static bool TryCreateDpPerspectiveDpReplaceRunContext(
         string icId,
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
         bool build,
-        out Nt51950DpReplaceRunContext? context,
+        out DpPerspectiveDpReplaceRunContext? context,
         out WorkbenchRunResult? failure)
     {
         context = null;
@@ -43,7 +43,7 @@ public static partial class WorkbenchCompositionService
         }
 
         long baseLength = new FileInfo(fullBasePath).Length;
-        if (!IsSupportedNt51950DpBaseLength(baseLength))
+        if (!IsSupportedDpPerspectiveBaseLength(baseLength))
         {
             failure = CreatePlanningRunResult(
                 icId,
@@ -52,7 +52,7 @@ public static partial class WorkbenchCompositionService
                 slotPaths,
                 build,
                 "input.address-space.length-mismatch",
-                $"{icId} DP Replace base flash BIN length must be one of {FormatSupportedNt51950DpBaseLengths()} (actual {FormatHexLength(baseLength)}).",
+                $"{icId} DP Replace base flash BIN length must be one of {FormatSupportedDpPerspectiveBaseLengths()} (actual {FormatHexLength(baseLength)}).",
                 baseLength);
             return false;
         }
@@ -62,7 +62,7 @@ public static partial class WorkbenchCompositionService
             new("reference-base", "replace-base", fullBasePath),
             CreateBinding("dp-replacement", "replace-dp", slotPaths),
         ];
-        context = new Nt51950DpReplaceRunContext(
+        context = new DpPerspectiveDpReplaceRunContext(
             ToIcNumberSelection(number),
             fullBasePath,
             baseLength,
@@ -70,7 +70,7 @@ public static partial class WorkbenchCompositionService
         return true;
     }
 
-    private sealed record Nt51950DpReplaceRunContext(
+    private sealed record DpPerspectiveDpReplaceRunContext(
         IcNumberSelection Selection,
         string BasePath,
         long Capacity,

@@ -106,6 +106,8 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Contains("DpPerspectiveCatalog.FormatSupportedIcIds()", bootstrapSource, StringComparison.Ordinal);
         Assert.DoesNotContain("NT51950/NT51951", bootstrapSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("NT51950", bootstrapSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("Nt51950", bootstrapSource, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies General mapping text parsing is owned by one Bootstrap helper.</summary>

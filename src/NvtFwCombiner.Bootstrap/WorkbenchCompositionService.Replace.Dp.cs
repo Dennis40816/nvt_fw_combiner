@@ -7,7 +7,7 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    private static async ValueTask<WorkbenchRunResult> RunNt51950DpReplaceAsync(
+    private static async ValueTask<WorkbenchRunResult> RunDpPerspectiveDpReplaceAsync(
         string icId,
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
@@ -15,18 +15,18 @@ public static partial class WorkbenchCompositionService
         string? outputPath,
         CancellationToken cancellationToken)
     {
-        if (!TryCreateNt51950DpReplaceRunContext(
+        if (!TryCreateDpPerspectiveDpReplaceRunContext(
                 icId,
                 number,
                 slotPaths,
                 build,
-                out Nt51950DpReplaceRunContext? context,
+                out DpPerspectiveDpReplaceRunContext? context,
                 out WorkbenchRunResult? failure))
         {
             return failure!;
         }
 
-        CompositionProfileDefinition profile = BuiltInReplaceProfiles.CreateNt51950FamilyDpReplaceProfile(
+        CompositionProfileDefinition profile = BuiltInReplaceProfiles.CreateDpPerspectiveDpReplaceProfile(
             icId,
             context!.Capacity);
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
@@ -55,15 +55,15 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<TpFlashMapRegion> regions,
         long? dpBaseLength)
     {
-        return IsNt51950Or51(icId)
+        return IsDpPerspectiveIc(icId)
             ?
             [
                 new WorkbenchMemoryMapRow(
-                    FormatNt51950DpReplaceContainerLabel(dpBaseLength),
+                    FormatDpPerspectiveDpReplaceContainerLabel(dpBaseLength),
                     "Base flash",
                     "Replace",
                     "DP replacement",
-                    DescribeNt51950DpReplaceContainer(dpBaseLength)),
+                    DescribeDpPerspectiveDpReplaceContainer(dpBaseLength)),
                 new WorkbenchMemoryMapRow(
                     FormatDisplayRange(DpPerspectiveCatalog.TpOverlayRange),
                     "DP replacement",
@@ -98,8 +98,8 @@ public static partial class WorkbenchCompositionService
             new(
                 "replace-dp",
                 "DP replacement BIN",
-                IsNt51950Or51(icId)
-                    ? $"Replacement DP is padded to the selected base BIN length ({FormatSupportedNt51950DpBaseLengths()}); original TP range is restored from base."
+                IsDpPerspectiveIc(icId)
+                    ? $"Replacement DP is padded to the selected base BIN length ({FormatSupportedDpPerspectiveBaseLengths()}); original TP range is restored from base."
                     : "Replacement DP payload. Build stays gated until this IC has approved DP Replace mapping evidence.",
                 false,
                 "dp-replacement",
@@ -133,12 +133,12 @@ public static partial class WorkbenchCompositionService
         return !IsLdRegion(region) || string.Equals(icId, "NT51928", StringComparison.Ordinal);
     }
 
-    private static bool IsSupportedNt51950DpBaseLength(long? length)
+    private static bool IsSupportedDpPerspectiveBaseLength(long? length)
     {
         return length is long value && DpPerspectiveCatalog.IsSupportedContainerLength(value);
     }
 
-    private static string FormatSupportedNt51950DpBaseLengths()
+    private static string FormatSupportedDpPerspectiveBaseLengths()
     {
         return DpPerspectiveCatalog.FormatSupportedLengths();
     }
@@ -153,27 +153,22 @@ public static partial class WorkbenchCompositionService
         return string.Create(CultureInfo.InvariantCulture, $"0x{length:X}");
     }
 
-    private static string FormatNt51950DpReplaceContainerLabel(long? length)
+    private static string FormatDpPerspectiveDpReplaceContainerLabel(long? length)
     {
         return length is not long value
-            ? $"Base BIN length: {FormatSupportedNt51950DpBaseLengths()}"
-            : IsSupportedNt51950DpBaseLength(value)
+            ? $"Base BIN length: {FormatSupportedDpPerspectiveBaseLengths()}"
+            : IsSupportedDpPerspectiveBaseLength(value)
             ? FormatDisplayRange(new ByteRange(0, value))
             : $"Unsupported base BIN length {FormatHexLength(value)}";
     }
 
-    private static string DescribeNt51950DpReplaceContainer(long? length)
+    private static string DescribeDpPerspectiveDpReplaceContainer(long? length)
     {
         return length is not long value
-            ? $"{FormatDpPerspectiveIcIds()} DP Replace uses the selected base BIN length; supported lengths are {FormatSupportedNt51950DpBaseLengths()}."
-            : IsSupportedNt51950DpBaseLength(value)
+            ? $"{FormatDpPerspectiveIcIds()} DP Replace uses the selected base BIN length; supported lengths are {FormatSupportedDpPerspectiveBaseLengths()}."
+            : IsSupportedDpPerspectiveBaseLength(value)
             ? $"Replacement DP initializes the selected base length {FormatHexLength(value)}; shorter files are padded by profile policy."
-            : $"This base BIN length is not approved for {FormatDpPerspectiveIcIds()} DP Replace; use {FormatSupportedNt51950DpBaseLengths()}.";
-    }
-
-    private static bool IsNt51950Or51(string icId)
-    {
-        return DpPerspectiveCatalog.IsSupportedIc(icId);
+            : $"This base BIN length is not approved for {FormatDpPerspectiveIcIds()} DP Replace; use {FormatSupportedDpPerspectiveBaseLengths()}.";
     }
 
     private static bool IsLdRegion(TpFlashMapRegion region)

@@ -82,14 +82,14 @@ internal static partial class ReplaceCliCommandHandler
         return result.Succeeded ? Success : CompositionFailed;
     }
 
-    private static bool TryResolveNt51950FamilyDpReplaceIc(
+    private static bool TryResolveDpPerspectiveDpReplaceIc(
         string selector,
         [NotNullWhen(true)] out string? icId)
     {
         string normalized = selector.Trim();
         foreach (CompositionProfileDefinition profile in BuiltInReplaceProfiles.All.Where(profile =>
                      profile.ExperienceId == "dp-replace" &&
-                     BuiltInReplaceProfiles.IsNt51950FamilyDpReplaceIc(profile.IcId)))
+                     BuiltInReplaceProfiles.IsDpPerspectiveDpReplaceIc(profile.IcId)))
         {
             if (string.Equals(profile.ProfileId, normalized, StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(profile.IcId, normalized, StringComparison.OrdinalIgnoreCase) ||

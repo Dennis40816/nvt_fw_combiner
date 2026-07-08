@@ -66,13 +66,16 @@ public sealed class BuiltInReplaceProfilesTests
             region.ClassificationTags.Contains("customer-info-preserve", StringComparer.Ordinal));
     }
 
-    /// <summary>Verifies the NT51950/NT51951 workbench profile uses the selected base length without duplicating profile semantics.</summary>
+    /// <summary>Verifies the DP Perspective workbench profile uses the selected base length without duplicating profile semantics.</summary>
     [Theory]
     [InlineData("NT51950", 0x40000)]
     [InlineData("NT51951", 0x80000)]
-    public void Nt51950FamilyDpReplaceCreatesSelectedBaseLengthProfile(string icId, long capacity)
+    public void DpPerspectiveDpReplaceCreatesSelectedBaseLengthProfile(string icId, long capacity)
     {
-        CompositionProfileDefinition profile = BuiltInReplaceProfiles.CreateNt51950FamilyDpReplaceProfile(icId, capacity);
+        Assert.True(BuiltInReplaceProfiles.IsDpPerspectiveDpReplaceIc(icId));
+        Assert.True(BuiltInReplaceProfiles.IsSupportedDpPerspectiveDpBaseLength(capacity));
+
+        CompositionProfileDefinition profile = BuiltInReplaceProfiles.CreateDpPerspectiveDpReplaceProfile(icId, capacity);
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
 

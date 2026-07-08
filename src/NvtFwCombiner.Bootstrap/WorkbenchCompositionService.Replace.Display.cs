@@ -92,13 +92,13 @@ public static partial class WorkbenchCompositionService
         long? dpBaseLength = null,
         string? ctrlRamBasePath = null)
     {
-        if (replaceMode == "DP" && IsNt51950Or51(icId))
+        if (replaceMode == "DP" && IsDpPerspectiveIc(icId))
         {
             return dpBaseLength is long value
-                ? IsSupportedNt51950DpBaseLength(value)
+                ? IsSupportedDpPerspectiveBaseLength(value)
                     ? FormatFullRange(value)
                     : $"Unsupported base BIN length {FormatHexLength(value)}"
-                : $"Base BIN length: {FormatSupportedNt51950DpBaseLengths()}";
+                : $"Base BIN length: {FormatSupportedDpPerspectiveBaseLengths()}";
         }
 
         IcNumberSelection selection = ToIcNumberSelection(number);
@@ -143,7 +143,7 @@ public static partial class WorkbenchCompositionService
             ];
         }
 
-        if (replaceMode == "DP" && IsNt51950Or51(icId))
+        if (replaceMode == "DP" && IsDpPerspectiveIc(icId))
         {
             if (dpBaseLength is not long selectedBaseLength)
             {
@@ -152,21 +152,21 @@ public static partial class WorkbenchCompositionService
                     new WorkbenchMemoryCoverageSegment(
                         "Base length pending",
                         "DP base required",
-                        $"Select a base BIN to resolve the actual DP Replace length ({FormatSupportedNt51950DpBaseLengths()}).",
+                        $"Select a base BIN to resolve the actual DP Replace length ({FormatSupportedDpPerspectiveBaseLengths()}).",
                         "#CBD5E1",
                         280,
                         false),
                 ];
             }
 
-            if (!IsSupportedNt51950DpBaseLength(selectedBaseLength))
+            if (!IsSupportedDpPerspectiveBaseLength(selectedBaseLength))
             {
                 return
                 [
                     new WorkbenchMemoryCoverageSegment(
                         $"Unsupported {FormatHexLength(selectedBaseLength)}",
                         "Unsupported base",
-                        $"This base BIN length is not approved for {FormatDpPerspectiveIcIds()} DP Replace; use {FormatSupportedNt51950DpBaseLengths()}.",
+                        $"This base BIN length is not approved for {FormatDpPerspectiveIcIds()} DP Replace; use {FormatSupportedDpPerspectiveBaseLengths()}.",
                         "#FCA5A5",
                         280,
                         false),

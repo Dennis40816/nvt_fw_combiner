@@ -79,7 +79,7 @@ internal static partial class ReplaceCliCommandHandler
         }
 
         if (command == "dp-replace" &&
-            TryResolveNt51950FamilyDpReplaceIc(profileSelector, out string? dpWorkbenchIcId))
+            TryResolveDpPerspectiveDpReplaceIc(profileSelector, out string? dpWorkbenchIcId))
         {
             return await RunWorkbenchDpReplaceAsync(
                     action,

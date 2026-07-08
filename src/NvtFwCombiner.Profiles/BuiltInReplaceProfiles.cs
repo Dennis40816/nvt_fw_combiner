@@ -183,17 +183,35 @@ public static class BuiltInReplaceProfiles
     /// <summary>Returns true for ICs that use the NT51950 DP Perspective Replace policy.</summary>
     public static bool IsNt51950FamilyDpReplaceIc(string icId)
     {
+        return IsDpPerspectiveDpReplaceIc(icId);
+    }
+
+    /// <summary>Returns true for ICs that use the DP Perspective Replace policy.</summary>
+    public static bool IsDpPerspectiveDpReplaceIc(string icId)
+    {
         return DpPerspectiveCatalog.IsSupportedIc(icId);
     }
 
     /// <summary>Returns true when <paramref name="length" /> is an approved NT51950/NT51951 base length.</summary>
     public static bool IsSupportedNt51950FamilyDpBaseLength(long length)
     {
+        return IsSupportedDpPerspectiveDpBaseLength(length);
+    }
+
+    /// <summary>Returns true when <paramref name="length" /> is an approved DP Perspective base length.</summary>
+    public static bool IsSupportedDpPerspectiveDpBaseLength(long length)
+    {
         return DpPerspectiveCatalog.IsSupportedContainerLength(length);
     }
 
     /// <summary>Creates an NT51950/NT51951 DP Perspective Replace profile for the selected exact base length.</summary>
     public static CompositionProfileDefinition CreateNt51950FamilyDpReplaceProfile(string icId, long capacity)
+    {
+        return CreateDpPerspectiveDpReplaceProfile(icId, capacity);
+    }
+
+    /// <summary>Creates a DP Perspective Replace profile for the selected exact base length.</summary>
+    public static CompositionProfileDefinition CreateDpPerspectiveDpReplaceProfile(string icId, long capacity)
     {
         return CreateNt51950FamilyDpReplaceProfileCore(icId, capacity, null);
     }

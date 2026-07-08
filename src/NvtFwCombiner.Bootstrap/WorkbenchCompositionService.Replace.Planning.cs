@@ -38,9 +38,9 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetRegions(icId, selection);
         OperationRunStatus status = OperationRunStatus.Skipped;
 
-        if (replaceMode == "DP" && IsNt51950Or51(icId))
+        if (replaceMode == "DP" && IsDpPerspectiveIc(icId))
         {
-            if (dpBaseLength is not long capacity || !IsSupportedNt51950DpBaseLength(capacity))
+            if (dpBaseLength is not long capacity || !IsSupportedDpPerspectiveBaseLength(capacity))
             {
                 return [];
             }

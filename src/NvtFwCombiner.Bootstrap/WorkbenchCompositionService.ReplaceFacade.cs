@@ -58,7 +58,7 @@ public static partial class WorkbenchCompositionService
 
         return replaceMode switch
         {
-            "DP" when IsNt51950Or51(icId) => await RunNt51950DpReplaceAsync(
+            "DP" when IsDpPerspectiveIc(icId) => await RunDpPerspectiveDpReplaceAsync(
                 icId,
                 number,
                 slotPaths,
