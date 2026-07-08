@@ -45,13 +45,13 @@ internal static partial class ReplaceCliCommandHandler
         };
 
         InputArtifactBinding[] bindings = CreateWorkbenchBindings(slotPaths);
-        OutputTarget outputTarget = ResolveOutputTarget(
+        CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
             options.Values.GetValueOrDefault("--output"),
             WorkbenchCompositionService.GetReplaceDefaultOutputFileName(icId, "DP"));
         string? outputPath = action == "build" ? outputTarget.FullPath : null;
         if (action == "build")
         {
-            EnsureOutputDoesNotAliasInputs(outputTarget, bindings);
+            CliCompositionRunSupport.EnsureOutputDoesNotAliasInputs(outputTarget, bindings);
             if (!options.Flags.Contains("--overwrite") && File.Exists(outputTarget.FullPath))
             {
                 await error.WriteLineAsync(
@@ -61,7 +61,11 @@ internal static partial class ReplaceCliCommandHandler
             }
         }
 
-        EnsureReportDoesNotAliasProtectedPaths(options, bindings, outputTarget, action == "build");
+        CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(
+            options.Values.GetValueOrDefault("--report"),
+            bindings,
+            outputTarget,
+            action == "build");
 
         WorkbenchRunResult result = await WorkbenchCompositionService
             .RunReplaceAsync(icId, icNumber, "DP", slotPaths, action == "build", cancellationToken, outputPath)
@@ -89,7 +93,7 @@ internal static partial class ReplaceCliCommandHandler
         {
             if (string.Equals(profile.ProfileId, normalized, StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(profile.IcId, normalized, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(GetIcNumber(profile.IcId), normalized, StringComparison.OrdinalIgnoreCase))
+                string.Equals(CliCompositionRunSupport.GetIcNumber(profile.IcId), normalized, StringComparison.OrdinalIgnoreCase))
             {
                 icId = profile.IcId;
                 return true;

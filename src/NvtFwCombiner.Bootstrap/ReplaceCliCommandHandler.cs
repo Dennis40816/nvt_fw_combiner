@@ -136,7 +136,7 @@ internal static partial class ReplaceCliCommandHandler
 
         if (!compile.IsSuccess)
         {
-            await PrintIssuesAsync(error, compile.Issues).ConfigureAwait(false);
+            await CliCompositionRunSupport.PrintIssuesAsync(error, compile.Issues).ConfigureAwait(false);
             return SoftwareError;
         }
 
@@ -146,15 +146,19 @@ internal static partial class ReplaceCliCommandHandler
             return UsageError;
         }
 
-        OutputTarget outputTarget = ResolveOutputTarget(
+        CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
             options.Values.GetValueOrDefault("--output"),
             selectedProfile.DefaultOutputFileName);
         if (action == "build")
         {
-            EnsureOutputDoesNotAliasInputs(outputTarget, bindings);
+            CliCompositionRunSupport.EnsureOutputDoesNotAliasInputs(outputTarget, bindings);
         }
 
-        EnsureReportDoesNotAliasProtectedPaths(options, bindings, outputTarget, action == "build");
+        CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(
+            options.Values.GetValueOrDefault("--report"),
+            bindings,
+            outputTarget,
+            action == "build");
 
         string[] inputRoots = [.. bindings.Select(binding => Path.GetDirectoryName(binding.ArtifactId)!)
             .Distinct(StringComparer.OrdinalIgnoreCase)];
@@ -165,7 +169,7 @@ internal static partial class ReplaceCliCommandHandler
         var service = new CompositionRunService(reader, new SystemClock(), writer, ExternalProcessorFactory.CreateOrNull());
         var request = new CompositionRunRequest(
             CreateRunId(command, action),
-            ToRunProfile(selectedProfile),
+            CliCompositionRunSupport.ToRunProfile(selectedProfile),
             plan,
             bindings,
             outputTarget.FileName,
@@ -173,8 +177,16 @@ internal static partial class ReplaceCliCommandHandler
 
         CompositionRunResult result = action == "preview"
             ? await service.PreviewAsync(request, cancellationToken).ConfigureAwait(false)
-            : await BuildWithInternalPreviewAsync(service, request, cancellationToken).ConfigureAwait(false);
-        await WriteReportFileIfRequestedAsync(result, options, bindings, outputTarget, action == "build", output, cancellationToken)
+            : await CliCompositionRunSupport.BuildWithInternalPreviewAsync(service, request, cancellationToken)
+                .ConfigureAwait(false);
+        await CliCompositionRunSupport.WriteReportFileIfRequestedAsync(
+                result,
+                options.Values.GetValueOrDefault("--report"),
+                bindings,
+                outputTarget,
+                action == "build",
+                output,
+                cancellationToken)
             .ConfigureAwait(false);
         await PrintRunResultAsync(result, output, error).ConfigureAwait(false);
         return result.Status == CompositionExecutionStatus.Succeeded ? Success : CompositionFailed;
@@ -362,72 +374,8 @@ internal static partial class ReplaceCliCommandHandler
             string.Equals(candidate.ExperienceId, command, StringComparison.Ordinal) &&
             (string.Equals(candidate.ProfileId, normalized, StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(candidate.IcId, normalized, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(GetIcNumber(candidate.IcId), normalized, StringComparison.OrdinalIgnoreCase)));
+                string.Equals(CliCompositionRunSupport.GetIcNumber(candidate.IcId), normalized, StringComparison.OrdinalIgnoreCase)));
         return profile is not null;
-    }
-
-    private static async ValueTask<CompositionRunResult> BuildWithInternalPreviewAsync(
-        CompositionRunService service,
-        CompositionRunRequest request,
-        CancellationToken cancellationToken)
-    {
-        CompositionRunResult preview = await service.PreviewAsync(request, cancellationToken).ConfigureAwait(false);
-        return preview.Status == CompositionExecutionStatus.Succeeded
-            ? await service.BuildAsync(request.WithApprovedPreviewToken(preview.PreviewToken!), cancellationToken)
-                .ConfigureAwait(false)
-            : preview;
-    }
-
-    private static CompositionRunProfile ToRunProfile(CompositionProfileDefinition profile)
-    {
-        return new CompositionRunProfile(
-            profile.ProfileId,
-            profile.ProfileVersion,
-            profile.IcId,
-            profile.ModeId,
-            profile.ExperienceId,
-            profile.CompositionKind,
-            profile.IcNumberInputMode);
-    }
-
-    private static OutputTarget ResolveOutputTarget(string? requestedOutput, string defaultFileName)
-    {
-        string outputPath = string.IsNullOrWhiteSpace(requestedOutput)
-            ? Path.GetFullPath(defaultFileName)
-            : Path.GetFullPath(requestedOutput);
-        string? directory = Path.GetDirectoryName(outputPath);
-        string fileName = Path.GetFileName(outputPath);
-        return string.IsNullOrWhiteSpace(directory) || string.IsNullOrWhiteSpace(fileName)
-            ? throw new ArgumentException("Output must resolve to a file path.")
-            : new OutputTarget(directory, fileName);
-    }
-
-    private static void EnsureOutputDoesNotAliasInputs(
-        OutputTarget outputTarget,
-        IReadOnlyList<InputArtifactBinding> bindings)
-    {
-        ProtectedPathGuard.EnsureOutputDoesNotAliasInputs(
-            outputTarget.FullPath,
-            bindings,
-            nameof(outputTarget));
-    }
-
-    private static void EnsureReportDoesNotAliasProtectedPaths(
-        ParsedOptions options,
-        IReadOnlyList<InputArtifactBinding> bindings,
-        OutputTarget outputTarget,
-        bool protectOutput)
-    {
-        if (!options.Values.TryGetValue("--report", out string? reportPath))
-        {
-            return;
-        }
-
-        ProtectedPathGuard.EnsureReportDoesNotAliasProtectedPaths(
-            reportPath,
-            bindings,
-            protectOutput ? outputTarget.FullPath : null,
-            "--report");
     }
 
     private static async Task PrintRunResultAsync(
@@ -460,52 +408,14 @@ internal static partial class ReplaceCliCommandHandler
                 await output.WriteLineAsync(
                         string.Create(
                             CultureInfo.InvariantCulture,
-                            $"  {mutation.OperationId}: {mutation.TargetSpaceId} {FormatRange(mutation.TargetRange)} changed={mutation.ChangedByteCount}"))
+                            $"  {mutation.OperationId}: {mutation.TargetSpaceId} {CliCompositionRunSupport.FormatRange(mutation.TargetRange)} changed={mutation.ChangedByteCount}"))
                     .ConfigureAwait(false);
             }
         }
 
         if (report.Issues.Count > 0)
         {
-            await PrintIssuesAsync(error, report.Issues).ConfigureAwait(false);
-        }
-    }
-
-    private static async Task WriteReportFileIfRequestedAsync(
-        CompositionRunResult result,
-        ParsedOptions options,
-        IReadOnlyList<InputArtifactBinding> bindings,
-        OutputTarget outputTarget,
-        bool protectOutput,
-        TextWriter output,
-        CancellationToken cancellationToken)
-    {
-        if (!options.Values.TryGetValue("--report", out string? reportPath))
-        {
-            return;
-        }
-
-        string fullPath = await CliRunReportWriter
-            .WriteAsync(
-                result.Report,
-                reportPath,
-                ProtectedPathGuard.CreateProtectedPaths(
-                    bindings,
-                    protectOutput ? outputTarget.FullPath : null),
-                cancellationToken)
-            .ConfigureAwait(false);
-        await output.WriteLineAsync($"Report: {fullPath}").ConfigureAwait(false);
-    }
-
-    private static async Task PrintIssuesAsync(
-        TextWriter error,
-        IReadOnlyList<CompositionIssue> issues)
-    {
-        await error.WriteLineAsync("Issues:").ConfigureAwait(false);
-        foreach (CompositionIssue issue in issues)
-        {
-            string operation = issue.OperationId is null ? string.Empty : $" [{issue.OperationId}]";
-            await error.WriteLineAsync($"  {issue.Code}{operation}: {issue.Message}").ConfigureAwait(false);
+            await CliCompositionRunSupport.PrintIssuesAsync(error, report.Issues).ConfigureAwait(false);
         }
     }
 
@@ -619,20 +529,6 @@ internal static partial class ReplaceCliCommandHandler
         return false;
     }
 
-    private static string GetIcNumber(string icId)
-    {
-        return icId.StartsWith("NT", StringComparison.OrdinalIgnoreCase)
-            ? icId[2..]
-            : icId;
-    }
-
-    private static string FormatRange(ByteRange range)
-    {
-        return string.Create(
-            CultureInfo.InvariantCulture,
-            $"0x{range.Start:X}-0x{range.EndExclusive - 1:X} (len 0x{range.Length:X})");
-    }
-
     private static string CreateRunId(string command, string action)
     {
         return string.Create(
@@ -684,10 +580,5 @@ internal static partial class ReplaceCliCommandHandler
                     ? [value]
                     : [];
         }
-    }
-
-    private readonly record struct OutputTarget(string OutputDirectory, string FileName)
-    {
-        internal string FullPath => ProtectedPathGuard.CombineFullPath(OutputDirectory, FileName);
     }
 }
