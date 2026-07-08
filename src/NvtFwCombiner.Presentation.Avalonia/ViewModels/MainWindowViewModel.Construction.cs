@@ -8,9 +8,9 @@ public sealed partial class MainWindowViewModel
     private const string DpReplaceMode = WorkbenchReplaceModes.Dp;
     private const string CtrlRamReplaceMode = WorkbenchReplaceModes.CtrlRam;
     private const string GeneralReplaceMode = WorkbenchReplaceModes.General;
-    private const string NormalMergeMode = "Normal";
-    private const string AbCodeMergeMode = "AB Code";
-    private const string GeneralMergeMode = "General";
+    private const string NormalMergeMode = WorkbenchMergeModes.Standard;
+    private const string AbCodeMergeMode = WorkbenchMergeModes.AbCode;
+    private const string GeneralMergeMode = WorkbenchMergeModes.General;
     private const string MergeDpSlotId = WorkbenchSlotIds.MergeDp;
     private const string MergeTpSlotId = WorkbenchSlotIds.MergeTp;
     private const string MergeLdSlotId = WorkbenchSlotIds.MergeLd;

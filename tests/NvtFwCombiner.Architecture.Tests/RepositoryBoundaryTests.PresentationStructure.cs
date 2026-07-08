@@ -128,6 +128,25 @@ public sealed partial class RepositoryBoundaryTests
         }
     }
 
+    /// <summary>Verifies Presentation uses Bootstrap-projected Merge mode ids in ViewModels and dynamic text.</summary>
+    [Fact]
+    public void PresentationUsesBootstrapMergeModeIds()
+    {
+        string viewModels = ReadViewModelPartials();
+        string dynamicText = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.DynamicText.cs");
+
+        Assert.Contains("WorkbenchMergeModes.Standard", viewModels, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchMergeModes.AbCode", viewModels, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchMergeModes.General", viewModels, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchMergeModes.Standard", dynamicText, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchMergeModes.General", dynamicText, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"Normal\"", viewModels, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"AB Code\"", viewModels, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"Normal\" when", dynamicText, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"General\" when", dynamicText, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies the Presentation runner remains a thin split adapter over Bootstrap workbench contracts.</summary>
     [Fact]
     public void UiCompositionRunnerConcernsStaySplit()

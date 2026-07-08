@@ -130,17 +130,17 @@ public sealed partial class ShellTextResources
         return Language == ShellLanguage.ChineseTraditional
             ? mode switch
             {
-                "Normal" when isStandardMergeSupported => "此圖顯示每個最終 flash 位置由哪個 input file 寫入。",
-                "Normal" => "所選 IC 尚未有 Merge profile。",
-                "General" when hasGeneralMapping => "輸出先以 reserved byte 初始化，再標出每筆明確 source mapping 寫入的位置。",
-                "General" => "輸出先以 reserved byte 初始化；新增 mapping 後會標出寫入位置。",
+                WorkbenchMergeModes.Standard when isStandardMergeSupported => "此圖顯示每個最終 flash 位置由哪個 input file 寫入。",
+                WorkbenchMergeModes.Standard => "所選 IC 尚未有 Merge profile。",
+                WorkbenchMergeModes.General when hasGeneralMapping => "輸出先以 reserved byte 初始化，再標出每筆明確 source mapping 寫入的位置。",
+                WorkbenchMergeModes.General => "輸出先以 reserved byte 初始化；新增 mapping 後會標出寫入位置。",
                 _ => "此 Merge 模式保留中。",
             }
             : mode switch
             {
-                "Normal" when isStandardMergeSupported => "The bar shows which input file occupies each final flash position.",
-                "Normal" => "No merge profile is available for the selected IC.",
-                "General" => "The bar starts reserved and marks each explicit source mapping written into the output.",
+                WorkbenchMergeModes.Standard when isStandardMergeSupported => "The bar shows which input file occupies each final flash position.",
+                WorkbenchMergeModes.Standard => "No merge profile is available for the selected IC.",
+                WorkbenchMergeModes.General => "The bar starts reserved and marks each explicit source mapping written into the output.",
                 _ => "This merge mode is reserved.",
             };
     }
@@ -161,18 +161,18 @@ public sealed partial class ShellTextResources
         return Language == ShellLanguage.ChineseTraditional
             ? mode switch
             {
-                "Normal" when isStandardMergeSupported => $"{ic}：放入 {requiredSlots} BIN files。",
-                "Normal" => $"{ic}：Standard Merge 尚未可用。",
-                "General" when generalMappingFileCount > 0 => $"{ic}：General Merge 會將 {generalMappingFileCount} 個 source BIN mapping 寫入 blank output。",
-                "General" => $"{ic}：至少新增一筆 source BIN mapping。",
+                WorkbenchMergeModes.Standard when isStandardMergeSupported => $"{ic}：放入 {requiredSlots} BIN files。",
+                WorkbenchMergeModes.Standard => $"{ic}：Standard Merge 尚未可用。",
+                WorkbenchMergeModes.General when generalMappingFileCount > 0 => $"{ic}：General Merge 會將 {generalMappingFileCount} 個 source BIN mapping 寫入 blank output。",
+                WorkbenchMergeModes.General => $"{ic}：至少新增一筆 source BIN mapping。",
                 _ => "AB Code Merge 保留給後續流程。",
             }
             : mode switch
             {
-                "Normal" when isStandardMergeSupported => $"{ic}: drop {requiredSlots} BIN files.",
-                "Normal" => $"{ic}: Standard Merge is not available yet.",
-                "General" when generalMappingFileCount > 0 => $"{ic}: General Merge maps {generalMappingFileCount} source BIN file(s) into a blank output.",
-                "General" => $"{ic}: add at least one source BIN mapping.",
+                WorkbenchMergeModes.Standard when isStandardMergeSupported => $"{ic}: drop {requiredSlots} BIN files.",
+                WorkbenchMergeModes.Standard => $"{ic}: Standard Merge is not available yet.",
+                WorkbenchMergeModes.General when generalMappingFileCount > 0 => $"{ic}: General Merge maps {generalMappingFileCount} source BIN file(s) into a blank output.",
+                WorkbenchMergeModes.General => $"{ic}: add at least one source BIN mapping.",
                 _ => "AB Code Merge is reserved for a later workflow.",
             };
     }

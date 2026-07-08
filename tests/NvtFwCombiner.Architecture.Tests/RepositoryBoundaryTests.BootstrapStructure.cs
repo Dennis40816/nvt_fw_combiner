@@ -38,7 +38,10 @@ public sealed partial class RepositoryBoundaryTests
     {
         string bootstrapSource = ReadBootstrapSources();
         string replaceModes = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchReplaceModes.cs");
-        string bootstrapWithoutReplaceModes = bootstrapSource.Replace(replaceModes, string.Empty, StringComparison.Ordinal);
+        string mergeModes = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchMergeModes.cs");
+        string bootstrapWithoutReplaceModes = bootstrapSource
+            .Replace(replaceModes, string.Empty, StringComparison.Ordinal)
+            .Replace(mergeModes, string.Empty, StringComparison.Ordinal);
 
         Assert.Contains("public const string Dp = \"DP\"", replaceModes, StringComparison.Ordinal);
         Assert.Contains("public const string CtrlRam = \"CtrlRAM\"", replaceModes, StringComparison.Ordinal);
@@ -46,6 +49,24 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("\"DP\"", bootstrapWithoutReplaceModes, StringComparison.Ordinal);
         Assert.DoesNotContain("\"CtrlRAM\"", bootstrapWithoutReplaceModes, StringComparison.Ordinal);
         Assert.DoesNotContain("\"General\"", bootstrapWithoutReplaceModes, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies workbench Merge mode ids stay centralized for UI adapters.</summary>
+    [Fact]
+    public void BootstrapOwnsWorkbenchMergeModeIds()
+    {
+        string bootstrapSource = ReadBootstrapSources();
+        string mergeModes = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchMergeModes.cs");
+        string replaceModes = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchReplaceModes.cs");
+        string bootstrapWithoutModeCatalogs = bootstrapSource
+            .Replace(mergeModes, string.Empty, StringComparison.Ordinal)
+            .Replace(replaceModes, string.Empty, StringComparison.Ordinal);
+
+        Assert.Contains("public const string Standard = \"Normal\"", mergeModes, StringComparison.Ordinal);
+        Assert.Contains("public const string AbCode = \"AB Code\"", mergeModes, StringComparison.Ordinal);
+        Assert.Contains("public const string General = \"General\"", mergeModes, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"Normal\"", bootstrapWithoutModeCatalogs, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"AB Code\"", bootstrapWithoutModeCatalogs, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies workbench slot ids stay centralized for CLI, UI, and report adapters.</summary>
