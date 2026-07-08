@@ -4,6 +4,12 @@ namespace NvtFwCombiner.Profiles;
 
 public static partial class BuiltInStandardMergeProfiles
 {
+    /// <summary>Standard merge profiles for NT51950/NT51951 DP Perspective containers.</summary>
+    public static IReadOnlyList<CompositionProfileDefinition> DpPerspectiveStandardMergeProfiles { get; } =
+    [
+        .. DpPerspectiveCatalog.SupportedIcIds.Select(icId => CreateDpPerspectiveProfile(icId)),
+    ];
+
     /// <summary>Creates an NT51950/NT51951 DP Perspective profile matching the selected DP input length.</summary>
     public static CompositionProfileDefinition CreateDpPerspectiveProfileForInputLength(string icId, long dpInputLength)
     {
