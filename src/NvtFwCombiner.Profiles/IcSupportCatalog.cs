@@ -1,22 +1,24 @@
+using NvtFwCombiner.Domain.Composition;
+
 namespace NvtFwCombiner.Profiles;
 
 /// <summary>Supported workflow identifiers used by IC onboarding policy.</summary>
 public static class IcWorkflowIds
 {
     /// <summary>Profile-backed normal Standard Merge.</summary>
-    public const string StandardMerge = "standard-merge";
+    public const string StandardMerge = ExperienceIds.StandardMerge;
 
     /// <summary>DP Replace workflow.</summary>
-    public const string DpReplace = "dp-replace";
+    public const string DpReplace = ExperienceIds.DpReplace;
 
     /// <summary>CtrlRAM Replace workflow.</summary>
-    public const string CtrlRamReplace = "ctrlram-replace";
+    public const string CtrlRamReplace = ExperienceIds.CtrlRamReplace;
 
     /// <summary>General Merge workbench workflow.</summary>
-    public const string GeneralMerge = "general-merge";
+    public const string GeneralMerge = ExperienceIds.GeneralMerge;
 
     /// <summary>General Replace workbench workflow.</summary>
-    public const string GeneralReplace = "general-replace";
+    public const string GeneralReplace = ExperienceIds.GeneralReplace;
 
     /// <summary>All workflow ids that may be declared by the IC support catalog.</summary>
     public static IReadOnlyList<string> All { get; } =

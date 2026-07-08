@@ -56,15 +56,29 @@ public sealed partial class RepositoryBoundaryTests
     public void WorkflowIdsStayCatalogOwned()
     {
         string catalog = ReadText("src/NvtFwCombiner.Profiles/IcSupportCatalog.cs");
+        string experienceIds = ReadText("src/NvtFwCombiner.Domain/Composition/ExperienceIds.cs");
+        string experienceCatalog = ReadText("src/NvtFwCombiner.Domain/Composition/ExperienceCatalog.cs");
         string profileSources = ReadProfileSources();
         string profilesWithoutCatalog = profileSources.Replace(catalog, string.Empty, StringComparison.Ordinal);
         string bootstrapSources = ReadBootstrapSources();
 
-        Assert.Contains("public const string StandardMerge = \"standard-merge\"", catalog, StringComparison.Ordinal);
-        Assert.Contains("public const string DpReplace = \"dp-replace\"", catalog, StringComparison.Ordinal);
-        Assert.Contains("public const string CtrlRamReplace = \"ctrlram-replace\"", catalog, StringComparison.Ordinal);
-        Assert.Contains("public const string GeneralMerge = \"general-merge\"", catalog, StringComparison.Ordinal);
-        Assert.Contains("public const string GeneralReplace = \"general-replace\"", catalog, StringComparison.Ordinal);
+        Assert.Contains("public const string StandardMerge = \"standard-merge\"", experienceIds, StringComparison.Ordinal);
+        Assert.Contains("public const string AbMerge = \"ab-merge\"", experienceIds, StringComparison.Ordinal);
+        Assert.Contains("public const string GeneralMerge = \"general-merge\"", experienceIds, StringComparison.Ordinal);
+        Assert.Contains("public const string DpReplace = \"dp-replace\"", experienceIds, StringComparison.Ordinal);
+        Assert.Contains("public const string CtrlRamReplace = \"ctrlram-replace\"", experienceIds, StringComparison.Ordinal);
+        Assert.Contains("public const string GeneralReplace = \"general-replace\"", experienceIds, StringComparison.Ordinal);
+        Assert.Contains("new(ExperienceIds.StandardMerge,", experienceCatalog, StringComparison.Ordinal);
+        Assert.Contains("new(ExperienceIds.AbMerge,", experienceCatalog, StringComparison.Ordinal);
+        Assert.Contains("new(ExperienceIds.GeneralMerge,", experienceCatalog, StringComparison.Ordinal);
+        Assert.Contains("new(ExperienceIds.DpReplace,", experienceCatalog, StringComparison.Ordinal);
+        Assert.Contains("new(ExperienceIds.CtrlRamReplace,", experienceCatalog, StringComparison.Ordinal);
+        Assert.Contains("new(ExperienceIds.GeneralReplace,", experienceCatalog, StringComparison.Ordinal);
+        Assert.Contains("public const string StandardMerge = ExperienceIds.StandardMerge", catalog, StringComparison.Ordinal);
+        Assert.Contains("public const string DpReplace = ExperienceIds.DpReplace", catalog, StringComparison.Ordinal);
+        Assert.Contains("public const string CtrlRamReplace = ExperienceIds.CtrlRamReplace", catalog, StringComparison.Ordinal);
+        Assert.Contains("public const string GeneralMerge = ExperienceIds.GeneralMerge", catalog, StringComparison.Ordinal);
+        Assert.Contains("public const string GeneralReplace = ExperienceIds.GeneralReplace", catalog, StringComparison.Ordinal);
         Assert.Contains("IcWorkflowIds.GeneralMerge", catalog, StringComparison.Ordinal);
         Assert.Contains("IcWorkflowIds.StandardMerge", profilesWithoutCatalog, StringComparison.Ordinal);
         Assert.Contains("IcWorkflowIds.DpReplace", profilesWithoutCatalog, StringComparison.Ordinal);
@@ -85,6 +99,8 @@ public sealed partial class RepositoryBoundaryTests
             "\"general-replace\"",
         })
         {
+            Assert.DoesNotContain(workflowLiteral, experienceCatalog, StringComparison.Ordinal);
+            Assert.DoesNotContain(workflowLiteral, catalog, StringComparison.Ordinal);
             Assert.DoesNotContain(workflowLiteral, profilesWithoutCatalog, StringComparison.Ordinal);
             Assert.DoesNotContain(workflowLiteral, bootstrapSources, StringComparison.Ordinal);
         }
