@@ -85,19 +85,4 @@ public sealed partial class FirmwareSlotViewModel
         _ => BinIconForeground,
     };
 
-    private static FirmwareSlotKind InferSlotKind(string slotId, string title)
-    {
-        return true switch
-        {
-            _ when Contains(slotId, "base") || Contains(title, "Base") => FirmwareSlotKind.Base,
-            _ when Contains(slotId, "ctrlram") || Contains(title, "CtrlRAM") => FirmwareSlotKind.CtrlRam,
-            _ when Contains(slotId, "-tp") || Contains(slotId, "tp-") || Contains(title, "TP ") => FirmwareSlotKind.Tp,
-            _ when Contains(slotId, "-dp") ||
-                Contains(slotId, "-ld") ||
-                Contains(slotId, "ldc") ||
-                Contains(title, "DP ") ||
-                Contains(title, "LD ") => FirmwareSlotKind.Dp,
-            _ => FirmwareSlotKind.Unknown,
-        };
-    }
 }

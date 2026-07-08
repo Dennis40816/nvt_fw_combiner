@@ -25,7 +25,7 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         SlotId = slotId;
         Title = title;
         Description = description;
-        SlotKind = kind is FirmwareSlotKind.Unknown ? InferSlotKind(slotId, title) : kind;
+        SlotKind = kind is FirmwareSlotKind.Unknown ? FirmwareSlotKindResolver.Resolve(slotId, title) : kind;
         IsOptional = isOptional;
     }
 
@@ -123,8 +123,4 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         OnPropertyChanged(nameof(HasFirmwareFacts));
     }
 
-    private static bool Contains(string value, string expected)
-    {
-        return value.Contains(expected, StringComparison.OrdinalIgnoreCase);
-    }
 }

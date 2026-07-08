@@ -183,6 +183,7 @@ public sealed partial class RepositoryBoundaryTests
         string root = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotViewModel.cs");
         string icons = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotViewModel.Icons.cs");
         string state = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotViewModel.State.cs");
+        string resolver = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotKindResolver.cs");
         string facts = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotFactViewModel.cs");
         string kind = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotKind.cs");
 
@@ -190,14 +191,22 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public partial string? FilePath", root, StringComparison.Ordinal);
         Assert.Contains("public void ApplyDisplayText", root, StringComparison.Ordinal);
         Assert.Contains("public void SetFirmwareFacts", root, StringComparison.Ordinal);
+        Assert.Contains("FirmwareSlotKindResolver.Resolve", root, StringComparison.Ordinal);
         Assert.DoesNotContain("SlotIconPathData", root, StringComparison.Ordinal);
         Assert.DoesNotContain("public IBrush SlotBackgroundBrush", root, StringComparison.Ordinal);
         Assert.DoesNotContain("public sealed record FirmwareSlotFactViewModel", root, StringComparison.Ordinal);
         Assert.DoesNotContain("public enum FirmwareSlotKind", root, StringComparison.Ordinal);
         Assert.Contains("SlotIconPathData", icons, StringComparison.Ordinal);
-        Assert.Contains("InferSlotKind", icons, StringComparison.Ordinal);
+        Assert.DoesNotContain("InferSlotKind", icons, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchSlotIds", icons, StringComparison.Ordinal);
         Assert.Contains("SlotBackgroundBrush", state, StringComparison.Ordinal);
         Assert.Contains("RequirementBadgeForegroundBrush", state, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchSlotIds.MergeDp", resolver, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchSlotIds.MergeTp", resolver, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchSlotIds.MergeLd", resolver, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchSlotIds.ReplaceBase", resolver, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchSlotIds.ReplaceDp", resolver, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchSlotIds.ReplaceCtrlRamPrefix", resolver, StringComparison.Ordinal);
         Assert.Contains("public sealed record FirmwareSlotFactViewModel", facts, StringComparison.Ordinal);
         Assert.Contains("public enum FirmwareSlotKind", kind, StringComparison.Ordinal);
     }
