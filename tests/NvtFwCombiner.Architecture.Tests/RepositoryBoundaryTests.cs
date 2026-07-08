@@ -43,6 +43,7 @@ public sealed partial class RepositoryBoundaryTests
     {
         string shell = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml");
         string shellStyles = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowStyles.axaml");
+        string reportTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportTemplates.axaml");
 
         Assert.Contains("IsHomeVisible", shell, StringComparison.Ordinal);
         Assert.Contains("IsMergeVisible", shell, StringComparison.Ordinal);
@@ -67,6 +68,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Classes=\"primary\"", shell, StringComparison.Ordinal);
         Assert.Contains("Classes=\"action\"", shell, StringComparison.Ordinal);
         Assert.Contains("MainWindowStyles.axaml", shell, StringComparison.Ordinal);
+        Assert.Contains("MainWindowReportTemplates.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("<Setter Property=\"MinHeight\" Value=\"44\" />", shellStyles, StringComparison.Ordinal);
         Assert.Contains("<Setter Property=\"CornerRadius\" Value=\"999\" />", shellStyles, StringComparison.Ordinal);
         Assert.Contains("ColumnDefinitions=\"1.15*,430\"", shell, StringComparison.Ordinal);
@@ -139,8 +141,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("Choose IC and Number inside", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("HomeReplaceStatus", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("HomeMergeStatus", shell, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding #RootWindow.DataContext.Text.RangeTableTitle}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding RangeRows}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{ReflectionBinding $parent[Window].DataContext.Text.RangeTableTitle}\"", reportTemplates, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding RangeRows}\"", reportTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("Where to look first", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Evidence map", shell, StringComparison.Ordinal);
         Assert.Contains("<TabControl", shell, StringComparison.Ordinal);
