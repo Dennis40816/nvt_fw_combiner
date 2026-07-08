@@ -197,6 +197,83 @@
   </Border>
 </DataTemplate>
 
+<DataTemplate x:Key="ReplaceOutputLayoutPanelTemplate" DataType="vm:MainWindowViewModel">
+  <Border Padding="18,16" Background="#FFFFFF" BorderBrush="#EEF2F7" BorderThickness="1" CornerRadius="6">
+    <StackPanel Spacing="14">
+      <StackPanel Spacing="8">
+        <StackPanel Spacing="3">
+          <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.OutputLayoutTitle}" />
+          <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding ReplaceMemorySummary}" TextWrapping="Wrap" />
+        </StackPanel>
+        <Border Padding="8,4" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6">
+          <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="12" Foreground="#475569" Text="{Binding ReplaceMemoryRangeLabel}" TextWrapping="Wrap" />
+        </Border>
+      </StackPanel>
+
+      <Border Padding="6" Background="#EEF4FA" BorderBrush="Transparent" BorderThickness="0" CornerRadius="6">
+        <ItemsControl ItemTemplate="{StaticResource MemoryCoverageSegmentBarTemplate}" ItemsSource="{Binding ReplaceCoverageSegments}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+        </ItemsControl>
+      </Border>
+
+      <ItemsControl ItemTemplate="{StaticResource MemoryCoverageSegmentListTemplate}" ItemsSource="{Binding ReplaceCoverageSegments}" IsVisible="{Binding IsReplaceCoverageFlat}" />
+
+      <ItemsControl
+          HorizontalAlignment="Stretch"
+          ItemContainerTheme="{StaticResource StretchContentPresenterTheme}"
+          ItemTemplate="{StaticResource MemoryCoverageGroupTemplate}"
+          ItemsSource="{Binding ReplaceCoverageGroups}"
+          IsVisible="{Binding IsReplaceCoverageGrouped}" />
+
+      <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.PlanTitle}" />
+      <ItemsControl ItemTemplate="{StaticResource ReplaceMemoryMapRowTemplate}" ItemsSource="{Binding ReplaceMemoryRows}" />
+      <Border Padding="10,8" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
+        <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#475569" Text="{Binding ReplaceReadinessStatus}" TextWrapping="Wrap" />
+      </Border>
+    </StackPanel>
+  </Border>
+</DataTemplate>
+
+<DataTemplate x:Key="MergeOutputLayoutPanelTemplate" DataType="vm:MainWindowViewModel">
+  <Border Padding="18" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
+    <StackPanel Spacing="14">
+      <StackPanel Spacing="8">
+        <StackPanel Spacing="3">
+          <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.OutputLayoutTitle}" />
+          <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding MergeMemorySummary}" TextWrapping="Wrap" />
+        </StackPanel>
+        <Border Padding="8,4" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6">
+          <TextBlock
+              FontFamily="Cascadia Mono, Consolas"
+              FontSize="12"
+              Foreground="#475569"
+              Text="{Binding MergeMemoryRangeLabel}"
+              TextWrapping="Wrap" />
+        </Border>
+      </StackPanel>
+
+      <Border Padding="10" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
+        <ItemsControl ItemTemplate="{StaticResource MemoryCoveragePlainSegmentBarTemplate}" ItemsSource="{Binding MergeCoverageSegments}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+        </ItemsControl>
+      </Border>
+
+      <ItemsControl ItemTemplate="{StaticResource MemoryCoveragePlainSegmentListTemplate}" ItemsSource="{Binding MergeCoverageSegments}" />
+
+      <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.PlanTitle}" />
+      <ItemsControl ItemTemplate="{StaticResource MergeMemoryMapRowTemplate}" ItemsSource="{Binding MergeMemoryRows}" />
+    </StackPanel>
+  </Border>
+</DataTemplate>
+
 <DataTemplate x:Key="FirmwareSlotFactTemplate" DataType="vm:FirmwareSlotFactViewModel">
   <Border
       Margin="0,2,6,0"
