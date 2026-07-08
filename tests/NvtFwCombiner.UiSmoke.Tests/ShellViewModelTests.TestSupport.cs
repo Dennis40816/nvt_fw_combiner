@@ -37,7 +37,7 @@ public sealed partial class ShellViewModelTests
     private static void AssertNoUnexpectedOutputDifferenceIssue(JsonElement root)
     {
         Assert.DoesNotContain(root.GetProperty("Issues").EnumerateArray(), issue =>
-            issue.GetProperty("Code").GetString() == "report.output-difference.unexpected");
+            issue.GetProperty("Code").GetString() == ReportIssueCodes.UnexpectedOutputDifference);
     }
 
     private static byte[] CreatePattern(int length, byte seed)

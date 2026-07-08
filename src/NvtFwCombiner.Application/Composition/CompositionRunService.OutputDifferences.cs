@@ -226,7 +226,7 @@ public sealed partial class CompositionRunService
         return outputDifferences
             .Where(difference => !difference.IsAccepted)
             .Select(difference => new CompositionIssue(
-                "report.output-difference.unexpected",
+                ReportIssueCodes.UnexpectedOutputDifference,
                 $"Replace output difference '{difference.DifferenceId}' is outside declared replacement ranges and IC-number-specific postbuild CRC/header ranges.",
                 difference.DifferenceId));
     }

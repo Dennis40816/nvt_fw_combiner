@@ -135,7 +135,7 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal("7e", crcHeader.AfterHexPreview);
         Assert.Equal(1, crcHeader.HexPreviewByteCount);
         Assert.True(crcHeader.IsHexPreviewComplete);
-        Assert.DoesNotContain(result.Report.Issues, issue => issue.Code == "report.output-difference.unexpected");
+        Assert.DoesNotContain(result.Report.Issues, issue => issue.Code == ReportIssueCodes.UnexpectedOutputDifference);
     }
 
     /// <summary>Verifies preview approval includes staged source-to-firmware mapping details.</summary>
