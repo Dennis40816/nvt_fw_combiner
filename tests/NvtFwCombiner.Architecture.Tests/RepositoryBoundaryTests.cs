@@ -210,6 +210,8 @@ public sealed partial class RepositoryBoundaryTests
         string catalog = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Catalog.cs");
         string common = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Common.cs");
         string standardMerge = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.cs");
+        string standardMergeDisplay = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Display.cs");
+        string standardMergeRun = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Run.cs");
 
         Assert.Contains("public static partial class WorkbenchCompositionService", facade, StringComparison.Ordinal);
         Assert.DoesNotContain("GetStandardMergeMemoryMapRows", facade, StringComparison.Ordinal);
@@ -219,9 +221,14 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("GetSettingsSnapshot", catalog, StringComparison.Ordinal);
         Assert.Contains("private static CompositionRunProfile ToRunProfile", common, StringComparison.Ordinal);
         Assert.Contains("private static string FormatIssues", common, StringComparison.Ordinal);
-        Assert.Contains("RunStandardMergeAsync", standardMerge, StringComparison.Ordinal);
-        Assert.Contains("GetStandardMergeMemoryMapRows", standardMerge, StringComparison.Ordinal);
         Assert.Contains("StandardMergeProfilesByIc", standardMerge, StringComparison.Ordinal);
+        Assert.Contains("GetStandardMergePolicySummary", standardMerge, StringComparison.Ordinal);
+        Assert.DoesNotContain("RunStandardMergeAsync", standardMerge, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetStandardMergeMemoryMapRows", standardMerge, StringComparison.Ordinal);
+        Assert.Contains("GetStandardMergeMemoryMapRows", standardMergeDisplay, StringComparison.Ordinal);
+        Assert.Contains("GetStandardMergeCoverageSegments", standardMergeDisplay, StringComparison.Ordinal);
+        Assert.Contains("RunStandardMergeAsync", standardMergeRun, StringComparison.Ordinal);
+        Assert.Contains("ResolveStandardMergeProfileForInputs", standardMergeRun, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies the root CLI entry point stays split from command-specific handlers and formatting helpers.</summary>
