@@ -42,6 +42,7 @@ public sealed partial class RepositoryBoundaryTests
     public void ShellUsesCleanHomeAndIndependentWorkflowPages()
     {
         string shell = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml");
+        string shellStyles = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowStyles.axaml");
 
         Assert.Contains("IsHomeVisible", shell, StringComparison.Ordinal);
         Assert.Contains("IsMergeVisible", shell, StringComparison.Ordinal);
@@ -65,8 +66,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Classes=\"breadcrumb\"", shell, StringComparison.Ordinal);
         Assert.Contains("Classes=\"primary\"", shell, StringComparison.Ordinal);
         Assert.Contains("Classes=\"action\"", shell, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"MinHeight\" Value=\"44\" />", shell, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"CornerRadius\" Value=\"999\" />", shell, StringComparison.Ordinal);
+        Assert.Contains("MainWindowStyles.axaml", shell, StringComparison.Ordinal);
+        Assert.Contains("<Setter Property=\"MinHeight\" Value=\"44\" />", shellStyles, StringComparison.Ordinal);
+        Assert.Contains("<Setter Property=\"CornerRadius\" Value=\"999\" />", shellStyles, StringComparison.Ordinal);
         Assert.Contains("ColumnDefinitions=\"1.15*,430\"", shell, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.OutputLayoutTitle}\"", shell, StringComparison.Ordinal);
         Assert.Contains("IsEnabled=\"False\"", shell, StringComparison.Ordinal);
@@ -111,7 +113,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ItemsSource=\"{Binding GeneralMergeMappings}\"", shell, StringComparison.Ordinal);
         Assert.Contains("GeneralMergeMappingDrop_OnDrop", shell, StringComparison.Ordinal);
         Assert.Contains("BrowseGeneralMergeMappingButton_OnClick", shell, StringComparison.Ordinal);
-        Assert.Contains("Button.reportAction", shell, StringComparison.Ordinal);
+        Assert.Contains("Button.reportAction", shellStyles, StringComparison.Ordinal);
         Assert.Contains("IsEnabled=\"{Binding CanOpenReport}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ReportActionLabel", shell, StringComparison.Ordinal);
         Assert.Contains("ReportActionStatus", shell, StringComparison.Ordinal);
