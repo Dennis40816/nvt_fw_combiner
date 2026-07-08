@@ -6,6 +6,10 @@ namespace NvtFwCombiner.Bootstrap;
 
 internal static partial class ReplaceCliCommandHandler
 {
+    private const string GeneralReplaceInputAddressSpaceId = "replacement-input";
+    private const string GeneralReplaceOperationId = "replace-general";
+    private const int GeneralReplaceOperationSequence = 100;
+
     private static bool TryCompileProfile(
         CompositionProfileDefinition profile,
         ParsedOptions options,

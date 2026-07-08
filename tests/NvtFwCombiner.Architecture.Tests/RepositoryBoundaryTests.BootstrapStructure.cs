@@ -19,6 +19,30 @@ public sealed partial class RepositoryBoundaryTests
             CountOccurrences(bootstrapSource, "request.WithApprovedPreviewToken(preview.PreviewToken!)"));
     }
 
+    /// <summary>Verifies Replace CLI root stays a command flow instead of owning parsing sub-concerns.</summary>
+    [Fact]
+    public void BootstrapReplaceCliRootStaysSplit()
+    {
+        string root = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.cs");
+        string bindings = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.Bindings.cs");
+        string icNumbers = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.IcNumbers.cs");
+        string profileResolution = ReadText(
+            "src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.ProfileResolution.cs");
+        string profileCompile = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.ProfileCompile.cs");
+
+        Assert.Contains("internal static async Task<int> RunAsync", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("FixedInputOptionsByAddressSpace", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static bool TryCreateBindings", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static bool TryCreateIcNumberSelection", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static bool TryFindReplaceProfile", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("GeneralReplaceOperationId", root, StringComparison.Ordinal);
+        Assert.Contains("FixedInputOptionsByAddressSpace", bindings, StringComparison.Ordinal);
+        Assert.Contains("private static bool TryCreateBindings", bindings, StringComparison.Ordinal);
+        Assert.Contains("private static bool TryCreateIcNumberSelection", icNumbers, StringComparison.Ordinal);
+        Assert.Contains("private static bool TryFindReplaceProfile", profileResolution, StringComparison.Ordinal);
+        Assert.Contains("private const string GeneralReplaceOperationId", profileCompile, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies DP Replace IC facts remain catalog-owned instead of hard-coded in Bootstrap.</summary>
     [Fact]
     public void BootstrapKeepsDpReplaceIcFactsCatalogOwned()

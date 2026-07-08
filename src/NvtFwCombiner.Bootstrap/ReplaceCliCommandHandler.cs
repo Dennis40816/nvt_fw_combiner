@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Files;
@@ -13,19 +12,6 @@ internal static partial class ReplaceCliCommandHandler
     private const int CompositionFailed = 1;
     private const int UsageError = 64;
     private const int SoftwareError = 70;
-    private const string GeneralReplaceInputAddressSpaceId = "replacement-input";
-    private const string GeneralReplaceOperationId = "replace-general";
-    private const int GeneralReplaceOperationSequence = 100;
-
-    private static readonly Dictionary<string, string> FixedInputOptionsByAddressSpace =
-        new(StringComparer.Ordinal)
-        {
-            [CompositionAddressSpaceIds.ReferenceBase] = "--base",
-            [CompositionAddressSpaceIds.DpReplacement] = "--dp",
-            [CompositionAddressSpaceIds.LdReplacement] = "--ld",
-            [CompositionAddressSpaceIds.CtrlRamReplacement] = "--ctrlram",
-            [GeneralReplaceInputAddressSpaceId] = "--input",
-        };
 
     internal static async Task<int> RunAsync(
         string command,
@@ -193,116 +179,4 @@ internal static partial class ReplaceCliCommandHandler
         return result.Status == CompositionExecutionStatus.Succeeded ? Success : CompositionFailed;
     }
 
-    private static bool TryCreateIcNumberSelection(
-        CompositionProfileDefinition profile,
-        ParsedOptions options,
-        TextWriter error,
-        [NotNullWhen(true)] out IcNumberSelection? selection)
-    {
-        selection = null;
-        if (profile.IcNumberInputMode is null)
-        {
-            error.WriteLine($"error: replace profile '{profile.ProfileId}' does not declare an IC num input mode");
-            return false;
-        }
-
-        if (!RequireOption(options, "--ic-num", error, out string? icNumber))
-        {
-            return false;
-        }
-
-        if (profile.IcNumberInputMode == IcNumberInputMode.SingleSelector)
-        {
-            if (options.Values.ContainsKey("--ic-family"))
-            {
-                error.WriteLine("error: --ic-family is used only by cascade IC num profiles");
-                return false;
-            }
-
-            selection = WorkbenchIcNumberSelections.Single(icNumber);
-            return true;
-        }
-
-        if (profile.IcNumberInputMode == IcNumberInputMode.NumericSelector)
-        {
-            if (options.Values.ContainsKey("--ic-family"))
-            {
-                error.WriteLine("error: --ic-family is used only by cascade IC num profiles");
-                return false;
-            }
-
-            if (!int.TryParse(icNumber, out int parsedIcNumber) || parsedIcNumber <= 0)
-            {
-                error.WriteLine("error: numeric --ic-num must be a positive integer");
-                return false;
-            }
-
-            selection = WorkbenchIcNumberSelections.Numeric(icNumber);
-            return true;
-        }
-
-        if (!RequireOption(options, "--ic-family", error, out string? icFamily))
-        {
-            return false;
-        }
-
-        selection = WorkbenchIcNumberSelections.Cascade(icFamily, icNumber);
-        return true;
-    }
-
-    private static bool TryCreateBindings(
-        CompositionPlan plan,
-        ParsedOptions options,
-        TextWriter error,
-        out IReadOnlyList<InputArtifactBinding> bindings)
-    {
-        List<InputArtifactBinding> items = [];
-        HashSet<string> usedInputOptions = new(StringComparer.Ordinal);
-        foreach (string addressSpaceId in plan.RequiredInputAddressSpaceIds.Order(StringComparer.Ordinal))
-        {
-            if (!FixedInputOptionsByAddressSpace.TryGetValue(addressSpaceId, out string? optionName))
-            {
-                error.WriteLine($"error: profile requires unsupported address space '{addressSpaceId}'");
-                bindings = [];
-                return false;
-            }
-
-            if (!RequireOption(options, optionName, error, out string? path))
-            {
-                bindings = [];
-                return false;
-            }
-
-            string fullPath = Path.GetFullPath(path);
-            items.Add(new InputArtifactBinding(addressSpaceId, addressSpaceId, fullPath));
-            _ = usedInputOptions.Add(optionName);
-        }
-
-        foreach (string optionName in FixedInputOptionsByAddressSpace.Values.Order(StringComparer.Ordinal))
-        {
-            if (options.Values.ContainsKey(optionName) && !usedInputOptions.Contains(optionName))
-            {
-                error.WriteLine($"error: option '{optionName}' is not used by the selected replace profile");
-                bindings = [];
-                return false;
-            }
-        }
-
-        bindings = items;
-        return true;
-    }
-
-    private static bool TryFindReplaceProfile(
-        string command,
-        string selector,
-        [NotNullWhen(true)] out CompositionProfileDefinition? profile)
-    {
-        string normalized = selector.Trim();
-        profile = BuiltInReplaceProfiles.All.FirstOrDefault(candidate =>
-            string.Equals(candidate.ExperienceId, command, StringComparison.Ordinal) &&
-            (string.Equals(candidate.ProfileId, normalized, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(candidate.IcId, normalized, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(CliCompositionRunSupport.GetIcNumber(candidate.IcId), normalized, StringComparison.OrdinalIgnoreCase)));
-        return profile is not null;
-    }
 }
