@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Tests.ExternalTools;
@@ -146,10 +147,10 @@ public sealed class LegacyCombinerPostbuildCatalogTests
 
         Assert.Contains(sections, section =>
             section.Range == new ByteRange(0x32F50, 256) &&
-            section.SectionId == "tp-header-copy");
+            section.SectionId == TpHeaderSectionIds.HeaderCopy);
         Assert.Contains(sections, section =>
             section.Range == new ByteRange(0x1C, 4) &&
-            section.SectionId == "tp-flash-header-crc");
+            section.SectionId == TpHeaderSectionIds.FlashHeaderCrc);
     }
 
     /// <summary>Locks General Replace postbuild refresh writes to firmware-owned header/integrity ranges.</summary>
@@ -175,10 +176,10 @@ public sealed class LegacyCombinerPostbuildCatalogTests
                 0x100000);
         Assert.Contains(sections, section =>
             section.Range == new ByteRange(0x2D30C, 512) &&
-            section.SectionId == "tp-header-copy");
+            section.SectionId == TpHeaderSectionIds.HeaderCopy);
         Assert.Contains(sections, section =>
             section.Range == new ByteRange(0xA11C, 4) &&
-            section.SectionId == "tp-flash-header-crc");
+            section.SectionId == TpHeaderSectionIds.FlashHeaderCrc);
     }
 
     /// <summary>Verifies the documented one-file sentinel covers every current staged CtrlRAM input block.</summary>

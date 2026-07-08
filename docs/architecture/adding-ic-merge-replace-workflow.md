@@ -71,6 +71,7 @@ Update only the rows that are relevant to the new IC/mode.
 | Replace profile | `src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.cs` | Add DP/CtrlRAM/General Replace profile definitions when the IC has real range and access evidence. Synthetic profiles stay contract-only. |
 | Profile compiler rules | `src/NvtFwCombiner.Profiles/CompositionProfileCompiler.cs` | Change only for general validation gaps, not to special-case one IC. |
 | TP/DP/CtrlRAM region catalog | `src/NvtFwCombiner.Application/FlashMaps/TpFlashMapCatalog.cs` | Add canonical flash-map rows, IC-number visibility, postbuild file names, and tags such as `tp-ctrlram`, `dp`, `protected`, or customer-info. |
+| TP header/write category | `src/NvtFwCombiner.Application/FlashMaps/TpHeaderCatalog.cs` | Add TP header/postbuild write section ids, report labels, overlap priority, and postbuild block-id classification when the IC introduces a new header copy, backup, CRC, or TP window category. Keep this out of planner, UI, and CLI code. |
 | FWConfig metadata reader/catalog | `src/NvtFwCombiner.Application/FlashMaps/FirmwareConfigMetadataReader.cs` and `TpFlashMapCatalog` | Add the IC's primary FWConfig flash start and verify Common FW/FW-bar/PID extraction with golden or owner-approved reference evidence. |
 | CtrlRAM postbuild catalog | `src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.cs` | Add structured command sequences, branch rules, staged-file names, firmware block ranges, evidence source, and `CommonFwVersionRule` metadata when one IC has multiple postbuild categories. Never assemble one shell command string. |
 | External tool manifest | `external-tools/legacy-combiner/.../manifest.json` | Add or update only when a new exact `combiner.exe` binding/version is approved. |
@@ -124,13 +125,14 @@ Minimum tests:
 ## CtrlRAM Replace steps
 
 1. Add or confirm TP flash-map CtrlRAM rows in `TpFlashMapCatalog`.
-2. Add postbuild structured commands in `LegacyCombinerPostbuildCatalog` from owner-approved postbuild/mmap evidence.
-3. Declare Common FW category rules for versioned ICs, then lock selection with catalog tests so unsupported or ambiguous versions fail closed.
-4. Declare IC-number branch rules. Use `single`/`cascade` text choices unless the owner evidence requires numeric 1/2/3 branches.
-5. Ensure selected staged-file blocks map to visible CtrlRAM rows.
-6. Ensure every CtrlRAM Replace run executes the required postbuild sequence. A raw range replacement without postbuild is not a finished image.
-7. Confirm processor allowed write ranges include every Combiner-written byte and reject all others.
-8. Run self-replacement and idempotence tests against postbuild-canonical output, then compare with owner golden output when available.
+2. Add or confirm TP header/write categories in `TpHeaderCatalog` when postbuild writes new header copy, backup, CRC, or TP window sections.
+3. Add postbuild structured commands in `LegacyCombinerPostbuildCatalog` from owner-approved postbuild/mmap evidence.
+4. Declare Common FW category rules for versioned ICs, then lock selection with catalog tests so unsupported or ambiguous versions fail closed.
+5. Declare IC-number branch rules. Use `single`/`cascade` text choices unless the owner evidence requires numeric 1/2/3 branches.
+6. Ensure selected staged-file blocks map to visible CtrlRAM rows.
+7. Ensure every CtrlRAM Replace run executes the required postbuild sequence. A raw range replacement without postbuild is not a finished image.
+8. Confirm processor allowed write ranges include every Combiner-written byte and reject all others.
+9. Run self-replacement and idempotence tests against postbuild-canonical output, then compare with owner golden output when available.
 
 Minimum tests:
 

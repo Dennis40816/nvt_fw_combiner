@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.ExternalTools;
@@ -64,8 +65,8 @@ public static class LegacyCombinerPostbuildPlanner
             switch (command.Family)
             {
                 case LegacyCombinerCommandFamily.NormalMode when command.ModeArgument is "CRC_Enable" or "CRC32_Enable":
-                    AddIfWithin(ranges, capacity, new ByteRange(0x1C, 4), "tp-flash-header-crc");
-                    AddIfWithin(ranges, capacity, new ByteRange(0xFC, 4), "tp-flash-header-crc");
+                    AddIfWithin(ranges, capacity, new ByteRange(0x1C, 4), TpHeaderSectionIds.FlashHeaderCrc);
+                    AddIfWithin(ranges, capacity, new ByteRange(0xFC, 4), TpHeaderSectionIds.FlashHeaderCrc);
                     break;
                 case LegacyCombinerCommandFamily.NtBasedNormalMode when command.CrcArgument is "CRC8" or "CRC32":
                     AddNtBasedHeaderIntegrityRanges(command, capacity, ranges);
@@ -274,7 +275,7 @@ public static class LegacyCombinerPostbuildPlanner
                     ranges,
                     capacity,
                     new ByteRange(block.SourceOffset + crcWordOffset, 4),
-                    "tp-flash-header-crc");
+                    TpHeaderSectionIds.FlashHeaderCrc);
             }
         }
     }
@@ -293,15 +294,15 @@ public static class LegacyCombinerPostbuildPlanner
         long capacity,
         List<LegacyCombinerPostbuildWriteRange> ranges)
     {
-        AddIfWithin(ranges, capacity, new ByteRange(0x23C, 4), "tp-flash-header-crc");
-        AddIfWithin(ranges, capacity, new ByteRange(0x24C, 4), "tp-flash-header-crc");
-        AddIfWithin(ranges, capacity, new ByteRange(0x26C, 4), "tp-flash-header-crc");
-        AddIfWithin(ranges, capacity, new ByteRange(0x27C, 4), "tp-flash-header-crc");
+        AddIfWithin(ranges, capacity, new ByteRange(0x23C, 4), TpHeaderSectionIds.FlashHeaderCrc);
+        AddIfWithin(ranges, capacity, new ByteRange(0x24C, 4), TpHeaderSectionIds.FlashHeaderCrc);
+        AddIfWithin(ranges, capacity, new ByteRange(0x26C, 4), TpHeaderSectionIds.FlashHeaderCrc);
+        AddIfWithin(ranges, capacity, new ByteRange(0x27C, 4), TpHeaderSectionIds.FlashHeaderCrc);
         if (branch is LegacyCombinerPostbuildBranch.Cascade or LegacyCombinerPostbuildBranch.ThreeChip)
         {
-            AddIfWithin(ranges, capacity, new ByteRange(0x22C, 4), "tp-flash-header-crc");
-            AddIfWithin(ranges, capacity, new ByteRange(0x29C, 4), "tp-flash-header-crc");
-            AddIfWithin(ranges, capacity, new ByteRange(0x2AC, 4), "tp-flash-header-crc");
+            AddIfWithin(ranges, capacity, new ByteRange(0x22C, 4), TpHeaderSectionIds.FlashHeaderCrc);
+            AddIfWithin(ranges, capacity, new ByteRange(0x29C, 4), TpHeaderSectionIds.FlashHeaderCrc);
+            AddIfWithin(ranges, capacity, new ByteRange(0x2AC, 4), TpHeaderSectionIds.FlashHeaderCrc);
         }
     }
 
@@ -313,35 +314,9 @@ public static class LegacyCombinerPostbuildPlanner
 
     private static string GetPostbuildBlockSectionId(LegacyCombinerBlockArgument block)
     {
-        string blockId = block.BlockId;
-        return blockId switch
-        {
-            string value when value.Contains("fw-config", StringComparison.OrdinalIgnoreCase) =>
-                "tp-fw-config-backup",
-            string value when value.Contains("final-header-backup", StringComparison.OrdinalIgnoreCase) =>
-                "tp-header-copy-final-backup",
-            string value when value.Contains("header-refresh-master", StringComparison.OrdinalIgnoreCase) ||
-                value.Contains("header-master", StringComparison.OrdinalIgnoreCase) =>
-                "tp-header-copy-master",
-            string value when value.Contains("header-refresh-right", StringComparison.OrdinalIgnoreCase) ||
-                value.Contains("header-right", StringComparison.OrdinalIgnoreCase) =>
-                "tp-header-copy-right",
-            string value when value.Contains("header-refresh-left", StringComparison.OrdinalIgnoreCase) ||
-                value.Contains("header-left", StringComparison.OrdinalIgnoreCase) =>
-                "tp-header-copy-left",
-            string value when value.Contains("header-copy-final", StringComparison.OrdinalIgnoreCase) =>
-                "tp-header-copy-final",
-            string value when value.Contains("header-copy", StringComparison.OrdinalIgnoreCase) ||
-                value.Contains("header", StringComparison.OrdinalIgnoreCase) =>
-                "tp-header-copy",
-            string value when value.Contains("copy-right-window", StringComparison.OrdinalIgnoreCase) =>
-                "tp-window-copy-right",
-            string value when value.Contains("copy-left-window", StringComparison.OrdinalIgnoreCase) =>
-                "tp-window-copy-left",
-            _ => block.SourceKind == LegacyCombinerBlockSourceKind.StagedFile
-                ? "tp-ctrlram-replacement"
-                : "postbuild-copy",
-        };
+        return TpHeaderCatalog.ResolvePostbuildBlockSectionId(
+            block.BlockId,
+            block.SourceKind == LegacyCombinerBlockSourceKind.StagedFile);
     }
 
     private static void AddIfWithin(
@@ -411,23 +386,10 @@ public static class LegacyCombinerPostbuildPlanner
     {
         return candidates
             .Where(candidate => candidate.Range.Contains(segment))
-            .OrderByDescending(candidate => GetSectionPriority(candidate.SectionId))
+            .OrderByDescending(candidate => TpHeaderCatalog.GetPriority(candidate.SectionId))
             .ThenBy(candidate => candidate.Range.Length)
             .ThenBy(candidate => candidate.Range.Start)
             .First()
             .SectionId;
-    }
-
-    private static int GetSectionPriority(string sectionId)
-    {
-        return sectionId switch
-        {
-            string value when value.Contains("header-crc", StringComparison.OrdinalIgnoreCase) => 100,
-            string value when value.Contains("header-copy", StringComparison.OrdinalIgnoreCase) => 90,
-            string value when value.Contains("fw-config", StringComparison.OrdinalIgnoreCase) => 80,
-            string value when value.Contains("window", StringComparison.OrdinalIgnoreCase) => 60,
-            string value when value.Contains("ctrlram", StringComparison.OrdinalIgnoreCase) => 50,
-            _ => 10,
-        };
     }
 }

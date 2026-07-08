@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
@@ -467,7 +468,9 @@ public sealed class CompositionRunServiceTests
         CompositionRunResult result = await service.PreviewAsync(
             CreateStagedSourceExternalProcessorRequest(
                 stagedSourceSpaceId: "replace-ctrlram-nf-master",
-                writeRangeSections: [new ExternalProcessorWriteRangeSection("tp-flash-header-crc", new ByteRange(3, 1))]),
+                writeRangeSections: [
+                    new ExternalProcessorWriteRangeSection(TpHeaderSectionIds.FlashHeaderCrc, new ByteRange(3, 1)),
+                ]),
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
