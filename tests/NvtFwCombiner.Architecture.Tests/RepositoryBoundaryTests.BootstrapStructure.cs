@@ -135,6 +135,9 @@ public sealed partial class RepositoryBoundaryTests
         string mappingRows = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.MappingRows.cs");
         string operationFragments = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.OperationFragments.cs");
         string json = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.Json.cs");
+        string ranges = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.Ranges.cs");
+        string grammar = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.Grammar.cs");
+        string issues = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.Issues.cs");
 
         Assert.Contains("public static SavedCompositionRuleLoadResult Load", root, StringComparison.Ordinal);
         Assert.Contains("private static SavedCompositionRuleLoadResult Parse", root, StringComparison.Ordinal);
@@ -150,8 +153,15 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private static HashSet<string> ReadInputSlotTemplateIds", inputSlots, StringComparison.Ordinal);
         Assert.Contains("private static List<SavedRuleMappingRow> ReadMappingRows", mappingRows, StringComparison.Ordinal);
         Assert.Contains("private static List<SavedRuleOperationFragment> ReadOperationFragments", operationFragments, StringComparison.Ordinal);
-        Assert.Contains("private static ByteRange? ParseByteRange", json, StringComparison.Ordinal);
         Assert.Contains("private static string RequiredEnum", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("ByteRange", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("GeneratedRegex", json, StringComparison.Ordinal);
+        Assert.Contains("private static ByteRange? ParseByteRange", ranges, StringComparison.Ordinal);
+        Assert.Contains("private static int? OptionalPositiveInt", ranges, StringComparison.Ordinal);
+        Assert.Contains("private static partial Regex IdRegex", grammar, StringComparison.Ordinal);
+        Assert.Contains("private static partial Regex SemverRegex", grammar, StringComparison.Ordinal);
+        Assert.Contains("private static SavedRuleValidationIssue Issue", issues, StringComparison.Ordinal);
+        Assert.Contains("private static void AddDuplicateIssues", issues, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies the Workbench facade stays split into catalog, Standard Merge, and shared adapter helpers.</summary>
