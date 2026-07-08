@@ -1,5 +1,4 @@
 using NvtFwCombiner.Application.ExternalTools;
-using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -50,39 +49,6 @@ public static partial class WorkbenchCompositionService
 
         issue = null;
         return true;
-    }
-
-    private static bool TryReadBaseCommonFwVersion(
-        string icId,
-        string basePath,
-        out string? commonFwVersion)
-    {
-        commonFwVersion = null;
-        if (!TpFlashMapCatalog.TryGetFirmwareConfigStart(icId, out long firmwareConfigStart))
-        {
-            return false;
-        }
-
-        try
-        {
-            byte[] image = File.ReadAllBytes(basePath);
-            if (!FirmwareConfigMetadataReader.TryRead(image, firmwareConfigStart, out FirmwareConfigMetadata metadata))
-            {
-                return false;
-            }
-
-            if (!metadata.IsFirmwareVersionBarValid)
-            {
-                return false;
-            }
-
-            commonFwVersion = metadata.CommonFwVersion;
-            return true;
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
-        {
-            return false;
-        }
     }
 
     private static string FormatPostbuildCommandBlock(LegacyCombinerPostbuildCommandPlan commandPlan)

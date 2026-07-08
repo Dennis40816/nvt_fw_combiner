@@ -216,6 +216,8 @@ public sealed partial class RepositoryBoundaryTests
         string standardMerge = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.cs");
         string standardMergeDisplay = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Display.cs");
         string standardMergeRun = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Run.cs");
+        string firmwareMetadata = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.FirmwareMetadata.cs");
+        string replacePostbuild = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Postbuild.cs");
 
         Assert.Contains("public static partial class WorkbenchCompositionService", facade, StringComparison.Ordinal);
         Assert.DoesNotContain("GetStandardMergeMemoryMapRows", facade, StringComparison.Ordinal);
@@ -233,6 +235,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("GetStandardMergeCoverageSegments", standardMergeDisplay, StringComparison.Ordinal);
         Assert.Contains("RunStandardMergeAsync", standardMergeRun, StringComparison.Ordinal);
         Assert.Contains("ResolveStandardMergeProfileForInputs", standardMergeRun, StringComparison.Ordinal);
+        Assert.Contains("TryReadBaseCommonFwVersion", firmwareMetadata, StringComparison.Ordinal);
+        Assert.Contains("FirmwareConfigMetadataReader.TryRead", firmwareMetadata, StringComparison.Ordinal);
+        Assert.DoesNotContain("FirmwareConfigMetadataReader.TryRead", replacePostbuild, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies built-in Replace profiles keep synthetic contracts separate from DP Perspective production policy.</summary>
