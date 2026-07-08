@@ -66,6 +66,33 @@ public sealed partial class RepositoryBoundaryTests
         }
     }
 
+    /// <summary>Verifies the Presentation runner remains a thin split adapter over Bootstrap workbench contracts.</summary>
+    [Fact]
+    public void UiCompositionRunnerConcernsStaySplit()
+    {
+        string root = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.cs");
+        string catalog = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Catalog.cs");
+        string common = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Common.cs");
+        string facts = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.FirmwareFacts.cs");
+        string merge = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Merge.cs");
+        string replace = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Replace.cs");
+
+        Assert.Contains("public static partial class UiCompositionRunner", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchCompositionService.", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetFirmwareSlotFacts", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetStandardMergeMemoryMapRows", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetReplaceMemoryMapRows", root, StringComparison.Ordinal);
+        Assert.Contains("GetSupportedIcIds", catalog, StringComparison.Ordinal);
+        Assert.Contains("GetSettingsSnapshot", catalog, StringComparison.Ordinal);
+        Assert.Contains("private static MemoryMapRowViewModel ToMemoryMapRow", common, StringComparison.Ordinal);
+        Assert.Contains("GetFirmwareSlotFacts", facts, StringComparison.Ordinal);
+        Assert.Contains("CreateFlashCodeOutputFileName", facts, StringComparison.Ordinal);
+        Assert.Contains("GetStandardMergeMemoryMapRows", merge, StringComparison.Ordinal);
+        Assert.Contains("RunGeneralMergeAsync", merge, StringComparison.Ordinal);
+        Assert.Contains("GetReplaceMemoryMapRows", replace, StringComparison.Ordinal);
+        Assert.Contains("RunReplaceAsync", replace, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies CLI and Workbench share the same preview-before-build execution gate.</summary>
     [Fact]
     public void BootstrapUsesOnePreviewBeforeBuildGate()
