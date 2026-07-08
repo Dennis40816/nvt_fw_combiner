@@ -145,6 +145,28 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private static async Task WriteUsageAsync", usage, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies the Workbench facade stays split into catalog, Standard Merge, and shared adapter helpers.</summary>
+    [Fact]
+    public void WorkbenchCompositionServiceConcernsStaySplit()
+    {
+        string facade = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.cs");
+        string catalog = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Catalog.cs");
+        string common = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Common.cs");
+        string standardMerge = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.cs");
+
+        Assert.Contains("public static partial class WorkbenchCompositionService", facade, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetStandardMergeMemoryMapRows", facade, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetSettingsSnapshot", facade, StringComparison.Ordinal);
+        Assert.DoesNotContain("ToRunProfile", facade, StringComparison.Ordinal);
+        Assert.Contains("GetSupportedIcIds", catalog, StringComparison.Ordinal);
+        Assert.Contains("GetSettingsSnapshot", catalog, StringComparison.Ordinal);
+        Assert.Contains("private static CompositionRunProfile ToRunProfile", common, StringComparison.Ordinal);
+        Assert.Contains("private static string FormatIssues", common, StringComparison.Ordinal);
+        Assert.Contains("RunStandardMergeAsync", standardMerge, StringComparison.Ordinal);
+        Assert.Contains("GetStandardMergeMemoryMapRows", standardMerge, StringComparison.Ordinal);
+        Assert.Contains("StandardMergeProfilesByIc", standardMerge, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies the shell follows the owner-approved clean home and independent page direction.</summary>
     [Fact]
     public void ShellUsesCleanHomeAndIndependentWorkflowPages()
