@@ -78,15 +78,15 @@ public static partial class WorkbenchCompositionService
             CompositionKind.Merge,
             IcWorkflowIds.GeneralMerge,
             GetGeneralMergeDefaultOutputFileName(icId),
-            ImageInitialization.Blank("output-image", capacity, GeneralMergeFillByte),
+            ImageInitialization.Blank(CompositionAddressSpaceIds.OutputImage, capacity, GeneralMergeFillByte),
             [
-                new AddressSpace("output-image", capacity, AddressSpaceMutability.Mutable),
+                new AddressSpace(CompositionAddressSpaceIds.OutputImage, capacity, AddressSpaceMutability.Mutable),
             ],
             [],
             [
                 new ProfileRegion(
                     "general-output",
-                    "output-image",
+                    CompositionAddressSpaceIds.OutputImage,
                     new ByteRange(0, capacity),
                     RegionAtomicity.ExplicitMapping,
                     RegionWritePolicy.GeneralExplicit,

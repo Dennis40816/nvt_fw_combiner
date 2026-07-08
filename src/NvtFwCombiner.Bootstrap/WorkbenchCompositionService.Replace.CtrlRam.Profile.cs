@@ -22,8 +22,8 @@ public static partial class WorkbenchCompositionService
         ByteRange[] postbuildWriteRanges = [.. postbuildWriteRangeSections.Select(section => section.Range)];
         List<AddressSpace> addressSpaces =
         [
-            new("reference-base", capacity, AddressSpaceMutability.Immutable),
-            new("output-image", capacity, AddressSpaceMutability.Mutable),
+            new(CompositionAddressSpaceIds.ReferenceBase, capacity, AddressSpaceMutability.Immutable),
+            new(CompositionAddressSpaceIds.OutputImage, capacity, AddressSpaceMutability.Mutable),
         ];
         List<CompositionOperation> operations = [];
         List<ProfileRegion> profileRegions = [];
@@ -33,7 +33,7 @@ public static partial class WorkbenchCompositionService
         {
             profileRegions.Add(new ProfileRegion(
                 region.RegionId,
-                "output-image",
+                CompositionAddressSpaceIds.OutputImage,
                 region.Range,
                 RegionAtomicity.Whole,
                 RegionWritePolicy.WholeOnly,
@@ -76,7 +76,7 @@ public static partial class WorkbenchCompositionService
         {
             profileRegions.Add(new ProfileRegion(
                 FormattableString.Invariant($"postbuild-{section.SectionId}-{index:D2}"),
-                "output-image",
+                CompositionAddressSpaceIds.OutputImage,
                 section.Range,
                 RegionAtomicity.ExplicitMapping,
                 RegionWritePolicy.GeneralExplicit,
@@ -87,7 +87,7 @@ public static partial class WorkbenchCompositionService
         operations.Add(CompositionOperation.RunExternalProcessor(
             $"postbuild-{commandPlan.Branch.ToString().ToLowerInvariant()}",
             sequence,
-            "output-image",
+            CompositionAddressSpaceIds.OutputImage,
             new ByteRange(0, capacity),
             new ExternalProcessorInvocation(
                 postbuildProfile.ProcessorId,
@@ -108,7 +108,7 @@ public static partial class WorkbenchCompositionService
             CompositionKind.Replace,
             IcWorkflowIds.CtrlRamReplace,
             $"{normalizedIc}-ctrlram-replace.bin",
-            ImageInitialization.Reference("output-image", "reference-base", capacity),
+            ImageInitialization.Reference(CompositionAddressSpaceIds.OutputImage, CompositionAddressSpaceIds.ReferenceBase, capacity),
             addressSpaces,
             operations,
             profileRegions,

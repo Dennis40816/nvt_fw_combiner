@@ -102,7 +102,7 @@ public static partial class WorkbenchCompositionService
                     ? $"Replacement DP is padded to the selected base BIN length ({FormatSupportedDpPerspectiveBaseLengths()}); original TP range is restored from base."
                     : "Replacement DP payload. Build stays gated until this IC has approved DP Replace mapping evidence.",
                 false,
-                "dp-replacement",
+                CompositionAddressSpaceIds.DpReplacement,
                 "dp"),
         ];
         foreach (DpReplaceAdditionalPayloadRule rule in DpReplaceAuthoringCatalog.GetAdditionalPayloads(icId))

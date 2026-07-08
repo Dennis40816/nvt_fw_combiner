@@ -61,7 +61,7 @@ internal static partial class ReplaceCliCommandHandler
             ExplicitMappingOperationKind.ReplaceRange,
             "replacement-input",
             new ByteRange(sourceStart, length),
-            "output-image",
+            CompositionAddressSpaceIds.OutputImage,
             new ByteRange(targetStart, length),
             OverlapPolicy.Reject,
             alignment: 1,

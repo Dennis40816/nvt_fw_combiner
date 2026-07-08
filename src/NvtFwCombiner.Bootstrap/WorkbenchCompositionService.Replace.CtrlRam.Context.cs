@@ -156,7 +156,7 @@ public static partial class WorkbenchCompositionService
     {
         List<InputArtifactBinding> bindings =
         [
-            new("reference-base", "replace-base", context.BasePath!),
+            new(CompositionAddressSpaceIds.ReferenceBase, "replace-base", context.BasePath!),
         ];
         foreach (TpFlashMapRegion region in context.SelectedRegions.OrderBy(region => region.Range.Start))
         {

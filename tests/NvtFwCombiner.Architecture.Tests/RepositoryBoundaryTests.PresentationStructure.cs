@@ -77,6 +77,31 @@ public sealed partial class RepositoryBoundaryTests
         }
     }
 
+    /// <summary>Verifies Presentation receives address-space ids through Bootstrap instead of duplicating contract strings.</summary>
+    [Fact]
+    public void PresentationUsesBootstrapAddressSpaceIds()
+    {
+        string presentationSource = ReadPresentationSources();
+
+        Assert.Contains("WorkbenchAddressSpaceIds.DpInput", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchAddressSpaceIds.TpInput", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchAddressSpaceIds.LdInput", presentationSource, StringComparison.Ordinal);
+        foreach (string addressSpaceLiteral in new[]
+        {
+            "\"dp-input\"",
+            "\"tp-input\"",
+            "\"ld-input\"",
+            "\"output-image\"",
+            "\"reference-base\"",
+            "\"dp-replacement\"",
+            "\"ld-replacement\"",
+            "\"ctrlram-replacement\"",
+        })
+        {
+            Assert.DoesNotContain(addressSpaceLiteral, presentationSource, StringComparison.Ordinal);
+        }
+    }
+
     /// <summary>Verifies the Presentation runner remains a thin split adapter over Bootstrap workbench contracts.</summary>
     [Fact]
     public void UiCompositionRunnerConcernsStaySplit()

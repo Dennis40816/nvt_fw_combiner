@@ -106,6 +106,54 @@ public sealed partial class RepositoryBoundaryTests
         }
     }
 
+    /// <summary>Verifies shared address-space ids stay Domain-owned and adapter-projected.</summary>
+    [Fact]
+    public void SharedAddressSpaceIdsStayCatalogOwned()
+    {
+        string addressSpaceIds = ReadText("src/NvtFwCombiner.Domain/Composition/CompositionAddressSpaceIds.cs");
+        string workbenchAddressSpaceIds = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchAddressSpaceIds.cs");
+        string profileSources = ReadProfileSources();
+        string bootstrapSources = ReadBootstrapSources()
+            .Replace(workbenchAddressSpaceIds, string.Empty, StringComparison.Ordinal);
+        string presentationSources = ReadPresentationSources();
+
+        Assert.Contains("public const string OutputImage = \"output-image\"", addressSpaceIds, StringComparison.Ordinal);
+        Assert.Contains("public const string ReferenceBase = \"reference-base\"", addressSpaceIds, StringComparison.Ordinal);
+        Assert.Contains("public const string DpInput = \"dp-input\"", addressSpaceIds, StringComparison.Ordinal);
+        Assert.Contains("public const string TpInput = \"tp-input\"", addressSpaceIds, StringComparison.Ordinal);
+        Assert.Contains("public const string LdInput = \"ld-input\"", addressSpaceIds, StringComparison.Ordinal);
+        Assert.Contains("public const string DpReplacement = \"dp-replacement\"", addressSpaceIds, StringComparison.Ordinal);
+        Assert.Contains("public const string LdReplacement = \"ld-replacement\"", addressSpaceIds, StringComparison.Ordinal);
+        Assert.Contains("public const string CtrlRamReplacement = \"ctrlram-replacement\"", addressSpaceIds, StringComparison.Ordinal);
+        Assert.Contains("CompositionAddressSpaceIds.OutputImage", profileSources, StringComparison.Ordinal);
+        Assert.Contains("CompositionAddressSpaceIds.DpInput", profileSources, StringComparison.Ordinal);
+        Assert.Contains("CompositionAddressSpaceIds.TpInput", profileSources, StringComparison.Ordinal);
+        Assert.Contains("CompositionAddressSpaceIds.DpReplacement", profileSources, StringComparison.Ordinal);
+        Assert.Contains("CompositionAddressSpaceIds.CtrlRamReplacement", profileSources, StringComparison.Ordinal);
+        Assert.Contains("public const string DpInput = CompositionAddressSpaceIds.DpInput;", workbenchAddressSpaceIds, StringComparison.Ordinal);
+        Assert.Contains("public const string TpInput = CompositionAddressSpaceIds.TpInput;", workbenchAddressSpaceIds, StringComparison.Ordinal);
+        Assert.Contains("public const string LdInput = CompositionAddressSpaceIds.LdInput;", workbenchAddressSpaceIds, StringComparison.Ordinal);
+        Assert.Contains("public const string DpReplacement = CompositionAddressSpaceIds.DpReplacement;", workbenchAddressSpaceIds, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchAddressSpaceIds.DpInput", presentationSources, StringComparison.Ordinal);
+
+        foreach (string addressSpaceLiteral in new[]
+        {
+            "\"output-image\"",
+            "\"reference-base\"",
+            "\"dp-input\"",
+            "\"tp-input\"",
+            "\"ld-input\"",
+            "\"dp-replacement\"",
+            "\"ld-replacement\"",
+            "\"ctrlram-replacement\"",
+        })
+        {
+            Assert.DoesNotContain(addressSpaceLiteral, profileSources, StringComparison.Ordinal);
+            Assert.DoesNotContain(addressSpaceLiteral, bootstrapSources, StringComparison.Ordinal);
+            Assert.DoesNotContain(addressSpaceLiteral, presentationSources, StringComparison.Ordinal);
+        }
+    }
+
     /// <summary>Verifies alias-heavy postbuild profile rows stay grouped by IC family.</summary>
     [Fact]
     public void LegacyPostbuildProfileRowsStaySplitByFamily()

@@ -12,9 +12,9 @@ public static partial class CliApplication
     private static readonly Dictionary<string, string> InputOptionsByAddressSpace =
         new(StringComparer.Ordinal)
         {
-            ["dp-input"] = "--dp",
-            ["tp-input"] = "--tp",
-            ["ld-input"] = "--ld",
+            [CompositionAddressSpaceIds.DpInput] = "--dp",
+            [CompositionAddressSpaceIds.TpInput] = "--tp",
+            [CompositionAddressSpaceIds.LdInput] = "--ld",
         };
 
     private static async Task<int> RunStandardMergeAsync(
@@ -173,7 +173,7 @@ public static partial class CliApplication
         }
 
         InputArtifactBinding? dpBinding = bindings.FirstOrDefault(binding =>
-            string.Equals(binding.AddressSpaceId, "dp-input", StringComparison.Ordinal));
+            string.Equals(binding.AddressSpaceId, CompositionAddressSpaceIds.DpInput, StringComparison.Ordinal));
         return dpBinding is null || !File.Exists(dpBinding.ArtifactId)
             ? profile
             : BuiltInStandardMergeProfiles.CreateDpPerspectiveProfileForInputLength(

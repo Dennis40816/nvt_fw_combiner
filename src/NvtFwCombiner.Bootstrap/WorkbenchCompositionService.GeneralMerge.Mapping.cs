@@ -47,7 +47,7 @@ public static partial class WorkbenchCompositionService
                 ExplicitMappingOperationKind.CopyRange,
                 addressSpaceId,
                 sourceRange,
-                "output-image",
+                CompositionAddressSpaceIds.OutputImage,
                 targetRange,
                 OverlapPolicy.Reject,
                 input.Alignment,

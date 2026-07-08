@@ -21,21 +21,21 @@ public sealed partial class MainWindowViewModel
     private void RefreshMergeSlotRequirements()
     {
         IReadOnlyList<string> required = UiCompositionRunner.GetStandardMergeRequiredAddressSpaces(SelectedIc);
-        _mergeDpSlot.IsOptional = !required.Contains("dp-input", StringComparer.Ordinal);
-        _mergeTpSlot.IsOptional = !required.Contains("tp-input", StringComparer.Ordinal);
-        _mergeLdSlot.IsOptional = !required.Contains("ld-input", StringComparer.Ordinal);
+        _mergeDpSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.DpInput, StringComparer.Ordinal);
+        _mergeTpSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.TpInput, StringComparer.Ordinal);
+        _mergeLdSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.LdInput, StringComparer.Ordinal);
         MergeSlots.Clear();
-        if (required.Contains("dp-input", StringComparer.Ordinal))
+        if (required.Contains(WorkbenchAddressSpaceIds.DpInput, StringComparer.Ordinal))
         {
             MergeSlots.Add(_mergeDpSlot);
         }
 
-        if (required.Contains("tp-input", StringComparer.Ordinal))
+        if (required.Contains(WorkbenchAddressSpaceIds.TpInput, StringComparer.Ordinal))
         {
             MergeSlots.Add(_mergeTpSlot);
         }
 
-        if (required.Contains("ld-input", StringComparer.Ordinal))
+        if (required.Contains(WorkbenchAddressSpaceIds.LdInput, StringComparer.Ordinal))
         {
             MergeSlots.Add(_mergeLdSlot);
         }
@@ -104,9 +104,9 @@ public sealed partial class MainWindowViewModel
     {
         return addressSpaceId switch
         {
-            "dp-input" => "DP",
-            "tp-input" => "TP",
-            "ld-input" => "LD",
+            WorkbenchAddressSpaceIds.DpInput => "DP",
+            WorkbenchAddressSpaceIds.TpInput => "TP",
+            WorkbenchAddressSpaceIds.LdInput => "LD",
             _ => addressSpaceId,
         };
     }
@@ -223,9 +223,9 @@ public sealed partial class MainWindowViewModel
     private Dictionary<string, string> CreateStandardMergeSlotPaths()
     {
         Dictionary<string, string> paths = new(StringComparer.Ordinal);
-        AddPath(paths, "dp-input", _mergeDpSlot);
-        AddPath(paths, "tp-input", _mergeTpSlot);
-        AddPath(paths, "ld-input", _mergeLdSlot);
+        AddPath(paths, WorkbenchAddressSpaceIds.DpInput, _mergeDpSlot);
+        AddPath(paths, WorkbenchAddressSpaceIds.TpInput, _mergeTpSlot);
+        AddPath(paths, WorkbenchAddressSpaceIds.LdInput, _mergeLdSlot);
         return paths;
     }
 
@@ -284,9 +284,9 @@ public sealed partial class MainWindowViewModel
     {
         return addressSpaceId switch
         {
-            "dp-input" => _mergeDpSlot,
-            "tp-input" => _mergeTpSlot,
-            "ld-input" => _mergeLdSlot,
+            WorkbenchAddressSpaceIds.DpInput => _mergeDpSlot,
+            WorkbenchAddressSpaceIds.TpInput => _mergeTpSlot,
+            WorkbenchAddressSpaceIds.LdInput => _mergeLdSlot,
             _ => null,
         };
     }

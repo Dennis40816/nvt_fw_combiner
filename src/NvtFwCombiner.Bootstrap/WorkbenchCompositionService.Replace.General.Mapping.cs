@@ -38,7 +38,7 @@ public static partial class WorkbenchCompositionService
                 ExplicitMappingOperationKind.ReplaceRange,
                 addressSpaceId,
                 new ByteRange(0, targetRange.Length),
-                "output-image",
+                CompositionAddressSpaceIds.OutputImage,
                 targetRange,
                 OverlapPolicy.Reject,
                 alignment: 1,

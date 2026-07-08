@@ -55,9 +55,9 @@ public static partial class WorkbenchCompositionService
                     100,
                     CompositionOperationKind.ReplaceRange,
                     status,
-                    "dp-replacement",
+                    CompositionAddressSpaceIds.DpReplacement,
                     fullContainer,
-                    "output-image",
+                    CompositionAddressSpaceIds.OutputImage,
                     fullContainer,
                     OverlapPolicy.Reject,
                     null,
@@ -70,9 +70,9 @@ public static partial class WorkbenchCompositionService
                     200,
                     CompositionOperationKind.CopyRange,
                     status,
-                    "reference-base",
+                    CompositionAddressSpaceIds.ReferenceBase,
                     tpRestoreRange,
-                    "output-image",
+                    CompositionAddressSpaceIds.OutputImage,
                     tpRestoreRange,
                     OverlapPolicy.ReplaceExisting,
                     null,
@@ -85,9 +85,9 @@ public static partial class WorkbenchCompositionService
                     210,
                     CompositionOperationKind.CopyRange,
                     status,
-                    "reference-base",
+                    CompositionAddressSpaceIds.ReferenceBase,
                     customerInfoPreserveRange,
-                    "output-image",
+                    CompositionAddressSpaceIds.OutputImage,
                     customerInfoPreserveRange,
                     OverlapPolicy.ReplaceExisting,
                     null,
@@ -107,7 +107,7 @@ public static partial class WorkbenchCompositionService
                 status,
                 GetDpReplaceSourceAddressSpaceId(icId, region),
                 new ByteRange(0, region.Range.Length),
-                "output-image",
+                CompositionAddressSpaceIds.OutputImage,
                 region.Range,
                 OverlapPolicy.ReplaceExisting,
                 null,
@@ -122,7 +122,7 @@ public static partial class WorkbenchCompositionService
     {
         return DpReplaceAuthoringCatalog.TryGetAdditionalPayload(icId, region.RegionId, out DpReplaceAdditionalPayloadRule? rule)
             ? rule.AddressSpaceId
-            : "dp-replacement";
+            : CompositionAddressSpaceIds.DpReplacement;
     }
 
     private static List<InputArtifactSummary> CreateInputSummaries(

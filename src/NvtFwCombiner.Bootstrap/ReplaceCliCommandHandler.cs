@@ -17,10 +17,10 @@ internal static partial class ReplaceCliCommandHandler
     private static readonly Dictionary<string, string> FixedInputOptionsByAddressSpace =
         new(StringComparer.Ordinal)
         {
-            ["reference-base"] = "--base",
-            ["dp-replacement"] = "--dp",
-            ["ld-replacement"] = "--ld",
-            ["ctrlram-replacement"] = "--ctrlram",
+            [CompositionAddressSpaceIds.ReferenceBase] = "--base",
+            [CompositionAddressSpaceIds.DpReplacement] = "--dp",
+            [CompositionAddressSpaceIds.LdReplacement] = "--ld",
+            [CompositionAddressSpaceIds.CtrlRamReplacement] = "--ctrlram",
             ["replacement-input"] = "--input",
         };
 

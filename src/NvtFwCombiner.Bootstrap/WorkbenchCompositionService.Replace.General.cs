@@ -164,7 +164,7 @@ public static partial class WorkbenchCompositionService
 
         InputArtifactBinding[] bindings =
         [
-            new("reference-base", "replace-base", context.BasePath),
+            new(CompositionAddressSpaceIds.ReferenceBase, "replace-base", context.BasePath),
             .. mappingBindings,
         ];
 

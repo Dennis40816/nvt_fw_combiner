@@ -10,44 +10,44 @@ public static partial class BuiltInStandardMergeProfiles
         CreateGenFlashProfile(
             "51920",
             flashSize: 0x40000,
-            tpRegion: new StandardMergeRegion("tp", "tp-input", 0x00000, 0x30000),
-            dpRegion: new StandardMergeRegion("dp", "dp-input", 0x3E000, 0x40000)),
+            tpRegion: new StandardMergeRegion("tp", CompositionAddressSpaceIds.TpInput, 0x00000, 0x30000),
+            dpRegion: new StandardMergeRegion("dp", CompositionAddressSpaceIds.DpInput, 0x3E000, 0x40000)),
         CreateGenFlashProfile(
             "51923",
             flashSize: 0x40000,
-            tpRegion: new StandardMergeRegion("tp", "tp-input", 0x00000, 0x3C000),
-            dpRegion: new StandardMergeRegion("dp", "dp-input", 0x3E000, 0x40000)),
+            tpRegion: new StandardMergeRegion("tp", CompositionAddressSpaceIds.TpInput, 0x00000, 0x3C000),
+            dpRegion: new StandardMergeRegion("dp", CompositionAddressSpaceIds.DpInput, 0x3E000, 0x40000)),
         CreateGenFlashProfile(
             "51926",
             flashSize: 0x40000,
-            tpRegion: new StandardMergeRegion("tp", "tp-input", 0x00000, 0x3C000),
-            dpRegion: new StandardMergeRegion("dp", "dp-input", 0x3E000, 0x40000)),
+            tpRegion: new StandardMergeRegion("tp", CompositionAddressSpaceIds.TpInput, 0x00000, 0x3C000),
+            dpRegion: new StandardMergeRegion("dp", CompositionAddressSpaceIds.DpInput, 0x3E000, 0x40000)),
         CreateGenFlashProfile(
             "51927",
             flashSize: 0x40000,
-            tpRegion: new StandardMergeRegion("tp", "tp-input", 0x00000, 0x35000),
-            dpRegion: new StandardMergeRegion("dp", "dp-input", 0x3C000, 0x40000, 0x200000)),
+            tpRegion: new StandardMergeRegion("tp", CompositionAddressSpaceIds.TpInput, 0x00000, 0x35000),
+            dpRegion: new StandardMergeRegion("dp", CompositionAddressSpaceIds.DpInput, 0x3C000, 0x40000, 0x200000)),
         CreateGenFlashProfile(
             "51928",
             flashSize: 0x80000,
-            tpRegion: new StandardMergeRegion("tp", "tp-input", 0x00000, 0x35000),
-            dpRegion: new StandardMergeRegion("dp", "dp-input", 0x3C000, 0x40000, 0x80000),
-            extraRegion: new StandardMergeRegion("ld", "ld-input", 0x40000, 0x62000, 0x80000)),
+            tpRegion: new StandardMergeRegion("tp", CompositionAddressSpaceIds.TpInput, 0x00000, 0x35000),
+            dpRegion: new StandardMergeRegion("dp", CompositionAddressSpaceIds.DpInput, 0x3C000, 0x40000, 0x80000),
+            extraRegion: new StandardMergeRegion("ld", CompositionAddressSpaceIds.LdInput, 0x40000, 0x62000, 0x80000)),
         CreateGenFlashProfile(
             "51929",
             flashSize: 0x40000,
-            tpRegion: new StandardMergeRegion("tp", "tp-input", 0x07000, 0x40000),
-            dpRegion: new StandardMergeRegion("dp", "dp-input", 0x00000, 0x06000, 0x40000)),
+            tpRegion: new StandardMergeRegion("tp", CompositionAddressSpaceIds.TpInput, 0x07000, 0x40000),
+            dpRegion: new StandardMergeRegion("dp", CompositionAddressSpaceIds.DpInput, 0x00000, 0x06000, 0x40000)),
         CreateGenFlashProfile(
             "51931",
             flashSize: 0x40000,
-            tpRegion: new StandardMergeRegion("tp", "tp-input", 0x00000, 0x3C000),
-            dpRegion: new StandardMergeRegion("dp", "dp-input", 0x3E000, 0x40000, 0x80000)),
+            tpRegion: new StandardMergeRegion("tp", CompositionAddressSpaceIds.TpInput, 0x00000, 0x3C000),
+            dpRegion: new StandardMergeRegion("dp", CompositionAddressSpaceIds.DpInput, 0x3E000, 0x40000, 0x80000)),
         CreateGenFlashProfile(
             "51932",
             flashSize: 0x40000,
-            tpRegion: new StandardMergeRegion("tp", "tp-input", 0x07000, 0x40000),
-            dpRegion: new StandardMergeRegion("dp", "dp-input", 0x00000, 0x06000, 0x40000)),
+            tpRegion: new StandardMergeRegion("tp", CompositionAddressSpaceIds.TpInput, 0x07000, 0x40000),
+            dpRegion: new StandardMergeRegion("dp", CompositionAddressSpaceIds.DpInput, 0x00000, 0x06000, 0x40000)),
     ];
 
     /// <summary>Owner-confirmed Standard Merge aliases that reuse an approved gen_flash reference layout.</summary>
@@ -62,8 +62,8 @@ public static partial class BuiltInStandardMergeProfiles
         CreateGenFlashProfile(
             "51930",
             flashSize: 0x40000,
-            tpRegion: new StandardMergeRegion("tp", "tp-input", 0x07000, 0x40000, 0x40000),
-            dpRegion: new StandardMergeRegion("dp", "dp-input", 0x00000, 0x06000, 0x40000),
+            tpRegion: new StandardMergeRegion("tp", CompositionAddressSpaceIds.TpInput, 0x07000, 0x40000, 0x40000),
+            dpRegion: new StandardMergeRegion("dp", CompositionAddressSpaceIds.DpInput, 0x00000, 0x06000, 0x40000),
             profileIdSuffix: "flashmap",
             profileVersion: "0.5.0",
             evidenceSource: "IC_FlashMap.xlsx 51930 TP Flashmap."),
@@ -121,7 +121,7 @@ public static partial class BuiltInStandardMergeProfiles
         [
             new(tpRegion.SourceSpaceId, tpRegion.SourceLength, AddressSpaceMutability.Immutable),
             new(dpRegion.SourceSpaceId, dpRegion.SourceLength, AddressSpaceMutability.Immutable),
-            new("output-image", flashSize, AddressSpaceMutability.Mutable),
+            new(CompositionAddressSpaceIds.OutputImage, flashSize, AddressSpaceMutability.Mutable),
         ];
         List<CompositionOperation> operations =
         [
@@ -162,7 +162,7 @@ public static partial class BuiltInStandardMergeProfiles
             CompositionKind.Merge,
             IcWorkflowIds.StandardMerge,
             $"{profileId}.bin",
-            ImageInitialization.Blank("output-image", flashSize, 0x00),
+            ImageInitialization.Blank(CompositionAddressSpaceIds.OutputImage, flashSize, 0x00),
             addressSpaces,
             operations,
             regions,
@@ -181,7 +181,7 @@ public static partial class BuiltInStandardMergeProfiles
             sequence,
             region.SourceSpaceId,
             range,
-            "output-image",
+            CompositionAddressSpaceIds.OutputImage,
             range,
             OverlapPolicy.Reject,
             reason);
@@ -191,7 +191,7 @@ public static partial class BuiltInStandardMergeProfiles
     {
         return new ProfileRegion(
             $"{region.RegionId}-region",
-            "output-image",
+            CompositionAddressSpaceIds.OutputImage,
             region.Range,
             RegionAtomicity.Whole,
             RegionWritePolicy.WholeOnly);

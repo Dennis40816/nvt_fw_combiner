@@ -55,7 +55,7 @@ public static partial class WorkbenchCompositionService
         IReadOnlyDictionary<string, string> slotPaths)
     {
         return !BuiltInStandardMergeProfiles.IsDpPerspectiveStandardMergeProfile(profile) ||
-            !slotPaths.TryGetValue("dp-input", out string? dpPath) ||
+            !slotPaths.TryGetValue(CompositionAddressSpaceIds.DpInput, out string? dpPath) ||
             string.IsNullOrWhiteSpace(dpPath) ||
             !File.Exists(dpPath)
                 ? profile

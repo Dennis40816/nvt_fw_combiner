@@ -56,7 +56,7 @@ internal static partial class MergeCliCommandHandler
         List<WorkbenchGeneralMergeMappingInput> items = [];
         foreach (SavedRuleMappingRow row in rule.MappingRows)
         {
-            if (!string.Equals(row.TargetAddressSpaceId, "output-image", StringComparison.Ordinal))
+            if (!string.Equals(row.TargetAddressSpaceId, CompositionAddressSpaceIds.OutputImage, StringComparison.Ordinal))
             {
                 error.WriteLine($"error: saved rule row '{row.RowId}' targets unsupported address space '{row.TargetAddressSpaceId}'");
                 return false;

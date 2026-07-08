@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -185,7 +186,7 @@ internal static partial class ReplaceCliCommandHandler
             .. slotPaths
                 .OrderBy(pair => pair.Key, StringComparer.Ordinal)
                 .Select(pair => new InputArtifactBinding(
-                    pair.Key == "replace-base" ? "reference-base" : pair.Key,
+                    pair.Key == "replace-base" ? CompositionAddressSpaceIds.ReferenceBase : pair.Key,
                     pair.Key,
                     pair.Value)),
         ];

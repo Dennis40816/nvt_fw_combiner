@@ -23,13 +23,13 @@ public static partial class WorkbenchCompositionService
     {
         return addressSpaceId switch
         {
-            "dp-input" => "DP BIN",
-            "tp-input" => "TP BIN",
-            "ld-input" => "LD BIN",
-            "reference-base" => "Base flash",
-            "dp-replacement" => "DP replacement",
+            CompositionAddressSpaceIds.DpInput => "DP BIN",
+            CompositionAddressSpaceIds.TpInput => "TP BIN",
+            CompositionAddressSpaceIds.LdInput => "LD BIN",
+            CompositionAddressSpaceIds.ReferenceBase => "Base flash",
+            CompositionAddressSpaceIds.DpReplacement => "DP replacement",
             "ldc-replacement" => "LDC replacement",
-            "output-image" => "Output",
+            CompositionAddressSpaceIds.OutputImage => "Output",
             _ => addressSpaceId,
         };
     }

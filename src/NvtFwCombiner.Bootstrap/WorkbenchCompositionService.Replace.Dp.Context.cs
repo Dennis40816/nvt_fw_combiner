@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -59,8 +60,8 @@ public static partial class WorkbenchCompositionService
 
         InputArtifactBinding[] bindings =
         [
-            new("reference-base", "replace-base", fullBasePath),
-            CreateBinding("dp-replacement", "replace-dp", slotPaths),
+            new(CompositionAddressSpaceIds.ReferenceBase, "replace-base", fullBasePath),
+            CreateBinding(CompositionAddressSpaceIds.DpReplacement, "replace-dp", slotPaths),
         ];
         context = new DpPerspectiveDpReplaceRunContext(
             ToIcNumberSelection(number),

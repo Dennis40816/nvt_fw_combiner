@@ -86,7 +86,7 @@ internal static partial class SavedCompositionRuleLoader
             if (compositionKind == "merge" && sourceExperience == IcWorkflowIds.GeneralMerge)
             {
                 if (!string.IsNullOrWhiteSpace(targetAddressSpaceId) &&
-                    !string.Equals(targetAddressSpaceId, "output-image", StringComparison.Ordinal))
+                    !string.Equals(targetAddressSpaceId, CompositionAddressSpaceIds.OutputImage, StringComparison.Ordinal))
                 {
                     issues.Add(Issue(
                         "saved-rule.mapping-row.target-address-space-unsupported",
