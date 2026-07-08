@@ -298,40 +298,33 @@ public sealed class TpFlashMapCatalogTests
     private static IEnumerable<IcNumberSelection> GetCatalogSelections(LegacyCombinerPostbuildProfile profile)
     {
         HashSet<string> selectionKeys = [];
-        foreach (string token in profile.BranchRules.Keys)
+        foreach ((string token, LegacyCombinerPostbuildBranch branch) in profile.BranchRules)
         {
-            if (TryCreateCatalogSelection(token, out IcNumberSelection? selection) &&
-                selection is not null &&
-                selectionKeys.Add($"{selection.Mode}:{string.Join("|", selection.Parts)}"))
+            IcNumberSelection selection = CreateCatalogSelection(token, branch);
+            if (selectionKeys.Add($"{selection.Mode}:{string.Join("|", selection.Parts)}"))
             {
                 yield return selection;
             }
         }
     }
 
-    private static bool TryCreateCatalogSelection(
+    private static IcNumberSelection CreateCatalogSelection(
         string token,
-        out IcNumberSelection? selection)
+        LegacyCombinerPostbuildBranch branch)
     {
-        if (IcNumberSelectionTokens.IsSingle(token))
+        return branch switch
         {
-            selection = new IcNumberSelection(IcNumberInputMode.SingleSelector, [token]);
-            return true;
-        }
-
-        if (string.Equals(token, IcNumberSelectionTokens.Cascade, StringComparison.Ordinal))
-        {
-            selection = new IcNumberSelection(IcNumberInputMode.CascadeSelector, [token]);
-            return true;
-        }
-
-        if (int.TryParse(token, out int numericValue) && numericValue > 1)
-        {
-            selection = new IcNumberSelection(IcNumberInputMode.NumericSelector, [token]);
-            return true;
-        }
-
-        selection = null;
-        return false;
+            LegacyCombinerPostbuildBranch.SingleChip =>
+                new IcNumberSelection(IcNumberInputMode.SingleSelector, [IcNumberSelectionTokens.SingleChip]),
+            LegacyCombinerPostbuildBranch.Cascade when int.TryParse(token, out int count) && count > 1 =>
+                new IcNumberSelection(IcNumberInputMode.NumericSelector, [token]),
+            LegacyCombinerPostbuildBranch.Cascade =>
+                new IcNumberSelection(IcNumberInputMode.CascadeSelector, [IcNumberSelectionTokens.Cascade]),
+            LegacyCombinerPostbuildBranch.CascadeExtended or
+                LegacyCombinerPostbuildBranch.TwoChip or
+                LegacyCombinerPostbuildBranch.ThreeChip =>
+                new IcNumberSelection(IcNumberInputMode.NumericSelector, [token]),
+            _ => throw new ArgumentOutOfRangeException(nameof(branch), branch, "Unsupported postbuild branch."),
+        };
     }
 }
