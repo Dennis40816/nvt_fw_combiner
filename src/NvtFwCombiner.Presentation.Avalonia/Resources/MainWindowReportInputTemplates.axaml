@@ -1,0 +1,55 @@
+<ResourceDictionary
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
+
+<DataTemplate x:Key="ReportInputRowTemplate" DataType="vm:ReportLineViewModel">
+  <Border MinWidth="320" MaxWidth="380" Padding="12,10" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Margin="0,0,12,12">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="6">
+      <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
+      <ItemsControl Grid.Row="1" ItemsSource="{Binding Badges}" IsVisible="{Binding HasBadges}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <StaticResource ResourceKey="ReportLineBadgeTemplate" />
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <TextBlock Grid.Row="2" FontSize="11" Foreground="#475569" Text="{Binding Detail}" TextWrapping="Wrap" />
+      <ItemsControl Grid.Row="3" ItemsSource="{Binding Facts}" IsVisible="{Binding HasFacts}">
+        <ItemsControl.ItemTemplate>
+          <StaticResource ResourceKey="ReportLineFactTemplate" />
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </Grid>
+  </Border>
+</DataTemplate>
+
+<DataTemplate x:Key="ReportInputGroupTemplate" DataType="vm:ReportInputGroupViewModel">
+  <Border Padding="12" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6">
+    <StackPanel Spacing="12">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+        <StackPanel Spacing="2">
+          <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" />
+          <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Detail}" TextWrapping="Wrap" />
+        </StackPanel>
+        <Border Grid.Column="1" Padding="7,2" VerticalAlignment="Top" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+          <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding Count}" />
+        </Border>
+      </Grid>
+      <ItemsControl ItemsSource="{Binding Rows}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <StaticResource ResourceKey="ReportInputRowTemplate" />
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </Border>
+</DataTemplate>
+</ResourceDictionary>

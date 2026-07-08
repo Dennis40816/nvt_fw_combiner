@@ -12,6 +12,14 @@ public sealed partial class RepositoryBoundaryTests
         string visualStyles = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowVisualStyles.axaml");
         string sharedTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml");
         string reportTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportTemplates.axaml");
+        string reportChangeTemplates = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportChangeTemplates.axaml");
+        string reportInputTemplates = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportInputTemplates.axaml");
+        string reportOperationTemplates = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportOperationTemplates.axaml");
+        string reportHistoryTemplates = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportHistoryTemplates.axaml");
         string reportAuditTemplates = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportAuditTemplates.axaml");
         string reportPanels = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportPanels.axaml");
@@ -69,6 +77,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("MainWindowVisualStyles.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("MainWindowSharedTemplates.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("MainWindowReportTemplates.axaml", shell, StringComparison.Ordinal);
+        Assert.Contains("MainWindowReportChangeTemplates.axaml", shell, StringComparison.Ordinal);
+        Assert.Contains("MainWindowReportInputTemplates.axaml", shell, StringComparison.Ordinal);
+        Assert.Contains("MainWindowReportOperationTemplates.axaml", shell, StringComparison.Ordinal);
+        Assert.Contains("MainWindowReportHistoryTemplates.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("MainWindowReportAuditTemplates.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("MainWindowReportPanels.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("MainWindowPageTemplates.axaml", shell, StringComparison.Ordinal);
@@ -179,12 +191,14 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Text=\"{Binding Text.ChangeReviewTitle}\"", reportPanels, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource ReportAuditDetailsPanelTemplate}\"", reportModal, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.EvidenceTitle}\"", reportAuditTemplates, StringComparison.Ordinal);
+        Assert.Contains("ReportLineBadgeTemplate", reportTemplates, StringComparison.Ordinal);
         Assert.Contains("ReportDifferenceSummaryChipTemplate", reportPanels, StringComparison.Ordinal);
+        Assert.Contains("ReportDifferenceSummaryChipTemplate", reportChangeTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("Choose IC and Number inside", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("HomeReplaceStatus", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("HomeMergeStatus", shell, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{ReflectionBinding $parent[Window].DataContext.Text.RangeTableTitle}\"", reportTemplates, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding RangeRows}\"", reportTemplates, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{ReflectionBinding $parent[Window].DataContext.Text.RangeTableTitle}\"", reportOperationTemplates, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding RangeRows}\"", reportOperationTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("Where to look first", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Evidence map", shell, StringComparison.Ordinal);
         Assert.Contains("<TabControl", reportAuditTemplates, StringComparison.Ordinal);
@@ -194,8 +208,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Header=\"{Binding Text.ReportTabPostbuild}\"", reportAuditTemplates, StringComparison.Ordinal);
         Assert.Contains("Header=\"{Binding Text.ReportTabIssues}\"", reportAuditTemplates, StringComparison.Ordinal);
         Assert.Contains("Header=\"{Binding Text.ReportTabRaw}\"", reportAuditTemplates, StringComparison.Ordinal);
-        Assert.Contains("ReportOutputDifferenceRowTemplate", reportTemplates, StringComparison.Ordinal);
-        Assert.Contains("ReportOperationFlowNodeTemplate", reportTemplates, StringComparison.Ordinal);
+        Assert.Contains("ReportOutputDifferenceRowTemplate", reportChangeTemplates, StringComparison.Ordinal);
+        Assert.Contains("ReportInputGroupTemplate", reportInputTemplates, StringComparison.Ordinal);
+        Assert.Contains("ReportOperationFlowNodeTemplate", reportOperationTemplates, StringComparison.Ordinal);
+        Assert.Contains("ReportHistoryEntryTemplate", reportHistoryTemplates, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.OperationFlow", reportAuditTemplates, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.CommandOperations", reportAuditTemplates, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.StepOperations", reportAuditTemplates, StringComparison.Ordinal);

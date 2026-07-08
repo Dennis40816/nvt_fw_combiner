@@ -1,0 +1,147 @@
+<ResourceDictionary
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
+
+<DataTemplate x:Key="ReportOperationFlowNodeTemplate" DataType="vm:ReportOperationFlowNodeViewModel">
+  <Grid ColumnDefinitions="44,*" ColumnSpacing="12">
+    <Grid>
+      <Border
+          Width="2"
+          HorizontalAlignment="Center"
+          Background="#BFDBFE"
+          IsVisible="{Binding HasConnector}" />
+      <Border Width="32" Height="32" Margin="0,4,0,0" HorizontalAlignment="Center" VerticalAlignment="Top" Background="#EFF6FF" BorderBrush="#93C5FD" BorderThickness="1" CornerRadius="999">
+        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Foreground="#1D4ED8" Text="{Binding Number}" />
+      </Border>
+    </Grid>
+    <StackPanel Grid.Column="1" Margin="0,3,0,18" Spacing="4">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+        <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
+        <Border Grid.Column="1" MinWidth="44" Height="22" Padding="8,0" VerticalAlignment="Top" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+          <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding Status}" />
+        </Border>
+      </Grid>
+      <TextBlock FontSize="12" Foreground="#475569" Text="{Binding Detail}" TextWrapping="Wrap" />
+      <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" IsVisible="{Binding HasMeta}" />
+    </StackPanel>
+  </Grid>
+</DataTemplate>
+
+<DataTemplate x:Key="ReportRangeTableTemplate" DataType="vm:ReportLineViewModel">
+  <Border Padding="9,8" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6">
+    <StackPanel Spacing="5">
+      <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{ReflectionBinding $parent[Window].DataContext.Text.RangeTableTitle}" />
+      <Grid ColumnDefinitions="112,128,*,150" ColumnSpacing="10">
+        <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{ReflectionBinding $parent[Window].DataContext.Text.KindLabel}" />
+        <TextBlock Grid.Column="1" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{ReflectionBinding $parent[Window].DataContext.Text.AddressSpaceLabel}" />
+        <TextBlock Grid.Column="2" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{ReflectionBinding $parent[Window].DataContext.Text.RangeLabel}" />
+        <TextBlock Grid.Column="3" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{ReflectionBinding $parent[Window].DataContext.Text.SourceLabel}" />
+      </Grid>
+      <ItemsControl ItemsSource="{Binding RangeRows}">
+        <ItemsControl.ItemTemplate>
+          <StaticResource ResourceKey="ReportRangeTableRowTemplate" />
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </Border>
+</DataTemplate>
+
+<DataTemplate x:Key="ReportCommandOperationTemplate" DataType="vm:ReportLineViewModel">
+  <Grid ColumnDefinitions="34,*">
+    <Grid>
+      <Border Width="2" HorizontalAlignment="Center" Background="#BFDBFE" />
+      <Border
+          Width="16"
+          Height="16"
+          Margin="0,10,0,0"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Top"
+          Background="#2563EB"
+          BorderBrush="#DBEAFE"
+          BorderThickness="2"
+          CornerRadius="999" />
+    </Grid>
+    <StackPanel Grid.Column="1" Margin="0,6,0,16" Spacing="7">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+        <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
+        <Border Grid.Column="1" MinWidth="52" Height="22" Padding="8,0" Background="#EFF6FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="999">
+          <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" FontWeight="SemiBold" Foreground="#1D4ED8" Text="{Binding OperationStatus}" />
+        </Border>
+      </Grid>
+      <TextBlock FontSize="12" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding Detail}" TextWrapping="Wrap" />
+      <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" IsVisible="{Binding HasMeta}" />
+      <ItemsControl ItemsSource="{Binding Badges}" IsVisible="{Binding HasBadges}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <StaticResource ResourceKey="ReportLineBadgeTemplate" />
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <ContentControl
+          Content="{Binding}"
+          ContentTemplate="{StaticResource ReportRangeTableTemplate}"
+          IsVisible="{Binding HasRangeRows}" />
+      <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{ReflectionBinding $parent[Window].DataContext.Text.CommandArgvLabel}" IsVisible="{Binding HasCodeBlock}" />
+      <Border Padding="8,6" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6" IsVisible="{Binding HasCodeBlock}">
+        <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#0F172A" Text="{Binding CodeBlock}" TextWrapping="Wrap" />
+      </Border>
+      <ItemsControl ItemsSource="{Binding Facts}" IsVisible="{Binding HasFacts}">
+        <ItemsControl.ItemTemplate>
+          <StaticResource ResourceKey="ReportLineFactTemplate" />
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </Grid>
+</DataTemplate>
+
+<DataTemplate x:Key="ReportStepOperationTemplate" DataType="vm:ReportLineViewModel">
+  <Grid ColumnDefinitions="34,*">
+    <Grid>
+      <Border Width="2" HorizontalAlignment="Center" Background="#CBD5E1" />
+      <Border
+          Width="13"
+          Height="13"
+          Margin="0,11,0,0"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Top"
+          Background="#64748B"
+          BorderBrush="#F8FAFC"
+          BorderThickness="2"
+          CornerRadius="999" />
+    </Grid>
+    <StackPanel Grid.Column="1" Margin="0,6,0,16" Spacing="6">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+        <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
+        <Border Grid.Column="1" MinWidth="52" Height="22" Padding="8,0" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+          <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding OperationStatus}" />
+        </Border>
+      </Grid>
+      <TextBlock FontSize="12" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding Detail}" TextWrapping="Wrap" />
+      <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" IsVisible="{Binding HasMeta}" />
+      <ItemsControl ItemsSource="{Binding Badges}" IsVisible="{Binding HasBadges}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <StaticResource ResourceKey="ReportLineBadgeTemplate" />
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <ContentControl
+          Content="{Binding}"
+          ContentTemplate="{StaticResource ReportRangeTableTemplate}"
+          IsVisible="{Binding HasRangeRows}" />
+      <ItemsControl ItemsSource="{Binding Facts}" IsVisible="{Binding HasFacts}">
+        <ItemsControl.ItemTemplate>
+          <StaticResource ResourceKey="ReportLineFactTemplate" />
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </Grid>
+</DataTemplate>
+</ResourceDictionary>

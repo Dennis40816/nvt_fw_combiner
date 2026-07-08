@@ -1,0 +1,106 @@
+<ResourceDictionary
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
+
+<DataTemplate x:Key="ReportDifferenceSummaryRowTemplate" DataType="vm:ReportDifferenceSummaryRowViewModel">
+  <Border Padding="0,9" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
+    <Grid ColumnDefinitions="*,54,76" ColumnSpacing="10">
+      <StackPanel Spacing="2">
+        <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Label}" TextWrapping="Wrap" />
+        <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Detail}" TextWrapping="Wrap" />
+      </StackPanel>
+      <TextBlock
+          Grid.Column="1"
+          HorizontalAlignment="Right"
+          VerticalAlignment="Center"
+          FontSize="16"
+          FontFamily="Cascadia Mono, Consolas"
+          FontWeight="SemiBold"
+          Foreground="#0F172A"
+          Text="{Binding Count}" />
+      <Border Grid.Column="2" Padding="7,2" VerticalAlignment="Center" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+        <TextBlock HorizontalAlignment="Center" FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding Status}" />
+      </Border>
+    </Grid>
+  </Border>
+</DataTemplate>
+
+<DataTemplate x:Key="ReportDifferenceSummaryChipTemplate" DataType="vm:ReportDifferenceSummaryRowViewModel">
+  <Border Width="154" Margin="0,0,8,8" Padding="9,7" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="7">
+    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="3">
+      <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Label}" TextWrapping="Wrap" />
+      <TextBlock Grid.Column="1" FontSize="15" FontFamily="Cascadia Mono, Consolas" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Count}" />
+      <TextBlock Grid.Row="1" FontSize="10" Foreground="#64748B" Text="{Binding Detail}" TextWrapping="Wrap" />
+      <Border Grid.Row="1" Grid.Column="1" Padding="6,1" VerticalAlignment="Top" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+        <TextBlock FontSize="9" FontWeight="SemiBold" Foreground="#334155" Text="{Binding Status}" />
+      </Border>
+    </Grid>
+  </Border>
+</DataTemplate>
+
+<DataTemplate x:Key="ReportMutationRowTemplate" DataType="vm:ReportLineViewModel">
+  <Border Padding="0,8" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
+    <StackPanel Spacing="2">
+      <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
+      <TextBlock FontSize="12" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding Detail}" TextWrapping="Wrap" />
+      <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" />
+    </StackPanel>
+  </Border>
+</DataTemplate>
+
+<DataTemplate x:Key="ReportOutputDifferenceRowTemplate" DataType="vm:ReportLineViewModel">
+  <Border Padding="12" Background="#FFFFFF" BorderBrush="#D7E2F1" BorderThickness="1" CornerRadius="6" Margin="0,0,0,8">
+    <StackPanel Spacing="10">
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="10">
+        <Border MinWidth="72" Height="28" Padding="8,0" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+          <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="#334155" Text="{Binding Title}" />
+        </Border>
+        <Border Grid.Column="1" Height="28" Padding="10,0" Background="#EEF6FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="999" IsVisible="{Binding HasSectionLabel}">
+          <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="#1D4ED8" Text="{Binding SectionLabel}" />
+        </Border>
+        <StackPanel Grid.Column="2" Spacing="3">
+          <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Range}" TextWrapping="Wrap" />
+          <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding ChangedSummary}" TextWrapping="Wrap" />
+        </StackPanel>
+        <ItemsControl Grid.Column="3" ItemsSource="{Binding Badges}" IsVisible="{Binding HasBadges}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Orientation="Horizontal" Spacing="4" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <StaticResource ResourceKey="ReportLineBadgeTemplate" />
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </Grid>
+      <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="8" IsVisible="{Binding HasBeforeAfter}">
+        <Border Padding="10,8" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6">
+          <StackPanel Spacing="4">
+            <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding BeforeLabel}" />
+            <TextBlock FontSize="13" FontFamily="Cascadia Mono, Consolas" Foreground="#0F172A" Text="{Binding BeforeValue}" TextWrapping="Wrap" />
+          </StackPanel>
+        </Border>
+        <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="18" Foreground="#94A3B8" Text=">" />
+        <Border Grid.Column="2" Padding="10,8" Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="6">
+          <StackPanel Spacing="4">
+            <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#166534" Text="{Binding AfterLabel}" />
+            <TextBlock FontSize="13" FontFamily="Cascadia Mono, Consolas" Foreground="#0F172A" Text="{Binding AfterValue}" TextWrapping="Wrap" />
+          </StackPanel>
+        </Border>
+      </Grid>
+      <Border Padding="9,7" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" IsVisible="{Binding HasReason}">
+        <Grid ColumnDefinitions="72,*" ColumnSpacing="8">
+          <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{ReflectionBinding $parent[Window].DataContext.Text.ReasonLabel}" />
+          <TextBlock Grid.Column="1" FontSize="11" Foreground="#334155" Text="{Binding Reason}" TextWrapping="Wrap" />
+        </Grid>
+      </Border>
+      <ItemsControl ItemsSource="{Binding Facts}" IsVisible="False">
+        <ItemsControl.ItemTemplate>
+          <StaticResource ResourceKey="ReportLineFactTemplate" />
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </Border>
+</DataTemplate>
+</ResourceDictionary>

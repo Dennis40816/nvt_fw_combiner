@@ -23,6 +23,10 @@
       <ResourceDictionary.MergedDictionaries>
         <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml" />
         <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportTemplates.axaml" />
+        <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportChangeTemplates.axaml" />
+        <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportInputTemplates.axaml" />
+        <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportOperationTemplates.axaml" />
+        <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportHistoryTemplates.axaml" />
         <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportAuditTemplates.axaml" />
         <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportPanels.axaml" />
         <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowPageTemplates.axaml" />

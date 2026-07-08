@@ -1,0 +1,41 @@
+<ResourceDictionary
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
+
+<DataTemplate x:Key="ReportHistoryEntryTemplate" DataType="vm:ReportHistoryEntryViewModel">
+  <Grid Margin="0,0,0,8" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+    <Button
+        HorizontalAlignment="Stretch"
+        Padding="0"
+        Background="Transparent"
+        BorderBrush="Transparent"
+        Command="{ReflectionBinding $parent[Window].DataContext.OpenReportHistoryEntryCommand}"
+        CommandParameter="{Binding}">
+      <Border Padding="12" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
+        <StackPanel Spacing="5">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+            <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding SequenceLabel}" />
+            <TextBlock Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Status}" TextWrapping="Wrap" />
+            <TextBlock Grid.Column="2" FontSize="11" FontWeight="SemiBold" Foreground="#2563EB" Text="{Binding IssueSummary}" TextWrapping="Wrap" />
+          </Grid>
+          <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
+          <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Context}" TextWrapping="Wrap" />
+          <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding CommandSummary}" TextWrapping="Wrap" />
+          <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding EvidenceSummary}" TextWrapping="Wrap" />
+          <TextBlock FontSize="11" Foreground="#475569" Text="{Binding ArtifactPath}" TextWrapping="Wrap" IsVisible="{Binding HasArtifactPath}" />
+        </StackPanel>
+      </Border>
+    </Button>
+    <Button
+        Grid.Column="1"
+        Classes="iconButton dangerIcon"
+        VerticalAlignment="Top"
+        Command="{ReflectionBinding $parent[Window].DataContext.RemoveReportHistoryEntryCommand}"
+        CommandParameter="{Binding}"
+        ToolTip.Tip="{ReflectionBinding $parent[Window].DataContext.Text.DeleteReportTooltip}">
+      <TextBlock FontSize="13" Text="X" />
+    </Button>
+  </Grid>
+</DataTemplate>
+</ResourceDictionary>
