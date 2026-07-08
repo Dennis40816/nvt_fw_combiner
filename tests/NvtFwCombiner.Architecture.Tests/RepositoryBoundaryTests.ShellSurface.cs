@@ -15,6 +15,9 @@ public sealed partial class RepositoryBoundaryTests
         string reportPanels = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportPanels.axaml");
         string pageTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowPageTemplates.axaml");
         string shellPanels = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowShellPanels.axaml");
+        string firmwareSlotCard = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/FirmwareSlotCard.axaml");
+        string firmwareSlotCardCode = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/FirmwareSlotCard.axaml.cs");
+        string dropZoneDragState = ReadText("src/NvtFwCombiner.Presentation.Avalonia/DropZoneDragState.cs");
         string replaceSelectionModal = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/ReplaceSelectionModal.axaml");
         string reportModal = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/ReportModal.axaml");
         string shellSurface = string.Join(
@@ -25,6 +28,7 @@ public sealed partial class RepositoryBoundaryTests
             reportAuditTemplates,
             shellPanels,
             sharedTemplates,
+            firmwareSlotCard,
             replaceSelectionModal,
             reportModal);
 
@@ -86,9 +90,18 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Text=\"{ReflectionBinding $parent[Window].DataContext.Text.RangeLabel}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("Text=\"{ReflectionBinding $parent[Window].DataContext.Text.ResultLabel}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("DataTemplate x:Key=\"FirmwareSlotFactTemplate\"", sharedTemplates, StringComparison.Ordinal);
-        Assert.Contains("SlotDrop_OnDrop", shell, StringComparison.Ordinal);
-        Assert.Contains("SlotDragOver_OnDragOver", shell, StringComparison.Ordinal);
-        Assert.Contains("BrowseSlotButton_OnClick", shell, StringComparison.Ordinal);
+        Assert.Contains("<views:FirmwareSlotCard", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("SlotDrop_OnDrop", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("BrowseSlotButton_OnClick", shell, StringComparison.Ordinal);
+        Assert.Contains("SlotDrop_OnDrop", firmwareSlotCard, StringComparison.Ordinal);
+        Assert.Contains("SlotDragOver_OnDragOver", firmwareSlotCard, StringComparison.Ordinal);
+        Assert.Contains("BrowseButton_OnClick", firmwareSlotCard, StringComparison.Ordinal);
+        Assert.Contains("SetSlotFile", firmwareSlotCardCode, StringComparison.Ordinal);
+        Assert.Contains("DropZoneDragState.ApplyFileDropEffect", firmwareSlotCardCode, StringComparison.Ordinal);
+        Assert.Contains("DropZoneDragState.GetFirstLocalFilePath", firmwareSlotCardCode, StringComparison.Ordinal);
+        Assert.Contains("DropZoneDragState.ApplyFileDropEffect", ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.FileInputs.cs"), StringComparison.Ordinal);
+        Assert.Contains("GetFirstLocalFilePath", dropZoneDragState, StringComparison.Ordinal);
+        Assert.Contains("DragActiveClass", dropZoneDragState, StringComparison.Ordinal);
         Assert.Contains("BrowseGeneralMappingButton_OnClick", shell, StringComparison.Ordinal);
         Assert.Contains("GeneralMappingDrop_OnDrop", shell, StringComparison.Ordinal);
         Assert.Contains("RemoveGeneralMappingButton_OnClick", shell, StringComparison.Ordinal);

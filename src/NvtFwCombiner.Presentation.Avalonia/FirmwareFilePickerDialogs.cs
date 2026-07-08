@@ -4,6 +4,20 @@ namespace NvtFwCombiner.Presentation.Avalonia;
 
 internal static class FirmwareFilePickerDialogs
 {
+    public static async Task<string?> PickFirmwareBinOpenFileAsync(
+        IStorageProvider storageProvider,
+        string title)
+    {
+        IReadOnlyList<IStorageFile> files = await storageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = title,
+            AllowMultiple = false,
+            FileTypeFilter = CreateFirmwareBinChoices(),
+        });
+
+        return files.Count == 0 ? null : files[0].TryGetLocalPath();
+    }
+
     public static async Task<string?> PickMergedFirmwareOutputPathAsync(
         IStorageProvider storageProvider,
         string suggestedFileName)
