@@ -22,7 +22,7 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 - `0.7.3` is the patch train for saved-rule validation and General Merge rule consumption on top of `0.7.2`.
 - `0.7.4` is the patch train for report readability, Build-first workbench UI, DP version badges, and reference naming on top of `0.7.3`.
 - `0.7.5` is the patch train for bilingual UI resources and Settings functionality on top of `0.7.4`.
-- `0.8.0` is the active post-`0.7.5` development train for packaging/security hardening and remaining release evidence closure.
+- `0.8.0` is the active post-`0.7.5` development train for repository structure consolidation, catalog ownership, packaging/security hardening, and remaining release evidence closure.
 - `main` is the stable branch.
 - Progress to `main` must happen through reviewed merge/PR, not direct unreviewed development pushes.
 - Agent/Codex work should stay on the active milestone branch until review gates pass.
@@ -42,7 +42,7 @@ Current execution priority: normal Merge and normal Replace for DP Replace and C
 | `0.5.0-dev.N` | Normal Replace priority | DP Replace and CtrlRAM Replace workflows, IC num text choices for two-option profiles, numeric count selection for three-or-more concrete count profiles, and post-replace combiner readiness. |
 | `0.6.0-dev.N` | Workflow data-model convergence | Evaluate and refactor Merge/Replace data into a unified profile/template/catalog model across ICs. No new byte behavior without evidence. |
 | `0.7.0-dev.N` | General Merge/Replace, saved rules, and deferred AB merge | Dynamic mappings, saved-rule validation/preset projection, and deferred promotion catalog; AB bank layout resumes only after owner reactivation and golden evidence. General Merge v1 ships in `0.7.2`; saved-rule validation and General Merge CLI consumption ship in `0.7.3`; normal-workflow promotion remains separately reviewed. |
-| `0.8.0-dev.N` | Packaging/security | Release packaging, tool manifests, smoke tests. |
+| `0.8.0-dev.N` | Structure, catalog ownership, packaging/security | IC onboarding catalogs, large-file containment, release packaging, tool manifests, smoke tests. |
 | `0.9.0-rc.N` | UAT/release candidates | UX polish, internal sign-off. |
 | `v1.0.0` | stable | Signed-off support matrix. |
 
@@ -77,7 +77,7 @@ v0.7.2          General Merge v1
 v0.7.3          saved-rule validation and General Merge CLI consumption
 v0.7.4          report readability and Build-first workbench UI
 v0.7.5          bilingual UI resources and Settings functionality
-v0.8.0-dev.N    packaging/security
+v0.8.0-dev.N    structure, catalog ownership, packaging/security
 v0.9.0-rc.N     UAT/release candidates
 v1.0.0          stable
 ```
