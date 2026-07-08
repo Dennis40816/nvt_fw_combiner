@@ -10,6 +10,12 @@ public static partial class UiCompositionRunner
         return WorkbenchCompositionService.GetSupportedIcIds();
     }
 
+    /// <summary>Gets the catalog-owned initial IC id for shell surfaces.</summary>
+    public static string GetDefaultIcId()
+    {
+        return WorkbenchCompositionService.GetDefaultIcId();
+    }
+
     /// <summary>Gets supported IC-number choices from the workbench catalog.</summary>
     public static IReadOnlyList<string> GetNumberChoices(string icId)
     {

@@ -114,6 +114,9 @@ public static class IcSupportCatalog
     /// <summary>All current workbench IC entries in stable display order.</summary>
     public static IReadOnlyList<IcSupportEntry> All => Entries;
 
+    /// <summary>Initial IC selected by shell/workbench surfaces.</summary>
+    public static string DefaultIcId => "NT51950";
+
     /// <summary>All selectable workbench IC ids.</summary>
     public static IReadOnlyList<string> IcIds => [.. Entries.Select(entry => entry.IcId)];
 

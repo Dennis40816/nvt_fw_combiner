@@ -6,6 +6,8 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
 {
+    private static string DefaultIcId => UiCompositionRunner.GetDefaultIcId();
+
     /// <summary>Gets the shell milestone label.</summary>
     public string ShellVersion { get; }
 
@@ -342,12 +344,12 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets supported IC count/variant choices for the selected IC.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DeviceContextStatus))]
-    public partial IReadOnlyList<string> NumberChoices { get; set; } = UiCompositionRunner.GetNumberChoices("NT51950");
+    public partial IReadOnlyList<string> NumberChoices { get; set; } = UiCompositionRunner.GetNumberChoices(DefaultIcId);
 
     /// <summary>Gets or sets the selected IC id in the shared context row.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DeviceContextStatus))]
-    public partial string SelectedIc { get; set; } = "NT51950";
+    public partial string SelectedIc { get; set; } = DefaultIcId;
 
     /// <summary>Gets or sets the selected IC count/variant in the shared context row.</summary>
     [ObservableProperty]
@@ -361,5 +363,5 @@ public sealed partial class MainWindowViewModel
     [NotifyPropertyChangedFor(nameof(CanPreviewMerge))]
     [NotifyPropertyChangedFor(nameof(CanBuildMerge))]
     public partial string GeneralMergeOutputLength { get; set; } =
-        UiCompositionRunner.GetGeneralMergeDefaultOutputLength("NT51950");
+        UiCompositionRunner.GetGeneralMergeDefaultOutputLength(DefaultIcId);
 }

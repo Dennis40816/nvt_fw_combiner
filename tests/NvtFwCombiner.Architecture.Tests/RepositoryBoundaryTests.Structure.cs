@@ -40,6 +40,7 @@ public sealed partial class RepositoryBoundaryTests
             "TpHeaderCatalog",
             "LegacyCombinerPostbuildCatalog",
             "DpPerspectiveCatalog",
+            "NT51950",
         ];
 
         Assert.Contains("NvtFwCombiner.Bootstrap.csproj", project, StringComparison.Ordinal);
@@ -71,6 +72,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("GetStandardMergeMemoryMapRows", root, StringComparison.Ordinal);
         Assert.DoesNotContain("GetReplaceMemoryMapRows", root, StringComparison.Ordinal);
         Assert.Contains("GetSupportedIcIds", catalog, StringComparison.Ordinal);
+        Assert.Contains("GetDefaultIcId", catalog, StringComparison.Ordinal);
         Assert.Contains("GetSettingsSnapshot", catalog, StringComparison.Ordinal);
         Assert.Contains("private static MemoryMapRowViewModel ToMemoryMapRow", common, StringComparison.Ordinal);
         Assert.Contains("GetFirmwareSlotFacts", facts, StringComparison.Ordinal);

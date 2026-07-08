@@ -12,6 +12,12 @@ public static partial class WorkbenchCompositionService
         return IcSupportCatalog.IcIds;
     }
 
+    /// <summary>Gets the catalog-owned initial IC id for shell/workbench surfaces.</summary>
+    public static string GetDefaultIcId()
+    {
+        return IcSupportCatalog.DefaultIcId;
+    }
+
     /// <summary>Gets supported IC-number choices from the TP flash-map/postbuild catalog.</summary>
     public static IReadOnlyList<string> GetNumberChoices(string icId)
     {

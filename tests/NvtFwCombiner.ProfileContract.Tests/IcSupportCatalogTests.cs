@@ -33,6 +33,18 @@ public sealed class IcSupportCatalogTests
         }
     }
 
+    /// <summary>The shell default IC is a catalog-owned onboarding decision, not a UI constant.</summary>
+    [Fact]
+    public void DefaultIcIdIsSupportedByCatalog()
+    {
+        Assert.Equal("NT51950", IcSupportCatalog.DefaultIcId);
+        Assert.True(IcSupportCatalog.TryFind(IcSupportCatalog.DefaultIcId, out IcSupportEntry? entry));
+        Assert.NotNull(entry);
+        Assert.True(entry.SupportsWorkflow(IcWorkflowIds.StandardMerge));
+        Assert.True(entry.SupportsWorkflow(IcWorkflowIds.GeneralMerge));
+        Assert.True(entry.SupportsWorkflow(IcWorkflowIds.GeneralReplace));
+    }
+
     /// <summary>Every executable Standard Merge IC has an onboarding entry.</summary>
     [Fact]
     public void StandardMergeProfilesAreCoveredByIcSupportCatalog()
