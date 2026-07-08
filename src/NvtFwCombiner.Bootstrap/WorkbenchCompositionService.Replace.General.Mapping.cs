@@ -1,4 +1,3 @@
-using System.Globalization;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 
@@ -60,8 +59,8 @@ public static partial class WorkbenchCompositionService
         out CompositionIssue issue)
     {
         targetRange = default;
-        if (!TryParseNonNegativeLong(input.TargetStart, out long start) ||
-            !TryParseNonNegativeLong(input.TargetEndInclusive, out long endInclusive) ||
+        if (!BootstrapRangeText.TryParseNonNegativeLong(input.TargetStart, out long start) ||
+            !BootstrapRangeText.TryParseNonNegativeLong(input.TargetEndInclusive, out long endInclusive) ||
             endInclusive < start)
         {
             issue = new CompositionIssue(
@@ -93,16 +92,6 @@ public static partial class WorkbenchCompositionService
                 input.MappingId);
             return false;
         }
-    }
-
-    private static bool TryParseNonNegativeLong(string text, out long value)
-    {
-        value = 0;
-        string trimmed = text.Trim();
-        bool parsed = trimmed.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
-            ? long.TryParse(trimmed[2..], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out value)
-            : long.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
-        return parsed && value >= 0;
     }
 
     private static IReadOnlyList<OperationRunSummary> CreateGeneralReplacePlanningOperations(

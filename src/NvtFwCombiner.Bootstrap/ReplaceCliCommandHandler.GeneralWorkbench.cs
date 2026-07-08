@@ -148,8 +148,8 @@ internal static partial class ReplaceCliCommandHandler
             return false;
         }
 
-        if (!CliCompositionRunSupport.TryParseNonNegativeLong(rangeText[..plusIndex], out long start) ||
-            !CliCompositionRunSupport.TryParseNonNegativeLong(rangeText[(plusIndex + 1)..], out long length) ||
+        if (!BootstrapRangeText.TryParseNonNegativeLong(rangeText[..plusIndex], out long start) ||
+            !BootstrapRangeText.TryParseNonNegativeLong(rangeText[(plusIndex + 1)..], out long length) ||
             length <= 0)
         {
             error.WriteLine("error: --mapping start must be non-negative and length must be positive");
@@ -170,8 +170,8 @@ internal static partial class ReplaceCliCommandHandler
         mapping = new WorkbenchGeneralReplaceMappingInput(
             string.Create(CultureInfo.InvariantCulture, $"general-map-{index}"),
             Path.GetFullPath(path),
-            CliCompositionRunSupport.FormatHex(start),
-            CliCompositionRunSupport.FormatHex(endInclusive));
+            BootstrapRangeText.FormatHex(start),
+            BootstrapRangeText.FormatHex(endInclusive));
         return true;
     }
 }

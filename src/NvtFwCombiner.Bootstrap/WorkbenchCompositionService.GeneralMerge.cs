@@ -25,7 +25,7 @@ public static partial class WorkbenchCompositionService
         long capacity = StandardMergeProfilesByIc.TryGetValue(icId, out CompositionProfileDefinition? profile)
             ? profile.Initialization.Capacity
             : GetGeneralMergeCatalogFallbackCapacity(icId);
-        return FormatWorkbenchHex(capacity);
+        return BootstrapRangeText.FormatHex(capacity);
     }
 
     /// <summary>Gets the profile-owned default General Merge output file name for the selected IC.</summary>
@@ -258,7 +258,7 @@ public static partial class WorkbenchCompositionService
         out long capacity,
         out CompositionIssue? issue)
     {
-        if (!TryParseNonNegativeLong(outputLength, out capacity) || capacity <= 0)
+        if (!BootstrapRangeText.TryParseNonNegativeLong(outputLength, out capacity) || capacity <= 0)
         {
             issue = new CompositionIssue(
                 "ui.general-merge.capacity-invalid",
@@ -346,9 +346,9 @@ public static partial class WorkbenchCompositionService
     {
         sourceRange = default;
         targetRange = default;
-        if (!TryParseNonNegativeLong(input.SourceStart, out long sourceStart) ||
-            !TryParseNonNegativeLong(input.TargetStart, out long targetStart) ||
-            !TryParseNonNegativeLong(input.Length, out long length) ||
+        if (!BootstrapRangeText.TryParseNonNegativeLong(input.SourceStart, out long sourceStart) ||
+            !BootstrapRangeText.TryParseNonNegativeLong(input.TargetStart, out long targetStart) ||
+            !BootstrapRangeText.TryParseNonNegativeLong(input.Length, out long length) ||
             length <= 0)
         {
             issue = new CompositionIssue(
@@ -496,10 +496,6 @@ public static partial class WorkbenchCompositionService
             : throw new InvalidOperationException($"No Standard Merge profile or TP flash-map profile is available for '{icId}'.");
     }
 
-    private static string FormatWorkbenchHex(long value)
-    {
-        return string.Create(CultureInfo.InvariantCulture, $"0x{value:X}");
-    }
 }
 
 /// <summary>One user-authored General Merge mapping row from the workbench surface.</summary>

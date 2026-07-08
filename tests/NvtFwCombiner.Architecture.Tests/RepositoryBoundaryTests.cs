@@ -83,6 +83,25 @@ public sealed partial class RepositoryBoundaryTests
             CountOccurrences(bootstrapSource, "request.WithApprovedPreviewToken(preview.PreviewToken!)"));
     }
 
+    /// <summary>Verifies General mapping text parsing is owned by one Bootstrap helper.</summary>
+    [Fact]
+    public void BootstrapRangeTextOwnsGeneralMappingParsing()
+    {
+        string bootstrapSource = ReadBootstrapSources();
+        string rangeText = ReadText("src/NvtFwCombiner.Bootstrap/BootstrapRangeText.cs");
+
+        Assert.Contains("internal static bool TryParseNonNegativeLong", rangeText, StringComparison.Ordinal);
+        Assert.Contains("internal static string FormatHex", rangeText, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(bootstrapSource, "internal static bool TryParseNonNegativeLong"));
+        Assert.Equal(1, CountOccurrences(bootstrapSource, "internal static string FormatHex"));
+        Assert.DoesNotContain("private static bool TryParseNonNegativeLong", bootstrapSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static string FormatHex(", bootstrapSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("CliCompositionRunSupport.TryParseNonNegativeLong", bootstrapSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("CliCompositionRunSupport.FormatHex", bootstrapSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("FormatWorkbenchHex", bootstrapSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryParseCliNonNegativeLong", bootstrapSource, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies the shell follows the owner-approved clean home and independent page direction.</summary>
     [Fact]
     public void ShellUsesCleanHomeAndIndependentWorkflowPages()

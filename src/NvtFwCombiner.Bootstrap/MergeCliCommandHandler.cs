@@ -196,9 +196,9 @@ internal static partial class MergeCliCommandHandler
 
         string[] parts = rangeText.Split('+', StringSplitOptions.TrimEntries);
         if (parts.Length != 3 ||
-            !CliCompositionRunSupport.TryParseNonNegativeLong(parts[0], out long sourceStart) ||
-            !CliCompositionRunSupport.TryParseNonNegativeLong(parts[1], out long targetStart) ||
-            !CliCompositionRunSupport.TryParseNonNegativeLong(parts[2], out long length) ||
+            !BootstrapRangeText.TryParseNonNegativeLong(parts[0], out long sourceStart) ||
+            !BootstrapRangeText.TryParseNonNegativeLong(parts[1], out long targetStart) ||
+            !BootstrapRangeText.TryParseNonNegativeLong(parts[2], out long length) ||
             length <= 0)
         {
             error.WriteLine("error: --mapping must use non-negative source start, non-negative target start, and positive length");
@@ -208,9 +208,9 @@ internal static partial class MergeCliCommandHandler
         mapping = new WorkbenchGeneralMergeMappingInput(
             string.Create(CultureInfo.InvariantCulture, $"general-merge-map-{index}"),
             Path.GetFullPath(path),
-            CliCompositionRunSupport.FormatHex(sourceStart),
-            CliCompositionRunSupport.FormatHex(targetStart),
-            CliCompositionRunSupport.FormatHex(length));
+            BootstrapRangeText.FormatHex(sourceStart),
+            BootstrapRangeText.FormatHex(targetStart),
+            BootstrapRangeText.FormatHex(length));
         return true;
     }
 
