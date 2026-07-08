@@ -293,6 +293,38 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("owner confirmation: NT51951 follows NT51950", nt51950Family, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies legacy postbuild contract types stay split by responsibility.</summary>
+    [Fact]
+    public void LegacyPostbuildContractTypesStaySplit()
+    {
+        string profile = ReadText(
+            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildProfile.cs");
+        string enums = ReadText(
+            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildEnums.cs");
+        string commonFwRule = ReadText(
+            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerCommonFwVersionRule.cs");
+        string branchRule = ReadText(
+            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildBranchRule.cs");
+        string blockArgument = ReadText(
+            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerBlockArgument.cs");
+        string command = ReadText(
+            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCommand.cs");
+        string commandPlan = ReadText(
+            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCommandPlan.cs");
+
+        Assert.Contains("public sealed class LegacyCombinerPostbuildProfile", profile, StringComparison.Ordinal);
+        Assert.DoesNotContain("public enum LegacyCombinerCommandFamily", profile, StringComparison.Ordinal);
+        Assert.DoesNotContain("public sealed class LegacyCombinerPostbuildCommand", profile, StringComparison.Ordinal);
+        Assert.DoesNotContain("public sealed class LegacyCombinerPostbuildCommandPlan", profile, StringComparison.Ordinal);
+        Assert.Contains("public enum LegacyCombinerCommandFamily", enums, StringComparison.Ordinal);
+        Assert.Contains("public enum LegacyCombinerBlockSourceKind", enums, StringComparison.Ordinal);
+        Assert.Contains("public sealed class LegacyCombinerCommonFwVersionRule", commonFwRule, StringComparison.Ordinal);
+        Assert.Contains("public sealed class LegacyCombinerPostbuildBranchRule", branchRule, StringComparison.Ordinal);
+        Assert.Contains("public sealed class LegacyCombinerBlockArgument", blockArgument, StringComparison.Ordinal);
+        Assert.Contains("public sealed class LegacyCombinerPostbuildCommand", command, StringComparison.Ordinal);
+        Assert.Contains("public sealed class LegacyCombinerPostbuildCommandPlan", commandPlan, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies the shell follows the owner-approved clean home and independent page direction.</summary>
     [Fact]
     public void ShellUsesCleanHomeAndIndependentWorkflowPages()
