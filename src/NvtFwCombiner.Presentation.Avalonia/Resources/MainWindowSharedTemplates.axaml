@@ -8,6 +8,27 @@
   <Setter Property="HorizontalContentAlignment" Value="Stretch" />
 </ControlTheme>
 
+<DataTemplate x:Key="FirmwareSlotGroupTemplate" DataType="vm:FirmwareSlotGroupViewModel">
+  <Expander HorizontalAlignment="Stretch" IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
+    <Expander.Header>
+      <Grid HorizontalAlignment="Stretch" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <StackPanel Spacing="2">
+          <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" />
+          <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding SelectionSummary}" TextWrapping="Wrap" />
+        </StackPanel>
+        <Border Grid.Column="1" Padding="8,2" VerticalAlignment="Center" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+          <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#334155" Text="{Binding CountLabel}" />
+        </Border>
+      </Grid>
+    </Expander.Header>
+    <ItemsControl HorizontalAlignment="Stretch" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding Slots}">
+      <ItemsControl.ItemTemplate>
+        <StaticResource ResourceKey="FirmwareSlotCardTemplate" />
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+  </Expander>
+</DataTemplate>
+
 <DataTemplate x:Key="MemoryCoverageTooltipTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
   <Border
       MaxWidth="360"
