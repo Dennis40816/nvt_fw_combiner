@@ -286,45 +286,6 @@ public sealed class TpFlashMapCatalogTests
 
     private static IEnumerable<(LegacyCombinerPostbuildProfile Profile, IcNumberSelection Selection)> AllPostbuildSelections()
     {
-        foreach (LegacyCombinerPostbuildProfile profile in LegacyCombinerPostbuildCatalog.All)
-        {
-            foreach (IcNumberSelection selection in GetCatalogSelections(profile))
-            {
-                yield return (profile, selection);
-            }
-        }
-    }
-
-    private static IEnumerable<IcNumberSelection> GetCatalogSelections(LegacyCombinerPostbuildProfile profile)
-    {
-        HashSet<string> selectionKeys = [];
-        foreach ((string token, LegacyCombinerPostbuildBranch branch) in profile.BranchRules)
-        {
-            IcNumberSelection selection = CreateCatalogSelection(token, branch);
-            if (selectionKeys.Add($"{selection.Mode}:{string.Join("|", selection.Parts)}"))
-            {
-                yield return selection;
-            }
-        }
-    }
-
-    private static IcNumberSelection CreateCatalogSelection(
-        string token,
-        LegacyCombinerPostbuildBranch branch)
-    {
-        return branch switch
-        {
-            LegacyCombinerPostbuildBranch.SingleChip =>
-                new IcNumberSelection(IcNumberInputMode.SingleSelector, [IcNumberSelectionTokens.SingleChip]),
-            LegacyCombinerPostbuildBranch.Cascade when int.TryParse(token, out int count) && count > 1 =>
-                new IcNumberSelection(IcNumberInputMode.NumericSelector, [token]),
-            LegacyCombinerPostbuildBranch.Cascade =>
-                new IcNumberSelection(IcNumberInputMode.CascadeSelector, [IcNumberSelectionTokens.Cascade]),
-            LegacyCombinerPostbuildBranch.CascadeExtended or
-                LegacyCombinerPostbuildBranch.TwoChip or
-                LegacyCombinerPostbuildBranch.ThreeChip =>
-                new IcNumberSelection(IcNumberInputMode.NumericSelector, [token]),
-            _ => throw new ArgumentOutOfRangeException(nameof(branch), branch, "Unsupported postbuild branch."),
-        };
+        return PostbuildSelectionTestCases.AllProfileBranchSelections();
     }
 }

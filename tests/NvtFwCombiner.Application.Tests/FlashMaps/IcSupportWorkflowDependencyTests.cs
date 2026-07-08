@@ -1,7 +1,6 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
-using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Application.Tests.FlashMaps;
@@ -51,7 +50,7 @@ public sealed class IcSupportWorkflowDependencyTests
 
             foreach (string numberChoice in numberChoices)
             {
-                IcNumberSelection selection = ToSelection(numberChoice);
+                IcNumberSelection selection = PostbuildSelectionTestCases.ToNumberChoiceSelection(numberChoice);
                 Assert.Contains(
                     profiles,
                     profile => CanCreatePostbuildPlan(profile, selection));
@@ -103,7 +102,7 @@ public sealed class IcSupportWorkflowDependencyTests
         {
             foreach (LegacyCombinerPostbuildProfile profile in LegacyCombinerPostbuildCatalog.GetProfiles(entry.IcId))
             {
-                foreach (IcNumberSelection selection in GetBranchSelections(profile))
+                foreach (IcNumberSelection selection in PostbuildSelectionTestCases.GetBranchSelections(profile))
                 {
                     LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(profile, selection);
                     IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetCtrlRamRegions(
@@ -123,13 +122,6 @@ public sealed class IcSupportWorkflowDependencyTests
         }
     }
 
-    private static IEnumerable<IcNumberSelection> GetBranchSelections(LegacyCombinerPostbuildProfile profile)
-    {
-        return profile.BranchRules
-            .Select(rule => ToSelection(rule.Key, rule.Value))
-            .DistinctBy(selection => $"{selection.Mode}:{string.Join("|", selection.Parts)}");
-    }
-
     private static bool CanCreatePostbuildPlan(
         LegacyCombinerPostbuildProfile profile,
         IcNumberSelection selection)
@@ -143,37 +135,5 @@ public sealed class IcSupportWorkflowDependencyTests
         {
             return false;
         }
-    }
-
-    private static IcNumberSelection ToSelection(string token)
-    {
-        return token switch
-        {
-            string value when IcNumberSelectionTokens.IsSingle(value) =>
-                new IcNumberSelection(IcNumberInputMode.SingleSelector, [value]),
-            string value when string.Equals(value, IcNumberSelectionTokens.Cascade, StringComparison.Ordinal) =>
-                new IcNumberSelection(IcNumberInputMode.CascadeSelector, [value]),
-            string value when int.TryParse(value, out _) =>
-                new IcNumberSelection(IcNumberInputMode.NumericSelector, [value]),
-            _ => throw new ArgumentException($"Unsupported IC number token '{token}'.", nameof(token)),
-        };
-    }
-
-    private static IcNumberSelection ToSelection(string token, LegacyCombinerPostbuildBranch branch)
-    {
-        return branch switch
-        {
-            LegacyCombinerPostbuildBranch.SingleChip =>
-                new IcNumberSelection(IcNumberInputMode.SingleSelector, [IcNumberSelectionTokens.SingleChip]),
-            LegacyCombinerPostbuildBranch.Cascade when int.TryParse(token, out int count) && count > 1 =>
-                new IcNumberSelection(IcNumberInputMode.NumericSelector, [token]),
-            LegacyCombinerPostbuildBranch.Cascade =>
-                new IcNumberSelection(IcNumberInputMode.CascadeSelector, [IcNumberSelectionTokens.Cascade]),
-            LegacyCombinerPostbuildBranch.CascadeExtended or
-                LegacyCombinerPostbuildBranch.TwoChip or
-                LegacyCombinerPostbuildBranch.ThreeChip =>
-                new IcNumberSelection(IcNumberInputMode.NumericSelector, [token]),
-            _ => throw new ArgumentOutOfRangeException(nameof(branch), branch, "Unsupported postbuild branch."),
-        };
     }
 }

@@ -108,35 +108,10 @@ public sealed class TpHeaderCatalogTests
 
     private static IEnumerable<LegacyCombinerPostbuildCommandPlan> AllPostbuildPlans()
     {
-        foreach (LegacyCombinerPostbuildProfile profile in LegacyCombinerPostbuildCatalog.All)
+        foreach ((LegacyCombinerPostbuildProfile profile, IcNumberSelection selection) in
+                 PostbuildSelectionTestCases.AllProfileBranchSelections())
         {
-            yield return LegacyCombinerPostbuildPlanner.CreatePlan(
-                profile,
-                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
-            yield return LegacyCombinerPostbuildPlanner.CreatePlan(
-                profile,
-                new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
-            if (profile.TwoChipCommands is not null)
-            {
-                yield return LegacyCombinerPostbuildPlanner.CreatePlan(
-                    profile,
-                    new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]));
-            }
-
-            if (profile.ThreeChipCommands is not null)
-            {
-                yield return LegacyCombinerPostbuildPlanner.CreatePlan(
-                    profile,
-                    new IcNumberSelection(IcNumberInputMode.NumericSelector, ["3"]));
-            }
-
-            foreach (string token in profile.BranchRules.Keys.Where(token =>
-                         int.TryParse(token, out int value) && value > 3))
-            {
-                yield return LegacyCombinerPostbuildPlanner.CreatePlan(
-                    profile,
-                    new IcNumberSelection(IcNumberInputMode.NumericSelector, [token]));
-            }
+            yield return LegacyCombinerPostbuildPlanner.CreatePlan(profile, selection);
         }
     }
 }
