@@ -20,7 +20,7 @@ public sealed class DpPerspectiveCatalogTests
 
         Assert.Equal(
             DpPerspectiveCatalog.SupportedContainerLengths,
-            BuiltInReplaceProfiles.Nt51950FamilySupportedDpBaseLengths);
+            BuiltInReplaceProfiles.DpPerspectiveSupportedDpBaseLengths);
         Assert.Equal(
             DpPerspectiveCatalog.SupportedIcIds,
             BuiltInStandardMergeProfiles.DpPerspectiveStandardMergeProfiles.Select(profile => profile.IcId));
@@ -36,7 +36,7 @@ public sealed class DpPerspectiveCatalogTests
     public void ProfilesUseSharedDpPerspectiveRanges(string icId, long length)
     {
         CompositionProfileDefinition merge = BuiltInStandardMergeProfiles.CreateDpPerspectiveProfileForInputLength(icId, length);
-        CompositionProfileDefinition replace = BuiltInReplaceProfiles.CreateNt51950FamilyDpReplaceProfile(icId, length);
+        CompositionProfileDefinition replace = BuiltInReplaceProfiles.CreateDpPerspectiveDpReplaceProfile(icId, length);
 
         ProfileCompileResult mergeCompile = CompositionProfileCompiler.Compile(merge, []);
         ProfileCompileResult replaceCompile = CompositionProfileCompiler.Compile(replace, []);

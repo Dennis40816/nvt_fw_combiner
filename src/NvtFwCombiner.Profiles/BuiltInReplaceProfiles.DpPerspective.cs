@@ -13,20 +13,14 @@ public static partial class BuiltInReplaceProfiles
             DpPerspectiveCatalog.SupportedContainerLengths)),
     ];
 
-    /// <summary>Supported exact base firmware lengths for NT51950/NT51951 DP Perspective Replace.</summary>
-    public static IReadOnlyList<long> Nt51950FamilySupportedDpBaseLengths => DpPerspectiveCatalog.SupportedContainerLengths;
+    /// <summary>Supported exact base firmware lengths for DP Perspective Replace.</summary>
+    public static IReadOnlyList<long> DpPerspectiveSupportedDpBaseLengths => DpPerspectiveCatalog.SupportedContainerLengths;
 
-    /// <summary>TP range restored from the base firmware after NT51950/NT51951 DP replacement.</summary>
-    public static ByteRange Nt51950FamilyTpRestoreRange => DpPerspectiveCatalog.TpOverlayRange;
+    /// <summary>TP range restored from the base firmware after DP Perspective replacement.</summary>
+    public static ByteRange DpPerspectiveTpRestoreRange => DpPerspectiveCatalog.TpOverlayRange;
 
-    /// <summary>Customer information range preserved from the base firmware after NT51950/NT51951 DP replacement.</summary>
-    public static ByteRange Nt51950FamilyCustomerInfoPreserveRange => DpPerspectiveCatalog.CustomerInfoPreserveRange;
-
-    /// <summary>Returns true for ICs that use the NT51950 DP Perspective Replace policy.</summary>
-    public static bool IsNt51950FamilyDpReplaceIc(string icId)
-    {
-        return IsDpPerspectiveDpReplaceIc(icId);
-    }
+    /// <summary>Customer information range preserved from the base firmware after DP Perspective replacement.</summary>
+    public static ByteRange DpPerspectiveCustomerInfoPreserveRange => DpPerspectiveCatalog.CustomerInfoPreserveRange;
 
     /// <summary>Returns true for ICs that use the DP Perspective Replace policy.</summary>
     public static bool IsDpPerspectiveDpReplaceIc(string icId)
@@ -34,22 +28,10 @@ public static partial class BuiltInReplaceProfiles
         return DpPerspectiveCatalog.IsSupportedIc(icId);
     }
 
-    /// <summary>Returns true when <paramref name="length" /> is an approved NT51950/NT51951 base length.</summary>
-    public static bool IsSupportedNt51950FamilyDpBaseLength(long length)
-    {
-        return IsSupportedDpPerspectiveDpBaseLength(length);
-    }
-
     /// <summary>Returns true when <paramref name="length" /> is an approved DP Perspective base length.</summary>
     public static bool IsSupportedDpPerspectiveDpBaseLength(long length)
     {
         return DpPerspectiveCatalog.IsSupportedContainerLength(length);
-    }
-
-    /// <summary>Creates an NT51950/NT51951 DP Perspective Replace profile for the selected exact base length.</summary>
-    public static CompositionProfileDefinition CreateNt51950FamilyDpReplaceProfile(string icId, long capacity)
-    {
-        return CreateDpPerspectiveDpReplaceProfile(icId, capacity);
     }
 
     /// <summary>Creates a DP Perspective Replace profile for the selected exact base length.</summary>
@@ -67,7 +49,7 @@ public static partial class BuiltInReplaceProfiles
 
         string normalizedIc = DpPerspectiveCatalog.NormalizeIcId(icId);
 
-        if (!IsSupportedNt51950FamilyDpBaseLength(capacity))
+        if (!IsSupportedDpPerspectiveDpBaseLength(capacity))
         {
             throw new ArgumentOutOfRangeException(
                 nameof(capacity),

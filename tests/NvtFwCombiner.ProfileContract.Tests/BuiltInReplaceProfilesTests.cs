@@ -37,7 +37,7 @@ public sealed class BuiltInReplaceProfilesTests
     [Theory]
     [InlineData("NT51950", "nt51950-dp-replace-dp-perspective")]
     [InlineData("NT51951", "nt51951-dp-replace-dp-perspective")]
-    public void Nt51950FamilyDpReplaceCompilesFromBuiltInCatalog(string icId, string profileId)
+    public void DpPerspectiveDpReplaceCompilesFromBuiltInCatalog(string icId, string profileId)
     {
         CompositionProfileDefinition profile = BuiltInReplaceProfiles.All.Single(item => item.ProfileId == profileId);
 
@@ -91,8 +91,8 @@ public sealed class BuiltInReplaceProfilesTests
             ["replace-dp-container", "restore-base-tp", "restore-base-customer-info"],
             result.Plan!.OrderedOperations.Select(operation => operation.OperationId));
         Assert.Equal(new ByteRange(0, capacity), result.Plan.OrderedOperations[0].TargetRange);
-        Assert.Equal(BuiltInReplaceProfiles.Nt51950FamilyTpRestoreRange, result.Plan.OrderedOperations[1].TargetRange);
-        Assert.Equal(BuiltInReplaceProfiles.Nt51950FamilyCustomerInfoPreserveRange, result.Plan.OrderedOperations[2].TargetRange);
+        Assert.Equal(BuiltInReplaceProfiles.DpPerspectiveTpRestoreRange, result.Plan.OrderedOperations[1].TargetRange);
+        Assert.Equal(BuiltInReplaceProfiles.DpPerspectiveCustomerInfoPreserveRange, result.Plan.OrderedOperations[2].TargetRange);
     }
 
     /// <summary>Verifies fixed CtrlRAM Replace compiles with oversized-input truncation policy.</summary>

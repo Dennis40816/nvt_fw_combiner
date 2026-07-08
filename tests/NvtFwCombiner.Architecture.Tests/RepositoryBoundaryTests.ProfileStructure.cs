@@ -20,6 +20,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("DpPerspectiveCatalog", synthetic, StringComparison.Ordinal);
         Assert.Contains("DpPerspectiveDpReplaceProfiles", dpPerspective, StringComparison.Ordinal);
         Assert.Contains("CreateDpPerspectiveDpReplaceProfileCore", dpPerspective, StringComparison.Ordinal);
+        Assert.DoesNotContain("Nt51950Family", dpPerspective, StringComparison.Ordinal);
         Assert.DoesNotContain("SyntheticIc", dpPerspective, StringComparison.Ordinal);
     }
 
