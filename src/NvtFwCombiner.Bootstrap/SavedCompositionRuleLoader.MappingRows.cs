@@ -95,11 +95,11 @@ internal static partial class SavedCompositionRuleLoader
                 }
 
                 if (!string.IsNullOrWhiteSpace(targetRegionId) &&
-                    !string.Equals(targetRegionId, "general-output", StringComparison.Ordinal))
+                    !string.Equals(targetRegionId, WorkbenchGeneralMergeIds.OutputRegionId, StringComparison.Ordinal))
                 {
                     issues.Add(Issue(
                         SavedRuleIssueCodes.MappingRowTargetRegionUnsupported,
-                        "Current General Merge saved-rule CLI consumption supports only the general-output target region.",
+                        $"Current General Merge saved-rule CLI consumption supports only the {WorkbenchGeneralMergeIds.OutputRegionId} target region.",
                         $"{rowPath}.targetRegionId"));
                 }
 

@@ -85,7 +85,7 @@ public static partial class WorkbenchCompositionService
             [],
             [
                 new ProfileRegion(
-                    "general-output",
+                    WorkbenchGeneralMergeIds.OutputRegionId,
                     CompositionAddressSpaceIds.OutputImage,
                     new ByteRange(0, capacity),
                     RegionAtomicity.ExplicitMapping,
@@ -93,7 +93,10 @@ public static partial class WorkbenchCompositionService
                     classificationTags: [IcWorkflowIds.GeneralMerge]),
             ],
             [
-                new RegionAccessRule("general-output", RegionAccessKind.ExplicitRange, "General Merge explicit mapping output."),
+                new RegionAccessRule(
+                    WorkbenchGeneralMergeIds.OutputRegionId,
+                    RegionAccessKind.ExplicitRange,
+                    "General Merge explicit mapping output."),
             ],
             IcNumberInputMode.SingleSelector);
     }

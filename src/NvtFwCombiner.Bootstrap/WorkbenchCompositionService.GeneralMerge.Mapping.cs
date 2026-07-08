@@ -52,7 +52,7 @@ public static partial class WorkbenchCompositionService
                 OverlapPolicy.Reject,
                 input.Alignment,
                 input.Reason ?? "Copy explicit General Merge mapping.",
-                targetRegionId: "general-output",
+                targetRegionId: WorkbenchGeneralMergeIds.OutputRegionId,
                 provenance: input.Provenance));
         }
 

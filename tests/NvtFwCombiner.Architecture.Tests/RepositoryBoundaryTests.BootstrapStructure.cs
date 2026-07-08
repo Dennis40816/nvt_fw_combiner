@@ -227,6 +227,24 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private static WorkbenchRunResult CreateGeneralMergeReportRunResult", report, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies General Merge workbench target-region ids stay Bootstrap-owned.</summary>
+    [Fact]
+    public void GeneralMergeWorkbenchIdsStayBootstrapOwned()
+    {
+        string ids = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchGeneralMergeIds.cs");
+        string mapping = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Mapping.cs");
+        string profile = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Profile.cs");
+        string savedRuleRows = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.MappingRows.cs");
+
+        Assert.Contains("public const string OutputRegionId = \"general-output\";", ids, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchGeneralMergeIds.OutputRegionId", mapping, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchGeneralMergeIds.OutputRegionId", profile, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchGeneralMergeIds.OutputRegionId", savedRuleRows, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"general-output\"", mapping, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"general-output\"", profile, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"general-output\"", savedRuleRows, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies Replace CLI dispatch stays split from option parsing, usage text, and result printing.</summary>
     [Fact]
     public void ReplaceCliCommandHandlerConcernsStaySplit()
