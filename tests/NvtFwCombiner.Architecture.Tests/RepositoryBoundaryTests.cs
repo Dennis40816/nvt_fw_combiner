@@ -25,7 +25,17 @@ public sealed partial class RepositoryBoundaryTests
         string reportPanels = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportPanels.axaml");
         string pageTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowPageTemplates.axaml");
         string shellPanels = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowShellPanels.axaml");
-        string shellSurface = string.Join(Environment.NewLine, shell, pageTemplates, reportPanels, shellPanels, sharedTemplates);
+        string replaceSelectionModal = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/ReplaceSelectionModal.axaml");
+        string reportModal = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/ReportModal.axaml");
+        string shellSurface = string.Join(
+            Environment.NewLine,
+            shell,
+            pageTemplates,
+            reportPanels,
+            shellPanels,
+            sharedTemplates,
+            replaceSelectionModal,
+            reportModal);
 
         Assert.Contains("IsHomeVisible", shell, StringComparison.Ordinal);
         Assert.Contains("IsMergeVisible", shell, StringComparison.Ordinal);
@@ -45,7 +55,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ToggleButton", shell, StringComparison.Ordinal);
         Assert.Contains("Classes=\"nav\"", shell, StringComparison.Ordinal);
         Assert.Contains("Classes=\"command\"", shellSurface, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"iconButton\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"iconButton\"", shellSurface, StringComparison.Ordinal);
         Assert.Contains("Classes=\"breadcrumb\"", shellPanels, StringComparison.Ordinal);
         Assert.Contains("Classes=\"primary\"", shellSurface, StringComparison.Ordinal);
         Assert.Contains("Classes=\"action\"", shellSurface, StringComparison.Ordinal);
@@ -65,10 +75,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Text=\"{Binding Text.OutputLayoutTitle}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("IsEnabled=\"False\"", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("LoadReportJsonButton_OnClick", shell, StringComparison.Ordinal);
-        Assert.Contains("SaveReportButton_OnClick", shell, StringComparison.Ordinal);
+        Assert.Contains("SaveReportButton_OnClick", reportModal, StringComparison.Ordinal);
         Assert.Contains("BuildMergeButton_OnClick", shell, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding ShowReportCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsReportModalOpen}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsReplaceSelectionModalOpen}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.TargetsLabel}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding ShowReplaceSelectionCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ReplaceOutputLayoutPanelTemplate", shell, StringComparison.Ordinal);
@@ -108,7 +119,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("Command=\"{Binding PreviewReplaceCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("IsEnabled=\"{Binding CanBuildMerge}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"{Binding MergeBuildActionTip}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("ToolTip.Tip=\"{Binding ReplaceBuildActionTip}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Tip=\"{Binding ReplaceBuildActionTip}\"", shellSurface, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.GeneralMergeMappingTitle}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding GeneralMergeMappings}\"", shell, StringComparison.Ordinal);
         Assert.Contains("GeneralMergeMappingDrop_OnDrop", shell, StringComparison.Ordinal);
@@ -130,14 +141,14 @@ public sealed partial class RepositoryBoundaryTests
             reportHeaderIndex >= 0 && hasAuditDetailsTemplate && historyActionIndex > reportHeaderIndex,
             "Report history should remain a secondary evidence action instead of returning to the report modal header.");
         Assert.DoesNotContain("ReportHistoryActionLabel", shell, StringComparison.Ordinal);
-        Assert.Contains("ContentTemplate=\"{StaticResource ReportModalHeaderTemplate}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("ContentTemplate=\"{StaticResource ReportHistoryPanelTemplate}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("ContentTemplate=\"{StaticResource ReportSummaryPanelTemplate}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{StaticResource ReportModalHeaderTemplate}\"", reportModal, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{StaticResource ReportHistoryPanelTemplate}\"", reportModal, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{StaticResource ReportSummaryPanelTemplate}\"", reportModal, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.OutcomeTitle", reportPanels, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.ByteDifferenceTitle", reportPanels, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.OutputDifferenceSummaryRows", reportPanels, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.ChangeReviewTitle}\"", reportPanels, StringComparison.Ordinal);
-        Assert.Contains("ContentTemplate=\"{StaticResource ReportAuditDetailsPanelTemplate}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{StaticResource ReportAuditDetailsPanelTemplate}\"", reportModal, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.EvidenceTitle}\"", reportTemplates, StringComparison.Ordinal);
         Assert.Contains("ReportDifferenceSummaryChipTemplate", reportPanels, StringComparison.Ordinal);
         Assert.DoesNotContain("Choose IC and Number inside", shell, StringComparison.Ordinal);

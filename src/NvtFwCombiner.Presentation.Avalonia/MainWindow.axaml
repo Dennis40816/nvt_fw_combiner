@@ -2,6 +2,7 @@
     x:Class="NvtFwCombiner.Presentation.Avalonia.MainWindow"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
     x:Name="RootWindow"
     x:DataType="vm:MainWindowViewModel"
@@ -691,139 +692,9 @@
         IsVisible="{Binding HasReportToast}"
         Opacity="{Binding ReportToastOpacity}" />
 
-    <Border
-        Grid.RowSpan="5"
-        Background="#660F172A"
-        IsVisible="{Binding IsReplaceSelectionModalOpen}">
-      <Border
-          Width="720"
-          MaxHeight="640"
-          Padding="20"
-          HorizontalAlignment="Center"
-          VerticalAlignment="Center"
-          Background="#FFFFFF"
-          BorderBrush="#CBD5E1"
-          BorderThickness="1"
-          CornerRadius="8">
-        <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="16">
-          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-            <StackPanel Spacing="4">
-              <TextBlock FontSize="20" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.ReplaceSelectionTitle}" />
-              <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding ReplaceSelectionSubtitle}" TextWrapping="Wrap" />
-            </StackPanel>
-            <Button
-                Grid.Column="1"
-                Classes="iconButton"
-                Command="{Binding CloseReplaceSelectionCommand}"
-                ToolTip.Tip="{Binding Text.CloseSelectionTooltip}">
-              <TextBlock Text="×" />
-            </Button>
-          </Grid>
+    <views:ReplaceSelectionModal Grid.RowSpan="5" IsVisible="{Binding IsReplaceSelectionModalOpen}" />
 
-          <Border Grid.Row="1" Padding="12" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
-            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-              <Border Width="8" Height="38" VerticalAlignment="Top" Background="#2563EB" CornerRadius="999" />
-              <StackPanel Grid.Column="1" Spacing="3">
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                  <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding ReplaceSelectionCountLabel}" />
-                  <TextBlock Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#2563EB" Text="{Binding ReplaceSelectionStatusLabel}" TextWrapping="Wrap" />
-                </Grid>
-                <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding ReplaceSelectionRunHint}" TextWrapping="Wrap" />
-              </StackPanel>
-            </Grid>
-          </Border>
-
-          <ScrollViewer Grid.Row="2">
-            <StackPanel Spacing="14">
-              <StackPanel Spacing="6">
-                <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.SelectedReplacementsTitle}" />
-                <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSelectionRows}">
-                  <ItemsControl.ItemTemplate>
-                    <StaticResource ResourceKey="ReportSelectionRowTemplate" />
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-              </StackPanel>
-
-              <Border Padding="12" Background="#FFF7ED" BorderBrush="#FED7AA" BorderThickness="1" CornerRadius="8" IsVisible="{Binding HasReplaceSelectionMissingRows}">
-                <StackPanel Spacing="8">
-                  <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#9A3412" Text="{Binding Text.RequiredBeforeBuildTitle}" />
-                  <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSelectionMissingRows}">
-                    <ItemsControl.ItemTemplate>
-                      <StaticResource ResourceKey="ReportMissingRequiredRowTemplate" />
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                </StackPanel>
-              </Border>
-            </StackPanel>
-          </ScrollViewer>
-
-          <StackPanel Grid.Row="3" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
-            <Button
-                Classes="secondary"
-                Command="{Binding CloseReplaceSelectionCommand}"
-                Content="{Binding Text.CloseLabel}" />
-            <Button
-                Classes="primary"
-                Click="BuildReplaceButton_OnClick"
-                Content="{Binding Text.BuildActionLabel}"
-                IsEnabled="{Binding CanBuildReplace}"
-                ToolTip.Tip="{Binding ReplaceBuildActionTip}" />
-          </StackPanel>
-        </Grid>
-      </Border>
-    </Border>
-
-    <Border
-        Grid.RowSpan="5"
-        Background="#990F172A"
-        IsVisible="{Binding IsReportModalOpen}">
-      <Border
-          MinWidth="980"
-          MaxWidth="1500"
-          MaxHeight="940"
-          Margin="22,16"
-          Padding="0"
-          HorizontalAlignment="Stretch"
-          VerticalAlignment="Stretch"
-          Background="#FFFFFF"
-          BorderBrush="#CBD5E1"
-          BorderThickness="1"
-          CornerRadius="8">
-        <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="0">
-          <ContentControl Content="{Binding}" ContentTemplate="{StaticResource ReportModalHeaderTemplate}" />
-
-          <ContentControl
-              Grid.Row="1"
-              Grid.RowSpan="3"
-              Content="{Binding}"
-              ContentTemplate="{StaticResource ReportHistoryPanelTemplate}"
-              IsVisible="{Binding IsReportHistoryViewOpen}" />
-
-          <ContentControl
-              Grid.Row="2"
-              Content="{Binding}"
-              ContentTemplate="{StaticResource ReportSummaryPanelTemplate}"
-              IsVisible="{Binding IsReportReviewViewOpen}" />
-
-          <ContentControl
-              Grid.Row="3"
-              Content="{Binding}"
-              ContentTemplate="{StaticResource ReportAuditDetailsPanelTemplate}"
-              IsVisible="{Binding IsReportReviewViewOpen}" />
-
-          <StackPanel Grid.Row="4" Margin="22,18,22,18" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
-            <Button
-                Classes="secondary"
-                Command="{Binding CloseReportCommand}"
-                Content="{Binding Text.CloseLabel}" />
-            <Button
-                Classes="primary"
-                Click="SaveReportButton_OnClick"
-                Content="{Binding Text.SaveReportLabel}" />
-          </StackPanel>
-        </Grid>
-      </Border>
-    </Border>
+    <views:ReportModal Grid.RowSpan="5" IsVisible="{Binding IsReportModalOpen}" />
 
     <ContentControl Grid.Row="4" Content="{Binding}" ContentTemplate="{StaticResource FooterStatusPanelTemplate}" />
   </Grid>

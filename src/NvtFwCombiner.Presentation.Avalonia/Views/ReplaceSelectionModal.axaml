@@ -1,0 +1,84 @@
+<UserControl
+    x:Class="NvtFwCombiner.Presentation.Avalonia.Views.ReplaceSelectionModal"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    x:DataType="vm:MainWindowViewModel"
+    Background="#660F172A">
+  <Border
+      Width="720"
+      MaxHeight="640"
+      Padding="20"
+      HorizontalAlignment="Center"
+      VerticalAlignment="Center"
+      Background="#FFFFFF"
+      BorderBrush="#CBD5E1"
+      BorderThickness="1"
+      CornerRadius="8">
+    <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="16">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+        <StackPanel Spacing="4">
+          <TextBlock FontSize="20" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.ReplaceSelectionTitle}" />
+          <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding ReplaceSelectionSubtitle}" TextWrapping="Wrap" />
+        </StackPanel>
+        <Button
+            Grid.Column="1"
+            Classes="iconButton"
+            Command="{Binding CloseReplaceSelectionCommand}"
+            ToolTip.Tip="{Binding Text.CloseSelectionTooltip}">
+          <TextBlock Text="×" />
+        </Button>
+      </Grid>
+
+      <Border Grid.Row="1" Padding="12" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+          <Border Width="8" Height="38" VerticalAlignment="Top" Background="#2563EB" CornerRadius="999" />
+          <StackPanel Grid.Column="1" Spacing="3">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+              <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding ReplaceSelectionCountLabel}" />
+              <TextBlock Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#2563EB" Text="{Binding ReplaceSelectionStatusLabel}" TextWrapping="Wrap" />
+            </Grid>
+            <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding ReplaceSelectionRunHint}" TextWrapping="Wrap" />
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <ScrollViewer Grid.Row="2">
+        <StackPanel Spacing="14">
+          <StackPanel Spacing="6">
+            <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.SelectedReplacementsTitle}" />
+            <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSelectionRows}">
+              <ItemsControl.ItemTemplate>
+                <StaticResource ResourceKey="ReportSelectionRowTemplate" />
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+
+          <Border Padding="12" Background="#FFF7ED" BorderBrush="#FED7AA" BorderThickness="1" CornerRadius="8" IsVisible="{Binding HasReplaceSelectionMissingRows}">
+            <StackPanel Spacing="8">
+              <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#9A3412" Text="{Binding Text.RequiredBeforeBuildTitle}" />
+              <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSelectionMissingRows}">
+                <ItemsControl.ItemTemplate>
+                  <StaticResource ResourceKey="ReportMissingRequiredRowTemplate" />
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+
+      <StackPanel Grid.Row="3" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+        <Button
+            Classes="secondary"
+            Command="{Binding CloseReplaceSelectionCommand}"
+            Content="{Binding Text.CloseLabel}" />
+        <Button
+            Classes="primary"
+            Click="BuildReplaceButton_OnClick"
+            Content="{Binding Text.BuildActionLabel}"
+            IsEnabled="{Binding CanBuildReplace}"
+            ToolTip.Tip="{Binding ReplaceBuildActionTip}" />
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>

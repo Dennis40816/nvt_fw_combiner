@@ -113,40 +113,6 @@ public sealed partial class MainWindow
         }
     }
 
-    private async void SaveReportButton_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is not MainWindowViewModel viewModel ||
-            string.IsNullOrWhiteSpace(viewModel.LoadedReportJson))
-        {
-            return;
-        }
-
-        IStorageFile? file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-        {
-            Title = "Save run report JSON",
-            SuggestedFileName = viewModel.ReportSaveFileName,
-            FileTypeChoices =
-            [
-                new FilePickerFileType("Run report JSON")
-                {
-                    Patterns = ["*.json"],
-                    MimeTypes = ["application/json"],
-                },
-                FilePickerFileTypes.All,
-            ],
-        });
-
-        if (file is null)
-        {
-            return;
-        }
-
-        await using Stream stream = await file.OpenWriteAsync();
-        using var writer = new StreamWriter(stream);
-        await writer.WriteAsync(viewModel.LoadedReportJson);
-        viewModel.NotifyReportSaved(file.Name);
-    }
-
     private void ReportToastHoldTimer_OnTick(object? sender, EventArgs e)
     {
         _reportToastHoldTimer.Stop();

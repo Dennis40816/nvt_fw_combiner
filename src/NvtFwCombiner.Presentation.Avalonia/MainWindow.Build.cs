@@ -1,5 +1,4 @@
 using Avalonia.Interactivity;
-using Avalonia.Platform.Storage;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
@@ -13,22 +12,9 @@ public sealed partial class MainWindow
             return;
         }
 
-        IStorageFile? file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-        {
-            Title = "Save merged firmware BIN",
-            SuggestedFileName = viewModel.MergeOutputFileName,
-            FileTypeChoices =
-            [
-                new FilePickerFileType("Firmware BIN")
-                {
-                    Patterns = ["*.bin"],
-                    MimeTypes = ["application/octet-stream"],
-                },
-                FilePickerFileTypes.All,
-            ],
-        });
-
-        string? outputPath = file?.TryGetLocalPath();
+        string? outputPath = await FirmwareFilePickerDialogs.PickMergedFirmwareOutputPathAsync(
+            StorageProvider,
+            viewModel.MergeOutputFileName);
         if (string.IsNullOrWhiteSpace(outputPath))
         {
             return;
@@ -44,22 +30,9 @@ public sealed partial class MainWindow
             return;
         }
 
-        IStorageFile? file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-        {
-            Title = "Save replaced firmware BIN",
-            SuggestedFileName = viewModel.ReplaceOutputFileName,
-            FileTypeChoices =
-            [
-                new FilePickerFileType("Firmware BIN")
-                {
-                    Patterns = ["*.bin"],
-                    MimeTypes = ["application/octet-stream"],
-                },
-                FilePickerFileTypes.All,
-            ],
-        });
-
-        string? outputPath = file?.TryGetLocalPath();
+        string? outputPath = await FirmwareFilePickerDialogs.PickReplacedFirmwareOutputPathAsync(
+            StorageProvider,
+            viewModel.ReplaceOutputFileName);
         if (string.IsNullOrWhiteSpace(outputPath))
         {
             return;
