@@ -168,19 +168,20 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Gesture=\"Ctrl+Shift+Delete\" Command=\"{Binding ClearReportHistoryCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding Text.OpenReportHistoryAutomationName}\"", shell, StringComparison.Ordinal);
         int reportHeaderIndex = shell.IndexOf("Text=\"{Binding LoadedReport.Title}\"", StringComparison.Ordinal);
-        int auditDetailsIndex = shell.IndexOf("Text=\"{Binding Text.EvidenceTitle}\"", StringComparison.Ordinal);
+        bool hasAuditDetailsTemplate = reportTemplates.Contains("ReportAuditDetailsPanelTemplate", StringComparison.Ordinal);
         int historyActionIndex = shell.IndexOf(
             "AutomationProperties.Name=\"{Binding Text.OpenReportHistoryAutomationName}\"",
             StringComparison.Ordinal);
         Assert.True(
-            reportHeaderIndex >= 0 && auditDetailsIndex > reportHeaderIndex && historyActionIndex > reportHeaderIndex,
+            reportHeaderIndex >= 0 && hasAuditDetailsTemplate && historyActionIndex > reportHeaderIndex,
             "Report history should remain a secondary evidence action instead of returning to the report modal header.");
         Assert.DoesNotContain("ReportHistoryActionLabel", shell, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.OutcomeTitle", shell, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.ByteDifferenceTitle", shell, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.OutputDifferenceSummaryRows", shell, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.ChangeReviewTitle}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding Text.EvidenceTitle}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{StaticResource ReportAuditDetailsPanelTemplate}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.EvidenceTitle}\"", reportTemplates, StringComparison.Ordinal);
         Assert.Contains("ReportDifferenceSummaryChipTemplate", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Choose IC and Number inside", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("HomeReplaceStatus", shell, StringComparison.Ordinal);
@@ -189,18 +190,18 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ItemsSource=\"{Binding RangeRows}\"", reportTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("Where to look first", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Evidence map", shell, StringComparison.Ordinal);
-        Assert.Contains("<TabControl", shell, StringComparison.Ordinal);
-        Assert.Contains("Header=\"{Binding Text.ReportTabInputs}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Header=\"{Binding Text.ReportTabChanges}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Header=\"{Binding Text.ReportTabOperations}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Header=\"{Binding Text.ReportTabPostbuild}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Header=\"{Binding Text.ReportTabIssues}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Header=\"{Binding Text.ReportTabRaw}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("ReportOutputDifferenceRowTemplate", shell, StringComparison.Ordinal);
-        Assert.Contains("ReportOperationFlowNodeTemplate", shell, StringComparison.Ordinal);
-        Assert.Contains("LoadedReport.OperationFlow", shell, StringComparison.Ordinal);
-        Assert.Contains("LoadedReport.CommandOperations", shell, StringComparison.Ordinal);
-        Assert.Contains("LoadedReport.StepOperations", shell, StringComparison.Ordinal);
+        Assert.Contains("<TabControl", reportTemplates, StringComparison.Ordinal);
+        Assert.Contains("Header=\"{Binding Text.ReportTabInputs}\"", reportTemplates, StringComparison.Ordinal);
+        Assert.Contains("Header=\"{Binding Text.ReportTabChanges}\"", reportTemplates, StringComparison.Ordinal);
+        Assert.Contains("Header=\"{Binding Text.ReportTabOperations}\"", reportTemplates, StringComparison.Ordinal);
+        Assert.Contains("Header=\"{Binding Text.ReportTabPostbuild}\"", reportTemplates, StringComparison.Ordinal);
+        Assert.Contains("Header=\"{Binding Text.ReportTabIssues}\"", reportTemplates, StringComparison.Ordinal);
+        Assert.Contains("Header=\"{Binding Text.ReportTabRaw}\"", reportTemplates, StringComparison.Ordinal);
+        Assert.Contains("ReportOutputDifferenceRowTemplate", reportTemplates, StringComparison.Ordinal);
+        Assert.Contains("ReportOperationFlowNodeTemplate", reportTemplates, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.OperationFlow", reportTemplates, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.CommandOperations", reportTemplates, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.StepOperations", reportTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("ColumnDefinitions=\"24,*\"", shell, StringComparison.Ordinal);
         Assert.Contains("FontFamily=\"fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Classes=\"secondary\" Content=\"{Binding PreviewActionLabel}\"", shell, StringComparison.Ordinal);
@@ -264,7 +265,8 @@ public sealed partial class RepositoryBoundaryTests
         string viewModel = ReadViewModelPartials();
         string shell = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml");
         string pageTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowPageTemplates.axaml");
-        string shellSurface = string.Join(Environment.NewLine, shell, pageTemplates);
+        string reportTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportTemplates.axaml");
+        string shellSurface = string.Join(Environment.NewLine, shell, pageTemplates, reportTemplates);
 
         Assert.Contains("ShellLanguage.ChineseTraditional", resources, StringComparison.Ordinal);
         Assert.Contains("合併", resources, StringComparison.Ordinal);
@@ -273,7 +275,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ApplyTextResources(ShellTextResources.LanguageFromPreference(value))", viewModel, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.SettingsPreferencesTitle}\"", shellSurface, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.LanguageLabel}\"", shellSurface, StringComparison.Ordinal);
-        Assert.Contains("Header=\"{Binding Text.ReportTabInputs}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Header=\"{Binding Text.ReportTabInputs}\"", reportTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("\"Merge preview\"", factory, StringComparison.Ordinal);
         Assert.DoesNotContain("Saved rules", resources, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("demo", resources, StringComparison.OrdinalIgnoreCase);
