@@ -6,6 +6,21 @@ namespace NvtFwCombiner.Application.Tests.FlashMaps;
 /// <summary>Golden-backed checks for FWConfig metadata extraction.</summary>
 public sealed class FirmwareConfigMetadataReaderTests
 {
+    /// <summary>Locks reviewed FWConfig offsets used by UI traceability and postbuild category selection.</summary>
+    [Fact]
+    public void FirmwareConfigLayoutMatchesReviewedSourceOffsets()
+    {
+        Assert.Equal(0x000, FirmwareConfigLayout.FirmwareVersionOffset);
+        Assert.Equal(0x001, FirmwareConfigLayout.FirmwareVersionBarOffset);
+        Assert.Equal(0x011, FirmwareConfigLayout.FirmwareSubVersionOffset);
+        Assert.Equal(0x01A, FirmwareConfigLayout.CommonFwMajorVersionOffset);
+        Assert.Equal(0x01B, FirmwareConfigLayout.CommonFwMinorVersionOffset);
+        Assert.Equal(0x01C, FirmwareConfigLayout.CommonFwAdditionalVersionOffset);
+        Assert.Equal(0x022, FirmwareConfigLayout.ProjectIdOffset);
+        Assert.Equal(sizeof(ushort), FirmwareConfigLayout.ProjectIdLength);
+        Assert.Equal(0x024, FirmwareConfigLayout.RequiredLength);
+    }
+
     /// <summary>Reads Common FW, FW/bar, and PID facts from owner-approved standard-merge golden outputs.</summary>
     [Theory]
     [MemberData(nameof(GoldenFirmwareConfigCases))]

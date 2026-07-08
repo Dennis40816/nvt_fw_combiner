@@ -8,7 +8,6 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class WorkbenchCompositionServiceTests
 {
     private const string EmptySha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-    private const int FirmwareVersionBarOffset = 0x001;
 
     /// <summary>Verifies FlashCode output naming reads DP/FWConfig metadata outside the UI layer.</summary>
     [Fact]
@@ -202,7 +201,7 @@ public sealed class WorkbenchCompositionServiceTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-invalid-fwbar");
         byte[] baseBytes = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
         Assert.True(TpFlashMapCatalog.TryGetFirmwareConfigStart("NT51926", out long firmwareConfigStart));
-        baseBytes[checked((int)firmwareConfigStart + FirmwareVersionBarOffset)] ^= 0x01;
+        baseBytes[checked((int)firmwareConfigStart + FirmwareConfigLayout.FirmwareVersionBarOffset)] ^= 0x01;
 
         string basePath = workspace.Write("base-invalid-fwbar.bin", baseBytes);
         string replacementPath = workspace.Write("normal.bin", baseBytes[0x22800..0x25400]);
