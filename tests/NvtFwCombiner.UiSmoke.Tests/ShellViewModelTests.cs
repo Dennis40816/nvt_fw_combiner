@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
 using Avalonia;
-using Avalonia.Media;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
@@ -636,73 +635,5 @@ public sealed partial class ShellViewModelTests
         return golden.CaseIds();
     }
 
-    private static void AssertAcceptedPostbuildOnlyOutputDifferences(
-        JsonElement root,
-        string expectedOperationId)
-    {
-        AssertNoUnexpectedOutputDifferenceIssue(root);
-        JsonElement[] differences = [.. root.GetProperty("OutputDifferences").EnumerateArray()];
-        Assert.NotEmpty(differences);
-        Assert.All(differences, difference =>
-        {
-            Assert.Equal("PostbuildCrcHeader", difference.GetProperty("Classification").GetString());
-            Assert.True(difference.GetProperty("IsAccepted").GetBoolean());
-            Assert.Contains(
-                expectedOperationId,
-                difference.GetProperty("Evidence").GetString(),
-                StringComparison.Ordinal);
-            Assert.True(difference.GetProperty("ChangedByteCount").GetInt64() > 0);
-            Assert.True(difference.GetProperty("Range").GetProperty("Length").GetInt64() > 0);
-        });
-    }
-
-    private static void AssertNoOutputDifferences(JsonElement root)
-    {
-        AssertNoUnexpectedOutputDifferenceIssue(root);
-        Assert.Empty(root.GetProperty("OutputDifferences").EnumerateArray());
-    }
-
-    private static void AssertNoUnexpectedOutputDifferenceIssue(JsonElement root)
-    {
-        Assert.DoesNotContain(root.GetProperty("Issues").EnumerateArray(), issue =>
-            issue.GetProperty("Code").GetString() == "report.output-difference.unexpected");
-    }
-
-    private static byte[] CreatePattern(int length, byte seed)
-    {
-        byte[] bytes = new byte[length];
-        for (int index = 0; index < bytes.Length; index++)
-        {
-            bytes[index] = unchecked((byte)(seed + (index % 251)));
-        }
-
-        return bytes;
-    }
-
-    private static (int Start, int Length) ParseCtrlRamRegion(CtrlRamRegionViewModel region)
-    {
-        string startHex = region.StartAddress.Split('-', StringSplitOptions.TrimEntries)[0][2..];
-        string lengthHex = region.SizeHex["len 0x".Length..];
-        return (
-            int.Parse(startHex, NumberStyles.HexNumber, CultureInfo.InvariantCulture),
-            int.Parse(lengthHex, NumberStyles.HexNumber, CultureInfo.InvariantCulture));
-    }
-
-    private static void AssertBrush(string expectedHex, IBrush brush)
-    {
-        ISolidColorBrush solid = Assert.IsType<ISolidColorBrush>(brush, exactMatch: false);
-        Assert.Equal(Color.Parse(expectedHex), solid.Color);
-    }
-
-    private static void AssertIconGeometry(FirmwareSlotViewModel slot)
-    {
-        Assert.True(HasDrawableIcon(slot));
-    }
-
-    private static bool HasDrawableIcon(FirmwareSlotViewModel slot)
-    {
-        return slot.SlotIconPathData.StartsWith('M') &&
-            slot.SlotIconPathData.Contains('L');
-    }
 
 }
