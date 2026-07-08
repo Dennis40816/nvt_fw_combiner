@@ -6,10 +6,6 @@ namespace NvtFwCombiner.Profiles;
 public static class BuiltInReplaceProfiles
 {
     private const string SyntheticIc = "NT-SYNTHETIC";
-    private const long Nt51950DpContainerLength = 0x100000;
-    private static readonly long[] Nt51950AllowedDpReplacementLengths = [0x40000, 0x80000, Nt51950DpContainerLength];
-    private static ByteRange Nt51950TpRestoreRange { get; } = ByteRange.FromStartEndExclusive(0x0A000, 0x37000);
-    private static ByteRange Nt51950CustomerInfoPreserveRange { get; } = new(0x37000, 0x1000);
 
     /// <summary>All built-in Replace profiles in stable command display order.</summary>
     public static IReadOnlyList<CompositionProfileDefinition> All =>
@@ -166,34 +162,34 @@ public static class BuiltInReplaceProfiles
     /// <summary>NT51950 DP Perspective Replace profile with base TP/customer-info restoration.</summary>
     public static CompositionProfileDefinition Nt51950DpReplace { get; } = CreateNt51950FamilyDpReplaceProfileCore(
         "NT51950",
-        Nt51950DpContainerLength,
-        Nt51950AllowedDpReplacementLengths);
+        DpPerspectiveCatalog.MaxContainerLength,
+        DpPerspectiveCatalog.SupportedContainerLengths);
 
     /// <summary>NT51951 DP Perspective Replace profile using the owner-confirmed NT51950 policy.</summary>
     public static CompositionProfileDefinition Nt51951DpReplace { get; } = CreateNt51950FamilyDpReplaceProfileCore(
         "NT51951",
-        Nt51950DpContainerLength,
-        Nt51950AllowedDpReplacementLengths);
+        DpPerspectiveCatalog.MaxContainerLength,
+        DpPerspectiveCatalog.SupportedContainerLengths);
 
     /// <summary>Supported exact base firmware lengths for NT51950/NT51951 DP Perspective Replace.</summary>
-    public static IReadOnlyList<long> Nt51950FamilySupportedDpBaseLengths => [.. Nt51950AllowedDpReplacementLengths];
+    public static IReadOnlyList<long> Nt51950FamilySupportedDpBaseLengths => DpPerspectiveCatalog.SupportedContainerLengths;
 
     /// <summary>TP range restored from the base firmware after NT51950/NT51951 DP replacement.</summary>
-    public static ByteRange Nt51950FamilyTpRestoreRange => Nt51950TpRestoreRange;
+    public static ByteRange Nt51950FamilyTpRestoreRange => DpPerspectiveCatalog.TpOverlayRange;
 
     /// <summary>Customer information range preserved from the base firmware after NT51950/NT51951 DP replacement.</summary>
-    public static ByteRange Nt51950FamilyCustomerInfoPreserveRange => Nt51950CustomerInfoPreserveRange;
+    public static ByteRange Nt51950FamilyCustomerInfoPreserveRange => DpPerspectiveCatalog.CustomerInfoPreserveRange;
 
     /// <summary>Returns true for ICs that use the NT51950 DP Perspective Replace policy.</summary>
     public static bool IsNt51950FamilyDpReplaceIc(string icId)
     {
-        return icId is "NT51950" or "NT51951";
+        return DpPerspectiveCatalog.IsSupportedIc(icId);
     }
 
     /// <summary>Returns true when <paramref name="length" /> is an approved NT51950/NT51951 base length.</summary>
     public static bool IsSupportedNt51950FamilyDpBaseLength(long length)
     {
-        return Nt51950AllowedDpReplacementLengths.Contains(length);
+        return DpPerspectiveCatalog.IsSupportedContainerLength(length);
     }
 
     /// <summary>Creates an NT51950/NT51951 DP Perspective Replace profile for the selected exact base length.</summary>
@@ -209,28 +205,25 @@ public static class BuiltInReplaceProfiles
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
 
-        if (!IsNt51950FamilyDpReplaceIc(icId))
-        {
-            throw new ArgumentException($"'{icId}' is not an NT51950/NT51951 DP Perspective IC.", nameof(icId));
-        }
+        string normalizedIc = DpPerspectiveCatalog.NormalizeIcId(icId);
 
         if (!IsSupportedNt51950FamilyDpBaseLength(capacity))
         {
             throw new ArgumentOutOfRangeException(
                 nameof(capacity),
-                "NT51950/NT51951 DP Replace capacity must be 0x40000, 0x80000, or 0x100000.");
+                $"NT51950/NT51951 DP Replace capacity must be {DpPerspectiveCatalog.FormatSupportedLengths()}.");
         }
 
         var dpContainerRange = new ByteRange(0, capacity);
-        string normalizedIc = icId.ToLowerInvariant();
+        string normalizedProfileIc = normalizedIc.ToLowerInvariant();
         return new CompositionProfileDefinition(
-            $"{normalizedIc}-dp-replace-dp-perspective",
+            $"{normalizedProfileIc}-dp-replace-dp-perspective",
             "0.5.0",
-            icId,
+            normalizedIc,
             "dp-replace",
             CompositionKind.Replace,
             "dp-replace",
-            $"{normalizedIc}-dp-replace.bin",
+            $"{normalizedProfileIc}-dp-replace.bin",
             ImageInitialization.Reference("output-image", "reference-base", capacity),
             [
                 new AddressSpace("reference-base", capacity, AddressSpaceMutability.Immutable),
@@ -256,20 +249,20 @@ public static class BuiltInReplaceProfiles
                     "restore-base-tp",
                     200,
                     "reference-base",
-                    Nt51950TpRestoreRange,
+                    DpPerspectiveCatalog.TpOverlayRange,
                     "output-image",
-                    Nt51950TpRestoreRange,
+                    DpPerspectiveCatalog.TpOverlayRange,
                     OverlapPolicy.ReplaceExisting,
-                    "Restore original TP FW at 0x0A000-0x36FFF from the base firmware after DP replacement."),
+                    $"Restore original TP FW at {DpPerspectiveCatalog.FormatRange(DpPerspectiveCatalog.TpOverlayRange)} from the base firmware after DP replacement."),
                 CompositionOperation.CopyRange(
                     "restore-base-customer-info",
                     210,
                     "reference-base",
-                    Nt51950CustomerInfoPreserveRange,
+                    DpPerspectiveCatalog.CustomerInfoPreserveRange,
                     "output-image",
-                    Nt51950CustomerInfoPreserveRange,
+                    DpPerspectiveCatalog.CustomerInfoPreserveRange,
                     OverlapPolicy.ReplaceExisting,
-                    "Restore customer information at 0x37000-0x37FFF from the base firmware after DP replacement."),
+                    $"Restore customer information at {DpPerspectiveCatalog.FormatRange(DpPerspectiveCatalog.CustomerInfoPreserveRange)} from the base firmware after DP replacement."),
             ],
             [
                 new ProfileRegion(
@@ -288,4 +281,5 @@ public static class BuiltInReplaceProfiles
             ],
             IcNumberInputMode.SingleSelector);
     }
+
 }

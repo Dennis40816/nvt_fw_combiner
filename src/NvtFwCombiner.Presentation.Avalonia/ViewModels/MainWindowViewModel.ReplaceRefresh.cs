@@ -119,9 +119,7 @@ public sealed partial class MainWindowViewModel
 
                 AddRows(
                     $"{SelectedIc} / {SelectedNumber}: DP Replace input policy is active.",
-                    SelectedIc is "NT51950" or "NT51951"
-                        ? "DP replacement follows the selected base BIN length: 0x40000, 0x80000, or 0x100000; the original TP range is restored from base."
-                        : "Build stays gated until this IC has approved DP Replace source mapping evidence.",
+                    UiCompositionRunner.GetDpReplacePolicySummary(SelectedIc),
                     SelectedIc == "NT51928"
                         ? "NT51928 exposes an explicit LDC slot; other ICs hide LDC in DP Replace."
                         : "Only DP and TP restore regions are shown for this IC.");

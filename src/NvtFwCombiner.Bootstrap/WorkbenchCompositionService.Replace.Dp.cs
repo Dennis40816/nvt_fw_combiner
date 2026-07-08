@@ -65,17 +65,17 @@ public static partial class WorkbenchCompositionService
                     "DP replacement",
                     DescribeNt51950DpReplaceContainer(dpBaseLength)),
                 new WorkbenchMemoryMapRow(
-                    FormatDisplayRange(BuiltInReplaceProfiles.Nt51950FamilyTpRestoreRange),
+                    FormatDisplayRange(DpPerspectiveCatalog.TpOverlayRange),
                     "DP replacement",
                     "Restore",
                     "Base TP",
-                    $"Copy original TP FW at {FormatDisplayRange(BuiltInReplaceProfiles.Nt51950FamilyTpRestoreRange)} from the base firmware after DP replacement."),
+                    $"Copy original TP FW at {FormatDisplayRange(DpPerspectiveCatalog.TpOverlayRange)} from the base firmware after DP replacement."),
                 new WorkbenchMemoryMapRow(
-                    FormatDisplayRange(BuiltInReplaceProfiles.Nt51950FamilyCustomerInfoPreserveRange),
+                    FormatDisplayRange(DpPerspectiveCatalog.CustomerInfoPreserveRange),
                     "DP replacement",
                     "Restore",
                     "Base customer info",
-                    $"Copy customer information at {FormatDisplayRange(BuiltInReplaceProfiles.Nt51950FamilyCustomerInfoPreserveRange)} from the base firmware after DP replacement."),
+                    $"Copy customer information at {FormatDisplayRange(DpPerspectiveCatalog.CustomerInfoPreserveRange)} from the base firmware after DP replacement."),
             ]
             :
         [
@@ -135,12 +135,12 @@ public static partial class WorkbenchCompositionService
 
     private static bool IsSupportedNt51950DpBaseLength(long? length)
     {
-        return length is long value && BuiltInReplaceProfiles.IsSupportedNt51950FamilyDpBaseLength(value);
+        return length is long value && DpPerspectiveCatalog.IsSupportedContainerLength(value);
     }
 
     private static string FormatSupportedNt51950DpBaseLengths()
     {
-        return string.Join(" / ", BuiltInReplaceProfiles.Nt51950FamilySupportedDpBaseLengths.Select(FormatHexLength));
+        return DpPerspectiveCatalog.FormatSupportedLengths();
     }
 
     private static string FormatHexLength(long length)
@@ -168,7 +168,7 @@ public static partial class WorkbenchCompositionService
 
     private static bool IsNt51950Or51(string icId)
     {
-        return BuiltInReplaceProfiles.IsNt51950FamilyDpReplaceIc(icId);
+        return DpPerspectiveCatalog.IsSupportedIc(icId);
     }
 
     private static bool IsLdRegion(TpFlashMapRegion region)

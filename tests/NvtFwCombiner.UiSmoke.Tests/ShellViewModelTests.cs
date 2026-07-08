@@ -561,7 +561,7 @@ public sealed class ShellViewModelTests
             viewModel.MergeMemoryRows,
             row => row.ActionLabel == "Initialize");
         Assert.Equal("Selected DP BIN length pending", initialRow.RangeLabel);
-        Assert.Contains("Supported DP lengths are 0x40000, 0x80000, and 0x100000", initialRow.Detail, StringComparison.Ordinal);
+        Assert.Contains("Supported DP lengths are 0x40000 / 0x80000 / 0x100000", initialRow.Detail, StringComparison.Ordinal);
         Assert.DoesNotContain("0xFFFFF", initialRow.Detail, StringComparison.Ordinal);
         Assert.Equal("No output -> Reserved", initialRow.FlowLabel);
         Assert.Equal("Selected DP BIN length pending", viewModel.MergeMemoryRangeLabel);

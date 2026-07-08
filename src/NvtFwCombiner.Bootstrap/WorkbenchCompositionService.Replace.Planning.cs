@@ -46,8 +46,8 @@ public static partial class WorkbenchCompositionService
             }
 
             var fullContainer = new ByteRange(0, capacity);
-            ByteRange tpRestoreRange = BuiltInReplaceProfiles.Nt51950FamilyTpRestoreRange;
-            ByteRange customerInfoPreserveRange = BuiltInReplaceProfiles.Nt51950FamilyCustomerInfoPreserveRange;
+            ByteRange tpRestoreRange = DpPerspectiveCatalog.TpOverlayRange;
+            ByteRange customerInfoPreserveRange = DpPerspectiveCatalog.CustomerInfoPreserveRange;
             return
             [
                 new OperationRunSummary(

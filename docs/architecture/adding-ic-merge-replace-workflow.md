@@ -4,6 +4,9 @@ Status: architecture runbook.
 
 This runbook lists the files and review flow for adding one IC to Merge and Replace. It is not a support claim by itself. An IC/mode is releasable only after profile validation, processor diff review, golden regression, and firmware-owner sign-off.
 
+For the active 0.8.0 cleanup target and milestone-level acceptance criteria, see
+[`0.8.0-goal-and-acceptance.md`](0.8.0-goal-and-acceptance.md).
+
 ## Non-negotiable model rules
 
 - Merge starts from a blank output image; Replace clones an immutable reference/base image.
@@ -67,6 +70,8 @@ Update only the rows that are relevant to the new IC/mode.
 
 | Area | File | What changes |
 | --- | --- | --- |
+| IC support / exposure catalog | `src/NvtFwCombiner.Profiles/IcSupportCatalog.cs` | Add the IC id, supported workflow ids, owner-approved alias facts, and short onboarding notes. This is the first C# row to update when introducing a new IC/mode. |
+| Family policy catalog | `src/NvtFwCombiner.Profiles/DpPerspectiveCatalog.cs` or another dedicated catalog | Add shared family policy only when multiple workflows need the same lengths/ranges/rules. Current example: NT51950/NT51951 DP Perspective supported lengths and TP/customer-info preservation ranges. Do not duplicate these constants in Standard Merge, Replace, UI, or CLI code. |
 | Standard Merge profile | `src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles.cs` | Add an executable `CompositionProfileDefinition` or owner-confirmed alias. Keep operation order, fill byte, address spaces, and output naming in the profile. |
 | Replace profile | `src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.cs` | Add DP/CtrlRAM/General Replace profile definitions when the IC has real range and access evidence. Synthetic profiles stay contract-only. |
 | Profile compiler rules | `src/NvtFwCombiner.Profiles/CompositionProfileCompiler.cs` | Change only for general validation gaps, not to special-case one IC. |
@@ -102,6 +107,8 @@ Do not add IC-specific byte behavior to:
 Minimum tests:
 
 - `tests/NvtFwCombiner.ProfileContract.Tests/BuiltInStandardMergeProfilesTests.cs`
+- `tests/NvtFwCombiner.ProfileContract.Tests/IcSupportCatalogTests.cs` when support exposure or alias facts change
+- `tests/NvtFwCombiner.ProfileContract.Tests/DpPerspectiveCatalogTests.cs` or the matching family-policy test when shared family policy changes
 - `tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeGenFlashGoldenTests.cs`
 - CLI/UI smoke tests only when the new IC changes surfaced selector behavior or output naming.
 
@@ -118,6 +125,8 @@ Minimum tests:
 Minimum tests:
 
 - `tests/NvtFwCombiner.ProfileContract.Tests/BuiltInReplaceProfilesTests.cs`
+- `tests/NvtFwCombiner.ProfileContract.Tests/IcSupportCatalogTests.cs` when support exposure changes
+- `tests/NvtFwCombiner.ProfileContract.Tests/DpPerspectiveCatalogTests.cs` or the matching family-policy test when shared family policy changes
 - `tests/NvtFwCombiner.Bootstrap.Tests/ReplaceCliCommandTests.cs` when CLI can build the profile
 - UI smoke tests when the IC changes selector, slot, memory coverage, or report behavior
 - Golden regression or private golden evidence before support promotion

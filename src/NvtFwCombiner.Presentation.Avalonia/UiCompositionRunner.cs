@@ -193,6 +193,18 @@ public static class UiCompositionRunner
         return WorkbenchCompositionService.GetStandardMergeMemoryRangeLabel(icId, dpInputLength);
     }
 
+    /// <summary>Gets catalog-backed Standard Merge policy text.</summary>
+    public static string GetStandardMergePolicySummary(string icId)
+    {
+        return WorkbenchCompositionService.GetStandardMergePolicySummary(icId);
+    }
+
+    /// <summary>Gets catalog-backed DP Replace policy text.</summary>
+    public static string GetDpReplacePolicySummary(string icId)
+    {
+        return WorkbenchCompositionService.GetDpReplacePolicySummary(icId);
+    }
+
     /// <summary>Gets final visual coverage segments for the selected Standard Merge profile.</summary>
     public static IReadOnlyList<MemoryCoverageSegmentViewModel> GetStandardMergeCoverageSegments(
         string icId,

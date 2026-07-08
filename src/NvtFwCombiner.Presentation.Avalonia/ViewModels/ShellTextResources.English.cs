@@ -35,7 +35,7 @@ public sealed partial class ShellTextResources
                 [
                     "Profile: built-in Standard Merge",
                     "Slots: DP, TP, optional LD",
-                    "950/951 TP: 0x0A000-0x36FFF (len 0x2D000)",
+                    "950/951 DP Perspective policy",
                 ],
                 "Build wired"),
             ReplacePreview = new PlanningCardText(

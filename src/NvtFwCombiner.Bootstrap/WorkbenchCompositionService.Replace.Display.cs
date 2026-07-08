@@ -174,8 +174,8 @@ public static partial class WorkbenchCompositionService
             }
 
             long selectedCapacity = selectedBaseLength;
-            ByteRange tpRestoreRange = BuiltInReplaceProfiles.Nt51950FamilyTpRestoreRange;
-            ByteRange customerInfoPreserveRange = BuiltInReplaceProfiles.Nt51950FamilyCustomerInfoPreserveRange;
+            ByteRange tpRestoreRange = DpPerspectiveCatalog.TpOverlayRange;
+            ByteRange customerInfoPreserveRange = DpPerspectiveCatalog.CustomerInfoPreserveRange;
             CoverageSegment[] dpSegments =
             [
                 new CoverageSegment(

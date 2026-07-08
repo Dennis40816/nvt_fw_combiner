@@ -97,9 +97,7 @@ public sealed partial class MainWindowViewModel
 
     private string GetStandardMergeRangeSummary()
     {
-        return SelectedIc is "NT51950" or "NT51951"
-            ? "TP paste range: 0x0A000-0x36FFF (len 0x2D000); 0x37000-0x37FFF (len 0x1000) is preserved customer information."
-            : "Address ranges come from the built-in Standard Merge profile.";
+        return UiCompositionRunner.GetStandardMergePolicySummary(SelectedIc);
     }
 
     private static string AddressSpaceLabel(string addressSpaceId)

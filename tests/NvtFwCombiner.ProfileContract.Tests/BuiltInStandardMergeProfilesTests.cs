@@ -168,18 +168,18 @@ public sealed class BuiltInStandardMergeProfilesTests
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
 
         Assert.True(result.IsSuccess, FormatIssues(result.Issues));
-        Assert.Equal(0x100000, profile.Initialization.Capacity);
+        Assert.Equal(DpPerspectiveCatalog.MaxContainerLength, profile.Initialization.Capacity);
         AddressSpace dpInput = Assert.Single(profile.AddressSpaces, space => space.AddressSpaceId == "dp-input");
-        Assert.Equal(0x100000, dpInput.Length);
+        Assert.Equal(DpPerspectiveCatalog.MaxContainerLength, dpInput.Length);
         Assert.Null(dpInput.InputPaddingByte);
-        Assert.Equal([0x100000], dpInput.AllowedInputLengths);
+        Assert.Equal([DpPerspectiveCatalog.MaxContainerLength], dpInput.AllowedInputLengths);
         Assert.Contains(profile.AddressSpaces, space =>
             space.AddressSpaceId == "dp-input" &&
-            space.Length == 0x100000 &&
+            space.Length == DpPerspectiveCatalog.MaxContainerLength &&
             space.InputPaddingByte is null);
         Assert.Contains(profile.AddressSpaces, space =>
             space.AddressSpaceId == "tp-input" &&
-            space.Length == 0x37000 &&
+            space.Length == DpPerspectiveCatalog.TpInputLength &&
             space.InputPaddingByte is null);
         Assert.Equal(
             ["copy-dp-container", "overlay-tp"],
@@ -187,8 +187,8 @@ public sealed class BuiltInStandardMergeProfilesTests
 
         CompositionOperation dpCopy = result.Plan.OrderedOperations[0];
         CompositionOperation tpOverlay = result.Plan.OrderedOperations[1];
-        Assert.Equal(new ByteRange(0, 0x100000), dpCopy.TargetRange);
-        Assert.Equal(ByteRange.FromStartEndExclusive(0x0A000, 0x37000), tpOverlay.TargetRange);
+        Assert.Equal(new ByteRange(0, DpPerspectiveCatalog.MaxContainerLength), dpCopy.TargetRange);
+        Assert.Equal(DpPerspectiveCatalog.TpOverlayRange, tpOverlay.TargetRange);
         Assert.Equal(OverlapPolicy.ReplaceExisting, tpOverlay.OverlapPolicy);
     }
 
@@ -269,7 +269,7 @@ public sealed class BuiltInStandardMergeProfilesTests
     {
         ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
             BuiltInStandardMergeProfiles.CreateDpPerspectiveProfileForInputLength("NT51950", dpLength));
-        Assert.Contains("0x40000, 0x80000, or 0x100000", exception.Message, StringComparison.Ordinal);
+        Assert.Contains(DpPerspectiveCatalog.FormatSupportedLengths(), exception.Message, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies NT51950/NT51951 DP Perspective merge rejects DP inputs larger than the max container.</summary>

@@ -5,9 +5,6 @@ namespace NvtFwCombiner.Profiles;
 /// <summary>Built-in standard merge profiles used as executable contract evidence.</summary>
 public static class BuiltInStandardMergeProfiles
 {
-    private const long DpPerspectiveMaxContainerLength = 0x100000;
-    private static readonly long[] DpPerspectiveAllowedOutputLengths = [0x40000, 0x80000, DpPerspectiveMaxContainerLength];
-
     /// <summary>Profiles ported from the approved gen_flash_bin_v2 standard merge reference config.</summary>
     public static IReadOnlyList<CompositionProfileDefinition> GenFlashStandardMergeProfiles { get; } =
     [
@@ -114,13 +111,13 @@ public static class BuiltInStandardMergeProfiles
     /// <summary>Creates an NT51950/NT51951 DP Perspective profile matching the selected DP input length.</summary>
     public static CompositionProfileDefinition CreateDpPerspectiveProfileForInputLength(string icId, long dpInputLength)
     {
-        string icNumber = NormalizeDpPerspectiveIc(icId);
-        return DpPerspectiveAllowedOutputLengths.Contains(dpInputLength)
+        string icNumber = DpPerspectiveCatalog.NormalizeIcNumber(icId);
+        return DpPerspectiveCatalog.IsSupportedContainerLength(dpInputLength)
             ? CreateDpPerspectiveProfile(icNumber, dpInputLength)
             : throw new ArgumentOutOfRangeException(
                 nameof(dpInputLength),
                 dpInputLength,
-                "NT51950/NT51951 Standard Merge accepts DP input lengths 0x40000, 0x80000, or 0x100000.");
+                $"NT51950/NT51951 Standard Merge accepts DP input lengths {DpPerspectiveCatalog.FormatSupportedLengths()}.");
     }
 
     /// <summary>Returns true when a profile is the NT51950/NT51951 DP Perspective Standard Merge template.</summary>
@@ -132,8 +129,8 @@ public static class BuiltInStandardMergeProfiles
             IsDpPerspectiveIc(profile.IcId);
     }
 
-    // NT51950/NT51951 DP Perspective profiles must preserve customer info at
-    // 0x37000-0x37FFF by overlaying TP only through 0x36FFF.
+    // NT51950/NT51951 DP Perspective profiles must preserve customer info by
+    // overlaying TP only through the cataloged TP overlay range.
 
     /// <summary>
     /// Synthetic standard merge profile that copies DP and TP inputs into non-overlapping output ranges.
@@ -239,13 +236,13 @@ public static class BuiltInStandardMergeProfiles
 
     private static CompositionProfileDefinition CreateDpPerspectiveProfile(string icNumber)
     {
-        return CreateDpPerspectiveProfile(icNumber, DpPerspectiveMaxContainerLength);
+        return CreateDpPerspectiveProfile(icNumber, DpPerspectiveCatalog.MaxContainerLength);
     }
 
     private static CompositionProfileDefinition CreateDpPerspectiveProfile(string icNumber, long outputLength)
     {
         var outputRange = new ByteRange(0, outputLength);
-        var tpOverlay = ByteRange.FromStartEndExclusive(0x0A000, 0x37000);
+        ByteRange tpOverlay = DpPerspectiveCatalog.TpOverlayRange;
         return new CompositionProfileDefinition(
             $"nt{icNumber}-standard-merge-dp-perspective",
             "0.5.1",
@@ -261,7 +258,7 @@ public static class BuiltInStandardMergeProfiles
                     outputLength,
                     AddressSpaceMutability.Immutable,
                     allowedInputLengths: [outputLength]),
-                new AddressSpace("tp-input", 0x37000, AddressSpaceMutability.Immutable),
+                new AddressSpace("tp-input", DpPerspectiveCatalog.TpInputLength, AddressSpaceMutability.Immutable),
                 new AddressSpace("output-image", outputLength, AddressSpaceMutability.Mutable),
             ],
             [
@@ -282,7 +279,7 @@ public static class BuiltInStandardMergeProfiles
                     "output-image",
                     tpOverlay,
                     OverlapPolicy.ReplaceExisting,
-                    "Overlay TP FW 0x0A000-0x36FFF (len 0x2D000) and leave customer information 0x37000-0x37FFF (len 0x1000) from DP."),
+                    $"Overlay TP FW {DpPerspectiveCatalog.FormatRange(DpPerspectiveCatalog.TpOverlayRange)} and leave customer information {DpPerspectiveCatalog.FormatRange(DpPerspectiveCatalog.CustomerInfoPreserveRange)} from DP."),
             ],
             [
                 new ProfileRegion(
@@ -301,20 +298,9 @@ public static class BuiltInStandardMergeProfiles
             ]);
     }
 
-    private static string NormalizeDpPerspectiveIc(string icId)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        string icNumber = icId.StartsWith("NT", StringComparison.OrdinalIgnoreCase)
-            ? icId[2..]
-            : icId;
-        return icNumber is "51950" or "51951"
-            ? icNumber
-            : throw new ArgumentException($"'{icId}' is not an NT51950/NT51951 DP Perspective IC.", nameof(icId));
-    }
-
     private static bool IsDpPerspectiveIc(string icId)
     {
-        return icId is "NT51950" or "NT51951";
+        return DpPerspectiveCatalog.IsSupportedIc(icId);
     }
 
     private static CompositionOperation CopyRegion(

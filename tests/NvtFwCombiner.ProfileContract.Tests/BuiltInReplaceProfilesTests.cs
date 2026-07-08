@@ -49,18 +49,18 @@ public sealed class BuiltInReplaceProfilesTests
         Assert.Equal("dp-replace", profile.ExperienceId);
         Assert.Equal(IcNumberInputMode.SingleSelector, profile.IcNumberInputMode);
         Assert.Contains(profile.AddressSpaces, space =>
-            space.AddressSpaceId == "reference-base" && space.Length == 0x100000);
+            space.AddressSpaceId == "reference-base" && space.Length == DpPerspectiveCatalog.MaxContainerLength);
         Assert.Contains(profile.AddressSpaces, space =>
             space.AddressSpaceId == "dp-replacement" &&
-            space.Length == 0x100000 &&
+            space.Length == DpPerspectiveCatalog.MaxContainerLength &&
             space.InputPaddingByte == 0x00 &&
-            space.AllowedInputLengths.SequenceEqual([0x40000, 0x80000, 0x100000]));
+            space.AllowedInputLengths.SequenceEqual(DpPerspectiveCatalog.SupportedContainerLengths));
 
         CompositionOperation[] operations = [.. result.Plan!.OrderedOperations];
         Assert.Equal(["replace-dp-container", "restore-base-tp", "restore-base-customer-info"], operations.Select(operation => operation.OperationId));
-        Assert.Equal(new ByteRange(0, 0x100000), operations[0].TargetRange);
-        Assert.Equal(ByteRange.FromStartEndExclusive(0x0A000, 0x37000), operations[1].TargetRange);
-        Assert.Equal(new ByteRange(0x37000, 0x1000), operations[2].TargetRange);
+        Assert.Equal(new ByteRange(0, DpPerspectiveCatalog.MaxContainerLength), operations[0].TargetRange);
+        Assert.Equal(DpPerspectiveCatalog.TpOverlayRange, operations[1].TargetRange);
+        Assert.Equal(DpPerspectiveCatalog.CustomerInfoPreserveRange, operations[2].TargetRange);
         Assert.Contains(profile.Regions, region =>
             region.RegionId == "dp-perspective-container" &&
             region.ClassificationTags.Contains("customer-info-preserve", StringComparer.Ordinal));

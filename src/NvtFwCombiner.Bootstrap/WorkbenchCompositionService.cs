@@ -48,7 +48,7 @@ public static partial class WorkbenchCompositionService
     /// <summary>Gets selectable IC ids from the TP flash-map catalog.</summary>
     public static IReadOnlyList<string> GetSupportedIcIds()
     {
-        return TpFlashMapCatalog.IcIds;
+        return IcSupportCatalog.IcIds;
     }
 
     /// <summary>Gets supported IC-number choices from the TP flash-map/postbuild catalog.</summary>
@@ -183,7 +183,7 @@ public static partial class WorkbenchCompositionService
                 new WorkbenchMemoryCoverageSegment(
                     "Selected DP BIN length pending",
                     "DP length pending",
-                    "Select a DP BIN before final ownership is drawn. Supported DP lengths are 0x40000, 0x80000, and 0x100000.",
+                    $"Select a DP BIN before final ownership is drawn. Supported DP lengths are {DpPerspectiveCatalog.FormatSupportedLengths()}.",
                     "#CBD5E1",
                     280,
                     false),
@@ -275,6 +275,22 @@ public static partial class WorkbenchCompositionService
                 : TryResolveStandardMergeProfileForDisplay(profile, dpInputLength, out profile, out string profileIssue)
                     ? FormatFullRange(profile.Initialization.Capacity)
                     : profileIssue;
+    }
+
+    /// <summary>Gets a compact, catalog-backed policy summary for the selected Standard Merge IC.</summary>
+    public static string GetStandardMergePolicySummary(string icId)
+    {
+        return DpPerspectiveCatalog.IsSupportedIc(icId)
+            ? $"TP paste range: {FormatDisplayRange(DpPerspectiveCatalog.TpOverlayRange)}; {FormatDisplayRange(DpPerspectiveCatalog.CustomerInfoPreserveRange)} is preserved customer information."
+            : "Address ranges come from the built-in Standard Merge profile.";
+    }
+
+    /// <summary>Gets a compact, catalog-backed policy summary for the selected DP Replace IC.</summary>
+    public static string GetDpReplacePolicySummary(string icId)
+    {
+        return DpPerspectiveCatalog.IsSupportedIc(icId)
+            ? $"DP replacement follows the selected base BIN length: {DpPerspectiveCatalog.FormatSupportedLengths()}; original TP range {FormatDisplayRange(DpPerspectiveCatalog.TpOverlayRange)} is restored from base."
+            : "Build stays gated until this IC has approved DP Replace source mapping evidence.";
     }
 
     /// <summary>Gets catalog and tool summary data for the Settings page.</summary>
@@ -403,7 +419,7 @@ public static partial class WorkbenchCompositionService
         catch (ArgumentOutOfRangeException)
         {
             profileIssue = FormattableString.Invariant(
-                $"Selected DP BIN length 0x{dpInputLength.Value:X} is unsupported; expected 0x40000, 0x80000, or 0x100000.");
+                $"Selected DP BIN length 0x{dpInputLength.Value:X} is unsupported; expected {DpPerspectiveCatalog.FormatSupportedLengths()}.");
             return false;
         }
     }
@@ -432,7 +448,7 @@ public static partial class WorkbenchCompositionService
         return !BuiltInStandardMergeProfiles.IsDpPerspectiveStandardMergeProfile(profile)
             ? "Start with the initialized image. Unlisted ranges keep this value until a later operation writes them."
             : dpInputLength is null
-                ? "Start with the initialized image after selecting a DP BIN. Supported DP lengths are 0x40000, 0x80000, and 0x100000."
+                ? $"Start with the initialized image after selecting a DP BIN. Supported DP lengths are {DpPerspectiveCatalog.FormatSupportedLengths()}."
                 : "Start with the initialized image using the selected DP BIN length. Unlisted ranges keep this value until a later operation writes them.";
     }
 
