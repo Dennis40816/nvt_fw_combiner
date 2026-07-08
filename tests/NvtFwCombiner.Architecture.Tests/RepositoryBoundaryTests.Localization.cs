@@ -12,6 +12,8 @@ public sealed partial class RepositoryBoundaryTests
         string viewModel = ReadViewModelPartials();
         string shell = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml");
         string pageTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowPageTemplates.axaml");
+        string workflowTemplates = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowWorkflowTemplates.axaml");
         string reportTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportTemplates.axaml");
         string reportAuditTemplates = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportAuditTemplates.axaml");
@@ -21,6 +23,7 @@ public sealed partial class RepositoryBoundaryTests
             Environment.NewLine,
             shell,
             pageTemplates,
+            workflowTemplates,
             reportTemplates,
             reportAuditTemplates,
             reportPanels,

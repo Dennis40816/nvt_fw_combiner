@@ -24,6 +24,8 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportAuditTemplates.axaml");
         string reportPanels = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportPanels.axaml");
         string pageTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowPageTemplates.axaml");
+        string workflowTemplates = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowWorkflowTemplates.axaml");
         string shellPanels = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowShellPanels.axaml");
         string firmwareSlotCard = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/FirmwareSlotCard.axaml");
         string firmwareSlotCardCode = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/FirmwareSlotCard.axaml.cs");
@@ -43,6 +45,7 @@ public sealed partial class RepositoryBoundaryTests
             reportPanels,
             reportAuditTemplates,
             shellPanels,
+            workflowTemplates,
             sharedTemplates,
             firmwareSlotCard,
             generalReplaceMappingRow,
@@ -84,6 +87,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("MainWindowReportAuditTemplates.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("MainWindowReportPanels.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("MainWindowPageTemplates.axaml", shell, StringComparison.Ordinal);
+        Assert.Contains("MainWindowWorkflowTemplates.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("MainWindowShellPanels.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource HomePageTemplate}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource SettingsPageTemplate}\"", shell, StringComparison.Ordinal);
@@ -114,7 +118,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Text=\"{ReflectionBinding $parent[Window].DataContext.Text.RangeLabel}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("Text=\"{ReflectionBinding $parent[Window].DataContext.Text.ResultLabel}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("DataTemplate x:Key=\"FirmwareSlotFactTemplate\"", sharedTemplates, StringComparison.Ordinal);
-        Assert.Contains("<views:FirmwareSlotCard", shell, StringComparison.Ordinal);
+        Assert.Contains("<views:FirmwareSlotCard", workflowTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("<views:FirmwareSlotCard", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("SlotDrop_OnDrop", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("BrowseSlotButton_OnClick", shell, StringComparison.Ordinal);
         Assert.Contains("SlotDrop_OnDrop", firmwareSlotCard, StringComparison.Ordinal);
@@ -125,7 +130,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("DropZoneDragState.GetFirstLocalFilePath", firmwareSlotCardCode, StringComparison.Ordinal);
         Assert.Contains("GetFirstLocalFilePath", dropZoneDragState, StringComparison.Ordinal);
         Assert.Contains("DragActiveClass", dropZoneDragState, StringComparison.Ordinal);
-        Assert.Contains("<views:GeneralReplaceMappingRow", shell, StringComparison.Ordinal);
+        Assert.Contains("<views:GeneralReplaceMappingRow", workflowTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("<views:GeneralReplaceMappingRow", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("BrowseGeneralMappingButton_OnClick", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("GeneralMappingDrop_OnDrop", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("RemoveGeneralMappingButton_OnClick", shell, StringComparison.Ordinal);
@@ -134,19 +140,19 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("RemoveButton_OnClick", generalReplaceMappingRow, StringComparison.Ordinal);
         Assert.Contains("SetGeneralReplaceMappingFile", generalReplaceMappingRowCode, StringComparison.Ordinal);
         Assert.Contains("RemoveGeneralReplaceMappingRow", generalReplaceMappingRowCode, StringComparison.Ordinal);
-        Assert.Contains("IsNonCtrlRamStructuredReplaceModeSelected", shell, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding Text.GeneralReplaceMappingTitle}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("IsNonCtrlRamStructuredReplaceModeSelected", workflowTemplates, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.GeneralReplaceMappingTitle}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("Workbench wiring pending", shell, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding Text.GeneralReplaceRuleBoundsTitle}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding Text.GeneralReplaceRuleLengthTitle}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding Text.ExplicitMappingsTitle}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("ReplaceBaseSlot", shell, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding GeneralReplaceMappings}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.GeneralReplaceRuleBoundsTitle}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.GeneralReplaceRuleLengthTitle}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.ExplicitMappingsTitle}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.Contains("ReplaceBaseSlot", workflowTemplates, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding GeneralReplaceMappings}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding MergeCoverageSegments}\"", sharedTemplates, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding ReplaceSlots}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding ReplaceSlotGroups}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding ReplaceSlots}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding ReplaceSlotGroups}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding ReplaceCoverageGroups}\"", sharedTemplates, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding MergeSlots}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding MergeSlots}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding ReplaceMemoryRows}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding MergeMemoryRows}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("Command=\"{Binding PreviewMergeCommand}\"", shell, StringComparison.Ordinal);
@@ -154,9 +160,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("IsEnabled=\"{Binding CanBuildMerge}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"{Binding MergeBuildActionTip}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"{Binding ReplaceBuildActionTip}\"", shellSurface, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding Text.GeneralMergeMappingTitle}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding GeneralMergeMappings}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("<views:GeneralMergeMappingRow", shell, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.GeneralMergeMappingTitle}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding GeneralMergeMappings}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.Contains("<views:GeneralMergeMappingRow", workflowTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("<views:GeneralMergeMappingRow", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("GeneralMergeMappingDrop_OnDrop", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("BrowseGeneralMergeMappingButton_OnClick", shell, StringComparison.Ordinal);
         Assert.Contains("MappingDrop_OnDrop", generalMergeMappingRow, StringComparison.Ordinal);

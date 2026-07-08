@@ -30,12 +30,9 @@
         <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportAuditTemplates.axaml" />
         <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportPanels.axaml" />
         <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowPageTemplates.axaml" />
+        <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowWorkflowTemplates.axaml" />
         <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowShellPanels.axaml" />
       </ResourceDictionary.MergedDictionaries>
-    <DataTemplate x:Key="FirmwareSlotCardTemplate" DataType="vm:FirmwareSlotViewModel">
-      <views:FirmwareSlotCard BrowseLabel="{Binding #RootWindow.DataContext.Text.BrowseLabel}" />
-    </DataTemplate>
-
     </ResourceDictionary>
   </Window.Resources>
 
@@ -211,139 +208,9 @@
               </Grid>
             </Grid>
 
-            <Border
-                Padding="18"
-                Background="#FFFFFF"
-                BorderBrush="#E2E8F0"
-                BorderThickness="1"
-                CornerRadius="8"
-                IsVisible="{Binding IsNonCtrlRamStructuredReplaceModeSelected}">
-              <StackPanel Spacing="14">
-                <StackPanel Spacing="3">
-                  <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.InputFilesTitle}" />
-                  <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding SelectedReplaceModeDescription}" TextWrapping="Wrap" />
-                </StackPanel>
-                <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSlots}">
-                  <ItemsControl.ItemTemplate>
-                    <StaticResource ResourceKey="FirmwareSlotCardTemplate" />
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-              </StackPanel>
-            </Border>
-
-            <Border
-                Padding="18"
-                Background="#FFFFFF"
-                BorderBrush="#E2E8F0"
-                BorderThickness="1"
-                CornerRadius="8"
-                IsVisible="{Binding IsCtrlRamReplaceModeSelected}">
-              <StackPanel Spacing="14">
-                <StackPanel Spacing="3">
-                  <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.InputFilesTitle}" />
-                  <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Text.CtrlRamInputFilesDetail}" TextWrapping="Wrap" />
-                </StackPanel>
-
-                <ContentControl
-                    Content="{Binding ReplaceBaseSlot}"
-                    ContentTemplate="{StaticResource FirmwareSlotCardTemplate}" />
-
-                <ItemsControl HorizontalAlignment="Stretch" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSlotGroups}">
-                  <ItemsControl.ItemTemplate>
-                    <StaticResource ResourceKey="FirmwareSlotGroupTemplate" />
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-              </StackPanel>
-            </Border>
-
-            <Border
-                Padding="18"
-                Background="#FFFFFF"
-                BorderBrush="#E2E8F0"
-                BorderThickness="1"
-                CornerRadius="8"
-                IsVisible="{Binding IsGeneralReplaceModeSelected}">
-              <StackPanel Spacing="16">
-                <Grid ColumnDefinitions="*" ColumnSpacing="16">
-                  <StackPanel Spacing="3">
-                    <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.GeneralReplaceMappingTitle}" />
-                    <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding SelectedReplaceModeDescription}" TextWrapping="Wrap" />
-                  </StackPanel>
-                </Grid>
-
-                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
-                  <Border Padding="10" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
-                    <StackPanel Spacing="2">
-                      <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.GeneralReplaceRuleBaseTitle}" />
-                      <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Text.GeneralReplaceRuleBaseDetail}" TextWrapping="Wrap" />
-                    </StackPanel>
-                  </Border>
-                  <Border Grid.Column="1" Padding="10" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
-                    <StackPanel Spacing="2">
-                      <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.GeneralReplaceRuleBoundsTitle}" />
-                      <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Text.GeneralReplaceRuleBoundsDetail}" TextWrapping="Wrap" />
-                    </StackPanel>
-                  </Border>
-                  <Border Grid.Column="2" Padding="10" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
-                    <StackPanel Spacing="2">
-                      <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.GeneralReplaceRuleLengthTitle}" />
-                      <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Text.GeneralReplaceRuleLengthDetail}" TextWrapping="Wrap" />
-                    </StackPanel>
-                  </Border>
-                </Grid>
-
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="14">
-                  <StackPanel Spacing="8">
-                    <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.GeneralReplaceRuleBaseTitle}" />
-                    <ContentControl
-                        Content="{Binding ReplaceBaseSlot}"
-                        ContentTemplate="{StaticResource FirmwareSlotCardTemplate}" />
-                  </StackPanel>
-
-                  <StackPanel Grid.Column="1" Spacing="8">
-                    <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.ValidationTitle}" />
-                    <Border MinHeight="92" Padding="12" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
-                      <StackPanel Spacing="4">
-                        <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding ReplaceReadinessStatus}" TextWrapping="Wrap" />
-                        <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Text.GeneralReplaceValidationDetail}" TextWrapping="Wrap" />
-                      </StackPanel>
-                    </Border>
-                  </StackPanel>
-                </Grid>
-
-                <StackPanel Spacing="10">
-                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                    <StackPanel Spacing="3">
-                      <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.ExplicitMappingsTitle}" />
-                      <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Text.GeneralReplaceMappingsDetail}" TextWrapping="Wrap" />
-                    </StackPanel>
-                    <Button
-                        Grid.Column="1"
-                        Classes="action"
-                        VerticalAlignment="Bottom"
-                        Command="{Binding AddGeneralReplaceMappingCommand}"
-                        Content="{Binding Text.AddRangeLabel}" />
-                  </Grid>
-                  <Grid ColumnDefinitions="34,128,22,128,*,82,40" ColumnSpacing="8">
-                    <TextBlock Grid.Column="0" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="#" />
-                    <TextBlock Grid.Column="1" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.StartLabel}" />
-                    <TextBlock Grid.Column="3" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.EndLabel}" />
-                    <TextBlock Grid.Column="4" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.ReplacementBinLabel}" />
-                  </Grid>
-                  <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding GeneralReplaceMappings}">
-                    <ItemsControl.ItemTemplate>
-                      <DataTemplate x:DataType="vm:GeneralReplaceMappingViewModel">
-                        <views:GeneralReplaceMappingRow
-                            BrowseLabel="{Binding #RootWindow.DataContext.Text.BrowseLabel}"
-                            RemoveRangeTooltip="{Binding #RootWindow.DataContext.Text.RemoveRangeTooltip}"
-                            SelectReplacementBinTooltip="{Binding #RootWindow.DataContext.Text.SelectReplacementBinTooltip}" />
-                      </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                </StackPanel>
-              </StackPanel>
-            </Border>
-
+            <ContentControl
+                Content="{Binding}"
+                ContentTemplate="{StaticResource ReplaceModeContentTemplate}" />
           </StackPanel>
 
           <ContentControl
@@ -386,102 +253,9 @@
               </Grid>
             </Grid>
 
-            <Border
-                Padding="18"
-                Background="#FFFFFF"
-                BorderBrush="#E2E8F0"
-                BorderThickness="1"
-                CornerRadius="8"
-                IsVisible="{Binding IsNormalMergeModeSelected}">
-              <StackPanel Spacing="14">
-                <StackPanel Spacing="3">
-                  <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.InputFilesTitle}" />
-                  <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding StandardMergeSupportSummary}" TextWrapping="Wrap" />
-                </StackPanel>
-                <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding MergeSlots}">
-                  <ItemsControl.ItemTemplate>
-                    <StaticResource ResourceKey="FirmwareSlotCardTemplate" />
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                <Border Padding="10,8" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
-                  <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#475569" Text="{Binding MergeReadinessStatus}" TextWrapping="Wrap" />
-                </Border>
-              </StackPanel>
-            </Border>
-
-            <Border
-                Padding="18"
-                Background="#FFFFFF"
-                BorderBrush="#E2E8F0"
-                BorderThickness="1"
-                CornerRadius="8"
-                IsVisible="{Binding IsGeneralMergeModeSelected}">
-              <StackPanel Spacing="16">
-                <Grid ColumnDefinitions="*,180" ColumnSpacing="14">
-                  <StackPanel Spacing="3">
-                    <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.GeneralMergeMappingTitle}" />
-                    <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Text.GeneralMergeMappingDetail}" TextWrapping="Wrap" />
-                  </StackPanel>
-                  <StackPanel Grid.Column="1" Spacing="4">
-                    <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.OutputLengthLabel}" />
-                    <TextBox
-                        Classes="addressInput"
-                        Text="{Binding GeneralMergeOutputLength, Mode=TwoWay}"
-                        PlaceholderText="{Binding Text.OutputLengthPlaceholder}" />
-                  </StackPanel>
-                </Grid>
-
-                <StackPanel Spacing="10">
-                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                    <StackPanel Spacing="3">
-                      <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.ExplicitMappingsTitle}" />
-                      <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Text.GeneralMergeMappingsDetail}" TextWrapping="Wrap" />
-                    </StackPanel>
-                    <Button
-                        Grid.Column="1"
-                        Classes="action"
-                        VerticalAlignment="Bottom"
-                        Command="{Binding AddGeneralMergeMappingCommand}"
-                        Content="{Binding Text.AddMappingLabel}" />
-                  </Grid>
-
-                  <Grid Margin="7,0,7,0" ColumnDefinitions="34,118,118,108,*,82,40" ColumnSpacing="8">
-                    <TextBlock Grid.Column="0" HorizontalAlignment="Center" TextAlignment="Center" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="#" />
-                    <TextBlock Grid.Column="1" HorizontalAlignment="Center" TextAlignment="Center" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.SourceStartLabel}" />
-                    <TextBlock Grid.Column="2" HorizontalAlignment="Center" TextAlignment="Center" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.TargetStartLabel}" />
-                    <TextBlock Grid.Column="3" HorizontalAlignment="Center" TextAlignment="Center" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.LengthLabel}" />
-                    <TextBlock Grid.Column="4" Margin="10,0,0,0" HorizontalAlignment="Left" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.SourceBinLabel}" />
-                  </Grid>
-                  <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding GeneralMergeMappings}">
-                    <ItemsControl.ItemTemplate>
-                      <DataTemplate x:DataType="vm:GeneralMergeMappingViewModel">
-                        <views:GeneralMergeMappingRow
-                            BrowseLabel="{Binding #RootWindow.DataContext.Text.BrowseLabel}"
-                            RemoveMappingTooltip="{Binding #RootWindow.DataContext.Text.RemoveMappingTooltip}"
-                            SelectSourceBinTooltip="{Binding #RootWindow.DataContext.Text.SelectSourceBinTooltip}" />
-                      </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                </StackPanel>
-
-                <Border Padding="10,8" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
-                  <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#475569" Text="{Binding MergeReadinessStatus}" TextWrapping="Wrap" />
-                </Border>
-              </StackPanel>
-            </Border>
-
-            <Border
-                Padding="18"
-                Background="#FFFFFF"
-                BorderBrush="#E2E8F0"
-                BorderThickness="1"
-                CornerRadius="8"
-                IsVisible="{Binding IsAbCodeMergeModeSelected}">
-              <StackPanel Spacing="8">
-                <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.AbCodeMergeTitle}" />
-                <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Text.AbCodeMergeDetail}" TextWrapping="Wrap" />
-              </StackPanel>
-            </Border>
+            <ContentControl
+                Content="{Binding}"
+                ContentTemplate="{StaticResource MergeModeContentTemplate}" />
           </StackPanel>
 
           <ContentControl
