@@ -36,7 +36,7 @@ public static partial class WorkbenchCompositionService
                 catch (ArgumentException exception)
                 {
                     validationIssues.Add(new CompositionIssue(
-                        "replace.ctrlram.ic-number-unsupported",
+                        WorkbenchIssueCodes.ReplaceCtrlRamIcNumberUnsupported,
                         exception.Message,
                         "number"));
                 }
@@ -45,7 +45,7 @@ public static partial class WorkbenchCompositionService
         else if (LegacyCombinerPostbuildCatalog.GetProfiles(icId).Count == 0)
         {
             validationIssues.Add(new CompositionIssue(
-                "replace.ctrlram.postbuild-profile-missing",
+                WorkbenchIssueCodes.ReplaceCtrlRamPostbuildProfileMissing,
                 $"No legacy Combiner postbuild profile is registered for {icId}.",
                 "postbuild"));
         }
@@ -62,7 +62,7 @@ public static partial class WorkbenchCompositionService
         if (regions.Count == 0)
         {
             validationIssues.Add(new CompositionIssue(
-                "replace.ctrlram.no-mapped-region",
+                WorkbenchIssueCodes.ReplaceCtrlRamNoMappedRegion,
                 $"No postbuild-mapped CtrlRAM region is available for {icId} / {number}.",
                 IcWorkflowIds.CtrlRamReplace));
         }
@@ -76,7 +76,7 @@ public static partial class WorkbenchCompositionService
         if (selectedRegions.Count == 0)
         {
             validationIssues.Add(new CompositionIssue(
-                "replace.ctrlram.no-region-input",
+                WorkbenchIssueCodes.ReplaceCtrlRamNoRegionInput,
                 "Select at least one CtrlRAM replacement BIN.",
                 IcWorkflowIds.CtrlRamReplace));
         }
@@ -114,7 +114,7 @@ public static partial class WorkbenchCompositionService
             string.IsNullOrWhiteSpace(suppliedBasePath))
         {
             validationIssues.Add(new CompositionIssue(
-                "ui.input.missing",
+                WorkbenchIssueCodes.InputMissing,
                 "Base flash BIN is required before CtrlRAM Replace can run.",
                 WorkbenchSlotIds.ReplaceBase));
             return (null, 0);
@@ -124,7 +124,7 @@ public static partial class WorkbenchCompositionService
         if (!File.Exists(basePath))
         {
             validationIssues.Add(new CompositionIssue(
-                "input.artifact.read-failed",
+                WorkbenchIssueCodes.InputArtifactReadFailed,
                 "Base flash BIN path does not exist.",
                 WorkbenchSlotIds.ReplaceBase));
             return (basePath, 0);

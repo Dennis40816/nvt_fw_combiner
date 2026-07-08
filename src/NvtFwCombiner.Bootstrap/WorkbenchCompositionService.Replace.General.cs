@@ -88,7 +88,7 @@ public static partial class WorkbenchCompositionService
                     CreateGeneralReplacePlanningOperations(explicitMappings),
                     [
                         new CompositionIssue(
-                            "replace.general.ic-number-unsupported",
+                            WorkbenchIssueCodes.ReplaceGeneralIcNumberUnsupported,
                             exception.Message,
                             "number"),
                     ],
@@ -129,7 +129,7 @@ public static partial class WorkbenchCompositionService
                     CreateGeneralReplacePlanningOperations(explicitMappings),
                     [
                         new CompositionIssue(
-                            "replace.general.postbuild-write-range-missing",
+                            WorkbenchIssueCodes.ReplaceGeneralPostbuildWriteRangeMissing,
                             "No approved postbuild write range could be derived for TP-touching General Replace.",
                             "postbuild"),
                     ],

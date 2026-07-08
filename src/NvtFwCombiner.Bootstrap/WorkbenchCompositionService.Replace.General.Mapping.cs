@@ -64,7 +64,7 @@ public static partial class WorkbenchCompositionService
             endInclusive < start)
         {
             issue = new CompositionIssue(
-                "ui.general-replace.range-invalid",
+                WorkbenchIssueCodes.GeneralReplaceRangeInvalid,
                 $"General Replace mapping '{input.MappingId}' must use a valid inclusive start/end range.",
                 input.MappingId);
             return false;
@@ -79,7 +79,7 @@ public static partial class WorkbenchCompositionService
         catch (ArgumentOutOfRangeException)
         {
             issue = new CompositionIssue(
-                "ui.general-replace.range-invalid",
+                WorkbenchIssueCodes.GeneralReplaceRangeInvalid,
                 $"General Replace mapping '{input.MappingId}' must use a valid inclusive start/end range.",
                 input.MappingId);
             return false;
@@ -87,7 +87,7 @@ public static partial class WorkbenchCompositionService
         catch (OverflowException)
         {
             issue = new CompositionIssue(
-                "ui.general-replace.range-invalid",
+                WorkbenchIssueCodes.GeneralReplaceRangeInvalid,
                 $"General Replace mapping '{input.MappingId}' range exceeds the supported address size.",
                 input.MappingId);
             return false;

@@ -24,7 +24,7 @@ public static partial class WorkbenchCompositionService
                 WorkbenchReplaceModes.Dp,
                 slotPaths,
                 build,
-                "ui.input.missing",
+                WorkbenchIssueCodes.InputMissing,
                 $"Base flash BIN is required before {FormatDpPerspectiveIcIds()} DP Replace can determine the DP base length.");
             return false;
         }
@@ -38,7 +38,7 @@ public static partial class WorkbenchCompositionService
                 WorkbenchReplaceModes.Dp,
                 slotPaths,
                 build,
-                "input.artifact.read-failed",
+                WorkbenchIssueCodes.InputArtifactReadFailed,
                 "Base flash BIN path does not exist.");
             return false;
         }

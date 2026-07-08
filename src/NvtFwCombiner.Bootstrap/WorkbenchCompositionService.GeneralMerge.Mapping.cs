@@ -33,7 +33,7 @@ public static partial class WorkbenchCompositionService
             if (declaredLength < sourceRange.EndExclusive)
             {
                 issueList.Add(new CompositionIssue(
-                    "ui.general-merge.source-out-of-bounds",
+                    WorkbenchIssueCodes.GeneralMergeSourceOutOfBounds,
                     $"General Merge mapping '{input.MappingId}' source range exceeds the selected input file length.",
                     input.MappingId));
                 continue;
@@ -77,7 +77,7 @@ public static partial class WorkbenchCompositionService
             length <= 0)
         {
             issue = new CompositionIssue(
-                "ui.general-merge.range-invalid",
+                WorkbenchIssueCodes.GeneralMergeRangeInvalid,
                 $"General Merge mapping '{input.MappingId}' must use valid source start, target start, and positive length values.",
                 input.MappingId);
             return false;
@@ -93,7 +93,7 @@ public static partial class WorkbenchCompositionService
         catch (Exception exception) when (exception is ArgumentOutOfRangeException or OverflowException)
         {
             issue = new CompositionIssue(
-                "ui.general-merge.range-invalid",
+                WorkbenchIssueCodes.GeneralMergeRangeInvalid,
                 $"General Merge mapping '{input.MappingId}' range exceeds the supported address size.",
                 input.MappingId);
             return false;

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using NvtFwCombiner.TestSupport;
+using static NvtFwCombiner.Bootstrap.WorkbenchIssueCodes;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -116,7 +117,7 @@ public sealed class GeneralMergeCliCommandTests
         Assert.False(result.Succeeded);
         using var document = JsonDocument.Parse(result.ReportJson);
         JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
-        Assert.Equal("ui.general-merge.source-out-of-bounds", issue.GetProperty("Code").GetString());
+        Assert.Equal(GeneralMergeSourceOutOfBounds, issue.GetProperty("Code").GetString());
     }
 
     /// <summary>Prints General Merge issues directly when no report path is requested.</summary>
@@ -139,7 +140,7 @@ public sealed class GeneralMergeCliCommandTests
 
         Assert.Equal(1, result.ExitCode);
         Assert.Contains("General Merge failed; no JSON report was written. Issues:", result.Error, StringComparison.Ordinal);
-        Assert.Contains("ui.general-merge.source-out-of-bounds", result.Error, StringComparison.Ordinal);
+        Assert.Contains(GeneralMergeSourceOutOfBounds, result.Error, StringComparison.Ordinal);
         Assert.Contains("source range exceeds the selected input file length", result.Error, StringComparison.Ordinal);
     }
 
@@ -157,7 +158,7 @@ public sealed class GeneralMergeCliCommandTests
         Assert.False(result.Succeeded);
         using var document = JsonDocument.Parse(result.ReportJson);
         JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
-        Assert.Equal("ui.general-merge.capacity-invalid", issue.GetProperty("Code").GetString());
+        Assert.Equal(GeneralMergeCapacityInvalid, issue.GetProperty("Code").GetString());
     }
 
     /// <summary>Preserves no-overwrite behavior at the final commit boundary.</summary>

@@ -16,7 +16,7 @@ public static partial class WorkbenchCompositionService
         {
             postbuildProfile = null;
             issue = new CompositionIssue(
-                "replace.ctrlram.postbuild-profile-missing",
+                WorkbenchIssueCodes.ReplaceCtrlRamPostbuildProfileMissing,
                 $"No legacy Combiner postbuild profile is registered for {icId}.",
                 "postbuild");
             return false;
@@ -28,7 +28,7 @@ public static partial class WorkbenchCompositionService
         {
             postbuildProfile = null;
             issue = new CompositionIssue(
-                "replace.ctrlram.postbuild-category-unknown",
+                WorkbenchIssueCodes.ReplaceCtrlRamPostbuildCategoryUnknown,
                 $"{icId} has multiple legacy Combiner postbuild categories, but the base BIN FWConfig Common FW version could not be read or failed FW/bar validation.",
                 WorkbenchSlotIds.ReplaceBase);
             return false;
@@ -41,7 +41,7 @@ public static partial class WorkbenchCompositionService
                 out string? profileIssue))
         {
             issue = new CompositionIssue(
-                "replace.ctrlram.postbuild-category-unsupported",
+                WorkbenchIssueCodes.ReplaceCtrlRamPostbuildCategoryUnsupported,
                 profileIssue ?? $"No legacy Combiner postbuild profile is registered for {icId}.",
                 "postbuild");
             return false;

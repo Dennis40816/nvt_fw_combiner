@@ -27,7 +27,7 @@ public static partial class WorkbenchCompositionService
                 WorkbenchReplaceModes.General,
                 reportSlotPaths,
                 build,
-                "ui.input.missing",
+                WorkbenchIssueCodes.InputMissing,
                 "Base flash BIN is required before General Replace can compile explicit mappings.");
             return false;
         }
@@ -42,7 +42,7 @@ public static partial class WorkbenchCompositionService
                 WorkbenchReplaceModes.General,
                 reportSlotPaths,
                 build,
-                "input.artifact.read-failed",
+                WorkbenchIssueCodes.InputArtifactReadFailed,
                 "Base flash BIN path does not exist.");
             return false;
         }
@@ -60,7 +60,7 @@ public static partial class WorkbenchCompositionService
                 WorkbenchReplaceModes.General,
                 reportSlotPaths,
                 build,
-                "ui.input.missing",
+                WorkbenchIssueCodes.InputMissing,
                 "At least one General Replace mapping row must select a replacement BIN.");
             return false;
         }

@@ -268,4 +268,14 @@ public sealed partial class RepositoryBoundaryTests
             Assert.DoesNotContain(issueCodeLiteral, presentationSource, StringComparison.Ordinal);
         }
     }
+
+    /// <summary>Verifies Presentation receives UI fallback run issue codes through Bootstrap tokens.</summary>
+    [Fact]
+    public void PresentationUsesBootstrapWorkbenchIssueCodes()
+    {
+        string presentationSource = ReadPresentationSources();
+
+        Assert.Contains("WorkbenchIssueCodes.UiRunFailed", presentationSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"ui.run.failed\"", presentationSource, StringComparison.Ordinal);
+    }
 }

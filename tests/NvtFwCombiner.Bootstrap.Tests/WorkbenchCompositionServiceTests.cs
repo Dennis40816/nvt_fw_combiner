@@ -1,6 +1,7 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.TestSupport;
+using static NvtFwCombiner.Bootstrap.WorkbenchIssueCodes;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -224,7 +225,7 @@ public sealed class WorkbenchCompositionServiceTests
         using var document = JsonDocument.Parse(result.ReportJson);
         Assert.Contains(
             document.RootElement.GetProperty("Issues").EnumerateArray(),
-            issue => issue.GetProperty("Code").GetString() == "replace.ctrlram.postbuild-category-unknown");
+            issue => issue.GetProperty("Code").GetString() == ReplaceCtrlRamPostbuildCategoryUnknown);
     }
 
     /// <summary>Verifies gated Replace reports can summarize missing inputs without throwing.</summary>
@@ -255,7 +256,7 @@ public sealed class WorkbenchCompositionServiceTests
         Assert.Equal(EmptySha256, input.GetProperty("Sha256").GetString());
 
         JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
-        Assert.Equal("input.artifact.read-failed", issue.GetProperty("Code").GetString());
+        Assert.Equal(InputArtifactReadFailed, issue.GetProperty("Code").GetString());
         Assert.Equal("error", issue.GetProperty("Severity").GetString());
     }
 

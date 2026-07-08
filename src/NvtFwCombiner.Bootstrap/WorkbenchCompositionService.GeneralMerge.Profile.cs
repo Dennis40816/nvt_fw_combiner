@@ -49,7 +49,7 @@ public static partial class WorkbenchCompositionService
         if (!BootstrapRangeText.TryParseNonNegativeLong(outputLength, out capacity) || capacity <= 0)
         {
             issue = new CompositionIssue(
-                "ui.general-merge.capacity-invalid",
+                WorkbenchIssueCodes.GeneralMergeCapacityInvalid,
                 "General Merge output length must be a positive byte count.",
                 "output-length");
             return false;
@@ -58,7 +58,7 @@ public static partial class WorkbenchCompositionService
         if (capacity > int.MaxValue)
         {
             issue = new CompositionIssue(
-                "ui.general-merge.capacity-unsupported",
+                WorkbenchIssueCodes.GeneralMergeCapacityUnsupported,
                 "General Merge output length exceeds the supported in-memory composition size.",
                 "output-length");
             return false;

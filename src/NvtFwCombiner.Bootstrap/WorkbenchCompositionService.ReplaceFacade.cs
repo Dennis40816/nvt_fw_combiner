@@ -71,7 +71,7 @@ public static partial class WorkbenchCompositionService
                 replaceMode,
                 slotPaths,
                 build,
-                "replace.dp.profile-pending",
+                WorkbenchIssueCodes.ReplaceDpProfilePending,
                 $"DP Replace output is enabled only for {FormatDpPerspectiveIcIds()} until per-IC DP source mapping and golden evidence are approved."),
             WorkbenchReplaceModes.CtrlRam => await RunCtrlRamReplaceAsync(
                 icId,
@@ -94,7 +94,7 @@ public static partial class WorkbenchCompositionService
                 replaceMode,
                 slotPaths,
                 build,
-                "replace.mode.unknown",
+                WorkbenchIssueCodes.ReplaceModeUnknown,
                 $"Unknown Replace mode '{replaceMode}'."),
         };
     }

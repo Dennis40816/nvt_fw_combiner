@@ -58,7 +58,7 @@ public static partial class WorkbenchCompositionService
                     context.PostbuildProfile),
                 [
                     new CompositionIssue(
-                        "replace.ctrlram.postbuild-write-range-missing",
+                        WorkbenchIssueCodes.ReplaceCtrlRamPostbuildWriteRangeMissing,
                         "No approved postbuild write range could be derived from the legacy Combiner command plan.",
                         "postbuild"),
                 ],

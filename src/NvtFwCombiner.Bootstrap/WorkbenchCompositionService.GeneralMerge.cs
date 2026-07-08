@@ -161,7 +161,7 @@ public static partial class WorkbenchCompositionService
                 [],
                 [
                     new CompositionIssue(
-                        "ui.general-merge.mapping-required",
+                        WorkbenchIssueCodes.GeneralMergeMappingRequired,
                         "General Merge requires at least one explicit source-to-target mapping.",
                         IcWorkflowIds.GeneralMerge),
                 ],

@@ -117,7 +117,7 @@ public sealed partial class MainWindowViewModel
         string compositionKind = "Merge",
         string modeId = WorkbenchWorkflowIds.StandardMerge,
         string experienceId = WorkbenchWorkflowIds.StandardMerge,
-        string issueCode = "ui.run.failed")
+        string issueCode = WorkbenchIssueCodes.UiRunFailed)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(action);
         ArgumentNullException.ThrowIfNull(profileId);
