@@ -236,7 +236,7 @@ public sealed partial class RepositoryBoundaryTests
         string postbuildHelpers = ReadText("src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.Helpers.cs");
         string postbuildProfile = ReadText("src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildProfile.cs");
         string workbenchTokens = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchIcNumberTokens.cs");
-        string workbenchCommon = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Common.cs");
+        string workbenchSelections = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchIcNumberSelections.cs");
         string presentationBindings = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Bindings.cs");
         string dynamicText = ReadText(
@@ -251,7 +251,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("IcNumberSelectionTokens.SingleChip", postbuildProfile, StringComparison.Ordinal);
         Assert.Contains("IcNumberSelectionTokens.Cascade", postbuildProfile, StringComparison.Ordinal);
         Assert.Contains("public const string SingleChip = IcNumberSelectionTokens.SingleChip;", workbenchTokens, StringComparison.Ordinal);
-        Assert.Contains("IcNumberSelectionTokens.IsSingle(number)", workbenchCommon, StringComparison.Ordinal);
+        Assert.Contains("IcNumberSelectionTokens.IsSingle(number)", workbenchSelections, StringComparison.Ordinal);
         Assert.Contains("WorkbenchIcNumberTokens.SingleChip", presentationBindings, StringComparison.Ordinal);
         Assert.Contains("WorkbenchIcNumberTokens.IsSingle(number)", dynamicText, StringComparison.Ordinal);
         Assert.DoesNotContain("\"single\"", flashMapChoices, StringComparison.Ordinal);

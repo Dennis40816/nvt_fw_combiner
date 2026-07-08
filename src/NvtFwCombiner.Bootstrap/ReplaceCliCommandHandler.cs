@@ -219,7 +219,7 @@ internal static partial class ReplaceCliCommandHandler
                 return false;
             }
 
-            selection = new IcNumberSelection(IcNumberInputMode.SingleSelector, [icNumber]);
+            selection = WorkbenchIcNumberSelections.Single(icNumber);
             return true;
         }
 
@@ -237,7 +237,7 @@ internal static partial class ReplaceCliCommandHandler
                 return false;
             }
 
-            selection = new IcNumberSelection(IcNumberInputMode.NumericSelector, [icNumber]);
+            selection = WorkbenchIcNumberSelections.Numeric(icNumber);
             return true;
         }
 
@@ -246,7 +246,7 @@ internal static partial class ReplaceCliCommandHandler
             return false;
         }
 
-        selection = new IcNumberSelection(IcNumberInputMode.CascadeSelector, [icFamily, icNumber]);
+        selection = WorkbenchIcNumberSelections.Cascade(icFamily, icNumber);
         return true;
     }
 

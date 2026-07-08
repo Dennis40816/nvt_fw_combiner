@@ -121,6 +121,22 @@ public sealed partial class RepositoryBoundaryTests
         }
     }
 
+    /// <summary>Verifies CLI and Workbench create IC-number selections through one Bootstrap helper.</summary>
+    [Fact]
+    public void BootstrapOwnsIcNumberSelectionConstruction()
+    {
+        string bootstrapSource = ReadBootstrapSources();
+        string helper = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchIcNumberSelections.cs");
+        string bootstrapWithoutHelper = bootstrapSource.Replace(helper, string.Empty, StringComparison.Ordinal);
+
+        Assert.Contains("new IcNumberSelection", helper, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchIcNumberSelections.FromNumberToken", bootstrapSource, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchIcNumberSelections.Single", bootstrapSource, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchIcNumberSelections.Numeric", bootstrapSource, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchIcNumberSelections.Cascade", bootstrapSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("new IcNumberSelection", bootstrapWithoutHelper, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies workbench slot ids stay centralized for CLI, UI, and report adapters.</summary>
     [Fact]
     public void BootstrapOwnsWorkbenchSlotIds()

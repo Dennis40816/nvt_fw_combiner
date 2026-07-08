@@ -32,12 +32,7 @@ public static partial class WorkbenchCompositionService
 
     private static IcNumberSelection ToIcNumberSelection(string number)
     {
-        IcNumberInputMode mode = IcNumberSelectionTokens.IsSingle(number)
-            ? IcNumberInputMode.SingleSelector
-            : int.TryParse(number, out _)
-                ? IcNumberInputMode.NumericSelector
-                : IcNumberInputMode.CascadeSelector;
-        return new IcNumberSelection(mode, [number]);
+        return WorkbenchIcNumberSelections.FromNumberToken(number);
     }
 
     private static InputArtifactBinding CreateBinding(

@@ -1,0 +1,32 @@
+using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Domain.Composition;
+
+namespace NvtFwCombiner.Bootstrap;
+
+internal static class WorkbenchIcNumberSelections
+{
+    public static IcNumberSelection FromNumberToken(string number)
+    {
+        IcNumberInputMode mode = IcNumberSelectionTokens.IsSingle(number)
+            ? IcNumberInputMode.SingleSelector
+            : int.TryParse(number, out _)
+                ? IcNumberInputMode.NumericSelector
+                : IcNumberInputMode.CascadeSelector;
+        return new IcNumberSelection(mode, [number]);
+    }
+
+    public static IcNumberSelection Single(string icNumber)
+    {
+        return new IcNumberSelection(IcNumberInputMode.SingleSelector, [icNumber]);
+    }
+
+    public static IcNumberSelection Numeric(string icNumber)
+    {
+        return new IcNumberSelection(IcNumberInputMode.NumericSelector, [icNumber]);
+    }
+
+    public static IcNumberSelection Cascade(string icFamily, string icNumber)
+    {
+        return new IcNumberSelection(IcNumberInputMode.CascadeSelector, [icFamily, icNumber]);
+    }
+}
