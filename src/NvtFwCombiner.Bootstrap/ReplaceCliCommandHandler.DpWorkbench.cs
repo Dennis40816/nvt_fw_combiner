@@ -40,8 +40,8 @@ internal static partial class ReplaceCliCommandHandler
 
         Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
         {
-            ["replace-base"] = Path.GetFullPath(basePath),
-            ["replace-dp"] = Path.GetFullPath(dpPath),
+            [WorkbenchSlotIds.ReplaceBase] = Path.GetFullPath(basePath),
+            [WorkbenchSlotIds.ReplaceDp] = Path.GetFullPath(dpPath),
         };
 
         InputArtifactBinding[] bindings = CreateWorkbenchBindings(slotPaths);

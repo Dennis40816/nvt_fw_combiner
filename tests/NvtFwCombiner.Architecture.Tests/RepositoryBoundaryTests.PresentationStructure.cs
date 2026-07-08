@@ -102,6 +102,32 @@ public sealed partial class RepositoryBoundaryTests
         }
     }
 
+    /// <summary>Verifies Presentation receives workbench slot ids through Bootstrap instead of duplicating strings.</summary>
+    [Fact]
+    public void PresentationUsesBootstrapSlotIds()
+    {
+        string presentationSource = ReadPresentationSources();
+
+        Assert.Contains("WorkbenchSlotIds.MergeDp", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchSlotIds.MergeTp", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchSlotIds.MergeLd", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchSlotIds.ReplaceBase", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchSlotIds.ReplaceDp", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchSlotIds.ReplaceCtrlRamPrefix", presentationSource, StringComparison.Ordinal);
+        foreach (string slotLiteral in new[]
+        {
+            "\"merge-dp\"",
+            "\"merge-tp\"",
+            "\"merge-ld\"",
+            "\"replace-base\"",
+            "\"replace-dp\"",
+            "\"replace-ctrlram-",
+        })
+        {
+            Assert.DoesNotContain(slotLiteral, presentationSource, StringComparison.Ordinal);
+        }
+    }
+
     /// <summary>Verifies the Presentation runner remains a thin split adapter over Bootstrap workbench contracts.</summary>
     [Fact]
     public void UiCompositionRunnerConcernsStaySplit()

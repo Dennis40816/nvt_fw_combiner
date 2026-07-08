@@ -22,7 +22,7 @@ public sealed partial class CompositionRunService
     private static string FormatDifferenceSectionLabel(string sourceSpaceId)
     {
         string normalized = sourceSpaceId ?? string.Empty;
-        const string prefix = "replace-ctrlram-";
+        const string prefix = CompositionAddressSpaceIds.DynamicCtrlRamReplacementPrefix;
         if (!normalized.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
         {
             return "Declared replacement";

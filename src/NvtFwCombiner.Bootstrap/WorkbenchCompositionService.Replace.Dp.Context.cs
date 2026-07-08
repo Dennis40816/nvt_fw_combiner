@@ -15,7 +15,7 @@ public static partial class WorkbenchCompositionService
     {
         context = null;
         failure = null;
-        if (!slotPaths.TryGetValue("replace-base", out string? basePath) ||
+        if (!slotPaths.TryGetValue(WorkbenchSlotIds.ReplaceBase, out string? basePath) ||
             string.IsNullOrWhiteSpace(basePath))
         {
             failure = CreatePlanningRunResult(
@@ -60,8 +60,8 @@ public static partial class WorkbenchCompositionService
 
         InputArtifactBinding[] bindings =
         [
-            new(CompositionAddressSpaceIds.ReferenceBase, "replace-base", fullBasePath),
-            CreateBinding(CompositionAddressSpaceIds.DpReplacement, "replace-dp", slotPaths),
+            new(CompositionAddressSpaceIds.ReferenceBase, WorkbenchSlotIds.ReplaceBase, fullBasePath),
+            CreateBinding(CompositionAddressSpaceIds.DpReplacement, WorkbenchSlotIds.ReplaceDp, slotPaths),
         ];
         context = new DpPerspectiveDpReplaceRunContext(
             ToIcNumberSelection(number),

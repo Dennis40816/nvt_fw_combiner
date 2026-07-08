@@ -51,7 +51,7 @@ public static partial class WorkbenchCompositionService
 
     private static string CtrlRamSlotId(string regionId)
     {
-        return $"replace-ctrlram-{regionId}";
+        return WorkbenchSlotIds.CreateReplaceCtrlRam(regionId);
     }
 
     private static IReadOnlyList<WorkbenchMemoryMapRow> CreatePreserveRows(

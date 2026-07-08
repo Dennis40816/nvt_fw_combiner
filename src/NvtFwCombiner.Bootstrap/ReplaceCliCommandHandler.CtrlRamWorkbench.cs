@@ -98,7 +98,7 @@ internal static partial class ReplaceCliCommandHandler
     {
         slotPaths = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["replace-base"] = Path.GetFullPath(basePath),
+            [WorkbenchSlotIds.ReplaceBase] = Path.GetFullPath(basePath),
         };
         List<string> ctrlRamValues = options.GetValues("--ctrlram");
         if (ctrlRamValues.Count == 0)
@@ -122,7 +122,7 @@ internal static partial class ReplaceCliCommandHandler
             if (separatorIndex <= 0 || separatorIndex == value.Length - 1)
             {
                 error.WriteLine(
-                    "error: real IC CtrlRAM Replace expects --ctrlram <slot-id=path>; example: --ctrlram replace-ctrlram-vn-master=C:\\path\\vn.bin");
+                    $"error: real IC CtrlRAM Replace expects --ctrlram <slot-id=path>; example: --ctrlram {WorkbenchSlotIds.ReplaceCtrlRamPrefix}vn-master=C:\\path\\vn.bin");
                 slotPaths = null;
                 return false;
             }
@@ -186,7 +186,7 @@ internal static partial class ReplaceCliCommandHandler
             .. slotPaths
                 .OrderBy(pair => pair.Key, StringComparer.Ordinal)
                 .Select(pair => new InputArtifactBinding(
-                    pair.Key == "replace-base" ? CompositionAddressSpaceIds.ReferenceBase : pair.Key,
+                    pair.Key == WorkbenchSlotIds.ReplaceBase ? CompositionAddressSpaceIds.ReferenceBase : pair.Key,
                     pair.Key,
                     pair.Value)),
         ];

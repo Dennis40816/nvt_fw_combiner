@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -104,7 +105,7 @@ public sealed partial class ReportReviewViewModel
         }
 
         string normalized = source;
-        const string prefix = "replace-ctrlram-";
+        const string prefix = WorkbenchSlotIds.ReplaceCtrlRamPrefix;
         if (normalized.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
         {
             normalized = normalized[prefix.Length..];

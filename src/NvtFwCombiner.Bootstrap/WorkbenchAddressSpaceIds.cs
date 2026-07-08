@@ -28,4 +28,7 @@ public static class WorkbenchAddressSpaceIds
 
     /// <summary>Immutable CtrlRAM replacement address space used by CtrlRAM Replace.</summary>
     public const string CtrlRamReplacement = CompositionAddressSpaceIds.CtrlRamReplacement;
+
+    /// <summary>Prefix for dynamic CtrlRAM replacement input address spaces.</summary>
+    public const string DynamicCtrlRamReplacementPrefix = CompositionAddressSpaceIds.DynamicCtrlRamReplacementPrefix;
 }

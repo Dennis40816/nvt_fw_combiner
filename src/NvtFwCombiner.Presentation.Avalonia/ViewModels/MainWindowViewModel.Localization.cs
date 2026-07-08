@@ -1,3 +1,5 @@
+using NvtFwCombiner.Bootstrap;
+
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
@@ -113,7 +115,7 @@ public sealed partial class MainWindowViewModel
 
     private void ApplyReplaceSlotText(FirmwareSlotViewModel slot)
     {
-        if (string.Equals(slot.SlotId, "replace-dp", StringComparison.Ordinal))
+        if (string.Equals(slot.SlotId, WorkbenchSlotIds.ReplaceDp, StringComparison.Ordinal))
         {
             slot.ApplyDisplayText(
                 Text.DpReplacementBinTitle,
@@ -132,4 +134,3 @@ public sealed partial class MainWindowViewModel
             Text.NoBinSelectedLabel);
     }
 }
-

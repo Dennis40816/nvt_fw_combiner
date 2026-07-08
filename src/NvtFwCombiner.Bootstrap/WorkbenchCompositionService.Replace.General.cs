@@ -109,7 +109,7 @@ public static partial class WorkbenchCompositionService
                         new CompositionIssue(
                             "input.address-space.length-mismatch",
                             $"Base flash BIN is too short for {icId} / {number} General Replace postbuild (actual {context.Capacity} bytes, required at least {requiredCapacity} bytes).",
-                            "replace-base"),
+                            WorkbenchSlotIds.ReplaceBase),
                     ],
                     GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General),
                     succeeded: false);
@@ -164,7 +164,7 @@ public static partial class WorkbenchCompositionService
 
         InputArtifactBinding[] bindings =
         [
-            new(CompositionAddressSpaceIds.ReferenceBase, "replace-base", context.BasePath),
+            new(CompositionAddressSpaceIds.ReferenceBase, WorkbenchSlotIds.ReplaceBase, context.BasePath),
             .. mappingBindings,
         ];
 

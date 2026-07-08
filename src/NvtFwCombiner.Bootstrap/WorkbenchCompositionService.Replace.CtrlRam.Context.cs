@@ -91,7 +91,7 @@ public static partial class WorkbenchCompositionService
                 validationIssues.Add(new CompositionIssue(
                     "input.address-space.length-mismatch",
                     $"Base flash BIN is too short for {icId} / {number} CtrlRAM postbuild (actual {baseLength} bytes, required at least {requiredCapacity} bytes).",
-                    "replace-base"));
+                    WorkbenchSlotIds.ReplaceBase));
             }
         }
 
@@ -110,13 +110,13 @@ public static partial class WorkbenchCompositionService
         IReadOnlyDictionary<string, string> slotPaths,
         List<CompositionIssue> validationIssues)
     {
-        if (!slotPaths.TryGetValue("replace-base", out string? suppliedBasePath) ||
+        if (!slotPaths.TryGetValue(WorkbenchSlotIds.ReplaceBase, out string? suppliedBasePath) ||
             string.IsNullOrWhiteSpace(suppliedBasePath))
         {
             validationIssues.Add(new CompositionIssue(
                 "ui.input.missing",
                 "Base flash BIN is required before CtrlRAM Replace can run.",
-                "replace-base"));
+                WorkbenchSlotIds.ReplaceBase));
             return (null, 0);
         }
 
@@ -126,7 +126,7 @@ public static partial class WorkbenchCompositionService
             validationIssues.Add(new CompositionIssue(
                 "input.artifact.read-failed",
                 "Base flash BIN path does not exist.",
-                "replace-base"));
+                WorkbenchSlotIds.ReplaceBase));
             return (basePath, 0);
         }
 
@@ -136,7 +136,7 @@ public static partial class WorkbenchCompositionService
             validationIssues.Add(new CompositionIssue(
                 "input.address-space.length-mismatch",
                 "Base flash BIN must not be empty.",
-                "replace-base"));
+                WorkbenchSlotIds.ReplaceBase));
         }
 
         return (basePath, baseLength);
@@ -156,7 +156,7 @@ public static partial class WorkbenchCompositionService
     {
         List<InputArtifactBinding> bindings =
         [
-            new(CompositionAddressSpaceIds.ReferenceBase, "replace-base", context.BasePath!),
+            new(CompositionAddressSpaceIds.ReferenceBase, WorkbenchSlotIds.ReplaceBase, context.BasePath!),
         ];
         foreach (TpFlashMapRegion region in context.SelectedRegions.OrderBy(region => region.Range.Start))
         {

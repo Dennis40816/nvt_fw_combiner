@@ -26,4 +26,7 @@ public static class CompositionAddressSpaceIds
 
     /// <summary>Immutable CtrlRAM replacement address space used by CtrlRAM Replace.</summary>
     public const string CtrlRamReplacement = "ctrlram-replacement";
+
+    /// <summary>Prefix for dynamic CtrlRAM replacement input address spaces.</summary>
+    public const string DynamicCtrlRamReplacementPrefix = "replace-ctrlram-";
 }

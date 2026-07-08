@@ -125,6 +125,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public const string DpReplacement = \"dp-replacement\"", addressSpaceIds, StringComparison.Ordinal);
         Assert.Contains("public const string LdReplacement = \"ld-replacement\"", addressSpaceIds, StringComparison.Ordinal);
         Assert.Contains("public const string CtrlRamReplacement = \"ctrlram-replacement\"", addressSpaceIds, StringComparison.Ordinal);
+        Assert.Contains("public const string DynamicCtrlRamReplacementPrefix = \"replace-ctrlram-\"", addressSpaceIds, StringComparison.Ordinal);
         Assert.Contains("CompositionAddressSpaceIds.OutputImage", profileSources, StringComparison.Ordinal);
         Assert.Contains("CompositionAddressSpaceIds.DpInput", profileSources, StringComparison.Ordinal);
         Assert.Contains("CompositionAddressSpaceIds.TpInput", profileSources, StringComparison.Ordinal);
@@ -134,7 +135,12 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public const string TpInput = CompositionAddressSpaceIds.TpInput;", workbenchAddressSpaceIds, StringComparison.Ordinal);
         Assert.Contains("public const string LdInput = CompositionAddressSpaceIds.LdInput;", workbenchAddressSpaceIds, StringComparison.Ordinal);
         Assert.Contains("public const string DpReplacement = CompositionAddressSpaceIds.DpReplacement;", workbenchAddressSpaceIds, StringComparison.Ordinal);
+        Assert.Contains("public const string DynamicCtrlRamReplacementPrefix = CompositionAddressSpaceIds.DynamicCtrlRamReplacementPrefix;", workbenchAddressSpaceIds, StringComparison.Ordinal);
         Assert.Contains("WorkbenchAddressSpaceIds.DpInput", presentationSources, StringComparison.Ordinal);
+        Assert.Contains(
+            "CompositionAddressSpaceIds.DynamicCtrlRamReplacementPrefix",
+            ReadText("src/NvtFwCombiner.Application/Composition/CompositionRunService.OutputDifferenceLabels.cs"),
+            StringComparison.Ordinal);
 
         foreach (string addressSpaceLiteral in new[]
         {
@@ -146,6 +152,7 @@ public sealed partial class RepositoryBoundaryTests
             "\"dp-replacement\"",
             "\"ld-replacement\"",
             "\"ctrlram-replacement\"",
+            "\"replace-ctrlram-\"",
         })
         {
             Assert.DoesNotContain(addressSpaceLiteral, profileSources, StringComparison.Ordinal);

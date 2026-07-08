@@ -33,7 +33,7 @@ internal static partial class ReplaceCliCommandHandler
 
         Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
         {
-            ["replace-base"] = Path.GetFullPath(basePath),
+            [WorkbenchSlotIds.ReplaceBase] = Path.GetFullPath(basePath),
         };
         Dictionary<string, string> protectedInputPaths = new(slotPaths, StringComparer.Ordinal);
         foreach (WorkbenchGeneralReplaceMappingInput mapping in mappings)

@@ -48,6 +48,37 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("\"General\"", bootstrapWithoutReplaceModes, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies workbench slot ids stay centralized for CLI, UI, and report adapters.</summary>
+    [Fact]
+    public void BootstrapOwnsWorkbenchSlotIds()
+    {
+        string bootstrapSource = ReadBootstrapSources();
+        string slotIds = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchSlotIds.cs");
+        string bootstrapWithoutSlotIds = bootstrapSource.Replace(slotIds, string.Empty, StringComparison.Ordinal);
+
+        Assert.Contains("public const string MergeDp = \"merge-dp\"", slotIds, StringComparison.Ordinal);
+        Assert.Contains("public const string MergeTp = \"merge-tp\"", slotIds, StringComparison.Ordinal);
+        Assert.Contains("public const string MergeLd = \"merge-ld\"", slotIds, StringComparison.Ordinal);
+        Assert.Contains("public const string ReplaceBase = \"replace-base\"", slotIds, StringComparison.Ordinal);
+        Assert.Contains("public const string ReplaceDp = \"replace-dp\"", slotIds, StringComparison.Ordinal);
+        Assert.Contains(
+            "public const string ReplaceCtrlRamPrefix = CompositionAddressSpaceIds.DynamicCtrlRamReplacementPrefix;",
+            slotIds,
+            StringComparison.Ordinal);
+        foreach (string slotLiteral in new[]
+        {
+            "\"merge-dp\"",
+            "\"merge-tp\"",
+            "\"merge-ld\"",
+            "\"replace-base\"",
+            "\"replace-dp\"",
+            "\"replace-ctrlram-",
+        })
+        {
+            Assert.DoesNotContain(slotLiteral, bootstrapWithoutSlotIds, StringComparison.Ordinal);
+        }
+    }
+
     /// <summary>Verifies UI-facing workflow ids are projected from the profile catalog without repeating literals.</summary>
     [Fact]
     public void BootstrapProjectsWorkflowIdsForUiAdapters()

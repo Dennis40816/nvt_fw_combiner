@@ -16,7 +16,7 @@ public static partial class WorkbenchCompositionService
         Dictionary<string, string> reportSlotPaths = CreateGeneralReplaceReportSlotPaths(slotPaths, mappingInputs);
         IcNumberSelection selection = ToIcNumberSelection(number);
 
-        if (!slotPaths.TryGetValue("replace-base", out string? basePath) ||
+        if (!slotPaths.TryGetValue(WorkbenchSlotIds.ReplaceBase, out string? basePath) ||
             string.IsNullOrWhiteSpace(basePath))
         {
             context = null;

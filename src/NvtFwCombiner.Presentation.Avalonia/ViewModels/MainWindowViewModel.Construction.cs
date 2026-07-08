@@ -11,10 +11,10 @@ public sealed partial class MainWindowViewModel
     private const string NormalMergeMode = "Normal";
     private const string AbCodeMergeMode = "AB Code";
     private const string GeneralMergeMode = "General";
-    private const string MergeDpSlotId = "merge-dp";
-    private const string MergeTpSlotId = "merge-tp";
-    private const string MergeLdSlotId = "merge-ld";
-    private const string ReplaceBaseSlotId = "replace-base";
+    private const string MergeDpSlotId = WorkbenchSlotIds.MergeDp;
+    private const string MergeTpSlotId = WorkbenchSlotIds.MergeTp;
+    private const string MergeLdSlotId = WorkbenchSlotIds.MergeLd;
+    private const string ReplaceBaseSlotId = WorkbenchSlotIds.ReplaceBase;
 
     private readonly FirmwareSlotViewModel _mergeDpSlot = new(
         MergeDpSlotId,

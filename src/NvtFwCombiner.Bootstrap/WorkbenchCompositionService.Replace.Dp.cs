@@ -96,7 +96,7 @@ public static partial class WorkbenchCompositionService
         List<WorkbenchReplaceInputSlot> slots =
         [
             new(
-                "replace-dp",
+                WorkbenchSlotIds.ReplaceDp,
                 "DP replacement BIN",
                 IsDpPerspectiveIc(icId)
                     ? $"Replacement DP is padded to the selected base BIN length ({FormatSupportedDpPerspectiveBaseLengths()}); original TP range is restored from base."
