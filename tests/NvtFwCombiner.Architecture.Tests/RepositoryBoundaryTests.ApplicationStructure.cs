@@ -16,6 +16,10 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Application/Composition/CompositionRunService.PreviewTokens.cs");
         string outputDifferences = ReadText(
             "src/NvtFwCombiner.Application/Composition/CompositionRunService.OutputDifferences.cs");
+        string outputDifferenceBytes = ReadText(
+            "src/NvtFwCombiner.Application/Composition/CompositionRunService.OutputDifferenceBytes.cs");
+        string outputDifferenceExpectations = ReadText(
+            "src/NvtFwCombiner.Application/Composition/CompositionRunService.OutputDifferenceExpectations.cs");
 
         Assert.Contains("public sealed partial class CompositionRunService", root, StringComparison.Ordinal);
         Assert.Contains("PreviewAsync", root, StringComparison.Ordinal);
@@ -36,7 +40,12 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("SHA256.HashData", hashing, StringComparison.Ordinal);
         Assert.Contains("ToSha256Hex(buffer)", inputs, StringComparison.Ordinal);
         Assert.Contains("ToSha256Hex(execution.OutputBytes.Span)", previewTokens, StringComparison.Ordinal);
-        Assert.Contains("ToSliceSha256Hex", outputDifferences, StringComparison.Ordinal);
-        Assert.Contains("ToSliceHexPreview", outputDifferences, StringComparison.Ordinal);
+        Assert.Contains("CreateOutputDifferences", outputDifferences, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static IEnumerable<OutputDifferenceExpectation> CreateOutputDifferenceExpectations", outputDifferences, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static string ToSliceSha256Hex", outputDifferences, StringComparison.Ordinal);
+        Assert.Contains("ToSliceSha256Hex", outputDifferenceBytes, StringComparison.Ordinal);
+        Assert.Contains("ToSliceHexPreview", outputDifferenceBytes, StringComparison.Ordinal);
+        Assert.Contains("CreateOutputDifferenceExpectations", outputDifferenceExpectations, StringComparison.Ordinal);
+        Assert.Contains("ClassifyDifferenceSegment", outputDifferenceExpectations, StringComparison.Ordinal);
     }
 }
