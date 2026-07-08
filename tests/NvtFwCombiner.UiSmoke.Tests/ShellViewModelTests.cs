@@ -157,7 +157,7 @@ public sealed class ShellViewModelTests
         Assert.Equal("NT51950: refresh profile, slots, validation", viewModel.DeviceContextStatus);
         Assert.Equal("0x100000", viewModel.GeneralMergeOutputLength);
         Assert.Equal(
-            $"NT51950_FlashCode_DxxTxx_{DateTime.Now.ToString("yyyyMMdd", CultureInfo.InvariantCulture)}.bin",
+            $"NT51950_FlashCode_DxxxxTxxxx_{DateTime.Now.ToString("yyyyMMdd", CultureInfo.InvariantCulture)}.bin",
             viewModel.MergeOutputFileName);
         _ = Assert.Single(viewModel.GeneralMergeMappings);
 
@@ -319,10 +319,10 @@ public sealed class ShellViewModelTests
         FirmwareSlotViewModel dpSlot = viewModel.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
         Assert.Contains(dpSlot.FirmwareFacts, fact =>
             fact.Label == "DP" &&
-            fact.Value == "D01" &&
+            fact.Value == "D0102" &&
             !fact.IsWarning);
         Assert.StartsWith(
-            "NT51926_FlashCode_D01T0100_",
+            "NT51926_FlashCode_D0102T0100_",
             viewModel.MergeOutputFileName,
             StringComparison.Ordinal);
 
@@ -334,7 +334,7 @@ public sealed class ShellViewModelTests
         dpSlot = viewModel.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
         Assert.Contains(dpSlot.FirmwareFacts, fact =>
             fact.Label == "DP" &&
-            fact.Value == "D??" &&
+            fact.Value == "D????" &&
             fact.IsWarning);
     }
 

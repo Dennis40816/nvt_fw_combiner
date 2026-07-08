@@ -98,7 +98,7 @@ public static class UiCompositionRunner
             icId,
             path);
         return metadata is null
-            ? [new FirmwareSlotFactViewModel("DP", "D??", true)]
+            ? [new FirmwareSlotFactViewModel("DP", "D????", true)]
             : [new FirmwareSlotFactViewModel("DP", metadata.DisplayVersion)];
     }
 

@@ -697,14 +697,16 @@ public sealed record WorkbenchFirmwareConfigMetadata(
     ushort ProjectId,
     string? PostbuildCategory);
 
-/// <summary>DP version facts read using gen_flash standard-merge version-byte rules.</summary>
+/// <summary>DP version facts read using gen_flash standard-merge contiguous main/sub version-byte rules.</summary>
 public sealed record WorkbenchDpVersionMetadata(
     string IcId,
     string Prefix,
     string VersionToken,
     string DisplayVersion,
-    long InputReadOffset,
-    long OutputAbsoluteAddress,
+    long MainInputReadOffset,
+    long SubInputReadOffset,
+    long OutputMainAbsoluteAddress,
+    long OutputSubAbsoluteAddress,
     string EvidenceSource);
 
 /// <summary>One readable before/after memory-map row for shell display.</summary>

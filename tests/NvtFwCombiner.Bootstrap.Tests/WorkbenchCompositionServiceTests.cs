@@ -25,8 +25,8 @@ public sealed class WorkbenchCompositionServiceTests
             ],
             new DateOnly(2026, 7, 8));
 
-        Assert.Equal("NT51926_FlashCode_D01T0100_20260708.bin", suggestion.FileName);
-        Assert.Equal("01", suggestion.DpVersionToken);
+        Assert.Equal("NT51926_FlashCode_D0102T0100_20260708.bin", suggestion.FileName);
+        Assert.Equal("0102", suggestion.DpVersionToken);
         Assert.True(suggestion.HasDpVersion);
         Assert.Equal("0100", suggestion.TpVersionToken);
         Assert.True(suggestion.HasTpVersion);
@@ -42,10 +42,10 @@ public sealed class WorkbenchCompositionServiceTests
             [],
             new DateOnly(2026, 7, 8));
 
-        Assert.Equal("NT51950_FlashCode_DxxTxx_20260708.bin", suggestion.FileName);
-        Assert.Equal("xx", suggestion.DpVersionToken);
+        Assert.Equal("NT51950_FlashCode_DxxxxTxxxx_20260708.bin", suggestion.FileName);
+        Assert.Equal("xxxx", suggestion.DpVersionToken);
         Assert.False(suggestion.HasDpVersion);
-        Assert.Equal("xx", suggestion.TpVersionToken);
+        Assert.Equal("xxxx", suggestion.TpVersionToken);
         Assert.False(suggestion.HasTpVersion);
     }
 

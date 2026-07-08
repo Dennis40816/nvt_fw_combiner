@@ -6,7 +6,7 @@ public static class GenFlashVersionCatalog
     private const string GenFlashEvidence = "gen_flash_bin_v2/ic_config.json";
     private static readonly Dictionary<string, GenFlashDpVersionRule> DpVersionRules = BuildDpVersionRules();
 
-    /// <summary>Returns the DP version-byte rule for an IC when gen_flash evidence defines one.</summary>
+    /// <summary>Returns the DP main/sub version-byte rule for an IC when gen_flash evidence defines one.</summary>
     public static bool TryGetDpVersionRule(string icId, out GenFlashDpVersionRule rule)
     {
         bool found = DpVersionRules.TryGetValue(NormalizeIcId(icId), out GenFlashDpVersionRule? foundRule);
@@ -14,7 +14,7 @@ public static class GenFlashVersionCatalog
         return found;
     }
 
-    /// <summary>Reads a DP version byte from a selected DP payload using the IC's gen_flash rule.</summary>
+    /// <summary>Reads contiguous DP main/sub version bytes from a selected DP payload using the IC's gen_flash rule.</summary>
     public static bool TryReadDpVersion(
         string icId,
         ReadOnlySpan<byte> image,
@@ -27,20 +27,30 @@ public static class GenFlashVersionCatalog
         }
 
         long readOffset = image.Length >= rule.OutputDpEndExclusive
-            ? rule.OutputAbsoluteAddress
+            ? rule.OutputMainAbsoluteAddress
             : rule.InputRelativeOffset;
         if (readOffset < 0 || readOffset >= image.Length)
         {
             return false;
         }
 
-        byte value = image[(int)readOffset];
+        long subReadOffset = readOffset + 1;
+        if (subReadOffset < 0 || subReadOffset >= image.Length)
+        {
+            return false;
+        }
+
+        byte mainValue = image[(int)readOffset];
+        byte subValue = image[(int)subReadOffset];
         metadata = new GenFlashDpVersionMetadata(
             rule.IcId,
             rule.Prefix,
-            value,
+            mainValue,
+            subValue,
             readOffset,
-            rule.OutputAbsoluteAddress,
+            subReadOffset,
+            rule.OutputMainAbsoluteAddress,
+            rule.OutputSubAbsoluteAddress,
             rule.EvidenceSource);
         return true;
     }
@@ -75,6 +85,7 @@ public static class GenFlashVersionCatalog
             "D",
             relativeOffset,
             dpStart + relativeOffset,
+            dpStart + relativeOffset + 1,
             dpStart,
             dpEndExclusive,
             GenFlashEvidence);
@@ -89,7 +100,8 @@ public static class GenFlashVersionCatalog
             ic,
             source.Prefix,
             source.InputRelativeOffset,
-            source.OutputAbsoluteAddress,
+            source.OutputMainAbsoluteAddress,
+            source.OutputSubAbsoluteAddress,
             source.OutputDpStart,
             source.OutputDpEndExclusive,
             $"{source.EvidenceSource}; {evidence}");
@@ -105,27 +117,31 @@ public static class GenFlashVersionCatalog
     }
 }
 
-/// <summary>DP version-byte location derived from gen_flash_bin_v2.</summary>
+/// <summary>Contiguous DP main/sub version-byte location derived from gen_flash_bin_v2.</summary>
 public sealed record GenFlashDpVersionRule(
     string IcId,
     string Prefix,
     long InputRelativeOffset,
-    long OutputAbsoluteAddress,
+    long OutputMainAbsoluteAddress,
+    long OutputSubAbsoluteAddress,
     long OutputDpStart,
     long OutputDpEndExclusive,
     string EvidenceSource);
 
-/// <summary>DP version-byte value read from a selected DP payload.</summary>
+/// <summary>Contiguous DP main/sub version-byte value read from a selected DP payload.</summary>
 public readonly record struct GenFlashDpVersionMetadata(
     string IcId,
     string Prefix,
-    byte VersionByte,
-    long InputReadOffset,
-    long OutputAbsoluteAddress,
+    byte MainVersionByte,
+    byte SubVersionByte,
+    long MainInputReadOffset,
+    long SubInputReadOffset,
+    long OutputMainAbsoluteAddress,
+    long OutputSubAbsoluteAddress,
     string EvidenceSource)
 {
-    /// <summary>Two uppercase hex digits used by gen_flash naming.</summary>
-    public string VersionToken => FormattableString.Invariant($"{VersionByte:X2}");
+    /// <summary>Four uppercase hex digits used by FlashCode naming: DP main byte followed by sub byte.</summary>
+    public string VersionToken => FormattableString.Invariant($"{MainVersionByte:X2}{SubVersionByte:X2}");
 
     /// <summary>Readable DP version token including the configured prefix.</summary>
     public string DisplayVersion => $"{Prefix}{VersionToken}";

@@ -6,6 +6,8 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
+    private const string UnknownVersionToken = "xxxx";
+
     /// <summary>Creates the suggested FlashCode output file name from selected firmware metadata.</summary>
     public static WorkbenchOutputFileNameSuggestion CreateFlashCodeOutputFileName(
         string icId,
@@ -16,26 +18,26 @@ public static partial class WorkbenchCompositionService
         ArgumentNullException.ThrowIfNull(candidates);
 
         string normalizedIc = NormalizeOutputIcId(icId);
-        string dpVersion = FindDpVersionToken(normalizedIc, candidates) ?? "xx";
-        string tpVersion = FindTpVersionToken(normalizedIc, candidates) ?? "xx";
+        string dpVersion = FindDpVersionToken(normalizedIc, candidates) ?? UnknownVersionToken;
+        string tpVersion = FindTpVersionToken(normalizedIc, candidates) ?? UnknownVersionToken;
         string dateToken = (date ?? DateOnly.FromDateTime(DateTime.Now)).ToString("yyyyMMdd", CultureInfo.InvariantCulture);
         return new WorkbenchOutputFileNameSuggestion(
             FormattableString.Invariant($"{normalizedIc}_FlashCode_D{dpVersion}T{tpVersion}_{dateToken}.bin"),
             dpVersion,
-            dpVersion != "xx",
+            dpVersion != UnknownVersionToken,
             tpVersion,
-            tpVersion != "xx",
+            tpVersion != UnknownVersionToken,
             dateToken);
     }
 
-    /// <summary>Returns true when the IC has a gen_flash-backed DP version-byte rule.</summary>
+    /// <summary>Returns true when the IC has a gen_flash-backed DP main/sub version-byte rule.</summary>
     public static bool HasDpVersionMetadataRule(string icId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         return GenFlashVersionCatalog.TryGetDpVersionRule(icId, out _);
     }
 
-    /// <summary>Reads gen_flash-backed DP version metadata from a selected DP payload.</summary>
+    /// <summary>Reads gen_flash-backed contiguous DP main/sub version metadata from a selected DP payload.</summary>
     public static WorkbenchDpVersionMetadata? TryReadDpVersionMetadata(string icId, string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
@@ -58,8 +60,10 @@ public static partial class WorkbenchCompositionService
                         metadata.Prefix,
                         metadata.VersionToken,
                         metadata.DisplayVersion,
-                        metadata.InputReadOffset,
-                        metadata.OutputAbsoluteAddress,
+                        metadata.MainInputReadOffset,
+                        metadata.SubInputReadOffset,
+                        metadata.OutputMainAbsoluteAddress,
+                        metadata.OutputSubAbsoluteAddress,
                         metadata.EvidenceSource)
                     : null;
         }
