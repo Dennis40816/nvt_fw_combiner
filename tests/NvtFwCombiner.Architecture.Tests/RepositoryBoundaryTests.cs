@@ -204,8 +204,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("SettingsToolRows", settingsViewModel, StringComparison.Ordinal);
         Assert.Contains("NavigationPath", navigationViewModel, StringComparison.Ordinal);
 
-        string flashMapCatalog = ReadText(
-            "src/NvtFwCombiner.Application/FlashMaps/TpFlashMapCatalog.cs");
+        string flashMapCatalog = ReadFlashMapCatalogPartials();
         Assert.Contains("NF CtrlRAM", flashMapCatalog, StringComparison.Ordinal);
         Assert.Contains("Normal CtrlRAM", flashMapCatalog, StringComparison.Ordinal);
         Assert.Contains("DIFF CtrlRAM", flashMapCatalog, StringComparison.Ordinal);
@@ -455,6 +454,20 @@ public sealed partial class RepositoryBoundaryTests
         return string.Join(
             Environment.NewLine,
             Directory.GetFiles(directory, "ShellTextResources*.cs")
+                .Order(StringComparer.Ordinal)
+                .Select(File.ReadAllText));
+    }
+
+    private static string ReadFlashMapCatalogPartials()
+    {
+        string directory = Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Application",
+            "FlashMaps");
+        return string.Join(
+            Environment.NewLine,
+            Directory.GetFiles(directory, "TpFlashMapCatalog*.cs")
                 .Order(StringComparer.Ordinal)
                 .Select(File.ReadAllText));
     }
