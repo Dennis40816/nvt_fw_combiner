@@ -43,6 +43,30 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private const string GeneralReplaceOperationId", profileCompile, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies shared Replace workbench CLI helpers stay out of the CtrlRAM workflow file.</summary>
+    [Fact]
+    public void BootstrapReplaceWorkbenchCliHelpersStaySplit()
+    {
+        string ctrlRam = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.CtrlRamWorkbench.cs");
+        string ctrlRamSlots = ReadText(
+            "src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.CtrlRamWorkbench.Slots.cs");
+        string support = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.WorkbenchSupport.cs");
+        string report = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.WorkbenchReport.cs");
+
+        Assert.Contains("RunWorkbenchCtrlRamReplaceAsync", ctrlRam, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static bool TryResolveWorkbenchIc", ctrlRam, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static InputArtifactBinding[] CreateWorkbenchBindings", ctrlRam, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static async Task WriteWorkbenchReportFileIfRequestedAsync", ctrlRam, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static async Task PrintWorkbenchRunResultAsync", ctrlRam, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static bool TryCreateWorkbenchCtrlRamSlotPaths", ctrlRam, StringComparison.Ordinal);
+        Assert.Contains("private static bool TryCreateWorkbenchCtrlRamSlotPaths", ctrlRamSlots, StringComparison.Ordinal);
+        Assert.Contains("private static Dictionary<string, WorkbenchReplaceInputSlot> CreateCtrlRamSlotLookup", ctrlRamSlots, StringComparison.Ordinal);
+        Assert.Contains("private static bool TryResolveWorkbenchIc", support, StringComparison.Ordinal);
+        Assert.Contains("private static InputArtifactBinding[] CreateWorkbenchBindings", support, StringComparison.Ordinal);
+        Assert.Contains("private static async Task WriteWorkbenchReportFileIfRequestedAsync", report, StringComparison.Ordinal);
+        Assert.Contains("private static async Task PrintWorkbenchRunResultAsync", report, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies DP Replace IC facts remain catalog-owned instead of hard-coded in Bootstrap.</summary>
     [Fact]
     public void BootstrapKeepsDpReplaceIcFactsCatalogOwned()
