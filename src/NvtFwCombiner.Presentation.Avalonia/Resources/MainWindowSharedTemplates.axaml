@@ -1,0 +1,101 @@
+<ResourceDictionary
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
+
+<ControlTheme x:Key="StretchContentPresenterTheme" TargetType="ContentPresenter">
+  <Setter Property="HorizontalAlignment" Value="Stretch" />
+  <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+</ControlTheme>
+
+<DataTemplate x:Key="MemoryCoverageTooltipTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
+  <Border
+      MaxWidth="360"
+      Padding="10"
+      Background="#FFFFFF"
+      BorderBrush="#CBD5E1"
+      BorderThickness="1"
+      CornerRadius="8">
+    <StackPanel Spacing="8">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+        <Border
+            Width="10"
+            Height="10"
+            VerticalAlignment="Center"
+            Background="{Binding FillBrush}"
+            BorderBrush="{Binding OutlineBrush}"
+            BorderThickness="{Binding OutlineThickness}"
+            CornerRadius="2" />
+        <TextBlock
+            Grid.Column="1"
+            VerticalAlignment="Center"
+            FontSize="12"
+            FontWeight="SemiBold"
+            Foreground="#0F172A"
+            Text="{Binding SourceLabel}"
+            TextWrapping="Wrap" />
+        <Border
+            Grid.Column="2"
+            Padding="7,2"
+            VerticalAlignment="Center"
+            Background="{Binding ChangeBadgeBackgroundBrush}"
+            BorderBrush="{Binding ChangeBadgeBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="999">
+          <TextBlock
+              FontSize="10"
+              FontWeight="SemiBold"
+              Foreground="{Binding ChangeBadgeForegroundBrush}"
+              Text="{Binding ChangeLabel}" />
+        </Border>
+      </Grid>
+
+      <Grid ColumnDefinitions="54,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="5">
+        <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{ReflectionBinding $parent[Window].DataContext.Text.RangeLabel}" />
+        <TextBlock
+            Grid.Column="1"
+            FontFamily="Cascadia Mono, Consolas"
+            FontSize="12"
+            Foreground="#0F172A"
+            Text="{Binding RangeLabel}"
+            TextWrapping="Wrap" />
+
+        <TextBlock Grid.Row="1" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{ReflectionBinding $parent[Window].DataContext.Text.ResultLabel}" />
+        <TextBlock
+            Grid.Row="1"
+            Grid.Column="1"
+            FontSize="11"
+            Foreground="#334155"
+            Text="{Binding CompactDetail}"
+            TextWrapping="Wrap" />
+
+        <TextBlock Grid.Row="2" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{ReflectionBinding $parent[Window].DataContext.Text.DetailLabel}" />
+        <TextBlock
+            Grid.Row="2"
+            Grid.Column="1"
+            MaxWidth="280"
+            FontSize="11"
+            Foreground="#64748B"
+            Text="{Binding Detail}"
+            TextWrapping="Wrap" />
+      </Grid>
+    </StackPanel>
+  </Border>
+</DataTemplate>
+
+<DataTemplate x:Key="FirmwareSlotFactTemplate" DataType="vm:FirmwareSlotFactViewModel">
+  <Border
+      Margin="0,2,6,0"
+      Padding="7,2"
+      Background="{Binding BackgroundBrush}"
+      BorderBrush="{Binding BorderBrush}"
+      BorderThickness="1"
+      CornerRadius="999">
+    <StackPanel Orientation="Horizontal" Spacing="4">
+      <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="{Binding LabelForegroundBrush}" Text="{Binding Label}" />
+      <TextBlock FontSize="10" FontFamily="Cascadia Mono, Consolas" FontWeight="SemiBold" Foreground="{Binding ValueForegroundBrush}" Text="{Binding Value}" />
+    </StackPanel>
+  </Border>
+</DataTemplate>
+
+</ResourceDictionary>

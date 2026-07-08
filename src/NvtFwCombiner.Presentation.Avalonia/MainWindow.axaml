@@ -20,100 +20,9 @@
   <Window.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml" />
         <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportTemplates.axaml" />
       </ResourceDictionary.MergedDictionaries>
-    <ControlTheme x:Key="StretchContentPresenterTheme" TargetType="ContentPresenter">
-      <Setter Property="HorizontalAlignment" Value="Stretch" />
-      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-    </ControlTheme>
-    <DataTemplate x:Key="MemoryCoverageTooltipTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
-      <Border
-          MaxWidth="360"
-          Padding="10"
-          Background="#FFFFFF"
-          BorderBrush="#CBD5E1"
-          BorderThickness="1"
-          CornerRadius="8">
-        <StackPanel Spacing="8">
-          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-            <Border
-                Width="10"
-                Height="10"
-                VerticalAlignment="Center"
-                Background="{Binding FillBrush}"
-                BorderBrush="{Binding OutlineBrush}"
-                BorderThickness="{Binding OutlineThickness}"
-                CornerRadius="2" />
-            <TextBlock
-                Grid.Column="1"
-                VerticalAlignment="Center"
-                FontSize="12"
-                FontWeight="SemiBold"
-                Foreground="#0F172A"
-                Text="{Binding SourceLabel}"
-                TextWrapping="Wrap" />
-            <Border
-                Grid.Column="2"
-                Padding="7,2"
-                VerticalAlignment="Center"
-                Background="{Binding ChangeBadgeBackgroundBrush}"
-                BorderBrush="{Binding ChangeBadgeBorderBrush}"
-                BorderThickness="1"
-                CornerRadius="999">
-              <TextBlock
-                  FontSize="10"
-                  FontWeight="SemiBold"
-                  Foreground="{Binding ChangeBadgeForegroundBrush}"
-                  Text="{Binding ChangeLabel}" />
-            </Border>
-          </Grid>
-
-          <Grid ColumnDefinitions="54,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="5">
-            <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding #RootWindow.DataContext.Text.RangeLabel}" />
-            <TextBlock
-                Grid.Column="1"
-                FontFamily="Cascadia Mono, Consolas"
-                FontSize="12"
-                Foreground="#0F172A"
-                Text="{Binding RangeLabel}"
-                TextWrapping="Wrap" />
-
-            <TextBlock Grid.Row="1" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding #RootWindow.DataContext.Text.ResultLabel}" />
-            <TextBlock
-                Grid.Row="1"
-                Grid.Column="1"
-                FontSize="11"
-                Foreground="#334155"
-                Text="{Binding CompactDetail}"
-                TextWrapping="Wrap" />
-
-            <TextBlock Grid.Row="2" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding #RootWindow.DataContext.Text.DetailLabel}" />
-            <TextBlock
-                Grid.Row="2"
-                Grid.Column="1"
-                MaxWidth="280"
-                FontSize="11"
-                Foreground="#64748B"
-                Text="{Binding Detail}"
-                TextWrapping="Wrap" />
-          </Grid>
-        </StackPanel>
-      </Border>
-    </DataTemplate>
-    <DataTemplate x:Key="FirmwareSlotFactTemplate" DataType="vm:FirmwareSlotFactViewModel">
-      <Border
-          Margin="0,2,6,0"
-          Padding="7,2"
-          Background="{Binding BackgroundBrush}"
-          BorderBrush="{Binding BorderBrush}"
-          BorderThickness="1"
-          CornerRadius="999">
-        <StackPanel Orientation="Horizontal" Spacing="4">
-          <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="{Binding LabelForegroundBrush}" Text="{Binding Label}" />
-          <TextBlock FontSize="10" FontFamily="Cascadia Mono, Consolas" FontWeight="SemiBold" Foreground="{Binding ValueForegroundBrush}" Text="{Binding Value}" />
-        </StackPanel>
-      </Border>
-    </DataTemplate>
     <DataTemplate x:Key="FirmwareSlotCardTemplate" DataType="vm:FirmwareSlotViewModel">
       <Border
           Classes="fileDropZone"
@@ -805,62 +714,9 @@
                   <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Text.CtrlRamInputFilesDetail}" TextWrapping="Wrap" />
                 </StackPanel>
 
-                <Border
-                    Classes="fileDropZone"
-                    MinHeight="92"
-                    Padding="0"
-                    Background="{Binding ReplaceBaseSlot.SlotBackgroundBrush}"
-                    BorderBrush="{Binding ReplaceBaseSlot.SlotBorderBrush}"
-                    BorderThickness="{Binding ReplaceBaseSlot.SlotBorderThickness}"
-                    CornerRadius="8"
-                    DragDrop.AllowDrop="True"
-                    DragDrop.DragEnter="DropZone_OnDragEnter"
-                    DragDrop.DragOver="SlotDragOver_OnDragOver"
-                    DragDrop.DragLeave="DropZone_OnDragLeave"
-                    DragDrop.Drop="SlotDrop_OnDrop"
-                    Tag="{Binding ReplaceBaseSlot.SlotId}">
-                  <Grid>
-                    <Border Classes="dropZoneOverlay" />
-                    <Grid Margin="14" ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                      <StackPanel Spacing="4">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                          <Border
-                              Classes="slotTypeIcon"
-                              Background="{Binding ReplaceBaseSlot.SlotIconBackgroundBrush}"
-                              BorderBrush="{Binding ReplaceBaseSlot.SlotIconBorderBrush}"
-                              ToolTip.Tip="{Binding ReplaceBaseSlot.SlotIconTooltip}">
-                            <Path
-                                Data="{Binding ReplaceBaseSlot.SlotIconPathData}"
-                                Stroke="{Binding ReplaceBaseSlot.SlotIconForegroundBrush}" />
-                          </Border>
-                          <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding ReplaceBaseSlot.Title}" />
-                          <Border Padding="8,2" VerticalAlignment="Center" Background="{Binding ReplaceBaseSlot.RequirementBadgeBackgroundBrush}" BorderBrush="{Binding ReplaceBaseSlot.RequirementBadgeBorderBrush}" BorderThickness="1" CornerRadius="999">
-                            <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{Binding ReplaceBaseSlot.RequirementBadgeForegroundBrush}" Text="{Binding ReplaceBaseSlot.RequirementLabel}" />
-                          </Border>
-                        </StackPanel>
-                        <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding ReplaceBaseSlot.Description}" TextWrapping="Wrap" />
-                        <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#334155" Text="{Binding ReplaceBaseSlot.DisplayName}" TextWrapping="Wrap" />
-                        <ItemsControl IsVisible="{Binding ReplaceBaseSlot.HasFirmwareFacts}" ItemsSource="{Binding ReplaceBaseSlot.FirmwareFacts}">
-                          <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                              <WrapPanel Orientation="Horizontal" />
-                            </ItemsPanelTemplate>
-                          </ItemsControl.ItemsPanel>
-                          <ItemsControl.ItemTemplate>
-                            <StaticResource ResourceKey="FirmwareSlotFactTemplate" />
-                          </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#64748B" IsVisible="{Binding ReplaceBaseSlot.HasFile}" Text="{Binding ReplaceBaseSlot.DisplayDetail}" TextWrapping="Wrap" />
-                      </StackPanel>
-                      <Button
-                          Grid.Column="1"
-                          Classes="action browseAction"
-                          Click="BrowseSlotButton_OnClick"
-                          Content="{Binding Text.BrowseLabel}"
-                          Tag="{Binding ReplaceBaseSlot.SlotId}" />
-                    </Grid>
-                  </Grid>
-                </Border>
+                <ContentControl
+                    Content="{Binding ReplaceBaseSlot}"
+                    ContentTemplate="{StaticResource FirmwareSlotCardTemplate}" />
 
                 <ItemsControl HorizontalAlignment="Stretch" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSlotGroups}">
                   <ItemsControl.ItemTemplate>
@@ -928,62 +784,9 @@
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="14">
                   <StackPanel Spacing="8">
                     <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.GeneralReplaceRuleBaseTitle}" />
-                <Border
-                    Classes="fileDropZone"
-                    Padding="0"
-                    Background="{Binding ReplaceBaseSlot.SlotBackgroundBrush}"
-                    BorderBrush="{Binding ReplaceBaseSlot.SlotBorderBrush}"
-                    BorderThickness="{Binding ReplaceBaseSlot.SlotBorderThickness}"
-                    CornerRadius="8"
-                    DragDrop.AllowDrop="True"
-                    DragDrop.DragEnter="DropZone_OnDragEnter"
-                    DragDrop.DragOver="SlotDragOver_OnDragOver"
-                    DragDrop.DragLeave="DropZone_OnDragLeave"
-                    DragDrop.Drop="SlotDrop_OnDrop"
-                    Tag="{Binding ReplaceBaseSlot.SlotId}">
-                  <Grid>
-                    <Border Classes="dropZoneOverlay" />
-                    <Grid Margin="14" MinHeight="60" ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                      <StackPanel VerticalAlignment="Center" Spacing="4">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                          <Border
-                              Classes="slotTypeIcon"
-                              Background="{Binding ReplaceBaseSlot.SlotIconBackgroundBrush}"
-                              BorderBrush="{Binding ReplaceBaseSlot.SlotIconBorderBrush}"
-                              ToolTip.Tip="{Binding ReplaceBaseSlot.SlotIconTooltip}">
-                            <Path
-                                Data="{Binding ReplaceBaseSlot.SlotIconPathData}"
-                                Stroke="{Binding ReplaceBaseSlot.SlotIconForegroundBrush}" />
-                          </Border>
-                          <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding ReplaceBaseSlot.Title}" />
-                          <Border Padding="8,2" VerticalAlignment="Center" Background="{Binding ReplaceBaseSlot.RequirementBadgeBackgroundBrush}" BorderBrush="{Binding ReplaceBaseSlot.RequirementBadgeBorderBrush}" BorderThickness="1" CornerRadius="999">
-                            <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{Binding ReplaceBaseSlot.RequirementBadgeForegroundBrush}" Text="{Binding ReplaceBaseSlot.RequirementLabel}" />
-                          </Border>
-                        </StackPanel>
-                        <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding ReplaceBaseSlot.Description}" TextWrapping="Wrap" />
-                        <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#334155" Text="{Binding ReplaceBaseSlot.DisplayName}" TextWrapping="Wrap" />
-                        <ItemsControl IsVisible="{Binding ReplaceBaseSlot.HasFirmwareFacts}" ItemsSource="{Binding ReplaceBaseSlot.FirmwareFacts}">
-                          <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                              <WrapPanel Orientation="Horizontal" />
-                            </ItemsPanelTemplate>
-                          </ItemsControl.ItemsPanel>
-                          <ItemsControl.ItemTemplate>
-                            <StaticResource ResourceKey="FirmwareSlotFactTemplate" />
-                          </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#64748B" IsVisible="{Binding ReplaceBaseSlot.HasFile}" Text="{Binding ReplaceBaseSlot.DisplayDetail}" TextWrapping="Wrap" />
-                      </StackPanel>
-                      <Button
-                          Grid.Column="1"
-                          Classes="action browseAction"
-                          VerticalAlignment="Center"
-                          Click="BrowseSlotButton_OnClick"
-                          Content="{Binding Text.BrowseLabel}"
-                          Tag="{Binding ReplaceBaseSlot.SlotId}" />
-                    </Grid>
-                  </Grid>
-                </Border>
+                    <ContentControl
+                        Content="{Binding ReplaceBaseSlot}"
+                        ContentTemplate="{StaticResource FirmwareSlotCardTemplate}" />
                   </StackPanel>
 
                   <StackPanel Grid.Column="1" Spacing="8">

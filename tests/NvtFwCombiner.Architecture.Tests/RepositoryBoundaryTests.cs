@@ -43,6 +43,7 @@ public sealed partial class RepositoryBoundaryTests
     {
         string shell = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml");
         string shellStyles = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowStyles.axaml");
+        string sharedTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml");
         string reportTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportTemplates.axaml");
 
         Assert.Contains("IsHomeVisible", shell, StringComparison.Ordinal);
@@ -68,6 +69,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Classes=\"primary\"", shell, StringComparison.Ordinal);
         Assert.Contains("Classes=\"action\"", shell, StringComparison.Ordinal);
         Assert.Contains("MainWindowStyles.axaml", shell, StringComparison.Ordinal);
+        Assert.Contains("MainWindowSharedTemplates.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("MainWindowReportTemplates.axaml", shell, StringComparison.Ordinal);
         Assert.Contains("<Setter Property=\"MinHeight\" Value=\"44\" />", shellStyles, StringComparison.Ordinal);
         Assert.Contains("<Setter Property=\"CornerRadius\" Value=\"999\" />", shellStyles, StringComparison.Ordinal);
@@ -83,8 +85,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Command=\"{Binding ShowReplaceSelectionCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("MemoryCoverageTooltipTemplate", shell, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource MemoryCoverageTooltipTemplate}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding #RootWindow.DataContext.Text.RangeLabel}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding #RootWindow.DataContext.Text.ResultLabel}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{ReflectionBinding $parent[Window].DataContext.Text.RangeLabel}\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{ReflectionBinding $parent[Window].DataContext.Text.ResultLabel}\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("DataTemplate x:Key=\"FirmwareSlotFactTemplate\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("SlotDrop_OnDrop", shell, StringComparison.Ordinal);
         Assert.Contains("SlotDragOver_OnDragOver", shell, StringComparison.Ordinal);
         Assert.Contains("BrowseSlotButton_OnClick", shell, StringComparison.Ordinal);
