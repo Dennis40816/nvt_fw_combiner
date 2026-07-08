@@ -57,6 +57,9 @@ public sealed partial class RepositoryBoundaryTests
         ];
 
         Assert.Contains("## Update rule", reference, StringComparison.Ordinal);
+        Assert.Contains("BuiltInStandardMergeProfiles*.cs", reference, StringComparison.Ordinal);
+        Assert.Contains("BuiltInReplaceProfiles*.cs", reference, StringComparison.Ordinal);
+        Assert.Contains("root file owns exposure order only", reference, StringComparison.Ordinal);
         Assert.Contains("IcWorkflowFlowchartReferenceCoversBuiltInIcLists", reference, StringComparison.Ordinal);
         Assert.Contains("NT51928 NB is not covered", reference, StringComparison.Ordinal);
         Assert.Contains("0x37000-0x37FFF (len 0x1000)", reference, StringComparison.Ordinal);

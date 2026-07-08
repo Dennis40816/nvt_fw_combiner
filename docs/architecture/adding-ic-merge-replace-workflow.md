@@ -97,7 +97,7 @@ Do not add IC-specific byte behavior to:
 ## Standard Merge steps
 
 1. Normalize source evidence into output capacity, fill byte, address spaces, and copy ranges.
-2. Add or update a profile in `BuiltInStandardMergeProfiles`.
+2. Add or update a profile in the focused `BuiltInStandardMergeProfiles.*` partial that owns the evidence family; keep the root file limited to stable exposure order.
 3. Compile the profile and confirm blank initialization plus ordered copy operations.
 4. Add invalid input-size tests for every declared input length rule.
 5. Add or update golden regression:
@@ -107,7 +107,7 @@ Do not add IC-specific byte behavior to:
 
 Minimum tests:
 
-- `tests/NvtFwCombiner.ProfileContract.Tests/BuiltInStandardMergeProfilesTests.cs`
+- the focused `tests/NvtFwCombiner.ProfileContract.Tests/BuiltInStandardMergeProfilesTests.*.cs` file matching the changed profile family
 - `tests/NvtFwCombiner.ProfileContract.Tests/IcSupportCatalogTests.cs` when support exposure or alias facts change
 - `tests/NvtFwCombiner.ProfileContract.Tests/DpPerspectiveCatalogTests.cs` or the matching family-policy test when shared family policy changes
 - `tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeGenFlashGoldenTests.cs`
@@ -125,7 +125,7 @@ Minimum tests:
 
 Minimum tests:
 
-- `tests/NvtFwCombiner.ProfileContract.Tests/BuiltInReplaceProfilesTests.cs`
+- the focused `tests/NvtFwCombiner.ProfileContract.Tests/BuiltInReplaceProfilesTests.*.cs` file matching the changed profile family
 - `tests/NvtFwCombiner.ProfileContract.Tests/IcSupportCatalogTests.cs` when support exposure changes
 - `tests/NvtFwCombiner.ProfileContract.Tests/DpPerspectiveCatalogTests.cs` or the matching family-policy test when shared family policy changes
 - `tests/NvtFwCombiner.Bootstrap.Tests/ReplaceCliCommandTests.cs` when CLI can build the profile
