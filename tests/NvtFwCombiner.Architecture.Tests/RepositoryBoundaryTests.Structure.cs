@@ -235,6 +235,27 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ResolveStandardMergeProfileForInputs", standardMergeRun, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies built-in Replace profiles keep synthetic contracts separate from DP Perspective production policy.</summary>
+    [Fact]
+    public void BuiltInReplaceProfileConcernsStaySplit()
+    {
+        string root = ReadText("src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.cs");
+        string synthetic = ReadText("src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.Synthetic.cs");
+        string dpPerspective = ReadText("src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.DpPerspective.cs");
+
+        Assert.Contains("public static partial class BuiltInReplaceProfiles", root, StringComparison.Ordinal);
+        Assert.Contains("public static IReadOnlyList<CompositionProfileDefinition> All", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("SyntheticIc", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("CreateDpPerspectiveDpReplaceProfileCore", root, StringComparison.Ordinal);
+        Assert.Contains("SyntheticDpReplace", synthetic, StringComparison.Ordinal);
+        Assert.Contains("SyntheticCtrlRamReplace", synthetic, StringComparison.Ordinal);
+        Assert.Contains("SyntheticGeneralReplace", synthetic, StringComparison.Ordinal);
+        Assert.DoesNotContain("DpPerspectiveCatalog", synthetic, StringComparison.Ordinal);
+        Assert.Contains("DpPerspectiveDpReplaceProfiles", dpPerspective, StringComparison.Ordinal);
+        Assert.Contains("CreateDpPerspectiveDpReplaceProfileCore", dpPerspective, StringComparison.Ordinal);
+        Assert.DoesNotContain("SyntheticIc", dpPerspective, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies the root CLI entry point stays split from command-specific handlers and formatting helpers.</summary>
     [Fact]
     public void CliApplicationConcernsStaySplit()
