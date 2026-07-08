@@ -62,8 +62,8 @@ public static partial class BuiltInStandardMergeProfiles
             ],
             [
                 CompositionOperation.CopyRange(
-                    "copy-dp-container",
-                    100,
+                    DpPerspectiveCatalog.CopyDpContainerOperationId,
+                    DpPerspectiveCatalog.CopyDpContainerSequence,
                     CompositionAddressSpaceIds.DpInput,
                     outputRange,
                     CompositionAddressSpaceIds.OutputImage,
@@ -71,8 +71,8 @@ public static partial class BuiltInStandardMergeProfiles
                     OverlapPolicy.Reject,
                     $"Copy the {DpPerspectiveCatalog.FormatSupportedIcIds()} DP Perspective bytes using the selected DP input length as the output length."),
                 CompositionOperation.CopyRange(
-                    "overlay-tp",
-                    200,
+                    DpPerspectiveCatalog.OverlayTpOperationId,
+                    DpPerspectiveCatalog.OverlayTpSequence,
                     CompositionAddressSpaceIds.TpInput,
                     tpOverlay,
                     CompositionAddressSpaceIds.OutputImage,
@@ -82,7 +82,7 @@ public static partial class BuiltInStandardMergeProfiles
             ],
             [
                 new ProfileRegion(
-                    "dp-perspective-container",
+                    DpPerspectiveCatalog.ContainerRegionId,
                     CompositionAddressSpaceIds.OutputImage,
                     outputRange,
                     RegionAtomicity.Partitioned,
@@ -91,7 +91,7 @@ public static partial class BuiltInStandardMergeProfiles
             ],
             [
                 new RegionAccessRule(
-                    "dp-perspective-container",
+                    DpPerspectiveCatalog.ContainerRegionId,
                     RegionAccessKind.Parts,
                     $"{DpPerspectiveCatalog.FormatSupportedIcIds()} Standard Merge first copies DP, then overlays the declared TP range."),
             ]);

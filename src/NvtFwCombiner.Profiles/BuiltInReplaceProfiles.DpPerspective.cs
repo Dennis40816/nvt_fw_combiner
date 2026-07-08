@@ -79,8 +79,8 @@ public static partial class BuiltInReplaceProfiles
             ],
             [
                 CompositionOperation.ReplaceRange(
-                    "replace-dp-container",
-                    100,
+                    DpPerspectiveCatalog.ReplaceDpContainerOperationId,
+                    DpPerspectiveCatalog.ReplaceDpContainerSequence,
                     CompositionAddressSpaceIds.DpReplacement,
                     dpContainerRange,
                     CompositionAddressSpaceIds.OutputImage,
@@ -88,8 +88,8 @@ public static partial class BuiltInReplaceProfiles
                     OverlapPolicy.Reject,
                     $"Replace the {DpPerspectiveCatalog.FormatSupportedIcIds()} DP Perspective container using the selected base length 0x{capacity:X}."),
                 CompositionOperation.CopyRange(
-                    "restore-base-tp",
-                    200,
+                    DpPerspectiveCatalog.RestoreBaseTpOperationId,
+                    DpPerspectiveCatalog.RestoreBaseTpSequence,
                     CompositionAddressSpaceIds.ReferenceBase,
                     DpPerspectiveCatalog.TpOverlayRange,
                     CompositionAddressSpaceIds.OutputImage,
@@ -97,8 +97,8 @@ public static partial class BuiltInReplaceProfiles
                     OverlapPolicy.ReplaceExisting,
                     $"Restore original TP FW at {DpPerspectiveCatalog.FormatRange(DpPerspectiveCatalog.TpOverlayRange)} from the base firmware after DP replacement."),
                 CompositionOperation.CopyRange(
-                    "restore-base-customer-info",
-                    210,
+                    DpPerspectiveCatalog.RestoreBaseCustomerInfoOperationId,
+                    DpPerspectiveCatalog.RestoreBaseCustomerInfoSequence,
                     CompositionAddressSpaceIds.ReferenceBase,
                     DpPerspectiveCatalog.CustomerInfoPreserveRange,
                     CompositionAddressSpaceIds.OutputImage,
@@ -108,7 +108,7 @@ public static partial class BuiltInReplaceProfiles
             ],
             [
                 new ProfileRegion(
-                    "dp-perspective-container",
+                    DpPerspectiveCatalog.ContainerRegionId,
                     CompositionAddressSpaceIds.OutputImage,
                     dpContainerRange,
                     RegionAtomicity.Partitioned,
@@ -117,7 +117,7 @@ public static partial class BuiltInReplaceProfiles
             ],
             [
                 new RegionAccessRule(
-                    "dp-perspective-container",
+                    DpPerspectiveCatalog.ContainerRegionId,
                     RegionAccessKind.Parts,
                     $"{DpPerspectiveCatalog.FormatSupportedIcIds()} DP Replace first copies replacement DP, then restores the original TP and customer-info ranges."),
             ],

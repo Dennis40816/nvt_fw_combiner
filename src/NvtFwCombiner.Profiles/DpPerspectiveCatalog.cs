@@ -16,6 +16,39 @@ public static class DpPerspectiveCatalog
     /// <summary>Maximum DP Perspective container length currently approved for NT51950/NT51951.</summary>
     public const long MaxContainerLength = 0x100000;
 
+    /// <summary>Region id for the full DP Perspective output container.</summary>
+    public const string ContainerRegionId = "dp-perspective-container";
+
+    /// <summary>Standard Merge operation id that copies the selected DP Perspective container.</summary>
+    public const string CopyDpContainerOperationId = "copy-dp-container";
+
+    /// <summary>Standard Merge operation order for copying the selected DP Perspective container.</summary>
+    public const int CopyDpContainerSequence = 100;
+
+    /// <summary>Standard Merge operation id that overlays TP FW into the DP Perspective container.</summary>
+    public const string OverlayTpOperationId = "overlay-tp";
+
+    /// <summary>Standard Merge operation order for overlaying TP FW into the DP Perspective container.</summary>
+    public const int OverlayTpSequence = 200;
+
+    /// <summary>DP Replace operation id that replaces the selected DP Perspective container.</summary>
+    public const string ReplaceDpContainerOperationId = "replace-dp-container";
+
+    /// <summary>DP Replace operation order for replacing the selected DP Perspective container.</summary>
+    public const int ReplaceDpContainerSequence = 100;
+
+    /// <summary>DP Replace operation id that restores the original TP FW range from the base image.</summary>
+    public const string RestoreBaseTpOperationId = "restore-base-tp";
+
+    /// <summary>DP Replace operation order for restoring the original TP FW range from the base image.</summary>
+    public const int RestoreBaseTpSequence = 200;
+
+    /// <summary>DP Replace operation id that restores customer information from the base image.</summary>
+    public const string RestoreBaseCustomerInfoOperationId = "restore-base-customer-info";
+
+    /// <summary>DP Replace operation order for restoring customer information from the base image.</summary>
+    public const int RestoreBaseCustomerInfoSequence = 210;
+
     /// <summary>Supported exact DP/base lengths for DP Perspective workflows.</summary>
     public static IReadOnlyList<long> SupportedContainerLengths { get; } =
     [

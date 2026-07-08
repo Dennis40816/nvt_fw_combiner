@@ -51,6 +51,51 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("StandardMergeRegion", dpPerspective, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies DP Perspective operation and region ids stay owned by the DP Perspective catalog.</summary>
+    [Fact]
+    public void DpPerspectiveOperationIdsStayCatalogOwned()
+    {
+        string catalog = ReadText("src/NvtFwCombiner.Profiles/DpPerspectiveCatalog.cs");
+        string standardMerge = ReadText("src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles.DpPerspective.cs");
+        string replace = ReadText("src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.DpPerspective.cs");
+        string planning = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Planning.cs");
+
+        Assert.Contains("public const string ContainerRegionId = \"dp-perspective-container\";", catalog, StringComparison.Ordinal);
+        Assert.Contains("public const string CopyDpContainerOperationId = \"copy-dp-container\";", catalog, StringComparison.Ordinal);
+        Assert.Contains("public const string OverlayTpOperationId = \"overlay-tp\";", catalog, StringComparison.Ordinal);
+        Assert.Contains("public const string ReplaceDpContainerOperationId = \"replace-dp-container\";", catalog, StringComparison.Ordinal);
+        Assert.Contains("public const string RestoreBaseTpOperationId = \"restore-base-tp\";", catalog, StringComparison.Ordinal);
+        Assert.Contains(
+            "public const string RestoreBaseCustomerInfoOperationId = \"restore-base-customer-info\";",
+            catalog,
+            StringComparison.Ordinal);
+        Assert.Contains("DpPerspectiveCatalog.ContainerRegionId", standardMerge, StringComparison.Ordinal);
+        Assert.Contains("DpPerspectiveCatalog.CopyDpContainerOperationId", standardMerge, StringComparison.Ordinal);
+        Assert.Contains("DpPerspectiveCatalog.OverlayTpOperationId", standardMerge, StringComparison.Ordinal);
+        Assert.Contains("DpPerspectiveCatalog.ContainerRegionId", replace, StringComparison.Ordinal);
+        Assert.Contains("DpPerspectiveCatalog.ReplaceDpContainerOperationId", replace, StringComparison.Ordinal);
+        Assert.Contains("DpPerspectiveCatalog.RestoreBaseTpOperationId", replace, StringComparison.Ordinal);
+        Assert.Contains("DpPerspectiveCatalog.RestoreBaseCustomerInfoOperationId", replace, StringComparison.Ordinal);
+        Assert.Contains("DpPerspectiveCatalog.ReplaceDpContainerOperationId", planning, StringComparison.Ordinal);
+        Assert.Contains("DpPerspectiveCatalog.RestoreBaseTpOperationId", planning, StringComparison.Ordinal);
+        Assert.Contains("DpPerspectiveCatalog.RestoreBaseCustomerInfoOperationId", planning, StringComparison.Ordinal);
+
+        foreach (string literal in new[]
+        {
+            "\"dp-perspective-container\"",
+            "\"copy-dp-container\"",
+            "\"overlay-tp\"",
+            "\"replace-dp-container\"",
+            "\"restore-base-tp\"",
+            "\"restore-base-customer-info\"",
+        })
+        {
+            Assert.DoesNotContain(literal, standardMerge, StringComparison.Ordinal);
+            Assert.DoesNotContain(literal, replace, StringComparison.Ordinal);
+            Assert.DoesNotContain(literal, planning, StringComparison.Ordinal);
+        }
+    }
+
     /// <summary>Verifies workflow ids stay catalog-owned instead of being duplicated in profile adapters.</summary>
     [Fact]
     public void WorkflowIdsStayCatalogOwned()

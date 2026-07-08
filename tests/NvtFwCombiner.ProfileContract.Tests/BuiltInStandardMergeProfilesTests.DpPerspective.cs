@@ -31,7 +31,7 @@ public sealed partial class BuiltInStandardMergeProfilesTests
             space.Length == DpPerspectiveCatalog.TpInputLength &&
             space.InputPaddingByte is null);
         Assert.Equal(
-            ["copy-dp-container", "overlay-tp"],
+            [DpPerspectiveCatalog.CopyDpContainerOperationId, DpPerspectiveCatalog.OverlayTpOperationId],
             result.Plan!.OrderedOperations.Select(operation => operation.OperationId));
 
         CompositionOperation dpCopy = result.Plan.OrderedOperations[0];

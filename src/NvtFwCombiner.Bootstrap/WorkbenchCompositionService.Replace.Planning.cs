@@ -51,8 +51,8 @@ public static partial class WorkbenchCompositionService
             return
             [
                 new OperationRunSummary(
-                    "replace-dp-container",
-                    100,
+                    DpPerspectiveCatalog.ReplaceDpContainerOperationId,
+                    DpPerspectiveCatalog.ReplaceDpContainerSequence,
                     CompositionOperationKind.ReplaceRange,
                     status,
                     CompositionAddressSpaceIds.DpReplacement,
@@ -66,8 +66,8 @@ public static partial class WorkbenchCompositionService
                     [],
                     "Replace the DP perspective container using the selected base length."),
                 new OperationRunSummary(
-                    "restore-base-tp",
-                    200,
+                    DpPerspectiveCatalog.RestoreBaseTpOperationId,
+                    DpPerspectiveCatalog.RestoreBaseTpSequence,
                     CompositionOperationKind.CopyRange,
                     status,
                     CompositionAddressSpaceIds.ReferenceBase,
@@ -81,8 +81,8 @@ public static partial class WorkbenchCompositionService
                     [],
                     "Restore original TP FW from the base firmware."),
                 new OperationRunSummary(
-                    "restore-base-customer-info",
-                    210,
+                    DpPerspectiveCatalog.RestoreBaseCustomerInfoOperationId,
+                    DpPerspectiveCatalog.RestoreBaseCustomerInfoSequence,
                     CompositionOperationKind.CopyRange,
                     status,
                     CompositionAddressSpaceIds.ReferenceBase,

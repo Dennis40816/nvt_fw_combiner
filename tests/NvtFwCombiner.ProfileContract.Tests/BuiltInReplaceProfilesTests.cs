@@ -57,12 +57,18 @@ public sealed class BuiltInReplaceProfilesTests
             space.AllowedInputLengths.SequenceEqual(DpPerspectiveCatalog.SupportedContainerLengths));
 
         CompositionOperation[] operations = [.. result.Plan!.OrderedOperations];
-        Assert.Equal(["replace-dp-container", "restore-base-tp", "restore-base-customer-info"], operations.Select(operation => operation.OperationId));
+        Assert.Equal(
+            [
+                DpPerspectiveCatalog.ReplaceDpContainerOperationId,
+                DpPerspectiveCatalog.RestoreBaseTpOperationId,
+                DpPerspectiveCatalog.RestoreBaseCustomerInfoOperationId,
+            ],
+            operations.Select(operation => operation.OperationId));
         Assert.Equal(new ByteRange(0, DpPerspectiveCatalog.MaxContainerLength), operations[0].TargetRange);
         Assert.Equal(DpPerspectiveCatalog.TpOverlayRange, operations[1].TargetRange);
         Assert.Equal(DpPerspectiveCatalog.CustomerInfoPreserveRange, operations[2].TargetRange);
         Assert.Contains(profile.Regions, region =>
-            region.RegionId == "dp-perspective-container" &&
+            region.RegionId == DpPerspectiveCatalog.ContainerRegionId &&
             region.ClassificationTags.Contains("customer-info-preserve", StringComparer.Ordinal));
     }
 
@@ -88,7 +94,11 @@ public sealed class BuiltInReplaceProfilesTests
             space.InputPaddingByte == 0x00 &&
             space.AllowedInputLengths.Count == 0);
         Assert.Equal(
-            ["replace-dp-container", "restore-base-tp", "restore-base-customer-info"],
+            [
+                DpPerspectiveCatalog.ReplaceDpContainerOperationId,
+                DpPerspectiveCatalog.RestoreBaseTpOperationId,
+                DpPerspectiveCatalog.RestoreBaseCustomerInfoOperationId,
+            ],
             result.Plan!.OrderedOperations.Select(operation => operation.OperationId));
         Assert.Equal(new ByteRange(0, capacity), result.Plan.OrderedOperations[0].TargetRange);
         Assert.Equal(BuiltInReplaceProfiles.DpPerspectiveTpRestoreRange, result.Plan.OrderedOperations[1].TargetRange);

@@ -17,6 +17,17 @@ public sealed class DpPerspectiveCatalogTests
         Assert.Equal("0x40000 / 0x80000 / 0x100000", DpPerspectiveCatalog.FormatSupportedLengths());
         Assert.Equal("0x0A000-0x36FFF (len 0x2D000)", DpPerspectiveCatalog.FormatRange(DpPerspectiveCatalog.TpOverlayRange));
         Assert.Equal("0x37000-0x37FFF (len 0x1000)", DpPerspectiveCatalog.FormatRange(DpPerspectiveCatalog.CustomerInfoPreserveRange));
+        Assert.Equal("dp-perspective-container", DpPerspectiveCatalog.ContainerRegionId);
+        Assert.Equal("copy-dp-container", DpPerspectiveCatalog.CopyDpContainerOperationId);
+        Assert.Equal(100, DpPerspectiveCatalog.CopyDpContainerSequence);
+        Assert.Equal("overlay-tp", DpPerspectiveCatalog.OverlayTpOperationId);
+        Assert.Equal(200, DpPerspectiveCatalog.OverlayTpSequence);
+        Assert.Equal("replace-dp-container", DpPerspectiveCatalog.ReplaceDpContainerOperationId);
+        Assert.Equal(100, DpPerspectiveCatalog.ReplaceDpContainerSequence);
+        Assert.Equal("restore-base-tp", DpPerspectiveCatalog.RestoreBaseTpOperationId);
+        Assert.Equal(200, DpPerspectiveCatalog.RestoreBaseTpSequence);
+        Assert.Equal("restore-base-customer-info", DpPerspectiveCatalog.RestoreBaseCustomerInfoOperationId);
+        Assert.Equal(210, DpPerspectiveCatalog.RestoreBaseCustomerInfoSequence);
 
         Assert.Equal(
             DpPerspectiveCatalog.SupportedContainerLengths,
@@ -47,13 +58,13 @@ public sealed class DpPerspectiveCatalogTests
             space.AddressSpaceId == "tp-input" &&
             space.Length == DpPerspectiveCatalog.TpInputLength);
         Assert.Contains(mergeCompile.Plan!.OrderedOperations, operation =>
-            operation.OperationId == "overlay-tp" &&
+            operation.OperationId == DpPerspectiveCatalog.OverlayTpOperationId &&
             operation.TargetRange == DpPerspectiveCatalog.TpOverlayRange);
         Assert.Contains(replaceCompile.Plan!.OrderedOperations, operation =>
-            operation.OperationId == "restore-base-tp" &&
+            operation.OperationId == DpPerspectiveCatalog.RestoreBaseTpOperationId &&
             operation.TargetRange == DpPerspectiveCatalog.TpOverlayRange);
         Assert.Contains(replaceCompile.Plan.OrderedOperations, operation =>
-            operation.OperationId == "restore-base-customer-info" &&
+            operation.OperationId == DpPerspectiveCatalog.RestoreBaseCustomerInfoOperationId &&
             operation.TargetRange == DpPerspectiveCatalog.CustomerInfoPreserveRange);
     }
 
