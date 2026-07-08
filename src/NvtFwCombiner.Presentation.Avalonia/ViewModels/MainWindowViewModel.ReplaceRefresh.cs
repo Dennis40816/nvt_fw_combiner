@@ -69,7 +69,7 @@ public sealed partial class MainWindowViewModel
 
     private long? GetSelectedMergeDpInputLength()
     {
-        return SelectedIc is "NT51950" or "NT51951" &&
+        return UiCompositionRunner.IsDpPerspectiveIc(SelectedIc) &&
             !string.IsNullOrWhiteSpace(_mergeDpSlot.FilePath) &&
             File.Exists(_mergeDpSlot.FilePath)
                 ? new FileInfo(_mergeDpSlot.FilePath).Length
@@ -79,7 +79,7 @@ public sealed partial class MainWindowViewModel
     private long? GetSelectedReplaceBaseLength()
     {
         return SelectedReplaceMode == DpReplaceMode &&
-            SelectedIc is "NT51950" or "NT51951" &&
+            UiCompositionRunner.IsDpPerspectiveIc(SelectedIc) &&
             !string.IsNullOrWhiteSpace(ReplaceBaseSlot.FilePath) &&
             File.Exists(ReplaceBaseSlot.FilePath)
                 ? new FileInfo(ReplaceBaseSlot.FilePath).Length
@@ -120,9 +120,7 @@ public sealed partial class MainWindowViewModel
                 AddRows(
                     $"{SelectedIc} / {SelectedNumber}: DP Replace input policy is active.",
                     UiCompositionRunner.GetDpReplacePolicySummary(SelectedIc),
-                    SelectedIc == "NT51928"
-                        ? "NT51928 exposes an explicit LDC slot; other ICs hide LDC in DP Replace."
-                        : "Only DP and TP restore regions are shown for this IC.");
+                    "Visible DP Replace slots come from approved profile/catalog evidence.");
                 break;
             case CtrlRamReplaceMode:
                 ReplaceSlots.Add(ReplaceBaseSlot);

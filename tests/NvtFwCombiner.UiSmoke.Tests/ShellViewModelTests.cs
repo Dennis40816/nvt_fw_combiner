@@ -1335,6 +1335,7 @@ public sealed class ShellViewModelTests
         Assert.True(viewModel.LoadedReport.HasOperationFlow);
         Assert.Contains(viewModel.LoadedReport.OperationFlow, node =>
             node.Title == "Refresh header and CRC" &&
+            node.Number == "100" &&
             node.Meta == "details in Postbuild tab");
         Assert.DoesNotContain(viewModel.LoadedReport.StepOperations, operation => operation.HasCodeBlock);
         Assert.True(viewModel.LoadedReport.HasCommandOperations);

@@ -5,7 +5,7 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 public sealed partial class MainWindowViewModel
 {
     /// <summary>Gets short Replace memory-map summary text.</summary>
-    public string ReplaceMemorySummary => Text.GetReplaceMemorySummary(SelectedReplaceMode, SelectedIc);
+    public string ReplaceMemorySummary => Text.GetReplaceMemorySummary(SelectedReplaceMode);
 
     /// <summary>Status shown in the replace inspector.</summary>
     public string ReplaceReadinessStatus => Text.GetReplaceReadinessStatus(SelectedReplaceMode, CanRunReplace());

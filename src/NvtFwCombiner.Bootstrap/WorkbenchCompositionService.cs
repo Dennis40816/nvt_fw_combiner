@@ -57,6 +57,12 @@ public static partial class WorkbenchCompositionService
         return TpFlashMapCatalog.GetNumberChoices(icId);
     }
 
+    /// <summary>Returns true when the IC uses the DP Perspective family policy.</summary>
+    public static bool IsDpPerspectiveIc(string icId)
+    {
+        return DpPerspectiveCatalog.IsSupportedIc(icId);
+    }
+
     /// <summary>Gets readable memory-map rows for the selected Standard Merge profile.</summary>
     public static IReadOnlyList<WorkbenchMemoryMapRow> GetStandardMergeMemoryMapRows(string icId)
     {

@@ -157,6 +157,8 @@ public sealed partial class ShellTextResources
 
     public string OutputLengthLabel { get; private init; } = string.Empty;
 
+    public string OutputLengthPlaceholder { get; private init; } = string.Empty;
+
     public string BrowseLabel { get; private init; } = string.Empty;
 
     public string RequiredLabel { get; private init; } = string.Empty;
@@ -439,21 +441,19 @@ public sealed partial class ShellTextResources
             };
     }
 
-    public string GetReplaceMemorySummary(string mode, string ic)
+    public string GetReplaceMemorySummary(string mode)
     {
         return Language == ShellLanguage.ChineseTraditional
             ? mode switch
             {
-                "DP" when ic is "NT51950" or "NT51951" => "藍色代表新的 DP bytes；灰色代表從 base firmware 還原的 TP。",
-                "DP" => "Base flash 只會在核准的 DP 取代範圍內改變。",
+                "DP" => "藍色代表新的 DP bytes；灰色代表從 base firmware 保留或還原的區段。",
                 "CtrlRAM" => "有色區塊代表可取代的 CtrlRAM 位置；灰色保留 base firmware。",
                 "General" => "Base flash 只會在核准的明確取代範圍內改變。",
                 _ => "選擇 Replace 模式後查看目標範圍。",
             }
             : mode switch
             {
-                "DP" when ic is "NT51950" or "NT51951" => "Blue shows new DP bytes; gray shows TP restored from the base firmware.",
-                "DP" => "Base flash stays unchanged except approved DP replacement ranges.",
+                "DP" => "Blue shows new DP bytes; gray shows sections preserved or restored from the base firmware.",
                 "CtrlRAM" => "Colored blocks show replaceable CtrlRAM positions; gray stays from the base firmware.",
                 "General" => "Base flash stays unchanged except approved explicit replacement ranges.",
                 _ => "Select a replace mode to inspect its target ranges.",

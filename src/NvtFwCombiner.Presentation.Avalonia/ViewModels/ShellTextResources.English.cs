@@ -80,6 +80,7 @@ public sealed partial class ShellTextResources
             SourceBinLabel = "Source BIN",
             ReplacementBinLabel = "Replacement BIN",
             OutputLengthLabel = "Output length",
+            OutputLengthPlaceholder = "0x...",
             BrowseLabel = "Browse",
             RequiredLabel = "Required",
             OptionalLabel = "Optional",

@@ -54,6 +54,12 @@ public static class UiCompositionRunner
         return WorkbenchCompositionService.GetNumberChoices(icId);
     }
 
+    /// <summary>Returns true when the selected IC uses the catalog-backed DP Perspective policy.</summary>
+    public static bool IsDpPerspectiveIc(string icId)
+    {
+        return WorkbenchCompositionService.IsDpPerspectiveIc(icId);
+    }
+
     /// <summary>Gets compact firmware facts decoded from a selected BIN file.</summary>
     public static IReadOnlyList<FirmwareSlotFactViewModel> GetFirmwareSlotFacts(
         string icId,

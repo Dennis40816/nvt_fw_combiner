@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
 
@@ -23,7 +24,7 @@ public static partial class WorkbenchCompositionService
 
         long capacity = StandardMergeProfilesByIc.TryGetValue(icId, out CompositionProfileDefinition? profile)
             ? profile.Initialization.Capacity
-            : 0x100000;
+            : GetGeneralMergeCatalogFallbackCapacity(icId);
         return FormatWorkbenchHex(capacity);
     }
 
@@ -486,6 +487,13 @@ public static partial class WorkbenchCompositionService
         return string.IsNullOrWhiteSpace(mapping.FilePath)
             ? "Source BIN"
             : Path.GetFileName(mapping.FilePath);
+    }
+
+    private static long GetGeneralMergeCatalogFallbackCapacity(string icId)
+    {
+        return TpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? profile) && profile is not null
+            ? profile.Regions.Max(region => region.Range.EndExclusive)
+            : throw new InvalidOperationException($"No Standard Merge profile or TP flash-map profile is available for '{icId}'.");
     }
 
     private static string FormatWorkbenchHex(long value)

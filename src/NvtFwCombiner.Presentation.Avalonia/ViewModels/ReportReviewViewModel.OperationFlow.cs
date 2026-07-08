@@ -12,13 +12,13 @@ public sealed partial class ReportReviewViewModel
         ShellLanguage language)
     {
         List<ReportOperationFlowNodeViewModel> nodes = [];
-        int index = 1;
+        int sequence = 100;
         ReportLineViewModel[] baseInputs = [.. inputs.Where(input =>
             string.Equals(input.Classification, "base", StringComparison.Ordinal))];
         if (baseInputs.Length > 0)
         {
             nodes.Add(new ReportOperationFlowNodeViewModel(
-                index++.ToString(CultureInfo.InvariantCulture),
+                NextFlowNumber(ref sequence),
                 T(language, "Load base image", "載入基準映像"),
                 baseInputs[0].Title,
                 baseInputs[0].Detail,
@@ -32,7 +32,7 @@ public sealed partial class ReportReviewViewModel
         if (replacementInputs.Length > 0)
         {
             nodes.Add(new ReportOperationFlowNodeViewModel(
-                index++.ToString(CultureInfo.InvariantCulture),
+                NextFlowNumber(ref sequence),
                 T(language, "Apply replacement BINs", "套用替換 BIN"),
                 T(
                     language,
@@ -49,7 +49,7 @@ public sealed partial class ReportReviewViewModel
             foreach (ReportLineViewModel operation in stepOperations)
             {
                 nodes.Add(new ReportOperationFlowNodeViewModel(
-                    index++.ToString(CultureInfo.InvariantCulture),
+                    NextFlowNumber(ref sequence),
                     FormatOperationFlowTitle(operation, language),
                     operation.OperationTarget,
                     ExtractOperationFlowName(operation.Title),
@@ -62,7 +62,7 @@ public sealed partial class ReportReviewViewModel
         if (commandOperations.Length > 0)
         {
             nodes.Add(new ReportOperationFlowNodeViewModel(
-                index++.ToString(CultureInfo.InvariantCulture),
+                NextFlowNumber(ref sequence),
                 T(language, "Refresh header and CRC", "刷新 header 與 CRC"),
                 T(
                     language,
@@ -76,7 +76,7 @@ public sealed partial class ReportReviewViewModel
         if (!string.IsNullOrWhiteSpace(outputFileName))
         {
             nodes.Add(new ReportOperationFlowNodeViewModel(
-                index++.ToString(CultureInfo.InvariantCulture),
+                NextFlowNumber(ref sequence),
                 T(language, "Write output", "寫出輸出"),
                 outputFileName,
                 T(language, "final artifact", "最終產物"),
@@ -99,6 +99,13 @@ public sealed partial class ReportReviewViewModel
         }
 
         return nodes;
+    }
+
+    private static string NextFlowNumber(ref int sequence)
+    {
+        string number = sequence.ToString(CultureInfo.InvariantCulture);
+        sequence += 100;
+        return number;
     }
 
     private static string ExtractOperationFlowNumber(string title)
