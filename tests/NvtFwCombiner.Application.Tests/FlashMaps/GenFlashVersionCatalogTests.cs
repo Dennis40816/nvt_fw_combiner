@@ -6,6 +6,26 @@ namespace NvtFwCombiner.Application.Tests.FlashMaps;
 /// <summary>Golden-backed checks for gen_flash contiguous DP main/sub version-byte rules.</summary>
 public sealed class GenFlashVersionCatalogTests
 {
+    /// <summary>Guards DP version rules as contiguous main/sub byte pairs inside the declared DP range.</summary>
+    [Fact]
+    public void DpVersionRulesAreContiguousAndInsideDeclaredDpRange()
+    {
+        Assert.NotEmpty(GenFlashVersionCatalog.AllDpVersionRules);
+
+        string[] ruleIds = [.. GenFlashVersionCatalog.AllDpVersionRules.Select(rule => rule.IcId)];
+        Assert.Equal(ruleIds.Length, ruleIds.Distinct(StringComparer.Ordinal).Count());
+
+        foreach (GenFlashDpVersionRule rule in GenFlashVersionCatalog.AllDpVersionRules)
+        {
+            Assert.Equal(rule.OutputDpStart + rule.InputRelativeOffset, rule.OutputMainAbsoluteAddress);
+            Assert.Equal(rule.OutputMainAbsoluteAddress + 1, rule.OutputSubAbsoluteAddress);
+            Assert.True(rule.OutputMainAbsoluteAddress >= rule.OutputDpStart);
+            Assert.True(rule.OutputSubAbsoluteAddress < rule.OutputDpEndExclusive);
+            Assert.True(GenFlashVersionCatalog.TryGetDpVersionRule($"NT{rule.IcId}", out GenFlashDpVersionRule resolved));
+            Assert.Same(rule, resolved);
+        }
+    }
+
     /// <summary>Reads contiguous DP main/sub version bytes from owner-approved gen_flash standard-merge DP inputs.</summary>
     [Theory]
     [InlineData("51920", "0101")]

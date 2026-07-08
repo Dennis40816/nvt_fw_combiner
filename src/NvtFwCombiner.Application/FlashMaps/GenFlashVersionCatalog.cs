@@ -4,12 +4,18 @@ namespace NvtFwCombiner.Application.FlashMaps;
 public static class GenFlashVersionCatalog
 {
     private const string GenFlashEvidence = "gen_flash_bin_v2/ic_config.json";
-    private static readonly Dictionary<string, GenFlashDpVersionRule> DpVersionRules = BuildDpVersionRules();
+    private static readonly Dictionary<string, GenFlashDpVersionRule> DpVersionRulesByIc = BuildDpVersionRules();
+
+    /// <summary>All owner-evidenced DP main/sub version-byte rules in stable IC order.</summary>
+    public static IReadOnlyList<GenFlashDpVersionRule> AllDpVersionRules { get; } =
+    [
+        .. DpVersionRulesByIc.Values.OrderBy(rule => rule.IcId, StringComparer.Ordinal),
+    ];
 
     /// <summary>Returns the DP main/sub version-byte rule for an IC when gen_flash evidence defines one.</summary>
     public static bool TryGetDpVersionRule(string icId, out GenFlashDpVersionRule rule)
     {
-        bool found = DpVersionRules.TryGetValue(NormalizeIcId(icId), out GenFlashDpVersionRule? foundRule);
+        bool found = DpVersionRulesByIc.TryGetValue(NormalizeIcId(icId), out GenFlashDpVersionRule? foundRule);
         rule = foundRule!;
         return found;
     }
