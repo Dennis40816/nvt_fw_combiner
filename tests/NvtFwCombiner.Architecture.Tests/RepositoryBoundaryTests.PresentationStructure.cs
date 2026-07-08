@@ -83,4 +83,30 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("GetReplaceMemoryMapRows", replace, StringComparison.Ordinal);
         Assert.Contains("RunReplaceAsync", replace, StringComparison.Ordinal);
     }
+
+    /// <summary>Verifies firmware slot state, icons, and fact badges stay split by UI responsibility.</summary>
+    [Fact]
+    public void FirmwareSlotViewModelConcernsStaySplit()
+    {
+        string root = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotViewModel.cs");
+        string icons = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotViewModel.Icons.cs");
+        string state = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotViewModel.State.cs");
+        string facts = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotFactViewModel.cs");
+        string kind = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotKind.cs");
+
+        Assert.Contains("public sealed partial class FirmwareSlotViewModel", root, StringComparison.Ordinal);
+        Assert.Contains("public partial string? FilePath", root, StringComparison.Ordinal);
+        Assert.Contains("public void ApplyDisplayText", root, StringComparison.Ordinal);
+        Assert.Contains("public void SetFirmwareFacts", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("SlotIconPathData", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("public IBrush SlotBackgroundBrush", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("public sealed record FirmwareSlotFactViewModel", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("public enum FirmwareSlotKind", root, StringComparison.Ordinal);
+        Assert.Contains("SlotIconPathData", icons, StringComparison.Ordinal);
+        Assert.Contains("InferSlotKind", icons, StringComparison.Ordinal);
+        Assert.Contains("SlotBackgroundBrush", state, StringComparison.Ordinal);
+        Assert.Contains("RequirementBadgeForegroundBrush", state, StringComparison.Ordinal);
+        Assert.Contains("public sealed record FirmwareSlotFactViewModel", facts, StringComparison.Ordinal);
+        Assert.Contains("public enum FirmwareSlotKind", kind, StringComparison.Ordinal);
+    }
 }
