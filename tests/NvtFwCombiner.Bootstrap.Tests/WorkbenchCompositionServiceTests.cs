@@ -10,6 +10,45 @@ public sealed class WorkbenchCompositionServiceTests
     private const string EmptySha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
     private const int FirmwareVersionBarOffset = 0x001;
 
+    /// <summary>Verifies FlashCode output naming reads DP/FWConfig metadata outside the UI layer.</summary>
+    [Fact]
+    public void FlashCodeOutputNameUsesCatalogBackedDpAndTpMetadata()
+    {
+        string dpPath = GoldenPath("inputs/51926/dp.bin");
+        string tpPath = GoldenPath("inputs/51926/tp.bin");
+
+        WorkbenchOutputFileNameSuggestion suggestion = WorkbenchCompositionService.CreateFlashCodeOutputFileName(
+            "51926",
+            [
+                new WorkbenchOutputNameCandidate(WorkbenchOutputNameCandidateKind.Dp, dpPath),
+                new WorkbenchOutputNameCandidate(WorkbenchOutputNameCandidateKind.Tp, tpPath),
+            ],
+            new DateOnly(2026, 7, 8));
+
+        Assert.Equal("NT51926_FlashCode_D01T0100_20260708.bin", suggestion.FileName);
+        Assert.Equal("01", suggestion.DpVersionToken);
+        Assert.True(suggestion.HasDpVersion);
+        Assert.Equal("0100", suggestion.TpVersionToken);
+        Assert.True(suggestion.HasTpVersion);
+        Assert.Equal("20260708", suggestion.DateToken);
+    }
+
+    /// <summary>Verifies missing metadata produces explicit unknown tokens without guessing offsets.</summary>
+    [Fact]
+    public void FlashCodeOutputNameUsesUnknownTokensWhenMetadataIsMissing()
+    {
+        WorkbenchOutputFileNameSuggestion suggestion = WorkbenchCompositionService.CreateFlashCodeOutputFileName(
+            "NT51950",
+            [],
+            new DateOnly(2026, 7, 8));
+
+        Assert.Equal("NT51950_FlashCode_DxxTxx_20260708.bin", suggestion.FileName);
+        Assert.Equal("xx", suggestion.DpVersionToken);
+        Assert.False(suggestion.HasDpVersion);
+        Assert.Equal("xx", suggestion.TpVersionToken);
+        Assert.False(suggestion.HasTpVersion);
+    }
+
     /// <summary>Verifies General Replace build writes a profile-approved DP explicit mapping.</summary>
     [Fact]
     public async Task GeneralReplaceBuildWritesDpExplicitMapping()

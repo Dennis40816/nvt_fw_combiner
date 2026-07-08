@@ -1,4 +1,4 @@
-using System.Globalization;
+using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -6,55 +6,30 @@ public sealed partial class MainWindowViewModel
 {
     private string CreateFlashCodeOutputFileName()
     {
-        string date = DateTime.Now.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
-        string dpVersion = FindDpVersionToken() ?? "xx";
-        string tpVersion = FindTpVersionToken() ?? "xx";
-        return FormattableString.Invariant($"{SelectedIc}_FlashCode_D{dpVersion}T{tpVersion}_{date}.bin");
-    }
-
-    private string? FindDpVersionToken()
-    {
-        foreach (FirmwareSlotViewModel slot in EnumerateVersionCandidateSlots()
-            .Where(slot => slot.SlotKind == FirmwareSlotKind.Dp))
-        {
-            string? token = UiCompositionRunner.TryGetDpVersionToken(SelectedIc, slot.FilePath);
-            if (!string.IsNullOrWhiteSpace(token))
-            {
-                return token;
-            }
-        }
-
-        return null;
-    }
-
-    private string? FindTpVersionToken()
-    {
-        foreach (FirmwareSlotViewModel slot in EnumerateVersionCandidateSlots())
-        {
-            string? token = UiCompositionRunner.TryGetFirmwareVersionToken(SelectedIc, slot.FilePath);
-            if (!string.IsNullOrWhiteSpace(token))
-            {
-                return token;
-            }
-        }
-
-        return null;
+        return UiCompositionRunner.CreateFlashCodeOutputFileName(
+            SelectedIc,
+            [.. EnumerateVersionCandidateSlots().Select(ToOutputNameCandidate)]);
     }
 
     private IEnumerable<FirmwareSlotViewModel> EnumerateVersionCandidateSlots()
     {
         return MergeSlots
             .Concat(ReplaceSlots)
-            .Concat([ReplaceBaseSlot])
-            .OrderBy(GetVersionCandidatePriority);
+            .Concat([ReplaceBaseSlot]);
     }
 
-    private static int GetVersionCandidatePriority(FirmwareSlotViewModel slot)
+    private static WorkbenchOutputNameCandidate ToOutputNameCandidate(FirmwareSlotViewModel slot)
     {
-        return slot.SlotKind == FirmwareSlotKind.Tp
-            ? 0
-            : slot.SlotKind == FirmwareSlotKind.CtrlRam
-                ? 1
-                : slot.SlotKind == FirmwareSlotKind.Base ? 2 : 3;
+        return new WorkbenchOutputNameCandidate(
+            slot.SlotKind switch
+            {
+                FirmwareSlotKind.Dp => WorkbenchOutputNameCandidateKind.Dp,
+                FirmwareSlotKind.Tp => WorkbenchOutputNameCandidateKind.Tp,
+                FirmwareSlotKind.CtrlRam => WorkbenchOutputNameCandidateKind.CtrlRam,
+                FirmwareSlotKind.Base => WorkbenchOutputNameCandidateKind.Base,
+                FirmwareSlotKind.Unknown => WorkbenchOutputNameCandidateKind.Unknown,
+                _ => WorkbenchOutputNameCandidateKind.Unknown,
+            },
+            slot.FilePath);
     }
 }

@@ -104,34 +104,12 @@ public static class UiCompositionRunner
             : category;
     }
 
-    /// <summary>Gets the compact FW+subversion token used in UI suggested output names.</summary>
-    public static string? TryGetFirmwareVersionToken(string icId, string? path)
+    /// <summary>Creates the catalog-backed FlashCode output file name suggestion.</summary>
+    public static string CreateFlashCodeOutputFileName(
+        string icId,
+        IReadOnlyList<WorkbenchOutputNameCandidate> candidates)
     {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            return null;
-        }
-
-        WorkbenchFirmwareConfigMetadata? metadata = WorkbenchCompositionService.TryReadFirmwareConfigMetadata(
-            icId,
-            path);
-        return metadata is { IsFirmwareVersionBarValid: true }
-            ? FormattableString.Invariant($"{metadata.FirmwareVersion:X2}{metadata.FirmwareSubVersion:X2}")
-            : null;
-    }
-
-    /// <summary>Gets the DP version token used in UI suggested output names.</summary>
-    public static string? TryGetDpVersionToken(string icId, string? path)
-    {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            return null;
-        }
-
-        WorkbenchDpVersionMetadata? metadata = WorkbenchCompositionService.TryReadDpVersionMetadata(
-            icId,
-            path);
-        return metadata?.VersionToken;
+        return WorkbenchCompositionService.CreateFlashCodeOutputFileName(icId, candidates).FileName;
     }
 
     /// <summary>Gets visible CtrlRAM rows for a selected IC and IC-number context.</summary>
