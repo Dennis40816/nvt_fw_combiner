@@ -55,6 +55,8 @@ public sealed partial class RepositoryBoundaryTests
         string firmwareMetadata = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.FirmwareMetadata.cs");
         string outputNaming = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.OutputNaming.cs");
         string ctrlRamDisplay = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.CtrlRamDisplay.cs");
+        string replaceDisplay = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Display.cs");
+        string replaceCoverage = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Coverage.cs");
         string replacePostbuild = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Postbuild.cs");
 
         Assert.Contains("public static partial class WorkbenchCompositionService", facade, StringComparison.Ordinal);
@@ -94,6 +96,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("GetCtrlRamRegions", ctrlRamDisplay, StringComparison.Ordinal);
         Assert.Contains("TpFlashMapCatalog.GetCtrlRamRegions", ctrlRamDisplay, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateFlashCodeOutputFileName", ctrlRamDisplay, StringComparison.Ordinal);
+        Assert.Contains("GetReplaceMemoryMapRows", replaceDisplay, StringComparison.Ordinal);
+        Assert.Contains("GetReplaceMemoryRangeLabel", replaceDisplay, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetReplaceCoverageSegments", replaceDisplay, StringComparison.Ordinal);
+        Assert.Contains("GetReplaceCoverageSegments", replaceCoverage, StringComparison.Ordinal);
         Assert.DoesNotContain("FirmwareConfigMetadataReader.TryRead", replacePostbuild, StringComparison.Ordinal);
     }
 }
