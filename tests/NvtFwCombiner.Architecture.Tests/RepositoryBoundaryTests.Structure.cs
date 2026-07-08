@@ -98,6 +98,16 @@ public sealed partial class RepositoryBoundaryTests
             CountOccurrences(bootstrapSource, "request.WithApprovedPreviewToken(preview.PreviewToken!)"));
     }
 
+    /// <summary>Verifies DP Perspective family labels remain catalog-owned instead of hard-coded in Bootstrap.</summary>
+    [Fact]
+    public void BootstrapUsesCatalogDpPerspectiveFamilyLabels()
+    {
+        string bootstrapSource = ReadBootstrapSources();
+
+        Assert.Contains("DpPerspectiveCatalog.FormatSupportedIcIds()", bootstrapSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("NT51950/NT51951", bootstrapSource, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies General mapping text parsing is owned by one Bootstrap helper.</summary>
     [Fact]
     public void BootstrapRangeTextOwnsGeneralMappingParsing()

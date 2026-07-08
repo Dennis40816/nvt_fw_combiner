@@ -6,6 +6,13 @@ namespace NvtFwCombiner.Profiles;
 /// <summary>Owner-approved NT51950/NT51951 DP Perspective policy shared by Merge and Replace.</summary>
 public static class DpPerspectiveCatalog
 {
+    /// <summary>Owner-approved IC ids that use the DP Perspective policy.</summary>
+    public static IReadOnlyList<string> SupportedIcIds { get; } =
+    [
+        "NT51950",
+        "NT51951",
+    ];
+
     /// <summary>Maximum DP Perspective container length currently approved for NT51950/NT51951.</summary>
     public const long MaxContainerLength = 0x100000;
 
@@ -43,7 +50,9 @@ public static class DpPerspectiveCatalog
     {
         return TryNormalizeIcId(icId, out string? normalized)
             ? normalized!
-            : throw new ArgumentException($"'{icId}' is not an NT51950/NT51951 DP Perspective IC.", nameof(icId));
+            : throw new ArgumentException(
+                $"'{icId}' is not a {FormatSupportedIcIds()} DP Perspective IC.",
+                nameof(icId));
     }
 
     /// <summary>Normalizes a DP Perspective IC id to the numeric IC token or throws.</summary>
@@ -57,6 +66,12 @@ public static class DpPerspectiveCatalog
     {
         return string.Join(" / ", SupportedContainerLengths.Select(length =>
             string.Create(CultureInfo.InvariantCulture, $"0x{length:X}")));
+    }
+
+    /// <summary>Formats the supported DP Perspective IC ids for diagnostics and UI hints.</summary>
+    public static string FormatSupportedIcIds()
+    {
+        return string.Join("/", SupportedIcIds);
     }
 
     /// <summary>Formats a DP Perspective range with inclusive display end and half-open length.</summary>
@@ -77,12 +92,13 @@ public static class DpPerspectiveCatalog
         string icNumber = trimmed.StartsWith("NT", StringComparison.OrdinalIgnoreCase)
             ? trimmed[2..]
             : trimmed;
-        if (icNumber is not ("51950" or "51951"))
+        string candidate = $"NT{icNumber}";
+        if (!SupportedIcIds.Contains(candidate, StringComparer.Ordinal))
         {
             return false;
         }
 
-        normalized = $"NT{icNumber}";
+        normalized = candidate;
         return true;
     }
 }

@@ -24,7 +24,7 @@ public static partial class WorkbenchCompositionService
                 slotPaths,
                 build,
                 "ui.input.missing",
-                "Base flash BIN is required before NT51950/NT51951 DP Replace can determine the DP base length.");
+                $"Base flash BIN is required before {FormatDpPerspectiveIcIds()} DP Replace can determine the DP base length.");
             return false;
         }
 

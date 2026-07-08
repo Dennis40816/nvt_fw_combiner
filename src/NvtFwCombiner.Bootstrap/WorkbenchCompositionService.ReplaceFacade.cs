@@ -72,7 +72,7 @@ public static partial class WorkbenchCompositionService
                 slotPaths,
                 build,
                 "replace.dp.profile-pending",
-                "DP Replace output is enabled only for NT51950/NT51951 until per-IC DP source mapping and golden evidence are approved."),
+                $"DP Replace output is enabled only for {FormatDpPerspectiveIcIds()} until per-IC DP source mapping and golden evidence are approved."),
             "CtrlRAM" => await RunCtrlRamReplaceAsync(
                 icId,
                 number,

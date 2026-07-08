@@ -13,7 +13,7 @@ public static partial class BuiltInStandardMergeProfiles
             : throw new ArgumentOutOfRangeException(
                 nameof(dpInputLength),
                 dpInputLength,
-                $"NT51950/NT51951 Standard Merge accepts DP input lengths {DpPerspectiveCatalog.FormatSupportedLengths()}.");
+                $"{DpPerspectiveCatalog.FormatSupportedIcIds()} Standard Merge accepts DP input lengths {DpPerspectiveCatalog.FormatSupportedLengths()}.");
     }
 
     /// <summary>Returns true when a profile is the NT51950/NT51951 DP Perspective Standard Merge template.</summary>
@@ -61,7 +61,7 @@ public static partial class BuiltInStandardMergeProfiles
                     "output-image",
                     outputRange,
                     OverlapPolicy.Reject,
-                    "Copy the NT51950/NT51951 DP Perspective bytes using the selected DP input length as the output length."),
+                    $"Copy the {DpPerspectiveCatalog.FormatSupportedIcIds()} DP Perspective bytes using the selected DP input length as the output length."),
                 CompositionOperation.CopyRange(
                     "overlay-tp",
                     200,
@@ -85,7 +85,7 @@ public static partial class BuiltInStandardMergeProfiles
                 new RegionAccessRule(
                     "dp-perspective-container",
                     RegionAccessKind.Parts,
-                    "NT51950/NT51951 Standard Merge first copies DP, then overlays the declared TP range."),
+                    $"{DpPerspectiveCatalog.FormatSupportedIcIds()} Standard Merge first copies DP, then overlays the declared TP range."),
             ]);
     }
 }

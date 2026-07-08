@@ -12,6 +12,8 @@ public sealed class DpPerspectiveCatalogTests
     {
         Assert.Equal([0x40000, 0x80000, 0x100000], DpPerspectiveCatalog.SupportedContainerLengths);
         Assert.Equal(0x100000, DpPerspectiveCatalog.MaxContainerLength);
+        Assert.Equal(["NT51950", "NT51951"], DpPerspectiveCatalog.SupportedIcIds);
+        Assert.Equal("NT51950/NT51951", DpPerspectiveCatalog.FormatSupportedIcIds());
         Assert.Equal("0x40000 / 0x80000 / 0x100000", DpPerspectiveCatalog.FormatSupportedLengths());
         Assert.Equal("0x0A000-0x36FFF (len 0x2D000)", DpPerspectiveCatalog.FormatRange(DpPerspectiveCatalog.TpOverlayRange));
         Assert.Equal("0x37000-0x37FFF (len 0x1000)", DpPerspectiveCatalog.FormatRange(DpPerspectiveCatalog.CustomerInfoPreserveRange));

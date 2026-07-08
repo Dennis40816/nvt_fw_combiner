@@ -166,7 +166,7 @@ public static partial class WorkbenchCompositionService
                     new WorkbenchMemoryCoverageSegment(
                         $"Unsupported {FormatHexLength(selectedBaseLength)}",
                         "Unsupported base",
-                        $"This base BIN length is not approved for NT51950/NT51951 DP Replace; use {FormatSupportedNt51950DpBaseLengths()}.",
+                        $"This base BIN length is not approved for {FormatDpPerspectiveIcIds()} DP Replace; use {FormatSupportedNt51950DpBaseLengths()}.",
                         "#FCA5A5",
                         280,
                         false),

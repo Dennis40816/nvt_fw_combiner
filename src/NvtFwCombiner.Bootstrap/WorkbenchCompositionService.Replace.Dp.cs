@@ -143,6 +143,11 @@ public static partial class WorkbenchCompositionService
         return DpPerspectiveCatalog.FormatSupportedLengths();
     }
 
+    private static string FormatDpPerspectiveIcIds()
+    {
+        return DpPerspectiveCatalog.FormatSupportedIcIds();
+    }
+
     private static string FormatHexLength(long length)
     {
         return string.Create(CultureInfo.InvariantCulture, $"0x{length:X}");
@@ -160,10 +165,10 @@ public static partial class WorkbenchCompositionService
     private static string DescribeNt51950DpReplaceContainer(long? length)
     {
         return length is not long value
-            ? $"NT51950/NT51951 DP Replace uses the selected base BIN length; supported lengths are {FormatSupportedNt51950DpBaseLengths()}."
+            ? $"{FormatDpPerspectiveIcIds()} DP Replace uses the selected base BIN length; supported lengths are {FormatSupportedNt51950DpBaseLengths()}."
             : IsSupportedNt51950DpBaseLength(value)
             ? $"Replacement DP initializes the selected base length {FormatHexLength(value)}; shorter files are padded by profile policy."
-            : $"This base BIN length is not approved for NT51950/NT51951 DP Replace; use {FormatSupportedNt51950DpBaseLengths()}.";
+            : $"This base BIN length is not approved for {FormatDpPerspectiveIcIds()} DP Replace; use {FormatSupportedNt51950DpBaseLengths()}.";
     }
 
     private static bool IsNt51950Or51(string icId)

@@ -29,7 +29,7 @@ internal static partial class ReplaceCliCommandHandler
 
         if (!string.Equals(icNumber, "single", StringComparison.OrdinalIgnoreCase))
         {
-            error.WriteLine("error: NT51950/NT51951 DP Replace requires --ic-num single");
+            error.WriteLine($"error: {DpPerspectiveCatalog.FormatSupportedIcIds()} DP Replace requires --ic-num single");
             return UsageError;
         }
 
@@ -110,7 +110,7 @@ internal static partial class ReplaceCliCommandHandler
         {
             if (options.Values.ContainsKey(optionName) || options.GetValues(optionName).Count > 0)
             {
-                error.WriteLine($"error: option '{optionName}' is not used by NT51950/NT51951 DP Replace");
+                error.WriteLine($"error: option '{optionName}' is not used by {DpPerspectiveCatalog.FormatSupportedIcIds()} DP Replace");
                 return false;
             }
         }

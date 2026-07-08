@@ -211,7 +211,7 @@ public static class BuiltInReplaceProfiles
         {
             throw new ArgumentOutOfRangeException(
                 nameof(capacity),
-                $"NT51950/NT51951 DP Replace capacity must be {DpPerspectiveCatalog.FormatSupportedLengths()}.");
+                $"{DpPerspectiveCatalog.FormatSupportedIcIds()} DP Replace capacity must be {DpPerspectiveCatalog.FormatSupportedLengths()}.");
         }
 
         var dpContainerRange = new ByteRange(0, capacity);
@@ -244,7 +244,7 @@ public static class BuiltInReplaceProfiles
                     "output-image",
                     dpContainerRange,
                     OverlapPolicy.Reject,
-                    $"Replace the NT51950/NT51951 DP Perspective container using the selected base length 0x{capacity:X}."),
+                    $"Replace the {DpPerspectiveCatalog.FormatSupportedIcIds()} DP Perspective container using the selected base length 0x{capacity:X}."),
                 CompositionOperation.CopyRange(
                     "restore-base-tp",
                     200,
@@ -277,7 +277,7 @@ public static class BuiltInReplaceProfiles
                 new RegionAccessRule(
                     "dp-perspective-container",
                     RegionAccessKind.Parts,
-                    "NT51950/NT51951 DP Replace first copies replacement DP, then restores the original TP and customer-info ranges."),
+                    $"{DpPerspectiveCatalog.FormatSupportedIcIds()} DP Replace first copies replacement DP, then restores the original TP and customer-info ranges."),
             ],
             IcNumberInputMode.SingleSelector);
     }
