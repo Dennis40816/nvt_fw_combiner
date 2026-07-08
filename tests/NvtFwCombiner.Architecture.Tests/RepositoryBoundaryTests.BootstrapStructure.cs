@@ -48,6 +48,24 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("\"General\"", bootstrapWithoutReplaceModes, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies UI-facing workflow ids are projected from the profile catalog without repeating literals.</summary>
+    [Fact]
+    public void BootstrapProjectsWorkflowIdsForUiAdapters()
+    {
+        string workflowIds = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchWorkflowIds.cs");
+
+        Assert.Contains("public const string StandardMerge = IcWorkflowIds.StandardMerge;", workflowIds, StringComparison.Ordinal);
+        Assert.Contains("public const string GeneralMerge = IcWorkflowIds.GeneralMerge;", workflowIds, StringComparison.Ordinal);
+        Assert.Contains("public const string DpReplace = IcWorkflowIds.DpReplace;", workflowIds, StringComparison.Ordinal);
+        Assert.Contains("public const string CtrlRamReplace = IcWorkflowIds.CtrlRamReplace;", workflowIds, StringComparison.Ordinal);
+        Assert.Contains("public const string GeneralReplace = IcWorkflowIds.GeneralReplace;", workflowIds, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"standard-merge\"", workflowIds, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"dp-replace\"", workflowIds, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"ctrlram-replace\"", workflowIds, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"general-merge\"", workflowIds, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"general-replace\"", workflowIds, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies General mapping text parsing is owned by one Bootstrap helper.</summary>
     [Fact]
     public void BootstrapRangeTextOwnsGeneralMappingParsing()

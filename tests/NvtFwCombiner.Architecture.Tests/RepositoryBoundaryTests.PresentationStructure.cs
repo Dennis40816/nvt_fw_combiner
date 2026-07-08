@@ -56,6 +56,27 @@ public sealed partial class RepositoryBoundaryTests
         }
     }
 
+    /// <summary>Verifies Presentation receives workflow id tokens through Bootstrap instead of duplicating contract strings.</summary>
+    [Fact]
+    public void PresentationUsesBootstrapWorkflowIds()
+    {
+        string presentationSource = ReadPresentationSources();
+
+        Assert.Contains("WorkbenchWorkflowIds.StandardMerge", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchWorkflowIds.GeneralMerge", presentationSource, StringComparison.Ordinal);
+        foreach (string workflowLiteral in new[]
+        {
+            "\"standard-merge\"",
+            "\"dp-replace\"",
+            "\"ctrlram-replace\"",
+            "\"general-merge\"",
+            "\"general-replace\"",
+        })
+        {
+            Assert.DoesNotContain(workflowLiteral, presentationSource, StringComparison.Ordinal);
+        }
+    }
+
     /// <summary>Verifies the Presentation runner remains a thin split adapter over Bootstrap workbench contracts.</summary>
     [Fact]
     public void UiCompositionRunnerConcernsStaySplit()

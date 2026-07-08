@@ -175,7 +175,7 @@ public sealed partial class MainWindowViewModel
             OnPropertyChanged(nameof(LastRunResult));
             LoadRunErrorReport(
                 action,
-                UiCompositionRunner.GetStandardMergeProfileId(SelectedIc) ?? "standard-merge",
+                UiCompositionRunner.GetStandardMergeProfileId(SelectedIc) ?? WorkbenchWorkflowIds.StandardMerge,
                 SelectedIc,
                 SelectedNumber,
                 exception.Message,
@@ -215,8 +215,8 @@ public sealed partial class MainWindowViewModel
                 exception.Message,
                 CreateGeneralMergeSlotPaths(),
                 compositionKind: "Merge",
-                modeId: "general-merge",
-                experienceId: "general-merge");
+                modeId: WorkbenchWorkflowIds.GeneralMerge,
+                experienceId: WorkbenchWorkflowIds.GeneralMerge);
         }
     }
 

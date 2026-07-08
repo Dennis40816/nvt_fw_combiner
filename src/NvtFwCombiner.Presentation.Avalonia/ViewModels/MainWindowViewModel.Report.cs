@@ -1,5 +1,6 @@
 using System.Text.Json;
 using CommunityToolkit.Mvvm.Input;
+using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -114,8 +115,8 @@ public sealed partial class MainWindowViewModel
         string message,
         IReadOnlyDictionary<string, string> slotPaths,
         string compositionKind = "Merge",
-        string modeId = "standard-merge",
-        string experienceId = "standard-merge",
+        string modeId = WorkbenchWorkflowIds.StandardMerge,
+        string experienceId = WorkbenchWorkflowIds.StandardMerge,
         string issueCode = "ui.run.failed")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(action);
@@ -130,7 +131,7 @@ public sealed partial class MainWindowViewModel
         var report = new
         {
             RunId = $"ui-{action.ToLowerInvariant()}-error-{timestamp.ToUnixTimeMilliseconds()}",
-            ProfileId = string.IsNullOrWhiteSpace(profileId) ? "standard-merge" : profileId,
+            ProfileId = string.IsNullOrWhiteSpace(profileId) ? WorkbenchWorkflowIds.StandardMerge : profileId,
             ProfileVersion = string.Empty,
             IcId = icId,
             ModeId = modeId,
