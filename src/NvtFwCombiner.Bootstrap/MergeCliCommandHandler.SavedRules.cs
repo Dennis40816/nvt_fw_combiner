@@ -89,9 +89,9 @@ internal static partial class MergeCliCommandHandler
             items.Add(new WorkbenchGeneralMergeMappingInput(
                 operationId,
                 sourcePath,
-                FormatHex(sourceRange.Start),
-                FormatHex(row.TargetRange.Start),
-                FormatHex(row.TargetRange.Length),
+                CliCompositionRunSupport.FormatHex(sourceRange.Start),
+                CliCompositionRunSupport.FormatHex(row.TargetRange.Start),
+                CliCompositionRunSupport.FormatHex(row.TargetRange.Length),
                 row.Alignment,
                 row.Reason,
                 OperationProvenance.SavedRule(rule.RuleId, rule.RuleVersion)));

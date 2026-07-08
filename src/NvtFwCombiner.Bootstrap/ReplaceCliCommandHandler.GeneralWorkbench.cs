@@ -148,8 +148,8 @@ internal static partial class ReplaceCliCommandHandler
             return false;
         }
 
-        if (!TryParseCliNonNegativeLong(rangeText[..plusIndex], out long start) ||
-            !TryParseCliNonNegativeLong(rangeText[(plusIndex + 1)..], out long length) ||
+        if (!CliCompositionRunSupport.TryParseNonNegativeLong(rangeText[..plusIndex], out long start) ||
+            !CliCompositionRunSupport.TryParseNonNegativeLong(rangeText[(plusIndex + 1)..], out long length) ||
             length <= 0)
         {
             error.WriteLine("error: --mapping start must be non-negative and length must be positive");
@@ -170,23 +170,8 @@ internal static partial class ReplaceCliCommandHandler
         mapping = new WorkbenchGeneralReplaceMappingInput(
             string.Create(CultureInfo.InvariantCulture, $"general-map-{index}"),
             Path.GetFullPath(path),
-            FormatCliHex(start),
-            FormatCliHex(endInclusive));
+            CliCompositionRunSupport.FormatHex(start),
+            CliCompositionRunSupport.FormatHex(endInclusive));
         return true;
-    }
-
-    private static bool TryParseCliNonNegativeLong(string text, out long value)
-    {
-        value = 0;
-        string trimmed = text.Trim();
-        bool parsed = trimmed.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
-            ? long.TryParse(trimmed[2..], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out value)
-            : long.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
-        return parsed && value >= 0;
-    }
-
-    private static string FormatCliHex(long value)
-    {
-        return string.Create(CultureInfo.InvariantCulture, $"0x{value:X}");
     }
 }

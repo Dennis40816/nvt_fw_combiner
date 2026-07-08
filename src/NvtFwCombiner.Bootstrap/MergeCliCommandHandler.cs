@@ -60,7 +60,7 @@ internal static partial class MergeCliCommandHandler
             return UsageError;
         }
 
-        OutputTarget outputTarget = ResolveOutputTarget(
+        CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
             options.Values.GetValueOrDefault("--output"),
             WorkbenchCompositionService.GetGeneralMergeDefaultOutputFileName(icId));
         string? outputPath = action == "build" ? outputTarget.FullPath : null;
@@ -196,9 +196,9 @@ internal static partial class MergeCliCommandHandler
 
         string[] parts = rangeText.Split('+', StringSplitOptions.TrimEntries);
         if (parts.Length != 3 ||
-            !TryParseNonNegativeLong(parts[0], out long sourceStart) ||
-            !TryParseNonNegativeLong(parts[1], out long targetStart) ||
-            !TryParseNonNegativeLong(parts[2], out long length) ||
+            !CliCompositionRunSupport.TryParseNonNegativeLong(parts[0], out long sourceStart) ||
+            !CliCompositionRunSupport.TryParseNonNegativeLong(parts[1], out long targetStart) ||
+            !CliCompositionRunSupport.TryParseNonNegativeLong(parts[2], out long length) ||
             length <= 0)
         {
             error.WriteLine("error: --mapping must use non-negative source start, non-negative target start, and positive length");
@@ -208,9 +208,9 @@ internal static partial class MergeCliCommandHandler
         mapping = new WorkbenchGeneralMergeMappingInput(
             string.Create(CultureInfo.InvariantCulture, $"general-merge-map-{index}"),
             Path.GetFullPath(path),
-            FormatHex(sourceStart),
-            FormatHex(targetStart),
-            FormatHex(length));
+            CliCompositionRunSupport.FormatHex(sourceStart),
+            CliCompositionRunSupport.FormatHex(targetStart),
+            CliCompositionRunSupport.FormatHex(length));
         return true;
     }
 
@@ -318,18 +318,6 @@ internal static partial class MergeCliCommandHandler
         return icId is not null;
     }
 
-    private static OutputTarget ResolveOutputTarget(string? requestedOutput, string defaultFileName)
-    {
-        string fullPath = string.IsNullOrWhiteSpace(requestedOutput)
-            ? Path.GetFullPath(defaultFileName)
-            : Path.GetFullPath(requestedOutput);
-        string? directory = Path.GetDirectoryName(fullPath);
-        string fileName = Path.GetFileName(fullPath);
-        return string.IsNullOrWhiteSpace(directory) || string.IsNullOrWhiteSpace(fileName)
-            ? throw new ArgumentException("Output path must include a directory and file name.", nameof(requestedOutput))
-            : new OutputTarget(fullPath, directory, fileName);
-    }
-
     private static bool TryParseOptions(
         string[] args,
         bool build,
@@ -385,21 +373,6 @@ internal static partial class MergeCliCommandHandler
         return true;
     }
 
-    private static bool TryParseNonNegativeLong(string text, out long value)
-    {
-        value = 0;
-        string trimmed = text.Trim();
-        bool parsed = trimmed.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
-            ? long.TryParse(trimmed[2..], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out value)
-            : long.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
-        return parsed && value >= 0;
-    }
-
-    private static string FormatHex(long value)
-    {
-        return string.Create(CultureInfo.InvariantCulture, $"0x{value:X}");
-    }
-
     private static Task WriteUsageAsync(TextWriter output)
     {
         return output.WriteLineAsync(
@@ -408,8 +381,6 @@ internal static partial class MergeCliCommandHandler
             "       nvt_fw_combiner general-merge build --profile <ic> --size <length> --mapping <source-start+target-start+length=path> [--mapping ...] [--output <path>] [--report <path>] [--overwrite]\n" +
             "       nvt_fw_combiner general-merge build --profile <ic> --size <length> --rule <rule.json> --slot <slot-id=path> [--slot ...] [--output <path>] [--report <path>] [--overwrite]");
     }
-
-    private sealed record OutputTarget(string FullPath, string Directory, string FileName);
 
     private sealed record ParsedOptions(
         Dictionary<string, string> Values,

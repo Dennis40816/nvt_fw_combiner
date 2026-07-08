@@ -66,6 +66,23 @@ public sealed partial class RepositoryBoundaryTests
         }
     }
 
+    /// <summary>Verifies CLI and Workbench share the same preview-before-build execution gate.</summary>
+    [Fact]
+    public void BootstrapUsesOnePreviewBeforeBuildGate()
+    {
+        string bootstrapSource = ReadBootstrapSources();
+        string executionSupport = ReadText(
+            "src/NvtFwCombiner.Bootstrap/CompositionRunExecutionSupport.cs");
+
+        Assert.Contains("CompositionRunExecutionSupport.PreviewOrBuildAsync", bootstrapSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("BuildWithInternalPreviewAsync", bootstrapSource, StringComparison.Ordinal);
+        Assert.Contains("service.PreviewAsync(request, cancellationToken)", executionSupport, StringComparison.Ordinal);
+        Assert.Contains("service.BuildAsync(request.WithApprovedPreviewToken(preview.PreviewToken!)", executionSupport, StringComparison.Ordinal);
+        Assert.Equal(
+            1,
+            CountOccurrences(bootstrapSource, "request.WithApprovedPreviewToken(preview.PreviewToken!)"));
+    }
+
     /// <summary>Verifies the shell follows the owner-approved clean home and independent page direction.</summary>
     [Fact]
     public void ShellUsesCleanHomeAndIndependentWorkflowPages()

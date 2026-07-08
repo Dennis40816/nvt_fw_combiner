@@ -55,7 +55,7 @@ public static partial class WorkbenchCompositionService
             outputFileName,
             icNumberSelection: icNumberSelection);
 
-        CompositionRunResult result = await PreviewOrBuildAsync(
+        CompositionRunResult result = await CompositionRunExecutionSupport.PreviewOrBuildAsync(
                 service,
                 request,
                 build,
@@ -71,21 +71,4 @@ public static partial class WorkbenchCompositionService
         return $"{prefix}-{(build ? "build" : "preview")}-{timestamp.ToString(CultureInfo.InvariantCulture)}-{suffix}";
     }
 
-    private static async ValueTask<CompositionRunResult> PreviewOrBuildAsync(
-        CompositionRunService service,
-        CompositionRunRequest request,
-        bool build,
-        CancellationToken cancellationToken)
-    {
-        if (!build)
-        {
-            return await service.PreviewAsync(request, cancellationToken).ConfigureAwait(false);
-        }
-
-        CompositionRunResult preview = await service.PreviewAsync(request, cancellationToken).ConfigureAwait(false);
-        return preview.Status == CompositionExecutionStatus.Succeeded
-            ? await service.BuildAsync(request.WithApprovedPreviewToken(preview.PreviewToken!), cancellationToken)
-                .ConfigureAwait(false)
-            : preview;
-    }
 }

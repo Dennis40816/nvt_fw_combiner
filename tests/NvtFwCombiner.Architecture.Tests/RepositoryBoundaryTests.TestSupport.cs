@@ -71,6 +71,32 @@ public sealed partial class RepositoryBoundaryTests
                 .Select(File.ReadAllText));
     }
 
+    private static string ReadBootstrapSources()
+    {
+        string directory = Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Bootstrap");
+        return string.Join(
+            Environment.NewLine,
+            Directory.GetFiles(directory, "*.cs", SearchOption.AllDirectories)
+                .Order(StringComparer.Ordinal)
+                .Select(File.ReadAllText));
+    }
+
+    private static int CountOccurrences(string text, string value)
+    {
+        int count = 0;
+        int index = 0;
+        while ((index = text.IndexOf(value, index, StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            index += value.Length;
+        }
+
+        return count;
+    }
+
     private static string[] ReadMarkdownBullets(string relativePath, string heading)
     {
         string[] lines = ReadLines(relativePath);

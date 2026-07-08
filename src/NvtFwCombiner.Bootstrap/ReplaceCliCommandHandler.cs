@@ -175,10 +175,9 @@ internal static partial class ReplaceCliCommandHandler
             outputTarget.FileName,
             icNumberSelection: icNumberSelection);
 
-        CompositionRunResult result = action == "preview"
-            ? await service.PreviewAsync(request, cancellationToken).ConfigureAwait(false)
-            : await CliCompositionRunSupport.BuildWithInternalPreviewAsync(service, request, cancellationToken)
-                .ConfigureAwait(false);
+        CompositionRunResult result = await CompositionRunExecutionSupport
+            .PreviewOrBuildAsync(service, request, action == "build", cancellationToken)
+            .ConfigureAwait(false);
         await CliCompositionRunSupport.WriteReportFileIfRequestedAsync(
                 result,
                 options.Values.GetValueOrDefault("--report"),
