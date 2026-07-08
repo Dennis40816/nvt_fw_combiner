@@ -109,4 +109,32 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public sealed record FirmwareSlotFactViewModel", facts, StringComparison.Ordinal);
         Assert.Contains("public enum FirmwareSlotKind", kind, StringComparison.Ordinal);
     }
+
+    /// <summary>Verifies report line rows, chips, groups, and flow nodes stay split by UI responsibility.</summary>
+    [Fact]
+    public void ReportLineViewModelConcernsStaySplit()
+    {
+        string root = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportLineViewModel.cs");
+        string badges = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportLineBadgeViewModel.cs");
+        string facts = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportLineFactViewModel.cs");
+        string rangeRows = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportRangeTableRowViewModel.cs");
+        string differenceRows = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportDifferenceSummaryRowViewModel.cs");
+        string inputGroups = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportInputGroupViewModel.cs");
+        string flowNodes = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportOperationFlowNodeViewModel.cs");
+
+        Assert.Contains("public sealed class ReportLineViewModel", root, StringComparison.Ordinal);
+        Assert.Contains("public static ReportLineViewModel Empty", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("public sealed class ReportLineBadgeViewModel", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("public sealed class ReportLineFactViewModel", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("public sealed record ReportRangeTableRowViewModel", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("public sealed record ReportDifferenceSummaryRowViewModel", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("public sealed class ReportInputGroupViewModel", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("public sealed class ReportOperationFlowNodeViewModel", root, StringComparison.Ordinal);
+        Assert.Contains("public sealed class ReportLineBadgeViewModel", badges, StringComparison.Ordinal);
+        Assert.Contains("public sealed class ReportLineFactViewModel", facts, StringComparison.Ordinal);
+        Assert.Contains("public sealed record ReportRangeTableRowViewModel", rangeRows, StringComparison.Ordinal);
+        Assert.Contains("public sealed record ReportDifferenceSummaryRowViewModel", differenceRows, StringComparison.Ordinal);
+        Assert.Contains("public sealed class ReportInputGroupViewModel", inputGroups, StringComparison.Ordinal);
+        Assert.Contains("public sealed class ReportOperationFlowNodeViewModel", flowNodes, StringComparison.Ordinal);
+    }
 }
