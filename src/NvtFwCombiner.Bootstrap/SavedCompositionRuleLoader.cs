@@ -13,7 +13,7 @@ internal static partial class SavedCompositionRuleLoader
         {
             return new SavedCompositionRuleLoadResult(
                 null,
-                [Issue("saved-rule.file-not-found", $"Saved rule JSON was not found: {fullPath}", "$")]);
+                [Issue(SavedRuleIssueCodes.FileNotFound, $"Saved rule JSON was not found: {fullPath}", "$")]);
         }
 
         try
@@ -25,19 +25,19 @@ internal static partial class SavedCompositionRuleLoader
         {
             return new SavedCompositionRuleLoadResult(
                 null,
-                [Issue("saved-rule.json.invalid", $"Saved rule JSON is invalid: {exception.Message}", "$")]);
+                [Issue(SavedRuleIssueCodes.JsonInvalid, $"Saved rule JSON is invalid: {exception.Message}", "$")]);
         }
         catch (IOException exception)
         {
             return new SavedCompositionRuleLoadResult(
                 null,
-                [Issue("saved-rule.file-read-failed", $"Saved rule JSON could not be read: {exception.Message}", "$")]);
+                [Issue(SavedRuleIssueCodes.FileReadFailed, $"Saved rule JSON could not be read: {exception.Message}", "$")]);
         }
         catch (UnauthorizedAccessException exception)
         {
             return new SavedCompositionRuleLoadResult(
                 null,
-                [Issue("saved-rule.file-read-failed", $"Saved rule JSON could not be read: {exception.Message}", "$")]);
+                [Issue(SavedRuleIssueCodes.FileReadFailed, $"Saved rule JSON could not be read: {exception.Message}", "$")]);
         }
     }
 
@@ -46,7 +46,7 @@ internal static partial class SavedCompositionRuleLoader
         List<SavedRuleValidationIssue> issues = [];
         if (root.ValueKind != JsonValueKind.Object)
         {
-            issues.Add(Issue("saved-rule.root.invalid", "Saved rule JSON root must be an object.", "$"));
+            issues.Add(Issue(SavedRuleIssueCodes.RootInvalid, "Saved rule JSON root must be an object.", "$"));
             return new SavedCompositionRuleLoadResult(null, issues);
         }
 
@@ -54,7 +54,7 @@ internal static partial class SavedCompositionRuleLoader
         string schemaVersion = RequiredString(root, "schemaVersion", "$.schemaVersion", issues);
         if (!string.Equals(schemaVersion, SupportedSchemaVersion, StringComparison.Ordinal))
         {
-            issues.Add(Issue("saved-rule.schema-version.unsupported", "Saved rule schemaVersion must be '1.0'.", "$.schemaVersion"));
+            issues.Add(Issue(SavedRuleIssueCodes.SchemaVersionUnsupported, "Saved rule schemaVersion must be '1.0'.", "$.schemaVersion"));
         }
 
         string ruleId = RequiredId(root, "ruleId", "$.ruleId", issues);

@@ -13,7 +13,7 @@ internal static partial class SavedCompositionRuleLoader
     {
         if (!element.TryGetProperty(propertyName, out JsonElement range))
         {
-            issues.Add(Issue("saved-rule.range.required", $"Property '{propertyName}' is required.", path));
+            issues.Add(Issue(SavedRuleIssueCodes.RangeRequired, $"Property '{propertyName}' is required.", path));
             return null;
         }
 
@@ -35,7 +35,7 @@ internal static partial class SavedCompositionRuleLoader
     {
         if (range.ValueKind != JsonValueKind.Object)
         {
-            issues.Add(Issue("saved-rule.range.invalid", "Range must be an object.", path));
+            issues.Add(Issue(SavedRuleIssueCodes.RangeInvalid, "Range must be an object.", path));
             return null;
         }
 
@@ -48,7 +48,7 @@ internal static partial class SavedCompositionRuleLoader
 
         if (length <= 0)
         {
-            issues.Add(Issue("saved-rule.range.length", "Range length must be positive.", $"{path}.length"));
+            issues.Add(Issue(SavedRuleIssueCodes.RangeLength, "Range length must be positive.", $"{path}.length"));
             return null;
         }
 
@@ -58,7 +58,7 @@ internal static partial class SavedCompositionRuleLoader
         }
         catch (Exception exception) when (exception is ArgumentOutOfRangeException or OverflowException)
         {
-            issues.Add(Issue("saved-rule.range.overflow", "Range exceeds the supported address size.", path));
+            issues.Add(Issue(SavedRuleIssueCodes.RangeOverflow, "Range exceeds the supported address size.", path));
             return null;
         }
     }
@@ -73,13 +73,13 @@ internal static partial class SavedCompositionRuleLoader
         value = 0;
         if (!element.TryGetProperty(propertyName, out JsonElement property) || !property.TryGetInt64(out value))
         {
-            issues.Add(Issue("saved-rule.integer.required", $"Property '{propertyName}' must be an integer.", path));
+            issues.Add(Issue(SavedRuleIssueCodes.IntegerRequired, $"Property '{propertyName}' must be an integer.", path));
             return false;
         }
 
         if (value < 0)
         {
-            issues.Add(Issue("saved-rule.integer.negative", $"Property '{propertyName}' must be non-negative.", path));
+            issues.Add(Issue(SavedRuleIssueCodes.IntegerNegative, $"Property '{propertyName}' must be non-negative.", path));
             return false;
         }
 
@@ -99,7 +99,7 @@ internal static partial class SavedCompositionRuleLoader
 
         if (!property.TryGetInt32(out int value) || value <= 0)
         {
-            issues.Add(Issue("saved-rule.integer.positive", $"Property '{propertyName}' must be a positive integer.", path));
+            issues.Add(Issue(SavedRuleIssueCodes.IntegerPositive, $"Property '{propertyName}' must be a positive integer.", path));
             return null;
         }
 

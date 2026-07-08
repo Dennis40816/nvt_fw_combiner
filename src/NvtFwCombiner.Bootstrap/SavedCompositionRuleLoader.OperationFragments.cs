@@ -16,7 +16,7 @@ internal static partial class SavedCompositionRuleLoader
         if (!root.TryGetProperty("operationFragments", out JsonElement fragments) ||
             fragments.ValueKind != JsonValueKind.Array)
         {
-            issues.Add(Issue("saved-rule.operation-fragments.required", "Saved rule requires operationFragments array.", "$.operationFragments"));
+            issues.Add(Issue(SavedRuleIssueCodes.OperationFragmentsRequired, "Saved rule requires operationFragments array.", "$.operationFragments"));
             return [];
         }
 
@@ -30,7 +30,7 @@ internal static partial class SavedCompositionRuleLoader
             string path = string.Create(CultureInfo.InvariantCulture, $"$.operationFragments[{index++}]");
             if (fragment.ValueKind != JsonValueKind.Object)
             {
-                issues.Add(Issue("saved-rule.operation-fragment.invalid", "Operation fragment must be an object.", path));
+                issues.Add(Issue(SavedRuleIssueCodes.OperationFragmentInvalid, "Operation fragment must be an object.", path));
                 continue;
             }
 
@@ -48,7 +48,7 @@ internal static partial class SavedCompositionRuleLoader
                 !string.Equals(kind, "copy-range", StringComparison.Ordinal))
             {
                 issues.Add(Issue(
-                    "saved-rule.operation-fragment.kind-unsupported",
+                    SavedRuleIssueCodes.OperationFragmentKindUnsupported,
                     "Current General Merge saved-rule CLI consumption supports only copy-range operation fragments.",
                     $"{path}.kind"));
             }
@@ -66,7 +66,7 @@ internal static partial class SavedCompositionRuleLoader
                 fragmentProcessorDependencyIds.Count > 0)
             {
                 issues.Add(Issue(
-                    "saved-rule.operation-fragment.processor-dependency.unsupported",
+                    SavedRuleIssueCodes.OperationFragmentProcessorDependencyUnsupported,
                     "Current General Merge saved-rule CLI consumption does not support processor-dependent operation fragments.",
                     $"{path}.processorDependencyIds"));
             }
@@ -76,7 +76,7 @@ internal static partial class SavedCompositionRuleLoader
                 fragmentProcessorDependencyIds.Count > 0)
             {
                 issues.Add(Issue(
-                    "saved-rule.operation-fragment.processor-dependency.unsupported",
+                    SavedRuleIssueCodes.OperationFragmentProcessorDependencyUnsupported,
                     "Current General Replace saved-rule projection does not support processor-dependent operation fragments.",
                     $"{path}.processorDependencyIds"));
             }
@@ -87,7 +87,7 @@ internal static partial class SavedCompositionRuleLoader
                 fragmentMappingRowIds.Count != 1)
             {
                 issues.Add(Issue(
-                    "saved-rule.operation-fragment.mapping-row-count",
+                    SavedRuleIssueCodes.OperationFragmentMappingRowCount,
                     "Current General Merge saved-rule CLI consumption requires each operation fragment to reference exactly one mapping row.",
                     $"{path}.mappingRowIds"));
             }
@@ -97,7 +97,7 @@ internal static partial class SavedCompositionRuleLoader
                 if (!mappingRowIds.Contains(mappingRowId))
                 {
                     issues.Add(Issue(
-                        "saved-rule.operation-fragment.mapping-row-unknown",
+                        SavedRuleIssueCodes.OperationFragmentMappingRowUnknown,
                         $"Operation fragment references unknown mapping row '{mappingRowId}'.",
                         $"{path}.mappingRowIds"));
                     continue;
@@ -106,7 +106,7 @@ internal static partial class SavedCompositionRuleLoader
                 if (!referencedMappingRowIds.Add(mappingRowId))
                 {
                     issues.Add(Issue(
-                        "saved-rule.operation-fragment.mapping-row-duplicate-reference",
+                        SavedRuleIssueCodes.OperationFragmentMappingRowDuplicateReference,
                         $"General Merge saved-rule mapping row '{mappingRowId}' is referenced by more than one operation fragment.",
                         $"{path}.mappingRowIds"));
                 }
@@ -119,7 +119,7 @@ internal static partial class SavedCompositionRuleLoader
             }
         }
 
-        AddDuplicateIssues(operationIds, "saved-rule.operation-fragment.duplicate", "Operation fragment id is duplicated.", "$.operationFragments", issues);
+        AddDuplicateIssues(operationIds, SavedRuleIssueCodes.OperationFragmentDuplicate, "Operation fragment id is duplicated.", "$.operationFragments", issues);
         if (compositionKind == "merge" && sourceExperience == IcWorkflowIds.GeneralMerge)
         {
             foreach (SavedRuleMappingRow row in mappingRows.Where(row =>
@@ -127,7 +127,7 @@ internal static partial class SavedCompositionRuleLoader
                          !referencedMappingRowIds.Contains(row.RowId)))
             {
                 issues.Add(Issue(
-                    "saved-rule.mapping-row.unreferenced",
+                    SavedRuleIssueCodes.MappingRowUnreferenced,
                     $"General Merge saved-rule mapping row '{row.RowId}' is not referenced by any supported operation fragment.",
                     "$.mappingRows"));
             }

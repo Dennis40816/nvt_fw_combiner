@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using NvtFwCombiner.TestSupport;
+using static NvtFwCombiner.Bootstrap.SavedRuleIssueCodes;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -36,7 +37,7 @@ public sealed partial class SavedRuleCliCommandTests
         CliRunResult result = await RunCliAsync(["saved-rule", "mappings", rule]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("saved-rule.mapping-row.target-address-space-unsupported", result.Error, StringComparison.Ordinal);
+        Assert.Contains(MappingRowTargetAddressSpaceUnsupported, result.Error, StringComparison.Ordinal);
         Assert.DoesNotContain("--mapping", result.Output, StringComparison.Ordinal);
     }
 
@@ -52,7 +53,7 @@ public sealed partial class SavedRuleCliCommandTests
         CliRunResult result = await RunCliAsync(["saved-rule", "mappings", rule]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("saved-rule.mapping-row.target-region-unsupported", result.Error, StringComparison.Ordinal);
+        Assert.Contains(MappingRowTargetRegionUnsupported, result.Error, StringComparison.Ordinal);
         Assert.Contains("$.mappingRows[0].targetRegionId", result.Error, StringComparison.Ordinal);
         Assert.DoesNotContain("--mapping", result.Output, StringComparison.Ordinal);
     }
@@ -75,15 +76,15 @@ public sealed partial class SavedRuleCliCommandTests
         CliRunResult result = await RunCliAsync(["saved-rule", "mappings", rule]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("saved-rule.mapping-row.alignment", result.Error, StringComparison.Ordinal);
+        Assert.Contains(MappingRowAlignment, result.Error, StringComparison.Ordinal);
         Assert.Contains("$.mappingRows[0].alignment", result.Error, StringComparison.Ordinal);
         Assert.DoesNotContain("--mapping", result.Output, StringComparison.Ordinal);
     }
 
     /// <summary>Rejects processor-dependent General Replace saved-rule projections until postbuild-aware rule projection exists.</summary>
     [Theory]
-    [InlineData(true, "saved-rule.processor-dependency.unsupported")]
-    [InlineData(false, "saved-rule.operation-fragment.processor-dependency.unsupported")]
+    [InlineData(true, ProcessorDependencyUnsupported)]
+    [InlineData(false, OperationFragmentProcessorDependencyUnsupported)]
     public async Task SavedRuleMappingsRejectsProcessorDependentGeneralReplaceRules(
         bool rootDependency,
         string expectedIssueCode)

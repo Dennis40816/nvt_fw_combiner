@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using NvtFwCombiner.TestSupport;
+using static NvtFwCombiner.Bootstrap.SavedRuleIssueCodes;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -20,7 +21,7 @@ public sealed partial class SavedRuleCliCommandTests
         CliRunResult result = await RunCliAsync(["saved-rule", "validate", rule]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("saved-rule.property.unknown", result.Error, StringComparison.Ordinal);
+        Assert.Contains(PropertyUnknown, result.Error, StringComparison.Ordinal);
         Assert.Contains("$.shellCommand", result.Error, StringComparison.Ordinal);
     }
 
@@ -76,7 +77,7 @@ public sealed partial class SavedRuleCliCommandTests
         CliRunResult result = await RunCliAsync(["saved-rule", "validate", rule]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("saved-rule.mapping-row.duplicate", result.Error, StringComparison.Ordinal);
+        Assert.Contains(MappingRowDuplicate, result.Error, StringComparison.Ordinal);
     }
 
     /// <summary>Rejects mapping rows that bind to undeclared slot templates.</summary>
@@ -91,7 +92,7 @@ public sealed partial class SavedRuleCliCommandTests
         CliRunResult result = await RunCliAsync(["saved-rule", "validate", rule]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("saved-rule.mapping-row.source-slot-template-unknown", result.Error, StringComparison.Ordinal);
+        Assert.Contains(MappingRowSourceSlotTemplateUnknown, result.Error, StringComparison.Ordinal);
         Assert.Contains("missing-source", result.Error, StringComparison.Ordinal);
     }
 
@@ -107,7 +108,7 @@ public sealed partial class SavedRuleCliCommandTests
         CliRunResult result = await RunCliAsync(["saved-rule", "validate", rule]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("saved-rule.operation-fragment.kind-unsupported", result.Error, StringComparison.Ordinal);
+        Assert.Contains(OperationFragmentKindUnsupported, result.Error, StringComparison.Ordinal);
         Assert.Contains("$.operationFragments[0].kind", result.Error, StringComparison.Ordinal);
     }
 
@@ -123,7 +124,7 @@ public sealed partial class SavedRuleCliCommandTests
         CliRunResult result = await RunCliAsync(["saved-rule", "validate", rule]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("saved-rule.operation-fragment.processor-dependency.unsupported", result.Error, StringComparison.Ordinal);
+        Assert.Contains(OperationFragmentProcessorDependencyUnsupported, result.Error, StringComparison.Ordinal);
         Assert.Contains("$.operationFragments[0].processorDependencyIds", result.Error, StringComparison.Ordinal);
     }
 
@@ -151,7 +152,7 @@ public sealed partial class SavedRuleCliCommandTests
         CliRunResult result = await RunCliAsync(["saved-rule", "validate", rule]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("saved-rule.mapping-row.unreferenced", result.Error, StringComparison.Ordinal);
+        Assert.Contains(MappingRowUnreferenced, result.Error, StringComparison.Ordinal);
         Assert.Contains("copy-second-window", result.Error, StringComparison.Ordinal);
     }
 
@@ -169,7 +170,7 @@ public sealed partial class SavedRuleCliCommandTests
         CliRunResult result = await RunCliAsync(["saved-rule", "validate", rule]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("saved-rule.operation-fragment.mapping-row-duplicate-reference", result.Error, StringComparison.Ordinal);
+        Assert.Contains(OperationFragmentMappingRowDuplicateReference, result.Error, StringComparison.Ordinal);
         Assert.Contains("copy-fw-window", result.Error, StringComparison.Ordinal);
     }
 
@@ -198,8 +199,8 @@ public sealed partial class SavedRuleCliCommandTests
         CliRunResult result = await RunCliAsync(["saved-rule", "validate", rule]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("saved-rule.operation-fragment.mapping-row-count", result.Error, StringComparison.Ordinal);
-        Assert.DoesNotContain("saved-rule.mapping-row.unreferenced", result.Error, StringComparison.Ordinal);
+        Assert.Contains(OperationFragmentMappingRowCount, result.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain(MappingRowUnreferenced, result.Error, StringComparison.Ordinal);
     }
 
     /// <summary>Rejects General Merge saved-rule overlap policies not supported by CLI consumption.</summary>
@@ -214,7 +215,7 @@ public sealed partial class SavedRuleCliCommandTests
         CliRunResult result = await RunCliAsync(["saved-rule", "validate", rule]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("saved-rule.mapping-row.overlap-policy-unsupported", result.Error, StringComparison.Ordinal);
+        Assert.Contains(MappingRowOverlapPolicyUnsupported, result.Error, StringComparison.Ordinal);
     }
 
     /// <summary>Allows the reviewed scalar protected-range policy values from the saved-rule schema.</summary>

@@ -16,7 +16,7 @@ internal static partial class SavedCompositionRuleLoader
     {
         if (!root.TryGetProperty("mappingRows", out JsonElement rows) || rows.ValueKind != JsonValueKind.Array)
         {
-            issues.Add(Issue("saved-rule.mapping-rows.required", "Saved rule requires mappingRows array.", "$.mappingRows"));
+            issues.Add(Issue(SavedRuleIssueCodes.MappingRowsRequired, "Saved rule requires mappingRows array.", "$.mappingRows"));
             return [];
         }
 
@@ -27,7 +27,7 @@ internal static partial class SavedCompositionRuleLoader
             string rowPath = string.Create(CultureInfo.InvariantCulture, $"$.mappingRows[{index++}]");
             if (row.ValueKind != JsonValueKind.Object)
             {
-                issues.Add(Issue("saved-rule.mapping-row.invalid", "Mapping row must be an object.", rowPath));
+                issues.Add(Issue(SavedRuleIssueCodes.MappingRowInvalid, "Mapping row must be an object.", rowPath));
                 continue;
             }
 
@@ -38,7 +38,7 @@ internal static partial class SavedCompositionRuleLoader
             if (string.IsNullOrWhiteSpace(sourceBindingId) == string.IsNullOrWhiteSpace(sourceSlotTemplateId))
             {
                 issues.Add(Issue(
-                    "saved-rule.mapping-row.source-reference",
+                    SavedRuleIssueCodes.MappingRowSourceReference,
                     "Mapping row must declare exactly one of sourceBindingId or sourceSlotTemplateId.",
                     rowPath));
             }
@@ -46,7 +46,7 @@ internal static partial class SavedCompositionRuleLoader
                 !inputSlotTemplateIds.Contains(sourceSlotTemplateId))
             {
                 issues.Add(Issue(
-                    "saved-rule.mapping-row.source-slot-template-unknown",
+                    SavedRuleIssueCodes.MappingRowSourceSlotTemplateUnknown,
                     $"Mapping row references undeclared sourceSlotTemplateId '{sourceSlotTemplateId}'.",
                     $"{rowPath}.sourceSlotTemplateId"));
             }
@@ -62,7 +62,7 @@ internal static partial class SavedCompositionRuleLoader
             if (compositionKind == "merge" && sourceRange is null)
             {
                 issues.Add(Issue(
-                    "saved-rule.mapping-row.source-range-required",
+                    SavedRuleIssueCodes.MappingRowSourceRangeRequired,
                     "General Merge saved-rule mapping rows must declare sourceRange.",
                     $"{rowPath}.sourceRange"));
             }
@@ -70,7 +70,7 @@ internal static partial class SavedCompositionRuleLoader
             if (sourceRange is not null && targetRange is not null && sourceRange.Value.Length != targetRange.Value.Length)
             {
                 issues.Add(Issue(
-                    "saved-rule.mapping-row.length-mismatch",
+                    SavedRuleIssueCodes.MappingRowLengthMismatch,
                     "Mapping row sourceRange length must match targetRange length.",
                     rowPath));
             }
@@ -78,7 +78,7 @@ internal static partial class SavedCompositionRuleLoader
             if (sourceExperience == IcWorkflowIds.GeneralReplace && sourceRange is not null && sourceRange.Value.Start != 0)
             {
                 issues.Add(Issue(
-                    "saved-rule.mapping-row.replace-source-offset-unsupported",
+                    SavedRuleIssueCodes.MappingRowReplaceSourceOffsetUnsupported,
                     "Current General Replace CLI materialization supports replacement files from source offset 0 only.",
                     $"{rowPath}.sourceRange"));
             }
@@ -89,7 +89,7 @@ internal static partial class SavedCompositionRuleLoader
                     !string.Equals(targetAddressSpaceId, CompositionAddressSpaceIds.OutputImage, StringComparison.Ordinal))
                 {
                     issues.Add(Issue(
-                        "saved-rule.mapping-row.target-address-space-unsupported",
+                        SavedRuleIssueCodes.MappingRowTargetAddressSpaceUnsupported,
                         "Current General Merge saved-rule CLI consumption supports only output-image target rows.",
                         $"{rowPath}.targetAddressSpaceId"));
                 }
@@ -98,7 +98,7 @@ internal static partial class SavedCompositionRuleLoader
                     !string.Equals(targetRegionId, "general-output", StringComparison.Ordinal))
                 {
                     issues.Add(Issue(
-                        "saved-rule.mapping-row.target-region-unsupported",
+                        SavedRuleIssueCodes.MappingRowTargetRegionUnsupported,
                         "Current General Merge saved-rule CLI consumption supports only the general-output target region.",
                         $"{rowPath}.targetRegionId"));
                 }
@@ -107,7 +107,7 @@ internal static partial class SavedCompositionRuleLoader
                     !string.Equals(overlapPolicy, "reject", StringComparison.Ordinal))
                 {
                     issues.Add(Issue(
-                        "saved-rule.mapping-row.overlap-policy-unsupported",
+                        SavedRuleIssueCodes.MappingRowOverlapPolicyUnsupported,
                         "Current General Merge saved-rule CLI consumption supports only reject overlap policy.",
                         $"{rowPath}.overlapPolicy"));
                 }
@@ -117,7 +117,7 @@ internal static partial class SavedCompositionRuleLoader
                     (!IsAligned(sourceRange.Value, alignment) || !IsAligned(targetRange.Value, alignment)))
                 {
                     issues.Add(Issue(
-                        "saved-rule.mapping-row.alignment",
+                        SavedRuleIssueCodes.MappingRowAlignment,
                         $"General Merge saved-rule row '{rowId}' source and target ranges must satisfy alignment {alignment}.",
                         $"{rowPath}.alignment"));
                 }
@@ -140,7 +140,7 @@ internal static partial class SavedCompositionRuleLoader
 
         AddDuplicateIssues(
             [.. result.Select(row => row.RowId).Where(rowId => !string.IsNullOrWhiteSpace(rowId))],
-            "saved-rule.mapping-row.duplicate",
+            SavedRuleIssueCodes.MappingRowDuplicate,
             "Mapping row id is duplicated.",
             "$.mappingRows",
             issues);

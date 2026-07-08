@@ -147,6 +147,26 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("\"input.address-space.truncated\"", bootstrapSource, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies saved-rule validation codes stay centralized as a Bootstrap CLI contract.</summary>
+    [Fact]
+    public void BootstrapOwnsSavedRuleIssueCodes()
+    {
+        string bootstrapSource = ReadBootstrapSources();
+        string issueCodes = ReadText("src/NvtFwCombiner.Bootstrap/SavedRuleIssueCodes.cs");
+        string bootstrapWithoutIssueCodes = bootstrapSource.Replace(issueCodes, string.Empty, StringComparison.Ordinal);
+
+        Assert.Contains("public const string PropertyUnknown = \"saved-rule.property.unknown\"", issueCodes, StringComparison.Ordinal);
+        Assert.Contains(
+            "public const string ProcessorDependencyUnsupported = \"saved-rule.processor-dependency.unsupported\"",
+            issueCodes,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "public const string OperationFragmentProcessorDependencyUnsupported = \"saved-rule.operation-fragment.processor-dependency.unsupported\"",
+            issueCodes,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("\"saved-rule.", bootstrapWithoutIssueCodes, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies General mapping text parsing is owned by one Bootstrap helper.</summary>
     [Fact]
     public void BootstrapRangeTextOwnsGeneralMappingParsing()

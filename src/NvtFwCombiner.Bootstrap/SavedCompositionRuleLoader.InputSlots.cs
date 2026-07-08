@@ -15,7 +15,7 @@ internal static partial class SavedCompositionRuleLoader
 
         if (templates.ValueKind != JsonValueKind.Array)
         {
-            issues.Add(Issue("saved-rule.input-slot-templates.invalid", "inputSlotTemplates must be an array.", "$.inputSlotTemplates"));
+            issues.Add(Issue(SavedRuleIssueCodes.InputSlotTemplatesInvalid, "inputSlotTemplates must be an array.", "$.inputSlotTemplates"));
             return ids;
         }
 
@@ -26,7 +26,7 @@ internal static partial class SavedCompositionRuleLoader
             string path = string.Create(CultureInfo.InvariantCulture, $"$.inputSlotTemplates[{index++}]");
             if (template.ValueKind != JsonValueKind.Object)
             {
-                issues.Add(Issue("saved-rule.input-slot-template.invalid", "Input slot template must be an object.", path));
+                issues.Add(Issue(SavedRuleIssueCodes.InputSlotTemplateInvalid, "Input slot template must be an object.", path));
                 continue;
             }
 
@@ -45,7 +45,7 @@ internal static partial class SavedCompositionRuleLoader
 
         AddDuplicateIssues(
             values,
-            "saved-rule.input-slot-template.duplicate",
+            SavedRuleIssueCodes.InputSlotTemplateDuplicate,
             "Input slot template id is duplicated.",
             "$.inputSlotTemplates",
             issues);

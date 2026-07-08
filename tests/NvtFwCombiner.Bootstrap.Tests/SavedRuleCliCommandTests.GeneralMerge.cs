@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using NvtFwCombiner.TestSupport;
+using static NvtFwCombiner.Bootstrap.SavedRuleIssueCodes;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -30,7 +31,7 @@ public sealed partial class SavedRuleCliCommandTests
         ]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains("saved-rule.processor-dependency.unsupported", result.Error, StringComparison.Ordinal);
+        Assert.Contains(ProcessorDependencyUnsupported, result.Error, StringComparison.Ordinal);
     }
 
     /// <summary>Requires a saved-rule compatibility envelope to match IC, derived profile id, and mode.</summary>
