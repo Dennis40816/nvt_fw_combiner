@@ -2,7 +2,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.VisualTree;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia.Views;
@@ -28,7 +27,7 @@ public sealed partial class FirmwareSlotCard : UserControl
     }
 
     private MainWindowViewModel? ShellViewModel =>
-        this.FindAncestorOfType<Window>()?.DataContext as MainWindowViewModel;
+        WorkbenchShellViewModelLocator.Find(this);
 
     private void DropZone_OnDragEnter(object? sender, DragEventArgs e)
     {

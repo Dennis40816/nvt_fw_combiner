@@ -1,0 +1,71 @@
+<UserControl
+    x:Class="NvtFwCombiner.Presentation.Avalonia.Views.GeneralMergeMappingRow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    x:Name="Root"
+    x:DataType="vm:GeneralMergeMappingViewModel">
+  <Border
+      Margin="0,0,0,8"
+      Padding="7"
+      Background="#F8FAFC"
+      BorderBrush="#CBD5E1"
+      BorderThickness="1"
+      CornerRadius="8">
+    <Grid ColumnDefinitions="34,118,118,108,*,82,40" ColumnSpacing="8">
+      <Border Width="30" Height="30" VerticalAlignment="Center" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="#334155" Text="{Binding Index}" />
+      </Border>
+      <TextBox
+          Classes="addressInput"
+          Grid.Column="1"
+          Text="{Binding SourceStartAddress, Mode=TwoWay}"
+          PlaceholderText="source" />
+      <TextBox
+          Classes="addressInput"
+          Grid.Column="2"
+          Text="{Binding TargetStartAddress, Mode=TwoWay}"
+          PlaceholderText="target" />
+      <TextBox
+          Classes="addressInput"
+          Grid.Column="3"
+          Text="{Binding Length, Mode=TwoWay}"
+          PlaceholderText="length" />
+      <Border
+          Classes="fileDropZone"
+          Grid.Column="4"
+          MinHeight="32"
+          Padding="0"
+          Background="#FFFFFF"
+          BorderBrush="#CBD5E1"
+          BorderThickness="1"
+          CornerRadius="8"
+          DragDrop.AllowDrop="True"
+          DragDrop.DragEnter="DropZone_OnDragEnter"
+          DragDrop.DragOver="DropZone_OnDragOver"
+          DragDrop.DragLeave="DropZone_OnDragLeave"
+          DragDrop.Drop="MappingDrop_OnDrop">
+        <Grid>
+          <Border Classes="dropZoneOverlay" />
+          <StackPanel Margin="10,0" VerticalAlignment="Center" Spacing="2">
+            <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding DisplayName}" TextWrapping="Wrap" />
+            <TextBlock FontSize="10" FontFamily="Cascadia Mono, Consolas" Foreground="#64748B" IsVisible="{Binding HasFile}" Text="{Binding DisplayDetail}" TextWrapping="Wrap" />
+          </StackPanel>
+        </Grid>
+      </Border>
+      <Button
+          Grid.Column="5"
+          Classes="action browseAction"
+          Click="BrowseButton_OnClick"
+          Content="{Binding BrowseLabel, ElementName=Root}"
+          ToolTip.Tip="{Binding SelectSourceBinTooltip, ElementName=Root}" />
+      <Button
+          Grid.Column="6"
+          Classes="iconButton dangerIcon"
+          Click="RemoveButton_OnClick"
+          ToolTip.Tip="{Binding RemoveMappingTooltip, ElementName=Root}">
+        <TextBlock FontSize="13" Text="X" />
+      </Button>
+    </Grid>
+  </Border>
+</UserControl>

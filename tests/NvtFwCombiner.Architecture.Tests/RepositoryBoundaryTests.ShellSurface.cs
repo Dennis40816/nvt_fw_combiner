@@ -17,6 +17,12 @@ public sealed partial class RepositoryBoundaryTests
         string shellPanels = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowShellPanels.axaml");
         string firmwareSlotCard = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/FirmwareSlotCard.axaml");
         string firmwareSlotCardCode = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/FirmwareSlotCard.axaml.cs");
+        string generalReplaceMappingRow = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/GeneralReplaceMappingRow.axaml");
+        string generalReplaceMappingRowCode = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Views/GeneralReplaceMappingRow.axaml.cs");
+        string generalMergeMappingRow = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/GeneralMergeMappingRow.axaml");
+        string generalMergeMappingRowCode = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Views/GeneralMergeMappingRow.axaml.cs");
         string dropZoneDragState = ReadText("src/NvtFwCombiner.Presentation.Avalonia/DropZoneDragState.cs");
         string replaceSelectionModal = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/ReplaceSelectionModal.axaml");
         string reportModal = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/ReportModal.axaml");
@@ -29,6 +35,8 @@ public sealed partial class RepositoryBoundaryTests
             shellPanels,
             sharedTemplates,
             firmwareSlotCard,
+            generalReplaceMappingRow,
+            generalMergeMappingRow,
             replaceSelectionModal,
             reportModal);
 
@@ -99,12 +107,17 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("SetSlotFile", firmwareSlotCardCode, StringComparison.Ordinal);
         Assert.Contains("DropZoneDragState.ApplyFileDropEffect", firmwareSlotCardCode, StringComparison.Ordinal);
         Assert.Contains("DropZoneDragState.GetFirstLocalFilePath", firmwareSlotCardCode, StringComparison.Ordinal);
-        Assert.Contains("DropZoneDragState.ApplyFileDropEffect", ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.FileInputs.cs"), StringComparison.Ordinal);
         Assert.Contains("GetFirstLocalFilePath", dropZoneDragState, StringComparison.Ordinal);
         Assert.Contains("DragActiveClass", dropZoneDragState, StringComparison.Ordinal);
-        Assert.Contains("BrowseGeneralMappingButton_OnClick", shell, StringComparison.Ordinal);
-        Assert.Contains("GeneralMappingDrop_OnDrop", shell, StringComparison.Ordinal);
-        Assert.Contains("RemoveGeneralMappingButton_OnClick", shell, StringComparison.Ordinal);
+        Assert.Contains("<views:GeneralReplaceMappingRow", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("BrowseGeneralMappingButton_OnClick", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("GeneralMappingDrop_OnDrop", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("RemoveGeneralMappingButton_OnClick", shell, StringComparison.Ordinal);
+        Assert.Contains("MappingDrop_OnDrop", generalReplaceMappingRow, StringComparison.Ordinal);
+        Assert.Contains("BrowseButton_OnClick", generalReplaceMappingRow, StringComparison.Ordinal);
+        Assert.Contains("RemoveButton_OnClick", generalReplaceMappingRow, StringComparison.Ordinal);
+        Assert.Contains("SetGeneralReplaceMappingFile", generalReplaceMappingRowCode, StringComparison.Ordinal);
+        Assert.Contains("RemoveGeneralReplaceMappingRow", generalReplaceMappingRowCode, StringComparison.Ordinal);
         Assert.Contains("IsNonCtrlRamStructuredReplaceModeSelected", shell, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.GeneralReplaceMappingTitle}\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Workbench wiring pending", shell, StringComparison.Ordinal);
@@ -127,8 +140,14 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ToolTip.Tip=\"{Binding ReplaceBuildActionTip}\"", shellSurface, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.GeneralMergeMappingTitle}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding GeneralMergeMappings}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("GeneralMergeMappingDrop_OnDrop", shell, StringComparison.Ordinal);
-        Assert.Contains("BrowseGeneralMergeMappingButton_OnClick", shell, StringComparison.Ordinal);
+        Assert.Contains("<views:GeneralMergeMappingRow", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("GeneralMergeMappingDrop_OnDrop", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("BrowseGeneralMergeMappingButton_OnClick", shell, StringComparison.Ordinal);
+        Assert.Contains("MappingDrop_OnDrop", generalMergeMappingRow, StringComparison.Ordinal);
+        Assert.Contains("BrowseButton_OnClick", generalMergeMappingRow, StringComparison.Ordinal);
+        Assert.Contains("RemoveButton_OnClick", generalMergeMappingRow, StringComparison.Ordinal);
+        Assert.Contains("SetGeneralMergeMappingFile", generalMergeMappingRowCode, StringComparison.Ordinal);
+        Assert.Contains("RemoveGeneralMergeMappingRow", generalMergeMappingRowCode, StringComparison.Ordinal);
         Assert.Contains("Button.reportAction", shellStyles, StringComparison.Ordinal);
         Assert.Contains("IsEnabled=\"{Binding CanOpenReport}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ReportActionLabel", shell, StringComparison.Ordinal);

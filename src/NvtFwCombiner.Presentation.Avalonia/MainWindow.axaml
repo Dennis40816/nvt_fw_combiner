@@ -327,73 +327,10 @@
                   <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding GeneralReplaceMappings}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="vm:GeneralReplaceMappingViewModel">
-                        <Border
-                            Margin="0,0,0,8"
-                            Padding="7"
-                            Background="#F8FAFC"
-                            BorderBrush="#CBD5E1"
-                            BorderThickness="1"
-                            CornerRadius="8">
-                          <Grid ColumnDefinitions="34,128,22,128,*,82,40" ColumnSpacing="8">
-                            <Border Width="30" Height="30" VerticalAlignment="Center" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
-                              <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="#334155" Text="{Binding Index}" />
-                            </Border>
-                            <TextBox
-                                Classes="addressInput"
-                                Grid.Column="1"
-                                Text="{Binding StartAddress, Mode=TwoWay}"
-                                PlaceholderText="start" />
-                            <TextBlock
-                                Grid.Column="2"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                FontSize="12"
-                                Foreground="#64748B"
-                                Text="-" />
-                            <TextBox
-                                Classes="addressInput"
-                                Grid.Column="3"
-                                Text="{Binding EndAddress, Mode=TwoWay}"
-                                PlaceholderText="end" />
-                            <Border
-                                Classes="fileDropZone"
-                                Grid.Column="4"
-                                MinHeight="32"
-                                Padding="0"
-                                Background="#FFFFFF"
-                                BorderBrush="#CBD5E1"
-                                BorderThickness="1"
-                                CornerRadius="8"
-                                DragDrop.AllowDrop="True"
-                                DragDrop.DragEnter="DropZone_OnDragEnter"
-                                DragDrop.DragOver="SlotDragOver_OnDragOver"
-                                DragDrop.DragLeave="DropZone_OnDragLeave"
-                                DragDrop.Drop="GeneralMappingDrop_OnDrop"
-                                Tag="{Binding MappingId}">
-                              <Grid>
-                                <Border Classes="dropZoneOverlay" />
-                                <StackPanel Margin="10,0" VerticalAlignment="Center" Spacing="2">
-                                  <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding DisplayName}" TextWrapping="Wrap" />
-                                  <TextBlock FontSize="10" FontFamily="Cascadia Mono, Consolas" Foreground="#64748B" IsVisible="{Binding HasFile}" Text="{Binding DisplayDetail}" TextWrapping="Wrap" />
-                                </StackPanel>
-                              </Grid>
-                            </Border>
-                            <Button
-                                Grid.Column="5"
-                                Classes="action browseAction"
-                                Click="BrowseGeneralMappingButton_OnClick"
-                                Content="{Binding #RootWindow.DataContext.Text.BrowseLabel}"
-                                Tag="{Binding MappingId}"
-                                ToolTip.Tip="{Binding #RootWindow.DataContext.Text.SelectReplacementBinTooltip}" />
-                            <Button
-                                Grid.Column="6"
-                                Classes="iconButton dangerIcon"
-                                Click="RemoveGeneralMappingButton_OnClick"
-                                ToolTip.Tip="{Binding #RootWindow.DataContext.Text.RemoveRangeTooltip}">
-                              <TextBlock FontSize="13" Text="X" />
-                            </Button>
-                          </Grid>
-                        </Border>
+                        <views:GeneralReplaceMappingRow
+                            BrowseLabel="{Binding #RootWindow.DataContext.Text.BrowseLabel}"
+                            RemoveRangeTooltip="{Binding #RootWindow.DataContext.Text.RemoveRangeTooltip}"
+                            SelectReplacementBinTooltip="{Binding #RootWindow.DataContext.Text.SelectReplacementBinTooltip}" />
                       </DataTemplate>
                     </ItemsControl.ItemTemplate>
                   </ItemsControl>
@@ -512,71 +449,10 @@
                   <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding GeneralMergeMappings}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="vm:GeneralMergeMappingViewModel">
-                        <Border
-                            Margin="0,0,0,8"
-                            Padding="7"
-                            Background="#F8FAFC"
-                            BorderBrush="#CBD5E1"
-                            BorderThickness="1"
-                            CornerRadius="8">
-                          <Grid ColumnDefinitions="34,118,118,108,*,82,40" ColumnSpacing="8">
-                            <Border Width="30" Height="30" VerticalAlignment="Center" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
-                              <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="#334155" Text="{Binding Index}" />
-                            </Border>
-                            <TextBox
-                                Classes="addressInput"
-                                Grid.Column="1"
-                                Text="{Binding SourceStartAddress, Mode=TwoWay}"
-                                PlaceholderText="source" />
-                            <TextBox
-                                Classes="addressInput"
-                                Grid.Column="2"
-                                Text="{Binding TargetStartAddress, Mode=TwoWay}"
-                                PlaceholderText="target" />
-                            <TextBox
-                                Classes="addressInput"
-                                Grid.Column="3"
-                                Text="{Binding Length, Mode=TwoWay}"
-                                PlaceholderText="length" />
-                            <Border
-                                Classes="fileDropZone"
-                                Grid.Column="4"
-                                MinHeight="32"
-                                Padding="0"
-                                Background="#FFFFFF"
-                                BorderBrush="#CBD5E1"
-                                BorderThickness="1"
-                                CornerRadius="8"
-                                DragDrop.AllowDrop="True"
-                                DragDrop.DragEnter="DropZone_OnDragEnter"
-                                DragDrop.DragOver="SlotDragOver_OnDragOver"
-                                DragDrop.DragLeave="DropZone_OnDragLeave"
-                                DragDrop.Drop="GeneralMergeMappingDrop_OnDrop"
-                                Tag="{Binding MappingId}">
-                              <Grid>
-                                <Border Classes="dropZoneOverlay" />
-                                <StackPanel Margin="10,0" VerticalAlignment="Center" Spacing="2">
-                                  <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding DisplayName}" TextWrapping="Wrap" />
-                                  <TextBlock FontSize="10" FontFamily="Cascadia Mono, Consolas" Foreground="#64748B" IsVisible="{Binding HasFile}" Text="{Binding DisplayDetail}" TextWrapping="Wrap" />
-                                </StackPanel>
-                              </Grid>
-                            </Border>
-                            <Button
-                                Grid.Column="5"
-                                Classes="action browseAction"
-                                Click="BrowseGeneralMergeMappingButton_OnClick"
-                                Content="{Binding #RootWindow.DataContext.Text.BrowseLabel}"
-                                Tag="{Binding MappingId}"
-                                ToolTip.Tip="{Binding #RootWindow.DataContext.Text.SelectSourceBinTooltip}" />
-                            <Button
-                                Grid.Column="6"
-                                Classes="iconButton dangerIcon"
-                                Click="RemoveGeneralMergeMappingButton_OnClick"
-                                ToolTip.Tip="{Binding #RootWindow.DataContext.Text.RemoveMappingTooltip}">
-                              <TextBlock FontSize="13" Text="X" />
-                            </Button>
-                          </Grid>
-                        </Border>
+                        <views:GeneralMergeMappingRow
+                            BrowseLabel="{Binding #RootWindow.DataContext.Text.BrowseLabel}"
+                            RemoveMappingTooltip="{Binding #RootWindow.DataContext.Text.RemoveMappingTooltip}"
+                            SelectSourceBinTooltip="{Binding #RootWindow.DataContext.Text.SelectSourceBinTooltip}" />
                       </DataTemplate>
                     </ItemsControl.ItemTemplate>
                   </ItemsControl>
