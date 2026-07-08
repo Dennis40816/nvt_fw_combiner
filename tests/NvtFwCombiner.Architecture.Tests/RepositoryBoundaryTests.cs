@@ -167,6 +167,31 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("StandardMergeProfilesByIc", standardMerge, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies the root CLI entry point stays split from command-specific handlers and formatting helpers.</summary>
+    [Fact]
+    public void CliApplicationConcernsStaySplit()
+    {
+        string root = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.cs");
+        string options = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.Options.cs");
+        string profiles = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.Profiles.cs");
+        string result = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.Result.cs");
+        string standardMerge = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.StandardMerge.cs");
+        string usage = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.Usage.cs");
+
+        Assert.Contains("RunAsync", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static async Task<int> RunStandardMergeAsync", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static async Task<int> RunProfilesAsync", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static bool TryParseOptions", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static async Task PrintRunResultAsync", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static async Task WriteUsageAsync", root, StringComparison.Ordinal);
+        Assert.Contains("private static bool TryParseOptions", options, StringComparison.Ordinal);
+        Assert.Contains("private sealed record ParsedOptions", options, StringComparison.Ordinal);
+        Assert.Contains("private static async Task<int> RunProfilesAsync", profiles, StringComparison.Ordinal);
+        Assert.Contains("private static async Task PrintRunResultAsync", result, StringComparison.Ordinal);
+        Assert.Contains("private static async Task<int> RunStandardMergeAsync", standardMerge, StringComparison.Ordinal);
+        Assert.Contains("private static async Task WriteUsageAsync", usage, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies the shell follows the owner-approved clean home and independent page direction.</summary>
     [Fact]
     public void ShellUsesCleanHomeAndIndependentWorkflowPages()
