@@ -5,6 +5,34 @@ namespace NvtFwCombiner.ProfileContract.Tests;
 /// <summary>Tests the centralized IC onboarding support catalog.</summary>
 public sealed class IcSupportCatalogTests
 {
+    private static readonly string[] KnownWorkflowIds =
+    [
+        IcWorkflowIds.StandardMerge,
+        IcWorkflowIds.DpReplace,
+        IcWorkflowIds.CtrlRamReplace,
+        IcWorkflowIds.GeneralMerge,
+        IcWorkflowIds.GeneralReplace,
+    ];
+
+    /// <summary>IC onboarding rows are unique and use only documented workflow ids.</summary>
+    [Fact]
+    public void IcSupportRowsAreUniqueAndUseKnownWorkflowIds()
+    {
+        Assert.Equal(
+            IcSupportCatalog.All.Count,
+            IcSupportCatalog.All.Select(entry => entry.IcId).Distinct(StringComparer.Ordinal).Count());
+
+        foreach (IcSupportEntry entry in IcSupportCatalog.All)
+        {
+            Assert.NotEmpty(entry.WorkflowIds);
+            Assert.Equal(
+                entry.WorkflowIds.Count,
+                entry.WorkflowIds.Distinct(StringComparer.Ordinal).Count());
+            Assert.All(entry.WorkflowIds, workflowId =>
+                Assert.Contains(workflowId, KnownWorkflowIds));
+        }
+    }
+
     /// <summary>Every executable Standard Merge IC has an onboarding entry.</summary>
     [Fact]
     public void StandardMergeProfilesAreCoveredByIcSupportCatalog()
@@ -56,4 +84,31 @@ public sealed class IcSupportCatalogTests
         Assert.Equal(ctrlRamPostbuildSource, entry.CtrlRamPostbuildSourceIcId);
     }
 
+    /// <summary>Alias facts point to supported IC rows instead of orphan source ids.</summary>
+    [Fact]
+    public void AliasFactsPointToSupportedIcRows()
+    {
+        HashSet<string> supportedIcIds = [.. IcSupportCatalog.IcIds];
+        HashSet<string> standardMergeProfileIcIds =
+        [
+            .. BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles
+                .Select(profile => profile.IcId),
+        ];
+
+        foreach (IcSupportEntry entry in IcSupportCatalog.All)
+        {
+            if (entry.StandardMergeSourceIcId is not null)
+            {
+                Assert.Contains(entry.StandardMergeSourceIcId, supportedIcIds);
+                Assert.Contains(entry.StandardMergeSourceIcId, standardMergeProfileIcIds);
+                Assert.NotEqual(entry.IcId, entry.StandardMergeSourceIcId);
+            }
+
+            if (entry.CtrlRamPostbuildSourceIcId is not null)
+            {
+                Assert.Contains(entry.CtrlRamPostbuildSourceIcId, supportedIcIds);
+                Assert.NotEqual(entry.IcId, entry.CtrlRamPostbuildSourceIcId);
+            }
+        }
+    }
 }
