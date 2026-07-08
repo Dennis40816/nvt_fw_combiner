@@ -99,39 +99,11 @@ public sealed partial class ReportReviewViewModel
     private static string FormatInputTitle(string addressSpaceId, string artifactId)
     {
         string source = string.IsNullOrWhiteSpace(artifactId) ? addressSpaceId : artifactId;
-        if (ClassifyInput(addressSpaceId) == "base")
-        {
-            return "Base flash image";
-        }
-
-        string normalized = source;
-        const string prefix = WorkbenchSlotIds.ReplaceCtrlRamPrefix;
-        if (normalized.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-        {
-            normalized = normalized[prefix.Length..];
-        }
-
-        string[] parts = normalized.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (parts.Length == 0)
-        {
-            return source;
-        }
-
-        string region = parts[0].ToUpperInvariant() switch
-        {
-            "NF" => "NF",
-            "MP" => "MP",
-            "VN" => "VN",
-            "NORMAL" => "Normal",
-            _ => parts[0],
-        };
-        string side = parts.Length >= 2 && string.Equals(parts[1], "master", StringComparison.OrdinalIgnoreCase)
-            ? "Master"
-            : parts.Length >= 3 && string.Equals(parts[1], "slave", StringComparison.OrdinalIgnoreCase)
-                ? $"Slave {parts[2].ToUpperInvariant()}"
-                : string.Empty;
-
-        return string.IsNullOrWhiteSpace(side) ? region : $"{region} CtrlRAM ({side})";
+        return ClassifyInput(addressSpaceId) == "base"
+            ? "Base flash image"
+            : WorkbenchSlotIds.TryFormatReplaceCtrlRamLabel(source, out string ctrlRamLabel)
+                ? ctrlRamLabel
+                : source;
     }
 
     private static string ParseOutput(JsonElement root)

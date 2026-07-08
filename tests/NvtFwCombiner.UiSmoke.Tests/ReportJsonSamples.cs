@@ -135,6 +135,29 @@ internal static class ReportJsonSamples
             string.Empty);
     }
 
+    public static string CtrlRamInputs()
+    {
+        return Create(
+            "nt51927-ctrlram-replace",
+            "NT51927",
+            "ctrlram-replace",
+            "ctrlram-replace",
+            "Replace",
+            "ui-smoke-inputs",
+            "2026-07-01T00:00:00Z",
+            [
+                Input("reference-base", "base.bin", 262144),
+                Input("replace-ctrlram-vn", "replace-ctrlram-vn", 5728),
+                Input("replace-ctrlram-normal-slave-r", "replace-ctrlram-normal-slave-r", 12288),
+            ],
+            [],
+            [],
+            "preview.bin",
+            262144,
+            committed: false,
+            "abcdef012345");
+    }
+
     private static string Create(
         string profileId,
         string icId,
@@ -208,13 +231,18 @@ internal static class ReportJsonSamples
 
     private static object Input()
     {
+        return Input("base-input", "base.bin", 524288);
+    }
+
+    private static object Input(string addressSpaceId, string artifactId, long size)
+    {
         return new
         {
-            AddressSpaceId = "base-input",
-            BindingId = "base",
-            Size = 524288,
+            AddressSpaceId = addressSpaceId,
+            BindingId = artifactId,
+            Size = size,
             Sha256 = "abcdef0123456789",
-            ArtifactId = "base.bin",
+            ArtifactId = artifactId,
         };
     }
 

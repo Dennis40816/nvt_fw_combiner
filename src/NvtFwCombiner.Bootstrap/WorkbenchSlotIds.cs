@@ -29,4 +29,10 @@ public static class WorkbenchSlotIds
         ArgumentException.ThrowIfNullOrWhiteSpace(regionId);
         return string.Concat(ReplaceCtrlRamPrefix, regionId);
     }
+
+    /// <summary>Formats a dynamic CtrlRAM replacement slot id into a human-readable report label.</summary>
+    public static bool TryFormatReplaceCtrlRamLabel(string slotId, out string label)
+    {
+        return DynamicCtrlRamReplacementIds.TryFormatDisplayLabel(slotId, out label);
+    }
 }

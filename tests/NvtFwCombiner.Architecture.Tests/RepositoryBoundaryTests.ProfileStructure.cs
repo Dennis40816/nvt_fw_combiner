@@ -138,7 +138,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public const string DynamicCtrlRamReplacementPrefix = CompositionAddressSpaceIds.DynamicCtrlRamReplacementPrefix;", workbenchAddressSpaceIds, StringComparison.Ordinal);
         Assert.Contains("WorkbenchAddressSpaceIds.DpInput", presentationSources, StringComparison.Ordinal);
         Assert.Contains(
-            "CompositionAddressSpaceIds.DynamicCtrlRamReplacementPrefix",
+            "DynamicCtrlRamReplacementIds.TryFormatDisplayLabel",
             ReadText("src/NvtFwCombiner.Application/Composition/CompositionRunService.OutputDifferenceLabels.cs"),
             StringComparison.Ordinal);
 
@@ -159,6 +159,27 @@ public sealed partial class RepositoryBoundaryTests
             Assert.DoesNotContain(addressSpaceLiteral, bootstrapSources, StringComparison.Ordinal);
             Assert.DoesNotContain(addressSpaceLiteral, presentationSources, StringComparison.Ordinal);
         }
+    }
+
+    /// <summary>Verifies dynamic CtrlRAM replacement report labels are parsed by one Domain helper.</summary>
+    [Fact]
+    public void DynamicCtrlRamReplacementLabelsStayDomainOwned()
+    {
+        string domainHelper = ReadText("src/NvtFwCombiner.Domain/Composition/DynamicCtrlRamReplacementIds.cs");
+        string applicationLabels = ReadText(
+            "src/NvtFwCombiner.Application/Composition/CompositionRunService.OutputDifferenceLabels.cs");
+        string presentationParser = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.Parsing.cs");
+        string workbenchSlotIds = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchSlotIds.cs");
+
+        Assert.Contains("TryFormatDisplayLabel", domainHelper, StringComparison.Ordinal);
+        Assert.Contains("FormatRegionDisplayLabel", domainHelper, StringComparison.Ordinal);
+        Assert.Contains("DynamicCtrlRamReplacementIds.TryFormatDisplayLabel", applicationLabels, StringComparison.Ordinal);
+        Assert.Contains("DynamicCtrlRamReplacementIds.TryFormatDisplayLabel", workbenchSlotIds, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchSlotIds.TryFormatReplaceCtrlRamLabel", presentationParser, StringComparison.Ordinal);
+        Assert.DoesNotContain("Split('-',", applicationLabels, StringComparison.Ordinal);
+        Assert.DoesNotContain("Split('-',", presentationParser, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReplaceCtrlRamPrefix", presentationParser, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies alias-heavy postbuild profile rows stay grouped by IC family.</summary>

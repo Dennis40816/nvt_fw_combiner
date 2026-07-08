@@ -113,7 +113,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("WorkbenchSlotIds.MergeLd", presentationSource, StringComparison.Ordinal);
         Assert.Contains("WorkbenchSlotIds.ReplaceBase", presentationSource, StringComparison.Ordinal);
         Assert.Contains("WorkbenchSlotIds.ReplaceDp", presentationSource, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchSlotIds.ReplaceCtrlRamPrefix", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchSlotIds.TryFormatReplaceCtrlRamLabel", presentationSource, StringComparison.Ordinal);
         foreach (string slotLiteral in new[]
         {
             "\"merge-dp\"",

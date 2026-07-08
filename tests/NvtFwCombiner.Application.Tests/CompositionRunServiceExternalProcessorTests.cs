@@ -118,7 +118,7 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal(new ByteRange(1, 2), replacement.Range);
         Assert.True(replacement.IsAccepted);
         Assert.Equal("DeclaredReplacement", replacement.Classification);
-        Assert.Equal("NF CtrlRAM (master)", replacement.SectionLabel);
+        Assert.Equal("NF CtrlRAM (Master)", replacement.SectionLabel);
         Assert.Contains("staged replacement source", replacement.Explanation, StringComparison.Ordinal);
         Assert.Equal("2030", replacement.BeforeHexPreview);
         Assert.Equal("aabb", replacement.AfterHexPreview);

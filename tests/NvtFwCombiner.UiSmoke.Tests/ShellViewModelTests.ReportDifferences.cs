@@ -69,4 +69,23 @@ public sealed partial class ShellViewModelTests
             row.Detail == "1" &&
             row.Meta == "全部可接受");
     }
+
+    /// <summary>Verifies report inputs use readable CtrlRAM region labels instead of raw slot ids.</summary>
+    [Fact]
+    public void ReportReviewFormatsCtrlRamInputTitles()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        viewModel.LoadReportJson(ReportJsonSamples.CtrlRamInputs(), "ctrlram-inputs.json");
+
+        Assert.Contains(viewModel.LoadedReport.Inputs, input =>
+            input.Title == "Base flash image" &&
+            input.Classification == "base");
+        Assert.Contains(viewModel.LoadedReport.Inputs, input =>
+            input.Title == "VN CtrlRAM" &&
+            input.Classification == "ctrlram");
+        Assert.Contains(viewModel.LoadedReport.Inputs, input =>
+            input.Title == "Normal CtrlRAM (Slave R)" &&
+            input.Classification == "ctrlram");
+    }
 }
