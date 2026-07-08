@@ -1,4 +1,7 @@
+using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Tests.FlashMaps;
 
@@ -71,5 +74,69 @@ public sealed class TpHeaderCatalogTests
         Assert.True(
             TpHeaderCatalog.GetPriority(TpHeaderSectionIds.HeaderCopy) >
             TpHeaderCatalog.GetPriority(TpHeaderSectionIds.CtrlRamReplacement));
+    }
+
+    /// <summary>All postbuild planner write-section ids must have report labels in the TP header catalog.</summary>
+    [Fact]
+    public void PostbuildPlannerWriteSectionsAreDeclaredInHeaderCatalog()
+    {
+        HashSet<string> knownSectionIds = [.. TpHeaderCatalog.All.Select(section => section.SectionId)];
+
+        foreach (LegacyCombinerPostbuildCommandPlan plan in AllPostbuildPlans())
+        {
+            ByteRange[] stagedRanges =
+            [
+                .. LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(plan)
+                    .Select(block => block.FirmwareRange),
+            ];
+            long capacity = LegacyCombinerPostbuildPlanner.CalculateRequiredCapacity(plan, stagedRanges);
+            LegacyCombinerPostbuildWriteRange[] sections =
+            [
+                .. LegacyCombinerPostbuildPlanner.GetAllowedWriteRangeSectionsForStagedSources(
+                    plan,
+                    capacity,
+                    stagedRanges,
+                    stagedRanges),
+                .. LegacyCombinerPostbuildPlanner.GetAllowedWriteRangeSectionsForInPlaceRefresh(plan, capacity),
+            ];
+
+            Assert.NotEmpty(sections);
+            Assert.All(sections, section =>
+                Assert.Contains(section.SectionId, knownSectionIds));
+        }
+    }
+
+    private static IEnumerable<LegacyCombinerPostbuildCommandPlan> AllPostbuildPlans()
+    {
+        foreach (LegacyCombinerPostbuildProfile profile in LegacyCombinerPostbuildCatalog.All)
+        {
+            yield return LegacyCombinerPostbuildPlanner.CreatePlan(
+                profile,
+                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+            yield return LegacyCombinerPostbuildPlanner.CreatePlan(
+                profile,
+                new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
+            if (profile.TwoChipCommands is not null)
+            {
+                yield return LegacyCombinerPostbuildPlanner.CreatePlan(
+                    profile,
+                    new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]));
+            }
+
+            if (profile.ThreeChipCommands is not null)
+            {
+                yield return LegacyCombinerPostbuildPlanner.CreatePlan(
+                    profile,
+                    new IcNumberSelection(IcNumberInputMode.NumericSelector, ["3"]));
+            }
+
+            foreach (string token in profile.BranchRules.Keys.Where(token =>
+                         int.TryParse(token, out int value) && value > 3))
+            {
+                yield return LegacyCombinerPostbuildPlanner.CreatePlan(
+                    profile,
+                    new IcNumberSelection(IcNumberInputMode.NumericSelector, [token]));
+            }
+        }
     }
 }
