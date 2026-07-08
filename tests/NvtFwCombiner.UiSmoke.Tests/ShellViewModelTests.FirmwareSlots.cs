@@ -154,7 +154,7 @@ public sealed partial class ShellViewModelTests
         dpSlot = viewModel.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
         Assert.Contains(dpSlot.FirmwareFacts, fact =>
             fact.Label == "DP" &&
-            fact.Value == "D????" &&
+            fact.Value == "Pending" &&
             fact.IsWarning);
     }
 }

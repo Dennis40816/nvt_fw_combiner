@@ -197,6 +197,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ResolveStandardMergeProfileForInputs", standardMergeRun, StringComparison.Ordinal);
         Assert.Contains("TryReadBaseCommonFwVersion", firmwareMetadata, StringComparison.Ordinal);
         Assert.Contains("FirmwareConfigMetadataReader.TryRead", firmwareMetadata, StringComparison.Ordinal);
+        Assert.Contains("GenFlashVersionCatalog.TryReadDpVersion", firmwareMetadata, StringComparison.Ordinal);
         Assert.Contains("DisplayCategory", firmwareMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("PostbuildSetup_", firmwareMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateFlashCodeOutputFileName", firmwareMetadata, StringComparison.Ordinal);
@@ -204,6 +205,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("CreateFlashCodeOutputFileName", outputNaming, StringComparison.Ordinal);
         Assert.Contains("FindDpVersionToken", outputNaming, StringComparison.Ordinal);
         Assert.Contains("FindTpVersionToken", outputNaming, StringComparison.Ordinal);
+        Assert.DoesNotContain("GenFlashVersionCatalog", outputNaming, StringComparison.Ordinal);
+        Assert.DoesNotContain("OutputMainAbsoluteAddress", outputNaming, StringComparison.Ordinal);
+        Assert.DoesNotContain("InputRelativeOffset", outputNaming, StringComparison.Ordinal);
         Assert.DoesNotContain("FirmwareConfigMetadataReader.TryRead", outputNaming, StringComparison.Ordinal);
         Assert.Contains("GetCtrlRamRegions", ctrlRamDisplay, StringComparison.Ordinal);
         Assert.Contains("TpFlashMapCatalog.GetCtrlRamRegions", ctrlRamDisplay, StringComparison.Ordinal);
