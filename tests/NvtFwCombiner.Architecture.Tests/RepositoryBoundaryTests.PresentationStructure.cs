@@ -230,6 +230,73 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public sealed class ReportOperationFlowNodeViewModel", flowNodes, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies report input grouping tokens stay centralized inside Presentation.</summary>
+    [Fact]
+    public void ReportInputClassificationTokensStayPresentationOwned()
+    {
+        string tokens = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportInputClassifications.cs");
+        string parsing = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.Parsing.cs");
+        string inputGroups = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.InputGroups.cs");
+        string operationFlow = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.OperationFlow.cs");
+
+        Assert.Contains("public const string Base = \"base\";", tokens, StringComparison.Ordinal);
+        Assert.Contains("public const string CtrlRam = \"ctrlram\";", tokens, StringComparison.Ordinal);
+        Assert.Contains("public const string Other = \"other\";", tokens, StringComparison.Ordinal);
+        Assert.Contains("public const string RoleReplacement = \"replacement\";", tokens, StringComparison.Ordinal);
+        Assert.Contains("public const string RoleInput = \"input\";", tokens, StringComparison.Ordinal);
+        Assert.Contains("public const string ReferenceSearchTerm = \"reference\";", tokens, StringComparison.Ordinal);
+        Assert.Contains("ReportInputClassifications.Base", parsing, StringComparison.Ordinal);
+        Assert.Contains("ReportInputClassifications.CtrlRam", parsing, StringComparison.Ordinal);
+        Assert.Contains("ReportInputClassifications.Other", parsing, StringComparison.Ordinal);
+        Assert.Contains("ReportInputClassifications.RoleReplacement", parsing, StringComparison.Ordinal);
+        Assert.Contains("ReportInputClassifications.RoleInput", parsing, StringComparison.Ordinal);
+        Assert.Contains("ReportInputClassifications.Base", inputGroups, StringComparison.Ordinal);
+        Assert.Contains("ReportInputClassifications.CtrlRam", inputGroups, StringComparison.Ordinal);
+        Assert.Contains("ReportInputClassifications.Other", inputGroups, StringComparison.Ordinal);
+        Assert.Contains("ReportInputClassifications.Base", operationFlow, StringComparison.Ordinal);
+        foreach (string classificationLiteral in new[]
+        {
+            "\"base\"",
+            "\"ctrlram\"",
+            "\"other\"",
+            "\"replacement\"",
+        })
+        {
+            Assert.DoesNotContain(classificationLiteral, parsing, StringComparison.Ordinal);
+            Assert.DoesNotContain(classificationLiteral, inputGroups, StringComparison.Ordinal);
+            Assert.DoesNotContain(classificationLiteral, operationFlow, StringComparison.Ordinal);
+        }
+    }
+
+    /// <summary>Verifies CtrlRAM slot/coverage grouping keys stay centralized inside Presentation.</summary>
+    [Fact]
+    public void ReplaceRegionGroupKeysStayPresentationOwned()
+    {
+        string keys = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplaceRegionGroupKeys.cs");
+        string builder = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplaceRegionGroupBuilder.cs");
+
+        Assert.Contains("public const string Master = \"master\";", keys, StringComparison.Ordinal);
+        Assert.Contains("public const string SlaveRight = \"slave-r\";", keys, StringComparison.Ordinal);
+        Assert.Contains("public const string SlaveLeft = \"slave-l\";", keys, StringComparison.Ordinal);
+        Assert.Contains("public const string Single = \"single\";", keys, StringComparison.Ordinal);
+        Assert.Contains("public const string Base = \"base\";", keys, StringComparison.Ordinal);
+        Assert.Contains("ReplaceRegionGroupKeys.Master", builder, StringComparison.Ordinal);
+        Assert.Contains("ReplaceRegionGroupKeys.SlaveRight", builder, StringComparison.Ordinal);
+        Assert.Contains("ReplaceRegionGroupKeys.SlaveLeft", builder, StringComparison.Ordinal);
+        Assert.Contains("ReplaceRegionGroupKeys.Single", builder, StringComparison.Ordinal);
+        Assert.Contains("ReplaceRegionGroupKeys.Base", builder, StringComparison.Ordinal);
+        foreach (string keyLiteral in new[] { "\"master\"", "\"slave-r\"", "\"slave-l\"", "\"single\"", "\"base\"" })
+        {
+            Assert.DoesNotContain(keyLiteral, builder, StringComparison.Ordinal);
+        }
+    }
+
     /// <summary>Verifies Presentation reads report output-difference classifications through Bootstrap tokens.</summary>
     [Fact]
     public void PresentationUsesBootstrapOutputDifferenceClassifications()

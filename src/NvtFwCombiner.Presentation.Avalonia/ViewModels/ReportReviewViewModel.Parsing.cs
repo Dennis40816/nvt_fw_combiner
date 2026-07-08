@@ -78,28 +78,28 @@ public sealed partial class ReportReviewViewModel
 
     private static string ClassifyInput(string addressSpaceId)
     {
-        return addressSpaceId.Contains("base", StringComparison.OrdinalIgnoreCase) ||
-            addressSpaceId.Contains("reference", StringComparison.OrdinalIgnoreCase)
-            ? "base"
-            : addressSpaceId.Contains("ctrlram", StringComparison.OrdinalIgnoreCase)
-                ? "ctrlram"
-                : "other";
+        return addressSpaceId.Contains(ReportInputClassifications.BaseSearchTerm, StringComparison.OrdinalIgnoreCase) ||
+            addressSpaceId.Contains(ReportInputClassifications.ReferenceSearchTerm, StringComparison.OrdinalIgnoreCase)
+            ? ReportInputClassifications.Base
+            : addressSpaceId.Contains(ReportInputClassifications.CtrlRamSearchTerm, StringComparison.OrdinalIgnoreCase)
+                ? ReportInputClassifications.CtrlRam
+                : ReportInputClassifications.Other;
     }
 
     private static string FormatInputRole(string addressSpaceId)
     {
         return ClassifyInput(addressSpaceId) switch
         {
-            "base" => "base",
-            "ctrlram" => "replacement",
-            _ => "input",
+            ReportInputClassifications.Base => ReportInputClassifications.Base,
+            ReportInputClassifications.CtrlRam => ReportInputClassifications.RoleReplacement,
+            _ => ReportInputClassifications.RoleInput,
         };
     }
 
     private static string FormatInputTitle(string addressSpaceId, string artifactId)
     {
         string source = string.IsNullOrWhiteSpace(artifactId) ? addressSpaceId : artifactId;
-        return ClassifyInput(addressSpaceId) == "base"
+        return ClassifyInput(addressSpaceId) == ReportInputClassifications.Base
             ? "Base flash image"
             : WorkbenchSlotIds.TryFormatReplaceCtrlRamLabel(source, out string ctrlRamLabel)
                 ? ctrlRamLabel

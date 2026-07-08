@@ -41,13 +41,17 @@ internal static class ReplaceRegionGroupBuilder
     {
         return label switch
         {
-            string value when value.Contains("(Master)", StringComparison.OrdinalIgnoreCase) => "master",
-            string value when value.Contains("(Slave R)", StringComparison.OrdinalIgnoreCase) => "slave-r",
-            string value when value.Contains("(Slave L)", StringComparison.OrdinalIgnoreCase) => "slave-l",
+            string value when value.Contains("(Master)", StringComparison.OrdinalIgnoreCase) =>
+                ReplaceRegionGroupKeys.Master,
+            string value when value.Contains("(Slave R)", StringComparison.OrdinalIgnoreCase) =>
+                ReplaceRegionGroupKeys.SlaveRight,
+            string value when value.Contains("(Slave L)", StringComparison.OrdinalIgnoreCase) =>
+                ReplaceRegionGroupKeys.SlaveLeft,
             string value when value.Contains("Base", StringComparison.OrdinalIgnoreCase) ||
                               value.Contains("Preserve", StringComparison.OrdinalIgnoreCase) ||
-                              value.Contains("Restored", StringComparison.OrdinalIgnoreCase) => "base",
-            _ => "single",
+                              value.Contains("Restored", StringComparison.OrdinalIgnoreCase) =>
+                ReplaceRegionGroupKeys.Base,
+            _ => ReplaceRegionGroupKeys.Single,
         };
     }
 
@@ -55,29 +59,29 @@ internal static class ReplaceRegionGroupBuilder
     {
         return key switch
         {
-            "master" => 0,
-            "slave-r" => 1,
-            "slave-l" => 2,
-            "single" => 3,
-            "base" => 4,
+            ReplaceRegionGroupKeys.Master => 0,
+            ReplaceRegionGroupKeys.SlaveRight => 1,
+            ReplaceRegionGroupKeys.SlaveLeft => 2,
+            ReplaceRegionGroupKeys.Single => 3,
+            ReplaceRegionGroupKeys.Base => 4,
             _ => 5,
         };
     }
 
     private static bool RegionGroupDefaultExpanded(string key)
     {
-        return key is "master" or "single";
+        return key is ReplaceRegionGroupKeys.Master or ReplaceRegionGroupKeys.Single;
     }
 
     private static string RegionGroupTitle(string key)
     {
         return key switch
         {
-            "master" => "Master",
-            "slave-r" => "Slave R",
-            "slave-l" => "Slave L",
-            "base" => "Base firmware",
-            "single" => "Single IC",
+            ReplaceRegionGroupKeys.Master => "Master",
+            ReplaceRegionGroupKeys.SlaveRight => "Slave R",
+            ReplaceRegionGroupKeys.SlaveLeft => "Slave L",
+            ReplaceRegionGroupKeys.Base => "Base firmware",
+            ReplaceRegionGroupKeys.Single => "Single IC",
             _ => "Other",
         };
     }
@@ -86,7 +90,7 @@ internal static class ReplaceRegionGroupBuilder
     {
         return key switch
         {
-            "base" => "Original firmware used as the starting point.",
+            ReplaceRegionGroupKeys.Base => "Original firmware used as the starting point.",
             _ => $"{count} replaceable areas. Add files only for areas you want to change.",
         };
     }
@@ -95,7 +99,7 @@ internal static class ReplaceRegionGroupBuilder
     {
         return key switch
         {
-            "base" => $"{count} kept areas from the original firmware.",
+            ReplaceRegionGroupKeys.Base => $"{count} kept areas from the original firmware.",
             _ => $"{count} areas that can be replaced for this IC group.",
         };
     }

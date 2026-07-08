@@ -14,7 +14,7 @@ public sealed partial class ReportReviewViewModel
         List<ReportOperationFlowNodeViewModel> nodes = [];
         int sequence = 100;
         ReportLineViewModel[] baseInputs = [.. inputs.Where(input =>
-            string.Equals(input.Classification, "base", StringComparison.Ordinal))];
+            string.Equals(input.Classification, ReportInputClassifications.Base, StringComparison.Ordinal))];
         if (baseInputs.Length > 0)
         {
             nodes.Add(new ReportOperationFlowNodeViewModel(
@@ -27,7 +27,10 @@ public sealed partial class ReportReviewViewModel
         }
 
         ReportLineViewModel[] replacementInputs = [
-            .. inputs.Where(input => !string.Equals(input.Classification, "base", StringComparison.Ordinal)),
+            .. inputs.Where(input => !string.Equals(
+                input.Classification,
+                ReportInputClassifications.Base,
+                StringComparison.Ordinal)),
         ];
         if (replacementInputs.Length > 0)
         {
