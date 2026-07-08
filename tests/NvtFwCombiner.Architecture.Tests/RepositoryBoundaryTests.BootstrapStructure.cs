@@ -69,6 +69,58 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("\"AB Code\"", bootstrapWithoutModeCatalogs, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies workbench report/run id prefixes stay centralized by workflow mode.</summary>
+    [Fact]
+    public void BootstrapOwnsWorkbenchRunIdPrefixes()
+    {
+        string runner = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Runner.cs");
+        string standardMerge = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Run.cs");
+        string generalMerge = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.cs");
+        string generalMergeReport = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Report.cs");
+        string replaceDp = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.cs");
+        string replaceCtrlRam = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.cs");
+        string replaceGeneral = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.cs");
+        string replaceReport = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Report.cs");
+
+        Assert.Contains("private const string StandardMergeRunIdPrefix = \"ui\";", runner, StringComparison.Ordinal);
+        Assert.Contains("private const string GeneralMergeRunIdPrefix = \"ui-merge-general\";", runner, StringComparison.Ordinal);
+        Assert.Contains("private const string DpReplaceRunIdPrefix = \"ui-replace-dp\";", runner, StringComparison.Ordinal);
+        Assert.Contains("private const string CtrlRamReplaceRunIdPrefix = \"ui-replace-ctrlram\";", runner, StringComparison.Ordinal);
+        Assert.Contains("private const string GeneralReplaceRunIdPrefix = \"ui-replace-general\";", runner, StringComparison.Ordinal);
+        Assert.Contains("private static string CreateWorkbenchReportRunId", runner, StringComparison.Ordinal);
+        Assert.Contains("private static string GetReplaceRunIdPrefix", runner, StringComparison.Ordinal);
+        Assert.Contains("StandardMergeRunIdPrefix", standardMerge, StringComparison.Ordinal);
+        Assert.Contains("GeneralMergeRunIdPrefix", generalMerge, StringComparison.Ordinal);
+        Assert.Contains(
+            "CreateWorkbenchReportRunId(GeneralMergeRunIdPrefix, build, timestamp)",
+            generalMergeReport,
+            StringComparison.Ordinal);
+        Assert.Contains("DpReplaceRunIdPrefix", replaceDp, StringComparison.Ordinal);
+        Assert.Contains("CtrlRamReplaceRunIdPrefix", replaceCtrlRam, StringComparison.Ordinal);
+        Assert.Contains("GeneralReplaceRunIdPrefix", replaceGeneral, StringComparison.Ordinal);
+        Assert.Contains(
+            "CreateWorkbenchReportRunId(GetReplaceRunIdPrefix(replaceMode), build, timestamp)",
+            replaceReport,
+            StringComparison.Ordinal);
+        foreach (string source in new[]
+        {
+            standardMerge,
+            generalMerge,
+            generalMergeReport,
+            replaceDp,
+            replaceCtrlRam,
+            replaceGeneral,
+            replaceReport,
+        })
+        {
+            Assert.DoesNotContain("\"ui-merge-general\"", source, StringComparison.Ordinal);
+            Assert.DoesNotContain("\"ui-replace\"", source, StringComparison.Ordinal);
+            Assert.DoesNotContain("\"ui-replace-dp\"", source, StringComparison.Ordinal);
+            Assert.DoesNotContain("\"ui-replace-ctrlram\"", source, StringComparison.Ordinal);
+            Assert.DoesNotContain("\"ui-replace-general\"", source, StringComparison.Ordinal);
+        }
+    }
+
     /// <summary>Verifies workbench slot ids stay centralized for CLI, UI, and report adapters.</summary>
     [Fact]
     public void BootstrapOwnsWorkbenchSlotIds()

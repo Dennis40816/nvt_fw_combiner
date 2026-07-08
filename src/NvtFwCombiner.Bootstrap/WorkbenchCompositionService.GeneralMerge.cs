@@ -202,7 +202,7 @@ public static partial class WorkbenchCompositionService
                 succeeded: false)
             : null;
         return compileFailure ?? await RunCompiledCompositionAsync(
-            "ui-merge-general",
+            GeneralMergeRunIdPrefix,
             profile,
             compile.Plan!,
             mappingBindings,

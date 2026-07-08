@@ -98,7 +98,7 @@ public static partial class WorkbenchCompositionService
         InputArtifactBinding[] bindings = CreateCtrlRamReplaceBindings(context, slotPaths);
 
         return await RunCompiledCompositionAsync(
-            "ui-replace-ctrlram",
+            CtrlRamReplaceRunIdPrefix,
             profile,
             compile.Plan!,
             bindings,

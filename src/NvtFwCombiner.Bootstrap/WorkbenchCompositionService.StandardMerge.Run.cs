@@ -37,7 +37,7 @@ public static partial class WorkbenchCompositionService
         ];
 
         return await RunCompiledCompositionAsync(
-            "ui",
+            StandardMergeRunIdPrefix,
             profile,
             plan,
             bindings,

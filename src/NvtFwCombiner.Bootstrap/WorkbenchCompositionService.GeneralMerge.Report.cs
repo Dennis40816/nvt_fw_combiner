@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.Json;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
@@ -20,7 +19,7 @@ public static partial class WorkbenchCompositionService
         DateTimeOffset timestamp = DateTimeOffset.UtcNow;
         string profileId = GetGeneralMergeWorkbenchProfileId(icId);
         var report = new CompositionRunReport(
-            $"ui-merge-general-{(build ? "build" : "preview")}-{timestamp.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture)}",
+            CreateWorkbenchReportRunId(GeneralMergeRunIdPrefix, build, timestamp),
             profileId,
             GeneralMergeProfileVersion,
             icId,

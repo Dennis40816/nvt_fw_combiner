@@ -10,6 +10,12 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
+    private const string StandardMergeRunIdPrefix = "ui";
+    private const string GeneralMergeRunIdPrefix = "ui-merge-general";
+    private const string DpReplaceRunIdPrefix = "ui-replace-dp";
+    private const string CtrlRamReplaceRunIdPrefix = "ui-replace-ctrlram";
+    private const string GeneralReplaceRunIdPrefix = "ui-replace-general";
+
     private static async ValueTask<WorkbenchRunResult> RunCompiledCompositionAsync(
         string runIdPrefix,
         CompositionProfileDefinition profile,
@@ -66,9 +72,38 @@ public static partial class WorkbenchCompositionService
 
     private static string CreateWorkbenchRunId(string prefix, bool build)
     {
-        long timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        string suffix = Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);
-        return $"{prefix}-{(build ? "build" : "preview")}-{timestamp.ToString(CultureInfo.InvariantCulture)}-{suffix}";
+        return CreateWorkbenchRunId(prefix, build, DateTimeOffset.UtcNow);
     }
 
+    private static string CreateWorkbenchRunId(string prefix, bool build, DateTimeOffset timestamp)
+    {
+        string suffix = Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);
+        return $"{prefix}-{FormatWorkbenchRunAction(build)}-{FormatWorkbenchRunTimestamp(timestamp)}-{suffix}";
+    }
+
+    private static string CreateWorkbenchReportRunId(string prefix, bool build, DateTimeOffset timestamp)
+    {
+        return $"{prefix}-{FormatWorkbenchRunAction(build)}-{FormatWorkbenchRunTimestamp(timestamp)}";
+    }
+
+    private static string GetReplaceRunIdPrefix(string replaceMode)
+    {
+        return replaceMode switch
+        {
+            WorkbenchReplaceModes.Dp => DpReplaceRunIdPrefix,
+            WorkbenchReplaceModes.CtrlRam => CtrlRamReplaceRunIdPrefix,
+            WorkbenchReplaceModes.General => GeneralReplaceRunIdPrefix,
+            _ => FormattableString.Invariant($"ui-replace-{replaceMode.ToLowerInvariant()}"),
+        };
+    }
+
+    private static string FormatWorkbenchRunAction(bool build)
+    {
+        return build ? "build" : "preview";
+    }
+
+    private static string FormatWorkbenchRunTimestamp(DateTimeOffset timestamp)
+    {
+        return timestamp.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture);
+    }
 }

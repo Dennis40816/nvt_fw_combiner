@@ -169,7 +169,7 @@ public static partial class WorkbenchCompositionService
         ];
 
         return await RunCompiledCompositionAsync(
-            "ui-replace-general",
+            GeneralReplaceRunIdPrefix,
             profile,
             compile.Plan!,
             bindings,

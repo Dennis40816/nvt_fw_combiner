@@ -37,7 +37,7 @@ public static partial class WorkbenchCompositionService
 
         CompositionPlan plan = compile.Plan!;
         return await RunCompiledCompositionAsync(
-            "ui-replace",
+            DpReplaceRunIdPrefix,
             profile,
             plan,
             context.Bindings,
