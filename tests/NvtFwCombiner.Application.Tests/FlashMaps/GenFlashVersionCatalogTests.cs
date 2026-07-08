@@ -47,6 +47,19 @@ public sealed class GenFlashVersionCatalogTests
         }
     }
 
+    /// <summary>Prevents gen_flash Standard Merge onboarding from omitting the output-name DP version rule.</summary>
+    [Fact]
+    public void GenFlashStandardMergeProfilesHaveDpVersionRules()
+    {
+        foreach (CompositionProfileDefinition profile in BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles
+                     .Where(profile => profile.ProfileId.Contains("gen-flash", StringComparison.Ordinal)))
+        {
+            Assert.True(
+                GenFlashVersionCatalog.TryGetDpVersionRule(profile.IcId, out _),
+                $"Missing gen_flash DP version rule for Standard Merge profile {profile.ProfileId} ({profile.IcId}).");
+        }
+    }
+
     /// <summary>Reads contiguous DP main/sub version bytes from owner-approved gen_flash standard-merge DP inputs.</summary>
     [Theory]
     [InlineData("51920", "0101")]
