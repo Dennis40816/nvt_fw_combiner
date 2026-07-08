@@ -6,7 +6,7 @@ public sealed partial class RepositoryBoundaryTests
 {
     private static string[] ReadStandardMergeIcIds()
     {
-        string source = ReadText("src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles.cs");
+        string source = ReadStandardMergeProfilesPartials();
         return
         [
             .. StandardMergeProfileRegex().Matches(source)
@@ -30,7 +30,7 @@ public sealed partial class RepositoryBoundaryTests
         ];
     }
 
-    [GeneratedRegex(@"CreateGenFlashProfile\(\s*""(?<ic>\d{5})""")]
+    [GeneratedRegex(@"Create(?:GenFlash|DpPerspective)Profile\(\s*""(?<ic>\d{5})""")]
     private static partial Regex StandardMergeProfileRegex();
 
     [GeneratedRegex(@"public static LegacyCombinerPostbuildProfile Nt(?<ic>\d{5})\s*\{")]
@@ -167,6 +167,19 @@ public sealed partial class RepositoryBoundaryTests
         return string.Join(
             Environment.NewLine,
             Directory.GetFiles(directory, "LegacyCombinerPostbuildCatalog*.cs")
+                .Order(StringComparer.Ordinal)
+                .Select(File.ReadAllText));
+    }
+
+    private static string ReadStandardMergeProfilesPartials()
+    {
+        string directory = Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles");
+        return string.Join(
+            Environment.NewLine,
+            Directory.GetFiles(directory, "BuiltInStandardMergeProfiles*.cs")
                 .Order(StringComparer.Ordinal)
                 .Select(File.ReadAllText));
     }
