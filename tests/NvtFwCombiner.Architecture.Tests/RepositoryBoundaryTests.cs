@@ -145,6 +145,36 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private static async Task WriteUsageAsync", usage, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies General Merge CLI dispatch stays split from parsing, mapping adaptation, usage text, and result printing.</summary>
+    [Fact]
+    public void MergeCliCommandHandlerConcernsStaySplit()
+    {
+        string dispatch = ReadText("src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.cs");
+        string manualMappings = ReadText("src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.ManualMappings.cs");
+        string options = ReadText("src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.Options.cs");
+        string result = ReadText("src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.Result.cs");
+        string usage = ReadText("src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.Usage.cs");
+        string savedRules = ReadText("src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.SavedRules.cs");
+
+        Assert.Contains("RunAsync", dispatch, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static bool TryCreateMappings", dispatch, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static bool TryParseMappingValue", dispatch, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static bool TryParseOptions", dispatch, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static async Task PrintResultAsync", dispatch, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static Task WriteUsageAsync", dispatch, StringComparison.Ordinal);
+        Assert.DoesNotContain("private sealed record ParsedOptions", dispatch, StringComparison.Ordinal);
+        Assert.Contains("private static bool TryCreateMappings", manualMappings, StringComparison.Ordinal);
+        Assert.Contains("private static bool TryParseMappingValue", manualMappings, StringComparison.Ordinal);
+        Assert.Contains("private static bool TryResolveIc", manualMappings, StringComparison.Ordinal);
+        Assert.Contains("private static bool TryCreateMappingsFromSavedRule", savedRules, StringComparison.Ordinal);
+        Assert.Contains("private static bool TryParseOptions", options, StringComparison.Ordinal);
+        Assert.Contains("private static bool RequireOption", options, StringComparison.Ordinal);
+        Assert.Contains("private sealed record ParsedOptions", options, StringComparison.Ordinal);
+        Assert.Contains("private static async Task PrintResultAsync", result, StringComparison.Ordinal);
+        Assert.Contains("private static async Task PrintReportIssuesAsync", result, StringComparison.Ordinal);
+        Assert.Contains("private static Task WriteUsageAsync", usage, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies the Workbench facade stays split into catalog, Standard Merge, and shared adapter helpers.</summary>
     [Fact]
     public void WorkbenchCompositionServiceConcernsStaySplit()
