@@ -4,6 +4,7 @@ using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Contracts.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.ExternalTools;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Infrastructure.Tests.ExternalTools;
 
@@ -30,7 +31,7 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
         ArgumentNullException.ThrowIfNull(expectedChangedRangeValues);
 
         string testName = $"{icId}/{selectionToken}";
-        string repositoryRoot = FindRepositoryRoot();
+        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
         string toolRoot = Path.Combine(repositoryRoot, "external-tools");
         ExternalCombinerToolManifest manifest = LoadManifest(
