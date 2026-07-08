@@ -229,4 +229,25 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public sealed class ReportInputGroupViewModel", inputGroups, StringComparison.Ordinal);
         Assert.Contains("public sealed class ReportOperationFlowNodeViewModel", flowNodes, StringComparison.Ordinal);
     }
+
+    /// <summary>Verifies Presentation reads report output-difference classifications through Bootstrap tokens.</summary>
+    [Fact]
+    public void PresentationUsesBootstrapOutputDifferenceClassifications()
+    {
+        string presentationSource = ReadPresentationSources();
+
+        Assert.Contains("WorkbenchOutputDifferenceClassifications.DeclaredReplacement", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchOutputDifferenceClassifications.PostbuildCrcHeader", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchOutputDifferenceClassifications.Unexpected", presentationSource, StringComparison.Ordinal);
+        foreach (string classificationLiteral in new[]
+        {
+            "\"DeclaredReplacement\"",
+            "\"PostbuildCrcHeader\"",
+            "\"PreservedReference\"",
+            "\"Unexpected\"",
+        })
+        {
+            Assert.DoesNotContain(classificationLiteral, presentationSource, StringComparison.Ordinal);
+        }
+    }
 }

@@ -1,3 +1,4 @@
+using NvtFwCombiner.Contracts.Reports;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Composition;
@@ -76,7 +77,7 @@ public sealed partial class CompositionRunService
                 {
                     yield return new OutputDifferenceExpectation(
                         binding.FirmwareRange,
-                        DifferenceDeclaredReplacement,
+                        OutputDifferenceClassifications.DeclaredReplacement,
                         true,
                         operation.OperationId,
                         $"Accepted: staged replacement source '{binding.SourceSpaceId}' is pasted back by postbuild for {request.Profile.IcId} / {icNumber}.",
@@ -90,7 +91,7 @@ public sealed partial class CompositionRunService
                         string sectionLabel = FormatProcessorWriteSectionLabel(invocation, processorOnlyRange);
                         yield return new OutputDifferenceExpectation(
                             processorOnlyRange,
-                            DifferencePostbuildCrcHeader,
+                            OutputDifferenceClassifications.PostbuildCrcHeader,
                             true,
                             $"{operation.OperationId}: {invocation.ProcessorId}",
                             $"Accepted: this range is inside the {request.Profile.IcId} / {icNumber} approved {sectionLabel} postbuild write ranges.",
@@ -105,7 +106,7 @@ public sealed partial class CompositionRunService
             {
                 yield return new OutputDifferenceExpectation(
                     operation.TargetRange,
-                    DifferencePreservedReference,
+                    OutputDifferenceClassifications.PreservedReference,
                     false,
                     operation.OperationId,
                     "Unexpected: this range is declared to be restored from the reference base.",
@@ -115,7 +116,7 @@ public sealed partial class CompositionRunService
 
             yield return new OutputDifferenceExpectation(
                 operation.TargetRange,
-                DifferenceDeclaredReplacement,
+                OutputDifferenceClassifications.DeclaredReplacement,
                 true,
                 operation.OperationId,
                 $"Accepted: declared Replace mapping '{operation.OperationId}' writes this final range.",
@@ -167,7 +168,7 @@ public sealed partial class CompositionRunService
                 continue;
             }
 
-            if (string.Equals(expectation.Classification, DifferencePreservedReference, StringComparison.Ordinal))
+            if (string.Equals(expectation.Classification, OutputDifferenceClassifications.PreservedReference, StringComparison.Ordinal))
             {
                 break;
             }
@@ -177,7 +178,7 @@ public sealed partial class CompositionRunService
 
         return new OutputDifferenceExpectation(
             segment,
-            DifferenceUnexpected,
+            OutputDifferenceClassifications.Unexpected,
             false,
             "not-declared",
             "Unexpected: final output differs from the reference base outside declared replacement and IC-number-specific postbuild CRC/header ranges.",

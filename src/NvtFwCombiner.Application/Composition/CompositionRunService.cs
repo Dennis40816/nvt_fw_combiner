@@ -10,10 +10,6 @@ public sealed partial class CompositionRunService
 {
     private const int OutputDifferenceHexPreviewBytes = 32;
     private static readonly string EmptySha256 = ToSha256Hex([]);
-    private const string DifferenceDeclaredReplacement = "DeclaredReplacement";
-    private const string DifferencePostbuildCrcHeader = "PostbuildCrcHeader";
-    private const string DifferencePreservedReference = "PreservedReference";
-    private const string DifferenceUnexpected = "Unexpected";
 
     private readonly IArtifactReader _artifactReader;
     private readonly ISystemClock _clock;

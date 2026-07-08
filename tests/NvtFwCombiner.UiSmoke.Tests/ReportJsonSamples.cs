@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using NvtFwCombiner.Contracts.Reports;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
@@ -84,7 +85,7 @@ internal static class ReportJsonSamples
                     "diff-001",
                     Range(28, 32),
                     4,
-                    "PostbuildCrcHeader",
+                    OutputDifferenceClassifications.PostbuildCrcHeader,
                     isAccepted: true,
                     "postbuild-single: legacy-combiner",
                     "Accepted: this range is inside the NT51927 / single approved TP flash header / CRC fields postbuild write ranges.",

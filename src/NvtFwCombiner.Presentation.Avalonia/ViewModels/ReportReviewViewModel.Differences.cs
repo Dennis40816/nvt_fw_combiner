@@ -1,4 +1,5 @@
 using System.Globalization;
+using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -52,11 +53,11 @@ public sealed partial class ReportReviewViewModel
         IReadOnlyList<ReportLineViewModel> outputDifferences,
         ShellLanguage language)
     {
-        int declared = CountDifference(outputDifferences, "DeclaredReplacement");
-        int refresh = CountDifference(outputDifferences, "PostbuildCrcHeader");
+        int declared = CountDifference(outputDifferences, WorkbenchOutputDifferenceClassifications.DeclaredReplacement);
+        int refresh = CountDifference(outputDifferences, WorkbenchOutputDifferenceClassifications.PostbuildCrcHeader);
         int unexpected = outputDifferences.Count(IsReviewRequiredOutputDifference);
         int known = declared + refresh + outputDifferences.Count(difference =>
-            string.Equals(difference.Classification, "Unexpected", StringComparison.Ordinal));
+            string.Equals(difference.Classification, WorkbenchOutputDifferenceClassifications.Unexpected, StringComparison.Ordinal));
         int other = Math.Max(0, outputDifferences.Count - known);
 
         List<ReportDifferenceSummaryRowViewModel> rows =
@@ -138,13 +139,13 @@ public sealed partial class ReportReviewViewModel
     private static bool IsReviewRequiredOutputDifference(ReportLineViewModel difference)
     {
         return !IsAcceptedOutputDifference(difference) ||
-            string.Equals(difference.Classification, "Unexpected", StringComparison.Ordinal);
+            string.Equals(difference.Classification, WorkbenchOutputDifferenceClassifications.Unexpected, StringComparison.Ordinal);
     }
 
     private static bool IsAcceptedOutputDifference(ReportLineViewModel difference)
     {
         return difference.IsAccepted &&
-            !string.Equals(difference.Classification, "Unexpected", StringComparison.Ordinal);
+            !string.Equals(difference.Classification, WorkbenchOutputDifferenceClassifications.Unexpected, StringComparison.Ordinal);
     }
 
     private static bool IsReplaceComposition(string compositionKind)

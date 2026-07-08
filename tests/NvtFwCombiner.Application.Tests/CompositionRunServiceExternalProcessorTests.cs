@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Contracts.Reports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
@@ -117,7 +118,7 @@ public sealed partial class CompositionRunServiceTests
         OutputDifferenceSummary replacement = result.Report.OutputDifferences[0];
         Assert.Equal(new ByteRange(1, 2), replacement.Range);
         Assert.True(replacement.IsAccepted);
-        Assert.Equal("DeclaredReplacement", replacement.Classification);
+        Assert.Equal(OutputDifferenceClassifications.DeclaredReplacement, replacement.Classification);
         Assert.Equal("NF CtrlRAM (Master)", replacement.SectionLabel);
         Assert.Contains("staged replacement source", replacement.Explanation, StringComparison.Ordinal);
         Assert.Equal("2030", replacement.BeforeHexPreview);
@@ -127,7 +128,7 @@ public sealed partial class CompositionRunServiceTests
         OutputDifferenceSummary crcHeader = result.Report.OutputDifferences[1];
         Assert.Equal(new ByteRange(3, 1), crcHeader.Range);
         Assert.True(crcHeader.IsAccepted);
-        Assert.Equal("PostbuildCrcHeader", crcHeader.Classification);
+        Assert.Equal(OutputDifferenceClassifications.PostbuildCrcHeader, crcHeader.Classification);
         Assert.Equal("TP flash header / CRC fields", crcHeader.SectionLabel);
         Assert.Contains("approved TP flash header / CRC fields postbuild", crcHeader.Explanation, StringComparison.Ordinal);
         Assert.Equal("40", crcHeader.BeforeHexPreview);

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using Avalonia.Media;
+using NvtFwCombiner.Contracts.Reports;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
@@ -16,7 +17,7 @@ public sealed partial class ShellViewModelTests
         Assert.NotEmpty(differences);
         Assert.All(differences, difference =>
         {
-            Assert.Equal("PostbuildCrcHeader", difference.GetProperty("Classification").GetString());
+            Assert.Equal(OutputDifferenceClassifications.PostbuildCrcHeader, difference.GetProperty("Classification").GetString());
             Assert.True(difference.GetProperty("IsAccepted").GetBoolean());
             Assert.Contains(
                 expectedOperationId,

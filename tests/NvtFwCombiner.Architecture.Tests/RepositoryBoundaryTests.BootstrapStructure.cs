@@ -118,6 +118,22 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("\"general-replace\"", workflowIds, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies report output-difference classifications are projected from the report contract.</summary>
+    [Fact]
+    public void BootstrapProjectsOutputDifferenceClassifications()
+    {
+        string classifications = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchOutputDifferenceClassifications.cs");
+
+        Assert.Contains("OutputDifferenceClassifications.DeclaredReplacement", classifications, StringComparison.Ordinal);
+        Assert.Contains("OutputDifferenceClassifications.PostbuildCrcHeader", classifications, StringComparison.Ordinal);
+        Assert.Contains("OutputDifferenceClassifications.PreservedReference", classifications, StringComparison.Ordinal);
+        Assert.Contains("OutputDifferenceClassifications.Unexpected", classifications, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"DeclaredReplacement\"", classifications, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"PostbuildCrcHeader\"", classifications, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"PreservedReference\"", classifications, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"Unexpected\"", classifications, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies General mapping text parsing is owned by one Bootstrap helper.</summary>
     [Fact]
     public void BootstrapRangeTextOwnsGeneralMappingParsing()

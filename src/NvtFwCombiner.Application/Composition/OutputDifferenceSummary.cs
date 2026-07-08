@@ -55,7 +55,7 @@ public sealed class OutputDifferenceSummary
     /// <summary>Changed byte count inside <see cref="Range" />.</summary>
     public long ChangedByteCount { get; }
 
-    /// <summary>Machine-readable classification such as DeclaredReplacement or PostbuildCrcHeader.</summary>
+    /// <summary>Machine-readable classification from <c>OutputDifferenceClassifications</c>.</summary>
     public string Classification { get; }
 
     /// <summary>True when the difference is declared by the profile or by IC-number-specific postbuild CRC/header ranges.</summary>
