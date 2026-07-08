@@ -196,6 +196,10 @@ internal static class ReportJsonSamples
             Explanation = explanation,
             BeforeSha256 = "11111111111111111111",
             AfterSha256 = "22222222222222222222",
+            BeforeHexPreview = "AABBCCDD",
+            AfterHexPreview = "11223344",
+            HexPreviewByteCount = 4,
+            IsHexPreviewComplete = true,
         };
     }
 

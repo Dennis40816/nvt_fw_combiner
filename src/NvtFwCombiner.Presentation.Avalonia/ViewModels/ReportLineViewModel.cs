@@ -22,7 +22,15 @@ public sealed class ReportLineViewModel
         string operationStatus = "",
         string severity = "",
         string classification = "",
-        bool isAccepted = false)
+        bool isAccepted = false,
+        string range = "",
+        string changedSummary = "",
+        string reason = "",
+        string sectionLabel = "",
+        string beforeLabel = "",
+        string beforeValue = "",
+        string afterLabel = "",
+        string afterValue = "")
     {
         Title = title;
         Detail = detail;
@@ -35,6 +43,14 @@ public sealed class ReportLineViewModel
         Severity = severity ?? string.Empty;
         Classification = classification ?? string.Empty;
         IsAccepted = isAccepted;
+        Range = range ?? string.Empty;
+        ChangedSummary = changedSummary ?? string.Empty;
+        Reason = reason ?? string.Empty;
+        SectionLabel = sectionLabel ?? string.Empty;
+        BeforeLabel = beforeLabel ?? string.Empty;
+        BeforeValue = beforeValue ?? string.Empty;
+        AfterLabel = afterLabel ?? string.Empty;
+        AfterValue = afterValue ?? string.Empty;
         CodeBlock = codeBlock;
         HasCodeBlock = !string.IsNullOrWhiteSpace(codeBlock);
         Badges = badges is null ? [] : [.. badges];
@@ -77,6 +93,45 @@ public sealed class ReportLineViewModel
 
     /// <summary>True when an output difference was classified as accepted by the report.</summary>
     public bool IsAccepted { get; }
+
+    /// <summary>Human-readable range rendered in report comparison tables.</summary>
+    public string Range { get; }
+
+    /// <summary>Short changed-byte summary rendered beside a range.</summary>
+    public string ChangedSummary { get; }
+
+    /// <summary>Human-readable reason for a report difference or operation.</summary>
+    public string Reason { get; }
+
+    /// <summary>Human-readable section label for output-difference rows.</summary>
+    public string SectionLabel { get; }
+
+    /// <summary>Label for the before comparison value.</summary>
+    public string BeforeLabel { get; }
+
+    /// <summary>Before comparison value, usually hex bytes or a range hash.</summary>
+    public string BeforeValue { get; }
+
+    /// <summary>Label for the after comparison value.</summary>
+    public string AfterLabel { get; }
+
+    /// <summary>After comparison value, usually hex bytes or a range hash.</summary>
+    public string AfterValue { get; }
+
+    /// <summary>True when the row has a before/after comparison block.</summary>
+    public bool HasBeforeAfter => !string.IsNullOrWhiteSpace(BeforeValue) || !string.IsNullOrWhiteSpace(AfterValue);
+
+    /// <summary>True when the row has a user-facing reason.</summary>
+    public bool HasReason => !string.IsNullOrWhiteSpace(Reason);
+
+    /// <summary>True when the row has a section label.</summary>
+    public bool HasSectionLabel => !string.IsNullOrWhiteSpace(SectionLabel);
+
+    /// <summary>True when the row has a dedicated range value.</summary>
+    public bool HasRange => !string.IsNullOrWhiteSpace(Range);
+
+    /// <summary>True when the row has a changed-byte summary.</summary>
+    public bool HasChangedSummary => !string.IsNullOrWhiteSpace(ChangedSummary);
 
     /// <summary>True when the metadata line contains text.</summary>
     public bool HasMeta => !string.IsNullOrWhiteSpace(Meta);
@@ -157,3 +212,73 @@ public sealed record ReportDifferenceSummaryRowViewModel(
     string Count,
     string Status,
     string Detail);
+
+/// <summary>Grouped input rows for a readable report inputs section.</summary>
+public sealed class ReportInputGroupViewModel
+{
+    /// <summary>Creates an input group.</summary>
+    public ReportInputGroupViewModel(
+        string title,
+        string detail,
+        IReadOnlyList<ReportLineViewModel> rows)
+    {
+        Title = title;
+        Detail = detail;
+        Rows = rows ?? throw new ArgumentNullException(nameof(rows));
+        Count = Rows.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>Group title.</summary>
+    public string Title { get; }
+
+    /// <summary>Group explanation.</summary>
+    public string Detail { get; }
+
+    /// <summary>Number of rows in this group.</summary>
+    public string Count { get; }
+
+    /// <summary>Grouped input rows.</summary>
+    public IReadOnlyList<ReportLineViewModel> Rows { get; }
+}
+
+/// <summary>One human-readable operation flow node in a report.</summary>
+public sealed class ReportOperationFlowNodeViewModel
+{
+    /// <summary>Creates a flow node.</summary>
+    public ReportOperationFlowNodeViewModel(
+        string number,
+        string title,
+        string detail,
+        string meta,
+        string status,
+        bool hasConnector = false)
+    {
+        Number = number;
+        Title = title;
+        Detail = detail;
+        Meta = meta;
+        Status = status;
+        HasConnector = hasConnector;
+    }
+
+    /// <summary>Displayed sequence number.</summary>
+    public string Number { get; }
+
+    /// <summary>Node title.</summary>
+    public string Title { get; }
+
+    /// <summary>Node detail.</summary>
+    public string Detail { get; }
+
+    /// <summary>Small node metadata.</summary>
+    public string Meta { get; }
+
+    /// <summary>True when metadata has content.</summary>
+    public bool HasMeta => !string.IsNullOrWhiteSpace(Meta);
+
+    /// <summary>Node status.</summary>
+    public string Status { get; }
+
+    /// <summary>True when this node should draw a connector to the next node.</summary>
+    public bool HasConnector { get; }
+}

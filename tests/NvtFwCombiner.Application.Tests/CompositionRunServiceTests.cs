@@ -465,7 +465,7 @@ public sealed class CompositionRunServiceTests
             processor);
 
         CompositionRunResult result = await service.PreviewAsync(
-            CreateStagedSourceExternalProcessorRequest(),
+            CreateStagedSourceExternalProcessorRequest(stagedSourceSpaceId: "replace-ctrlram-nf-master"),
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
@@ -474,12 +474,22 @@ public sealed class CompositionRunServiceTests
         Assert.Equal(new ByteRange(1, 2), replacement.Range);
         Assert.True(replacement.IsAccepted);
         Assert.Equal("DeclaredReplacement", replacement.Classification);
+        Assert.Equal("NF CtrlRAM (master)", replacement.SectionLabel);
         Assert.Contains("staged replacement source", replacement.Explanation, StringComparison.Ordinal);
+        Assert.Equal("2030", replacement.BeforeHexPreview);
+        Assert.Equal("aabb", replacement.AfterHexPreview);
+        Assert.Equal(2, replacement.HexPreviewByteCount);
+        Assert.True(replacement.IsHexPreviewComplete);
         OutputDifferenceSummary crcHeader = result.Report.OutputDifferences[1];
         Assert.Equal(new ByteRange(3, 1), crcHeader.Range);
         Assert.True(crcHeader.IsAccepted);
         Assert.Equal("PostbuildCrcHeader", crcHeader.Classification);
+        Assert.Equal("Header / CRC refresh", crcHeader.SectionLabel);
         Assert.Contains("approved postbuild CRC/header", crcHeader.Explanation, StringComparison.Ordinal);
+        Assert.Equal("40", crcHeader.BeforeHexPreview);
+        Assert.Equal("7e", crcHeader.AfterHexPreview);
+        Assert.Equal(1, crcHeader.HexPreviewByteCount);
+        Assert.True(crcHeader.IsHexPreviewComplete);
         Assert.DoesNotContain(result.Report.Issues, issue => issue.Code == "report.output-difference.unexpected");
     }
 
@@ -874,13 +884,15 @@ public sealed class CompositionRunServiceTests
             "external.bin");
     }
 
-    private static CompositionRunRequest CreateStagedSourceExternalProcessorRequest(ByteRange? firmwareRange = null)
+    private static CompositionRunRequest CreateStagedSourceExternalProcessorRequest(
+        ByteRange? firmwareRange = null,
+        string stagedSourceSpaceId = "ctrlram-input")
     {
         ByteRange stagedFirmwareRange = firmwareRange ?? new ByteRange(1, 2);
         AddressSpace[] addressSpaces =
         [
             new("reference-base", 4, AddressSpaceMutability.Immutable),
-            new("ctrlram-input", 2, AddressSpaceMutability.Immutable, inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
+            new(stagedSourceSpaceId, 2, AddressSpaceMutability.Immutable, inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
             new("output-image", 4, AddressSpaceMutability.Mutable),
         ];
         var plan = new CompositionPlan(
@@ -899,7 +911,7 @@ public sealed class CompositionRunServiceTests
                         [new ByteRange(0, 4)],
                         [
                             new ExternalProcessorStagedSourceBinding(
-                                "ctrlram-input",
+                                stagedSourceSpaceId,
                                 new ByteRange(0, 2),
                                 stagedFirmwareRange),
                         ]),
@@ -919,7 +931,7 @@ public sealed class CompositionRunServiceTests
             plan,
             [
                 new InputArtifactBinding("reference-base", "reference-base", "reference-artifact"),
-                new InputArtifactBinding("ctrlram-input", "ctrlram-input", "ctrlram-artifact"),
+                new InputArtifactBinding(stagedSourceSpaceId, stagedSourceSpaceId, "ctrlram-artifact"),
             ],
             "external-staged-source.bin",
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));

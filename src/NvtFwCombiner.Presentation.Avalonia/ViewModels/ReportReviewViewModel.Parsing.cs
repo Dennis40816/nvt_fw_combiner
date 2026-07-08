@@ -10,10 +10,26 @@ public sealed partial class ReportReviewViewModel
             ? []
             :
             [
-                .. inputs.EnumerateArray().Select(input => new ReportLineViewModel(
-                $"{GetString(input, "AddressSpaceId")} ({GetLong(input, "Size")} bytes)",
-                GetString(input, "Sha256"),
-                GetString(input, "ArtifactId"))),
+                .. inputs.EnumerateArray().Select(input =>
+                {
+                    string addressSpaceId = GetString(input, "AddressSpaceId");
+                    string artifactId = GetString(input, "ArtifactId");
+                    long size = GetLong(input, "Size");
+                    return new ReportLineViewModel(
+                        FormatInputTitle(addressSpaceId, artifactId),
+                        string.IsNullOrWhiteSpace(artifactId) ? addressSpaceId : artifactId,
+                        addressSpaceId,
+                        badges:
+                        [
+                            new ReportLineBadgeViewModel(FormatInputRole(addressSpaceId)),
+                            new ReportLineBadgeViewModel($"{size} bytes"),
+                        ],
+                        facts:
+                        [
+                            new ReportLineFactViewModel("Address space", addressSpaceId, isTechnical: true),
+                        ],
+                        classification: ClassifyInput(addressSpaceId));
+                }),
             ];
     }
 
@@ -59,6 +75,64 @@ public sealed partial class ReportReviewViewModel
             : "error";
     }
 
+    private static string ClassifyInput(string addressSpaceId)
+    {
+        return addressSpaceId.Contains("base", StringComparison.OrdinalIgnoreCase) ||
+            addressSpaceId.Contains("reference", StringComparison.OrdinalIgnoreCase)
+            ? "base"
+            : addressSpaceId.Contains("ctrlram", StringComparison.OrdinalIgnoreCase)
+                ? "ctrlram"
+                : "other";
+    }
+
+    private static string FormatInputRole(string addressSpaceId)
+    {
+        return ClassifyInput(addressSpaceId) switch
+        {
+            "base" => "base",
+            "ctrlram" => "replacement",
+            _ => "input",
+        };
+    }
+
+    private static string FormatInputTitle(string addressSpaceId, string artifactId)
+    {
+        string source = string.IsNullOrWhiteSpace(artifactId) ? addressSpaceId : artifactId;
+        if (ClassifyInput(addressSpaceId) == "base")
+        {
+            return "Base flash image";
+        }
+
+        string normalized = source;
+        const string prefix = "replace-ctrlram-";
+        if (normalized.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            normalized = normalized[prefix.Length..];
+        }
+
+        string[] parts = normalized.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length == 0)
+        {
+            return source;
+        }
+
+        string region = parts[0].ToUpperInvariant() switch
+        {
+            "NF" => "NF",
+            "MP" => "MP",
+            "VN" => "VN",
+            "NORMAL" => "Normal",
+            _ => parts[0],
+        };
+        string side = parts.Length >= 2 && string.Equals(parts[1], "master", StringComparison.OrdinalIgnoreCase)
+            ? "Master"
+            : parts.Length >= 3 && string.Equals(parts[1], "slave", StringComparison.OrdinalIgnoreCase)
+                ? $"Slave {parts[2].ToUpperInvariant()}"
+                : string.Empty;
+
+        return string.IsNullOrWhiteSpace(side) ? region : $"{region} CtrlRAM ({side})";
+    }
+
     private static string ParseOutput(JsonElement root)
     {
         if (!root.TryGetProperty(nameof(Output), out JsonElement output) || output.ValueKind != JsonValueKind.Object)
@@ -70,7 +144,7 @@ public sealed partial class ReportReviewViewModel
                            committedElement.ValueKind is JsonValueKind.True or JsonValueKind.False
             ? committedElement.GetBoolean() ? "committed" : "preview"
             : "unknown";
-        return $"{GetString(output, "FileName")} / {GetLong(output, "Size")} bytes / {committed} / {GetString(output, "Sha256")}";
+        return $"{GetString(output, "FileName")} / {GetLong(output, "Size")} bytes / {committed}";
     }
 
     private static string GetOutputString(JsonElement root, string propertyName)

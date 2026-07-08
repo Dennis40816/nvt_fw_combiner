@@ -143,7 +143,7 @@ public sealed partial class ShellTextResources
             RunLabel = "Run",
             OutputLabel = "Output",
             ChangeReviewTitle = "Change review",
-            EvidenceTitle = "Evidence",
+            EvidenceTitle = "Audit details",
             TraceLabel = "trace",
             OpenReportHistoryTooltip = "Open report history (Ctrl+H)",
             OpenReportHistoryAutomationName = "Open report history",
@@ -157,7 +157,7 @@ public sealed partial class ShellTextResources
             ReportFileLabel = "Report file",
             StatusLabel = "Status",
             ArtifactPathLabel = "Artifact path",
-            InputsAndHashesTitle = "Inputs and hashes",
+            InputsAndHashesTitle = "Input files",
             EmptyInputsMessage = "No input artifact rows were recorded in this report.",
             EmptyByteChangesMessage = "No output differences or changed ranges were recorded.",
             OutputChangesTitle = "Output changes",
@@ -166,6 +166,7 @@ public sealed partial class ShellTextResources
             ResultLabel = "Result",
             DetailLabel = "Detail",
             ExplanationLabel = "Explanation",
+            ReasonLabel = "Reason",
             ChangedRangesTitle = "Changed ranges",
             EmptyOperationsMessage = "No copy/process operation steps were recorded.",
             OperationStepsTitle = "Operation steps",
@@ -188,4 +189,3 @@ public sealed partial class ShellTextResources
 }
 
 #pragma warning restore CS1591
-

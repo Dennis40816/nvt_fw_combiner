@@ -1320,13 +1320,17 @@ public sealed class ShellViewModelTests
         Assert.True(viewModel.LoadedReport.HasOutputDifferences);
         ReportLineViewModel difference = Assert.Single(viewModel.LoadedReport.OutputDifferences);
         Assert.Equal("diff-001", difference.Title);
-        Assert.Contains("0x1C-0x1F", difference.Detail, StringComparison.Ordinal);
-        Assert.Contains("changed=4", difference.Detail, StringComparison.Ordinal);
-        Assert.Contains("approved postbuild CRC/header", difference.Meta, StringComparison.Ordinal);
+        Assert.Equal("Header / CRC refresh", difference.SectionLabel);
+        Assert.Equal("0x1C-0x1F (len 0x4)", difference.Range);
+        Assert.Equal("4 bytes changed", difference.ChangedSummary);
+        Assert.Contains("CRC/header refresh", difference.Reason, StringComparison.Ordinal);
         Assert.Contains(difference.Badges, badge => badge.Text == "accepted");
-        Assert.Contains(difference.Badges, badge => badge.Text == "PostbuildCrcHeader");
-        Assert.Contains(difference.Facts, fact => fact.Label == "Before" && fact.Value == "11111111111111111111");
-        Assert.Contains(difference.Facts, fact => fact.Label == "After" && fact.Value == "22222222222222222222");
+        Assert.Contains(difference.Badges, badge => badge.Text == "CRC/header");
+        Assert.Equal("Before bytes", difference.BeforeLabel);
+        Assert.Equal("AA BB CC DD", difference.BeforeValue);
+        Assert.Equal("After bytes", difference.AfterLabel);
+        Assert.Equal("11 22 33 44", difference.AfterValue);
+        Assert.Contains(difference.Facts, fact => fact.Label == "Reason" && fact.Value.Contains("CRC/header refresh", StringComparison.Ordinal));
         Assert.DoesNotContain(difference.Facts, fact => fact.Value.Contains("...", StringComparison.Ordinal));
         Assert.Equal("Accepted changes", viewModel.LoadedReport.ByteDifferenceTitle);
         Assert.Contains("CRC/header", viewModel.LoadedReport.ByteDifferenceDetail, StringComparison.Ordinal);
@@ -1350,7 +1354,9 @@ public sealed class ShellViewModelTests
         Assert.Equal("1/1 可接受", viewModel.LoadedReport.ByteDifferenceMeta);
         ReportLineViewModel localizedDifference = Assert.Single(viewModel.LoadedReport.OutputDifferences);
         Assert.Contains(localizedDifference.Badges, badge => badge.Text == "可接受");
-        Assert.Contains(localizedDifference.Facts, fact => fact.Label == "之前" && fact.Value == "11111111111111111111");
+        Assert.Equal("Header / CRC refresh", localizedDifference.SectionLabel);
+        Assert.Equal("變更前 bytes", localizedDifference.BeforeLabel);
+        Assert.Equal("AA BB CC DD", localizedDifference.BeforeValue);
         Assert.Contains(viewModel.LoadedReport.OutputDifferenceSummaryRows, row =>
             row.Label == "意外差異" &&
             row.Count == "0" &&

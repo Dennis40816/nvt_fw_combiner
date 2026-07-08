@@ -8,8 +8,9 @@ using NvtFwCombiner.Domain.Composition;
 namespace NvtFwCombiner.Application.Composition;
 
 /// <summary>Runs preview and build through the shared composition engine.</summary>
-public sealed class CompositionRunService
+public sealed partial class CompositionRunService
 {
+    private const int OutputDifferenceHexPreviewBytes = 32;
     private static readonly string EmptySha256 = ToSha256Hex([]);
     private const string DifferenceDeclaredReplacement = "DeclaredReplacement";
     private const string DifferencePostbuildCrcHeader = "PostbuildCrcHeader";
@@ -422,8 +423,13 @@ public sealed class CompositionRunService
                     expectation.IsAccepted,
                     expectation.Evidence,
                     expectation.Explanation,
+                    expectation.SectionLabel,
                     ToSliceSha256Hex(referenceBytes, segment),
-                    ToSliceSha256Hex(outputBytes, segment)));
+                    ToSliceSha256Hex(outputBytes, segment),
+                    ToSliceHexPreview(referenceBytes, segment),
+                    ToSliceHexPreview(outputBytes, segment),
+                    checked((int)Math.Min(segment.Length, OutputDifferenceHexPreviewBytes)),
+                    segment.Length <= OutputDifferenceHexPreviewBytes));
             }
         }
 
@@ -454,7 +460,8 @@ public sealed class CompositionRunService
                         DifferenceDeclaredReplacement,
                         true,
                         operation.OperationId,
-                        $"Accepted: staged replacement source '{binding.SourceSpaceId}' is pasted back by postbuild for {request.Profile.IcId} / {icNumber}.");
+                        $"Accepted: staged replacement source '{binding.SourceSpaceId}' is pasted back by postbuild for {request.Profile.IcId} / {icNumber}.",
+                        FormatDifferenceSectionLabel(binding.SourceSpaceId));
                 }
 
                 foreach (ByteRange allowedWriteRange in invocation.AllowedWriteRanges)
@@ -466,7 +473,8 @@ public sealed class CompositionRunService
                             DifferencePostbuildCrcHeader,
                             true,
                             $"{operation.OperationId}: {invocation.ProcessorId}",
-                            $"Accepted: this range is inside the {request.Profile.IcId} / {icNumber} approved postbuild CRC/header write ranges.");
+                            $"Accepted: this range is inside the {request.Profile.IcId} / {icNumber} approved postbuild CRC/header write ranges.",
+                            "Header / CRC refresh");
                     }
                 }
 
@@ -480,7 +488,8 @@ public sealed class CompositionRunService
                     DifferencePreservedReference,
                     false,
                     operation.OperationId,
-                    "Unexpected: this range is declared to be restored from the reference base.");
+                    "Unexpected: this range is declared to be restored from the reference base.",
+                    "Reference-preserved range");
                 continue;
             }
 
@@ -489,7 +498,8 @@ public sealed class CompositionRunService
                 DifferenceDeclaredReplacement,
                 true,
                 operation.OperationId,
-                $"Accepted: declared Replace mapping '{operation.OperationId}' writes this final range.");
+                $"Accepted: declared Replace mapping '{operation.OperationId}' writes this final range.",
+                "Declared replacement");
         }
     }
 
@@ -550,7 +560,8 @@ public sealed class CompositionRunService
             DifferenceUnexpected,
             false,
             "not-declared",
-            "Unexpected: final output differs from the reference base outside declared replacement and IC-number-specific postbuild CRC/header ranges.");
+            "Unexpected: final output differs from the reference base outside declared replacement and IC-number-specific postbuild CRC/header ranges.",
+            "Unexpected range");
     }
 
     private static List<ByteRange> SubtractRanges(ByteRange source, IReadOnlyList<ByteRange> removedRanges)
@@ -644,6 +655,12 @@ public sealed class CompositionRunService
     private static string ToSliceSha256Hex(byte[] bytes, ByteRange range)
     {
         return ToSha256Hex(bytes.AsSpan(checked((int)range.Start), checked((int)range.Length)));
+    }
+
+    private static string ToSliceHexPreview(byte[] bytes, ByteRange range)
+    {
+        int length = checked((int)Math.Min(range.Length, OutputDifferenceHexPreviewBytes));
+        return ToHex(bytes.AsSpan(checked((int)range.Start), length));
     }
 
     private static string CalculatePreviewToken(
@@ -777,10 +794,5 @@ public sealed class CompositionRunService
         IReadOnlyList<InputArtifactSummary> InputSummaries,
         IReadOnlyList<CompositionIssue> Issues);
 
-    private sealed record OutputDifferenceExpectation(
-        ByteRange Range,
-        string Classification,
-        bool IsAccepted,
-        string Evidence,
-        string Explanation);
+    private sealed record OutputDifferenceExpectation(ByteRange Range, string Classification, bool IsAccepted, string Evidence, string Explanation, string SectionLabel);
 }

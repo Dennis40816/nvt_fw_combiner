@@ -66,8 +66,13 @@ public sealed partial class ReportReviewViewModel
         HasWarnings = Warnings.Count > 0;
         HasWarningsWithoutBlockingIssues = HasWarnings && !HasPrimaryIssue;
         IsClean = !HasPrimaryIssue && !HasWarnings;
+        InputGroups = CreateInputGroups(inputs, language);
+        OperationFlow = CreateOperationFlow(inputs, operations, outputFileName, status, language);
         HasInputs = inputs.Count > 0;
+        HasInputGroups = InputGroups.Count > 0;
         HasOperations = operations.Count > 0;
+        HasOperationFlow = OperationFlow.Count > 0;
+        HasNoOperations = !HasOperationFlow && !HasOperations;
         HasCommandOperations = CommandOperations.Count > 0;
         HasStepOperations = StepOperations.Count > 0;
         HasMutations = mutations.Count > 0;
@@ -101,7 +106,7 @@ public sealed partial class ReportReviewViewModel
             ? CreateIssueAction(PrimaryIssue, language)
             : HasWarnings
             ? Warnings[0].Detail
-            : T(language, "Inputs, changes, operation order, and postbuild refresh are available in Evidence.", "輸入、差異、操作順序與 postbuild refresh 證據已整理在下方。");
+            : T(language, "Inputs, changes, operation order, and postbuild refresh are available in Audit details.", "輸入、差異、操作順序與 postbuild refresh 已整理在審查明細。");
         ByteDifferenceTitle = CreateByteDifferenceTitle(compositionKind, outputDifferences, language);
         ByteDifferenceDetail = CreateByteDifferenceDetail(compositionKind, outputDifferences, language);
         ByteDifferenceMeta = CreateByteDifferenceMeta(outputDifferences, language);
@@ -205,6 +210,12 @@ public sealed partial class ReportReviewViewModel
     /// <summary>Number of input rows.</summary>
     public int InputCount => Inputs.Count;
 
+    /// <summary>Human-readable grouped input rows.</summary>
+    public IReadOnlyList<ReportInputGroupViewModel> InputGroups { get; }
+
+    /// <summary>True when grouped input rows are available.</summary>
+    public bool HasInputGroups { get; }
+
     /// <summary>True when input details are available.</summary>
     public bool HasInputs { get; }
 
@@ -217,8 +228,17 @@ public sealed partial class ReportReviewViewModel
     /// <summary>Number of operation rows.</summary>
     public int OperationCount => Operations.Count;
 
+    /// <summary>Human-readable run flow nodes.</summary>
+    public IReadOnlyList<ReportOperationFlowNodeViewModel> OperationFlow { get; }
+
+    /// <summary>True when operation flow nodes are available.</summary>
+    public bool HasOperationFlow { get; }
+
     /// <summary>True when operation details are available.</summary>
     public bool HasOperations { get; }
+
+    /// <summary>True when no operation flow or detail rows are available.</summary>
+    public bool HasNoOperations { get; }
 
     /// <summary>Operations that contain a fixed-width external command block.</summary>
     public IReadOnlyList<ReportLineViewModel> CommandOperations { get; }
@@ -564,7 +584,7 @@ public sealed partial class ReportReviewViewModel
         int warningCount = CountWarnings(issues);
         return blockingIssueCount == 0
             ? warningCount == 0
-                ? T(language, "No issues reported. Evidence is organized below for audit.", "沒有回報問題；審查證據已整理在下方。")
+                ? T(language, "No issues reported. Audit details are organized below.", "沒有回報問題；審查明細已整理在下方。")
                 : T(language, "The run completed, but review the warning before treating the output as final evidence.", "流程已完成，但請先確認警告再把輸出視為最終證據。")
             : string.IsNullOrWhiteSpace(output)
             ? T(language, "The run did not produce an output artifact. Start with the first issue below.", "此次執行沒有產生輸出檔；請先查看第一個問題。")
@@ -694,25 +714,6 @@ public sealed partial class ReportReviewViewModel
                 outputDifferences.Count.ToString(CultureInfo.InvariantCulture),
                 CreateOutputDifferenceMeta(outputDifferences, language)),
         ];
-    }
-
-    private static string CreateOutputDifferenceMeta(
-        IReadOnlyList<ReportLineViewModel> outputDifferences,
-        ShellLanguage language)
-    {
-        if (outputDifferences.Count == 0)
-        {
-            return T(language, "same as base or non-Replace", "與 base 相同或非 Replace");
-        }
-
-        int acceptedCount = outputDifferences.Count(difference => difference.IsAccepted);
-        int reviewCount = outputDifferences.Count - acceptedCount;
-        return reviewCount == 0
-            ? T(language, "all accepted", "全部可接受")
-            : T(
-                language,
-                $"{acceptedCount.ToString(CultureInfo.InvariantCulture)} accepted / {reviewCount.ToString(CultureInfo.InvariantCulture)} review",
-                $"{acceptedCount.ToString(CultureInfo.InvariantCulture)} 可接受 / {reviewCount.ToString(CultureInfo.InvariantCulture)} 待審查");
     }
 
     private static string FormatEndpoint(string? addressSpaceId, string? range)

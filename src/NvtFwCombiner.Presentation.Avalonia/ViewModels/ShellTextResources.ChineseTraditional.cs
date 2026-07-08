@@ -143,7 +143,7 @@ public sealed partial class ShellTextResources
             RunLabel = "執行",
             OutputLabel = "輸出",
             ChangeReviewTitle = "差異審查",
-            EvidenceTitle = "證據",
+            EvidenceTitle = "審查明細",
             TraceLabel = "trace",
             OpenReportHistoryTooltip = "開啟 report history (Ctrl+H)",
             OpenReportHistoryAutomationName = "開啟 report history",
@@ -157,7 +157,7 @@ public sealed partial class ShellTextResources
             ReportFileLabel = "Report 檔案",
             StatusLabel = "狀態",
             ArtifactPathLabel = "Artifact path",
-            InputsAndHashesTitle = "輸入與雜湊",
+            InputsAndHashesTitle = "輸入檔案",
             EmptyInputsMessage = "此 report 沒有記錄 input artifact rows。",
             EmptyByteChangesMessage = "此 report 沒有記錄 output differences 或 changed ranges。",
             OutputChangesTitle = "輸出差異",
@@ -166,6 +166,7 @@ public sealed partial class ShellTextResources
             ResultLabel = "結果",
             DetailLabel = "細節",
             ExplanationLabel = "說明",
+            ReasonLabel = "原因",
             ChangedRangesTitle = "Changed ranges",
             EmptyOperationsMessage = "此 report 沒有記錄 copy/process operation steps。",
             OperationStepsTitle = "Operation steps",
@@ -188,4 +189,3 @@ public sealed partial class ShellTextResources
 }
 
 #pragma warning restore CS1591
-

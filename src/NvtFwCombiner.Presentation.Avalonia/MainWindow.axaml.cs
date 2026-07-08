@@ -61,6 +61,13 @@ public sealed partial class MainWindow : Window
         base.OnClosed(e);
     }
 
+    /// <inheritdoc />
+    protected override void OnOpened(EventArgs e)
+    {
+        base.OnOpened(e);
+        WindowState = WindowState.Maximized;
+    }
+
     private async void LoadReportJsonButton_OnClick(object? sender, RoutedEventArgs e)
     {
         IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions

@@ -14,8 +14,13 @@ public sealed class OutputDifferenceSummary
         bool isAccepted,
         string evidence,
         string explanation,
+        string sectionLabel,
         string beforeSha256,
-        string afterSha256)
+        string afterSha256,
+        string beforeHexPreview = "",
+        string afterHexPreview = "",
+        int hexPreviewByteCount = 0,
+        bool isHexPreviewComplete = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(differenceId);
         ArgumentOutOfRangeException.ThrowIfNegative(changedByteCount);
@@ -32,8 +37,13 @@ public sealed class OutputDifferenceSummary
         IsAccepted = isAccepted;
         Evidence = evidence;
         Explanation = explanation;
+        SectionLabel = sectionLabel ?? string.Empty;
         BeforeSha256 = beforeSha256;
         AfterSha256 = afterSha256;
+        BeforeHexPreview = beforeHexPreview ?? string.Empty;
+        AfterHexPreview = afterHexPreview ?? string.Empty;
+        HexPreviewByteCount = hexPreviewByteCount;
+        IsHexPreviewComplete = isHexPreviewComplete;
     }
 
     /// <summary>Stable row id in report order.</summary>
@@ -57,9 +67,24 @@ public sealed class OutputDifferenceSummary
     /// <summary>Readable explanation shown in report review surfaces.</summary>
     public string Explanation { get; }
 
+    /// <summary>Human-readable output section label such as Header / CRC refresh or NF CtrlRAM.</summary>
+    public string SectionLabel { get; }
+
     /// <summary>SHA-256 of the reference-base bytes inside <see cref="Range" />.</summary>
     public string BeforeSha256 { get; }
 
     /// <summary>SHA-256 of the final-output bytes inside <see cref="Range" />.</summary>
     public string AfterSha256 { get; }
+
+    /// <summary>Hex preview of the reference-base bytes inside <see cref="Range" />.</summary>
+    public string BeforeHexPreview { get; }
+
+    /// <summary>Hex preview of the final-output bytes inside <see cref="Range" />.</summary>
+    public string AfterHexPreview { get; }
+
+    /// <summary>Number of bytes included in each hex preview.</summary>
+    public int HexPreviewByteCount { get; }
+
+    /// <summary>True when the hex preview covers the whole difference range.</summary>
+    public bool IsHexPreviewComplete { get; }
 }

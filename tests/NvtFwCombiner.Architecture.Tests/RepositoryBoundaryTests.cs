@@ -149,7 +149,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Header=\"{Binding Text.ReportTabIssues}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Header=\"{Binding Text.ReportTabRaw}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ReportOutputDifferenceRowTemplate", shell, StringComparison.Ordinal);
-        Assert.Contains("OperationKind", shell, StringComparison.Ordinal);
+        Assert.Contains("ReportOperationFlowNodeTemplate", shell, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.OperationFlow", shell, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.CommandOperations", shell, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.StepOperations", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("ColumnDefinitions=\"24,*\"", shell, StringComparison.Ordinal);

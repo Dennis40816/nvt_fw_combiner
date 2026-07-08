@@ -329,6 +329,8 @@ public sealed partial class ShellTextResources
 
     public string ExplanationLabel { get; private init; } = string.Empty;
 
+    public string ReasonLabel { get; private init; } = string.Empty;
+
     public string ChangedRangesTitle { get; private init; } = string.Empty;
 
     public string EmptyOperationsMessage { get; private init; } = string.Empty;
