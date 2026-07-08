@@ -122,6 +122,29 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private static WorkbenchRunResult CreateGeneralMergeReportRunResult", report, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies Replace CLI dispatch stays split from option parsing, usage text, and result printing.</summary>
+    [Fact]
+    public void ReplaceCliCommandHandlerConcernsStaySplit()
+    {
+        string dispatch = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.cs");
+        string options = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.Options.cs");
+        string result = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.Result.cs");
+        string usage = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.Usage.cs");
+
+        Assert.Contains("RunAsync", dispatch, StringComparison.Ordinal);
+        Assert.Contains("TryCreateBindings", dispatch, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static bool TryParseOptions", dispatch, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static async Task PrintRunResultAsync", dispatch, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static async Task WriteUsageAsync", dispatch, StringComparison.Ordinal);
+        Assert.DoesNotContain("private sealed record ParsedOptions", dispatch, StringComparison.Ordinal);
+        Assert.Contains("private static bool TryParseOptions", options, StringComparison.Ordinal);
+        Assert.Contains("private static bool RequireOption", options, StringComparison.Ordinal);
+        Assert.Contains("private sealed record ParsedOptions", options, StringComparison.Ordinal);
+        Assert.Contains("private static async Task PrintRunResultAsync", result, StringComparison.Ordinal);
+        Assert.Contains("private static async Task<int> UnknownReplaceProfileAsync", result, StringComparison.Ordinal);
+        Assert.Contains("private static async Task WriteUsageAsync", usage, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies the shell follows the owner-approved clean home and independent page direction.</summary>
     [Fact]
     public void ShellUsesCleanHomeAndIndependentWorkflowPages()
