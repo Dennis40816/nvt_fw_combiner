@@ -13,6 +13,9 @@ internal static partial class ReplaceCliCommandHandler
     private const int CompositionFailed = 1;
     private const int UsageError = 64;
     private const int SoftwareError = 70;
+    private const string GeneralReplaceInputAddressSpaceId = "replacement-input";
+    private const string GeneralReplaceOperationId = "replace-general";
+    private const int GeneralReplaceOperationSequence = 100;
 
     private static readonly Dictionary<string, string> FixedInputOptionsByAddressSpace =
         new(StringComparer.Ordinal)
@@ -21,7 +24,7 @@ internal static partial class ReplaceCliCommandHandler
             [CompositionAddressSpaceIds.DpReplacement] = "--dp",
             [CompositionAddressSpaceIds.LdReplacement] = "--ld",
             [CompositionAddressSpaceIds.CtrlRamReplacement] = "--ctrlram",
-            ["replacement-input"] = "--input",
+            [GeneralReplaceInputAddressSpaceId] = "--input",
         };
 
     internal static async Task<int> RunAsync(

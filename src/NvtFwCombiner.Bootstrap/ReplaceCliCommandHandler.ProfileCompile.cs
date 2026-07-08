@@ -54,12 +54,12 @@ internal static partial class ReplaceCliCommandHandler
         long declaredLength = File.Exists(fullPath)
             ? new FileInfo(fullPath).Length
             : checked(sourceStart + length);
-        requestSpace = new AddressSpace("replacement-input", declaredLength, AddressSpaceMutability.Immutable);
+        requestSpace = new AddressSpace(GeneralReplaceInputAddressSpaceId, declaredLength, AddressSpaceMutability.Immutable);
         mapping = new ExplicitMapping(
-            "replace-general",
-            100,
+            GeneralReplaceOperationId,
+            GeneralReplaceOperationSequence,
             ExplicitMappingOperationKind.ReplaceRange,
-            "replacement-input",
+            GeneralReplaceInputAddressSpaceId,
             new ByteRange(sourceStart, length),
             CompositionAddressSpaceIds.OutputImage,
             new ByteRange(targetStart, length),

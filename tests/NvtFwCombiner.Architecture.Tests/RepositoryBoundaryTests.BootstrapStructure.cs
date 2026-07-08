@@ -250,12 +250,19 @@ public sealed partial class RepositoryBoundaryTests
     public void ReplaceCliCommandHandlerConcernsStaySplit()
     {
         string dispatch = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.cs");
+        string profileCompile = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.ProfileCompile.cs");
         string options = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.Options.cs");
         string result = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.Result.cs");
         string usage = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.Usage.cs");
 
         Assert.Contains("RunAsync", dispatch, StringComparison.Ordinal);
         Assert.Contains("TryCreateBindings", dispatch, StringComparison.Ordinal);
+        Assert.Contains("private const string GeneralReplaceInputAddressSpaceId = \"replacement-input\";", dispatch, StringComparison.Ordinal);
+        Assert.Contains("private const string GeneralReplaceOperationId = \"replace-general\";", dispatch, StringComparison.Ordinal);
+        Assert.Contains("GeneralReplaceInputAddressSpaceId", profileCompile, StringComparison.Ordinal);
+        Assert.Contains("GeneralReplaceOperationId", profileCompile, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"replacement-input\"", profileCompile, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"replace-general\"", profileCompile, StringComparison.Ordinal);
         Assert.DoesNotContain("private static bool TryParseOptions", dispatch, StringComparison.Ordinal);
         Assert.DoesNotContain("private static async Task PrintRunResultAsync", dispatch, StringComparison.Ordinal);
         Assert.DoesNotContain("private static async Task WriteUsageAsync", dispatch, StringComparison.Ordinal);
