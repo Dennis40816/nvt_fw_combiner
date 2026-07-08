@@ -38,12 +38,12 @@ public static partial class WorkbenchCompositionService
         {
             return CreateReplaceReportRunResult(
                 icId,
-                "General",
+                WorkbenchReplaceModes.General,
                 context.ReportSlotPaths,
                 build,
                 [],
                 mappingIssues,
-                GetReplaceDefaultOutputFileName(icId, "General"),
+                GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General),
                 succeeded: false);
         }
 
@@ -65,12 +65,12 @@ public static partial class WorkbenchCompositionService
             {
                 return CreateReplaceReportRunResult(
                     icId,
-                    "General",
+                    WorkbenchReplaceModes.General,
                     context.ReportSlotPaths,
                     build,
                     CreateGeneralReplacePlanningOperations(explicitMappings),
                     [postbuildIssue!],
-                    GetReplaceDefaultOutputFileName(icId, "General"),
+                    GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General),
                     succeeded: false);
             }
 
@@ -82,7 +82,7 @@ public static partial class WorkbenchCompositionService
             {
                 return CreateReplaceReportRunResult(
                     icId,
-                    "General",
+                    WorkbenchReplaceModes.General,
                     context.ReportSlotPaths,
                     build,
                     CreateGeneralReplacePlanningOperations(explicitMappings),
@@ -92,7 +92,7 @@ public static partial class WorkbenchCompositionService
                             exception.Message,
                             "number"),
                     ],
-                    GetReplaceDefaultOutputFileName(icId, "General"),
+                    GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General),
                     succeeded: false);
             }
 
@@ -101,7 +101,7 @@ public static partial class WorkbenchCompositionService
             {
                 return CreateReplaceReportRunResult(
                     icId,
-                    "General",
+                    WorkbenchReplaceModes.General,
                     context.ReportSlotPaths,
                     build,
                     CreateGeneralReplacePlanningOperations(explicitMappings),
@@ -111,7 +111,7 @@ public static partial class WorkbenchCompositionService
                             $"Base flash BIN is too short for {icId} / {number} General Replace postbuild (actual {context.Capacity} bytes, required at least {requiredCapacity} bytes).",
                             "replace-base"),
                     ],
-                    GetReplaceDefaultOutputFileName(icId, "General"),
+                    GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General),
                     succeeded: false);
             }
 
@@ -123,7 +123,7 @@ public static partial class WorkbenchCompositionService
             {
                 return CreateReplaceReportRunResult(
                     icId,
-                    "General",
+                    WorkbenchReplaceModes.General,
                     context.ReportSlotPaths,
                     build,
                     CreateGeneralReplacePlanningOperations(explicitMappings),
@@ -133,7 +133,7 @@ public static partial class WorkbenchCompositionService
                             "No approved postbuild write range could be derived for TP-touching General Replace.",
                             "postbuild"),
                     ],
-                    GetReplaceDefaultOutputFileName(icId, "General"),
+                    GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General),
                     succeeded: false);
             }
         }
@@ -153,7 +153,7 @@ public static partial class WorkbenchCompositionService
         {
             return CreateReplaceReportRunResult(
                 icId,
-                "General",
+                WorkbenchReplaceModes.General,
                 context.ReportSlotPaths,
                 build,
                 CreateGeneralReplacePlanningOperations(explicitMappings),

@@ -1,12 +1,13 @@
 using CommunityToolkit.Mvvm.Input;
+using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
 {
-    private const string DpReplaceMode = "DP";
-    private const string CtrlRamReplaceMode = "CtrlRAM";
-    private const string GeneralReplaceMode = "General";
+    private const string DpReplaceMode = WorkbenchReplaceModes.Dp;
+    private const string CtrlRamReplaceMode = WorkbenchReplaceModes.CtrlRam;
+    private const string GeneralReplaceMode = WorkbenchReplaceModes.General;
     private const string NormalMergeMode = "Normal";
     private const string AbCodeMergeMode = "AB Code";
     private const string GeneralMergeMode = "General";

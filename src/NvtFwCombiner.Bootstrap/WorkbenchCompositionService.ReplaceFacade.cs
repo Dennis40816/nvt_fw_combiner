@@ -11,9 +11,9 @@ public static partial class WorkbenchCompositionService
         string normalizedIc = icId.ToLowerInvariant();
         return replaceMode switch
         {
-            "DP" => $"{normalizedIc}-dp-replace.bin",
-            "CtrlRAM" => $"{normalizedIc}-ctrlram-replace.bin",
-            "General" => $"{normalizedIc}-general-replace.bin",
+            WorkbenchReplaceModes.Dp => $"{normalizedIc}-dp-replace.bin",
+            WorkbenchReplaceModes.CtrlRam => $"{normalizedIc}-ctrlram-replace.bin",
+            WorkbenchReplaceModes.General => $"{normalizedIc}-general-replace.bin",
             _ => "nvt-fw-combiner-replace.bin",
         };
     }
@@ -58,14 +58,14 @@ public static partial class WorkbenchCompositionService
 
         return replaceMode switch
         {
-            "DP" when IsDpPerspectiveIc(icId) => await RunDpPerspectiveDpReplaceAsync(
+            WorkbenchReplaceModes.Dp when IsDpPerspectiveIc(icId) => await RunDpPerspectiveDpReplaceAsync(
                 icId,
                 number,
                 slotPaths,
                 build,
                 outputPath,
                 cancellationToken).ConfigureAwait(false),
-            "DP" => CreatePlanningRunResult(
+            WorkbenchReplaceModes.Dp => CreatePlanningRunResult(
                 icId,
                 number,
                 replaceMode,
@@ -73,14 +73,14 @@ public static partial class WorkbenchCompositionService
                 build,
                 "replace.dp.profile-pending",
                 $"DP Replace output is enabled only for {FormatDpPerspectiveIcIds()} until per-IC DP source mapping and golden evidence are approved."),
-            "CtrlRAM" => await RunCtrlRamReplaceAsync(
+            WorkbenchReplaceModes.CtrlRam => await RunCtrlRamReplaceAsync(
                 icId,
                 number,
                 slotPaths,
                 build,
                 outputPath,
                 cancellationToken).ConfigureAwait(false),
-            "General" => await RunGeneralReplaceAsync(
+            WorkbenchReplaceModes.General => await RunGeneralReplaceAsync(
                 icId,
                 number,
                 slotPaths,

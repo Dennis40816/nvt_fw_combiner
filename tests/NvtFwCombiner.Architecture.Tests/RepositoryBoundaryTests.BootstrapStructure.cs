@@ -32,6 +32,22 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("NT51928", bootstrapSource, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies workbench Replace mode ids stay centralized for UI and CLI adapters.</summary>
+    [Fact]
+    public void BootstrapOwnsWorkbenchReplaceModeIds()
+    {
+        string bootstrapSource = ReadBootstrapSources();
+        string replaceModes = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchReplaceModes.cs");
+        string bootstrapWithoutReplaceModes = bootstrapSource.Replace(replaceModes, string.Empty, StringComparison.Ordinal);
+
+        Assert.Contains("public const string Dp = \"DP\"", replaceModes, StringComparison.Ordinal);
+        Assert.Contains("public const string CtrlRam = \"CtrlRAM\"", replaceModes, StringComparison.Ordinal);
+        Assert.Contains("public const string General = \"General\"", replaceModes, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"DP\"", bootstrapWithoutReplaceModes, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"CtrlRAM\"", bootstrapWithoutReplaceModes, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"General\"", bootstrapWithoutReplaceModes, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies General mapping text parsing is owned by one Bootstrap helper.</summary>
     [Fact]
     public void BootstrapRangeTextOwnsGeneralMappingParsing()

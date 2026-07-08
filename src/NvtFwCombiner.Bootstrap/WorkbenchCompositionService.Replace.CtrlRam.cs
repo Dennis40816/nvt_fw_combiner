@@ -21,7 +21,7 @@ public static partial class WorkbenchCompositionService
         {
             return CreateReplaceReportRunResult(
                 icId,
-                "CtrlRAM",
+                WorkbenchReplaceModes.CtrlRam,
                 slotPaths,
                 build,
                 CreateCtrlRamPlanningOperations(
@@ -32,7 +32,7 @@ public static partial class WorkbenchCompositionService
                     runnablePreview: false,
                     context.PostbuildProfile),
                 context.ValidationIssues,
-                GetReplaceDefaultOutputFileName(icId, "CtrlRAM"),
+                GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.CtrlRam),
                 succeeded: false);
         }
 
@@ -46,7 +46,7 @@ public static partial class WorkbenchCompositionService
         {
             return CreateReplaceReportRunResult(
                 icId,
-                "CtrlRAM",
+                WorkbenchReplaceModes.CtrlRam,
                 slotPaths,
                 build,
                 CreateCtrlRamPlanningOperations(
@@ -62,7 +62,7 @@ public static partial class WorkbenchCompositionService
                         "No approved postbuild write range could be derived from the legacy Combiner command plan.",
                         "postbuild"),
                 ],
-                GetReplaceDefaultOutputFileName(icId, "CtrlRAM"),
+                GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.CtrlRam),
                 succeeded: false);
         }
 
@@ -80,7 +80,7 @@ public static partial class WorkbenchCompositionService
         {
             return CreateReplaceReportRunResult(
                 icId,
-                "CtrlRAM",
+                WorkbenchReplaceModes.CtrlRam,
                 slotPaths,
                 build,
                 CreateCtrlRamPlanningOperations(

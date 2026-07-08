@@ -78,6 +78,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private static MemoryMapRowViewModel ToMemoryMapRow", common, StringComparison.Ordinal);
         Assert.Contains("GetFirmwareSlotFacts", facts, StringComparison.Ordinal);
         Assert.Contains("CreateFlashCodeOutputFileName", facts, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchReplaceModes", ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs"), StringComparison.Ordinal);
         Assert.Contains("GetStandardMergeMemoryMapRows", merge, StringComparison.Ordinal);
         Assert.Contains("RunGeneralMergeAsync", merge, StringComparison.Ordinal);
         Assert.Contains("GetReplaceMemoryMapRows", replace, StringComparison.Ordinal);

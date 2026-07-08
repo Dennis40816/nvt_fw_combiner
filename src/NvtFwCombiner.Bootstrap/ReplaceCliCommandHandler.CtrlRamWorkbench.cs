@@ -40,7 +40,7 @@ internal static partial class ReplaceCliCommandHandler
         InputArtifactBinding[] bindings = CreateWorkbenchBindings(slotPaths);
         CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
             options.Values.GetValueOrDefault("--output"),
-            WorkbenchCompositionService.GetReplaceDefaultOutputFileName(icId, "CtrlRAM"));
+            WorkbenchCompositionService.GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.CtrlRam));
         string? outputPath = action == "build" ? outputTarget.FullPath : null;
         if (action == "build")
         {
@@ -61,7 +61,7 @@ internal static partial class ReplaceCliCommandHandler
             action == "build");
 
         WorkbenchRunResult result = await WorkbenchCompositionService
-            .RunReplaceAsync(icId, icNumber, "CtrlRAM", slotPaths, action == "build", cancellationToken, outputPath)
+            .RunReplaceAsync(icId, icNumber, WorkbenchReplaceModes.CtrlRam, slotPaths, action == "build", cancellationToken, outputPath)
             .ConfigureAwait(false);
         await WriteWorkbenchReportFileIfRequestedAsync(
                 result,
@@ -155,7 +155,7 @@ internal static partial class ReplaceCliCommandHandler
         foreach (WorkbenchReplaceInputSlot slot in WorkbenchCompositionService.GetReplaceInputSlots(
                      icId,
                      icNumber,
-                     "CtrlRAM",
+                     WorkbenchReplaceModes.CtrlRam,
                      basePath))
         {
             slotsByToken[slot.SlotId] = slot;

@@ -20,7 +20,7 @@ public static partial class WorkbenchCompositionService
             failure = CreatePlanningRunResult(
                 icId,
                 number,
-                "DP",
+                WorkbenchReplaceModes.Dp,
                 slotPaths,
                 build,
                 "ui.input.missing",
@@ -34,7 +34,7 @@ public static partial class WorkbenchCompositionService
             failure = CreatePlanningRunResult(
                 icId,
                 number,
-                "DP",
+                WorkbenchReplaceModes.Dp,
                 slotPaths,
                 build,
                 "input.artifact.read-failed",
@@ -48,7 +48,7 @@ public static partial class WorkbenchCompositionService
             failure = CreatePlanningRunResult(
                 icId,
                 number,
-                "DP",
+                WorkbenchReplaceModes.Dp,
                 slotPaths,
                 build,
                 "input.address-space.length-mismatch",

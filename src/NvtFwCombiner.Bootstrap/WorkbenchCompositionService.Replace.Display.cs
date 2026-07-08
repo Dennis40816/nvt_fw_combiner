@@ -17,8 +17,8 @@ public static partial class WorkbenchCompositionService
     {
         return replaceMode switch
         {
-            "DP" => GetDpReplaceInputSlots(icId),
-            "CtrlRAM" => GetCtrlRamReplaceInputSlots(icId, number, basePath),
+            WorkbenchReplaceModes.Dp => GetDpReplaceInputSlots(icId),
+            WorkbenchReplaceModes.CtrlRam => GetCtrlRamReplaceInputSlots(icId, number, basePath),
             _ => [],
         };
     }
@@ -32,7 +32,7 @@ public static partial class WorkbenchCompositionService
         string? ctrlRamBasePath = null)
     {
         IcNumberSelection selection = ToIcNumberSelection(number);
-        LegacyCombinerPostbuildProfile? postbuildProfile = replaceMode == "CtrlRAM" &&
+        LegacyCombinerPostbuildProfile? postbuildProfile = replaceMode == WorkbenchReplaceModes.CtrlRam &&
             TryResolvePostbuildProfileForDisplay(icId, ctrlRamBasePath, out LegacyCombinerPostbuildProfile? profile)
                 ? profile
                 : null;
@@ -52,11 +52,11 @@ public static partial class WorkbenchCompositionService
             ]
             : replaceMode switch
             {
-                "DP" => CreateDpReplaceRows(icId, regions, dpBaseLength),
-                "CtrlRAM" => CreateCtrlRamReplaceRows(
+                WorkbenchReplaceModes.Dp => CreateDpReplaceRows(icId, regions, dpBaseLength),
+                WorkbenchReplaceModes.CtrlRam => CreateCtrlRamReplaceRows(
                     regions,
                     TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile)),
-                "General" =>
+                WorkbenchReplaceModes.General =>
                 [
                     .. CreatePreserveRows(regions),
                     new WorkbenchMemoryMapRow(
@@ -92,7 +92,7 @@ public static partial class WorkbenchCompositionService
         long? dpBaseLength = null,
         string? ctrlRamBasePath = null)
     {
-        if (replaceMode == "DP" && IsDpPerspectiveIc(icId))
+        if (replaceMode == WorkbenchReplaceModes.Dp && IsDpPerspectiveIc(icId))
         {
             return dpBaseLength is long value
                 ? IsSupportedDpPerspectiveBaseLength(value)
@@ -102,7 +102,7 @@ public static partial class WorkbenchCompositionService
         }
 
         IcNumberSelection selection = ToIcNumberSelection(number);
-        LegacyCombinerPostbuildProfile? postbuildProfile = replaceMode == "CtrlRAM" &&
+        LegacyCombinerPostbuildProfile? postbuildProfile = replaceMode == WorkbenchReplaceModes.CtrlRam &&
             TryResolvePostbuildProfileForDisplay(icId, ctrlRamBasePath, out LegacyCombinerPostbuildProfile? profile)
                 ? profile
                 : null;
@@ -121,7 +121,7 @@ public static partial class WorkbenchCompositionService
         string? ctrlRamBasePath = null)
     {
         IcNumberSelection selection = ToIcNumberSelection(number);
-        LegacyCombinerPostbuildProfile? postbuildProfile = replaceMode == "CtrlRAM" &&
+        LegacyCombinerPostbuildProfile? postbuildProfile = replaceMode == WorkbenchReplaceModes.CtrlRam &&
             TryResolvePostbuildProfileForDisplay(icId, ctrlRamBasePath, out LegacyCombinerPostbuildProfile? profile)
                 ? profile
                 : null;
@@ -143,7 +143,7 @@ public static partial class WorkbenchCompositionService
             ];
         }
 
-        if (replaceMode == "DP" && IsDpPerspectiveIc(icId))
+        if (replaceMode == WorkbenchReplaceModes.Dp && IsDpPerspectiveIc(icId))
         {
             if (dpBaseLength is not long selectedBaseLength)
             {
@@ -240,8 +240,8 @@ public static partial class WorkbenchCompositionService
 
         IEnumerable<TpFlashMapRegion> replacementRegions = replaceMode switch
         {
-            "DP" => GetDpReplaceRegions(icId, regions),
-            "CtrlRAM" => TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile),
+            WorkbenchReplaceModes.Dp => GetDpReplaceRegions(icId, regions),
+            WorkbenchReplaceModes.CtrlRam => TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile),
             _ => [],
         };
 
@@ -249,11 +249,11 @@ public static partial class WorkbenchCompositionService
         {
             string label = replaceMode switch
             {
-                "DP" => IsLdRegion(region) ? "Changed LDC BIN" : "Changed DP BIN",
-                "CtrlRAM" => region.DisplayName,
+                WorkbenchReplaceModes.Dp => IsLdRegion(region) ? "Changed LDC BIN" : "Changed DP BIN",
+                WorkbenchReplaceModes.CtrlRam => region.DisplayName,
                 _ => "Replacement BIN",
             };
-            string detail = replaceMode == "CtrlRAM"
+            string detail = replaceMode == WorkbenchReplaceModes.CtrlRam
                 ? $"{region.DisplayName} can be replaced here. Empty input keeps the original firmware; Preview lists the CRC/header refresh command."
                 : $"{region.DisplayName}; {ActionSummaryForReplaceMode(replaceMode)}";
             segments = ApplyCoverageWrite(

@@ -1,6 +1,8 @@
 // Resource bags intentionally expose many concise bindable labels; XML comments on each label add noise.
 #pragma warning disable CS1591
 
+using NvtFwCombiner.Bootstrap;
+
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class ShellTextResources
@@ -65,16 +67,16 @@ public sealed partial class ShellTextResources
         return Language == ShellLanguage.ChineseTraditional
             ? mode switch
             {
-                "DP" => "取代 DP 與選用 LD payload；不執行 CRC postbuild。",
-                "CtrlRAM" => "取代 CtrlRAM payload 後執行 combiner.exe postbuild 更新 CRC/header。",
-                "General" => "編輯 profile 核准的明確範圍；碰到 TP 範圍時必須執行 combiner.exe CRC/header 更新。",
+                WorkbenchReplaceModes.Dp => "取代 DP 與選用 LD payload；不執行 CRC postbuild。",
+                WorkbenchReplaceModes.CtrlRam => "取代 CtrlRAM payload 後執行 combiner.exe postbuild 更新 CRC/header。",
+                WorkbenchReplaceModes.General => "編輯 profile 核准的明確範圍；碰到 TP 範圍時必須執行 combiner.exe CRC/header 更新。",
                 _ => "選擇一個 Replace 模式。",
             }
             : mode switch
             {
-                "DP" => "Replace DP and optional LD payloads without CRC postbuild.",
-                "CtrlRAM" => "Replace CtrlRAM payloads, then run combiner.exe postbuild for CRC/header refresh.",
-                "General" => "Author explicit profile-approved ranges; TP ranges require combiner.exe CRC/header refresh.",
+                WorkbenchReplaceModes.Dp => "Replace DP and optional LD payloads without CRC postbuild.",
+                WorkbenchReplaceModes.CtrlRam => "Replace CtrlRAM payloads, then run combiner.exe postbuild for CRC/header refresh.",
+                WorkbenchReplaceModes.General => "Author explicit profile-approved ranges; TP ranges require combiner.exe CRC/header refresh.",
                 _ => "Select a replace mode.",
             };
     }
@@ -84,16 +86,16 @@ public sealed partial class ShellTextResources
         return Language == ShellLanguage.ChineseTraditional
             ? mode switch
             {
-                "DP" => "藍色代表新的 DP bytes；灰色代表從 base firmware 保留或還原的區段。",
-                "CtrlRAM" => "有色區塊代表可取代的 CtrlRAM 位置；灰色保留 base firmware。",
-                "General" => "Base flash 只會在核准的明確取代範圍內改變。",
+                WorkbenchReplaceModes.Dp => "藍色代表新的 DP bytes；灰色代表從 base firmware 保留或還原的區段。",
+                WorkbenchReplaceModes.CtrlRam => "有色區塊代表可取代的 CtrlRAM 位置；灰色保留 base firmware。",
+                WorkbenchReplaceModes.General => "Base flash 只會在核准的明確取代範圍內改變。",
                 _ => "選擇 Replace 模式後查看目標範圍。",
             }
             : mode switch
             {
-                "DP" => "Blue shows new DP bytes; gray shows sections preserved or restored from the base firmware.",
-                "CtrlRAM" => "Colored blocks show replaceable CtrlRAM positions; gray stays from the base firmware.",
-                "General" => "Base flash stays unchanged except approved explicit replacement ranges.",
+                WorkbenchReplaceModes.Dp => "Blue shows new DP bytes; gray shows sections preserved or restored from the base firmware.",
+                WorkbenchReplaceModes.CtrlRam => "Colored blocks show replaceable CtrlRAM positions; gray stays from the base firmware.",
+                WorkbenchReplaceModes.General => "Base flash stays unchanged except approved explicit replacement ranges.",
                 _ => "Select a replace mode to inspect its target ranges.",
             };
     }
@@ -103,22 +105,22 @@ public sealed partial class ShellTextResources
         return Language == ShellLanguage.ChineseTraditional
             ? mode switch
             {
-                "DP" when canRun => "Ready：Build 會先驗證 DP Replace input，再寫出 output 與 report。",
-                "DP" => "Build blocked：需要 base BIN 與必要的 DP replacement input。",
-                "CtrlRAM" when canRun => "Ready：Build 會取代選定的 CtrlRAM region 並執行 postbuild。",
-                "CtrlRAM" => "Build blocked：需要 base BIN 與至少一個 CtrlRAM region BIN。",
-                "General" when canRun => "Ready：Build 會編譯明確 mapping；碰到 TP range 時會執行 postbuild。",
-                "General" => "Build blocked：需要 base BIN 與至少一筆 replacement mapping。",
+                WorkbenchReplaceModes.Dp when canRun => "Ready：Build 會先驗證 DP Replace input，再寫出 output 與 report。",
+                WorkbenchReplaceModes.Dp => "Build blocked：需要 base BIN 與必要的 DP replacement input。",
+                WorkbenchReplaceModes.CtrlRam when canRun => "Ready：Build 會取代選定的 CtrlRAM region 並執行 postbuild。",
+                WorkbenchReplaceModes.CtrlRam => "Build blocked：需要 base BIN 與至少一個 CtrlRAM region BIN。",
+                WorkbenchReplaceModes.General when canRun => "Ready：Build 會編譯明確 mapping；碰到 TP range 時會執行 postbuild。",
+                WorkbenchReplaceModes.General => "Build blocked：需要 base BIN 與至少一筆 replacement mapping。",
                 _ => "Build blocked：請選擇 Replace 模式。",
             }
             : mode switch
             {
-                "DP" when canRun => "Ready: Build will validate DP Replace inputs, then write output and report.",
-                "DP" => "Build blocked: base BIN and required DP replacement inputs are required.",
-                "CtrlRAM" when canRun => "Ready: Build will replace selected CtrlRAM regions and run postbuild.",
-                "CtrlRAM" => "Build blocked: base BIN and at least one CtrlRAM region BIN are required.",
-                "General" when canRun => "Ready: Build will compile explicit mappings and run postbuild when TP ranges are touched.",
-                "General" => "Build blocked: base BIN and at least one explicit replacement mapping are required.",
+                WorkbenchReplaceModes.Dp when canRun => "Ready: Build will validate DP Replace inputs, then write output and report.",
+                WorkbenchReplaceModes.Dp => "Build blocked: base BIN and required DP replacement inputs are required.",
+                WorkbenchReplaceModes.CtrlRam when canRun => "Ready: Build will replace selected CtrlRAM regions and run postbuild.",
+                WorkbenchReplaceModes.CtrlRam => "Build blocked: base BIN and at least one CtrlRAM region BIN are required.",
+                WorkbenchReplaceModes.General when canRun => "Ready: Build will compile explicit mappings and run postbuild when TP ranges are touched.",
+                WorkbenchReplaceModes.General => "Build blocked: base BIN and at least one explicit replacement mapping are required.",
                 _ => "Build blocked: select a Replace mode.",
             };
     }

@@ -44,8 +44,8 @@ public static partial class WorkbenchCompositionService
     {
         return replaceMode switch
         {
-            "DP" => "profile policy controls padding",
-            "CtrlRAM" => "postbuild refreshes CRC/header",
+            WorkbenchReplaceModes.Dp => "profile policy controls padding",
+            WorkbenchReplaceModes.CtrlRam => "postbuild refreshes CRC/header",
             _ => "profile validation controls write access",
         };
     }

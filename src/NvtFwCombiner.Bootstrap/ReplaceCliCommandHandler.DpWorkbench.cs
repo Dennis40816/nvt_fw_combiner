@@ -47,7 +47,7 @@ internal static partial class ReplaceCliCommandHandler
         InputArtifactBinding[] bindings = CreateWorkbenchBindings(slotPaths);
         CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
             options.Values.GetValueOrDefault("--output"),
-            WorkbenchCompositionService.GetReplaceDefaultOutputFileName(icId, "DP"));
+            WorkbenchCompositionService.GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.Dp));
         string? outputPath = action == "build" ? outputTarget.FullPath : null;
         if (action == "build")
         {
@@ -68,7 +68,7 @@ internal static partial class ReplaceCliCommandHandler
             action == "build");
 
         WorkbenchRunResult result = await WorkbenchCompositionService
-            .RunReplaceAsync(icId, icNumber, "DP", slotPaths, action == "build", cancellationToken, outputPath)
+            .RunReplaceAsync(icId, icNumber, WorkbenchReplaceModes.Dp, slotPaths, action == "build", cancellationToken, outputPath)
             .ConfigureAwait(false);
         await WriteWorkbenchReportFileIfRequestedAsync(
                 result,
