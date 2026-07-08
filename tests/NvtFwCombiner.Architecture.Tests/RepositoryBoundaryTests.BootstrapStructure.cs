@@ -197,6 +197,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ResolveStandardMergeProfileForInputs", standardMergeRun, StringComparison.Ordinal);
         Assert.Contains("TryReadBaseCommonFwVersion", firmwareMetadata, StringComparison.Ordinal);
         Assert.Contains("FirmwareConfigMetadataReader.TryRead", firmwareMetadata, StringComparison.Ordinal);
+        Assert.Contains("DisplayCategory", firmwareMetadata, StringComparison.Ordinal);
+        Assert.DoesNotContain("PostbuildSetup_", firmwareMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateFlashCodeOutputFileName", firmwareMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("GetCtrlRamRegions", firmwareMetadata, StringComparison.Ordinal);
         Assert.Contains("CreateFlashCodeOutputFileName", outputNaming, StringComparison.Ordinal);

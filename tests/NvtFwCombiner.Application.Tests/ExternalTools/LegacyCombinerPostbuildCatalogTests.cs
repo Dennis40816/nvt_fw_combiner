@@ -21,6 +21,14 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
         Assert.Null(command.CrcArgument);
     }
 
+    /// <summary>Verifies postbuild profiles expose display-ready categories without leaking source script prefixes.</summary>
+    [Fact]
+    public void PostbuildProfilesExposeDisplayReadyCategories()
+    {
+        Assert.Equal("51926_1.4.1", LegacyCombinerPostbuildCatalog.Nt51926CommonFw141.DisplayCategory);
+        Assert.Equal("51950_2.0.0", LegacyCombinerPostbuildCatalog.Nt51951.DisplayCategory);
+    }
+
     /// <summary>Locks normal-mode source header CRC word writes outside explicit copy targets.</summary>
     [Fact]
     public void NormalModePlansDeclareKnownSourceHeaderIntegrityWrites()

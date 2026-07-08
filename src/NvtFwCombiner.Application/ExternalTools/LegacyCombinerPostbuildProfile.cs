@@ -63,6 +63,7 @@ public sealed class LegacyCombinerPostbuildProfile
         ToolBindingId = toolBindingId;
         FirmwareFileName = firmwareFileName;
         Evidence = evidence;
+        DisplayCategory = CreateDisplayCategory(evidence, processorId);
         AssemblyKind = assemblyKind;
         CommonFwVersionRule = commonFwVersionRule;
     }
@@ -100,6 +101,9 @@ public sealed class LegacyCombinerPostbuildProfile
     /// <summary>Reference files that justify this command profile.</summary>
     public string Evidence { get; }
 
+    /// <summary>Short display category derived from the primary postbuild evidence source.</summary>
+    public string DisplayCategory { get; }
+
     /// <summary>Declares whether postbuild output is final flash or refreshed TP_FW requiring assembly.</summary>
     public LegacyCombinerPostbuildAssemblyKind AssemblyKind { get; }
 
@@ -129,5 +133,18 @@ public sealed class LegacyCombinerPostbuildProfile
         }
 
         return byToken;
+    }
+
+    private static string CreateDisplayCategory(string evidence, string processorId)
+    {
+        string primaryEvidence = evidence.Split(';', StringSplitOptions.TrimEntries)[0];
+        string fileName = Path.GetFileName(primaryEvidence.Replace('\\', '/'));
+        string category = string.IsNullOrWhiteSpace(fileName)
+            ? processorId
+            : Path.GetFileNameWithoutExtension(fileName);
+        const string prefix = "PostbuildSetup_";
+        return category.StartsWith(prefix, StringComparison.Ordinal)
+            ? category[prefix.Length..]
+            : category;
     }
 }

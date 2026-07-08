@@ -72,7 +72,7 @@ public static partial class WorkbenchCompositionService
                 icId,
                 path,
                 out LegacyCombinerPostbuildProfile? postbuildProfile)
-                    ? FormatPostbuildCategory(postbuildProfile!)
+                    ? postbuildProfile!.DisplayCategory
                     : null;
             return new WorkbenchFirmwareConfigMetadata(
                 metadata.FirmwareConfigStart,
@@ -152,18 +152,5 @@ public static partial class WorkbenchCompositionService
 
         return matchedBaseProfile ||
             (!hasReadableBase && LegacyCombinerPostbuildCatalog.TryGetDefaultProfile(icId, out postbuildProfile));
-    }
-
-    private static string FormatPostbuildCategory(LegacyCombinerPostbuildProfile postbuildProfile)
-    {
-        string evidence = postbuildProfile.Evidence.Split(';', StringSplitOptions.TrimEntries)[0];
-        string fileName = Path.GetFileName(evidence.Replace('\\', '/'));
-        string category = string.IsNullOrWhiteSpace(fileName)
-            ? postbuildProfile.ProcessorId
-            : Path.GetFileNameWithoutExtension(fileName);
-        const string prefix = "PostbuildSetup_";
-        return category.StartsWith(prefix, StringComparison.Ordinal)
-            ? category[prefix.Length..]
-            : category;
     }
 }
