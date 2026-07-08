@@ -468,13 +468,14 @@ public sealed partial class CompositionRunService
                 {
                     foreach (ByteRange processorOnlyRange in SubtractRanges(allowedWriteRange, stagedRanges))
                     {
+                        string sectionLabel = FormatProcessorWriteSectionLabel(invocation, processorOnlyRange);
                         yield return new OutputDifferenceExpectation(
                             processorOnlyRange,
                             DifferencePostbuildCrcHeader,
                             true,
                             $"{operation.OperationId}: {invocation.ProcessorId}",
-                            $"Accepted: this range is inside the {request.Profile.IcId} / {icNumber} approved postbuild CRC/header write ranges.",
-                            "Header / CRC refresh");
+                            $"Accepted: this range is inside the {request.Profile.IcId} / {icNumber} approved {sectionLabel} postbuild write ranges.",
+                            sectionLabel);
                     }
                 }
 

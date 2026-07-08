@@ -87,7 +87,8 @@ internal static class ReportJsonSamples
                     "PostbuildCrcHeader",
                     isAccepted: true,
                     "postbuild-single: legacy-combiner",
-                    "Accepted: this range is inside the NT51927 / single approved postbuild CRC/header write ranges."),
+                    "Accepted: this range is inside the NT51927 / single approved TP flash header / CRC fields postbuild write ranges.",
+                    "TP flash header / CRC fields"),
             ]);
     }
 
@@ -183,7 +184,8 @@ internal static class ReportJsonSamples
         string classification,
         bool isAccepted,
         string evidence,
-        string explanation)
+        string explanation,
+        string? sectionLabel = null)
     {
         return new
         {
@@ -194,6 +196,7 @@ internal static class ReportJsonSamples
             IsAccepted = isAccepted,
             Evidence = evidence,
             Explanation = explanation,
+            SectionLabel = sectionLabel,
             BeforeSha256 = "11111111111111111111",
             AfterSha256 = "22222222222222222222",
             BeforeHexPreview = "AABBCCDD",

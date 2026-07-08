@@ -20,9 +20,10 @@ public static partial class WorkbenchCompositionService
         long capacity,
         LegacyCombinerPostbuildProfile? postbuildProfile,
         LegacyCombinerPostbuildCommandPlan? commandPlan,
-        IReadOnlyList<ByteRange> postbuildWriteRanges)
+        IReadOnlyList<LegacyCombinerPostbuildWriteRange> postbuildWriteRangeSections)
     {
         string normalizedIc = icId.ToLowerInvariant();
+        ByteRange[] postbuildWriteRanges = [.. postbuildWriteRangeSections.Select(section => section.Range)];
         ProfileRegion[] regions = CreateGeneralReplaceRegions(
             icId,
             selection,
@@ -53,7 +54,9 @@ public static partial class WorkbenchCompositionService
                         postbuildProfile.ProcessorId,
                         postbuildProfile.ToolBindingId,
                         [new ByteRange(0, capacity)],
-                        postbuildWriteRanges),
+                        postbuildWriteRanges,
+                        allowedWriteRangeSections: postbuildWriteRangeSections.Select(section =>
+                            new ExternalProcessorWriteRangeSection(section.SectionId, section.Range))),
                     OverlapPolicy.ReplaceExisting,
                     $"Run {commandPlan.Branch} legacy Combiner postbuild after TP-touching General Replace mappings. Combiner command: {FormatPostbuildCommandBlock(commandPlan)}."),
             ];

@@ -47,17 +47,25 @@ public static class LegacyCombinerPostbuildPlanner
         LegacyCombinerPostbuildCommandPlan plan,
         long capacity)
     {
+        return [.. GetKnownIntegrityWriteRangeSections(plan, capacity).Select(section => section.Range)];
+    }
+
+    /// <summary>Returns known CRC/header word writes with TP flash-header section identifiers.</summary>
+    public static IReadOnlyList<LegacyCombinerPostbuildWriteRange> GetKnownIntegrityWriteRangeSections(
+        LegacyCombinerPostbuildCommandPlan plan,
+        long capacity)
+    {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
 
-        List<ByteRange> ranges = [];
+        List<LegacyCombinerPostbuildWriteRange> ranges = [];
         foreach (LegacyCombinerPostbuildCommand command in plan.Commands)
         {
             switch (command.Family)
             {
                 case LegacyCombinerCommandFamily.NormalMode when command.ModeArgument is "CRC_Enable" or "CRC32_Enable":
-                    AddIfWithin(ranges, capacity, new ByteRange(0x1C, 4));
-                    AddIfWithin(ranges, capacity, new ByteRange(0xFC, 4));
+                    AddIfWithin(ranges, capacity, new ByteRange(0x1C, 4), "tp-flash-header-crc");
+                    AddIfWithin(ranges, capacity, new ByteRange(0xFC, 4), "tp-flash-header-crc");
                     break;
                 case LegacyCombinerCommandFamily.NtBasedNormalMode when command.CrcArgument is "CRC8" or "CRC32":
                     AddNtBasedHeaderIntegrityRanges(command, capacity, ranges);
@@ -76,12 +84,7 @@ public static class LegacyCombinerPostbuildPlanner
             }
         }
 
-        return [
-            .. ranges
-                .Distinct()
-                .OrderBy(range => range.Start)
-                .ThenBy(range => range.Length),
-        ];
+        return NormalizeCandidateWriteRangeSections(ranges, []);
     }
 
     /// <summary>Calculates the minimum firmware image capacity needed by a postbuild plan.</summary>
@@ -122,6 +125,23 @@ public static class LegacyCombinerPostbuildPlanner
         IEnumerable<ByteRange> allowedStagedTargetRanges,
         IEnumerable<ByteRange> allStagedTargetRanges)
     {
+        return [
+            .. GetAllowedWriteRangeSectionsForStagedSources(
+                    plan,
+                    capacity,
+                    allowedStagedTargetRanges,
+                    allStagedTargetRanges)
+                .Select(section => section.Range),
+        ];
+    }
+
+    /// <summary>Returns allowed write ranges with TP flash/header section identifiers for staged-source postbuild.</summary>
+    public static IReadOnlyList<LegacyCombinerPostbuildWriteRange> GetAllowedWriteRangeSectionsForStagedSources(
+        LegacyCombinerPostbuildCommandPlan plan,
+        long capacity,
+        IEnumerable<ByteRange> allowedStagedTargetRanges,
+        IEnumerable<ByteRange> allStagedTargetRanges)
+    {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(allowedStagedTargetRanges);
         ArgumentNullException.ThrowIfNull(allStagedTargetRanges);
@@ -129,7 +149,7 @@ public static class LegacyCombinerPostbuildPlanner
 
         ByteRange[] allowedStagedRanges = [.. allowedStagedTargetRanges];
         ByteRange[] stagedRanges = [.. allStagedTargetRanges];
-        List<ByteRange> candidateRanges = [];
+        List<LegacyCombinerPostbuildWriteRange> candidateRanges = [];
         foreach (LegacyCombinerPostbuildCommand command in plan.Commands)
         {
             foreach (LegacyCombinerBlockArgument block in command.Blocks)
@@ -146,7 +166,9 @@ public static class LegacyCombinerPostbuildPlanner
                         ByteRange? overlap = block.FirmwareRange.Intersect(allowedStagedRange);
                         if (overlap is not null)
                         {
-                            candidateRanges.Add(overlap.Value);
+                            candidateRanges.Add(new LegacyCombinerPostbuildWriteRange(
+                                overlap.Value,
+                                GetPostbuildBlockSectionId(block)));
                         }
                     }
 
@@ -155,13 +177,15 @@ public static class LegacyCombinerPostbuildPlanner
 
                 if (block.SourceOffset != block.FirmwareRange.Start)
                 {
-                    candidateRanges.Add(block.FirmwareRange);
+                    candidateRanges.Add(new LegacyCombinerPostbuildWriteRange(
+                        block.FirmwareRange,
+                        GetPostbuildBlockSectionId(block)));
                 }
             }
         }
 
-        candidateRanges.AddRange(GetKnownIntegrityWriteRanges(plan, capacity));
-        return NormalizeCandidateWriteRanges(candidateRanges, stagedRanges);
+        candidateRanges.AddRange(GetKnownIntegrityWriteRangeSections(plan, capacity));
+        return NormalizeCandidateWriteRangeSections(candidateRanges, stagedRanges);
     }
 
     /// <summary>Returns write ranges allowed when Combiner only refreshes firmware-owned header/integrity bytes.</summary>
@@ -169,10 +193,18 @@ public static class LegacyCombinerPostbuildPlanner
         LegacyCombinerPostbuildCommandPlan plan,
         long capacity)
     {
+        return [.. GetAllowedWriteRangeSectionsForInPlaceRefresh(plan, capacity).Select(section => section.Range)];
+    }
+
+    /// <summary>Returns in-place refresh write ranges with TP flash/header section identifiers.</summary>
+    public static IReadOnlyList<LegacyCombinerPostbuildWriteRange> GetAllowedWriteRangeSectionsForInPlaceRefresh(
+        LegacyCombinerPostbuildCommandPlan plan,
+        long capacity)
+    {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
 
-        List<ByteRange> candidateRanges = [];
+        List<LegacyCombinerPostbuildWriteRange> candidateRanges = [];
         foreach (LegacyCombinerPostbuildCommand command in plan.Commands)
         {
             foreach (LegacyCombinerBlockArgument block in command.Blocks)
@@ -185,13 +217,15 @@ public static class LegacyCombinerPostbuildPlanner
                 if (block.SourceKind == LegacyCombinerBlockSourceKind.FirmwareImage &&
                     block.SourceOffset != block.FirmwareRange.Start)
                 {
-                    candidateRanges.Add(block.FirmwareRange);
+                    candidateRanges.Add(new LegacyCombinerPostbuildWriteRange(
+                        block.FirmwareRange,
+                        GetPostbuildBlockSectionId(block)));
                 }
             }
         }
 
-        candidateRanges.AddRange(GetKnownIntegrityWriteRanges(plan, capacity));
-        return NormalizeCandidateWriteRanges(candidateRanges, []);
+        candidateRanges.AddRange(GetKnownIntegrityWriteRangeSections(plan, capacity));
+        return NormalizeCandidateWriteRangeSections(candidateRanges, []);
     }
 
     private static LegacyCombinerPostbuildBranch ResolveBranch(
@@ -213,7 +247,7 @@ public static class LegacyCombinerPostbuildPlanner
     private static void AddNtBasedHeaderIntegrityRanges(
         LegacyCombinerPostbuildCommand command,
         long capacity,
-        List<ByteRange> ranges)
+        List<LegacyCombinerPostbuildWriteRange> ranges)
     {
         long[] crcWordOffsets = command.ModeArgument switch
         {
@@ -236,7 +270,11 @@ public static class LegacyCombinerPostbuildPlanner
                     continue;
                 }
 
-                AddIfWithin(ranges, capacity, new ByteRange(block.SourceOffset + crcWordOffset, 4));
+                AddIfWithin(
+                    ranges,
+                    capacity,
+                    new ByteRange(block.SourceOffset + crcWordOffset, 4),
+                    "tp-flash-header-crc");
             }
         }
     }
@@ -253,17 +291,17 @@ public static class LegacyCombinerPostbuildPlanner
     private static void AddNt51927BasedCrcOnlyIntegrityRanges(
         LegacyCombinerPostbuildBranch branch,
         long capacity,
-        List<ByteRange> ranges)
+        List<LegacyCombinerPostbuildWriteRange> ranges)
     {
-        AddIfWithin(ranges, capacity, new ByteRange(0x23C, 4));
-        AddIfWithin(ranges, capacity, new ByteRange(0x24C, 4));
-        AddIfWithin(ranges, capacity, new ByteRange(0x26C, 4));
-        AddIfWithin(ranges, capacity, new ByteRange(0x27C, 4));
+        AddIfWithin(ranges, capacity, new ByteRange(0x23C, 4), "tp-flash-header-crc");
+        AddIfWithin(ranges, capacity, new ByteRange(0x24C, 4), "tp-flash-header-crc");
+        AddIfWithin(ranges, capacity, new ByteRange(0x26C, 4), "tp-flash-header-crc");
+        AddIfWithin(ranges, capacity, new ByteRange(0x27C, 4), "tp-flash-header-crc");
         if (branch is LegacyCombinerPostbuildBranch.Cascade or LegacyCombinerPostbuildBranch.ThreeChip)
         {
-            AddIfWithin(ranges, capacity, new ByteRange(0x22C, 4));
-            AddIfWithin(ranges, capacity, new ByteRange(0x29C, 4));
-            AddIfWithin(ranges, capacity, new ByteRange(0x2AC, 4));
+            AddIfWithin(ranges, capacity, new ByteRange(0x22C, 4), "tp-flash-header-crc");
+            AddIfWithin(ranges, capacity, new ByteRange(0x29C, 4), "tp-flash-header-crc");
+            AddIfWithin(ranges, capacity, new ByteRange(0x2AC, 4), "tp-flash-header-crc");
         }
     }
 
@@ -273,16 +311,53 @@ public static class LegacyCombinerPostbuildPlanner
             block.BlockId.Contains("header-copy", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static void AddIfWithin(List<ByteRange> ranges, long capacity, ByteRange range)
+    private static string GetPostbuildBlockSectionId(LegacyCombinerBlockArgument block)
+    {
+        string blockId = block.BlockId;
+        return blockId switch
+        {
+            string value when value.Contains("fw-config", StringComparison.OrdinalIgnoreCase) =>
+                "tp-fw-config-backup",
+            string value when value.Contains("final-header-backup", StringComparison.OrdinalIgnoreCase) =>
+                "tp-header-copy-final-backup",
+            string value when value.Contains("header-refresh-master", StringComparison.OrdinalIgnoreCase) ||
+                value.Contains("header-master", StringComparison.OrdinalIgnoreCase) =>
+                "tp-header-copy-master",
+            string value when value.Contains("header-refresh-right", StringComparison.OrdinalIgnoreCase) ||
+                value.Contains("header-right", StringComparison.OrdinalIgnoreCase) =>
+                "tp-header-copy-right",
+            string value when value.Contains("header-refresh-left", StringComparison.OrdinalIgnoreCase) ||
+                value.Contains("header-left", StringComparison.OrdinalIgnoreCase) =>
+                "tp-header-copy-left",
+            string value when value.Contains("header-copy-final", StringComparison.OrdinalIgnoreCase) =>
+                "tp-header-copy-final",
+            string value when value.Contains("header-copy", StringComparison.OrdinalIgnoreCase) ||
+                value.Contains("header", StringComparison.OrdinalIgnoreCase) =>
+                "tp-header-copy",
+            string value when value.Contains("copy-right-window", StringComparison.OrdinalIgnoreCase) =>
+                "tp-window-copy-right",
+            string value when value.Contains("copy-left-window", StringComparison.OrdinalIgnoreCase) =>
+                "tp-window-copy-left",
+            _ => block.SourceKind == LegacyCombinerBlockSourceKind.StagedFile
+                ? "tp-ctrlram-replacement"
+                : "postbuild-copy",
+        };
+    }
+
+    private static void AddIfWithin(
+        List<LegacyCombinerPostbuildWriteRange> ranges,
+        long capacity,
+        ByteRange range,
+        string sectionId)
     {
         if (range.EndExclusive <= capacity)
         {
-            ranges.Add(range);
+            ranges.Add(new LegacyCombinerPostbuildWriteRange(range, sectionId));
         }
     }
 
-    private static IReadOnlyList<ByteRange> NormalizeCandidateWriteRanges(
-        List<ByteRange> candidateRanges,
+    private static IReadOnlyList<LegacyCombinerPostbuildWriteRange> NormalizeCandidateWriteRangeSections(
+        List<LegacyCombinerPostbuildWriteRange> candidateRanges,
         IReadOnlyList<ByteRange> stagedTargetRanges)
     {
         if (candidateRanges.Count == 0)
@@ -291,8 +366,9 @@ public static class LegacyCombinerPostbuildPlanner
         }
 
         SortedSet<long> splitPoints = [];
-        foreach (ByteRange range in candidateRanges)
+        foreach (LegacyCombinerPostbuildWriteRange candidate in candidateRanges)
         {
+            ByteRange range = candidate.Range;
             _ = splitPoints.Add(range.Start);
             _ = splitPoints.Add(range.EndExclusive);
             foreach (ByteRange stagedRange in stagedTargetRanges)
@@ -307,21 +383,51 @@ public static class LegacyCombinerPostbuildPlanner
         }
 
         long[] points = [.. splitPoints];
-        List<ByteRange> ranges = [];
+        List<LegacyCombinerPostbuildWriteRange> ranges = [];
         for (int index = 0; index < points.Length - 1; index++)
         {
             var segment = ByteRange.FromStartEndExclusive(points[index], points[index + 1]);
-            if (candidateRanges.Any(range => range.Contains(segment)))
+            if (candidateRanges.Any(candidate => candidate.Range.Contains(segment)))
             {
-                ranges.Add(segment);
+                ranges.Add(new LegacyCombinerPostbuildWriteRange(
+                    segment,
+                    SelectWriteRangeSectionId(candidateRanges, segment)));
             }
         }
 
         return [
             .. ranges
-                .Distinct()
-                .OrderBy(range => range.Start)
-                .ThenBy(range => range.Length),
+                .GroupBy(section => (section.Range, section.SectionId))
+                .Select(group => group.First())
+                .OrderBy(section => section.Range.Start)
+                .ThenBy(section => section.Range.Length)
+                .ThenBy(section => section.SectionId, StringComparer.Ordinal),
         ];
+    }
+
+    private static string SelectWriteRangeSectionId(
+        IReadOnlyList<LegacyCombinerPostbuildWriteRange> candidates,
+        ByteRange segment)
+    {
+        return candidates
+            .Where(candidate => candidate.Range.Contains(segment))
+            .OrderByDescending(candidate => GetSectionPriority(candidate.SectionId))
+            .ThenBy(candidate => candidate.Range.Length)
+            .ThenBy(candidate => candidate.Range.Start)
+            .First()
+            .SectionId;
+    }
+
+    private static int GetSectionPriority(string sectionId)
+    {
+        return sectionId switch
+        {
+            string value when value.Contains("header-crc", StringComparison.OrdinalIgnoreCase) => 100,
+            string value when value.Contains("header-copy", StringComparison.OrdinalIgnoreCase) => 90,
+            string value when value.Contains("fw-config", StringComparison.OrdinalIgnoreCase) => 80,
+            string value when value.Contains("window", StringComparison.OrdinalIgnoreCase) => 60,
+            string value when value.Contains("ctrlram", StringComparison.OrdinalIgnoreCase) => 50,
+            _ => 10,
+        };
     }
 }

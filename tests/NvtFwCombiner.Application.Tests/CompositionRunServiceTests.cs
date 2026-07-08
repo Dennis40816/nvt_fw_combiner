@@ -465,7 +465,9 @@ public sealed class CompositionRunServiceTests
             processor);
 
         CompositionRunResult result = await service.PreviewAsync(
-            CreateStagedSourceExternalProcessorRequest(stagedSourceSpaceId: "replace-ctrlram-nf-master"),
+            CreateStagedSourceExternalProcessorRequest(
+                stagedSourceSpaceId: "replace-ctrlram-nf-master",
+                writeRangeSections: [new ExternalProcessorWriteRangeSection("tp-flash-header-crc", new ByteRange(3, 1))]),
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
@@ -484,8 +486,8 @@ public sealed class CompositionRunServiceTests
         Assert.Equal(new ByteRange(3, 1), crcHeader.Range);
         Assert.True(crcHeader.IsAccepted);
         Assert.Equal("PostbuildCrcHeader", crcHeader.Classification);
-        Assert.Equal("Header / CRC refresh", crcHeader.SectionLabel);
-        Assert.Contains("approved postbuild CRC/header", crcHeader.Explanation, StringComparison.Ordinal);
+        Assert.Equal("TP flash header / CRC fields", crcHeader.SectionLabel);
+        Assert.Contains("approved TP flash header / CRC fields postbuild", crcHeader.Explanation, StringComparison.Ordinal);
         Assert.Equal("40", crcHeader.BeforeHexPreview);
         Assert.Equal("7e", crcHeader.AfterHexPreview);
         Assert.Equal(1, crcHeader.HexPreviewByteCount);
@@ -886,7 +888,8 @@ public sealed class CompositionRunServiceTests
 
     private static CompositionRunRequest CreateStagedSourceExternalProcessorRequest(
         ByteRange? firmwareRange = null,
-        string stagedSourceSpaceId = "ctrlram-input")
+        string stagedSourceSpaceId = "ctrlram-input",
+        IEnumerable<ExternalProcessorWriteRangeSection>? writeRangeSections = null)
     {
         ByteRange stagedFirmwareRange = firmwareRange ?? new ByteRange(1, 2);
         AddressSpace[] addressSpaces =
@@ -914,7 +917,8 @@ public sealed class CompositionRunServiceTests
                                 stagedSourceSpaceId,
                                 new ByteRange(0, 2),
                                 stagedFirmwareRange),
-                        ]),
+                        ],
+                        allowedWriteRangeSections: writeRangeSections),
                     OverlapPolicy.ReplaceExisting,
                     "run synthetic postbuild"),
             ]);

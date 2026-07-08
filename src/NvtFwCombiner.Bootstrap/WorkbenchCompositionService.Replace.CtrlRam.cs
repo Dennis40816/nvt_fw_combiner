@@ -36,12 +36,13 @@ public static partial class WorkbenchCompositionService
                 succeeded: false);
         }
 
-        IReadOnlyList<ByteRange> postbuildWriteRanges = LegacyCombinerPostbuildPlanner.GetAllowedWriteRangesForStagedSources(
+        IReadOnlyList<LegacyCombinerPostbuildWriteRange> postbuildWriteRangeSections =
+            LegacyCombinerPostbuildPlanner.GetAllowedWriteRangeSectionsForStagedSources(
             context.CommandPlan!,
             context.BaseLength,
             context.Regions.Select(region => region.Range),
             context.Regions.Select(region => region.Range));
-        if (postbuildWriteRanges.Count == 0)
+        if (postbuildWriteRangeSections.Count == 0)
         {
             return CreateReplaceReportRunResult(
                 icId,
@@ -73,7 +74,7 @@ public static partial class WorkbenchCompositionService
             context.SelectedRegions,
             context.PostbuildProfile!,
             context.CommandPlan!,
-            postbuildWriteRanges);
+            postbuildWriteRangeSections);
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         if (!compile.IsSuccess)
         {

@@ -12,23 +12,6 @@ public sealed partial class ReportReviewViewModel
         ShellLanguage language)
     {
         List<ReportOperationFlowNodeViewModel> nodes = [];
-        if (operations.Count > 0)
-        {
-            for (int operationIndex = 0; operationIndex < operations.Count; operationIndex++)
-            {
-                ReportLineViewModel operation = operations[operationIndex];
-                nodes.Add(new ReportOperationFlowNodeViewModel(
-                    ExtractOperationFlowNumber(operation.Title),
-                    FormatOperationFlowTitle(operation, language),
-                    operation.OperationTarget,
-                    ExtractOperationFlowName(operation.Title),
-                    FormatOperationFlowStatus(operation.OperationStatus, language),
-                    hasConnector: operationIndex < operations.Count - 1));
-            }
-
-            return nodes;
-        }
-
         int index = 1;
         ReportLineViewModel[] baseInputs = [.. inputs.Where(input =>
             string.Equals(input.Classification, "base", StringComparison.Ordinal))];
@@ -43,8 +26,9 @@ public sealed partial class ReportReviewViewModel
                 hasConnector: true));
         }
 
-        ReportLineViewModel[] replacementInputs = [.. inputs.Where(input =>
-            string.Equals(input.Classification, "ctrlram", StringComparison.Ordinal))];
+        ReportLineViewModel[] replacementInputs = [
+            .. inputs.Where(input => !string.Equals(input.Classification, "base", StringComparison.Ordinal)),
+        ];
         if (replacementInputs.Length > 0)
         {
             nodes.Add(new ReportOperationFlowNodeViewModel(
@@ -52,11 +36,41 @@ public sealed partial class ReportReviewViewModel
                 T(language, "Apply replacement BINs", "套用替換 BIN"),
                 T(
                     language,
-                    string.Create(CultureInfo.InvariantCulture, $"{replacementInputs.Length} CtrlRAM region payload(s) selected"),
-                    string.Create(CultureInfo.InvariantCulture, $"已選擇 {replacementInputs.Length} 個 CtrlRAM region payload")),
+                    string.Create(CultureInfo.InvariantCulture, $"{replacementInputs.Length} replacement payload(s) selected"),
+                    string.Create(CultureInfo.InvariantCulture, $"已選擇 {replacementInputs.Length} 個 replacement payload")),
                 T(language, "profile-authorized regions", "profile 核准區域"),
                 T(language, "replace", "替換"),
-                hasConnector: !string.IsNullOrWhiteSpace(outputFileName)));
+                hasConnector: true));
+        }
+
+        ReportLineViewModel[] stepOperations = [.. operations.Where(operation => !operation.HasCodeBlock)];
+        if (stepOperations.Length > 0)
+        {
+            foreach (ReportLineViewModel operation in stepOperations)
+            {
+                nodes.Add(new ReportOperationFlowNodeViewModel(
+                    index++.ToString(CultureInfo.InvariantCulture),
+                    FormatOperationFlowTitle(operation, language),
+                    operation.OperationTarget,
+                    ExtractOperationFlowName(operation.Title),
+                    FormatOperationFlowStatus(operation.OperationStatus, language),
+                    hasConnector: true));
+            }
+        }
+
+        ReportLineViewModel[] commandOperations = [.. operations.Where(operation => operation.HasCodeBlock)];
+        if (commandOperations.Length > 0)
+        {
+            nodes.Add(new ReportOperationFlowNodeViewModel(
+                index++.ToString(CultureInfo.InvariantCulture),
+                T(language, "Refresh header and CRC", "刷新 header 與 CRC"),
+                T(
+                    language,
+                    string.Create(CultureInfo.InvariantCulture, $"{commandOperations.Length} postbuild command(s) recorded"),
+                    string.Create(CultureInfo.InvariantCulture, $"已記錄 {commandOperations.Length} 個 postbuild command")),
+                T(language, "details in Postbuild tab", "細節在 Postbuild 分頁"),
+                FormatOperationFlowStatus(commandOperations[^1].OperationStatus, language),
+                hasConnector: true));
         }
 
         if (!string.IsNullOrWhiteSpace(outputFileName))
@@ -67,6 +81,21 @@ public sealed partial class ReportReviewViewModel
                 outputFileName,
                 T(language, "final artifact", "最終產物"),
                 FormatOperationFlowStatus(status, language)));
+        }
+
+        if (nodes.Count == 0 && operations.Count > 0)
+        {
+            for (int operationIndex = 0; operationIndex < operations.Count; operationIndex++)
+            {
+                ReportLineViewModel operation = operations[operationIndex];
+                nodes.Add(new ReportOperationFlowNodeViewModel(
+                    ExtractOperationFlowNumber(operation.Title),
+                    FormatOperationFlowTitle(operation, language),
+                    operation.OperationTarget,
+                    ExtractOperationFlowName(operation.Title),
+                    FormatOperationFlowStatus(operation.OperationStatus, language),
+                    hasConnector: operationIndex < operations.Count - 1));
+            }
         }
 
         return nodes;

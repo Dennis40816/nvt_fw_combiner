@@ -5,6 +5,7 @@ public sealed class ExternalProcessorInvocation
 {
     private readonly ByteRange[] _allowedReadRanges;
     private readonly ByteRange[] _allowedWriteRanges;
+    private readonly ExternalProcessorWriteRangeSection[] _allowedWriteRangeSections;
     private readonly ExternalProcessorStagedSourceBinding[] _stagedSourceBindings;
 
     /// <summary>Creates an external processor invocation declaration.</summary>
@@ -13,7 +14,8 @@ public sealed class ExternalProcessorInvocation
         string toolBindingId,
         IEnumerable<ByteRange> allowedReadRanges,
         IEnumerable<ByteRange> allowedWriteRanges,
-        IEnumerable<ExternalProcessorStagedSourceBinding>? stagedSourceBindings = null)
+        IEnumerable<ExternalProcessorStagedSourceBinding>? stagedSourceBindings = null,
+        IEnumerable<ExternalProcessorWriteRangeSection>? allowedWriteRangeSections = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(processorId);
         ArgumentException.ThrowIfNullOrWhiteSpace(toolBindingId);
@@ -22,6 +24,12 @@ public sealed class ExternalProcessorInvocation
 
         _allowedReadRanges = [.. allowedReadRanges.OrderBy(range => range.Start).ThenBy(range => range.Length)];
         _allowedWriteRanges = [.. allowedWriteRanges.OrderBy(range => range.Start).ThenBy(range => range.Length)];
+        _allowedWriteRangeSections = [
+            .. (allowedWriteRangeSections ?? [])
+                .OrderBy(section => section.Range.Start)
+                .ThenBy(section => section.Range.Length)
+                .ThenBy(section => section.SectionId, StringComparer.Ordinal),
+        ];
         _stagedSourceBindings = [
             .. (stagedSourceBindings ?? [])
                 .OrderBy(binding => binding.FirmwareRange.Start)
@@ -36,6 +44,16 @@ public sealed class ExternalProcessorInvocation
         if (_allowedWriteRanges.Length == 0)
         {
             throw new ArgumentException("External processor allowed write ranges must not be empty.", nameof(allowedWriteRanges));
+        }
+
+        foreach (ExternalProcessorWriteRangeSection section in _allowedWriteRangeSections)
+        {
+            if (!_allowedWriteRanges.Any(range => range.Contains(section.Range)))
+            {
+                throw new ArgumentException(
+                    $"External processor write section '{section.SectionId}' must stay inside an allowed write range.",
+                    nameof(allowedWriteRangeSections));
+            }
         }
 
         ProcessorId = processorId;
@@ -54,6 +72,28 @@ public sealed class ExternalProcessorInvocation
     /// <summary>Byte ranges the processor may mutate in the staged target image.</summary>
     public IReadOnlyList<ByteRange> AllowedWriteRanges => _allowedWriteRanges;
 
+    /// <summary>Profile-owned section identifiers for report and diagnostics over allowed write ranges.</summary>
+    public IReadOnlyList<ExternalProcessorWriteRangeSection> AllowedWriteRangeSections => _allowedWriteRangeSections;
+
     /// <summary>Additional source bytes the processor may stage without the host first writing them into the target image.</summary>
     public IReadOnlyList<ExternalProcessorStagedSourceBinding> StagedSourceBindings => _stagedSourceBindings;
+}
+
+/// <summary>Diagnostic section attached to a declared external-processor write range.</summary>
+public sealed class ExternalProcessorWriteRangeSection
+{
+    /// <summary>Creates a write-range section annotation owned by the profile or adapter.</summary>
+    public ExternalProcessorWriteRangeSection(string sectionId, ByteRange range)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sectionId);
+
+        SectionId = sectionId.Trim();
+        Range = range;
+    }
+
+    /// <summary>Stable section identifier used by reports.</summary>
+    public string SectionId { get; }
+
+    /// <summary>Half-open processor write range covered by this section.</summary>
+    public ByteRange Range { get; }
 }

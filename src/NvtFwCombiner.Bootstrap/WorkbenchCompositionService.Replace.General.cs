@@ -58,7 +58,7 @@ public static partial class WorkbenchCompositionService
             postbuildProfileResolved ? postbuildProfile : null);
         bool touchesTpRegion = GeneralReplaceTouchesTpRegion(regionsForMappingPolicy, explicitMappings);
         LegacyCombinerPostbuildCommandPlan? commandPlan = null;
-        List<ByteRange> postbuildWriteRanges = [];
+        List<LegacyCombinerPostbuildWriteRange> postbuildWriteRangeSections = [];
         if (touchesTpRegion)
         {
             if (!postbuildProfileResolved)
@@ -115,11 +115,11 @@ public static partial class WorkbenchCompositionService
                     succeeded: false);
             }
 
-            postbuildWriteRanges =
+            postbuildWriteRangeSections =
             [
-                .. LegacyCombinerPostbuildPlanner.GetAllowedWriteRangesForInPlaceRefresh(commandPlan, context.Capacity),
+                .. LegacyCombinerPostbuildPlanner.GetAllowedWriteRangeSectionsForInPlaceRefresh(commandPlan, context.Capacity),
             ];
-            if (postbuildWriteRanges.Count == 0)
+            if (postbuildWriteRangeSections.Count == 0)
             {
                 return CreateReplaceReportRunResult(
                     icId,
@@ -144,7 +144,7 @@ public static partial class WorkbenchCompositionService
             context.Capacity,
             postbuildProfileResolved ? postbuildProfile : null,
             commandPlan,
-            postbuildWriteRanges);
+            postbuildWriteRangeSections);
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(
             profile,
             explicitMappings,

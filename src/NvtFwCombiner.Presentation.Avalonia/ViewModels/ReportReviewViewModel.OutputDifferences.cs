@@ -26,10 +26,10 @@ public sealed partial class ReportReviewViewModel
                     bool hasHex = !string.IsNullOrWhiteSpace(beforeHex) || !string.IsNullOrWhiteSpace(afterHex);
                     string before = hasHex ? FormatBytePreview(beforeHex) : GetString(difference, "BeforeSha256");
                     string after = hasHex ? FormatBytePreview(afterHex) : GetString(difference, "AfterSha256");
-                    string reason = FormatDifferenceReason(classification, accepted, language);
                     string range = GetRangeOrNull(difference, "Range") ?? string.Empty;
                     string sectionLabel = GetStringOrNull(difference, "SectionLabel") ??
                         FormatDifferenceSectionLabel(classification, language);
+                    string reason = FormatDifferenceReason(classification, accepted, sectionLabel, language);
                     long changedByteCount = GetLong(difference, "ChangedByteCount");
                     return new ReportLineViewModel(
                         GetString(difference, "DifferenceId"),
@@ -84,6 +84,7 @@ public sealed partial class ReportReviewViewModel
     private static string FormatDifferenceReason(
         string classification,
         bool accepted,
+        string sectionLabel,
         ShellLanguage language)
     {
         return !accepted
@@ -91,9 +92,17 @@ public sealed partial class ReportReviewViewModel
             : classification switch
             {
                 "DeclaredReplacement" => T(language, "Expected replacement bytes copied by this run.", "本次執行預期複製的 replacement bytes。"),
-                "PostbuildCrcHeader" => T(language, "Expected CRC/header refresh written by postbuild.", "Postbuild 預期更新的 CRC/header bytes。"),
+                "PostbuildCrcHeader" => T(
+                    language,
+                    $"Expected {NormalizePostbuildSectionForReason(sectionLabel)} update written by postbuild.",
+                    $"Postbuild 預期更新 {NormalizePostbuildSectionForReason(sectionLabel)}。"),
                 _ => T(language, "Accepted by report policy.", "Report policy 判定可接受。"),
             };
+    }
+
+    private static string NormalizePostbuildSectionForReason(string sectionLabel)
+    {
+        return string.IsNullOrWhiteSpace(sectionLabel) ? "CRC/header" : sectionLabel;
     }
 
     private static string FormatChangedBytes(long changedByteCount, ShellLanguage language)

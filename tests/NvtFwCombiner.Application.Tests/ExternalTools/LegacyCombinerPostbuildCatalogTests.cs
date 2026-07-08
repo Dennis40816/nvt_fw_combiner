@@ -136,6 +136,20 @@ public sealed class LegacyCombinerPostbuildCatalogTests
         Assert.Contains(new ByteRange(0x32F50, 256), ranges);
         Assert.Contains(new ByteRange(0x1C, 4), ranges);
         Assert.Contains(new ByteRange(0xFC, 4), ranges);
+
+        IReadOnlyList<LegacyCombinerPostbuildWriteRange> sections =
+            LegacyCombinerPostbuildPlanner.GetAllowedWriteRangeSectionsForStagedSources(
+                plan,
+                0x40000,
+                [normalRange, vnRange],
+                [normalRange, vnRange]);
+
+        Assert.Contains(sections, section =>
+            section.Range == new ByteRange(0x32F50, 256) &&
+            section.SectionId == "tp-header-copy");
+        Assert.Contains(sections, section =>
+            section.Range == new ByteRange(0x1C, 4) &&
+            section.SectionId == "tp-flash-header-crc");
     }
 
     /// <summary>Locks General Replace postbuild refresh writes to firmware-owned header/integrity ranges.</summary>
@@ -154,6 +168,17 @@ public sealed class LegacyCombinerPostbuildCatalogTests
         Assert.Contains(new ByteRange(0x2D30C, 512), ranges);
         Assert.Contains(new ByteRange(0xA11C, 4), ranges);
         Assert.Contains(new ByteRange(0xA130, 4), ranges);
+
+        IReadOnlyList<LegacyCombinerPostbuildWriteRange> sections =
+            LegacyCombinerPostbuildPlanner.GetAllowedWriteRangeSectionsForInPlaceRefresh(
+                plan,
+                0x100000);
+        Assert.Contains(sections, section =>
+            section.Range == new ByteRange(0x2D30C, 512) &&
+            section.SectionId == "tp-header-copy");
+        Assert.Contains(sections, section =>
+            section.Range == new ByteRange(0xA11C, 4) &&
+            section.SectionId == "tp-flash-header-crc");
     }
 
     /// <summary>Verifies the documented one-file sentinel covers every current staged CtrlRAM input block.</summary>

@@ -16,9 +16,10 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<TpFlashMapRegion> selectedRegions,
         LegacyCombinerPostbuildProfile postbuildProfile,
         LegacyCombinerPostbuildCommandPlan commandPlan,
-        IReadOnlyList<ByteRange> postbuildWriteRanges)
+        IReadOnlyList<LegacyCombinerPostbuildWriteRange> postbuildWriteRangeSections)
     {
         string normalizedIc = icId.ToLowerInvariant();
+        ByteRange[] postbuildWriteRanges = [.. postbuildWriteRangeSections.Select(section => section.Range)];
         List<AddressSpace> addressSpaces =
         [
             new("reference-base", capacity, AddressSpaceMutability.Immutable),
@@ -61,24 +62,26 @@ public static partial class WorkbenchCompositionService
         }
 
         ByteRange[] ctrlRamRanges = [.. ctrlRamRegions.Select(region => region.Range)];
-        ByteRange[] processorOnlyRanges =
+        LegacyCombinerPostbuildWriteRange[] processorOnlyRanges =
         [
-            .. postbuildWriteRanges
-                .Where(range => !ctrlRamRanges.Any(ctrlRamRange => ctrlRamRange.Contains(range)))
-                .Distinct()
-                .OrderBy(range => range.Start)
-                .ThenBy(range => range.Length),
+            .. postbuildWriteRangeSections
+                .Where(section => !ctrlRamRanges.Any(ctrlRamRange => ctrlRamRange.Contains(section.Range)))
+                .GroupBy(section => (section.Range, section.SectionId))
+                .Select(group => group.First())
+                .OrderBy(section => section.Range.Start)
+                .ThenBy(section => section.Range.Length)
+                .ThenBy(section => section.SectionId, StringComparer.Ordinal),
         ];
-        foreach ((ByteRange range, int index) in processorOnlyRanges.Select((range, index) => (range, index)))
+        foreach ((LegacyCombinerPostbuildWriteRange section, int index) in processorOnlyRanges.Select((section, index) => (section, index)))
         {
             profileRegions.Add(new ProfileRegion(
-                FormattableString.Invariant($"postbuild-write-{index:D2}"),
+                FormattableString.Invariant($"postbuild-{section.SectionId}-{index:D2}"),
                 "output-image",
-                range,
+                section.Range,
                 RegionAtomicity.ExplicitMapping,
                 RegionWritePolicy.GeneralExplicit,
                 processorDependencyIds: [postbuildProfile.ProcessorId],
-                classificationTags: ["postbuild"]));
+                classificationTags: ["postbuild", section.SectionId]));
         }
 
         operations.Add(CompositionOperation.RunExternalProcessor(
@@ -91,7 +94,9 @@ public static partial class WorkbenchCompositionService
                 postbuildProfile.ToolBindingId,
                 [new ByteRange(0, capacity)],
                 postbuildWriteRanges,
-                stagedSourceBindings),
+                stagedSourceBindings,
+                allowedWriteRangeSections: postbuildWriteRangeSections.Select(section =>
+                    new ExternalProcessorWriteRangeSection(section.SectionId, section.Range))),
             OverlapPolicy.ReplaceExisting,
             $"Run {commandPlan.Branch} legacy Combiner postbuild and stage selected CtrlRAM BINs for Combiner pasteback. Combiner command: {FormatPostbuildCommandBlock(commandPlan)}."));
 
