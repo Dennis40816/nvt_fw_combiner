@@ -59,7 +59,7 @@ internal static partial class SavedCompositionRuleLoader
             int alignment = OptionalPositiveInt(row, "alignment", $"{rowPath}.alignment", issues) ?? 1;
             string reason = RequiredString(row, "reason", $"{rowPath}.reason", issues);
 
-            if (compositionKind == "merge" && sourceRange is null)
+            if (compositionKind == SavedRuleSchemaTokens.CompositionKindMerge && sourceRange is null)
             {
                 issues.Add(Issue(
                     SavedRuleIssueCodes.MappingRowSourceRangeRequired,
@@ -83,7 +83,7 @@ internal static partial class SavedCompositionRuleLoader
                     $"{rowPath}.sourceRange"));
             }
 
-            if (compositionKind == "merge" && sourceExperience == IcWorkflowIds.GeneralMerge)
+            if (compositionKind == SavedRuleSchemaTokens.CompositionKindMerge && sourceExperience == IcWorkflowIds.GeneralMerge)
             {
                 if (!string.IsNullOrWhiteSpace(targetAddressSpaceId) &&
                     !string.Equals(targetAddressSpaceId, CompositionAddressSpaceIds.OutputImage, StringComparison.Ordinal))
@@ -104,7 +104,7 @@ internal static partial class SavedCompositionRuleLoader
                 }
 
                 if (!string.IsNullOrWhiteSpace(overlapPolicy) &&
-                    !string.Equals(overlapPolicy, "reject", StringComparison.Ordinal))
+                    !string.Equals(overlapPolicy, SavedRuleSchemaTokens.MappingOverlapReject, StringComparison.Ordinal))
                 {
                     issues.Add(Issue(
                         SavedRuleIssueCodes.MappingRowOverlapPolicyUnsupported,

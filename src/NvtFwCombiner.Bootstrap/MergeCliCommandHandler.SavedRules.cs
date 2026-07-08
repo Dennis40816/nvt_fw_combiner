@@ -21,10 +21,10 @@ internal static partial class MergeCliCommandHandler
         }
 
         SavedCompositionRule rule = load.Rule!;
-        if (!string.Equals(rule.CompositionKind, "merge", StringComparison.Ordinal) ||
+        if (!string.Equals(rule.CompositionKind, SavedRuleSchemaTokens.CompositionKindMerge, StringComparison.Ordinal) ||
             !string.Equals(rule.SourceExperience, GeneralMergeModeId, StringComparison.Ordinal))
         {
-            error.WriteLine($"error: saved rule '{rule.RuleId}' is for {rule.CompositionKind} / {rule.SourceExperience}, not merge / {GeneralMergeModeId}");
+            error.WriteLine($"error: saved rule '{rule.RuleId}' is for {rule.CompositionKind} / {rule.SourceExperience}, not {SavedRuleSchemaTokens.CompositionKindMerge} / {GeneralMergeModeId}");
             return false;
         }
 
@@ -62,7 +62,7 @@ internal static partial class MergeCliCommandHandler
                 return false;
             }
 
-            if (!string.Equals(row.OverlapPolicy, "reject", StringComparison.Ordinal))
+            if (!string.Equals(row.OverlapPolicy, SavedRuleSchemaTokens.MappingOverlapReject, StringComparison.Ordinal))
             {
                 error.WriteLine($"error: saved rule row '{row.RowId}' uses unsupported overlap policy '{row.OverlapPolicy}'");
                 return false;

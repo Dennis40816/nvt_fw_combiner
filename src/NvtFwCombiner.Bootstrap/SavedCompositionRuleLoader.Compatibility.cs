@@ -43,12 +43,12 @@ internal static partial class SavedCompositionRuleLoader
         List<string> processorDependencyIds,
         List<SavedRuleValidationIssue> issues)
     {
-        if (compositionKind == "merge" && sourceExperience != IcWorkflowIds.GeneralMerge)
+        if (compositionKind == SavedRuleSchemaTokens.CompositionKindMerge && sourceExperience != IcWorkflowIds.GeneralMerge)
         {
             issues.Add(Issue(SavedRuleIssueCodes.ExperienceKindMismatch, "Merge saved rules must use sourceExperience general-merge.", "$.sourceExperience"));
         }
 
-        if (compositionKind == "replace" && sourceExperience != IcWorkflowIds.GeneralReplace)
+        if (compositionKind == SavedRuleSchemaTokens.CompositionKindReplace && sourceExperience != IcWorkflowIds.GeneralReplace)
         {
             issues.Add(Issue(SavedRuleIssueCodes.ExperienceKindMismatch, "Replace saved rules must use sourceExperience general-replace.", "$.sourceExperience"));
         }
@@ -63,7 +63,9 @@ internal static partial class SavedCompositionRuleLoader
             issues.Add(Issue(SavedRuleIssueCodes.OperationFragmentsEmpty, "Saved rule must include at least one operation fragment.", "$.operationFragments"));
         }
 
-        if (compositionKind == "merge" && sourceExperience == IcWorkflowIds.GeneralMerge && processorDependencyIds.Count > 0)
+        if (compositionKind == SavedRuleSchemaTokens.CompositionKindMerge &&
+            sourceExperience == IcWorkflowIds.GeneralMerge &&
+            processorDependencyIds.Count > 0)
         {
             issues.Add(Issue(
                 SavedRuleIssueCodes.ProcessorDependencyUnsupported,
@@ -71,7 +73,9 @@ internal static partial class SavedCompositionRuleLoader
                 "$.processorDependencyIds"));
         }
 
-        if (compositionKind == "replace" && sourceExperience == IcWorkflowIds.GeneralReplace && processorDependencyIds.Count > 0)
+        if (compositionKind == SavedRuleSchemaTokens.CompositionKindReplace &&
+            sourceExperience == IcWorkflowIds.GeneralReplace &&
+            processorDependencyIds.Count > 0)
         {
             issues.Add(Issue(
                 SavedRuleIssueCodes.ProcessorDependencyUnsupported,
@@ -79,7 +83,8 @@ internal static partial class SavedCompositionRuleLoader
                 "$.processorDependencyIds"));
         }
 
-        if (supportStatus is "candidate" or "supported" && evidenceRefs.Count == 0)
+        if (supportStatus is SavedRuleSchemaTokens.SupportStatusCandidate or SavedRuleSchemaTokens.SupportStatusSupported &&
+            evidenceRefs.Count == 0)
         {
             issues.Add(Issue(SavedRuleIssueCodes.EvidenceRequired, "Candidate or supported saved rules must include evidenceRefs.", "$.evidenceRefs"));
         }

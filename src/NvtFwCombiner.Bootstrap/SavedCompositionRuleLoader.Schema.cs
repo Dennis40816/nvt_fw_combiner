@@ -69,20 +69,49 @@ internal static partial class SavedCompositionRuleLoader
         "acceptedExtensions",
     ];
 
-    private static readonly string[] CompositionKindValues = ["merge", "replace"];
+    private static readonly string[] CompositionKindValues =
+    [
+        SavedRuleSchemaTokens.CompositionKindMerge,
+        SavedRuleSchemaTokens.CompositionKindReplace,
+    ];
+
     private static readonly string[] SourceExperienceValues = [IcWorkflowIds.GeneralMerge, IcWorkflowIds.GeneralReplace];
-    private static readonly string[] SupportStatusValues = ["draft", "candidate", "supported", "deprecated"];
-    private static readonly string[] ProtectedRangePolicyValues = ["deny-crossing", "deny-touch", "profile-defined"];
-    private static readonly string[] InputSlotCardinalityValues = ["one", "many"];
-    private static readonly string[] MappingOverlapPolicyValues = ["reject", "allow-declared", "replace-existing"];
+    private static readonly string[] SupportStatusValues =
+    [
+        SavedRuleSchemaTokens.SupportStatusDraft,
+        SavedRuleSchemaTokens.SupportStatusCandidate,
+        SavedRuleSchemaTokens.SupportStatusSupported,
+        SavedRuleSchemaTokens.SupportStatusDeprecated,
+    ];
+
+    private static readonly string[] ProtectedRangePolicyValues =
+    [
+        SavedRuleSchemaTokens.ProtectedRangePolicyDenyCrossing,
+        SavedRuleSchemaTokens.ProtectedRangePolicyDenyTouch,
+        SavedRuleSchemaTokens.ProtectedRangePolicyProfileDefined,
+    ];
+
+    private static readonly string[] InputSlotCardinalityValues =
+    [
+        SavedRuleSchemaTokens.InputSlotCardinalityOne,
+        SavedRuleSchemaTokens.InputSlotCardinalityMany,
+    ];
+
+    private static readonly string[] MappingOverlapPolicyValues =
+    [
+        SavedRuleSchemaTokens.MappingOverlapReject,
+        SavedRuleSchemaTokens.MappingOverlapAllowDeclared,
+        SavedRuleSchemaTokens.MappingOverlapReplaceExisting,
+    ];
+
     private static readonly string[] OperationFragmentKindValues =
     [
-        "copy-range",
-        "fill-range",
-        "patch-scalar",
-        "replace-range",
-        "run-external-processor",
-        "assert-range",
-        "validate-checksum",
+        SavedRuleSchemaTokens.OperationKindCopyRange,
+        SavedRuleSchemaTokens.OperationKindFillRange,
+        SavedRuleSchemaTokens.OperationKindPatchScalar,
+        SavedRuleSchemaTokens.OperationKindReplaceRange,
+        SavedRuleSchemaTokens.OperationKindRunExternalProcessor,
+        SavedRuleSchemaTokens.OperationKindAssertRange,
+        SavedRuleSchemaTokens.OperationKindValidateChecksum,
     ];
 }

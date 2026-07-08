@@ -311,10 +311,12 @@ public sealed partial class RepositoryBoundaryTests
     {
         string root = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.cs");
         string schema = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.Schema.cs");
+        string schemaTokens = ReadText("src/NvtFwCombiner.Bootstrap/SavedRuleSchemaTokens.cs");
         string compatibility = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.Compatibility.cs");
         string inputSlots = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.InputSlots.cs");
         string mappingRows = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.MappingRows.cs");
         string operationFragments = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.OperationFragments.cs");
+        string savedRuleCli = ReadText("src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.SavedRules.cs");
         string json = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.Json.cs");
         string ranges = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.Ranges.cs");
         string grammar = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.Grammar.cs");
@@ -329,6 +331,29 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("TopLevelProperties", schema, StringComparison.Ordinal);
         Assert.Contains("MappingRowProperties", schema, StringComparison.Ordinal);
         Assert.Contains("OperationFragmentKindValues", schema, StringComparison.Ordinal);
+        Assert.Contains("internal const string CompositionKindMerge = \"merge\";", schemaTokens, StringComparison.Ordinal);
+        Assert.Contains("internal const string MappingOverlapReject = \"reject\";", schemaTokens, StringComparison.Ordinal);
+        Assert.Contains("internal const string OperationKindCopyRange = \"copy-range\";", schemaTokens, StringComparison.Ordinal);
+        Assert.Contains("SavedRuleSchemaTokens.CompositionKindMerge", schema, StringComparison.Ordinal);
+        Assert.Contains("SavedRuleSchemaTokens.MappingOverlapReject", schema, StringComparison.Ordinal);
+        Assert.Contains("SavedRuleSchemaTokens.OperationKindCopyRange", schema, StringComparison.Ordinal);
+        Assert.Contains("SavedRuleSchemaTokens.CompositionKindMerge", compatibility, StringComparison.Ordinal);
+        Assert.Contains("SavedRuleSchemaTokens.CompositionKindReplace", compatibility, StringComparison.Ordinal);
+        Assert.Contains("SavedRuleSchemaTokens.SupportStatusCandidate", compatibility, StringComparison.Ordinal);
+        Assert.Contains("SavedRuleSchemaTokens.CompositionKindMerge", mappingRows, StringComparison.Ordinal);
+        Assert.Contains("SavedRuleSchemaTokens.MappingOverlapReject", mappingRows, StringComparison.Ordinal);
+        Assert.Contains("SavedRuleSchemaTokens.CompositionKindMerge", operationFragments, StringComparison.Ordinal);
+        Assert.Contains("SavedRuleSchemaTokens.OperationKindCopyRange", operationFragments, StringComparison.Ordinal);
+        Assert.Contains("SavedRuleSchemaTokens.CompositionKindMerge", savedRuleCli, StringComparison.Ordinal);
+        Assert.Contains("SavedRuleSchemaTokens.MappingOverlapReject", savedRuleCli, StringComparison.Ordinal);
+        foreach (string literal in new[] { "\"merge\"", "\"reject\"", "\"copy-range\"" })
+        {
+            Assert.DoesNotContain(literal, compatibility, StringComparison.Ordinal);
+            Assert.DoesNotContain(literal, mappingRows, StringComparison.Ordinal);
+            Assert.DoesNotContain(literal, operationFragments, StringComparison.Ordinal);
+            Assert.DoesNotContain(literal, savedRuleCli, StringComparison.Ordinal);
+        }
+
         Assert.Contains("private static SavedRuleCompatibility ReadCompatibility", compatibility, StringComparison.Ordinal);
         Assert.Contains("private static void ValidateRuleCompatibility", compatibility, StringComparison.Ordinal);
         Assert.Contains("private static HashSet<string> ReadInputSlotTemplateIds", inputSlots, StringComparison.Ordinal);

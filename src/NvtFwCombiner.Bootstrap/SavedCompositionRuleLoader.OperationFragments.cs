@@ -42,10 +42,10 @@ internal static partial class SavedCompositionRuleLoader
                 $"{path}.kind",
                 OperationFragmentKindValues,
                 issues);
-            if (compositionKind == "merge" &&
+            if (compositionKind == SavedRuleSchemaTokens.CompositionKindMerge &&
                 sourceExperience == IcWorkflowIds.GeneralMerge &&
                 !string.IsNullOrWhiteSpace(kind) &&
-                !string.Equals(kind, "copy-range", StringComparison.Ordinal))
+                !string.Equals(kind, SavedRuleSchemaTokens.OperationKindCopyRange, StringComparison.Ordinal))
             {
                 issues.Add(Issue(
                     SavedRuleIssueCodes.OperationFragmentKindUnsupported,
@@ -61,7 +61,7 @@ internal static partial class SavedCompositionRuleLoader
                 required: false,
                 validateId: true,
                 issues);
-            if (compositionKind == "merge" &&
+            if (compositionKind == SavedRuleSchemaTokens.CompositionKindMerge &&
                 sourceExperience == IcWorkflowIds.GeneralMerge &&
                 fragmentProcessorDependencyIds.Count > 0)
             {
@@ -71,7 +71,7 @@ internal static partial class SavedCompositionRuleLoader
                     $"{path}.processorDependencyIds"));
             }
 
-            if (compositionKind == "replace" &&
+            if (compositionKind == SavedRuleSchemaTokens.CompositionKindReplace &&
                 sourceExperience == IcWorkflowIds.GeneralReplace &&
                 fragmentProcessorDependencyIds.Count > 0)
             {
@@ -82,7 +82,7 @@ internal static partial class SavedCompositionRuleLoader
             }
 
             List<string> fragmentMappingRowIds = ReadStringArray(fragment, "mappingRowIds", $"{path}.mappingRowIds", required: false, validateId: true, issues);
-            if (compositionKind == "merge" &&
+            if (compositionKind == SavedRuleSchemaTokens.CompositionKindMerge &&
                 sourceExperience == IcWorkflowIds.GeneralMerge &&
                 fragmentMappingRowIds.Count != 1)
             {
@@ -120,7 +120,7 @@ internal static partial class SavedCompositionRuleLoader
         }
 
         AddDuplicateIssues(operationIds, SavedRuleIssueCodes.OperationFragmentDuplicate, "Operation fragment id is duplicated.", "$.operationFragments", issues);
-        if (compositionKind == "merge" && sourceExperience == IcWorkflowIds.GeneralMerge)
+        if (compositionKind == SavedRuleSchemaTokens.CompositionKindMerge && sourceExperience == IcWorkflowIds.GeneralMerge)
         {
             foreach (SavedRuleMappingRow row in mappingRows.Where(row =>
                          !string.IsNullOrWhiteSpace(row.RowId) &&
