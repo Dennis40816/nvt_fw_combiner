@@ -312,4 +312,44 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public sealed class LegacyCombinerPostbuildCommand", command, StringComparison.Ordinal);
         Assert.Contains("public sealed class LegacyCombinerPostbuildCommandPlan", commandPlan, StringComparison.Ordinal);
     }
+
+    /// <summary>Verifies legacy postbuild planning stays split from write-range and integrity helpers.</summary>
+    [Fact]
+    public void LegacyPostbuildPlannerConcernsStaySplit()
+    {
+        string root = ReadText(
+            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildPlanner.cs");
+        string writeRanges = ReadText(
+            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildPlanner.WriteRanges.cs");
+        string integrityRanges = ReadText(
+            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildPlanner.IntegrityRanges.cs");
+        string normalize = ReadText(
+            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildPlanner.Normalize.cs");
+
+        Assert.Contains("public static partial class LegacyCombinerPostbuildPlanner", root, StringComparison.Ordinal);
+        Assert.Contains("CreatePlan", root, StringComparison.Ordinal);
+        Assert.Contains("GetStagedFileBlocks", root, StringComparison.Ordinal);
+        Assert.Contains("CalculateRequiredCapacity", root, StringComparison.Ordinal);
+        Assert.Contains("ResolveBranch", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetAllowedWriteRangeSectionsForStagedSources", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("NormalizeCandidateWriteRangeSections", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static void AddNtBasedHeaderIntegrityRanges", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static void AddNt51927BasedCrcOnlyIntegrityRanges", root, StringComparison.Ordinal);
+
+        Assert.Contains("GetKnownIntegrityWriteRanges", writeRanges, StringComparison.Ordinal);
+        Assert.Contains("GetKnownIntegrityWriteRangeSections", writeRanges, StringComparison.Ordinal);
+        Assert.Contains("GetAllowedWriteRangeSectionsForStagedSources", writeRanges, StringComparison.Ordinal);
+        Assert.Contains("GetAllowedWriteRangeSectionsForInPlaceRefresh", writeRanges, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static void AddNtBasedHeaderIntegrityRanges", writeRanges, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static string SelectWriteRangeSectionId", writeRanges, StringComparison.Ordinal);
+
+        Assert.Contains("AddNtBasedHeaderIntegrityRanges", integrityRanges, StringComparison.Ordinal);
+        Assert.Contains("AddNt51927BasedCrcOnlyIntegrityRanges", integrityRanges, StringComparison.Ordinal);
+        Assert.Contains("GetPostbuildBlockSectionId", integrityRanges, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static IReadOnlyList<LegacyCombinerPostbuildWriteRange> NormalizeCandidateWriteRangeSections", integrityRanges, StringComparison.Ordinal);
+
+        Assert.Contains("NormalizeCandidateWriteRangeSections", normalize, StringComparison.Ordinal);
+        Assert.Contains("SelectWriteRangeSectionId", normalize, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static void AddNtBasedHeaderIntegrityRanges", normalize, StringComparison.Ordinal);
+    }
 }
