@@ -200,16 +200,30 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.Profiles.cs");
         string nt51927Family = ReadText(
             "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.Profiles.Nt51927Family.cs");
+        string nt51930Family = ReadText(
+            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.Profiles.Nt51930Family.cs");
+        string nt51932Family = ReadText(
+            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.Profiles.Nt51932Family.cs");
         string nt51950Family = ReadText(
             "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.Profiles.Nt51950Family.cs");
 
         Assert.DoesNotContain("NT51927 CtrlRAM postbuild profile", sharedRows, StringComparison.Ordinal);
+        Assert.DoesNotContain("NT51930 CtrlRAM postbuild profile", sharedRows, StringComparison.Ordinal);
+        Assert.DoesNotContain("NT51932 CtrlRAM postbuild profile", sharedRows, StringComparison.Ordinal);
         Assert.DoesNotContain("NT51950 CtrlRAM postbuild profile", sharedRows, StringComparison.Ordinal);
         Assert.Contains("public static LegacyCombinerPostbuildProfile Nt51927", nt51927Family, StringComparison.Ordinal);
         Assert.Contains("public static LegacyCombinerPostbuildProfile Nt51917", nt51927Family, StringComparison.Ordinal);
         Assert.Contains("public static LegacyCombinerPostbuildProfile Nt51928", nt51927Family, StringComparison.Ordinal);
         Assert.Contains("owner confirmation: NT51917 follows NT51927", nt51927Family, StringComparison.Ordinal);
         Assert.Contains("owner confirmation: NT51928 follows NT51927", nt51927Family, StringComparison.Ordinal);
+        Assert.Contains("public static LegacyCombinerPostbuildProfile Nt51930", nt51930Family, StringComparison.Ordinal);
+        Assert.Contains("public static LegacyCombinerPostbuildProfile Nt51930CommonFw1x", nt51930Family, StringComparison.Ordinal);
+        Assert.Contains("public static LegacyCombinerPostbuildProfile Nt51931", nt51930Family, StringComparison.Ordinal);
+        Assert.Contains("public static LegacyCombinerPostbuildProfile Nt51932", nt51932Family, StringComparison.Ordinal);
+        Assert.Contains("public static LegacyCombinerPostbuildProfile Nt51929", nt51932Family, StringComparison.Ordinal);
+        Assert.Contains("public static LegacyCombinerPostbuildProfile Nt51919", nt51932Family, StringComparison.Ordinal);
+        Assert.Contains("owner confirmation: NT51929 follows NT51932", nt51932Family, StringComparison.Ordinal);
+        Assert.Contains("owner confirmation: NT51919 follows NT51929", nt51932Family, StringComparison.Ordinal);
         Assert.Contains("public static LegacyCombinerPostbuildProfile Nt51950", nt51950Family, StringComparison.Ordinal);
         Assert.Contains("public static LegacyCombinerPostbuildProfile Nt51951", nt51950Family, StringComparison.Ordinal);
         Assert.Contains("owner confirmation: NT51951 follows NT51950", nt51950Family, StringComparison.Ordinal);
