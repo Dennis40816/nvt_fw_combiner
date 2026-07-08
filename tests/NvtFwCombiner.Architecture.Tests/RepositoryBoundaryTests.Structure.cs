@@ -41,6 +41,7 @@ public sealed partial class RepositoryBoundaryTests
             "LegacyCombinerPostbuildCatalog",
             "DpPerspectiveCatalog",
             "NT51950",
+            "PostbuildSetup_",
         ];
 
         Assert.Contains("NvtFwCombiner.Bootstrap.csproj", project, StringComparison.Ordinal);

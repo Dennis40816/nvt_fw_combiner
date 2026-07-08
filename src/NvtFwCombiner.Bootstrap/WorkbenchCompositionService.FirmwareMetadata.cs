@@ -150,9 +150,13 @@ public static partial class WorkbenchCompositionService
     {
         string evidence = postbuildProfile.Evidence.Split(';', StringSplitOptions.TrimEntries)[0];
         string fileName = Path.GetFileName(evidence.Replace('\\', '/'));
-        return string.IsNullOrWhiteSpace(fileName)
+        string category = string.IsNullOrWhiteSpace(fileName)
             ? postbuildProfile.ProcessorId
             : Path.GetFileNameWithoutExtension(fileName);
+        const string prefix = "PostbuildSetup_";
+        return category.StartsWith(prefix, StringComparison.Ordinal)
+            ? category[prefix.Length..]
+            : category;
     }
 
     private static string? FindDpVersionToken(

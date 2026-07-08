@@ -49,6 +49,19 @@ public sealed class WorkbenchCompositionServiceTests
         Assert.False(suggestion.HasTpVersion);
     }
 
+    /// <summary>Verifies firmware metadata exposes display-ready postbuild category names outside the UI layer.</summary>
+    [Fact]
+    public void FirmwareConfigMetadataShortensPostbuildSetupCategoryForDisplay()
+    {
+        WorkbenchFirmwareConfigMetadata? metadata = WorkbenchCompositionService.TryReadFirmwareConfigMetadata(
+            "NT51926",
+            GoldenPath("expected/51926/flash.bin"));
+
+        Assert.NotNull(metadata);
+        Assert.Equal("1.4.1", metadata.CommonFwVersion);
+        Assert.Equal("51926_1.4.1", metadata.PostbuildCategory);
+    }
+
     /// <summary>Verifies General Replace build writes a profile-approved DP explicit mapping.</summary>
     [Fact]
     public async Task GeneralReplaceBuildWritesDpExplicitMapping()

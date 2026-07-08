@@ -30,7 +30,7 @@ public static partial class UiCompositionRunner
         ];
         if (!string.IsNullOrWhiteSpace(metadata.PostbuildCategory))
         {
-            facts.Add(new FirmwareSlotFactViewModel("Refresh", ShortenPostbuildCategory(metadata.PostbuildCategory)));
+            facts.Add(new FirmwareSlotFactViewModel("Refresh", metadata.PostbuildCategory));
         }
 
         return facts;
@@ -53,13 +53,5 @@ public static partial class UiCompositionRunner
         IReadOnlyList<WorkbenchOutputNameCandidate> candidates)
     {
         return WorkbenchCompositionService.CreateFlashCodeOutputFileName(icId, candidates).FileName;
-    }
-
-    private static string ShortenPostbuildCategory(string category)
-    {
-        const string prefix = "PostbuildSetup_";
-        return category.StartsWith(prefix, StringComparison.Ordinal)
-            ? category[prefix.Length..]
-            : category;
     }
 }
