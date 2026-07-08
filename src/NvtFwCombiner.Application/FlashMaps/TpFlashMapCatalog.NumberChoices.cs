@@ -14,17 +14,17 @@ public static partial class TpFlashMapCatalog
         return profiles.Any(profile => profile.BranchRules.Values.Contains(LegacyCombinerPostbuildBranch.CascadeExtended))
             ? GetExtendedNumberChoices(profiles)
             : !PostbuildProfilesByIc.TryGetValue(icId, out LegacyCombinerPostbuildProfile? profile)
-            ? ["single"]
+            ? [IcNumberSelectionTokens.SingleChip]
             : profile.TwoChipCommands is not null || profile.ThreeChipCommands is not null
-            ? ["single", "2", "3"]
-            : ["single", "cascade"];
+            ? [IcNumberSelectionTokens.SingleChip, "2", "3"]
+            : [IcNumberSelectionTokens.SingleChip, IcNumberSelectionTokens.Cascade];
     }
 
     private static IReadOnlyList<string> GetExtendedNumberChoices(IEnumerable<LegacyCombinerPostbuildProfile> profiles)
     {
         return
         [
-            "single",
+            IcNumberSelectionTokens.SingleChip,
             .. profiles
                 .SelectMany(profile => profile.BranchRules.Keys)
                 .Where(token => int.TryParse(token, out int value) && value > 1)
@@ -58,7 +58,7 @@ public static partial class TpFlashMapCatalog
         }
 
         string? lastPart = selection.Parts.Count == 0 ? null : selection.Parts[^1];
-        return string.Equals(lastPart, "single", StringComparison.OrdinalIgnoreCase);
+        return IcNumberSelectionTokens.IsSingle(lastPart);
     }
 
     private static int? TryGetNumericCount(IcNumberSelection? selection)

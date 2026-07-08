@@ -180,10 +180,10 @@ public sealed partial class ShellTextResources
     public string GetCtrlRamRegionSummary(string ic, string number)
     {
         return Language == ShellLanguage.ChineseTraditional
-            ? string.Equals(number, "single", StringComparison.OrdinalIgnoreCase)
+            ? WorkbenchIcNumberTokens.IsSingle(number)
                 ? $"{ic} single：需要 multi-chip context 的 TP Overview regions 已隱藏。"
                 : $"{ic} {number}：TP Overview CtrlRAM regions 由 production flash-map catalog 載入。"
-            : string.Equals(number, "single", StringComparison.OrdinalIgnoreCase)
+            : WorkbenchIcNumberTokens.IsSingle(number)
                 ? $"{ic} single: TP Overview regions that require multi-chip context are hidden."
                 : $"{ic} {number}: TP Overview CtrlRAM regions are loaded from the production flash-map catalog.";
     }

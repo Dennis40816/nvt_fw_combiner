@@ -1,3 +1,5 @@
+using NvtFwCombiner.Domain.Composition;
+
 namespace NvtFwCombiner.Application.ExternalTools;
 
 /// <summary>Postbuild command profile for one IC family.</summary>
@@ -115,9 +117,9 @@ public sealed class LegacyCombinerPostbuildProfile
     {
         LegacyCombinerPostbuildBranchRule[] rules = branchRules is null
             ? [
-                new LegacyCombinerPostbuildBranchRule("single", LegacyCombinerPostbuildBranch.SingleChip),
+                new LegacyCombinerPostbuildBranchRule(IcNumberSelectionTokens.SingleChip, LegacyCombinerPostbuildBranch.SingleChip),
                 new LegacyCombinerPostbuildBranchRule("1", LegacyCombinerPostbuildBranch.SingleChip),
-                new LegacyCombinerPostbuildBranchRule("cascade", LegacyCombinerPostbuildBranch.Cascade),
+                new LegacyCombinerPostbuildBranchRule(IcNumberSelectionTokens.Cascade, LegacyCombinerPostbuildBranch.Cascade),
             ]
             : [.. branchRules];
 

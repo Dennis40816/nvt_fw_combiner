@@ -27,9 +27,9 @@ internal static partial class ReplaceCliCommandHandler
             return UsageError;
         }
 
-        if (!string.Equals(icNumber, "single", StringComparison.OrdinalIgnoreCase))
+        if (!WorkbenchIcNumberTokens.IsSingle(icNumber))
         {
-            error.WriteLine($"error: {DpPerspectiveCatalog.FormatSupportedIcIds()} DP Replace requires --ic-num single");
+            error.WriteLine($"error: {DpPerspectiveCatalog.FormatSupportedIcIds()} DP Replace requires --ic-num {WorkbenchIcNumberTokens.SingleChip}");
             return UsageError;
         }
 

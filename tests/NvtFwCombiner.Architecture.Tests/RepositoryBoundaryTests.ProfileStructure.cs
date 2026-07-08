@@ -182,6 +182,39 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("ReplaceCtrlRamPrefix", presentationParser, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies IC number selector tokens are shared instead of repeated in catalogs and adapters.</summary>
+    [Fact]
+    public void IcNumberSelectionTokensStayDomainOwned()
+    {
+        string domainTokens = ReadText("src/NvtFwCombiner.Domain/Composition/IcNumberSelectionTokens.cs");
+        string flashMapChoices = ReadText("src/NvtFwCombiner.Application/FlashMaps/TpFlashMapCatalog.NumberChoices.cs");
+        string postbuildHelpers = ReadText("src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.Helpers.cs");
+        string postbuildProfile = ReadText("src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildProfile.cs");
+        string workbenchTokens = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchIcNumberTokens.cs");
+        string workbenchCommon = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Common.cs");
+        string presentationBindings = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Bindings.cs");
+        string dynamicText = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.DynamicText.cs");
+
+        Assert.Contains("public const string SingleChip = \"single\"", domainTokens, StringComparison.Ordinal);
+        Assert.Contains("public const string Cascade = \"cascade\"", domainTokens, StringComparison.Ordinal);
+        Assert.Contains("IcNumberSelectionTokens.SingleChip", flashMapChoices, StringComparison.Ordinal);
+        Assert.Contains("IcNumberSelectionTokens.Cascade", flashMapChoices, StringComparison.Ordinal);
+        Assert.Contains("IcNumberSelectionTokens.SingleChip", postbuildHelpers, StringComparison.Ordinal);
+        Assert.Contains("IcNumberSelectionTokens.Cascade", postbuildHelpers, StringComparison.Ordinal);
+        Assert.Contains("IcNumberSelectionTokens.SingleChip", postbuildProfile, StringComparison.Ordinal);
+        Assert.Contains("IcNumberSelectionTokens.Cascade", postbuildProfile, StringComparison.Ordinal);
+        Assert.Contains("public const string SingleChip = IcNumberSelectionTokens.SingleChip;", workbenchTokens, StringComparison.Ordinal);
+        Assert.Contains("IcNumberSelectionTokens.IsSingle(number)", workbenchCommon, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchIcNumberTokens.SingleChip", presentationBindings, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchIcNumberTokens.IsSingle(number)", dynamicText, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"single\"", flashMapChoices, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"cascade\"", flashMapChoices, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"single\"", postbuildHelpers, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"cascade\"", postbuildHelpers, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies alias-heavy postbuild profile rows stay grouped by IC family.</summary>
     [Fact]
     public void LegacyPostbuildProfileRowsStaySplitByFamily()

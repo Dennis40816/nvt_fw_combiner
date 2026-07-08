@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -354,7 +355,7 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets or sets the selected IC count/variant in the shared context row.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DeviceContextStatus))]
-    public partial string SelectedNumber { get; set; } = "single";
+    public partial string SelectedNumber { get; set; } = WorkbenchIcNumberTokens.SingleChip;
 
     /// <summary>Gets or sets General Merge output length text.</summary>
     [ObservableProperty]

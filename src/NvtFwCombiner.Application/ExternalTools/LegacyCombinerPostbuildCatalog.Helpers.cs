@@ -10,8 +10,8 @@ public static partial class LegacyCombinerPostbuildCatalog
         IEnumerable<int> cascadeValues)
     {
         return [
-            BranchRule("single", LegacyCombinerPostbuildBranch.SingleChip),
-            BranchRule("cascade", LegacyCombinerPostbuildBranch.Cascade),
+            BranchRule(IcNumberSelectionTokens.SingleChip, LegacyCombinerPostbuildBranch.SingleChip),
+            BranchRule(IcNumberSelectionTokens.Cascade, LegacyCombinerPostbuildBranch.Cascade),
             BranchRule(singleValue.ToString(CultureInfo.InvariantCulture), LegacyCombinerPostbuildBranch.SingleChip),
             .. cascadeValues.Select(value => BranchRule(
                 value.ToString(CultureInfo.InvariantCulture),
@@ -35,8 +35,8 @@ public static partial class LegacyCombinerPostbuildCatalog
     private static IReadOnlyList<LegacyCombinerPostbuildBranchRule> NumericOneTwoThreeBranchRules()
     {
         return [
-            BranchRule("single", LegacyCombinerPostbuildBranch.SingleChip),
-            BranchRule("cascade", LegacyCombinerPostbuildBranch.Cascade),
+            BranchRule(IcNumberSelectionTokens.SingleChip, LegacyCombinerPostbuildBranch.SingleChip),
+            BranchRule(IcNumberSelectionTokens.Cascade, LegacyCombinerPostbuildBranch.Cascade),
             BranchRule("1", LegacyCombinerPostbuildBranch.SingleChip),
             BranchRule("2", LegacyCombinerPostbuildBranch.TwoChip),
             BranchRule("3", LegacyCombinerPostbuildBranch.ThreeChip),

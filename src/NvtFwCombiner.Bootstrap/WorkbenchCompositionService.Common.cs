@@ -32,7 +32,7 @@ public static partial class WorkbenchCompositionService
 
     private static IcNumberSelection ToIcNumberSelection(string number)
     {
-        IcNumberInputMode mode = string.Equals(number, "single", StringComparison.OrdinalIgnoreCase)
+        IcNumberInputMode mode = IcNumberSelectionTokens.IsSingle(number)
             ? IcNumberInputMode.SingleSelector
             : int.TryParse(number, out _)
                 ? IcNumberInputMode.NumericSelector
