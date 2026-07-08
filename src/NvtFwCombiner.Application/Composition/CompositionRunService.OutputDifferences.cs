@@ -5,6 +5,8 @@ namespace NvtFwCombiner.Application.Composition;
 
 public sealed partial class CompositionRunService
 {
+    private const int OutputDifferenceHexPreviewBytes = 32;
+
     private static List<OutputDifferenceSummary> CreateOutputDifferences(
         CompositionRunRequest request,
         CompositionExecutionResult execution,
@@ -229,6 +231,17 @@ public sealed partial class CompositionRunService
                 ReportIssueCodes.UnexpectedOutputDifference,
                 $"Replace output difference '{difference.DifferenceId}' is outside declared replacement ranges and IC-number-specific postbuild CRC/header ranges.",
                 difference.DifferenceId));
+    }
+
+    private static string ToSliceSha256Hex(byte[] bytes, ByteRange range)
+    {
+        return ToSha256Hex(bytes.AsSpan(checked((int)range.Start), checked((int)range.Length)));
+    }
+
+    private static string ToSliceHexPreview(byte[] bytes, ByteRange range)
+    {
+        int length = checked((int)Math.Min(range.Length, OutputDifferenceHexPreviewBytes));
+        return ToHex(bytes.AsSpan(checked((int)range.Start), length));
     }
 
     private sealed record OutputDifferenceExpectation(ByteRange Range, string Classification, bool IsAccepted, string Evidence, string Explanation, string SectionLabel);
