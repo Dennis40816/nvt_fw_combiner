@@ -37,6 +37,8 @@ public sealed partial class ShellTextResources
 
     public string OutputLabel { get; private init; } = string.Empty;
 
+    public string RunResultReportReadyLabel { get; private init; } = string.Empty;
+
     public string ChangeReviewTitle { get; private init; } = string.Empty;
 
     public string EvidenceTitle { get; private init; } = string.Empty;

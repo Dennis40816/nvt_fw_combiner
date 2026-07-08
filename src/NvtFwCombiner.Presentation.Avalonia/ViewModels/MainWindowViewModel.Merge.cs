@@ -263,7 +263,7 @@ public sealed partial class MainWindowViewModel
             result.CommittedOutputId,
             Text.Language);
         string detail = result.Succeeded
-            ? $"{result.ProfileId} / {result.OutputSize} bytes / {result.OutputSha256[..Math.Min(12, result.OutputSha256.Length)]}"
+            ? $"{result.ProfileId} / {result.OutputSize} bytes / {Text.RunResultReportReadyLabel}"
             : report.Issues.Count == 0 ? result.Status : report.Issues[0].Detail;
         LastRunResult = new UiRunResultViewModel(
             result.Succeeded ? $"{action} succeeded" : $"{action} blocked",

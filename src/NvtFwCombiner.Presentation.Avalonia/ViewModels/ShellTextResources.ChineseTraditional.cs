@@ -143,6 +143,7 @@ public sealed partial class ShellTextResources
             NoReportHistoryLabel = "目前沒有 report history。",
             RunLabel = "執行",
             OutputLabel = "輸出",
+            RunResultReportReadyLabel = "report 已就緒",
             ChangeReviewTitle = "差異審查",
             EvidenceTitle = "審查明細",
             TraceLabel = "trace",

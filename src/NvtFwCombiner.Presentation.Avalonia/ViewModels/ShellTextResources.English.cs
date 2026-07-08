@@ -143,6 +143,7 @@ public sealed partial class ShellTextResources
             NoReportHistoryLabel = "No report history.",
             RunLabel = "Run",
             OutputLabel = "Output",
+            RunResultReportReadyLabel = "report ready",
             ChangeReviewTitle = "Change review",
             EvidenceTitle = "Audit details",
             TraceLabel = "trace",

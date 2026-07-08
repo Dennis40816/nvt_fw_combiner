@@ -123,6 +123,11 @@ public sealed partial class ShellViewModelTests
         string expectedPath = golden.ExpectedOutputPath(goldenCase);
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.Equal(outputPath, viewModel.LastRunResult.Output);
+        Assert.Contains("report ready", viewModel.LastRunResult.Detail, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            viewModel.LoadedReport.OutputSha256[..Math.Min(12, viewModel.LoadedReport.OutputSha256.Length)],
+            viewModel.LastRunResult.Detail,
+            StringComparison.Ordinal);
         Assert.True(File.Exists(outputPath), outputPath);
         Assert.Equal(File.ReadAllBytes(expectedPath), File.ReadAllBytes(outputPath));
         Assert.True(viewModel.HasLoadedReport);
