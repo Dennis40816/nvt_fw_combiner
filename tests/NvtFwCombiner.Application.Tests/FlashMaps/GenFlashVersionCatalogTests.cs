@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Profiles;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Application.Tests.FlashMaps;
@@ -23,6 +24,26 @@ public sealed class GenFlashVersionCatalogTests
             Assert.True(rule.OutputSubAbsoluteAddress < rule.OutputDpEndExclusive);
             Assert.True(GenFlashVersionCatalog.TryGetDpVersionRule($"NT{rule.IcId}", out GenFlashDpVersionRule resolved));
             Assert.Same(rule, resolved);
+        }
+    }
+
+    /// <summary>Guards gen_flash DP version rules against drift from executable Standard Merge DP regions.</summary>
+    [Fact]
+    public void DpVersionRulesMatchStandardMergeDpRegions()
+    {
+        var profilesByIc = BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles
+            .ToDictionary(profile => profile.IcId, StringComparer.Ordinal);
+
+        foreach (GenFlashDpVersionRule rule in GenFlashVersionCatalog.AllDpVersionRules)
+        {
+            string icId = $"NT{rule.IcId}";
+            Assert.True(profilesByIc.TryGetValue(icId, out CompositionProfileDefinition? profile), icId);
+
+            ProfileRegion dpRegion = Assert.Single(profile.Regions, region => region.RegionId == "dp-region");
+            Assert.Equal(rule.OutputDpStart, dpRegion.Range.Start);
+            Assert.Equal(rule.OutputDpEndExclusive, dpRegion.Range.EndExclusive);
+            Assert.True(rule.OutputMainAbsoluteAddress >= dpRegion.Range.Start, icId);
+            Assert.True(rule.OutputSubAbsoluteAddress < dpRegion.Range.EndExclusive, icId);
         }
     }
 
