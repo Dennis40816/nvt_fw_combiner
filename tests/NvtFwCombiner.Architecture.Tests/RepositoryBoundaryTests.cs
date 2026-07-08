@@ -37,6 +37,37 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("No `File.ReadAllBytes` or `Process.Start` in ViewModels", boundaries, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies Presentation reaches firmware workflow catalogs only through the Bootstrap workbench facade.</summary>
+    [Fact]
+    public void PresentationUsesBootstrapFacadeInsteadOfFirmwareCatalogs()
+    {
+        string project = ReadText("src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj");
+        string presentationSource = ReadPresentationSources();
+        string[] forbiddenTokens =
+        [
+            "NvtFwCombiner.Application.",
+            "NvtFwCombiner.Domain.",
+            "NvtFwCombiner.Infrastructure.",
+            "NvtFwCombiner.Profiles",
+            "GenFlashVersionCatalog",
+            "TpFlashMapCatalog",
+            "TpHeaderCatalog",
+            "LegacyCombinerPostbuildCatalog",
+            "DpPerspectiveCatalog",
+        ];
+
+        Assert.Contains("NvtFwCombiner.Bootstrap.csproj", project, StringComparison.Ordinal);
+        Assert.DoesNotContain("NvtFwCombiner.Application.csproj", project, StringComparison.Ordinal);
+        Assert.DoesNotContain("NvtFwCombiner.Domain.csproj", project, StringComparison.Ordinal);
+        Assert.DoesNotContain("NvtFwCombiner.Infrastructure.csproj", project, StringComparison.Ordinal);
+        Assert.DoesNotContain("NvtFwCombiner.Profiles.csproj", project, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService", presentationSource, StringComparison.Ordinal);
+        foreach (string token in forbiddenTokens)
+        {
+            Assert.DoesNotContain(token, presentationSource, StringComparison.Ordinal);
+        }
+    }
+
     /// <summary>Verifies the shell follows the owner-approved clean home and independent page direction.</summary>
     [Fact]
     public void ShellUsesCleanHomeAndIndependentWorkflowPages()
@@ -403,6 +434,21 @@ public sealed partial class RepositoryBoundaryTests
         return string.Join(
             Environment.NewLine,
             Directory.GetFiles(directory, "MainWindowViewModel*.cs")
+                .Order(StringComparer.Ordinal)
+                .Select(File.ReadAllText));
+    }
+
+    private static string ReadPresentationSources()
+    {
+        string directory = Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Presentation.Avalonia");
+        return string.Join(
+            Environment.NewLine,
+            Directory.GetFiles(directory, "*.*", SearchOption.AllDirectories)
+                .Where(path => path.EndsWith(".cs", StringComparison.Ordinal) ||
+                               path.EndsWith(".axaml", StringComparison.Ordinal))
                 .Order(StringComparer.Ordinal)
                 .Select(File.ReadAllText));
     }
