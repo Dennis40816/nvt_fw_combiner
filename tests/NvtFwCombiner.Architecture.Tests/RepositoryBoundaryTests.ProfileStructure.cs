@@ -24,6 +24,37 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("SyntheticIc", dpPerspective, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies profile compiler shared region helpers stay separate from explicit-mapping policy.</summary>
+    [Fact]
+    public void ProfileCompilerRegionResolutionStaysShared()
+    {
+        string explicitMappings = ReadText(
+            "src/NvtFwCombiner.Profiles/CompositionProfileCompiler.ExplicitMappings.cs");
+        string explicitCompilation = ReadText(
+            "src/NvtFwCombiner.Profiles/CompositionProfileCompiler.ExplicitMappingCompilation.cs");
+        string processorPolicy = ReadText(
+            "src/NvtFwCombiner.Profiles/CompositionProfileCompiler.ExplicitMappingProcessorPolicy.cs");
+        string regionResolution = ReadText(
+            "src/NvtFwCombiner.Profiles/CompositionProfileCompiler.RegionResolution.cs");
+        string operationValidation = ReadText(
+            "src/NvtFwCombiner.Profiles/CompositionProfileCompiler.OperationValidation.cs");
+        string profileValidation = ReadText(
+            "src/NvtFwCombiner.Profiles/CompositionProfileCompiler.ProfileValidation.cs");
+
+        Assert.Contains("ValidateExplicitMappings", explicitMappings, StringComparison.Ordinal);
+        Assert.Contains("ResolveExplicitMappingTargetRegion", explicitMappings, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static ProfileRegion? ResolveTargetRegionByRange", explicitMappings, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static RegionAccessRule? FindAccessRule", explicitMappings, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static CompositionOperation CompileExplicitMapping", explicitMappings, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static bool HasExternalProcessorAfterMapping", explicitMappings, StringComparison.Ordinal);
+        Assert.Contains("private static CompositionOperation CompileExplicitMapping", explicitCompilation, StringComparison.Ordinal);
+        Assert.Contains("private static bool HasExternalProcessorAfterMapping", processorPolicy, StringComparison.Ordinal);
+        Assert.Contains("private static ProfileRegion? ResolveTargetRegionByRange", regionResolution, StringComparison.Ordinal);
+        Assert.Contains("private static RegionAccessRule? FindAccessRule", regionResolution, StringComparison.Ordinal);
+        Assert.Contains("ResolveTargetRegionByRange", operationValidation, StringComparison.Ordinal);
+        Assert.Contains("ResolveTargetRegionByRange", profileValidation, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies built-in Standard Merge profiles keep exposure order separate from firmware facts.</summary>
     [Fact]
     public void BuiltInStandardMergeProfileConcernsStaySplit()
