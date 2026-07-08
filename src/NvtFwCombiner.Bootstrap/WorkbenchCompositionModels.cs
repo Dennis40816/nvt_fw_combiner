@@ -34,6 +34,39 @@ public sealed record WorkbenchDpVersionMetadata(
     long OutputSubAbsoluteAddress,
     string EvidenceSource);
 
+/// <summary>One selected firmware path candidate used by output naming metadata policy.</summary>
+public sealed record WorkbenchOutputNameCandidate(
+    WorkbenchOutputNameCandidateKind Kind,
+    string? Path);
+
+/// <summary>Firmware candidate role used by FlashCode output naming.</summary>
+public enum WorkbenchOutputNameCandidateKind
+{
+    /// <summary>Unknown or generic BIN path.</summary>
+    Unknown,
+
+    /// <summary>Display/DP-family payload candidate.</summary>
+    Dp,
+
+    /// <summary>Touch-panel payload candidate.</summary>
+    Tp,
+
+    /// <summary>CtrlRAM payload candidate.</summary>
+    CtrlRam,
+
+    /// <summary>Base/reference firmware image candidate.</summary>
+    Base,
+}
+
+/// <summary>Suggested FlashCode output name and the metadata tokens used to create it.</summary>
+public sealed record WorkbenchOutputFileNameSuggestion(
+    string FileName,
+    string DpVersionToken,
+    bool HasDpVersion,
+    string TpVersionToken,
+    bool HasTpVersion,
+    string DateToken);
+
 /// <summary>One readable before/after memory-map row for shell display.</summary>
 public sealed record WorkbenchMemoryMapRow(
     string RangeLabel,

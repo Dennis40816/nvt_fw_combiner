@@ -1,4 +1,3 @@
-using System.Globalization;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 
@@ -6,30 +5,6 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    private const string UnknownVersionToken = "xxxx";
-
-    /// <summary>Creates the suggested FlashCode output file name from selected firmware metadata.</summary>
-    public static WorkbenchOutputFileNameSuggestion CreateFlashCodeOutputFileName(
-        string icId,
-        IReadOnlyList<WorkbenchOutputNameCandidate> candidates,
-        DateOnly? date = null)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        ArgumentNullException.ThrowIfNull(candidates);
-
-        string normalizedIc = NormalizeOutputIcId(icId);
-        string dpVersion = FindDpVersionToken(normalizedIc, candidates) ?? UnknownVersionToken;
-        string tpVersion = FindTpVersionToken(normalizedIc, candidates) ?? UnknownVersionToken;
-        string dateToken = (date ?? DateOnly.FromDateTime(DateTime.Now)).ToString("yyyyMMdd", CultureInfo.InvariantCulture);
-        return new WorkbenchOutputFileNameSuggestion(
-            FormattableString.Invariant($"{normalizedIc}_FlashCode_D{dpVersion}T{tpVersion}_{dateToken}.bin"),
-            dpVersion,
-            dpVersion != UnknownVersionToken,
-            tpVersion,
-            tpVersion != UnknownVersionToken,
-            dateToken);
-    }
-
     /// <summary>Returns true when the IC has a gen_flash-backed DP main/sub version-byte rule.</summary>
     public static bool HasDpVersionMetadataRule(string icId)
     {
@@ -191,122 +166,4 @@ public static partial class WorkbenchCompositionService
             ? category[prefix.Length..]
             : category;
     }
-
-    private static string? FindDpVersionToken(
-        string icId,
-        IReadOnlyList<WorkbenchOutputNameCandidate> candidates)
-    {
-        foreach (WorkbenchOutputNameCandidate candidate in candidates.Where(candidate =>
-                     candidate.Kind == WorkbenchOutputNameCandidateKind.Dp))
-        {
-            if (string.IsNullOrWhiteSpace(candidate.Path))
-            {
-                continue;
-            }
-
-            WorkbenchDpVersionMetadata? metadata = TryReadDpVersionMetadata(icId, candidate.Path);
-            if (!string.IsNullOrWhiteSpace(metadata?.VersionToken))
-            {
-                return metadata.VersionToken;
-            }
-        }
-
-        return null;
-    }
-
-    private static string? FindTpVersionToken(
-        string icId,
-        IReadOnlyList<WorkbenchOutputNameCandidate> candidates)
-    {
-        foreach (WorkbenchOutputNameCandidate candidate in candidates.OrderBy(candidate => candidate.Kind switch
-                 {
-                     WorkbenchOutputNameCandidateKind.Tp => 0,
-                     WorkbenchOutputNameCandidateKind.CtrlRam => 1,
-                     WorkbenchOutputNameCandidateKind.Base => 2,
-                     WorkbenchOutputNameCandidateKind.Dp => 3,
-                     WorkbenchOutputNameCandidateKind.Unknown => 4,
-                     _ => 4,
-                 }))
-        {
-            if (string.IsNullOrWhiteSpace(candidate.Path))
-            {
-                continue;
-            }
-
-            WorkbenchFirmwareConfigMetadata? metadata = TryReadFirmwareConfigMetadata(icId, candidate.Path);
-            if (metadata is { IsFirmwareVersionBarValid: true })
-            {
-                return FormattableString.Invariant($"{metadata.FirmwareVersion:X2}{metadata.FirmwareSubVersion:X2}");
-            }
-        }
-
-        return null;
-    }
-
-    private static string NormalizeOutputIcId(string icId)
-    {
-        string trimmed = icId.Trim();
-        return trimmed.StartsWith("NT", StringComparison.OrdinalIgnoreCase)
-            ? $"NT{trimmed[2..]}"
-            : $"NT{trimmed}";
-    }
-
-    /// <summary>Gets TP Overview CtrlRAM regions visible for a selected IC and IC-number context.</summary>
-    public static IReadOnlyList<WorkbenchCtrlRamRegion> GetCtrlRamRegions(
-        string icId,
-        string number,
-        string? basePath = null)
-    {
-        LegacyCombinerPostbuildProfile? postbuildProfile = TryResolvePostbuildProfileForDisplay(
-            icId,
-            basePath,
-            out LegacyCombinerPostbuildProfile? profile)
-                ? profile
-                : null;
-        return
-        [
-            .. TpFlashMapCatalog.GetCtrlRamRegions(icId, ToIcNumberSelection(number), postbuildProfile)
-                .Select(region => new WorkbenchCtrlRamRegion(
-                    region.DisplayName,
-                    region.Range.Start,
-                    region.Range.Length,
-                    region.Tags.Any(tag =>
-                        string.Equals(tag, "diff", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(tag, "dlm", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(tag, "slave", StringComparison.OrdinalIgnoreCase)))),
-        ];
-    }
 }
-
-/// <summary>One selected firmware path candidate used by output naming metadata policy.</summary>
-public sealed record WorkbenchOutputNameCandidate(
-    WorkbenchOutputNameCandidateKind Kind,
-    string? Path);
-
-/// <summary>Firmware candidate role used by FlashCode output naming.</summary>
-public enum WorkbenchOutputNameCandidateKind
-{
-    /// <summary>Unknown or generic BIN path.</summary>
-    Unknown,
-
-    /// <summary>Display/DP-family payload candidate.</summary>
-    Dp,
-
-    /// <summary>Touch-panel payload candidate.</summary>
-    Tp,
-
-    /// <summary>CtrlRAM payload candidate.</summary>
-    CtrlRam,
-
-    /// <summary>Base/reference firmware image candidate.</summary>
-    Base,
-}
-
-/// <summary>Suggested FlashCode output name and the metadata tokens used to create it.</summary>
-public sealed record WorkbenchOutputFileNameSuggestion(
-    string FileName,
-    string DpVersionToken,
-    bool HasDpVersion,
-    string TpVersionToken,
-    bool HasTpVersion,
-    string DateToken);
