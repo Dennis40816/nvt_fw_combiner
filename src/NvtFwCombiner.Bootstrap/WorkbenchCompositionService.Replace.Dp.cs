@@ -105,15 +105,15 @@ public static partial class WorkbenchCompositionService
                 "dp-replacement",
                 "dp"),
         ];
-        if (string.Equals(icId, "NT51928", StringComparison.Ordinal))
+        foreach (DpReplaceAdditionalPayloadRule rule in DpReplaceAuthoringCatalog.GetAdditionalPayloads(icId))
         {
             slots.Add(new WorkbenchReplaceInputSlot(
-                "replace-ldc",
-                "LDC replacement BIN",
-                "NT51928-only LDC payload under DP Replace.",
+                rule.SlotId,
+                rule.Title,
+                rule.Description,
                 false,
-                "ldc-replacement",
-                "dp-ldc-51928"));
+                rule.AddressSpaceId,
+                rule.RegionId));
         }
 
         return slots;
@@ -130,7 +130,7 @@ public static partial class WorkbenchCompositionService
 
     private static bool IsDpRegionVisibleForReplace(string icId, TpFlashMapRegion region)
     {
-        return !IsLdRegion(region) || string.Equals(icId, "NT51928", StringComparison.Ordinal);
+        return !IsLdRegion(region) || DpReplaceAuthoringCatalog.IsAdditionalPayloadRegion(icId, region.RegionId);
     }
 
     private static bool IsSupportedDpPerspectiveBaseLength(long? length)

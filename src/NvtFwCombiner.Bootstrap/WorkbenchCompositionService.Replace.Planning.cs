@@ -105,7 +105,7 @@ public static partial class WorkbenchCompositionService
                 100 + (index * 10),
                 CompositionOperationKind.ReplaceRange,
                 status,
-                IsLdRegion(region) ? "ldc-replacement" : "dp-replacement",
+                GetDpReplaceSourceAddressSpaceId(icId, region),
                 new ByteRange(0, region.Range.Length),
                 "output-image",
                 region.Range,
@@ -116,6 +116,13 @@ public static partial class WorkbenchCompositionService
                 [],
                 $"{region.DisplayName} awaits per-IC DP Replace source mapping evidence.")),
         ];
+    }
+
+    private static string GetDpReplaceSourceAddressSpaceId(string icId, TpFlashMapRegion region)
+    {
+        return DpReplaceAuthoringCatalog.TryGetAdditionalPayload(icId, region.RegionId, out DpReplaceAdditionalPayloadRule? rule)
+            ? rule.AddressSpaceId
+            : "dp-replacement";
     }
 
     private static List<InputArtifactSummary> CreateInputSummaries(

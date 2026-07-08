@@ -100,9 +100,9 @@ public sealed partial class RepositoryBoundaryTests
             CountOccurrences(bootstrapSource, "request.WithApprovedPreviewToken(preview.PreviewToken!)"));
     }
 
-    /// <summary>Verifies DP Perspective family labels remain catalog-owned instead of hard-coded in Bootstrap.</summary>
+    /// <summary>Verifies DP Replace IC facts remain catalog-owned instead of hard-coded in Bootstrap.</summary>
     [Fact]
-    public void BootstrapUsesCatalogDpPerspectiveFamilyLabels()
+    public void BootstrapKeepsDpReplaceIcFactsCatalogOwned()
     {
         string bootstrapSource = ReadBootstrapSources();
 
@@ -110,6 +110,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("NT51950/NT51951", bootstrapSource, StringComparison.Ordinal);
         Assert.DoesNotContain("NT51950", bootstrapSource, StringComparison.Ordinal);
         Assert.DoesNotContain("Nt51950", bootstrapSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("NT51928", bootstrapSource, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies General mapping text parsing is owned by one Bootstrap helper.</summary>
