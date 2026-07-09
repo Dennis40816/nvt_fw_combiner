@@ -24,6 +24,7 @@ public sealed partial class ReportReviewViewModel
         string startedAt = GetString(root, nameof(StartedAtUtc));
         string outputFileName = GetOutputString(root, "FileName");
         long outputSize = GetOutputLong(root, "Size");
+        bool? outputCommitted = GetOutputCommitted(root);
         string outputSha256 = GetOutputString(root, "Sha256");
         IReadOnlyList<ReportLineViewModel> inputs = ParseInputs(root);
         IReadOnlyList<ReportLineViewModel> operations = ParseOperations(root);
@@ -48,6 +49,7 @@ public sealed partial class ReportReviewViewModel
             ParseOutput(root),
             outputFileName,
             outputSize,
+            outputCommitted,
             outputSha256,
             outputArtifactPath ?? string.Empty,
             inputs,
@@ -82,6 +84,7 @@ public sealed partial class ReportReviewViewModel
             string.Empty,
             string.Empty,
             0,
+            null,
             string.Empty,
             string.Empty,
             [],

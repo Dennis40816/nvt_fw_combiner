@@ -17,19 +17,22 @@ public sealed partial class ReportReviewViewModel
             inputs,
             ReportInputClassifications.Base,
             T(language, "Base image", "基準映像"),
-            T(language, "Reference firmware copied before replacement.", "Replace 前複製的 reference firmware。"));
+            T(language, "Reference firmware copied before replacement.", "Replace 前複製的 reference firmware。"),
+            language);
         AddInputGroup(
             groups,
             inputs,
             ReportInputClassifications.CtrlRam,
             T(language, "CtrlRAM replacement BINs", "CtrlRAM 替換 BIN"),
-            T(language, "Region-specific payloads used by the replace workflow.", "Replace 流程使用的區域 payload。"));
+            T(language, "Region-specific payloads used by the replace workflow.", "Replace 流程使用的區域 payload。"),
+            language);
         AddInputGroup(
             groups,
             inputs,
             ReportInputClassifications.Other,
             T(language, "Other inputs", "其他輸入"),
-            T(language, "Additional source files recorded by the report.", "Report 記錄的其他來源檔案。"));
+            T(language, "Additional source files recorded by the report.", "Report 記錄的其他來源檔案。"),
+            language);
         return groups;
     }
 
@@ -38,7 +41,8 @@ public sealed partial class ReportReviewViewModel
         IReadOnlyList<ReportLineViewModel> inputs,
         string classification,
         string title,
-        string detail)
+        string detail,
+        ShellLanguage language)
     {
         ReportLineViewModel[] rows = [.. inputs.Where(input =>
             string.Equals(input.Classification, classification, StringComparison.Ordinal))];
@@ -47,6 +51,13 @@ public sealed partial class ReportReviewViewModel
             return;
         }
 
-        groups.Add(new ReportInputGroupViewModel(title, detail, rows));
+        groups.Add(new ReportInputGroupViewModel(
+            title,
+            detail,
+            rows,
+            T(language, "Input", "輸入"),
+            T(language, "Role", "角色"),
+            T(language, "Size", "大小"),
+            T(language, "Address space", "位址空間")));
     }
 }

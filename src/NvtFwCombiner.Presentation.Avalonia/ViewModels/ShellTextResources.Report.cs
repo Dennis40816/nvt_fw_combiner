@@ -61,9 +61,19 @@ public sealed partial class ShellTextResources
 
     public string ReportTabRaw { get; private init; } = string.Empty;
 
+    public string RawReportTitle { get; private init; } = string.Empty;
+
+    public string RawReportDetail { get; private init; } = string.Empty;
+
     public string RunMetadataTitle { get; private init; } = string.Empty;
 
     public string ReportFileLabel { get; private init; } = string.Empty;
+
+    public string FileLabel { get; private init; } = string.Empty;
+
+    public string SizeLabel { get; private init; } = string.Empty;
+
+    public string StateLabel { get; private init; } = string.Empty;
 
     public string StatusLabel { get; private init; } = string.Empty;
 
@@ -110,6 +120,8 @@ public sealed partial class ShellTextResources
     public string HeaderRefreshTraceTitle { get; private init; } = string.Empty;
 
     public string EmptyIssuesMessage { get; private init; } = string.Empty;
+
+    public string NoActionRequiredTitle { get; private init; } = string.Empty;
 
     public string IssuesAndWarningsTitle { get; private init; } = string.Empty;
 

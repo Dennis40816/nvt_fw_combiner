@@ -21,7 +21,7 @@ public sealed partial class ReportReviewViewModel
                 NextFlowNumber(ref sequence),
                 T(language, "Load base image", "載入基準映像"),
                 baseInputs[0].Title,
-                baseInputs[0].Detail,
+                T(language, "reference input", "reference 輸入"),
                 T(language, "input", "輸入"),
                 hasConnector: true));
         }
@@ -37,11 +37,8 @@ public sealed partial class ReportReviewViewModel
             nodes.Add(new ReportOperationFlowNodeViewModel(
                 NextFlowNumber(ref sequence),
                 T(language, "Apply replacement BINs", "套用替換 BIN"),
-                T(
-                    language,
-                    string.Create(CultureInfo.InvariantCulture, $"{replacementInputs.Length} replacement payload(s) selected"),
-                    string.Create(CultureInfo.InvariantCulture, $"已選擇 {replacementInputs.Length} 個 replacement payload")),
-                T(language, "profile-authorized regions", "profile 核准區域"),
+                FormatReplacementFlowDetail(replacementInputs.Length, language),
+                T(language, "listed in Inputs tab", "列於輸入分頁"),
                 T(language, "replace", "替換"),
                 hasConnector: true));
         }
@@ -67,11 +64,8 @@ public sealed partial class ReportReviewViewModel
             nodes.Add(new ReportOperationFlowNodeViewModel(
                 NextFlowNumber(ref sequence),
                 T(language, "Refresh header and CRC", "刷新 header 與 CRC"),
-                T(
-                    language,
-                    string.Create(CultureInfo.InvariantCulture, $"{commandOperations.Length} postbuild command(s) recorded"),
-                    string.Create(CultureInfo.InvariantCulture, $"已記錄 {commandOperations.Length} 個 postbuild command")),
-                T(language, "details in Postbuild tab", "細節在 Postbuild 分頁"),
+                FormatPostbuildFlowDetail(commandOperations.Length, language),
+                T(language, "command details in Postbuild tab", "command 細節在 Postbuild 分頁"),
                 FormatOperationFlowStatus(commandOperations[^1].OperationStatus, language),
                 hasConnector: true));
         }
@@ -109,6 +103,26 @@ public sealed partial class ReportReviewViewModel
         string number = sequence.ToString(CultureInfo.InvariantCulture);
         sequence += 100;
         return number;
+    }
+
+    private static string FormatReplacementFlowDetail(int count, ShellLanguage language)
+    {
+        return count == 1
+            ? T(language, "1 replacement BIN selected", "已選擇 1 個 replacement BIN")
+            : T(
+                language,
+                string.Create(CultureInfo.InvariantCulture, $"{count} replacement BINs selected"),
+                string.Create(CultureInfo.InvariantCulture, $"已選擇 {count} 個 replacement BIN"));
+    }
+
+    private static string FormatPostbuildFlowDetail(int count, ShellLanguage language)
+    {
+        return count == 1
+            ? T(language, "1 postbuild command refreshes header/CRC", "1 個 postbuild command 更新 header/CRC")
+            : T(
+                language,
+                string.Create(CultureInfo.InvariantCulture, $"{count} postbuild commands refresh header/CRC"),
+                string.Create(CultureInfo.InvariantCulture, $"{count} 個 postbuild command 更新 header/CRC"));
     }
 
     private static string ExtractOperationFlowNumber(string title)

@@ -30,7 +30,10 @@ public sealed class ReportLineViewModel
         string beforeLabel = "",
         string beforeValue = "",
         string afterLabel = "",
-        string afterValue = "")
+        string afterValue = "",
+        string inputRole = "",
+        string inputSizeLabel = "",
+        string inputAddressSpace = "")
     {
         Title = title;
         Detail = detail;
@@ -51,6 +54,9 @@ public sealed class ReportLineViewModel
         BeforeValue = beforeValue ?? string.Empty;
         AfterLabel = afterLabel ?? string.Empty;
         AfterValue = afterValue ?? string.Empty;
+        InputRole = inputRole ?? string.Empty;
+        InputSizeLabel = inputSizeLabel ?? string.Empty;
+        InputAddressSpace = inputAddressSpace ?? string.Empty;
         CodeBlock = codeBlock;
         HasCodeBlock = !string.IsNullOrWhiteSpace(codeBlock);
         Badges = badges is null ? [] : [.. badges];
@@ -118,8 +124,29 @@ public sealed class ReportLineViewModel
     /// <summary>After comparison value, usually hex bytes or a range hash.</summary>
     public string AfterValue { get; }
 
+    /// <summary>Input role rendered in the report input table.</summary>
+    public string InputRole { get; }
+
+    /// <summary>Input size rendered in the report input table.</summary>
+    public string InputSizeLabel { get; }
+
+    /// <summary>Input address space rendered in the report input table.</summary>
+    public string InputAddressSpace { get; }
+
     /// <summary>True when the row has a before/after comparison block.</summary>
     public bool HasBeforeAfter => !string.IsNullOrWhiteSpace(BeforeValue) || !string.IsNullOrWhiteSpace(AfterValue);
+
+    /// <summary>True when the row has report-input table fields.</summary>
+    public bool HasInputFields =>
+        !string.IsNullOrWhiteSpace(InputRole) ||
+        !string.IsNullOrWhiteSpace(InputSizeLabel) ||
+        !string.IsNullOrWhiteSpace(InputAddressSpace);
+
+    /// <summary>True when the input detail adds information beyond the address-space id.</summary>
+    public bool HasInputDetail =>
+        HasInputFields &&
+        !string.IsNullOrWhiteSpace(Detail) &&
+        !string.Equals(Detail, InputAddressSpace, StringComparison.Ordinal);
 
     /// <summary>True when the row has a user-facing reason.</summary>
     public bool HasReason => !string.IsNullOrWhiteSpace(Reason);

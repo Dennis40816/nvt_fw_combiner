@@ -85,17 +85,40 @@ public sealed partial class ReportReviewViewModel
     private static string CreateOutcomeDetail(
         string output,
         IReadOnlyList<ReportLineViewModel> issues,
+        string compositionKind,
+        IReadOnlyList<ReportLineViewModel> outputDifferences,
         ShellLanguage language)
     {
         int blockingIssueCount = CountBlockingIssues(issues);
         int warningCount = CountWarnings(issues);
         return blockingIssueCount == 0
             ? warningCount == 0
-                ? T(language, "No issues reported. Audit details are organized below.", "沒有回報問題；審查明細已整理在下方。")
+                ? CreateCleanOutcomeDetail(compositionKind, outputDifferences, language)
                 : T(language, "The run completed, but review the warning before treating the output as final evidence.", "流程已完成，但請先確認警告再把輸出視為最終證據。")
             : string.IsNullOrWhiteSpace(output)
             ? T(language, "The run did not produce an output artifact. Start with the first issue below.", "此次執行沒有產生輸出檔；請先查看第一個問題。")
             : T(language, "Start with the first issue below, then verify the related inputs, operations, and output evidence.", "請先查看第一個問題，再確認相關輸入、操作與輸出證據。");
+    }
+
+    private static string CreateCleanOutcomeDetail(
+        string compositionKind,
+        IReadOnlyList<ReportLineViewModel> outputDifferences,
+        ShellLanguage language)
+    {
+        return outputDifferences.Count > 0 && !HasReviewRequiredOutputDifference(outputDifferences)
+            ? T(
+                language,
+                "No blocking issues or warnings. All reported byte changes are classified as expected.",
+                "沒有阻擋問題或警告；所有回報的 byte 變更都已分類為預期變更。")
+            : IsReplaceComposition(compositionKind)
+                ? T(
+                    language,
+                    "No blocking issues or warnings. No final output byte differences were reported.",
+                    "沒有阻擋問題或警告；沒有回報 final output byte 差異。")
+                : T(
+                    language,
+                    "No blocking issues or warnings. This workflow has no reference diff check; review the operation trace if evidence is needed.",
+                    "沒有阻擋問題或警告；此流程沒有 reference diff check，需要證據時請查看操作紀錄。");
     }
 
     private static string CreateOutcomeMeta(IReadOnlyList<ReportLineViewModel> issues, ShellLanguage language)
@@ -109,6 +132,47 @@ public sealed partial class ReportReviewViewModel
         return string.Equals(issue.Title, WorkbenchCompositionIssueCodes.InputAddressSpaceLengthMismatch, StringComparison.Ordinal)
             ? T(language, "Fix input size", "修正輸入大小")
             : T(language, "Start with this issue", "先查看此問題");
+    }
+
+    private static string CreateCleanNextStepTitle(
+        IReadOnlyList<ReportLineViewModel> outputDifferences,
+        ShellLanguage language)
+    {
+        return outputDifferences.Count > 0
+            ? T(language, "Review accepted changes", "查看可接受變更")
+            : T(language, "Review operation trace", "查看操作紀錄");
+    }
+
+    private static string CreateCleanNextStepDetail(
+        IReadOnlyList<ReportLineViewModel> outputDifferences,
+        IReadOnlyList<ReportLineViewModel> operations,
+        ShellLanguage language)
+    {
+        return outputDifferences.Count > 0
+            ? T(
+                language,
+                string.Create(CultureInfo.InvariantCulture, $"Review {outputDifferences.Count} accepted change(s) in Changes. Each entry shows the byte range and reason."),
+                string.Create(CultureInfo.InvariantCulture, $"到 Changes 查看 {outputDifferences.Count} 筆可接受變更；每筆會列出 byte 範圍與原因。"))
+            : T(
+                language,
+                string.Create(CultureInfo.InvariantCulture, $"No output comparison changes were reported. Review Operations for the {operations.Count} recorded step(s)."),
+                string.Create(CultureInfo.InvariantCulture, $"沒有回報 output comparison 變更；請到 Operations 確認 {operations.Count} 個已記錄步驟。"));
+    }
+
+    private static string CreateOutputSizeLabel(long outputSize, ShellLanguage language)
+    {
+        return outputSize <= 0
+            ? T(language, "No size", "無大小")
+            : string.Create(CultureInfo.InvariantCulture, $"{outputSize} bytes");
+    }
+
+    private static string CreateOutputCommitmentLabel(bool? committed, ShellLanguage language)
+    {
+        return committed == true
+            ? T(language, "Committed output", "已寫出輸出")
+            : committed == false
+                ? T(language, "Preview only", "僅預覽")
+                : T(language, "Output state unknown", "輸出狀態未知");
     }
 
     private static string CreateIssueAction(ReportLineViewModel issue, ShellLanguage language)

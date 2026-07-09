@@ -19,6 +19,7 @@ public sealed partial class ReportReviewViewModel
         string output,
         string outputFileName,
         long outputSize,
+        bool? outputCommitted,
         string outputSha256,
         string outputArtifactPath,
         IReadOnlyList<ReportLineViewModel> inputs,
@@ -43,6 +44,12 @@ public sealed partial class ReportReviewViewModel
         Output = output;
         OutputFileName = outputFileName;
         OutputSize = outputSize;
+        OutputCommitted = outputCommitted;
+        IsOutputCommitted = outputCommitted == true;
+        IsOutputPreview = outputCommitted == false;
+        IsOutputStateUnknown = outputCommitted is null;
+        OutputSizeLabel = CreateOutputSizeLabel(outputSize, language);
+        OutputCommitmentLabel = CreateOutputCommitmentLabel(outputCommitted, language);
         OutputSha256 = outputSha256;
         OutputHashLabel = string.IsNullOrWhiteSpace(outputSha256)
             ? T(language, "No output hash", "無輸出雜湊")
@@ -55,6 +62,7 @@ public sealed partial class ReportReviewViewModel
         StepOperations = [.. operations.Where(operation => !operation.HasCodeBlock)];
         Mutations = mutations;
         OutputDifferences = outputDifferences;
+        OutputDifferenceGroups = CreateOutputDifferenceGroups(outputDifferences, language);
         Issues = issues;
         Warnings = [.. issues.Where(IsWarning)];
         BlockingIssues = [.. issues.Where(issue => !IsWarning(issue))];
@@ -74,6 +82,7 @@ public sealed partial class ReportReviewViewModel
         HasStepOperations = StepOperations.Count > 0;
         HasMutations = mutations.Count > 0;
         HasOutputDifferences = outputDifferences.Count > 0;
+        HasOutputDifferenceGroups = OutputDifferenceGroups.Count > 0;
         HasIssues = issues.Count > 0;
         HasNoInputs = !HasInputs;
         HasNoCommandOperations = !HasCommandOperations;
@@ -86,7 +95,7 @@ public sealed partial class ReportReviewViewModel
             !string.Equals(outputFileName, "No output", StringComparison.OrdinalIgnoreCase);
         SummaryRows = CreateSummaryRows(status, output, inputs, operations, mutations, issues, language);
         OutcomeTitle = CreateOutcomeTitle(status, issues, language);
-        OutcomeDetail = CreateOutcomeDetail(output, issues, language);
+        OutcomeDetail = CreateOutcomeDetail(output, issues, compositionKind, outputDifferences, language);
         OutcomeMeta = CreateOutcomeMeta(issues, language);
         OutcomeIcon = HasPrimaryIssue || HasWarnings ? "!" : "✓";
         OutcomeAccessibilityLabel = HasPrimaryIssue
@@ -98,12 +107,12 @@ public sealed partial class ReportReviewViewModel
             ? CreateNextStepTitle(PrimaryIssue, language)
             : HasWarnings
                 ? T(language, "Review warning", "查看警告")
-                : T(language, "Ready for audit", "可進行審查");
+                : CreateCleanNextStepTitle(outputDifferences, language);
         NextStepDetail = HasPrimaryIssue
             ? CreateIssueAction(PrimaryIssue, language)
             : HasWarnings
             ? Warnings[0].Detail
-            : T(language, "Inputs, changes, operation order, and postbuild refresh are available in Audit details.", "輸入、差異、操作順序與 postbuild refresh 已整理在審查明細。");
+            : CreateCleanNextStepDetail(outputDifferences, operations, language);
         ByteDifferenceTitle = CreateByteDifferenceTitle(compositionKind, outputDifferences, language);
         ByteDifferenceDetail = CreateByteDifferenceDetail(compositionKind, outputDifferences, language);
         ByteDifferenceMeta = CreateByteDifferenceMeta(outputDifferences, language);
@@ -133,6 +142,7 @@ public sealed partial class ReportReviewViewModel
         string.Empty,
         string.Empty,
         0,
+        null,
         string.Empty,
         string.Empty,
         [],

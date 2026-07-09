@@ -59,76 +59,91 @@
       </Border>
 
       <ScrollViewer Grid.Row="2" IsVisible="{Binding HasReportHistory}">
-        <ItemsControl ItemsSource="{Binding ReportHistoryEntries}">
-          <ItemsControl.ItemTemplate>
-            <StaticResource ResourceKey="ReportHistoryEntryTemplate" />
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
+        <Border Padding="0,0,22,0">
+          <ItemsControl ItemsSource="{Binding ReportHistoryEntries}">
+            <ItemsControl.ItemTemplate>
+              <StaticResource ResourceKey="ReportHistoryEntryTemplate" />
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </Border>
       </ScrollViewer>
     </Grid>
   </Border>
 </DataTemplate>
 
 <DataTemplate x:Key="ReportSummaryPanelTemplate" DataType="vm:MainWindowViewModel">
-  <Border Margin="22,16,22,0" Padding="14" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
-    <Grid ColumnDefinitions="1.05*,1.15*,1.45*,Auto" ColumnSpacing="16">
-      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-        <Grid Width="36" Height="36" AutomationProperties.Name="{Binding LoadedReport.OutcomeAccessibilityLabel}">
-          <Border Background="#16A34A" CornerRadius="999" IsVisible="{Binding LoadedReport.IsClean}" />
-          <Border Background="#D97706" CornerRadius="999" IsVisible="{Binding LoadedReport.HasWarningsWithoutBlockingIssues}" />
-          <Border Background="#EA580C" CornerRadius="999" IsVisible="{Binding LoadedReport.HasPrimaryIssue}" />
-          <TextBlock
-              HorizontalAlignment="Center"
-              VerticalAlignment="Center"
-              FontSize="15"
-              FontWeight="SemiBold"
-              Foreground="#FFFFFF"
-              Text="{Binding LoadedReport.OutcomeIcon}" />
-        </Grid>
-        <StackPanel Grid.Column="1" Spacing="4">
-          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-            <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.RunLabel}" />
-            <Border Grid.Column="1" Padding="7,2" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
-              <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding LoadedReport.OutcomeMeta}" TextWrapping="Wrap" />
-            </Border>
+  <Border Margin="22,16,22,0" Padding="0" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
+    <Grid ColumnDefinitions="1.1*,0.9*,1.45*,Auto">
+      <Border Padding="16" Background="#F8FAFC" BorderBrush="#D7E2F1" BorderThickness="0,0,1,0">
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+          <Grid Width="40" Height="40" AutomationProperties.Name="{Binding LoadedReport.OutcomeAccessibilityLabel}">
+            <Border Background="#16A34A" CornerRadius="999" IsVisible="{Binding LoadedReport.IsClean}" />
+            <Border Background="#D97706" CornerRadius="999" IsVisible="{Binding LoadedReport.HasWarningsWithoutBlockingIssues}" />
+            <Border Background="#EA580C" CornerRadius="999" IsVisible="{Binding LoadedReport.HasPrimaryIssue}" />
+            <TextBlock
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                FontSize="16"
+                FontWeight="SemiBold"
+                Foreground="#FFFFFF"
+                Text="{Binding LoadedReport.OutcomeIcon}" />
           </Grid>
-          <TextBlock FontSize="17" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.OutcomeTitle}" TextWrapping="Wrap" />
-          <TextBlock FontSize="12" Foreground="#475569" Text="{Binding LoadedReport.OutcomeDetail}" TextWrapping="Wrap" />
-          <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.NextStepTitle}" TextWrapping="Wrap" />
-        </StackPanel>
-      </Grid>
+          <StackPanel Grid.Column="1" Spacing="5">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+              <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.RunLabel}" />
+              <Border Grid.Column="1" Padding="7,2" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+                <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding LoadedReport.OutcomeMeta}" TextWrapping="Wrap" />
+              </Border>
+            </Grid>
+            <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.OutcomeTitle}" TextWrapping="Wrap" />
+            <TextBlock FontSize="12" Foreground="#334155" Text="{Binding LoadedReport.OutcomeDetail}" TextWrapping="Wrap" />
+            <Border Margin="0,4,0,0" Padding="10,8" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6">
+              <StackPanel Spacing="2">
+                <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.NextStepTitle}" TextWrapping="Wrap" />
+                <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding LoadedReport.NextStepDetail}" TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </Grid>
+      </Border>
 
-      <Border Grid.Column="1" Padding="14,0,0,0" BorderBrush="#E2E8F0" BorderThickness="1,0,0,0">
-        <StackPanel Spacing="5">
+      <Border Grid.Column="1" Padding="16" BorderBrush="#E2E8F0" BorderThickness="0,0,1,0">
+        <StackPanel Spacing="10">
           <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.OutputLabel}" />
-          <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.OutputFileName}" TextWrapping="Wrap" />
+          <Grid ColumnDefinitions="54,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="7">
+            <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.FileLabel}" />
+            <TextBlock Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.OutputFileName}" TextWrapping="Wrap" />
+            <TextBlock Grid.Row="1" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.SizeLabel}" />
+            <TextBlock Grid.Row="1" Grid.Column="1" FontSize="12" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding LoadedReport.OutputSizeLabel}" TextWrapping="Wrap" />
+            <TextBlock Grid.Row="2" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.StateLabel}" />
+            <TextBlock Grid.Row="2" Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#166534" Text="{Binding LoadedReport.OutputCommitmentLabel}" TextWrapping="Wrap" IsVisible="{Binding LoadedReport.IsOutputCommitted}" />
+            <TextBlock Grid.Row="2" Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#92400E" Text="{Binding LoadedReport.OutputCommitmentLabel}" TextWrapping="Wrap" IsVisible="{Binding LoadedReport.IsOutputPreview}" />
+            <TextBlock Grid.Row="2" Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding LoadedReport.OutputCommitmentLabel}" TextWrapping="Wrap" IsVisible="{Binding LoadedReport.IsOutputStateUnknown}" />
+          </Grid>
           <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding LoadedReport.OutputArtifactPath}" TextWrapping="Wrap" IsVisible="{Binding LoadedReport.HasOutputArtifactPath}" />
         </StackPanel>
       </Border>
 
-      <Border Grid.Column="2" Padding="14,0,0,0" BorderBrush="#E2E8F0" BorderThickness="1,0,0,0">
-        <StackPanel Spacing="8">
+      <Border Grid.Column="2" Padding="16">
+        <Grid RowDefinitions="Auto,*" RowSpacing="8">
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
             <StackPanel Spacing="3">
               <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.ChangeReviewTitle}" />
-              <TextBlock FontSize="17" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.ByteDifferenceTitle}" TextWrapping="Wrap" />
+              <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.ByteDifferenceTitle}" TextWrapping="Wrap" />
             </StackPanel>
-            <Border Grid.Column="1" Padding="8,2" VerticalAlignment="Top" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
+            <Border Grid.Column="1" Padding="8,2" VerticalAlignment="Top" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
               <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#334155" Text="{Binding LoadedReport.ByteDifferenceMeta}" />
             </Border>
           </Grid>
-          <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding LoadedReport.ByteDifferenceDetail}" TextWrapping="Wrap" />
-          <ItemsControl ItemsSource="{Binding LoadedReport.OutputDifferenceSummaryRows}">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate>
-                <WrapPanel />
-              </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-              <StaticResource ResourceKey="ReportDifferenceSummaryChipTemplate" />
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-        </StackPanel>
+          <StackPanel Grid.Row="1" Spacing="8">
+            <TextBlock FontSize="12" Foreground="#475569" Text="{Binding LoadedReport.ByteDifferenceDetail}" TextWrapping="Wrap" />
+            <ItemsControl ItemsSource="{Binding LoadedReport.OutputDifferenceSummaryRows}">
+              <ItemsControl.ItemTemplate>
+                <StaticResource ResourceKey="ReportDifferenceSummaryRowTemplate" />
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Grid>
       </Border>
 
       <Button

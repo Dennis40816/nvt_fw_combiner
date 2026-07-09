@@ -4,7 +4,21 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-Post-`0.7.5` development targets `0.8.0-dev.N`.
+Post-`0.8.0` development targets `0.8.x` stabilization and `0.9.0` UAT readiness.
+
+## [0.8.0] - 2026-07-09
+
+### Added
+
+- Home now exposes General Merge as a first-class workflow shortcut alongside Normal Merge and the reserved AB Code entry.
+- Report review now groups inputs, changes, operation flow, postbuild evidence, issues, and raw JSON into clearer human-review sections.
+- Output-difference review now groups accepted and review-required byte changes with readable section labels, range summaries, and byte previews.
+
+### Changed
+
+- Home workflow rows now provide stronger hover and pressed feedback so full-row navigation is visually discoverable.
+- Report history rows reserve space for per-report delete actions so the right border and scrollbar no longer collide with the delete button.
+- Primary report status avoids exposing SHA-256 details by default while keeping the full evidence in report details.
 
 ## [0.7.5] - 2026-07-08
 

@@ -13,6 +13,7 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 - `v0.7.3` — patch milestone for saved-rule validation, operation provenance, and General Merge saved-rule CLI consumption. It does not promote saved rules into normal workflows or enable General Replace saved-rule execution.
 - `v0.7.4` — patch milestone for report review readability, Build-first workbench interaction, DP version badges from gen_flash evidence, and TDDI Flash Header reference naming. It does not expand firmware support scope or private golden parity claims.
 - `v0.7.5` — patch milestone for bilingual English/Traditional Chinese UI resources and functional Settings state. It does not expand firmware support scope or private golden parity claims.
+- `v0.8.0` — milestone for report readability, Home workflow discoverability, General Merge shortcut exposure, report-history spacing, and repository structure cleanup. It does not claim `v1.0.0` full support-matrix sign-off or complete private golden parity.
 
 ## Branch and merge policy
 
@@ -22,7 +23,7 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 - `0.7.3` is the patch train for saved-rule validation and General Merge rule consumption on top of `0.7.2`.
 - `0.7.4` is the patch train for report readability, Build-first workbench UI, DP version badges, and reference naming on top of `0.7.3`.
 - `0.7.5` is the patch train for bilingual UI resources and Settings functionality on top of `0.7.4`.
-- `0.8.0` is the active post-`0.7.5` development train for repository structure consolidation, catalog ownership, packaging/security hardening, and remaining release evidence closure.
+- `0.8.0` is the tagged post-`0.7.5` milestone for repository structure consolidation, report readability, workflow discoverability, and remaining release evidence closure.
 - `main` is the stable branch.
 - Progress to `main` must happen through reviewed merge/PR, not direct unreviewed development pushes.
 - Agent/Codex work should stay on the active milestone branch until review gates pass.
@@ -77,7 +78,8 @@ v0.7.2          General Merge v1
 v0.7.3          saved-rule validation and General Merge CLI consumption
 v0.7.4          report readability and Build-first workbench UI
 v0.7.5          bilingual UI resources and Settings functionality
-v0.8.0-dev.N    structure, catalog ownership, packaging/security
+v0.8.0          report readability, workflow discoverability, structure cleanup
+v0.8.x          stabilization, catalog ownership, packaging/security
 v0.9.0-rc.N     UAT/release candidates
 v1.0.0          stable
 ```

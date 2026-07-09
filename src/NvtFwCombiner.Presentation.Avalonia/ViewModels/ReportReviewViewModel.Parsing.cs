@@ -16,20 +16,15 @@ public sealed partial class ReportReviewViewModel
                     string addressSpaceId = GetString(input, "AddressSpaceId");
                     string artifactId = GetString(input, "ArtifactId");
                     long size = GetLong(input, "Size");
+                    string role = FormatInputRole(addressSpaceId);
                     return new ReportLineViewModel(
                         FormatInputTitle(addressSpaceId, artifactId),
                         string.IsNullOrWhiteSpace(artifactId) ? addressSpaceId : artifactId,
                         addressSpaceId,
-                        badges:
-                        [
-                            new ReportLineBadgeViewModel(FormatInputRole(addressSpaceId)),
-                            new ReportLineBadgeViewModel($"{size} bytes"),
-                        ],
-                        facts:
-                        [
-                            new ReportLineFactViewModel("Address space", addressSpaceId, isTechnical: true),
-                        ],
-                        classification: ClassifyInput(addressSpaceId));
+                        classification: ClassifyInput(addressSpaceId),
+                        inputRole: role,
+                        inputSizeLabel: $"{size} bytes",
+                        inputAddressSpace: addressSpaceId);
                 }),
             ];
     }
@@ -132,5 +127,15 @@ public sealed partial class ReportReviewViewModel
         return root.TryGetProperty(nameof(Output), out JsonElement output) && output.ValueKind == JsonValueKind.Object
             ? GetLong(output, propertyName)
             : 0;
+    }
+
+    private static bool? GetOutputCommitted(JsonElement root)
+    {
+        return root.TryGetProperty(nameof(Output), out JsonElement output) &&
+               output.ValueKind == JsonValueKind.Object &&
+               output.TryGetProperty("Committed", out JsonElement committed) &&
+               committed.ValueKind is JsonValueKind.True or JsonValueKind.False
+            ? committed.GetBoolean()
+            : null;
     }
 }

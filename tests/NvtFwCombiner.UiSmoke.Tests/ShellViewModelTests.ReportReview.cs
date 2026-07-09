@@ -46,8 +46,14 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.ShowReportCommand.CanExecute(null));
         Assert.False(viewModel.LoadedReport.HasPrimaryIssue);
         Assert.Equal("Succeeded", viewModel.LoadedReport.OutcomeTitle);
-        Assert.Contains("No issues reported", viewModel.LoadedReport.OutcomeDetail, StringComparison.Ordinal);
-        Assert.Equal("Ready for audit", viewModel.LoadedReport.NextStepTitle);
+        Assert.Contains("no reference diff check", viewModel.LoadedReport.OutcomeDetail, StringComparison.Ordinal);
+        Assert.Equal("Review operation trace", viewModel.LoadedReport.NextStepTitle);
+        Assert.Contains("Operations", viewModel.LoadedReport.NextStepDetail, StringComparison.Ordinal);
+        Assert.Equal("No size", viewModel.LoadedReport.OutputSizeLabel);
+        Assert.Equal("Preview only", viewModel.LoadedReport.OutputCommitmentLabel);
+        Assert.False(viewModel.LoadedReport.IsOutputCommitted);
+        Assert.True(viewModel.LoadedReport.IsOutputPreview);
+        Assert.False(viewModel.LoadedReport.IsOutputStateUnknown);
         Assert.Contains(viewModel.LoadedReport.TriageRows, row =>
             row.Title == "1. Result" &&
             row.Detail == "Succeeded" &&
@@ -83,6 +89,36 @@ public sealed partial class ShellViewModelTests
         viewModel.CloseReportCommand.Execute(null);
 
         Assert.False(viewModel.IsReportModalOpen);
+    }
+
+    /// <summary>Verifies report output state is parsed from the JSON contract, not from formatted display text.</summary>
+    [Fact]
+    public void ReportReviewUsesTypedOutputCommitmentState()
+    {
+        var committed = ReportReviewViewModel.FromJson(
+            ReportJsonSamples.Succeeded(committed: true),
+            "committed-report.json");
+        var preview = ReportReviewViewModel.FromJson(
+            ReportJsonSamples.Succeeded(committed: false),
+            "preview-report.json");
+        var unknown = ReportReviewViewModel.FromJson(
+            ReportJsonSamples.Succeeded(committed: null),
+            "unknown-report.json");
+
+        Assert.Equal("Committed output", committed.OutputCommitmentLabel);
+        Assert.True(committed.IsOutputCommitted);
+        Assert.False(committed.IsOutputPreview);
+        Assert.False(committed.IsOutputStateUnknown);
+
+        Assert.Equal("Preview only", preview.OutputCommitmentLabel);
+        Assert.False(preview.IsOutputCommitted);
+        Assert.True(preview.IsOutputPreview);
+        Assert.False(preview.IsOutputStateUnknown);
+
+        Assert.Equal("Output state unknown", unknown.OutputCommitmentLabel);
+        Assert.False(unknown.IsOutputCommitted);
+        Assert.False(unknown.IsOutputPreview);
+        Assert.True(unknown.IsOutputStateUnknown);
     }
 
     /// <summary>Verifies report loading errors still produce a reopenable report modal.</summary>

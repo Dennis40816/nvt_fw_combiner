@@ -40,13 +40,15 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.LoadedReport.HasCommandOperations);
         Assert.False(viewModel.LoadedReport.HasStepOperations);
         Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
-            operation.Title.Contains("postbuild-", StringComparison.Ordinal) &&
-            operation.Meta.Contains("Combiner command", StringComparison.Ordinal) &&
+            operation.Title.Contains("Postbuild refresh", StringComparison.Ordinal) &&
+            operation.Meta.Contains("legacy Combiner postbuild", StringComparison.Ordinal) &&
+            !operation.Meta.Contains("Combiner command", StringComparison.Ordinal) &&
             !operation.Meta.Contains("Combiner.exe", StringComparison.Ordinal) &&
             operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
         Assert.Contains(viewModel.LoadedReport.Operations, operation =>
-            operation.Title.Contains("postbuild-", StringComparison.Ordinal) &&
-            operation.Meta.Contains("Combiner command", StringComparison.Ordinal) &&
+            operation.Title.Contains("Postbuild refresh", StringComparison.Ordinal) &&
+            operation.Meta.Contains("legacy Combiner postbuild", StringComparison.Ordinal) &&
+            !operation.Meta.Contains("Combiner command", StringComparison.Ordinal) &&
             !operation.Meta.Contains("Combiner.exe", StringComparison.Ordinal) &&
             operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
         Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.IsChanged);

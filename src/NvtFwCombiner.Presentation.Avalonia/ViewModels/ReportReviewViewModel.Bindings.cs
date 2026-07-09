@@ -50,6 +50,24 @@ public sealed partial class ReportReviewViewModel
     /// <summary>Output size in bytes.</summary>
     public long OutputSize { get; }
 
+    /// <summary>True when the report output was committed, false for preview, null when unknown.</summary>
+    public bool? OutputCommitted { get; }
+
+    /// <summary>True when the report output was written to disk.</summary>
+    public bool IsOutputCommitted { get; }
+
+    /// <summary>True when the report describes a preview-only output.</summary>
+    public bool IsOutputPreview { get; }
+
+    /// <summary>True when the report does not state whether output was committed.</summary>
+    public bool IsOutputStateUnknown { get; }
+
+    /// <summary>Readable output size label for the primary report summary.</summary>
+    public string OutputSizeLabel { get; }
+
+    /// <summary>Readable output commit/preview state for the primary report summary.</summary>
+    public string OutputCommitmentLabel { get; }
+
     /// <summary>Full output SHA-256 recorded by the report.</summary>
     public string OutputSha256 { get; }
 
@@ -139,6 +157,12 @@ public sealed partial class ReportReviewViewModel
 
     /// <summary>Number of final output-vs-reference difference rows.</summary>
     public int OutputDifferenceCount => OutputDifferences.Count;
+
+    /// <summary>Final output differences grouped by report section.</summary>
+    public IReadOnlyList<ReportDifferenceGroupViewModel> OutputDifferenceGroups { get; }
+
+    /// <summary>True when grouped output difference details are available.</summary>
+    public bool HasOutputDifferenceGroups { get; }
 
     /// <summary>True when output difference details are available.</summary>
     public bool HasOutputDifferences { get; }

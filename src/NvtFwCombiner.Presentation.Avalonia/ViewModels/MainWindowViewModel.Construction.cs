@@ -54,6 +54,7 @@ public sealed partial class MainWindowViewModel
         ShowCtrlRamReplaceCommand = new RelayCommand(() => SelectReplaceMode(CtrlRamReplaceMode));
         ShowGeneralReplaceCommand = new RelayCommand(() => SelectReplaceMode(GeneralReplaceMode));
         ShowNormalMergeCommand = new RelayCommand(() => SelectMergeMode(NormalMergeMode));
+        ShowGeneralMergeCommand = new RelayCommand(() => SelectMergeMode(GeneralMergeMode));
         AddGeneralReplaceMappingCommand = new RelayCommand(AddGeneralReplaceMapping);
         RemoveGeneralReplaceMappingCommand = new RelayCommand<GeneralReplaceMappingViewModel>(
             RemoveGeneralReplaceMapping);

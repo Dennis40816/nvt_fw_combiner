@@ -297,6 +297,9 @@ public sealed partial class MainWindowViewModel
     /// <summary>Command that opens Normal Merge.</summary>
     public IRelayCommand ShowNormalMergeCommand { get; }
 
+    /// <summary>Command that opens General Merge.</summary>
+    public IRelayCommand ShowGeneralMergeCommand { get; }
+
     /// <summary>Command that adds a General Replace mapping row.</summary>
     public IRelayCommand AddGeneralReplaceMappingCommand { get; }
 

@@ -32,12 +32,15 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(viewModel.LoadedReport.OperationFlow, node =>
             node.Title == "Refresh header and CRC" &&
             node.Number == "100" &&
-            node.Meta == "details in Postbuild tab");
+            node.Meta == "command details in Postbuild tab");
         Assert.DoesNotContain(viewModel.LoadedReport.StepOperations, operation => operation.HasCodeBlock);
         Assert.True(viewModel.LoadedReport.HasCommandOperations);
         Assert.Equal("Accepted changes", viewModel.LoadedReport.ByteDifferenceTitle);
         Assert.Contains("CRC/header", viewModel.LoadedReport.ByteDifferenceDetail, StringComparison.Ordinal);
         Assert.Equal("1/1 accepted", viewModel.LoadedReport.ByteDifferenceMeta);
+        Assert.Equal("Review accepted changes", viewModel.LoadedReport.NextStepTitle);
+        Assert.Contains("Review 1 accepted change", viewModel.LoadedReport.NextStepDetail, StringComparison.Ordinal);
+        Assert.Contains("byte range and reason", viewModel.LoadedReport.NextStepDetail, StringComparison.Ordinal);
         Assert.Contains(viewModel.LoadedReport.OutputDifferenceSummaryRows, row =>
             row.Label == "CRC/header refresh" &&
             row.Count == "1" &&
@@ -68,6 +71,22 @@ public sealed partial class ShellViewModelTests
             row.Title == "Output diff" &&
             row.Detail == "1" &&
             row.Meta == "全部可接受");
+    }
+
+    /// <summary>Verifies incomplete hex previews are not labelled as complete byte values.</summary>
+    [Fact]
+    public void ReportReviewLabelsIncompleteOutputDifferenceHexAsPreview()
+    {
+        string json = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences(
+            isHexPreviewComplete: false,
+            hexPreviewByteCount: 2);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        viewModel.LoadReportJson(json, "replace-report.json");
+
+        ReportLineViewModel difference = Assert.Single(viewModel.LoadedReport.OutputDifferences);
+        Assert.Equal("Before preview, first 2 bytes", difference.BeforeLabel);
+        Assert.Equal("After preview, first 2 bytes", difference.AfterLabel);
     }
 
     /// <summary>Verifies report inputs use readable CtrlRAM region labels instead of raw slot ids.</summary>

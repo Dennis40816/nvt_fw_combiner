@@ -101,11 +101,11 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.True(viewModel.HasLoadedReport);
         Assert.Contains(viewModel.LoadedReport.Operations, operation =>
-            operation.Title.Contains("postbuild-", StringComparison.Ordinal) &&
+            operation.Title.Contains("Postbuild refresh", StringComparison.Ordinal) &&
             operation.HasCodeBlock &&
             operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
         Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
-            operation.Title.Contains("postbuild-", StringComparison.Ordinal) &&
+            operation.Title.Contains("Postbuild refresh", StringComparison.Ordinal) &&
             operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
     }
 }

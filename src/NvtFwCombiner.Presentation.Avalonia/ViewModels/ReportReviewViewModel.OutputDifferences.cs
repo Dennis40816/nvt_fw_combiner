@@ -18,12 +18,15 @@ public sealed partial class ReportReviewViewModel
                 {
                     string classification = GetString(difference, "Classification");
                     bool accepted = GetBool(difference, "IsAccepted");
-                    string beforeHex = GetStringOrNull(difference, "BeforeHexPreview") ??
-                        GetStringOrNull(difference, "BeforeHex") ??
-                        string.Empty;
-                    string afterHex = GetStringOrNull(difference, "AfterHexPreview") ??
-                        GetStringOrNull(difference, "AfterHex") ??
-                        string.Empty;
+                    string beforeFullHex = GetStringOrNull(difference, "BeforeHex") ?? string.Empty;
+                    string afterFullHex = GetStringOrNull(difference, "AfterHex") ?? string.Empty;
+                    string beforePreviewHex = GetStringOrNull(difference, "BeforeHexPreview") ?? string.Empty;
+                    string afterPreviewHex = GetStringOrNull(difference, "AfterHexPreview") ?? string.Empty;
+                    bool hasFullHex = !string.IsNullOrWhiteSpace(beforeFullHex) || !string.IsNullOrWhiteSpace(afterFullHex);
+                    bool isHexComplete = hasFullHex || GetBool(difference, "IsHexPreviewComplete");
+                    long previewByteCount = GetLong(difference, "HexPreviewByteCount");
+                    string beforeHex = hasFullHex ? beforeFullHex : beforePreviewHex;
+                    string afterHex = hasFullHex ? afterFullHex : afterPreviewHex;
                     bool hasHex = !string.IsNullOrWhiteSpace(beforeHex) || !string.IsNullOrWhiteSpace(afterHex);
                     string before = hasHex ? FormatBytePreview(beforeHex) : GetString(difference, "BeforeSha256");
                     string after = hasHex ? FormatBytePreview(afterHex) : GetString(difference, "AfterSha256");
@@ -52,9 +55,13 @@ public sealed partial class ReportReviewViewModel
                         changedSummary: FormatChangedBytes(changedByteCount, language),
                         reason: reason,
                         sectionLabel: sectionLabel,
-                        beforeLabel: hasHex ? T(language, "Before bytes", "變更前 bytes") : T(language, "Before range hash", "變更前 range hash"),
+                        beforeLabel: hasHex
+                            ? FormatByteValueLabel(isBefore: true, isComplete: isHexComplete, previewByteCount, language)
+                            : T(language, "Before range hash", "變更前 range hash"),
                         beforeValue: before,
-                        afterLabel: hasHex ? T(language, "After bytes", "變更後 bytes") : T(language, "After range hash", "變更後 range hash"),
+                        afterLabel: hasHex
+                            ? FormatByteValueLabel(isBefore: false, isComplete: isHexComplete, previewByteCount, language)
+                            : T(language, "After range hash", "變更後 range hash"),
                         afterValue: after);
                 }),
             ];
@@ -69,6 +76,67 @@ public sealed partial class ReportReviewViewModel
             WorkbenchOutputDifferenceClassifications.Unexpected => T(language, "unexpected", "意外"),
             _ => classification,
         };
+    }
+
+    private static string FormatByteValueLabel(
+        bool isBefore,
+        bool isComplete,
+        long previewByteCount,
+        ShellLanguage language)
+    {
+        if (isComplete)
+        {
+            return isBefore
+                ? T(language, "Before bytes", "變更前 bytes")
+                : T(language, "After bytes", "變更後 bytes");
+        }
+
+        string count = previewByteCount > 0
+            ? previewByteCount.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            : "?";
+        return isBefore
+            ? T(language, $"Before preview, first {count} bytes", $"變更前 preview，前 {count} bytes")
+            : T(language, $"After preview, first {count} bytes", $"變更後 preview，前 {count} bytes");
+    }
+
+    private static IReadOnlyList<ReportDifferenceGroupViewModel> CreateOutputDifferenceGroups(
+        IReadOnlyList<ReportLineViewModel> outputDifferences,
+        ShellLanguage language)
+    {
+        return outputDifferences.Count == 0
+            ? []
+            :
+            [
+            .. outputDifferences
+                .GroupBy(difference => string.IsNullOrWhiteSpace(difference.SectionLabel)
+                    ? FormatDifferenceSectionLabel(difference.Classification, language)
+                    : difference.SectionLabel)
+                .Select(group =>
+                {
+                    ReportLineViewModel[] rows = [.. group];
+                    int accepted = rows.Count(IsAcceptedOutputDifference);
+                    int review = rows.Length - accepted;
+                    bool isAccepted = review == 0;
+                    string status = review == 0
+                        ? T(
+                            language,
+                            $"{accepted.ToString(System.Globalization.CultureInfo.InvariantCulture)}/{rows.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)} accepted",
+                            $"{accepted.ToString(System.Globalization.CultureInfo.InvariantCulture)}/{rows.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)} 可接受")
+                        : T(
+                            language,
+                            $"{accepted.ToString(System.Globalization.CultureInfo.InvariantCulture)} accepted / {review.ToString(System.Globalization.CultureInfo.InvariantCulture)} review",
+                            $"{accepted.ToString(System.Globalization.CultureInfo.InvariantCulture)} 可接受 / {review.ToString(System.Globalization.CultureInfo.InvariantCulture)} 待審查");
+                    bool hasSharedReason = rows
+                        .Select(row => row.Reason)
+                        .Distinct(StringComparer.Ordinal)
+                        .Count() == 1 &&
+                        rows.Select(IsAcceptedOutputDifference).Distinct().Count() == 1;
+                    string reason = hasSharedReason
+                        ? rows.FirstOrDefault(row => row.HasReason)?.Reason ?? string.Empty
+                        : string.Empty;
+                    return new ReportDifferenceGroupViewModel(group.Key, reason, status, rows, hasSharedReason, isAccepted);
+                }),
+            ];
     }
 
     private static string FormatDifferenceSectionLabel(string classification, ShellLanguage language)

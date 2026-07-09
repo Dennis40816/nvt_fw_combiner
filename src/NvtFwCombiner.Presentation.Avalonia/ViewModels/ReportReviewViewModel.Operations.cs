@@ -15,27 +15,58 @@ public sealed partial class ReportReviewViewModel
             {
                 string source = FormatEndpoint(GetStringOrNull(operation, "SourceSpaceId"), GetRangeOrNull(operation, "SourceRange"));
                 string target = FormatEndpoint(GetString(operation, "TargetSpaceId"), GetRangeOrNull(operation, "TargetRange"));
-                string processor = GetStringOrNull(operation, "ProcessorId") ??
-                    GetStringOrNull(operation, "ToolBindingId") ??
+                string kind = GetString(operation, "Kind");
+                string operationId = GetString(operation, "OperationId");
+                string? processorId = GetStringOrNull(operation, "ProcessorId");
+                string? toolBindingId = GetStringOrNull(operation, "ToolBindingId");
+                string processor = processorId ??
+                    toolBindingId ??
                     "-";
                 string status = GetString(operation, nameof(Status));
                 string reason = GetString(operation, "Reason");
                 (string reasonSummary, string commandBlock) = ExtractCombinerCommand(reason);
                 return new ReportLineViewModel(
-                    $"{GetLong(operation, "Sequence")}. {GetString(operation, "OperationId")}",
-                    $"{GetString(operation, "Kind")} {source} -> {target}",
+                    FormatOperationTitle(GetLong(operation, "Sequence"), kind, operationId),
+                    FormatOperationDetail(kind, target, processorId, toolBindingId),
                     reasonSummary,
                     commandBlock,
                     CreateOperationBadges(operation),
                     CreateOperationFacts(operation, reasonSummary),
                     CreateOperationRangeRows(operation),
-                    operationKind: GetString(operation, "Kind"),
+                    operationKind: kind,
                     operationSource: source,
                     operationTarget: target,
                     operationProcessor: processor,
                     operationStatus: string.IsNullOrWhiteSpace(status) ? "unknown" : status);
             }),
             ];
+    }
+
+    private static string FormatOperationTitle(long sequence, string kind, string operationId)
+    {
+        string title = string.Equals(kind, "RunExternalProcessor", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(kind, "run-external-processor", StringComparison.OrdinalIgnoreCase)
+            ? "Postbuild refresh"
+            : string.IsNullOrWhiteSpace(operationId) ? kind : operationId;
+
+        return string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{sequence}. {title}");
+    }
+
+    private static string FormatOperationDetail(
+        string kind,
+        string target,
+        string? processorId,
+        string? toolBindingId)
+    {
+        if (!string.Equals(kind, "RunExternalProcessor", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(kind, "run-external-processor", StringComparison.OrdinalIgnoreCase))
+        {
+            return target;
+        }
+
+        string tool = string.IsNullOrWhiteSpace(toolBindingId) ? "approved postbuild tool" : toolBindingId;
+        string processor = string.IsNullOrWhiteSpace(processorId) ? string.Empty : $" via {processorId}";
+        return $"{tool}{processor} updates {target}";
     }
 
     private static ReportLineBadgeViewModel[] CreateOperationBadges(JsonElement operation)
@@ -184,7 +215,7 @@ public sealed partial class ReportReviewViewModel
             return (reason, string.Empty);
         }
 
-        string summary = reason[..(markerIndex + "Combiner command".Length)].Trim();
+        string summary = reason[..markerIndex].Trim();
         string command = reason[(markerIndex + marker.Length)..].Trim();
         if (command.EndsWith('.'))
         {

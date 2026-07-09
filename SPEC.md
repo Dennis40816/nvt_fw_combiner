@@ -1,7 +1,7 @@
 # NVT FW Combiner（NFC）實作規格
 
 > 文件狀態：`Repository Bootstrap Baseline`
-> 文件版本：`0.7.5`
+> 文件版本：`0.8.0`
 > 基準日期：`2026-06-25`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`

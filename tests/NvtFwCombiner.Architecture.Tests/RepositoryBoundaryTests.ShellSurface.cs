@@ -199,7 +199,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ContentTemplate=\"{StaticResource ReportAuditDetailsPanelTemplate}\"", reportModal, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.EvidenceTitle}\"", reportAuditTemplates, StringComparison.Ordinal);
         Assert.Contains("ReportLineBadgeTemplate", reportTemplates, StringComparison.Ordinal);
-        Assert.Contains("ReportDifferenceSummaryChipTemplate", reportPanels, StringComparison.Ordinal);
+        Assert.Contains("ReportDifferenceSummaryRowTemplate", reportPanels, StringComparison.Ordinal);
         Assert.Contains("ReportDifferenceSummaryChipTemplate", reportChangeTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("Choose IC and Number inside", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("HomeReplaceStatus", shell, StringComparison.Ordinal);

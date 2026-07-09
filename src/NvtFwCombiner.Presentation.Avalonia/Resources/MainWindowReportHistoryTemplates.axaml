@@ -4,7 +4,7 @@
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
 
 <DataTemplate x:Key="ReportHistoryEntryTemplate" DataType="vm:ReportHistoryEntryViewModel">
-  <Grid Margin="0,0,0,8" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+  <Grid Margin="0,0,0,8" ColumnDefinitions="*,38" ColumnSpacing="10">
     <Button
         HorizontalAlignment="Stretch"
         Padding="0"
@@ -30,6 +30,7 @@
     <Button
         Grid.Column="1"
         Classes="iconButton dangerIcon"
+        HorizontalAlignment="Center"
         VerticalAlignment="Top"
         Command="{ReflectionBinding $parent[Window].DataContext.RemoveReportHistoryEntryCommand}"
         CommandParameter="{Binding}"

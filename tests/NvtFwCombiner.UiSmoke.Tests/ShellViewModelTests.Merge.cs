@@ -63,6 +63,22 @@ public sealed partial class ShellViewModelTests
         Assert.Contains("reserved", viewModel.MergeMemorySummary, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>Verifies the Home General Merge shortcut opens Merge in General mode.</summary>
+    [Fact]
+    public void GeneralMergeShortcutOpensGeneralMergeMode()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        viewModel.ShowGeneralMergeCommand.Execute(null);
+
+        Assert.True(viewModel.IsMergeVisible);
+        Assert.True(viewModel.IsGeneralMergeModeSelected);
+        Assert.False(viewModel.IsNormalMergeModeSelected);
+        Assert.Equal("Home > Merge", viewModel.NavigationPath);
+        Assert.False(viewModel.IsNumberSelectorVisible);
+        Assert.True(viewModel.IsNumberSelectorPlaceholderVisible);
+    }
+
     /// <summary>Verifies Standard Merge slots follow the selected profile instead of exposing LD globally.</summary>
     [Fact]
     public void MergeSlotsFollowSelectedProfileRequiredInputs()
@@ -133,6 +149,8 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.HasLoadedReport);
         Assert.True(viewModel.LoadedReport.HasOutputArtifactPath);
         Assert.Equal(outputPath, viewModel.LoadedReport.OutputArtifactPath);
+        Assert.Equal($"{viewModel.LoadedReport.OutputSize} bytes", viewModel.LoadedReport.OutputSizeLabel);
+        Assert.Equal("Committed output", viewModel.LoadedReport.OutputCommitmentLabel);
         Assert.True(viewModel.HasReportToast);
         Assert.Equal(1, viewModel.ReportToastOpacity);
         Assert.Equal("Build report generated", viewModel.ReportToastText);

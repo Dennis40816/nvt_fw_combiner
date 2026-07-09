@@ -24,7 +24,7 @@ internal static class ReportJsonSamples
         string startedAtUtc = "2026-07-01T00:00:00Z",
         string outputFileName = "preview.bin",
         long outputSize = 0,
-        bool committed = false,
+        bool? committed = false,
         string outputSha256 = "abcdef")
     {
         return Create(
@@ -63,7 +63,10 @@ internal static class ReportJsonSamples
             "0123456789abcdef012345");
     }
 
-    public static string ReplaceWithAcceptedOutputDifferences(string runId = "replace-diff")
+    public static string ReplaceWithAcceptedOutputDifferences(
+        string runId = "replace-diff",
+        bool isHexPreviewComplete = true,
+        int hexPreviewByteCount = 4)
     {
         return Create(
             "nt51927-ctrlram-replace",
@@ -90,7 +93,9 @@ internal static class ReportJsonSamples
                     isAccepted: true,
                     "postbuild-single: legacy-combiner",
                     "Accepted: this range is inside the NT51927 / single approved TP flash header / CRC fields postbuild write ranges.",
-                    "TP flash header / CRC fields"),
+                    "TP flash header / CRC fields",
+                    hexPreviewByteCount,
+                    isHexPreviewComplete),
             ]);
     }
 
@@ -173,7 +178,7 @@ internal static class ReportJsonSamples
         IReadOnlyList<object> issues,
         string outputFileName,
         long outputSize,
-        bool committed,
+        bool? committed,
         string outputSha256,
         IReadOnlyList<object>? outputDifferences = null)
     {
@@ -210,7 +215,9 @@ internal static class ReportJsonSamples
         bool isAccepted,
         string evidence,
         string explanation,
-        string? sectionLabel = null)
+        string? sectionLabel = null,
+        int hexPreviewByteCount = 4,
+        bool isHexPreviewComplete = true)
     {
         return new
         {
@@ -226,8 +233,8 @@ internal static class ReportJsonSamples
             AfterSha256 = "22222222222222222222",
             BeforeHexPreview = "AABBCCDD",
             AfterHexPreview = "11223344",
-            HexPreviewByteCount = 4,
-            IsHexPreviewComplete = true,
+            HexPreviewByteCount = hexPreviewByteCount,
+            IsHexPreviewComplete = isHexPreviewComplete,
         };
     }
 
