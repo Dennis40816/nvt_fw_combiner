@@ -116,9 +116,6 @@ public sealed partial class GeneralReplaceHexByteCellViewModel : ObservableObjec
 
     /// <summary>True while the byte accepts direct inline hexadecimal input.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsDisplayVisible))]
-    [NotifyPropertyChangedFor(nameof(IsEditorVisible))]
-    [NotifyPropertyChangedFor(nameof(IsAuthoringDisplayVisible))]
     public partial bool IsEditing { get; set; }
 
     /// <summary>Temporary two-character hexadecimal input for direct editing.</summary>
@@ -129,15 +126,6 @@ public sealed partial class GeneralReplaceHexByteCellViewModel : ObservableObjec
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasInlineValidationMessage))]
     public partial string InlineValidationMessage { get; set; } = string.Empty;
-
-    /// <summary>True while the compact button presentation should remain visible.</summary>
-    public bool IsDisplayVisible => !IsEditing;
-
-    /// <summary>True while the virtual authoring row may render an editable byte button.</summary>
-    public bool IsAuthoringDisplayVisible => !IsReference && !IsEditing;
-
-    /// <summary>True while the inline hexadecimal text input should be visible.</summary>
-    public bool IsEditorVisible => IsEditing;
 
     /// <summary>True when the inline input has a validation failure to expose through its tooltip.</summary>
     public bool HasInlineValidationMessage => !string.IsNullOrWhiteSpace(InlineValidationMessage);

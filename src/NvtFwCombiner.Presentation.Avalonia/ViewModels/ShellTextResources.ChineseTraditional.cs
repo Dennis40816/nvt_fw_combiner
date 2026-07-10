@@ -120,7 +120,7 @@ public sealed partial class ShellTextResources
             GeneralReplaceNoPatchesLabel = "尚未暫存變更。",
             GeneralReplaceHexViewportNoBaseDetail = "選擇 base flash BIN 後即可瀏覽十六進位 bytes。",
             GeneralReplaceHexViewportAddressInvalidDetail = "請輸入有效的非負十六進位或十進位位址。",
-            GeneralReplaceHexViewportReadyDetail = "Base {0:N0} bytes | 目前顯示 0x{1:X6}-0x{2:X6}",
+            GeneralReplaceHexViewportReadyDetail = "Base 0x{0:X} bytes | 目前顯示 0x{1:X6}-0x{2:X6}",
             GeneralReplaceHexEditorTitle = "Hex 編輯器",
             GeneralReplaceHexEditorDetail = "雙擊 byte 可直接編輯；右鍵可設定範圍或清除單一 byte。暫存變更只在 Build 時才會寫出新的 BIN。",
             GeneralReplaceHexGoToLabel = "跳至位址",

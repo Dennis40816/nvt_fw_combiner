@@ -144,6 +144,7 @@ public sealed partial class ShellViewModelTests
         GeneralReplaceHexViewportRowViewModel viewportRow = Assert.Single(
             viewModel.GeneralReplaceHexViewportRows,
             row => row.Address == "0x000100" && !row.IsReferenceRow);
+        GeneralReplaceHexViewportRowViewModel initialViewportRow = viewportRow;
         Assert.False(viewportRow.IsEditedRow);
 
         viewModel.GeneralReplacePatchDraft.StartAddress = "0x00100";
@@ -152,16 +153,27 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectGeneralReplaceHexByteCommand.Execute(viewportRow.Bytes[0]);
         Assert.Equal("0x000100", viewModel.GeneralReplacePatchDraft.StartAddress);
         Assert.Equal("0x000100", viewModel.GeneralReplacePatchDraft.EndAddress);
+        Assert.Equal("0x00000", viewModel.GeneralReplaceHexViewportAddress);
         viewModel.GeneralReplacePatchDraft.EndAddress = "0x00101";
         viewModel.GeneralReplacePatchDraft.Value = "A5 5A";
         Assert.Same(viewportRow, viewModel.GeneralReplaceHexViewportRows.Single(row =>
             row.Address == "0x000100" && !row.IsReferenceRow));
 
+        int viewportResetCount = 0;
+        viewModel.GeneralReplaceHexViewportRows.CollectionChanged += (_, args) =>
+        {
+            if (args.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Reset)
+            {
+                viewportResetCount++;
+            }
+        };
         viewModel.ApplyGeneralReplacePatchCommand.Execute(null);
 
         viewportRow = Assert.Single(
             viewModel.GeneralReplaceHexViewportRows,
             row => row.Address == "0x000100" && !row.IsReferenceRow);
+        Assert.Same(initialViewportRow, viewportRow);
+        Assert.Equal(0, viewportResetCount);
         Assert.True(viewportRow.IsEditedRow);
         Assert.True(viewportRow.Bytes[0].IsChanged);
         Assert.Equal("A5", viewportRow.Bytes[0].ValueHex);
@@ -181,6 +193,7 @@ public sealed partial class ShellViewModelTests
         viewportRow = Assert.Single(
             viewModel.GeneralReplaceHexViewportRows,
             row => row.Address == "0x000100" && !row.IsReferenceRow);
+        Assert.Same(initialViewportRow, viewportRow);
         Assert.Equal("A5", viewportRow.Bytes[0].ValueHex);
 
         viewModel.UndoGeneralReplacePatchCommand.Execute(null);
@@ -189,10 +202,12 @@ public sealed partial class ShellViewModelTests
         viewportRow = Assert.Single(
             viewModel.GeneralReplaceHexViewportRows,
             row => row.Address == "0x000100" && !row.IsReferenceRow);
+        Assert.Same(initialViewportRow, viewportRow);
         Assert.Equal(baseBytes[0x100].ToString("X2", CultureInfo.InvariantCulture), viewportRow.Bytes[0].ValueHex);
 
         viewModel.RedoGeneralReplacePatchCommand.Execute(null);
         Assert.True(viewModel.HasGeneralReplacePatches);
+        Assert.Equal(0, viewportResetCount);
 
         await viewModel.BuildHexEditorAsync(outputPath);
 
@@ -202,6 +217,39 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(baseBytes, File.ReadAllBytes(basePath));
         Assert.Contains(viewModel.LoadedReport.Operations, operation =>
             operation.Title.Contains("hex-patch-1", StringComparison.Ordinal));
+    }
+
+    /// <summary>Verifies a real viewport move uses one collection reset rather than one add notification per row.</summary>
+    [Fact]
+    public void GeneralReplaceHexEditorReplacesViewportRowsInOneBatch()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-general-hex-viewport-batch");
+        string basePath = workspace.Write("base.bin", CreatePattern(0x40000, 0x63));
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51950";
+        viewModel.ShowHexEditorCommand.Execute(null);
+        viewModel.SetSlotFile("replace-base", basePath);
+        Assert.Contains("Base 0x40000 bytes", viewModel.GeneralReplaceHexViewportStatus, StringComparison.Ordinal);
+
+        int resetCount = 0;
+        int incrementalChangeCount = 0;
+        viewModel.GeneralReplaceHexViewportRows.CollectionChanged += (_, args) =>
+        {
+            if (args.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Reset)
+            {
+                resetCount++;
+            }
+            else
+            {
+                incrementalChangeCount++;
+            }
+        };
+
+        viewModel.GeneralReplaceHexViewportAddress = "0x000200";
+        viewModel.GoToGeneralReplaceHexViewportCommand.Execute(null);
+
+        Assert.Equal(1, resetCount);
+        Assert.Equal(0, incrementalChangeCount);
     }
 
     /// <summary>Hex Build must use the loaded in-memory base snapshot after the selected source file disappears.</summary>

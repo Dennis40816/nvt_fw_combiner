@@ -10,10 +10,32 @@ namespace NvtFwCombiner.Presentation.Avalonia.Views;
 /// <summary>Experimental profile-bound hexadecimal editor hosted below Replace workflows.</summary>
 public sealed partial class HexEditorPanel : UserControl
 {
+    private readonly ContextMenu _hexByteContextMenu;
+    private readonly MenuItem _hexByteContextClearMenuItem;
+    private readonly MenuItem _hexByteContextEditMenuItem;
+    private readonly MenuItem _hexByteContextRangeEndMenuItem;
+    private readonly MenuItem _hexByteContextRangeStartMenuItem;
+    private GeneralReplaceHexByteCellViewModel? _hexByteContextCell;
+
     /// <summary>Initializes the hexadecimal editor panel.</summary>
     public HexEditorPanel()
     {
         InitializeComponent();
+
+        _hexByteContextEditMenuItem = new MenuItem();
+        _hexByteContextRangeStartMenuItem = new MenuItem();
+        _hexByteContextRangeEndMenuItem = new MenuItem();
+        _hexByteContextClearMenuItem = new MenuItem();
+        _hexByteContextEditMenuItem.Click += HexByteContextEditMenuItem_OnClick;
+        _hexByteContextRangeStartMenuItem.Click += HexByteContextRangeStartMenuItem_OnClick;
+        _hexByteContextRangeEndMenuItem.Click += HexByteContextRangeEndMenuItem_OnClick;
+        _hexByteContextClearMenuItem.Click += HexByteContextClearMenuItem_OnClick;
+        _hexByteContextMenu = new ContextMenu();
+        _ = _hexByteContextMenu.Items.Add(_hexByteContextEditMenuItem);
+        _ = _hexByteContextMenu.Items.Add(_hexByteContextRangeStartMenuItem);
+        _ = _hexByteContextMenu.Items.Add(_hexByteContextRangeEndMenuItem);
+        _ = _hexByteContextMenu.Items.Add(new Separator());
+        _ = _hexByteContextMenu.Items.Add(_hexByteContextClearMenuItem);
     }
 
     private async void SaveAsHexEditorButton_OnClick(object? sender, RoutedEventArgs e)
@@ -41,6 +63,29 @@ public sealed partial class HexEditorPanel : UserControl
         {
             BeginInlineHexByteEdit(viewModel, cell);
         }
+    }
+
+    private void HexByte_OnPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel ||
+            sender is not Control { DataContext: GeneralReplaceHexByteCellViewModel cell } target)
+        {
+            return;
+        }
+
+        viewModel.SelectGeneralReplaceHexByteCommand.Execute(cell);
+        if (!e.GetCurrentPoint(target).Properties.IsRightButtonPressed)
+        {
+            return;
+        }
+
+        _hexByteContextCell = cell;
+        _hexByteContextEditMenuItem.Header = cell.EditMenuLabel;
+        _hexByteContextRangeStartMenuItem.Header = cell.RangeStartMenuLabel;
+        _hexByteContextRangeEndMenuItem.Header = cell.RangeEndMenuLabel;
+        _hexByteContextClearMenuItem.Header = cell.ClearMenuLabel;
+        _hexByteContextMenu.Open(target);
+        e.Handled = true;
     }
 
     private void HexByteEditBox_OnKeyDown(object? sender, KeyEventArgs e)
@@ -74,7 +119,7 @@ public sealed partial class HexEditorPanel : UserControl
 
     private void HexByteContextEditMenuItem_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (!TryGetContextByte(sender, out MainWindowViewModel? viewModel, out GeneralReplaceHexByteCellViewModel? cell) ||
+        if (!TryGetContextByte(out MainWindowViewModel? viewModel, out GeneralReplaceHexByteCellViewModel? cell) ||
             viewModel is null ||
             cell is null)
         {
@@ -86,7 +131,7 @@ public sealed partial class HexEditorPanel : UserControl
 
     private void HexByteContextRangeStartMenuItem_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (!TryGetContextByte(sender, out MainWindowViewModel? viewModel, out GeneralReplaceHexByteCellViewModel? cell) ||
+        if (!TryGetContextByte(out MainWindowViewModel? viewModel, out GeneralReplaceHexByteCellViewModel? cell) ||
             viewModel is null ||
             cell is null)
         {
@@ -98,7 +143,7 @@ public sealed partial class HexEditorPanel : UserControl
 
     private void HexByteContextRangeEndMenuItem_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (!TryGetContextByte(sender, out MainWindowViewModel? viewModel, out GeneralReplaceHexByteCellViewModel? cell) ||
+        if (!TryGetContextByte(out MainWindowViewModel? viewModel, out GeneralReplaceHexByteCellViewModel? cell) ||
             viewModel is null ||
             cell is null)
         {
@@ -110,7 +155,7 @@ public sealed partial class HexEditorPanel : UserControl
 
     private void HexByteContextClearMenuItem_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (!TryGetContextByte(sender, out MainWindowViewModel? viewModel, out GeneralReplaceHexByteCellViewModel? cell) ||
+        if (!TryGetContextByte(out MainWindowViewModel? viewModel, out GeneralReplaceHexByteCellViewModel? cell) ||
             viewModel is null ||
             cell is null)
         {
@@ -138,12 +183,11 @@ public sealed partial class HexEditorPanel : UserControl
     }
 
     private bool TryGetContextByte(
-        object? sender,
         out MainWindowViewModel? viewModel,
         out GeneralReplaceHexByteCellViewModel? cell)
     {
         viewModel = DataContext as MainWindowViewModel;
-        cell = (sender as Control)?.DataContext as GeneralReplaceHexByteCellViewModel;
+        cell = _hexByteContextCell;
         return viewModel is not null && cell is not null;
     }
 }

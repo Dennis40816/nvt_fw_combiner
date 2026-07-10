@@ -62,6 +62,47 @@
   <Style Selector="Grid.hexRow.referenceRow">
     <Setter Property="Background" Value="#F8FAFC" />
   </Style>
+  <Style Selector="Border.hexCell">
+    <Setter Property="MinWidth" Value="28" />
+    <Setter Property="MinHeight" Value="24" />
+    <Setter Property="Padding" Value="1" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="3" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Border.hexCell TextBlock">
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="TextAlignment" Value="Center" />
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="#334155" />
+  </Style>
+  <Style Selector="Border.hexCell:pointerover">
+    <Setter Property="Background" Value="#EAF3FF" />
+    <Setter Property="BorderBrush" Value="#BFDBFE" />
+  </Style>
+  <Style Selector="Border.hexCell:pointerover TextBlock">
+    <Setter Property="Foreground" Value="#1D4ED8" />
+  </Style>
+  <Style Selector="Border.hexCell.changed">
+    <Setter Property="Background" Value="#FEF3C7" />
+    <Setter Property="BorderBrush" Value="#FDE68A" />
+  </Style>
+  <Style Selector="Border.hexCell.changed TextBlock">
+    <Setter Property="Foreground" Value="#92400E" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Border.hexCell.selected">
+    <Setter Property="Background" Value="#DBEAFE" />
+    <Setter Property="BorderBrush" Value="#2563EB" />
+  </Style>
+  <Style Selector="Border.hexCell.selected TextBlock">
+    <Setter Property="Foreground" Value="#1D4ED8" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
   <Style Selector="Button.command:pointerover Border.workflowOpenPill">
     <Setter Property="Background" Value="#2563EB" />
     <Setter Property="BorderBrush" Value="#2563EB" />

@@ -54,7 +54,7 @@ public sealed class XamlControlStyleContractTests
 
         Assert.Contains("Gesture=\"Ctrl+S\"", shell, StringComparison.Ordinal);
         Assert.Contains("RequestHexEditorSaveCommand", shell, StringComparison.Ordinal);
-        Assert.Contains("IsAuthoringDisplayVisible", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("Classes.editing=\"{Binding IsEditing}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("Classes=\"hexReferenceCell\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("Selector=\"TextBlock.hexReferenceCell\"", styles, StringComparison.Ordinal);
     }
@@ -76,14 +76,31 @@ public sealed class XamlControlStyleContractTests
     [Fact]
     public void HexEditorByteCellsCenterTheirContentUnderTheHeader()
     {
-        string buttons = ReadPresentationFile("Styles/MainWindowButtonStyles.axaml");
+        string visualStyles = ReadPresentationFile("Styles/MainWindowVisualStyles.axaml");
 
-        int hexCellStyle = buttons.IndexOf("Selector=\"Button.hexCell\"", StringComparison.Ordinal);
-        string hexCellSection = buttons[hexCellStyle..buttons.IndexOf("</Style>", hexCellStyle, StringComparison.Ordinal)];
-
+        int hexCellStyle = visualStyles.IndexOf("Selector=\"Border.hexCell TextBlock\"", StringComparison.Ordinal);
         Assert.NotEqual(-1, hexCellStyle);
-        Assert.Contains("HorizontalContentAlignment\" Value=\"Center\"", hexCellSection, StringComparison.Ordinal);
-        Assert.Contains("VerticalContentAlignment\" Value=\"Center\"", hexCellSection, StringComparison.Ordinal);
+        string hexCellSection = visualStyles[hexCellStyle..visualStyles.IndexOf("</Style>", hexCellStyle, StringComparison.Ordinal)];
+        Assert.Contains("HorizontalAlignment\" Value=\"Center\"", hexCellSection, StringComparison.Ordinal);
+        Assert.Contains("TextAlignment\" Value=\"Center\"", hexCellSection, StringComparison.Ordinal);
+        Assert.Contains("VerticalAlignment\" Value=\"Center\"", hexCellSection, StringComparison.Ordinal);
+    }
+
+    /// <summary>Prevents a read-mostly viewport from recreating one menu and editor per visible byte.</summary>
+    [Fact]
+    public void HexEditorUsesReadMostlyCellsAndOneSharedContextMenu()
+    {
+        string hexEditor = ReadPresentationFile("Views/HexEditorPanel.axaml");
+        string codeBehind = ReadPresentationFile("Views/HexEditorPanel.axaml.cs");
+
+        Assert.Contains("<ContentControl", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"hexByteCell\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("PointerPressed=\"HexByte_OnPointerPressed\"", hexEditor, StringComparison.Ordinal);
+        Assert.DoesNotContain("<Button.ContextMenu>", hexEditor, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsAuthoringDisplayVisible", hexEditor, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsEditorVisible", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("new ContextMenu()", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("_hexByteContextMenu.Open(target)", codeBehind, StringComparison.Ordinal);
     }
 
     /// <summary>Ensures the local fixture is Debug-only and never changes the default landing page.</summary>

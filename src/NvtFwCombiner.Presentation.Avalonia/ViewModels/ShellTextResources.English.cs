@@ -120,7 +120,7 @@ public sealed partial class ShellTextResources
             GeneralReplaceNoPatchesLabel = "No staged change.",
             GeneralReplaceHexViewportNoBaseDetail = "Select a base flash BIN to browse hexadecimal bytes.",
             GeneralReplaceHexViewportAddressInvalidDetail = "Enter a valid non-negative hexadecimal or decimal address.",
-            GeneralReplaceHexViewportReadyDetail = "Base {0:N0} bytes | viewing 0x{1:X6}-0x{2:X6}",
+            GeneralReplaceHexViewportReadyDetail = "Base 0x{0:X} bytes | viewing 0x{1:X6}-0x{2:X6}",
             GeneralReplaceHexEditorTitle = "Hex editor",
             GeneralReplaceHexEditorDetail = "Double-click a byte to edit it directly. Right-click to set a range or clear one byte. Staged changes remain virtual until Build writes a new BIN.",
             GeneralReplaceHexGoToLabel = "Go to address",

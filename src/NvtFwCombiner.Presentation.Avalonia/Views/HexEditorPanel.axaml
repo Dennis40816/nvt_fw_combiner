@@ -4,6 +4,51 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
     x:DataType="vm:MainWindowViewModel">
+  <UserControl.Styles>
+    <Style Selector="ContentControl.hexByteCell">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Stretch" />
+      <Setter Property="ContentTemplate">
+        <DataTemplate x:DataType="vm:GeneralReplaceHexByteCellViewModel">
+          <Border
+              Classes="hexCell"
+              Classes.changed="{Binding IsChanged}"
+              Classes.selected="{Binding IsSelected}"
+              AutomationProperties.Name="{Binding AccessibleLabel}"
+              DoubleTapped="HexByte_OnDoubleTapped"
+              PointerPressed="HexByte_OnPointerPressed">
+            <TextBlock Text="{Binding ValueHex}" />
+          </Border>
+        </DataTemplate>
+      </Setter>
+    </Style>
+    <Style Selector="ContentControl.hexByteCell.reference">
+      <Setter Property="ContentTemplate">
+        <DataTemplate x:DataType="vm:GeneralReplaceHexByteCellViewModel">
+          <TextBlock
+              Classes="hexReferenceCell"
+              AutomationProperties.Name="{Binding AccessibleLabel}"
+              Text="{Binding ValueHex}" />
+        </DataTemplate>
+      </Setter>
+    </Style>
+    <Style Selector="ContentControl.hexByteCell.editing">
+      <Setter Property="ContentTemplate">
+        <DataTemplate x:DataType="vm:GeneralReplaceHexByteCellViewModel">
+          <TextBox
+              Classes="hexCellEditor"
+              Classes.invalid="{Binding HasInlineValidationMessage}"
+              AutomationProperties.Name="{Binding AccessibleLabel}"
+              MaxLength="2"
+              Text="{Binding EditValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+              KeyDown="HexByteEditBox_OnKeyDown"
+              LostFocus="HexByteEditBox_OnLostFocus"
+              ToolTip.Tip="{Binding InlineValidationMessage}" />
+        </DataTemplate>
+      </Setter>
+    </Style>
+  </UserControl.Styles>
   <StackPanel Spacing="12">
     <ContentControl
         MaxWidth="720"
@@ -103,42 +148,11 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                           <DataTemplate x:DataType="vm:GeneralReplaceHexByteCellViewModel">
-                            <Grid>
-                              <Button
-                                  Classes="hexCell"
-                                  Classes.changed="{Binding IsChanged}"
-                                  Classes.selected="{Binding IsSelected}"
-                                  Command="{ReflectionBinding $parent[Window].DataContext.SelectGeneralReplaceHexByteCommand}"
-                                  CommandParameter="{Binding}"
-                                  DoubleTapped="HexByte_OnDoubleTapped"
-                                  IsVisible="{Binding IsAuthoringDisplayVisible}"
-                                  ToolTip.Tip="{Binding AccessibleLabel}">
-                                <Button.ContextMenu>
-                                  <ContextMenu>
-                                    <MenuItem Click="HexByteContextEditMenuItem_OnClick" Header="{Binding EditMenuLabel}" />
-                                    <MenuItem Click="HexByteContextRangeStartMenuItem_OnClick" Header="{Binding RangeStartMenuLabel}" />
-                                    <MenuItem Click="HexByteContextRangeEndMenuItem_OnClick" Header="{Binding RangeEndMenuLabel}" />
-                                    <Separator />
-                                    <MenuItem Click="HexByteContextClearMenuItem_OnClick" Header="{Binding ClearMenuLabel}" />
-                                  </ContextMenu>
-                                </Button.ContextMenu>
-                                <TextBlock Text="{Binding ValueHex}" />
-                              </Button>
-                              <TextBlock
-                                  Classes="hexReferenceCell"
-                                  IsVisible="{Binding IsReference}"
-                                  Text="{Binding ValueHex}"
-                                  ToolTip.Tip="{Binding AccessibleLabel}" />
-                              <TextBox
-                                  Classes="hexCellEditor"
-                                  Classes.invalid="{Binding HasInlineValidationMessage}"
-                                  IsVisible="{Binding IsEditorVisible}"
-                                  MaxLength="2"
-                                  Text="{Binding EditValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                  KeyDown="HexByteEditBox_OnKeyDown"
-                                  LostFocus="HexByteEditBox_OnLostFocus"
-                                  ToolTip.Tip="{Binding InlineValidationMessage}" />
-                            </Grid>
+                            <ContentControl
+                                Classes="hexByteCell"
+                                Classes.editing="{Binding IsEditing}"
+                                Classes.reference="{Binding IsReference}"
+                                Content="{Binding}" />
                           </DataTemplate>
                         </ItemsControl.ItemTemplate>
                       </ItemsControl>
