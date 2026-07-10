@@ -59,6 +59,19 @@ public sealed class XamlControlStyleContractTests
         Assert.Contains("Selector=\"TextBlock.hexReferenceCell\"", styles, StringComparison.Ordinal);
     }
 
+    /// <summary>Ensures the Hex Editor inspector remains compact and keeps its range selector usable.</summary>
+    [Fact]
+    public void HexEditorInspectorUsesCompactTopAlignedLayout()
+    {
+        string hexEditor = ReadPresentationFile("Views/HexEditorPanel.axaml");
+
+        Assert.Contains("ColumnDefinitions=\"*,340\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"compactSurface\" VerticalAlignment=\"Top\" Padding=\"0\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("HorizontalContentAlignment=\"Stretch\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("ColumnDefinitions=\"*,56,56\"", hexEditor, StringComparison.Ordinal);
+        Assert.DoesNotContain("RowDefinitions=\"Auto,Auto,Auto,Auto,Auto,*,Auto\"", hexEditor, StringComparison.Ordinal);
+    }
+
     /// <summary>Ensures the local fixture is Debug-only and never changes the default landing page.</summary>
     [Fact]
     public void DebugHexFixturePreloadsWithoutForcingHexEditorNavigation()
