@@ -38,6 +38,9 @@ public sealed partial class MainWindow
     private static void ApplyLaunchOptions(MainWindowViewModel viewModel, UiLaunchOptions launchOptions)
     {
         ApplyLaunchPage(viewModel, launchOptions.Page);
+#if DEBUG
+        ApplyDebugDemoWhenNoLaunchOptions(viewModel, launchOptions);
+#endif
         if (launchOptions.Issues.Count > 0)
         {
             viewModel.LoadReportError("Startup arguments", string.Join(Environment.NewLine, launchOptions.Issues));
@@ -81,6 +84,9 @@ public sealed partial class MainWindow
                 break;
             case ShellPage.Replace:
                 viewModel.ShowReplaceCommand.Execute(null);
+                break;
+            case ShellPage.HexEditor:
+                viewModel.ShowHexEditorCommand.Execute(null);
                 break;
             default:
                 break;

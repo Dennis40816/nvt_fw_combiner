@@ -6,18 +6,14 @@
     x:DataType="vm:MainWindowViewModel"
     Background="#990F172A">
   <Border
-      MinWidth="980"
+      Classes="surface"
       MaxWidth="1500"
       MaxHeight="940"
-      Margin="22,16"
+      Margin="16"
       Padding="0"
       HorizontalAlignment="Stretch"
-      VerticalAlignment="Stretch"
-      Background="#FFFFFF"
-      BorderBrush="#CBD5E1"
-      BorderThickness="1"
-      CornerRadius="8">
-    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="0">
+      VerticalAlignment="Stretch">
+    <Grid MinHeight="0" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="0">
       <ContentControl Content="{Binding}" ContentTemplate="{StaticResource ReportModalHeaderTemplate}" />
 
       <ContentControl
@@ -39,7 +35,7 @@
           ContentTemplate="{StaticResource ReportAuditDetailsPanelTemplate}"
           IsVisible="{Binding IsReportReviewViewOpen}" />
 
-      <StackPanel Grid.Row="4" Margin="22,18,22,18" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+      <StackPanel Grid.Row="4" Margin="16,14,16,14" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
         <Button
             Classes="secondary"
             Command="{Binding CloseReportCommand}"

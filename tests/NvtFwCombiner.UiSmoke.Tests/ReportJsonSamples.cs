@@ -94,6 +94,14 @@ internal static class ReportJsonSamples
                     "postbuild-single: legacy-combiner",
                     "Accepted: this range is inside the NT51927 / single approved TP flash header / CRC fields postbuild write ranges.",
                     "TP flash header / CRC fields",
+                    new
+                    {
+                        CategoryId = "tp-flash-header",
+                        CategoryLabel = "TP Flash Header",
+                        SubjectId = "nt51927-header:header-0-dlm-crc",
+                        SubjectLabel = "DLM CRC 0",
+                        Explanation = "Expected: postbuild recalculated DLM CRC 0.",
+                    },
                     hexPreviewByteCount,
                     isHexPreviewComplete),
             ]);
@@ -216,6 +224,7 @@ internal static class ReportJsonSamples
         string evidence,
         string explanation,
         string? sectionLabel = null,
+        object? semantic = null,
         int hexPreviewByteCount = 4,
         bool isHexPreviewComplete = true)
     {
@@ -229,6 +238,7 @@ internal static class ReportJsonSamples
             Evidence = evidence,
             Explanation = explanation,
             SectionLabel = sectionLabel,
+            Semantic = semantic,
             BeforeSha256 = "11111111111111111111",
             AfterSha256 = "22222222222222222222",
             BeforeHexPreview = "AABBCCDD",

@@ -4,36 +4,32 @@
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
 
 <DataTemplate x:Key="ReportInputRowTemplate" DataType="vm:ReportLineViewModel">
-  <Border Padding="10,10" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
-    <Grid ColumnDefinitions="*,120,126,360" ColumnSpacing="14">
-      <StackPanel Spacing="2">
-        <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
-        <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Detail}" TextWrapping="Wrap" IsVisible="{Binding HasInputDetail}" />
-      </StackPanel>
-      <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="#334155" Text="{Binding InputRole}" TextWrapping="Wrap" />
-      <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding InputSizeLabel}" TextWrapping="Wrap" />
-      <TextBlock Grid.Column="3" VerticalAlignment="Center" FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#0F172A" Text="{Binding InputAddressSpace}" TextWrapping="Wrap" />
-    </Grid>
+  <Border Padding="0,9" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+    <StackPanel Spacing="4">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <StackPanel Spacing="2">
+          <TextBlock Classes="bodyStrongText" Text="{Binding Title}" TextWrapping="Wrap" />
+          <TextBlock Classes="captionText" Text="{Binding Detail}" TextWrapping="Wrap" IsVisible="{Binding HasInputDetail}" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" HorizontalAlignment="Right" Spacing="2">
+          <TextBlock HorizontalAlignment="Right" FontSize="11" FontWeight="SemiBold" Foreground="#334155" Text="{Binding InputRole}" TextWrapping="Wrap" />
+          <TextBlock HorizontalAlignment="Right" Classes="technicalMeta" Text="{Binding InputSizeLabel}" TextWrapping="Wrap" />
+        </StackPanel>
+      </Grid>
+      <TextBlock Classes="technicalCaption" Text="{Binding InputAddressSpace}" TextWrapping="Wrap" IsVisible="{Binding HasInputFields}" />
+    </StackPanel>
   </Border>
 </DataTemplate>
 
 <DataTemplate x:Key="ReportInputGroupTemplate" DataType="vm:ReportInputGroupViewModel">
-  <Border Padding="12" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6">
-    <StackPanel Spacing="12">
+  <Border Margin="0,0,0,12" Padding="0,0,0,10" BorderBrush="#CBD5E1" BorderThickness="0,0,0,1">
+    <StackPanel Spacing="8">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
         <StackPanel Spacing="2">
-          <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" />
-          <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Detail}" TextWrapping="Wrap" />
+          <TextBlock Classes="panelTitle" Text="{Binding Title}" TextWrapping="Wrap" />
+          <TextBlock Classes="captionText" Text="{Binding Detail}" TextWrapping="Wrap" />
         </StackPanel>
-        <Border Grid.Column="1" Padding="7,2" VerticalAlignment="Top" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
-          <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding Count}" />
-        </Border>
-      </Grid>
-      <Grid Margin="10,0,10,-6" ColumnDefinitions="*,120,126,360" ColumnSpacing="14">
-        <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding InputLabel}" />
-        <TextBlock Grid.Column="1" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding RoleLabel}" />
-        <TextBlock Grid.Column="2" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding SizeLabel}" />
-        <TextBlock Grid.Column="3" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding AddressSpaceLabel}" />
+        <Label Grid.Column="1" Classes="reportBadge" Content="{Binding Count}" />
       </Grid>
       <ItemsControl ItemsSource="{Binding Rows}">
         <ItemsControl.ItemTemplate>

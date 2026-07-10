@@ -40,6 +40,9 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets the compact report notification text.</summary>
     public string ReportToastText { get; private set; } = string.Empty;
 
+    /// <summary>Gets the title for the shell notification, including non-report context updates.</summary>
+    public string ShellToastTitle { get; private set; } = string.Empty;
+
     /// <summary>Gets a suggested report JSON file name.</summary>
     public string ReportSaveFileName => HasLoadedReport
         ? $"{SanitizeFileName(LoadedReport.Title)}.json"
@@ -238,9 +241,16 @@ public sealed partial class MainWindowViewModel
 
     private void SetReportToast(string text)
     {
+        SetShellToast(Text.ReportToastTitle, text);
+    }
+
+    private void SetShellToast(string title, string text)
+    {
+        ShellToastTitle = title;
         ReportToastText = text;
         HasReportToast = true;
         ReportToastOpacity = 1;
+        OnPropertyChanged(nameof(ShellToastTitle));
         OnPropertyChanged(nameof(ReportToastText));
         OnPropertyChanged(nameof(HasReportToast));
         OnPropertyChanged(nameof(ReportToastOpacity));

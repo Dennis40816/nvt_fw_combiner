@@ -4,65 +4,62 @@
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
 
 <DataTemplate x:Key="ReportLineBadgeTemplate" DataType="vm:ReportLineBadgeViewModel">
-  <Border Margin="0,0,6,6" Padding="7,2" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
-    <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding Text}" TextWrapping="Wrap" />
-  </Border>
+  <Label Margin="0,0,6,6" Classes="reportBadge" Content="{Binding Text}" />
 </DataTemplate>
 
 <DataTemplate x:Key="ReportLineFactTemplate" DataType="vm:ReportLineFactViewModel">
-  <Grid Margin="0,1" ColumnDefinitions="96,*" ColumnSpacing="10">
-    <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Label}" TextWrapping="Wrap" />
+  <Grid Margin="0,1" ColumnDefinitions="Auto,*" ColumnSpacing="10">
+    <TextBlock Classes="tableHeader" Text="{Binding Label}" TextWrapping="Wrap" />
     <TextBlock Grid.Column="1" FontSize="11" Foreground="#475569" Text="{Binding Value}" TextWrapping="Wrap" IsVisible="{Binding IsPlainText}" />
-    <TextBlock Grid.Column="1" FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding Value}" TextWrapping="Wrap" IsVisible="{Binding IsTechnical}" />
+    <TextBlock Grid.Column="1" Classes="technicalCompactDetail" Text="{Binding Value}" TextWrapping="Wrap" IsVisible="{Binding IsTechnical}" />
   </Grid>
 </DataTemplate>
 
 <DataTemplate x:Key="ReportRangeTableRowTemplate" DataType="vm:ReportRangeTableRowViewModel">
-  <Border Padding="0,6" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
-    <Grid ColumnDefinitions="112,128,*,150" ColumnSpacing="10">
-      <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Kind}" TextWrapping="Wrap" />
-      <TextBlock Grid.Column="1" FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding AddressSpace}" TextWrapping="Wrap" />
-      <TextBlock Grid.Column="2" FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#0F172A" Text="{Binding Range}" TextWrapping="Wrap" />
-      <TextBlock Grid.Column="3" FontSize="11" Foreground="#64748B" Text="{Binding Source}" TextWrapping="Wrap" />
+  <Border Padding="0,7" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="3">
+      <TextBlock Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.KindLabel}" />
+      <TextBlock Grid.Column="1" Classes="compactStrongText" Text="{Binding Kind}" TextWrapping="Wrap" />
+      <TextBlock Grid.Row="1" Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.AddressSpaceLabel}" />
+      <TextBlock Grid.Row="1" Grid.Column="1" Classes="technicalCompactDetail" Text="{Binding AddressSpace}" TextWrapping="Wrap" />
+      <TextBlock Grid.Row="2" Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.RangeLabel}" />
+      <TextBlock Grid.Row="2" Grid.Column="1" Classes="technicalCompactValue" Text="{Binding Range}" TextWrapping="Wrap" />
+      <TextBlock Grid.Row="3" Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.SourceLabel}" />
+      <TextBlock Grid.Row="3" Grid.Column="1" Classes="captionText" Text="{Binding Source}" TextWrapping="Wrap" />
     </Grid>
   </Border>
 </DataTemplate>
 
 <DataTemplate x:Key="ReportSelectionRowTemplate" DataType="vm:ReportLineViewModel">
-  <Border Padding="0,8" BorderBrush="#EEF2F7" BorderThickness="0,1,0,0">
-    <Grid ColumnDefinitions="180,*" ColumnSpacing="12">
-      <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
-      <StackPanel Grid.Column="1" Spacing="2">
-        <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding Detail}" TextWrapping="Wrap" />
-        <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" />
-      </StackPanel>
-    </Grid>
+  <Border Classes="listRow" Padding="0,8">
+    <StackPanel Spacing="2">
+      <TextBlock Classes="panelTitle" Text="{Binding Title}" TextWrapping="Wrap" />
+      <TextBlock Classes="bodyEmphasisText" Text="{Binding Detail}" TextWrapping="Wrap" />
+      <TextBlock Classes="captionText" Text="{Binding Meta}" TextWrapping="Wrap" />
+    </StackPanel>
   </Border>
 </DataTemplate>
 
 <DataTemplate x:Key="ReportMissingRequiredRowTemplate" DataType="vm:ReportLineViewModel">
-  <Grid ColumnDefinitions="180,*" ColumnSpacing="12" Margin="0,0,0,8">
+  <StackPanel Margin="0,0,0,8" Spacing="2">
     <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#7C2D12" Text="{Binding Title}" TextWrapping="Wrap" />
-    <StackPanel Grid.Column="1" Spacing="2">
-      <TextBlock FontSize="12" Foreground="#7C2D12" Text="{Binding Detail}" TextWrapping="Wrap" />
-      <TextBlock FontSize="11" Foreground="#B45309" Text="{Binding Meta}" TextWrapping="Wrap" />
-    </StackPanel>
-  </Grid>
+    <TextBlock FontSize="12" Foreground="#7C2D12" Text="{Binding Detail}" TextWrapping="Wrap" />
+    <TextBlock FontSize="11" Foreground="#B45309" Text="{Binding Meta}" TextWrapping="Wrap" />
+  </StackPanel>
 </DataTemplate>
 
 <DataTemplate x:Key="ReportEvidenceChipTemplate" DataType="vm:ReportLineViewModel">
   <Border
-      Width="128"
+      Classes="panelSurface"
+      MinWidth="128"
+      MaxWidth="220"
       MinHeight="76"
       Padding="11,8"
-      Background="#FFFFFF"
-      BorderBrush="#E2E8F0"
-      BorderThickness="1"
-      CornerRadius="8">
+      >
     <StackPanel Spacing="2">
-      <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Title}" />
-      <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Detail}" TextWrapping="Wrap" />
-      <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" />
+      <TextBlock Classes="fieldLabel" Text="{Binding Title}" />
+      <TextBlock Classes="sectionTitle" Text="{Binding Detail}" TextWrapping="Wrap" />
+      <TextBlock Classes="captionText" Text="{Binding Meta}" TextWrapping="Wrap" />
     </StackPanel>
   </Border>
 </DataTemplate>
@@ -83,8 +80,8 @@
     </Grid>
     <StackPanel Grid.Column="1" Spacing="2">
       <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#1E3A8A" Text="{Binding Title}" TextWrapping="Wrap" />
-      <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Detail}" TextWrapping="Wrap" />
-      <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" />
+      <TextBlock Classes="panelTitle" Text="{Binding Detail}" TextWrapping="Wrap" />
+      <TextBlock Classes="captionText" Text="{Binding Meta}" TextWrapping="Wrap" />
     </StackPanel>
   </Grid>
 </DataTemplate>

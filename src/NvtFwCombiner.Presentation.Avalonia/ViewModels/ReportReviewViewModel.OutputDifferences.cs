@@ -31,24 +31,35 @@ public sealed partial class ReportReviewViewModel
                     string before = hasHex ? FormatBytePreview(beforeHex) : GetString(difference, "BeforeSha256");
                     string after = hasHex ? FormatBytePreview(afterHex) : GetString(difference, "AfterSha256");
                     string range = GetRangeOrNull(difference, "Range") ?? string.Empty;
-                    string sectionLabel = GetStringOrNull(difference, "SectionLabel") ??
+                    string semanticCategoryLabel = GetSemanticString(difference, "CategoryLabel");
+                    string semanticSubjectLabel = GetSemanticString(difference, "SubjectLabel");
+                    string semanticExplanation = GetSemanticString(difference, "Explanation");
+                    string semanticSubjectId = GetSemanticString(difference, "SubjectId");
+                    string sectionLabel = !string.IsNullOrWhiteSpace(semanticCategoryLabel)
+                        ? semanticCategoryLabel
+                        : GetStringOrNull(difference, "SectionLabel") ??
                         FormatDifferenceSectionLabel(classification, language);
-                    string reason = FormatDifferenceReason(classification, accepted, sectionLabel, language);
+                    string reason = !string.IsNullOrWhiteSpace(semanticExplanation)
+                        ? semanticExplanation
+                        : FormatDifferenceReason(classification, accepted, sectionLabel, language);
+                    string title = !string.IsNullOrWhiteSpace(semanticSubjectLabel)
+                        ? semanticSubjectLabel
+                        : GetString(difference, "DifferenceId");
                     long changedByteCount = GetLong(difference, "ChangedByteCount");
                     return new ReportLineViewModel(
-                        GetString(difference, "DifferenceId"),
-                        range,
+                        title,
                         reason,
+                        GetString(difference, "DifferenceId"),
                         badges:
                         [
-                            new ReportLineBadgeViewModel(accepted ? T(language, "accepted", "可接受") : T(language, "review", "待審查")),
+                            new ReportLineBadgeViewModel(accepted ? T(language, "expected", "預期") : T(language, "review", "待審查")),
                             new ReportLineBadgeViewModel(FormatDifferenceClassification(classification, language)),
                         ],
-                        facts:
-                        [
-                            new ReportLineFactViewModel(T(language, "Reason", "原因"), reason),
-                            new ReportLineFactViewModel(T(language, "Evidence id", "證據 ID"), GetString(difference, "Evidence"), isTechnical: true),
-                        ],
+                        facts: CreateOutputDifferenceFacts(
+                            language,
+                            reason,
+                            semanticSubjectId,
+                            GetString(difference, "Evidence")),
                         classification: classification,
                         isAccepted: accepted,
                         range: range,
@@ -120,12 +131,12 @@ public sealed partial class ReportReviewViewModel
                     string status = review == 0
                         ? T(
                             language,
-                            $"{accepted.ToString(System.Globalization.CultureInfo.InvariantCulture)}/{rows.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)} accepted",
-                            $"{accepted.ToString(System.Globalization.CultureInfo.InvariantCulture)}/{rows.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)} 可接受")
+                            $"{accepted.ToString(System.Globalization.CultureInfo.InvariantCulture)}/{rows.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)} expected",
+                            $"{accepted.ToString(System.Globalization.CultureInfo.InvariantCulture)}/{rows.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)} 預期")
                         : T(
                             language,
-                            $"{accepted.ToString(System.Globalization.CultureInfo.InvariantCulture)} accepted / {review.ToString(System.Globalization.CultureInfo.InvariantCulture)} review",
-                            $"{accepted.ToString(System.Globalization.CultureInfo.InvariantCulture)} 可接受 / {review.ToString(System.Globalization.CultureInfo.InvariantCulture)} 待審查");
+                            $"{accepted.ToString(System.Globalization.CultureInfo.InvariantCulture)} expected / {review.ToString(System.Globalization.CultureInfo.InvariantCulture)} review",
+                            $"{accepted.ToString(System.Globalization.CultureInfo.InvariantCulture)} 預期 / {review.ToString(System.Globalization.CultureInfo.InvariantCulture)} 待審查");
                     bool hasSharedReason = rows
                         .Select(row => row.Reason)
                         .Distinct(StringComparer.Ordinal)
@@ -184,6 +195,33 @@ public sealed partial class ReportReviewViewModel
                 $"{changedByteCount.ToString(System.Globalization.CultureInfo.InvariantCulture)} bytes 變更");
     }
 
+    private static string GetSemanticString(JsonElement difference, string propertyName)
+    {
+        return difference.TryGetProperty("Semantic", out JsonElement semantic) &&
+               semantic.ValueKind == JsonValueKind.Object
+            ? GetStringOrNull(semantic, propertyName) ?? string.Empty
+            : string.Empty;
+    }
+
+    private static List<ReportLineFactViewModel> CreateOutputDifferenceFacts(
+        ShellLanguage language,
+        string reason,
+        string semanticSubjectId,
+        string evidence)
+    {
+        List<ReportLineFactViewModel> facts =
+        [
+            new ReportLineFactViewModel(T(language, "Reason", "原因"), reason),
+        ];
+        if (!string.IsNullOrWhiteSpace(semanticSubjectId))
+        {
+            facts.Add(new ReportLineFactViewModel(T(language, "Subject id", "欄位 ID"), semanticSubjectId, isTechnical: true));
+        }
+
+        facts.Add(new ReportLineFactViewModel(T(language, "Evidence id", "證據 ID"), evidence, isTechnical: true));
+        return facts;
+    }
+
     private static string CreateOutputDifferenceMeta(
         IReadOnlyList<ReportLineViewModel> outputDifferences,
         ShellLanguage language)
@@ -196,11 +234,11 @@ public sealed partial class ReportReviewViewModel
         int acceptedCount = outputDifferences.Count(difference => difference.IsAccepted);
         int reviewCount = outputDifferences.Count - acceptedCount;
         return reviewCount == 0
-            ? T(language, "all accepted", "全部可接受")
+            ? T(language, "all expected", "全部預期")
             : T(
                 language,
-                $"{acceptedCount.ToString(System.Globalization.CultureInfo.InvariantCulture)} accepted / {reviewCount.ToString(System.Globalization.CultureInfo.InvariantCulture)} review",
-                $"{acceptedCount.ToString(System.Globalization.CultureInfo.InvariantCulture)} 可接受 / {reviewCount.ToString(System.Globalization.CultureInfo.InvariantCulture)} 待審查");
+                $"{acceptedCount.ToString(System.Globalization.CultureInfo.InvariantCulture)} expected / {reviewCount.ToString(System.Globalization.CultureInfo.InvariantCulture)} review",
+                $"{acceptedCount.ToString(System.Globalization.CultureInfo.InvariantCulture)} 預期 / {reviewCount.ToString(System.Globalization.CultureInfo.InvariantCulture)} 待審查");
     }
 
     private static string FormatBytePreview(string hex)

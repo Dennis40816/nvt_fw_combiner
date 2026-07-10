@@ -139,7 +139,7 @@ public sealed partial class ReportReviewViewModel
         ShellLanguage language)
     {
         return outputDifferences.Count > 0
-            ? T(language, "Review accepted changes", "查看可接受變更")
+            ? T(language, "Inspect expected changes", "查看預期變更")
             : T(language, "Review operation trace", "查看操作紀錄");
     }
 
@@ -151,8 +151,8 @@ public sealed partial class ReportReviewViewModel
         return outputDifferences.Count > 0
             ? T(
                 language,
-                string.Create(CultureInfo.InvariantCulture, $"Review {outputDifferences.Count} accepted change(s) in Changes. Each entry shows the byte range and reason."),
-                string.Create(CultureInfo.InvariantCulture, $"到 Changes 查看 {outputDifferences.Count} 筆可接受變更；每筆會列出 byte 範圍與原因。"))
+                string.Create(CultureInfo.InvariantCulture, $"Inspect {outputDifferences.Count} expected change(s) in Changes. Each entry starts with the affected data field; raw bytes stay in its details."),
+                string.Create(CultureInfo.InvariantCulture, $"到 Changes 查看 {outputDifferences.Count} 筆預期變更；每筆先顯示受影響資料欄位，raw bytes 收在詳細內容。"))
             : T(
                 language,
                 string.Create(CultureInfo.InvariantCulture, $"No output comparison changes were reported. Review Operations for the {operations.Count} recorded step(s)."),

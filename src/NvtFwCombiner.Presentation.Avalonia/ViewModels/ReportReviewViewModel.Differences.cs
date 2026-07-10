@@ -16,7 +16,7 @@ public sealed partial class ReportReviewViewModel
                 : T(language, "No Replace diff check", "非 Replace diff 檢查")
             : HasReviewRequiredOutputDifference(outputDifferences)
                 ? T(language, "Review required", "需要審查")
-                : T(language, "Accepted changes", "可接受變更");
+                : T(language, "Expected changes", "預期變更");
     }
 
     private static string CreateByteDifferenceDetail(
@@ -30,7 +30,7 @@ public sealed partial class ReportReviewViewModel
                 : T(language, "This workflow is not reference-based; use Evidence when you need operation-order details.", "此流程不是 reference-based；需要操作順序時請查看 Evidence。")
             : HasReviewRequiredOutputDifference(outputDifferences)
                 ? T(language, "Unexpected or unaccepted changes are present. Review the detailed ranges before using the output.", "存在意外或未接受的變更；使用輸出前請先審查詳細範圍。")
-                : T(language, "Changes are limited to declared replacement and CRC/header refresh ranges.", "差異只落在已宣告 replacement 與 CRC/header refresh 範圍內。");
+                : T(language, "Every reported change belongs to a profile-approved category. Open a category to inspect its field and evidence.", "所有回報差異都屬於 profile 核准的 category；展開 category 可查看欄位與證據。");
     }
 
     private static string CreateByteDifferenceMeta(
@@ -45,63 +45,33 @@ public sealed partial class ReportReviewViewModel
         int accepted = outputDifferences.Count(IsAcceptedOutputDifference);
         return T(
             language,
-            string.Create(CultureInfo.InvariantCulture, $"{accepted}/{outputDifferences.Count} accepted"),
-            string.Create(CultureInfo.InvariantCulture, $"{accepted}/{outputDifferences.Count} 可接受"));
+            string.Create(CultureInfo.InvariantCulture, $"{accepted}/{outputDifferences.Count} expected"),
+            string.Create(CultureInfo.InvariantCulture, $"{accepted}/{outputDifferences.Count} 預期"));
     }
 
     private static List<ReportDifferenceSummaryRowViewModel> CreateOutputDifferenceSummaryRows(
         IReadOnlyList<ReportLineViewModel> outputDifferences,
         ShellLanguage language)
     {
-        int declared = CountDifference(outputDifferences, WorkbenchOutputDifferenceClassifications.DeclaredReplacement);
-        int refresh = CountDifference(outputDifferences, WorkbenchOutputDifferenceClassifications.PostbuildCrcHeader);
-        int unexpected = outputDifferences.Count(IsReviewRequiredOutputDifference);
-        int known = declared + refresh + outputDifferences.Count(difference =>
-            string.Equals(difference.Classification, WorkbenchOutputDifferenceClassifications.Unexpected, StringComparison.Ordinal));
-        int other = Math.Max(0, outputDifferences.Count - known);
-
-        List<ReportDifferenceSummaryRowViewModel> rows =
+        return
         [
-            CreateDifferenceSummaryRow(
-                T(language, "Declared replacements", "宣告 replacement"),
-                declared,
-                T(language, "profile-authorized copied ranges", "profile 核准的 copy 範圍"),
-                language),
-            CreateDifferenceSummaryRow(
-                "CRC/header refresh",
-                refresh,
-                T(language, "approved postbuild write ranges", "核准的 postbuild 寫入範圍"),
-                language),
-            CreateDifferenceSummaryRow(
-                T(language, "Unexpected differences", "意外差異"),
-                unexpected,
-                T(language, "must be zero before release", "release 前必須為 0"),
-                language),
+            .. outputDifferences
+                .GroupBy(difference => string.IsNullOrWhiteSpace(difference.SectionLabel)
+                    ? T(language, "Unclassified changes", "未分類差異")
+                    : difference.SectionLabel)
+                .Select(group =>
+                {
+                    int reviewCount = group.Count(IsReviewRequiredOutputDifference);
+                    bool expected = reviewCount == 0;
+                    return new ReportDifferenceSummaryRowViewModel(
+                        group.Key,
+                        group.Count().ToString(CultureInfo.InvariantCulture),
+                        expected ? T(language, "expected", "預期") : T(language, "review", "待審查"),
+                        expected
+                            ? T(language, "profile-approved changes", "profile 核准的差異")
+                            : T(language, "contains a difference that needs review", "包含需要審查的差異"));
+                }),
         ];
-
-        if (other > 0)
-        {
-            rows.Add(CreateDifferenceSummaryRow(
-                T(language, "Other differences", "其他差異"),
-                other,
-                T(language, "review the detailed classification", "請審查詳細分類"),
-                language));
-        }
-
-        return rows;
-    }
-
-    private static ReportDifferenceSummaryRowViewModel CreateDifferenceSummaryRow(
-        string label,
-        int count,
-        string detail,
-        ShellLanguage language)
-    {
-        return new ReportDifferenceSummaryRowViewModel(
-            label,
-            count.ToString(CultureInfo.InvariantCulture),
-            count == 0 ? T(language, "none", "無") : T(language, "present", "存在"),
-            detail);
     }
 
     private static string CreateAuditSummary(
@@ -121,14 +91,6 @@ public sealed partial class ReportReviewViewModel
             string.Create(
                 CultureInfo.InvariantCulture,
                 $"{inputs.Count} 個輸入、{operations.Count} 個步驟、{commandCount} 個 refresh command、{mutations.Count} 個 changed range、{outputDifferences.Count} 筆 diff、{issues.Count} 筆問題"));
-    }
-
-    private static int CountDifference(
-        IEnumerable<ReportLineViewModel> outputDifferences,
-        string classification)
-    {
-        return outputDifferences.Count(difference =>
-            string.Equals(difference.Classification, classification, StringComparison.Ordinal));
     }
 
     private static bool HasReviewRequiredOutputDifference(IEnumerable<ReportLineViewModel> outputDifferences)

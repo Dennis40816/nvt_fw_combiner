@@ -17,27 +17,19 @@
     </Grid>
     <StackPanel Grid.Column="1" Margin="0,3,0,18" MaxWidth="860" HorizontalAlignment="Left" Spacing="4">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-        <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
-        <Border Grid.Column="1" MinWidth="44" Height="22" Padding="8,0" VerticalAlignment="Top" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
-          <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding Status}" />
-        </Border>
+        <TextBlock Classes="panelTitle" Text="{Binding Title}" TextWrapping="Wrap" />
+        <Label Grid.Column="1" MinWidth="44" Classes="reportBadge" Content="{Binding Status}" />
       </Grid>
       <TextBlock FontSize="12" Foreground="#475569" Text="{Binding Detail}" TextWrapping="Wrap" />
-      <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" IsVisible="{Binding HasMeta}" />
+      <TextBlock Classes="captionText" Text="{Binding Meta}" TextWrapping="Wrap" IsVisible="{Binding HasMeta}" />
     </StackPanel>
   </Grid>
 </DataTemplate>
 
 <DataTemplate x:Key="ReportRangeTableTemplate" DataType="vm:ReportLineViewModel">
-  <Border Padding="9,8" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6">
+  <Border Classes="compactSubtleSurface" Padding="9,8">
     <StackPanel Spacing="5">
-      <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{ReflectionBinding $parent[Window].DataContext.Text.RangeTableTitle}" />
-      <Grid ColumnDefinitions="112,128,*,150" ColumnSpacing="10">
-        <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{ReflectionBinding $parent[Window].DataContext.Text.KindLabel}" />
-        <TextBlock Grid.Column="1" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{ReflectionBinding $parent[Window].DataContext.Text.AddressSpaceLabel}" />
-        <TextBlock Grid.Column="2" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{ReflectionBinding $parent[Window].DataContext.Text.RangeLabel}" />
-        <TextBlock Grid.Column="3" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{ReflectionBinding $parent[Window].DataContext.Text.SourceLabel}" />
-      </Grid>
+      <TextBlock Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.RangeTableTitle}" />
       <ItemsControl ItemsSource="{Binding RangeRows}">
         <ItemsControl.ItemTemplate>
           <StaticResource ResourceKey="ReportRangeTableRowTemplate" />
@@ -64,13 +56,11 @@
     </Grid>
     <StackPanel Grid.Column="1" Margin="0,6,0,16" Spacing="7">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-        <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
-        <Border Grid.Column="1" MinWidth="52" Height="22" Padding="8,0" Background="#EFF6FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="999">
-          <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" FontWeight="SemiBold" Foreground="#1D4ED8" Text="{Binding OperationStatus}" />
-        </Border>
+        <TextBlock Classes="panelTitle" Text="{Binding Title}" TextWrapping="Wrap" />
+        <Label Grid.Column="1" MinWidth="52" Classes="reportBadge info" Content="{Binding OperationStatus}" />
       </Grid>
-      <TextBlock FontSize="12" Foreground="#334155" Text="{Binding Detail}" TextWrapping="Wrap" />
-      <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" IsVisible="{Binding HasMeta}" />
+      <TextBlock Classes="bodyText" Text="{Binding Detail}" TextWrapping="Wrap" />
+      <TextBlock Classes="captionText" Text="{Binding Meta}" TextWrapping="Wrap" IsVisible="{Binding HasMeta}" />
       <ItemsControl ItemsSource="{Binding Badges}" IsVisible="{Binding HasBadges}">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
@@ -85,8 +75,8 @@
           Content="{Binding}"
           ContentTemplate="{StaticResource ReportRangeTableTemplate}"
           IsVisible="{Binding HasRangeRows}" />
-      <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{ReflectionBinding $parent[Window].DataContext.Text.CommandArgvLabel}" IsVisible="{Binding HasCodeBlock}" />
-      <Border Padding="8,6" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6" IsVisible="{Binding HasCodeBlock}">
+      <TextBlock Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.CommandArgvLabel}" IsVisible="{Binding HasCodeBlock}" />
+      <Border Classes="compactSubtleSurface" Padding="8,6" IsVisible="{Binding HasCodeBlock}">
         <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#0F172A" Text="{Binding CodeBlock}" TextWrapping="Wrap" />
       </Border>
       <ItemsControl ItemsSource="{Binding Facts}" IsVisible="{Binding HasFacts}">
@@ -115,13 +105,11 @@
     </Grid>
     <StackPanel Grid.Column="1" Margin="0,6,0,16" Spacing="6">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-        <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" TextWrapping="Wrap" />
-        <Border Grid.Column="1" MinWidth="52" Height="22" Padding="8,0" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
-          <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" FontWeight="SemiBold" Foreground="#334155" Text="{Binding OperationStatus}" />
-        </Border>
+        <TextBlock Classes="panelTitle" Text="{Binding Title}" TextWrapping="Wrap" />
+        <Label Grid.Column="1" MinWidth="52" Classes="reportBadge" Content="{Binding OperationStatus}" />
       </Grid>
-      <TextBlock FontSize="12" FontFamily="Cascadia Mono, Consolas" Foreground="#334155" Text="{Binding Detail}" TextWrapping="Wrap" />
-      <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Meta}" TextWrapping="Wrap" IsVisible="{Binding HasMeta}" />
+      <TextBlock Classes="technicalDetail" Text="{Binding Detail}" TextWrapping="Wrap" />
+      <TextBlock Classes="captionText" Text="{Binding Meta}" TextWrapping="Wrap" IsVisible="{Binding HasMeta}" />
       <ItemsControl ItemsSource="{Binding Badges}" IsVisible="{Binding HasBadges}">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
