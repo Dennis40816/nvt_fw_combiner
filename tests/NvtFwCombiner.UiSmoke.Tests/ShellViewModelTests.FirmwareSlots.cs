@@ -141,6 +141,10 @@ public sealed partial class ShellViewModelTests
             fact.Label == "DP" &&
             fact.Value == "D0102" &&
             !fact.IsWarning);
+        Assert.Contains(dpSlot.FirmwareFacts, fact =>
+            fact.Label == "Jira" &&
+            fact.Value == "AUTO_PRJ-597" &&
+            !fact.IsWarning);
         Assert.StartsWith(
             "NT51926_FlashCode_D0102T0100_",
             viewModel.MergeOutputFileName,
@@ -154,7 +158,63 @@ public sealed partial class ShellViewModelTests
         dpSlot = viewModel.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
         Assert.Contains(dpSlot.FirmwareFacts, fact =>
             fact.Label == "DP" &&
-            fact.Value == "Pending" &&
+            fact.Value == "DCC.0" &&
+            !fact.IsWarning);
+        Assert.Contains(dpSlot.FirmwareFacts, fact =>
+            fact.Label == "Jira" &&
+            fact.Value == "AUTO_PRJ-576" &&
+            !fact.IsWarning);
+    }
+
+    /// <summary>Verifies an unobserved DP size warns without hiding readable CMI DP and Jira facts.</summary>
+    [Fact]
+    public void DpFirmwareSlotShowsNonBlockingCmiSizeWarning()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51926";
+        using var golden = StandardMergeGoldenManifest.Load();
+        JsonElement nt51926 = golden.CaseByIc("51926");
+        string sourcePath = golden.ManifestPath(nt51926.GetProperty("inputs").GetProperty("dp-input"));
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-cmi-dp-size");
+        byte[] oversizedDp = [.. File.ReadAllBytes(sourcePath), 0x00];
+        string oversizedPath = workspace.Write("nt51926-unexpected-size.bin", oversizedDp);
+
+        viewModel.SetSlotFile("merge-dp", oversizedPath);
+
+        FirmwareSlotViewModel dpSlot = viewModel.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
+        Assert.Contains(dpSlot.FirmwareFacts, fact =>
+            fact.Label == "Jira" &&
+            fact.Value == "AUTO_PRJ-597" &&
+            !fact.IsWarning);
+        Assert.Contains(dpSlot.FirmwareFacts, fact =>
+            fact.Label == "DP size" &&
+            fact.Value.StartsWith("0x40001", StringComparison.Ordinal) &&
+            fact.IsWarning);
+    }
+
+    /// <summary>Verifies normal Standard Merge uses its profile policy when no CMI size rule exists.</summary>
+    [Fact]
+    public void DpFirmwareSlotShowsNonBlockingProfileSizeWarning()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51920";
+        using var golden = StandardMergeGoldenManifest.Load();
+        JsonElement nt51920 = golden.CaseByIc("51920");
+        string sourcePath = golden.ManifestPath(nt51920.GetProperty("inputs").GetProperty("dp-input"));
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-profile-dp-size");
+        byte[] oversizedDp = [.. File.ReadAllBytes(sourcePath), 0x00];
+        string oversizedPath = workspace.Write("nt51920-unexpected-size.bin", oversizedDp);
+
+        viewModel.SetSlotFile("merge-dp", oversizedPath);
+
+        FirmwareSlotViewModel dpSlot = viewModel.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
+        Assert.Contains(dpSlot.FirmwareFacts, fact =>
+            fact.Label == "DP" &&
+            fact.Value == "D0101" &&
+            !fact.IsWarning);
+        Assert.Contains(dpSlot.FirmwareFacts, fact =>
+            fact.Label == "DP size" &&
+            fact.Value.StartsWith("0x40001", StringComparison.Ordinal) &&
             fact.IsWarning);
     }
 }

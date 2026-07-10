@@ -22,6 +22,7 @@ public sealed partial class BuiltInStandardMergeProfilesTests
         Assert.Equal(DpPerspectiveCatalog.MaxContainerLength, dpInput.Length);
         Assert.Null(dpInput.InputPaddingByte);
         Assert.Equal([DpPerspectiveCatalog.MaxContainerLength], dpInput.AllowedInputLengths);
+        Assert.Empty(dpInput.ExpectedInputLengths);
         Assert.Contains(profile.AddressSpaces, space =>
             space.AddressSpaceId == "dp-input" &&
             space.Length == DpPerspectiveCatalog.MaxContainerLength &&

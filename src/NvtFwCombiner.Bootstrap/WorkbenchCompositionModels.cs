@@ -1,4 +1,5 @@
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Application.FlashMaps;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -19,8 +20,10 @@ public sealed record WorkbenchFirmwareConfigMetadata(
     byte FirmwareVersionBar,
     bool IsFirmwareVersionBarValid,
     byte FirmwareSubVersion,
+    byte ChipNumber,
     ushort ProjectId,
-    string? PostbuildCategory);
+    string? PostbuildCategory,
+    FirmwareConfigHardwareMetadata Hardware);
 
 /// <summary>DP version facts read using gen_flash standard-merge contiguous main/sub version-byte rules.</summary>
 public sealed record WorkbenchDpVersionMetadata(
@@ -33,6 +36,25 @@ public sealed record WorkbenchDpVersionMetadata(
     long OutputMainAbsoluteAddress,
     long OutputSubAbsoluteAddress,
     string EvidenceSource);
+
+/// <summary>CMI DP register facts used for Jira traceability and non-blocking payload-size diagnostics.</summary>
+public sealed record WorkbenchCmiDpCodeMetadata(
+    string IcId,
+    byte MajorVersionByte,
+    byte MinorVersionNibble,
+    ushort JiraNumber,
+    string? JiraBadge,
+    int PayloadLength,
+    IReadOnlyList<int> ExpectedPayloadLengths,
+    bool HasPayloadLengthWarning,
+    long Register16Offset,
+    long Register18Offset,
+    string EvidenceSource);
+
+/// <summary>Profile-owned normal Standard Merge DP source-length facts used for non-blocking slot diagnostics.</summary>
+public sealed record WorkbenchStandardMergeDpInputLengthPolicy(
+    long RequiredLength,
+    IReadOnlyList<long> ExpectedInputLengths);
 
 /// <summary>One selected firmware path candidate used by output naming metadata policy.</summary>
 public sealed record WorkbenchOutputNameCandidate(

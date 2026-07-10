@@ -70,6 +70,11 @@ public sealed partial class CompositionPlan
         {
             throw new ArgumentException("Reference address space cannot declare alternate input lengths.", nameof(Initialization));
         }
+
+        if (referenceSpace.ExpectedInputLengths.Count > 0)
+        {
+            throw new ArgumentException("Reference address space cannot declare expected input lengths.", nameof(Initialization));
+        }
     }
 
     private void ValidateProcessorInputPadding()

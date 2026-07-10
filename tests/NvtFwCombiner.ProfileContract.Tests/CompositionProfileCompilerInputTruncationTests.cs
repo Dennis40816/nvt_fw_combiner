@@ -161,6 +161,33 @@ public sealed partial class CompositionProfileCompilerTests
         Assert.Contains(result.Issues, issue => issue.Code == "profile.input-truncation.not-allowed");
     }
 
+    /// <summary>Verifies declared-range extraction cannot become a generic oversize-input bypass.</summary>
+    [Fact]
+    public void InputExtractionRejectsNonStandardMergeDpInput()
+    {
+        CompositionProfileDefinition profile = CreateProfile(
+            CompositionKind.Replace,
+            "dp-replace",
+            ImageInitialization.Reference("output-image", "source", 4),
+            addressSpaces:
+            [
+                new("source", 4, AddressSpaceMutability.Immutable),
+                new(
+                    "dp-input",
+                    4,
+                    AddressSpaceMutability.Immutable,
+                    inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
+                    expectedInputLengths: [4]),
+                new("output-image", 4, AddressSpaceMutability.Mutable),
+            ]);
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.input-extraction.not-allowed");
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.expected-input-lengths.not-allowed");
+    }
+
     /// <summary>Verifies request-time address spaces cannot choose truncation policy.</summary>
     [Fact]
     public void InputTruncationRejectsRuntimeAddressSpace()

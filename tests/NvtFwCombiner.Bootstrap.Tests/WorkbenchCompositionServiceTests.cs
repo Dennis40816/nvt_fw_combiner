@@ -1,5 +1,7 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 using static NvtFwCombiner.Bootstrap.WorkbenchIssueCodes;
 
@@ -49,6 +51,39 @@ public sealed class WorkbenchCompositionServiceTests
         Assert.False(suggestion.HasTpVersion);
     }
 
+    /// <summary>Verifies Standard Merge extracts a sufficient nonstandard DP artifact and reports the size warning.</summary>
+    [Fact]
+    public async Task StandardMergePreviewWarnsButDoesNotBlockUnexpectedDpLength()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-dp-length");
+        byte[] dp = File.ReadAllBytes(GoldenPath("inputs/51926/dp.bin"));
+        Array.Resize(ref dp, dp.Length + 1);
+        dp[^1] = 0xA5;
+        string dpPath = workspace.Write("dp-nonstandard.bin", dp);
+        Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
+        {
+            ["dp-input"] = dpPath,
+            ["tp-input"] = GoldenPath("inputs/51926/tp.bin"),
+        };
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeAsync(
+            "NT51926",
+            slotPaths,
+            build: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.Equal(
+            Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(GoldenPath("expected/51926/flash.bin")))).ToLowerInvariant(),
+            result.OutputSha256);
+        using var document = JsonDocument.Parse(result.ReportJson);
+        Assert.Contains(
+            document.RootElement.GetProperty("Issues").EnumerateArray(),
+            issue =>
+                issue.GetProperty("Code").GetString() == CompositionIssueCodes.InputAddressSpaceLengthUnexpected &&
+                issue.GetProperty("Severity").GetString() == "warning");
+    }
+
     /// <summary>Verifies firmware metadata exposes display-ready postbuild category names outside the UI layer.</summary>
     [Fact]
     public void FirmwareConfigMetadataShortensPostbuildSetupCategoryForDisplay()
@@ -59,6 +94,7 @@ public sealed class WorkbenchCompositionServiceTests
 
         Assert.NotNull(metadata);
         Assert.Equal("1.4.1", metadata.CommonFwVersion);
+        Assert.Equal(0x02, metadata.ChipNumber);
         Assert.Equal("51926_1.4.1", metadata.PostbuildCategory);
     }
 

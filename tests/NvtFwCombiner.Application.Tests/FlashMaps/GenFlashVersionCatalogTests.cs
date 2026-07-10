@@ -102,6 +102,204 @@ public sealed class GenFlashVersionCatalogTests
             out _));
     }
 
+    /// <summary>Guards CMI DP register triples against offset or expected-payload-length drift.</summary>
+    [Fact]
+    public void CmiDpCodeRulesFitInsideExpectedPayloadLengths()
+    {
+        Assert.NotEmpty(GenFlashVersionCatalog.AllCmiDpCodeRules);
+
+        string[] ruleIds = [.. GenFlashVersionCatalog.AllCmiDpCodeRules.Select(rule => rule.IcId)];
+        Assert.Equal(ruleIds.Length, ruleIds.Distinct(StringComparer.Ordinal).Count());
+
+        foreach (CmiDpCodeRule rule in GenFlashVersionCatalog.AllCmiDpCodeRules)
+        {
+            Assert.True(rule.Register16Offset >= 0);
+            Assert.NotEmpty(rule.ExpectedPayloadLengths);
+            Assert.Equal(
+                rule.ExpectedPayloadLengths.Count,
+                rule.ExpectedPayloadLengths.Distinct().Count());
+            Assert.All(rule.ExpectedPayloadLengths, length =>
+            {
+                Assert.True(length > 0);
+                Assert.True(rule.Register16Offset + 2 < length);
+            });
+            Assert.True(GenFlashVersionCatalog.TryGetCmiDpCodeRule($"NT{rule.IcId}", out CmiDpCodeRule resolved));
+            Assert.Same(rule, resolved);
+        }
+    }
+
+    /// <summary>Reads the owner-confirmed NT51950 CMI registers without conflating Jira and DP version.</summary>
+    [Fact]
+    public void GoldenNt51950DpInputExposesCmiJiraAndDpVersion()
+    {
+        byte[] image = File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
+            "testdata",
+            "golden",
+            "standard-merge-gen-flash",
+            "inputs",
+            "51950",
+            "dp-256k",
+            "dp.bin"));
+
+        Assert.True(GenFlashVersionCatalog.TryReadCmiDpCode(
+            "NT51950",
+            image,
+            out CmiDpCodeMetadata metadata));
+
+        Assert.Equal(0x3B016, metadata.Register16Offset);
+        Assert.Equal(0x3B018, metadata.Register18Offset);
+        Assert.Equal(0x40, metadata.SystemCodeLowByte);
+        Assert.Equal(0xCC, metadata.MajorVersionByte);
+        Assert.Equal(0x0, metadata.MinorVersionNibble);
+        Assert.Equal(576, metadata.JiraNumber);
+        Assert.True(metadata.IsExpectedPayloadLength);
+    }
+
+    /// <summary>Reads the owner-confirmed NT51951 512 KB CMI registers independently from NT51950.</summary>
+    [Fact]
+    public void GoldenNt51951DpInputExposesCmiJiraAndDpVersion()
+    {
+        byte[] image = File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
+            "testdata",
+            "golden",
+            "standard-merge-gen-flash",
+            "inputs",
+            "51951",
+            "dp-512k",
+            "dp.bin"));
+
+        Assert.True(GenFlashVersionCatalog.TryReadCmiDpCode(
+            "NT51951",
+            image,
+            out CmiDpCodeMetadata metadata));
+
+        Assert.Equal(0x05016, metadata.Register16Offset);
+        Assert.Equal(0x05018, metadata.Register18Offset);
+        Assert.Equal(0xB7, metadata.SystemCodeLowByte);
+        Assert.Equal(0x05, metadata.MajorVersionByte);
+        Assert.Equal(0x0, metadata.MinorVersionNibble);
+        Assert.Equal(695, metadata.JiraNumber);
+        Assert.True(metadata.IsExpectedPayloadLength);
+    }
+
+    /// <summary>Cross-checks NT51926 2IC CMI registers against the owner-approved Jira/D-version filename.</summary>
+    [Fact]
+    public void GoldenNt51926TwoChipBaseMatchesFilenameJiraAndLegacyDpMajor()
+    {
+        byte[] image = File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
+            "testdata",
+            "golden",
+            "ctrlram-replace",
+            "fixtures",
+            "20260705",
+            "base",
+            "nt51926-2ic-csot-toyota-d02t06-jira0597-20260622.bin"));
+
+        AssertCmiMajorMatchesLegacyVersion("NT51926", image, 0x3E014, 597, 0x02, "AUTO_PRJ-597");
+    }
+
+    /// <summary>Cross-checks NT51927 2IC CMI registers against the owner-approved Jira/D-version filename.</summary>
+    [Fact]
+    public void GoldenNt51927TwoChipBaseMatchesFilenameJiraAndLegacyDpMajor()
+    {
+        byte[] image = File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
+            "testdata",
+            "golden",
+            "ctrlram-replace",
+            "fixtures",
+            "20260705",
+            "base",
+            "nt51927-2ic-csot1560-d09t0d-jira0251-20260617.bin"));
+
+        AssertCmiMajorMatchesLegacyVersion("NT51927", image, 0x3C01C, 251, 0x09, "AUTO_PRJ-251");
+    }
+
+    /// <summary>NT51927 3IC CMI major matches legacy DP version; its approved filename has no Jira token.</summary>
+    [Fact]
+    public void GoldenNt51927ThreeChipBaseMatchesLegacyDpMajor()
+    {
+        byte[] image = File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
+            "testdata",
+            "golden",
+            "ctrlram-replace",
+            "fixtures",
+            "20260705",
+            "base",
+            "nt51927-3ic-tm-tl177xfks03-gm-d08t9b-20260703.bin"));
+
+        AssertCmiMajorMatchesLegacyVersion("NT51927", image, 0x3C01C, 528, 0x08, "AUTO_PRJ-528");
+    }
+
+    /// <summary>NT51927's CMI location has evidence for both 256 KB Flash and 2 MiB DP payloads.</summary>
+    [Fact]
+    public void GoldenNt51927TwoMiBDpInputExposesCmiMajorMatchingLegacyVersion()
+    {
+        byte[] image = File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
+            "testdata",
+            "golden",
+            "standard-merge-gen-flash",
+            "inputs",
+            "51927",
+            "dp.bin"));
+
+        AssertCmiMajorMatchesLegacyVersion("NT51927", image, 0x3C01C, 313, 0x54, "AUTO_PRJ-313");
+    }
+
+    /// <summary>Guards the owner-handoff NT51929 CMI triple without committing its private firmware payload.</summary>
+    [Fact]
+    public void OwnerHandoffNt51929CmiMajorMatchesLegacyDpVersion()
+    {
+        byte[] image = new byte[0x40000];
+        image[0x067] = 0x01;
+        image[0x068] = 0x02;
+        image[0x401A] = 0x52;
+        image[0x401B] = 0x01;
+        image[0x401C] = 0x02;
+
+        AssertCmiMajorMatchesLegacyVersion("NT51929", image, 0x401A, 594, 0x01, "AUTO_PRJ-594");
+        Assert.True(GenFlashVersionCatalog.TryReadCmiDpCode("NT51929", image, out CmiDpCodeMetadata cmi));
+        Assert.Equal(0, cmi.MinorVersionNibble);
+    }
+
+    /// <summary>Unobserved DP sizes remain readable for metadata and are surfaced as warnings rather than build blockers.</summary>
+    [Fact]
+    public void CmiDpCodeAcceptsUnexpectedPayloadLengthWithWarning()
+    {
+        Assert.True(GenFlashVersionCatalog.TryReadCmiDpCode(
+            "NT51950",
+            new byte[0x80000],
+            out CmiDpCodeMetadata nt51950));
+        Assert.True(GenFlashVersionCatalog.TryReadCmiDpCode(
+            "NT51951",
+            new byte[0x40000],
+            out CmiDpCodeMetadata nt51951));
+        Assert.True(GenFlashVersionCatalog.TryReadCmiDpCode(
+            "NT51927",
+            new byte[0x80000],
+            out CmiDpCodeMetadata nt51927));
+
+        Assert.All([nt51950, nt51951, nt51927], metadata =>
+        {
+            Assert.False(metadata.IsExpectedPayloadLength);
+            Assert.True(metadata.HasPayloadLengthWarning);
+        });
+    }
+
+    /// <summary>Jira zero is valid CMI data but must not produce an AUTO_PRJ badge.</summary>
+    [Fact]
+    public void CmiDpCodeWithJiraZeroHasNoBadge()
+    {
+        Assert.True(GenFlashVersionCatalog.TryReadCmiDpCode(
+            "NT51950",
+            new byte[0x40000],
+            out CmiDpCodeMetadata metadata));
+
+        Assert.Equal(0, metadata.JiraNumber);
+        Assert.False(metadata.HasJiraBadge);
+        Assert.Null(metadata.JiraBadge);
+        Assert.True(metadata.IsExpectedPayloadLength);
+    }
+
     /// <summary>ICs without gen_flash DP version evidence stay unclassified instead of guessing offsets.</summary>
     [Theory]
     [InlineData("NT51930")]
@@ -110,5 +308,25 @@ public sealed class GenFlashVersionCatalogTests
     public void MissingDpVersionEvidenceDoesNotCreateRule(string ic)
     {
         Assert.False(GenFlashVersionCatalog.TryGetDpVersionRule(ic, out _));
+    }
+
+    private static void AssertCmiMajorMatchesLegacyVersion(
+        string icId,
+        byte[] image,
+        long expectedRegister16Offset,
+        ushort expectedJiraNumber,
+        byte expectedMajorVersion,
+        string expectedJiraBadge)
+    {
+        Assert.True(GenFlashVersionCatalog.TryReadCmiDpCode(icId, image, out CmiDpCodeMetadata cmi));
+        Assert.True(GenFlashVersionCatalog.TryReadDpVersion(icId, image, out GenFlashDpVersionMetadata legacy));
+
+        Assert.Equal(expectedRegister16Offset, cmi.Register16Offset);
+        Assert.Equal(expectedJiraNumber, cmi.JiraNumber);
+        Assert.Equal(expectedMajorVersion, cmi.MajorVersionByte);
+        Assert.Equal(legacy.MainVersionByte, cmi.MajorVersionByte);
+        Assert.True(cmi.HasJiraBadge);
+        Assert.Equal(expectedJiraBadge, cmi.JiraBadge);
+        Assert.True(cmi.IsExpectedPayloadLength);
     }
 }

@@ -1,10 +1,30 @@
+using System.Collections.ObjectModel;
+
 namespace NvtFwCombiner.Application.FlashMaps;
 
 /// <summary>Version-byte rules ported from the approved gen_flash_bin_v2 IC configuration.</summary>
 public static class GenFlashVersionCatalog
 {
     private const string GenFlashEvidence = "gen_flash_bin_v2/ic_config.json";
+    private const string Nt51950CmiEvidence =
+        "Owner-confirmed CMI DP register map (Reg16h-18h), 2026-07-10; " +
+        "standard-merge-gen-flash/51950-dp-256k golden input.";
+    private const string Nt51951CmiEvidence =
+        "Owner-confirmed CMI DP register map (Reg16h-18h), 2026-07-10; " +
+        "standard-merge-gen-flash/51951-dp-512k golden input.";
+    private const string Nt51926CmiEvidence =
+        "Owner-confirmed CMI DP register map (Reg16h-18h), 2026-07-10; " +
+        "ctrlram-replace 20260705 2IC golden base, JIRA0597 / D02 cross-check.";
+    private const string Nt51927CmiEvidence =
+        "Owner-confirmed CMI DP register map (Reg16h-18h), 2026-07-10; " +
+        "ctrlram-replace 20260705 2IC JIRA0251 / D09 and 3IC D08 golden bases; " +
+        "standard-merge-gen-flash 2 MiB DP input.";
+    private const string Nt51929CmiEvidence =
+        "Owner-confirmed CMI DP register map (Reg16h-18h), 2026-07-10; " +
+        "private 51929 replacement DP golden (SHA-256 91ce8204d7dc6103a015eba59f9ddb41ef5d1a64c101aa62a4fe7c4517f5cebf) " +
+        "cross-checked against the legacy DP major version rule. See owner-handoff/combiner-and-51929/CASE.md.";
     private static readonly Dictionary<string, GenFlashDpVersionRule> DpVersionRulesByIc = BuildDpVersionRules();
+    private static readonly Dictionary<string, CmiDpCodeRule> CmiDpCodeRulesByIc = BuildCmiDpCodeRules();
 
     /// <summary>All owner-evidenced DP main/sub version-byte rules in stable IC order.</summary>
     public static IReadOnlyList<GenFlashDpVersionRule> AllDpVersionRules { get; } =
@@ -61,6 +81,62 @@ public static class GenFlashVersionCatalog
         return true;
     }
 
+    /// <summary>All owner-evidenced CMI DP register rules in stable IC order.</summary>
+    public static IReadOnlyList<CmiDpCodeRule> AllCmiDpCodeRules { get; } =
+    [
+        .. CmiDpCodeRulesByIc.Values.OrderBy(rule => rule.IcId, StringComparer.Ordinal),
+    ];
+
+    /// <summary>Returns the CMI DP register rule for an IC when explicit evidence defines one.</summary>
+    public static bool TryGetCmiDpCodeRule(string icId, out CmiDpCodeRule rule)
+    {
+        bool found = CmiDpCodeRulesByIc.TryGetValue(NormalizeIcId(icId), out CmiDpCodeRule? foundRule);
+        rule = foundRule!;
+        return found;
+    }
+
+    /// <summary>
+    /// Reads CMI DP Reg16h-18h metadata. The system code is the Jira number and is distinct from
+    /// the DP major/minor version.
+    /// </summary>
+    public static bool TryReadCmiDpCode(
+        string icId,
+        ReadOnlySpan<byte> image,
+        out CmiDpCodeMetadata metadata)
+    {
+        metadata = default;
+        if (!TryGetCmiDpCodeRule(icId, out CmiDpCodeRule rule))
+        {
+            return false;
+        }
+
+        long register16Offset = rule.Register16Offset;
+        long register18Offset = register16Offset + 2;
+        if (register16Offset < 0 || register18Offset >= image.Length)
+        {
+            return false;
+        }
+
+        byte systemCodeLowByte = image[(int)register16Offset];
+        byte majorVersionByte = image[(int)register16Offset + 1];
+        byte register18Value = image[(int)register18Offset];
+        byte minorVersionNibble = (byte)(register18Value >> 4);
+        ushort jiraNumber = (ushort)(systemCodeLowByte | ((register18Value & 0x0F) << 8));
+
+        metadata = new CmiDpCodeMetadata(
+            rule.IcId,
+            systemCodeLowByte,
+            majorVersionByte,
+            minorVersionNibble,
+            jiraNumber,
+            register16Offset,
+            register18Offset,
+            rule.EvidenceSource,
+            image.Length,
+            rule.ExpectedPayloadLengths);
+        return true;
+    }
+
     private static Dictionary<string, GenFlashDpVersionRule> BuildDpVersionRules()
     {
         Dictionary<string, GenFlashDpVersionRule> rules = new(StringComparer.Ordinal)
@@ -78,6 +154,23 @@ public static class GenFlashVersionCatalog
         rules["51917"] = Alias("51917", rules["51927"], "owner-confirmed NT51917 follows NT51927 gen_flash layout.");
         rules["51919"] = Alias("51919", rules["51929"], "owner-confirmed NT51919 follows NT51929 gen_flash layout.");
         return rules;
+    }
+
+    private static Dictionary<string, CmiDpCodeRule> BuildCmiDpCodeRules()
+    {
+        return new Dictionary<string, CmiDpCodeRule>(StringComparer.Ordinal)
+        {
+            ["51926"] = new CmiDpCodeRule("51926", Sizes(0x40000), 0x3E014, Nt51926CmiEvidence),
+            ["51927"] = new CmiDpCodeRule("51927", Sizes(0x40000, 0x200000), 0x3C01C, Nt51927CmiEvidence),
+            ["51929"] = new CmiDpCodeRule("51929", Sizes(0x40000), 0x401A, Nt51929CmiEvidence),
+            ["51950"] = new CmiDpCodeRule("51950", Sizes(0x40000), 0x3B016, Nt51950CmiEvidence),
+            ["51951"] = new CmiDpCodeRule("51951", Sizes(0x80000), 0x05016, Nt51951CmiEvidence),
+        };
+    }
+
+    private static ReadOnlyCollection<int> Sizes(params int[] payloadLengths)
+    {
+        return Array.AsReadOnly(payloadLengths);
     }
 
     private static GenFlashDpVersionRule Rule(
@@ -151,4 +244,47 @@ public readonly record struct GenFlashDpVersionMetadata(
 
     /// <summary>Readable DP version token including the configured prefix.</summary>
     public string DisplayVersion => $"{Prefix}{VersionToken}";
+}
+
+/// <summary>
+/// CMI DP register location. Reg16h stores Jira bits [7:0], Reg17h stores DP major, and Reg18h
+/// stores DP minor in its high nibble and Jira bits [11:8] in its low nibble.
+/// </summary>
+public sealed record CmiDpCodeRule(
+    string IcId,
+    IReadOnlyList<int> ExpectedPayloadLengths,
+    long Register16Offset,
+    string EvidenceSource)
+{
+    /// <summary>Returns whether the payload length has golden evidence for this IC's CMI register location.</summary>
+    public bool IsExpectedPayloadLength(int payloadLength)
+    {
+        return ExpectedPayloadLengths.Contains(payloadLength);
+    }
+}
+
+/// <summary>Decoded CMI DP metadata with independent Jira and DP-version fields.</summary>
+public readonly record struct CmiDpCodeMetadata(
+    string IcId,
+    byte SystemCodeLowByte,
+    byte MajorVersionByte,
+    byte MinorVersionNibble,
+    ushort JiraNumber,
+    long Register16Offset,
+    long Register18Offset,
+    string EvidenceSource,
+    int PayloadLength,
+    IReadOnlyList<int> ExpectedPayloadLengths)
+{
+    /// <summary>Whether the decoded Jira number has a displayable AUTO_PRJ badge.</summary>
+    public bool HasJiraBadge => JiraNumber != 0;
+
+    /// <summary>Technical Jira badge text, or <see langword="null"/> when Reg16h/18h encode Jira zero.</summary>
+    public string? JiraBadge => HasJiraBadge ? $"AUTO_PRJ-{JiraNumber}" : null;
+
+    /// <summary>Whether the raw DP payload length has an owner-approved golden observation.</summary>
+    public bool IsExpectedPayloadLength => ExpectedPayloadLengths.Contains(PayloadLength);
+
+    /// <summary>Whether UI should warn that CMI was decoded from an unobserved DP payload length.</summary>
+    public bool HasPayloadLengthWarning => !IsExpectedPayloadLength;
 }

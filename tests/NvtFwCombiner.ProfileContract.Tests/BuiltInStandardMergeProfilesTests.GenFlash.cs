@@ -49,25 +49,36 @@ public sealed partial class BuiltInStandardMergeProfilesTests
         Assert.Contains(profile.AddressSpaces, addressSpace => addressSpace.AddressSpaceId == "ld-input");
     }
 
-    /// <summary>Verifies gen_flash profiles declare the actual source artifact sizes used by golden fixtures.</summary>
+    /// <summary>Verifies gen_flash DP inputs require only copied bytes while retaining golden sizes as warnings.</summary>
     [Fact]
-    public void GenFlashStandardMergeProfilesDeclareGoldenSourceArtifactSizes()
+    public void GenFlashStandardMergeProfilesDeclareRequiredRangesAndExpectedGoldenSizes()
     {
-        Dictionary<string, Dictionary<string, long>> expectedLengths = new(StringComparer.Ordinal)
+        Dictionary<string, Dictionary<string, long>> expectedRequiredLengths = new(StringComparer.Ordinal)
         {
             ["NT51920"] = new(StringComparer.Ordinal) { ["dp-input"] = 0x40000, ["tp-input"] = 0x30000 },
             ["NT51923"] = new(StringComparer.Ordinal) { ["dp-input"] = 0x40000, ["tp-input"] = 0x3C000 },
             ["NT51926"] = new(StringComparer.Ordinal) { ["dp-input"] = 0x40000, ["tp-input"] = 0x3C000 },
-            ["NT51927"] = new(StringComparer.Ordinal) { ["dp-input"] = 0x200000, ["tp-input"] = 0x35000 },
+            ["NT51927"] = new(StringComparer.Ordinal) { ["dp-input"] = 0x40000, ["tp-input"] = 0x35000 },
             ["NT51928"] = new(StringComparer.Ordinal)
             {
-                ["dp-input"] = 0x80000,
+                ["dp-input"] = 0x40000,
                 ["ld-input"] = 0x80000,
                 ["tp-input"] = 0x35000,
             },
-            ["NT51929"] = new(StringComparer.Ordinal) { ["dp-input"] = 0x40000, ["tp-input"] = 0x40000 },
-            ["NT51931"] = new(StringComparer.Ordinal) { ["dp-input"] = 0x80000, ["tp-input"] = 0x3C000 },
-            ["NT51932"] = new(StringComparer.Ordinal) { ["dp-input"] = 0x40000, ["tp-input"] = 0x40000 },
+            ["NT51929"] = new(StringComparer.Ordinal) { ["dp-input"] = 0x06000, ["tp-input"] = 0x40000 },
+            ["NT51931"] = new(StringComparer.Ordinal) { ["dp-input"] = 0x40000, ["tp-input"] = 0x3C000 },
+            ["NT51932"] = new(StringComparer.Ordinal) { ["dp-input"] = 0x06000, ["tp-input"] = 0x40000 },
+        };
+        Dictionary<string, long> expectedDpGoldenLengths = new(StringComparer.Ordinal)
+        {
+            ["NT51920"] = 0x40000,
+            ["NT51923"] = 0x40000,
+            ["NT51926"] = 0x40000,
+            ["NT51927"] = 0x200000,
+            ["NT51928"] = 0x80000,
+            ["NT51929"] = 0x40000,
+            ["NT51931"] = 0x80000,
+            ["NT51932"] = 0x40000,
         };
 
         foreach (CompositionProfileDefinition profile in BuiltInStandardMergeProfiles.GenFlashStandardMergeProfiles)
@@ -79,7 +90,13 @@ public sealed partial class BuiltInStandardMergeProfilesTests
                     addressSpace => addressSpace.Length,
                     StringComparer.Ordinal);
 
-            Assert.Equal(expectedLengths[profile.IcId], actualLengths);
+            Assert.Equal(expectedRequiredLengths[profile.IcId], actualLengths);
+            AddressSpace dpInput = Assert.Single(profile.AddressSpaces, addressSpace => addressSpace.AddressSpaceId == "dp-input");
+            Assert.Equal(InputOversizePolicy.ExtractDeclaredRange, dpInput.InputOversizePolicy);
+            Assert.Equal([expectedDpGoldenLengths[profile.IcId]], dpInput.ExpectedInputLengths);
+            Assert.All(
+                profile.AddressSpaces.Where(addressSpace => addressSpace.AddressSpaceId == "tp-input"),
+                addressSpace => Assert.InRange(addressSpace.Length, 1, 0x40000));
         }
     }
 }

@@ -56,6 +56,10 @@ public sealed partial class CompositionRunService
                 builder,
                 "plan.space.allowed-input-lengths",
                 string.Join(",", addressSpace.AllowedInputLengths.Select(length => length.ToString(CultureInfo.InvariantCulture))));
+            AppendTokenField(
+                builder,
+                "plan.space.expected-input-lengths",
+                string.Join(",", addressSpace.ExpectedInputLengths.Select(length => length.ToString(CultureInfo.InvariantCulture))));
         }
 
         foreach (CompositionOperation operation in plan.OrderedOperations)

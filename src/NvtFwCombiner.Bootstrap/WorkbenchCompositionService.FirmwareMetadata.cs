@@ -48,13 +48,51 @@ public static partial class WorkbenchCompositionService
         }
     }
 
+    /// <summary>Reads CMI DP Jira and major/minor facts without making unobserved DP sizes a build blocker.</summary>
+    public static WorkbenchCmiDpCodeMetadata? TryReadCmiDpCodeMetadata(string icId, string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            byte[] image = File.ReadAllBytes(path);
+            return GenFlashVersionCatalog.TryReadCmiDpCode(
+                icId,
+                image,
+                out CmiDpCodeMetadata metadata)
+                    ? new WorkbenchCmiDpCodeMetadata(
+                        metadata.IcId,
+                        metadata.MajorVersionByte,
+                        metadata.MinorVersionNibble,
+                        metadata.JiraNumber,
+                        metadata.JiraBadge,
+                        metadata.PayloadLength,
+                        metadata.ExpectedPayloadLengths,
+                        metadata.HasPayloadLengthWarning,
+                        metadata.Register16Offset,
+                        metadata.Register18Offset,
+                        metadata.EvidenceSource)
+                    : null;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            return null;
+        }
+    }
+
     /// <summary>Reads FWConfig display metadata from a selected firmware image when the IC flash-map defines it.</summary>
     public static WorkbenchFirmwareConfigMetadata? TryReadFirmwareConfigMetadata(string icId, string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        if (!TpFlashMapCatalog.TryGetFirmwareConfigStart(icId, out long firmwareConfigStart) ||
+        if (!IcMetadataFacade.TryGetFirmwareConfigStart(icId, out long firmwareConfigStart) ||
             !File.Exists(path))
         {
             return null;
@@ -81,8 +119,10 @@ public static partial class WorkbenchCompositionService
                 metadata.FirmwareVersionBar,
                 metadata.IsFirmwareVersionBarValid,
                 metadata.FirmwareSubVersion,
+                metadata.ChipNumber,
                 metadata.ProjectId,
-                postbuildCategory);
+                postbuildCategory,
+                metadata.Hardware);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         {
@@ -96,7 +136,7 @@ public static partial class WorkbenchCompositionService
         out string? commonFwVersion)
     {
         commonFwVersion = null;
-        if (!TpFlashMapCatalog.TryGetFirmwareConfigStart(icId, out long firmwareConfigStart))
+        if (!IcMetadataFacade.TryGetFirmwareConfigStart(icId, out long firmwareConfigStart))
         {
             return false;
         }
@@ -129,7 +169,7 @@ public static partial class WorkbenchCompositionService
         out LegacyCombinerPostbuildProfile? postbuildProfile)
     {
         postbuildProfile = null;
-        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = LegacyCombinerPostbuildCatalog.GetProfiles(icId);
+        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = IcMetadataFacade.GetPostbuildProfiles(icId);
         if (profiles.Count == 0)
         {
             return false;
@@ -144,13 +184,13 @@ public static partial class WorkbenchCompositionService
         bool hasReadableBase = !string.IsNullOrWhiteSpace(basePath) && File.Exists(basePath);
         bool matchedBaseProfile = hasReadableBase &&
             TryReadBaseCommonFwVersion(icId, basePath!, out string? commonFwVersion) &&
-            LegacyCombinerPostbuildCatalog.TrySelectProfileForCommonFwVersion(
+            IcMetadataFacade.TrySelectPostbuildProfile(
                 icId,
                 commonFwVersion,
                 out postbuildProfile,
                 out _);
 
         return matchedBaseProfile ||
-            (!hasReadableBase && LegacyCombinerPostbuildCatalog.TryGetDefaultProfile(icId, out postbuildProfile));
+            (!hasReadableBase && IcMetadataFacade.TryGetDefaultPostbuildProfile(icId, out postbuildProfile));
     }
 }

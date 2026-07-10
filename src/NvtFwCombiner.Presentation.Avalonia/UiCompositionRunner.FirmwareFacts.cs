@@ -39,12 +39,72 @@ public static partial class UiCompositionRunner
     /// <summary>Gets compact DP version facts decoded using gen_flash standard-merge version rules.</summary>
     public static IReadOnlyList<FirmwareSlotFactViewModel> GetDpFirmwareSlotFacts(string icId, string path)
     {
-        WorkbenchDpVersionMetadata? metadata = WorkbenchCompositionService.TryReadDpVersionMetadata(
+        WorkbenchDpVersionMetadata? legacyMetadata = WorkbenchCompositionService.TryReadDpVersionMetadata(
             icId,
             path);
-        return metadata is null
-            ? [new FirmwareSlotFactViewModel("DP", "Pending", true)]
-            : [new FirmwareSlotFactViewModel("DP", metadata.DisplayVersion)];
+        WorkbenchCmiDpCodeMetadata? cmiMetadata = WorkbenchCompositionService.TryReadCmiDpCodeMetadata(
+            icId,
+            path);
+        if (legacyMetadata is null && cmiMetadata is null)
+        {
+            return [new FirmwareSlotFactViewModel("DP", "Pending", true)];
+        }
+
+        List<FirmwareSlotFactViewModel> facts =
+        [
+            legacyMetadata is not null
+                ? new FirmwareSlotFactViewModel("DP", legacyMetadata.DisplayVersion)
+                : new FirmwareSlotFactViewModel(
+                    "DP",
+                    FormattableString.Invariant($"D{cmiMetadata!.MajorVersionByte:X2}.{cmiMetadata.MinorVersionNibble:X1}")),
+        ];
+        if (cmiMetadata is not null && legacyMetadata is not null)
+        {
+            facts.Add(new FirmwareSlotFactViewModel(
+                "CMI DP",
+                FormattableString.Invariant($"D{cmiMetadata.MajorVersionByte:X2}.{cmiMetadata.MinorVersionNibble:X1}")));
+        }
+
+        if (cmiMetadata is not null && !string.IsNullOrWhiteSpace(cmiMetadata.JiraBadge))
+        {
+            facts.Add(new FirmwareSlotFactViewModel("Jira", cmiMetadata.JiraBadge));
+        }
+
+        if (cmiMetadata is { HasPayloadLengthWarning: true })
+        {
+            facts.Add(new FirmwareSlotFactViewModel(
+                "DP size",
+                FormattableString.Invariant(
+                    $"0x{cmiMetadata.PayloadLength:X} (expected {FormatPayloadLengths(cmiMetadata.ExpectedPayloadLengths)})"),
+                true));
+        }
+
+        if (cmiMetadata is not { HasPayloadLengthWarning: true } &&
+            File.Exists(path) &&
+            WorkbenchCompositionService.TryGetStandardMergeDpInputLengthPolicy(icId, out WorkbenchStandardMergeDpInputLengthPolicy policy))
+        {
+            long payloadLength = new FileInfo(path).Length;
+            if (!policy.ExpectedInputLengths.Contains(payloadLength))
+            {
+                facts.Add(new FirmwareSlotFactViewModel(
+                    "DP size",
+                    FormattableString.Invariant(
+                        $"0x{payloadLength:X} (expected {FormatExpectedPayloadLengths(policy.ExpectedInputLengths)}; required through 0x{policy.RequiredLength:X})"),
+                    true));
+            }
+        }
+
+        return facts;
+    }
+
+    private static string FormatPayloadLengths(IReadOnlyList<int> payloadLengths)
+    {
+        return string.Join(" / ", payloadLengths.Select(length => FormattableString.Invariant($"0x{length:X}")));
+    }
+
+    private static string FormatExpectedPayloadLengths(IReadOnlyList<long> payloadLengths)
+    {
+        return string.Join(" / ", payloadLengths.Select(length => FormattableString.Invariant($"0x{length:X}")));
     }
 
     /// <summary>Creates the catalog-backed FlashCode output file name suggestion.</summary>

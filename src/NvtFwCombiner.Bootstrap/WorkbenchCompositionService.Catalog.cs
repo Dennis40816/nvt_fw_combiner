@@ -1,5 +1,3 @@
-using NvtFwCombiner.Application.ExternalTools;
-using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -9,31 +7,31 @@ public static partial class WorkbenchCompositionService
     /// <summary>Gets selectable IC ids from the IC support catalog.</summary>
     public static IReadOnlyList<string> GetSupportedIcIds()
     {
-        return IcSupportCatalog.IcIds;
+        return IcMetadataFacade.IcIds;
     }
 
     /// <summary>Gets the catalog-owned initial IC id for shell/workbench surfaces.</summary>
     public static string GetDefaultIcId()
     {
-        return IcSupportCatalog.DefaultIcId;
+        return IcMetadataFacade.DefaultIcId;
     }
 
     /// <summary>Gets supported IC-number choices from the TP flash-map/postbuild catalog.</summary>
     public static IReadOnlyList<string> GetNumberChoices(string icId)
     {
-        return TpFlashMapCatalog.GetNumberChoices(icId);
+        return IcMetadataFacade.GetNumberChoices(icId);
     }
 
     /// <summary>Returns true when the IC uses the DP Perspective family policy.</summary>
     public static bool IsDpPerspectiveIc(string icId)
     {
-        return DpPerspectiveCatalog.IsSupportedIc(icId);
+        return IcMetadataFacade.IsDpPerspectiveIc(icId);
     }
 
     /// <summary>Gets a compact, catalog-backed policy summary for the selected DP Replace IC.</summary>
     public static string GetDpReplacePolicySummary(string icId)
     {
-        return DpPerspectiveCatalog.IsSupportedIc(icId)
+        return IcMetadataFacade.IsDpPerspectiveIc(icId)
             ? $"DP replacement follows the selected base BIN length: {DpPerspectiveCatalog.FormatSupportedLengths()}; original TP range {FormatDisplayRange(DpPerspectiveCatalog.TpOverlayRange)} is restored from base."
             : "Build stays gated until this IC has approved DP Replace source mapping evidence.";
     }
@@ -43,7 +41,8 @@ public static partial class WorkbenchCompositionService
     {
         IReadOnlyList<string> toolBindingIds =
         [
-            .. LegacyCombinerPostbuildCatalog.All
+            .. IcMetadataFacade.All
+                .SelectMany(metadata => IcMetadataFacade.GetPostbuildProfiles(metadata.IcId))
                 .Select(profile => profile.ToolBindingId)
                 .Distinct(StringComparer.Ordinal)
                 .Order(StringComparer.Ordinal),
@@ -52,8 +51,8 @@ public static partial class WorkbenchCompositionService
         return new WorkbenchSettingsSnapshot(
             BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles.Count,
             BuiltInReplaceProfiles.All.Count,
-            TpFlashMapCatalog.IcIds.Count,
-            LegacyCombinerPostbuildCatalog.All.Select(profile => profile.IcId).Distinct(StringComparer.Ordinal).Count(),
+            IcMetadataFacade.All.Count,
+            IcMetadataFacade.All.Count(metadata => metadata.HasPostbuild),
             string.Join(", ", toolBindingIds),
             "external-tools/legacy-combiner/1.13.0/manifest.json");
     }

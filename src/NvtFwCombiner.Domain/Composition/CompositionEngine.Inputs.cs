@@ -48,7 +48,7 @@ public static partial class CompositionEngine
             {
                 issues.Add(new CompositionIssue(
                     CompositionIssueCodes.ExecutionCapacityUnsupported,
-                    $"Truncated input bytes for address space '{addressSpace.AddressSpaceId}' exceed the supported runtime array length."));
+                    $"Normalized input bytes for address space '{addressSpace.AddressSpaceId}' exceed the supported runtime array length."));
             }
             else if (bytes.Length < addressSpace.Length && addressSpace.InputPaddingByte is null)
             {
@@ -97,16 +97,26 @@ public static partial class CompositionEngine
                 continue;
             }
 
-            byte[] buffer = bytes.ToArray();
+            byte[] buffer = bytes.Length > addressSpace.Length &&
+                addressSpace.InputOversizePolicy == InputOversizePolicy.ExtractDeclaredRange
+                ? [.. bytes.Span[..checked((int)addressSpace.Length)]]
+                : bytes.ToArray();
             if (buffer.LongLength > addressSpace.Length)
             {
-                long discardedByteCount = buffer.LongLength - addressSpace.Length;
-                buffer = [.. buffer.AsSpan(0, checked((int)addressSpace.Length))];
-                issues.Add(new CompositionIssue(
-                    CompositionIssueCodes.InputAddressSpaceTruncated,
-                    $"Input bytes for address space '{addressSpace.AddressSpaceId}' exceed declared length and were truncated from {bytes.Length} to {addressSpace.Length} bytes; {discardedByteCount} trailing bytes were discarded.",
-                    addressSpace.AddressSpaceId,
-                    CompositionIssueSeverity.Warning));
+                if (addressSpace.InputOversizePolicy == InputOversizePolicy.TruncateWithWarning)
+                {
+                    long discardedByteCount = buffer.LongLength - addressSpace.Length;
+                    buffer = [.. buffer.AsSpan(0, checked((int)addressSpace.Length))];
+                    issues.Add(new CompositionIssue(
+                        CompositionIssueCodes.InputAddressSpaceTruncated,
+                        $"Input bytes for address space '{addressSpace.AddressSpaceId}' exceed declared length and were truncated from {bytes.Length} to {addressSpace.Length} bytes; {discardedByteCount} trailing bytes were discarded.",
+                        addressSpace.AddressSpaceId,
+                        CompositionIssueSeverity.Warning));
+                }
+                else if (addressSpace.InputOversizePolicy == InputOversizePolicy.ExtractDeclaredRange)
+                {
+                    buffer = [.. buffer.AsSpan(0, checked((int)addressSpace.Length))];
+                }
             }
             else if (buffer.LongLength < addressSpace.Length)
             {
@@ -118,6 +128,16 @@ public static partial class CompositionEngine
                     buffer.Length,
                     padded.Length - buffer.Length);
                 buffer = padded;
+            }
+
+            if (addressSpace.ExpectedInputLengths.Count > 0 &&
+                !addressSpace.ExpectedInputLengths.Contains(bytes.Length))
+            {
+                issues.Add(new CompositionIssue(
+                    CompositionIssueCodes.InputAddressSpaceLengthUnexpected,
+                    $"Input bytes for address space '{addressSpace.AddressSpaceId}' have unexpected length {bytes.Length} bytes; expected {FormatAllowedLengths(addressSpace.ExpectedInputLengths)}. Execution uses only the declared source range [0x0, 0x{addressSpace.Length:X}).",
+                    addressSpace.AddressSpaceId,
+                    CompositionIssueSeverity.Warning));
             }
 
             normalizedInputs.Add(addressSpace.AddressSpaceId, buffer);

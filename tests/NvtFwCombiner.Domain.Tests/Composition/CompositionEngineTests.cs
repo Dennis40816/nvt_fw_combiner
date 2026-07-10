@@ -157,6 +157,42 @@ public sealed partial class CompositionEngineTests
         Assert.Contains("declared 2 bytes", issue.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies approved DP range extraction accepts a sufficient nonstandard artifact and reports a warning.</summary>
+    [Fact]
+    public void DeclaredRangeExtractionUsesOnlyRequiredBytesAndWarnsForUnexpectedLength()
+    {
+        CompositionPlan plan = CreateBlankPlan(
+            2,
+            new AddressSpace(
+                "input",
+                2,
+                AddressSpaceMutability.Immutable,
+                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
+                expectedInputLengths: [4]),
+            CompositionOperation.CopyRange(
+                "copy-input",
+                10,
+                "input",
+                new ByteRange(0, 2),
+                "output-image",
+                new ByteRange(0, 2),
+                OverlapPolicy.Reject,
+                "copy declared source range"));
+        var input = new CompositionExecutionInput(new Dictionary<string, byte[]>
+        {
+            ["input"] = [0x11, 0x22, 0x33],
+        });
+
+        CompositionExecutionResult result = CompositionEngine.Execute(plan, input);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal([0x11, 0x22], result.OutputBytes.ToArray());
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthUnexpected, issue.Code);
+        Assert.Equal(CompositionIssueSeverity.Warning, issue.Severity);
+        Assert.Contains("unexpected length 3 bytes", issue.Message, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies CtrlRAM replace inputs may truncate oversized source bytes with a run diagnostic.</summary>
     [Fact]
     public void CtrlRamInputWithTruncationPolicyTruncatesBeforeReplaceRange()

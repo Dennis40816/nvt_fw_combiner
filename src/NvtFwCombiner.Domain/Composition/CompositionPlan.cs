@@ -68,7 +68,8 @@ public sealed partial class CompositionPlan
             if (addressSpace.Mutability != AddressSpaceMutability.Immutable &&
                 (addressSpace.InputPaddingByte is not null ||
                     addressSpace.InputOversizePolicy != InputOversizePolicy.Reject ||
-                    addressSpace.AllowedInputLengths.Count > 0))
+                    addressSpace.AllowedInputLengths.Count > 0 ||
+                    addressSpace.ExpectedInputLengths.Count > 0))
             {
                 throw new ArgumentException("Mutable address spaces cannot declare input size relaxation.", nameof(addressSpaces));
             }

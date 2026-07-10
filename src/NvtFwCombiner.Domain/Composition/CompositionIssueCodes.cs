@@ -15,6 +15,9 @@ public static class CompositionIssueCodes
     /// <summary>Input bytes were truncated by an explicitly declared oversize policy.</summary>
     public const string InputAddressSpaceTruncated = "input.address-space.truncated";
 
+    /// <summary>Input bytes cover the declared range but do not match the profile's non-blocking expected artifact lengths.</summary>
+    public const string InputAddressSpaceLengthUnexpected = "input.address-space.length-unexpected";
+
     /// <summary>The requested runtime capacity exceeds the in-memory executor limit.</summary>
     public const string ExecutionCapacityUnsupported = "execution.capacity.unsupported";
 

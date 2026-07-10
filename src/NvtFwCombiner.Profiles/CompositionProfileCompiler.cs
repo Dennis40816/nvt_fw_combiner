@@ -7,6 +7,7 @@ public static partial class CompositionProfileCompiler
 {
     private const string CtrlRamReplaceExperienceId = IcWorkflowIds.CtrlRamReplace;
     private const string GeneralReplaceExperienceId = IcWorkflowIds.GeneralReplace;
+    private const string StandardMergeExperienceId = IcWorkflowIds.StandardMerge;
     private const string CtrlRamClassificationTag = "tp-ctrlram";
     private const string TpClassificationTag = "tp";
     private const string TpClassificationTagPrefix = "tp-";

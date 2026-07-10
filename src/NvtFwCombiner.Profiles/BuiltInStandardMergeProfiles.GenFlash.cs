@@ -113,14 +113,19 @@ public static partial class BuiltInStandardMergeProfiles
         StandardMergeRegion dpRegion,
         StandardMergeRegion? extraRegion = null,
         string profileIdSuffix = "gen-flash",
-        string profileVersion = "0.4.0",
+        string profileVersion = "0.5.0",
         string evidenceSource = "gen_flash standard merge source.")
     {
         string profileId = $"nt{icNumber}-standard-merge-{profileIdSuffix}";
         List<AddressSpace> addressSpaces =
         [
             new(tpRegion.SourceSpaceId, tpRegion.SourceLength, AddressSpaceMutability.Immutable),
-            new(dpRegion.SourceSpaceId, dpRegion.SourceLength, AddressSpaceMutability.Immutable),
+            new(
+                dpRegion.SourceSpaceId,
+                dpRegion.RequiredSourceLength,
+                AddressSpaceMutability.Immutable,
+                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
+                expectedInputLengths: [dpRegion.SourceLength]),
             new(CompositionAddressSpaceIds.OutputImage, flashSize, AddressSpaceMutability.Mutable),
         ];
         List<CompositionOperation> operations =
@@ -213,6 +218,8 @@ public static partial class BuiltInStandardMergeProfiles
         long? DeclaredSourceLength = null)
     {
         internal long SourceLength => DeclaredSourceLength ?? EndExclusive;
+
+        internal long RequiredSourceLength => EndExclusive;
 
         internal ByteRange Range => ByteRange.FromStartEndExclusive(Start, EndExclusive);
     }
