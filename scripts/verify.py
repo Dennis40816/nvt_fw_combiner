@@ -17,12 +17,20 @@ CTRL_RAM_REPLACE_FIXTURE_VERIFIER = ROOT / "scripts" / "verify_ctrlram_replace_f
 CTRL_RAM_SENTINEL_CREATOR = ROOT / "scripts" / "create_ctrlram_universal_sentinel.py"
 
 
-def run(command: list[str], *, cwd: Path = ROOT) -> None:
+def run(
+    command: list[str], *, cwd: Path = ROOT, environment: dict[str, str] | None = None
+) -> None:
     print(f"\n> {' '.join(command)}", flush=True)
-    subprocess.run(command, cwd=cwd, check=True)
+    subprocess.run(command, cwd=cwd, check=True, env=environment)
 
 
-def run_with_log(command: list[str], log_path: Path, *, cwd: Path = ROOT) -> None:
+def run_with_log(
+    command: list[str],
+    log_path: Path,
+    *,
+    cwd: Path = ROOT,
+    environment: dict[str, str] | None = None,
+) -> None:
     print(f"\n> {' '.join(command)}", flush=True)
     log_path.parent.mkdir(parents=True, exist_ok=True)
     process = subprocess.Popen(
@@ -33,6 +41,7 @@ def run_with_log(command: list[str], log_path: Path, *, cwd: Path = ROOT) -> Non
         text=True,
         encoding="utf-8",
         errors="replace",
+        env=environment,
     )
     if process.stdout is None:
         raise RuntimeError("failed to capture process output")
@@ -102,6 +111,10 @@ def resolve_dotnet() -> str:
 
 def verify_dotnet() -> None:
     dotnet = resolve_dotnet()
+    environment = os.environ.copy()
+    # Verification is a batch task, not an interactive build session. Avoid retaining MSBuild nodes after it ends.
+    environment["MSBUILDDISABLENODEREUSE"] = "1"
+    environment["DOTNET_CLI_DO_NOT_USE_MSBUILD_SERVER"] = "1"
     commands = (
         [dotnet, "--version"],
         [dotnet, "restore", str(SOLUTION)],
@@ -111,11 +124,16 @@ def verify_dotnet() -> None:
         [sys.executable, str(CTRL_RAM_REPLACE_FIXTURE_VERIFIER), "--configuration", "Release", "--no-build"],
     )
     build_log = os.environ.get("NFC_DOTNET_BUILD_LOG")
-    for command in commands:
-        if build_log and len(command) > 1 and command[1] == "build":
-            run_with_log(command, Path(build_log))
-        else:
-            run(command)
+    try:
+        for command in commands:
+            if build_log and len(command) > 1 and command[1] == "build":
+                run_with_log(command, Path(build_log), environment=environment)
+            else:
+                run(command, environment=environment)
+    finally:
+        # Avalonia/Roslyn may start compiler servers even with node reuse disabled.
+        # Stop only servers from the repository-selected SDK after every verification run.
+        run([dotnet, "build-server", "shutdown"], environment=environment)
 
 
 def parse_args() -> argparse.Namespace:
