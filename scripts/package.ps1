@@ -46,6 +46,7 @@ $AppPublish = Join-Path $WorkRoot 'app-publish'
 $WorkerBuild = Join-Path $WorkRoot 'worker-build'
 $WorkerDist = Join-Path $WorkRoot 'worker-dist'
 
+try {
 Remove-Item -LiteralPath $ReleaseRoot, $WorkRoot -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $ReleaseRoot, $PackageRoot, $AppPublish, $WorkerBuild, $WorkerDist | Out-Null
 
@@ -466,3 +467,12 @@ Compress-Archive -LiteralPath $PackageRoot -DestinationPath $ZipPath -Compressio
 Write-Host "Release package: $ZipPath"
 Write-Host "Application SHA-256: $AppHash"
 Write-Host "Worker SHA-256: $WorkerHash"
+}
+finally {
+    # Publishing can leave MSBuild/Roslyn servers alive after a successful or failed package run.
+    # They are build helpers, not package runtime dependencies, so always stop the repository SDK servers.
+    & $DotNet build-server shutdown
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "dotnet build-server shutdown returned exit code $LASTEXITCODE."
+    }
+}
