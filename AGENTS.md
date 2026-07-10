@@ -29,6 +29,40 @@ python -m pytest                  # narrow run from tools/crc-worker
 
 Do not invent a second canonical repository verification entry point.
 
+## Execution cadence
+
+### Preflight
+
+Before a non-trivial change:
+
+1. Run `git status --short --branch` and record existing user changes without modifying or staging them.
+2. State the risk class (`R0`-`R3`), affected layers, acceptance criteria, required evidence/human gate, narrow test, and final verification gate.
+3. Inspect the relevant source, contract, profile, and test once before editing. Do not begin with repeated broad searches or speculative test runs.
+
+### Test ladder
+
+1. Run formatting and the narrowest affected test first.
+2. Add affected contract, integration, or golden tests only when the change crosses those boundaries.
+3. Run `python scripts/verify.py --all` once as the final local gate for `R1`-`R3` changes when the environment supports it. It is not a diagnostic retry command.
+4. An `R0` documentation/governance-only change with no executable contract, command, or fixture impact may finish with `python scripts/verify.py --structure-only`; PR CI remains authoritative for the complete repository gates.
+
+Use `docs/governance/development-execution-workflow.md` to select the narrow test. Do not add a parallel verifier for convenience.
+
+### Commit and handoff gate
+
+- A change is ready to commit only when its scope is frozen, its required local gate passes, `git diff --check` and the reviewed diff contain no generated/private payloads, and residual evidence gates are recorded.
+- Keep code, tests, documents, generated output, and evidence intake in separate commits unless they are required to validate one coherent behavior change.
+- Do not commit exploratory output, temporary staging data, real firmware, or a work-in-progress checkpoint that cannot be independently reviewed.
+- Unless the owner explicitly asks for a commit or PR, report `ready-to-commit` rather than creating a commit automatically.
+- `R3` work may be committed only on a non-`main` branch with its human-review and evidence gaps explicit; it must not be represented as complete or merged before those gates pass.
+
+### Retry budget
+
+1. On the first failure, capture the command/result and classify it as invocation, input/evidence, assertion, or environment failure.
+2. Retry only when the command, input, code, or environment has materially changed; state that change before rerunning.
+3. Do not run the same failing command more than once after its first failure. Use a smaller diagnostic or report the blocker instead of escalating immediately to a full verification run.
+4. For a recurring multi-step diagnostic, add or improve a focused tested script rather than repeatedly composing large ad hoc shell commands.
+
 ## Branch, PR, review, and merge rules
 
 - `main` is stable. Agents must not push implementation or documentation changes directly to `main` unless the owner explicitly requests an emergency single-file administrative edit.
@@ -103,7 +137,7 @@ After editing:
 
 1. Format changed files and run the narrowest meaningful tests.
 2. Apply the repository `polytail` skill to every non-trivial change.
-3. Run `python scripts/verify.py --all` before claiming completion when the environment supports it.
+3. Apply the final gate defined by the test ladder: `--all` for `R1`-`R3`; `--structure-only` is permitted only for qualifying `R0` documentation/governance changes.
 4. Report commands/results, firmware/profile/protocol/release impact, and missing private evidence.
 5. For branch work, prepare PR-ready notes: summary, changed files, risk class, tests, required reviewers, and merge target.
 

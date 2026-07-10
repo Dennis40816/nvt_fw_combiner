@@ -1,0 +1,65 @@
+# Development Execution Workflow
+
+Status: Active repository workflow.
+
+This runbook defines the development cadence around the canonical verifier. It does not replace `AGENTS.md`, ADRs, firmware evidence, or PR review.
+
+## 1. Preflight
+
+Run this once before editing a non-trivial change:
+
+```text
+git status --short --branch
+```
+
+Record existing user changes, then state the risk class, affected layers, acceptance criteria, required human gate, narrow test, and final gate. Preserve unrelated changes; do not stage or revert them.
+
+## 2. Test Selection
+
+Run the narrowest relevant command first. Add another row only when the change crosses that boundary.
+
+| Changed surface | First test | Add when applicable |
+| --- | --- | --- |
+| Documentation/governance only | `python scripts/verify.py --structure-only` | Full gate if a command, fixture, schema, or executable contract changes. |
+| Domain composition | `dotnet test tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj` | Application or architecture tests when a public composition contract changes. |
+| Application, flash-map, profile planning, or postbuild catalog | `dotnet test tests/NvtFwCombiner.Application.Tests/NvtFwCombiner.Application.Tests.csproj` | Profile contract and golden regression tests for profile/range/output effects. |
+| Profile/schema contract | `dotnet test tests/NvtFwCombiner.ProfileContract.Tests/NvtFwCombiner.ProfileContract.Tests.csproj` | Golden regression and owner review for firmware semantics. |
+| Infrastructure or external Combiner adapter | `dotnet test tests/NvtFwCombiner.Infrastructure.Tests/NvtFwCombiner.Infrastructure.Tests.csproj` | Approved real-tool smoke or golden test only when its evidence is in scope. |
+| Bootstrap or CLI | `dotnet test tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj` | Application or infrastructure tests when the request/execution boundary changes. |
+| Avalonia UI/ViewModels | `dotnet test tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj` | Bootstrap tests when binding or request projection changes. |
+| Architecture/dependency boundary | `dotnet test tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj` | Full gate for shared-layer or project-reference changes. |
+| Golden outputs or byte semantics | `dotnet test tests/NvtFwCombiner.GoldenRegression.Tests/NvtFwCombiner.GoldenRegression.Tests.csproj` | Required firmware-owner review and full gate. |
+| Python CRC worker | `python -m pytest` from `tools/crc-worker` | The C# contract tests and full gate for protocol/transform changes. |
+
+For `R1`-`R3`, after the selected tests pass, run this once before handoff or commit readiness:
+
+```text
+python scripts/verify.py --all
+```
+
+`R0` documentation/governance changes may use `--structure-only` only when they do not alter an executable command, schema, contract, fixture, or firmware claim. Pull-request CI still executes the complete policy, Python, and .NET gates.
+
+## 3. Commit Gate
+
+Create a commit candidate only after all of these are true:
+
+1. The change is one reviewable concern; unrelated UI, core, release, and documentation work is separated.
+2. The selected tests and final gate pass, or every skipped gate has an explicit reason.
+3. `git diff --check` passes and the reviewed diff excludes generated outputs, temporary staging data, real firmware, private golden payloads, and credentials.
+4. Risk class, human-review requirements, and residual evidence gaps are recorded.
+
+Do not commit exploratory investigation or temporary artifacts. Unless the owner asks for a commit or PR, report that the work is `ready-to-commit` instead of committing automatically. `R3` commits remain review-only on a non-`main` branch until the required human gate passes.
+
+## 4. Retry Policy
+
+The first failed command is evidence, not a reason to rerun it unchanged.
+
+1. Record the command, exit/result, and failure class: invocation, input/evidence, assertion, or environment.
+2. Retry only after changing the command, input, code, or environment; record what changed.
+3. One materially changed retry is the limit. After a second failure, use a smaller diagnostic or report the blocker.
+4. Do not use `python scripts/verify.py --all` as a diagnostic retry.
+5. When a multi-step diagnostic repeats, replace manual shell composition with a focused tested script or test case.
+
+## 5. Handoff
+
+Before PR review, provide the changed files, risk class, exact test commands/results, firmware/profile/protocol/release impact, human-review requirements, and unresolved evidence gaps. Use the pull-request template to keep this record consistent.
