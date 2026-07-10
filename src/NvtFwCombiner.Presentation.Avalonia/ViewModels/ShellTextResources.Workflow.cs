@@ -99,6 +99,75 @@ public sealed partial class ShellTextResources
 
     public string GeneralReplaceMappingsDetail { get; private init; } = string.Empty;
 
+    public string GeneralReplacePatchOverwriteLabel { get; private init; } = string.Empty;
+
+    public string GeneralReplacePatchFillLabel { get; private init; } = string.Empty;
+
+    public string GeneralReplacePatchValueLabel { get; private init; } = string.Empty;
+
+    public string GeneralReplacePatchValuePlaceholder { get; private init; } = string.Empty;
+
+    public string GeneralReplaceApplyPatchLabel { get; private init; } = string.Empty;
+
+    public string GeneralReplaceUndoPatchLabel { get; private init; } = string.Empty;
+
+    public string GeneralReplaceRedoPatchLabel { get; private init; } = string.Empty;
+
+    public string GeneralReplaceCommittedPatchesTitle { get; private init; } = string.Empty;
+
+    public string GeneralReplaceNoPatchesLabel { get; private init; } = string.Empty;
+
+    /// <summary>Visible when the hexadecimal viewport has no base BIN to inspect.</summary>
+    public string GeneralReplaceHexViewportNoBaseDetail { get; private init; } = string.Empty;
+
+    /// <summary>Visible when the requested hexadecimal viewport address is invalid.</summary>
+    public string GeneralReplaceHexViewportAddressInvalidDetail { get; private init; } = string.Empty;
+
+    /// <summary>Formats base length and the visible hexadecimal address window.</summary>
+    public string GeneralReplaceHexViewportReadyDetail { get; private init; } = string.Empty;
+
+    /// <summary>Title for the interactive General Replace hexadecimal editor.</summary>
+    public string GeneralReplaceHexEditorTitle { get; private init; } = string.Empty;
+
+    /// <summary>Describes how selection and virtual staged changes work in the hexadecimal editor.</summary>
+    public string GeneralReplaceHexEditorDetail { get; private init; } = string.Empty;
+
+    /// <summary>Label for hexadecimal viewport navigation.</summary>
+    public string GeneralReplaceHexGoToLabel { get; private init; } = string.Empty;
+
+    /// <summary>Label for the compact General Replace patch inspector.</summary>
+    public string GeneralReplaceHexInspectorTitle { get; private init; } = string.Empty;
+
+    /// <summary>Label for profile-authorized range selection in the hexadecimal editor.</summary>
+    public string GeneralReplaceHexApprovedRegionLabel { get; private init; } = string.Empty;
+
+    /// <summary>Column label for hexadecimal viewport addresses.</summary>
+    public string GeneralReplaceHexAddressColumnLabel { get; private init; } = string.Empty;
+
+    /// <summary>Column label for hexadecimal viewport ASCII rendering.</summary>
+    public string GeneralReplaceHexAsciiColumnLabel { get; private init; } = string.Empty;
+
+    /// <summary>Label for the experimental Hex Editor section.</summary>
+    public string HexEditorExperimentalLabel { get; private init; } = string.Empty;
+
+    /// <summary>Opens the experimental Hex Editor section.</summary>
+    public string HexEditorOpenLabel { get; private init; } = string.Empty;
+
+    /// <summary>Closes the experimental Hex Editor section.</summary>
+    public string HexEditorCloseLabel { get; private init; } = string.Empty;
+
+    /// <summary>Build label for the experimental Hex Editor.</summary>
+    public string HexEditorBuildLabel { get; private init; } = string.Empty;
+
+    /// <summary>Readiness state when the Hex Editor needs a base BIN.</summary>
+    public string HexEditorBaseRequiredDetail { get; private init; } = string.Empty;
+
+    /// <summary>Readiness state when the Hex Editor needs one staged patch.</summary>
+    public string HexEditorPatchRequiredDetail { get; private init; } = string.Empty;
+
+    /// <summary>Readiness state when Hex Editor can build a new complete BIN.</summary>
+    public string HexEditorReadyDetail { get; private init; } = string.Empty;
+
     public string GeneralMergeMappingDetail { get; private init; } = string.Empty;
 
     public string GeneralMergeMappingsDetail { get; private init; } = string.Empty;

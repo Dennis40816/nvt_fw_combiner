@@ -13,6 +13,7 @@ public static partial class WorkbenchCompositionService
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
         IReadOnlyList<WorkbenchGeneralReplaceMappingInput> mappingInputs,
+        IReadOnlyList<WorkbenchGeneralReplacePatchInput> patchInputs,
         bool build,
         string? outputPath,
         CancellationToken cancellationToken)
@@ -22,6 +23,7 @@ public static partial class WorkbenchCompositionService
                 number,
                 slotPaths,
                 mappingInputs,
+                patchInputs,
                 build,
                 out GeneralReplaceRunContext? context,
                 out WorkbenchRunResult? failure))
@@ -31,9 +33,11 @@ public static partial class WorkbenchCompositionService
 
         if (!TryCreateGeneralReplaceMappings(
                 context!.SelectedMappings,
+                context.SelectedPatches,
                 out IReadOnlyList<ExplicitMapping> explicitMappings,
                 out IReadOnlyList<AddressSpace> requestAddressSpaces,
                 out IReadOnlyList<InputArtifactBinding> mappingBindings,
+                out IReadOnlyDictionary<string, byte[]> virtualArtifacts,
                 out IReadOnlyList<CompositionIssue> mappingIssues))
         {
             return CreateReplaceReportRunResult(
@@ -179,7 +183,8 @@ public static partial class WorkbenchCompositionService
             externalProcessor: commandPlan is null ? null : ExternalProcessorFactory.CreateOrNull(),
             icNumberSelection: context.Selection,
             overwrite: true,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken,
+            virtualArtifacts).ConfigureAwait(false);
     }
 
 }

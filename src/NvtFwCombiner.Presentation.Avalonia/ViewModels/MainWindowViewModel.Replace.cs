@@ -25,7 +25,7 @@ public sealed partial class MainWindowViewModel
 
     private bool CanRunReplace()
     {
-        return SelectedReplaceMode switch
+        return !IsRunInProgress && (SelectedReplaceMode switch
         {
             DpReplaceMode => ReplaceSlots.Count > 0 &&
                 ReplaceSlots.Where(slot => !slot.IsOptional).All(slot => slot.HasFile),
@@ -34,7 +34,19 @@ public sealed partial class MainWindowViewModel
             GeneralReplaceMode => ReplaceBaseSlot.HasFile &&
                 GeneralReplaceMappings.Any(mapping => mapping.HasFile),
             _ => false,
-        };
+        });
+    }
+
+    private bool CanBuildHexEditor()
+    {
+        return !IsRunInProgress && ReplaceBaseSlot.HasFile && GeneralReplacePatches.Count > 0;
+    }
+
+    /// <summary>Builds the staged experimental Hex Editor changes through the General Replace pipeline.</summary>
+    public Task BuildHexEditorAsync(string outputPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
+        return RunHexEditorAsync(build: true, outputPath);
     }
 
     private async Task RunReplaceAsync(bool build)
@@ -45,18 +57,25 @@ public sealed partial class MainWindowViewModel
     private async Task RunReplaceAsync(bool build, string? outputPath)
     {
         CloseReplaceSelectionForRun();
+        CancellationTokenSource? cancellationSource = null;
         try
         {
+            cancellationSource = BeginRun();
             WorkbenchRunResult result = await UiCompositionRunner.RunReplaceAsync(
                 SelectedIc,
                 SelectedNumber,
                 SelectedReplaceMode,
                 CreateReplaceSlotPaths(),
                 CreateGeneralReplaceMappingInputs(),
+                [],
                 build,
-                CancellationToken.None,
+                cancellationSource.Token,
                 outputPath);
             ApplyRunResult(result, build);
+            RefreshCommandState();
+        }
+        catch (OperationCanceledException) when (cancellationSource is { IsCancellationRequested: true })
+        {
             RefreshCommandState();
         }
         catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
@@ -79,6 +98,66 @@ public sealed partial class MainWindowViewModel
                 compositionKind: "Replace",
                 modeId: $"{SelectedReplaceMode.ToLowerInvariant()}-replace",
                 experienceId: $"{SelectedReplaceMode.ToLowerInvariant()}-replace");
+        }
+        finally
+        {
+            if (cancellationSource is not null)
+            {
+                CompleteRun(cancellationSource);
+            }
+        }
+    }
+
+    private async Task RunHexEditorAsync(bool build, string? outputPath = null)
+    {
+        CloseReplaceSelectionForRun();
+        CancellationTokenSource? cancellationSource = null;
+        try
+        {
+            cancellationSource = BeginRun();
+            WorkbenchRunResult result = await UiCompositionRunner.RunReplaceAsync(
+                SelectedIc,
+                SelectedNumber,
+                GeneralReplaceMode,
+                CreateReplaceSlotPaths(),
+                [],
+                CreateGeneralReplacePatchInputs(),
+                build,
+                cancellationSource.Token,
+                outputPath);
+            ApplyRunResult(result, build);
+            RefreshCommandState();
+        }
+        catch (OperationCanceledException) when (cancellationSource is { IsCancellationRequested: true })
+        {
+            RefreshCommandState();
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            RefreshCommandState();
+            LastRunResult = new UiRunResultViewModel(
+                "Hex Editor build failed",
+                exception.Message,
+                "No output",
+                succeeded: false);
+            OnPropertyChanged(nameof(LastRunResult));
+            LoadRunErrorReport(
+                "Build",
+                $"{SelectedIc.ToLowerInvariant()}-hex-editor",
+                SelectedIc,
+                SelectedNumber,
+                exception.Message,
+                CreateReplaceSlotPaths(),
+                compositionKind: "Replace",
+                modeId: "general-replace-hex-editor",
+                experienceId: "experimental-hex-editor");
+        }
+        finally
+        {
+            if (cancellationSource is not null)
+            {
+                CompleteRun(cancellationSource);
+            }
         }
     }
 

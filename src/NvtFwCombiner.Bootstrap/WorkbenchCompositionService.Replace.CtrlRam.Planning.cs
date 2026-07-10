@@ -63,7 +63,7 @@ public static partial class WorkbenchCompositionService
         }
 
         if (postbuildProfile is null &&
-            !LegacyCombinerPostbuildCatalog.TryGetDefaultProfile(icId, out postbuildProfile))
+            !IcMetadataFacade.TryGetDefaultPostbuildProfile(icId, out postbuildProfile))
         {
             return operations;
         }

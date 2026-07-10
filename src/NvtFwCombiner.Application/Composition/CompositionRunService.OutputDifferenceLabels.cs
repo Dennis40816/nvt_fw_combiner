@@ -19,10 +19,13 @@ public sealed partial class CompositionRunService
         return TpHeaderCatalog.GetDisplayName(sectionId);
     }
 
-    private static string FormatDifferenceSectionLabel(string sourceSpaceId)
+    private static string FormatDifferenceSectionLabel(string? sourceSpaceId, string reason)
     {
-        return DynamicCtrlRamReplacementIds.TryFormatDisplayLabel(sourceSpaceId, out string label)
-            ? label
-            : "Declared replacement";
+        return string.Equals(reason, "Overwrite hexadecimal General range.", StringComparison.Ordinal) ||
+               reason.StartsWith("Fill hexadecimal General range", StringComparison.Ordinal)
+            ? "Hex patch"
+            : sourceSpaceId is not null && DynamicCtrlRamReplacementIds.TryFormatDisplayLabel(sourceSpaceId, out string label)
+                ? label
+                : "Declared replacement";
     }
 }

@@ -34,6 +34,7 @@ public static partial class WorkbenchCompositionService
             replaceMode,
             slotPaths,
             [],
+            [],
             build,
             cancellationToken,
             outputPath).ConfigureAwait(false);
@@ -50,11 +51,36 @@ public static partial class WorkbenchCompositionService
         CancellationToken cancellationToken,
         string? outputPath = null)
     {
+        return await RunReplaceAsync(
+            icId,
+            number,
+            replaceMode,
+            slotPaths,
+            generalReplaceMappings,
+            [],
+            build,
+            cancellationToken,
+            outputPath).ConfigureAwait(false);
+    }
+
+    /// <summary>Runs Replace preview or build with file-backed and virtual General Replace authoring inputs.</summary>
+    public static async ValueTask<WorkbenchRunResult> RunReplaceAsync(
+        string icId,
+        string number,
+        string replaceMode,
+        IReadOnlyDictionary<string, string> slotPaths,
+        IReadOnlyList<WorkbenchGeneralReplaceMappingInput> generalReplaceMappings,
+        IReadOnlyList<WorkbenchGeneralReplacePatchInput> generalReplacePatches,
+        bool build,
+        CancellationToken cancellationToken,
+        string? outputPath = null)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(number);
         ArgumentException.ThrowIfNullOrWhiteSpace(replaceMode);
         ArgumentNullException.ThrowIfNull(slotPaths);
         ArgumentNullException.ThrowIfNull(generalReplaceMappings);
+        ArgumentNullException.ThrowIfNull(generalReplacePatches);
 
         return replaceMode switch
         {
@@ -85,6 +111,7 @@ public static partial class WorkbenchCompositionService
                 number,
                 slotPaths,
                 generalReplaceMappings,
+                generalReplacePatches,
                 build,
                 outputPath,
                 cancellationToken).ConfigureAwait(false),

@@ -27,11 +27,13 @@ public static partial class WorkbenchCompositionService
         IExternalProcessor? externalProcessor,
         IcNumberSelection? icNumberSelection,
         bool overwrite,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IReadOnlyDictionary<string, byte[]>? virtualArtifacts = null)
     {
         string[] inputRoots =
         [
             .. bindings
+                .Where(binding => !VirtualArtifactLocator.IsVirtual(binding.ArtifactId))
                 .Select(binding => Path.GetDirectoryName(binding.ArtifactId)!)
                 .Distinct(StringComparer.OrdinalIgnoreCase),
         ];
@@ -48,7 +50,10 @@ public static partial class WorkbenchCompositionService
                 nameof(outputPath));
         }
 
-        FileArtifactReader reader = new(inputRoots);
+        var fileReader = new FileArtifactReader(inputRoots);
+        IArtifactReader reader = virtualArtifacts is { Count: > 0 }
+            ? new OverlayArtifactReader(fileReader, virtualArtifacts)
+            : fileReader;
         AtomicFileCompositionOutputWriter? writer = build
             ? new AtomicFileCompositionOutputWriter(outputDirectory, overwrite)
             : null;

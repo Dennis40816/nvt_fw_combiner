@@ -127,12 +127,12 @@ public sealed partial class MainWindowViewModel
 
     private bool CanRunMerge()
     {
-        return SelectedMergeMode switch
+        return !IsRunInProgress && (SelectedMergeMode switch
         {
             NormalMergeMode => CanRunStandardMerge(),
             GeneralMergeMode => CanRunGeneralMerge(),
             _ => false,
-        };
+        });
     }
 
     private Task RunMergeAsync(bool build)
@@ -152,15 +152,21 @@ public sealed partial class MainWindowViewModel
 
     private async Task RunStandardMergeAsync(bool build, string? outputPath)
     {
+        CancellationTokenSource? cancellationSource = null;
         try
         {
+            cancellationSource = BeginRun();
             WorkbenchRunResult result = await UiCompositionRunner.RunStandardMergeAsync(
                 SelectedIc,
                 CreateStandardMergeSlotPaths(),
                 build,
-                CancellationToken.None,
+                cancellationSource.Token,
                 outputPath);
             ApplyRunResult(result, build);
+            RefreshCommandState();
+        }
+        catch (OperationCanceledException) when (cancellationSource is { IsCancellationRequested: true })
+        {
             RefreshCommandState();
         }
         catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
@@ -181,20 +187,33 @@ public sealed partial class MainWindowViewModel
                 exception.Message,
                 CreateStandardMergeSlotPaths());
         }
+        finally
+        {
+            if (cancellationSource is not null)
+            {
+                CompleteRun(cancellationSource);
+            }
+        }
     }
 
     private async Task RunGeneralMergeAsync(bool build, string? outputPath)
     {
+        CancellationTokenSource? cancellationSource = null;
         try
         {
+            cancellationSource = BeginRun();
             WorkbenchRunResult result = await UiCompositionRunner.RunGeneralMergeAsync(
                 SelectedIc,
                 GeneralMergeOutputLength,
                 CreateGeneralMergeMappingInputs(),
                 build,
-                CancellationToken.None,
+                cancellationSource.Token,
                 outputPath);
             ApplyRunResult(result, build);
+            RefreshCommandState();
+        }
+        catch (OperationCanceledException) when (cancellationSource is { IsCancellationRequested: true })
+        {
             RefreshCommandState();
         }
         catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
@@ -217,6 +236,13 @@ public sealed partial class MainWindowViewModel
                 compositionKind: "Merge",
                 modeId: WorkbenchWorkflowIds.GeneralMerge,
                 experienceId: WorkbenchWorkflowIds.GeneralMerge);
+        }
+        finally
+        {
+            if (cancellationSource is not null)
+            {
+                CompleteRun(cancellationSource);
+            }
         }
     }
 

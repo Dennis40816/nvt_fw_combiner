@@ -23,6 +23,8 @@ internal static partial class ReplaceCliCommandHandler
                 await output.WriteLineAsync("  nvt_fw_combiner general-replace build --profile <id|ic> --ic-num <value> --base <path> --input <path> --source-start <n> --target-start <n> --length <n> [--output <path>] [--report <path>] [--overwrite]").ConfigureAwait(false);
                 await output.WriteLineAsync("  nvt_fw_combiner general-replace preview --profile <ic> --ic-num <value> --base <path> --mapping <target-start+length=path> [--mapping <target-start+length=path> ...] [--report <path>]").ConfigureAwait(false);
                 await output.WriteLineAsync("  nvt_fw_combiner general-replace build --profile <ic> --ic-num <value> --base <path> --mapping <target-start+length=path> [--mapping <target-start+length=path> ...] [--output <path>] [--report <path>] [--overwrite]").ConfigureAwait(false);
+                await output.WriteLineAsync("  nvt_fw_combiner general-replace preview --profile <ic> --ic-num <value> --base <path> (--mapping <target-start+length=path> | --patch <target-start+length=hex> | --fill <target-start+length=byte>) [...] [--report <path>]").ConfigureAwait(false);
+                await output.WriteLineAsync("  nvt_fw_combiner general-replace build --profile <ic> --ic-num <value> --base <path> (--mapping <target-start+length=path> | --patch <target-start+length=hex> | --fill <target-start+length=byte>) [...] [--output <path>] [--report <path>] [--overwrite]").ConfigureAwait(false);
                 break;
             default:
                 await output.WriteLineAsync("  nvt_fw_combiner <dp-replace|ctrlram-replace|general-replace> <preview|build> [options]").ConfigureAwait(false);

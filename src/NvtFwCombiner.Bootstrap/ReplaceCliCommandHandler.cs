@@ -46,6 +46,8 @@ internal static partial class ReplaceCliCommandHandler
             "--target-start",
             "--length",
             "--mapping",
+            "--patch",
+            "--fill",
             "--output",
             "--report",
         ];
@@ -53,7 +55,7 @@ internal static partial class ReplaceCliCommandHandler
         string[] repeatableValueOptions = command switch
         {
             IcWorkflowIds.CtrlRamReplace => ["--ctrlram"],
-            IcWorkflowIds.GeneralReplace => ["--mapping"],
+            IcWorkflowIds.GeneralReplace => ["--mapping", "--patch", "--fill"],
             _ => [],
         };
         if (!TryParseOptions(args[1..], valueOptions, repeatableValueOptions, flagOptions, error, out ParsedOptions options))

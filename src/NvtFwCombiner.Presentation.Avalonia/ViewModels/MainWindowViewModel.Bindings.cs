@@ -121,6 +121,61 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets editable General Replace mapping rows.</summary>
     public ObservableCollection<GeneralReplaceMappingViewModel> GeneralReplaceMappings { get; } = [];
 
+    /// <summary>Gets committed virtual hexadecimal patches for General Replace.</summary>
+    public ObservableCollection<GeneralReplacePatchViewModel> GeneralReplacePatches { get; } = [];
+
+    /// <summary>True when one or more virtual hexadecimal patches will be included in Hex Editor Build.</summary>
+    public bool HasGeneralReplacePatches => GeneralReplacePatches.Count > 0;
+
+    /// <summary>True when the staged hexadecimal patch list is empty.</summary>
+    public bool IsGeneralReplacePatchListEmpty => !HasGeneralReplacePatches;
+
+    /// <summary>Gets the editable virtual hexadecimal patch draft.</summary>
+    public GeneralReplacePatchDraftViewModel GeneralReplacePatchDraft { get; } = new();
+
+    /// <summary>Gets the scrollable fixed-width hexadecimal viewport for the selected base BIN.</summary>
+    public ObservableCollection<GeneralReplaceHexViewportRowViewModel> GeneralReplaceHexViewportRows { get; } = [];
+
+    /// <summary>Gets or sets the requested hexadecimal viewport start address.</summary>
+    [ObservableProperty]
+    public partial string GeneralReplaceHexViewportAddress { get; set; } = "0x00000";
+
+    /// <summary>Gets the current viewport inspection status.</summary>
+    public string GeneralReplaceHexViewportStatus { get; private set; } = string.Empty;
+
+    /// <summary>True when a base BIN viewport has bytes ready for selection.</summary>
+    public bool HasGeneralReplaceHexViewportRows => GeneralReplaceHexViewportRows.Count > 0;
+
+    /// <summary>Gets profile-authorized General Replace ranges available for hexadecimal selection.</summary>
+    public ObservableCollection<GeneralReplaceEditableRangeViewModel> GeneralReplaceEditableRanges { get; } = [];
+
+    /// <summary>Gets or sets the profile-authorized range selected in the hexadecimal editor.</summary>
+    [ObservableProperty]
+    public partial GeneralReplaceEditableRangeViewModel? SelectedGeneralReplaceEditableRange { get; set; }
+
+    /// <summary>True when the experimental Hex Editor section is expanded below standard Replace workflows.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HexEditorToggleLabel))]
+    public partial bool IsHexEditorExpanded { get; set; }
+
+    /// <summary>One-line readiness state for the experimental Hex Editor Build action.</summary>
+    public string HexEditorReadinessStatus => !ReplaceBaseSlot.HasFile
+        ? Text.HexEditorBaseRequiredDetail
+        : GeneralReplacePatches.Count == 0
+            ? Text.HexEditorPatchRequiredDetail
+            : Text.HexEditorReadyDetail;
+
+    /// <summary>Label for opening or closing the experimental Hex Editor section.</summary>
+    public string HexEditorToggleLabel => IsHexEditorExpanded
+        ? Text.HexEditorCloseLabel
+        : Text.HexEditorOpenLabel;
+
+    /// <summary>True when the hexadecimal patch draft is an equal-length overwrite.</summary>
+    public bool IsGeneralReplacePatchOverwrite => GeneralReplacePatchDraft.Kind == WorkbenchGeneralReplacePatchKind.Overwrite;
+
+    /// <summary>True when the hexadecimal patch draft fills the selected range with one byte.</summary>
+    public bool IsGeneralReplacePatchFill => GeneralReplacePatchDraft.Kind == WorkbenchGeneralReplacePatchKind.Fill;
+
     /// <summary>Gets editable General Merge mapping rows.</summary>
     public ObservableCollection<GeneralMergeMappingViewModel> GeneralMergeMappings { get; } = [];
 
@@ -256,10 +311,10 @@ public sealed partial class MainWindowViewModel
     public string ReplaceBuildActionTip => CreateBuildActionTip(ReplaceReadinessStatus, CanRunReplace());
 
     /// <summary>True when Standard Merge preview can run.</summary>
-    public bool CanPreviewStandardMerge => CanRunStandardMerge();
+    public bool CanPreviewStandardMerge => !IsRunInProgress && CanRunStandardMerge();
 
     /// <summary>True when Standard Merge build can run.</summary>
-    public bool CanBuildStandardMerge => CanRunStandardMerge();
+    public bool CanBuildStandardMerge => !IsRunInProgress && CanRunStandardMerge();
 
     /// <summary>True when active Merge preview can run.</summary>
     public bool CanPreviewMerge => CanRunMerge();
@@ -306,6 +361,30 @@ public sealed partial class MainWindowViewModel
     /// <summary>Command that removes a General Replace mapping row.</summary>
     public IRelayCommand<GeneralReplaceMappingViewModel> RemoveGeneralReplaceMappingCommand { get; }
 
+    /// <summary>Command that selects hexadecimal overwrite patch authoring.</summary>
+    public IRelayCommand SetGeneralReplacePatchOverwriteCommand { get; }
+
+    /// <summary>Command that selects one-byte fill patch authoring.</summary>
+    public IRelayCommand SetGeneralReplacePatchFillCommand { get; }
+
+    /// <summary>Command that commits the current virtual hexadecimal patch draft.</summary>
+    public IRelayCommand ApplyGeneralReplacePatchCommand { get; }
+
+    /// <summary>Command that removes the last committed hexadecimal patch action.</summary>
+    public IRelayCommand UndoGeneralReplacePatchCommand { get; }
+
+    /// <summary>Command that restores the last undone hexadecimal patch action.</summary>
+    public IRelayCommand RedoGeneralReplacePatchCommand { get; }
+
+    /// <summary>Moves the hexadecimal viewport to the requested address.</summary>
+    public IRelayCommand GoToGeneralReplaceHexViewportCommand { get; }
+
+    /// <summary>Selects a byte cell as a one-byte General Replace patch target.</summary>
+    public IRelayCommand<GeneralReplaceHexByteCellViewModel> SelectGeneralReplaceHexByteCommand { get; }
+
+    /// <summary>Opens or closes the experimental Hex Editor section below standard Replace workflows.</summary>
+    public IRelayCommand ToggleHexEditorCommand { get; }
+
     /// <summary>Command that adds a General Merge mapping row.</summary>
     public IRelayCommand AddGeneralMergeMappingCommand { get; }
 
@@ -323,6 +402,9 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>Command that builds Replace output through the application/workbench core.</summary>
     public IAsyncRelayCommand BuildReplaceCommand { get; }
+
+    /// <summary>Builds a complete BIN from staged experimental Hex Editor patches.</summary>
+    public IAsyncRelayCommand BuildHexEditorCommand { get; }
 
     /// <summary>Command that opens the compact Replace input selection overview.</summary>
     public IRelayCommand ShowReplaceSelectionCommand { get; }

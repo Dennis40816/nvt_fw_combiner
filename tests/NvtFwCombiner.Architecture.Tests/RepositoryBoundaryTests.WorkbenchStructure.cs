@@ -58,6 +58,7 @@ public sealed partial class RepositoryBoundaryTests
         string replaceDisplay = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Display.cs");
         string replaceCoverage = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Coverage.cs");
         string replacePostbuild = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Postbuild.cs");
+        string icMetadata = ReadText("src/NvtFwCombiner.Bootstrap/IcMetadataFacade.cs");
 
         Assert.Contains("public static partial class WorkbenchCompositionService", facade, StringComparison.Ordinal);
         Assert.DoesNotContain("GetStandardMergeMemoryMapRows", facade, StringComparison.Ordinal);
@@ -65,6 +66,12 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("ToRunProfile", facade, StringComparison.Ordinal);
         Assert.Contains("GetSupportedIcIds", catalog, StringComparison.Ordinal);
         Assert.Contains("GetSettingsSnapshot", catalog, StringComparison.Ordinal);
+        Assert.Contains("IcMetadataFacade.IcIds", catalog, StringComparison.Ordinal);
+        Assert.DoesNotContain("IcSupportCatalog.IcIds", catalog, StringComparison.Ordinal);
+        Assert.DoesNotContain("TpFlashMapCatalog.IcIds", catalog, StringComparison.Ordinal);
+        Assert.DoesNotContain("LegacyCombinerPostbuildCatalog.All", catalog, StringComparison.Ordinal);
+        Assert.Contains("public static class IcMetadataFacade", icMetadata, StringComparison.Ordinal);
+        Assert.Contains("TpHeaderCatalog.All", icMetadata, StringComparison.Ordinal);
         Assert.Contains("private static CompositionRunProfile ToRunProfile", common, StringComparison.Ordinal);
         Assert.Contains("private static string FormatIssues", common, StringComparison.Ordinal);
         Assert.Contains("StandardMergeProfilesByIc", standardMerge, StringComparison.Ordinal);
@@ -101,5 +108,23 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("GetReplaceCoverageSegments", replaceDisplay, StringComparison.Ordinal);
         Assert.Contains("GetReplaceCoverageSegments", replaceCoverage, StringComparison.Ordinal);
         Assert.DoesNotContain("FirmwareConfigMetadataReader.TryRead", replacePostbuild, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies the experimental Hex Editor remains a UI shell over the shared Bootstrap General Replace path.</summary>
+    [Fact]
+    public void HexEditorUsesWorkbenchFacadeWithoutUiFirmwareIo()
+    {
+        string panel = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/HexEditorPanel.axaml");
+        string viewModel = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Replace.cs");
+        string runner = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Replace.cs");
+        string viewport = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.HexViewport.cs");
+
+        Assert.Contains("BuildHexEditorCommand", panel, StringComparison.Ordinal);
+        Assert.Contains("RunHexEditorAsync", viewModel, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.CreateGeneralReplaceHexViewport", runner, StringComparison.Ordinal);
+        Assert.Contains("new FileStream", viewport, StringComparison.Ordinal);
+        Assert.DoesNotContain("File.", panel, StringComparison.Ordinal);
+        Assert.DoesNotContain("File.", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("new FileStream", runner, StringComparison.Ordinal);
     }
 }

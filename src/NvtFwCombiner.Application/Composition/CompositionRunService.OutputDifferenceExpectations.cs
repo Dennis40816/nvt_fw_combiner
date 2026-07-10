@@ -30,7 +30,7 @@ public sealed partial class CompositionRunService
                         true,
                         operation.OperationId,
                         $"Accepted: staged replacement source '{binding.SourceSpaceId}' is pasted back by postbuild for {request.Profile.IcId} / {icNumber}.",
-                        FormatDifferenceSectionLabel(binding.SourceSpaceId));
+                        FormatDifferenceSectionLabel(binding.SourceSpaceId, operation.Reason));
                 }
 
                 foreach (ByteRange allowedWriteRange in invocation.AllowedWriteRanges)
@@ -65,11 +65,11 @@ public sealed partial class CompositionRunService
 
             yield return new OutputDifferenceExpectation(
                 operation.TargetRange,
-                OutputDifferenceClassifications.DeclaredReplacement,
-                true,
-                operation.OperationId,
-                $"Accepted: declared Replace mapping '{operation.OperationId}' writes this final range.",
-                "Declared replacement");
+            OutputDifferenceClassifications.DeclaredReplacement,
+            true,
+            operation.OperationId,
+            $"Accepted: declared Replace mapping '{operation.OperationId}' writes this final range.",
+            FormatDifferenceSectionLabel(operation.SourceSpaceId, operation.Reason));
         }
     }
 

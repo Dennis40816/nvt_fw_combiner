@@ -54,6 +54,7 @@ public sealed partial class MainWindowViewModel
             SelectedReplaceMode,
             GetSelectedReplaceBaseLength(),
             GetSelectedCtrlRamBasePath()));
+        RefreshGeneralReplaceEditableRanges();
         RefreshReplaceCoverageGroups();
 
         OnPropertyChanged(nameof(MergeMemoryRangeLabel));

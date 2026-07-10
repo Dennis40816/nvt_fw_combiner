@@ -40,6 +40,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
             RefreshMemoryMapState();
         }
 
+        if (slot.SlotId == ReplaceBaseSlotId)
+        {
+            RefreshGeneralReplaceEditableRanges();
+            RefreshGeneralReplaceHexViewport();
+        }
+
         RefreshCommandState();
     }
 

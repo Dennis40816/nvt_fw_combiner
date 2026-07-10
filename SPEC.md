@@ -1,7 +1,7 @@
 # NVT FW Combiner（NFC）實作規格
 
 > 文件狀態：`Repository Bootstrap Baseline`
-> 文件版本：`0.8.0`
+> 文件版本：`0.8.1-dev.0`
 > 基準日期：`2026-06-25`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
@@ -33,12 +33,14 @@
 As of 2026-06-30, near-term implementation focuses on normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows.
 
 - AB Code Merge is intentionally deferred for now. Existing AB evidence remains reference material only; do not spend implementation effort on AB unless the owner explicitly reactivates it.
+- When AB Code Merge is reactivated, NT51929, NT51932, and NT51950 must initialize from a full submitted DP container before applying profile-declared TP or bank overlays. This is an operation-order direction only: it does not infer shared ranges, IC-number branches, CRC behavior, or output sizes from the current NT51950 normal Merge profile. Each IC still requires AB golden inputs/outputs and firmware-owner review before execution or UI exposure.
 - Normal/Standard Merge includes NT51950 and NT51951 through the DP Perspective selected-container policy. Current owner golden cases are recorded; firmware-owner sign-off is still required before production promotion.
 - CtrlRAM Replace requires legacy `combiner.exe` CRC/header recalculation after replacement. Combiner `1.13.0` is imported under `external-tools/legacy-combiner/1.13.0/` and is pinned by SHA-256 manifest.
 - Owner-provided postbuild scripts are the behavioral truth for CtrlRAM Replace command order; mmap files explain offsets and sizes; TP Overview is the documentation baseline to correct when it conflicts with postbuild/mmap evidence.
 - CtrlRAM postbuild command sequences must be generated as structured command/argv data and tested against the hsi Combiner guide, not assembled as one shell command string. NT51927 requires explicit single, 2IC, and 3IC Replace branches.
-- FlashCode output naming treats DP version as two contiguous bytes: main version byte followed by sub version byte. The offsets are catalog-owned facts; UI must display the decoded `Dxxxx` token or an explicit unknown placeholder, never infer version bytes from file names.
+- FlashCode output naming uses the fixed `NT51xxx_FlashCode_DxxxxTxxxx_YYYYMMDD.bin` form and treats DP version as two contiguous bytes: main version byte followed by sub version byte. TP uses the validated FW version and FW sub-version bytes. The offsets are catalog-owned facts; UI must display decoded tokens or explicit unknown placeholders, never infer version bytes from file names.
 - NT51950/NT51951 normal Merge and DP Replace should use the DP image as the base container and overlay/preserve the TP range. Standard Merge DP inputs are limited to the owner-confirmed DP Perspective sizes `0x40000`, `0x80000`, and `0x100000`; the Standard Merge output length follows the selected DP input length. DP Replace must derive its work length from the selected base firmware length, which must be one of `0x40000`, `0x80000`, or `0x100000`; never hard-code the maximum container as the base. The confirmed TP overlay range is `0x0A000-0x36FFF (len 0x2D000)`; `0x37000-0x37FFF (len 0x1000)` is customer info and must not be overwritten by the TP overlay.
+- Other Standard Merge profiles extract only their declared DP source ranges. A DP artifact that reaches the required end offset may have an arbitrary total length; a non-golden length is a report warning, not a build blocker. TP remains exact-length profile input and every Standard Merge TP source length must be `<= 0x40000`. NT51950/NT51951 remain the exception because they paste a full DP container and retain their strict approved-size gate.
 - NT51917 follows NT51927. NT51919 follows NT51929. NT51928 non-NB follows NT51927, while NT51928 NB is a separate IC and must not inherit that profile unless explicitly approved.
 - NT51930 currently has no `>13 IC` product target; map cascade to the `<=13 IC` DiffDLM branch (`0x2F200`, size `65024`) until owner data reactivates larger counts.
 - FW Register ranges should be captured as first-class map evidence when the owner updates TP Overview. A future REG Replace workflow may use those ranges, but current Replace scope remains DP Replace, CtrlRAM Replace, and General Replace.
@@ -76,6 +78,7 @@ Replace：
 - `dp-replace`：DP whole 或 profile-declared partitions；LD replacement also belongs to DP Replace and may be modeled as a separate LD replacement BIN/slot from the DP BIN；不再提供獨立 TP persona replace 分類。
 - `ctrlram-replace`：只操作被標記為 `tp-ctrlram` 的 named regions/groups。
 - `general-replace`：required reference BIN 加上一或多個 replacement BIN；使用者自由建立多筆 explicit mappings，但仍受 protected ranges、alignment、overlap、processor dependency 與 Preview/Build validation 約束。Any mapping that touches a TP-classified range must compile with an approved legacy Combiner CRC/header refresh after the replacement mutation.
+- `Hex Editor`（experimental，`0.8.1-dev.0` candidate）：在 Replace 頁面、一般 Replace workflows 下方的獨立區塊，提供 reference BIN 的受控 hex authoring mode。使用者只能在 profile-enabled explicit ranges 建立等長 overwrite/fill patches，並在 virtual before/after diff view 確認後輸出新的完整 BIN。此模式仍編譯成一般 `general-replace` 的 `explicitMappings`；它不直接修改原始 BIN，也不繞過 protected ranges、TP postbuild 或 report。
 
 Experience 只控制 catalog、UI authoring policy 與 profile compile constraints。Executor 不依 `experienceId` 寫 workflow-specific branch。
 
@@ -544,6 +547,7 @@ This avoids duplicating memory maps for DP/CtrlRAM/General Replace while keeping
 - **DP Replace**：DP may be whole or declared parts. LD replacement is treated as DP Replace and may use a separate LD replacement BIN/slot from the DP BIN. TP-specific replace categories are not exposed.
 - **CtrlRAM Replace**：only regions tagged `tp-ctrlram` or approved CtrlRAM groups may be replaced.
 - **General Replace**：explicit ranges are allowed only where profile access is `explicit-range`; protected regions remain blocked. If an explicit mapping touches a TP-classified range, the compiled plan must run an approved legacy Combiner CRC/header refresh after that mapping; profiles without that post-mutation processor stage fail closed.
+- **Hex Editor (experimental, `0.8.1-dev.0` candidate)**：a separate section below the normal Replace workflows. It only creates equal-length patch artifacts through byte overwrite or selected-range fill. The selected range first passes the same General Replace profile/compiler policy; TP/CtrlRAM edits still require legacy Combiner postbuild. The UI shows a virtual before/after work buffer, while the core materializes a host-owned patch artifact and compiles ordinary General Replace `explicitMappings`. UI direct writes, arbitrary scripts, raw processor commands, implicit overlap, true insert/delete, and guessed fill bytes are forbidden.
 - **General Merge**：input cardinality is extensible; every mapping row compiles to standard operations.
 
 ### 7.6 Operation algebra

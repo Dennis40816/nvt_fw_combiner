@@ -41,6 +41,17 @@ public sealed partial class MainWindow : Window
     }
 
     /// <inheritdoc />
+    protected override void OnClosing(WindowClosingEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel viewModel)
+        {
+            viewModel.CancelActiveRun();
+        }
+
+        base.OnClosing(e);
+    }
+
+    /// <inheritdoc />
     protected override void OnClosed(EventArgs e)
     {
         if (DataContext is INotifyPropertyChanged notifier)

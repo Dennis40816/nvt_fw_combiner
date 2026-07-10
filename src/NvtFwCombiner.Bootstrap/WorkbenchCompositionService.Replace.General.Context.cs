@@ -10,6 +10,7 @@ public static partial class WorkbenchCompositionService
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
         IReadOnlyList<WorkbenchGeneralReplaceMappingInput> mappingInputs,
+        IReadOnlyList<WorkbenchGeneralReplacePatchInput> patchInputs,
         bool build,
         out GeneralReplaceRunContext? context,
         out WorkbenchRunResult? failure)
@@ -51,7 +52,8 @@ public static partial class WorkbenchCompositionService
         [
             .. mappingInputs.Where(mapping => !string.IsNullOrWhiteSpace(mapping.FilePath)),
         ];
-        if (selectedMappings.Length == 0)
+        WorkbenchGeneralReplacePatchInput[] selectedPatches = [.. patchInputs];
+        if (selectedMappings.Length == 0 && selectedPatches.Length == 0)
         {
             context = null;
             failure = CreatePlanningRunResult(
@@ -61,7 +63,7 @@ public static partial class WorkbenchCompositionService
                 reportSlotPaths,
                 build,
                 WorkbenchIssueCodes.InputMissing,
-                "At least one General Replace mapping row must select a replacement BIN.");
+                "At least one General Replace mapping row or hexadecimal patch is required.");
             return false;
         }
 
@@ -85,7 +87,8 @@ public static partial class WorkbenchCompositionService
             reportSlotPaths,
             fullBasePath,
             capacity,
-            selectedMappings);
+            selectedMappings,
+            selectedPatches);
         failure = null;
         return true;
     }
@@ -95,5 +98,6 @@ public static partial class WorkbenchCompositionService
         IReadOnlyDictionary<string, string> ReportSlotPaths,
         string BasePath,
         long Capacity,
-        WorkbenchGeneralReplaceMappingInput[] SelectedMappings);
+        WorkbenchGeneralReplaceMappingInput[] SelectedMappings,
+        WorkbenchGeneralReplacePatchInput[] SelectedPatches);
 }

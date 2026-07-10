@@ -72,6 +72,26 @@ public static partial class UiCompositionRunner
         ];
     }
 
+    /// <summary>Gets profile-authorized General Replace ranges for the hexadecimal editor range picker.</summary>
+    public static IReadOnlyList<GeneralReplaceEditableRangeViewModel> GetGeneralReplaceEditableRanges(
+        string icId,
+        string number,
+        string? basePath)
+    {
+        return
+        [
+            .. WorkbenchCompositionService.GetGeneralReplaceEditableRanges(icId, number, basePath)
+                .Select(range => new GeneralReplaceEditableRangeViewModel(
+                    range.RegionId,
+                    range.DisplayName,
+                    ToRange(range.Start, range.EndInclusive - range.Start + 1),
+                    FormattableString.Invariant($"0x{range.Start:X6}"),
+                    FormattableString.Invariant($"0x{range.EndInclusive:X6}"),
+                    range.RequiresPostbuild,
+                    range.Detail)),
+        ];
+    }
+
     /// <summary>Gets TP Overview address coverage text for the selected Replace context.</summary>
     public static string GetReplaceMemoryRangeLabel(string icId, string number)
     {
@@ -160,5 +180,38 @@ public static partial class UiCompositionRunner
             build,
             cancellationToken,
             outputPath);
+    }
+
+    /// <summary>Runs Replace with file-backed mappings and host-owned virtual General Replace patches.</summary>
+    public static ValueTask<WorkbenchRunResult> RunReplaceAsync(
+        string icId,
+        string number,
+        string replaceMode,
+        IReadOnlyDictionary<string, string> slotPaths,
+        IReadOnlyList<WorkbenchGeneralReplaceMappingInput> generalReplaceMappings,
+        IReadOnlyList<WorkbenchGeneralReplacePatchInput> generalReplacePatches,
+        bool build,
+        CancellationToken cancellationToken,
+        string? outputPath = null)
+    {
+        return WorkbenchCompositionService.RunReplaceAsync(
+            icId,
+            number,
+            replaceMode,
+            slotPaths,
+            generalReplaceMappings,
+            generalReplacePatches,
+            build,
+            cancellationToken,
+            outputPath);
+    }
+
+    /// <summary>Gets a fixed-width base-BIN hexadecimal viewport with staged patches overlaid in memory.</summary>
+    public static WorkbenchGeneralReplaceHexViewport CreateGeneralReplaceHexViewport(
+        string basePath,
+        long viewportStart,
+        IReadOnlyList<WorkbenchGeneralReplacePatchInput> patches)
+    {
+        return WorkbenchCompositionService.CreateGeneralReplaceHexViewport(basePath, viewportStart, patches);
     }
 }

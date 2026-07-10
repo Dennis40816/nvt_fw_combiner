@@ -30,6 +30,24 @@ public static class WorkbenchIssueCodes
     /// <summary>General Replace mapping range text is invalid.</summary>
     public const string GeneralReplaceRangeInvalid = "ui.general-replace.range-invalid";
 
+    /// <summary>General Replace patch id cannot be safely shown in reports.</summary>
+    public const string GeneralReplacePatchIdInvalid = "ui.general-replace.patch-id-invalid";
+
+    /// <summary>General Replace patch ids must be unique across mappings and patches.</summary>
+    public const string GeneralReplacePatchIdDuplicate = "ui.general-replace.patch-id-duplicate";
+
+    /// <summary>General Replace overwrite bytes are not valid hexadecimal byte pairs.</summary>
+    public const string GeneralReplacePatchHexInvalid = "ui.general-replace.patch-hex-invalid";
+
+    /// <summary>General Replace overwrite bytes must exactly cover the selected target range.</summary>
+    public const string GeneralReplacePatchLengthMismatch = "ui.general-replace.patch-length-mismatch";
+
+    /// <summary>General Replace fill values must contain exactly one hexadecimal byte.</summary>
+    public const string GeneralReplacePatchFillByteInvalid = "ui.general-replace.patch-fill-byte-invalid";
+
+    /// <summary>Staged hexadecimal patches must not overlap before the General Replace compiler validates them.</summary>
+    public const string GeneralReplacePatchOverlap = "ui.general-replace.patch-overlap";
+
     /// <summary>DP Replace profile is intentionally pending for the selected IC.</summary>
     public const string ReplaceDpProfilePending = "replace.dp.profile-pending";
 

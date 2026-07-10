@@ -110,38 +110,67 @@
           </StackPanel>
         </Grid>
 
-        <StackPanel Spacing="10">
-          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-            <StackPanel Spacing="3">
-              <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.ExplicitMappingsTitle}" />
-              <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Text.GeneralReplaceMappingsDetail}" TextWrapping="Wrap" />
-            </StackPanel>
-            <Button
-                Grid.Column="1"
-                Classes="action"
-                VerticalAlignment="Bottom"
-                Command="{Binding AddGeneralReplaceMappingCommand}"
-                Content="{Binding Text.AddRangeLabel}" />
-          </Grid>
-          <Grid ColumnDefinitions="34,128,22,128,*,82,40" ColumnSpacing="8">
-            <TextBlock Grid.Column="0" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="#" />
-            <TextBlock Grid.Column="1" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.StartLabel}" />
-            <TextBlock Grid.Column="3" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.EndLabel}" />
-            <TextBlock Grid.Column="4" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.ReplacementBinLabel}" />
-          </Grid>
-          <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding GeneralReplaceMappings}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="vm:GeneralReplaceMappingViewModel">
-                <views:GeneralReplaceMappingRow
-                    BrowseLabel="{ReflectionBinding $parent[Window].DataContext.Text.BrowseLabel}"
-                    RemoveRangeTooltip="{ReflectionBinding $parent[Window].DataContext.Text.RemoveRangeTooltip}"
-                    SelectReplacementBinTooltip="{ReflectionBinding $parent[Window].DataContext.Text.SelectReplacementBinTooltip}" />
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
+        <StackPanel Spacing="12">
+          <StackPanel Spacing="10">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+              <StackPanel Spacing="3">
+                <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.ExplicitMappingsTitle}" />
+                <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Text.GeneralReplaceMappingsDetail}" TextWrapping="Wrap" />
+              </StackPanel>
+              <Button
+                  Grid.Column="1"
+                  Classes="action"
+                  VerticalAlignment="Bottom"
+                  Command="{Binding AddGeneralReplaceMappingCommand}"
+                  Content="{Binding Text.AddRangeLabel}" />
+            </Grid>
+            <Grid ColumnDefinitions="34,128,22,128,*,82,40" ColumnSpacing="8">
+              <TextBlock Grid.Column="0" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="#" />
+              <TextBlock Grid.Column="1" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.StartLabel}" />
+              <TextBlock Grid.Column="3" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.EndLabel}" />
+              <TextBlock Grid.Column="4" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.ReplacementBinLabel}" />
+            </Grid>
+            <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding GeneralReplaceMappings}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:GeneralReplaceMappingViewModel">
+                  <views:GeneralReplaceMappingRow
+                      BrowseLabel="{ReflectionBinding $parent[Window].DataContext.Text.BrowseLabel}"
+                      RemoveRangeTooltip="{ReflectionBinding $parent[Window].DataContext.Text.RemoveRangeTooltip}"
+                      SelectReplacementBinTooltip="{ReflectionBinding $parent[Window].DataContext.Text.SelectReplacementBinTooltip}" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+
         </StackPanel>
       </StackPanel>
     </Border>
+
+    <Border Height="1" Background="#CBD5E1" />
+
+    <StackPanel Spacing="10">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <StackPanel Spacing="2">
+          <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#B45309" Text="{Binding Text.HexEditorExperimentalLabel}" />
+          <TextBlock FontSize="16" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.GeneralReplaceHexEditorTitle}" />
+        </StackPanel>
+        <Button
+            Grid.Column="1"
+            Classes="secondary"
+            VerticalAlignment="Center"
+            Command="{Binding ToggleHexEditorCommand}"
+            Content="{Binding HexEditorToggleLabel}" />
+      </Grid>
+      <Border
+          Padding="18"
+          Background="#FFFFFF"
+          BorderBrush="#E2E8F0"
+          BorderThickness="1"
+          CornerRadius="8"
+          IsVisible="{Binding IsHexEditorExpanded}">
+        <views:HexEditorPanel />
+      </Border>
+    </StackPanel>
   </StackPanel>
 </DataTemplate>
 

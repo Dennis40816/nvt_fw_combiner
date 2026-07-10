@@ -1,3 +1,4 @@
+using System.Globalization;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -5,6 +6,19 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellViewModelTests
 {
+    /// <summary>Verifies hexadecimal viewport labels follow the selected shell language.</summary>
+    [Fact]
+    public void GeneralReplaceHexViewportLabelsAreLocalized()
+    {
+        var english = ShellTextResources.For(ShellLanguage.English);
+        var traditionalChinese = ShellTextResources.For(ShellLanguage.ChineseTraditional);
+
+        Assert.Equal("Address", english.GeneralReplaceHexAddressColumnLabel);
+        Assert.Equal("位址", traditionalChinese.GeneralReplaceHexAddressColumnLabel);
+        Assert.Equal("ASCII", english.GeneralReplaceHexAsciiColumnLabel);
+        Assert.Equal("ASCII", traditionalChinese.GeneralReplaceHexAsciiColumnLabel);
+    }
+
     /// <summary>Verifies General Replace authors base BIN and explicit range rows as separate UI state.</summary>
     [Fact]
     public void GeneralReplaceUsesIndependentBaseAndEditableMappings()
@@ -107,5 +121,74 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
             operation.Title.Contains("Postbuild refresh", StringComparison.Ordinal) &&
             operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
+    }
+
+    /// <summary>Verifies General Replace hex authoring previews, stages, undoes, redoes, and builds virtual patches.</summary>
+    [Fact]
+    public async Task GeneralReplaceHexPatchAuthoringUsesVirtualDiffAndSharedBuildPipeline()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-general-hex-patch");
+        byte[] baseBytes = CreatePattern(0x40000, 0x52);
+        string basePath = workspace.Write("base.bin", baseBytes);
+        string outputPath = workspace.PathFor("hex-patch.bin");
+
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51950";
+        viewModel.ShowReplaceCommand.Execute(null);
+        viewModel.ToggleHexEditorCommand.Execute(null);
+        viewModel.SetSlotFile("replace-base", basePath);
+        viewModel.GeneralReplacePatchDraft.StartAddress = "0x00100";
+        viewModel.GeneralReplacePatchDraft.EndAddress = "0x00101";
+        viewModel.GeneralReplacePatchDraft.Value = "A5 5A";
+
+        Assert.True(viewModel.IsHexEditorExpanded);
+        Assert.NotEmpty(viewModel.GeneralReplaceEditableRanges);
+        Assert.False(viewModel.CanPreviewReplace);
+        GeneralReplaceHexViewportRowViewModel viewportRow = Assert.Single(
+            viewModel.GeneralReplaceHexViewportRows,
+            row => row.Address == "0x000100");
+        viewModel.SelectGeneralReplaceHexByteCommand.Execute(viewportRow.Bytes[0]);
+        Assert.Equal("0x000100", viewModel.GeneralReplacePatchDraft.StartAddress);
+        Assert.Equal("0x000100", viewModel.GeneralReplacePatchDraft.EndAddress);
+        viewModel.GeneralReplacePatchDraft.EndAddress = "0x00101";
+        viewModel.GeneralReplacePatchDraft.Value = "A5 5A";
+        viewportRow = Assert.Single(
+            viewModel.GeneralReplaceHexViewportRows,
+            row => row.Address == "0x000100");
+        Assert.True(viewportRow.Bytes[0].IsChanged);
+        Assert.Equal("A5", viewportRow.Bytes[0].ValueHex);
+        Assert.True(viewportRow.Bytes[1].IsChanged);
+        Assert.Equal("5A", viewportRow.Bytes[1].ValueHex);
+        viewModel.ApplyGeneralReplacePatchCommand.Execute(null);
+
+        Assert.True(viewModel.HasGeneralReplacePatches);
+        Assert.True(viewModel.BuildHexEditorCommand.CanExecute(null));
+        Assert.False(viewModel.CanBuildReplace);
+        _ = Assert.Single(viewModel.GeneralReplacePatches);
+        Assert.True(viewModel.UndoGeneralReplacePatchCommand.CanExecute(null));
+        viewportRow = Assert.Single(
+            viewModel.GeneralReplaceHexViewportRows,
+            row => row.Address == "0x000100");
+        Assert.Equal("A5", viewportRow.Bytes[0].ValueHex);
+
+        viewModel.UndoGeneralReplacePatchCommand.Execute(null);
+        Assert.False(viewModel.HasGeneralReplacePatches);
+        Assert.False(viewModel.BuildHexEditorCommand.CanExecute(null));
+        viewportRow = Assert.Single(
+            viewModel.GeneralReplaceHexViewportRows,
+            row => row.Address == "0x000100");
+        Assert.Equal(baseBytes[0x100].ToString("X2", CultureInfo.InvariantCulture), viewportRow.Bytes[0].ValueHex);
+
+        viewModel.RedoGeneralReplacePatchCommand.Execute(null);
+        Assert.True(viewModel.HasGeneralReplacePatches);
+
+        await viewModel.BuildHexEditorAsync(outputPath);
+
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        byte[] output = File.ReadAllBytes(outputPath);
+        Assert.Equal([0xA5, 0x5A], output[0x100..0x102]);
+        Assert.Equal(baseBytes, File.ReadAllBytes(basePath));
+        Assert.Contains(viewModel.LoadedReport.Operations, operation =>
+            operation.Title.Contains("hex-patch-1", StringComparison.Ordinal));
     }
 }

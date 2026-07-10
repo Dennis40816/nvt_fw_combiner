@@ -161,4 +161,73 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Equal(64, result.ExitCode);
         Assert.Contains("--mapping path must not be empty", result.Error, StringComparison.Ordinal);
     }
+
+    /// <summary>Verifies CLI hexadecimal patches use the same virtual General Replace workbench path.</summary>
+    [Fact]
+    public async Task GeneralReplaceBuildAcceptsVirtualPatchAndFill()
+    {
+        using var workspace = TempWorkspace.Create();
+        byte[] baseBytes = CreatePattern(0x40000, 0x60);
+        string reference = workspace.Write("reference.bin", baseBytes);
+        string output = workspace.PathFor("general-replace-patch.bin");
+        string report = workspace.PathFor("general-replace-patch-report.json");
+
+        CliRunResult result = await RunCliAsync([
+            "general-replace",
+            "build",
+            "--profile",
+            "NT51950",
+            "--ic-num",
+            "single",
+            "--base",
+            reference,
+            "--patch",
+            "0x100+0x2=A55A",
+            "--fill",
+            "0x110+0x3=FF",
+            "--output",
+            output,
+            "--report",
+            report,
+        ]);
+
+        Assert.Equal(0, result.ExitCode);
+        byte[] bytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
+        Assert.Equal([0xA5, 0x5A], bytes[0x100..0x102]);
+        Assert.Equal([0xFF, 0xFF, 0xFF], bytes[0x110..0x113]);
+        Assert.Equal(baseBytes, await File.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken));
+
+        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(report, TestContext.Current.CancellationToken));
+        Assert.Contains(
+            document.RootElement.GetProperty("Inputs").EnumerateArray(),
+            input => input.GetProperty("ArtifactId").GetString() == "general-patch-1");
+        Assert.Contains(
+            document.RootElement.GetProperty("Inputs").EnumerateArray(),
+            input => input.GetProperty("ArtifactId").GetString() == "general-fill-1");
+        Assert.Equal(2, document.RootElement.GetProperty("Operations").GetArrayLength());
+    }
+
+    /// <summary>Verifies malformed CLI patch bytes receive the shared workbench validation issue.</summary>
+    [Fact]
+    public async Task GeneralReplacePreviewRejectsMalformedVirtualPatch()
+    {
+        using var workspace = TempWorkspace.Create();
+        string reference = workspace.Write("reference.bin", CreatePattern(0x40000, 0x65));
+
+        CliRunResult result = await RunCliAsync([
+            "general-replace",
+            "preview",
+            "--profile",
+            "NT51950",
+            "--ic-num",
+            "single",
+            "--base",
+            reference,
+            "--patch",
+            "0x100+0x2=ABC",
+        ]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("ui.general-replace.patch-hex-invalid", result.Error, StringComparison.Ordinal);
+    }
 }

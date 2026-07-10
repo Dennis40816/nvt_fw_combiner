@@ -33,7 +33,9 @@ public sealed partial class MainWindowViewModel
         isOptional: true,
         kind: FirmwareSlotKind.Dp);
     private int _generalReplaceMappingCounter;
+    private int _generalReplacePatchCounter;
     private int _generalMergeMappingCounter;
+    private readonly Stack<GeneralReplacePatchViewModel> _generalReplacePatchRedo = [];
     private string _selectedMergeMode = NormalMergeMode;
 
     /// <summary>Initializes the main workbench view model.</summary>
@@ -58,6 +60,15 @@ public sealed partial class MainWindowViewModel
         AddGeneralReplaceMappingCommand = new RelayCommand(AddGeneralReplaceMapping);
         RemoveGeneralReplaceMappingCommand = new RelayCommand<GeneralReplaceMappingViewModel>(
             RemoveGeneralReplaceMapping);
+        SetGeneralReplacePatchOverwriteCommand = new RelayCommand(SetGeneralReplacePatchOverwrite);
+        SetGeneralReplacePatchFillCommand = new RelayCommand(SetGeneralReplacePatchFill);
+        ApplyGeneralReplacePatchCommand = new RelayCommand(ApplyGeneralReplacePatch, CanApplyGeneralReplacePatch);
+        UndoGeneralReplacePatchCommand = new RelayCommand(UndoGeneralReplacePatch, CanUndoGeneralReplacePatch);
+        RedoGeneralReplacePatchCommand = new RelayCommand(RedoGeneralReplacePatch, CanRedoGeneralReplacePatch);
+        GoToGeneralReplaceHexViewportCommand = new RelayCommand(GoToGeneralReplaceHexViewport);
+        SelectGeneralReplaceHexByteCommand = new RelayCommand<GeneralReplaceHexByteCellViewModel>(
+            SelectGeneralReplaceHexByte);
+        ToggleHexEditorCommand = new RelayCommand(ToggleHexEditor);
         AddGeneralMergeMappingCommand = new RelayCommand(AddGeneralMergeMapping);
         RemoveGeneralMergeMappingCommand = new RelayCommand<GeneralMergeMappingViewModel>(
             RemoveGeneralMergeMapping);
@@ -73,6 +84,9 @@ public sealed partial class MainWindowViewModel
         BuildReplaceCommand = new AsyncRelayCommand(
             () => RunReplaceAsync(build: true),
             () => CanBuildReplace);
+        BuildHexEditorCommand = new AsyncRelayCommand(
+            () => RunHexEditorAsync(build: true),
+            CanBuildHexEditor);
         ShowReportCommand = new RelayCommand(ShowReport, () => CanOpenReport);
         CloseReportCommand = new RelayCommand(CloseReport);
         DismissReportToastCommand = new RelayCommand(DismissReportToast);
@@ -85,9 +99,12 @@ public sealed partial class MainWindowViewModel
         CloseReplaceSelectionCommand = new RelayCommand(CloseReplaceSelection);
 
         AddGeneralReplaceMapping();
+        GeneralReplacePatchDraft.PropertyChanged += GeneralReplacePatchDraftPropertyChanged;
         AddGeneralMergeMapping();
         NavigationTrail.Add(CreateNavigationEntry(ShellPage.Home, isCurrent: true));
         RefreshContextState();
         RefreshSettingsState();
+        RefreshGeneralReplaceHexViewport();
+        RefreshGeneralReplacePatchCommands();
     }
 }

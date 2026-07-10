@@ -191,7 +191,9 @@ public sealed partial class MainWindowViewModel
         BuildMergeCommand.NotifyCanExecuteChanged();
         PreviewReplaceCommand.NotifyCanExecuteChanged();
         BuildReplaceCommand.NotifyCanExecuteChanged();
+        BuildHexEditorCommand.NotifyCanExecuteChanged();
         ShowReportCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(IsRunInProgress));
         OnPropertyChanged(nameof(CanPreviewStandardMerge));
         OnPropertyChanged(nameof(CanBuildStandardMerge));
         OnPropertyChanged(nameof(CanPreviewMerge));
@@ -200,6 +202,7 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(MergeBuildActionTip));
         OnPropertyChanged(nameof(CanPreviewReplace));
         OnPropertyChanged(nameof(CanBuildReplace));
+        OnPropertyChanged(nameof(HexEditorReadinessStatus));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
         OnPropertyChanged(nameof(ReplacePreviewUnavailableReason));
         OnPropertyChanged(nameof(ReplaceBuildUnavailableReason));

@@ -11,6 +11,7 @@ public sealed class SystemExternalProcessRunner : IExternalProcessRunner
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(startInfo);
+        cancellationToken.ThrowIfCancellationRequested();
 
         using var process = new Process();
         process.StartInfo.FileName = startInfo.ExecutablePath;
@@ -24,17 +25,37 @@ public sealed class SystemExternalProcessRunner : IExternalProcessRunner
         }
 
         _ = process.Start();
-        Task<string> stdout = process.StandardOutput.ReadToEndAsync(cancellationToken);
-        Task<string> stderr = process.StandardError.ReadToEndAsync(cancellationToken);
-        Task wait = process.WaitForExitAsync(cancellationToken);
-        var timeout = Task.Delay(startInfo.Timeout, cancellationToken);
+        Task<string> stdout = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
+        Task<string> stderr = process.StandardError.ReadToEndAsync(CancellationToken.None);
+        Task wait = process.WaitForExitAsync(CancellationToken.None);
+        using var timeoutSource = new CancellationTokenSource();
+        var timeout = Task.Delay(startInfo.Timeout, timeoutSource.Token);
+        var cancellation = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        using CancellationTokenRegistration cancellationRegistration = cancellationToken.Register(
+            static state =>
+            {
+                var running =
+                    ((Process Process, TaskCompletionSource Completion))state!;
+                _ = running.Completion.TrySetResult();
+                TryKill(running.Process);
+            },
+            (process, cancellation));
 
-        if (await Task.WhenAny(wait, timeout).ConfigureAwait(false) == timeout)
+        Task completed = await Task.WhenAny(wait, timeout, cancellation.Task).ConfigureAwait(false);
+        timeoutSource.Cancel();
+        if (completed != wait)
         {
-            cancellationToken.ThrowIfCancellationRequested();
             TryKill(process);
             await WaitForExitAfterKillAsync(wait).ConfigureAwait(false);
-            return new ExternalProcessResult(-1, true, await stdout.ConfigureAwait(false), await stderr.ConfigureAwait(false));
+            string standardOutput = await stdout.ConfigureAwait(false);
+            string standardError = await stderr.ConfigureAwait(false);
+            if (completed == cancellation.Task)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
+            return new ExternalProcessResult(-1, true, standardOutput, standardError);
         }
 
         await wait.ConfigureAwait(false);
