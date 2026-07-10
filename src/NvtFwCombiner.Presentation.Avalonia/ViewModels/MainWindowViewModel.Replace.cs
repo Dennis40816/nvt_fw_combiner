@@ -39,7 +39,7 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>Whether the Hex Editor has a selected base BIN and at least one staged patch.</summary>
     public bool CanBuildHexEditor =>
-        !IsRunInProgress && ReplaceBaseSlot.HasFile && GeneralReplacePatches.Count > 0;
+        !IsRunInProgress && HasGeneralReplaceBaseSnapshot && GeneralReplacePatches.Count > 0;
 
     /// <summary>Builds the staged experimental Hex Editor changes through the General Replace pipeline.</summary>
     public Task BuildHexEditorAsync(string outputPath)
@@ -109,6 +109,11 @@ public sealed partial class MainWindowViewModel
 
     private async Task RunHexEditorAsync(bool build, string? outputPath = null)
     {
+        if (_generalReplaceBaseSnapshot is null)
+        {
+            throw new InvalidOperationException(_generalReplaceBaseSnapshotError ?? Text.HexEditorBaseRequiredDetail);
+        }
+
         CloseReplaceSelectionForRun();
         CancellationTokenSource? cancellationSource = null;
         try
@@ -123,7 +128,8 @@ public sealed partial class MainWindowViewModel
                 CreateGeneralReplacePatchInputs(),
                 build,
                 cancellationSource.Token,
-                outputPath);
+                outputPath,
+                _generalReplaceBaseSnapshot);
             ApplyRunResult(result, build);
             RefreshCommandState();
         }

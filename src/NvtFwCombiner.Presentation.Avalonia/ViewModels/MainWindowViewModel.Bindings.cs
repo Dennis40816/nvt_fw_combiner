@@ -147,6 +147,9 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets the current viewport inspection status.</summary>
     public string GeneralReplaceHexViewportStatus { get; private set; } = string.Empty;
 
+    /// <summary>True when the experimental Hex Editor has captured its immutable base BIN snapshot.</summary>
+    public bool HasGeneralReplaceBaseSnapshot => _generalReplaceBaseSnapshot is not null;
+
     /// <summary>True when a base BIN viewport has bytes ready for selection.</summary>
     public bool HasGeneralReplaceHexViewportRows => GeneralReplaceHexViewportRows.Count > 0;
 
@@ -160,6 +163,8 @@ public sealed partial class MainWindowViewModel
     /// <summary>One-line readiness state for the experimental Hex Editor Build action.</summary>
     public string HexEditorReadinessStatus => !ReplaceBaseSlot.HasFile
         ? Text.HexEditorBaseRequiredDetail
+        : !HasGeneralReplaceBaseSnapshot
+            ? _generalReplaceBaseSnapshotError ?? Text.HexEditorBaseRequiredDetail
         : GeneralReplacePatches.Count == 0
             ? Text.HexEditorPatchRequiredDetail
             : Text.HexEditorReadyDetail;

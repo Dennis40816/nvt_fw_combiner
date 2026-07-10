@@ -168,6 +168,24 @@ public static partial class WorkbenchCompositionService
         return true;
     }
 
+    private static bool TryReadBaseCommonFwVersion(
+        string icId,
+        WorkbenchGeneralReplaceBaseSnapshot baseSnapshot,
+        out string? commonFwVersion)
+    {
+        ArgumentNullException.ThrowIfNull(baseSnapshot);
+
+        commonFwVersion = null;
+        if (!TryReadConsistentFirmwareConfigMetadata(icId, baseSnapshot.AsSpan(), out FirmwareConfigMetadata metadata) ||
+            !metadata.IsFirmwareVersionBarValid)
+        {
+            return false;
+        }
+
+        commonFwVersion = metadata.CommonFwVersion;
+        return true;
+    }
+
     private static bool TryResolveNumberTokenForFirmwareChipNumber(
         string icId,
         byte chipNumber,
@@ -232,7 +250,7 @@ public static partial class WorkbenchCompositionService
         out FirmwareConfigMetadata metadata)
     {
         metadata = default;
-        if (!IcMetadataFacade.TryGetFirmwareConfigStart(icId, out long firmwareConfigStart) ||
+        if (!IcMetadataFacade.TryGetFirmwareConfigStart(icId, out _) ||
             !File.Exists(path))
         {
             return false;
@@ -241,22 +259,32 @@ public static partial class WorkbenchCompositionService
         try
         {
             byte[] image = File.ReadAllBytes(path);
-            if (!FirmwareConfigMetadataReader.TryRead(image, firmwareConfigStart, out FirmwareConfigMetadata primary) ||
-                !FirmwareConfigMetadataReader.TryReadNvtCopy(image, out FirmwareConfigMetadata nvtCopy) ||
-                !HaveEquivalentFirmwareConfigValues(primary, nvtCopy))
-            {
-                return false;
-            }
-
-            // Preserve the flash-map address as the public traceability location. The NVT copy
-            // is the verified source of the displayed values, not a second canonical map row.
-            metadata = nvtCopy with { FirmwareConfigStart = firmwareConfigStart };
-            return true;
+            return TryReadConsistentFirmwareConfigMetadata(icId, image, out metadata);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         {
             return false;
         }
+    }
+
+    private static bool TryReadConsistentFirmwareConfigMetadata(
+        string icId,
+        ReadOnlySpan<byte> image,
+        out FirmwareConfigMetadata metadata)
+    {
+        metadata = default;
+        if (!IcMetadataFacade.TryGetFirmwareConfigStart(icId, out long firmwareConfigStart) ||
+            !FirmwareConfigMetadataReader.TryRead(image, firmwareConfigStart, out FirmwareConfigMetadata primary) ||
+            !FirmwareConfigMetadataReader.TryReadNvtCopy(image, out FirmwareConfigMetadata nvtCopy) ||
+            !HaveEquivalentFirmwareConfigValues(primary, nvtCopy))
+        {
+            return false;
+        }
+
+        // Preserve the flash-map address as the public traceability location. The NVT copy
+        // is the verified source of the displayed values, not a second canonical map row.
+        metadata = nvtCopy with { FirmwareConfigStart = firmwareConfigStart };
+        return true;
     }
 
     private static bool HaveEquivalentFirmwareConfigValues(

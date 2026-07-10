@@ -5,15 +5,14 @@ namespace NvtFwCombiner.Infrastructure.Files;
 /// <summary>Reads host-owned immutable in-memory artifacts before delegating to a fallback reader.</summary>
 public sealed class OverlayArtifactReader : IArtifactReader
 {
-    private readonly IArtifactReader _fallback;
+    private readonly IArtifactReader? _fallback;
     private readonly Dictionary<string, byte[]> _artifacts;
 
     /// <summary>Creates an immutable artifact overlay over a physical-reader fallback.</summary>
     public OverlayArtifactReader(
-        IArtifactReader fallback,
+        IArtifactReader? fallback,
         IEnumerable<KeyValuePair<string, byte[]>> artifacts)
     {
-        ArgumentNullException.ThrowIfNull(fallback);
         ArgumentNullException.ThrowIfNull(artifacts);
 
         _fallback = fallback;
@@ -37,6 +36,9 @@ public sealed class OverlayArtifactReader : IArtifactReader
 
         return _artifacts.TryGetValue(artifactId, out byte[]? bytes)
             ? ValueTask.FromResult(new ReadOnlyMemory<byte>([.. bytes]))
+            : _fallback is null
+            ? ValueTask.FromException<ReadOnlyMemory<byte>>(new FileNotFoundException(
+                $"No in-memory artifact is registered for '{artifactId}'."))
             : _fallback.ReadAsync(artifactId, cancellationToken);
     }
 }

@@ -76,11 +76,12 @@ public static partial class UiCompositionRunner
     public static IReadOnlyList<GeneralReplaceEditableRangeViewModel> GetGeneralReplaceEditableRanges(
         string icId,
         string number,
-        string? basePath)
+        string? basePath,
+        WorkbenchGeneralReplaceBaseSnapshot? baseSnapshot = null)
     {
         return
         [
-            .. WorkbenchCompositionService.GetGeneralReplaceEditableRanges(icId, number, basePath)
+            .. WorkbenchCompositionService.GetGeneralReplaceEditableRanges(icId, number, basePath, baseSnapshot)
                 .Select(range => new GeneralReplaceEditableRangeViewModel(
                     range.RegionId,
                     range.DisplayName,
@@ -192,7 +193,8 @@ public static partial class UiCompositionRunner
         IReadOnlyList<WorkbenchGeneralReplacePatchInput> generalReplacePatches,
         bool build,
         CancellationToken cancellationToken,
-        string? outputPath = null)
+        string? outputPath = null,
+        WorkbenchGeneralReplaceBaseSnapshot? baseSnapshot = null)
     {
         return WorkbenchCompositionService.RunReplaceAsync(
             icId,
@@ -203,7 +205,21 @@ public static partial class UiCompositionRunner
             generalReplacePatches,
             build,
             cancellationToken,
-            outputPath);
+            outputPath,
+            baseSnapshot);
+    }
+
+    /// <summary>Loads one immutable base image snapshot for an experimental Hex Editor session.</summary>
+    public static bool TryLoadGeneralReplaceBaseSnapshot(
+        string basePath,
+        out WorkbenchGeneralReplaceBaseSnapshot? snapshot,
+        out string? errorMessage)
+    {
+        bool loaded = WorkbenchCompositionService.TryLoadGeneralReplaceBaseSnapshot(
+            basePath,
+            out snapshot,
+            out errorMessage);
+        return loaded;
     }
 
     /// <summary>Gets a fixed-width base-BIN hexadecimal viewport with staged patches overlaid in memory.</summary>
@@ -213,5 +229,14 @@ public static partial class UiCompositionRunner
         IReadOnlyList<WorkbenchGeneralReplacePatchInput> patches)
     {
         return WorkbenchCompositionService.CreateGeneralReplaceHexViewport(basePath, viewportStart, patches);
+    }
+
+    /// <summary>Gets a fixed-width hexadecimal viewport from the loaded in-memory base snapshot.</summary>
+    public static WorkbenchGeneralReplaceHexViewport CreateGeneralReplaceHexViewport(
+        WorkbenchGeneralReplaceBaseSnapshot baseSnapshot,
+        long viewportStart,
+        IReadOnlyList<WorkbenchGeneralReplacePatchInput> patches)
+    {
+        return WorkbenchCompositionService.CreateGeneralReplaceHexViewport(baseSnapshot, viewportStart, patches);
     }
 }

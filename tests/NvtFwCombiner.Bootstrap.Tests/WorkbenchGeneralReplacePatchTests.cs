@@ -252,6 +252,67 @@ public sealed class WorkbenchGeneralReplacePatchTests
         Assert.Equal(baseBytes, File.ReadAllBytes(basePath));
     }
 
+    /// <summary>One loaded Hex base snapshot must remain stable when the source file later changes on disk.</summary>
+    [Fact]
+    public void GeneralReplaceHexViewportUsesLoadedSnapshotInsteadOfReReadingSourceFile()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-general-hex-snapshot");
+        byte[] baseBytes = CreatePattern(0x400, 0x28);
+        string basePath = workspace.Write("base.bin", baseBytes);
+
+        bool loaded = WorkbenchCompositionService.TryLoadGeneralReplaceBaseSnapshot(
+            basePath,
+            out WorkbenchGeneralReplaceBaseSnapshot? snapshot,
+            out CompositionIssue? issue);
+        File.WriteAllBytes(basePath, [.. Enumerable.Repeat((byte)0xEE, baseBytes.Length)]);
+
+        WorkbenchGeneralReplaceHexViewport viewport = WorkbenchCompositionService.CreateGeneralReplaceHexViewport(
+            Assert.IsType<WorkbenchGeneralReplaceBaseSnapshot>(snapshot),
+            0x100,
+            []);
+
+        Assert.True(loaded);
+        Assert.Null(issue);
+        WorkbenchGeneralReplaceHexViewportRow row = Assert.Single(viewport.Rows, candidate => candidate.Address == 0x100);
+        Assert.Equal(baseBytes[0x100], row.Bytes[0].Before);
+        Assert.NotEqual(File.ReadAllBytes(basePath)[0x100], row.Bytes[0].Before);
+    }
+
+    /// <summary>A snapshot may not bypass the immutable original-base output alias guard.</summary>
+    [Fact]
+    public async Task GeneralReplaceSnapshotStillRejectsOriginalBaseAsOutput()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-general-snapshot-output-guard");
+        byte[] baseBytes = CreatePattern(0x40000, 0x31);
+        string basePath = workspace.Write("base.bin", baseBytes);
+        Assert.True(WorkbenchCompositionService.TryLoadGeneralReplaceBaseSnapshot(
+            basePath,
+            out WorkbenchGeneralReplaceBaseSnapshot? snapshot,
+            out CompositionIssue? issue));
+        Assert.Null(issue);
+
+        ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            WorkbenchCompositionService.RunReplaceAsync(
+                "NT51950",
+                "single",
+                "General",
+                CreateBaseSlots(basePath),
+                [],
+                [new WorkbenchGeneralReplacePatchInput(
+                    "hex-patch-1",
+                    "0x00100",
+                    "0x00100",
+                    WorkbenchGeneralReplacePatchKind.Overwrite,
+                    "A5")],
+                build: true,
+                cancellationToken: TestContext.Current.CancellationToken,
+                outputPath: basePath,
+                baseSnapshot: Assert.IsType<WorkbenchGeneralReplaceBaseSnapshot>(snapshot)).AsTask());
+
+        Assert.Contains("loaded base flash BIN", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
+    }
+
     /// <summary>Hex viewport reports patch overlap and does not replace the first staged bytes with ambiguous order.</summary>
     [Fact]
     public void GeneralReplaceHexViewportRejectsOverlappingStagedPatches()

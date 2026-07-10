@@ -204,6 +204,33 @@ public sealed partial class ShellViewModelTests
             operation.Title.Contains("hex-patch-1", StringComparison.Ordinal));
     }
 
+    /// <summary>Hex Build must use the loaded in-memory base snapshot after the selected source file disappears.</summary>
+    [Fact]
+    public async Task GeneralReplaceHexEditorBuildUsesLoadedBaseSnapshot()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-general-hex-snapshot-build");
+        byte[] baseBytes = CreatePattern(0x40000, 0x56);
+        string basePath = workspace.Write("base.bin", baseBytes);
+        string outputPath = workspace.PathFor("hex-snapshot.bin");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51950";
+        viewModel.ShowHexEditorCommand.Execute(null);
+        viewModel.SetSlotFile("replace-base", basePath);
+
+        File.Delete(basePath);
+        viewModel.GeneralReplacePatchDraft.StartAddress = "0x00100";
+        viewModel.GeneralReplacePatchDraft.EndAddress = "0x00100";
+        viewModel.GeneralReplacePatchDraft.Value = "A5";
+        viewModel.ApplyGeneralReplacePatchCommand.Execute(null);
+        await viewModel.BuildHexEditorAsync(outputPath);
+
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        byte[] output = File.ReadAllBytes(outputPath);
+        Assert.Equal(baseBytes[0], output[0]);
+        Assert.Equal((byte)0xA5, output[0x100]);
+        Assert.False(File.Exists(basePath));
+    }
+
     /// <summary>Verifies direct inline byte edits stage one-byte overwrites and retain optional base rows.</summary>
     [Fact]
     public void GeneralReplaceHexEditorSupportsInlineByteEditAndBaseReferenceToggle()

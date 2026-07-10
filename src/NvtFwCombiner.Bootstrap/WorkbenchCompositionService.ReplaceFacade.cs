@@ -73,7 +73,8 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<WorkbenchGeneralReplacePatchInput> generalReplacePatches,
         bool build,
         CancellationToken cancellationToken,
-        string? outputPath = null)
+        string? outputPath = null,
+        WorkbenchGeneralReplaceBaseSnapshot? baseSnapshot = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(number);
@@ -112,6 +113,7 @@ public static partial class WorkbenchCompositionService
                 slotPaths,
                 generalReplaceMappings,
                 generalReplacePatches,
+                baseSnapshot,
                 build,
                 outputPath,
                 cancellationToken).ConfigureAwait(false),

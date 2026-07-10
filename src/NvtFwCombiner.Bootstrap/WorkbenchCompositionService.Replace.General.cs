@@ -14,6 +14,7 @@ public static partial class WorkbenchCompositionService
         IReadOnlyDictionary<string, string> slotPaths,
         IReadOnlyList<WorkbenchGeneralReplaceMappingInput> mappingInputs,
         IReadOnlyList<WorkbenchGeneralReplacePatchInput> patchInputs,
+        WorkbenchGeneralReplaceBaseSnapshot? baseSnapshot,
         bool build,
         string? outputPath,
         CancellationToken cancellationToken)
@@ -24,6 +25,7 @@ public static partial class WorkbenchCompositionService
                 slotPaths,
                 mappingInputs,
                 patchInputs,
+                baseSnapshot,
                 build,
                 out GeneralReplaceRunContext? context,
                 out WorkbenchRunResult? failure))
@@ -52,11 +54,17 @@ public static partial class WorkbenchCompositionService
                 succeeded: false);
         }
 
-        bool postbuildProfileResolved = TryGetPostbuildProfile(
-            icId,
-            context.BasePath,
-            out LegacyCombinerPostbuildProfile? postbuildProfile,
-            out CompositionIssue? postbuildIssue);
+        bool postbuildProfileResolved = context.BaseSnapshot is null
+            ? TryGetPostbuildProfile(
+                icId,
+                context.BasePath,
+                out LegacyCombinerPostbuildProfile? postbuildProfile,
+                out CompositionIssue? postbuildIssue)
+            : TryGetPostbuildProfile(
+                icId,
+                context.BaseSnapshot,
+                out postbuildProfile,
+                out postbuildIssue);
         IReadOnlyList<TpFlashMapRegion> regionsForMappingPolicy = TpFlashMapCatalog.GetRegions(
             icId,
             context.Selection,
@@ -169,7 +177,7 @@ public static partial class WorkbenchCompositionService
 
         if (!TryMaterializeGeneralReplacePatchArtifacts(
                 patchArtifacts,
-                out IReadOnlyDictionary<string, byte[]> virtualArtifacts,
+                out IReadOnlyDictionary<string, byte[]> patchVirtualArtifacts,
                 out IReadOnlyList<CompositionIssue> materializationIssues))
         {
             return CreateReplaceReportRunResult(
@@ -183,9 +191,15 @@ public static partial class WorkbenchCompositionService
                 succeeded: false);
         }
 
+        Dictionary<string, byte[]> virtualArtifacts = new(patchVirtualArtifacts, StringComparer.Ordinal);
+        if (context.BaseSnapshot is not null)
+        {
+            virtualArtifacts.Add(context.ReferenceArtifactId, context.BaseSnapshot.CopyForArtifactReader());
+        }
+
         InputArtifactBinding[] bindings =
         [
-            new(CompositionAddressSpaceIds.ReferenceBase, WorkbenchSlotIds.ReplaceBase, context.BasePath),
+            new(CompositionAddressSpaceIds.ReferenceBase, WorkbenchSlotIds.ReplaceBase, context.ReferenceArtifactId),
             .. mappingBindings,
         ];
 
@@ -201,7 +215,8 @@ public static partial class WorkbenchCompositionService
             icNumberSelection: context.Selection,
             overwrite: true,
             cancellationToken,
-            virtualArtifacts).ConfigureAwait(false);
+            virtualArtifacts,
+            context.BaseSnapshot?.SourcePath).ConfigureAwait(false);
     }
 
 }

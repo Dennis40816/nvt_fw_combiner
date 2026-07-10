@@ -11,6 +11,11 @@ internal static class VirtualArtifactLocator
         return $"{Prefix}general-replace-patch/{patchId}";
     }
 
+    internal static string CreateGeneralReplaceBaseSnapshot()
+    {
+        return $"{Prefix}general-replace-base/{Guid.NewGuid():N}";
+    }
+
     internal static bool IsVirtual(string artifactId)
     {
         return artifactId.StartsWith(Prefix, StringComparison.Ordinal);

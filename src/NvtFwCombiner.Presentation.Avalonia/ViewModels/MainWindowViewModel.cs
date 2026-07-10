@@ -23,6 +23,11 @@ public sealed partial class MainWindowViewModel : ObservableObject
             return;
         }
 
+        if (slot.SlotId == ReplaceBaseSlotId)
+        {
+            CaptureGeneralReplaceBaseSnapshot(path);
+        }
+
         slot.FilePath = path;
         RefreshFirmwareFacts(slot);
         PromptForFirmwareIcMismatch(slot);

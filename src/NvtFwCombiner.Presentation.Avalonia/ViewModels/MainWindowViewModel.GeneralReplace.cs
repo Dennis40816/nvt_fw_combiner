@@ -220,10 +220,17 @@ public sealed partial class MainWindowViewModel
     {
         string? selectedId = SelectedGeneralReplaceEditableRange?.RegionId;
         GeneralReplaceEditableRanges.Clear();
+        if (_generalReplaceBaseSnapshot is null)
+        {
+            SelectedGeneralReplaceEditableRange = null;
+            return;
+        }
+
         foreach (GeneralReplaceEditableRangeViewModel range in UiCompositionRunner.GetGeneralReplaceEditableRanges(
             SelectedIc,
             SelectedNumber,
-            ReplaceBaseSlot.FilePath))
+            ReplaceBaseSlot.FilePath,
+            _generalReplaceBaseSnapshot))
         {
             GeneralReplaceEditableRanges.Add(range);
         }
@@ -244,6 +251,13 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
+        if (_generalReplaceBaseSnapshot is null)
+        {
+            GeneralReplaceHexViewportStatus = _generalReplaceBaseSnapshotError ?? Text.GeneralReplaceHexViewportNoBaseDetail;
+            NotifyGeneralReplaceHexViewportChanged();
+            return;
+        }
+
         if (!TryParseGeneralReplaceHexAddress(GeneralReplaceHexViewportAddress, out long viewportStart))
         {
             GeneralReplaceHexViewportStatus = Text.GeneralReplaceHexViewportAddressInvalidDetail;
@@ -252,7 +266,7 @@ public sealed partial class MainWindowViewModel
         }
 
         WorkbenchGeneralReplaceHexViewport viewport = UiCompositionRunner.CreateGeneralReplaceHexViewport(
-            ReplaceBaseSlot.FilePath!,
+            _generalReplaceBaseSnapshot,
             viewportStart,
             CreateGeneralReplaceHexViewportPatchInputs());
         foreach (WorkbenchGeneralReplaceHexViewportRow row in viewport.Rows)
@@ -347,6 +361,7 @@ public sealed partial class MainWindowViewModel
     {
         validationMessage = Text.GeneralReplaceHexEditValidationDetail;
         if (!ReplaceBaseSlot.HasFile ||
+            _generalReplaceBaseSnapshot is null ||
             !TryParseGeneralReplaceHexAddress(candidate.TargetStart, out long start) ||
             !TryParseGeneralReplaceHexAddress(candidate.TargetEndInclusive, out long end) ||
             end < start)
@@ -362,7 +377,7 @@ public sealed partial class MainWindowViewModel
 
         List<WorkbenchGeneralReplacePatchInput> staged = [.. CreateGeneralReplacePatchInputs(), candidate];
         WorkbenchGeneralReplaceHexViewport viewport = UiCompositionRunner.CreateGeneralReplaceHexViewport(
-            ReplaceBaseSlot.FilePath!,
+            _generalReplaceBaseSnapshot,
             start,
             staged);
         if (viewport.Issues.Count > 0)
@@ -381,6 +396,36 @@ public sealed partial class MainWindowViewModel
             TryParseGeneralReplaceHexAddress(range.EndAddress, out long authorizedEnd) &&
             start >= authorizedStart &&
             end <= authorizedEnd);
+    }
+
+    private void CaptureGeneralReplaceBaseSnapshot(string path)
+    {
+        _generalReplaceBaseSnapshot = null;
+        _generalReplaceBaseSnapshotError = null;
+        _activeGeneralReplaceHexByteEdit = null;
+        GeneralReplacePatches.Clear();
+        _generalReplacePatchRedo.Clear();
+        _generalReplacePatchCounter = 0;
+        GeneralReplacePatchDraft.Value = string.Empty;
+
+        if (!UiCompositionRunner.TryLoadGeneralReplaceBaseSnapshot(
+                path,
+                out WorkbenchGeneralReplaceBaseSnapshot? snapshot,
+                out string? errorMessage))
+        {
+            _generalReplaceBaseSnapshotError = errorMessage;
+        }
+        else
+        {
+            _generalReplaceBaseSnapshot = snapshot;
+        }
+
+        OnPropertyChanged(nameof(HasGeneralReplaceBaseSnapshot));
+        OnPropertyChanged(nameof(HexEditorReadinessStatus));
+        OnPropertyChanged(nameof(CanBuildHexEditor));
+        OnPropertyChanged(nameof(HasGeneralReplacePatches));
+        OnPropertyChanged(nameof(IsGeneralReplacePatchListEmpty));
+        RefreshGeneralReplacePatchCommands();
     }
 
     partial void OnIsGeneralReplaceHexReferenceRowsVisibleChanged(bool value)
