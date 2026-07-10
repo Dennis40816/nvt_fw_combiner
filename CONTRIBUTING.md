@@ -1,17 +1,25 @@
 # Contributing
 
-This document is a proposed repository baseline. The repository is expected to use trunk-based development with protected `main` and short-lived branches.
+This repository uses protected `main`, version integration branches named with the exact planned release (for example `0.8.1`), and short-lived feature branches.
+
+## Branch model
+
+1. Start each release on its owner-selected version integration branch, such as `0.8.1`.
+2. Commit tightly coupled release work directly to that version branch in independently verifiable phases.
+3. Create `feature/<version>/<topic>` from the version branch only for an independently reviewable feature; merge it back to the same version branch after review.
+4. Open the only `main` PR after the version branch reaches its defined scope and final review gates.
 
 ## Change sequence
 
 1. Link the change to an issue with explicit acceptance criteria.
-2. Read root and nested `AGENTS.md` files.
-3. Update an ADR first when the change alters an architectural decision.
-4. Implement the smallest coherent change.
-5. Add tests at the same time as behavior.
-6. After every independently verifiable phase, run its narrow test, review the exact staged files, and create a Conventional Commit. Do not stage unrelated worktree changes.
-7. Run the final gate selected by `AGENTS.md`: `python scripts/verify.py --all` for `R1`-`R3`, or `python scripts/verify.py --structure-only` for a qualifying `R0` documentation/governance-only change.
-8. Open a PR using a Conventional Commit style title.
+2. Identify the version integration branch and, if needed, create the feature branch from it.
+3. Read root and nested `AGENTS.md` files.
+4. Update an ADR first when the change alters an architectural decision.
+5. Implement the smallest coherent change.
+6. Add tests at the same time as behavior.
+7. After every independently verifiable phase, run its narrow test, review the exact staged files, and create a Conventional Commit. Do not stage unrelated worktree changes.
+8. Run the final gate selected by `AGENTS.md`: `python scripts/verify.py --all` for `R1`-`R3`, or `python scripts/verify.py --structure-only` for a qualifying `R0` documentation/governance-only change.
+9. Merge feature work to the version branch, then open the final PR from that version branch to `main` using a Conventional Commit style title.
 
 ## Pull request evidence
 

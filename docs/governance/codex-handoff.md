@@ -14,8 +14,9 @@ Codex receives a constrained repository with executable rules and bounded issues
 
 ## Branch and PR handoff
 
-- Use the active milestone branch, for example `0.1.0`, or a short-lived `feature/<topic>` branch based on it.
-- Do not merge directly to `main` from an agent session. `main` receives changes only by reviewed PR merge.
+- Use the owner-selected version integration branch named with the exact planned version, for example `0.8.1`.
+- Keep tightly coupled release work on the version branch. Create `feature/<version>/<topic>` from it only for independently reviewable work, and merge that feature back to the same version branch after review.
+- Do not merge directly to `main` from an agent session. `main` receives changes only through the final reviewed PR from the completed version branch.
 - Every agent PR description must include:
   - summary;
   - affected layers and contracts;
@@ -23,7 +24,7 @@ Codex receives a constrained repository with executable rules and bounded issues
   - verification commands and results;
   - firmware/private evidence still missing;
   - required human reviewers;
-  - target branch and intended milestone.
+  - source feature branch or version branch, merge target branch, and intended version.
 - Implementer Polytail and reviewer Polytail are both required before approval.
 - `R2` PRs need architecture/contract review. `R3` PRs need firmware-owner review and byte-level evidence before merge.
 - If a tool can push commits but cannot create or merge a PR, it must leave a PR-ready handoff instead of treating the branch as complete.

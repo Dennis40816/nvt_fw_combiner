@@ -67,8 +67,9 @@ Use `docs/governance/development-execution-workflow.md` to select the narrow tes
 ## Branch, PR, review, and merge rules
 
 - `main` is stable. Agents must not push implementation or documentation changes directly to `main` unless the owner explicitly requests an emergency single-file administrative edit.
-- Development happens on the active milestone branch, for example `0.1.0`, or on a `feature/<topic>` branch created from the active milestone branch.
-- Work reaches `main` only by pull request review and merge. A merge commit, squash merge, or rebase merge is acceptable only when it preserves the reviewed change set and the owner-approved milestone intent.
+- Each planned release has one owner-selected version integration branch named with the exact version, for example `0.8.1`. Tightly coupled work for that release commits directly to this branch.
+- An independently reviewable feature must use `feature/<version>/<topic>`, created from the version integration branch. Its reviewed merge target is that same version branch, never `main`.
+- Only after the version branch scope, final verification, and review gates are complete may it open a PR to `main`. A merge commit, squash merge, or rebase merge is acceptable only when it preserves the reviewed version-branch change set and owner-approved release intent.
 - Keep PR scope reviewable. Avoid PRs that mix unrelated UI, core, dependency, release, and documentation work; also avoid tiny PRs that cannot be validated independently.
 - Every PR must identify scope, risk class, affected layers, contracts/profiles/ICs, verification commands, residual evidence gaps, and whether human firmware review is required.
 - Agent-authored PRs require a reviewer other than the implementer. The implementer must run Polytail before requesting review; the reviewer must apply Polytail before approval.
@@ -76,7 +77,7 @@ Use `docs/governance/development-execution-workflow.md` to select the narrow tes
 - `R2` changes require architecture/contract review. `R3` changes require human firmware-owner review and byte-level evidence before merge.
 - Do not merge with failing required checks, unresolved P0/P1 review findings, missing required tests, undocumented schema/profile drift, or private golden evidence gaps disguised as TODOs.
 - Merge PRs to `main` only after required CI is green and actionable Codex feedback is addressed or explicitly documented as non-actionable.
-- If a connector/tool cannot open a PR, push only to the milestone branch and leave a clear review handoff with commit SHA, changed files, risks, and commands run. The owner or Codex must still merge to `main` through PR review.
+- If a connector/tool cannot open a feature PR, push the feature branch and leave a clear handoff for merge into its version branch. If it cannot open the final PR, push only the version branch and leave a handoff with commit SHA, changed files, risks, commands run, and `main` as the intended target.
 
 ## Mandatory architecture boundaries
 

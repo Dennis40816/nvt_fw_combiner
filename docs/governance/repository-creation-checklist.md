@@ -9,7 +9,7 @@
 | Visibility | Private |
 | License | MIT |
 | Default branch | `main` |
-| Branch model | trunk-based |
+| Branch model | version integration branch plus short-lived feature branches |
 | Initial tag | `v0.1.0-dev.0` |
 
 ## Included in init

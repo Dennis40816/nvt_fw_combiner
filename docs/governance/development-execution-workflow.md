@@ -14,6 +14,8 @@ git status --short --branch
 
 Record existing user changes, then state the risk class, affected layers, acceptance criteria, required human gate, narrow test, and final gate. Preserve unrelated changes; do not stage or revert them.
 
+Also record the owner-selected version integration branch. Work directly on that exact-version branch when it is tightly coupled to the release. For an independently reviewable feature, create `feature/<version>/<topic>` from it and merge back to the same version branch before the version branch opens its final PR to `main`.
+
 ## 2. Test Selection
 
 Run the narrowest relevant command first. Add another row only when the change crosses that boundary.
@@ -66,4 +68,6 @@ The first failed command is evidence, not a reason to rerun it unchanged.
 
 ## 5. Handoff
 
-Before PR review, provide the changed files, risk class, exact test commands/results, firmware/profile/protocol/release impact, human-review requirements, and unresolved evidence gaps. Use the pull-request template to keep this record consistent.
+For a feature branch, provide the changed files, risk class, exact test commands/results, firmware/profile/protocol/release impact, human-review requirements, and unresolved evidence gaps for merge into its version integration branch.
+
+Only when the version branch is complete should the final handoff target `main`. Use the pull-request template to record the version branch, source branch, target branch, phase commits, verification evidence, and unresolved gates.

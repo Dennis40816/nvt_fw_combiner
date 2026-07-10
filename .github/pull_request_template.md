@@ -32,6 +32,9 @@ python scripts/verify.py --structure-only
 
 ## Development execution
 
+- Version integration branch:
+- Source branch:
+- Merge target branch:
 - Scope frozen before commit: Yes / No
 - Each independently verifiable editing phase has its own commit: Yes / No
 - Phase commit SHA(s):
