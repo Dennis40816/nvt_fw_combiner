@@ -111,10 +111,10 @@ public sealed partial class ShellViewModelTests
         Assert.Contains("Reason:", copyRow.Detail, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies the Merge ViewModel command path builds each approved golden case byte-for-byte.</summary>
+    /// <summary>Verifies representative Standard Merge workflow shapes through the Merge ViewModel command path.</summary>
     [Theory]
-    [MemberData(nameof(StandardMergeGoldenCases))]
-    public async Task BuildMergeFromViewModelMatchesGolden(string ic)
+    [MemberData(nameof(StandardMergeUiGoldenCases))]
+    public async Task BuildMergeFromViewModelMatchesRepresentativeGolden(string ic)
     {
         using var golden = StandardMergeGoldenManifest.Load();
         JsonElement goldenCase = golden.CaseByIc(ic);
@@ -289,10 +289,13 @@ public sealed partial class ShellViewModelTests
             row.Meta == issue.Title);
     }
 
-    /// <summary>Gets every owner-approved gen_flash Standard Merge golden case.</summary>
-    public static TheoryData<string> StandardMergeGoldenCases()
+    /// <summary>Gets one normal DP/TP, LD-input, and DP Perspective Standard Merge golden case.</summary>
+    public static TheoryData<string> StandardMergeUiGoldenCases()
     {
-        using var golden = StandardMergeGoldenManifest.Load();
-        return golden.CaseIds();
+        TheoryData<string> cases = [];
+        cases.Add("51926");
+        cases.Add("51928");
+        cases.Add("51950");
+        return cases;
     }
 }

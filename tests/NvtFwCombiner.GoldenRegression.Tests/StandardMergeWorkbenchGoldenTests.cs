@@ -5,11 +5,11 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.GoldenRegression.Tests;
 
 /// <summary>Golden tests that exercise the workbench command path for Standard Merge.</summary>
-public sealed class StandardMergeUiGoldenTests
+public sealed class StandardMergeWorkbenchGoldenTests
 {
     /// <summary>Verifies the workbench facade can build every Standard Merge golden case byte-for-byte.</summary>
     [Fact]
-    public async Task UiShellBuildStandardMergeMatchesGoldenBytes()
+    public async Task WorkbenchBuildStandardMergeMatchesGoldenBytes()
     {
         string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
@@ -26,7 +26,7 @@ public sealed class StandardMergeUiGoldenTests
     [Theory]
     [InlineData("51917", "51927")]
     [InlineData("51919", "51929")]
-    public async Task UiShellBuildStandardMergeAliasMatchesReferenceGoldenBytes(string aliasIc, string referenceIc)
+    public async Task WorkbenchBuildStandardMergeAliasMatchesReferenceGoldenBytes(string aliasIc, string referenceIc)
     {
         string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");

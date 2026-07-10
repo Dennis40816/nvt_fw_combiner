@@ -1,6 +1,7 @@
 using System.Text.Json;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
+using static NvtFwCombiner.Bootstrap.Tests.BootstrapTestData;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -320,23 +321,4 @@ public sealed class WorkbenchGeneralReplacePatchTests
             issue => issue.GetProperty("Code").GetString() == code);
     }
 
-    private static byte[] CreatePattern(int length, byte seed)
-    {
-        byte[] bytes = new byte[length];
-        for (int index = 0; index < bytes.Length; index++)
-        {
-            bytes[index] = unchecked((byte)(seed + index));
-        }
-
-        return bytes;
-    }
-
-    private static string GoldenPath(string relativePath)
-    {
-        return RepositoryPaths.FromRepositoryRoot(
-            "testdata",
-            "golden",
-            "standard-merge-gen-flash",
-            relativePath);
-    }
 }

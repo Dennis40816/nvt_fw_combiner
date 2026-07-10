@@ -688,7 +688,7 @@ def validate_workflows(errors: list[str]) -> None:
             errors.append(f"CI is missing required check name: {name}")
     if "scripts/install-dotnet.ps1" not in ci:
         errors.append("CI must exercise the repository .NET installer")
-    if "python scripts/verify.py --skip-python" not in ci:
+    if "python scripts/verify.py --skip-python --skip-structure" not in ci:
         errors.append("CI dotnet job must run the canonical .NET verifier")
     verifier = (ROOT / "scripts/verify.py").read_text(encoding="utf-8")
     if '[dotnet, "test", str(SOLUTION), "-c", "Release", "--no-build"]' not in verifier:

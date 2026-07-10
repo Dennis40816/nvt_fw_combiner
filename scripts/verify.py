@@ -142,7 +142,9 @@ def verify_dotnet() -> None:
         [dotnet, "format", str(SOLUTION), "--verify-no-changes", "--no-restore"],
         [dotnet, "build", str(SOLUTION), "-c", "Release", "--no-restore"],
         [dotnet, "test", str(SOLUTION), "-c", "Release", "--no-build"],
-        [sys.executable, str(CTRL_RAM_REPLACE_FIXTURE_VERIFIER), "--configuration", "Release", "--no-build"],
+        # The full solution test command already runs CtrlRAM UI smoke tests. Keep the
+        # fixture gate here for manifest and payload-hash validation only.
+        [sys.executable, str(CTRL_RAM_REPLACE_FIXTURE_VERIFIER), "--skip-public-smoke"],
     )
     build_log = os.environ.get("NFC_DOTNET_BUILD_LOG")
     try:
@@ -172,17 +174,21 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--skip-python", action="store_true")
     parser.add_argument("--skip-dotnet", action="store_true")
+    parser.add_argument("--skip-structure", action="store_true")
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
     structure_only = args.structure_only
-    if structure_only and (args.all or args.skip_python or args.skip_dotnet):
+    if args.all and (args.skip_structure or args.skip_python or args.skip_dotnet):
+        raise SystemExit("--all cannot be combined with skip flags")
+    if structure_only and (args.all or args.skip_structure or args.skip_python or args.skip_dotnet):
         raise SystemExit("--structure-only cannot be combined with other selection flags")
 
     try:
-        verify_structure()
+        if not args.skip_structure:
+            verify_structure()
         if not structure_only:
             if not args.skip_python:
                 verify_python()

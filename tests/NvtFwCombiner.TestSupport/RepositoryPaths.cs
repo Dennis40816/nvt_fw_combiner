@@ -42,12 +42,21 @@ public static class RepositoryPaths
         ArgumentException.ThrowIfNullOrWhiteSpace(root);
 
         string relativePath = manifestFile.GetProperty("path").GetString()!;
+        return PathFromRelative(root, relativePath);
+    }
+
+    /// <summary>Builds a contained path from a fixture root and a manifest-style relative path.</summary>
+    public static string PathFromRelative(string root, string relativePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(root);
+        ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
+
         string candidate = Path.GetFullPath(Path.Combine(root, NormalizeRelativePath(relativePath)));
         string fullRoot = Path.GetFullPath(root);
         string relativeToRoot = Path.GetRelativePath(fullRoot, candidate);
         return IsWithinRoot(relativeToRoot)
             ? candidate
-            : throw new InvalidOperationException($"Manifest path escapes root: {relativePath}");
+            : throw new InvalidOperationException($"Fixture path escapes root: {relativePath}");
     }
 
     /// <summary>Normalizes slash-separated fixture paths for the host filesystem.</summary>

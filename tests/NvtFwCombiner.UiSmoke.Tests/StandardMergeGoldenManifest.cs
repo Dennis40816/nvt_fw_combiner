@@ -51,15 +51,7 @@ internal sealed class StandardMergeGoldenManifest : IDisposable
 
     public string PathFromRelative(string relativePath)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
-
-        string candidate = Path.GetFullPath(
-            Path.Combine(Root, RepositoryPaths.NormalizeRelativePath(relativePath)));
-        string fullRoot = Path.GetFullPath(Root);
-        string relativeToRoot = Path.GetRelativePath(fullRoot, candidate);
-        return IsWithinRoot(relativeToRoot)
-            ? candidate
-            : throw new InvalidOperationException($"Golden path escapes root: {relativePath}");
+        return RepositoryPaths.PathFromRelative(Root, relativePath);
     }
 
     public string ManifestPath(JsonElement manifestFile)
@@ -108,13 +100,5 @@ internal sealed class StandardMergeGoldenManifest : IDisposable
             "ld-input" => "merge-ld",
             _ => throw new InvalidOperationException($"Unknown address space '{addressSpaceId}'."),
         };
-    }
-
-    private static bool IsWithinRoot(string relativePath)
-    {
-        return !Path.IsPathRooted(relativePath) &&
-            !relativePath.Equals("..", StringComparison.Ordinal) &&
-            !relativePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal) &&
-            !relativePath.StartsWith($"..{Path.AltDirectorySeparatorChar}", StringComparison.Ordinal);
     }
 }

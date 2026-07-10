@@ -1,5 +1,6 @@
 using System.Text.Json;
 using NvtFwCombiner.TestSupport;
+using static NvtFwCombiner.Bootstrap.Tests.BootstrapTestData;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 

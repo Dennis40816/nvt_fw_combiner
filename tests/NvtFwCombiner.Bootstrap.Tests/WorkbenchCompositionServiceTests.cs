@@ -4,6 +4,7 @@ using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 using static NvtFwCombiner.Bootstrap.WorkbenchIssueCodes;
+using static NvtFwCombiner.Bootstrap.Tests.BootstrapTestData;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -318,24 +319,4 @@ public sealed class WorkbenchCompositionServiceTests
         Assert.Equal("error", issue.GetProperty("Severity").GetString());
     }
 
-    private static byte[] CreatePattern(int length, byte seed)
-    {
-        byte[] bytes = new byte[length];
-        for (int index = 0; index < bytes.Length; index++)
-        {
-            bytes[index] = unchecked((byte)(seed + index));
-        }
-
-        return bytes;
-    }
-
-    private static string GoldenPath(string relativePath)
-    {
-        return Path.Combine(
-            RepositoryPaths.FindRepositoryRoot(),
-            "testdata",
-            "golden",
-            "standard-merge-gen-flash",
-            relativePath.Replace('/', Path.DirectorySeparatorChar));
-    }
 }
