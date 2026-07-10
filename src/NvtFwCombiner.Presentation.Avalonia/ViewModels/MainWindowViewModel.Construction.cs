@@ -36,8 +36,11 @@ public sealed partial class MainWindowViewModel
     private int _generalReplacePatchCounter;
     private int _generalMergeMappingCounter;
     private readonly Stack<GeneralReplacePatchViewModel> _generalReplacePatchRedo = [];
+    private readonly Dictionary<string, GeneralReplaceHexByteCellViewModel> _generalReplaceHexAuthoringCells =
+        new(StringComparer.OrdinalIgnoreCase);
     private WorkbenchGeneralReplaceBaseSnapshot? _generalReplaceBaseSnapshot;
     private string? _generalReplaceBaseSnapshotError;
+    private GeneralReplaceHexByteCellViewModel? _selectedGeneralReplaceHexByte;
     private string _selectedMergeMode = NormalMergeMode;
 
     /// <summary>Initializes the main workbench view model.</summary>

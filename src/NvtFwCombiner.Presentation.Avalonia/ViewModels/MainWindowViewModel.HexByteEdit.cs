@@ -83,7 +83,6 @@ public sealed partial class MainWindowViewModel
         }
 
         GeneralReplacePatchDraft.StartAddress = cell.Address;
-        UpdateGeneralReplaceHexSelection(cell.Address);
     }
 
     private void SetGeneralReplacePatchEnd(GeneralReplaceHexByteCellViewModel? cell)

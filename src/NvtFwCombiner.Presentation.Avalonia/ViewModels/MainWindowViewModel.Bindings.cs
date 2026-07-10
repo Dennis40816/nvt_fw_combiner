@@ -134,7 +134,7 @@ public sealed partial class MainWindowViewModel
     public GeneralReplacePatchDraftViewModel GeneralReplacePatchDraft { get; } = new();
 
     /// <summary>Gets the scrollable fixed-width hexadecimal viewport for the selected base BIN.</summary>
-    public ObservableCollection<GeneralReplaceHexViewportRowViewModel> GeneralReplaceHexViewportRows { get; } = [];
+    public GeneralReplaceHexViewportRowCollection GeneralReplaceHexViewportRows { get; } = [];
 
     /// <summary>Gets or sets the requested hexadecimal viewport start address.</summary>
     [ObservableProperty]
