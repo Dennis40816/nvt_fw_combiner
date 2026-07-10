@@ -1,3 +1,5 @@
+using NvtFwCombiner.Application.ExternalTools;
+
 namespace NvtFwCombiner.Infrastructure.ExternalTools;
 
 /// <summary>Process launch request prepared by infrastructure from an approved manifest.</summary>
@@ -34,6 +36,12 @@ public sealed class ExternalProcessStartInfo
 
     /// <summary>Expanded arguments passed through ProcessStartInfo.ArgumentList.</summary>
     public IReadOnlyList<string> Arguments => _arguments;
+
+    /// <summary>Creates immutable audit evidence for this exact executable, working directory, and argument list.</summary>
+    public ExternalProcessInvocation ToExecutedCommand()
+    {
+        return new ExternalProcessInvocation(ExecutablePath, WorkingDirectory, Arguments);
+    }
 
     /// <summary>Maximum process execution time.</summary>
     public TimeSpan Timeout { get; }

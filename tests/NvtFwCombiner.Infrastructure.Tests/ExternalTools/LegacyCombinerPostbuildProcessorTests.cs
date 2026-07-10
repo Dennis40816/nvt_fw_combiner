@@ -188,6 +188,9 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
 
         Assert.True(result.Succeeded);
         Assert.Equal(10, runner.RunCount);
+        Assert.Equal(10, result.ExecutedCommands.Count);
+        Assert.Equal("MERGE_MODE", result.ExecutedCommands[0].Arguments[0]);
+        Assert.EndsWith("nt51927_fw.bin", result.ExecutedCommands[0].Arguments[1], StringComparison.Ordinal);
         Assert.Equal(8, modes.Count(mode => mode == "MERGE_MODE"));
         Assert.Equal(2, modes.Count(mode => mode == "NT51927BASED_GEN_CRC_MODE"));
     }

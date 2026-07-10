@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Composition;
@@ -13,13 +14,20 @@ public sealed partial class CompositionRunService
         IReadOnlyList<InputArtifactSummary> inputSummaries,
         DateTimeOffset startedAtUtc,
         DateTimeOffset completedAtUtc,
-        bool committed)
+        bool committed,
+        Dictionary<string, IReadOnlyList<ExternalProcessInvocation>>? executedCommandsByOperationId = null)
     {
         OperationRunStatus status = execution.Status == CompositionExecutionStatus.Succeeded
             ? OperationRunStatus.Succeeded
             : OperationRunStatus.Skipped;
         OperationRunSummary[] operations = [
-            .. request.Plan.OrderedOperations.Select(operation => ToOperationSummary(operation, status)),
+            .. request.Plan.OrderedOperations.Select(operation => ToOperationSummary(
+                operation,
+                status,
+                executedCommandsByOperationId is not null &&
+                executedCommandsByOperationId.TryGetValue(operation.OperationId, out IReadOnlyList<ExternalProcessInvocation>? executedCommands)
+                    ? executedCommands
+                    : [])),
         ];
 
         byte[] outputBytes = execution.OutputBytes.ToArray();
@@ -74,7 +82,8 @@ public sealed partial class CompositionRunService
 
     private static OperationRunSummary ToOperationSummary(
         CompositionOperation operation,
-        OperationRunStatus status)
+        OperationRunStatus status,
+        IReadOnlyList<ExternalProcessInvocation> executedCommands)
     {
         ExternalProcessorInvocation? invocation = operation.ExternalProcessorInvocation;
         return new OperationRunSummary(
@@ -92,6 +101,7 @@ public sealed partial class CompositionRunService
             invocation?.AllowedReadRanges ?? [],
             invocation?.AllowedWriteRanges ?? [],
             operation.Reason,
-            operation.Provenance);
+            operation.Provenance,
+            executedCommands);
     }
 }

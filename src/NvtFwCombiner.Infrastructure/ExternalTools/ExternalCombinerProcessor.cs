@@ -71,20 +71,24 @@ public sealed partial class ExternalCombinerProcessor : IExternalProcessor
                 arguments,
                 TimeSpan.FromSeconds(manifest.TimeoutSeconds));
             ExternalProcessResult processResult = await _processRunner.RunAsync(startInfo, cancellationToken).ConfigureAwait(false);
+            IReadOnlyList<ExternalProcessInvocation> executedCommands = [startInfo.ToExecutedCommand()];
             if (processResult.TimedOut)
             {
-                return Fail("external-tool.process.timeout", "External processor timed out.");
+                return Fail("external-tool.process.timeout", "External processor timed out.", executedCommands);
             }
 
             if (processResult.ExitCode != 0)
             {
-                return Fail("external-tool.process.failed", $"External processor exited with code {processResult.ExitCode}.");
+                return Fail(
+                    "external-tool.process.failed",
+                    $"External processor exited with code {processResult.ExitCode}.",
+                    executedCommands);
             }
 
             CompositionIssue? unexpectedFileIssue = FindUnexpectedStagingFileIssue(runDirectory, manifest);
             if (unexpectedFileIssue is not null)
             {
-                return ExternalProcessorResult.Failed([unexpectedFileIssue]);
+                return ExternalProcessorResult.Failed([unexpectedFileIssue], executedCommands);
             }
 
             string transformedPath = string.Equals(manifest.InputMode, "input-output-file", StringComparison.Ordinal)
@@ -92,24 +96,30 @@ public sealed partial class ExternalCombinerProcessor : IExternalProcessor
                 : workBin;
             if (!File.Exists(transformedPath))
             {
-                return Fail("external-tool.output.missing", "External processor did not produce the expected output file.");
+                return Fail(
+                    "external-tool.output.missing",
+                    "External processor did not produce the expected output file.",
+                    executedCommands);
             }
 
             byte[] outputBytes = await File.ReadAllBytesAsync(transformedPath, cancellationToken).ConfigureAwait(false);
             if (outputBytes.LongLength != request.InputBytes.Length)
             {
-                return Fail("external-tool.output-length.changed", "External processor changed the firmware image length.");
+                return Fail(
+                    "external-tool.output-length.changed",
+                    "External processor changed the firmware image length.",
+                    executedCommands);
             }
 
             IReadOnlyList<ByteRange> changedRanges = ByteDiff.FindChangedRanges(request.InputBytes.Span, outputBytes);
             ChangedRangeVerdict verdict = new ChangedRangePolicy(request.AllowedWriteRanges).Evaluate(changedRanges);
             return verdict.IsAllowed
-                ? ExternalProcessorResult.Success(outputBytes, changedRanges)
+                ? ExternalProcessorResult.Success(outputBytes, changedRanges, executedCommands)
                 : ExternalProcessorResult.Failed([
                     new CompositionIssue(
                         "external-tool.write-range.violation",
                         "External processor changed bytes outside declared write ranges."),
-                ]);
+                ], executedCommands);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -127,8 +137,11 @@ public sealed partial class ExternalCombinerProcessor : IExternalProcessor
         }
     }
 
-    private static ExternalProcessorResult Fail(string code, string message)
+    private static ExternalProcessorResult Fail(
+        string code,
+        string message,
+        IReadOnlyList<ExternalProcessInvocation>? executedCommands = null)
     {
-        return ExternalProcessorResult.Failed([new CompositionIssue(code, message)]);
+        return ExternalProcessorResult.Failed([new CompositionIssue(code, message)], executedCommands ?? []);
     }
 }

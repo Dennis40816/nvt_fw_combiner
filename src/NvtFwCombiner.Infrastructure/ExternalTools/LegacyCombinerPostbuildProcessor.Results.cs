@@ -8,22 +8,26 @@ public sealed partial class LegacyCombinerPostbuildProcessor
     private static ExternalProcessorResult CreateCheckedSuccess(
         ReadOnlyMemory<byte> inputBytes,
         ReadOnlyMemory<byte> outputBytes,
-        IReadOnlyList<ByteRange> allowedWriteRanges)
+        IReadOnlyList<ByteRange> allowedWriteRanges,
+        IReadOnlyList<ExternalProcessInvocation> executedCommands)
     {
         IReadOnlyList<ByteRange> changedRanges = ByteDiff.FindChangedRanges(inputBytes.Span, outputBytes.Span);
         ChangedRangeVerdict verdict = new ChangedRangePolicy(allowedWriteRanges).Evaluate(changedRanges);
         return verdict.IsAllowed
-            ? ExternalProcessorResult.Success(outputBytes, changedRanges)
+            ? ExternalProcessorResult.Success(outputBytes, changedRanges, executedCommands)
             : ExternalProcessorResult.Failed([
                 new CompositionIssue(
                     "external-tool.write-range.violation",
                     $"External processor changed bytes outside declared write ranges: {FormatRanges(verdict.ViolatingRanges)}."),
-            ]);
+            ], executedCommands);
     }
 
-    private static ExternalProcessorResult Fail(string code, string message)
+    private static ExternalProcessorResult Fail(
+        string code,
+        string message,
+        IReadOnlyList<ExternalProcessInvocation>? executedCommands = null)
     {
-        return ExternalProcessorResult.Failed([new CompositionIssue(code, message)]);
+        return ExternalProcessorResult.Failed([new CompositionIssue(code, message)], executedCommands ?? []);
     }
 
     private static string FormatProcessOutput(ExternalProcessResult processResult)

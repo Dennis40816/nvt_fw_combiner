@@ -8,6 +8,7 @@ public sealed partial class CompositionRunService
     private async ValueTask<CompositionExecutionResult> ExecutePlanAsync(
         CompositionRunRequest request,
         BoundInputs boundInputs,
+        IDictionary<string, IReadOnlyList<ExternalProcessInvocation>> executedCommandsByOperationId,
         CancellationToken cancellationToken)
     {
         var input = new CompositionExecutionInput(boundInputs.InputBytes);
@@ -17,7 +18,13 @@ public sealed partial class CompositionRunService
                 request.Plan,
                 input,
                 (operation, inputBytes, stagedSources, token) =>
-                    TransformExternalProcessorAsync(request, operation, inputBytes, stagedSources, token),
+                    TransformExternalProcessorAsync(
+                        request,
+                        operation,
+                        inputBytes,
+                        stagedSources,
+                        executedCommandsByOperationId,
+                        token),
                 cancellationToken)
             .ConfigureAwait(false);
     }
@@ -27,6 +34,7 @@ public sealed partial class CompositionRunService
         CompositionOperation operation,
         ReadOnlyMemory<byte> inputBytes,
         IReadOnlyList<ExternalProcessorStagedSource> stagedSources,
+        IDictionary<string, IReadOnlyList<ExternalProcessInvocation>> executedCommandsByOperationId,
         CancellationToken cancellationToken)
     {
         ExternalProcessorInvocation invocation = operation.ExternalProcessorInvocation!;
@@ -55,6 +63,11 @@ public sealed partial class CompositionRunService
         ExternalProcessorResult processorResult = await _externalProcessor!
             .TransformAsync(processorRequest, cancellationToken)
             .ConfigureAwait(false);
+        if (processorResult.ExecutedCommands.Count > 0)
+        {
+            executedCommandsByOperationId[operation.OperationId] = processorResult.ExecutedCommands;
+        }
+
         return processorResult.Succeeded
             ? CompositionExternalProcessorResult.Success(processorResult.OutputBytes)
             : CompositionExternalProcessorResult.Failed(processorResult.Issues);

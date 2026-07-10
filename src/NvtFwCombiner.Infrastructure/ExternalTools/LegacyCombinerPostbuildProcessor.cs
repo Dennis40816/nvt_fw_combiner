@@ -88,6 +88,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                 "External processor staging directory escapes the approved staging root.");
         }
 
+        List<ExternalProcessInvocation> executedCommands = [];
         try
         {
             if (Directory.Exists(runDirectory))
@@ -140,16 +141,21 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                     arguments,
                     TimeSpan.FromSeconds(manifest!.TimeoutSeconds));
                 ExternalProcessResult processResult = await _processRunner.RunAsync(startInfo, cancellationToken).ConfigureAwait(false);
+                executedCommands.Add(startInfo.ToExecutedCommand());
                 if (processResult.TimedOut)
                 {
-                    return Fail("external-tool.process.timeout", $"External processor command '{command.CommandId}' timed out.");
+                    return Fail(
+                        "external-tool.process.timeout",
+                        $"External processor command '{command.CommandId}' timed out.",
+                        executedCommands);
                 }
 
                 if (processResult.ExitCode != 0)
                 {
                     return Fail(
                         "external-tool.process.failed",
-                        $"External processor command '{command.CommandId}' exited with code {processResult.ExitCode}. {FormatProcessOutput(processResult)}");
+                        $"External processor command '{command.CommandId}' exited with code {processResult.ExitCode}. {FormatProcessOutput(processResult)}",
+                        executedCommands);
                 }
 
                 CompositionIssue? lengthIssue = await NormalizeShortenedFirmwareAsync(
@@ -160,31 +166,37 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                     .ConfigureAwait(false);
                 if (lengthIssue is not null)
                 {
-                    return ExternalProcessorResult.Failed([lengthIssue]);
+                    return ExternalProcessorResult.Failed([lengthIssue], executedCommands);
                 }
 
                 CompositionIssue? perCommandUnexpectedFileIssue = ValidateStagingTree(runDirectory, profile, manifest!, commandPlan);
                 if (perCommandUnexpectedFileIssue is not null)
                 {
-                    return ExternalProcessorResult.Failed([perCommandUnexpectedFileIssue]);
+                    return ExternalProcessorResult.Failed([perCommandUnexpectedFileIssue], executedCommands);
                 }
             }
 
             if (!File.Exists(firmwarePath))
             {
-                return Fail("external-tool.output.missing", "External processor did not leave the staged firmware file.");
+                return Fail(
+                    "external-tool.output.missing",
+                    "External processor did not leave the staged firmware file.",
+                    executedCommands);
             }
 
             CompositionIssue? unexpectedFileIssue = ValidateStagingTree(runDirectory, profile, manifest!, commandPlan);
             if (unexpectedFileIssue is not null)
             {
-                return ExternalProcessorResult.Failed([unexpectedFileIssue]);
+                return ExternalProcessorResult.Failed([unexpectedFileIssue], executedCommands);
             }
 
             byte[] outputBytes = await File.ReadAllBytesAsync(firmwarePath, cancellationToken).ConfigureAwait(false);
             return outputBytes.LongLength != inputBytes.LongLength
-                ? Fail("external-tool.output-length.changed", "External processor changed the firmware image length.")
-                : CreateCheckedSuccess(inputBytes, outputBytes, request.AllowedWriteRanges);
+                ? Fail(
+                    "external-tool.output-length.changed",
+                    "External processor changed the firmware image length.",
+                    executedCommands)
+                : CreateCheckedSuccess(inputBytes, outputBytes, request.AllowedWriteRanges, executedCommands);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -194,7 +206,8 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
         {
             return Fail(
                 "external-tool.staging.io-failed",
-                $"External processor staging failed ({exception.GetType().Name}).");
+                $"External processor staging failed ({exception.GetType().Name}).",
+                executedCommands);
         }
         finally
         {

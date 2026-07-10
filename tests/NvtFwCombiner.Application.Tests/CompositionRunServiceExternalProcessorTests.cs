@@ -21,7 +21,15 @@ public sealed partial class CompositionRunServiceTests
             Assert.Equal([new ByteRange(1, 1)], request.AllowedWriteRanges);
             byte[] output = request.InputBytes.ToArray();
             output[1] = 0x7E;
-            return ExternalProcessorResult.Success(output, [new ByteRange(1, 1)]);
+            return ExternalProcessorResult.Success(
+                output,
+                [new ByteRange(1, 1)],
+                [
+                    new ExternalProcessInvocation(
+                        "C:\\tools\\Combiner.exe",
+                        "C:\\staging\\run-external.run-crc",
+                        ["CRC_Enable", "C:\\staging\\run-external.run-crc\\output\\firmware.bin"]),
+                ]);
         });
         var service = new CompositionRunService(
             new FakeArtifactReader([]),
@@ -45,6 +53,12 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal([new ByteRange(0, 4)], operation.ProcessorAllowedReadRanges);
         Assert.Equal([new ByteRange(1, 1)], operation.ProcessorAllowedWriteRanges);
         Assert.Equal("run synthetic external processor", operation.Reason);
+        ExternalProcessInvocation executedCommand = Assert.Single(operation.ExecutedCommands);
+        Assert.Equal("C:\\tools\\Combiner.exe", executedCommand.ExecutablePath);
+        Assert.Equal("C:\\staging\\run-external.run-crc", executedCommand.WorkingDirectory);
+        Assert.Equal(
+            ["CRC_Enable", "C:\\staging\\run-external.run-crc\\output\\firmware.bin"],
+            executedCommand.Arguments);
         Assert.NotNull(result.PreviewToken);
     }
 
@@ -213,9 +227,16 @@ public sealed partial class CompositionRunServiceTests
     [Fact]
     public async Task PreviewPropagatesExternalProcessorFailure()
     {
-        var processor = new FakeExternalProcessor(_ => ExternalProcessorResult.Failed([
-            new CompositionIssue("external-tool.process.failed", "fake processor failed", "run-crc"),
-        ]));
+        var processor = new FakeExternalProcessor(_ => ExternalProcessorResult.Failed(
+            [
+                new CompositionIssue("external-tool.process.failed", "fake processor failed", "run-crc"),
+            ],
+            [
+                new ExternalProcessInvocation(
+                    "C:\\tools\\Combiner.exe",
+                    "C:\\staging\\run-external.run-crc",
+                    ["CRC_Enable", "C:\\staging\\run-external.run-crc\\output\\firmware.bin"]),
+            ]));
         var service = new CompositionRunService(
             new FakeArtifactReader([]),
             new FakeClock([FirstTimestamp, SecondTimestamp]),
@@ -229,6 +250,8 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
         CompositionIssue issue = Assert.Single(result.Report.Issues);
         Assert.Equal("external-tool.process.failed", issue.Code);
+        OperationRunSummary operation = Assert.Single(result.Report.Operations);
+        _ = Assert.Single(operation.ExecutedCommands);
         Assert.Empty(result.OutputBytes.ToArray());
     }
 

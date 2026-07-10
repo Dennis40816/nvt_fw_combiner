@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Composition;
@@ -7,6 +8,7 @@ public sealed class OperationRunSummary
 {
     private readonly ByteRange[] _processorAllowedReadRanges;
     private readonly ByteRange[] _processorAllowedWriteRanges;
+    private readonly ExternalProcessInvocation[] _executedCommands;
 
     /// <summary>Creates an operation run summary.</summary>
     public OperationRunSummary(
@@ -25,11 +27,50 @@ public sealed class OperationRunSummary
         IReadOnlyList<ByteRange> processorAllowedWriteRanges,
         string reason,
         OperationProvenance? provenance = null)
+        : this(
+            operationId,
+            sequence,
+            kind,
+            status,
+            sourceSpaceId,
+            sourceRange,
+            targetSpaceId,
+            targetRange,
+            overlapPolicy,
+            processorId,
+            toolBindingId,
+            processorAllowedReadRanges,
+            processorAllowedWriteRanges,
+            reason,
+            provenance,
+            [])
+    {
+    }
+
+    /// <summary>Creates an operation run summary with completed runtime process audit evidence.</summary>
+    public OperationRunSummary(
+        string operationId,
+        int sequence,
+        CompositionOperationKind kind,
+        OperationRunStatus status,
+        string? sourceSpaceId,
+        ByteRange? sourceRange,
+        string targetSpaceId,
+        ByteRange targetRange,
+        OverlapPolicy overlapPolicy,
+        string? processorId,
+        string? toolBindingId,
+        IReadOnlyList<ByteRange> processorAllowedReadRanges,
+        IReadOnlyList<ByteRange> processorAllowedWriteRanges,
+        string reason,
+        OperationProvenance? provenance,
+        IReadOnlyList<ExternalProcessInvocation> executedCommands)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(operationId);
         ArgumentException.ThrowIfNullOrWhiteSpace(targetSpaceId);
         ArgumentNullException.ThrowIfNull(processorAllowedReadRanges);
         ArgumentNullException.ThrowIfNull(processorAllowedWriteRanges);
+        ArgumentNullException.ThrowIfNull(executedCommands);
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
         ArgumentOutOfRangeException.ThrowIfNegative(sequence);
 
@@ -51,6 +92,7 @@ public sealed class OperationRunSummary
         ToolBindingId = string.IsNullOrWhiteSpace(toolBindingId) ? null : toolBindingId;
         _processorAllowedReadRanges = [.. processorAllowedReadRanges];
         _processorAllowedWriteRanges = [.. processorAllowedWriteRanges];
+        _executedCommands = [.. executedCommands];
         Reason = reason;
         Provenance = provenance ?? OperationProvenance.BuiltInProfile;
     }
@@ -93,6 +135,9 @@ public sealed class OperationRunSummary
 
     /// <summary>Profile-declared processor write ranges.</summary>
     public IReadOnlyList<ByteRange> ProcessorAllowedWriteRanges => _processorAllowedWriteRanges;
+
+    /// <summary>Completed process invocations with the exact expanded argv used at runtime.</summary>
+    public IReadOnlyList<ExternalProcessInvocation> ExecutedCommands => _executedCommands;
 
     /// <summary>Profile-declared reason shown in reports.</summary>
     public string Reason { get; }

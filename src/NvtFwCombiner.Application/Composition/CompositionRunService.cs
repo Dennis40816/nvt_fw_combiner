@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 
@@ -92,8 +93,9 @@ public sealed partial class CompositionRunService
         }
 
         BoundInputs boundInputs = await ReadInputsAsync(request, cancellationToken).ConfigureAwait(false);
+        var executedCommandsByOperationId = new Dictionary<string, IReadOnlyList<ExternalProcessInvocation>>(StringComparer.Ordinal);
         CompositionExecutionResult execution = boundInputs.Issues.Count == 0
-            ? await ExecutePlanAsync(request, boundInputs, cancellationToken).ConfigureAwait(false)
+            ? await ExecutePlanAsync(request, boundInputs, executedCommandsByOperationId, cancellationToken).ConfigureAwait(false)
             : CompositionExecutionResult.Failed(boundInputs.Issues);
         string? previewToken = execution.Status == CompositionExecutionStatus.Succeeded
             ? CalculatePreviewToken(request, execution, boundInputs.InputSummaries)
@@ -126,7 +128,8 @@ public sealed partial class CompositionRunService
             boundInputs.InputSummaries,
             startedAtUtc,
             completedAtUtc,
-            committedOutputId is not null);
+            committedOutputId is not null,
+            executedCommandsByOperationId);
 
         return new CompositionRunResult(
             execution.Status,
