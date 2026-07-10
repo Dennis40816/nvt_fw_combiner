@@ -39,16 +39,20 @@ python scripts/verify.py --all
 
 `R0` documentation/governance changes may use `--structure-only` only when they do not alter an executable command, schema, contract, fixture, or firmware claim. Pull-request CI still executes the complete policy, Python, and .NET gates.
 
-## 3. Commit Gate
+## 3. Autonomous Phase Commits
 
-Create a commit candidate only after all of these are true:
+Every completed, independently verifiable editing phase is committed autonomously before another editing phase begins. A phase is one coherent code-and-test slice, documentation decision, evidence inventory, UI slice, or release change that can be reviewed independently.
+
+Create the phase commit only after all of these are true:
 
 1. The change is one reviewable concern; unrelated UI, core, release, and documentation work is separated.
-2. The selected tests and final gate pass, or every skipped gate has an explicit reason.
+2. The phase-local narrow test passes, or every skipped test has an explicit reason. The final `--all` gate remains required before `R1`-`R3` PR handoff, not before each intermediate phase commit.
 3. `git diff --check` passes and the reviewed diff excludes generated outputs, temporary staging data, real firmware, private golden payloads, and credentials.
 4. Risk class, human-review requirements, and residual evidence gaps are recorded.
 
-Do not commit exploratory investigation or temporary artifacts. Unless the owner asks for a commit or PR, report that the work is `ready-to-commit` instead of committing automatically. `R3` commits remain review-only on a non-`main` branch until the required human gate passes.
+Stage only explicit files belonging to the phase; never use `git add -A` or `git add -u`. Do not amend, reset, revert, or stage pre-existing changes from another agent. If overlapping uncommitted changes make the boundary unclear, stop and request direction rather than combining work.
+
+Use a Conventional Commit message that identifies the phase outcome. Do not commit exploratory investigation or temporary artifacts. `R3` commits remain review-only on a non-`main` branch until the required human gate passes.
 
 ## 4. Retry Policy
 

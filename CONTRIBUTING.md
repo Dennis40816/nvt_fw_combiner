@@ -9,8 +9,9 @@ This document is a proposed repository baseline. The repository is expected to u
 3. Update an ADR first when the change alters an architectural decision.
 4. Implement the smallest coherent change.
 5. Add tests at the same time as behavior.
-6. Run the final gate selected by `AGENTS.md`: `python scripts/verify.py --all` for `R1`-`R3`, or `python scripts/verify.py --structure-only` for a qualifying `R0` documentation/governance-only change.
-7. Open a PR using a Conventional Commit style title.
+6. After every independently verifiable phase, run its narrow test, review the exact staged files, and create a Conventional Commit. Do not stage unrelated worktree changes.
+7. Run the final gate selected by `AGENTS.md`: `python scripts/verify.py --all` for `R1`-`R3`, or `python scripts/verify.py --structure-only` for a qualifying `R0` documentation/governance-only change.
+8. Open a PR using a Conventional Commit style title.
 
 ## Pull request evidence
 

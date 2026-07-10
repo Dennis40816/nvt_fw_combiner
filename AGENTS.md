@@ -50,10 +50,11 @@ Use `docs/governance/development-execution-workflow.md` to select the narrow tes
 
 ### Commit and handoff gate
 
-- A change is ready to commit only when its scope is frozen, its required local gate passes, `git diff --check` and the reviewed diff contain no generated/private payloads, and residual evidence gates are recorded.
-- Keep code, tests, documents, generated output, and evidence intake in separate commits unless they are required to validate one coherent behavior change.
-- Do not commit exploratory output, temporary staging data, real firmware, or a work-in-progress checkpoint that cannot be independently reviewed.
-- Unless the owner explicitly asks for a commit or PR, report `ready-to-commit` rather than creating a commit automatically.
+- Every completed, independently verifiable editing phase must be committed autonomously on the current non-`main` branch before another editing phase begins. A phase is one coherent code-and-test slice, documentation decision, evidence inventory, UI slice, or release change that can be reviewed on its own.
+- A phase is ready to commit when its scope is frozen, its phase-local test passes, `git diff --check` and the reviewed diff contain no generated/private payloads, and residual evidence gates are recorded. `python scripts/verify.py --all` remains the final `R1`-`R3` handoff/PR gate; it is not required before every intermediate phase commit.
+- Stage only the explicit files owned by the completed phase. Never use `git add -A` or `git add -u`; do not stage, amend, reset, or revert another agent's changes.
+- Keep code, tests, documents, generated output, and evidence intake in separate commits unless they are required to validate one coherent behavior change. Use a Conventional Commit message that names the phase outcome.
+- Do not commit exploratory output, temporary staging data, real firmware, or a work-in-progress checkpoint that cannot be independently reviewed. If another agent's overlapping uncommitted changes make the phase boundary unclear, stop and request direction instead of mixing work.
 - `R3` work may be committed only on a non-`main` branch with its human-review and evidence gaps explicit; it must not be represented as complete or merged before those gates pass.
 
 ### Retry budget
