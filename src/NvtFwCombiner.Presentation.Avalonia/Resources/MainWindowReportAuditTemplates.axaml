@@ -216,16 +216,10 @@
                 <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Text.RawReportDetail}" TextWrapping="Wrap" />
               </StackPanel>
             </Border>
-            <Border Padding="10" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6">
-              <TextBox
-                  MinHeight="280"
-                  AcceptsReturn="True"
-                  FontFamily="Cascadia Mono, Consolas"
-                  FontSize="11"
-                  IsReadOnly="True"
-                  Text="{Binding LoadedReportJson, Mode=OneWay}"
-                  TextWrapping="NoWrap" />
-            </Border>
+            <TextBox
+                Classes="readOnlyRaw"
+                MinHeight="280"
+                Text="{Binding LoadedReportJson, Mode=OneWay}" />
           </StackPanel>
         </TabItem>
       </TabControl>

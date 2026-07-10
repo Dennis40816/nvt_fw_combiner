@@ -13,8 +13,8 @@
       BorderThickness="1"
       CornerRadius="8">
     <Grid ColumnDefinitions="34,128,22,128,*,82,40" ColumnSpacing="8">
-      <Border Width="30" Height="30" VerticalAlignment="Center" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="999">
-        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="#334155" Text="{Binding Index}" />
+      <Border Classes="mappingIndex">
+        <TextBlock Classes="mappingIndex" Text="{Binding Index}" />
       </Border>
       <TextBox
           Classes="addressInput"

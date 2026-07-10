@@ -4,5 +4,6 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <Application.Styles>
     <FluentTheme />
+    <StyleInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowControlStyles.axaml" />
   </Application.Styles>
 </Application>
