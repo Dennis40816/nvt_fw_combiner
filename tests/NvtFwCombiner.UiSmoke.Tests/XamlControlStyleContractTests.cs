@@ -72,6 +72,20 @@ public sealed class XamlControlStyleContractTests
         Assert.DoesNotContain("RowDefinitions=\"Auto,Auto,Auto,Auto,Auto,*,Auto\"", hexEditor, StringComparison.Ordinal);
     }
 
+    /// <summary>Keeps each byte value centered on the same column center as its hexadecimal header.</summary>
+    [Fact]
+    public void HexEditorByteCellsCenterTheirContentUnderTheHeader()
+    {
+        string buttons = ReadPresentationFile("Styles/MainWindowButtonStyles.axaml");
+
+        int hexCellStyle = buttons.IndexOf("Selector=\"Button.hexCell\"", StringComparison.Ordinal);
+        string hexCellSection = buttons[hexCellStyle..buttons.IndexOf("</Style>", hexCellStyle, StringComparison.Ordinal)];
+
+        Assert.NotEqual(-1, hexCellStyle);
+        Assert.Contains("HorizontalContentAlignment\" Value=\"Center\"", hexCellSection, StringComparison.Ordinal);
+        Assert.Contains("VerticalContentAlignment\" Value=\"Center\"", hexCellSection, StringComparison.Ordinal);
+    }
+
     /// <summary>Ensures the local fixture is Debug-only and never changes the default landing page.</summary>
     [Fact]
     public void DebugHexFixturePreloadsWithoutForcingHexEditorNavigation()
