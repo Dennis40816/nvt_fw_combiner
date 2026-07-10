@@ -81,6 +81,40 @@
     <Setter Property="BorderBrush" Value="#E2E8F0" />
     <Setter Property="BorderThickness" Value="0,1,0,0" />
   </Style>
+  <Style Selector="Border.shellBar">
+    <Setter Property="Background" Value="#FFFFFF" />
+    <Setter Property="BorderBrush" Value="#E2E8F0" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+  </Style>
+  <Style Selector="Border.toastSurface">
+    <Setter Property="Background" Value="#FFFFFF" />
+    <Setter Property="BorderBrush" Value="#BFDBFE" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+  <Style Selector="Border.homePreviewSurface">
+    <Setter Property="MinHeight" Value="306" />
+    <Setter Property="Padding" Value="22" />
+    <Setter Property="Background" Value="#FFFFFF" />
+    <Setter Property="BorderBrush" Value="#E2E8F0" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+  <Style Selector="Border.roomyPanel">
+    <Setter Property="Padding" Value="18" />
+  </Style>
+  <Style Selector="Border.contentPanel">
+    <Setter Property="Padding" Value="12" />
+  </Style>
+  <Style Selector="Border.listRow">
+    <Setter Property="BorderBrush" Value="#EEF2F7" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+  </Style>
+  <Style Selector="Border.settingRow">
+    <Setter Property="Padding" Value="0,0,0,9" />
+    <Setter Property="BorderBrush" Value="#EEF2F7" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+  </Style>
 
   <Style Selector="TextBlock.pageTitle">
     <Setter Property="FontSize" Value="24" />
@@ -90,6 +124,11 @@
   <Style Selector="TextBlock.pageSubtitle">
     <Setter Property="FontSize" Value="13" />
     <Setter Property="Foreground" Value="#64748B" />
+  </Style>
+  <Style Selector="TextBlock.previewTitle">
+    <Setter Property="FontSize" Value="25" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#0F172A" />
   </Style>
   <Style Selector="TextBlock.sectionTitle">
     <Setter Property="FontSize" Value="18" />
@@ -106,6 +145,10 @@
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="#0F172A" />
   </Style>
+  <Style Selector="TextBlock.strongText">
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#0F172A" />
+  </Style>
   <Style Selector="TextBlock.panelTitle">
     <Setter Property="FontSize" Value="13" />
     <Setter Property="FontWeight" Value="SemiBold" />
@@ -116,7 +159,17 @@
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="#64748B" />
   </Style>
+  <Style Selector="TextBlock.sectionLabel">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#64748B" />
+  </Style>
   <Style Selector="TextBlock.compactTitle">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#0F172A" />
+  </Style>
+  <Style Selector="TextBlock.compactStrongText">
     <Setter Property="FontSize" Value="11" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="#0F172A" />
@@ -128,6 +181,16 @@
   </Style>
   <Style Selector="TextBlock.bodyText">
     <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="#334155" />
+  </Style>
+  <Style Selector="TextBlock.bodyStrongText">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#0F172A" />
+  </Style>
+  <Style Selector="TextBlock.bodyEmphasisText">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="#334155" />
   </Style>
   <Style Selector="TextBlock.detailText">
@@ -147,8 +210,58 @@
     <Setter Property="FontSize" Value="11" />
     <Setter Property="Foreground" Value="#64748B" />
   </Style>
+  <Style Selector="TextBlock.supportingText">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Foreground" Value="#64748B" />
+  </Style>
+  <Style Selector="TextBlock.infoText">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#2563EB" />
+  </Style>
+  <Style Selector="TextBlock.microInfoText">
+    <Setter Property="FontSize" Value="10" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#2563EB" />
+  </Style>
   <Style Selector="TextBlock.monoText">
     <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+  </Style>
+  <Style Selector="TextBlock.technicalHeader">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontSize" Value="10" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#64748B" />
+  </Style>
+  <Style Selector="TextBlock.technicalCaption">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontSize" Value="10" />
+    <Setter Property="Foreground" Value="#64748B" />
+  </Style>
+  <Style Selector="TextBlock.technicalMeta">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Foreground" Value="#64748B" />
+  </Style>
+  <Style Selector="TextBlock.technicalDetail">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="#334155" />
+  </Style>
+  <Style Selector="TextBlock.technicalValue">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="#0F172A" />
+  </Style>
+  <Style Selector="TextBlock.technicalCompactDetail">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Foreground" Value="#334155" />
+  </Style>
+  <Style Selector="TextBlock.technicalCompactValue">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Foreground" Value="#0F172A" />
   </Style>
   <Style Selector="TextBlock.mappingIndex">
     <Setter Property="HorizontalAlignment" Value="Center" />
@@ -233,5 +346,22 @@
     <Setter Property="Padding" Value="10" />
     <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
     <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+  </Style>
+  <Style Selector="TextBox.hexCellEditor">
+    <Setter Property="MinWidth" Value="28" />
+    <Setter Property="MinHeight" Value="24" />
+    <Setter Property="Padding" Value="1" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Background" Value="#FFFFFF" />
+    <Setter Property="BorderBrush" Value="#2563EB" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="3" />
+  </Style>
+  <Style Selector="TextBox.hexCellEditor.invalid">
+    <Setter Property="Background" Value="#FEF2F2" />
+    <Setter Property="BorderBrush" Value="#DC2626" />
   </Style>
 </Styles>

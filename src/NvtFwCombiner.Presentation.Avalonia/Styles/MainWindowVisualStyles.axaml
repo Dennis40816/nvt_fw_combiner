@@ -17,6 +17,9 @@
     <Setter Property="StrokeLineCap" Value="Round" />
   </Style>
   <Style Selector="Border.workflowCard">
+    <Setter Property="Padding" Value="12,9" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" />
     <Setter Property="Background" Value="#F8FAFC" />
     <Setter Property="BorderBrush" Value="#D7E1ED" />
     <Setter Property="BoxShadow" Value="0 0 0 0 Transparent" />
@@ -38,6 +41,9 @@
     <Setter Property="BoxShadow" Value="0 1 4 0 #143B8214" />
   </Style>
   <Style Selector="Border.workflowOpenPill">
+    <Setter Property="Padding" Value="10,4" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="999" />
     <Setter Property="Background" Value="#EAF3FF" />
     <Setter Property="BorderBrush" Value="#BFDBFE" />
     <Setter Property="Transitions">
@@ -49,6 +55,12 @@
   </Style>
   <Style Selector="Border.workflowOpenPill TextBlock">
     <Setter Property="Foreground" Value="#1D4ED8" />
+  </Style>
+  <Style Selector="Grid.hexRow.changedRow">
+    <Setter Property="Background" Value="#FFFBEB" />
+  </Style>
+  <Style Selector="Grid.hexRow.referenceRow">
+    <Setter Property="Background" Value="#F8FAFC" />
   </Style>
   <Style Selector="Button.command:pointerover Border.workflowOpenPill">
     <Setter Property="Background" Value="#2563EB" />

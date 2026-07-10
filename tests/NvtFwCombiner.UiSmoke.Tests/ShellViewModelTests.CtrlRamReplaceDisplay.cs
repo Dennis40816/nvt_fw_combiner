@@ -87,6 +87,27 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(viewModel.ReplaceCoverageGroups, group => group.Title == "Slave L" && !group.IsExpanded);
     }
 
+    /// <summary>Verifies coverage summaries describe unchanged areas without presenting a Preserve region.</summary>
+    [Fact]
+    public void CtrlRamReplaceCoverageUsesBaseFirmwareAndChangedAreaWording()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51927";
+        viewModel.SelectedNumber = "3";
+        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+
+        Assert.Contains(viewModel.ReplaceCoverageGroups, group =>
+            group.Title == "Base firmware" &&
+            group.Summary.Contains("base flash BIN", StringComparison.Ordinal));
+        Assert.All(viewModel.ReplaceCoverageGroups, group =>
+        {
+            Assert.DoesNotContain("preserv", group.ChangeSummary, StringComparison.OrdinalIgnoreCase);
+        });
+        Assert.Contains(viewModel.ReplaceCoverageGroups, group => group.ChangeSummary == "No replaceable areas.");
+        Assert.Contains(viewModel.ReplaceCoverageGroups, group =>
+            group.ChangeSummary.Contains("replaceable /", StringComparison.Ordinal));
+    }
+
     /// <summary>Verifies the Replace selection overview keeps collapsed CtrlRAM choices discoverable.</summary>
     [Fact]
     public void ReplaceSelectionOverviewTracksSelectedCtrlRamTargets()

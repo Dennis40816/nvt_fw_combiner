@@ -127,13 +127,14 @@ public sealed class UiLaunchOptions
             "settings" => ShellPage.Settings,
             "merge" => ShellPage.Merge,
             "replace" => ShellPage.Replace,
+            "hex-editor" => ShellPage.HexEditor,
             _ => InvalidPage(value, issues),
         };
     }
 
     private static ShellPage? InvalidPage(string value, List<string> issues)
     {
-        issues.Add($"Unsupported --page value '{value}'. Use home, settings, merge, or replace.");
+        issues.Add($"Unsupported --page value '{value}'. Use home, settings, merge, replace, or hex-editor.");
         return null;
     }
 

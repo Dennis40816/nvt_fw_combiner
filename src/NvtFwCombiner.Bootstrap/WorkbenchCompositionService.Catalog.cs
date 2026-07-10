@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -20,6 +21,12 @@ public static partial class WorkbenchCompositionService
     public static IReadOnlyList<string> GetNumberChoices(string icId)
     {
         return IcMetadataFacade.GetNumberChoices(icId);
+    }
+
+    /// <summary>Gets concise grouped IC-number choices for workbench selection controls.</summary>
+    public static IReadOnlyList<IcNumberChoice> GetNumberSelectionChoices(string icId)
+    {
+        return IcMetadataFacade.GetNumberSelectionChoices(icId);
     }
 
     /// <summary>Returns true when the IC uses the DP Perspective family policy.</summary>

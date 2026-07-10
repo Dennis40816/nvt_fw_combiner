@@ -55,8 +55,18 @@ public sealed partial class MainWindowViewModel
         ShowDpReplaceCommand = new RelayCommand(() => SelectReplaceMode(DpReplaceMode));
         ShowCtrlRamReplaceCommand = new RelayCommand(() => SelectReplaceMode(CtrlRamReplaceMode));
         ShowGeneralReplaceCommand = new RelayCommand(() => SelectReplaceMode(GeneralReplaceMode));
+        BeginDpReplaceFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Replace, DpReplaceMode, showNumber: true));
+        BeginCtrlRamReplaceFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Replace, CtrlRamReplaceMode, showNumber: true));
+        BeginGeneralReplaceFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Replace, GeneralReplaceMode, showNumber: true));
+        ShowHexEditorCommand = new RelayCommand(ShowHexEditor);
         ShowNormalMergeCommand = new RelayCommand(() => SelectMergeMode(NormalMergeMode));
         ShowGeneralMergeCommand = new RelayCommand(() => SelectMergeMode(GeneralMergeMode));
+        BeginNormalMergeFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Merge, NormalMergeMode, showNumber: false));
+        BeginGeneralMergeFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Merge, GeneralMergeMode, showNumber: false));
+        ConfirmWorkflowContextCommand = new RelayCommand(ConfirmWorkflowContext);
+        CancelWorkflowContextCommand = new RelayCommand(CancelWorkflowContext);
+        AcceptFirmwareIcMismatchCommand = new RelayCommand(AcceptFirmwareIcMismatch);
+        DismissFirmwareIcMismatchCommand = new RelayCommand(DismissFirmwareIcMismatch);
         AddGeneralReplaceMappingCommand = new RelayCommand(AddGeneralReplaceMapping);
         RemoveGeneralReplaceMappingCommand = new RelayCommand<GeneralReplaceMappingViewModel>(
             RemoveGeneralReplaceMapping);
@@ -68,7 +78,18 @@ public sealed partial class MainWindowViewModel
         GoToGeneralReplaceHexViewportCommand = new RelayCommand(GoToGeneralReplaceHexViewport);
         SelectGeneralReplaceHexByteCommand = new RelayCommand<GeneralReplaceHexByteCellViewModel>(
             SelectGeneralReplaceHexByte);
-        ToggleHexEditorCommand = new RelayCommand(ToggleHexEditor);
+        BeginGeneralReplaceHexByteEditCommand = new RelayCommand<GeneralReplaceHexByteCellViewModel>(
+            BeginGeneralReplaceHexByteEdit);
+        CommitGeneralReplaceHexByteEditCommand = new RelayCommand<GeneralReplaceHexByteCellViewModel>(
+            CommitGeneralReplaceHexByteEdit);
+        CancelGeneralReplaceHexByteEditCommand = new RelayCommand<GeneralReplaceHexByteCellViewModel>(
+            CancelGeneralReplaceHexByteEdit);
+        SetGeneralReplacePatchStartCommand = new RelayCommand<GeneralReplaceHexByteCellViewModel>(
+            SetGeneralReplacePatchStart);
+        SetGeneralReplacePatchEndCommand = new RelayCommand<GeneralReplaceHexByteCellViewModel>(
+            SetGeneralReplacePatchEnd);
+        ClearGeneralReplaceHexByteCommand = new RelayCommand<GeneralReplaceHexByteCellViewModel>(
+            ClearGeneralReplaceHexByte);
         AddGeneralMergeMappingCommand = new RelayCommand(AddGeneralMergeMapping);
         RemoveGeneralMergeMappingCommand = new RelayCommand<GeneralMergeMappingViewModel>(
             RemoveGeneralMergeMapping);

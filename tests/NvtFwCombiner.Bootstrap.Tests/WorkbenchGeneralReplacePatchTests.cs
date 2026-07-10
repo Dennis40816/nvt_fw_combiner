@@ -236,9 +236,9 @@ public sealed class WorkbenchGeneralReplacePatchTests
             ]);
 
         Assert.Empty(viewport.Issues);
-        Assert.Equal(0x100, viewport.ViewportStart);
+        Assert.Equal(0xC0, viewport.ViewportStart);
         Assert.Equal(0x200, viewport.ViewportLength);
-        WorkbenchGeneralReplaceHexViewportRow first = viewport.Rows[0];
+        WorkbenchGeneralReplaceHexViewportRow first = viewport.Rows.Single(row => row.Address == 0x100);
         Assert.Equal(0x100, first.Address);
         Assert.Equal(baseBytes[0x100], first.Bytes[0].Before);
         Assert.Equal(baseBytes[0x100], first.Bytes[0].After);
@@ -246,9 +246,9 @@ public sealed class WorkbenchGeneralReplacePatchTests
         Assert.Equal((byte)0x5A, first.Bytes[2].After);
         Assert.True(first.Bytes[1].IsChanged);
         Assert.True(first.Bytes[2].IsChanged);
-        WorkbenchGeneralReplaceHexViewportRow second = viewport.Rows[1];
-        Assert.Equal((byte)0xFF, second.Bytes[0].After);
-        Assert.Equal((byte)0xFF, second.Bytes[1].After);
+        WorkbenchGeneralReplaceHexViewportRow fillRow = viewport.Rows.Single(row => row.Address == 0x110);
+        Assert.Equal((byte)0xFF, fillRow.Bytes[0].After);
+        Assert.Equal((byte)0xFF, fillRow.Bytes[1].After);
         Assert.Equal(baseBytes, File.ReadAllBytes(basePath));
     }
 
@@ -280,7 +280,7 @@ public sealed class WorkbenchGeneralReplacePatchTests
 
         CompositionIssue issue = Assert.Single(viewport.Issues);
         Assert.Equal(WorkbenchIssueCodes.GeneralReplacePatchOverlap, issue.Code);
-        WorkbenchGeneralReplaceHexViewportRow row = viewport.Rows[0];
+        WorkbenchGeneralReplaceHexViewportRow row = viewport.Rows.Single(row => row.Address == 0x100);
         Assert.Equal((byte)0xA5, row.Bytes[1].After);
         Assert.Equal((byte)0x5A, row.Bytes[2].After);
         Assert.Equal(baseBytes[0x103], row.Bytes[3].After);

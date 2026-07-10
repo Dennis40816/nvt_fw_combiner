@@ -10,8 +10,8 @@ Allow an advanced user to inspect a selected reference BIN, edit a profile-autho
 
 ## User flow
 
-1. Open `Replace`. Standard DP, CtrlRAM, and General Replace remain separate normal workflows.
-2. Below the normal Replace workflows, open the clearly separated experimental `Hex Editor` section.
+1. Open the independent `Hex Editor` entry from `Home`. Standard DP, CtrlRAM, and General Replace remain separate normal workflows on the Replace page.
+2. The Hex Editor opens its own workspace and device context; it does not show General Replace mapping controls.
 3. Load the required base BIN and select IC plus IC number.
 4. Select an approved DP/CtrlRAM range from the flash-map view or enter a checked address range.
 5. Browse a fixed-width hexadecimal viewport, select an address or an approved range, then stage an equal-length overwrite or fill. Changed cells are highlighted; each cell exposes its base and virtual value on inspection.

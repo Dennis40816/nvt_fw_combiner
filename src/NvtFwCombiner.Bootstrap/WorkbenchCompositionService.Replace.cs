@@ -7,12 +7,10 @@ namespace NvtFwCombiner.Bootstrap;
 public static partial class WorkbenchCompositionService
 {
     private static IReadOnlyList<WorkbenchMemoryMapRow> CreateCtrlRamReplaceRows(
-        IReadOnlyList<TpFlashMapRegion> regions,
         IReadOnlyList<TpFlashMapRegion> postbuildMappedRegions)
     {
         return
         [
-            .. CreatePreserveRows(regions),
             .. postbuildMappedRegions
                 .OrderBy(region => region.Range.Start)
                 .Select(region => new WorkbenchMemoryMapRow(
@@ -52,23 +50,6 @@ public static partial class WorkbenchCompositionService
     private static string CtrlRamSlotId(string regionId)
     {
         return WorkbenchSlotIds.CreateReplaceCtrlRam(regionId);
-    }
-
-    private static IReadOnlyList<WorkbenchMemoryMapRow> CreatePreserveRows(
-        IReadOnlyList<TpFlashMapRegion> regions)
-    {
-        return
-        [
-            .. regions
-                .Where(IsPreservedRegion)
-                .OrderBy(region => region.Range.Start)
-                .Select(region => new WorkbenchMemoryMapRow(
-                    FormatDisplayRange(region.Range),
-                    "Base flash",
-                    "Preserve",
-                    "Base flash",
-                    $"{region.DisplayName} is intentionally not written by this workflow.")),
-        ];
     }
 
     private static InputArtifactBinding CreateBinding(

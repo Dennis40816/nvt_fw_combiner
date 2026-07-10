@@ -114,12 +114,11 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
             fact.Label == "Common FW" && fact.Value == "1.4.1");
         Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
-            fact.Label == "FW" &&
-            fact.Value == "0x01.0x00");
+            fact.Label == "TP" &&
+            fact.Value == "T01-00");
         Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
             fact.Label == "PID" && fact.Value == "0x5102");
-        Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
-            fact.Label == "Refresh" && fact.Value == "51926_1.4.1");
+        Assert.DoesNotContain(viewModel.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label == "Refresh");
     }
 
     /// <summary>Verifies DP BIN slots expose gen_flash DP version facts and mark missing evidence.</summary>
@@ -139,7 +138,7 @@ public sealed partial class ShellViewModelTests
         FirmwareSlotViewModel dpSlot = viewModel.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
         Assert.Contains(dpSlot.FirmwareFacts, fact =>
             fact.Label == "DP" &&
-            fact.Value == "D0102" &&
+            fact.Value == "D01-02" &&
             !fact.IsWarning);
         Assert.Contains(dpSlot.FirmwareFacts, fact =>
             fact.Label == "Jira" &&
@@ -160,7 +159,7 @@ public sealed partial class ShellViewModelTests
         dpSlot = viewModel.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
         Assert.Contains(dpSlot.FirmwareFacts, fact =>
             fact.Label == "DP" &&
-            fact.Value == "DCC.0" &&
+            fact.Value == "DCC-00" &&
             !fact.IsWarning);
         Assert.Contains(dpSlot.FirmwareFacts, fact =>
             fact.Label == "Jira" &&
@@ -168,9 +167,9 @@ public sealed partial class ShellViewModelTests
             !fact.IsWarning);
     }
 
-    /// <summary>Verifies an unobserved DP size warns without hiding readable CMI DP and Jira facts.</summary>
+    /// <summary>Verifies an unobserved DP size keeps the concise DP/Jira slot badge set.</summary>
     [Fact]
-    public void DpFirmwareSlotShowsNonBlockingCmiSizeWarning()
+    public void DpFirmwareSlotKeepsCmiSizeDiagnosticsOutOfBadges()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51926";
@@ -188,15 +187,12 @@ public sealed partial class ShellViewModelTests
             fact.Label == "Jira" &&
             fact.Value == "AUTO_PRJ-597" &&
             !fact.IsWarning);
-        Assert.Contains(dpSlot.FirmwareFacts, fact =>
-            fact.Label == "DP size" &&
-            fact.Value.StartsWith("0x40001", StringComparison.Ordinal) &&
-            fact.IsWarning);
+        Assert.DoesNotContain(dpSlot.FirmwareFacts, fact => fact.Label == "DP size");
     }
 
-    /// <summary>Verifies normal Standard Merge uses its profile policy when no CMI size rule exists.</summary>
+    /// <summary>Verifies profile size diagnostics do not create an additional DP card badge.</summary>
     [Fact]
-    public void DpFirmwareSlotShowsNonBlockingProfileSizeWarning()
+    public void DpFirmwareSlotKeepsProfileSizeDiagnosticsOutOfBadges()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51920";
@@ -212,11 +208,8 @@ public sealed partial class ShellViewModelTests
         FirmwareSlotViewModel dpSlot = viewModel.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
         Assert.Contains(dpSlot.FirmwareFacts, fact =>
             fact.Label == "DP" &&
-            fact.Value == "D0101" &&
+            fact.Value == "D01-01" &&
             !fact.IsWarning);
-        Assert.Contains(dpSlot.FirmwareFacts, fact =>
-            fact.Label == "DP size" &&
-            fact.Value.StartsWith("0x40001", StringComparison.Ordinal) &&
-            fact.IsWarning);
+        Assert.DoesNotContain(dpSlot.FirmwareFacts, fact => fact.Label == "DP size");
     }
 }

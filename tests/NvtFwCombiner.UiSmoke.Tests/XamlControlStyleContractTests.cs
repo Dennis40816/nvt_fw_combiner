@@ -44,9 +44,56 @@ public sealed class XamlControlStyleContractTests
         Assert.Contains("Classes=\"slotBadge\"", slotCard, StringComparison.Ordinal);
     }
 
+    /// <summary>Prevents repeated shell, panel, row, and text property bundles from drifting back into templates.</summary>
+    [Fact]
+    public void SharedControlStylesOwnTheCommonXamlRoles()
+    {
+        string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
+        foreach (string selector in new[]
+        {
+            "Border.shellBar",
+            "Border.homePreviewSurface",
+            "Border.roomyPanel",
+            "Border.contentPanel",
+            "Border.listRow",
+            "Border.settingRow",
+            "TextBlock.panelTitle",
+            "TextBlock.supportingText",
+            "TextBlock.infoText",
+            "TextBlock.technicalValue",
+        })
+        {
+            Assert.Contains($"Selector=\"{selector}\"", styles, StringComparison.Ordinal);
+        }
+
+        string[] legacyPropertyBundles =
+        [
+            "FontSize=\"13\" FontWeight=\"SemiBold\" Foreground=\"#0F172A\"",
+            "FontSize=\"12\" Foreground=\"#64748B\"",
+            "FontSize=\"11\" Foreground=\"#64748B\"",
+            "FontSize=\"10\" FontWeight=\"SemiBold\" Foreground=\"#64748B\"",
+            "FontFamily=\"Cascadia Mono, Consolas\" FontSize=\"12\" Foreground=\"#0F172A\"",
+        ];
+
+        foreach (string xaml in ReadPresentationXamlFiles())
+        {
+            foreach (string bundle in legacyPropertyBundles)
+            {
+                Assert.DoesNotContain(bundle, xaml, StringComparison.Ordinal);
+            }
+        }
+    }
+
     private static string ReadPresentationFile(string relativePath)
     {
         return File.ReadAllText(
             RepositoryPaths.FromRepositoryRoot("src", "NvtFwCombiner.Presentation.Avalonia", relativePath));
+    }
+
+    private static IEnumerable<string> ReadPresentationXamlFiles()
+    {
+        string presentationRoot = RepositoryPaths.FromRepositoryRoot("src", "NvtFwCombiner.Presentation.Avalonia");
+        return Directory.EnumerateFiles(presentationRoot, "*.axaml", SearchOption.AllDirectories)
+            .Select(File.ReadAllText);
     }
 }

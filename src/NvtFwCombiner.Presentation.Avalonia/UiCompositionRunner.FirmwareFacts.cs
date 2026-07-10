@@ -19,21 +19,22 @@ public static partial class UiCompositionRunner
             return [];
         }
 
-        string firmwareVersion = metadata.IsFirmwareVersionBarValid
-            ? FormattableString.Invariant($"0x{metadata.FirmwareVersion:X2}.0x{metadata.FirmwareSubVersion:X2}")
-            : FormattableString.Invariant($"0x{metadata.FirmwareVersion:X2}.0x{metadata.FirmwareSubVersion:X2} (bar 0x{metadata.FirmwareVersionBar:X2} mismatch)");
+        string firmwareVersion = FormattableString.Invariant(
+            $"T{metadata.FirmwareVersion:X2}-{metadata.FirmwareSubVersion:X2}");
         List<FirmwareSlotFactViewModel> facts =
         [
             new("Common FW", metadata.CommonFwVersion),
-            new("FW", firmwareVersion, !metadata.IsFirmwareVersionBarValid),
+            new("TP", firmwareVersion, !metadata.IsFirmwareVersionBarValid),
             new("PID", FormattableString.Invariant($"0x{metadata.ProjectId:X4}")),
         ];
-        if (!string.IsNullOrWhiteSpace(metadata.PostbuildCategory))
-        {
-            facts.Add(new FirmwareSlotFactViewModel("Refresh", metadata.PostbuildCategory));
-        }
 
         return facts;
+    }
+
+    /// <summary>Gets the verified NVT-copy FWConfig context suggestion for a selected TP/base BIN.</summary>
+    public static WorkbenchFirmwareContextSuggestion? TryGetFirmwareContextSuggestion(string icId, string path)
+    {
+        return WorkbenchCompositionService.TryReadFirmwareContextSuggestion(icId, path);
     }
 
     /// <summary>Gets compact DP version facts decoded using gen_flash standard-merge version rules.</summary>
@@ -54,61 +55,32 @@ public static partial class UiCompositionRunner
             return [new FirmwareSlotFactViewModel("DP", "Pending", true)];
         }
 
+        string dpVersion = legacyMetadata is not null
+            ? FormatDpVersion(legacyMetadata.VersionToken)
+            : FormatCmiDpVersion(cmiMetadata!);
         List<FirmwareSlotFactViewModel> facts =
         [
-            legacyMetadata is not null
-                ? new FirmwareSlotFactViewModel("DP", legacyMetadata.DisplayVersion)
-                : new FirmwareSlotFactViewModel(
-                    "DP",
-                    FormattableString.Invariant($"D{cmiMetadata!.MajorVersionByte:X2}.{cmiMetadata.MinorVersionNibble:X1}")),
+            new FirmwareSlotFactViewModel("DP", dpVersion),
         ];
-        if (cmiMetadata is not null && legacyMetadata is not null)
-        {
-            facts.Add(new FirmwareSlotFactViewModel(
-                "CMI DP",
-                FormattableString.Invariant($"D{cmiMetadata.MajorVersionByte:X2}.{cmiMetadata.MinorVersionNibble:X1}")));
-        }
 
         if (cmiMetadata is not null && !string.IsNullOrWhiteSpace(cmiMetadata.JiraBadge))
         {
             facts.Add(new FirmwareSlotFactViewModel("Jira", cmiMetadata.JiraBadge));
         }
 
-        if (cmiMetadata is { HasPayloadLengthWarning: true })
-        {
-            facts.Add(new FirmwareSlotFactViewModel(
-                "DP size",
-                FormattableString.Invariant(
-                    $"0x{cmiMetadata.PayloadLength:X} (expected {FormatPayloadLengths(cmiMetadata.ExpectedPayloadLengths)})"),
-                true));
-        }
-
-        if (cmiMetadata is not { HasPayloadLengthWarning: true } &&
-            File.Exists(path) &&
-            WorkbenchCompositionService.TryGetStandardMergeDpInputLengthPolicy(icId, out WorkbenchStandardMergeDpInputLengthPolicy policy))
-        {
-            long payloadLength = new FileInfo(path).Length;
-            if (!policy.ExpectedInputLengths.Contains(payloadLength))
-            {
-                facts.Add(new FirmwareSlotFactViewModel(
-                    "DP size",
-                    FormattableString.Invariant(
-                        $"0x{payloadLength:X} (expected {FormatExpectedPayloadLengths(policy.ExpectedInputLengths)}; required through 0x{policy.RequiredLength:X})"),
-                    true));
-            }
-        }
-
         return facts;
     }
 
-    private static string FormatPayloadLengths(IReadOnlyList<int> payloadLengths)
+    private static string FormatDpVersion(string versionToken)
     {
-        return string.Join(" / ", payloadLengths.Select(length => FormattableString.Invariant($"0x{length:X}")));
+        return versionToken.Length == 4
+            ? $"D{versionToken[..2]}-{versionToken[2..]}"
+            : $"D{versionToken}";
     }
 
-    private static string FormatExpectedPayloadLengths(IReadOnlyList<long> payloadLengths)
+    private static string FormatCmiDpVersion(WorkbenchCmiDpCodeMetadata metadata)
     {
-        return string.Join(" / ", payloadLengths.Select(length => FormattableString.Invariant($"0x{length:X}")));
+        return FormattableString.Invariant($"D{metadata.MajorVersionByte:X2}-{metadata.MinorVersionNibble:X1}0");
     }
 
     /// <summary>Creates the catalog-backed FlashCode output file name suggestion.</summary>

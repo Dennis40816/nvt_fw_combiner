@@ -11,16 +11,12 @@
 <DataTemplate x:Key="ReplaceModeContentTemplate" DataType="vm:MainWindowViewModel">
   <StackPanel Spacing="16">
     <Border
-        Padding="18"
-        Background="#FFFFFF"
-        BorderBrush="#E2E8F0"
-        BorderThickness="1"
-        CornerRadius="8"
+        Classes="panelSurface roomyPanel"
         IsVisible="{Binding IsNonCtrlRamStructuredReplaceModeSelected}">
       <StackPanel Spacing="14">
         <StackPanel Spacing="3">
-          <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.InputFilesTitle}" />
-          <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding SelectedReplaceModeDescription}" TextWrapping="Wrap" />
+          <TextBlock Classes="sectionTitle" Text="{Binding Text.InputFilesTitle}" />
+          <TextBlock Classes="mutedText" Text="{Binding SelectedReplaceModeDescription}" TextWrapping="Wrap" />
         </StackPanel>
         <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSlots}">
           <ItemsControl.ItemTemplate>
@@ -31,16 +27,12 @@
     </Border>
 
     <Border
-        Padding="18"
-        Background="#FFFFFF"
-        BorderBrush="#E2E8F0"
-        BorderThickness="1"
-        CornerRadius="8"
+        Classes="panelSurface roomyPanel"
         IsVisible="{Binding IsCtrlRamReplaceModeSelected}">
       <StackPanel Spacing="14">
         <StackPanel Spacing="3">
-          <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.InputFilesTitle}" />
-          <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Text.CtrlRamInputFilesDetail}" TextWrapping="Wrap" />
+          <TextBlock Classes="sectionTitle" Text="{Binding Text.InputFilesTitle}" />
+          <TextBlock Classes="mutedText" Text="{Binding Text.CtrlRamInputFilesDetail}" TextWrapping="Wrap" />
         </StackPanel>
 
         <ContentControl
@@ -56,66 +48,63 @@
     </Border>
 
     <Border
-        Padding="18"
-        Background="#FFFFFF"
-        BorderBrush="#E2E8F0"
-        BorderThickness="1"
-        CornerRadius="8"
+        Classes="panelSurface roomyPanel"
         IsVisible="{Binding IsGeneralReplaceModeSelected}">
       <StackPanel Spacing="16">
         <Grid ColumnDefinitions="*" ColumnSpacing="16">
           <StackPanel Spacing="3">
-            <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.GeneralReplaceMappingTitle}" />
-            <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding SelectedReplaceModeDescription}" TextWrapping="Wrap" />
+            <TextBlock Classes="sectionTitle" Text="{Binding Text.GeneralReplaceMappingTitle}" />
+            <TextBlock Classes="mutedText" Text="{Binding SelectedReplaceModeDescription}" TextWrapping="Wrap" />
           </StackPanel>
         </Grid>
 
         <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
-          <Border Padding="10" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
+          <Border Classes="subtleSurface" Padding="10">
             <StackPanel Spacing="2">
-              <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.GeneralReplaceRuleBaseTitle}" />
-              <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Text.GeneralReplaceRuleBaseDetail}" TextWrapping="Wrap" />
+              <TextBlock Classes="compactTitle" Text="{Binding Text.GeneralReplaceRuleBaseTitle}" />
+              <TextBlock Classes="captionText" Text="{Binding Text.GeneralReplaceRuleBaseDetail}" TextWrapping="Wrap" />
             </StackPanel>
           </Border>
-          <Border Grid.Column="1" Padding="10" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
+          <Border Grid.Column="1" Classes="subtleSurface" Padding="10">
             <StackPanel Spacing="2">
-              <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.GeneralReplaceRuleBoundsTitle}" />
-              <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Text.GeneralReplaceRuleBoundsDetail}" TextWrapping="Wrap" />
+              <TextBlock Classes="compactTitle" Text="{Binding Text.GeneralReplaceRuleBoundsTitle}" />
+              <TextBlock Classes="captionText" Text="{Binding Text.GeneralReplaceRuleBoundsDetail}" TextWrapping="Wrap" />
             </StackPanel>
           </Border>
-          <Border Grid.Column="2" Padding="10" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
+          <Border Grid.Column="2" Classes="subtleSurface" Padding="10">
             <StackPanel Spacing="2">
-              <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.GeneralReplaceRuleLengthTitle}" />
-              <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Text.GeneralReplaceRuleLengthDetail}" TextWrapping="Wrap" />
+              <TextBlock Classes="compactTitle" Text="{Binding Text.GeneralReplaceRuleLengthTitle}" />
+              <TextBlock Classes="captionText" Text="{Binding Text.GeneralReplaceRuleLengthDetail}" TextWrapping="Wrap" />
             </StackPanel>
           </Border>
         </Grid>
 
-        <Grid ColumnDefinitions="*,*" ColumnSpacing="14">
-          <StackPanel Spacing="8">
-            <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.GeneralReplaceRuleBaseTitle}" />
-            <ContentControl
-                Content="{Binding ReplaceBaseSlot}"
-                ContentTemplate="{StaticResource FirmwareSlotCardTemplate}" />
-          </StackPanel>
-
-          <StackPanel Grid.Column="1" Spacing="8">
-            <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.ValidationTitle}" />
-            <Border MinHeight="92" Padding="12" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
-              <StackPanel Spacing="4">
-                <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding ReplaceReadinessStatus}" TextWrapping="Wrap" />
-                <TextBlock FontSize="11" Foreground="#64748B" Text="{Binding Text.GeneralReplaceValidationDetail}" TextWrapping="Wrap" />
-              </StackPanel>
-            </Border>
-          </StackPanel>
+        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,*" ColumnSpacing="14" RowSpacing="8">
+          <TextBlock Classes="panelTitle" Text="{Binding Text.GeneralReplaceRuleBaseTitle}" />
+          <TextBlock Grid.Column="1" Classes="panelTitle" Text="{Binding Text.ValidationTitle}" />
+          <ContentControl
+              Grid.Row="1"
+              Content="{Binding ReplaceBaseSlot}"
+              ContentTemplate="{StaticResource FirmwareSlotCardTemplate}" />
+          <Border
+              Classes="subtleSurface"
+              Grid.Row="1"
+              Grid.Column="1"
+              MinHeight="112"
+              Padding="12">
+            <StackPanel Spacing="4">
+              <TextBlock Classes="readinessText" Text="{Binding ReplaceReadinessStatus}" TextWrapping="Wrap" />
+              <TextBlock Classes="captionText" Text="{Binding Text.GeneralReplaceValidationDetail}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
         </Grid>
 
         <StackPanel Spacing="12">
           <StackPanel Spacing="10">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
               <StackPanel Spacing="3">
-                <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.ExplicitMappingsTitle}" />
-                <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Text.GeneralReplaceMappingsDetail}" TextWrapping="Wrap" />
+                <TextBlock Classes="sectionTitle" Text="{Binding Text.ExplicitMappingsTitle}" />
+                <TextBlock Classes="mutedText" Text="{Binding Text.GeneralReplaceMappingsDetail}" TextWrapping="Wrap" />
               </StackPanel>
               <Button
                   Grid.Column="1"
@@ -125,10 +114,10 @@
                   Content="{Binding Text.AddRangeLabel}" />
             </Grid>
             <Grid ColumnDefinitions="34,128,22,128,*,82,40" ColumnSpacing="8">
-              <TextBlock Grid.Column="0" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="#" />
-              <TextBlock Grid.Column="1" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.StartLabel}" />
-              <TextBlock Grid.Column="3" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.EndLabel}" />
-              <TextBlock Grid.Column="4" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.ReplacementBinLabel}" />
+              <TextBlock Grid.Column="0" Classes="tableHeader" Text="#" />
+              <TextBlock Grid.Column="1" Classes="tableHeader" Text="{Binding Text.StartLabel}" />
+              <TextBlock Grid.Column="3" Classes="tableHeader" Text="{Binding Text.EndLabel}" />
+              <TextBlock Grid.Column="4" Classes="tableHeader" Text="{Binding Text.ReplacementBinLabel}" />
             </Grid>
             <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding GeneralReplaceMappings}">
               <ItemsControl.ItemTemplate>
@@ -146,74 +135,41 @@
       </StackPanel>
     </Border>
 
-    <Border Height="1" Background="#CBD5E1" />
-
-    <StackPanel Spacing="10">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-        <StackPanel Spacing="2">
-          <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#B45309" Text="{Binding Text.HexEditorExperimentalLabel}" />
-          <TextBlock FontSize="16" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.GeneralReplaceHexEditorTitle}" />
-        </StackPanel>
-        <Button
-            Grid.Column="1"
-            Classes="secondary"
-            VerticalAlignment="Center"
-            Command="{Binding ToggleHexEditorCommand}"
-            Content="{Binding HexEditorToggleLabel}" />
-      </Grid>
-      <Border
-          Padding="18"
-          Background="#FFFFFF"
-          BorderBrush="#E2E8F0"
-          BorderThickness="1"
-          CornerRadius="8"
-          IsVisible="{Binding IsHexEditorExpanded}">
-        <views:HexEditorPanel />
-      </Border>
-    </StackPanel>
   </StackPanel>
 </DataTemplate>
 
 <DataTemplate x:Key="MergeModeContentTemplate" DataType="vm:MainWindowViewModel">
   <StackPanel Spacing="16">
     <Border
-        Padding="18"
-        Background="#FFFFFF"
-        BorderBrush="#E2E8F0"
-        BorderThickness="1"
-        CornerRadius="8"
+        Classes="panelSurface roomyPanel"
         IsVisible="{Binding IsNormalMergeModeSelected}">
       <StackPanel Spacing="14">
         <StackPanel Spacing="3">
-          <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.InputFilesTitle}" />
-          <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding StandardMergeSupportSummary}" TextWrapping="Wrap" />
+          <TextBlock Classes="sectionTitle" Text="{Binding Text.InputFilesTitle}" />
+          <TextBlock Classes="mutedText" Text="{Binding StandardMergeSupportSummary}" TextWrapping="Wrap" />
         </StackPanel>
         <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding MergeSlots}">
           <ItemsControl.ItemTemplate>
             <StaticResource ResourceKey="FirmwareSlotCardTemplate" />
           </ItemsControl.ItemTemplate>
         </ItemsControl>
-        <Border Padding="10,8" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
-          <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#475569" Text="{Binding MergeReadinessStatus}" TextWrapping="Wrap" />
+        <Border Classes="subtleSurface" Padding="10,8">
+          <TextBlock Classes="readinessText" Text="{Binding MergeReadinessStatus}" TextWrapping="Wrap" />
         </Border>
       </StackPanel>
     </Border>
 
     <Border
-        Padding="18"
-        Background="#FFFFFF"
-        BorderBrush="#E2E8F0"
-        BorderThickness="1"
-        CornerRadius="8"
+        Classes="panelSurface roomyPanel"
         IsVisible="{Binding IsGeneralMergeModeSelected}">
       <StackPanel Spacing="16">
         <Grid ColumnDefinitions="*,180" ColumnSpacing="14">
           <StackPanel Spacing="3">
-            <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.GeneralMergeMappingTitle}" />
-            <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Text.GeneralMergeMappingDetail}" TextWrapping="Wrap" />
+            <TextBlock Classes="sectionTitle" Text="{Binding Text.GeneralMergeMappingTitle}" />
+            <TextBlock Classes="mutedText" Text="{Binding Text.GeneralMergeMappingDetail}" TextWrapping="Wrap" />
           </StackPanel>
           <StackPanel Grid.Column="1" Spacing="4">
-            <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.OutputLengthLabel}" />
+            <TextBlock Classes="fieldLabel" Text="{Binding Text.OutputLengthLabel}" />
             <TextBox
                 Classes="addressInput"
                 Text="{Binding GeneralMergeOutputLength, Mode=TwoWay}"
@@ -224,8 +180,8 @@
         <StackPanel Spacing="10">
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
             <StackPanel Spacing="3">
-              <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.ExplicitMappingsTitle}" />
-              <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Text.GeneralMergeMappingsDetail}" TextWrapping="Wrap" />
+              <TextBlock Classes="sectionTitle" Text="{Binding Text.ExplicitMappingsTitle}" />
+              <TextBlock Classes="mutedText" Text="{Binding Text.GeneralMergeMappingsDetail}" TextWrapping="Wrap" />
             </StackPanel>
             <Button
                 Grid.Column="1"
@@ -236,11 +192,11 @@
           </Grid>
 
           <Grid Margin="7,0,7,0" ColumnDefinitions="34,118,118,108,*,82,40" ColumnSpacing="8">
-            <TextBlock Grid.Column="0" HorizontalAlignment="Center" TextAlignment="Center" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="#" />
-            <TextBlock Grid.Column="1" HorizontalAlignment="Center" TextAlignment="Center" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.SourceStartLabel}" />
-            <TextBlock Grid.Column="2" HorizontalAlignment="Center" TextAlignment="Center" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.TargetStartLabel}" />
-            <TextBlock Grid.Column="3" HorizontalAlignment="Center" TextAlignment="Center" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.LengthLabel}" />
-            <TextBlock Grid.Column="4" Margin="10,0,0,0" HorizontalAlignment="Left" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.SourceBinLabel}" />
+            <TextBlock Grid.Column="0" Classes="tableHeader" HorizontalAlignment="Center" TextAlignment="Center" Text="#" />
+            <TextBlock Grid.Column="1" Classes="tableHeader" HorizontalAlignment="Center" TextAlignment="Center" Text="{Binding Text.SourceStartLabel}" />
+            <TextBlock Grid.Column="2" Classes="tableHeader" HorizontalAlignment="Center" TextAlignment="Center" Text="{Binding Text.TargetStartLabel}" />
+            <TextBlock Grid.Column="3" Classes="tableHeader" HorizontalAlignment="Center" TextAlignment="Center" Text="{Binding Text.LengthLabel}" />
+            <TextBlock Grid.Column="4" Classes="tableHeader" Margin="10,0,0,0" HorizontalAlignment="Left" Text="{Binding Text.SourceBinLabel}" />
           </Grid>
           <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding GeneralMergeMappings}">
             <ItemsControl.ItemTemplate>
@@ -254,22 +210,18 @@
           </ItemsControl>
         </StackPanel>
 
-        <Border Padding="10,8" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
-          <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#475569" Text="{Binding MergeReadinessStatus}" TextWrapping="Wrap" />
+        <Border Classes="subtleSurface" Padding="10,8">
+          <TextBlock Classes="readinessText" Text="{Binding MergeReadinessStatus}" TextWrapping="Wrap" />
         </Border>
       </StackPanel>
     </Border>
 
     <Border
-        Padding="18"
-        Background="#FFFFFF"
-        BorderBrush="#E2E8F0"
-        BorderThickness="1"
-        CornerRadius="8"
+        Classes="panelSurface roomyPanel"
         IsVisible="{Binding IsAbCodeMergeModeSelected}">
       <StackPanel Spacing="8">
-        <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.AbCodeMergeTitle}" />
-        <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Text.AbCodeMergeDetail}" TextWrapping="Wrap" />
+        <TextBlock Classes="sectionTitle" Text="{Binding Text.AbCodeMergeTitle}" />
+        <TextBlock Classes="mutedText" Text="{Binding Text.AbCodeMergeDetail}" TextWrapping="Wrap" />
       </StackPanel>
     </Border>
   </StackPanel>

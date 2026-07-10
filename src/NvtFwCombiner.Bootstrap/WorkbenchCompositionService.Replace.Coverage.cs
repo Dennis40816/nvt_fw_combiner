@@ -94,17 +94,17 @@ public static partial class WorkbenchCompositionService
                 dpSegments,
                 new CoverageSegment(
                     tpRestoreRange,
-                    "Restored TP",
-                    $"Original TP FW at {FormatDisplayRange(tpRestoreRange)} is copied back from the base firmware.",
-                    "#64748B",
+                    "Base flash",
+                    "Final bytes remain from the original base firmware.",
+                    "#CBD5E1",
                     false));
             dpSegments = ApplyCoverageWrite(
                 dpSegments,
                 new CoverageSegment(
                     customerInfoPreserveRange,
-                    "Preserved customer info",
-                    $"Customer information at {FormatDisplayRange(customerInfoPreserveRange)} is copied back from the base firmware.",
-                    "#64748B",
+                    "Base flash",
+                    "Final bytes remain from the original base firmware.",
+                    "#CBD5E1",
                     false));
             return ToWorkbenchCoverageSegments(dpSegments, selectedCapacity);
         }
@@ -119,20 +119,6 @@ public static partial class WorkbenchCompositionService
                 "#CBD5E1",
                 false),
         ];
-
-        foreach (TpFlashMapRegion region in regions
-            .Where(IsPreservedRegion)
-            .OrderBy(region => region.Range.Start))
-        {
-            segments = ApplyCoverageWrite(
-                segments,
-                new CoverageSegment(
-                    region.Range,
-                    "Preserve",
-                    $"{region.DisplayName} stays from the original base firmware.",
-                    "#94A3B8",
-                    false));
-        }
 
         IEnumerable<TpFlashMapRegion> replacementRegions = replaceMode switch
         {

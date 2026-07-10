@@ -14,7 +14,7 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 - `v0.7.4` — patch milestone for report review readability, Build-first workbench interaction, DP version badges from gen_flash evidence, and TDDI Flash Header reference naming. It does not expand firmware support scope or private golden parity claims.
 - `v0.7.5` — patch milestone for bilingual English/Traditional Chinese UI resources and functional Settings state. It does not expand firmware support scope or private golden parity claims.
 - `v0.8.0` — milestone for report readability, Home workflow discoverability, General Merge shortcut exposure, report-history spacing, and repository structure cleanup. It does not claim `v1.0.0` full support-matrix sign-off or complete private golden parity.
-- `v0.8.1-dev.0` candidate — experimental Hex Editor: a profile-constrained, equal-length overwrite/fill authoring surface below normal Replace workflows, with virtual before/after diff, patch audit, and full-BIN export. It explicitly excludes true insert/delete/re-layout semantics until an owner-approved address/CRC/header contract exists.
+- `v0.8.1-dev.0` candidate — experimental Hex Editor: a Home-launched, profile-constrained equal-length overwrite/fill workspace with virtual before/after diff, patch audit, and full-BIN export. It explicitly excludes true insert/delete/re-layout semantics until an owner-approved address/CRC/header contract exists.
 
 ## Branch and merge policy
 

@@ -276,6 +276,13 @@ public sealed partial class ShellTextResources
             ? $"{action} report 已產生"
             : $"{action} report generated";
     }
+
+    public string FormatVerifiedFirmwareContextToast(string selectionLabel, byte chipNumber)
+    {
+        return Language == ShellLanguage.ChineseTraditional
+            ? $"已依唯一且驗證一致的 NVT FWConfig 將 IC 數量設為 {selectionLabel}（Chip Num 0x{chipNumber:X2}）。"
+            : $"IC number set to {selectionLabel} from the unique, verified NVT FWConfig (Chip Num 0x{chipNumber:X2}).";
+    }
 }
 
 #pragma warning restore CS1591

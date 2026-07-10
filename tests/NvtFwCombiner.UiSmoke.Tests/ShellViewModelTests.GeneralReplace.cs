@@ -134,41 +134,53 @@ public sealed partial class ShellViewModelTests
 
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51950";
-        viewModel.ShowReplaceCommand.Execute(null);
-        viewModel.ToggleHexEditorCommand.Execute(null);
+        viewModel.ShowHexEditorCommand.Execute(null);
         viewModel.SetSlotFile("replace-base", basePath);
-        viewModel.GeneralReplacePatchDraft.StartAddress = "0x00100";
-        viewModel.GeneralReplacePatchDraft.EndAddress = "0x00101";
-        viewModel.GeneralReplacePatchDraft.Value = "A5 5A";
 
-        Assert.True(viewModel.IsHexEditorExpanded);
+        Assert.True(viewModel.IsHexEditorVisible);
+        Assert.False(viewModel.IsReplaceVisible);
         Assert.NotEmpty(viewModel.GeneralReplaceEditableRanges);
         Assert.False(viewModel.CanPreviewReplace);
         GeneralReplaceHexViewportRowViewModel viewportRow = Assert.Single(
             viewModel.GeneralReplaceHexViewportRows,
-            row => row.Address == "0x000100");
+            row => row.Address == "0x000100" && !row.IsReferenceRow);
+        Assert.False(viewportRow.IsEditedRow);
+
+        viewModel.GeneralReplacePatchDraft.StartAddress = "0x00100";
+        viewModel.GeneralReplacePatchDraft.EndAddress = "0x00101";
+        viewModel.GeneralReplacePatchDraft.Value = "A5 5A";
         viewModel.SelectGeneralReplaceHexByteCommand.Execute(viewportRow.Bytes[0]);
         Assert.Equal("0x000100", viewModel.GeneralReplacePatchDraft.StartAddress);
         Assert.Equal("0x000100", viewModel.GeneralReplacePatchDraft.EndAddress);
         viewModel.GeneralReplacePatchDraft.EndAddress = "0x00101";
         viewModel.GeneralReplacePatchDraft.Value = "A5 5A";
+        Assert.Same(viewportRow, viewModel.GeneralReplaceHexViewportRows.Single(row =>
+            row.Address == "0x000100" && !row.IsReferenceRow));
+
+        viewModel.ApplyGeneralReplacePatchCommand.Execute(null);
+
         viewportRow = Assert.Single(
             viewModel.GeneralReplaceHexViewportRows,
-            row => row.Address == "0x000100");
+            row => row.Address == "0x000100" && !row.IsReferenceRow);
+        Assert.True(viewportRow.IsEditedRow);
         Assert.True(viewportRow.Bytes[0].IsChanged);
         Assert.Equal("A5", viewportRow.Bytes[0].ValueHex);
         Assert.True(viewportRow.Bytes[1].IsChanged);
         Assert.Equal("5A", viewportRow.Bytes[1].ValueHex);
-        viewModel.ApplyGeneralReplacePatchCommand.Execute(null);
-
+        Assert.Contains(
+            viewModel.GeneralReplaceHexViewportRows,
+            row => row.Address == "0x000100" && row.IsReferenceRow &&
+                   !row.IsEditedRow &&
+                   row.Bytes[0].ValueHex == baseBytes[0x100].ToString("X2", CultureInfo.InvariantCulture));
         Assert.True(viewModel.HasGeneralReplacePatches);
         Assert.True(viewModel.CanBuildHexEditor);
         Assert.False(viewModel.CanBuildReplace);
-        _ = Assert.Single(viewModel.GeneralReplacePatches);
+        GeneralReplacePatchViewModel stagedPatch = Assert.Single(viewModel.GeneralReplacePatches);
+        Assert.Equal("A5 5A", stagedPatch.Value);
         Assert.True(viewModel.UndoGeneralReplacePatchCommand.CanExecute(null));
         viewportRow = Assert.Single(
             viewModel.GeneralReplaceHexViewportRows,
-            row => row.Address == "0x000100");
+            row => row.Address == "0x000100" && !row.IsReferenceRow);
         Assert.Equal("A5", viewportRow.Bytes[0].ValueHex);
 
         viewModel.UndoGeneralReplacePatchCommand.Execute(null);
@@ -176,7 +188,7 @@ public sealed partial class ShellViewModelTests
         Assert.False(viewModel.CanBuildHexEditor);
         viewportRow = Assert.Single(
             viewModel.GeneralReplaceHexViewportRows,
-            row => row.Address == "0x000100");
+            row => row.Address == "0x000100" && !row.IsReferenceRow);
         Assert.Equal(baseBytes[0x100].ToString("X2", CultureInfo.InvariantCulture), viewportRow.Bytes[0].ValueHex);
 
         viewModel.RedoGeneralReplacePatchCommand.Execute(null);
@@ -190,5 +202,82 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(baseBytes, File.ReadAllBytes(basePath));
         Assert.Contains(viewModel.LoadedReport.Operations, operation =>
             operation.Title.Contains("hex-patch-1", StringComparison.Ordinal));
+    }
+
+    /// <summary>Verifies direct inline byte edits stage one-byte overwrites and retain optional base rows.</summary>
+    [Fact]
+    public void GeneralReplaceHexEditorSupportsInlineByteEditAndBaseReferenceToggle()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-general-hex-direct");
+        string basePath = workspace.Write("base.bin", CreatePattern(0x40000, 0x71));
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51950";
+        viewModel.ShowHexEditorCommand.Execute(null);
+        viewModel.SetSlotFile("replace-base", basePath);
+
+        GeneralReplaceHexViewportRowViewModel row = Assert.Single(
+            viewModel.GeneralReplaceHexViewportRows,
+            candidate => candidate.Address == "0x000000" && !candidate.IsReferenceRow);
+        Assert.False(row.IsEditedRow);
+        string initialValue = row.Bytes[0].ValueHex;
+        viewModel.BeginGeneralReplaceHexByteEditCommand.Execute(row.Bytes[0]);
+
+        Assert.True(row.Bytes[0].IsEditing);
+        Assert.Equal(initialValue, row.Bytes[0].EditValue);
+        row.Bytes[0].EditValue = "A5";
+        viewModel.CommitGeneralReplaceHexByteEditCommand.Execute(row.Bytes[0]);
+        Assert.False(row.Bytes[0].IsEditing);
+        GeneralReplacePatchViewModel directPatch = Assert.Single(viewModel.GeneralReplacePatches);
+        Assert.Equal("A5", directPatch.Value);
+
+        GeneralReplaceHexViewportRowViewModel changedRow = Assert.Single(
+            viewModel.GeneralReplaceHexViewportRows,
+            candidate => candidate.Address == "0x000000" && !candidate.IsReferenceRow);
+        viewModel.BeginGeneralReplaceHexByteEditCommand.Execute(changedRow.Bytes[0]);
+        changedRow.Bytes[0].EditValue = "5A";
+        viewModel.CommitGeneralReplaceHexByteEditCommand.Execute(changedRow.Bytes[0]);
+        GeneralReplacePatchViewModel updatedPatch = Assert.Single(viewModel.GeneralReplacePatches);
+        Assert.Equal("5A", updatedPatch.Value);
+
+        changedRow = Assert.Single(
+            viewModel.GeneralReplaceHexViewportRows,
+            candidate => candidate.Address == "0x000000" && !candidate.IsReferenceRow);
+        viewModel.ClearGeneralReplaceHexByteCommand.Execute(changedRow.Bytes[0]);
+        GeneralReplacePatchViewModel clearedPatch = Assert.Single(viewModel.GeneralReplacePatches);
+        Assert.Equal("FF", clearedPatch.Value);
+        Assert.Contains(viewModel.GeneralReplaceHexViewportRows, candidate =>
+            candidate.Address == "0x000000" && candidate.IsReferenceRow);
+
+        viewModel.IsGeneralReplaceHexReferenceRowsVisible = false;
+        Assert.DoesNotContain(viewModel.GeneralReplaceHexViewportRows, candidate => candidate.IsReferenceRow);
+
+        viewModel.GeneralReplaceHexViewportAddress = "0x000100";
+        viewModel.GoToGeneralReplaceHexViewportCommand.Execute(null);
+        Assert.Contains(viewModel.GeneralReplaceHexViewportRows, candidate =>
+            candidate.Address == "0x0000C0" && !candidate.IsReferenceRow);
+    }
+
+    /// <summary>Verifies draft typing and address entry keep the existing viewport rows until a deliberate refresh action.</summary>
+    [Fact]
+    public void GeneralReplaceHexEditorDefersViewportRefreshUntilGoToOrStage()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-general-hex-refresh");
+        string basePath = workspace.Write("base.bin", CreatePattern(0x40000, 0x51));
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51950";
+        viewModel.ShowHexEditorCommand.Execute(null);
+        viewModel.SetSlotFile("replace-base", basePath);
+
+        GeneralReplaceHexViewportRowViewModel initialRow = viewModel.GeneralReplaceHexViewportRows[0];
+        viewModel.GeneralReplaceHexViewportAddress = "0x000100";
+        viewModel.GeneralReplacePatchDraft.StartAddress = "0x000100";
+        viewModel.GeneralReplacePatchDraft.EndAddress = "0x000101";
+        viewModel.GeneralReplacePatchDraft.Value = "A5 5A";
+
+        Assert.Same(initialRow, viewModel.GeneralReplaceHexViewportRows[0]);
+
+        viewModel.GoToGeneralReplaceHexViewportCommand.Execute(null);
+
+        Assert.NotSame(initialRow, viewModel.GeneralReplaceHexViewportRows[0]);
     }
 }

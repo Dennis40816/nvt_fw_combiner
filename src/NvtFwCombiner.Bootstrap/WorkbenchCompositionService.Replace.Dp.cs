@@ -79,7 +79,6 @@ public static partial class WorkbenchCompositionService
             ]
             :
         [
-            .. CreatePreserveRows(regions),
             .. GetDpReplaceRegions(icId, regions)
                 .OrderBy(region => region.Range.Start)
                 .Select(region => new WorkbenchMemoryMapRow(

@@ -25,6 +25,11 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         slot.FilePath = path;
         RefreshFirmwareFacts(slot);
+        PromptForFirmwareIcMismatch(slot);
+        if (!IsFirmwareIcMismatchModalOpen)
+        {
+            TryApplyVerifiedFirmwareContext(slot);
+        }
         if (slot.SlotId == MergeTpSlotId && _mergeDpSlot.HasFile)
         {
             RefreshFirmwareFacts(_mergeDpSlot);
@@ -77,4 +82,7 @@ public enum ShellPage
 
     /// <summary>Replace planning page.</summary>
     Replace,
+
+    /// <summary>Independent experimental hexadecimal patch-authoring page.</summary>
+    HexEditor,
 }

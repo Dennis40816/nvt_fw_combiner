@@ -84,6 +84,88 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("Home > Merge", viewModel.NavigationPath);
     }
 
+    /// <summary>Verifies the Home Hex Editor entry opens an independent page with its own device context.</summary>
+    [Fact]
+    public void HomeHexEditorEntryOpensIndependentPage()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        viewModel.ShowHexEditorCommand.Execute(null);
+
+        Assert.True(viewModel.IsHexEditorVisible);
+        Assert.False(viewModel.IsReplaceVisible);
+        Assert.True(viewModel.IsDeviceContextVisible);
+        Assert.Equal("Home > Hex editor", viewModel.NavigationPath);
+        Assert.False(viewModel.ReplaceBaseSlot.HasFile);
+    }
+
+    /// <summary>Verifies Home workflow entries collect a cancellable context while programmatic navigation remains direct.</summary>
+    [Fact]
+    public void HomeWorkflowEntriesCollectContextBeforeOpeningWorkflow()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        viewModel.BeginCtrlRamReplaceFromHomeCommand.Execute(null);
+
+        Assert.True(viewModel.IsWorkflowContextModalOpen);
+        Assert.True(viewModel.WorkflowContextSetup.IsNumberVisible);
+        Assert.True(viewModel.IsHomeVisible);
+        viewModel.WorkflowContextSetup.SelectedIc = "NT51927";
+        viewModel.WorkflowContextSetup.SelectedNumberChoice = viewModel.WorkflowContextSetup.NumberChoices.Single(choice => choice.Token == "3");
+        viewModel.ConfirmWorkflowContextCommand.Execute(null);
+
+        Assert.False(viewModel.IsWorkflowContextModalOpen);
+        Assert.True(viewModel.IsReplaceVisible);
+        Assert.Equal("NT51927", viewModel.SelectedIc);
+        Assert.Equal("3", viewModel.SelectedNumber);
+
+        viewModel.ShowHomeCommand.Execute(null);
+        viewModel.BeginNormalMergeFromHomeCommand.Execute(null);
+        Assert.True(viewModel.IsWorkflowContextModalOpen);
+        Assert.False(viewModel.WorkflowContextSetup.IsNumberVisible);
+        viewModel.ConfirmWorkflowContextCommand.Execute(null);
+        Assert.True(viewModel.IsMergeVisible);
+    }
+
+    /// <summary>Verifies filename markers ask before changing the selected IC and verified TP FWConfig updates the number token.</summary>
+    [Fact]
+    public void SlotLoadingPromptsForIcMarkerAndAppliesVerifiedTpNumber()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51926";
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ic-marker");
+        string markedPath = workspace.Write("NT51927TT_test.bin", [0x00]);
+
+        viewModel.SetSlotFile("replace-base", markedPath);
+
+        Assert.True(viewModel.IsFirmwareIcMismatchModalOpen);
+        Assert.Equal("NT51927", viewModel.FirmwareIcMismatchDetectedIc);
+        viewModel.DismissFirmwareIcMismatchCommand.Execute(null);
+        Assert.Equal("NT51926", viewModel.SelectedIc);
+
+        using var golden = StandardMergeGoldenManifest.Load();
+        string tpPath = golden.ManifestPath(golden.CaseByIc("51926").GetProperty("inputs").GetProperty("tp-input"));
+        viewModel.SetSlotFile("merge-tp", tpPath);
+
+        Assert.Equal("cascade", viewModel.SelectedNumber);
+        Assert.Equal("Context updated", viewModel.ShellToastTitle);
+    }
+
+    /// <summary>Verifies filename markers outside the supported catalog cannot change the workbench context.</summary>
+    [Fact]
+    public void SlotLoadingIgnoresUnsupportedIcMarker()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51926";
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-unsupported-ic-marker");
+        string markedPath = workspace.Write("NT51999TT_test.bin", [0x00]);
+
+        viewModel.SetSlotFile("replace-base", markedPath);
+
+        Assert.False(viewModel.IsFirmwareIcMismatchModalOpen);
+        Assert.Equal("NT51926", viewModel.SelectedIc);
+    }
+
     /// <summary>Verifies command-line launch arguments select a reviewable UI state.</summary>
     [Fact]
     public void UiLaunchOptionsParsePageReportAndOpenReport()
@@ -94,6 +176,16 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(ShellPage.Merge, options.Page);
         Assert.Equal("preview-report.json", options.ReportPath);
         Assert.True(options.OpenReport);
+        Assert.Empty(options.Issues);
+    }
+
+    /// <summary>Verifies command-line launch can open the independent Hex Editor page for visual review.</summary>
+    [Fact]
+    public void UiLaunchOptionsParseHexEditorPage()
+    {
+        var options = UiLaunchOptions.Parse(["--page", "hex-editor"]);
+
+        Assert.Equal(ShellPage.HexEditor, options.Page);
         Assert.Empty(options.Issues);
     }
 

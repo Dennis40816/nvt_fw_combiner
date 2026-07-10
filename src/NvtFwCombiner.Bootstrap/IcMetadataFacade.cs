@@ -50,6 +50,14 @@ public static class IcMetadataFacade
             : [];
     }
 
+    /// <summary>Gets grouped UI choices without exposing every legacy branch alias.</summary>
+    public static IReadOnlyList<IcNumberChoice> GetNumberSelectionChoices(string icId)
+    {
+        return TryFind(icId, out IcMetadata? metadata) && metadata is not null
+            ? metadata.NumberSelectionChoices
+            : [];
+    }
+
     /// <summary>Gets the TP Overview FWConfig start for a selectable IC.</summary>
     public static bool TryGetFirmwareConfigStart(string icId, out long firmwareConfigStart)
     {
@@ -131,6 +139,7 @@ public static class IcMetadataFacade
                 flashMap!.OverviewSource,
                 flashMap.FirmwareConfigStart,
                 TpFlashMapCatalog.GetNumberChoices(support.IcId),
+                TpFlashMapCatalog.GetNumberSelectionChoices(support.IcId),
                 [.. postbuildProfiles
                     .Select(profile => profile.DisplayCategory)
                     .Distinct(StringComparer.Ordinal)
@@ -160,6 +169,7 @@ public sealed record IcMetadata(
     string TpOverviewSource,
     long FirmwareConfigStart,
     IReadOnlyList<string> NumberChoices,
+    IReadOnlyList<IcNumberChoice> NumberSelectionChoices,
     IReadOnlyList<string> PostbuildCategories,
     bool UsesDpPerspective)
 {

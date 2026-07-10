@@ -25,6 +25,17 @@ public sealed record WorkbenchFirmwareConfigMetadata(
     string? PostbuildCategory,
     FirmwareConfigHardwareMetadata Hardware);
 
+/// <summary>
+/// A verified NVT-copy FWConfig suggestion for the shared workbench IC-number selection.
+/// It exists only when the selected flash-map primary and exactly one NVT copy agree.
+/// </summary>
+public sealed record WorkbenchFirmwareContextSuggestion(
+    string IcId,
+    string NumberToken,
+    byte ChipNumber,
+    string CommonFwVersion,
+    ushort ProjectId);
+
 /// <summary>DP version facts read using gen_flash standard-merge contiguous main/sub version-byte rules.</summary>
 public sealed record WorkbenchDpVersionMetadata(
     string IcId,

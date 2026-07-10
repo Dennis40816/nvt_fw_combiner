@@ -140,6 +140,10 @@ public sealed partial class MainWindowViewModel
     [ObservableProperty]
     public partial string GeneralReplaceHexViewportAddress { get; set; } = "0x00000";
 
+    /// <summary>Controls whether immutable base rows appear directly below changed virtual rows.</summary>
+    [ObservableProperty]
+    public partial bool IsGeneralReplaceHexReferenceRowsVisible { get; set; } = true;
+
     /// <summary>Gets the current viewport inspection status.</summary>
     public string GeneralReplaceHexViewportStatus { get; private set; } = string.Empty;
 
@@ -153,22 +157,12 @@ public sealed partial class MainWindowViewModel
     [ObservableProperty]
     public partial GeneralReplaceEditableRangeViewModel? SelectedGeneralReplaceEditableRange { get; set; }
 
-    /// <summary>True when the experimental Hex Editor section is expanded below standard Replace workflows.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HexEditorToggleLabel))]
-    public partial bool IsHexEditorExpanded { get; set; }
-
     /// <summary>One-line readiness state for the experimental Hex Editor Build action.</summary>
     public string HexEditorReadinessStatus => !ReplaceBaseSlot.HasFile
         ? Text.HexEditorBaseRequiredDetail
         : GeneralReplacePatches.Count == 0
             ? Text.HexEditorPatchRequiredDetail
             : Text.HexEditorReadyDetail;
-
-    /// <summary>Label for opening or closing the experimental Hex Editor section.</summary>
-    public string HexEditorToggleLabel => IsHexEditorExpanded
-        ? Text.HexEditorCloseLabel
-        : Text.HexEditorOpenLabel;
 
     /// <summary>True when the hexadecimal patch draft is an equal-length overwrite.</summary>
     public bool IsGeneralReplacePatchOverwrite => GeneralReplacePatchDraft.Kind == WorkbenchGeneralReplacePatchKind.Overwrite;
@@ -260,6 +254,9 @@ public sealed partial class MainWindowViewModel
     /// <summary>True when the Replace page is visible.</summary>
     public bool IsReplaceVisible => SelectedPage == ShellPage.Replace;
 
+    /// <summary>True when the independent experimental Hex Editor page is visible.</summary>
+    public bool IsHexEditorVisible => SelectedPage == ShellPage.HexEditor;
+
     /// <summary>True when DP Replace is selected.</summary>
     public bool IsDpReplaceModeSelected => string.Equals(SelectedReplaceMode, DpReplaceMode, StringComparison.Ordinal);
 
@@ -343,17 +340,35 @@ public sealed partial class MainWindowViewModel
     /// <summary>Command that opens DP Replace.</summary>
     public IRelayCommand ShowDpReplaceCommand { get; }
 
+    /// <summary>Home entry command that collects Replace context before opening DP Replace.</summary>
+    public IRelayCommand BeginDpReplaceFromHomeCommand { get; }
+
     /// <summary>Command that opens CtrlRAM Replace.</summary>
     public IRelayCommand ShowCtrlRamReplaceCommand { get; }
+
+    /// <summary>Home entry command that collects Replace context before opening CtrlRAM Replace.</summary>
+    public IRelayCommand BeginCtrlRamReplaceFromHomeCommand { get; }
 
     /// <summary>Command that opens General Replace.</summary>
     public IRelayCommand ShowGeneralReplaceCommand { get; }
 
+    /// <summary>Home entry command that collects Replace context before opening General Replace.</summary>
+    public IRelayCommand BeginGeneralReplaceFromHomeCommand { get; }
+
+    /// <summary>Command that opens the independent Hex Editor workspace.</summary>
+    public IRelayCommand ShowHexEditorCommand { get; }
+
     /// <summary>Command that opens Normal Merge.</summary>
     public IRelayCommand ShowNormalMergeCommand { get; }
 
+    /// <summary>Home entry command that collects Merge context before opening Standard Merge.</summary>
+    public IRelayCommand BeginNormalMergeFromHomeCommand { get; }
+
     /// <summary>Command that opens General Merge.</summary>
     public IRelayCommand ShowGeneralMergeCommand { get; }
+
+    /// <summary>Home entry command that collects Merge context before opening General Merge.</summary>
+    public IRelayCommand BeginGeneralMergeFromHomeCommand { get; }
 
     /// <summary>Command that adds a General Replace mapping row.</summary>
     public IRelayCommand AddGeneralReplaceMappingCommand { get; }
@@ -382,8 +397,23 @@ public sealed partial class MainWindowViewModel
     /// <summary>Selects a byte cell as a one-byte General Replace patch target.</summary>
     public IRelayCommand<GeneralReplaceHexByteCellViewModel> SelectGeneralReplaceHexByteCommand { get; }
 
-    /// <summary>Opens or closes the experimental Hex Editor section below standard Replace workflows.</summary>
-    public IRelayCommand ToggleHexEditorCommand { get; }
+    /// <summary>Opens the direct one-byte edit dialog for a hexadecimal cell.</summary>
+    public IRelayCommand<GeneralReplaceHexByteCellViewModel> BeginGeneralReplaceHexByteEditCommand { get; }
+
+    /// <summary>Commits an inline hexadecimal byte edit into the fixed-address staged patch list.</summary>
+    public IRelayCommand<GeneralReplaceHexByteCellViewModel> CommitGeneralReplaceHexByteEditCommand { get; }
+
+    /// <summary>Cancels the current inline hexadecimal byte edit without staging a patch.</summary>
+    public IRelayCommand<GeneralReplaceHexByteCellViewModel> CancelGeneralReplaceHexByteEditCommand { get; }
+
+    /// <summary>Chooses a hexadecimal byte as the inclusive start of the patch authoring range.</summary>
+    public IRelayCommand<GeneralReplaceHexByteCellViewModel> SetGeneralReplacePatchStartCommand { get; }
+
+    /// <summary>Chooses a hexadecimal byte as the inclusive end of the patch authoring range.</summary>
+    public IRelayCommand<GeneralReplaceHexByteCellViewModel> SetGeneralReplacePatchEndCommand { get; }
+
+    /// <summary>Stages a fixed-address FF overwrite for the selected hexadecimal byte.</summary>
+    public IRelayCommand<GeneralReplaceHexByteCellViewModel> ClearGeneralReplaceHexByteCommand { get; }
 
     /// <summary>Command that adds a General Merge mapping row.</summary>
     public IRelayCommand AddGeneralMergeMappingCommand { get; }
@@ -428,6 +458,25 @@ public sealed partial class MainWindowViewModel
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DeviceContextStatus))]
     public partial IReadOnlyList<string> NumberChoices { get; set; } = UiCompositionRunner.GetNumberChoices(DefaultIcId);
+
+    /// <summary>Gets grouped display choices for the IC-count control.</summary>
+    [ObservableProperty]
+    public partial IReadOnlyList<IcNumberChoiceViewModel> NumberSelectionChoices { get; set; } =
+        UiCompositionRunner.GetNumberSelectionChoices(DefaultIcId);
+
+    /// <summary>Gets or sets the selected displayed IC-count choice while retaining its planner token.</summary>
+    public IcNumberChoiceViewModel? SelectedNumberChoice
+    {
+        get => NumberSelectionChoices.FirstOrDefault(choice =>
+            string.Equals(choice.Token, SelectedNumber, StringComparison.Ordinal));
+        set
+        {
+            if (value is not null && !string.Equals(SelectedNumber, value.Token, StringComparison.Ordinal))
+            {
+                SelectedNumber = value.Token;
+            }
+        }
+    }
 
     /// <summary>Gets or sets the selected IC id in the shared context row.</summary>
     [ObservableProperty]

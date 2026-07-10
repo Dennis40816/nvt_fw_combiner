@@ -25,8 +25,10 @@ public sealed partial class ShellViewModelTests
             Assert.Contains("len 0x", segment.RangeLabel, StringComparison.Ordinal);
             Assert.DoesNotContain("..", segment.RangeLabel, StringComparison.Ordinal);
         });
-        Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.SourceLabel == "Restored TP");
-        Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.SourceLabel == "Preserved customer info");
+        Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.SourceLabel == "Base flash");
+        Assert.DoesNotContain(viewModel.ReplaceCoverageSegments, segment =>
+            segment.SourceLabel.Contains("Restored", StringComparison.Ordinal) ||
+            segment.SourceLabel.Contains("Preserved", StringComparison.Ordinal));
         Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.SourceLabel is "Changed DP BIN" or "Changed LDC BIN");
         Assert.Equal(
             "Build blocked: base BIN and required DP replacement inputs are required.",

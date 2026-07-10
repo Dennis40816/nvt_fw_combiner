@@ -101,6 +101,21 @@ public sealed class WorkbenchCompositionServiceTests
         Assert.Equal("51926_1.4.1", metadata.PostbuildCategory);
     }
 
+    /// <summary>Uses a unique, matching NVT FWConfig copy to map the verified chip number to a planner token.</summary>
+    [Fact]
+    public void FirmwareContextSuggestionUsesVerifiedNvtCopyAndApprovedBranch()
+    {
+        WorkbenchFirmwareContextSuggestion? suggestion = WorkbenchCompositionService.TryReadFirmwareContextSuggestion(
+            "NT51926",
+            GoldenPath("expected/51926/flash.bin"));
+
+        Assert.NotNull(suggestion);
+        Assert.Equal("NT51926", suggestion.IcId);
+        Assert.Equal((byte)0x02, suggestion.ChipNumber);
+        Assert.Equal("cascade", suggestion.NumberToken);
+        Assert.Equal("1.4.1", suggestion.CommonFwVersion);
+    }
+
     /// <summary>Uses the selected TP NVT FWConfig ChipNumber to resolve NT51950's 1IC CMI location.</summary>
     [Fact]
     public void Nt51950CmiMetadataRequiresTpNvtFirmwareConfig()

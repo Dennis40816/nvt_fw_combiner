@@ -6,6 +6,7 @@ public static partial class WorkbenchCompositionService
 {
     private const int GeneralReplaceHexViewportBytesPerRow = 16;
     private const int GeneralReplaceHexViewportRowCount = 32;
+    private const int GeneralReplaceHexViewportContextRows = 4;
 
     /// <summary>
     /// Reads a fixed-width base BIN viewport and applies staged General Replace patch bytes only in memory.
@@ -153,8 +154,12 @@ public static partial class WorkbenchCompositionService
                 return false;
             }
 
+            long requestedAlignedStart = requestedStart - (requestedStart % GeneralReplaceHexViewportBytesPerRow);
+            long contextualStart = Math.Max(
+                0,
+                requestedAlignedStart - (GeneralReplaceHexViewportContextRows * GeneralReplaceHexViewportBytesPerRow));
             alignedStart = Math.Min(
-                requestedStart - (requestedStart % GeneralReplaceHexViewportBytesPerRow),
+                contextualStart,
                 (baseLength - 1) / GeneralReplaceHexViewportBytesPerRow * GeneralReplaceHexViewportBytesPerRow);
             int length = checked((int)Math.Min(
                 baseLength - alignedStart,

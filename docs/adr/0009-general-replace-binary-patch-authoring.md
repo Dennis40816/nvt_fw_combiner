@@ -32,7 +32,7 @@ True insert, delete, and image-length changes are not General Replace patch oper
 
 ## Consequences
 
-- The experimental Hex Editor is a separately labelled section below normal Replace workflows; it is not a General Replace authoring mode. UI and CLI share the same `WorkbenchGeneralReplacePatchInput` contract and receive the same profile/postbuild/report behavior.
+- The experimental Hex Editor is an independent Home-launched workspace; it is not a General Replace authoring mode or a Replace-page section. UI and CLI share the same `WorkbenchGeneralReplacePatchInput` contract and receive the same profile/postbuild/report behavior.
 - A virtual patch is visible in reports as a named generated input rather than a local file path.
 - Existing file mapping rows remain supported and can be combined with non-overlapping patches.
 - Repeated preview/build uses the immutable virtual bytes supplied in the request, so the preview token captures the same input hash and plan fingerprint as a regular mapping.

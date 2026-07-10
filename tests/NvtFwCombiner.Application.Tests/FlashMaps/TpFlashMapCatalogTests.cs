@@ -284,6 +284,36 @@ public sealed class TpFlashMapCatalogTests
         Assert.DoesNotContain("cascade", choices);
     }
 
+    /// <summary>Projects legacy numeric branch aliases into one concise UI choice per command branch.</summary>
+    [Fact]
+    public void NumberSelectionChoicesGroupEquivalentCascadeAliases()
+    {
+        IReadOnlyList<IcNumberChoice> nt51932 = TpFlashMapCatalog.GetNumberSelectionChoices("NT51932");
+        IReadOnlyList<IcNumberChoice> nt51927 = TpFlashMapCatalog.GetNumberSelectionChoices("NT51927");
+        IReadOnlyList<IcNumberChoice> nt51930 = TpFlashMapCatalog.GetNumberSelectionChoices("NT51930");
+
+        Assert.Equal(
+            [
+                new IcNumberChoice("single", "1 IC"),
+                new IcNumberChoice("cascade", "Cascade"),
+            ],
+            nt51932);
+        Assert.Equal(
+            [
+                new IcNumberChoice("single", "1 IC"),
+                new IcNumberChoice("cascade", "Cascade"),
+            ],
+            nt51930);
+        Assert.Equal(
+            [
+                new IcNumberChoice("single", "1 IC"),
+                new IcNumberChoice("2", "2 IC"),
+                new IcNumberChoice("3", "3 IC"),
+            ],
+            nt51927);
+        Assert.Equal(1, TpFlashMapCatalog.GetNumberChoices("NT51932").Count(choice => choice == "single"));
+    }
+
     private static IEnumerable<(LegacyCombinerPostbuildProfile Profile, IcNumberSelection Selection)> AllPostbuildSelections()
     {
         return PostbuildSelectionTestCases.AllProfileBranchSelections();

@@ -1,5 +1,7 @@
+using System.Globalization;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -128,6 +130,28 @@ public static partial class WorkbenchCompositionService
         }
     }
 
+    /// <summary>
+    /// Returns an auto-applicable IC-number selection only when the NVT-copy FWConfig is unique,
+    /// agrees with the selected IC flash-map location, and its chip number resolves to one
+    /// approved postbuild branch token.
+    /// </summary>
+    public static WorkbenchFirmwareContextSuggestion? TryReadFirmwareContextSuggestion(string icId, string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        return TryReadConsistentFirmwareConfigMetadata(icId, path, out FirmwareConfigMetadata metadata) &&
+            metadata.ChipNumber != 0 &&
+            TryResolveNumberTokenForFirmwareChipNumber(icId, metadata.ChipNumber, out string? numberToken)
+            ? new WorkbenchFirmwareContextSuggestion(
+                icId,
+                numberToken!,
+                metadata.ChipNumber,
+                metadata.CommonFwVersion,
+                metadata.ProjectId)
+            : null;
+    }
+
     private static bool TryReadBaseCommonFwVersion(
         string icId,
         string basePath,
@@ -142,6 +166,56 @@ public static partial class WorkbenchCompositionService
 
         commonFwVersion = metadata.CommonFwVersion;
         return true;
+    }
+
+    private static bool TryResolveNumberTokenForFirmwareChipNumber(
+        string icId,
+        byte chipNumber,
+        out string? numberToken)
+    {
+        numberToken = null;
+        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = IcMetadataFacade.GetPostbuildProfiles(icId);
+        if (profiles.Count == 0)
+        {
+            return false;
+        }
+
+        string numericToken = chipNumber.ToString(CultureInfo.InvariantCulture);
+        LegacyCombinerPostbuildBranch? branch = null;
+        foreach (LegacyCombinerPostbuildProfile profile in profiles)
+        {
+            if (!profile.BranchRules.TryGetValue(numericToken, out LegacyCombinerPostbuildBranch candidate) &&
+                (chipNumber <= 1 || !profile.BranchRules.TryGetValue(IcNumberSelectionTokens.Cascade, out candidate)))
+            {
+                return false;
+            }
+
+            if (branch is not null && branch != candidate)
+            {
+                return false;
+            }
+
+            branch = candidate;
+        }
+
+        if (branch is null)
+        {
+            return false;
+        }
+
+        foreach (IcNumberChoice choice in IcMetadataFacade.GetNumberSelectionChoices(icId))
+        {
+            bool matchesEveryProfile = profiles.All(profile =>
+                profile.BranchRules.TryGetValue(choice.Token, out LegacyCombinerPostbuildBranch candidate) &&
+                candidate == branch);
+            if (matchesEveryProfile)
+            {
+                numberToken = choice.Token;
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static byte? TryReadNvtCopyChipNumber(string icId, string? tpPath)

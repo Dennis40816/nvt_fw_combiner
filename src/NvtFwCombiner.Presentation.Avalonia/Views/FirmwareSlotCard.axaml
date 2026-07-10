@@ -42,7 +42,7 @@
                 Foreground="{Binding RequirementBadgeForegroundBrush}"
                 Content="{Binding RequirementLabel}" />
           </StackPanel>
-          <TextBlock FontSize="12" Foreground="#64748B" Text="{Binding Description}" TextWrapping="Wrap" />
+          <TextBlock Classes="mutedText" Text="{Binding Description}" TextWrapping="Wrap" />
           <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#334155" Text="{Binding DisplayName}" TextWrapping="Wrap" />
           <ItemsControl IsVisible="{Binding HasFirmwareFacts}" ItemsSource="{Binding FirmwareFacts}">
             <ItemsControl.ItemsPanel>
@@ -54,7 +54,7 @@
               <StaticResource ResourceKey="FirmwareSlotFactTemplate" />
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#64748B" IsVisible="{Binding HasFile}" Text="{Binding DisplayDetail}" TextWrapping="Wrap" />
+          <TextBlock Classes="technicalMeta" IsVisible="{Binding HasFile}" Text="{Binding DisplayDetail}" TextWrapping="Wrap" />
         </StackPanel>
         <Button
             Grid.Column="1"

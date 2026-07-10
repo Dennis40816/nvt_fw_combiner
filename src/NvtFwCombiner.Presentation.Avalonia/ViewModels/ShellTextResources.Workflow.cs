@@ -179,6 +179,40 @@ public sealed partial class ShellTextResources
     public string AbCodeMergeDetail { get; private init; } = string.Empty;
 
     public string MergeModeTooltip { get; private init; } = string.Empty;
+
+    public string WorkflowContextReplaceDetail { get; private init; } = string.Empty;
+
+    public string WorkflowContextMergeDetail { get; private init; } = string.Empty;
+
+    public string WorkflowContextSafetyDetail { get; private init; } = string.Empty;
+
+    public string FirmwareIcMismatchTitle { get; private init; } = string.Empty;
+
+    public string FirmwareIcMismatchDetail { get; private init; } = string.Empty;
+
+    public string FirmwareIcMismatchCurrentLabel { get; private init; } = string.Empty;
+
+    public string FirmwareIcMismatchDetectedLabel { get; private init; } = string.Empty;
+
+    public string FirmwareIcMismatchKeepLabel { get; private init; } = string.Empty;
+
+    public string FirmwareIcMismatchUseDetectedLabel { get; private init; } = string.Empty;
+
+    public string ContextUpdatedToastTitle { get; private init; } = string.Empty;
+
+    public string GeneralReplaceHexReferenceRowsLabel { get; private init; } = string.Empty;
+
+    public string GeneralReplaceHexEditValidationDetail { get; private init; } = string.Empty;
+
+    public string GeneralReplaceHexOverlapEditDetail { get; private init; } = string.Empty;
+
+    public string GeneralReplaceHexContextEditLabel { get; private init; } = string.Empty;
+
+    public string GeneralReplaceHexContextRangeStartLabel { get; private init; } = string.Empty;
+
+    public string GeneralReplaceHexContextRangeEndLabel { get; private init; } = string.Empty;
+
+    public string GeneralReplaceHexContextClearLabel { get; private init; } = string.Empty;
 }
 
 #pragma warning restore CS1591

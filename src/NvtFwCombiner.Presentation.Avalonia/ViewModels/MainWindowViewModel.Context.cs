@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -18,11 +19,18 @@ public sealed partial class MainWindowViewModel
     private void RefreshNumberChoicesForSelectedIc()
     {
         IReadOnlyList<string> nextChoices = UiCompositionRunner.GetNumberChoices(SelectedIc);
+        IReadOnlyList<IcNumberChoiceViewModel> nextDisplayChoices = UiCompositionRunner.GetNumberSelectionChoices(SelectedIc);
         NumberChoices = nextChoices;
-        if (!nextChoices.Contains(SelectedNumber, StringComparer.Ordinal))
+        NumberSelectionChoices = nextDisplayChoices;
+        if (!nextDisplayChoices.Any(choice =>
+                string.Equals(choice.Token, SelectedNumber, StringComparison.Ordinal)))
         {
-            SelectedNumber = nextChoices[0];
+            SelectedNumber = nextDisplayChoices.FirstOrDefault(choice =>
+                string.Equals(choice.Token, WorkbenchIcNumberTokens.SingleChip, StringComparison.Ordinal))?.Token ??
+                nextDisplayChoices[0].Token;
         }
+
+        OnPropertyChanged(nameof(SelectedNumberChoice));
     }
 
     private void RefreshContextState(bool resetRunResult = false)
@@ -32,6 +40,8 @@ public sealed partial class MainWindowViewModel
         RefreshMergeSlotRequirements();
         RefreshMergeModeState();
         RefreshReplaceModeState();
+        RefreshGeneralReplaceEditableRanges();
+        RefreshGeneralReplaceHexViewport();
         RefreshSettingsState();
         RefreshCommandState();
         NotifyContextTextChanged();
@@ -178,6 +188,7 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(IsSettingsVisible));
         OnPropertyChanged(nameof(IsMergeVisible));
         OnPropertyChanged(nameof(IsReplaceVisible));
+        OnPropertyChanged(nameof(IsHexEditorVisible));
         OnPropertyChanged(nameof(IsDeviceContextVisible));
         OnPropertyChanged(nameof(IsNumberSelectorVisible));
         OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
@@ -229,6 +240,7 @@ public sealed partial class MainWindowViewModel
 
     partial void OnSelectedNumberChanged(string value)
     {
+        OnPropertyChanged(nameof(SelectedNumberChoice));
         RefreshContextState(resetRunResult: true);
     }
 

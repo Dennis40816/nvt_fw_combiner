@@ -42,12 +42,8 @@
     <StyleInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowVisualStyles.axaml" />
   </Window.Styles>
 
-  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
-    <Border
-        Padding="28,12"
-        Background="#FFFFFF"
-        BorderBrush="#E2E8F0"
-        BorderThickness="0,0,0,1">
+  <Grid RowDefinitions="Auto,Auto,Auto,*">
+    <Border Classes="shellBar" Padding="28,12">
       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="28">
         <StackPanel Spacing="2">
           <TextBlock
@@ -154,6 +150,12 @@
             Content="{Binding}"
             ContentTemplate="{StaticResource SettingsPageTemplate}" />
 
+        <ContentControl
+            Grid.Row="0"
+            IsVisible="{Binding IsHexEditorVisible}"
+            Content="{Binding}"
+            ContentTemplate="{StaticResource HexEditorPageTemplate}" />
+
         <Grid
             Grid.Row="0"
             ColumnDefinitions="1.15*,430"
@@ -162,12 +164,8 @@
           <StackPanel Spacing="16">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
               <StackPanel Spacing="4">
-                <TextBlock
-                    FontSize="24"
-                    FontWeight="SemiBold"
-                    Foreground="#0F172A"
-                    Text="{Binding ReplacePreview.Title}" />
-                <TextBlock FontSize="13" Foreground="#64748B" Text="{Binding ReplacePreview.Subtitle}" />
+                <TextBlock Classes="pageTitle" Text="{Binding ReplacePreview.Title}" />
+                <TextBlock Classes="pageSubtitle" Text="{Binding ReplacePreview.Subtitle}" />
               </StackPanel>
               <Grid
                   Grid.Column="1"
@@ -175,21 +173,21 @@
                   ColumnSpacing="12"
                   VerticalAlignment="Center">
                 <StackPanel Spacing="3">
-                  <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.ModeLabel}" />
+                  <TextBlock Classes="fieldLabel" Text="{Binding Text.ModeLabel}" />
                   <ComboBox
                       MinHeight="32"
                       ItemsSource="{Binding ReplaceModeChoices}"
                       SelectedItem="{Binding SelectedReplaceMode, Mode=TwoWay}" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Spacing="3">
-                  <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.TargetsLabel}" />
+                  <TextBlock Classes="fieldLabel" Text="{Binding Text.TargetsLabel}" />
                   <Button
                       Classes="summaryChip"
                       Command="{Binding ShowReplaceSelectionCommand}"
                       ToolTip.Tip="{Binding Text.ReviewReplacementInputsTooltip}">
                     <Grid VerticalAlignment="Center" ColumnDefinitions="Auto,Auto" ColumnSpacing="6">
-                      <TextBlock VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Foreground="#334155" Text="{Binding ReplaceSelectionCountLabel}" />
-                      <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="11" Foreground="#64748B" Text="▾" />
+                      <TextBlock VerticalAlignment="Center" Classes="bodyEmphasisText" Text="{Binding ReplaceSelectionCountLabel}" />
+                      <TextBlock Grid.Column="1" VerticalAlignment="Center" Classes="captionText" Text="▾" />
                     </Grid>
                   </Button>
                 </StackPanel>
@@ -227,12 +225,12 @@
           <StackPanel Spacing="16">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
               <StackPanel Spacing="4">
-                <TextBlock FontSize="24" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding MergePreview.Title}" />
-                <TextBlock FontSize="13" Foreground="#64748B" Text="{Binding MergePreview.Subtitle}" />
+                <TextBlock Classes="pageTitle" Text="{Binding MergePreview.Title}" />
+                <TextBlock Classes="pageSubtitle" Text="{Binding MergePreview.Subtitle}" />
               </StackPanel>
               <Grid Grid.Column="1" ColumnDefinitions="170,Auto" ColumnSpacing="12" VerticalAlignment="Center">
                 <StackPanel Spacing="3" ToolTip.Tip="{Binding Text.MergeModeTooltip}">
-                  <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding Text.ModeLabel}" />
+                  <TextBlock Classes="fieldLabel" Text="{Binding Text.ModeLabel}" />
                   <ComboBox
                       MinHeight="32"
                       ItemsSource="{Binding MergeModeChoices}"
@@ -268,16 +266,18 @@
 
     <ContentControl
         Grid.Row="1"
-        Grid.RowSpan="4"
+        Grid.RowSpan="3"
         Content="{Binding}"
         ContentTemplate="{StaticResource ReportToastPanelTemplate}"
         IsVisible="{Binding HasReportToast}"
         Opacity="{Binding ReportToastOpacity}" />
 
-    <views:ReplaceSelectionModal Grid.RowSpan="5" IsVisible="{Binding IsReplaceSelectionModalOpen}" />
+    <views:ReplaceSelectionModal Grid.RowSpan="4" IsVisible="{Binding IsReplaceSelectionModalOpen}" />
 
-    <views:ReportModal Grid.RowSpan="5" IsVisible="{Binding IsReportModalOpen}" />
+    <views:WorkflowContextSetupModal Grid.RowSpan="4" IsVisible="{Binding IsWorkflowContextModalOpen}" />
 
-    <ContentControl Grid.Row="4" Content="{Binding}" ContentTemplate="{StaticResource FooterStatusPanelTemplate}" />
+    <views:FirmwareIcMismatchModal Grid.RowSpan="4" IsVisible="{Binding IsFirmwareIcMismatchModalOpen}" />
+
+    <views:ReportModal Grid.RowSpan="4" IsVisible="{Binding IsReportModalOpen}" />
   </Grid>
 </Window>

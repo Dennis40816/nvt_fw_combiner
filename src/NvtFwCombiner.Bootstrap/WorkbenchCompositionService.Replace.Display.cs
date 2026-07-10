@@ -52,11 +52,9 @@ public static partial class WorkbenchCompositionService
             {
                 WorkbenchReplaceModes.Dp => CreateDpReplaceRows(icId, regions, dpBaseLength),
                 WorkbenchReplaceModes.CtrlRam => CreateCtrlRamReplaceRows(
-                    regions,
                     TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile)),
                 WorkbenchReplaceModes.General =>
                 [
-                    .. CreatePreserveRows(regions),
                     new WorkbenchMemoryMapRow(
                         "Runtime range",
                         "Base flash",
