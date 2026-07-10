@@ -15,6 +15,7 @@ WORKER_ROOT = ROOT / "tools" / "crc-worker"
 SOLUTION = ROOT / "NvtFwCombiner.slnx"
 CTRL_RAM_REPLACE_FIXTURE_VERIFIER = ROOT / "scripts" / "verify_ctrlram_replace_fixture.py"
 CTRL_RAM_SENTINEL_CREATOR = ROOT / "scripts" / "create_ctrlram_universal_sentinel.py"
+IDLE_BUILD_WORKER_STOPPER = ROOT / "scripts" / "stop-idle-build-workers.ps1"
 
 
 def run(
@@ -109,6 +110,26 @@ def resolve_dotnet() -> str:
     raise RuntimeError(f".NET SDK is not installed. Run: {install_command}")
 
 
+def stop_idle_build_workers() -> None:
+    """Stops only the repo-bound Avalonia collector left after a batch build on Windows."""
+    if sys.platform != "win32":
+        return
+
+    powershell = shutil.which("powershell") or shutil.which("pwsh")
+    if powershell is None:
+        print("warning: PowerShell was unavailable; idle Avalonia build worker cleanup was skipped.")
+        return
+
+    print(f"\n> {powershell} -File {IDLE_BUILD_WORKER_STOPPER}", flush=True)
+    result = subprocess.run(
+        [powershell, "-NoProfile", "-File", str(IDLE_BUILD_WORKER_STOPPER), "-RepositoryRoot", str(ROOT)],
+        cwd=ROOT,
+        check=False,
+    )
+    if result.returncode != 0:
+        print(f"warning: idle Avalonia build worker cleanup returned exit code {result.returncode}.")
+
+
 def verify_dotnet() -> None:
     dotnet = resolve_dotnet()
     environment = os.environ.copy()
@@ -134,6 +155,7 @@ def verify_dotnet() -> None:
         # Avalonia/Roslyn may start compiler servers even with node reuse disabled.
         # Stop only servers from the repository-selected SDK after every verification run.
         run([dotnet, "build-server", "shutdown"], environment=environment)
+        stop_idle_build_workers()
 
 
 def parse_args() -> argparse.Namespace:

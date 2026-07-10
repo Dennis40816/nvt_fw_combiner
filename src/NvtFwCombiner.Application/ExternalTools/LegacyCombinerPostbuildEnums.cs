@@ -25,9 +25,6 @@ public enum LegacyCombinerPostbuildBranch
     /// <summary>Cascade or multi-chip postbuild branch.</summary>
     Cascade,
 
-    /// <summary>Extended cascade postbuild branch for scripts with a larger cascade-count section.</summary>
-    CascadeExtended,
-
     /// <summary>Explicit two-chip postbuild branch.</summary>
     TwoChip,
 

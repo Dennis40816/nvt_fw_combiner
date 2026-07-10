@@ -84,9 +84,6 @@ public sealed partial class MainWindowViewModel
         BuildReplaceCommand = new AsyncRelayCommand(
             () => RunReplaceAsync(build: true),
             () => CanBuildReplace);
-        BuildHexEditorCommand = new AsyncRelayCommand(
-            () => RunHexEditorAsync(build: true),
-            CanBuildHexEditor);
         ShowReportCommand = new RelayCommand(ShowReport, () => CanOpenReport);
         CloseReportCommand = new RelayCommand(CloseReport);
         DismissReportToastCommand = new RelayCommand(DismissReportToast);

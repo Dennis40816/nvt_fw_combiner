@@ -36,9 +36,30 @@ internal static class FirmwareFilePickerDialogs
         IStorageProvider storageProvider,
         string suggestedFileName)
     {
+        return await PickFirmwareBinOutputPathAsync(
+            storageProvider,
+            "Save replaced firmware BIN",
+            suggestedFileName);
+    }
+
+    public static async Task<string?> PickEditedFirmwareOutputPathAsync(
+        IStorageProvider storageProvider,
+        string suggestedFileName)
+    {
+        return await PickFirmwareBinOutputPathAsync(
+            storageProvider,
+            "Save edited firmware BIN",
+            suggestedFileName);
+    }
+
+    private static async Task<string?> PickFirmwareBinOutputPathAsync(
+        IStorageProvider storageProvider,
+        string title,
+        string suggestedFileName)
+    {
         IStorageFile? file = await storageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = "Save replaced firmware BIN",
+            Title = title,
             SuggestedFileName = suggestedFileName,
             FileTypeChoices = CreateFirmwareBinChoices(),
         });

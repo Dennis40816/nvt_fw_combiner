@@ -34,10 +34,11 @@ public static partial class WorkbenchCompositionService
         if (!TryCreateGeneralReplaceMappings(
                 context!.SelectedMappings,
                 context.SelectedPatches,
+                context.Capacity,
                 out IReadOnlyList<ExplicitMapping> explicitMappings,
                 out IReadOnlyList<AddressSpace> requestAddressSpaces,
                 out IReadOnlyList<InputArtifactBinding> mappingBindings,
-                out IReadOnlyDictionary<string, byte[]> virtualArtifacts,
+                out IReadOnlyList<GeneralReplacePatchArtifact> patchArtifacts,
                 out IReadOnlyList<CompositionIssue> mappingIssues))
         {
             return CreateReplaceReportRunResult(
@@ -162,6 +163,22 @@ public static partial class WorkbenchCompositionService
                 build,
                 CreateGeneralReplacePlanningOperations(explicitMappings),
                 compile.Issues,
+                profile.DefaultOutputFileName,
+                succeeded: false);
+        }
+
+        if (!TryMaterializeGeneralReplacePatchArtifacts(
+                patchArtifacts,
+                out IReadOnlyDictionary<string, byte[]> virtualArtifacts,
+                out IReadOnlyList<CompositionIssue> materializationIssues))
+        {
+            return CreateReplaceReportRunResult(
+                icId,
+                WorkbenchReplaceModes.General,
+                context.ReportSlotPaths,
+                build,
+                CreateGeneralReplacePlanningOperations(explicitMappings),
+                materializationIssues,
                 profile.DefaultOutputFileName,
                 succeeded: false);
         }

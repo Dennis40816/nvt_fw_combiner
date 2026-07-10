@@ -12,6 +12,11 @@ public sealed class SystemExternalProcessRunnerTests
     [Fact]
     public async Task RunAsyncCancellationKillsChildProcessBeforeThrowing()
     {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
         using var workspace = TempWorkspace.Create("nfc-process-runner");
         string parentProcessIdPath = workspace.PathFor("parent.pid");
         string childProcessIdPath = workspace.PathFor("child.pid");
@@ -59,6 +64,11 @@ public sealed class SystemExternalProcessRunnerTests
     [Fact]
     public async Task RunAsyncTimeoutKillsChildProcessBeforeReturning()
     {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
         using var workspace = TempWorkspace.Create("nfc-process-runner");
         string parentProcessIdPath = workspace.PathFor("parent.pid");
         string childProcessIdPath = workspace.PathFor("child.pid");

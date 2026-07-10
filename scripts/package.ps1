@@ -45,6 +45,7 @@ $PackageRoot = Join-Path $WorkRoot $PackageName
 $AppPublish = Join-Path $WorkRoot 'app-publish'
 $WorkerBuild = Join-Path $WorkRoot 'worker-build'
 $WorkerDist = Join-Path $WorkRoot 'worker-dist'
+$IdleBuildWorkerStopper = Join-Path $PSScriptRoot 'stop-idle-build-workers.ps1'
 
 try {
 Remove-Item -LiteralPath $ReleaseRoot, $WorkRoot -Recurse -Force -ErrorAction SilentlyContinue
@@ -475,5 +476,12 @@ finally {
     & $DotNet build-server shutdown
     if ($LASTEXITCODE -ne 0) {
         Write-Warning "dotnet build-server shutdown returned exit code $LASTEXITCODE."
+    }
+
+    if (Test-Path -LiteralPath $IdleBuildWorkerStopper -PathType Leaf) {
+        & $IdleBuildWorkerStopper -RepositoryRoot $RepoRoot
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "idle Avalonia build worker cleanup returned exit code $LASTEXITCODE."
+        }
     }
 }

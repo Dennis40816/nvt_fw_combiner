@@ -403,9 +403,6 @@ public sealed partial class MainWindowViewModel
     /// <summary>Command that builds Replace output through the application/workbench core.</summary>
     public IAsyncRelayCommand BuildReplaceCommand { get; }
 
-    /// <summary>Builds a complete BIN from staged experimental Hex Editor patches.</summary>
-    public IAsyncRelayCommand BuildHexEditorCommand { get; }
-
     /// <summary>Command that opens the compact Replace input selection overview.</summary>
     public IRelayCommand ShowReplaceSelectionCommand { get; }
 

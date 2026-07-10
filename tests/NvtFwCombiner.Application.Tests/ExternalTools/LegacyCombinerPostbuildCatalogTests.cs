@@ -119,7 +119,7 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
             plan,
             [new ByteRange(0x27650, 6494)]);
 
-        Assert.Equal(0x52200, requiredCapacity);
+        Assert.Equal(0x3F000, requiredCapacity);
     }
 
     /// <summary>Locks CtrlRAM allowed writes to staged slots plus declared postbuild/header writes.</summary>

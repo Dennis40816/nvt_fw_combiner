@@ -33,7 +33,7 @@ internal static partial class ReplaceCliCommandHandler
             return UsageError;
         }
 
-        string[] valueOptions = [
+        List<string> valueOptions = [
             "--profile",
             "--ic-family",
             "--ic-num",
@@ -45,12 +45,14 @@ internal static partial class ReplaceCliCommandHandler
             "--source-start",
             "--target-start",
             "--length",
-            "--mapping",
-            "--patch",
-            "--fill",
             "--output",
             "--report",
         ];
+        if (command == IcWorkflowIds.GeneralReplace)
+        {
+            valueOptions.AddRange(["--mapping", "--patch", "--fill"]);
+        }
+
         string[] flagOptions = action == "build" ? ["--overwrite"] : [];
         string[] repeatableValueOptions = command switch
         {
@@ -58,7 +60,7 @@ internal static partial class ReplaceCliCommandHandler
             IcWorkflowIds.GeneralReplace => ["--mapping", "--patch", "--fill"],
             _ => [],
         };
-        if (!TryParseOptions(args[1..], valueOptions, repeatableValueOptions, flagOptions, error, out ParsedOptions options))
+        if (!TryParseOptions(args[1..], [.. valueOptions], repeatableValueOptions, flagOptions, error, out ParsedOptions options))
         {
             return UsageError;
         }

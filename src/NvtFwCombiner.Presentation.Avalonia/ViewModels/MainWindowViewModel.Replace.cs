@@ -37,10 +37,9 @@ public sealed partial class MainWindowViewModel
         });
     }
 
-    private bool CanBuildHexEditor()
-    {
-        return !IsRunInProgress && ReplaceBaseSlot.HasFile && GeneralReplacePatches.Count > 0;
-    }
+    /// <summary>Whether the Hex Editor has a selected base BIN and at least one staged patch.</summary>
+    public bool CanBuildHexEditor =>
+        !IsRunInProgress && ReplaceBaseSlot.HasFile && GeneralReplacePatches.Count > 0;
 
     /// <summary>Builds the staged experimental Hex Editor changes through the General Replace pipeline.</summary>
     public Task BuildHexEditorAsync(string outputPath)

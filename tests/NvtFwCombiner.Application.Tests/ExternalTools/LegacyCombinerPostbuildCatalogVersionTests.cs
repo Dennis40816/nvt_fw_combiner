@@ -59,28 +59,28 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
                      block.FirmwareRange == new ByteRange(0x28FB0, 256));
     }
 
-    /// <summary>Locks NT51930 Common FW 1.x large cascade counts to the archived extend branch.</summary>
+    /// <summary>Locks NT51930 Common FW 1.x large counts to the approved cascade branch until product evidence reactivates an extended branch.</summary>
     [Fact]
-    public void Nt51930CommonFw1xSelectsExtendedCascadeDiffLength()
+    public void Nt51930CommonFw1xKeepsLargeCountsOnApprovedCascadeDiffLength()
     {
         LegacyCombinerPostbuildCommandPlan normalCascade = LegacyCombinerPostbuildPlanner.CreatePlan(
             LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x,
             new IcNumberSelection(IcNumberInputMode.NumericSelector, ["13"]));
-        LegacyCombinerPostbuildCommandPlan extendedCascade = LegacyCombinerPostbuildPlanner.CreatePlan(
+        LegacyCombinerPostbuildCommandPlan largeCascade = LegacyCombinerPostbuildPlanner.CreatePlan(
             LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x,
             new IcNumberSelection(IcNumberInputMode.NumericSelector, ["14"]));
 
         LegacyCombinerBlockArgument normalDiff = normalCascade.Commands
             .SelectMany(command => command.Blocks)
             .Single(block => block.SourceFileName == "DiffDLM.bin");
-        LegacyCombinerBlockArgument extendedDiff = extendedCascade.Commands
+        LegacyCombinerBlockArgument largeDiff = largeCascade.Commands
             .SelectMany(command => command.Blocks)
             .Single(block => block.SourceFileName == "DiffDLM.bin");
 
         Assert.Equal(LegacyCombinerPostbuildBranch.Cascade, normalCascade.Branch);
         Assert.Equal(new ByteRange(0x2F200, 65024), normalDiff.FirmwareRange);
-        Assert.Equal(LegacyCombinerPostbuildBranch.CascadeExtended, extendedCascade.Branch);
-        Assert.Equal(new ByteRange(0x2F200, 143360), extendedDiff.FirmwareRange);
+        Assert.Equal(LegacyCombinerPostbuildBranch.Cascade, largeCascade.Branch);
+        Assert.Equal(new ByteRange(0x2F200, 65024), largeDiff.FirmwareRange);
     }
 
     /// <summary>Locks ambiguous versioned ICs to fail closed for unsupported Common FW versions.</summary>

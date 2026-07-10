@@ -191,7 +191,6 @@ public sealed partial class MainWindowViewModel
         BuildMergeCommand.NotifyCanExecuteChanged();
         PreviewReplaceCommand.NotifyCanExecuteChanged();
         BuildReplaceCommand.NotifyCanExecuteChanged();
-        BuildHexEditorCommand.NotifyCanExecuteChanged();
         ShowReportCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(IsRunInProgress));
         OnPropertyChanged(nameof(CanPreviewStandardMerge));

@@ -19,19 +19,6 @@ public static partial class LegacyCombinerPostbuildCatalog
         ];
     }
 
-    private static IReadOnlyList<LegacyCombinerPostbuildBranchRule> SingleCascadeExtendBranchRules(
-        int singleValue,
-        IEnumerable<int> cascadeValues,
-        IEnumerable<int> cascadeExtendedValues)
-    {
-        return [
-            .. SingleCascadeBranchRules(singleValue, cascadeValues),
-            .. cascadeExtendedValues.Select(value => BranchRule(
-                value.ToString(CultureInfo.InvariantCulture),
-                LegacyCombinerPostbuildBranch.CascadeExtended)),
-        ];
-    }
-
     private static IReadOnlyList<LegacyCombinerPostbuildBranchRule> NumericOneTwoThreeBranchRules()
     {
         return [

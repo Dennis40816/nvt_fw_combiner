@@ -125,7 +125,11 @@
             <Button Classes="secondary" Command="{Binding UndoGeneralReplacePatchCommand}" Content="{Binding Text.GeneralReplaceUndoPatchLabel}" />
             <Button Classes="secondary" Command="{Binding RedoGeneralReplacePatchCommand}" Content="{Binding Text.GeneralReplaceRedoPatchLabel}" />
           </StackPanel>
-          <Button Classes="primary" Command="{Binding BuildHexEditorCommand}" Content="{Binding Text.HexEditorBuildLabel}" />
+          <Button
+              Classes="primary"
+              Click="BuildHexEditorButton_OnClick"
+              Content="{Binding Text.HexEditorBuildLabel}"
+              IsEnabled="{Binding CanBuildHexEditor}" />
           <Border Height="1" Background="#E2E8F0" />
           <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Text.GeneralReplaceCommittedPatchesTitle}" />
           <TextBlock IsVisible="{Binding IsGeneralReplacePatchListEmpty}" FontSize="12" Foreground="#64748B" Text="{Binding Text.GeneralReplaceNoPatchesLabel}" />

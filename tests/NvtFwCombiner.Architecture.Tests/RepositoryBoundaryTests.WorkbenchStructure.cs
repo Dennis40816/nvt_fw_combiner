@@ -116,11 +116,15 @@ public sealed partial class RepositoryBoundaryTests
     {
         string panel = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/HexEditorPanel.axaml");
         string viewModel = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Replace.cs");
+        string panelCodeBehind = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/HexEditorPanel.axaml.cs");
         string runner = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Replace.cs");
         string viewport = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.HexViewport.cs");
 
-        Assert.Contains("BuildHexEditorCommand", panel, StringComparison.Ordinal);
-        Assert.Contains("RunHexEditorAsync", viewModel, StringComparison.Ordinal);
+        Assert.Contains("BuildHexEditorButton_OnClick", panel, StringComparison.Ordinal);
+        Assert.Contains("PickEditedFirmwareOutputPathAsync", panelCodeBehind, StringComparison.Ordinal);
+        Assert.Contains("BuildHexEditorAsync", panelCodeBehind, StringComparison.Ordinal);
+        Assert.Contains("BuildHexEditorAsync", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("BuildHexEditorCommand", panel, StringComparison.Ordinal);
         Assert.Contains("WorkbenchCompositionService.CreateGeneralReplaceHexViewport", runner, StringComparison.Ordinal);
         Assert.Contains("new FileStream", viewport, StringComparison.Ordinal);
         Assert.DoesNotContain("File.", panel, StringComparison.Ordinal);

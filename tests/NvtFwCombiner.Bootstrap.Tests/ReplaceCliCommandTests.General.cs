@@ -230,4 +230,22 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Equal(1, result.ExitCode);
         Assert.Contains("ui.general-replace.patch-hex-invalid", result.Error, StringComparison.Ordinal);
     }
+
+    /// <summary>Rejects General Replace-only mapping and patch options in other Replace command groups.</summary>
+    [Theory]
+    [InlineData("dp-replace", "--mapping")]
+    [InlineData("dp-replace", "--patch")]
+    [InlineData("ctrlram-replace", "--fill")]
+    public async Task NonGeneralReplaceRejectsGeneralAuthoringOptions(string command, string option)
+    {
+        CliRunResult result = await RunCliAsync([
+            command,
+            "preview",
+            option,
+            "0x100+0x1=FF",
+        ]);
+
+        Assert.Equal(64, result.ExitCode);
+        Assert.Contains($"unknown option '{option}'", result.Error, StringComparison.Ordinal);
+    }
 }

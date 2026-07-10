@@ -41,7 +41,7 @@ public static partial class WorkbenchCompositionService
 
         byte[] after = [.. before!];
         List<CompositionIssue> issues = [];
-        List<(ByteRange Range, byte[] Bytes)> overlays = [];
+        List<(ByteRange Range, byte[]? OverwriteBytes, byte? FillByte)> overlays = [];
         foreach (WorkbenchGeneralReplacePatchInput patch in patches)
         {
             if (!TryParseGeneralReplaceRange(
@@ -55,18 +55,24 @@ public static partial class WorkbenchCompositionService
                 continue;
             }
 
-            if (!TryCreatePatchBytes(patch, range, out byte[]? bytes, out _, out CompositionIssue? patchIssue))
-            {
-                issues.Add(patchIssue!);
-                continue;
-            }
-
             if (range.EndExclusive > baseLength)
             {
                 issues.Add(new CompositionIssue(
                     CompositionIssueCodes.InputAddressSpaceLengthMismatch,
                     $"Patch range {FormatGeneralReplaceHexRange(range)} exceeds the {baseLength}-byte base flash BIN.",
                     patch.PatchId));
+                continue;
+            }
+
+            if (!TryCreatePatchSource(
+                    patch,
+                    range,
+                    out byte[]? overwriteBytes,
+                    out byte? fillByte,
+                    out _,
+                    out CompositionIssue? patchIssue))
+            {
+                issues.Add(patchIssue!);
                 continue;
             }
 
@@ -79,11 +85,11 @@ public static partial class WorkbenchCompositionService
                 continue;
             }
 
-            overlays.Add((range, bytes!));
+            overlays.Add((range, overwriteBytes, fillByte));
         }
 
         ByteRange viewportRange = new(alignedStart, before.Length);
-        foreach ((ByteRange range, byte[] bytes) in overlays)
+        foreach ((ByteRange range, byte[]? overwriteBytes, byte? fillByte) in overlays)
         {
             ByteRange? intersection = range.Intersect(viewportRange);
             if (intersection is null)
@@ -94,7 +100,14 @@ public static partial class WorkbenchCompositionService
             ByteRange visible = intersection.Value;
             int sourceOffset = checked((int)(visible.Start - range.Start));
             int targetOffset = checked((int)(visible.Start - viewportRange.Start));
-            bytes.AsSpan(sourceOffset, checked((int)visible.Length)).CopyTo(after.AsSpan(targetOffset));
+            if (overwriteBytes is not null)
+            {
+                overwriteBytes.AsSpan(sourceOffset, checked((int)visible.Length)).CopyTo(after.AsSpan(targetOffset));
+            }
+            else
+            {
+                after.AsSpan(targetOffset, checked((int)visible.Length)).Fill(fillByte!.Value);
+            }
         }
 
         return new WorkbenchGeneralReplaceHexViewport(

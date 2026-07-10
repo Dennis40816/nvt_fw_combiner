@@ -11,8 +11,9 @@ public static partial class TpFlashMapCatalog
     public static IReadOnlyList<string> GetNumberChoices(string icId)
     {
         IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = LegacyCombinerPostbuildCatalog.GetProfiles(icId);
-        return profiles.Any(profile => profile.BranchRules.Values.Contains(LegacyCombinerPostbuildBranch.CascadeExtended))
-            ? GetExtendedNumberChoices(profiles)
+        IReadOnlyList<string> numericChoices = GetNumericNumberChoices(profiles);
+        return numericChoices.Count > 0
+            ? [IcNumberSelectionTokens.SingleChip, .. numericChoices]
             : !PostbuildProfilesByIc.TryGetValue(icId, out LegacyCombinerPostbuildProfile? profile)
             ? [IcNumberSelectionTokens.SingleChip]
             : profile.TwoChipCommands is not null || profile.ThreeChipCommands is not null
@@ -20,7 +21,7 @@ public static partial class TpFlashMapCatalog
             : [IcNumberSelectionTokens.SingleChip, IcNumberSelectionTokens.Cascade];
     }
 
-    private static IReadOnlyList<string> GetExtendedNumberChoices(IEnumerable<LegacyCombinerPostbuildProfile> profiles)
+    private static IReadOnlyList<string> GetNumericNumberChoices(IEnumerable<LegacyCombinerPostbuildProfile> profiles)
     {
         return
         [

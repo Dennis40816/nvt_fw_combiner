@@ -1,4 +1,6 @@
 using Avalonia.Controls;
+using Avalonia.Interactivity;
+using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia.Views;
 
@@ -9,5 +11,24 @@ public sealed partial class HexEditorPanel : UserControl
     public HexEditorPanel()
     {
         InitializeComponent();
+    }
+
+    private async void BuildHexEditorButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel || !viewModel.CanBuildHexEditor ||
+            TopLevel.GetTopLevel(this) is not { StorageProvider: { } storageProvider })
+        {
+            return;
+        }
+
+        string? outputPath = await FirmwareFilePickerDialogs.PickEditedFirmwareOutputPathAsync(
+            storageProvider,
+            viewModel.ReplaceOutputFileName);
+        if (string.IsNullOrWhiteSpace(outputPath))
+        {
+            return;
+        }
+
+        await viewModel.BuildHexEditorAsync(outputPath);
     }
 }

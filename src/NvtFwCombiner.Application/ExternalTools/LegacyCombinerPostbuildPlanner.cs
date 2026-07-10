@@ -17,7 +17,6 @@ public static partial class LegacyCombinerPostbuildPlanner
         IReadOnlyList<LegacyCombinerPostbuildCommand> commands = branch switch
         {
             LegacyCombinerPostbuildBranch.SingleChip => profile.SingleCommands,
-            LegacyCombinerPostbuildBranch.CascadeExtended => profile.CascadeExtendedCommands ?? profile.CascadeCommands,
             LegacyCombinerPostbuildBranch.TwoChip => profile.TwoChipCommands ?? profile.CascadeCommands,
             LegacyCombinerPostbuildBranch.ThreeChip => profile.ThreeChipCommands ?? profile.CascadeCommands,
             LegacyCombinerPostbuildBranch.Cascade => profile.CascadeCommands,

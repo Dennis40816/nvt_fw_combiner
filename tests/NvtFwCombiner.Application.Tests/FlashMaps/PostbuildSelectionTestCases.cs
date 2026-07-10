@@ -49,8 +49,7 @@ internal static class PostbuildSelectionTestCases
                 new IcNumberSelection(IcNumberInputMode.NumericSelector, [token]),
             LegacyCombinerPostbuildBranch.Cascade =>
                 new IcNumberSelection(IcNumberInputMode.CascadeSelector, [IcNumberSelectionTokens.Cascade]),
-            LegacyCombinerPostbuildBranch.CascadeExtended or
-                LegacyCombinerPostbuildBranch.TwoChip or
+            LegacyCombinerPostbuildBranch.TwoChip or
                 LegacyCombinerPostbuildBranch.ThreeChip =>
                 new IcNumberSelection(IcNumberInputMode.NumericSelector, [token]),
             _ => throw new ArgumentOutOfRangeException(nameof(branch), branch, "Unsupported postbuild branch."),

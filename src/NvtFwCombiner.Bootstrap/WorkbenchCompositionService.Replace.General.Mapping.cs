@@ -8,16 +8,17 @@ public static partial class WorkbenchCompositionService
     private static bool TryCreateGeneralReplaceMappings(
         WorkbenchGeneralReplaceMappingInput[] mappingInputs,
         WorkbenchGeneralReplacePatchInput[] patchInputs,
+        long referenceCapacity,
         out IReadOnlyList<ExplicitMapping> explicitMappings,
         out IReadOnlyList<AddressSpace> requestAddressSpaces,
         out IReadOnlyList<InputArtifactBinding> mappingBindings,
-        out IReadOnlyDictionary<string, byte[]> virtualArtifacts,
+        out IReadOnlyList<GeneralReplacePatchArtifact> patchArtifacts,
         out IReadOnlyList<CompositionIssue> issues)
     {
         List<ExplicitMapping> mappings = [];
         List<AddressSpace> spaces = [];
         List<InputArtifactBinding> bindings = [];
-        Dictionary<string, byte[]> artifacts = new(StringComparer.Ordinal);
+        List<GeneralReplacePatchArtifact> artifacts = [];
         List<CompositionIssue> issueList = [];
         HashSet<string> ids = new(StringComparer.Ordinal);
         int operationIndex = 0;
@@ -64,11 +65,11 @@ public static partial class WorkbenchCompositionService
             if (!TryCreatePatchGeneralReplaceMapping(
                     input,
                     operationIndex,
+                    referenceCapacity,
                     out ExplicitMapping? mapping,
                     out AddressSpace? space,
                     out InputArtifactBinding? binding,
-                    out string? virtualArtifactId,
-                    out byte[]? artifactBytes,
+                    out GeneralReplacePatchArtifact? artifact,
                     out CompositionIssue? issue))
             {
                 if (issue is not null)
@@ -83,14 +84,14 @@ public static partial class WorkbenchCompositionService
             mappings.Add(mapping!);
             spaces.Add(space!);
             bindings.Add(binding!);
-            artifacts.Add(virtualArtifactId!, artifactBytes!);
+            artifacts.Add(artifact!);
             operationIndex++;
         }
 
         explicitMappings = mappings;
         requestAddressSpaces = spaces;
         mappingBindings = bindings;
-        virtualArtifacts = artifacts;
+        patchArtifacts = artifacts;
         issues = issueList;
         return issueList.Count == 0;
     }
@@ -136,18 +137,17 @@ public static partial class WorkbenchCompositionService
     private static bool TryCreatePatchGeneralReplaceMapping(
         WorkbenchGeneralReplacePatchInput input,
         int operationIndex,
+        long referenceCapacity,
         out ExplicitMapping? mapping,
         out AddressSpace? addressSpace,
         out InputArtifactBinding? binding,
-        out string? virtualArtifactId,
-        out byte[]? artifactBytes,
+        out GeneralReplacePatchArtifact? artifact,
         out CompositionIssue? issue)
     {
         mapping = null;
         addressSpace = null;
         binding = null;
-        virtualArtifactId = null;
-        artifactBytes = null;
+        artifact = null;
         if (!TryParseGeneralReplaceRange(
                 input.PatchId,
                 input.TargetStart,
@@ -158,15 +158,35 @@ public static partial class WorkbenchCompositionService
             return false;
         }
 
-        if (!TryCreatePatchBytes(input, targetRange, out byte[]? bytes, out string? reason, out issue))
+        if (targetRange.EndExclusive > referenceCapacity)
+        {
+            issue = new CompositionIssue(
+                CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+                $"General Replace patch '{input.PatchId}' target range exceeds the {referenceCapacity}-byte base flash BIN.",
+                input.PatchId);
+            return false;
+        }
+
+        if (!TryCreatePatchSource(
+                input,
+                targetRange,
+                out byte[]? overwriteBytes,
+                out byte? fillByte,
+                out string? reason,
+                out issue))
         {
             return false;
         }
 
         string addressSpaceId = $"{input.PatchId}-input";
-        virtualArtifactId = VirtualArtifactLocator.CreateGeneralReplacePatch(input.PatchId);
-        artifactBytes = bytes!;
-        addressSpace = new AddressSpace(addressSpaceId, bytes!.LongLength, AddressSpaceMutability.Immutable);
+        string virtualArtifactId = VirtualArtifactLocator.CreateGeneralReplacePatch(input.PatchId);
+        artifact = new GeneralReplacePatchArtifact(
+            input.PatchId,
+            virtualArtifactId,
+            targetRange.Length,
+            overwriteBytes,
+            fillByte);
+        addressSpace = new AddressSpace(addressSpaceId, targetRange.Length, AddressSpaceMutability.Immutable);
         binding = new InputArtifactBinding(addressSpaceId, input.PatchId, virtualArtifactId);
         mapping = CreateGeneralReplaceMapping(
             input.PatchId,
@@ -199,14 +219,16 @@ public static partial class WorkbenchCompositionService
             targetRegionId: null);
     }
 
-    private static bool TryCreatePatchBytes(
+    private static bool TryCreatePatchSource(
         WorkbenchGeneralReplacePatchInput input,
         ByteRange targetRange,
-        out byte[]? bytes,
+        out byte[]? overwriteBytes,
+        out byte? fillByte,
         out string? reason,
         out CompositionIssue? issue)
     {
-        bytes = null;
+        overwriteBytes = null;
+        fillByte = null;
         reason = null;
         if (!TryParseHexBytes(input.Value, out byte[]? suppliedBytes))
         {
@@ -229,7 +251,7 @@ public static partial class WorkbenchCompositionService
                     return false;
                 }
 
-                bytes = suppliedBytes;
+                overwriteBytes = suppliedBytes;
                 reason = "Overwrite hexadecimal General range.";
                 issue = null;
                 return true;
@@ -243,20 +265,7 @@ public static partial class WorkbenchCompositionService
                     return false;
                 }
 
-                try
-                {
-                    bytes = new byte[checked((int)targetRange.Length)];
-                }
-                catch (OverflowException)
-                {
-                    issue = new CompositionIssue(
-                        WorkbenchIssueCodes.GeneralReplacePatchLengthMismatch,
-                        $"General Replace fill '{input.PatchId}' is too large to materialize safely.",
-                        input.PatchId);
-                    return false;
-                }
-
-                Array.Fill(bytes, suppliedBytes[0]);
+                fillByte = suppliedBytes[0];
                 reason = $"Fill hexadecimal General range with 0x{suppliedBytes[0]:X2}.";
                 issue = null;
                 return true;
@@ -266,6 +275,74 @@ public static partial class WorkbenchCompositionService
                     $"General Replace patch '{input.PatchId}' has an unsupported patch operation.",
                     input.PatchId);
                 return false;
+        }
+    }
+
+    private static bool TryMaterializeGeneralReplacePatchArtifacts(
+        IReadOnlyList<GeneralReplacePatchArtifact> patchArtifacts,
+        out IReadOnlyDictionary<string, byte[]> virtualArtifacts,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        Dictionary<string, byte[]> artifacts = new(StringComparer.Ordinal);
+        List<CompositionIssue> issueList = [];
+        foreach (GeneralReplacePatchArtifact artifact in patchArtifacts)
+        {
+            if (!artifact.TryMaterialize(out byte[]? bytes, out CompositionIssue? issue))
+            {
+                issueList.Add(issue!);
+                continue;
+            }
+
+            artifacts.Add(artifact.VirtualArtifactId, bytes!);
+        }
+
+        virtualArtifacts = artifacts;
+        issues = issueList;
+        return issueList.Count == 0;
+    }
+
+    private sealed record GeneralReplacePatchArtifact(
+        string PatchId,
+        string VirtualArtifactId,
+        long Length,
+        byte[]? OverwriteBytes,
+        byte? FillByte)
+    {
+        public bool TryMaterialize(out byte[]? bytes, out CompositionIssue? issue)
+        {
+            if (OverwriteBytes is not null)
+            {
+                bytes = OverwriteBytes;
+                issue = null;
+                return true;
+            }
+
+            if (FillByte is not { } fillByte || Length > Array.MaxLength)
+            {
+                bytes = null;
+                issue = new CompositionIssue(
+                    WorkbenchIssueCodes.GeneralReplacePatchLengthMismatch,
+                    $"General Replace fill '{PatchId}' is too large to materialize safely.",
+                    PatchId);
+                return false;
+            }
+
+            try
+            {
+                bytes = new byte[checked((int)Length)];
+                Array.Fill(bytes, fillByte);
+                issue = null;
+                return true;
+            }
+            catch (OutOfMemoryException)
+            {
+                bytes = null;
+                issue = new CompositionIssue(
+                    WorkbenchIssueCodes.GeneralReplacePatchLengthMismatch,
+                    $"General Replace fill '{PatchId}' could not be materialized safely.",
+                    PatchId);
+                return false;
+            }
         }
     }
 

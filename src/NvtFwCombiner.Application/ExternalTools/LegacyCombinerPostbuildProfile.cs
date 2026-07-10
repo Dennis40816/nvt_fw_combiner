@@ -7,7 +7,6 @@ public sealed class LegacyCombinerPostbuildProfile
 {
     private readonly LegacyCombinerPostbuildCommand[] _singleCommands;
     private readonly LegacyCombinerPostbuildCommand[] _cascadeCommands;
-    private readonly LegacyCombinerPostbuildCommand[]? _cascadeExtendedCommands;
     private readonly LegacyCombinerPostbuildCommand[]? _twoChipCommands;
     private readonly LegacyCombinerPostbuildCommand[]? _threeChipCommands;
     private readonly Dictionary<string, LegacyCombinerPostbuildBranch> _branchRules;
@@ -21,7 +20,6 @@ public sealed class LegacyCombinerPostbuildProfile
         IEnumerable<LegacyCombinerPostbuildCommand> singleCommands,
         IEnumerable<LegacyCombinerPostbuildCommand> cascadeCommands,
         string evidence,
-        IEnumerable<LegacyCombinerPostbuildCommand>? cascadeExtendedCommands = null,
         IEnumerable<LegacyCombinerPostbuildCommand>? twoChipCommands = null,
         IEnumerable<LegacyCombinerPostbuildCommand>? threeChipCommands = null,
         IEnumerable<LegacyCombinerPostbuildBranchRule>? branchRules = null,
@@ -44,7 +42,6 @@ public sealed class LegacyCombinerPostbuildProfile
 
         _singleCommands = [.. singleCommands];
         _cascadeCommands = [.. cascadeCommands];
-        _cascadeExtendedCommands = cascadeExtendedCommands is null ? null : [.. cascadeExtendedCommands];
         _twoChipCommands = twoChipCommands is null ? null : [.. twoChipCommands];
         _threeChipCommands = threeChipCommands is null ? null : [.. threeChipCommands];
         _branchRules = BuildBranchRules(branchRules);
@@ -53,8 +50,7 @@ public sealed class LegacyCombinerPostbuildProfile
             throw new ArgumentException("Postbuild profile must declare both single and cascade command branches.");
         }
 
-        if (_cascadeExtendedCommands is { Length: 0 } ||
-            _twoChipCommands is { Length: 0 } ||
+        if (_twoChipCommands is { Length: 0 } ||
             _threeChipCommands is { Length: 0 })
         {
             throw new ArgumentException("Explicit IC-count command branches cannot be empty.");
@@ -87,9 +83,6 @@ public sealed class LegacyCombinerPostbuildProfile
 
     /// <summary>Cascade command branch.</summary>
     public IReadOnlyList<LegacyCombinerPostbuildCommand> CascadeCommands => _cascadeCommands;
-
-    /// <summary>Optional extended cascade command branch.</summary>
-    public IReadOnlyList<LegacyCombinerPostbuildCommand>? CascadeExtendedCommands => _cascadeExtendedCommands;
 
     /// <summary>Optional explicit two-chip command branch.</summary>
     public IReadOnlyList<LegacyCombinerPostbuildCommand>? TwoChipCommands => _twoChipCommands;

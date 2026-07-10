@@ -162,7 +162,7 @@ public sealed partial class ShellViewModelTests
         viewModel.ApplyGeneralReplacePatchCommand.Execute(null);
 
         Assert.True(viewModel.HasGeneralReplacePatches);
-        Assert.True(viewModel.BuildHexEditorCommand.CanExecute(null));
+        Assert.True(viewModel.CanBuildHexEditor);
         Assert.False(viewModel.CanBuildReplace);
         _ = Assert.Single(viewModel.GeneralReplacePatches);
         Assert.True(viewModel.UndoGeneralReplacePatchCommand.CanExecute(null));
@@ -173,7 +173,7 @@ public sealed partial class ShellViewModelTests
 
         viewModel.UndoGeneralReplacePatchCommand.Execute(null);
         Assert.False(viewModel.HasGeneralReplacePatches);
-        Assert.False(viewModel.BuildHexEditorCommand.CanExecute(null));
+        Assert.False(viewModel.CanBuildHexEditor);
         viewportRow = Assert.Single(
             viewModel.GeneralReplaceHexViewportRows,
             row => row.Address == "0x000100");

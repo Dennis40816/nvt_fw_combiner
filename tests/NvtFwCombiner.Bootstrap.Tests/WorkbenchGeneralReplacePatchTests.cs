@@ -142,6 +142,34 @@ public sealed class WorkbenchGeneralReplacePatchTests
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
     }
 
+    /// <summary>Rejects an out-of-base fill range before allocating the virtual fill artifact.</summary>
+    [Fact]
+    public async Task GeneralReplaceVirtualFillRejectsTargetOutsideBaseBeforeMaterialization()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-general-patch-fill-bounds");
+        byte[] baseBytes = CreatePattern(0x40000, 0x71);
+        string basePath = workspace.Write("base.bin", baseBytes);
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51950",
+            "single",
+            "General",
+            CreateBaseSlots(basePath),
+            [],
+            [new WorkbenchGeneralReplacePatchInput(
+                "hex-fill-outside-base",
+                "0x00100",
+                "0x7FFFFFFF",
+                WorkbenchGeneralReplacePatchKind.Fill,
+                "FF")],
+            build: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.Succeeded);
+        AssertReportHasIssue(result.ReportJson, CompositionIssueCodes.InputAddressSpaceLengthMismatch);
+        Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
+    }
+
     /// <summary>TP virtual patches select the existing checked postbuild path rather than a patch-local processor.</summary>
     [Fact]
     public async Task GeneralReplaceVirtualPatchRunsExistingPostbuildForTpRange()

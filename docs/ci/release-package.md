@@ -57,6 +57,8 @@ After `scripts/package.ps1` produces a ZIP, run the deterministic local smoke be
 
 The smoke extracts into a fresh temporary directory, checks the closed package surface and manifest hashes, runs the bundled CRC worker `123456789` vector, then briefly starts the self-contained desktop executable. Use `-SkipUiLaunch` only when a visible desktop startup check cannot run; that omission must be recorded in release evidence.
 
+Both `scripts/verify.py` and `scripts/package.ps1` finish by stopping the repository SDK build server and any idle, repo-bound Avalonia BuildServices collector. The cleanup is scoped to that collector command line and never targets the packaged application, CRC worker, or Combiner process.
+
 ## First-sample `v1.0.0` release workflow
 
 The first sample release is allowed only after [`development-tags.md`](../governance/development-tags.md) marks the `v1.0.0` support matrix signed off. The package workflow is the distribution gate, not the firmware-support gate.

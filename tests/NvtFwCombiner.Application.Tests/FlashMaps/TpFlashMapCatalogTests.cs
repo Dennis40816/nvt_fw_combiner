@@ -259,21 +259,21 @@ public sealed class TpFlashMapCatalogTests
             "NT51930",
             selection,
             LegacyCombinerPostbuildCatalog.Nt51930);
-        IReadOnlyList<TpFlashMapRegion> commonFw1xExtendedMapped = TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
+        IReadOnlyList<TpFlashMapRegion> commonFw1xLargeCountMapped = TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
             "NT51930",
             new IcNumberSelection(IcNumberInputMode.NumericSelector, ["14"]),
             LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x);
 
         Assert.Contains(commonFw1xMapped, region => region.RegionId == "mp" && region.Range == new ByteRange(0x24250, 0x3400));
         Assert.Contains(commonFw1xMapped, region => region.RegionId == "vn" && region.Range == new ByteRange(0x27650, 0x195E));
-        Assert.Contains(commonFw1xExtendedMapped, region => region.RegionId == "diff" && region.Range == new ByteRange(0x2F200, 0x23000));
+        Assert.Contains(commonFw1xLargeCountMapped, region => region.RegionId == "diff" && region.Range == new ByteRange(0x2F200, 0xFE00));
         Assert.DoesNotContain(commonFw200Mapped, region => region.RegionId == "mp");
         Assert.Contains(commonFw200Mapped, region => region.RegionId == "vn" && region.Range == new ByteRange(0x27650, 0x1960));
     }
 
-    /// <summary>NT51930 exposes numeric choices because Common FW 1.x has an extended cascade branch.</summary>
+    /// <summary>NT51930 exposes numeric choices while the owner-approved cascade branch supports the current count range.</summary>
     [Fact]
-    public void Nt51930NumberChoicesExposeExtendedCascadeCounts()
+    public void Nt51930NumberChoicesExposeApprovedCascadeCounts()
     {
         IReadOnlyList<string> choices = TpFlashMapCatalog.GetNumberChoices("NT51930");
 
