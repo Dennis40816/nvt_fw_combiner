@@ -125,6 +125,10 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal("aabb", replacement.AfterHexPreview);
         Assert.Equal(2, replacement.HexPreviewByteCount);
         Assert.True(replacement.IsHexPreviewComplete);
+        OutputDifferenceSemantic replacementSemantic = Assert.IsType<OutputDifferenceSemantic>(replacement.Semantic);
+        Assert.Equal(TpBinaryCategoryIds.CtrlRam, replacementSemantic.CategoryId);
+        Assert.Equal(TpHeaderSectionIds.CtrlRamReplacement, replacementSemantic.SubjectId);
+        Assert.Equal("NF CtrlRAM (Master)", replacementSemantic.SubjectLabel);
         OutputDifferenceSummary crcHeader = result.Report.OutputDifferences[1];
         Assert.Equal(new ByteRange(3, 1), crcHeader.Range);
         Assert.True(crcHeader.IsAccepted);
@@ -136,6 +140,46 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal(1, crcHeader.HexPreviewByteCount);
         Assert.True(crcHeader.IsHexPreviewComplete);
         Assert.DoesNotContain(result.Report.Issues, issue => issue.Code == ReportIssueCodes.UnexpectedOutputDifference);
+    }
+
+    /// <summary>Verifies a modeled normal-header range reaches the report as a named field, not just a CRC bucket.</summary>
+    [Fact]
+    public async Task ReplaceReportNamesNt51926DlmCrcZero()
+    {
+        var processor = new FakeExternalProcessor(request =>
+        {
+            byte[] output = request.InputBytes.ToArray();
+            ExternalProcessorStagedSource stagedSource = Assert.Single(request.StagedSources);
+            stagedSource.Bytes.CopyTo(output.AsMemory((int)stagedSource.FirmwareRange.Start));
+            output[0x1C] = 0x7E;
+            return ExternalProcessorResult.Success(
+                output,
+                [stagedSource.FirmwareRange, new ByteRange(0x1C, 1)]);
+        });
+        var service = new CompositionRunService(
+            new FakeArtifactReader(new Dictionary<string, byte[]>
+            {
+                ["reference-artifact"] = new byte[0x100],
+                ["ctrlram-artifact"] = [0xAA, 0xBB],
+            }),
+            new FakeClock([FirstTimestamp, SecondTimestamp]),
+            null,
+            processor);
+
+        CompositionRunResult result = await service.PreviewAsync(
+            CreateNt51926HeaderSemanticRequest(),
+            CancellationToken.None);
+
+        OutputDifferenceSummary headerDifference = Assert.Single(
+            result.Report.OutputDifferences,
+            difference => difference.Range == new ByteRange(0x1C, 1));
+
+        OutputDifferenceSemantic semantic = Assert.IsType<OutputDifferenceSemantic>(headerDifference.Semantic);
+        Assert.Equal("tp-flash-header", semantic.CategoryId);
+        Assert.Equal("TP Flash Header", semantic.CategoryLabel);
+        Assert.Equal("nt51926-header:dlm-crc-0", semantic.SubjectId);
+        Assert.Equal("DLM CRC 0", semantic.SubjectLabel);
+        Assert.Equal("Expected: postbuild recalculated DLM CRC 0.", semantic.Explanation);
     }
 
     /// <summary>Verifies preview approval includes staged source-to-firmware mapping details.</summary>

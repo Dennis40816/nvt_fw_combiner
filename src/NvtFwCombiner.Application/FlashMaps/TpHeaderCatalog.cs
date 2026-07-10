@@ -65,7 +65,7 @@ public sealed class TpHeaderSection
 }
 
 /// <summary>TP header/write category catalog shared by postbuild planning and report rendering.</summary>
-public static class TpHeaderCatalog
+public static partial class TpHeaderCatalog
 {
     private static readonly TpHeaderSection[] Sections =
     [

@@ -20,7 +20,8 @@ public sealed class OutputDifferenceSummary
         string beforeHexPreview = "",
         string afterHexPreview = "",
         int hexPreviewByteCount = 0,
-        bool isHexPreviewComplete = false)
+        bool isHexPreviewComplete = false,
+        OutputDifferenceSemantic? semantic = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(differenceId);
         ArgumentOutOfRangeException.ThrowIfNegative(changedByteCount);
@@ -44,6 +45,7 @@ public sealed class OutputDifferenceSummary
         AfterHexPreview = afterHexPreview ?? string.Empty;
         HexPreviewByteCount = hexPreviewByteCount;
         IsHexPreviewComplete = isHexPreviewComplete;
+        Semantic = semantic;
     }
 
     /// <summary>Stable row id in report order.</summary>
@@ -87,4 +89,9 @@ public sealed class OutputDifferenceSummary
 
     /// <summary>True when the hex preview covers the whole difference range.</summary>
     public bool IsHexPreviewComplete { get; }
+
+    /// <summary>
+    /// Application-owned category and field subject for novice-first report rendering. Older report files can omit it.
+    /// </summary>
+    public OutputDifferenceSemantic? Semantic { get; }
 }

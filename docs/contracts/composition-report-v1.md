@@ -20,3 +20,9 @@ The report is an immutable audit record for UI, CLI, CI, regression, and release
 Reports may contain sanitized display names but not firmware bytes, secrets, arbitrary environment variables, or portable absolute input paths.
 
 Canonical schema: [`composition-report-v1.schema.json`](composition-report-v1.schema.json).
+
+## Workbench Report Semantic Extension
+
+`CompositionRunReport` is an Application/workbench projection and is not the canonical `composition-report-v1` wire model. Its Replace-only `OutputDifferences[]` rows may carry an optional `Semantic` object with category, field/section subject, and plain-language explanation. This allows a report renderer to show `TP Flash Header` / `DLM CRC 0` without calculating firmware meaning from an address.
+
+The extension remains backward-compatible for older report JSON that lacks `Semantic`. It does not add a property to [`composition-report-v1.schema.json`](composition-report-v1.schema.json). See [TP Binary Model Catalog](../architecture/tp-binary-model-catalog.md) and [ADR 0013](../adr/0013-tp-binary-model-and-report-semantic-projection.md).

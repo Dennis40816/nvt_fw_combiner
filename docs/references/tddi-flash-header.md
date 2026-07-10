@@ -12,6 +12,8 @@ Affected firmware area:
 - Address space: staged firmware/output image processed by the legacy combiner.
 - Invariants: the external combiner may mutate only a host-created staging copy; host-side byte diff remains authoritative; all production ranges remain half-open and profile-declared.
 
+The executable inspection/report mapping derived from this evidence is maintained in [TP Binary Model Catalog](../architecture/tp-binary-model-catalog.md). That catalog does not change Combiner behavior or promote new firmware support.
+
 ## Archive Provenance
 
 Recovered archive:

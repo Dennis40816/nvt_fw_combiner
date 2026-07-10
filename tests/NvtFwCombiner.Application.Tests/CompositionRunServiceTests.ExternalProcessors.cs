@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 
@@ -96,6 +97,63 @@ public sealed partial class CompositionRunServiceTests
                 new InputArtifactBinding(stagedSourceSpaceId, stagedSourceSpaceId, "ctrlram-artifact"),
             ],
             "external-staged-source.bin",
+            icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+    }
+
+    private static CompositionRunRequest CreateNt51926HeaderSemanticRequest()
+    {
+        const string ctrlRamSpaceId = "replace-ctrlram-normal";
+        AddressSpace[] addressSpaces =
+        [
+            new("reference-base", 0x100, AddressSpaceMutability.Immutable),
+            new(ctrlRamSpaceId, 2, AddressSpaceMutability.Immutable),
+            new("output-image", 0x100, AddressSpaceMutability.Mutable),
+        ];
+        var plan = new CompositionPlan(
+            ImageInitialization.Reference("output-image", "reference-base", 0x100),
+            addressSpaces,
+            [
+                CompositionOperation.RunExternalProcessor(
+                    "run-postbuild",
+                    10,
+                    "output-image",
+                    new ByteRange(0, 0x100),
+                    new ExternalProcessorInvocation(
+                        "processor-v1",
+                        "tool-v1",
+                        [new ByteRange(0, 0x100)],
+                        [new ByteRange(0, 0x100)],
+                        [
+                            new ExternalProcessorStagedSourceBinding(
+                                ctrlRamSpaceId,
+                                new ByteRange(0, 2),
+                                new ByteRange(0x40, 2)),
+                        ],
+                        allowedWriteRangeSections:
+                        [
+                            new ExternalProcessorWriteRangeSection(
+                                TpHeaderSectionIds.FlashHeaderCrc,
+                                new ByteRange(0x1C, 4)),
+                        ]),
+                    OverlapPolicy.ReplaceExisting,
+                    "run NT51926 postbuild"),
+            ]);
+        return new CompositionRunRequest(
+            "run-nt51926-header-semantic",
+            new CompositionRunProfile(
+                "nt51926-header-semantic-profile",
+                "1.0.0",
+                "NT51926",
+                "external",
+                "ctrlram-replace",
+                CompositionKind.Replace,
+                IcNumberInputMode.SingleSelector),
+            plan,
+            [
+                new InputArtifactBinding("reference-base", "reference-base", "reference-artifact"),
+                new InputArtifactBinding(ctrlRamSpaceId, ctrlRamSpaceId, "ctrlram-artifact"),
+            ],
+            "nt51926-header-semantic.bin",
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
     }
 

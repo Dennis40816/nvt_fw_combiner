@@ -65,6 +65,28 @@ public sealed partial class CompositionRunService
         return ranges;
     }
 
+    private static IEnumerable<ByteRange> SplitRangeByWriteSectionBoundaries(
+        ByteRange source,
+        IReadOnlyList<ExternalProcessorWriteRangeSection> sections)
+    {
+        SortedSet<long> points = [source.Start, source.EndExclusive];
+        foreach (ExternalProcessorWriteRangeSection section in sections)
+        {
+            ByteRange? overlap = source.Intersect(section.Range);
+            if (overlap is not null)
+            {
+                _ = points.Add(overlap.Value.Start);
+                _ = points.Add(overlap.Value.EndExclusive);
+            }
+        }
+
+        long[] ordered = [.. points];
+        for (int index = 0; index < ordered.Length - 1; index++)
+        {
+            yield return ByteRange.FromStartEndExclusive(ordered[index], ordered[index + 1]);
+        }
+    }
+
     private static string ToSliceSha256Hex(byte[] bytes, ByteRange range)
     {
         return ToSha256Hex(bytes.AsSpan(checked((int)range.Start), checked((int)range.Length)));

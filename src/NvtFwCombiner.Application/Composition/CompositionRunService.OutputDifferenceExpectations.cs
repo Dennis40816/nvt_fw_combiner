@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Contracts.Reports;
 using NvtFwCombiner.Domain.Composition;
 
@@ -30,21 +31,29 @@ public sealed partial class CompositionRunService
                         true,
                         operation.OperationId,
                         $"Accepted: staged replacement source '{binding.SourceSpaceId}' is pasted back by postbuild for {request.Profile.IcId} / {icNumber}.",
-                        FormatDifferenceSectionLabel(binding.SourceSpaceId, operation.Reason));
+                        FormatDifferenceSectionLabel(binding.SourceSpaceId, operation.Reason),
+                        TpHeaderSectionIds.CtrlRamReplacement);
                 }
 
                 foreach (ByteRange allowedWriteRange in invocation.AllowedWriteRanges)
                 {
                     foreach (ByteRange processorOnlyRange in SubtractRanges(allowedWriteRange, stagedRanges))
                     {
-                        string sectionLabel = FormatProcessorWriteSectionLabel(invocation, processorOnlyRange);
-                        yield return new OutputDifferenceExpectation(
-                            processorOnlyRange,
-                            OutputDifferenceClassifications.PostbuildCrcHeader,
-                            true,
-                            $"{operation.OperationId}: {invocation.ProcessorId}",
-                            $"Accepted: this range is inside the {request.Profile.IcId} / {icNumber} approved {sectionLabel} postbuild write ranges.",
-                            sectionLabel);
+                        foreach (ByteRange processorSegment in SplitRangeByWriteSectionBoundaries(
+                                     processorOnlyRange,
+                                     invocation.AllowedWriteRangeSections))
+                        {
+                            string? sectionId = FindProcessorWriteSectionId(invocation, processorSegment);
+                            string sectionLabel = FormatProcessorWriteSectionLabel(sectionId);
+                            yield return new OutputDifferenceExpectation(
+                                processorSegment,
+                                OutputDifferenceClassifications.PostbuildCrcHeader,
+                                true,
+                                $"{operation.OperationId}: {invocation.ProcessorId}",
+                                $"Accepted: this range is inside the {request.Profile.IcId} / {icNumber} approved {sectionLabel} postbuild write ranges.",
+                                sectionLabel,
+                                sectionId);
+                        }
                     }
                 }
 
@@ -59,7 +68,8 @@ public sealed partial class CompositionRunService
                     false,
                     operation.OperationId,
                     "Unexpected: this range is declared to be restored from the reference base.",
-                    "Reference-preserved range");
+                    "Reference-preserved range",
+                    null);
                 continue;
             }
 
@@ -69,7 +79,8 @@ public sealed partial class CompositionRunService
             true,
             operation.OperationId,
             $"Accepted: declared Replace mapping '{operation.OperationId}' writes this final range.",
-            FormatDifferenceSectionLabel(operation.SourceSpaceId, operation.Reason));
+            FormatDifferenceSectionLabel(operation.SourceSpaceId, operation.Reason),
+            null);
         }
     }
 
@@ -107,8 +118,16 @@ public sealed partial class CompositionRunService
             false,
             "not-declared",
             "Unexpected: final output differs from the reference base outside declared replacement and IC-number-specific postbuild CRC/header ranges.",
-            "Unexpected range");
+            "Unexpected range",
+            null);
     }
 
-    private sealed record OutputDifferenceExpectation(ByteRange Range, string Classification, bool IsAccepted, string Evidence, string Explanation, string SectionLabel);
+    private sealed record OutputDifferenceExpectation(
+        ByteRange Range,
+        string Classification,
+        bool IsAccepted,
+        string Evidence,
+        string Explanation,
+        string SectionLabel,
+        string? SectionId);
 }

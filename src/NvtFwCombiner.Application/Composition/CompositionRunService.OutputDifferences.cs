@@ -35,6 +35,7 @@ public sealed partial class CompositionRunService
             foreach (ByteRange segment in SplitRangeByExpectations(changedRange, expectations))
             {
                 OutputDifferenceExpectation expectation = ClassifyDifferenceSegment(segment, expectations);
+                OutputDifferenceSemantic semantic = CreateOutputDifferenceSemantic(request, expectation, segment);
                 rows.Add(new OutputDifferenceSummary(
                     FormattableString.Invariant($"diff-{++rowIndex:D3}"),
                     segment,
@@ -49,7 +50,8 @@ public sealed partial class CompositionRunService
                     ToSliceHexPreview(referenceBytes, segment),
                     ToSliceHexPreview(outputBytes, segment),
                     checked((int)Math.Min(segment.Length, OutputDifferenceHexPreviewBytes)),
-                    segment.Length <= OutputDifferenceHexPreviewBytes));
+                    segment.Length <= OutputDifferenceHexPreviewBytes,
+                    semantic));
             }
         }
 

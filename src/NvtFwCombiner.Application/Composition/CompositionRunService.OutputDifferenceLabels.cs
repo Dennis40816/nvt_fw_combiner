@@ -5,18 +5,18 @@ namespace NvtFwCombiner.Application.Composition;
 
 public sealed partial class CompositionRunService
 {
-    private static string FormatProcessorWriteSectionLabel(ExternalProcessorInvocation invocation, ByteRange range)
+    private static string? FindProcessorWriteSectionId(ExternalProcessorInvocation invocation, ByteRange range)
     {
         ExternalProcessorWriteRangeSection? section = invocation.AllowedWriteRangeSections.LastOrDefault(candidate =>
             candidate.Range.Contains(range));
-        return section is null
-            ? "Header / CRC refresh"
-            : FormatProcessorWriteSectionLabel(section.SectionId);
+        return section?.SectionId;
     }
 
-    private static string FormatProcessorWriteSectionLabel(string sectionId)
+    private static string FormatProcessorWriteSectionLabel(string? sectionId)
     {
-        return TpHeaderCatalog.GetDisplayName(sectionId);
+        return string.IsNullOrWhiteSpace(sectionId)
+            ? "Header / CRC refresh"
+            : TpHeaderCatalog.GetDisplayName(sectionId);
     }
 
     private static string FormatDifferenceSectionLabel(string? sourceSpaceId, string reason)
