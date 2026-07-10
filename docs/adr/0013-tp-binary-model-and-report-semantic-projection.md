@@ -32,7 +32,7 @@ The UI must not infer a firmware field from an output address. Doing so would du
 
 4. `CompositionRunService` projects a nested `OutputDifferences[].Semantic` object after the output byte diff is calculated. It contains a category and a field/section subject. Presentation consumes it directly and retains a fallback for historical reports that do not include the object.
 
-5. A field name is emitted only when the changed half-open range is fully inside a modeled field and the difference was classified as an approved postbuild header write. A copied-header target without a verified source-to-target field mapping remains a named header-copy section, not a guessed field.
+5. A field name is emitted only when the changed half-open range is fully inside a modeled field and the difference was classified as an approved postbuild header write. A copied-header target is mapped to a field only when the selected postbuild plan declares an equal-length source-to-target copy range; otherwise it remains a named header-copy section, not a guessed field.
 
 6. The Report Changes view groups by semantic category and leads with field name, expected/review status, and explanation. Range, hash, and hex before/after evidence are disclosed in the row details.
 
@@ -40,6 +40,7 @@ The UI must not infer a firmware field from an output address. Doing so would du
 
 - A normal NT51926 difference in `[0x001C, 0x0020)` is reported as `TP Flash Header` / `DLM CRC 0` rather than a generic CRC bucket.
 - The current report file remains backward-compatible because `Semantic` is optional when parsing older JSON.
+- Copy provenance is retained as report metadata on the existing processor write-section declaration. It grants no additional processor read/write authority and does not alter the selected Combiner command line.
 - The canonical `composition-report-v1` schema is not expanded by this ADR. `CompositionRunReport` is an Application/workbench report projection and must be documented separately from the versioned wire schema.
 - NT51928 NB remains intentionally unmodeled. NT51932 uses only workbook fields common to its Type A/B/C diagrams until an owner-approved variant selector is documented.
 - IC aliases are marked as documented aliases, not direct workbook proof. They do not grant write permissions or promote golden parity.
@@ -53,4 +54,4 @@ The UI must not infer a firmware field from an output address. Doing so would du
 
 ## Human Review Gate
 
-This decision does not approve any firmware range, CRC algorithm, copy-header mapping, or parity claim. Firmware-owner review remains required before promoting new field ranges, variant-specific NT51932 data, or header-copy source/destination field equivalence into production behavior.
+This decision does not approve any firmware range, CRC algorithm, or parity claim. The NT51927 Header #3 continuation is limited to report projection, based on worksheet `927`'s continuation marker and the approved three-chip `final-header-backup` source coverage. Firmware-owner review remains required before promoting variant-specific NT51932 data or any new field/source equivalence into production behavior.

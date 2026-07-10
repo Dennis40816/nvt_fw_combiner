@@ -32,7 +32,8 @@ public sealed partial class CompositionRunService
                         operation.OperationId,
                         $"Accepted: staged replacement source '{binding.SourceSpaceId}' is pasted back by postbuild for {request.Profile.IcId} / {icNumber}.",
                         FormatDifferenceSectionLabel(binding.SourceSpaceId, operation.Reason),
-                        TpHeaderSectionIds.CtrlRamReplacement);
+                        TpHeaderSectionIds.CtrlRamReplacement,
+                        null);
                 }
 
                 foreach (ByteRange allowedWriteRange in invocation.AllowedWriteRanges)
@@ -43,7 +44,10 @@ public sealed partial class CompositionRunService
                                      processorOnlyRange,
                                      invocation.AllowedWriteRangeSections))
                         {
-                            string? sectionId = FindProcessorWriteSectionId(invocation, processorSegment);
+                            ExternalProcessorWriteRangeSection? section = FindProcessorWriteSection(
+                                invocation,
+                                processorSegment);
+                            string? sectionId = section?.SectionId;
                             string sectionLabel = FormatProcessorWriteSectionLabel(sectionId);
                             yield return new OutputDifferenceExpectation(
                                 processorSegment,
@@ -52,7 +56,10 @@ public sealed partial class CompositionRunService
                                 $"{operation.OperationId}: {invocation.ProcessorId}",
                                 $"Accepted: this range is inside the {request.Profile.IcId} / {icNumber} approved {sectionLabel} postbuild write ranges.",
                                 sectionLabel,
-                                sectionId);
+                                sectionId,
+                                section is not null && section.TryMapRangeToSourceRange(processorSegment, out ByteRange sourceRange)
+                                    ? sourceRange
+                                    : null);
                         }
                     }
                 }
@@ -67,9 +74,10 @@ public sealed partial class CompositionRunService
                     OutputDifferenceClassifications.PreservedReference,
                     false,
                     operation.OperationId,
-                    "Unexpected: this range is declared to be restored from the reference base.",
-                    "Reference-preserved range",
-                    null);
+            "Unexpected: this range is declared to be restored from the reference base.",
+            "Reference-preserved range",
+            null,
+            null);
                 continue;
             }
 
@@ -80,6 +88,7 @@ public sealed partial class CompositionRunService
             operation.OperationId,
             $"Accepted: declared Replace mapping '{operation.OperationId}' writes this final range.",
             FormatDifferenceSectionLabel(operation.SourceSpaceId, operation.Reason),
+            null,
             null);
         }
     }
@@ -119,6 +128,7 @@ public sealed partial class CompositionRunService
             "not-declared",
             "Unexpected: final output differs from the reference base outside declared replacement and IC-number-specific postbuild CRC/header ranges.",
             "Unexpected range",
+            null,
             null);
     }
 
@@ -129,5 +139,6 @@ public sealed partial class CompositionRunService
         string Evidence,
         string Explanation,
         string SectionLabel,
-        string? SectionId);
+        string? SectionId,
+        ByteRange? SourceRange);
 }

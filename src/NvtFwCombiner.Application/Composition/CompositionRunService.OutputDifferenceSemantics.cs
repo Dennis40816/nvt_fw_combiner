@@ -51,15 +51,19 @@ public sealed partial class CompositionRunService
         OutputDifferenceExpectation expectation,
         ByteRange range)
     {
+        ByteRange fieldRange = MapDifferenceToHeaderSourceRange(expectation, range);
         if (TpHeaderCatalog.IsHeaderSection(expectation.SectionId) &&
-            TpHeaderCatalog.TryFindField(icId, range, out TpHeaderField? field))
+            TpHeaderCatalog.TryFindField(icId, fieldRange, out TpHeaderField? field))
         {
+            string explanation = expectation.SourceRange is null
+                ? $"Expected: postbuild recalculated {field!.DisplayName}."
+                : $"Expected: postbuild refreshed {field!.DisplayName} and copied it to {expectation.SectionLabel}.";
             return new OutputDifferenceSemantic(
                 TpBinaryCategoryIds.TpFlashHeader,
                 "TP Flash Header",
                 $"{icId.ToLowerInvariant()}-header:{field!.FieldId}",
                 field.DisplayName,
-                $"Expected: postbuild recalculated {field.DisplayName}.");
+                explanation);
         }
 
         bool isHeaderCopy = TpHeaderCatalog.IsHeaderSection(expectation.SectionId) ||
@@ -84,5 +88,24 @@ public sealed partial class CompositionRunService
                 expectation.SectionId ?? "postbuild-copy",
                 expectation.SectionLabel,
                 $"Expected: postbuild updated {expectation.SectionLabel}.");
+    }
+
+    private static ByteRange MapDifferenceToHeaderSourceRange(
+        OutputDifferenceExpectation expectation,
+        ByteRange differenceRange)
+    {
+        if (expectation.SourceRange is not { } sourceRange)
+        {
+            return differenceRange;
+        }
+
+        if (!expectation.Range.Contains(differenceRange))
+        {
+            throw new InvalidOperationException(
+                "A classified output difference must stay inside its declared postbuild write range.");
+        }
+
+        long offset = checked(differenceRange.Start - expectation.Range.Start);
+        return new ByteRange(checked(sourceRange.Start + offset), differenceRange.Length);
     }
 }

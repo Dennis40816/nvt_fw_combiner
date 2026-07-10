@@ -196,6 +196,84 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal("Expected: postbuild recalculated DLM CRC 0.", semantic.Explanation);
     }
 
+    /// <summary>Verifies copied NT51927 header bytes retain the primary header field identity in the report.</summary>
+    [Fact]
+    public async Task ReplaceReportNamesNt51927CopiedIlmCrcZero()
+    {
+        var copiedFieldRange = new ByteRange(0x1E25C, 1);
+        CompositionRunRequest request = CreateNt51927CopiedHeaderSemanticRequest();
+        ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(
+            Assert.Single(request.Plan.OrderedOperations).ExternalProcessorInvocation);
+        ExternalProcessorWriteRangeSection headerCopySection = Assert.Single(invocation.AllowedWriteRangeSections);
+        Assert.Equal(TpHeaderSectionIds.HeaderCopyMaster, headerCopySection.SectionId);
+        Assert.Equal(new ByteRange(0x200, 0x190), headerCopySection.SourceRange);
+        Assert.True(headerCopySection.TryMapRangeToSourceRange(copiedFieldRange, out ByteRange sourceFieldRange));
+        Assert.Equal(new ByteRange(0x22C, 1), sourceFieldRange);
+        Assert.True(TpHeaderCatalog.TryFindField("NT51927", sourceFieldRange, out TpHeaderField? sourceField));
+        Assert.Equal("header-0-ilm-crc", sourceField!.FieldId);
+        var processor = new FakeExternalProcessor(request =>
+        {
+            byte[] output = request.InputBytes.ToArray();
+            output[checked((int)copiedFieldRange.Start)] = 0x7E;
+            return ExternalProcessorResult.Success(output, [copiedFieldRange]);
+        });
+        var service = new CompositionRunService(
+            new FakeArtifactReader(new Dictionary<string, byte[]>
+            {
+                ["reference-artifact"] = new byte[0x1E3C0],
+            }),
+            new FakeClock([FirstTimestamp, SecondTimestamp]),
+            null,
+            processor);
+
+        CompositionRunResult result = await service.PreviewAsync(
+            request,
+            CancellationToken.None);
+
+        OutputDifferenceSummary headerDifference = Assert.Single(result.Report.OutputDifferences);
+        Assert.Equal(copiedFieldRange, headerDifference.Range);
+
+        OutputDifferenceSemantic semantic = Assert.IsType<OutputDifferenceSemantic>(headerDifference.Semantic);
+        Assert.Equal("tp-flash-header", semantic.CategoryId);
+        Assert.Equal("nt51927-header:header-0-ilm-crc", semantic.SubjectId);
+        Assert.Equal("ILM CRC 0", semantic.SubjectLabel);
+        Assert.Equal(
+            "Expected: postbuild refreshed ILM CRC 0 and copied it to Header copy / master.",
+            semantic.Explanation);
+    }
+
+    /// <summary>Verifies the verified NT51927 Header #3 continuation also survives copied-header projection.</summary>
+    [Fact]
+    public async Task ReplaceReportNamesNt51927CopiedHeaderThreeCrc()
+    {
+        var copiedFieldRange = new ByteRange(0x1E2EC, 4);
+        CompositionRunRequest request = CreateNt51927CopiedHeaderSemanticRequest();
+        var processor = new FakeExternalProcessor(externalRequest =>
+        {
+            byte[] output = externalRequest.InputBytes.ToArray();
+            output.AsSpan(checked((int)copiedFieldRange.Start), checked((int)copiedFieldRange.Length)).Fill(0x7E);
+            return ExternalProcessorResult.Success(output, [copiedFieldRange]);
+        });
+        var service = new CompositionRunService(
+            new FakeArtifactReader(new Dictionary<string, byte[]>
+            {
+                ["reference-artifact"] = new byte[0x1E3C0],
+            }),
+            new FakeClock([FirstTimestamp, SecondTimestamp]),
+            null,
+            processor);
+
+        CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);
+
+        OutputDifferenceSummary headerDifference = Assert.Single(result.Report.OutputDifferences);
+        OutputDifferenceSemantic semantic = Assert.IsType<OutputDifferenceSemantic>(headerDifference.Semantic);
+        Assert.Equal("nt51927-header:header-3-ilm-crc", semantic.SubjectId);
+        Assert.Equal("ILM CRC 3", semantic.SubjectLabel);
+        Assert.Equal(
+            "Expected: postbuild refreshed ILM CRC 3 and copied it to Header copy / master.",
+            semantic.Explanation);
+    }
+
     /// <summary>Verifies preview approval includes staged source-to-firmware mapping details.</summary>
     [Fact]
     public async Task PreviewTokenChangesWhenStagedSourceBindingChanges()

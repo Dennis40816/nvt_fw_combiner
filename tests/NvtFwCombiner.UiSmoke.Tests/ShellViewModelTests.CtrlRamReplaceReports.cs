@@ -177,5 +177,19 @@ public sealed partial class ShellViewModelTests
             operation.CodeBlock.Contains("Combiner.exe", StringComparison.Ordinal));
         using var reportDocument = JsonDocument.Parse(viewModel.LoadedReportJson);
         AssertAcceptedPostbuildOnlyOutputDifferences(reportDocument.RootElement, "postbuild-threechip");
+        JsonElement[] differences = [.. reportDocument.RootElement.GetProperty("OutputDifferences").EnumerateArray()];
+        Assert.All(differences, difference => Assert.True(difference.TryGetProperty("Semantic", out _)));
+        Assert.Contains(differences, difference =>
+            difference.GetProperty("Semantic").GetProperty("CategoryId").GetString() == "tp-flash-header" &&
+            difference.GetProperty("Semantic").GetProperty("Explanation").GetString()!
+                .Contains("Header copy / master", StringComparison.Ordinal));
+        Assert.Contains(differences, difference =>
+            difference.GetProperty("Semantic").GetProperty("SubjectLabel").GetString() == "DLM CRC 0");
+        Assert.Contains(differences, difference =>
+            difference.GetProperty("Semantic").GetProperty("SubjectLabel").GetString() == "Header CRC 0");
+        Assert.Contains(differences, difference =>
+            difference.GetProperty("Semantic").GetProperty("SubjectLabel").GetString() == "ILM CRC 3");
+        Assert.Contains(differences, difference =>
+            difference.GetProperty("Semantic").GetProperty("SubjectLabel").GetString() == "Header CRC 3");
     }
 }

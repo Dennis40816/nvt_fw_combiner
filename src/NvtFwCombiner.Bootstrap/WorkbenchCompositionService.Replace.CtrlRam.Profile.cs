@@ -96,7 +96,7 @@ public static partial class WorkbenchCompositionService
                 postbuildWriteRanges,
                 stagedSourceBindings,
                 allowedWriteRangeSections: postbuildWriteRangeSections.Select(section =>
-                    new ExternalProcessorWriteRangeSection(section.SectionId, section.Range))),
+                    new ExternalProcessorWriteRangeSection(section.SectionId, section.Range, section.SourceRange))),
             OverlapPolicy.ReplaceExisting,
             $"Run {commandPlan.Branch} legacy Combiner postbuild and stage selected CtrlRAM BINs for Combiner pasteback. Combiner command: {FormatPostbuildCommandBlock(commandPlan)}."));
 

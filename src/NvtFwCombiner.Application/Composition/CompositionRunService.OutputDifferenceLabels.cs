@@ -5,11 +5,11 @@ namespace NvtFwCombiner.Application.Composition;
 
 public sealed partial class CompositionRunService
 {
-    private static string? FindProcessorWriteSectionId(ExternalProcessorInvocation invocation, ByteRange range)
+    private static ExternalProcessorWriteRangeSection? FindProcessorWriteSection(
+        ExternalProcessorInvocation invocation,
+        ByteRange range)
     {
-        ExternalProcessorWriteRangeSection? section = invocation.AllowedWriteRangeSections.LastOrDefault(candidate =>
-            candidate.Range.Contains(range));
-        return section?.SectionId;
+        return invocation.AllowedWriteRangeSections.LastOrDefault(candidate => candidate.Range.Contains(range));
     }
 
     private static string FormatProcessorWriteSectionLabel(string? sectionId)

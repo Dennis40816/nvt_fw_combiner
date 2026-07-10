@@ -44,6 +44,28 @@ public sealed class TpHeaderCatalogTests
         Assert.Equal("DLM CRC 0", field.DisplayName);
     }
 
+    /// <summary>
+    /// Worksheet 927 continues after Header #2 and the approved three-chip final-header copy covers Header #3.
+    /// These fields are report semantics only; no write authority is derived from the model.
+    /// </summary>
+    [Fact]
+    public void Nt51927HeaderModelsPostbuildContinuationCrcFields()
+    {
+        Assert.True(TpBinaryModelCatalog.TryGetHeaderLayout("NT51927", out TpHeaderLayout? layout));
+        Assert.Equal(TpHeaderModelStatus.WorkbookWithPostbuildContinuation, layout!.Status);
+        Assert.Contains(new ByteRange(0x0200, 0x00E0), layout.Ranges);
+
+        Assert.True(
+            TpHeaderCatalog.TryFindField("NT51927", new ByteRange(0x2BC, 0x4), out TpHeaderField? ilmCrc));
+        Assert.Equal("header-3-ilm-crc", ilmCrc!.FieldId);
+        Assert.Equal("ILM CRC 3", ilmCrc.DisplayName);
+
+        Assert.True(
+            TpHeaderCatalog.TryFindField("NT51927", new ByteRange(0x2DC, 0x4), out TpHeaderField? headerCrc));
+        Assert.Equal("header-3-header-crc", headerCrc!.FieldId);
+        Assert.Equal("Header CRC 3", headerCrc.DisplayName);
+    }
+
     /// <summary>Ambiguous header-field declarations fail before a report can select an arbitrary subject.</summary>
     [Fact]
     public void HeaderLayoutRejectsOverlappingFields()

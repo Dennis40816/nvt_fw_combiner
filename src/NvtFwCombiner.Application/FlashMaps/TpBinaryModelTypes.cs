@@ -49,6 +49,12 @@ public enum TpHeaderModelStatus
     /// <summary>Fields come directly from a named TDDI Flash Header workbook worksheet.</summary>
     Workbook,
 
+    /// <summary>
+    /// The workbook establishes the descriptor pattern and an approved postbuild plan establishes its continued
+    /// source coverage. This is inspection/report evidence only.
+    /// </summary>
+    WorkbookWithPostbuildContinuation,
+
     /// <summary>Only fields common to several workbook variants are represented.</summary>
     WorkbookCommonFields,
 

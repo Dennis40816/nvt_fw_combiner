@@ -83,12 +83,22 @@ public sealed class ExternalProcessorInvocation
 public sealed class ExternalProcessorWriteRangeSection
 {
     /// <summary>Creates a write-range section annotation owned by the profile or adapter.</summary>
-    public ExternalProcessorWriteRangeSection(string sectionId, ByteRange range)
+    public ExternalProcessorWriteRangeSection(
+        string sectionId,
+        ByteRange range,
+        ByteRange? sourceRange = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sectionId);
+        if (sourceRange is { } source && source.Length != range.Length)
+        {
+            throw new ArgumentException(
+                "An external processor copy source range must have the same length as its destination range.",
+                nameof(sourceRange));
+        }
 
         SectionId = sectionId.Trim();
         Range = range;
+        SourceRange = sourceRange;
     }
 
     /// <summary>Stable section identifier used by reports.</summary>
@@ -96,4 +106,24 @@ public sealed class ExternalProcessorWriteRangeSection
 
     /// <summary>Half-open processor write range covered by this section.</summary>
     public ByteRange Range { get; }
+
+    /// <summary>
+    /// Firmware source range copied into <see cref="Range"/>. This is report provenance only and grants
+    /// no additional processor read or write authority.
+    /// </summary>
+    public ByteRange? SourceRange { get; }
+
+    /// <summary>Maps a destination subrange back to its copied firmware source range.</summary>
+    public bool TryMapRangeToSourceRange(ByteRange range, out ByteRange sourceRange)
+    {
+        if (SourceRange is not { } source || !Range.Contains(range))
+        {
+            sourceRange = default;
+            return false;
+        }
+
+        long offset = checked(range.Start - Range.Start);
+        sourceRange = new ByteRange(checked(source.Start + offset), range.Length);
+        return true;
+    }
 }

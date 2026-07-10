@@ -52,7 +52,7 @@ The root is inspection/report metadata. It does not replace `TpFlashMapRegionKin
 | NT51920 | 920&923 normal | Workbook | Direct `920&923` worksheet model. |
 | NT51923 | 920&923 normal | Workbook | Direct `920&923` worksheet model. |
 | NT51926 | 925&926 normal | Workbook | Direct `925&926` worksheet model; never uses `926NB`. |
-| NT51927 | 927 | Workbook | Direct `927` worksheet model. |
+| NT51927 | 927 | Workbook + postbuild continuation | `927` worksheet Header #0 through #2; its continuation marker and the approved three-chip final-header copy confirm Header #3 coverage for reporting. |
 | NT51928 | 927 | Documented alias | Non-NB only; NT51928 NB is not modeled. |
 | NT51929 | 932 common | Documented alias | TP Overview owner confirmation: follows NT51932 postbuild. |
 | NT51930 | 930 | Workbook | Direct `930` worksheet model. |
@@ -68,7 +68,7 @@ The root is inspection/report metadata. It does not replace `TpFlashMapRegionKin
 | 920&923 | `[0x0000, 0x0100)` | Normal header descriptors. |
 | 925&926 | `[0x0000, 0x0100)` | Normal header descriptors used by normal NT51926. |
 | 931 | `[0x0000, 0x0100)` | Adds DLM DIFF and DLM CRC 1 through 19 fields. |
-| 927 | `[0x0000, 0x0100)`, `[0x0200, 0x02B0)` | Global header, command header, and per-IC headers 0 through 2. |
+| 927 | `[0x0000, 0x0100)`, `[0x0200, 0x02E0)` | Global header, command header, workbook-described per-IC headers 0 through 2, and Header #3 from the workbook continuation plus three-chip final-header copy source coverage. |
 | 930 | `[0x7100, 0x7200)` | NT-based descriptor layout. |
 | 932 common | `[0x7100, 0x7200)` | Common fields only; no type-specific inference. |
 | 950 | `[0xA100, 0xA200)` | NT51950-based descriptor layout. |
@@ -83,13 +83,13 @@ layout and is not a second independently inferred model.
 
 | IC | Header layout | Model status | Field count |
 | --- | --- | --- | ---: |
-| NT51917 | NT51927 / 927 | Documented alias | 57 |
+| NT51917 | NT51927 / 927 | Documented alias | 68 |
 | NT51919 | NT51932 / 932 common | Documented alias | 12 |
 | NT51920 | 920&923 normal | Workbook | 25 |
 | NT51923 | 920&923 normal | Workbook | 25 |
 | NT51926 | 925&926 normal | Workbook | 26 |
-| NT51927 | 927 | Workbook | 57 |
-| NT51928 | NT51927 / 927 (non-NB only) | Documented alias | 57 |
+| NT51927 | 927 | Workbook + postbuild continuation | 68 |
+| NT51928 | NT51927 / 927 (non-NB only) | Documented alias | 68 |
 | NT51929 | NT51932 / 932 common | Documented alias | 12 |
 | NT51930 | 930 | Workbook | 44 |
 | NT51931 | 931 | Workbook | 49 |
@@ -182,8 +182,11 @@ Global fields:
 | `[0x0208, 0x0209)` | Command header build T9 |
 | `[0x021C, 0x0220)` | Common Header CRC |
 
-Per-IC header template is repeated three times: `n = 0, 1, 2`, base address
-`0x0220 + n * 0x30`. This supplies 33 fields in total.
+The worksheet explicitly describes the per-IC header template for `n = 0, 1, 2`, base address
+`0x0220 + n * 0x30`. Its continuation marker, together with the approved three-chip
+`final-header-backup` copy from source `[0x0000, 0x0460)`, establishes the same report-only
+template for `n = 3` at `0x02B0`. This supplies 44 fields in total. The continuation does not
+grant write authority or assert parity beyond those named fields.
 
 | Relative range | Field |
 | --- | --- |
@@ -285,6 +288,8 @@ The first row is the requested reference: bytes `0x0000` through `0x0003` are th
 | NT51920/NT51923/NT51926 normal | `[0x00FC, 0x0100)` | `Header CRC` |
 | NT51927-based | `[0x023C, 0x0240)` | `DLM CRC 0` |
 | NT51927-based | `[0x024C, 0x0250)` | `Header CRC 0` |
+| NT51927-based | `[0x02BC, 0x02C0)` | `ILM CRC 3` |
+| NT51927-based | `[0x02DC, 0x02E0)` | `Header CRC 3` |
 | NT51930/NT51932-based | `[0x7100, 0x7104)` | `Header CRC` |
 | NT51930/NT51932-based | `[0x7118, 0x711C)` | `DLM CRC 0` |
 | NT51950/NT51951-based | `[0xA11C, 0xA120)` | `DLM CRC 0` |

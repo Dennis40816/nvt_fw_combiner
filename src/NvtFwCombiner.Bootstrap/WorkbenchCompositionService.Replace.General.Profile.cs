@@ -56,7 +56,7 @@ public static partial class WorkbenchCompositionService
                         [new ByteRange(0, capacity)],
                         postbuildWriteRanges,
                         allowedWriteRangeSections: postbuildWriteRangeSections.Select(section =>
-                            new ExternalProcessorWriteRangeSection(section.SectionId, section.Range))),
+                            new ExternalProcessorWriteRangeSection(section.SectionId, section.Range, section.SourceRange))),
                     OverlapPolicy.ReplaceExisting,
                     $"Run {commandPlan.Branch} legacy Combiner postbuild after TP-touching General Replace mappings. Combiner command: {FormatPostbuildCommandBlock(commandPlan)}."),
             ];

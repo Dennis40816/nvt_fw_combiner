@@ -111,7 +111,8 @@ public static partial class LegacyCombinerPostbuildPlanner
                 {
                     candidateRanges.Add(new LegacyCombinerPostbuildWriteRange(
                         block.FirmwareRange,
-                        GetPostbuildBlockSectionId(block)));
+                        GetPostbuildBlockSectionId(block),
+                        new ByteRange(block.SourceOffset, block.FirmwareRange.Length)));
                 }
             }
         }
@@ -151,7 +152,8 @@ public static partial class LegacyCombinerPostbuildPlanner
                 {
                     candidateRanges.Add(new LegacyCombinerPostbuildWriteRange(
                         block.FirmwareRange,
-                        GetPostbuildBlockSectionId(block)));
+                        GetPostbuildBlockSectionId(block),
+                        new ByteRange(block.SourceOffset, block.FirmwareRange.Length)));
                 }
             }
         }

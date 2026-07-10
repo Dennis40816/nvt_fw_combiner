@@ -157,6 +157,56 @@ public sealed partial class CompositionRunServiceTests
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
     }
 
+    private static CompositionRunRequest CreateNt51927CopiedHeaderSemanticRequest()
+    {
+        const long outputLength = 0x1E3C0;
+        var headerCopyRange = new ByteRange(0x1E230, 0x190);
+        var headerSourceRange = new ByteRange(0x200, 0x190);
+        AddressSpace[] addressSpaces =
+        [
+            new("reference-base", outputLength, AddressSpaceMutability.Immutable),
+            new("output-image", outputLength, AddressSpaceMutability.Mutable),
+        ];
+        var plan = new CompositionPlan(
+            ImageInitialization.Reference("output-image", "reference-base", outputLength),
+            addressSpaces,
+            [
+                CompositionOperation.RunExternalProcessor(
+                    "run-postbuild",
+                    10,
+                    "output-image",
+                    new ByteRange(0, outputLength),
+                    new ExternalProcessorInvocation(
+                        "processor-v1",
+                        "tool-v1",
+                        [new ByteRange(0, outputLength)],
+                        [headerCopyRange],
+                        allowedWriteRangeSections:
+                        [
+                            new ExternalProcessorWriteRangeSection(
+                                TpHeaderSectionIds.HeaderCopyMaster,
+                                headerCopyRange,
+                                headerSourceRange),
+                        ]),
+                    OverlapPolicy.ReplaceExisting,
+                    "run NT51927 postbuild"),
+            ]);
+        return new CompositionRunRequest(
+            "run-nt51927-copied-header-semantic",
+            new CompositionRunProfile(
+                "nt51927-copied-header-semantic-profile",
+                "1.0.0",
+                "NT51927",
+                "external",
+                "ctrlram-replace",
+                CompositionKind.Replace,
+                IcNumberInputMode.NumericSelector),
+            plan,
+            [new InputArtifactBinding("reference-base", "reference-base", "reference-artifact")],
+            "nt51927-copied-header-semantic.bin",
+            icNumberSelection: new IcNumberSelection(IcNumberInputMode.NumericSelector, ["3"]));
+    }
+
     private sealed class FakeExternalProcessor : IExternalProcessor
     {
         private readonly Func<ExternalProcessorRequest, ExternalProcessorResult> _transform;

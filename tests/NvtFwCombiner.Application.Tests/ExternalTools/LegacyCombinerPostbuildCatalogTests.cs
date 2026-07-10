@@ -107,6 +107,35 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
         Assert.Contains(new ByteRange(0x2AC, 4), cascadeRanges);
     }
 
+    /// <summary>Locks the source header provenance used to name copied NT51927 three-chip report fields.</summary>
+    [Fact]
+    public void Nt51927ThreeChipHeaderCopySectionsKeepSourceRanges()
+    {
+        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(
+            LegacyCombinerPostbuildCatalog.Nt51927,
+            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["3"]));
+
+        IReadOnlyList<LegacyCombinerPostbuildWriteRange> sections =
+            LegacyCombinerPostbuildPlanner.GetAllowedWriteRangeSectionsForInPlaceRefresh(plan, 0x40000);
+
+        Assert.Contains(sections, section =>
+            section.SectionId == TpHeaderSectionIds.HeaderCopyMaster &&
+            section.Range == new ByteRange(0x1E230, 0x190) &&
+            section.SourceRange == new ByteRange(0x200, 0x190));
+        Assert.Contains(sections, section =>
+            section.SectionId == TpHeaderSectionIds.HeaderCopyRight &&
+            section.Range == new ByteRange(0x27230, 0x190) &&
+            section.SourceRange == new ByteRange(0x200, 0x190));
+        Assert.Contains(sections, section =>
+            section.SectionId == TpHeaderSectionIds.HeaderCopyLeft &&
+            section.Range == new ByteRange(0x30230, 0x190) &&
+            section.SourceRange == new ByteRange(0x200, 0x190));
+        Assert.Contains(sections, section =>
+            section.SectionId == TpHeaderSectionIds.HeaderCopyFinalBackup &&
+            section.Range == new ByteRange(0x32DC0, 0x460) &&
+            section.SourceRange == new ByteRange(0x0000, 0x460));
+    }
+
     /// <summary>Locks required capacity calculation to selected ranges and command source/target coverage.</summary>
     [Fact]
     public void PostbuildPlannerCalculatesRequiredCapacityFromSelectedRangesAndCommands()

@@ -266,7 +266,10 @@ public static class TpBinaryModelCatalog
             Field("command-build-t9", "Command header build T9", 0x208, 1),
             Word("common-header-crc", "Common Header CRC", 0x21C),
         ];
-        for (int index = 0; index <= 2; index++)
+        // Worksheet 927 lists Header #0 through #2 followed by a continuation marker. The owner-approved
+        // NT51927 three-chip final-header copy reads source [0x0000, 0x0460), which covers Header #3 at 0x02B0.
+        // This extends report semantics only; it does not authorize any firmware operation.
+        for (int index = 0; index <= 3; index++)
         {
             long start = 0x220 + (index * 0x30);
             fields.AddRange(
@@ -288,10 +291,11 @@ public static class TpBinaryModelCatalog
         return new TpHeaderLayout(
             "nt51927-header-927",
             "NT51927 TP header",
-            TpHeaderModelStatus.Workbook,
-            [new ByteRange(0x0000, 0x0100), new ByteRange(0x0200, 0x00B0)],
+            TpHeaderModelStatus.WorkbookWithPostbuildContinuation,
+            [new ByteRange(0x0000, 0x0100), new ByteRange(0x0200, 0x00E0)],
             fields,
-            "TDDI_Flash_Header.xlsx worksheet '927'.");
+            "TDDI_Flash_Header.xlsx worksheet '927' (Header #0 through #2 and continuation marker); " +
+            "PostbuildSetup_51927_1.4.1.bat three-chip final-header copy source [0x0000, 0x0460) confirms Header #3 coverage.");
     }
 
     private static TpHeaderLayout CreateNt51930Layout()

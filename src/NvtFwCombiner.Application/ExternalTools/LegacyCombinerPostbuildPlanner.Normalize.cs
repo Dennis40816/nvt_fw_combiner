@@ -38,15 +38,19 @@ public static partial class LegacyCombinerPostbuildPlanner
             var segment = ByteRange.FromStartEndExclusive(points[index], points[index + 1]);
             if (candidateRanges.Any(candidate => candidate.Range.Contains(segment)))
             {
+                LegacyCombinerPostbuildWriteRange selected = SelectWriteRangeSection(candidateRanges, segment);
                 ranges.Add(new LegacyCombinerPostbuildWriteRange(
                     segment,
-                    SelectWriteRangeSectionId(candidateRanges, segment)));
+                    selected.SectionId,
+                    selected.TryMapRangeToSourceRange(segment, out ByteRange sourceRange)
+                        ? sourceRange
+                        : null));
             }
         }
 
         return [
             .. ranges
-                .GroupBy(section => (section.Range, section.SectionId))
+                .GroupBy(section => (section.Range, section.SectionId, section.SourceRange))
                 .Select(group => group.First())
                 .OrderBy(section => section.Range.Start)
                 .ThenBy(section => section.Range.Length)
@@ -54,7 +58,7 @@ public static partial class LegacyCombinerPostbuildPlanner
         ];
     }
 
-    private static string SelectWriteRangeSectionId(
+    private static LegacyCombinerPostbuildWriteRange SelectWriteRangeSection(
         IReadOnlyList<LegacyCombinerPostbuildWriteRange> candidates,
         ByteRange segment)
     {
@@ -63,7 +67,6 @@ public static partial class LegacyCombinerPostbuildPlanner
             .OrderByDescending(candidate => TpHeaderCatalog.GetPriority(candidate.SectionId))
             .ThenBy(candidate => candidate.Range.Length)
             .ThenBy(candidate => candidate.Range.Start)
-            .First()
-            .SectionId;
+            .First();
     }
 }
