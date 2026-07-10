@@ -44,6 +44,34 @@ public sealed class XamlControlStyleContractTests
         Assert.Contains("Classes=\"slotBadge\"", slotCard, StringComparison.Ordinal);
     }
 
+    /// <summary>Ensures Hex Editor uses the shared safe-save and immutable-reference interaction contracts.</summary>
+    [Fact]
+    public void HexEditorUsesConfirmedSaveAndReadOnlyReferenceRows()
+    {
+        string shell = ReadPresentationFile("MainWindow.axaml");
+        string hexEditor = ReadPresentationFile("Views/HexEditorPanel.axaml");
+        string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
+
+        Assert.Contains("Gesture=\"Ctrl+S\"", shell, StringComparison.Ordinal);
+        Assert.Contains("RequestHexEditorSaveCommand", shell, StringComparison.Ordinal);
+        Assert.Contains("IsAuthoringDisplayVisible", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"hexReferenceCell\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"TextBlock.hexReferenceCell\"", styles, StringComparison.Ordinal);
+    }
+
+    /// <summary>Ensures the local fixture is Debug-only and never changes the default landing page.</summary>
+    [Fact]
+    public void DebugHexFixturePreloadsWithoutForcingHexEditorNavigation()
+    {
+        string debugDemo = ReadPresentationFile("MainWindow.DebugDemo.cs");
+        string startup = ReadPresentationFile("MainWindow.Report.cs");
+
+        Assert.StartsWith("#if DEBUG", debugDemo, StringComparison.Ordinal);
+        Assert.Contains("SetSlotFile(WorkbenchSlotIds.ReplaceBase, basePath)", debugDemo, StringComparison.Ordinal);
+        Assert.DoesNotContain("ShowHexEditorCommand.Execute", debugDemo, StringComparison.Ordinal);
+        Assert.Contains("#if DEBUG", startup, StringComparison.Ordinal);
+    }
+
     /// <summary>Prevents repeated shell, panel, row, and text property bundles from drifting back into templates.</summary>
     [Fact]
     public void SharedControlStylesOwnTheCommonXamlRoles()

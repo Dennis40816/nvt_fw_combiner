@@ -1,10 +1,11 @@
 using System.Text.Json;
+using System.Text;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class ReportReviewViewModel
 {
-    private static IReadOnlyList<ReportLineViewModel> ParseOperations(JsonElement root)
+    private static IReadOnlyList<ReportLineViewModel> ParseOperations(JsonElement root, ShellLanguage language)
     {
         return !root.TryGetProperty(nameof(Operations), out JsonElement operations) ||
                operations.ValueKind != JsonValueKind.Array
@@ -25,6 +26,7 @@ public sealed partial class ReportReviewViewModel
                 string status = GetString(operation, nameof(Status));
                 string reason = GetString(operation, "Reason");
                 (string reasonSummary, string commandBlock) = ExtractCombinerCommand(reason);
+                IReadOnlyList<ReportRuntimeCommandViewModel> runtimeCommands = ParseRuntimeCommands(operation, language);
                 return new ReportLineViewModel(
                     FormatOperationTitle(GetLong(operation, "Sequence"), kind, operationId),
                     FormatOperationDetail(kind, target, processorId, toolBindingId),
@@ -37,9 +39,65 @@ public sealed partial class ReportReviewViewModel
                     operationSource: source,
                     operationTarget: target,
                     operationProcessor: processor,
-                    operationStatus: string.IsNullOrWhiteSpace(status) ? "unknown" : status);
+                    operationStatus: string.IsNullOrWhiteSpace(status) ? "unknown" : status,
+                    codeBlockLabel: string.IsNullOrWhiteSpace(commandBlock)
+                        ? string.Empty
+                        : T(language, "Profile-declared Combiner plan", "Profile 宣告的 Combiner 計畫"),
+                    runtimeCommands: runtimeCommands,
+                    runtimeCommandsLabel: runtimeCommands.Count == 0
+                        ? string.Empty
+                        : T(
+                            language,
+                            $"Actual runtime argv ({runtimeCommands.Count})",
+                            $"實際執行 argv（{runtimeCommands.Count}）"));
             }),
             ];
+    }
+
+    private static IReadOnlyList<ReportRuntimeCommandViewModel> ParseRuntimeCommands(
+        JsonElement operation,
+        ShellLanguage language)
+    {
+        return !operation.TryGetProperty("ExecutedCommands", out JsonElement commands) ||
+               commands.ValueKind != JsonValueKind.Array
+            ? []
+            : [
+                .. commands.EnumerateArray().Select((command, index) =>
+                {
+                    string executablePath = GetString(command, "ExecutablePath");
+                    string workingDirectory = GetString(command, "WorkingDirectory");
+                    return new ReportRuntimeCommandViewModel(
+                        T(language, $"Runtime invocation {index + 1}", $"實際呼叫 {index + 1}"),
+                        FormatRuntimeArgumentList(command, FirmwarePathDisplay.Normalize(executablePath)),
+                        T(
+                            language,
+                            $"Working directory: {FirmwarePathDisplay.Normalize(workingDirectory)}",
+                            $"工作目錄：{FirmwarePathDisplay.Normalize(workingDirectory)}"));
+                }),
+            ];
+    }
+
+    private static string FormatRuntimeArgumentList(JsonElement command, string executablePath)
+    {
+        var builder = new StringBuilder($"exe: {executablePath}");
+        if (!command.TryGetProperty("Arguments", out JsonElement arguments) ||
+            arguments.ValueKind != JsonValueKind.Array)
+        {
+            return builder.ToString();
+        }
+
+        int index = 0;
+        foreach (JsonElement argument in arguments.EnumerateArray())
+        {
+            _ = builder
+                .AppendLine()
+                .Append("argv[")
+                .Append(index++)
+                .Append("]: ")
+                .Append(argument.GetString() ?? string.Empty);
+        }
+
+        return builder.ToString();
     }
 
     private static string FormatOperationTitle(long sequence, string kind, string operationId)

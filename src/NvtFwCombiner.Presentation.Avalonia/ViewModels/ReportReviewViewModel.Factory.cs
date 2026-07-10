@@ -27,7 +27,7 @@ public sealed partial class ReportReviewViewModel
         bool? outputCommitted = GetOutputCommitted(root);
         string outputSha256 = GetOutputString(root, "Sha256");
         IReadOnlyList<ReportLineViewModel> inputs = ParseInputs(root);
-        IReadOnlyList<ReportLineViewModel> operations = ParseOperations(root);
+        IReadOnlyList<ReportLineViewModel> operations = ParseOperations(root, language);
         IReadOnlyList<ReportLineViewModel> mutations = ParseMutations(root);
         IReadOnlyList<ReportLineViewModel> outputDifferences = ParseOutputDifferences(root, language);
         IReadOnlyList<ReportLineViewModel> issues = ParseIssues(root);

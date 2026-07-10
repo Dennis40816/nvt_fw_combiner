@@ -17,9 +17,9 @@ public sealed partial class MainWindow
             return;
         }
 
+        // Keep the standard Home landing page. The fixture is prepared only for a later Hex Editor visit.
         viewModel.SelectedIc = "NT51927";
         viewModel.SelectedNumber = "2";
-        viewModel.ShowHexEditorCommand.Execute(null);
         viewModel.SetSlotFile(WorkbenchSlotIds.ReplaceBase, basePath);
     }
 }

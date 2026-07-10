@@ -3,14 +3,46 @@ using CommunityToolkit.Mvvm.ComponentModel;
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>One visible 16-byte hexadecimal editor row.</summary>
-public sealed record GeneralReplaceHexViewportRowViewModel(
-    string Address,
-    IReadOnlyList<GeneralReplaceHexByteCellViewModel> Bytes,
-    string BeforeAscii,
-    string AfterAscii,
-    bool IsReferenceRow,
-    bool HasChanges)
+public sealed partial class GeneralReplaceHexViewportRowViewModel : ObservableObject
 {
+    /// <summary>Creates one visible hexadecimal editor row.</summary>
+    public GeneralReplaceHexViewportRowViewModel(
+        string address,
+        IReadOnlyList<GeneralReplaceHexByteCellViewModel> bytes,
+        string beforeAscii,
+        string afterAscii,
+        bool isReferenceRow,
+        bool hasChanges)
+    {
+        Address = address;
+        Bytes = bytes;
+        BeforeAscii = beforeAscii;
+        AfterAscii = afterAscii;
+        IsReferenceRow = isReferenceRow;
+        HasChanges = hasChanges;
+    }
+
+    /// <summary>Absolute address of the row's first byte.</summary>
+    public string Address { get; }
+
+    /// <summary>Visible byte cells in the row.</summary>
+    public IReadOnlyList<GeneralReplaceHexByteCellViewModel> Bytes { get; }
+
+    /// <summary>ASCII projection from the immutable base bytes.</summary>
+    public string BeforeAscii { get; }
+
+    /// <summary>ASCII projection from the virtual staged bytes.</summary>
+    [ObservableProperty]
+    public partial string AfterAscii { get; set; }
+
+    /// <summary>True when this is the immutable base-reference row.</summary>
+    public bool IsReferenceRow { get; }
+
+    /// <summary>True when any virtual byte differs from the immutable base-reference row.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsEditedRow))]
+    public partial bool HasChanges { get; set; }
+
     /// <summary>True only when the virtual staged row differs from the immutable base-reference row.</summary>
     public bool IsEditedRow => !IsReferenceRow && HasChanges;
 }
@@ -51,13 +83,20 @@ public sealed partial class GeneralReplaceHexByteCellViewModel : ObservableObjec
     public string BeforeHex { get; }
 
     /// <summary>Current virtual staged byte in uppercase hexadecimal.</summary>
-    public string ValueHex { get; }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(AccessibleLabel))]
+    public partial string ValueHex { get; set; }
 
     /// <summary>True when the virtual staged byte differs from the immutable base byte.</summary>
-    public bool IsChanged { get; }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(AccessibleLabel))]
+    public partial bool IsChanged { get; set; }
 
     /// <summary>True for cells rendered as immutable base-reference rows.</summary>
     public bool IsReference { get; }
+
+    /// <summary>True only for the virtual authoring row; reference rows never expose edit actions.</summary>
+    public bool IsEditable => !IsReference;
 
     /// <summary>Localized context-menu label for direct byte editing.</summary>
     public string EditMenuLabel { get; }
@@ -79,6 +118,7 @@ public sealed partial class GeneralReplaceHexByteCellViewModel : ObservableObjec
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsDisplayVisible))]
     [NotifyPropertyChangedFor(nameof(IsEditorVisible))]
+    [NotifyPropertyChangedFor(nameof(IsAuthoringDisplayVisible))]
     public partial bool IsEditing { get; set; }
 
     /// <summary>Temporary two-character hexadecimal input for direct editing.</summary>
@@ -92,6 +132,9 @@ public sealed partial class GeneralReplaceHexByteCellViewModel : ObservableObjec
 
     /// <summary>True while the compact button presentation should remain visible.</summary>
     public bool IsDisplayVisible => !IsEditing;
+
+    /// <summary>True while the virtual authoring row may render an editable byte button.</summary>
+    public bool IsAuthoringDisplayVisible => !IsReference && !IsEditing;
 
     /// <summary>True while the inline hexadecimal text input should be visible.</summary>
     public bool IsEditorVisible => IsEditing;

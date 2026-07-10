@@ -1,6 +1,7 @@
 <ResourceDictionary
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
 
 <DataTemplate x:Key="ReportOperationFlowNodeTemplate" DataType="vm:ReportOperationFlowNodeViewModel">
@@ -15,7 +16,7 @@
         <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Foreground="#1D4ED8" Text="{Binding Number}" />
       </Border>
     </Grid>
-    <StackPanel Grid.Column="1" Margin="0,3,0,18" MaxWidth="860" HorizontalAlignment="Left" Spacing="4">
+    <StackPanel Grid.Column="1" Margin="0,3,0,18" Spacing="4">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
         <TextBlock Classes="panelTitle" Text="{Binding Title}" TextWrapping="Wrap" />
         <Label Grid.Column="1" MinWidth="44" Classes="reportBadge" Content="{Binding Status}" />
@@ -37,6 +38,14 @@
       </ItemsControl>
     </StackPanel>
   </Border>
+</DataTemplate>
+
+<DataTemplate x:Key="ReportRuntimeCommandTemplate" DataType="vm:ReportRuntimeCommandViewModel">
+  <StackPanel Margin="0,0,0,10" Spacing="4">
+    <TextBlock Classes="compactStrongText" Text="{Binding Title}" />
+    <views:ReportCodeBlockView Text="{Binding ArgumentListEvidence}" />
+    <TextBlock Classes="technicalCaption" Text="{Binding WorkingDirectoryDetail}" TextWrapping="Wrap" />
+  </StackPanel>
 </DataTemplate>
 
 <DataTemplate x:Key="ReportCommandOperationTemplate" DataType="vm:ReportLineViewModel">
@@ -75,10 +84,14 @@
           Content="{Binding}"
           ContentTemplate="{StaticResource ReportRangeTableTemplate}"
           IsVisible="{Binding HasRangeRows}" />
-      <TextBlock Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.CommandArgvLabel}" IsVisible="{Binding HasCodeBlock}" />
-      <Border Classes="compactSubtleSurface" Padding="8,6" IsVisible="{Binding HasCodeBlock}">
-        <TextBlock FontSize="11" FontFamily="Cascadia Mono, Consolas" Foreground="#0F172A" Text="{Binding CodeBlock}" TextWrapping="Wrap" />
-      </Border>
+      <TextBlock Classes="tableHeader" Text="{Binding RuntimeCommandsLabel}" IsVisible="{Binding HasRuntimeCommands}" />
+      <ItemsControl ItemsSource="{Binding RuntimeCommands}" IsVisible="{Binding HasRuntimeCommands}">
+        <ItemsControl.ItemTemplate>
+          <StaticResource ResourceKey="ReportRuntimeCommandTemplate" />
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <TextBlock Classes="tableHeader" Text="{Binding CodeBlockLabel}" IsVisible="{Binding HasCodeBlock}" />
+      <views:ReportCodeBlockView Text="{Binding CodeBlock}" IsVisible="{Binding HasCodeBlock}" />
       <ItemsControl ItemsSource="{Binding Facts}" IsVisible="{Binding HasFacts}">
         <ItemsControl.ItemTemplate>
           <StaticResource ResourceKey="ReportLineFactTemplate" />

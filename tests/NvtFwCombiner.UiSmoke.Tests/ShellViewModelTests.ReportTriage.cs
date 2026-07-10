@@ -36,7 +36,14 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("output-image 0x0-0x7FFFF (len 0x80000)", command.OperationTarget);
         Assert.Equal("legacy-combiner", command.OperationProcessor);
         Assert.Equal("planned", command.OperationStatus);
+        Assert.Equal("Profile-declared Combiner plan", command.CodeBlockLabel);
         Assert.Contains("Combiner.exe", command.CodeBlock, StringComparison.Ordinal);
+        ReportRuntimeCommandViewModel runtimeCommand = Assert.Single(command.RuntimeCommands);
+        Assert.Equal("Runtime invocation 1", runtimeCommand.Title);
+        Assert.Contains("exe: C:\\tools\\legacy-combiner\\Combiner.exe", runtimeCommand.ArgumentListEvidence, StringComparison.Ordinal);
+        Assert.Contains("argv[0]: MERGE_MODE", runtimeCommand.ArgumentListEvidence, StringComparison.Ordinal);
+        Assert.Contains("argv[2]: C:\\staging\\ui-smoke-command\\BIN\\Normal_Ctrlram.bin", runtimeCommand.ArgumentListEvidence, StringComparison.Ordinal);
+        Assert.Equal("Working directory: C:\\staging\\ui-smoke-command", runtimeCommand.WorkingDirectoryDetail);
         Assert.Contains(command.Badges, badge => badge.Text == "planned");
         Assert.Contains(command.Badges, badge => badge.Text == "overlap reject");
         Assert.Contains(command.Badges, badge => badge.Text == "built-in-profile");

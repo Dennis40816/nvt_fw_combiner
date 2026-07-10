@@ -48,7 +48,7 @@ internal static class FirmwareFilePickerDialogs
     {
         return await PickFirmwareBinOutputPathAsync(
             storageProvider,
-            "Save edited firmware BIN",
+            "Save edited firmware BIN as",
             suggestedFileName);
     }
 

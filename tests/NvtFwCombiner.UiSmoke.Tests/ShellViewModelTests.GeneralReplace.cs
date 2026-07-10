@@ -217,7 +217,7 @@ public sealed partial class ShellViewModelTests
 
         GeneralReplaceHexViewportRowViewModel row = Assert.Single(
             viewModel.GeneralReplaceHexViewportRows,
-            candidate => candidate.Address == "0x000000" && !candidate.IsReferenceRow);
+            candidate => candidate.Address == "0x000100" && !candidate.IsReferenceRow);
         Assert.False(row.IsEditedRow);
         string initialValue = row.Bytes[0].ValueHex;
         viewModel.BeginGeneralReplaceHexByteEditCommand.Execute(row.Bytes[0]);
@@ -232,21 +232,32 @@ public sealed partial class ShellViewModelTests
 
         GeneralReplaceHexViewportRowViewModel changedRow = Assert.Single(
             viewModel.GeneralReplaceHexViewportRows,
-            candidate => candidate.Address == "0x000000" && !candidate.IsReferenceRow);
+            candidate => candidate.Address == "0x000100" && !candidate.IsReferenceRow);
+        Assert.Same(row, changedRow);
+        Assert.Equal("A5", changedRow.Bytes[0].ValueHex);
         viewModel.BeginGeneralReplaceHexByteEditCommand.Execute(changedRow.Bytes[0]);
         changedRow.Bytes[0].EditValue = "5A";
         viewModel.CommitGeneralReplaceHexByteEditCommand.Execute(changedRow.Bytes[0]);
         GeneralReplacePatchViewModel updatedPatch = Assert.Single(viewModel.GeneralReplacePatches);
         Assert.Equal("5A", updatedPatch.Value);
+        Assert.Equal("5A", changedRow.Bytes[0].ValueHex);
 
         changedRow = Assert.Single(
             viewModel.GeneralReplaceHexViewportRows,
-            candidate => candidate.Address == "0x000000" && !candidate.IsReferenceRow);
+            candidate => candidate.Address == "0x000100" && !candidate.IsReferenceRow);
         viewModel.ClearGeneralReplaceHexByteCommand.Execute(changedRow.Bytes[0]);
         GeneralReplacePatchViewModel clearedPatch = Assert.Single(viewModel.GeneralReplacePatches);
         Assert.Equal("FF", clearedPatch.Value);
         Assert.Contains(viewModel.GeneralReplaceHexViewportRows, candidate =>
-            candidate.Address == "0x000000" && candidate.IsReferenceRow);
+            candidate.Address == "0x000100" && candidate.IsReferenceRow);
+
+        GeneralReplaceHexViewportRowViewModel referenceRow = Assert.Single(
+            viewModel.GeneralReplaceHexViewportRows,
+            candidate => candidate.Address == "0x000100" && candidate.IsReferenceRow);
+        viewModel.SelectGeneralReplaceHexByteCommand.Execute(referenceRow.Bytes[0]);
+        viewModel.BeginGeneralReplaceHexByteEditCommand.Execute(referenceRow.Bytes[0]);
+        Assert.False(referenceRow.Bytes[0].IsEditable);
+        Assert.False(referenceRow.Bytes[0].IsEditing);
 
         viewModel.IsGeneralReplaceHexReferenceRowsVisible = false;
         Assert.DoesNotContain(viewModel.GeneralReplaceHexViewportRows, candidate => candidate.IsReferenceRow);
@@ -255,6 +266,78 @@ public sealed partial class ShellViewModelTests
         viewModel.GoToGeneralReplaceHexViewportCommand.Execute(null);
         Assert.Contains(viewModel.GeneralReplaceHexViewportRows, candidate =>
             candidate.Address == "0x0000C0" && !candidate.IsReferenceRow);
+    }
+
+    /// <summary>Verifies unapproved draft ranges stay in memory only and cannot enter the staged patch list.</summary>
+    [Fact]
+    public void GeneralReplaceHexEditorRejectsUnapprovedDraftRangeBeforeStaging()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-general-hex-unauthorized");
+        string basePath = workspace.Write("base.bin", CreatePattern(0x40000, 0x49));
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51950";
+        viewModel.ShowHexEditorCommand.Execute(null);
+        viewModel.SetSlotFile("replace-base", basePath);
+
+        viewModel.GeneralReplacePatchDraft.StartAddress = "0x000000";
+        viewModel.GeneralReplacePatchDraft.EndAddress = "0x000000";
+        viewModel.GeneralReplacePatchDraft.Value = "A5";
+        viewModel.ApplyGeneralReplacePatchCommand.Execute(null);
+
+        Assert.Empty(viewModel.GeneralReplacePatches);
+        Assert.Contains("profile-authorized", viewModel.GeneralReplaceHexViewportStatus, StringComparison.Ordinal);
+        Assert.Equal(CreatePattern(0x40000, 0x49), File.ReadAllBytes(basePath));
+    }
+
+    /// <summary>Verifies an inline byte edit follows the same approved-range policy before it reaches staged memory.</summary>
+    [Fact]
+    public void GeneralReplaceHexEditorRejectsUnapprovedInlineByteBeforeStaging()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-general-hex-inline-unauthorized");
+        string basePath = workspace.Write("base.bin", CreatePattern(0x40000, 0x83));
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51950";
+        viewModel.ShowHexEditorCommand.Execute(null);
+        viewModel.SetSlotFile("replace-base", basePath);
+        viewModel.GeneralReplaceHexViewportAddress = "0x000000";
+        viewModel.GoToGeneralReplaceHexViewportCommand.Execute(null);
+
+        GeneralReplaceHexViewportRowViewModel row = Assert.Single(
+            viewModel.GeneralReplaceHexViewportRows,
+            candidate => candidate.Address == "0x000000" && !candidate.IsReferenceRow);
+        GeneralReplaceHexByteCellViewModel cell = row.Bytes[0];
+        viewModel.BeginGeneralReplaceHexByteEditCommand.Execute(cell);
+        cell.EditValue = "A5";
+        viewModel.CommitGeneralReplaceHexByteEditCommand.Execute(cell);
+
+        Assert.Empty(viewModel.GeneralReplacePatches);
+        Assert.True(cell.IsEditing);
+        Assert.Contains("profile-authorized", cell.InlineValidationMessage, StringComparison.Ordinal);
+        Assert.Equal(CreatePattern(0x40000, 0x83), File.ReadAllBytes(basePath));
+    }
+
+    /// <summary>Verifies Save requires confirmation and never mutates the selected base BIN in memory.</summary>
+    [Fact]
+    public void GeneralReplaceHexEditorSaveRequestsConfirmationBeforeGeneratedOutput()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-general-hex-save");
+        byte[] baseBytes = CreatePattern(0x40000, 0x39);
+        string basePath = workspace.Write("base.bin", baseBytes);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51950";
+        viewModel.ShowHexEditorCommand.Execute(null);
+        viewModel.SetSlotFile("replace-base", basePath);
+        viewModel.GeneralReplacePatchDraft.StartAddress = "0x000100";
+        viewModel.GeneralReplacePatchDraft.EndAddress = "0x000100";
+        viewModel.GeneralReplacePatchDraft.Value = "A5";
+        viewModel.ApplyGeneralReplacePatchCommand.Execute(null);
+
+        viewModel.RequestHexEditorSaveCommand.Execute(null);
+
+        Assert.True(viewModel.IsHexEditorSaveConfirmationOpen);
+        Assert.Equal(baseBytes, File.ReadAllBytes(basePath));
+        viewModel.CancelHexEditorSaveCommand.Execute(null);
+        Assert.False(viewModel.IsHexEditorSaveConfirmationOpen);
     }
 
     /// <summary>Verifies draft typing and address entry keep the existing viewport rows until a deliberate refresh action.</summary>

@@ -97,6 +97,10 @@
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="TextAlignment" Value="Center" />
   </Style>
+  <Style Selector="Button.iconButton.codeBlockCopy">
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="MinWidth" Value="28" />
+  </Style>
   <Style Selector="Button.iconButton:disabled">
     <Setter Property="Background" Value="#F8FAFC" />
     <Setter Property="BorderBrush" Value="#E2E8F0" />
@@ -185,10 +189,6 @@
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="Foreground" Value="#1D4ED8" />
     <Setter Property="FontWeight" Value="SemiBold" />
-  </Style>
-  <Style Selector="Button.hexCell.reference">
-    <Setter Property="Background" Value="Transparent" />
-    <Setter Property="Foreground" Value="#64748B" />
   </Style>
   <Style Selector="Button.action">
     <Setter Property="MinHeight" Value="34" />

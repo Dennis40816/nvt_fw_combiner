@@ -29,11 +29,11 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(new Thickness(1.5), required.SlotBorderThickness);
         AssertBrush("#B91C1C", required.RequirementBadgeForegroundBrush);
 
-        required.FilePath = workspace.PathFor("dp.bin");
+        required.FilePath = workspace.PathFor("dp.bin").Replace('\\', '/');
 
         Assert.True(required.HasFile);
         Assert.Equal("dp.bin", required.DisplayName);
-        Assert.Equal(required.FilePath, required.DisplayDetail);
+        Assert.Equal(required.FilePath.Replace('/', '\\'), required.DisplayDetail);
         AssertIconGeometry(required);
         AssertBrush("#EFF6FF", required.SlotIconBackgroundBrush);
         AssertBrush("#F0FDF4", required.SlotBackgroundBrush);

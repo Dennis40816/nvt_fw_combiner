@@ -33,7 +33,10 @@ public sealed class ReportLineViewModel
         string afterValue = "",
         string inputRole = "",
         string inputSizeLabel = "",
-        string inputAddressSpace = "")
+        string inputAddressSpace = "",
+        string codeBlockLabel = "",
+        IEnumerable<ReportRuntimeCommandViewModel>? runtimeCommands = null,
+        string runtimeCommandsLabel = "")
     {
         Title = title;
         Detail = detail;
@@ -57,6 +60,8 @@ public sealed class ReportLineViewModel
         InputRole = inputRole ?? string.Empty;
         InputSizeLabel = inputSizeLabel ?? string.Empty;
         InputAddressSpace = inputAddressSpace ?? string.Empty;
+        CodeBlockLabel = codeBlockLabel ?? string.Empty;
+        RuntimeCommandsLabel = runtimeCommandsLabel ?? string.Empty;
         CodeBlock = codeBlock;
         HasCodeBlock = !string.IsNullOrWhiteSpace(codeBlock);
         Badges = badges is null ? [] : [.. badges];
@@ -65,6 +70,8 @@ public sealed class ReportLineViewModel
         HasFacts = Facts.Count > 0;
         RangeRows = rangeRows is null ? [] : [.. rangeRows];
         HasRangeRows = RangeRows.Count > 0;
+        RuntimeCommands = runtimeCommands is null ? [] : [.. runtimeCommands];
+        HasRuntimeCommands = RuntimeCommands.Count > 0;
     }
 
     /// <summary>Primary line text.</summary>
@@ -166,8 +173,20 @@ public sealed class ReportLineViewModel
     /// <summary>Optional fixed-width command or technical block associated with this line.</summary>
     public string CodeBlock { get; }
 
+    /// <summary>Human-readable provenance label for the optional fixed-width code block.</summary>
+    public string CodeBlockLabel { get; }
+
     /// <summary>True when a fixed-width code block should be rendered for this line.</summary>
     public bool HasCodeBlock { get; }
+
+    /// <summary>Localized label for completed external-process argv evidence.</summary>
+    public string RuntimeCommandsLabel { get; }
+
+    /// <summary>Completed external process invocations recorded by the runtime report.</summary>
+    public IReadOnlyList<ReportRuntimeCommandViewModel> RuntimeCommands { get; }
+
+    /// <summary>True when the report contains completed runtime process invocation evidence.</summary>
+    public bool HasRuntimeCommands { get; }
 
     /// <summary>Compact status badges associated with this line.</summary>
     public IReadOnlyList<ReportLineBadgeViewModel> Badges { get; }

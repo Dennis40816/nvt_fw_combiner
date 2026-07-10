@@ -113,6 +113,12 @@ public sealed partial class MainWindowViewModel
             return false;
         }
 
+        if (!IsGeneralReplaceHexRangeAuthorized(address, address))
+        {
+            cell.InlineValidationMessage = Text.GeneralReplaceHexUnauthorizedRangeDetail;
+            return false;
+        }
+
         for (int index = 0; index < GeneralReplacePatches.Count; index++)
         {
             GeneralReplacePatchViewModel patch = GeneralReplacePatches[index];
@@ -135,7 +141,8 @@ public sealed partial class MainWindowViewModel
                     patch.EndAddress,
                     patch.Kind,
                     value);
-                NotifyGeneralReplacePatchCollectionChanged();
+                NotifyGeneralReplacePatchCollectionChanged(refreshViewport: false);
+                ApplyStagedGeneralReplaceHexByteToViewport(address, value);
                 return true;
             }
 
@@ -152,7 +159,8 @@ public sealed partial class MainWindowViewModel
             WorkbenchGeneralReplacePatchKind.Overwrite,
             value));
         _generalReplacePatchRedo.Clear();
-        NotifyGeneralReplacePatchCollectionChanged();
+        NotifyGeneralReplacePatchCollectionChanged(refreshViewport: false);
+        ApplyStagedGeneralReplaceHexByteToViewport(address, value);
         return true;
     }
 }

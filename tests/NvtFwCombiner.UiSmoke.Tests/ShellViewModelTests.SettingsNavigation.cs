@@ -1,3 +1,4 @@
+using System.Text;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
@@ -149,6 +150,25 @@ public sealed partial class ShellViewModelTests
 
         Assert.Equal("cascade", viewModel.SelectedNumber);
         Assert.Equal("Context updated", viewModel.ShellToastTitle);
+    }
+
+    /// <summary>Verifies a printable header marker is advisory in the same way as a filename marker.</summary>
+    [Fact]
+    public void SlotLoadingPromptsForPrintableHeaderIcMarker()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.SelectedIc = "NT51926";
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-header-ic-marker");
+        byte[] bytes = new byte[0x40000];
+        Encoding.ASCII.GetBytes("firmware marker: NT51927TT").CopyTo(bytes, 0x120);
+        string path = workspace.Write("base.bin", bytes);
+
+        viewModel.SetSlotFile("replace-base", path);
+
+        Assert.True(viewModel.IsFirmwareIcMismatchModalOpen);
+        Assert.Equal("NT51927", viewModel.FirmwareIcMismatchDetectedIc);
+        viewModel.DismissFirmwareIcMismatchCommand.Execute(null);
+        Assert.Equal("NT51926", viewModel.SelectedIc);
     }
 
     /// <summary>Verifies filename markers outside the supported catalog cannot change the workbench context.</summary>

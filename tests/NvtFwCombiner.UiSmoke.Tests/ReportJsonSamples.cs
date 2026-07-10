@@ -280,6 +280,23 @@ internal static class ReportJsonSamples
             ToolBindingId = "legacy-combiner-1.13.0",
             ProcessorAllowedReadRanges = new[] { Range(0, length) },
             ProcessorAllowedWriteRanges = allowedWriteRanges,
+            ExecutedCommands = new[]
+            {
+                new
+                {
+                    ExecutablePath = "C:\\tools\\legacy-combiner\\Combiner.exe",
+                    WorkingDirectory = "C:\\staging\\ui-smoke-command",
+                    Arguments = new[]
+                    {
+                        "MERGE_MODE",
+                        "C:\\staging\\ui-smoke-command\\output\\nt51927_fw.bin",
+                        "C:\\staging\\ui-smoke-command\\BIN\\Normal_Ctrlram.bin",
+                        "0x0",
+                        "0x22800",
+                        "12288",
+                    },
+                },
+            },
             Provenance = new
             {
                 Kind = "built-in-profile",

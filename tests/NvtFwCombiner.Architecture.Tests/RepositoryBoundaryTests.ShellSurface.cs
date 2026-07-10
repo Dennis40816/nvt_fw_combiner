@@ -9,6 +9,7 @@ public sealed partial class RepositoryBoundaryTests
         string shell = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml");
         string shellStyles = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowStyles.axaml");
         string buttonStyles = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowButtonStyles.axaml");
+        string controlStyles = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowControlStyles.axaml");
         string visualStyles = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowVisualStyles.axaml");
         string sharedTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml");
         string reportTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportTemplates.axaml");
@@ -18,6 +19,10 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportInputTemplates.axaml");
         string reportOperationTemplates = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportOperationTemplates.axaml");
+        string reportCodeBlockView = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Views/ReportCodeBlockView.axaml");
+        string reportCodeBlockViewCode = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Views/ReportCodeBlockView.axaml.cs");
         string reportHistoryTemplates = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportHistoryTemplates.axaml");
         string reportAuditTemplates = ReadText(
@@ -214,6 +219,12 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("HomeMergeStatus", shell, StringComparison.Ordinal);
         Assert.Contains("Text=\"{ReflectionBinding $parent[Window].DataContext.Text.RangeTableTitle}\"", reportOperationTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding RangeRows}\"", reportOperationTemplates, StringComparison.Ordinal);
+        Assert.Contains("ReportCodeBlockView", reportOperationTemplates, StringComparison.Ordinal);
+        Assert.Contains("CopyButton_OnClick", reportCodeBlockView, StringComparison.Ordinal);
+        Assert.Contains("SetTextAsync", reportCodeBlockViewCode, StringComparison.Ordinal);
+        Assert.Contains("TextBox.readOnlyRaw", controlStyles, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"readOnlyRaw\"", reportAuditTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("MaxHeight=\"320\"", reportAuditTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("Where to look first", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Evidence map", shell, StringComparison.Ordinal);
         Assert.Contains("<TabControl", reportAuditTemplates, StringComparison.Ordinal);

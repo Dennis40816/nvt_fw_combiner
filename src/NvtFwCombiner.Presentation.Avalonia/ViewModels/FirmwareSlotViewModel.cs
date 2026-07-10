@@ -51,7 +51,7 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
     public string DisplayName => HasFile ? Path.GetFileName(FilePath!) : EmptyDisplayName;
 
     /// <summary>Displayed selected file path.</summary>
-    public string DisplayDetail => HasFile ? FilePath! : string.Empty;
+    public string DisplayDetail => HasFile ? FirmwarePathDisplay.Normalize(FilePath!) : string.Empty;
 
     /// <summary>Firmware facts decoded from the selected file, when the active IC has a FWConfig map.</summary>
     public ObservableCollection<FirmwareSlotFactViewModel> FirmwareFacts { get; } = [];

@@ -116,6 +116,23 @@ public sealed class WorkbenchCompositionServiceTests
         Assert.Equal("1.4.1", suggestion.CommonFwVersion);
     }
 
+    /// <summary>Rejects automatic IC-number selection when the primary and unique NVT-copy FWConfigs disagree.</summary>
+    [Fact]
+    public void FirmwareContextSuggestionRejectsPrimaryAndNvtCopyMismatch()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-fwconfig-mismatch");
+        byte[] bytes = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
+        Assert.True(TpFlashMapCatalog.TryGetFirmwareConfigStart("NT51926", out long firmwareConfigStart));
+        bytes[checked((int)firmwareConfigStart + FirmwareConfigLayout.FirmwareSubVersionOffset)] ^= 0x01;
+        string path = workspace.Write("fwconfig-mismatch.bin", bytes);
+
+        WorkbenchFirmwareContextSuggestion? suggestion = WorkbenchCompositionService.TryReadFirmwareContextSuggestion(
+            "NT51926",
+            path);
+
+        Assert.Null(suggestion);
+    }
+
     /// <summary>Uses the selected TP NVT FWConfig ChipNumber to resolve NT51950's 1IC CMI location.</summary>
     [Fact]
     public void Nt51950CmiMetadataRequiresTpNvtFirmwareConfig()

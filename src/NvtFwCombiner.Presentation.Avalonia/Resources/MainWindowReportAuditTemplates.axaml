@@ -189,7 +189,7 @@
         </TabItem>
 
         <TabItem Header="{Binding Text.ReportTabRaw}">
-          <Grid MinHeight="0" Margin="0,12,0,0" RowDefinitions="Auto,*" RowSpacing="10">
+          <Grid MinHeight="0" Margin="0,12,0,0" VerticalAlignment="Stretch" RowDefinitions="Auto,*" RowSpacing="10">
             <Border Classes="insetSurface contentPanel">
               <StackPanel Spacing="2">
                 <TextBlock Classes="panelTitle" Text="{Binding Text.RawReportTitle}" />
@@ -198,8 +198,8 @@
             </Border>
             <TextBox
                 Grid.Row="1"
-                MaxHeight="320"
                 Classes="readOnlyRaw"
+                VerticalAlignment="Stretch"
                 Text="{Binding LoadedReportJson, Mode=OneWay}" />
           </Grid>
         </TabItem>

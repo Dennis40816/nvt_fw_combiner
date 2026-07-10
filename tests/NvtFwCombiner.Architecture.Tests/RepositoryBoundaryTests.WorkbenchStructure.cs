@@ -120,7 +120,8 @@ public sealed partial class RepositoryBoundaryTests
         string runner = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Replace.cs");
         string viewport = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.HexViewport.cs");
 
-        Assert.Contains("BuildHexEditorButton_OnClick", panel, StringComparison.Ordinal);
+        Assert.Contains("SaveAsHexEditorButton_OnClick", panel, StringComparison.Ordinal);
+        Assert.Contains("RequestHexEditorSaveCommand", panel, StringComparison.Ordinal);
         Assert.Contains("PickEditedFirmwareOutputPathAsync", panelCodeBehind, StringComparison.Ordinal);
         Assert.Contains("BuildHexEditorAsync", panelCodeBehind, StringComparison.Ordinal);
         Assert.Contains("BuildHexEditorAsync", viewModel, StringComparison.Ordinal);

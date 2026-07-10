@@ -17,6 +17,7 @@
   <Window.KeyBindings>
     <KeyBinding Gesture="Ctrl+H" Command="{Binding ShowReportHistoryCommand}" />
     <KeyBinding Gesture="Ctrl+Shift+Delete" Command="{Binding ClearReportHistoryCommand}" />
+    <KeyBinding Gesture="Ctrl+S" Command="{Binding RequestHexEditorSaveCommand}" />
   </Window.KeyBindings>
   <Window.Resources>
     <ResourceDictionary>
@@ -277,6 +278,8 @@
     <views:WorkflowContextSetupModal Grid.RowSpan="4" IsVisible="{Binding IsWorkflowContextModalOpen}" />
 
     <views:FirmwareIcMismatchModal Grid.RowSpan="4" IsVisible="{Binding IsFirmwareIcMismatchModalOpen}" />
+
+    <views:HexEditorSaveModal Grid.RowSpan="4" IsVisible="{Binding IsHexEditorSaveConfirmationOpen}" />
 
     <views:ReportModal Grid.RowSpan="4" IsVisible="{Binding IsReportModalOpen}" />
   </Grid>

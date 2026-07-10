@@ -108,11 +108,10 @@
                                   Classes="hexCell"
                                   Classes.changed="{Binding IsChanged}"
                                   Classes.selected="{Binding IsSelected}"
-                                  Classes.reference="{Binding IsReference}"
                                   Command="{ReflectionBinding $parent[Window].DataContext.SelectGeneralReplaceHexByteCommand}"
                                   CommandParameter="{Binding}"
                                   DoubleTapped="HexByte_OnDoubleTapped"
-                                  IsVisible="{Binding IsDisplayVisible}"
+                                  IsVisible="{Binding IsAuthoringDisplayVisible}"
                                   ToolTip.Tip="{Binding AccessibleLabel}">
                                 <Button.ContextMenu>
                                   <ContextMenu>
@@ -125,6 +124,11 @@
                                 </Button.ContextMenu>
                                 <TextBlock Text="{Binding ValueHex}" />
                               </Button>
+                              <TextBlock
+                                  Classes="hexReferenceCell"
+                                  IsVisible="{Binding IsReference}"
+                                  Text="{Binding ValueHex}"
+                                  ToolTip.Tip="{Binding AccessibleLabel}" />
                               <TextBox
                                   Classes="hexCellEditor"
                                   Classes.invalid="{Binding HasInlineValidationMessage}"
@@ -224,12 +228,20 @@
               </ScrollViewer>
             </StackPanel>
 
-            <Button
-                Grid.Row="6"
-                Classes="primary"
-                Click="BuildHexEditorButton_OnClick"
-                Content="{Binding Text.HexEditorBuildLabel}"
-                IsEnabled="{Binding CanBuildHexEditor}" />
+            <Grid Grid.Row="6" ColumnDefinitions="*,*" ColumnSpacing="8">
+              <Button
+                  Grid.Column="0"
+                  Classes="secondary"
+                  Command="{Binding RequestHexEditorSaveCommand}"
+                  Content="{Binding Text.HexEditorSaveLabel}"
+                  IsEnabled="{Binding CanBuildHexEditor}" />
+              <Button
+                  Grid.Column="1"
+                  Classes="primary"
+                  Click="SaveAsHexEditorButton_OnClick"
+                  Content="{Binding Text.HexEditorSaveAsLabel}"
+                  IsEnabled="{Binding CanBuildHexEditor}" />
+            </Grid>
           </Grid>
         </Border>
       </Grid>

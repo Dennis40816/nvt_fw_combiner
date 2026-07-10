@@ -51,6 +51,19 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
+        var candidate = new WorkbenchGeneralReplacePatchInput(
+            "hex-draft",
+            GeneralReplacePatchDraft.StartAddress,
+            GeneralReplacePatchDraft.EndAddress,
+            GeneralReplacePatchDraft.Kind,
+            GeneralReplacePatchDraft.Value);
+        if (!TryValidateGeneralReplacePatch(candidate, out string validationMessage))
+        {
+            GeneralReplaceHexViewportStatus = validationMessage;
+            NotifyGeneralReplaceHexViewportChanged();
+            return;
+        }
+
         _generalReplacePatchCounter++;
         GeneralReplacePatches.Add(new GeneralReplacePatchViewModel(
             $"hex-patch-{_generalReplacePatchCounter}",
@@ -184,7 +197,7 @@ public sealed partial class MainWindowViewModel
 
     private void SelectGeneralReplaceHexByte(GeneralReplaceHexByteCellViewModel? cell)
     {
-        if (cell is null)
+        if (cell is null || cell.IsReference)
         {
             return;
         }
@@ -265,8 +278,8 @@ public sealed partial class MainWindowViewModel
                 ],
                 row.BeforeAscii,
                 row.AfterAscii,
-                IsReferenceRow: false,
-                HasChanges: hasChanges));
+                isReferenceRow: false,
+                hasChanges: hasChanges));
             if (IsGeneralReplaceHexReferenceRowsVisible && hasChanges)
             {
                 GeneralReplaceHexViewportRows.Add(new GeneralReplaceHexViewportRowViewModel(
@@ -286,8 +299,8 @@ public sealed partial class MainWindowViewModel
                     ],
                     row.BeforeAscii,
                     row.BeforeAscii,
-                    IsReferenceRow: true,
-                    HasChanges: false));
+                    isReferenceRow: true,
+                    hasChanges: false));
             }
         }
 
@@ -328,6 +341,48 @@ public sealed partial class MainWindowViewModel
         return parsed && address >= 0;
     }
 
+    private bool TryValidateGeneralReplacePatch(
+        WorkbenchGeneralReplacePatchInput candidate,
+        out string validationMessage)
+    {
+        validationMessage = Text.GeneralReplaceHexEditValidationDetail;
+        if (!ReplaceBaseSlot.HasFile ||
+            !TryParseGeneralReplaceHexAddress(candidate.TargetStart, out long start) ||
+            !TryParseGeneralReplaceHexAddress(candidate.TargetEndInclusive, out long end) ||
+            end < start)
+        {
+            return false;
+        }
+
+        if (!IsGeneralReplaceHexRangeAuthorized(start, end))
+        {
+            validationMessage = Text.GeneralReplaceHexUnauthorizedRangeDetail;
+            return false;
+        }
+
+        List<WorkbenchGeneralReplacePatchInput> staged = [.. CreateGeneralReplacePatchInputs(), candidate];
+        WorkbenchGeneralReplaceHexViewport viewport = UiCompositionRunner.CreateGeneralReplaceHexViewport(
+            ReplaceBaseSlot.FilePath!,
+            start,
+            staged);
+        if (viewport.Issues.Count > 0)
+        {
+            validationMessage = viewport.Issues[0].Message;
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool IsGeneralReplaceHexRangeAuthorized(long start, long end)
+    {
+        return GeneralReplaceEditableRanges.Any(range =>
+            TryParseGeneralReplaceHexAddress(range.StartAddress, out long authorizedStart) &&
+            TryParseGeneralReplaceHexAddress(range.EndAddress, out long authorizedEnd) &&
+            start >= authorizedStart &&
+            end <= authorizedEnd);
+    }
+
     partial void OnIsGeneralReplaceHexReferenceRowsVisibleChanged(bool value)
     {
         RefreshGeneralReplaceHexViewport();
@@ -362,13 +417,95 @@ public sealed partial class MainWindowViewModel
         RedoGeneralReplacePatchCommand.NotifyCanExecuteChanged();
     }
 
-    private void NotifyGeneralReplacePatchCollectionChanged()
+    private void NotifyGeneralReplacePatchCollectionChanged(bool refreshViewport = true)
     {
         OnPropertyChanged(nameof(HasGeneralReplacePatches));
         OnPropertyChanged(nameof(IsGeneralReplacePatchListEmpty));
         RefreshGeneralReplacePatchCommands();
-        RefreshGeneralReplaceHexViewport();
+        if (refreshViewport)
+        {
+            RefreshGeneralReplaceHexViewport();
+        }
+
         RefreshCommandState();
+    }
+
+    private void ApplyStagedGeneralReplaceHexByteToViewport(long address, string value)
+    {
+        string addressLabel = $"0x{address:X6}";
+        foreach (GeneralReplaceHexViewportRowViewModel row in GeneralReplaceHexViewportRows.Where(row => !row.IsReferenceRow))
+        {
+            GeneralReplaceHexByteCellViewModel? cell = row.Bytes.FirstOrDefault(candidate =>
+                string.Equals(candidate.Address, addressLabel, StringComparison.OrdinalIgnoreCase));
+            if (cell is null)
+            {
+                continue;
+            }
+
+            cell.ValueHex = value;
+            cell.IsChanged = !string.Equals(cell.BeforeHex, value, StringComparison.OrdinalIgnoreCase);
+            row.HasChanges = row.Bytes.Any(candidate => candidate.IsChanged);
+            row.AfterAscii = string.Concat(row.Bytes.Select(FormatGeneralReplaceHexAsciiCharacter));
+            SynchronizeGeneralReplaceHexReferenceRow(row);
+            NotifyGeneralReplaceHexViewportChanged();
+            return;
+        }
+    }
+
+    private void SynchronizeGeneralReplaceHexReferenceRow(GeneralReplaceHexViewportRowViewModel authoringRow)
+    {
+        int rowIndex = GeneralReplaceHexViewportRows.IndexOf(authoringRow);
+        if (rowIndex < 0)
+        {
+            return;
+        }
+
+        bool hasReferenceRow = rowIndex + 1 < GeneralReplaceHexViewportRows.Count &&
+                               GeneralReplaceHexViewportRows[rowIndex + 1].IsReferenceRow &&
+                               string.Equals(
+                                   GeneralReplaceHexViewportRows[rowIndex + 1].Address,
+                                   authoringRow.Address,
+                                   StringComparison.OrdinalIgnoreCase);
+        if (authoringRow.HasChanges && IsGeneralReplaceHexReferenceRowsVisible && !hasReferenceRow)
+        {
+            GeneralReplaceHexViewportRows.Insert(rowIndex + 1, CreateGeneralReplaceHexReferenceRow(authoringRow));
+        }
+        else if ((!authoringRow.HasChanges || !IsGeneralReplaceHexReferenceRowsVisible) && hasReferenceRow)
+        {
+            GeneralReplaceHexViewportRows.RemoveAt(rowIndex + 1);
+        }
+    }
+
+    private GeneralReplaceHexViewportRowViewModel CreateGeneralReplaceHexReferenceRow(
+        GeneralReplaceHexViewportRowViewModel authoringRow)
+    {
+        return new GeneralReplaceHexViewportRowViewModel(
+            authoringRow.Address,
+            [
+                .. authoringRow.Bytes.Select(cell => new GeneralReplaceHexByteCellViewModel(
+                    cell.Address,
+                    cell.BeforeHex,
+                    cell.BeforeHex,
+                    false,
+                    false,
+                    true,
+                    Text.GeneralReplaceHexContextEditLabel,
+                    Text.GeneralReplaceHexContextRangeStartLabel,
+                    Text.GeneralReplaceHexContextRangeEndLabel,
+                    Text.GeneralReplaceHexContextClearLabel)),
+            ],
+            authoringRow.BeforeAscii,
+            authoringRow.BeforeAscii,
+            isReferenceRow: true,
+            hasChanges: false);
+    }
+
+    private static char FormatGeneralReplaceHexAsciiCharacter(GeneralReplaceHexByteCellViewModel cell)
+    {
+        return byte.TryParse(cell.ValueHex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out byte value) &&
+               value is >= 0x20 and <= 0x7E
+            ? (char)value
+            : '.';
     }
 
     private void UpdateGeneralReplaceHexSelection(string address)

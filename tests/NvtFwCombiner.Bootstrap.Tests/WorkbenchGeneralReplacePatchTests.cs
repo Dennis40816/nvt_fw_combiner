@@ -287,6 +287,24 @@ public sealed class WorkbenchGeneralReplacePatchTests
         Assert.Equal(baseBytes, File.ReadAllBytes(basePath));
     }
 
+    /// <summary>Go To reports an address outside the BIN instead of silently clamping to the final row.</summary>
+    [Fact]
+    public void GeneralReplaceHexViewportRejectsAddressOutsideBaseBin()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-general-hex-viewport-outside");
+        string basePath = workspace.Write("base.bin", CreatePattern(0x400, 0x62));
+
+        WorkbenchGeneralReplaceHexViewport viewport = WorkbenchCompositionService.CreateGeneralReplaceHexViewport(
+            basePath,
+            0x400,
+            []);
+
+        CompositionIssue issue = Assert.Single(viewport.Issues);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, issue.Code);
+        Assert.Contains("outside", issue.Message, StringComparison.Ordinal);
+        Assert.Empty(viewport.Rows);
+    }
+
     /// <summary>Editor range choices are derived from the compiled General Replace profile and exclude protected header bytes.</summary>
     [Fact]
     public void GeneralReplaceEditableRangesExposeOnlyAuthorizedProfileRegions()

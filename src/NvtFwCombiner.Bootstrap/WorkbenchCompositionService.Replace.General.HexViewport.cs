@@ -154,6 +154,15 @@ public static partial class WorkbenchCompositionService
                 return false;
             }
 
+            if (requestedStart >= baseLength)
+            {
+                issue = new CompositionIssue(
+                    CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+                    $"Hexadecimal address 0x{requestedStart:X} is outside the {baseLength}-byte base flash BIN.",
+                    WorkbenchSlotIds.ReplaceBase);
+                return false;
+            }
+
             long requestedAlignedStart = requestedStart - (requestedStart % GeneralReplaceHexViewportBytesPerRow);
             long contextualStart = Math.Max(
                 0,

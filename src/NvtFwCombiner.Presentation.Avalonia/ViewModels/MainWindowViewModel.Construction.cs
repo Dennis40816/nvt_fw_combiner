@@ -90,6 +90,8 @@ public sealed partial class MainWindowViewModel
             SetGeneralReplacePatchEnd);
         ClearGeneralReplaceHexByteCommand = new RelayCommand<GeneralReplaceHexByteCellViewModel>(
             ClearGeneralReplaceHexByte);
+        RequestHexEditorSaveCommand = new RelayCommand(RequestHexEditorSave);
+        CancelHexEditorSaveCommand = new RelayCommand(CancelHexEditorSave);
         AddGeneralMergeMappingCommand = new RelayCommand(AddGeneralMergeMapping);
         RemoveGeneralMergeMappingCommand = new RelayCommand<GeneralMergeMappingViewModel>(
             RemoveGeneralMergeMapping);

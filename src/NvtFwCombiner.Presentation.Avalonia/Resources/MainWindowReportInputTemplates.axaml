@@ -4,39 +4,40 @@
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
 
 <DataTemplate x:Key="ReportInputRowTemplate" DataType="vm:ReportLineViewModel">
-  <Border Padding="0,9" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
-    <StackPanel Spacing="4">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-        <StackPanel Spacing="2">
-          <TextBlock Classes="bodyStrongText" Text="{Binding Title}" TextWrapping="Wrap" />
-          <TextBlock Classes="captionText" Text="{Binding Detail}" TextWrapping="Wrap" IsVisible="{Binding HasInputDetail}" />
-        </StackPanel>
-        <StackPanel Grid.Column="1" HorizontalAlignment="Right" Spacing="2">
-          <TextBlock HorizontalAlignment="Right" FontSize="11" FontWeight="SemiBold" Foreground="#334155" Text="{Binding InputRole}" TextWrapping="Wrap" />
-          <TextBlock HorizontalAlignment="Right" Classes="technicalMeta" Text="{Binding InputSizeLabel}" TextWrapping="Wrap" />
-        </StackPanel>
-      </Grid>
-      <TextBlock Classes="technicalCaption" Text="{Binding InputAddressSpace}" TextWrapping="Wrap" IsVisible="{Binding HasInputFields}" />
-    </StackPanel>
+  <Border Margin="0,0,0,6" Classes="reportInputRow">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+      <StackPanel Spacing="3">
+        <TextBlock Classes="bodyStrongText" Text="{Binding Title}" TextWrapping="Wrap" />
+        <TextBlock Classes="captionText" Text="{Binding Detail}" TextWrapping="Wrap" IsVisible="{Binding HasInputDetail}" />
+        <TextBlock Classes="technicalCaption" Text="{Binding InputAddressSpace}" TextWrapping="Wrap" IsVisible="{Binding HasInputFields}" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" HorizontalAlignment="Right" Spacing="4">
+        <Label Classes="reportBadge info" Content="{Binding InputRole}" />
+        <TextBlock HorizontalAlignment="Right" Classes="technicalMeta" Text="{Binding InputSizeLabel}" TextWrapping="Wrap" />
+      </StackPanel>
+    </Grid>
   </Border>
 </DataTemplate>
 
 <DataTemplate x:Key="ReportInputGroupTemplate" DataType="vm:ReportInputGroupViewModel">
-  <Border Margin="0,0,0,12" Padding="0,0,0,10" BorderBrush="#CBD5E1" BorderThickness="0,0,0,1">
-    <StackPanel Spacing="8">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-        <StackPanel Spacing="2">
+  <StackPanel Margin="0,0,0,12" Spacing="8">
+    <Border Classes="reportInputGroupHeader">
+      <Grid ColumnDefinitions="4,*,Auto" ColumnSpacing="10">
+        <Border Background="#2563EB" CornerRadius="2" />
+        <StackPanel Grid.Column="1" Spacing="2">
           <TextBlock Classes="panelTitle" Text="{Binding Title}" TextWrapping="Wrap" />
           <TextBlock Classes="captionText" Text="{Binding Detail}" TextWrapping="Wrap" />
         </StackPanel>
-        <Label Grid.Column="1" Classes="reportBadge" Content="{Binding Count}" />
+        <Label Grid.Column="2" Classes="reportBadge info" Content="{Binding Count}" />
       </Grid>
+    </Border>
+    <StackPanel Spacing="8">
       <ItemsControl ItemsSource="{Binding Rows}">
         <ItemsControl.ItemTemplate>
           <StaticResource ResourceKey="ReportInputRowTemplate" />
         </ItemsControl.ItemTemplate>
       </ItemsControl>
     </StackPanel>
-  </Border>
+  </StackPanel>
 </DataTemplate>
 </ResourceDictionary>

@@ -16,7 +16,7 @@ public sealed partial class HexEditorPanel : UserControl
         InitializeComponent();
     }
 
-    private async void BuildHexEditorButton_OnClick(object? sender, RoutedEventArgs e)
+    private async void SaveAsHexEditorButton_OnClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not MainWindowViewModel viewModel || !viewModel.CanBuildHexEditor ||
             TopLevel.GetTopLevel(this) is not { StorageProvider: { } storageProvider })

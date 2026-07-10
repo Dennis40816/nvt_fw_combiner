@@ -156,8 +156,20 @@ public sealed partial class ShellTextResources
     /// <summary>Closes the experimental Hex Editor section.</summary>
     public string HexEditorCloseLabel { get; private init; } = string.Empty;
 
-    /// <summary>Build label for the experimental Hex Editor.</summary>
-    public string HexEditorBuildLabel { get; private init; } = string.Empty;
+    /// <summary>Label for the confirmed safe export action in the experimental Hex Editor.</summary>
+    public string HexEditorSaveLabel { get; private init; } = string.Empty;
+
+    /// <summary>Label for choosing a new output path in the experimental Hex Editor.</summary>
+    public string HexEditorSaveAsLabel { get; private init; } = string.Empty;
+
+    /// <summary>Title for the safe Hex Editor export confirmation.</summary>
+    public string HexEditorSaveConfirmationTitle { get; private init; } = string.Empty;
+
+    /// <summary>Explanation for the safe Hex Editor export confirmation.</summary>
+    public string HexEditorSaveConfirmationDetail { get; private init; } = string.Empty;
+
+    /// <summary>Confirmation action label for the safe Hex Editor export dialog.</summary>
+    public string HexEditorSaveConfirmationActionLabel { get; private init; } = string.Empty;
 
     /// <summary>Readiness state when the Hex Editor needs a base BIN.</summary>
     public string HexEditorBaseRequiredDetail { get; private init; } = string.Empty;
@@ -167,6 +179,9 @@ public sealed partial class ShellTextResources
 
     /// <summary>Readiness state when Hex Editor can build a new complete BIN.</summary>
     public string HexEditorReadyDetail { get; private init; } = string.Empty;
+
+    /// <summary>Validation detail when a staged patch is outside profile-authorized General Replace ranges.</summary>
+    public string GeneralReplaceHexUnauthorizedRangeDetail { get; private init; } = string.Empty;
 
     public string GeneralMergeMappingDetail { get; private init; } = string.Empty;
 

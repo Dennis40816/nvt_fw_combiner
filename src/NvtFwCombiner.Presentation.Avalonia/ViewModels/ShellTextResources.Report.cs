@@ -129,7 +129,7 @@ public sealed partial class ShellTextResources
 
     public string AddressSpaceLabel { get; private init; } = string.Empty;
 
-    public string CommandArgvLabel { get; private init; } = string.Empty;
+    public string CopyCommandTooltip { get; private init; } = string.Empty;
 
     public string DeleteReportTooltip { get; private init; } = string.Empty;
 }
