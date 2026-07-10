@@ -273,6 +273,7 @@ Private golden inputs, unmanifested BIN files, generated firmware outputs, refco
 $ReferenceFiles = @(
     'docs/references/verification-report.md',
     'docs/references/tddi-flash-header.md',
+    'docs/references/nvt-fwconfig-copy-validation.md',
     'docs/references/tddi-flash-header/TDDI_Flash_Header.xlsx',
     'docs/architecture/ctrlram-postbuild-command-matrix.md',
     'docs/architecture/ctrlram-postbuild-investigation-reference.md',

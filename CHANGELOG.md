@@ -12,6 +12,7 @@ Post-`0.8.0` development targets `0.8.x` stabilization and `0.9.0` UAT readiness
 
 - Experimental Hex Editor below the normal Replace workflows. It stages profile-constrained equal-length overwrite/fill patches in a virtual diff view and exports only through the shared General Replace build/report pipeline.
 - IC metadata facade and catalog-backed FlashCode version decoding for the DP main/sub bytes and TP FW/sub-version output tokens.
+- NVT-copy FWConfig validation for all current Standard Merge golden outputs, plus catalog-backed CMI DP/Jira display metadata. The NT51950 CMI branch reads the validated TP ChipNumber and fails closed when it is unavailable.
 
 ### Changed
 

@@ -7,7 +7,7 @@ namespace NvtFwCombiner.Application.Tests.FlashMaps;
 /// <summary>Golden-backed checks for FWConfig metadata extraction.</summary>
 public sealed class FirmwareConfigMetadataReaderTests
 {
-    private static readonly byte[] EndFlagBytes = [0x00, 0x4E, 0x56, 0x54];
+    private static readonly byte[] NvtEndFlagBytes = [0x00, 0x4E, 0x56, 0x54];
 
     /// <summary>Locks reviewed FWConfig offsets used by UI traceability and postbuild category selection.</summary>
     [Fact]
@@ -135,7 +135,7 @@ public sealed class FirmwareConfigMetadataReaderTests
         Assert.Equal(afterRight, hardware.GipAfterRight);
     }
 
-    /// <summary>Confirms every current IC golden copies common hardware information to the NVT T-minus-FFF block.</summary>
+    /// <summary>Confirms every current IC golden copies all exposed FWConfig fields to the NVT T-minus-FFF block.</summary>
     [Theory]
     [MemberData(nameof(GoldenFirmwareConfigCopyCases))]
     public void GoldenFlashHardwareInfoMatchesNvtCopy(string ic, string relativePath)
@@ -150,17 +150,32 @@ public sealed class FirmwareConfigMetadataReaderTests
             relativePath));
 
         Assert.True(TpFlashMapCatalog.TryGetFirmwareConfigStart($"NT{ic}", out long firmwareConfigStart));
-        int nvtEndFlagStart = FindEndFlagStart(image);
-        long nvtCopyStart = nvtEndFlagStart + 3L - 0xFFF;
-
         Assert.True(FirmwareConfigMetadataReader.TryRead(image, firmwareConfigStart, out FirmwareConfigMetadata primary));
-        Assert.True(FirmwareConfigMetadataReader.TryRead(image, nvtCopyStart, out FirmwareConfigMetadata copy));
-        Assert.Equal(primary.Hardware, copy.Hardware);
+        Assert.True(FirmwareConfigMetadataReader.TryReadNvtCopy(image, out FirmwareConfigMetadata copy));
+        int nvtTerminal = Assert.Single(FindNvtEndFlagTerminals(image));
+        Assert.Equal(nvtTerminal - 0xFFF, copy.FirmwareConfigStart);
 
-        int hardwareLength = FirmwareConfigLayout.HardwareInfoEndExclusive - FirmwareConfigLayout.HardwareInfoStartOffset;
-        Assert.Equal(
-            image.AsSpan((int)firmwareConfigStart + FirmwareConfigLayout.HardwareInfoStartOffset, hardwareLength).ToArray(),
-            image.AsSpan((int)nvtCopyStart + FirmwareConfigLayout.HardwareInfoStartOffset, hardwareLength).ToArray());
+        Assert.Equal(primary.FirmwareVersion, copy.FirmwareVersion);
+        Assert.Equal(primary.FirmwareVersionBar, copy.FirmwareVersionBar);
+        Assert.Equal(primary.IsFirmwareVersionBarValid, copy.IsFirmwareVersionBarValid);
+        Assert.Equal(primary.FirmwareSubVersion, copy.FirmwareSubVersion);
+        Assert.Equal(primary.ChipNumber, copy.ChipNumber);
+        Assert.Equal(primary.CommonFwVersion, copy.CommonFwVersion);
+        Assert.Equal(primary.ProjectId, copy.ProjectId);
+        Assert.Equal(primary.Hardware, copy.Hardware);
+    }
+
+    /// <summary>Rejects missing or ambiguous NVT end flags rather than guessing a FWConfig copy.</summary>
+    [Fact]
+    public void NvtCopyReaderRejectsMissingOrAmbiguousEndFlag()
+    {
+        Assert.False(FirmwareConfigMetadataReader.TryReadNvtCopy(new byte[0x1000], out _));
+
+        byte[] ambiguous = new byte[0x2000];
+        WriteEndFlag(ambiguous, 0x0FFC);
+        WriteEndFlag(ambiguous, 0x1FFC);
+
+        Assert.False(FirmwareConfigMetadataReader.TryReadNvtCopy(ambiguous, out _));
     }
 
     /// <summary>NT51926 golden evidence identifies the owner-confirmed 1.4.1 Common FW codebase.</summary>
@@ -228,17 +243,26 @@ public sealed class FirmwareConfigMetadataReaderTests
         return metadata;
     }
 
-    private static int FindEndFlagStart(ReadOnlySpan<byte> image)
+    private static void WriteEndFlag(byte[] image, int start)
     {
-        for (int offset = 0; offset <= image.Length - EndFlagBytes.Length; offset++)
+        image[start] = 0x00;
+        image[start + 1] = (byte)'N';
+        image[start + 2] = (byte)'V';
+        image[start + 3] = (byte)'T';
+    }
+
+    private static List<int> FindNvtEndFlagTerminals(ReadOnlySpan<byte> image)
+    {
+        List<int> terminals = [];
+        for (int offset = 0; offset <= image.Length - NvtEndFlagBytes.Length; offset++)
         {
-            if (image.Slice(offset, EndFlagBytes.Length).SequenceEqual(EndFlagBytes))
+            if (image.Slice(offset, NvtEndFlagBytes.Length).SequenceEqual(NvtEndFlagBytes))
             {
-                return offset;
+                terminals.Add(offset + NvtEndFlagBytes.Length - 1);
             }
         }
 
-        throw new InvalidOperationException("The golden Flash image does not contain the NVT End Flag.");
+        return terminals;
     }
 
     private static void WriteGipTable(byte[] image, int offset, FirmwareConfigGipTable table)

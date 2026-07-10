@@ -93,9 +93,31 @@ public sealed class WorkbenchCompositionServiceTests
             GoldenPath("expected/51926/flash.bin"));
 
         Assert.NotNull(metadata);
+        Assert.True(TpFlashMapCatalog.TryGetFirmwareConfigStart("NT51926", out long firmwareConfigStart));
+        Assert.Equal(firmwareConfigStart, metadata.FirmwareConfigStart);
         Assert.Equal("1.4.1", metadata.CommonFwVersion);
         Assert.Equal(0x02, metadata.ChipNumber);
         Assert.Equal("51926_1.4.1", metadata.PostbuildCategory);
+    }
+
+    /// <summary>Uses the selected TP NVT FWConfig ChipNumber to resolve NT51950's 1IC CMI location.</summary>
+    [Fact]
+    public void Nt51950CmiMetadataRequiresTpNvtFirmwareConfig()
+    {
+        string dpPath = GoldenPath("inputs/51950/dp-256k/dp.bin");
+        string tpPath = GoldenPath("inputs/51950/dp-256k/tp.bin");
+
+        Assert.Null(WorkbenchCompositionService.TryReadCmiDpCodeMetadata("NT51950", dpPath));
+
+        WorkbenchCmiDpCodeMetadata? metadata = WorkbenchCompositionService.TryReadCmiDpCodeMetadata(
+            "NT51950",
+            dpPath,
+            tpPath);
+
+        Assert.NotNull(metadata);
+        Assert.Equal(0x3B016, metadata.Register16Offset);
+        Assert.Equal(576, metadata.JiraNumber);
+        Assert.Equal("AUTO_PRJ-576", metadata.JiraBadge);
     }
 
     /// <summary>Verifies General Replace build writes a profile-approved DP explicit mapping.</summary>

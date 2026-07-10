@@ -18,6 +18,8 @@ Keep canonical facts in their existing owned categories:
 - `LegacyCombinerPostbuildCatalog` owns approved postbuild variants and Common FW category selection.
 - `GenFlashVersionCatalog` remains an independent DP-version extractor. Its in-progress work is intentionally not folded into this decision.
 
+`TpFlashMapCatalog` remains the source that declares whether an IC has a primary FWConfig location. `FirmwareConfigMetadataReader` owns the generic backup-copy locator used for display metadata: it finds one unambiguous `00 4E 56 54` NVT end flag and reads the copy at terminal `T - 0xFFF`. Missing or ambiguous markers fail closed. This locator is evidence-backed by the owner-approved Standard Merge output fixtures and does not replace flash-map, TP-header, or postbuild range ownership.
+
 `NvtFwCombiner.Bootstrap.IcMetadataFacade` is the sole read-only integration surface for UI/CLI/Settings catalog queries. It projects metadata and delegates selection to the canonical owners; it must not copy ranges, header facts, version offsets, processors, or postbuild command data.
 
 The report viewer remains snapshot-based: a historical report is interpreted from recorded report JSON, not reclassified using the current metadata facade.
@@ -28,9 +30,11 @@ The report viewer remains snapshot-based: a historical report is interpreted fro
 - UI badges and shell readiness use the same IC support projection instead of a parallel list.
 - A missing flash-map row for a selectable IC fails facade construction and is caught by convergence tests.
 - Firmware semantics remain outside Bootstrap; the facade is a composition boundary only.
+- The workbench may read FW/Common FW/PID/ChipNumber display facts from the validated NVT copy, while flash-map rows remain the primary per-IC validation evidence and the public metadata address remains the flash-map primary start.
 
 ## Verification
 
 - Facade tests compare each projected IC row with its canonical onboarding, flash-map, postbuild, number-choice, and DP Perspective sources.
+- FWConfig tests verify every current golden output has one NVT end flag and a matching `T - 0xFFF` copy; NT51926 is specifically locked to end flag `0x3BFFF` and copy `0x3B000`.
 - Architecture tests ensure the workbench catalog facade uses `IcMetadataFacade` rather than rebuilding catalog joins.
 - Existing report tests retain JSON-only rendering behavior.

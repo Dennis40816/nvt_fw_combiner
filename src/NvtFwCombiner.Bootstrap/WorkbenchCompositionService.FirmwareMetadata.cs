@@ -49,7 +49,10 @@ public static partial class WorkbenchCompositionService
     }
 
     /// <summary>Reads CMI DP Jira and major/minor facts without making unobserved DP sizes a build blocker.</summary>
-    public static WorkbenchCmiDpCodeMetadata? TryReadCmiDpCodeMetadata(string icId, string path)
+    public static WorkbenchCmiDpCodeMetadata? TryReadCmiDpCodeMetadata(
+        string icId,
+        string path,
+        string? tpPath = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -62,9 +65,11 @@ public static partial class WorkbenchCompositionService
         try
         {
             byte[] image = File.ReadAllBytes(path);
+            byte? chipNumber = TryReadNvtCopyChipNumber(icId, tpPath);
             return GenFlashVersionCatalog.TryReadCmiDpCode(
                 icId,
                 image,
+                chipNumber,
                 out CmiDpCodeMetadata metadata)
                     ? new WorkbenchCmiDpCodeMetadata(
                         metadata.IcId,
@@ -92,20 +97,13 @@ public static partial class WorkbenchCompositionService
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        if (!IcMetadataFacade.TryGetFirmwareConfigStart(icId, out long firmwareConfigStart) ||
-            !File.Exists(path))
+        if (!TryReadConsistentFirmwareConfigMetadata(icId, path, out FirmwareConfigMetadata metadata))
         {
             return null;
         }
 
         try
         {
-            byte[] image = File.ReadAllBytes(path);
-            if (!FirmwareConfigMetadataReader.TryRead(image, firmwareConfigStart, out FirmwareConfigMetadata metadata))
-            {
-                return null;
-            }
-
             string? postbuildCategory = TryResolvePostbuildProfileForDisplay(
                 icId,
                 path,
@@ -136,31 +134,71 @@ public static partial class WorkbenchCompositionService
         out string? commonFwVersion)
     {
         commonFwVersion = null;
-        if (!IcMetadataFacade.TryGetFirmwareConfigStart(icId, out long firmwareConfigStart))
+        if (!TryReadConsistentFirmwareConfigMetadata(icId, basePath, out FirmwareConfigMetadata metadata) ||
+            !metadata.IsFirmwareVersionBarValid)
+        {
+            return false;
+        }
+
+        commonFwVersion = metadata.CommonFwVersion;
+        return true;
+    }
+
+    private static byte? TryReadNvtCopyChipNumber(string icId, string? tpPath)
+    {
+        return !string.IsNullOrWhiteSpace(tpPath) &&
+            TryReadConsistentFirmwareConfigMetadata(icId, tpPath, out FirmwareConfigMetadata metadata)
+                ? metadata.ChipNumber
+                : null;
+    }
+
+    private static bool TryReadConsistentFirmwareConfigMetadata(
+        string icId,
+        string path,
+        out FirmwareConfigMetadata metadata)
+    {
+        metadata = default;
+        if (!IcMetadataFacade.TryGetFirmwareConfigStart(icId, out long firmwareConfigStart) ||
+            !File.Exists(path))
         {
             return false;
         }
 
         try
         {
-            byte[] image = File.ReadAllBytes(basePath);
-            if (!FirmwareConfigMetadataReader.TryRead(image, firmwareConfigStart, out FirmwareConfigMetadata metadata))
+            byte[] image = File.ReadAllBytes(path);
+            if (!FirmwareConfigMetadataReader.TryRead(image, firmwareConfigStart, out FirmwareConfigMetadata primary) ||
+                !FirmwareConfigMetadataReader.TryReadNvtCopy(image, out FirmwareConfigMetadata nvtCopy) ||
+                !HaveEquivalentFirmwareConfigValues(primary, nvtCopy))
             {
                 return false;
             }
 
-            if (!metadata.IsFirmwareVersionBarValid)
-            {
-                return false;
-            }
-
-            commonFwVersion = metadata.CommonFwVersion;
+            // Preserve the flash-map address as the public traceability location. The NVT copy
+            // is the verified source of the displayed values, not a second canonical map row.
+            metadata = nvtCopy with { FirmwareConfigStart = firmwareConfigStart };
             return true;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         {
             return false;
         }
+    }
+
+    private static bool HaveEquivalentFirmwareConfigValues(
+        FirmwareConfigMetadata primary,
+        FirmwareConfigMetadata nvtCopy)
+    {
+        return primary.FirmwareVersion == nvtCopy.FirmwareVersion &&
+            primary.FirmwareVersionBar == nvtCopy.FirmwareVersionBar &&
+            primary.IsFirmwareVersionBarValid == nvtCopy.IsFirmwareVersionBarValid &&
+            primary.FirmwareSubVersion == nvtCopy.FirmwareSubVersion &&
+            primary.ChipNumber == nvtCopy.ChipNumber &&
+            primary.CommonFwMajorVersion == nvtCopy.CommonFwMajorVersion &&
+            primary.CommonFwMinorVersion == nvtCopy.CommonFwMinorVersion &&
+            primary.CommonFwAdditionalVersion == nvtCopy.CommonFwAdditionalVersion &&
+            primary.ProjectId == nvtCopy.ProjectId &&
+            primary.Hardware == nvtCopy.Hardware;
     }
 
     private static bool TryResolvePostbuildProfileForDisplay(

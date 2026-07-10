@@ -8,7 +8,8 @@ public static class GenFlashVersionCatalog
     private const string GenFlashEvidence = "gen_flash_bin_v2/ic_config.json";
     private const string Nt51950CmiEvidence =
         "Owner-confirmed CMI DP register map (Reg16h-18h), 2026-07-10; " +
-        "standard-merge-gen-flash/51950-dp-256k golden input.";
+        "standard-merge-gen-flash/51950-dp-256k golden input verifies the 1IC location; " +
+        "TP NVT FWConfig ChipNumber selects 1IC 0x3B016 versus cascade 0x05016.";
     private const string Nt51951CmiEvidence =
         "Owner-confirmed CMI DP register map (Reg16h-18h), 2026-07-10; " +
         "standard-merge-gen-flash/51951-dp-512k golden input.";
@@ -23,6 +24,12 @@ public static class GenFlashVersionCatalog
         "Owner-confirmed CMI DP register map (Reg16h-18h), 2026-07-10; " +
         "private 51929 replacement DP golden (SHA-256 91ce8204d7dc6103a015eba59f9ddb41ef5d1a64c101aa62a4fe7c4517f5cebf) " +
         "cross-checked against the legacy DP major version rule. See owner-handoff/combiner-and-51929/CASE.md.";
+    private const string Nt51923CmiEvidence =
+        "Owner-confirmed CMI DP register map (Reg16h-18h), 2026-07-10; " +
+        "standard-merge-gen-flash expected output cross-checks the retained DP CMI bytes with legacy DP major.";
+    private const string Nt51932CmiEvidence =
+        "Owner-confirmed CMI DP register map (Reg16h-18h), 2026-07-10; " +
+        "standard-merge-gen-flash expected output cross-checks the retained DP CMI bytes with legacy DP major.";
     private static readonly Dictionary<string, GenFlashDpVersionRule> DpVersionRulesByIc = BuildDpVersionRules();
     private static readonly Dictionary<string, CmiDpCodeRule> CmiDpCodeRulesByIc = BuildCmiDpCodeRules();
 
@@ -104,13 +111,30 @@ public static class GenFlashVersionCatalog
         ReadOnlySpan<byte> image,
         out CmiDpCodeMetadata metadata)
     {
+        return TryReadCmiDpCode(icId, image, firmwareConfigChipNumber: null, out metadata);
+    }
+
+    /// <summary>
+    /// Reads CMI DP Reg16h-18h metadata, using the TP NVT-copy FWConfig chip number when an IC
+    /// declares different 1IC and cascade locations.
+    /// </summary>
+    public static bool TryReadCmiDpCode(
+        string icId,
+        ReadOnlySpan<byte> image,
+        byte? firmwareConfigChipNumber,
+        out CmiDpCodeMetadata metadata)
+    {
         metadata = default;
         if (!TryGetCmiDpCodeRule(icId, out CmiDpCodeRule rule))
         {
             return false;
         }
 
-        long register16Offset = rule.Register16Offset;
+        if (!rule.TryResolveRegister16Offset(firmwareConfigChipNumber, out long register16Offset))
+        {
+            return false;
+        }
+
         long register18Offset = register16Offset + 2;
         if (register16Offset < 0 || register18Offset >= image.Length)
         {
@@ -160,10 +184,17 @@ public static class GenFlashVersionCatalog
     {
         return new Dictionary<string, CmiDpCodeRule>(StringComparer.Ordinal)
         {
+            ["51923"] = new CmiDpCodeRule("51923", Sizes(0x40000), 0x3E014, Nt51923CmiEvidence),
             ["51926"] = new CmiDpCodeRule("51926", Sizes(0x40000), 0x3E014, Nt51926CmiEvidence),
             ["51927"] = new CmiDpCodeRule("51927", Sizes(0x40000, 0x200000), 0x3C01C, Nt51927CmiEvidence),
             ["51929"] = new CmiDpCodeRule("51929", Sizes(0x40000), 0x401A, Nt51929CmiEvidence),
-            ["51950"] = new CmiDpCodeRule("51950", Sizes(0x40000), 0x3B016, Nt51950CmiEvidence),
+            ["51932"] = new CmiDpCodeRule("51932", Sizes(0x40000), 0x401A, Nt51932CmiEvidence),
+            ["51950"] = new CmiDpCodeRule(
+                "51950",
+                Sizes(0x40000),
+                0x3B016,
+                Nt51950CmiEvidence,
+                CascadeRegister16Offset: 0x05016),
             ["51951"] = new CmiDpCodeRule("51951", Sizes(0x80000), 0x05016, Nt51951CmiEvidence),
         };
     }
@@ -254,12 +285,37 @@ public sealed record CmiDpCodeRule(
     string IcId,
     IReadOnlyList<int> ExpectedPayloadLengths,
     long Register16Offset,
-    string EvidenceSource)
+    string EvidenceSource,
+    long? CascadeRegister16Offset = null)
 {
+    /// <summary>Whether the TP NVT-copy FWConfig ChipNumber is required to select the CMI location.</summary>
+    public bool RequiresFirmwareConfigChipNumber => CascadeRegister16Offset is not null;
+
     /// <summary>Returns whether the payload length has golden evidence for this IC's CMI register location.</summary>
     public bool IsExpectedPayloadLength(int payloadLength)
     {
         return ExpectedPayloadLengths.Contains(payloadLength);
+    }
+
+    /// <summary>Resolves the 1IC or cascade CMI register location without guessing a missing chip count.</summary>
+    public bool TryResolveRegister16Offset(byte? firmwareConfigChipNumber, out long register16Offset)
+    {
+        if (CascadeRegister16Offset is null)
+        {
+            register16Offset = Register16Offset;
+            return true;
+        }
+
+        if (firmwareConfigChipNumber is not { } chipNumber || chipNumber == 0)
+        {
+            register16Offset = 0;
+            return false;
+        }
+
+        register16Offset = chipNumber == 1
+            ? Register16Offset
+            : CascadeRegister16Offset.Value;
+        return true;
     }
 }
 

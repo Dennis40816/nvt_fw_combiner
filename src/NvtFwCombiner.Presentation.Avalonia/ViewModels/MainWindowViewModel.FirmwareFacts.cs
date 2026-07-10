@@ -24,7 +24,10 @@ public sealed partial class MainWindowViewModel
         }
 
         slot.SetFirmwareFacts(slot.SlotKind == FirmwareSlotKind.Dp
-            ? UiCompositionRunner.GetDpFirmwareSlotFacts(SelectedIc, slot.FilePath!)
+            ? UiCompositionRunner.GetDpFirmwareSlotFacts(
+                SelectedIc,
+                slot.FilePath!,
+                slot.SlotId == MergeDpSlotId ? _mergeTpSlot.FilePath : null)
             : UiCompositionRunner.GetFirmwareSlotFacts(
                 SelectedIc,
                 slot.FilePath!,

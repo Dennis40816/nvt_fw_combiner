@@ -122,6 +122,10 @@ public sealed class GenFlashVersionCatalogTests
             {
                 Assert.True(length > 0);
                 Assert.True(rule.Register16Offset + 2 < length);
+                if (rule.CascadeRegister16Offset is { } cascadeRegister16Offset)
+                {
+                    Assert.True(cascadeRegister16Offset + 2 < length);
+                }
             });
             Assert.True(GenFlashVersionCatalog.TryGetCmiDpCodeRule($"NT{rule.IcId}", out CmiDpCodeRule resolved));
             Assert.Same(rule, resolved);
@@ -144,6 +148,7 @@ public sealed class GenFlashVersionCatalogTests
         Assert.True(GenFlashVersionCatalog.TryReadCmiDpCode(
             "NT51950",
             image,
+            firmwareConfigChipNumber: 1,
             out CmiDpCodeMetadata metadata));
 
         Assert.Equal(0x3B016, metadata.Register16Offset);
@@ -153,6 +158,67 @@ public sealed class GenFlashVersionCatalogTests
         Assert.Equal(0x0, metadata.MinorVersionNibble);
         Assert.Equal(576, metadata.JiraNumber);
         Assert.True(metadata.IsExpectedPayloadLength);
+    }
+
+    /// <summary>Cross-checks NT51923 CMI bytes retained in its standard-merge golden output.</summary>
+    [Fact]
+    public void GoldenNt51923OutputMatchesLegacyDpMajor()
+    {
+        byte[] image = File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
+            "testdata",
+            "golden",
+            "standard-merge-gen-flash",
+            "expected",
+            "51923",
+            "flash.bin"));
+
+        AssertCmiMajorMatchesLegacyVersion("NT51923", image, 0x3E014, 216, 0x81, "AUTO_PRJ-216");
+    }
+
+    /// <summary>Cross-checks NT51932 CMI bytes retained in its standard-merge golden output.</summary>
+    [Fact]
+    public void GoldenNt51932OutputMatchesLegacyDpMajor()
+    {
+        byte[] image = File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
+            "testdata",
+            "golden",
+            "standard-merge-gen-flash",
+            "expected",
+            "51932",
+            "flash.bin"));
+
+        AssertCmiMajorMatchesLegacyVersion("NT51932", image, 0x401A, 495, 0x82, "AUTO_PRJ-495");
+    }
+
+    /// <summary>Requires TP FWConfig ChipNumber to select NT51950's single or cascade CMI location.</summary>
+    [Fact]
+    public void Nt51950CmiLocationUsesFirmwareConfigChipNumber()
+    {
+        byte[] image = new byte[0x80000];
+        image[0x3B016] = 0x40;
+        image[0x3B017] = 0xCC;
+        image[0x3B018] = 0x02;
+        image[0x05016] = 0x56;
+        image[0x05017] = 0xA5;
+        image[0x05018] = 0x03;
+
+        Assert.False(GenFlashVersionCatalog.TryReadCmiDpCode("NT51950", image, out _));
+        Assert.True(GenFlashVersionCatalog.TryReadCmiDpCode(
+            "NT51950",
+            image,
+            firmwareConfigChipNumber: 1,
+            out CmiDpCodeMetadata single));
+        Assert.True(GenFlashVersionCatalog.TryReadCmiDpCode(
+            "NT51950",
+            image,
+            firmwareConfigChipNumber: 2,
+            out CmiDpCodeMetadata cascade));
+
+        Assert.Equal(0x3B016, single.Register16Offset);
+        Assert.Equal(576, single.JiraNumber);
+        Assert.Equal(0x05016, cascade.Register16Offset);
+        Assert.Equal(854, cascade.JiraNumber);
+        Assert.Equal(0xA5, cascade.MajorVersionByte);
     }
 
     /// <summary>Reads the owner-confirmed NT51951 512 KB CMI registers independently from NT51950.</summary>
@@ -268,6 +334,7 @@ public sealed class GenFlashVersionCatalogTests
         Assert.True(GenFlashVersionCatalog.TryReadCmiDpCode(
             "NT51950",
             new byte[0x80000],
+            firmwareConfigChipNumber: 1,
             out CmiDpCodeMetadata nt51950));
         Assert.True(GenFlashVersionCatalog.TryReadCmiDpCode(
             "NT51951",
@@ -292,6 +359,7 @@ public sealed class GenFlashVersionCatalogTests
         Assert.True(GenFlashVersionCatalog.TryReadCmiDpCode(
             "NT51950",
             new byte[0x40000],
+            firmwareConfigChipNumber: 1,
             out CmiDpCodeMetadata metadata));
 
         Assert.Equal(0, metadata.JiraNumber);

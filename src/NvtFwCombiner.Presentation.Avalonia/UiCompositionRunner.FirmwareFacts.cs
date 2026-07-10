@@ -37,14 +37,18 @@ public static partial class UiCompositionRunner
     }
 
     /// <summary>Gets compact DP version facts decoded using gen_flash standard-merge version rules.</summary>
-    public static IReadOnlyList<FirmwareSlotFactViewModel> GetDpFirmwareSlotFacts(string icId, string path)
+    public static IReadOnlyList<FirmwareSlotFactViewModel> GetDpFirmwareSlotFacts(
+        string icId,
+        string path,
+        string? tpPath = null)
     {
         WorkbenchDpVersionMetadata? legacyMetadata = WorkbenchCompositionService.TryReadDpVersionMetadata(
             icId,
             path);
         WorkbenchCmiDpCodeMetadata? cmiMetadata = WorkbenchCompositionService.TryReadCmiDpCodeMetadata(
             icId,
-            path);
+            path,
+            tpPath);
         if (legacyMetadata is null && cmiMetadata is null)
         {
             return [new FirmwareSlotFactViewModel("DP", "Pending", true)];

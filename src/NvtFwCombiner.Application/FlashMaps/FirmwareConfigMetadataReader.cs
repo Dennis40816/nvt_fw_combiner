@@ -5,6 +5,10 @@ namespace NvtFwCombiner.Application.FlashMaps;
 /// <summary>Extracts stable display facts from the FWConfig structure embedded in a flash image.</summary>
 public static class FirmwareConfigMetadataReader
 {
+    private const int NvtEndFlagLength = 4;
+    private const int NvtEndFlagTerminalOffset = NvtEndFlagLength - 1;
+    private const int NvtCopyStartDistanceBeforeTerminal = 0xFFF;
+
     /// <summary>Attempts to read FWConfig facts from <paramref name="image"/> at <paramref name="firmwareConfigStart"/>.</summary>
     public static bool TryRead(
         ReadOnlySpan<byte> image,
@@ -59,6 +63,42 @@ public static class FirmwareConfigMetadataReader
             projectId,
             hardware);
         return true;
+    }
+
+    /// <summary>
+    /// Attempts to read the common FWConfig copy located at the NVT End Flag terminal byte minus
+    /// <c>0xFFF</c>. Multiple valid NVT markers are rejected to avoid selecting an ambiguous copy.
+    /// </summary>
+    public static bool TryReadNvtCopy(ReadOnlySpan<byte> image, out FirmwareConfigMetadata metadata)
+    {
+        metadata = default;
+        long? copyStart = null;
+        for (int offset = 0; offset <= image.Length - NvtEndFlagLength; offset++)
+        {
+            if (image[offset] != 0x00 ||
+                image[offset + 1] != (byte)'N' ||
+                image[offset + 2] != (byte)'V' ||
+                image[offset + 3] != (byte)'T')
+            {
+                continue;
+            }
+
+            long candidateStart = offset + NvtEndFlagTerminalOffset - NvtCopyStartDistanceBeforeTerminal;
+            if (candidateStart < 0 ||
+                candidateStart + FirmwareConfigLayout.RequiredLength > image.Length)
+            {
+                continue;
+            }
+
+            if (copyStart is not null)
+            {
+                return false;
+            }
+
+            copyStart = candidateStart;
+        }
+
+        return copyStart is { } start && TryRead(image, start, out metadata);
     }
 
     private static FirmwareConfigGipTable ReadGipTable(ReadOnlySpan<byte> image, int start)

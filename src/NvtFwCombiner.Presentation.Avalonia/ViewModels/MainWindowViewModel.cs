@@ -25,6 +25,11 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         slot.FilePath = path;
         RefreshFirmwareFacts(slot);
+        if (slot.SlotId == MergeTpSlotId && _mergeDpSlot.HasFile)
+        {
+            RefreshFirmwareFacts(_mergeDpSlot);
+        }
+
         OnPropertyChanged(nameof(StandardMergeOutputFileName));
         OnPropertyChanged(nameof(GeneralMergeOutputFileName));
         OnPropertyChanged(nameof(MergeOutputFileName));
