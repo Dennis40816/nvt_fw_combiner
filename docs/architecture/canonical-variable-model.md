@@ -8,16 +8,16 @@ This is the stable vocabulary for Standard Merge, AB Merge, General Merge, DP Re
 
 | Layer | Contains | Must not contain |
 | --- | --- | --- |
-| Definition | IC facts, canonical regions, experience policy, profile operations, processor requirements | selected paths, UI pixels, timestamps |
-| Run binding | input bindings, output options, approved explicit mappings | new firmware semantics, commands, scripts, processors |
-| Execution | resolved artifacts, address spaces, work buffers, plan, validations, mutations, hashes | mutable global state or writes back to definitions |
+| Physical definition | firmware family, exact map capacity/regions, metadata locators, capability facts, aliases | workflow access, operations, processors, promotion |
+| Workflow definition | profile map binding, slots, logical views, access, operations, processors, promotion | duplicated physical ranges, selected paths, commands |
+| Compiled/run | resolved map, `CompiledComposition`, input bindings, output options, work buffers, mutations | new firmware semantics, mutable global state |
 
 ## Identity and intent
 
 ```text
-schemaVersion
-profileId / profileVersion / supportStatus
-icId / modeId
+bundleId / bundleVersion / bundleContentHash
+familyId / familyVersion / familyContentHash / mapId
+profileId / profileVersion / promotion.stage
 compositionKind: merge | replace
 experience
 ```
@@ -27,18 +27,18 @@ experience
 ## Image initialization
 
 ```text
-BlankImageInitialization
-  capacity
+BlankMutableSpaceInitialization
+  capacity: resolved-map | fixed
   fillByte
 
-ReferenceImageInitialization
-  baseSlotId
-  expectedCapacity
-  baseValidationRules[]
+CloneMutableSpaceInitialization
+  capacity: resolved-map | fixed
+  sourceSlotId
 ```
 
-- Merge starts from blank bytes.
-- Replace starts from an immutable reference BIN cloned into the output work image.
+- Merge's single output image starts from blank bytes.
+- Replace's single output image clones an immutable reference slot.
+- TPA, TPB, and other work buffers use the same engine-owned blank/clone initializers.
 - Everything after initialization uses the same planner, operation algebra, processor port, validation engine, mutation trace, and report.
 
 ## Experience
@@ -49,7 +49,7 @@ ExperienceDescriptor
   audience: system | dp | ctrlram | advanced
   layoutPolicy: fixed | constrained | user-defined
   inputPolicy: fixed | extensible
-  icNumInputMode: single | cascade | numeric
+  topologyAuthoring: hidden | single-or-cascade | exact-count
   displayNameKey
   regionAccessRules[]
 ```
@@ -70,7 +70,6 @@ general-replace
 | Kind | Mutable | Owner |
 | --- | --- | --- |
 | `input-artifact` | No | artifact loader |
-| `reference-base` | No | artifact loader |
 | `work-buffer` | Yes | execution run |
 | `output-image` | Yes | execution run |
 | `worker-staging-file` | Yes, isolated | infrastructure adapter |
@@ -80,16 +79,12 @@ Every range names its address-space id. Bare offsets are invalid.
 ## Canonical regions
 
 ```text
-regionId
-parentRegionId?
-role
-classificationTags[]
-range
-atomicity: whole | partitioned | explicit-mapping
-writePolicy: forbidden | whole-only | declared-parts | general-explicit
+regionId / parentRegionId?
+owner: system | dp | tp | ldc | register | customer | shared | reserved | unknown
+kind: code | header | data | command | firmware-config | ctrlram | customer-information | ...
+range: half-open in one family address space
+writeConstraint: forbidden | whole-region | declared-subregions | explicit-range
 alignment
-processorDependencies[]
-compatibilityTags[]
 ```
 
 Experience access is separate from the canonical memory map:
@@ -97,24 +92,27 @@ Experience access is separate from the canonical memory map:
 ```text
 regionId
 access: hidden | read-only | whole | parts | explicit-range
-allowedPartIds[]
+  allowedSubregionIds[]
 reason
 ```
 
-Deny by default. DP Replace may edit DP whole/declared parts. CtrlRAM Replace may edit only `tp-ctrlram` regions/groups. General Replace may use explicit ranges only where explicitly enabled and never through protected regions.
+Deny by default. DP Replace may edit DP whole/declared parts. CtrlRAM Replace may edit only physical
+regions with `owner = tp` and `kind = ctrlram`, or approved groups composed only of those regions.
+General Replace may use explicit ranges only where explicitly enabled and never through protected
+regions.
 
 ## Inputs
 
 ```text
 slotId
 role
+artifactClass: tp-firmware | dp-firmware | reference-image | ctrlram-replacement | auxiliary
 required
 cardinality: exactly-one | zero-or-one | one-or-more
 acceptedExtensions[]
-sizeRule
-fileNameGuards[]
-contentGuards[]
-compatibilityTags[]
+lengthRule: tp-maximum-256k | exact-resolved-map-capacity |
+            normal-dp-extract-with-warning | exact-bytes | bounded
+normalization: none | pad-shorter | truncate-ctrlram
 ```
 
 A selected file is a run binding; filenames do not define IC or range truth.
@@ -127,11 +125,9 @@ sequence
 operationKind: copy-range | replace-range
 sourceBindingId
 sourceRange
-targetSpaceId
-targetRegionId?
-targetRange
+targetRegionId
+targetOffset
 overlapPolicy: reject | allow-declared | replace-existing
-alignment
 reason
 ```
 
@@ -143,20 +139,16 @@ reason
 ## Operation algebra
 
 ```text
-initialize-image
-create-work-buffer
 copy-range
+replace-range
 fill-range
 patch-scalar
-replace-range
-run-external-processor
-assert-range
-validate-checksum
-extract-metadata
-finalize-output
+transform-scalar
+run-processor
 ```
 
-Every operation declares id, sequence, source/target spaces and ranges when applicable, overlap policy, preconditions, postconditions, and reason.
+Every operation declares id, sequence, source/target logical views when applicable, overlap policy,
+and reason. Views resolve to checked address-space ranges during compilation.
 
 ## Integrity and processor authority
 
@@ -175,23 +167,26 @@ Evidence inventories may use `unknown`; supported profiles may not. `transform` 
 
 ## Runtime and derived variables
 
-Request:
+Compile result:
 
 ```text
-runId
-profileId / profileVersion
-inputBindings[]
-explicitMappings[]
-outputOptions
-strictness
+CompiledComposition
+  sole CompositionPlan
+  bundle/profile/resolved-map hashes and provenance
+  selection and locator outcomes
+  validations, promotion verdict, output naming
+  compilationFingerprint
 ```
 
-Derived execution data:
+Run request and derived execution data:
 
 ```text
+compiledComposition
+immutableInputBindings[]
+outputOptions
+previewToken?
 resolvedArtifacts
 versionTokens
-compositionPlan
 occupancySegments
 processorRuns
 issues

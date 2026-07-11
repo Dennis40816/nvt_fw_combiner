@@ -36,9 +36,9 @@ Example AB shape:
 ```text
 operation 100: copy DP_AB container view into output-image
 operation 200: copy TPA view into A bank TP target
-operation 300: patch TPB relocation scalars in TPB work view
+operation 300: transform TPB relocation scalars in TPB work view
 operation 400: copy TPB view into B bank TP target with declared overlay if needed
-operation 900: run external combiner/header processor
+operation 900: run approved combiner/header processor stage
 ```
 
 Example Standard shape:
@@ -47,7 +47,7 @@ Example Standard shape:
 operation 100: copy DP source view into DP target
 operation 200: copy TP source view into TP target
 operation 300: copy LD/extra source view into extra target if declared
-operation 900: run external combiner/header processor if required
+operation 900: run approved combiner/header processor stage if required
 ```
 
 ## Rule 4: preview must explain overwritten bytes
@@ -64,7 +64,9 @@ Preview must render occupancy and overwrites in operation order. If a later oper
 
 ## Rule 5: external processor mutations are operations too
 
-A legacy `combiner.exe` transform is a write operation. Its observed changed ranges must be compared against declared `allowedWriteRanges` and shown in the same mutation report model as copy/replace/patch operations.
+A legacy `combiner.exe` transform is a write operation. Its observed changed ranges must be compared
+against the ranges compiled from `allowedWriteViewIds` and shown in the same mutation report model as
+copy/replace/patch/transform operations.
 
 ## Acceptance tests
 

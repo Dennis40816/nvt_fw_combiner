@@ -1,0 +1,287 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/nfc/schemas/saved-composition-rule-v2.schema.json",
+  "title": "NVT FW Combiner Saved Composition Rule 2.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "ruleId",
+    "ruleVersion",
+    "displayName",
+    "compositionKind",
+    "sourceExperienceId",
+    "parentBinding",
+    "promotion",
+    "slotTemplates",
+    "mappingFragments",
+    "accessEnvelope",
+    "validationRuleIds",
+    "processorStageIds",
+    "owner",
+    "reviewers",
+    "evidenceRefs"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "2.0" },
+    "ruleId": { "$ref": "#/$defs/id" },
+    "ruleVersion": { "$ref": "#/$defs/semver" },
+    "displayName": { "type": "string", "minLength": 1 },
+    "description": { "type": "string", "minLength": 1 },
+    "compositionKind": { "enum": ["merge", "replace"] },
+    "sourceExperienceId": { "enum": ["general-merge", "general-replace"] },
+    "parentBinding": { "$ref": "#/$defs/parentBinding" },
+    "promotion": { "$ref": "#/$defs/promotion" },
+    "slotTemplates": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/slotTemplate" }
+    },
+    "mappingFragments": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/mappingFragment" }
+    },
+    "accessEnvelope": { "$ref": "#/$defs/accessEnvelope" },
+    "validationRuleIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/id" }
+    },
+    "processorStageIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/id" }
+    },
+    "owner": { "type": "string", "minLength": 1 },
+    "reviewers": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "evidenceRefs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/id" }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "compositionKind": { "const": "merge" } },
+        "required": ["compositionKind"]
+      },
+      "then": {
+        "properties": {
+          "sourceExperienceId": { "const": "general-merge" },
+          "mappingFragments": {
+            "items": {
+              "properties": { "operationKind": { "const": "copy-range" } }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "compositionKind": { "const": "replace" } },
+        "required": ["compositionKind"]
+      },
+      "then": {
+        "properties": {
+          "sourceExperienceId": { "const": "general-replace" },
+          "mappingFragments": {
+            "items": {
+              "properties": { "operationKind": { "const": "replace-range" } }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "byteRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "length"],
+      "properties": {
+        "start": { "type": "integer", "minimum": 0 },
+        "length": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "parentBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bundleId",
+        "bundleVersion",
+        "bundleContentHash",
+        "profileId",
+        "profileVersion",
+        "profileContentHash",
+        "familyId",
+        "familyVersion",
+        "familyContentHash",
+        "mapId"
+      ],
+      "properties": {
+        "bundleId": { "$ref": "#/$defs/id" },
+        "bundleVersion": { "$ref": "#/$defs/semver" },
+        "bundleContentHash": { "$ref": "#/$defs/sha256" },
+        "profileId": { "$ref": "#/$defs/id" },
+        "profileVersion": { "$ref": "#/$defs/semver" },
+        "profileContentHash": { "$ref": "#/$defs/sha256" },
+        "familyId": { "$ref": "#/$defs/id" },
+        "familyVersion": { "$ref": "#/$defs/semver" },
+        "familyContentHash": { "$ref": "#/$defs/sha256" },
+        "mapId": { "$ref": "#/$defs/id" }
+      }
+    },
+    "promotion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stage", "blockers"],
+      "properties": {
+        "stage": {
+          "enum": [
+            "known",
+            "map-resolvable",
+            "inspectable",
+            "authorable",
+            "compilable",
+            "executable-candidate",
+            "supported"
+          ]
+        },
+        "blockers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/promotionBlocker" }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "stage": { "const": "supported" } },
+            "required": ["stage"]
+          },
+          "then": { "properties": { "blockers": { "maxItems": 0 } } }
+        }
+      ]
+    },
+    "promotionBlocker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blockerId", "kind", "reason", "evidenceRefs"],
+      "properties": {
+        "blockerId": { "$ref": "#/$defs/id" },
+        "kind": { "enum": ["mapping", "processor", "golden", "human-review", "release"] },
+        "reason": { "type": "string", "minLength": 1 },
+        "evidenceRefs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    "slotTemplate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slotTemplateId",
+        "role",
+        "cardinality",
+        "acceptedExtensions"
+      ],
+      "properties": {
+        "slotTemplateId": { "$ref": "#/$defs/id" },
+        "role": { "$ref": "#/$defs/id" },
+        "cardinality": { "enum": ["one", "many"] },
+        "acceptedExtensions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^\\.[A-Za-z0-9]+$" }
+        }
+      }
+    },
+    "sourceSlotRef": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "slotId"],
+          "properties": {
+            "kind": { "const": "parent-slot" },
+            "slotId": { "$ref": "#/$defs/id" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "slotTemplateId"],
+          "properties": {
+            "kind": { "const": "rule-slot" },
+            "slotTemplateId": { "$ref": "#/$defs/id" }
+          }
+        }
+      ]
+    },
+    "mappingFragment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fragmentId",
+        "operationKind",
+        "sourceSlot",
+        "sourceRange",
+        "targetRegionId",
+        "targetOffset",
+        "overlapPolicy",
+        "reason"
+      ],
+      "properties": {
+        "fragmentId": { "$ref": "#/$defs/id" },
+        "operationKind": { "enum": ["copy-range", "replace-range"] },
+        "sourceSlot": { "$ref": "#/$defs/sourceSlotRef" },
+        "sourceRange": { "$ref": "#/$defs/byteRange" },
+        "targetRegionId": { "$ref": "#/$defs/id" },
+        "targetOffset": { "type": "integer", "minimum": 0 },
+        "overlapPolicy": { "enum": ["reject", "allow-declared", "replace-existing"] },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    },
+    "accessEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allowedRegionIds",
+        "maximumMappingCount",
+        "maximumTotalWriteBytes",
+        "protectedRangePolicy"
+      ],
+      "properties": {
+        "allowedRegionIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "maximumMappingCount": { "type": "integer", "minimum": 1 },
+        "maximumTotalWriteBytes": { "type": "integer", "minimum": 1 },
+        "protectedRangePolicy": { "enum": ["deny-touch", "parent-profile"] }
+      }
+    }
+  }
+}

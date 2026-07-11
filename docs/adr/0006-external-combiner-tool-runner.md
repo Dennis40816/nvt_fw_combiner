@@ -54,40 +54,32 @@ The temporary firmware file is an implementation detail of the host. Profiles sh
 
 ## Profile expression
 
-The current `composition-profile-v1` contract already has `run-external-processor`, `integrityDisposition`, and `processorInvocation.parameters`. Until the next schema revision adds a first-class `toolBinding` object, profiles may place the combiner binding under `processorInvocation.parameters`:
+`composition-profile-v1` keeps its existing adapter shape only for compatibility migration.
+`composition-profile-v2` replaces arbitrary `processorInvocation.parameters` with a closed
+`legacy-combiner-v1` stage. The stage references a trusted tool binding and registered invocation
+profile; executable paths and argument templates remain infrastructure manifest data.
 
 ```json
 {
-  "operationId": "run-nt51950-crc-header",
-  "sequence": 900,
-  "kind": "run-external-processor",
+  "processorStageId": "recalculate-crc-header",
+  "kind": "legacy-combiner-v1",
+  "toolBindingId": "legacy-combiner-1-13",
+  "invocationProfileId": "approved-postbuild-profile",
   "targetSpaceId": "output-image",
-  "targetRange": { "start": 0, "length": 524288 },
+  "authority": "transform",
+  "purpose": "header-and-integrity",
   "integrityDisposition": "recalculate-and-write",
-  "processorInvocation": {
-    "processorId": "nfc.nt51950.header-crc-v1",
-    "contractVersion": "2.0.0",
-    "authority": "transform",
-    "purpose": "header-and-integrity",
-    "allowedReadRanges": [
-      { "start": 0, "length": 524288 }
-    ],
-    "allowedWriteRanges": [
-      { "start": 41264, "length": 4 }
-    ],
-    "parameters": {
-      "toolId": "legacy-combiner",
-      "toolVersion": "1.10",
-      "toolBindingId": "legacy-combiner-1.10",
-      "adapterId": "legacy-combiner-inplace-v1"
-    },
-    "failurePolicy": "fail-closed"
-  },
-  "reason": "Run approved legacy combiner.exe 1.10 to recalculate and write CRC/header bytes."
+  "allowedReadViewIds": ["firmware-image"],
+  "allowedWriteViewIds": ["approved-header-and-crc-fields"],
+  "stagedSourceBindings": [],
+  "evidenceRef": "owner-approved-postbuild-evidence",
+  "failurePolicy": "fail-closed"
 }
 ```
 
-The concrete offsets above are examples only. Supported profiles require owner-approved read ranges, write ranges, preconditions, postconditions, and golden evidence.
+The referenced views resolve through the canonical firmware map. Supported profiles require
+owner-approved read/write regions, invocation behavior, preconditions, postconditions, and golden
+evidence. The profile cannot inline command arguments or host paths.
 
 ## Tool manifest
 

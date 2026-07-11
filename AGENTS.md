@@ -94,7 +94,8 @@ Use `docs/governance/development-execution-workflow.md` to select the narrow tes
 ## Locked experience rules
 
 - DP Replace: DP whole/declared partitions only; no TP-persona Replace categories are exposed.
-- CtrlRAM Replace: only regions tagged `tp-ctrlram` or approved CtrlRAM groups may be replaced.
+- CtrlRAM Replace: only physical regions with `owner = tp` and `kind = ctrlram`, or approved groups
+  composed only of those regions, may be replaced.
 - General Replace: explicit mappings only inside the profile-approved safety envelope.
 - General Merge: extensible BIN bindings and explicit mappings over a blank image.
 - Experience/personal labels control authoring policy, never byte-execution branches.
@@ -115,7 +116,13 @@ Use `docs/governance/development-execution-workflow.md` to select the narrow tes
 - Current implementation priority is normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows. AB Code Merge is deferred unless the owner explicitly reactivates it.
 - Standard/normal Merge must include NT51950 and NT51951 after the owner provides the memory map. Do not infer their merge map from AB evidence.
 - Replace flows are expected to require legacy `combiner.exe` CRC/header recalculation. Use the external combiner runner model and wait for owner-supplied invocation, version, ranges, and golden evidence before production implementation. The owner identified 932 common FW postbuild as the reference behavior to inspect.
-- Input BIN size mismatch policy is profile-declared and integrity-aware: no-CRC/no-processor flows, such as DP-only Replace, may pad shorter immutable replacement/source inputs only with an explicit profile padding byte. CtrlRAM Replace may truncate oversized immutable replacement/source inputs only with an explicit profile truncation policy whose operations target `tp-ctrlram` regions, and must surface a report/CLI warning. Runtime/request mappings, mutable work buffers, reference/base firmware, and non-CtrlRAM CRC/combiner flows must keep exact input length. Unapproved oversized input still fails closed.
+- Input BIN size mismatch policy is profile-declared and integrity-aware: no-CRC/no-processor flows,
+  such as DP-only Replace, may pad shorter immutable replacement/source inputs only with an explicit
+  profile padding byte. CtrlRAM Replace may truncate oversized immutable replacement/source inputs
+  only with an explicit profile truncation policy whose operations target physical regions with
+  `owner = tp` and `kind = ctrlram`, and must surface a report/CLI warning. Runtime/request mappings,
+  mutable work buffers, reference/base firmware, and non-CtrlRAM CRC/combiner flows must keep exact
+  input length. Unapproved oversized input still fails closed.
 - UI should be modern, minimal, and low-reading-cost. Top-level product navigation is limited to Settings, Merge, and Replace unless the owner explicitly expands it.
 - UI top-level navigation uses top tabs.
 - Merge and Replace must share a consistent Memory coverage before/after visualization in the same layout position. The Memory coverage area is visual-first, with table details as supporting information.

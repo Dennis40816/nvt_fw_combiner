@@ -4,15 +4,18 @@ Status: architecture runbook.
 
 This runbook lists the files and review flow for adding one IC to Merge and Replace. It is not a support claim by itself. An IC/mode is releasable only after profile validation, processor diff review, golden regression, and firmware-owner sign-off.
 
-For the active 0.8.0 cleanup target and milestone-level acceptance criteria, see
-[`0.8.0-goal-and-acceptance.md`](0.8.0-goal-and-acceptance.md).
+For 0.9.0 firmware-model-v2 work, canonical physical facts are added to a trusted
+`firmware-family-v1` document and workflow policy to `composition-profile-v2`. The C# catalog rows
+listed below describe the current v1 compatibility implementation only; do not add a second source
+of truth there. Compatibility projections are removed after byte/name/trace parity.
 
 ## Non-negotiable model rules
 
 - Merge starts from a blank output image; Replace clones an immutable reference/base image.
 - UI, CLI, and workbench paths must call the same composition profile/compiler/runner contracts.
 - All ranges are half-open `[start, end)` and name their address space.
-- IC facts live in catalogs/profiles. Do not put firmware semantics in XAML, ViewModels, CLI routing, or one-off scripts.
+- Physical IC facts live in firmware-family documents; workflow semantics live in composition
+  profiles. Do not put them in XAML, ViewModels, CLI routing, Bootstrap joins, or one-off scripts.
 - Experience selects authoring policy only. It must not create a second byte-execution branch.
 - `unknown` integrity behavior is not `none`; it cannot be promoted as supported behavior.
 - External tools may mutate only host-created staging copies, then the host must verify changed bytes against declared write ranges.
@@ -75,7 +78,7 @@ Update only the rows that are relevant to the new IC/mode.
 | Standard Merge profile | `src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles.GenFlash.cs`, `BuiltInStandardMergeProfiles.DpPerspective.cs`, or another focused partial; root `BuiltInStandardMergeProfiles.cs` exposes stable order only | Add an executable `CompositionProfileDefinition` or owner-confirmed alias in the focused partial that owns the evidence family. Keep operation order, fill byte, address spaces, and output naming in the profile. |
 | Replace profile | `src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.DpPerspective.cs` or another focused partial; root `BuiltInReplaceProfiles.cs` exposes stable order only | Add DP/CtrlRAM/General Replace profile definitions when the IC has real range and access evidence. Synthetic profiles stay contract-only. |
 | Profile compiler rules | `src/NvtFwCombiner.Profiles/CompositionProfileCompiler.cs` | Change only for general validation gaps, not to special-case one IC. |
-| TP/DP/CtrlRAM region catalog | `src/NvtFwCombiner.Application/FlashMaps/TpFlashMapCatalog.cs` | Add canonical flash-map rows, IC-number visibility, postbuild file names, and tags such as `tp-ctrlram`, `dp`, `protected`, or customer-info. |
+| TP/DP/CtrlRAM compatibility catalog | `src/NvtFwCombiner.Application/FlashMaps/TpFlashMapCatalog.cs` | Project reviewed family rows during migration only. Canonical CtrlRAM eligibility is physical `owner = tp` plus `kind = ctrlram`; do not add a parallel tag authority. |
 | TP header/write category | `src/NvtFwCombiner.Application/FlashMaps/TpHeaderCatalog.cs` | Add TP header/postbuild write section ids, report labels, overlap priority, and postbuild block-id classification when the IC introduces a new header copy, backup, CRC, or TP window category. Keep this out of planner, UI, and CLI code. |
 | FWConfig metadata reader/catalog | `src/NvtFwCombiner.Application/FlashMaps/FirmwareConfigLayout.cs`, `FirmwareConfigMetadataReader.cs`, and `TpFlashMapCatalog` | Add the IC's primary FWConfig flash start and verify Common FW/FW-bar/PID extraction with golden or owner-approved reference evidence. When exposing NVT-copy metadata, verify exactly one `00 4E 56 54` terminal, record `T - 0xFFF` in `docs/references/nvt-fwconfig-copy-validation.md`, and require every displayed primary/copy field to match. Change offsets only through the reviewed layout catalog. |
 | Output naming metadata | `src/NvtFwCombiner.Application/FlashMaps/GenFlashVersionCatalog.cs` and `src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.FirmwareMetadata.cs` | Add DP main/sub contiguous version-byte rules, CMI register evidence when applicable, and FlashCode naming metadata only from owner-approved evidence. UI passes selected slot roles and paths; it must not decide DP/TP version offsets, CMI branches, metadata priority, or date/name format. |

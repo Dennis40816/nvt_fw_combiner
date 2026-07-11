@@ -5,7 +5,8 @@ This document expands the product rules summarized in `SPEC.md` section 7.5. The
 ## Replace and Merge Authoring
 
 - **DP Replace**: DP may be whole or profile-declared partitions. LD replacement belongs to DP Replace and may use a separate LD slot. TP-specific replace personas are not exposed.
-- **CtrlRAM Replace**: only named regions or groups tagged `tp-ctrlram` are replaceable.
+- **CtrlRAM Replace**: only named physical regions with owner `tp` and kind `ctrlram`, or approved
+  groups composed only of those regions, are replaceable.
 - **General Replace**: explicit mappings are available only in profile `explicit-range` access. Protected regions remain blocked. A TP-classified mapping must select an approved legacy Combiner CRC/header refresh after mutation or fail closed.
 - **General Merge**: input cardinality is extensible and every mapping compiles to standard operations over a blank image.
 - **Hex Editor**: follows ADR 0014. It is a raw in-memory BIN utility with no firmware support claim.
@@ -15,20 +16,18 @@ This document expands the product rules summarized in `SPEC.md` section 7.5. The
 Only these composition primitives are allowed:
 
 ```text
-initialize-image
-create-work-buffer
 copy-range
+replace-range
 fill-range
 patch-scalar
-replace-range
-run-external-processor
-assert-range
-validate-checksum
-extract-metadata
-finalize-output
+transform-scalar
+run-processor
 ```
 
-Each operation declares an id, sequence, source/target spaces and ranges, overlap policy, pre/postconditions, and reason. UI authoring interactions do not mutate bytes directly.
+Mutable-space initialization, metadata extraction, and validation are typed compiler/engine stages,
+not additional byte-operation variants. Each operation declares an id, sequence, source/target
+logical views when applicable, overlap policy, and reason. UI authoring interactions do not mutate
+bytes directly.
 
 ## Integrity Authority
 
