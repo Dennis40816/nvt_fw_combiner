@@ -34,6 +34,13 @@ and an allowed result region. `unique` requires exactly one match. `terminal-mat
 exact evidenced match count and explicitly selects the lowest- or highest-address match. Zero
 matches, the wrong count, an out-of-range result, or a failed assertion rejects resolution.
 
+Every metadata structure declares one stable `artifactBindingId`; it matches the `artifactId` in
+runtime map-resolution inputs and is never a path or filename. Structure ids are ordinally unique
+across a family, and field ids are ordinally unique within a structure. Every metadata predicate
+declares `metadataStructureId`, so predicate resolution uses the exact
+`(artifactBindingId, metadataStructureId, fieldId)` source rather than a global field-name lookup.
+A map predicate may reference only a structure selected through that map's metadata sets.
+
 Each image-map shape has one exact `capacityBytes` and declares
 `coveragePolicy = "complete-with-explicit-gaps"`. Semantic validation proves that referenced region
 sets use the selected address space, stay in bounds, preserve proper parent containment and sibling

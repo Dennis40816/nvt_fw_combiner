@@ -28,6 +28,7 @@ public sealed class FirmwareMetadataPredicateTests
     public void EqualReturnsThreeStateResult()
     {
         var predicate = new FirmwareMetadataPredicate(
+            "firmware-config",
             "chip-number",
             FirmwareMetadataPredicateOperator.Equal,
             [FirmwareMetadataValue.FromInteger(2)]);
@@ -42,10 +43,12 @@ public sealed class FirmwareMetadataPredicateTests
     public void OtherComparisonsUseTypedEquality()
     {
         var notEqual = new FirmwareMetadataPredicate(
+            "firmware-config",
             "chip-number",
             FirmwareMetadataPredicateOperator.NotEqual,
             [FirmwareMetadataValue.FromInteger(1)]);
         var oneOf = new FirmwareMetadataPredicate(
+            "firmware-config",
             "chip-number",
             FirmwareMetadataPredicateOperator.OneOf,
             [FirmwareMetadataValue.FromInteger(2), FirmwareMetadataValue.FromInteger(3)]);
@@ -60,6 +63,7 @@ public sealed class FirmwareMetadataPredicateTests
     public void ComparisonsPreserveScalarKind()
     {
         var predicate = new FirmwareMetadataPredicate(
+            "firmware-config",
             "value",
             FirmwareMetadataPredicateOperator.Equal,
             [FirmwareMetadataValue.FromInteger(2)]);
@@ -78,17 +82,38 @@ public sealed class FirmwareMetadataPredicateTests
             }));
     }
 
+    /// <summary>Verifies identical field ids remain distinct across metadata structures.</summary>
+    [Fact]
+    public void StructureIdentityScopesSameFieldPredicates()
+    {
+        var primary = new FirmwareMetadataPredicate(
+            "firmware-config-primary",
+            "chip-number",
+            FirmwareMetadataPredicateOperator.Equal,
+            [FirmwareMetadataValue.FromInteger(2)]);
+        var copy = new FirmwareMetadataPredicate(
+            "firmware-config-copy",
+            "chip-number",
+            FirmwareMetadataPredicateOperator.Equal,
+            [FirmwareMetadataValue.FromInteger(2)]);
+
+        Assert.NotEqual(primary.MetadataStructureId, copy.MetadataStructureId);
+        Assert.Equal(primary.FieldId, copy.FieldId);
+    }
+
     /// <summary>Verifies constructor snapshots cannot be mutated through the public list.</summary>
     [Fact]
     public void ExpectedValuesExposeReadOnlySnapshot()
     {
         FirmwareMetadataValue[] source = [FirmwareMetadataValue.FromInteger(2)];
         var predicate = new FirmwareMetadataPredicate(
+            "firmware-config",
             "chip-number",
             FirmwareMetadataPredicateOperator.Equal,
             source);
         source[0] = FirmwareMetadataValue.FromInteger(3);
 
+        Assert.Equal("firmware-config", predicate.MetadataStructureId);
         IList<FirmwareMetadataValue> exposed = Assert.IsType<IList<FirmwareMetadataValue>>(
             predicate.ExpectedValues,
             exactMatch: false);
@@ -102,18 +127,22 @@ public sealed class FirmwareMetadataPredicateTests
     public void ConstructorRejectsInvalidExpectedValues()
     {
         _ = Assert.Throws<ArgumentException>(() => new FirmwareMetadataPredicate(
+            "firmware-config",
             "chip-number",
             FirmwareMetadataPredicateOperator.OneOf,
             []));
         _ = Assert.Throws<ArgumentException>(() => new FirmwareMetadataPredicate(
+            "firmware-config",
             "chip-number",
             FirmwareMetadataPredicateOperator.OneOf,
             [FirmwareMetadataValue.FromInteger(2), FirmwareMetadataValue.FromInteger(2)]));
         _ = Assert.Throws<ArgumentException>(() => new FirmwareMetadataPredicate(
+            "firmware-config",
             "chip-number",
             FirmwareMetadataPredicateOperator.Equal,
             [FirmwareMetadataValue.FromInteger(2), FirmwareMetadataValue.FromInteger(3)]));
         _ = Assert.Throws<ArgumentException>(() => new FirmwareMetadataPredicate(
+            "firmware-config",
             "chip-number",
             FirmwareMetadataPredicateOperator.Equal,
             [null!]));
@@ -124,8 +153,19 @@ public sealed class FirmwareMetadataPredicateTests
     public void ConstructorsRejectInvalidBoundaries()
     {
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new FirmwareMetadataPredicate(
+            "firmware-config",
             "chip-number",
             (FirmwareMetadataPredicateOperator)int.MaxValue,
+            [FirmwareMetadataValue.FromInteger(2)]));
+        _ = Assert.Throws<ArgumentException>(() => new FirmwareMetadataPredicate(
+            " ",
+            "chip-number",
+            FirmwareMetadataPredicateOperator.Equal,
+            [FirmwareMetadataValue.FromInteger(2)]));
+        _ = Assert.Throws<ArgumentException>(() => new FirmwareMetadataPredicate(
+            "firmware-config",
+            " ",
+            FirmwareMetadataPredicateOperator.Equal,
             [FirmwareMetadataValue.FromInteger(2)]));
         _ = Assert.Throws<ArgumentException>(() => FirmwareMetadataValue.FromText(string.Empty));
     }
@@ -135,6 +175,7 @@ public sealed class FirmwareMetadataPredicateTests
     public void EvaluateUsesOrdinalFieldIdentity()
     {
         var predicate = new FirmwareMetadataPredicate(
+            "firmware-config",
             "chip-number",
             FirmwareMetadataPredicateOperator.Equal,
             [FirmwareMetadataValue.FromInteger(2)]);
@@ -151,6 +192,7 @@ public sealed class FirmwareMetadataPredicateTests
     public void EvaluateHandlesNullBoundariesFailClosed()
     {
         var predicate = new FirmwareMetadataPredicate(
+            "firmware-config",
             "chip-number",
             FirmwareMetadataPredicateOperator.Equal,
             [FirmwareMetadataValue.FromInteger(2)]);

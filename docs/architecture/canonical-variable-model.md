@@ -174,7 +174,7 @@ FirmwareMapResolutionInputs
   memberId / modeId / exact capacity
   topology: count + label + requested|derived + sourceId
   Common FW category + sourceFactId?
-  artifacts[]: artifactId + SHA-256 + exact length
+  artifacts[]: artifactId (= declared artifactBindingId) + SHA-256 + exact length
   decodedFacts[]
     factId
     artifactId
@@ -186,9 +186,10 @@ FirmwareMapResolutionInputs
 Every derived topology/category source references a declared decoded `factId`, and every decoded fact
 references a declared artifact. Facts with the same `fieldId` from different artifacts/locators stay
 independent, while duplicate facts from the same artifact, metadata structure, and field are invalid.
-Pre-resolver applicability leaves metadata predicates pending. A resolver may compare a predicate or
-create a field-only index only after the candidate map identifies the applicable artifact and metadata
-structure; it never collapses or chooses the first fact globally.
+Pre-resolver applicability leaves metadata predicates pending. Every predicate names its metadata
+structure; that structure names its artifact binding. A resolver may compare a predicate or create a
+field-only index only inside that exact artifact/structure scope; it never collapses or chooses the
+first fact globally.
 
 Compile result:
 

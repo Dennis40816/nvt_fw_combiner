@@ -234,8 +234,9 @@
     "metadataPredicate": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["fieldId", "operator", "expectedValues"],
+      "required": ["metadataStructureId", "fieldId", "operator", "expectedValues"],
       "properties": {
+        "metadataStructureId": { "$ref": "#/$defs/id" },
         "fieldId": { "$ref": "#/$defs/id" },
         "operator": { "enum": ["equals", "not-equals", "one-of"] },
         "expectedValues": {
@@ -335,9 +336,10 @@
     "metadataStructure": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["structureId", "length", "locator", "fields", "assertions"],
+      "required": ["structureId", "artifactBindingId", "length", "locator", "fields", "assertions"],
       "properties": {
         "structureId": { "$ref": "#/$defs/id" },
+        "artifactBindingId": { "$ref": "#/$defs/id" },
         "length": { "type": "integer", "minimum": 1 },
         "locator": { "$ref": "#/$defs/locator" },
         "fields": {

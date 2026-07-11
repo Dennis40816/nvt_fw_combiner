@@ -123,6 +123,9 @@ def _validate_firmware_family(family: dict[str, Any], errors: list[str]) -> None
         errors.append("firmware-family absolute and marker search ranges must be addressed")
 
     structure = definitions.get("metadataStructure", {})
+    structure_required = set(structure.get("required", []))
+    if "artifactBindingId" not in structure_required:
+        errors.append("firmware-family metadata structures must require an artifact binding")
     conditionals = structure.get("allOf", [])
     assertion_minimum = 0
     if conditionals:
@@ -135,6 +138,11 @@ def _validate_firmware_family(family: dict[str, Any], errors: list[str]) -> None
         )
     if assertion_minimum < 1:
         errors.append("firmware-family marker structures must require an assertion")
+
+    predicate = definitions.get("metadataPredicate", {})
+    predicate_required = set(predicate.get("required", []))
+    if "metadataStructureId" not in predicate_required:
+        errors.append("firmware-family metadata predicates must require a structure id")
 
     alias = definitions.get("aliasApplicability", {})
     alias_properties = set(alias.get("properties", {}))

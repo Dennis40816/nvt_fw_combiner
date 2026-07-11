@@ -93,10 +93,12 @@ public sealed class FirmwareMetadataPredicate
 
     /// <summary>Creates a validated predicate.</summary>
     public FirmwareMetadataPredicate(
+        string metadataStructureId,
         string fieldId,
         FirmwareMetadataPredicateOperator comparison,
         IEnumerable<FirmwareMetadataValue> expectedValues)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(metadataStructureId);
         ArgumentException.ThrowIfNullOrWhiteSpace(fieldId);
         if (!Enum.IsDefined(comparison))
         {
@@ -126,10 +128,14 @@ public sealed class FirmwareMetadataPredicate
             throw new ArgumentException("Equal and not-equal predicates require exactly one value.", nameof(expectedValues));
         }
 
+        MetadataStructureId = metadataStructureId;
         FieldId = fieldId;
         Comparison = comparison;
         ExpectedValues = Array.AsReadOnly(_expectedValues);
     }
+
+    /// <summary>Canonical metadata structure that scopes this field predicate.</summary>
+    public string MetadataStructureId { get; }
 
     /// <summary>Canonical metadata field identifier.</summary>
     public string FieldId { get; }
@@ -140,25 +146,25 @@ public sealed class FirmwareMetadataPredicate
     /// <summary>Immutable expected values.</summary>
     public IReadOnlyList<FirmwareMetadataValue> ExpectedValues { get; }
 
-    /// <summary>Evaluates this predicate without treating a missing fact as a mismatch.</summary>
+    /// <summary>Evaluates fields already scoped to <see cref="MetadataStructureId"/>.</summary>
     public FirmwarePredicateResult Evaluate(
-        IReadOnlyDictionary<string, FirmwareMetadataValue> decodedFacts)
+        IReadOnlyDictionary<string, FirmwareMetadataValue> scopedFields)
     {
-        ArgumentNullException.ThrowIfNull(decodedFacts);
-        FirmwareMetadataValue? actual = FindExactFact(decodedFacts);
+        ArgumentNullException.ThrowIfNull(scopedFields);
+        FirmwareMetadataValue? actual = FindExactField(scopedFields);
         return actual is not null
             ? Compare(actual)
             : FirmwarePredicateResult.Missing;
     }
 
-    private FirmwareMetadataValue? FindExactFact(
-        IReadOnlyDictionary<string, FirmwareMetadataValue> decodedFacts)
+    private FirmwareMetadataValue? FindExactField(
+        IReadOnlyDictionary<string, FirmwareMetadataValue> scopedFields)
     {
-        foreach (KeyValuePair<string, FirmwareMetadataValue> fact in decodedFacts)
+        foreach (KeyValuePair<string, FirmwareMetadataValue> field in scopedFields)
         {
-            if (StringComparer.Ordinal.Equals(fact.Key, FieldId))
+            if (StringComparer.Ordinal.Equals(field.Key, FieldId))
             {
-                return fact.Value;
+                return field.Value;
             }
         }
 

@@ -86,6 +86,18 @@ public sealed class FirmwareMapApplicabilityTests
             "unrelated-config",
             "chip-number",
             FirmwareMetadataValue.FromInteger(1));
+        FirmwareDecodedMetadataFact matchingExactSourceFact = new(
+            "exact-chip-number",
+            "firmware",
+            "firmware-config",
+            "chip-number",
+            FirmwareMetadataValue.FromInteger(2));
+        FirmwareDecodedMetadataFact contradictingExactSourceFact = new(
+            "exact-chip-number",
+            "firmware",
+            "firmware-config",
+            "chip-number",
+            FirmwareMetadataValue.FromInteger(1));
 
         Assert.Equal(FirmwareApplicabilityResult.Pending, applicability.Evaluate(Inputs()));
         Assert.Equal(
@@ -94,6 +106,12 @@ public sealed class FirmwareMapApplicabilityTests
         Assert.Equal(
             FirmwareApplicabilityResult.Pending,
             applicability.Evaluate(Inputs(decodedFacts: [contradictingUnrelatedFact])));
+        Assert.Equal(
+            FirmwareApplicabilityResult.Pending,
+            applicability.Evaluate(Inputs(decodedFacts: [matchingExactSourceFact])));
+        Assert.Equal(
+            FirmwareApplicabilityResult.Pending,
+            applicability.Evaluate(Inputs(decodedFacts: [contradictingExactSourceFact])));
     }
 
     /// <summary>Verifies known non-metadata contradictions outrank deferred metadata predicates.</summary>
@@ -269,6 +287,7 @@ public sealed class FirmwareMapApplicabilityTests
     private static FirmwareMetadataPredicate Equal(string fieldId, long value)
     {
         return new FirmwareMetadataPredicate(
+            "firmware-config",
             fieldId,
             FirmwareMetadataPredicateOperator.Equal,
             [FirmwareMetadataValue.FromInteger(value)]);
