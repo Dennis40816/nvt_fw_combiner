@@ -33,9 +33,10 @@ public static class RawBinaryEditorSearch
             return Failure(state, RawBinaryEditorIssueCode.AsciiTextNotFound);
         }
 
-        int normalizedStart = startOffset is < 0 or > int.MaxValue || source.Length == 0
+        bool startsAfterDocument = startOffset >= source.Length;
+        int normalizedStart = startOffset is < 0 or > int.MaxValue || source.Length == 0 || startsAfterDocument
             ? 0
-            : Math.Min((int)startOffset, source.Length - 1);
+            : (int)startOffset;
         var retained = new List<long>(Math.Min(MaximumRetainedMatches, source.Length));
         long firstAddress = -1;
         long selectedAddress = -1;
@@ -79,7 +80,7 @@ public static class RawBinaryEditorSearch
             return Failure(state, RawBinaryEditorIssueCode.AsciiTextNotFound);
         }
 
-        bool wrapped = selectedAddress < 0;
+        bool wrapped = startsAfterDocument || selectedAddress < 0;
         if (wrapped)
         {
             selectedAddress = firstAddress;

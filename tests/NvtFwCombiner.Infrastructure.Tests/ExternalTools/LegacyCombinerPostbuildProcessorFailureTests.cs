@@ -62,6 +62,36 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         Assert.Equal(1, runner.RunCount);
     }
 
+    /// <summary>Rejects postbuild runs that leave undeclared directories in the staging tree.</summary>
+    [Fact]
+    public async Task TransformRejectsUnexpectedStagingDirectory()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        byte[] firmware = CreateFirmwareImage();
+        FakeProcessRunner runner = new(startInfo =>
+        {
+            _ = Directory.CreateDirectory(Path.Combine(startInfo.WorkingDirectory, "output", "unexpected"));
+            return new ExternalProcessResult(0, false, string.Empty, string.Empty);
+        });
+        LegacyCombinerPostbuildProfile profile = CreateCrcOnlyProfile("nfc.test.unexpected-directory-v1", "test_fw.bin");
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
+        ExternalProcessorRequest request = new(
+            "run-unexpected-directory",
+            profile.ProcessorId,
+            "legacy-combiner-1.13.0",
+            firmware,
+            [],
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("external-tool.staging.unexpected-directory", issue.Code);
+        Assert.Equal(1, runner.RunCount);
+    }
+
     /// <summary>Verifies mutations outside declared postbuild authority fail closed.</summary>
     [Fact]
     public async Task TransformRejectsOutOfRangePostbuildMutation()

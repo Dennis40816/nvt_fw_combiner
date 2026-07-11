@@ -215,11 +215,14 @@ public sealed partial class CompositionPlan
 
     private bool ReadsMutableWrite(CompositionOperation reader, CompositionOperation writer)
     {
-        return reader.SourceSpaceId is not null &&
-            reader.SourceRange is not null &&
-            string.Equals(reader.SourceSpaceId, writer.TargetSpaceId, StringComparison.Ordinal) &&
-            _addressSpacesById[reader.SourceSpaceId].Mutability == AddressSpaceMutability.Mutable &&
-            reader.SourceRange.Value.Overlaps(writer.TargetRange);
+        return (reader.Kind == CompositionOperationKind.RunExternalProcessor &&
+                string.Equals(reader.TargetSpaceId, writer.TargetSpaceId, StringComparison.Ordinal) &&
+                reader.ExternalProcessorInvocation!.AllowedReadRanges.Any(range => range.Overlaps(writer.TargetRange))) ||
+            (reader.SourceSpaceId is not null &&
+             reader.SourceRange is not null &&
+             string.Equals(reader.SourceSpaceId, writer.TargetSpaceId, StringComparison.Ordinal) &&
+             _addressSpacesById[reader.SourceSpaceId].Mutability == AddressSpaceMutability.Mutable &&
+             reader.SourceRange.Value.Overlaps(writer.TargetRange));
     }
 
     private bool RequiresSeededMutableAddressSpace(string addressSpaceId)

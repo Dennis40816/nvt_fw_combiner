@@ -223,6 +223,22 @@ public sealed partial class LegacyCombinerPostbuildProcessor
             _ = allowedRelativePaths.Add(Path.Combine(OutputDirectoryName, extraFileName));
         }
 
+        HashSet<string> allowedRelativeDirectories = new(StringComparer.OrdinalIgnoreCase)
+        {
+            OutputDirectoryName,
+            BinDirectoryName,
+        };
+        foreach (string directoryPath in Directory.EnumerateDirectories(runDirectory, "*", SearchOption.AllDirectories))
+        {
+            string relativePath = Path.GetRelativePath(runDirectory, directoryPath);
+            if (!allowedRelativeDirectories.Contains(relativePath))
+            {
+                return new CompositionIssue(
+                    "external-tool.staging.unexpected-directory",
+                    $"External processor left unexpected staging directory '{relativePath}'.");
+            }
+        }
+
         foreach (string filePath in Directory.EnumerateFiles(runDirectory, "*", SearchOption.AllDirectories))
         {
             string relativePath = Path.GetRelativePath(runDirectory, filePath);

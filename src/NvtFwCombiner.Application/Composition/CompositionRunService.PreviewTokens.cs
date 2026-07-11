@@ -103,6 +103,13 @@ public sealed partial class CompositionRunService
             AppendTokenField(builder, "plan.operation.processor.write-range", FormatRange(range));
         }
 
+        foreach (ExternalProcessorWriteRangeSection section in invocation.AllowedWriteRangeSections)
+        {
+            AppendTokenField(builder, "plan.operation.processor.write-section.id", section.SectionId);
+            AppendTokenField(builder, "plan.operation.processor.write-section.range", FormatRange(section.Range));
+            AppendTokenField(builder, "plan.operation.processor.write-section.source-range", FormatRange(section.SourceRange));
+        }
+
         foreach (ExternalProcessorStagedSourceBinding binding in invocation.StagedSourceBindings)
         {
             AppendTokenField(builder, "plan.operation.processor.staged-source.source-space", binding.SourceSpaceId);

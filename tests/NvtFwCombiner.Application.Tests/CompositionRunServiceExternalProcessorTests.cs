@@ -305,6 +305,37 @@ public sealed partial class CompositionRunServiceTests
         Assert.NotEqual(first.PreviewToken, second.PreviewToken);
     }
 
+    /// <summary>Verifies preview approval binds the semantic sections used to explain postbuild writes.</summary>
+    [Fact]
+    public async Task PreviewTokenChangesWhenWriteSectionProvenanceChanges()
+    {
+        var processor = new FakeExternalProcessor(request =>
+            ExternalProcessorResult.Success(request.InputBytes, []));
+        var service = new CompositionRunService(
+            new FakeArtifactReader(new Dictionary<string, byte[]>
+            {
+                ["reference-artifact"] = [0x10, 0x20, 0x30, 0x40],
+                ["ctrlram-artifact"] = [0xAA, 0xBB],
+            }),
+            new FakeClock([FirstTimestamp, SecondTimestamp, ThirdTimestamp, FourthTimestamp]),
+            null,
+            processor);
+
+        CompositionRunResult first = await service.PreviewAsync(
+            CreateStagedSourceExternalProcessorRequest(
+                writeRangeSections:
+                [new ExternalProcessorWriteRangeSection("header-a", new ByteRange(0, 2), new ByteRange(0, 2))]),
+            CancellationToken.None);
+        CompositionRunResult second = await service.PreviewAsync(
+            CreateStagedSourceExternalProcessorRequest(
+                writeRangeSections:
+                [new ExternalProcessorWriteRangeSection("header-b", new ByteRange(0, 2), new ByteRange(2, 2))]),
+            CancellationToken.None);
+
+        Assert.Equal(first.OutputBytes.ToArray(), second.OutputBytes.ToArray());
+        Assert.NotEqual(first.PreviewToken, second.PreviewToken);
+    }
+
     /// <summary>Verifies external processor failures are returned as structured run issues.</summary>
     [Fact]
     public async Task PreviewPropagatesExternalProcessorFailure()

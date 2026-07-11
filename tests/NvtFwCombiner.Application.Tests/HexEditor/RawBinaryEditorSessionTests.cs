@@ -292,6 +292,20 @@ public sealed class RawBinaryEditorSessionTests
             session.FindAscii("missing", 0, TestContext.Current.CancellationToken).Issue?.Code);
     }
 
+    /// <summary>Wraps from the document start when the next-search offset is exactly at EOF.</summary>
+    [Fact]
+    public void FindAsciiAtEndOfDocumentWrapsInsteadOfClampingToTheLastByte()
+    {
+        var session = new RawBinaryEditorSession();
+        _ = session.Load([0x00, (byte)'T']);
+
+        RawBinaryEditorSearchResult result = session.FindAscii("T", 2, TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(1, result.Address);
+        Assert.True(result.Wrapped);
+    }
+
     /// <summary>Keeps dense search highlights bounded while preserving the complete result index.</summary>
     [Fact]
     public void FindAsciiBoundsRetainedMatchesAndKeepsTheSelectedOccurrence()

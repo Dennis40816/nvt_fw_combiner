@@ -128,6 +128,33 @@ public sealed partial class CompositionPlanTests
             ]));
     }
 
+    /// <summary>Rejects processor input that would otherwise depend on same-sequence operation-id ordering.</summary>
+    [Fact]
+    public void SameSequenceExternalProcessorReadWriteDependencyFailsPlanValidation()
+    {
+        _ = Assert.Throws<ArgumentException>(() => CreatePlan(
+            CompositionOperation.FillRange(
+                "write-processor-input",
+                10,
+                "output-image",
+                new ByteRange(0, 1),
+                0x11,
+                OverlapPolicy.Reject,
+                "write processor read range"),
+            CompositionOperation.RunExternalProcessor(
+                "run-postbuild",
+                10,
+                "output-image",
+                new ByteRange(0, 4),
+                new ExternalProcessorInvocation(
+                    "processor-v1",
+                    "tool-v1",
+                    [new ByteRange(0, 1)],
+                    [new ByteRange(3, 1)]),
+                OverlapPolicy.ReplaceExisting,
+                "run postbuild")));
+    }
+
     /// <summary>Verifies allow-declared overlap is rejected until validation evidence is modeled.</summary>
     [Fact]
     public void AllowDeclaredOverlapWithoutValidationEvidenceFailsPlanValidation()
