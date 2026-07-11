@@ -31,6 +31,39 @@ internal static partial class CompositionProfileNormalizer
         return (byte)ReadInt64(value, byte.MinValue, byte.MaxValue, path);
     }
 
+    private static ulong ReadUInt64(JsonElement value, string path)
+    {
+        BigInteger integer = ReadInteger(value, path);
+        if (integer.Sign < 0)
+        {
+            throw Error(path, $"Integer must be between {ulong.MinValue} and {ulong.MaxValue}.");
+        }
+
+        try
+        {
+            return (ulong)integer;
+        }
+        catch (OverflowException exception)
+        {
+            throw Error(
+                path,
+                $"Integer must be between {ulong.MinValue} and {ulong.MaxValue}.",
+                exception);
+        }
+    }
+
+    private static CompositionProfileByteValue ReadBytes(string value, string path)
+    {
+        try
+        {
+            return new CompositionProfileByteValue(ContractJsonValueReader.ParseCanonicalHex(value));
+        }
+        catch (ArgumentException exception)
+        {
+            throw Error(path, exception.Message, exception);
+        }
+    }
+
     private static JsonElement Require(JsonElement? value, string path)
     {
         return value ?? throw Error(path, "Required integer is missing.");
