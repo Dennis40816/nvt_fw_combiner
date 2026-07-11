@@ -13,7 +13,9 @@ public sealed class FirmwareMapApplicabilityTests
             TopologyRequirement.NoTopologyConstraint());
 
         Assert.Equal(FirmwareApplicabilityResult.Pending, default);
-        Assert.Equal(FirmwareApplicabilityResult.Match, applicability.Evaluate(Inputs()));
+        FirmwareMapApplicabilityEvaluation evaluation = applicability.Evaluate(Inputs());
+        Assert.Equal(FirmwareApplicabilityResult.Match, evaluation.Result);
+        Assert.Empty(evaluation.PendingRequirements);
     }
 
     /// <summary>Verifies known member, mode, and capacity contradictions reject the shape.</summary>
@@ -25,13 +27,13 @@ public sealed class FirmwareMapApplicabilityTests
 
         Assert.Equal(
             FirmwareApplicabilityResult.NoMatch,
-            applicability.Evaluate(Inputs(memberId: "NT00002")));
+            applicability.Evaluate(Inputs(memberId: "NT00002")).Result);
         Assert.Equal(
             FirmwareApplicabilityResult.NoMatch,
-            applicability.Evaluate(Inputs(modeId: "ab")));
+            applicability.Evaluate(Inputs(modeId: "ab")).Result);
         Assert.Equal(
             FirmwareApplicabilityResult.NoMatch,
-            applicability.Evaluate(Inputs(capacityBytes: 128)));
+            applicability.Evaluate(Inputs(capacityBytes: 128)).Result);
     }
 
     /// <summary>Verifies requested topology matches exactly and missing topology remains pending.</summary>
@@ -41,13 +43,17 @@ public sealed class FirmwareMapApplicabilityTests
         FirmwareMapApplicability applicability = CreateApplicability(
             TopologyRequirement.RequireSingleChip());
 
-        Assert.Equal(FirmwareApplicabilityResult.Pending, applicability.Evaluate(Inputs()));
+        FirmwareMapApplicabilityEvaluation pending = applicability.Evaluate(Inputs());
+        Assert.Equal(FirmwareApplicabilityResult.Pending, pending.Result);
+        Assert.Equal(
+            [FirmwareMapPendingRequirementKind.RequestedTopologyMissing],
+            pending.PendingRequirements);
         Assert.Equal(
             FirmwareApplicabilityResult.Match,
-            applicability.Evaluate(Inputs(requestedTopology: Selection(1, "single"))));
+            applicability.Evaluate(Inputs(requestedTopology: Selection(1, "single"))).Result);
         Assert.Equal(
             FirmwareApplicabilityResult.NoMatch,
-            applicability.Evaluate(Inputs(requestedTopology: Selection(2, "cascade"))));
+            applicability.Evaluate(Inputs(requestedTopology: Selection(2, "cascade"))).Result);
     }
 
     /// <summary>Verifies Common FW category remains pending until resolver-owned derivation.</summary>
@@ -58,7 +64,11 @@ public sealed class FirmwareMapApplicabilityTests
             TopologyRequirement.NoTopologyConstraint(),
             commonFirmwareCategoryIds: ["standard"]);
 
-        Assert.Equal(FirmwareApplicabilityResult.Pending, applicability.Evaluate(Inputs()));
+        FirmwareMapApplicabilityEvaluation evaluation = applicability.Evaluate(Inputs());
+        Assert.Equal(FirmwareApplicabilityResult.Pending, evaluation.Result);
+        Assert.Equal(
+            [FirmwareMapPendingRequirementKind.CommonFirmwareCategoryDerivationUnavailable],
+            evaluation.PendingRequirements);
     }
 
     /// <summary>Verifies metadata predicates remain pending even when matching artifact bytes exist.</summary>
@@ -71,7 +81,10 @@ public sealed class FirmwareMapApplicabilityTests
 
         Assert.Equal(
             FirmwareApplicabilityResult.Pending,
-            applicability.Evaluate(Inputs(artifacts: [Payload("tp-firmware", 2)])));
+            applicability.Evaluate(Inputs(artifacts: [Payload("tp-firmware", 2)])).Result);
+        Assert.Equal(
+            [FirmwareMapPendingRequirementKind.MetadataResolutionRequired],
+            applicability.Evaluate(Inputs()).PendingRequirements);
     }
 
     /// <summary>Verifies known contradictions outrank resolver-owned pending discriminators.</summary>
@@ -85,10 +98,11 @@ public sealed class FirmwareMapApplicabilityTests
 
         Assert.Equal(
             FirmwareApplicabilityResult.NoMatch,
-            applicability.Evaluate(Inputs(memberId: "NT00002")));
+            applicability.Evaluate(Inputs(memberId: "NT00002")).Result);
         Assert.Equal(
             FirmwareApplicabilityResult.NoMatch,
-            applicability.Evaluate(Inputs(requestedTopology: Selection(2, "cascade"))));
+            applicability.Evaluate(Inputs(requestedTopology: Selection(2, "cascade"))).Result);
+        Assert.Empty(applicability.Evaluate(Inputs(memberId: "NT00002")).PendingRequirements);
     }
 
     /// <summary>Verifies multiple artifact bindings never trigger pre-resolver metadata guessing.</summary>
@@ -106,7 +120,69 @@ public sealed class FirmwareMapApplicabilityTests
 
         Assert.Equal(
             FirmwareApplicabilityResult.Pending,
-            applicability.Evaluate(Inputs(artifacts: artifacts)));
+            applicability.Evaluate(Inputs(artifacts: artifacts)).Result);
+    }
+
+    /// <summary>Verifies simultaneous unresolved requirements are complete, canonical, and immutable.</summary>
+    [Fact]
+    public void EvaluateReturnsCanonicalPendingRequirementSet()
+    {
+        FirmwareMetadataPredicate[] predicates =
+        [
+            Equal("chip-number", 2),
+            Equal("panel-count", 3),
+        ];
+        string[] categories = ["z-category", "a-category"];
+        FirmwareMapApplicability applicability = CreateApplicability(
+            TopologyRequirement.RequireCascade(),
+            categories,
+            predicates);
+        categories[0] = "changed";
+        predicates[0] = Equal("changed", 9);
+
+        FirmwareMapApplicabilityEvaluation evaluation = applicability.Evaluate(Inputs());
+
+        Assert.Equal(FirmwareApplicabilityResult.Pending, evaluation.Result);
+        Assert.Equal(
+            [
+                FirmwareMapPendingRequirementKind.RequestedTopologyMissing,
+                FirmwareMapPendingRequirementKind.CommonFirmwareCategoryDerivationUnavailable,
+                FirmwareMapPendingRequirementKind.MetadataResolutionRequired,
+            ],
+            evaluation.PendingRequirements);
+        IList<FirmwareMapPendingRequirementKind> exposed = Assert.IsType<IList<FirmwareMapPendingRequirementKind>>(
+            evaluation.PendingRequirements,
+            exactMatch: false);
+        Assert.True(exposed.IsReadOnly);
+        _ = Assert.Throws<NotSupportedException>(() =>
+            exposed[0] = FirmwareMapPendingRequirementKind.MetadataResolutionRequired);
+    }
+
+    /// <summary>Verifies equivalent declarations produce equal detailed evaluations.</summary>
+    [Fact]
+    public void EvaluateUsesValueEqualityIndependentOfDeclarationOrder()
+    {
+        var first = new FirmwareMapApplicability(
+            ["NT00002", "NT00001"],
+            ["standard"],
+            TopologyRequirement.NoTopologyConstraint(),
+            64,
+            ["category-b", "category-a"],
+            [Equal("field-b", 2), Equal("field-a", 1)]);
+        var second = new FirmwareMapApplicability(
+            ["NT00001", "NT00002"],
+            ["standard"],
+            TopologyRequirement.NoTopologyConstraint(),
+            64,
+            ["category-a", "category-b"],
+            [Equal("field-a", 1), Equal("field-b", 2)]);
+
+        FirmwareMapApplicabilityEvaluation firstEvaluation = first.Evaluate(Inputs());
+        FirmwareMapApplicabilityEvaluation secondEvaluation = second.Evaluate(Inputs());
+
+        Assert.Equal(firstEvaluation, secondEvaluation);
+        Assert.Equal(firstEvaluation.GetHashCode(), secondEvaluation.GetHashCode());
+        Assert.Empty(typeof(FirmwareMapApplicabilityEvaluation).GetConstructors());
     }
 
     /// <summary>Verifies constructor snapshots remain immutable and ordinally sorted.</summary>

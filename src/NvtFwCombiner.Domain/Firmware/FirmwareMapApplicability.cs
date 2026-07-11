@@ -71,37 +71,46 @@ public sealed class FirmwareMapApplicability
     /// <summary>Required decoded metadata predicates.</summary>
     public IReadOnlyList<FirmwareMetadataPredicate> MetadataPredicates { get; }
 
-    /// <summary>Evaluates known selection facts without guessing missing values.</summary>
-    public FirmwareApplicabilityResult Evaluate(FirmwareMapResolutionInputs inputs)
+    /// <summary>Evaluates known selection facts and reports every unresolved requirement.</summary>
+    public FirmwareMapApplicabilityEvaluation Evaluate(FirmwareMapResolutionInputs inputs)
     {
         ArgumentNullException.ThrowIfNull(inputs);
         if (!_memberIds.Contains(inputs.MemberId, StringComparer.Ordinal) ||
             !_modeIds.Contains(inputs.ModeId, StringComparer.Ordinal) ||
             inputs.CapacityBytes != CapacityBytes)
         {
-            return FirmwareApplicabilityResult.NoMatch;
+            return FirmwareMapApplicabilityEvaluation.NoMatch();
         }
 
-        bool pending = false;
+        List<FirmwareMapPendingRequirementKind> pendingRequirements = [];
         if (TopologyRequirement.Kind != TopologyRequirementKind.None)
         {
             if (inputs.RequestedTopology is null)
             {
-                pending = true;
+                pendingRequirements.Add(FirmwareMapPendingRequirementKind.RequestedTopologyMissing);
             }
             else if (!TopologyRequirement.Matches(inputs.RequestedTopology))
             {
-                return FirmwareApplicabilityResult.NoMatch;
+                return FirmwareMapApplicabilityEvaluation.NoMatch();
             }
         }
 
-        pending |= _commonFirmwareCategoryIds.Length != 0;
+        if (_commonFirmwareCategoryIds.Length != 0)
+        {
+            pendingRequirements.Add(
+                FirmwareMapPendingRequirementKind.CommonFirmwareCategoryDerivationUnavailable);
+        }
 
         // Metadata facts become comparable only after the candidate map scopes their
         // artifact and metadata structure during locator resolution.
-        pending |= _metadataPredicates.Length != 0;
+        if (_metadataPredicates.Length != 0)
+        {
+            pendingRequirements.Add(FirmwareMapPendingRequirementKind.MetadataResolutionRequired);
+        }
 
-        return pending ? FirmwareApplicabilityResult.Pending : FirmwareApplicabilityResult.Match;
+        return pendingRequirements.Count == 0
+            ? FirmwareMapApplicabilityEvaluation.Match()
+            : FirmwareMapApplicabilityEvaluation.Pending(pendingRequirements);
     }
 
     private static string[] SnapshotIds(
