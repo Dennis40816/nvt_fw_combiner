@@ -107,6 +107,21 @@ Shared RegionSets are direct references. Only owner-approved inheritance uses a 
 Aliases never infer a whole map, processor, range, capacity, or capability, and resolution rejects
 cycles, ambiguity, and applicability leaks.
 
+Before artifact evaluation, Profiles normalizes the source family into one immutable
+`FirmwareFamilyResolutionDefinition`. This Domain aggregate binds the family id, version, trusted
+content hash, candidate maps, and only the metadata sets selected by those maps. It validates
+family-global structure identity, candidate-scoped structure/field references, typed predicate
+representability, and map-specific locator geometry. Artifact binding ids are derived from reachable
+structures rather than declared a second time. Public lookup always starts with a map id, so a
+globally known structure cannot bypass that candidate's metadata-set selection.
+
+The resolution definition is a normalized resolution subset, not a second DTO for the complete
+`firmware-family-v1` document. Profiles resolves fact aliases and validates source members,
+capabilities, and evidence before constructing it; unresolved aliases and capability policy never
+enter Domain map selection. Common FW category and derived-topology rules remain pending until their
+closed derivation contracts exist. Normalized alias/evidence provenance must also be modeled before
+the full resolver can be promoted as complete.
+
 Application reads artifact bytes before the Domain boundary. Domain accepts no artifact-reader port,
 defensively snapshots every payload, and computes the only accepted hash/length identity from that
 snapshot. Caller-supplied decoded facts and derived selections are forbidden. Metadata locators are
@@ -129,7 +144,10 @@ profile is the only owner of executable workflow policy and promotion state.
 The canonical pipeline is:
 
 ```text
-firmware-family-v1 + ResolutionInputs
+firmware-family-v1
+  -> normalized FirmwareFamilyResolutionDefinition
+
+FirmwareFamilyResolutionDefinition + ResolutionInputs
   -> ResolvedFirmwareImageMap
 
 composition-profile-v2 + ResolvedFirmwareImageMap + compile request
