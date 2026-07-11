@@ -16,20 +16,38 @@ public sealed partial class RawBinaryEditorSession
     /// <summary>Maximum zero-filled bytes accepted by one bounded insert operation.</summary>
     public const int MaximumInsertByteCount = 0x100000;
 
+    /// <summary>Maximum raw-BIN document held by the in-memory editor.</summary>
+    public const int MaximumDocumentLength = 0x800000;
+
     private readonly Stack<HistoryEntry> _redo = [];
     private readonly Stack<HistoryEntry> _undo = [];
     private List<int?>? _originalOffsets;
     private byte[]? _original;
     private List<byte>? _working;
+    private int _differenceCount;
+    private bool _hasUnsavedChanges;
+
+    /// <summary>Gets the current memory-only editor state.</summary>
+    public RawBinaryEditorState State => GetState();
 
     /// <summary>Replaces the session with a defensive in-memory copy of a loaded binary document.</summary>
     public RawBinaryEditorState Load(ReadOnlySpan<byte> source)
     {
+        if (source.Length > MaximumDocumentLength)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(source),
+                source.Length,
+                $"Raw BIN documents cannot exceed {MaximumDocumentLength} bytes.");
+        }
+
         _original = source.ToArray();
         _working = [.. source];
         _originalOffsets = [.. Enumerable.Range(0, source.Length).Select(index => (int?)index)];
         _undo.Clear();
         _redo.Clear();
+        _differenceCount = 0;
+        _hasUnsavedChanges = false;
         return GetState();
     }
 
@@ -96,55 +114,24 @@ public sealed partial class RawBinaryEditorSession
     /// </summary>
     public RawBinaryEditorSearchResult FindAscii(string text, long startOffset)
     {
+        return FindAscii(text, startOffset, CancellationToken.None);
+    }
+
+    /// <summary>Finds printable ASCII text while honoring host-requested cancellation.</summary>
+    public RawBinaryEditorSearchResult FindAscii(
+        string text,
+        long startOffset,
+        CancellationToken cancellationToken)
+    {
         ArgumentNullException.ThrowIfNull(text);
-        if (!TryRequireDocument(out RawBinaryEditorIssue? issue))
-        {
-            return SearchFailure(issue!);
-        }
-
-        if (text.Length == 0 || text.Any(character => character is < (char)0x20 or > (char)0x7E))
-        {
-            return SearchFailure(new RawBinaryEditorIssue(RawBinaryEditorIssueCode.InvalidAsciiText));
-        }
-
-        ReadOnlySpan<byte> needle = text.Select(character => (byte)character).ToArray();
-        ReadOnlySpan<byte> working = CollectionsMarshal.AsSpan(_working!);
-        if (needle.Length > working.Length)
-        {
-            return SearchFailure(new RawBinaryEditorIssue(RawBinaryEditorIssueCode.AsciiTextNotFound));
-        }
-
-        var matches = new List<long>();
-        int searchOffset = 0;
-        while (searchOffset <= working.Length - needle.Length)
-        {
-            int relative = working[searchOffset..].IndexOf(needle);
-            if (relative < 0)
-            {
-                break;
-            }
-
-            int match = searchOffset + relative;
-            matches.Add(match);
-            searchOffset = match + 1;
-        }
-
-        if (matches.Count == 0)
-        {
-            return SearchFailure(new RawBinaryEditorIssue(RawBinaryEditorIssueCode.AsciiTextNotFound));
-        }
-
-        int start = startOffset is < 0 or > int.MaxValue
-            ? 0
-            : Math.Min((int)startOffset, working.Length - 1);
-        int matchIndex = matches.FindIndex(match => match >= start);
-        bool wrapped = matchIndex < 0;
-        if (wrapped)
-        {
-            matchIndex = 0;
-        }
-
-        return new RawBinaryEditorSearchResult(GetState(), matches, matchIndex, needle.Length, wrapped);
+        return !TryRequireDocument(out RawBinaryEditorIssue? issue)
+            ? SearchFailure(issue!)
+            : RawBinaryEditorSearch.Find(
+                _working!.ToArray(),
+                GetState(),
+                text,
+                startOffset,
+                cancellationToken);
     }
 
     private RawBinaryEditorViewport CreateViewportWindow(int start, int length)
@@ -368,6 +355,11 @@ public sealed partial class RawBinaryEditorSession
 
         int start = checked((int)offset);
         byte[] previous = [.. _working.GetRange(start, values.Length)];
+        if (previous.AsSpan().SequenceEqual(values))
+        {
+            return Success();
+        }
+
         var entry = new HistoryEntry(
             new ReplaceAction(start, [.. values]),
             new ReplaceAction(start, previous));
@@ -383,7 +375,9 @@ public sealed partial class RawBinaryEditorSession
             return Failure(issue!);
         }
 
-        if (count <= 0 || count > MaximumInsertByteCount || count > int.MaxValue - _working!.Count)
+        if (count <= 0 ||
+            count > MaximumInsertByteCount ||
+            count > MaximumDocumentLength - _working!.Count)
         {
             return Failure(new RawBinaryEditorIssue(RawBinaryEditorIssueCode.InvalidByteCount));
         }
@@ -406,6 +400,9 @@ public sealed partial class RawBinaryEditorSession
 
     private void Apply(EditAction action)
     {
+        int previousDifferenceCount = action is ReplaceAction beforeReplace
+            ? CountDifferences(beforeReplace.Start, beforeReplace.Bytes.Length)
+            : 0;
         switch (action)
         {
             case ReplaceAction replace:
@@ -422,12 +419,43 @@ public sealed partial class RawBinaryEditorSession
             default:
                 throw new InvalidOperationException("Unknown raw binary editor action.");
         }
+
+        if (action is ReplaceAction afterReplace)
+        {
+            _differenceCount += CountDifferences(afterReplace.Start, afterReplace.Bytes.Length) - previousDifferenceCount;
+        }
+        else
+        {
+            _differenceCount = CountDifferences(0, _working!.Count);
+        }
+
+        _hasUnsavedChanges = _working!.Count != _original!.Length || _differenceCount > 0;
     }
 
     private void Track(HistoryEntry entry)
     {
         _undo.Push(entry);
         _redo.Clear();
+    }
+
+    private int CountDifferences(int start, int length)
+    {
+        if (_working is null || _original is null || _originalOffsets is null || length == 0)
+        {
+            return 0;
+        }
+
+        int count = 0;
+        int endExclusive = checked(start + length);
+        for (int index = start; index < endExclusive; index++)
+        {
+            if (_originalOffsets[index] != index || _working[index] != _original[index])
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     private bool TryParseRange(
@@ -530,7 +558,8 @@ public sealed partial class RawBinaryEditorSession
             _original?.LongLength ?? 0,
             _working?.Count ?? 0,
             _undo.Count,
-            _redo.Count);
+            _redo.Count,
+            _hasUnsavedChanges);
     }
 
     private RawBinaryEditorOperationResult Success()

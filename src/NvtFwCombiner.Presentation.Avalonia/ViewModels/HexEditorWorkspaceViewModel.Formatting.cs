@@ -79,6 +79,7 @@ public sealed partial class HexEditorWorkspaceViewModel
 
     partial void OnAsciiSearchTextChanged(string value)
     {
+        FindAsciiCommand.Cancel();
         ClearAsciiSearchResults(refreshViewport: true);
         FindAsciiCommand.NotifyCanExecuteChanged();
     }

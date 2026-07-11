@@ -85,9 +85,11 @@ public sealed class XamlControlStyleContractTests
         Assert.Contains("DispatcherTimer", historyFeedback, StringComparison.Ordinal);
         Assert.Contains("DrawHistoryFeedback", historyFeedback, StringComparison.Ordinal);
         Assert.Contains("DrawAsciiSearchRanges", viewport, StringComparison.Ordinal);
+        Assert.Contains("DrawRoundedRectangle(context, HoverBrush, HoverPen, rect, 3);", viewport, StringComparison.Ordinal);
         Assert.Contains("TextChanged=\"HexByteEditBox_OnTextChanged\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("behaviors:HexTextInputBehavior.Mode=\"Byte\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("behaviors:HexTextInputBehavior.Mode=\"ByteSequence\"", hexEditor, StringComparison.Ordinal);
+        Assert.Equal(3, hexEditor.Split("behaviors:HexTextInputBehavior.Mode=\"Address\"", StringSplitOptions.None).Length - 1);
         Assert.Contains("behaviors:HexTextInputBehavior.Mode", sharedStyles, StringComparison.Ordinal);
         Assert.Contains("input:InputMethod.IsInputMethodEnabled=\"False\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("HexEditorSourceDrop_OnDrop", hexEditor, StringComparison.Ordinal);
@@ -127,6 +129,7 @@ public sealed class XamlControlStyleContractTests
         Assert.Contains("Classes=\"iconButton hexGoToAddress\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"{Binding Text.HexEditorGoToAddressLabel}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding FindAsciiCommand}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.HelpText=\"{Binding SelectedByteAccessibleLabel}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"GoToAddressTextBox\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("KeyDown=\"GoToAddressTextBox_OnKeyDown\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"AsciiSearchTextBox\"", hexEditor, StringComparison.Ordinal);

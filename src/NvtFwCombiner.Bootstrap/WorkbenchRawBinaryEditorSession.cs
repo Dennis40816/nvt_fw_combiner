@@ -15,6 +15,9 @@ public sealed class WorkbenchRawBinaryEditorSession
     /// <summary>Maximum zero-filled bytes accepted by one insert request.</summary>
     public static int MaximumInsertByteCount => RawBinaryEditorSession.MaximumInsertByteCount;
 
+    /// <summary>Maximum raw-BIN document length supported by the in-memory utility.</summary>
+    public static int MaximumDocumentLength => RawBinaryEditorSession.MaximumDocumentLength;
+
     /// <summary>Gets the normalized source path of the currently loaded document.</summary>
     public string? SourcePath { get; private set; }
 
@@ -24,7 +27,7 @@ public sealed class WorkbenchRawBinaryEditorSession
         : $"{Path.GetFileNameWithoutExtension(SourcePath)}-edited{Path.GetExtension(SourcePath)}";
 
     /// <summary>Gets the current in-memory document state.</summary>
-    public WorkbenchRawBinaryEditorState State => ToWorkbenchState(_editor.CreateViewport(0).State);
+    public WorkbenchRawBinaryEditorState State => ToWorkbenchState(_editor.State);
 
     /// <summary>Reads a source BIN once through the file adapter and starts a fresh in-memory session.</summary>
     public async Task<WorkbenchRawBinaryEditorFileResult> LoadAsync(
@@ -43,6 +46,12 @@ public sealed class WorkbenchRawBinaryEditorSession
             if (string.IsNullOrWhiteSpace(directory))
             {
                 return WorkbenchRawBinaryEditorFileResult.Failure("The selected BIN path has no usable parent folder.");
+            }
+
+            if (new FileInfo(fullPath).Length > MaximumDocumentLength)
+            {
+                return WorkbenchRawBinaryEditorFileResult.Failure(
+                    $"The selected BIN exceeds the {MaximumDocumentLength} byte Hex Editor limit.");
             }
 
             var reader = new FileArtifactReader([directory]);
@@ -73,14 +82,32 @@ public sealed class WorkbenchRawBinaryEditorSession
     /// <summary>Finds printable ASCII text in the editor-owned memory buffer without reading the source file again.</summary>
     public WorkbenchRawBinaryEditorSearchResult FindAscii(string text, long startOffset)
     {
-        RawBinaryEditorSearchResult result = _editor.FindAscii(text, startOffset);
-        return new WorkbenchRawBinaryEditorSearchResult(
-            ToWorkbenchState(result.State),
-            [.. result.Matches],
-            result.MatchIndex,
-            result.Length,
-            result.Wrapped,
-            ToWorkbenchIssue(result.Issue));
+        return ToWorkbenchSearchResult(_editor.FindAscii(text, startOffset));
+    }
+
+    /// <summary>
+    /// Finds printable ASCII on a defensive memory snapshot so large searches do not block the UI
+    /// or race a later editor mutation.
+    /// </summary>
+    public async Task<WorkbenchRawBinaryEditorSearchResult> FindAsciiAsync(
+        string text,
+        long startOffset,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        RawBinaryEditorState state = _editor.State;
+        if (!_editor.TryCopyWorkingBytes(out byte[]? snapshot))
+        {
+            return ToWorkbenchSearchResult(new RawBinaryEditorSearchResult(
+                state,
+                [],
+                Issue: new RawBinaryEditorIssue(RawBinaryEditorIssueCode.NoDocument)));
+        }
+
+        RawBinaryEditorSearchResult result = await Task.Run(
+            () => RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken),
+            cancellationToken).ConfigureAwait(false);
+        return ToWorkbenchSearchResult(result);
     }
 
     /// <summary>Returns contiguous changed blocks from the editor-owned memory buffer.</summary>
@@ -241,7 +268,23 @@ public sealed class WorkbenchRawBinaryEditorSession
             state.OriginalLength,
             state.WorkingLength,
             state.UndoCount,
-            state.RedoCount);
+            state.RedoCount,
+            state.HasUnsavedChanges);
+    }
+
+    private static WorkbenchRawBinaryEditorSearchResult ToWorkbenchSearchResult(
+        RawBinaryEditorSearchResult result)
+    {
+        return new WorkbenchRawBinaryEditorSearchResult(
+            ToWorkbenchState(result.State),
+            [.. result.Matches],
+            result.MatchIndex,
+            result.Length,
+            result.Wrapped,
+            result.TotalMatchCount,
+            result.SelectedAddress,
+            result.IsTruncated,
+            ToWorkbenchIssue(result.Issue));
     }
 
     private static WorkbenchRawBinaryEditorChangeKind ToWorkbenchChangeKind(RawBinaryEditorChangeKind changeKind)
@@ -295,11 +338,14 @@ public sealed record WorkbenchRawBinaryEditorSearchResult(
     int MatchIndex,
     int Length,
     bool Wrapped,
+    int TotalMatchCount,
+    long SelectedAddress,
+    bool IsTruncated,
     WorkbenchRawBinaryEditorIssue? Issue = null)
 {
     /// <summary>True when a matching ASCII sequence was found.</summary>
     public bool Succeeded => Issue is null;
 
     /// <summary>Address of the currently selected search match, or -1 when no match exists.</summary>
-    public long Address => MatchIndex >= 0 && MatchIndex < Matches.Count ? Matches[MatchIndex] : -1;
+    public long Address => SelectedAddress;
 }

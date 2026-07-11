@@ -15,7 +15,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     private const int BytesPerRow = 16;
     private const int CurrentViewportRowCount = 12;
     private readonly WorkbenchRawBinaryEditorSession _session = UiCompositionRunner.CreateRawBinaryEditorSession();
-    private WorkbenchRawBinaryEditorState _state = new(false, 0, 0, 0, 0);
+    private WorkbenchRawBinaryEditorState _state = new(false, 0, 0, 0, 0, false);
     private HexEditorByteCellViewModel? _activeInlineEdit;
     private HexEditorByteCellViewModel? _selectedCell;
     private HexEditorViewportRowViewModel? _selectedRow;
@@ -28,7 +28,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
         Text = text;
         ColumnHeaders = [.. Enumerable.Range(0, 16).Select(index => new HexEditorColumnHeaderViewModel(index))];
         GoToCommand = new RelayCommand(GoToViewport);
-        FindAsciiCommand = new RelayCommand(FindAscii, CanFindAscii);
+        FindAsciiCommand = new AsyncRelayCommand(FindAsciiAsync, CanFindAscii);
         SetViewportStartRowCommand = new RelayCommand<int>(SetViewportStartRow);
         SelectByteCommand = new RelayCommand<HexEditorByteCellViewModel>(SelectByte);
         MoveSelectionCommand = new RelayCommand<int>(MoveSelection);
@@ -140,6 +140,9 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     /// <summary>Currently selected work-buffer address, retained while it is outside the visible row window.</summary>
     public string? SelectedByteAddress { get; private set; }
 
+    /// <summary>Accessible value and change context for the currently selected byte.</summary>
+    public string SelectedByteAccessibleLabel => _selectedCell?.AccessibleLabel ?? SelectedByteAddress ?? string.Empty;
+
     /// <summary>Compact hexadecimal length of the in-memory work buffer.</summary>
     public string WorkingLengthLabel => FormattableString.Invariant($"0x{_state.WorkingLength:X} bytes");
 
@@ -162,7 +165,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     public IRelayCommand GoToCommand { get; }
 
     /// <summary>Finds the next printable ASCII occurrence in the in-memory work buffer.</summary>
-    public IRelayCommand FindAsciiCommand { get; }
+    public IAsyncRelayCommand FindAsciiCommand { get; }
 
     /// <summary>Moves the bounded viewport to a coalesced document-scrollbar row position.</summary>
     public IRelayCommand<int> SetViewportStartRowCommand { get; }
@@ -453,6 +456,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
 
     private void ApplySuccessfulOperation(WorkbenchRawBinaryEditorOperationResult result, string? selectedAddress)
     {
+        FindAsciiCommand.Cancel();
         UpdateState(result.State);
         ClearAsciiSearchResults(refreshViewport: false);
         RefreshChangeTracking();
@@ -592,6 +596,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
             ? FormatAddress(selectedAddress)
             : null;
         OnPropertyChanged(nameof(SelectedByteAddress));
+        OnPropertyChanged(nameof(SelectedByteAccessibleLabel));
         if (selected is { })
         {
             selected.IsSelected = true;
@@ -627,6 +632,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
         _selectedRow = null;
         SelectedByteAddress = null;
         OnPropertyChanged(nameof(SelectedByteAddress));
+        OnPropertyChanged(nameof(SelectedByteAccessibleLabel));
         foreach (HexEditorColumnHeaderViewModel header in ColumnHeaders)
         {
             header.IsSelected = false;

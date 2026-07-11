@@ -49,11 +49,8 @@ public sealed record RawBinaryEditorState(
     long OriginalLength,
     long WorkingLength,
     int UndoCount,
-    int RedoCount)
-{
-    /// <summary>True when the work buffer differs through one or more retained editor operations.</summary>
-    public bool HasUnsavedChanges => UndoCount > 0;
-}
+    int RedoCount,
+    bool HasUnsavedChanges = false);
 
 /// <summary>Result of an editor operation that may mutate only the session-owned work buffer.</summary>
 public sealed record RawBinaryEditorOperationResult(
@@ -71,13 +68,16 @@ public sealed record RawBinaryEditorSearchResult(
     int MatchIndex = -1,
     int Length = 0,
     bool Wrapped = false,
+    int TotalMatchCount = 0,
+    long SelectedAddress = -1,
+    bool IsTruncated = false,
     RawBinaryEditorIssue? Issue = null)
 {
     /// <summary>True when a matching ASCII sequence was found.</summary>
     public bool Succeeded => Issue is null;
 
     /// <summary>Address of the currently selected search match, or -1 when no match exists.</summary>
-    public long Address => MatchIndex >= 0 && MatchIndex < Matches.Count ? Matches[MatchIndex] : -1;
+    public long Address => SelectedAddress;
 }
 
 /// <summary>Independent reasons why a raw-BIN byte belongs to a changed block.</summary>

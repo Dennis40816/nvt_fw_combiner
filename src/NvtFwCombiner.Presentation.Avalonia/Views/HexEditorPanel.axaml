@@ -72,8 +72,10 @@
             <TextBlock VerticalAlignment="Center" Classes="fieldLabel" Text="{Binding Text.HexEditorGoToAddressLabel}" />
             <TextBox
                 x:Name="GoToAddressTextBox"
+                behaviors:HexTextInputBehavior.Mode="Address"
                 Width="132"
                 Classes="addressInput"
+                input:InputMethod.IsInputMethodEnabled="False"
                 Text="{Binding ViewportAddress, Mode=TwoWay}"
                 GotFocus="HexTextInput_OnGotFocus"
                 KeyDown="GoToAddressTextBox_OnKeyDown"
@@ -190,7 +192,7 @@
                 <views:HexEditorViewportControl
                     x:Name="HexViewport"
                     AutomationProperties.Name="{Binding Text.HexEditorTitle}"
-                    AutomationProperties.HelpText="{Binding SelectedByteAddress}" />
+                    AutomationProperties.HelpText="{Binding SelectedByteAccessibleLabel}" />
                 <TextBox
                     x:Name="HexInlineEditor"
                     behaviors:HexTextInputBehavior.Mode="Byte"
@@ -278,7 +280,9 @@
                 <StackPanel Spacing="4">
                   <TextBlock Classes="hexInspectorSection" Text="{Binding Text.StartLabel}" />
                   <TextBox
+                      behaviors:HexTextInputBehavior.Mode="Address"
                       Classes="addressInput"
+                      input:InputMethod.IsInputMethodEnabled="False"
                       Text="{Binding RangeStartAddress, Mode=TwoWay}"
                       GotFocus="HexTextInput_OnGotFocus"
                       LostFocus="HexTextInput_OnLostFocus" />
@@ -286,7 +290,9 @@
                 <StackPanel Grid.Column="1" Spacing="4">
                   <TextBlock Classes="hexInspectorSection" Text="{Binding Text.EndLabel}" />
                   <TextBox
+                      behaviors:HexTextInputBehavior.Mode="Address"
                       Classes="addressInput"
+                      input:InputMethod.IsInputMethodEnabled="False"
                       Text="{Binding RangeEndAddress, Mode=TwoWay}"
                       GotFocus="HexTextInput_OnGotFocus"
                       LostFocus="HexTextInput_OnLostFocus" />

@@ -1,4 +1,5 @@
 using System.Globalization;
+using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -7,6 +8,25 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>UI-state coverage for the standalone profile-independent raw BIN utility.</summary>
 public sealed partial class ShellViewModelTests
 {
+    /// <summary>Rejects a source that would exceed the bounded in-memory document contract.</summary>
+    [Fact]
+    public async Task HexEditorRejectsDocumentsBeyondTheMemoryLimit()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-raw-hex-limit");
+        string sourcePath = workspace.Write(
+            "oversized.bin",
+            new byte[WorkbenchRawBinaryEditorSession.MaximumDocumentLength + 1]);
+        MainWindowViewModel shell = ShellViewModelFactory.Create();
+
+        await shell.HexEditorWorkspace.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
+
+        Assert.False(shell.HexEditorWorkspace.HasDocument);
+        Assert.Contains(
+            WorkbenchRawBinaryEditorSession.MaximumDocumentLength.ToString(CultureInfo.InvariantCulture),
+            shell.HexEditorWorkspace.EditorStatus,
+            StringComparison.Ordinal);
+    }
+
     /// <summary>Locks raw Hex Editor state to an isolated fixed-window document without IC or Replace state.</summary>
     [Fact]
     public async Task HexEditorLoadsOneMemoryDocumentAndFocusesMatchingRowAndColumn()
@@ -123,7 +143,7 @@ public sealed partial class ShellViewModelTests
 
         await editor.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
         editor.AsciiSearchText = "NVT";
-        editor.FindAsciiCommand.Execute(null);
+        await editor.FindAsciiCommand.ExecuteAsync(null);
 
         Assert.Equal("0x000007", editor.SelectedByteAddress);
         Assert.Equal("0x000007", editor.RangeStartAddress);
@@ -132,7 +152,7 @@ public sealed partial class ShellViewModelTests
         Assert.All(editor.ViewportRows[0].Bytes.Skip(7).Take(3), cell => Assert.True(cell.IsAsciiSearchMatch));
         Assert.Contains("0x000007", editor.EditorStatus, StringComparison.Ordinal);
 
-        editor.FindAsciiCommand.Execute(null);
+        await editor.FindAsciiCommand.ExecuteAsync(null);
         Assert.Equal("0x000012", editor.SelectedByteAddress);
         Assert.Equal("2/2", editor.AsciiSearchResultLabel);
     }

@@ -49,11 +49,8 @@ public sealed record WorkbenchRawBinaryEditorState(
     long OriginalLength,
     long WorkingLength,
     int UndoCount,
-    int RedoCount)
-{
-    /// <summary>True when one or more retained operations differ from the loaded source.</summary>
-    public bool HasUnsavedChanges => UndoCount > 0;
-}
+    int RedoCount,
+    bool HasUnsavedChanges = false);
 
 /// <summary>Result of one memory-only edit operation.</summary>
 public sealed record WorkbenchRawBinaryEditorOperationResult(

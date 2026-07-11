@@ -9,6 +9,7 @@ public sealed partial class HexEditorWorkspaceViewModel
     public async Task LoadAsync(string path, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        FindAsciiCommand.Cancel();
 
         WorkbenchRawBinaryEditorFileResult result = await _session.LoadAsync(path, cancellationToken);
         if (!result.Succeeded || result.State is null || string.IsNullOrWhiteSpace(result.Path))

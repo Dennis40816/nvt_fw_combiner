@@ -7,11 +7,12 @@ public sealed partial class HexEditorWorkspaceViewModel
 {
     private IReadOnlyList<long> _asciiMatches = [];
     private int _asciiMatchIndex = -1;
+    private int _asciiMatchCount;
     private int _asciiSearchLength;
 
     /// <summary>Compact current-result indicator for a repeated ASCII search.</summary>
     public string AsciiSearchResultLabel => _asciiMatchIndex >= 0
-        ? string.Format(CultureInfo.InvariantCulture, Text.HexEditorAsciiSearchIndexTemplate, _asciiMatchIndex + 1, _asciiMatches.Count)
+        ? string.Format(CultureInfo.InvariantCulture, Text.HexEditorAsciiSearchIndexTemplate, _asciiMatchIndex + 1, _asciiMatchCount)
         : string.Empty;
 
     /// <summary>True after a valid search has at least one result to expose in the toolbar.</summary>
@@ -22,7 +23,7 @@ public sealed partial class HexEditorWorkspaceViewModel
         return HasDocument && !string.IsNullOrWhiteSpace(AsciiSearchText);
     }
 
-    private void FindAscii()
+    private async Task FindAsciiAsync(CancellationToken cancellationToken)
     {
         if (!CanFindAscii())
         {
@@ -36,7 +37,23 @@ public sealed partial class HexEditorWorkspaceViewModel
             startOffset = selectedAddress + 1;
         }
 
-        WorkbenchRawBinaryEditorSearchResult result = _session.FindAscii(AsciiSearchText, startOffset);
+        string searchText = AsciiSearchText;
+        WorkbenchRawBinaryEditorSearchResult result;
+        try
+        {
+            result = await _session.FindAsciiAsync(searchText, startOffset, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (cancellationToken.IsCancellationRequested ||
+            !string.Equals(searchText, AsciiSearchText, StringComparison.Ordinal))
+        {
+            return;
+        }
+
         if (!result.Succeeded)
         {
             EditorStatus = DescribeIssue(result.Issue!);
@@ -46,6 +63,7 @@ public sealed partial class HexEditorWorkspaceViewModel
         UpdateState(result.State);
         _asciiMatches = result.Matches;
         _asciiMatchIndex = result.MatchIndex;
+        _asciiMatchCount = result.TotalMatchCount;
         _asciiSearchLength = result.Length;
         OnPropertyChanged(nameof(AsciiSearchResultLabel));
         OnPropertyChanged(nameof(HasAsciiSearchResults));
@@ -63,7 +81,7 @@ public sealed partial class HexEditorWorkspaceViewModel
             Text.HexEditorAsciiSearchFoundDetail,
             result.Wrapped ? Text.HexEditorAsciiSearchWrappedLabel : string.Empty,
             result.MatchIndex + 1,
-            result.Matches.Count,
+            result.TotalMatchCount,
             startAddress);
     }
 
@@ -98,6 +116,7 @@ public sealed partial class HexEditorWorkspaceViewModel
         bool hadResults = _asciiMatches.Count > 0 || _asciiMatchIndex >= 0;
         _asciiMatches = [];
         _asciiMatchIndex = -1;
+        _asciiMatchCount = 0;
         _asciiSearchLength = 0;
         OnPropertyChanged(nameof(AsciiSearchResultLabel));
         OnPropertyChanged(nameof(HasAsciiSearchResults));

@@ -45,6 +45,30 @@ public sealed class RawBinaryEditorSessionTests
         Assert.Equal([0xA5, 0x20, 0x30], bytes);
     }
 
+    /// <summary>Derives dirty state from byte identity instead of retained undo history.</summary>
+    [Fact]
+    public void UnsavedStateReflectsTheCurrentMemoryDocument()
+    {
+        var session = new RawBinaryEditorSession();
+        _ = session.Load([0x10, 0x20]);
+
+        RawBinaryEditorOperationResult noOp = session.OverwriteByte("0x0", "10");
+        Assert.False(noOp.State.HasUnsavedChanges);
+        Assert.Equal(0, noOp.State.UndoCount);
+
+        Assert.True(session.OverwriteByte("0x0", "A5").State.HasUnsavedChanges);
+        RawBinaryEditorOperationResult restoredByEdit = session.OverwriteByte("0x0", "10");
+        Assert.False(restoredByEdit.State.HasUnsavedChanges);
+        Assert.Equal(2, restoredByEdit.State.UndoCount);
+
+        Assert.True(session.Undo().State.HasUnsavedChanges);
+        Assert.False(session.Undo().State.HasUnsavedChanges);
+
+        Assert.True(session.InsertZeroBefore("0x1").State.HasUnsavedChanges);
+        RawBinaryEditorOperationResult restoredByDelete = session.DeleteByte("0x1");
+        Assert.False(restoredByDelete.State.HasUnsavedChanges);
+    }
+
     /// <summary>Rejects an overwrite sequence that would continue past the selected inclusive end.</summary>
     [Fact]
     public void OverwriteRangeRejectsSequenceThatWouldCrossTheInclusiveEnd()
@@ -219,9 +243,9 @@ public sealed class RawBinaryEditorSessionTests
         var session = new RawBinaryEditorSession();
         _ = session.Load("NVT first NVT second"u8);
 
-        RawBinaryEditorSearchResult first = session.FindAscii("NVT", 0);
-        RawBinaryEditorSearchResult second = session.FindAscii("NVT", first.Address + 1);
-        RawBinaryEditorSearchResult wrapped = session.FindAscii("NVT", second.Address + 1);
+        RawBinaryEditorSearchResult first = session.FindAscii("NVT", 0, TestContext.Current.CancellationToken);
+        RawBinaryEditorSearchResult second = session.FindAscii("NVT", first.Address + 1, TestContext.Current.CancellationToken);
+        RawBinaryEditorSearchResult wrapped = session.FindAscii("NVT", second.Address + 1, TestContext.Current.CancellationToken);
 
         Assert.True(first.Succeeded);
         Assert.Equal(0, first.Address);
@@ -233,8 +257,49 @@ public sealed class RawBinaryEditorSessionTests
         Assert.True(wrapped.Succeeded);
         Assert.Equal(0, wrapped.Address);
         Assert.True(wrapped.Wrapped);
-        Assert.Equal(RawBinaryEditorIssueCode.InvalidAsciiText, session.FindAscii("測試", 0).Issue?.Code);
-        Assert.Equal(RawBinaryEditorIssueCode.AsciiTextNotFound, session.FindAscii("missing", 0).Issue?.Code);
+        Assert.Equal(
+            RawBinaryEditorIssueCode.InvalidAsciiText,
+            session.FindAscii("測試", 0, TestContext.Current.CancellationToken).Issue?.Code);
+        Assert.Equal(
+            RawBinaryEditorIssueCode.AsciiTextNotFound,
+            session.FindAscii("missing", 0, TestContext.Current.CancellationToken).Issue?.Code);
+    }
+
+    /// <summary>Keeps dense search highlights bounded while preserving the complete result index.</summary>
+    [Fact]
+    public void FindAsciiBoundsRetainedMatchesAndKeepsTheSelectedOccurrence()
+    {
+        var session = new RawBinaryEditorSession();
+        _ = session.Load(Enumerable.Repeat((byte)'A', 8192).ToArray());
+
+        RawBinaryEditorSearchResult result = session.FindAscii("A", 7000, TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(8192, result.TotalMatchCount);
+        Assert.Equal(7000, result.MatchIndex);
+        Assert.Equal(7000, result.Address);
+        Assert.Equal(RawBinaryEditorSearch.MaximumRetainedMatches, result.Matches.Count);
+        Assert.Contains(7000, result.Matches);
+        Assert.True(result.IsTruncated);
+    }
+
+    /// <summary>Honors cancellation and the explicit document-memory boundary.</summary>
+    [Fact]
+    public void SearchCancellationAndDocumentLengthAreBounded()
+    {
+        var session = new RawBinaryEditorSession();
+        _ = session.Load("NVT"u8);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        _ = Assert.Throws<OperationCanceledException>(() =>
+        {
+            _ = session.FindAscii("NVT", 0, cancellation.Token);
+        });
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
+        {
+            _ = session.Load(new byte[RawBinaryEditorSession.MaximumDocumentLength + 1]);
+        });
     }
 
     /// <summary>Accepts compact and spreadsheet-pasted byte strings while exposing contiguous in-memory changed blocks.</summary>
