@@ -7,11 +7,14 @@ namespace NvtFwCombiner.Application.HexEditor;
 /// Owns one raw binary document in memory. It never reads or writes a file and never applies
 /// firmware profile, IC, header, CRC, or postbuild policy.
 /// </summary>
-public sealed class RawBinaryEditorSession
+public sealed partial class RawBinaryEditorSession
 {
     private const int BytesPerRow = 16;
     private const int ViewportRowCount = 32;
     private const int ViewportContextRows = 4;
+
+    /// <summary>Maximum zero-filled bytes accepted by one bounded insert operation.</summary>
+    public const int MaximumInsertByteCount = 0x100000;
 
     private readonly Stack<HistoryEntry> _redo = [];
     private readonly Stack<HistoryEntry> _undo = [];
@@ -63,7 +66,7 @@ public sealed class RawBinaryEditorSession
         return CreateViewportWindow(start, length);
     }
 
-    /// <summary>Builds one aligned forward page for progressive rendering without any source-file read.</summary>
+    /// <summary>Builds one aligned bounded page from the in-memory work buffer without any source-file read.</summary>
     public RawBinaryEditorViewport CreatePage(long requestedAddress, int maximumRows)
     {
         if (maximumRows <= 0)
@@ -87,6 +90,63 @@ public sealed class RawBinaryEditorSession
         return CreateViewportWindow(start, length);
     }
 
+    /// <summary>
+    /// Finds printable ASCII text in the current work buffer. The search starts at the requested
+    /// offset and wraps once, so repeated searches can cycle through every matching occurrence.
+    /// </summary>
+    public RawBinaryEditorSearchResult FindAscii(string text, long startOffset)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        if (!TryRequireDocument(out RawBinaryEditorIssue? issue))
+        {
+            return SearchFailure(issue!);
+        }
+
+        if (text.Length == 0 || text.Any(character => character is < (char)0x20 or > (char)0x7E))
+        {
+            return SearchFailure(new RawBinaryEditorIssue(RawBinaryEditorIssueCode.InvalidAsciiText));
+        }
+
+        ReadOnlySpan<byte> needle = text.Select(character => (byte)character).ToArray();
+        ReadOnlySpan<byte> working = CollectionsMarshal.AsSpan(_working!);
+        if (needle.Length > working.Length)
+        {
+            return SearchFailure(new RawBinaryEditorIssue(RawBinaryEditorIssueCode.AsciiTextNotFound));
+        }
+
+        var matches = new List<long>();
+        int searchOffset = 0;
+        while (searchOffset <= working.Length - needle.Length)
+        {
+            int relative = working[searchOffset..].IndexOf(needle);
+            if (relative < 0)
+            {
+                break;
+            }
+
+            int match = searchOffset + relative;
+            matches.Add(match);
+            searchOffset = match + 1;
+        }
+
+        if (matches.Count == 0)
+        {
+            return SearchFailure(new RawBinaryEditorIssue(RawBinaryEditorIssueCode.AsciiTextNotFound));
+        }
+
+        int start = startOffset is < 0 or > int.MaxValue
+            ? 0
+            : Math.Min((int)startOffset, working.Length - 1);
+        int matchIndex = matches.FindIndex(match => match >= start);
+        bool wrapped = matchIndex < 0;
+        if (wrapped)
+        {
+            matchIndex = 0;
+        }
+
+        return new RawBinaryEditorSearchResult(GetState(), matches, matchIndex, needle.Length, wrapped);
+    }
+
     private RawBinaryEditorViewport CreateViewportWindow(int start, int length)
     {
         byte[] originalDocument = _original ?? throw new InvalidOperationException("A raw BIN source must be loaded before rendering.");
@@ -105,9 +165,23 @@ public sealed class RawBinaryEditorSession
                 int? originalIndex = originalOffsets[documentIndex];
                 bool hasOriginal = originalIndex is not null;
                 byte original = hasOriginal ? originalDocument[originalIndex!.Value] : (byte)0x00;
+                byte? originalAtAddress = documentIndex < originalDocument.Length
+                    ? originalDocument[documentIndex]
+                    : null;
                 byte current = workingDocument[documentIndex];
-                bytes.Add(new RawBinaryEditorByte(documentIndex, originalIndex, original, current));
-                originalAscii[index] = hasOriginal ? FormatAscii(original) : ' ';
+                RawBinaryEditorChangeKind changeKind = GetChangeKind(
+                    documentIndex,
+                    originalIndex,
+                    current,
+                    originalDocument);
+                bytes.Add(new RawBinaryEditorByte(
+                    documentIndex,
+                    originalIndex,
+                    original,
+                    originalAtAddress,
+                    current,
+                    changeKind));
+                originalAscii[index] = originalAtAddress is byte sourceValue ? FormatAscii(sourceValue) : ' ';
                 currentAscii[index] = FormatAscii(current);
             }
 
@@ -132,7 +206,10 @@ public sealed class RawBinaryEditorSession
             : CreateParseFailure(address, requiresSingleByte: true);
     }
 
-    /// <summary>Overwrites an inclusive range with an exact number of hexadecimal bytes.</summary>
+    /// <summary>
+    /// Overwrites supplied hexadecimal bytes from the inclusive start address without writing past
+    /// the inclusive end address. Unused selected bytes remain unchanged.
+    /// </summary>
     public RawBinaryEditorOperationResult OverwriteRange(string startAddress, string endAddress, string values)
     {
         ArgumentNullException.ThrowIfNull(startAddress);
@@ -142,8 +219,8 @@ public sealed class RawBinaryEditorSession
             ? Failure(issue!)
             : !TryParseBytes(values, out byte[]? parsed)
             ? Failure(new RawBinaryEditorIssue(RawBinaryEditorIssueCode.InvalidHexBytes))
-            : parsed!.Length != length
-            ? Failure(new RawBinaryEditorIssue(RawBinaryEditorIssueCode.InvalidRange))
+            : parsed!.Length > length
+            ? Failure(new RawBinaryEditorIssue(RawBinaryEditorIssueCode.InputExceedsRange))
             : Overwrite(start, parsed);
     }
 
@@ -173,7 +250,7 @@ public sealed class RawBinaryEditorSession
     {
         ArgumentNullException.ThrowIfNull(address);
         return TryParseAddress(address, out long offset)
-            ? Insert(offset, before: true)
+            ? Insert(offset, before: true, count: 1)
             : Failure(new RawBinaryEditorIssue(RawBinaryEditorIssueCode.InvalidAddress));
     }
 
@@ -182,7 +259,25 @@ public sealed class RawBinaryEditorSession
     {
         ArgumentNullException.ThrowIfNull(address);
         return TryParseAddress(address, out long offset)
-            ? Insert(offset, before: false)
+            ? Insert(offset, before: false, count: 1)
+            : Failure(new RawBinaryEditorIssue(RawBinaryEditorIssueCode.InvalidAddress));
+    }
+
+    /// <summary>Inserts a bounded run of zero bytes immediately before the selected byte.</summary>
+    public RawBinaryEditorOperationResult InsertZeroBytesBefore(string address, int count)
+    {
+        ArgumentNullException.ThrowIfNull(address);
+        return TryParseAddress(address, out long offset)
+            ? Insert(offset, before: true, count)
+            : Failure(new RawBinaryEditorIssue(RawBinaryEditorIssueCode.InvalidAddress));
+    }
+
+    /// <summary>Inserts a bounded run of zero bytes immediately after the selected byte.</summary>
+    public RawBinaryEditorOperationResult InsertZeroBytesAfter(string address, int count)
+    {
+        ArgumentNullException.ThrowIfNull(address);
+        return TryParseAddress(address, out long offset)
+            ? Insert(offset, before: false, count)
             : Failure(new RawBinaryEditorIssue(RawBinaryEditorIssueCode.InvalidAddress));
     }
 
@@ -281,22 +376,29 @@ public sealed class RawBinaryEditorSession
         return Success();
     }
 
-    private RawBinaryEditorOperationResult Insert(long offset, bool before)
+    private RawBinaryEditorOperationResult Insert(long offset, bool before, int count)
     {
         if (!TryRequireDocument(out RawBinaryEditorIssue? issue))
         {
             return Failure(issue!);
         }
 
-        if (offset < 0 || offset >= _working!.Count)
+        if (count <= 0 || count > MaximumInsertByteCount || count > int.MaxValue - _working!.Count)
+        {
+            return Failure(new RawBinaryEditorIssue(RawBinaryEditorIssueCode.InvalidByteCount));
+        }
+
+        if (offset < 0 || offset >= _working.Count)
         {
             return Failure(new RawBinaryEditorIssue(RawBinaryEditorIssueCode.AddressOutOfRange));
         }
 
         int index = checked((int)offset + (before ? 0 : 1));
+        byte[] insertedBytes = new byte[count];
+        int?[] insertedOffsets = new int?[count];
         var entry = new HistoryEntry(
-            new InsertAction(index, [0], [null]),
-            new DeleteAction(index, 1));
+            new InsertAction(index, insertedBytes, insertedOffsets),
+            new DeleteAction(index, count));
         Apply(entry.Forward);
         Track(entry);
         return Success();
@@ -378,10 +480,9 @@ public sealed class RawBinaryEditorSession
     {
         address = 0;
         string trimmed = value.Trim();
-        bool parsed = trimmed.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
-            ? long.TryParse(trimmed[2..], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out address)
-            : long.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out address);
-        return parsed && address >= 0;
+        return trimmed.StartsWith("0x", StringComparison.Ordinal) &&
+               long.TryParse(trimmed[2..], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out address) &&
+               address >= 0;
     }
 
     private static bool TryParseSingleByte(string value, out byte parsed)
@@ -394,17 +495,17 @@ public sealed class RawBinaryEditorSession
 
     private static bool TryParseBytes(string value, out byte[]? bytes)
     {
-        string[] parts = value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (parts.Length == 0)
+        string compact = new([.. value.Where(character => !char.IsWhiteSpace(character) && character != ',')]);
+        if (compact.Length == 0 || compact.Length % 2 != 0)
         {
             bytes = null;
             return false;
         }
 
-        bytes = new byte[parts.Length];
-        for (int index = 0; index < parts.Length; index++)
+        bytes = new byte[compact.Length / 2];
+        for (int index = 0; index < bytes.Length; index++)
         {
-            if (!TryParseSingleByte(parts[index], out bytes[index]))
+            if (!TryParseSingleByte(compact.AsSpan(index * 2, 2).ToString(), out bytes[index]))
             {
                 bytes = null;
                 return false;
@@ -435,6 +536,11 @@ public sealed class RawBinaryEditorSession
     private RawBinaryEditorOperationResult Success()
     {
         return new RawBinaryEditorOperationResult(GetState());
+    }
+
+    private RawBinaryEditorSearchResult SearchFailure(RawBinaryEditorIssue issue)
+    {
+        return new RawBinaryEditorSearchResult(GetState(), [], Issue: issue);
     }
 
     private RawBinaryEditorOperationResult Failure(RawBinaryEditorIssue issue)

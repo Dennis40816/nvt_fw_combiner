@@ -12,6 +12,9 @@ public sealed class WorkbenchRawBinaryEditorSession
 {
     private readonly RawBinaryEditorSession _editor = new();
 
+    /// <summary>Maximum zero-filled bytes accepted by one insert request.</summary>
+    public static int MaximumInsertByteCount => RawBinaryEditorSession.MaximumInsertByteCount;
+
     /// <summary>Gets the normalized source path of the currently loaded document.</summary>
     public string? SourcePath { get; private set; }
 
@@ -61,10 +64,44 @@ public sealed class WorkbenchRawBinaryEditorSession
         return ToWorkbenchViewport(_editor.CreateViewport(requestedAddress));
     }
 
-    /// <summary>Returns one later aligned page from the in-memory work buffer for progressive UI rendering.</summary>
+    /// <summary>Returns one aligned bounded page from the in-memory work buffer for the document viewport.</summary>
     public WorkbenchRawBinaryEditorViewport CreatePage(long requestedAddress, int maximumRows)
     {
         return ToWorkbenchViewport(_editor.CreatePage(requestedAddress, maximumRows));
+    }
+
+    /// <summary>Finds printable ASCII text in the editor-owned memory buffer without reading the source file again.</summary>
+    public WorkbenchRawBinaryEditorSearchResult FindAscii(string text, long startOffset)
+    {
+        RawBinaryEditorSearchResult result = _editor.FindAscii(text, startOffset);
+        return new WorkbenchRawBinaryEditorSearchResult(
+            ToWorkbenchState(result.State),
+            [.. result.Matches],
+            result.MatchIndex,
+            result.Length,
+            result.Wrapped,
+            ToWorkbenchIssue(result.Issue));
+    }
+
+    /// <summary>Returns contiguous changed blocks from the editor-owned memory buffer.</summary>
+    public IReadOnlyList<WorkbenchRawBinaryEditorChangedRange> GetChangedRanges()
+    {
+        return [.. _editor.GetChangedRanges().Select(range =>
+            new WorkbenchRawBinaryEditorChangedRange(
+                range.Start,
+                range.EndExclusive,
+                ToWorkbenchChangeKind(range.ChangeKind),
+                [.. range.ValueChanges.Select(change => new WorkbenchRawBinaryEditorValueChange(
+                    change.Start,
+                    change.EndExclusive,
+                    change.FirstOriginalValue,
+                    change.FirstCurrentValue))],
+                [.. range.StructuralChanges.Select(change => new WorkbenchRawBinaryEditorStructuralChange(
+                    change.Kind == RawBinaryEditorStructuralChangeKind.Insert
+                        ? WorkbenchRawBinaryEditorStructuralChangeKind.Insert
+                        : WorkbenchRawBinaryEditorStructuralChangeKind.Delete,
+                    change.Address,
+                    change.Count))]))];
     }
 
     /// <summary>Writes one byte only to the session-owned work buffer.</summary>
@@ -73,7 +110,7 @@ public sealed class WorkbenchRawBinaryEditorSession
         return ToWorkbenchResult(_editor.OverwriteByte(address, value));
     }
 
-    /// <summary>Writes an exact hexadecimal sequence only to the session-owned work buffer.</summary>
+    /// <summary>Writes a hexadecimal sequence from Start without crossing the selected inclusive End.</summary>
     public WorkbenchRawBinaryEditorOperationResult OverwriteRange(string startAddress, string endAddress, string values)
     {
         return ToWorkbenchResult(_editor.OverwriteRange(startAddress, endAddress, values));
@@ -95,6 +132,18 @@ public sealed class WorkbenchRawBinaryEditorSession
     public WorkbenchRawBinaryEditorOperationResult InsertZeroAfter(string address)
     {
         return ToWorkbenchResult(_editor.InsertZeroAfter(address));
+    }
+
+    /// <summary>Inserts a bounded zero-filled run before the selected byte.</summary>
+    public WorkbenchRawBinaryEditorOperationResult InsertZeroBytesBefore(string address, int count)
+    {
+        return ToWorkbenchResult(_editor.InsertZeroBytesBefore(address, count));
+    }
+
+    /// <summary>Inserts a bounded zero-filled run after the selected byte.</summary>
+    public WorkbenchRawBinaryEditorOperationResult InsertZeroBytesAfter(string address, int count)
+    {
+        return ToWorkbenchResult(_editor.InsertZeroBytesAfter(address, count));
     }
 
     /// <summary>Deletes one working-buffer byte and shifts later bytes toward lower offsets.</summary>
@@ -174,7 +223,9 @@ public sealed class WorkbenchRawBinaryEditorSession
                     value.Address,
                     value.OriginalAddress,
                     value.OriginalValue,
-                    value.CurrentValue))],
+                    value.OriginalValueAtAddress,
+                    value.CurrentValue,
+                    ToWorkbenchChangeKind(value.ChangeKind)))],
                 row.OriginalAscii,
                 row.CurrentAscii))],
             ToWorkbenchState(viewport.State),
@@ -191,6 +242,22 @@ public sealed class WorkbenchRawBinaryEditorSession
             state.WorkingLength,
             state.UndoCount,
             state.RedoCount);
+    }
+
+    private static WorkbenchRawBinaryEditorChangeKind ToWorkbenchChangeKind(RawBinaryEditorChangeKind changeKind)
+    {
+        WorkbenchRawBinaryEditorChangeKind result = WorkbenchRawBinaryEditorChangeKind.None;
+        if ((changeKind & RawBinaryEditorChangeKind.Data) != 0)
+        {
+            result |= WorkbenchRawBinaryEditorChangeKind.Data;
+        }
+
+        if ((changeKind & RawBinaryEditorChangeKind.Structural) != 0)
+        {
+            result |= WorkbenchRawBinaryEditorChangeKind.Structural;
+        }
+
+        return result;
     }
 
     private static WorkbenchRawBinaryEditorIssue? ToWorkbenchIssue(RawBinaryEditorIssue? issue)
@@ -219,4 +286,20 @@ public sealed record WorkbenchRawBinaryEditorFileResult(
     {
         return new WorkbenchRawBinaryEditorFileResult(false, null, null, errorMessage);
     }
+}
+
+/// <summary>Adapter projection of a raw in-memory ASCII search result.</summary>
+public sealed record WorkbenchRawBinaryEditorSearchResult(
+    WorkbenchRawBinaryEditorState State,
+    IReadOnlyList<long> Matches,
+    int MatchIndex,
+    int Length,
+    bool Wrapped,
+    WorkbenchRawBinaryEditorIssue? Issue = null)
+{
+    /// <summary>True when a matching ASCII sequence was found.</summary>
+    public bool Succeeded => Issue is null;
+
+    /// <summary>Address of the currently selected search match, or -1 when no match exists.</summary>
+    public long Address => MatchIndex >= 0 && MatchIndex < Matches.Count ? Matches[MatchIndex] : -1;
 }

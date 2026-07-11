@@ -18,14 +18,26 @@ public enum WorkbenchRawBinaryEditorIssueCode
     /// <summary>A hexadecimal byte sequence is malformed.</summary>
     InvalidHexBytes,
 
-    /// <summary>An inclusive range is reversed or incompatible with supplied values.</summary>
+    /// <summary>An inclusive range is reversed or outside the memory document.</summary>
     InvalidRange,
+
+    /// <summary>An overwrite sequence would continue past the selected inclusive end.</summary>
+    InputExceedsRange,
+
+    /// <summary>An insertion count is outside the supported bounded operation size.</summary>
+    InvalidByteCount,
 
     /// <summary>No retained operation can be undone.</summary>
     NothingToUndo,
 
     /// <summary>No reverted operation can be redone.</summary>
     NothingToRedo,
+
+    /// <summary>ASCII search input is empty or includes characters outside printable ASCII.</summary>
+    InvalidAsciiText,
+
+    /// <summary>No matching ASCII sequence exists in the current memory buffer.</summary>
+    AsciiTextNotFound,
 }
 
 /// <summary>One host-visible issue from the raw-BIN editor facade.</summary>
@@ -52,18 +64,82 @@ public sealed record WorkbenchRawBinaryEditorOperationResult(
     public bool Succeeded => Issue is null;
 }
 
+/// <summary>Host-visible raw-BIN change reasons.</summary>
+[Flags]
+public enum WorkbenchRawBinaryEditorChangeKind
+{
+    /// <summary>No data or source-address mapping difference.</summary>
+    None = 0,
+
+    /// <summary>Byte value differs from its retained source identity.</summary>
+    Data = 1,
+
+    /// <summary>Insert/delete shifted source-address identity.</summary>
+    Structural = 2,
+}
+
+/// <summary>Host-visible structural source-address change.</summary>
+public enum WorkbenchRawBinaryEditorStructuralChangeKind
+{
+    /// <summary>Zero-filled bytes were inserted.</summary>
+    Insert,
+
+    /// <summary>Source bytes were deleted.</summary>
+    Delete,
+}
+
+/// <summary>One host-visible contiguous value-edit run.</summary>
+public sealed record WorkbenchRawBinaryEditorValueChange(
+    long Start,
+    long EndExclusive,
+    byte FirstOriginalValue,
+    byte FirstCurrentValue)
+{
+    /// <summary>Number of value-edited bytes in this run.</summary>
+    public long Length => EndExclusive - Start;
+}
+
+/// <summary>One host-visible structural mapping change.</summary>
+public sealed record WorkbenchRawBinaryEditorStructuralChange(
+    WorkbenchRawBinaryEditorStructuralChangeKind Kind,
+    long Address,
+    int Count);
+
+/// <summary>One half-open changed range in the original/current comparison address space.</summary>
+public sealed record WorkbenchRawBinaryEditorChangedRange(
+    long Start,
+    long EndExclusive,
+    WorkbenchRawBinaryEditorChangeKind ChangeKind,
+    IReadOnlyList<WorkbenchRawBinaryEditorValueChange> ValueChanges,
+    IReadOnlyList<WorkbenchRawBinaryEditorStructuralChange> StructuralChanges)
+{
+    /// <summary>Number of comparison addresses represented by this changed block.</summary>
+    public long Length => EndExclusive - Start;
+}
+
 /// <summary>One current byte and its originating source identity, when retained.</summary>
 public sealed record WorkbenchRawBinaryEditorByte(
     long Address,
     long? OriginalAddress,
     byte OriginalValue,
-    byte CurrentValue)
+    byte? OriginalValueAtAddress,
+    byte CurrentValue,
+    WorkbenchRawBinaryEditorChangeKind ChangeKind)
 {
     /// <summary>True when this byte still maps to a byte from the opened source BIN.</summary>
     public bool HasOriginalValue => OriginalAddress is not null;
 
-    /// <summary>True when a value differs or when the byte was inserted into the work buffer.</summary>
-    public bool IsChanged => !HasOriginalValue || OriginalValue != CurrentValue;
+    /// <summary>True when the opened source BIN contains this same display address.</summary>
+    public bool HasOriginalValueAtAddress => OriginalValueAtAddress is not null;
+
+    /// <summary>True when the value differs from its retained source identity.</summary>
+    public bool IsDataChanged => (ChangeKind & WorkbenchRawBinaryEditorChangeKind.Data) != 0;
+
+    /// <summary>True when insert/delete shifted this byte's source address.</summary>
+    public bool IsStructuralChanged => (ChangeKind & WorkbenchRawBinaryEditorChangeKind.Structural) != 0;
+
+    /// <summary>True when value or source-address mapping differs.</summary>
+    public bool IsChanged => ChangeKind != WorkbenchRawBinaryEditorChangeKind.None;
 }
 
 /// <summary>One fixed-width host-visible hexadecimal row.</summary>
