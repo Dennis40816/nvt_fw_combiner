@@ -85,7 +85,7 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("Home > Merge", viewModel.NavigationPath);
     }
 
-    /// <summary>Verifies the Home Hex Editor entry opens an independent page with its own device context.</summary>
+    /// <summary>Verifies the Home Hex Editor entry opens an independent raw utility without device context.</summary>
     [Fact]
     public void HomeHexEditorEntryOpensIndependentPage()
     {
@@ -95,8 +95,9 @@ public sealed partial class ShellViewModelTests
 
         Assert.True(viewModel.IsHexEditorVisible);
         Assert.False(viewModel.IsReplaceVisible);
-        Assert.True(viewModel.IsDeviceContextVisible);
-        Assert.Equal("Home > Hex editor", viewModel.NavigationPath);
+        Assert.False(viewModel.IsDeviceContextVisible);
+        Assert.True(viewModel.HexEditorWorkspace.IsPageActive);
+        Assert.Equal("Home > Hex Editor", viewModel.NavigationPath);
         Assert.False(viewModel.ReplaceBaseSlot.HasFile);
     }
 

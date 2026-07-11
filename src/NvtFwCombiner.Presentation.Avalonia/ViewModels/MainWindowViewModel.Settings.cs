@@ -193,8 +193,8 @@ public sealed partial class MainWindowViewModel
                 Text.DeviceContextTitle,
                 Text.Language == ShellLanguage.ChineseTraditional ? "僅 workflow pages" : "Workflow pages only",
                 Text.Language == ShellLanguage.ChineseTraditional
-                    ? "IC 與 Number 在 Home / Settings 隱藏，並在 Merge / Replace / Hex Editor 顯示。"
-                    : "IC and Number are hidden on Home and Settings, then shown for Merge, Replace, and Hex Editor.",
+                    ? "IC 與 Number 在 Home、Settings 與 Hex Editor 隱藏，僅在 Merge / Replace 顯示。"
+                    : "IC and Number are hidden on Home, Settings, and Hex Editor, then shown only for Merge and Replace.",
                 Text.Language == ShellLanguage.ChineseTraditional ? "已限縮" : "Scoped"),
             new SettingSummaryViewModel(
                 Text.SettingsPreferencesTitle,

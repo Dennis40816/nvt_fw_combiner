@@ -110,26 +110,30 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("FirmwareConfigMetadataReader.TryRead", replacePostbuild, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies the experimental Hex Editor remains a UI shell over the shared Bootstrap General Replace path.</summary>
+    /// <summary>Verifies the raw Hex Editor stays independent from firmware composition policy and UI file I/O.</summary>
     [Fact]
-    public void HexEditorUsesWorkbenchFacadeWithoutUiFirmwareIo()
+    public void HexEditorUsesRawBinaryFacadeWithoutUiFirmwareIo()
     {
         string panel = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/HexEditorPanel.axaml");
-        string viewModel = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Replace.cs");
+        string viewModel = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/HexEditorWorkspaceViewModel.cs");
         string panelCodeBehind = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/HexEditorPanel.axaml.cs");
-        string runner = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Replace.cs");
-        string viewport = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.HexViewport.cs");
+        string runner = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.HexEditor.cs");
+        string session = ReadText("src/NvtFwCombiner.Application/HexEditor/RawBinaryEditorSession.cs");
 
         Assert.Contains("SaveAsHexEditorButton_OnClick", panel, StringComparison.Ordinal);
-        Assert.Contains("RequestHexEditorSaveCommand", panel, StringComparison.Ordinal);
+        Assert.Contains("InsertZeroBeforeCommand", panelCodeBehind, StringComparison.Ordinal);
+        Assert.Contains("DeleteByteCommand", panelCodeBehind, StringComparison.Ordinal);
         Assert.Contains("PickEditedFirmwareOutputPathAsync", panelCodeBehind, StringComparison.Ordinal);
-        Assert.Contains("BuildHexEditorAsync", panelCodeBehind, StringComparison.Ordinal);
-        Assert.Contains("BuildHexEditorAsync", viewModel, StringComparison.Ordinal);
-        Assert.DoesNotContain("BuildHexEditorCommand", panel, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService.CreateGeneralReplaceHexViewport", runner, StringComparison.Ordinal);
-        Assert.Contains("new FileStream", viewport, StringComparison.Ordinal);
+        Assert.Contains("CreateRawBinaryEditorSession", runner, StringComparison.Ordinal);
+        Assert.Contains("RawBinaryEditorSession", session, StringComparison.Ordinal);
+        Assert.DoesNotContain("GeneralReplace", panel, StringComparison.Ordinal);
+        Assert.DoesNotContain("GeneralReplace", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("profile", panel, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("postbuild", panel, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("File.", panel, StringComparison.Ordinal);
         Assert.DoesNotContain("File.", viewModel, StringComparison.Ordinal);
-        Assert.DoesNotContain("new FileStream", runner, StringComparison.Ordinal);
+        Assert.DoesNotContain("Composition", session, StringComparison.Ordinal);
+        Assert.DoesNotContain("FlashMap", session, StringComparison.Ordinal);
+        Assert.DoesNotContain("ExternalTool", session, StringComparison.Ordinal);
     }
 }

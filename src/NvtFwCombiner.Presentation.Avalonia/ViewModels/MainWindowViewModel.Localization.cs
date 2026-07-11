@@ -22,6 +22,7 @@ public sealed partial class MainWindowViewModel
         FooterStatus = Text.FooterStatus;
         ApplyFirmwareSlotText();
         ApplyInitialRunResultText();
+        HexEditorWorkspace.ApplyTextResources(Text);
 
         if (!notify)
         {

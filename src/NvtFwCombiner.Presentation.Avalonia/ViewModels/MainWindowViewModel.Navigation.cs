@@ -19,7 +19,7 @@ public sealed partial class MainWindowViewModel
     public bool CanGoBack => _pageHistory.Count > 1;
 
     /// <summary>True when the selected page needs IC and Number context.</summary>
-    public bool IsDeviceContextVisible => SelectedPage is ShellPage.Merge or ShellPage.Replace or ShellPage.HexEditor;
+    public bool IsDeviceContextVisible => SelectedPage is ShellPage.Merge or ShellPage.Replace;
 
     /// <summary>True when the shared context row should expose the IC Number selector.</summary>
     public bool IsNumberSelectorVisible => IsDeviceContextVisible &&
@@ -65,7 +65,7 @@ public sealed partial class MainWindowViewModel
             ShellPage.Settings => SettingsPreview.Title,
             ShellPage.Merge => MergePreview.Title,
             ShellPage.Replace => ReplacePreview.Title,
-            ShellPage.HexEditor => Text.GeneralReplaceHexEditorTitle,
+            ShellPage.HexEditor => Text.HexEditorTitle,
             _ => page.ToString(),
         };
     }
@@ -82,6 +82,7 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(NavigationPath));
         OnPropertyChanged(nameof(CanGoBack));
         GoBackCommand.NotifyCanExecuteChanged();
+        RequestHexEditorSaveCommand.NotifyCanExecuteChanged();
         RefreshSettingsState();
     }
 

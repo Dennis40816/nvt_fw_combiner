@@ -37,17 +37,6 @@ public sealed partial class MainWindowViewModel
         });
     }
 
-    /// <summary>Whether the Hex Editor has a selected base BIN and at least one staged patch.</summary>
-    public bool CanBuildHexEditor =>
-        !IsRunInProgress && HasGeneralReplaceBaseSnapshot && GeneralReplacePatches.Count > 0;
-
-    /// <summary>Builds the staged experimental Hex Editor changes through the General Replace pipeline.</summary>
-    public Task BuildHexEditorAsync(string outputPath)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
-        return RunHexEditorAsync(build: true, outputPath);
-    }
-
     private async Task RunReplaceAsync(bool build)
     {
         await RunReplaceAsync(build, outputPath: null);
@@ -66,7 +55,6 @@ public sealed partial class MainWindowViewModel
                 SelectedReplaceMode,
                 CreateReplaceSlotPaths(),
                 CreateGeneralReplaceMappingInputs(),
-                [],
                 build,
                 cancellationSource.Token,
                 outputPath);
@@ -107,64 +95,6 @@ public sealed partial class MainWindowViewModel
         }
     }
 
-    private async Task RunHexEditorAsync(bool build, string? outputPath = null)
-    {
-        if (_generalReplaceBaseSnapshot is null)
-        {
-            throw new InvalidOperationException(_generalReplaceBaseSnapshotError ?? Text.HexEditorBaseRequiredDetail);
-        }
-
-        CloseReplaceSelectionForRun();
-        CancellationTokenSource? cancellationSource = null;
-        try
-        {
-            cancellationSource = BeginRun();
-            WorkbenchRunResult result = await UiCompositionRunner.RunReplaceAsync(
-                SelectedIc,
-                SelectedNumber,
-                GeneralReplaceMode,
-                CreateReplaceSlotPaths(),
-                [],
-                CreateGeneralReplacePatchInputs(),
-                build,
-                cancellationSource.Token,
-                outputPath,
-                _generalReplaceBaseSnapshot);
-            ApplyRunResult(result, build);
-            RefreshCommandState();
-        }
-        catch (OperationCanceledException) when (cancellationSource is { IsCancellationRequested: true })
-        {
-            RefreshCommandState();
-        }
-        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
-        {
-            RefreshCommandState();
-            LastRunResult = new UiRunResultViewModel(
-                "Hex Editor build failed",
-                exception.Message,
-                "No output",
-                succeeded: false);
-            OnPropertyChanged(nameof(LastRunResult));
-            LoadRunErrorReport(
-                "Build",
-                $"{SelectedIc.ToLowerInvariant()}-hex-editor",
-                SelectedIc,
-                SelectedNumber,
-                exception.Message,
-                CreateReplaceSlotPaths(),
-                compositionKind: "Replace",
-                modeId: "general-replace-hex-editor",
-                experienceId: "experimental-hex-editor");
-        }
-        finally
-        {
-            if (cancellationSource is not null)
-            {
-                CompleteRun(cancellationSource);
-            }
-        }
-    }
 
     private Dictionary<string, string> CreateReplaceSlotPaths()
     {

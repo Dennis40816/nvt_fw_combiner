@@ -139,17 +139,17 @@
           <TextBlock
               FontSize="12"
               FontWeight="SemiBold"
-              Foreground="#B45309"
-              Text="{Binding Text.WorkflowKicker}" />
+              Foreground="#0F766E"
+              Text="{Binding Text.UtilToolsLabel}" />
           <TextBlock
               FontSize="25"
               FontWeight="SemiBold"
               Foreground="#0F172A"
-              Text="{Binding Text.HexEditorExperimentalLabel}" />
+              Text="{Binding Text.HexEditorTitle}" />
           <TextBlock
               FontSize="13"
               Foreground="#64748B"
-              Text="{Binding Text.GeneralReplaceHexEditorDetail}"
+              Text="{Binding Text.HexEditorDetail}"
               TextWrapping="Wrap" />
         </StackPanel>
         <Grid Grid.Row="1" Margin="0,18,0,0" RowDefinitions="Auto" RowSpacing="8">
@@ -158,7 +158,7 @@
               Command="{Binding ShowHexEditorCommand}">
             <Border Classes="workflowCard">
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                <TextBlock Classes="strongText" Text="{Binding Text.GeneralReplaceHexEditorTitle}" />
+                <TextBlock Classes="strongText" Text="{Binding Text.HexEditorTitle}" />
                 <Border Grid.Column="1" Classes="workflowOpenPill">
                   <TextBlock FontSize="12" FontWeight="SemiBold" Text="{Binding Text.OpenLabel}" />
                 </Border>
@@ -177,22 +177,22 @@
       <TextBlock
           FontSize="11"
           FontWeight="SemiBold"
-          Foreground="#B45309"
-          Text="{Binding Text.HexEditorExperimentalLabel}" />
+          Foreground="#0F766E"
+          Text="{Binding HexEditorWorkspace.Text.UtilToolsLabel}" />
       <TextBlock
           FontSize="24"
           FontWeight="SemiBold"
           Foreground="#0F172A"
-          Text="{Binding Text.GeneralReplaceHexEditorTitle}" />
+          Text="{Binding HexEditorWorkspace.Text.HexEditorTitle}" />
       <TextBlock
           FontSize="13"
           Foreground="#64748B"
-          Text="{Binding Text.GeneralReplaceHexEditorDetail}"
+          Text="{Binding HexEditorWorkspace.Text.HexEditorDetail}"
           TextWrapping="Wrap" />
     </StackPanel>
 
     <Border Classes="panelSurface roomyPanel">
-      <views:HexEditorPanel />
+      <views:HexEditorPanel DataContext="{Binding HexEditorWorkspace}" />
     </Border>
   </StackPanel>
 </DataTemplate>

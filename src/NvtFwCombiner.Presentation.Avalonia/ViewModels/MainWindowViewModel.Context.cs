@@ -40,8 +40,6 @@ public sealed partial class MainWindowViewModel
         RefreshMergeSlotRequirements();
         RefreshMergeModeState();
         RefreshReplaceModeState();
-        RefreshGeneralReplaceEditableRanges();
-        RefreshGeneralReplaceHexViewport();
         RefreshSettingsState();
         RefreshCommandState();
         NotifyContextTextChanged();
@@ -178,6 +176,7 @@ public sealed partial class MainWindowViewModel
     {
         if (SelectedPage == page)
         {
+            HexEditorWorkspace.IsPageActive = page == ShellPage.HexEditor;
             UpdateNavigationState();
             return;
         }
@@ -193,7 +192,21 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(IsNumberSelectorVisible));
         OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
         OnPropertyChanged(nameof(DeviceContextStatus));
+        HexEditorWorkspace.IsPageActive = page == ShellPage.HexEditor;
         UpdateNavigationState();
+    }
+
+    private bool CanRequestHexEditorSave()
+    {
+        return IsHexEditorVisible && HexEditorWorkspace.CanSave;
+    }
+
+    private void RequestHexEditorSave()
+    {
+        if (CanRequestHexEditorSave())
+        {
+            HexEditorWorkspace.RequestSaveCommand.Execute(null);
+        }
     }
 
     private void RefreshCommandState()
@@ -212,7 +225,6 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(MergeBuildActionTip));
         OnPropertyChanged(nameof(CanPreviewReplace));
         OnPropertyChanged(nameof(CanBuildReplace));
-        OnPropertyChanged(nameof(HexEditorReadinessStatus));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
         OnPropertyChanged(nameof(ReplacePreviewUnavailableReason));
         OnPropertyChanged(nameof(ReplaceBuildUnavailableReason));

@@ -3,7 +3,7 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
-    x:DataType="vm:MainWindowViewModel"
+    x:DataType="vm:HexEditorWorkspaceViewModel"
     Background="#660F172A">
   <Border
       Classes="modalSurface"
@@ -18,7 +18,7 @@
         <TextBlock Classes="mutedText" Text="{Binding Text.HexEditorSaveConfirmationDetail}" TextWrapping="Wrap" />
       </StackPanel>
       <StackPanel Grid.Row="1" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
-        <Button Classes="secondary" Command="{Binding CancelHexEditorSaveCommand}" Content="{Binding Text.CloseLabel}" />
+        <Button Classes="secondary" Command="{Binding CancelSaveCommand}" Content="{Binding Text.CloseLabel}" />
         <Button Classes="primary" Click="ConfirmHexEditorSaveButton_OnClick" Content="{Binding Text.HexEditorSaveConfirmationActionLabel}" />
       </StackPanel>
     </Grid>

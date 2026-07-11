@@ -33,14 +33,7 @@ public sealed partial class MainWindowViewModel
         isOptional: true,
         kind: FirmwareSlotKind.Dp);
     private int _generalReplaceMappingCounter;
-    private int _generalReplacePatchCounter;
     private int _generalMergeMappingCounter;
-    private readonly Stack<GeneralReplacePatchViewModel> _generalReplacePatchRedo = [];
-    private readonly Dictionary<string, GeneralReplaceHexByteCellViewModel> _generalReplaceHexAuthoringCells =
-        new(StringComparer.OrdinalIgnoreCase);
-    private WorkbenchGeneralReplaceBaseSnapshot? _generalReplaceBaseSnapshot;
-    private string? _generalReplaceBaseSnapshotError;
-    private GeneralReplaceHexByteCellViewModel? _selectedGeneralReplaceHexByte;
     private string _selectedMergeMode = NormalMergeMode;
 
     /// <summary>Initializes the main workbench view model.</summary>
@@ -51,6 +44,7 @@ public sealed partial class MainWindowViewModel
     {
         ShellVersion = shellVersion;
         AppVersion = appVersion;
+        HexEditorWorkspace = new HexEditorWorkspaceViewModel(Text);
         ApplyTextResources(language, notify: false);
         ShowHomeCommand = new RelayCommand(() => SetSelectedPage(ShellPage.Home));
         ShowSettingsCommand = new RelayCommand(() => SetSelectedPage(ShellPage.Settings));
@@ -64,6 +58,7 @@ public sealed partial class MainWindowViewModel
         BeginCtrlRamReplaceFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Replace, CtrlRamReplaceMode, showNumber: true));
         BeginGeneralReplaceFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Replace, GeneralReplaceMode, showNumber: true));
         ShowHexEditorCommand = new RelayCommand(ShowHexEditor);
+        RequestHexEditorSaveCommand = new RelayCommand(RequestHexEditorSave, CanRequestHexEditorSave);
         ShowNormalMergeCommand = new RelayCommand(() => SelectMergeMode(NormalMergeMode));
         ShowGeneralMergeCommand = new RelayCommand(() => SelectMergeMode(GeneralMergeMode));
         BeginNormalMergeFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Merge, NormalMergeMode, showNumber: false));
@@ -75,28 +70,6 @@ public sealed partial class MainWindowViewModel
         AddGeneralReplaceMappingCommand = new RelayCommand(AddGeneralReplaceMapping);
         RemoveGeneralReplaceMappingCommand = new RelayCommand<GeneralReplaceMappingViewModel>(
             RemoveGeneralReplaceMapping);
-        SetGeneralReplacePatchOverwriteCommand = new RelayCommand(SetGeneralReplacePatchOverwrite);
-        SetGeneralReplacePatchFillCommand = new RelayCommand(SetGeneralReplacePatchFill);
-        ApplyGeneralReplacePatchCommand = new RelayCommand(ApplyGeneralReplacePatch, CanApplyGeneralReplacePatch);
-        UndoGeneralReplacePatchCommand = new RelayCommand(UndoGeneralReplacePatch, CanUndoGeneralReplacePatch);
-        RedoGeneralReplacePatchCommand = new RelayCommand(RedoGeneralReplacePatch, CanRedoGeneralReplacePatch);
-        GoToGeneralReplaceHexViewportCommand = new RelayCommand(GoToGeneralReplaceHexViewport);
-        SelectGeneralReplaceHexByteCommand = new RelayCommand<GeneralReplaceHexByteCellViewModel>(
-            SelectGeneralReplaceHexByte);
-        BeginGeneralReplaceHexByteEditCommand = new RelayCommand<GeneralReplaceHexByteCellViewModel>(
-            BeginGeneralReplaceHexByteEdit);
-        CommitGeneralReplaceHexByteEditCommand = new RelayCommand<GeneralReplaceHexByteCellViewModel>(
-            CommitGeneralReplaceHexByteEdit);
-        CancelGeneralReplaceHexByteEditCommand = new RelayCommand<GeneralReplaceHexByteCellViewModel>(
-            CancelGeneralReplaceHexByteEdit);
-        SetGeneralReplacePatchStartCommand = new RelayCommand<GeneralReplaceHexByteCellViewModel>(
-            SetGeneralReplacePatchStart);
-        SetGeneralReplacePatchEndCommand = new RelayCommand<GeneralReplaceHexByteCellViewModel>(
-            SetGeneralReplacePatchEnd);
-        ClearGeneralReplaceHexByteCommand = new RelayCommand<GeneralReplaceHexByteCellViewModel>(
-            ClearGeneralReplaceHexByte);
-        RequestHexEditorSaveCommand = new RelayCommand(RequestHexEditorSave);
-        CancelHexEditorSaveCommand = new RelayCommand(CancelHexEditorSave);
         AddGeneralMergeMappingCommand = new RelayCommand(AddGeneralMergeMapping);
         RemoveGeneralMergeMappingCommand = new RelayCommand<GeneralMergeMappingViewModel>(
             RemoveGeneralMergeMapping);
@@ -124,12 +97,9 @@ public sealed partial class MainWindowViewModel
         CloseReplaceSelectionCommand = new RelayCommand(CloseReplaceSelection);
 
         AddGeneralReplaceMapping();
-        GeneralReplacePatchDraft.PropertyChanged += GeneralReplacePatchDraftPropertyChanged;
         AddGeneralMergeMapping();
         NavigationTrail.Add(CreateNavigationEntry(ShellPage.Home, isCurrent: true));
         RefreshContextState();
         RefreshSettingsState();
-        RefreshGeneralReplaceHexViewport();
-        RefreshGeneralReplacePatchCommands();
     }
 }

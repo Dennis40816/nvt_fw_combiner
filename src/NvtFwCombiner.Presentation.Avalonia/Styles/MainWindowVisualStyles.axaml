@@ -62,10 +62,13 @@
   <Style Selector="Grid.hexRow.referenceRow">
     <Setter Property="Background" Value="#F8FAFC" />
   </Style>
+  <Style Selector="Grid.hexRow.selected">
+    <Setter Property="Background" Value="#EFF6FF" />
+  </Style>
   <Style Selector="Border.hexCell">
     <Setter Property="MinWidth" Value="28" />
-    <Setter Property="MinHeight" Value="24" />
-    <Setter Property="Padding" Value="1" />
+    <Setter Property="MinHeight" Value="25" />
+    <Setter Property="Padding" Value="0" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="BorderThickness" Value="1" />
@@ -77,7 +80,7 @@
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="TextAlignment" Value="Center" />
     <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="13" />
     <Setter Property="Foreground" Value="#334155" />
   </Style>
   <Style Selector="Border.hexCell:pointerover">
@@ -102,6 +105,40 @@
   <Style Selector="Border.hexCell.selected TextBlock">
     <Setter Property="Foreground" Value="#1D4ED8" />
     <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.hexGridHeader">
+    <Setter Property="MinHeight" Value="25" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Padding" Value="2,0" />
+    <Setter Property="TextAlignment" Value="Center" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Foreground" Value="#334155" />
+  </Style>
+  <Style Selector="TextBlock.hexGridHeader.selected">
+    <Setter Property="Background" Value="#DBEAFE" />
+    <Setter Property="Foreground" Value="#1D4ED8" />
+  </Style>
+  <Style Selector="Border.hexAddress">
+    <Setter Property="MinHeight" Value="25" />
+    <Setter Property="Padding" Value="2,0" />
+    <Setter Property="CornerRadius" Value="3" />
+  </Style>
+  <Style Selector="Border.hexAddress TextBlock">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Foreground" Value="#334155" />
+  </Style>
+  <Style Selector="Border.hexAddress.selected">
+    <Setter Property="Background" Value="#DBEAFE" />
+  </Style>
+  <Style Selector="Border.hexAddress.selected TextBlock">
+    <Setter Property="Foreground" Value="#1D4ED8" />
+  </Style>
+  <Style Selector="TextBlock.hexAscii">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Foreground" Value="#475569" />
   </Style>
   <Style Selector="Button.command:pointerover Border.workflowOpenPill">
     <Setter Property="Background" Value="#2563EB" />

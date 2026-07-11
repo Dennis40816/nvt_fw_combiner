@@ -107,7 +107,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("private static IReadOnlyList<LegacyCombinerPostbuildWriteRange> NormalizeCandidateWriteRangeSections", integrityRanges, StringComparison.Ordinal);
 
         Assert.Contains("NormalizeCandidateWriteRangeSections", normalize, StringComparison.Ordinal);
-        Assert.Contains("SelectWriteRangeSectionId", normalize, StringComparison.Ordinal);
+        Assert.Contains("SelectWriteRangeSection", normalize, StringComparison.Ordinal);
         Assert.DoesNotContain("private static void AddNtBasedHeaderIntegrityRanges", normalize, StringComparison.Ordinal);
     }
 }

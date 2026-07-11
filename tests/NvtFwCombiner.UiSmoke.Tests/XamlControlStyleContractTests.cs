@@ -57,6 +57,9 @@ public sealed class XamlControlStyleContractTests
         Assert.Contains("Classes.editing=\"{Binding IsEditing}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("Classes=\"hexReferenceCell\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("Selector=\"TextBlock.hexReferenceCell\"", styles, StringComparison.Ordinal);
+        Assert.Contains("TextChanged=\"HexByteEditBox_OnTextChanged\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("TextChanged=\"HexRangeValue_OnTextChanged\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("input:InputMethod.IsInputMethodEnabled=\"False\"", hexEditor, StringComparison.Ordinal);
     }
 
     /// <summary>Ensures the Hex Editor inspector remains compact and keeps its range selector usable.</summary>
@@ -65,11 +68,11 @@ public sealed class XamlControlStyleContractTests
     {
         string hexEditor = ReadPresentationFile("Views/HexEditorPanel.axaml");
 
-        Assert.Contains("ColumnDefinitions=\"*,340\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"compactSurface\" VerticalAlignment=\"Top\" Padding=\"0\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("HorizontalContentAlignment=\"Stretch\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("ColumnDefinitions=\"*,56,56\"", hexEditor, StringComparison.Ordinal);
-        Assert.DoesNotContain("RowDefinitions=\"Auto,Auto,Auto,Auto,Auto,*,Auto\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("ColumnDefinitions=\"*,312\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("Grid.Column=\"1\" Classes=\"compactSurface\" VerticalAlignment=\"Top\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("ColumnDefinitions=\"*,*\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("VerticalAlignment=\"Top\"", hexEditor, StringComparison.Ordinal);
+        Assert.DoesNotContain("Approved region", hexEditor, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>Keeps each byte value centered on the same column center as its hexadecimal header.</summary>
@@ -101,6 +104,28 @@ public sealed class XamlControlStyleContractTests
         Assert.DoesNotContain("IsEditorVisible", hexEditor, StringComparison.Ordinal);
         Assert.Contains("new ContextMenu()", codeBehind, StringComparison.Ordinal);
         Assert.Contains("_hexByteContextMenu.Open(target)", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("KeepAsciiHexOnly", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("IsPageActive", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("!_workspace.IsPageActive", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("IsPageActive: true, HasMoreRows: true", codeBehind, StringComparison.Ordinal);
+    }
+
+    /// <summary>Ensures the desktop shell and distributed executable use the dedicated compact app icon.</summary>
+    [Fact]
+    public void PresentationUsesTheDedicatedApplicationIcon()
+    {
+        string shell = ReadPresentationFile("MainWindow.axaml");
+        string project = ReadPresentationFile("NvtFwCombiner.Presentation.Avalonia.csproj");
+        string icon = RepositoryPaths.FromRepositoryRoot(
+            "src",
+            "NvtFwCombiner.Presentation.Avalonia",
+            "Assets",
+            "AppIcon.ico");
+
+        Assert.Contains("Icon=\"/Assets/AppIcon.ico\"", shell, StringComparison.Ordinal);
+        Assert.Contains("<ApplicationIcon>Assets\\AppIcon.ico</ApplicationIcon>", project, StringComparison.Ordinal);
+        Assert.True(File.Exists(icon));
+        Assert.NotEqual(0, new FileInfo(icon).Length);
     }
 
     /// <summary>Ensures the local fixture is Debug-only and never changes the default landing page.</summary>

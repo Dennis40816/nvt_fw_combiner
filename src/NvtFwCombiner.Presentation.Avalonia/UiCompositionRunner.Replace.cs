@@ -72,27 +72,6 @@ public static partial class UiCompositionRunner
         ];
     }
 
-    /// <summary>Gets profile-authorized General Replace ranges for the hexadecimal editor range picker.</summary>
-    public static IReadOnlyList<GeneralReplaceEditableRangeViewModel> GetGeneralReplaceEditableRanges(
-        string icId,
-        string number,
-        string? basePath,
-        WorkbenchGeneralReplaceBaseSnapshot? baseSnapshot = null)
-    {
-        return
-        [
-            .. WorkbenchCompositionService.GetGeneralReplaceEditableRanges(icId, number, basePath, baseSnapshot)
-                .Select(range => new GeneralReplaceEditableRangeViewModel(
-                    range.RegionId,
-                    range.DisplayName,
-                    ToRange(range.Start, range.EndInclusive - range.Start + 1),
-                    FormattableString.Invariant($"0x{range.Start:X6}"),
-                    FormattableString.Invariant($"0x{range.EndInclusive:X6}"),
-                    range.RequiresPostbuild,
-                    range.Detail)),
-        ];
-    }
-
     /// <summary>Gets TP Overview address coverage text for the selected Replace context.</summary>
     public static string GetReplaceMemoryRangeLabel(string icId, string number)
     {
@@ -183,60 +162,4 @@ public static partial class UiCompositionRunner
             outputPath);
     }
 
-    /// <summary>Runs Replace with file-backed mappings and host-owned virtual General Replace patches.</summary>
-    public static ValueTask<WorkbenchRunResult> RunReplaceAsync(
-        string icId,
-        string number,
-        string replaceMode,
-        IReadOnlyDictionary<string, string> slotPaths,
-        IReadOnlyList<WorkbenchGeneralReplaceMappingInput> generalReplaceMappings,
-        IReadOnlyList<WorkbenchGeneralReplacePatchInput> generalReplacePatches,
-        bool build,
-        CancellationToken cancellationToken,
-        string? outputPath = null,
-        WorkbenchGeneralReplaceBaseSnapshot? baseSnapshot = null)
-    {
-        return WorkbenchCompositionService.RunReplaceAsync(
-            icId,
-            number,
-            replaceMode,
-            slotPaths,
-            generalReplaceMappings,
-            generalReplacePatches,
-            build,
-            cancellationToken,
-            outputPath,
-            baseSnapshot);
-    }
-
-    /// <summary>Loads one immutable base image snapshot for an experimental Hex Editor session.</summary>
-    public static bool TryLoadGeneralReplaceBaseSnapshot(
-        string basePath,
-        out WorkbenchGeneralReplaceBaseSnapshot? snapshot,
-        out string? errorMessage)
-    {
-        bool loaded = WorkbenchCompositionService.TryLoadGeneralReplaceBaseSnapshot(
-            basePath,
-            out snapshot,
-            out errorMessage);
-        return loaded;
-    }
-
-    /// <summary>Gets a fixed-width base-BIN hexadecimal viewport with staged patches overlaid in memory.</summary>
-    public static WorkbenchGeneralReplaceHexViewport CreateGeneralReplaceHexViewport(
-        string basePath,
-        long viewportStart,
-        IReadOnlyList<WorkbenchGeneralReplacePatchInput> patches)
-    {
-        return WorkbenchCompositionService.CreateGeneralReplaceHexViewport(basePath, viewportStart, patches);
-    }
-
-    /// <summary>Gets a fixed-width hexadecimal viewport from the loaded in-memory base snapshot.</summary>
-    public static WorkbenchGeneralReplaceHexViewport CreateGeneralReplaceHexViewport(
-        WorkbenchGeneralReplaceBaseSnapshot baseSnapshot,
-        long viewportStart,
-        IReadOnlyList<WorkbenchGeneralReplacePatchInput> patches)
-    {
-        return WorkbenchCompositionService.CreateGeneralReplaceHexViewport(baseSnapshot, viewportStart, patches);
-    }
 }

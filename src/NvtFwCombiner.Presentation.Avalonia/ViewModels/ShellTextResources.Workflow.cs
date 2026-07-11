@@ -99,67 +99,10 @@ public sealed partial class ShellTextResources
 
     public string GeneralReplaceMappingsDetail { get; private init; } = string.Empty;
 
-    public string GeneralReplacePatchOverwriteLabel { get; private init; } = string.Empty;
-
-    public string GeneralReplacePatchFillLabel { get; private init; } = string.Empty;
-
-    public string GeneralReplacePatchValueLabel { get; private init; } = string.Empty;
-
-    public string GeneralReplacePatchValuePlaceholder { get; private init; } = string.Empty;
-
-    public string GeneralReplaceApplyPatchLabel { get; private init; } = string.Empty;
-
-    public string GeneralReplaceUndoPatchLabel { get; private init; } = string.Empty;
-
-    public string GeneralReplaceRedoPatchLabel { get; private init; } = string.Empty;
-
-    public string GeneralReplaceCommittedPatchesTitle { get; private init; } = string.Empty;
-
-    public string GeneralReplaceNoPatchesLabel { get; private init; } = string.Empty;
-
-    /// <summary>Visible when the hexadecimal viewport has no base BIN to inspect.</summary>
-    public string GeneralReplaceHexViewportNoBaseDetail { get; private init; } = string.Empty;
-
-    /// <summary>Visible when the requested hexadecimal viewport address is invalid.</summary>
-    public string GeneralReplaceHexViewportAddressInvalidDetail { get; private init; } = string.Empty;
-
-    /// <summary>Formats base length and the visible hexadecimal address window.</summary>
-    public string GeneralReplaceHexViewportReadyDetail { get; private init; } = string.Empty;
-
-    /// <summary>Title for the interactive General Replace hexadecimal editor.</summary>
-    public string GeneralReplaceHexEditorTitle { get; private init; } = string.Empty;
-
-    /// <summary>Describes how selection and virtual staged changes work in the hexadecimal editor.</summary>
-    public string GeneralReplaceHexEditorDetail { get; private init; } = string.Empty;
-
-    /// <summary>Label for hexadecimal viewport navigation.</summary>
-    public string GeneralReplaceHexGoToLabel { get; private init; } = string.Empty;
-
-    /// <summary>Label for the compact General Replace patch inspector.</summary>
-    public string GeneralReplaceHexInspectorTitle { get; private init; } = string.Empty;
-
-    /// <summary>Label for profile-authorized range selection in the hexadecimal editor.</summary>
-    public string GeneralReplaceHexApprovedRegionLabel { get; private init; } = string.Empty;
-
-    /// <summary>Column label for hexadecimal viewport addresses.</summary>
-    public string GeneralReplaceHexAddressColumnLabel { get; private init; } = string.Empty;
-
-    /// <summary>Column label for hexadecimal viewport ASCII rendering.</summary>
-    public string GeneralReplaceHexAsciiColumnLabel { get; private init; } = string.Empty;
-
-    /// <summary>Label for the experimental Hex Editor section.</summary>
-    public string HexEditorExperimentalLabel { get; private init; } = string.Empty;
-
-    /// <summary>Opens the experimental Hex Editor section.</summary>
-    public string HexEditorOpenLabel { get; private init; } = string.Empty;
-
-    /// <summary>Closes the experimental Hex Editor section.</summary>
-    public string HexEditorCloseLabel { get; private init; } = string.Empty;
-
-    /// <summary>Label for the confirmed safe export action in the experimental Hex Editor.</summary>
+    /// <summary>Label for the confirmed safe export action in the raw-BIN Hex Editor.</summary>
     public string HexEditorSaveLabel { get; private init; } = string.Empty;
 
-    /// <summary>Label for choosing a new output path in the experimental Hex Editor.</summary>
+    /// <summary>Label for choosing a new output path in the raw-BIN Hex Editor.</summary>
     public string HexEditorSaveAsLabel { get; private init; } = string.Empty;
 
     /// <summary>Title for the safe Hex Editor export confirmation.</summary>
@@ -170,18 +113,6 @@ public sealed partial class ShellTextResources
 
     /// <summary>Confirmation action label for the safe Hex Editor export dialog.</summary>
     public string HexEditorSaveConfirmationActionLabel { get; private init; } = string.Empty;
-
-    /// <summary>Readiness state when the Hex Editor needs a base BIN.</summary>
-    public string HexEditorBaseRequiredDetail { get; private init; } = string.Empty;
-
-    /// <summary>Readiness state when the Hex Editor needs one staged patch.</summary>
-    public string HexEditorPatchRequiredDetail { get; private init; } = string.Empty;
-
-    /// <summary>Readiness state when Hex Editor can build a new complete BIN.</summary>
-    public string HexEditorReadyDetail { get; private init; } = string.Empty;
-
-    /// <summary>Validation detail when a staged patch is outside profile-authorized General Replace ranges.</summary>
-    public string GeneralReplaceHexUnauthorizedRangeDetail { get; private init; } = string.Empty;
 
     public string GeneralMergeMappingDetail { get; private init; } = string.Empty;
 
@@ -215,19 +146,63 @@ public sealed partial class ShellTextResources
 
     public string ContextUpdatedToastTitle { get; private init; } = string.Empty;
 
-    public string GeneralReplaceHexReferenceRowsLabel { get; private init; } = string.Empty;
+    public string UtilToolsLabel { get; private init; } = string.Empty;
 
-    public string GeneralReplaceHexEditValidationDetail { get; private init; } = string.Empty;
+    public string HexEditorContextInsertZeroBeforeLabel { get; private init; } = string.Empty;
 
-    public string GeneralReplaceHexOverlapEditDetail { get; private init; } = string.Empty;
+    public string HexEditorContextInsertZeroAfterLabel { get; private init; } = string.Empty;
 
-    public string GeneralReplaceHexContextEditLabel { get; private init; } = string.Empty;
+    public string HexEditorContextDeleteByteLabel { get; private init; } = string.Empty;
 
-    public string GeneralReplaceHexContextRangeStartLabel { get; private init; } = string.Empty;
+    public string HexEditorContextSetToZeroLabel { get; private init; } = string.Empty;
 
-    public string GeneralReplaceHexContextRangeEndLabel { get; private init; } = string.Empty;
+    public string HexEditorContextSetToFfLabel { get; private init; } = string.Empty;
 
-    public string GeneralReplaceHexContextClearLabel { get; private init; } = string.Empty;
+    public string HexEditorSourceReadyDetail { get; private init; } = string.Empty;
+
+    public string HexEditorSourceEmptyDetail { get; private init; } = string.Empty;
+
+    public string HexEditorSaveCompletedDetail { get; private init; } = string.Empty;
+
+    public string HexEditorFileOperationFailedDetail { get; private init; } = string.Empty;
+
+    public string HexEditorNothingToUndoDetail { get; private init; } = string.Empty;
+
+    public string HexEditorNothingToRedoDetail { get; private init; } = string.Empty;
+
+    public string HexEditorTitle { get; private init; } = string.Empty;
+
+    public string HexEditorDetail { get; private init; } = string.Empty;
+
+    public string HexEditorGoToAddressLabel { get; private init; } = string.Empty;
+
+    public string HexEditorChangeTitle { get; private init; } = string.Empty;
+
+    public string HexEditorAddressColumnLabel { get; private init; } = string.Empty;
+
+    public string HexEditorAsciiColumnLabel { get; private init; } = string.Empty;
+
+    public string HexEditorShowOriginalRowsLabel { get; private init; } = string.Empty;
+
+    public string HexEditorHexBytesLabel { get; private init; } = string.Empty;
+
+    public string HexEditorHexBytesPlaceholder { get; private init; } = string.Empty;
+
+    public string HexEditorOverwriteRangeLabel { get; private init; } = string.Empty;
+
+    public string HexEditorFillRangeLabel { get; private init; } = string.Empty;
+
+    public string HexEditorUndoLabel { get; private init; } = string.Empty;
+
+    public string HexEditorRedoLabel { get; private init; } = string.Empty;
+
+    public string HexEditorEditByteLabel { get; private init; } = string.Empty;
+
+    public string HexEditorInvalidAddressDetail { get; private init; } = string.Empty;
+
+    public string HexEditorInvalidByteDetail { get; private init; } = string.Empty;
+
+    public string HexEditorInvalidRangeDetail { get; private init; } = string.Empty;
 }
 
 #pragma warning restore CS1591

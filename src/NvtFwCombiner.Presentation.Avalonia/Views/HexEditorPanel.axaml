@@ -1,16 +1,17 @@
 <UserControl
     x:Class="NvtFwCombiner.Presentation.Avalonia.Views.HexEditorPanel"
     xmlns="https://github.com/avaloniaui"
+    xmlns:input="using:Avalonia.Input"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
-    x:DataType="vm:MainWindowViewModel">
+    x:DataType="vm:HexEditorWorkspaceViewModel">
   <UserControl.Styles>
     <Style Selector="ContentControl.hexByteCell">
       <Setter Property="Padding" Value="0" />
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
       <Setter Property="VerticalContentAlignment" Value="Stretch" />
       <Setter Property="ContentTemplate">
-        <DataTemplate x:DataType="vm:GeneralReplaceHexByteCellViewModel">
+        <DataTemplate x:DataType="vm:HexEditorByteCellViewModel">
           <Border
               Classes="hexCell"
               Classes.changed="{Binding IsChanged}"
@@ -25,7 +26,7 @@
     </Style>
     <Style Selector="ContentControl.hexByteCell.reference">
       <Setter Property="ContentTemplate">
-        <DataTemplate x:DataType="vm:GeneralReplaceHexByteCellViewModel">
+        <DataTemplate x:DataType="vm:HexEditorByteCellViewModel">
           <TextBlock
               Classes="hexReferenceCell"
               AutomationProperties.Name="{Binding AccessibleLabel}"
@@ -35,96 +36,143 @@
     </Style>
     <Style Selector="ContentControl.hexByteCell.editing">
       <Setter Property="ContentTemplate">
-        <DataTemplate x:DataType="vm:GeneralReplaceHexByteCellViewModel">
+        <DataTemplate x:DataType="vm:HexEditorByteCellViewModel">
           <TextBox
               Classes="hexCellEditor"
               Classes.invalid="{Binding HasInlineValidationMessage}"
               AutomationProperties.Name="{Binding AccessibleLabel}"
+              input:InputMethod.IsInputMethodEnabled="False"
               MaxLength="2"
               Text="{Binding EditValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
               KeyDown="HexByteEditBox_OnKeyDown"
               LostFocus="HexByteEditBox_OnLostFocus"
+              TextChanged="HexByteEditBox_OnTextChanged"
+              TextInput="HexByteEditBox_OnTextInput"
               ToolTip.Tip="{Binding InlineValidationMessage}" />
         </DataTemplate>
       </Setter>
     </Style>
+    <Style Selector="ListBox.hexViewport > ListBoxItem">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Margin" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
   </UserControl.Styles>
-  <StackPanel Spacing="12">
-    <ContentControl
-        MaxWidth="720"
-        HorizontalAlignment="Left"
-        Content="{Binding ReplaceBaseSlot}"
-        ContentTemplate="{StaticResource FirmwareSlotCardTemplate}" />
 
-    <StackPanel IsVisible="{Binding ReplaceBaseSlot.HasFile}" Spacing="12">
+  <StackPanel Spacing="12">
+    <Border
+        MaxWidth="840"
+        HorizontalAlignment="Left"
+        Classes="compactSurface"
+        Padding="12">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="18">
+        <StackPanel Spacing="3">
+          <TextBlock Classes="panelTitle" Text="{Binding Text.SourceBinLabel}" />
+          <TextBlock Classes="bodyStrongText" Text="{Binding SourceName}" />
+          <TextBlock
+              Classes="technicalCompactDetail"
+              IsVisible="{Binding HasDocument}"
+              Text="{Binding SourcePathDisplay}"
+              TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" HorizontalAlignment="Right" Spacing="6">
+          <TextBlock
+              HorizontalAlignment="Right"
+              Classes="technicalValue"
+              IsVisible="{Binding HasDocument}"
+              Text="{Binding WorkingLengthLabel}" />
+          <Button Classes="primary" Click="OpenHexEditorSourceButton_OnClick" Content="{Binding Text.BrowseLabel}" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <StackPanel IsVisible="{Binding HasDocument}" Spacing="10">
       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
         <StackPanel Orientation="Horizontal" Spacing="8">
-          <TextBlock VerticalAlignment="Center" Classes="fieldLabel" Text="{Binding Text.GeneralReplaceHexGoToLabel}" />
-          <TextBox Width="132" Classes="addressInput" Text="{Binding GeneralReplaceHexViewportAddress, Mode=TwoWay}" />
-          <Button Classes="secondary" Command="{Binding GoToGeneralReplaceHexViewportCommand}" Content="{Binding Text.GeneralReplaceHexGoToLabel}" />
+          <TextBlock VerticalAlignment="Center" Classes="fieldLabel" Text="{Binding Text.HexEditorGoToAddressLabel}" />
+          <TextBox Width="132" Classes="addressInput" Text="{Binding ViewportAddress, Mode=TwoWay}" />
+          <Button Classes="secondary" Command="{Binding GoToCommand}" Content="{Binding Text.HexEditorGoToAddressLabel}" />
         </StackPanel>
         <TextBlock
             Grid.Column="1"
             VerticalAlignment="Center"
             Classes="captionText"
-            Text="{Binding GeneralReplaceHexViewportStatus}"
+            Text="{Binding EditorStatus}"
             TextTrimming="CharacterEllipsis" />
         <ToggleButton
             Grid.Column="2"
             Classes="segment"
-            MinHeight="32"
-            Padding="12,6"
-            IsChecked="{Binding IsGeneralReplaceHexReferenceRowsVisible, Mode=TwoWay}">
-          <TextBlock FontSize="12" Text="{Binding Text.GeneralReplaceHexReferenceRowsLabel}" />
+            MinHeight="30"
+            Padding="10,5"
+            IsChecked="{Binding IsOriginalRowsVisible, Mode=TwoWay}">
+          <TextBlock FontSize="12" Text="{Binding Text.HexEditorShowOriginalRowsLabel}" />
         </ToggleButton>
       </Grid>
 
-      <Grid ColumnDefinitions="*,340" ColumnSpacing="14">
-        <Border Padding="12" Background="#F8FAFC" BorderBrush="#94A3B8" BorderThickness="1" CornerRadius="6">
-          <StackPanel Spacing="6">
-            <Grid ColumnDefinitions="86,*,142" ColumnSpacing="8">
+      <Grid MaxWidth="1560" HorizontalAlignment="Left" ColumnDefinitions="*,312" ColumnSpacing="12">
+        <Border Padding="8" Background="#F8FAFC" BorderBrush="#94A3B8" BorderThickness="1" CornerRadius="6">
+          <Grid RowDefinitions="Auto,*" RowSpacing="4">
+            <Grid ColumnDefinitions="86,*,120" ColumnSpacing="4">
               <TextBlock
                   VerticalAlignment="Center"
-                  Classes="tableHeader monoText"
-                  Text="{Binding Text.GeneralReplaceHexAddressColumnLabel}" />
-              <UniformGrid Grid.Column="1" Columns="16">
-                <TextBlock HorizontalAlignment="Center" Classes="tableHeader monoText" Text="00" />
-                <TextBlock HorizontalAlignment="Center" Classes="tableHeader monoText" Text="01" />
-                <TextBlock HorizontalAlignment="Center" Classes="tableHeader monoText" Text="02" />
-                <TextBlock HorizontalAlignment="Center" Classes="tableHeader monoText" Text="03" />
-                <TextBlock HorizontalAlignment="Center" Classes="tableHeader monoText" Text="04" />
-                <TextBlock HorizontalAlignment="Center" Classes="tableHeader monoText" Text="05" />
-                <TextBlock HorizontalAlignment="Center" Classes="tableHeader monoText" Text="06" />
-                <TextBlock HorizontalAlignment="Center" Classes="tableHeader monoText" Text="07" />
-                <TextBlock HorizontalAlignment="Center" Classes="tableHeader monoText" Text="08" />
-                <TextBlock HorizontalAlignment="Center" Classes="tableHeader monoText" Text="09" />
-                <TextBlock HorizontalAlignment="Center" Classes="tableHeader monoText" Text="0A" />
-                <TextBlock HorizontalAlignment="Center" Classes="tableHeader monoText" Text="0B" />
-                <TextBlock HorizontalAlignment="Center" Classes="tableHeader monoText" Text="0C" />
-                <TextBlock HorizontalAlignment="Center" Classes="tableHeader monoText" Text="0D" />
-                <TextBlock HorizontalAlignment="Center" Classes="tableHeader monoText" Text="0E" />
-                <TextBlock HorizontalAlignment="Center" Classes="tableHeader monoText" Text="0F" />
-              </UniformGrid>
-              <TextBlock Grid.Column="2" VerticalAlignment="Center" Classes="tableHeader monoText" Text="{Binding Text.GeneralReplaceHexAsciiColumnLabel}" />
-            </Grid>
-            <Border Height="1" Background="#CBD5E1" />
-            <ScrollViewer MaxHeight="520" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-              <ItemsControl ItemsSource="{Binding GeneralReplaceHexViewportRows}">
+                  Classes="hexGridHeader monoText"
+                  Text="{Binding Text.HexEditorAddressColumnLabel}" />
+              <ItemsControl Grid.Column="1" ItemsSource="{Binding ColumnHeaders}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <UniformGrid Columns="16" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="vm:GeneralReplaceHexViewportRowViewModel">
-                    <Grid
-                        Classes="hexRow"
-                        Classes.changedRow="{Binding HasChanges}"
-                        Classes.referenceRow="{Binding IsReferenceRow}"
-                        Margin="0,1"
-                        ColumnDefinitions="86,*,142"
-                        ColumnSpacing="8">
-                      <Grid Width="86" ColumnDefinitions="*,12">
-                        <TextBlock VerticalAlignment="Center" Classes="monoText detailText" Text="{Binding Address}" />
+                  <DataTemplate x:DataType="vm:HexEditorColumnHeaderViewModel">
+                    <TextBlock
+                        Classes="hexGridHeader monoText"
+                        Classes.selected="{Binding IsSelected}"
+                        Text="{Binding Label}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock
+                  Grid.Column="2"
+                  VerticalAlignment="Center"
+                  Classes="hexGridHeader monoText"
+                  Text="{Binding Text.HexEditorAsciiColumnLabel}" />
+            </Grid>
+
+            <ListBox
+                Grid.Row="1"
+                Classes="hexViewport"
+                MaxHeight="620"
+                Background="Transparent"
+                BorderThickness="0"
+                Focusable="False"
+                ItemsSource="{Binding ViewportRows}"
+                ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                ScrollViewer.VerticalScrollBarVisibility="Auto"
+                SelectionMode="Single">
+              <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <VirtualizingStackPanel />
+                </ItemsPanelTemplate>
+              </ListBox.ItemsPanel>
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:HexEditorViewportRowViewModel">
+                  <Grid
+                      Classes="hexRow"
+                      Classes.changedRow="{Binding HasChanges}"
+                      Classes.referenceRow="{Binding IsReferenceRow}"
+                      Classes.selected="{Binding IsSelected}"
+                      ColumnDefinitions="86,*,120"
+                      ColumnSpacing="4">
+                    <Border Classes="hexAddress" Classes.selected="{Binding IsSelected}">
+                      <Grid ColumnDefinitions="*,10">
+                        <TextBlock VerticalAlignment="Center" Classes="monoText" Text="{Binding Address}" />
                         <Border
                             Grid.Column="1"
-                            Width="6"
-                            Height="6"
+                            Width="5"
+                            Height="5"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"
                             Background="#D97706"
@@ -132,140 +180,91 @@
                             IsVisible="{Binding HasChanges}" />
                         <Border
                             Grid.Column="1"
-                            Width="6"
-                            Height="6"
+                            Width="5"
+                            Height="5"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"
                             Background="#94A3B8"
                             CornerRadius="3"
                             IsVisible="{Binding IsReferenceRow}" />
                       </Grid>
-                      <ItemsControl Grid.Column="1" ItemsSource="{Binding Bytes}">
-                        <ItemsControl.ItemsPanel>
-                          <ItemsPanelTemplate>
-                            <UniformGrid Columns="16" />
-                          </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                          <DataTemplate x:DataType="vm:GeneralReplaceHexByteCellViewModel">
-                            <ContentControl
-                                Classes="hexByteCell"
-                                Classes.editing="{Binding IsEditing}"
-                                Classes.reference="{Binding IsReference}"
-                                Content="{Binding}" />
-                          </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                      </ItemsControl>
-                      <TextBlock Grid.Column="2" VerticalAlignment="Center" Classes="monoText detailText" Text="{Binding AfterAscii}" TextTrimming="CharacterEllipsis" />
-                    </Grid>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </ScrollViewer>
-          </StackPanel>
+                    </Border>
+                    <ItemsControl Grid.Column="1" ItemsSource="{Binding Bytes}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <UniformGrid Columns="16" />
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:HexEditorByteCellViewModel">
+                          <ContentControl
+                              Classes="hexByteCell"
+                              Classes.editing="{Binding IsEditing}"
+                              Classes.reference="{Binding IsReference}"
+                              Content="{Binding}" />
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock
+                        Grid.Column="2"
+                        VerticalAlignment="Center"
+                        Classes="hexAscii monoText"
+                        Text="{Binding CurrentAscii}"
+                        TextTrimming="CharacterEllipsis" />
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </Grid>
         </Border>
 
-        <Border Grid.Column="1" Classes="compactSurface" VerticalAlignment="Top" Padding="0">
-          <Grid RowDefinitions="Auto,Auto,Auto">
-            <StackPanel Margin="14,13,14,12" Spacing="12">
-              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                <TextBlock VerticalAlignment="Center" Classes="panelTitle" Text="{Binding Text.GeneralReplaceHexInspectorTitle}" />
-                <Label Grid.Column="1" Classes="countBadge" Content="{Binding GeneralReplacePatches.Count}" />
-              </Grid>
+        <Border Grid.Column="1" Classes="compactSurface" VerticalAlignment="Top" Padding="12">
+          <StackPanel Spacing="10">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+              <TextBlock VerticalAlignment="Center" Classes="panelTitle" Text="{Binding Text.HexEditorChangeTitle}" />
+              <Label Grid.Column="1" Classes="countBadge" Content="{Binding ChangeCount}" />
+            </Grid>
 
-              <StackPanel Spacing="5">
-                <TextBlock Classes="fieldLabel" Text="{Binding Text.GeneralReplaceHexApprovedRegionLabel}" />
-                <ComboBox
-                    MinHeight="34"
-                    HorizontalAlignment="Stretch"
-                    HorizontalContentAlignment="Stretch"
-                    ItemsSource="{Binding GeneralReplaceEditableRanges}"
-                    SelectedItem="{Binding SelectedGeneralReplaceEditableRange, Mode=TwoWay}">
-                  <ComboBox.ItemTemplate>
-                    <DataTemplate x:DataType="vm:GeneralReplaceEditableRangeViewModel">
-                      <StackPanel Spacing="1">
-                        <TextBlock Classes="bodyEmphasisText" Text="{Binding SelectionLabel}" />
-                        <TextBlock Classes="captionText" Text="{Binding Detail}" TextWrapping="Wrap" />
-                      </StackPanel>
-                    </DataTemplate>
-                  </ComboBox.ItemTemplate>
-                </ComboBox>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+              <StackPanel Spacing="4">
+                <TextBlock Classes="fieldLabel" Text="{Binding Text.StartLabel}" />
+                <TextBox Classes="addressInput" Text="{Binding RangeStartAddress, Mode=TwoWay}" />
               </StackPanel>
-
-              <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-                <StackPanel Spacing="4">
-                  <TextBlock Classes="fieldLabel" Text="{Binding Text.StartLabel}" />
-                  <TextBox Classes="addressInput" Text="{Binding GeneralReplacePatchDraft.StartAddress, Mode=TwoWay}" />
-                </StackPanel>
-                <StackPanel Grid.Column="1" Spacing="4">
-                  <TextBlock Classes="fieldLabel" Text="{Binding Text.EndLabel}" />
-                  <TextBox Classes="addressInput" Text="{Binding GeneralReplacePatchDraft.EndAddress, Mode=TwoWay}" />
-                </StackPanel>
-              </Grid>
-
-              <StackPanel Spacing="5">
-                <TextBlock Classes="fieldLabel" Text="{Binding Text.GeneralReplacePatchValueLabel}" />
-                <TextBox Classes="monoText" FontSize="13" PlaceholderText="{Binding Text.GeneralReplacePatchValuePlaceholder}" Text="{Binding GeneralReplacePatchDraft.Value, Mode=TwoWay}" TextWrapping="Wrap" />
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="6">
-                  <ToggleButton Classes="segment" Command="{Binding SetGeneralReplacePatchOverwriteCommand}" IsChecked="{Binding IsGeneralReplacePatchOverwrite, Mode=OneWay}">
-                    <TextBlock Text="{Binding Text.GeneralReplacePatchOverwriteLabel}" />
-                  </ToggleButton>
-                  <ToggleButton Grid.Column="1" Classes="segment" Command="{Binding SetGeneralReplacePatchFillCommand}" IsChecked="{Binding IsGeneralReplacePatchFill, Mode=OneWay}">
-                    <TextBlock Text="{Binding Text.GeneralReplacePatchFillLabel}" />
-                  </ToggleButton>
-                </Grid>
+              <StackPanel Grid.Column="1" Spacing="4">
+                <TextBlock Classes="fieldLabel" Text="{Binding Text.EndLabel}" />
+                <TextBox Classes="addressInput" Text="{Binding RangeEndAddress, Mode=TwoWay}" />
               </StackPanel>
+            </Grid>
 
-              <Grid ColumnDefinitions="*,56,56" ColumnSpacing="6">
-                <Button Classes="primary" Command="{Binding ApplyGeneralReplacePatchCommand}" Content="{Binding Text.GeneralReplaceApplyPatchLabel}" />
-                <Button Grid.Column="1" Classes="secondary" Command="{Binding UndoGeneralReplacePatchCommand}" Content="{Binding Text.GeneralReplaceUndoPatchLabel}" />
-                <Button Grid.Column="2" Classes="secondary" Command="{Binding RedoGeneralReplacePatchCommand}" Content="{Binding Text.GeneralReplaceRedoPatchLabel}" />
-              </Grid>
+            <StackPanel Spacing="4">
+              <TextBlock Classes="fieldLabel" Text="{Binding Text.HexEditorHexBytesLabel}" />
+              <TextBox
+                  Classes="monoText"
+                  FontSize="13"
+                  input:InputMethod.IsInputMethodEnabled="False"
+                  PlaceholderText="{Binding Text.HexEditorHexBytesPlaceholder}"
+                  Text="{Binding RangeValue, Mode=TwoWay}"
+                  TextChanged="HexRangeValue_OnTextChanged"
+                  TextInput="HexRangeValue_OnTextInput" />
             </StackPanel>
 
-            <Border Grid.Row="1" Height="1" Margin="14,0" Background="#E2E8F0" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+              <Button Classes="primary" Command="{Binding ApplyOverwriteRangeCommand}" Content="{Binding Text.HexEditorOverwriteRangeLabel}" />
+              <Button Grid.Column="1" Classes="secondary" Command="{Binding ApplyFillRangeCommand}" Content="{Binding Text.HexEditorFillRangeLabel}" />
+            </Grid>
 
-            <StackPanel Grid.Row="2" Margin="14,12,14,14" Spacing="8">
-              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                <TextBlock VerticalAlignment="Center" Classes="panelTitle" Text="{Binding Text.GeneralReplaceCommittedPatchesTitle}" />
-                <TextBlock Grid.Column="1" VerticalAlignment="Center" Classes="captionText" Text="{Binding Text.GeneralReplaceNoPatchesLabel}" IsVisible="{Binding IsGeneralReplacePatchListEmpty}" />
-              </Grid>
-              <ScrollViewer IsVisible="{Binding HasGeneralReplacePatches}" MaxHeight="176" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                <ItemsControl ItemsSource="{Binding GeneralReplacePatches}">
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="vm:GeneralReplacePatchViewModel">
-                      <Border Classes="insetSurface" Margin="0,2" Padding="8">
-                        <Grid ColumnDefinitions="28,*,Auto" ColumnSpacing="7">
-                          <TextBlock VerticalAlignment="Top" Classes="technicalMeta" Text="{Binding Index}" />
-                          <StackPanel Grid.Column="1" Spacing="2">
-                            <TextBlock Classes="technicalCompactDetail" Text="{Binding RangeLabel}" />
-                            <TextBlock Classes="technicalMeta" Text="{Binding Value}" TextTrimming="CharacterEllipsis" />
-                          </StackPanel>
-                          <Label Grid.Column="2" Classes="countBadge" Content="{Binding KindLabel}" />
-                        </Grid>
-                      </Border>
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-              </ScrollViewer>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+              <Button Classes="secondary" Command="{Binding UndoCommand}" Content="{Binding Text.HexEditorUndoLabel}" />
+              <Button Grid.Column="1" Classes="secondary" Command="{Binding RedoCommand}" Content="{Binding Text.HexEditorRedoLabel}" />
+            </Grid>
 
-              <Border Height="1" Margin="0,4" Background="#E2E8F0" />
-              <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-                <Button
-                    Grid.Column="0"
-                    Classes="secondary"
-                    Command="{Binding RequestHexEditorSaveCommand}"
-                    Content="{Binding Text.HexEditorSaveLabel}"
-                    IsEnabled="{Binding CanBuildHexEditor}" />
-                <Button
-                    Grid.Column="1"
-                    Classes="primary"
-                    Click="SaveAsHexEditorButton_OnClick"
-                    Content="{Binding Text.HexEditorSaveAsLabel}"
-                    IsEnabled="{Binding CanBuildHexEditor}" />
-              </Grid>
-            </StackPanel>
-          </Grid>
+            <Border Height="1" Background="#E2E8F0" />
+            <TextBlock Classes="captionText" Text="{Binding Text.HexEditorSaveConfirmationDetail}" TextWrapping="Wrap" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+              <Button Classes="secondary" Command="{Binding RequestSaveCommand}" Content="{Binding Text.HexEditorSaveLabel}" />
+              <Button Grid.Column="1" Classes="primary" Click="SaveAsHexEditorButton_OnClick" Content="{Binding Text.HexEditorSaveAsLabel}" />
+            </Grid>
+          </StackPanel>
         </Border>
       </Grid>
     </StackPanel>

@@ -13,6 +13,7 @@
     MinHeight="640"
     Background="#F4F6FA"
     FontFamily="fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI"
+    Icon="/Assets/AppIcon.ico"
     Title="NVT FW Combiner">
   <Window.KeyBindings>
     <KeyBinding Gesture="Ctrl+H" Command="{Binding ShowReportHistoryCommand}" />
@@ -279,7 +280,10 @@
 
     <views:FirmwareIcMismatchModal Grid.RowSpan="4" IsVisible="{Binding IsFirmwareIcMismatchModalOpen}" />
 
-    <views:HexEditorSaveModal Grid.RowSpan="4" IsVisible="{Binding IsHexEditorSaveConfirmationOpen}" />
+    <views:HexEditorSaveModal
+        Grid.RowSpan="4"
+        DataContext="{Binding HexEditorWorkspace}"
+        IsVisible="{Binding IsSaveConfirmationOpen}" />
 
     <views:ReportModal Grid.RowSpan="4" IsVisible="{Binding IsReportModalOpen}" />
   </Grid>

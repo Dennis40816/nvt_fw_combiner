@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="NVT FW Combiner">
+  <g fill="none" stroke="#082B72" stroke-linecap="square" stroke-linejoin="round" stroke-width="18">
+    <path d="M82 42v30M128 42v30M174 42v30M82 184v30M128 184v30M174 184v30M42 82h30M42 128h30M42 174h30M184 82h30M184 128h30M184 174h30"/>
+    <rect x="64" y="64" width="128" height="128" rx="8"/>
+  </g>
+  <rect x="108" y="108" width="40" height="40" rx="2" fill="#146BFF"/>
+</svg>

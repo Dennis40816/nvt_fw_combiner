@@ -23,11 +23,6 @@ public sealed partial class MainWindowViewModel : ObservableObject
             return;
         }
 
-        if (slot.SlotId == ReplaceBaseSlotId)
-        {
-            CaptureGeneralReplaceBaseSnapshot(path);
-        }
-
         slot.FilePath = path;
         RefreshFirmwareFacts(slot);
         PromptForFirmwareIcMismatch(slot);
@@ -53,12 +48,6 @@ public sealed partial class MainWindowViewModel : ObservableObject
         else if (slot.SlotId is MergeDpSlotId or ReplaceBaseSlotId)
         {
             RefreshMemoryMapState();
-        }
-
-        if (slot.SlotId == ReplaceBaseSlotId)
-        {
-            RefreshGeneralReplaceEditableRanges();
-            RefreshGeneralReplaceHexViewport();
         }
 
         RefreshCommandState();
@@ -88,6 +77,6 @@ public enum ShellPage
     /// <summary>Replace planning page.</summary>
     Replace,
 
-    /// <summary>Independent experimental hexadecimal patch-authoring page.</summary>
+    /// <summary>Independent raw-BIN utility page.</summary>
     HexEditor,
 }
