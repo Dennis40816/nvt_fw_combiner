@@ -87,14 +87,15 @@ public sealed class FirmwareMetadataPredicate
     public IReadOnlyList<FirmwareMetadataValue> ExpectedValues { get; }
 
     /// <summary>Evaluates fields already scoped to <see cref="MetadataStructureId"/>.</summary>
-    public FirmwarePredicateResult Evaluate(
+    public FirmwareMetadataPredicateOutcome Evaluate(
         IReadOnlyDictionary<string, FirmwareMetadataValue> scopedFields)
     {
         ArgumentNullException.ThrowIfNull(scopedFields);
         FirmwareMetadataValue? actual = FindExactField(scopedFields);
-        return actual is not null
+        FirmwarePredicateResult result = actual is not null
             ? Compare(actual)
             : FirmwarePredicateResult.Missing;
+        return new FirmwareMetadataPredicateOutcome(this, result, actual);
     }
 
     private FirmwareMetadataValue? FindExactField(

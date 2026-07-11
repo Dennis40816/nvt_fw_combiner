@@ -53,7 +53,7 @@ public sealed class FirmwareFamilyResolutionNormalizerTests
         Assert.Equal("A", facts["label"].TextValue);
         Assert.Equal(2UL, facts["chip-number"].UnsignedIntegerValue);
         Assert.Equal(-2, facts["signed-offset"].SignedIntegerValue);
-        Assert.Equal(FirmwarePredicateResult.Match, predicate.Evaluate(facts));
+        Assert.Equal(FirmwarePredicateResult.Match, predicate.Evaluate(facts).Result);
     }
 
     /// <summary>Verifies all locator and topology tokens map to their closed Domain forms.</summary>

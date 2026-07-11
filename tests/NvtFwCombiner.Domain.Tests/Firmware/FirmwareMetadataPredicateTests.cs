@@ -68,9 +68,9 @@ public sealed class FirmwareMetadataPredicateTests
             FirmwareMetadataPredicateOperator.Equal,
             [FirmwareMetadataValue.FromUnsignedInteger(2)]);
 
-        Assert.Equal(FirmwarePredicateResult.Missing, predicate.Evaluate(Facts()));
-        Assert.Equal(FirmwarePredicateResult.Match, predicate.Evaluate(Facts(("chip-number", 2))));
-        Assert.Equal(FirmwarePredicateResult.NoMatch, predicate.Evaluate(Facts(("chip-number", 1))));
+        Assert.Equal(FirmwarePredicateResult.Missing, predicate.Evaluate(Facts()).Result);
+        Assert.Equal(FirmwarePredicateResult.Match, predicate.Evaluate(Facts(("chip-number", 2))).Result);
+        Assert.Equal(FirmwarePredicateResult.NoMatch, predicate.Evaluate(Facts(("chip-number", 1))).Result);
     }
 
     /// <summary>Verifies not-equal and one-of comparisons use typed equality.</summary>
@@ -88,9 +88,9 @@ public sealed class FirmwareMetadataPredicateTests
             FirmwareMetadataPredicateOperator.OneOf,
             [FirmwareMetadataValue.FromUnsignedInteger(2), FirmwareMetadataValue.FromUnsignedInteger(3)]);
 
-        Assert.Equal(FirmwarePredicateResult.Match, notEqual.Evaluate(Facts(("chip-number", 2))));
-        Assert.Equal(FirmwarePredicateResult.NoMatch, oneOf.Evaluate(Facts(("chip-number", 1))));
-        Assert.Equal(FirmwarePredicateResult.Match, oneOf.Evaluate(Facts(("chip-number", 3))));
+        Assert.Equal(FirmwarePredicateResult.Match, notEqual.Evaluate(Facts(("chip-number", 2))).Result);
+        Assert.Equal(FirmwarePredicateResult.NoMatch, oneOf.Evaluate(Facts(("chip-number", 1))).Result);
+        Assert.Equal(FirmwarePredicateResult.Match, oneOf.Evaluate(Facts(("chip-number", 3))).Result);
     }
 
     /// <summary>Verifies equal-looking values of different scalar kinds never compare equal.</summary>
@@ -108,19 +108,43 @@ public sealed class FirmwareMetadataPredicateTests
             predicate.Evaluate(new Dictionary<string, FirmwareMetadataValue>(StringComparer.Ordinal)
             {
                 ["value"] = FirmwareMetadataValue.FromText("2"),
-            }));
+            }).Result);
         Assert.Equal(
             FirmwarePredicateResult.NoMatch,
             predicate.Evaluate(new Dictionary<string, FirmwareMetadataValue>(StringComparer.Ordinal)
             {
                 ["value"] = FirmwareMetadataValue.FromSignedInteger(2),
-            }));
+            }).Result);
         Assert.Equal(
             FirmwarePredicateResult.NoMatch,
             predicate.Evaluate(new Dictionary<string, FirmwareMetadataValue>(StringComparer.Ordinal)
             {
                 ["value"] = FirmwareMetadataValue.FromBytes([2]),
-            }));
+            }).Result);
+    }
+
+    /// <summary>Verifies outcomes retain only the predicate and exact typed actual value.</summary>
+    [Fact]
+    public void EvaluateReturnsPredicateAndTypedActualValue()
+    {
+        var predicate = new FirmwareMetadataPredicate(
+            "firmware-config",
+            "chip-number",
+            FirmwareMetadataPredicateOperator.Equal,
+            [FirmwareMetadataValue.FromUnsignedInteger(2)]);
+
+        FirmwareMetadataPredicateOutcome match = predicate.Evaluate(Facts(("chip-number", 2)));
+        FirmwareMetadataPredicateOutcome noMatch = predicate.Evaluate(Facts(("chip-number", 1)));
+        FirmwareMetadataPredicateOutcome missing = predicate.Evaluate(Facts());
+
+        Assert.Same(predicate, match.Predicate);
+        Assert.Equal(FirmwarePredicateResult.Match, match.Result);
+        Assert.Equal(FirmwareMetadataValue.FromUnsignedInteger(2), match.ActualValue);
+        Assert.Equal(FirmwarePredicateResult.NoMatch, noMatch.Result);
+        Assert.Equal(FirmwareMetadataValue.FromUnsignedInteger(1), noMatch.ActualValue);
+        Assert.Equal(FirmwarePredicateResult.Missing, missing.Result);
+        Assert.Null(missing.ActualValue);
+        Assert.Empty(typeof(FirmwareMetadataPredicateOutcome).GetConstructors());
     }
 
     /// <summary>Verifies identical field ids remain distinct across metadata structures.</summary>
@@ -227,7 +251,7 @@ public sealed class FirmwareMetadataPredicateTests
             ["CHIP-NUMBER"] = FirmwareMetadataValue.FromUnsignedInteger(2),
         };
 
-        Assert.Equal(FirmwarePredicateResult.Missing, predicate.Evaluate(facts));
+        Assert.Equal(FirmwarePredicateResult.Missing, predicate.Evaluate(facts).Result);
     }
 
     /// <summary>Verifies null facts are missing and a null facts collection is rejected.</summary>
@@ -244,7 +268,7 @@ public sealed class FirmwareMetadataPredicateTests
             ["chip-number"] = null!,
         };
 
-        Assert.Equal(FirmwarePredicateResult.Missing, predicate.Evaluate(facts));
+        Assert.Equal(FirmwarePredicateResult.Missing, predicate.Evaluate(facts).Result);
         _ = Assert.Throws<ArgumentNullException>(() => predicate.Evaluate(null!));
     }
 
