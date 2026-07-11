@@ -88,7 +88,6 @@
     },
     "scalar": {
       "oneOf": [
-        { "type": "boolean" },
         { "type": "integer" },
         { "type": "string", "minLength": 1 }
       ]
@@ -369,39 +368,94 @@
       ]
     },
     "metadataField": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["fieldId", "offset", "widthBytes", "encoding"],
-      "properties": {
-        "fieldId": { "$ref": "#/$defs/id" },
-        "offset": { "type": "integer", "minimum": 0 },
-        "widthBytes": { "type": "integer", "minimum": 1 },
-        "encoding": { "enum": ["bytes", "unsigned-integer", "ascii"] },
-        "byteOrder": { "enum": ["little", "big"] },
-        "bitSlice": {
+      "oneOf": [
+        {
           "type": "object",
           "additionalProperties": false,
-          "required": ["leastSignificantBit", "bitCount"],
+          "required": ["fieldId", "offset", "widthBytes", "encoding"],
           "properties": {
-            "leastSignificantBit": { "type": "integer", "minimum": 0 },
-            "bitCount": { "type": "integer", "minimum": 1 }
+            "fieldId": { "$ref": "#/$defs/id" },
+            "offset": { "type": "integer", "minimum": 0 },
+            "widthBytes": { "type": "integer", "minimum": 1 },
+            "encoding": { "const": "bytes" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fieldId", "offset", "widthBytes", "encoding"],
+          "properties": {
+            "fieldId": { "$ref": "#/$defs/id" },
+            "offset": { "type": "integer", "minimum": 0 },
+            "widthBytes": { "type": "integer", "minimum": 1 },
+            "encoding": { "const": "printable-ascii" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fieldId", "offset", "widthBytes", "encoding", "byteOrder"],
+          "properties": {
+            "fieldId": { "$ref": "#/$defs/id" },
+            "offset": { "type": "integer", "minimum": 0 },
+            "widthBytes": { "type": "integer", "minimum": 1, "maximum": 4 },
+            "encoding": { "const": "unsigned-integer" },
+            "byteOrder": { "enum": ["little", "big"] },
+            "bitSlice": { "$ref": "#/$defs/bitSlice" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fieldId", "offset", "widthBytes", "encoding", "byteOrder"],
+          "properties": {
+            "fieldId": { "$ref": "#/$defs/id" },
+            "offset": { "type": "integer", "minimum": 0 },
+            "widthBytes": { "type": "integer", "minimum": 1, "maximum": 4 },
+            "encoding": { "const": "signed-integer" },
+            "byteOrder": { "enum": ["little", "big"] }
           }
         }
+      ]
+    },
+    "bitSlice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["leastSignificantBit", "bitCount"],
+      "properties": {
+        "leastSignificantBit": { "type": "integer", "minimum": 0, "maximum": 31 },
+        "bitCount": { "type": "integer", "minimum": 1, "maximum": 32 }
       }
     },
     "byteAssertion": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["offset", "expectedHex"],
-      "properties": {
-        "offset": { "type": "integer", "minimum": 0 },
-        "expectedHex": { "$ref": "#/$defs/hexBytes" },
-        "maskHex": { "$ref": "#/$defs/hexBytes" }
-      }
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["offset", "expectedHex"],
+          "properties": {
+            "offset": { "type": "integer", "minimum": 0 },
+            "expectedHex": { "$ref": "#/$defs/hexBytes" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["offset", "expectedHex", "maskHex"],
+          "properties": {
+            "offset": { "type": "integer", "minimum": 0 },
+            "expectedHex": { "$ref": "#/$defs/hexBytes" },
+            "maskHex": {
+              "type": "string",
+              "pattern": "^(?!0+(?![\\s\\S]))(?!f+(?![\\s\\S]))(?:[0-9a-f]{2})+(?![\\s\\S])"
+            }
+          }
+        }
+      ]
     },
     "hexBytes": {
       "type": "string",
-      "pattern": "^(?:[0-9a-f]{2})+$"
+      "pattern": "^(?:[0-9a-f]{2})+(?![\\s\\S])"
     },
     "markerSelection": {
       "oneOf": [

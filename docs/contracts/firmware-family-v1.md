@@ -41,6 +41,26 @@ declares `metadataStructureId`, so predicate resolution uses the exact
 `(artifactBindingId, metadataStructureId, fieldId)` source rather than a global field-name lookup.
 A map predicate may reference only a structure selected through that map's metadata sets.
 
+## Typed metadata
+
+Field and predicate semantics follow [ADR 0016](../adr/0016-typed-firmware-metadata-values.md).
+The closed v1 encodings are `bytes`, `printable-ascii`, `unsigned-integer`, and `signed-integer`.
+Integer carriers are one to four bytes and always declare byte order. Only unsigned integers may
+declare a checked bit slice; signed integers use full-width two's-complement. Byte and printable-text
+fields declare neither byte order nor slices.
+
+Predicate JSON is interpreted only in the exact referenced field context. Integer values must fit the
+signed carrier or unsigned effective slice. Byte values are exact-width lowercase hex strings, and
+printable text is exactly `widthBytes` characters in `0x20..0x7E`. JSON Boolean values and scalar
+coercion are not accepted.
+
+Fields and assertions are structure-relative half-open ranges and must fit the complete structure
+with checked arithmetic. Read-only fields may overlap, including multiple unsigned slices of one
+carrier. Assertions may overlap fields or other assertions and form a conjunction. Omitted
+`maskHex` is the canonical exact-match form; an explicit partial mask has equal length, contains at
+least one set bit, is not all `ff`, and has zero expected bits outside the mask. Every assertion passes
+before any field is decoded; failure yields no partial facts.
+
 Each image-map shape has one exact `capacityBytes` and declares
 `coveragePolicy = "complete-with-explicit-gaps"`. Semantic validation proves that referenced region
 sets use the selected address space, stay in bounds, preserve proper parent containment and sibling

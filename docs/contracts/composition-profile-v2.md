@@ -11,6 +11,13 @@ The compiler accepts one already resolved map, proves it is in that set, and rec
 and resolution fingerprint in `CompiledComposition`. The profile references canonical region and
 metadata ids; it does not redeclare physical ranges, locators, capacities, aliases, or capabilities.
 
+Metadata-value validation expected values use the exact typed field semantics from
+[ADR 0016](../adr/0016-typed-firmware-metadata-values.md). Profiles resolve the referenced family
+field before converting JSON: signed and unsigned integers remain distinct Domain values, byte fields
+use exact-width lowercase hex, and printable text uses exact-width `0x20..0x7E` characters. Boolean,
+numeric-string, signed/unsigned, text/bytes, padding, and truncation coercions are forbidden. Domain
+family validation rechecks complete value representability after normalization.
+
 `CompositionProfileDefinition` is the normalized typed form of this document. It owns:
 
 - immutable input slots and acceptance/normalization policy;
