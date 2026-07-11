@@ -34,6 +34,8 @@ internal sealed class CompositionProfileByteValue : IEquatable<CompositionProfil
 
     internal string Hex { get; }
 
+    internal ReadOnlySpan<byte> Bytes => _bytes;
+
     public bool Equals(CompositionProfileByteValue? other)
     {
         return other is not null && _bytes.AsSpan().SequenceEqual(other._bytes);
