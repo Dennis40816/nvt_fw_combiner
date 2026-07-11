@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Domain.Composition;
 
-/// <summary>Source used to initialize the output image before composition operations.</summary>
+/// <summary>Source used to initialize one mutable address space before composition operations.</summary>
 public enum ImageInitializationKind
 {
     /// <summary>Initializes the output image with blank bytes.</summary>

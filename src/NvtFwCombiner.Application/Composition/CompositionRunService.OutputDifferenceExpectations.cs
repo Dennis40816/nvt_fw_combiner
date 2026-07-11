@@ -9,8 +9,8 @@ public sealed partial class CompositionRunService
     private static IEnumerable<OutputDifferenceExpectation> CreateOutputDifferenceExpectations(
         CompositionRunRequest request)
     {
-        string targetSpaceId = request.Plan.Initialization.TargetSpaceId;
-        string? referenceSpaceId = request.Plan.Initialization.ReferenceSpaceId;
+        string targetSpaceId = request.Plan.OutputSpaceId;
+        string? referenceSpaceId = request.Plan.OutputInitialization.ReferenceSpaceId;
         string icNumber = request.IcNumberSelection?.ToStableToken() ?? "unspecified";
         foreach (CompositionOperation operation in request.Plan.OrderedOperations)
         {

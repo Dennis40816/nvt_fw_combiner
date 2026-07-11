@@ -222,14 +222,11 @@ public sealed partial class CompositionRunServiceTests
         Assert.Contains("from 4 to 2 bytes", issue.Message, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies seeded mutable address-space bindings are read by run service previews.</summary>
+    /// <summary>Verifies previews use engine-initialized mutable buffers without artifact bindings.</summary>
     [Fact]
-    public async Task PreviewReadsSeededMutableAddressSpaceBinding()
+    public async Task PreviewUsesEngineInitializedMutableAddressSpace()
     {
-        var reader = new FakeArtifactReader(new Dictionary<string, byte[]>
-        {
-            ["scratch-artifact"] = [1, 2, 3, 4],
-        });
+        var reader = new FakeArtifactReader([]);
         var service = new CompositionRunService(reader, new FakeClock([FirstTimestamp, SecondTimestamp]));
         CompositionRunRequest request = CreateScratchRequest();
 
@@ -237,8 +234,73 @@ public sealed partial class CompositionRunServiceTests
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Equal([0, 3, 0, 0], result.OutputBytes.ToArray());
-        InputArtifactSummary input = Assert.Single(result.Report.Inputs);
-        Assert.Equal("scratch-safe", input.ArtifactId);
+        Assert.Empty(result.Report.Inputs);
+    }
+
+    /// <summary>Verifies mutable artifact bindings fail before the artifact reader is invoked.</summary>
+    [Fact]
+    public async Task PreviewRejectsMutableAddressSpaceBindingBeforeArtifactRead()
+    {
+        var service = new CompositionRunService(
+            new FakeArtifactReader([]),
+            new FakeClock([FirstTimestamp, SecondTimestamp]));
+        CompositionRunRequest request = CreateScratchRequest(
+        [
+            new InputArtifactBinding("scratch", "scratch-safe", "missing-artifact"),
+        ]);
+
+        CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
+        CompositionIssue issue = Assert.Single(result.Report.Issues);
+        Assert.Equal(CompositionIssueCodes.InputMutableAddressSpaceNotAllowed, issue.Code);
+        Assert.Equal("scratch", issue.OperationId);
+        Assert.Empty(result.Report.Inputs);
+    }
+
+    /// <summary>Verifies undeclared artifact bindings fail before the artifact reader is invoked.</summary>
+    [Fact]
+    public async Task PreviewRejectsUnknownAddressSpaceBindingBeforeArtifactRead()
+    {
+        var service = new CompositionRunService(
+            new FakeArtifactReader([]),
+            new FakeClock([FirstTimestamp, SecondTimestamp]));
+        CompositionRunRequest request = CreateScratchRequest(
+        [
+            new InputArtifactBinding("unknown", "unknown-safe", "missing-artifact"),
+        ]);
+
+        CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
+        CompositionIssue issue = Assert.Single(result.Report.Issues);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceUnknown, issue.Code);
+        Assert.Equal("unknown", issue.OperationId);
+        Assert.Empty(result.Report.Inputs);
+    }
+
+    /// <summary>Verifies preview approval fingerprints every initializer and explicit output selection.</summary>
+    [Fact]
+    public async Task PreviewTokenFingerprintsAllInitializersAndOutputSelection()
+    {
+        var service = new CompositionRunService(
+            new FakeArtifactReader([]),
+            new FakeClock(Enumerable.Range(0, 6).Select(offset => FirstTimestamp.AddSeconds(offset))));
+
+        CompositionRunResult baseline = await service.PreviewAsync(
+            CreateInitializerFingerprintRequest(scratchFillByte: 0, outputSpaceId: "output-image"),
+            CancellationToken.None);
+        CompositionRunResult changedInitializer = await service.PreviewAsync(
+            CreateInitializerFingerprintRequest(scratchFillByte: 1, outputSpaceId: "output-image"),
+            CancellationToken.None);
+        CompositionRunResult changedOutput = await service.PreviewAsync(
+            CreateInitializerFingerprintRequest(scratchFillByte: 0, outputSpaceId: "scratch"),
+            CancellationToken.None);
+
+        Assert.Equal(baseline.OutputBytes.ToArray(), changedInitializer.OutputBytes.ToArray());
+        Assert.Equal(baseline.OutputBytes.ToArray(), changedOutput.OutputBytes.ToArray());
+        Assert.NotEqual(baseline.PreviewToken, changedInitializer.PreviewToken);
+        Assert.NotEqual(baseline.PreviewToken, changedOutput.PreviewToken);
     }
 
     /// <summary>Verifies artifact read failures are returned as structured run issues.</summary>

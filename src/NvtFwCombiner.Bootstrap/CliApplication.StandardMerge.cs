@@ -128,7 +128,7 @@ public static partial class CliApplication
         out IReadOnlyList<InputArtifactBinding> bindings)
     {
         List<InputArtifactBinding> items = [];
-        HashSet<string> requiredAddressSpaces = [.. plan.RequiredInputAddressSpaceIds, .. plan.RequiredSeededMutableAddressSpaceIds];
+        HashSet<string> requiredAddressSpaces = [.. plan.RequiredInputAddressSpaceIds];
         foreach (string addressSpaceId in requiredAddressSpaces.Order(StringComparer.Ordinal))
         {
             if (!InputOptionsByAddressSpace.TryGetValue(addressSpaceId, out string? optionName))

@@ -10,8 +10,11 @@ public sealed partial class CompositionRunService
     {
         Dictionary<string, byte[]> inputBytes = new(StringComparer.Ordinal);
         List<InputArtifactSummary> inputSummaries = [];
-        List<CompositionIssue> issues = [];
-        HashSet<string> readAddressSpaces = new(StringComparer.Ordinal);
+        List<CompositionIssue> issues = ValidateArtifactBindings(request);
+        if (issues.Count > 0)
+        {
+            return new BoundInputs(inputBytes, inputSummaries, issues);
+        }
 
         foreach (string addressSpaceId in request.Plan.RequiredInputAddressSpaceIds)
         {
@@ -22,46 +25,40 @@ public sealed partial class CompositionRunService
                     inputBytes,
                     inputSummaries,
                     issues,
-                    readAddressSpaces,
-                    cancellationToken)
-                .ConfigureAwait(false);
-        }
-
-        foreach (string addressSpaceId in request.Plan.RequiredSeededMutableAddressSpaceIds)
-        {
-            await ReadRequiredBindingAsync(
-                    request,
-                    addressSpaceId,
-                    "input.mutable-binding.missing",
-                    inputBytes,
-                    inputSummaries,
-                    issues,
-                    readAddressSpaces,
-                    cancellationToken)
-                .ConfigureAwait(false);
-        }
-
-        foreach (InputArtifactBinding binding in request.ArtifactBindings.Values.OrderBy(
-                     binding => binding.AddressSpaceId,
-                     StringComparer.Ordinal))
-        {
-            if (readAddressSpaces.Contains(binding.AddressSpaceId) ||
-                !IsSuppliedMutablePlanSpace(request.Plan, binding.AddressSpaceId))
-            {
-                continue;
-            }
-
-            await TryReadBindingAsync(
-                    binding,
-                    inputBytes,
-                    inputSummaries,
-                    issues,
-                    readAddressSpaces,
                     cancellationToken)
                 .ConfigureAwait(false);
         }
 
         return new BoundInputs(inputBytes, inputSummaries, issues);
+    }
+
+    private static List<CompositionIssue> ValidateArtifactBindings(CompositionRunRequest request)
+    {
+        var addressSpaces = request.Plan.AddressSpaces.ToDictionary(
+            addressSpace => addressSpace.AddressSpaceId,
+            StringComparer.Ordinal);
+        List<CompositionIssue> issues = [];
+        foreach (InputArtifactBinding binding in request.ArtifactBindings.Values.OrderBy(
+                     binding => binding.AddressSpaceId,
+                     StringComparer.Ordinal))
+        {
+            if (!addressSpaces.TryGetValue(binding.AddressSpaceId, out AddressSpace? addressSpace))
+            {
+                issues.Add(new CompositionIssue(
+                    CompositionIssueCodes.InputAddressSpaceUnknown,
+                    $"Artifact binding '{binding.BindingId}' targets undeclared address space '{binding.AddressSpaceId}'.",
+                    binding.AddressSpaceId));
+            }
+            else if (addressSpace.Mutability == AddressSpaceMutability.Mutable)
+            {
+                issues.Add(new CompositionIssue(
+                    CompositionIssueCodes.InputMutableAddressSpaceNotAllowed,
+                    $"Artifact binding '{binding.BindingId}' targets engine-owned mutable address space '{binding.AddressSpaceId}'.",
+                    binding.AddressSpaceId));
+            }
+        }
+
+        return issues;
     }
 
     private async ValueTask ReadRequiredBindingAsync(
@@ -71,7 +68,6 @@ public sealed partial class CompositionRunService
         Dictionary<string, byte[]> inputBytes,
         List<InputArtifactSummary> inputSummaries,
         List<CompositionIssue> issues,
-        HashSet<string> readAddressSpaces,
         CancellationToken cancellationToken)
     {
         if (!request.ArtifactBindings.TryGetValue(addressSpaceId, out InputArtifactBinding? binding))
@@ -87,7 +83,6 @@ public sealed partial class CompositionRunService
                 inputBytes,
                 inputSummaries,
                 issues,
-                readAddressSpaces,
                 cancellationToken)
             .ConfigureAwait(false);
     }
@@ -97,7 +92,6 @@ public sealed partial class CompositionRunService
         Dictionary<string, byte[]> inputBytes,
         List<InputArtifactSummary> inputSummaries,
         List<CompositionIssue> issues,
-        HashSet<string> readAddressSpaces,
         CancellationToken cancellationToken)
     {
         try
@@ -112,7 +106,6 @@ public sealed partial class CompositionRunService
                 binding.BindingId,
                 buffer.LongLength,
                 ToSha256Hex(buffer)));
-            _ = readAddressSpaces.Add(binding.AddressSpaceId);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -125,14 +118,6 @@ public sealed partial class CompositionRunService
                 $"Unable to read artifact binding '{binding.BindingId}' ({exception.GetType().Name}).",
                 binding.AddressSpaceId));
         }
-    }
-
-    private static bool IsSuppliedMutablePlanSpace(CompositionPlan plan, string addressSpaceId)
-    {
-        return plan.AddressSpaces.Any(addressSpace =>
-            string.Equals(addressSpace.AddressSpaceId, addressSpaceId, StringComparison.Ordinal) &&
-            addressSpace.Mutability == AddressSpaceMutability.Mutable &&
-            !string.Equals(addressSpace.AddressSpaceId, plan.Initialization.TargetSpaceId, StringComparison.Ordinal));
     }
 
     private sealed record BoundInputs(

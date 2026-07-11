@@ -13,8 +13,8 @@ public sealed partial class CompositionRunService
     {
         if (execution.Status != CompositionExecutionStatus.Succeeded ||
             request.Profile.CompositionKind != CompositionKind.Replace ||
-            request.Plan.Initialization.Kind != ImageInitializationKind.Reference ||
-            request.Plan.Initialization.ReferenceSpaceId is not { } referenceSpaceId ||
+            request.Plan.OutputInitialization.Kind != ImageInitializationKind.Reference ||
+            request.Plan.OutputInitialization.ReferenceSpaceId is not { } referenceSpaceId ||
             !inputBytes.TryGetValue(referenceSpaceId, out byte[]? referenceBytes) ||
             referenceBytes.Length != outputBytes.Length)
         {

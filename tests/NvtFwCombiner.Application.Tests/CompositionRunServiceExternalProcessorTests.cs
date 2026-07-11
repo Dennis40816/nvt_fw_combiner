@@ -156,6 +156,34 @@ public sealed partial class CompositionRunServiceTests
         Assert.DoesNotContain(result.Report.Issues, issue => issue.Code == ReportIssueCodes.UnexpectedOutputDifference);
     }
 
+    /// <summary>Verifies Replace differences use only the selected output clone and output-target operations.</summary>
+    [Fact]
+    public async Task ReplaceReportIgnoresNonOutputReferenceInitializerAndMutations()
+    {
+        var service = new CompositionRunService(
+            new FakeArtifactReader(new Dictionary<string, byte[]>
+            {
+                ["output-reference-artifact"] = [0x10, 0x20, 0x30, 0x40],
+                ["scratch-reference-artifact"] = [0xA0, 0xB0, 0xC0, 0xD0],
+            }),
+            new FakeClock([FirstTimestamp, SecondTimestamp]));
+
+        CompositionRunResult result = await service.PreviewAsync(
+            CreateMultiReferenceReplaceRequest(),
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal([0x10, 0x99, 0x30, 0x40], result.OutputBytes.ToArray());
+        Assert.Equal(["output-image", "scratch"], result.Report.Mutations.Select(item => item.TargetSpaceId));
+        OutputDifferenceSummary difference = Assert.Single(result.Report.OutputDifferences);
+        Assert.Equal(new ByteRange(1, 1), difference.Range);
+        Assert.Equal("20", difference.BeforeHexPreview);
+        Assert.Equal("99", difference.AfterHexPreview);
+        Assert.Equal(OutputDifferenceClassifications.DeclaredReplacement, difference.Classification);
+        Assert.Equal("fill-output", difference.Evidence);
+        Assert.DoesNotContain(result.Report.Issues, issue => issue.Code == ReportIssueCodes.UnexpectedOutputDifference);
+    }
+
     /// <summary>Verifies a modeled normal-header range reaches the report as a named field, not just a CRC bucket.</summary>
     [Fact]
     public async Task ReplaceReportNamesNt51926DlmCrcZero()

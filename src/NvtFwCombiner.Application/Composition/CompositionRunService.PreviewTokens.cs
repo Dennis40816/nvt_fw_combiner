@@ -37,11 +37,16 @@ public sealed partial class CompositionRunService
 
     private static void AppendPlanFingerprint(StringBuilder builder, CompositionPlan plan)
     {
-        AppendTokenField(builder, "plan.init.kind", plan.Initialization.Kind.ToString());
-        AppendTokenField(builder, "plan.init.target", plan.Initialization.TargetSpaceId);
-        AppendTokenField(builder, "plan.init.reference", plan.Initialization.ReferenceSpaceId ?? string.Empty);
-        AppendTokenField(builder, "plan.init.capacity", plan.Initialization.Capacity.ToString(CultureInfo.InvariantCulture));
-        AppendTokenField(builder, "plan.init.fill", plan.Initialization.FillByte.ToString(CultureInfo.InvariantCulture));
+        AppendTokenField(builder, "plan.output-space", plan.OutputSpaceId);
+        foreach (ImageInitialization initialization in plan.Initializations)
+        {
+            AppendTokenField(builder, "plan.init.kind", initialization.Kind.ToString());
+            AppendTokenField(builder, "plan.init.target", initialization.TargetSpaceId);
+            AppendTokenField(builder, "plan.init.reference", initialization.ReferenceSpaceId ?? string.Empty);
+            AppendTokenField(builder, "plan.init.capacity", initialization.Capacity.ToString(CultureInfo.InvariantCulture));
+            AppendTokenField(builder, "plan.init.fill", initialization.FillByte.ToString(CultureInfo.InvariantCulture));
+        }
+
         foreach (AddressSpace addressSpace in plan.AddressSpaces)
         {
             AppendTokenField(builder, "plan.space.id", addressSpace.AddressSpaceId);

@@ -6,8 +6,11 @@ public static class CompositionIssueCodes
     /// <summary>Required immutable input bytes are missing.</summary>
     public const string InputAddressSpaceMissing = "input.address-space.missing";
 
-    /// <summary>Required mutable seed bytes are missing.</summary>
-    public const string InputMutableAddressSpaceMissing = "input.mutable-address-space.missing";
+    /// <summary>Caller bytes targeted an engine-owned mutable address space.</summary>
+    public const string InputMutableAddressSpaceNotAllowed = "execution.input.mutable-not-allowed";
+
+    /// <summary>Caller bytes targeted an undeclared address space.</summary>
+    public const string InputAddressSpaceUnknown = "execution.input.address-space-unknown";
 
     /// <summary>Input bytes do not satisfy the declared address-space length policy.</summary>
     public const string InputAddressSpaceLengthMismatch = "input.address-space.length-mismatch";

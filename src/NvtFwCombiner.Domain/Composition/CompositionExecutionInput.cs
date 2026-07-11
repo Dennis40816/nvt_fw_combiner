@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Domain.Composition;
 
-/// <summary>Provides immutable and optional seeded mutable address-space bytes for one execution.</summary>
+/// <summary>Provides caller-owned address-space bytes for one execution request.</summary>
 public sealed class CompositionExecutionInput
 {
     private readonly Dictionary<string, byte[]> _addressSpaceBytes;
@@ -17,7 +17,13 @@ public sealed class CompositionExecutionInput
             ArgumentNullException.ThrowIfNull(item.Value);
             _addressSpaceBytes.Add(item.Key, [.. item.Value]);
         }
+
+        string[] addressSpaceIds = [.. _addressSpaceBytes.Keys];
+        Array.Sort(addressSpaceIds, StringComparer.Ordinal);
+        AddressSpaceIds = Array.AsReadOnly(addressSpaceIds);
     }
+
+    internal IReadOnlyList<string> AddressSpaceIds { get; }
 
     internal bool TryGetBytes(string addressSpaceId, out ReadOnlyMemory<byte> bytes)
     {

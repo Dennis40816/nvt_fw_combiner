@@ -20,7 +20,8 @@ public sealed partial class CompositionRunServiceTests
             outputFileName ?? profile.DefaultOutputFileName);
     }
 
-    private static CompositionRunRequest CreateScratchRequest()
+    private static CompositionRunRequest CreateScratchRequest(
+        IReadOnlyList<InputArtifactBinding>? bindings = null)
     {
         AddressSpace[] addressSpaces =
         [
@@ -28,7 +29,11 @@ public sealed partial class CompositionRunServiceTests
             new("scratch", 4, AddressSpaceMutability.Mutable),
         ];
         var plan = new CompositionPlan(
-            ImageInitialization.Blank("output-image", 4, 0),
+            [
+                ImageInitialization.Blank("output-image", 4, 0),
+                ImageInitialization.Blank("scratch", 4, 3),
+            ],
+            "output-image",
             addressSpaces,
             [
                 CompositionOperation.CopyRange(
@@ -51,8 +56,98 @@ public sealed partial class CompositionRunServiceTests
                 "general-merge",
                 CompositionKind.Merge),
             plan,
-            [new InputArtifactBinding("scratch", "scratch-safe", "scratch-artifact")],
+            bindings ?? [],
             "scratch.bin");
+    }
+
+    private static CompositionRunRequest CreateInitializerFingerprintRequest(
+        byte scratchFillByte,
+        string outputSpaceId)
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+            new("scratch", 4, AddressSpaceMutability.Mutable),
+        ];
+        var plan = new CompositionPlan(
+            [
+                ImageInitialization.Blank("output-image", 4, 0),
+                ImageInitialization.Blank("scratch", 4, scratchFillByte),
+            ],
+            outputSpaceId,
+            addressSpaces,
+            []);
+        return new CompositionRunRequest(
+            "run-initializer-fingerprint",
+            new CompositionRunProfile(
+                "initializer-fingerprint-profile",
+                "1.0.0",
+                "NT-SYNTHETIC",
+                "fingerprint",
+                "general-merge",
+                CompositionKind.Merge),
+            plan,
+            [],
+            "fingerprint.bin");
+    }
+
+    private static CompositionRunRequest CreateMultiReferenceReplaceRequest()
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("output-reference", 4, AddressSpaceMutability.Immutable),
+            new("scratch-reference", 4, AddressSpaceMutability.Immutable),
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+            new("scratch", 4, AddressSpaceMutability.Mutable),
+        ];
+        var plan = new CompositionPlan(
+            [
+                ImageInitialization.Reference("output-image", "output-reference", 4),
+                ImageInitialization.Reference("scratch", "scratch-reference", 4),
+            ],
+            "output-image",
+            addressSpaces,
+            [
+                CompositionOperation.FillRange(
+                    "fill-output",
+                    10,
+                    "output-image",
+                    new ByteRange(1, 1),
+                    0x99,
+                    OverlapPolicy.Reject,
+                    "mutate selected output"),
+                CompositionOperation.FillRange(
+                    "fill-scratch",
+                    20,
+                    "scratch",
+                    new ByteRange(1, 1),
+                    0xEE,
+                    OverlapPolicy.Reject,
+                    "mutate non-output work buffer"),
+            ]);
+        return new CompositionRunRequest(
+            "run-multi-reference-replace",
+            new CompositionRunProfile(
+                "multi-reference-replace-profile",
+                "1.0.0",
+                "NT-SYNTHETIC",
+                "multi-reference",
+                "general-replace",
+                CompositionKind.Replace,
+                IcNumberInputMode.SingleSelector),
+            plan,
+            [
+                new InputArtifactBinding(
+                    "output-reference",
+                    "output-reference",
+                    "output-reference-artifact"),
+                new InputArtifactBinding(
+                    "scratch-reference",
+                    "scratch-reference",
+                    "scratch-reference-artifact"),
+            ],
+            "multi-reference.bin",
+            icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
     }
 
     private static CompositionRunRequest CreatePaddedInputRequest(byte? inputPaddingByte, string artifactId)

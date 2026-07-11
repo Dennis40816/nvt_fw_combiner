@@ -4,30 +4,57 @@ namespace NvtFwCombiner.Domain.Composition;
 public sealed partial class CompositionPlan
 {
     private readonly Dictionary<string, AddressSpace> _addressSpacesById;
+    private readonly Dictionary<string, ImageInitialization> _initializationsByTargetSpaceId;
+    private readonly ImageInitialization[] _initializations;
 
-    /// <summary>Creates a plan and validates address spaces, operation references, bounds, and overlap policy.</summary>
+    /// <summary>Creates a singleton-initializer plan through the canonical multi-buffer model.</summary>
     public CompositionPlan(
         ImageInitialization initialization,
         IEnumerable<AddressSpace> addressSpaces,
         IEnumerable<CompositionOperation> operations,
         CompositionPlanProvenance? provenance = null)
+        : this(
+            [RequireInitialization(initialization)],
+            RequireInitialization(initialization).TargetSpaceId,
+            addressSpaces,
+            operations,
+            provenance)
     {
-        ArgumentNullException.ThrowIfNull(initialization);
+    }
+
+    /// <summary>Creates a plan with one engine-owned initializer for every mutable address space.</summary>
+    public CompositionPlan(
+        IEnumerable<ImageInitialization> initializations,
+        string outputSpaceId,
+        IEnumerable<AddressSpace> addressSpaces,
+        IEnumerable<CompositionOperation> operations,
+        CompositionPlanProvenance? provenance = null)
+    {
+        ArgumentNullException.ThrowIfNull(initializations);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputSpaceId);
         ArgumentNullException.ThrowIfNull(addressSpaces);
         ArgumentNullException.ThrowIfNull(operations);
 
-        Initialization = initialization;
         AddressSpaces = [.. addressSpaces];
         OrderedOperations = [.. operations.OrderBy(operation => operation.Sequence).ThenBy(operation => operation.OperationId)];
         Provenance = provenance;
         _addressSpacesById = BuildAddressSpaceIndex(AddressSpaces);
+        (_initializations, _initializationsByTargetSpaceId) = BuildInitializationIndex(initializations);
+        Initializations = Array.AsReadOnly(_initializations);
+        OutputSpaceId = outputSpaceId;
 
-        ValidateInitialization();
+        ValidateInitializations();
         ValidateOperations();
     }
 
-    /// <summary>Image initialization applied before operations execute.</summary>
-    public ImageInitialization Initialization { get; }
+    /// <summary>Engine-owned initializers in ordinal target-space order.</summary>
+    public IReadOnlyList<ImageInitialization> Initializations { get; }
+
+    /// <summary>Mutable address space selected as the final composition output.</summary>
+    public string OutputSpaceId { get; }
+
+    /// <summary>Initializer selected by <see cref="OutputSpaceId"/>.</summary>
+    public ImageInitialization OutputInitialization => _initializationsByTargetSpaceId[OutputSpaceId];
 
     /// <summary>Declared address spaces in the plan.</summary>
     public IReadOnlyList<AddressSpace> AddressSpaces { get; }
@@ -45,19 +72,14 @@ public sealed partial class CompositionPlan
             .Select(addressSpace => addressSpace.AddressSpaceId)
             .Order(StringComparer.Ordinal)];
 
-    /// <summary>Mutable non-output address spaces that must be seeded before execution.</summary>
-    public IReadOnlyList<string> RequiredSeededMutableAddressSpaceIds =>
-        [.. AddressSpaces
-            .Where(addressSpace =>
-                addressSpace.Mutability == AddressSpaceMutability.Mutable &&
-                !string.Equals(addressSpace.AddressSpaceId, Initialization.TargetSpaceId, StringComparison.Ordinal) &&
-                RequiresSeededMutableAddressSpace(addressSpace.AddressSpaceId))
-            .Select(addressSpace => addressSpace.AddressSpaceId)
-            .Order(StringComparer.Ordinal)];
-
     internal AddressSpace GetAddressSpace(string addressSpaceId)
     {
         return _addressSpacesById[addressSpaceId];
+    }
+
+    internal bool TryGetAddressSpace(string addressSpaceId, out AddressSpace? addressSpace)
+    {
+        return _addressSpacesById.TryGetValue(addressSpaceId, out addressSpace);
     }
 
     private static Dictionary<string, AddressSpace> BuildAddressSpaceIndex(IEnumerable<AddressSpace> addressSpaces)
@@ -83,6 +105,40 @@ public sealed partial class CompositionPlan
         }
 
         return byId;
+    }
+
+    private static (
+        ImageInitialization[] Ordered,
+        Dictionary<string, ImageInitialization> ByTargetSpaceId) BuildInitializationIndex(
+        IEnumerable<ImageInitialization> initializations)
+    {
+        ImageInitialization[] ordered = [.. initializations];
+        if (ordered.Length == 0 || ordered.Any(static initialization => initialization is null))
+        {
+            throw new ArgumentException(
+                "Composition plans require non-null mutable-space initializers.",
+                nameof(initializations));
+        }
+
+        Array.Sort(ordered, static (left, right) =>
+            StringComparer.Ordinal.Compare(left.TargetSpaceId, right.TargetSpaceId));
+        Dictionary<string, ImageInitialization> byTargetSpaceId = new(StringComparer.Ordinal);
+        foreach (ImageInitialization initialization in ordered)
+        {
+            if (!byTargetSpaceId.TryAdd(initialization.TargetSpaceId, initialization))
+            {
+                throw new ArgumentException(
+                    $"Address space '{initialization.TargetSpaceId}' has more than one initializer.",
+                    nameof(initializations));
+            }
+        }
+
+        return (ordered, byTargetSpaceId);
+    }
+
+    private static ImageInitialization RequireInitialization(ImageInitialization? initialization)
+    {
+        return initialization ?? throw new ArgumentNullException(nameof(initialization));
     }
 
 }

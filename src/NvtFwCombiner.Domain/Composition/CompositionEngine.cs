@@ -62,7 +62,7 @@ public static partial class CompositionEngine
         }
 
         return CompositionExecutionResult.Succeeded(
-            mutableBuffers[plan.Initialization.TargetSpaceId],
+            mutableBuffers[plan.OutputSpaceId],
             mutations,
             normalizedInputs.Issues);
     }

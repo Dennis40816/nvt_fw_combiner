@@ -225,10 +225,4 @@ public sealed partial class CompositionPlan
              reader.SourceRange.Value.Overlaps(writer.TargetRange));
     }
 
-    private bool RequiresSeededMutableAddressSpace(string addressSpaceId)
-    {
-        return OrderedOperations.Any(operation =>
-            string.Equals(operation.TargetSpaceId, addressSpaceId, StringComparison.Ordinal) ||
-            string.Equals(operation.SourceSpaceId, addressSpaceId, StringComparison.Ordinal));
-    }
 }

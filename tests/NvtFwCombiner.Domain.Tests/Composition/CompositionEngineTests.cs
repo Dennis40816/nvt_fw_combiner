@@ -247,9 +247,9 @@ public sealed partial class CompositionEngineTests
         Assert.Contains("Unsupported issue severity", exception.Message, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies caller-supplied initialized target bytes are ignored before padding normalization.</summary>
+    /// <summary>Verifies caller-supplied output bytes are rejected as unauthorized mutable input.</summary>
     [Fact]
-    public void InitializedTargetInputBytesAreIgnoredBeforePadding()
+    public void CallerSuppliedOutputBytesAreRejected()
     {
         CompositionPlan plan = CreateBlankPlan(3);
         var input = new CompositionExecutionInput(new Dictionary<string, byte[]>
@@ -259,8 +259,9 @@ public sealed partial class CompositionEngineTests
 
         CompositionExecutionResult result = CompositionEngine.Execute(plan, input);
 
-        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0xFF, 0xFF, 0xFF], result.OutputBytes.ToArray());
+        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal(CompositionIssueCodes.InputMutableAddressSpaceNotAllowed, issue.Code);
     }
 
     /// <summary>Verifies padding a source beyond the runtime array limit returns a structured issue.</summary>
@@ -354,9 +355,9 @@ public sealed partial class CompositionEngineTests
         Assert.Empty(result.OutputBytes.ToArray());
     }
 
-    /// <summary>Verifies mutable address spaces outside initialization must be explicitly seeded.</summary>
+    /// <summary>Verifies non-output mutable spaces are initialized by the engine before operations.</summary>
     [Fact]
-    public void MissingMutableTargetSeedFailsClosed()
+    public void BlankWorkBufferIsInitializedBeforeOperations()
     {
         AddressSpace[] addressSpaces =
         [
@@ -364,12 +365,25 @@ public sealed partial class CompositionEngineTests
             new("scratch", 4, AddressSpaceMutability.Mutable),
         ];
         var plan = new CompositionPlan(
-            ImageInitialization.Blank("output-image", 4, 0),
+            [
+                ImageInitialization.Blank("output-image", 4, 0),
+                ImageInitialization.Blank("scratch", 4, 0x5A),
+            ],
+            "output-image",
             addressSpaces,
             [
-                CompositionOperation.FillRange(
-                    "fill-scratch",
+                CompositionOperation.CopyRange(
+                    "copy-scratch",
                     10,
+                    "scratch",
+                    new ByteRange(0, 2),
+                    "output-image",
+                    new ByteRange(0, 2),
+                    OverlapPolicy.Reject,
+                    "copy initialized scratch"),
+                CompositionOperation.FillRange(
+                    "mutate-scratch",
+                    20,
                     "scratch",
                     new ByteRange(0, 2),
                     0x11,
@@ -379,9 +393,9 @@ public sealed partial class CompositionEngineTests
 
         CompositionExecutionResult result = CompositionEngine.Execute(plan, EmptyInput());
 
-        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
-        CompositionIssue issue = Assert.Single(result.Issues);
-        Assert.Equal(CompositionIssueCodes.InputMutableAddressSpaceMissing, issue.Code);
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal([0x5A, 0x5A, 0, 0], result.OutputBytes.ToArray());
+        Assert.Equal(["output-image", "scratch"], result.Mutations.Select(item => item.TargetSpaceId));
     }
 
 }
