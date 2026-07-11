@@ -1,6 +1,6 @@
 # ADR 0009: Compile General Replace binary patches as explicit mappings
 
-- Status: Accepted
+- Status: Partially superseded by ADR 0014 for the Home Hex Editor UI
 - Date: 2026-07-10
 - Owners: Product owner + architecture owner; individual IC/range enablement remains firmware-owner reviewed
 
@@ -32,7 +32,7 @@ True insert, delete, and image-length changes are not General Replace patch oper
 
 ## Consequences
 
-- The experimental Hex Editor is an independent Home-launched workspace; it is not a General Replace authoring mode or a Replace-page section. UI and CLI share the same `WorkbenchGeneralReplacePatchInput` contract and receive the same profile/postbuild/report behavior.
+- The `WorkbenchGeneralReplacePatchInput` contract remains available to General Replace core/CLI callers. The Home Hex Editor no longer uses it; raw BIN editing is governed by ADR 0014.
 - A virtual patch is visible in reports as a named generated input rather than a local file path.
 - Existing file mapping rows remain supported and can be combined with non-overlapping patches.
 - Repeated preview/build uses the immutable virtual bytes supplied in the request, so the preview token captures the same input hash and plan fingerprint as a regular mapping.

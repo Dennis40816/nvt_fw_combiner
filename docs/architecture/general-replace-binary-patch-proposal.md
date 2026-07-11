@@ -1,14 +1,18 @@
-# General Replace Binary Patch Editor Proposal
+# General Replace Binary Patch Proposal (Historical UI Scope)
 
-- Status: Implemented candidate for `0.8.1-dev.0`; requires the release and firmware-owner gates recorded below before promotion.
+- Status: General Replace core/CLI contract retained; Home Hex Editor UI scope superseded by ADR 0014.
 - Date: 2026-07-10
 - Scope: General Replace authoring only; no new firmware range, header, CRC, or postbuild fact.
 
-## Goal
+## Scope note
+
+This document remains the reference for the profile-governed `WorkbenchGeneralReplacePatchInput` contract used by General Replace core/CLI callers. The Home Hex Editor is now a raw BIN utility and follows [ADR 0014](../adr/0014-raw-binary-utility-editor.md); it does not use this proposal's profile, postbuild, or report behavior.
+
+## Original goal
 
 Allow an advanced user to inspect a selected reference BIN, edit a profile-authorized byte range in a hex view, review the exact before/after bytes, and export a new complete BIN without modifying the original file.
 
-## User flow
+## Original user flow (superseded for the Home Hex Editor)
 
 1. Open the independent `Hex Editor` entry from `Home`. Standard DP, CtrlRAM, and General Replace remain separate normal workflows on the Replace page.
 2. The Hex Editor opens its own workspace and device context; it does not show General Replace mapping controls.
