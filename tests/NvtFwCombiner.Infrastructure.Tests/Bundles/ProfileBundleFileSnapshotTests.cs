@@ -7,18 +7,18 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Infrastructure.Tests.Bundles;
 
-/// <summary>Tests bounded hash-verified snapshots of bundle entry files.</summary>
+/// <summary>Tests bounded private snapshots of bundle manifest and entry files.</summary>
 public sealed class ProfileBundleFileSnapshotTests
 {
     /// <summary>Verifies one listed file is read, hashed, and parsed from its private snapshot.</summary>
     [Fact]
-    public void ReadReturnsVerifiedStrictJsonSnapshot()
+    public void ReadEntryReturnsVerifiedStrictJsonSnapshot()
     {
         using var workspace = TempWorkspace.Create("nfc-bundle-snapshot");
         byte[] content = Encoding.UTF8.GetBytes(/*lang=json,strict*/ "{\"value\":1}");
         _ = workspace.Write("profiles/profile.json", content);
 
-        var snapshot = ProfileBundleFileSnapshot.Read(
+        var snapshot = ProfileBundleFileSnapshot.ReadEntry(
             workspace.Root,
             Entry(Hash(content)),
             1024);
@@ -26,19 +26,19 @@ public sealed class ProfileBundleFileSnapshotTests
 
         Assert.Equal("profiles/profile.json", snapshot.ManifestPath);
         Assert.Equal(content.Length, snapshot.Length);
-        Assert.Equal(Hash(content), snapshot.ContentHash);
+        Assert.Equal(Hash(content), snapshot.ActualSha256);
         Assert.Equal(1, document.RootElement.GetProperty("value").GetInt32());
     }
 
-    /// <summary>Verifies manifest hash mismatch fails before content can be parsed.</summary>
+    /// <summary>Verifies declared entry hash mismatch fails before content can be parsed.</summary>
     [Fact]
-    public void ReadRejectsContentHashMismatch()
+    public void ReadEntryRejectsContentHashMismatch()
     {
         using var workspace = TempWorkspace.Create("nfc-bundle-snapshot");
         byte[] content = Encoding.UTF8.GetBytes("{}");
         _ = workspace.Write("profiles/profile.json", content);
 
-        _ = Assert.Throws<InvalidDataException>(() => ProfileBundleFileSnapshot.Read(
+        _ = Assert.Throws<InvalidDataException>(() => ProfileBundleFileSnapshot.ReadEntry(
             workspace.Root,
             Entry(new string('0', 64)),
             1024));
@@ -46,13 +46,13 @@ public sealed class ProfileBundleFileSnapshotTests
 
     /// <summary>Verifies caller size limits are enforced before allocating the snapshot.</summary>
     [Fact]
-    public void ReadRejectsOversizedEntry()
+    public void ReadEntryRejectsOversizedFile()
     {
         using var workspace = TempWorkspace.Create("nfc-bundle-snapshot");
         byte[] content = Encoding.UTF8.GetBytes(/*lang=json,strict*/ "{\"value\":1}");
         _ = workspace.Write("profiles/profile.json", content);
 
-        _ = Assert.Throws<InvalidDataException>(() => ProfileBundleFileSnapshot.Read(
+        _ = Assert.Throws<InvalidDataException>(() => ProfileBundleFileSnapshot.ReadEntry(
             workspace.Root,
             Entry(Hash(content)),
             content.Length - 1));
@@ -60,12 +60,12 @@ public sealed class ProfileBundleFileSnapshotTests
 
     /// <summary>Verifies later source-file mutation cannot change an accepted snapshot.</summary>
     [Fact]
-    public void ReadSnapshotDoesNotObserveLaterFileMutation()
+    public void ReadEntrySnapshotDoesNotObserveLaterFileMutation()
     {
         using var workspace = TempWorkspace.Create("nfc-bundle-snapshot");
         byte[] content = Encoding.UTF8.GetBytes(/*lang=json,strict*/ "{\"value\":1}");
         string path = workspace.Write("profiles/profile.json", content);
-        var snapshot = ProfileBundleFileSnapshot.Read(
+        var snapshot = ProfileBundleFileSnapshot.ReadEntry(
             workspace.Root,
             Entry(Hash(content)),
             1024);
@@ -83,7 +83,7 @@ public sealed class ProfileBundleFileSnapshotTests
         using var workspace = TempWorkspace.Create("nfc-bundle-snapshot");
         byte[] content = Encoding.UTF8.GetBytes(/*lang=json,strict*/ "{\"id\":1,\"id\":2}");
         _ = workspace.Write("profiles/profile.json", content);
-        var snapshot = ProfileBundleFileSnapshot.Read(
+        var snapshot = ProfileBundleFileSnapshot.ReadEntry(
             workspace.Root,
             Entry(Hash(content)),
             1024);
@@ -99,15 +99,35 @@ public sealed class ProfileBundleFileSnapshotTests
         byte[] content = Encoding.UTF8.GetBytes("{}");
         _ = workspace.Write("profiles/profile.json", content);
 
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => ProfileBundleFileSnapshot.Read(
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => ProfileBundleFileSnapshot.ReadEntry(
             workspace.Root,
             Entry(Hash(content)),
             0));
-        var snapshot = ProfileBundleFileSnapshot.Read(
+        var snapshot = ProfileBundleFileSnapshot.ReadEntry(
             workspace.Root,
             Entry(Hash(content)),
             1024);
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => snapshot.ParseStrictJson(0));
+    }
+
+    /// <summary>Verifies the manifest is privately captured with its actual hash but no self-trust claim.</summary>
+    [Fact]
+    public void ReadManifestReturnsActualHashAndPrivateSnapshot()
+    {
+        using var workspace = TempWorkspace.Create("nfc-bundle-snapshot");
+        byte[] content = Encoding.UTF8.GetBytes(/*lang=json,strict*/ "{\"schemaVersion\":\"1.0\"}");
+        string path = workspace.Write("profile-bundle.json", content);
+
+        var snapshot = ProfileBundleFileSnapshot.ReadManifest(
+            workspace.Root,
+            "profile-bundle.json",
+            1024);
+        File.WriteAllText(path, /*lang=json,strict*/ "{\"schemaVersion\":\"changed\"}");
+        using JsonDocument document = snapshot.ParseStrictJson(16);
+
+        Assert.Equal("profile-bundle.json", snapshot.ManifestPath);
+        Assert.Equal(Hash(content), snapshot.ActualSha256);
+        Assert.Equal("1.0", document.RootElement.GetProperty("schemaVersion").GetString());
     }
 
     /// <summary>Verifies a Unix FIFO is rejected before a read-only open can block.</summary>
@@ -123,7 +143,7 @@ public sealed class ProfileBundleFileSnapshotTests
         UnixSpecialFileTestFixture.CreateFifo(workspace.PathFor("profiles/profile.json"));
 
         UnauthorizedAccessException exception = Assert.Throws<UnauthorizedAccessException>(() =>
-            ProfileBundleFileSnapshot.Read(
+            ProfileBundleFileSnapshot.ReadEntry(
                 workspace.Root,
                 Entry(new string('0', 64)),
                 1024));

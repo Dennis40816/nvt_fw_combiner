@@ -38,7 +38,7 @@ internal sealed class ProfileBundleEntrySnapshot
         ArgumentNullException.ThrowIfNull(entry);
         ArgumentNullException.ThrowIfNull(fileSnapshot);
         if (!StringComparer.Ordinal.Equals(entry.Path, fileSnapshot.ManifestPath) ||
-            !StringComparer.Ordinal.Equals(entry.ContentHash, fileSnapshot.ContentHash))
+            !StringComparer.Ordinal.Equals(entry.ContentHash, fileSnapshot.ActualSha256))
         {
             throw new ArgumentException(
                 "Bundle entry metadata does not identify the supplied file snapshot.",
@@ -109,7 +109,7 @@ internal sealed class ProfileBundleEntrySnapshotCollection
             }
 
             int maximumBytes = Math.Min(limits.MaximumEntryBytes, remainingBytes);
-            var fileSnapshot = ProfileBundleFileSnapshot.Read(
+            var fileSnapshot = ProfileBundleFileSnapshot.ReadEntry(
                 bundleRoot,
                 entry,
                 maximumBytes);

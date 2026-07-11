@@ -4,33 +4,59 @@ using NvtFwCombiner.Infrastructure.Files;
 
 namespace NvtFwCombiner.Infrastructure.Bundles;
 
-/// <summary>One hash-verified private byte snapshot of a manifest-listed bundle file.</summary>
+/// <summary>One bounded private byte snapshot of a bundle manifest or listed entry file.</summary>
 internal sealed class ProfileBundleFileSnapshot
 {
     private readonly byte[] _content;
 
-    private ProfileBundleFileSnapshot(string manifestPath, string contentHash, byte[] ownedContent)
+    private ProfileBundleFileSnapshot(string manifestPath, string actualSha256, byte[] ownedContent)
     {
         ManifestPath = manifestPath;
-        ContentHash = contentHash;
+        ActualSha256 = actualSha256;
         _content = ownedContent;
     }
 
     internal string ManifestPath { get; }
 
-    internal string ContentHash { get; }
+    internal string ActualSha256 { get; }
 
     internal int Length => _content.Length;
 
-    internal static ProfileBundleFileSnapshot Read(
+    internal static ProfileBundleFileSnapshot ReadManifest(
+        string bundleRoot,
+        string manifestPath,
+        int maximumBytes)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(manifestPath);
+        return ReadCore(bundleRoot, manifestPath, maximumBytes);
+    }
+
+    internal static ProfileBundleFileSnapshot ReadEntry(
         string bundleRoot,
         ProfileBundleEntry entry,
         int maximumBytes)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(bundleRoot);
         ArgumentNullException.ThrowIfNull(entry);
+        ProfileBundleFileSnapshot snapshot = ReadCore(bundleRoot, entry.Path, maximumBytes);
+        return !StringComparer.Ordinal.Equals(entry.ContentHash, snapshot.ActualSha256)
+            ? throw new InvalidDataException($"Bundle entry '{entry.Path}' content hash does not match its manifest.")
+            : snapshot;
+    }
+
+    internal JsonDocument ParseStrictJson(int maximumDepth)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumDepth);
+        return StrictJsonDocumentReader.Parse(_content, Math.Max(1, _content.Length), maximumDepth);
+    }
+
+    private static ProfileBundleFileSnapshot ReadCore(
+        string bundleRoot,
+        string manifestPath,
+        int maximumBytes)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(bundleRoot);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
-        string fullPath = FileSystemPathGuard.ResolveExistingManifestFileUnderRoot(entry.Path, bundleRoot);
+        string fullPath = FileSystemPathGuard.ResolveExistingManifestFileUnderRoot(manifestPath, bundleRoot);
         using var stream = new FileStream(fullPath, new FileStreamOptions
         {
             Mode = FileMode.Open,
@@ -39,31 +65,23 @@ internal sealed class ProfileBundleFileSnapshot
             Options = FileOptions.SequentialScan,
             BufferSize = 4096,
         });
-        RegularFileGuard.RequireOpenHandle(stream.SafeFileHandle, entry.Path);
+        RegularFileGuard.RequireOpenHandle(stream.SafeFileHandle, manifestPath);
         long length = stream.Length;
         if (length > maximumBytes)
         {
             throw new InvalidDataException(
-                $"Bundle entry '{entry.Path}' exceeds the {maximumBytes}-byte limit.");
+                $"Bundle file '{manifestPath}' exceeds the {maximumBytes}-byte limit.");
         }
 
         byte[] content = new byte[checked((int)length)];
         stream.ReadExactly(content);
         if (stream.ReadByte() != -1 || stream.Length != length)
         {
-            throw new IOException($"Bundle entry '{entry.Path}' changed while it was being read.");
+            throw new IOException($"Bundle file '{manifestPath}' changed while it was being read.");
         }
 
-        _ = FileSystemPathGuard.ResolveExistingManifestFileUnderRoot(entry.Path, bundleRoot);
-        string contentHash = Convert.ToHexString(SHA256.HashData(content)).ToLowerInvariant();
-        return !StringComparer.Ordinal.Equals(entry.ContentHash, contentHash)
-            ? throw new InvalidDataException($"Bundle entry '{entry.Path}' content hash does not match its manifest.")
-            : new ProfileBundleFileSnapshot(entry.Path, contentHash, content);
-    }
-
-    internal JsonDocument ParseStrictJson(int maximumDepth)
-    {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumDepth);
-        return StrictJsonDocumentReader.Parse(_content, Math.Max(1, _content.Length), maximumDepth);
+        _ = FileSystemPathGuard.ResolveExistingManifestFileUnderRoot(manifestPath, bundleRoot);
+        string actualSha256 = Convert.ToHexString(SHA256.HashData(content)).ToLowerInvariant();
+        return new ProfileBundleFileSnapshot(manifestPath, actualSha256, content);
     }
 }
