@@ -20,8 +20,10 @@ physical facts only:
 
 An image-map shape selects one exact capacity and declares
 `coveragePolicy = complete-with-explicit-gaps`. Referenced regions must stay in bounds, preserve
-parent containment, reject sibling overlap, and cover the complete capacity. Every gap is an
-explicit `reserved` or `unmapped` region.
+proper parent containment, reject sibling overlap, and cover the complete capacity. Root regions
+partition the full image range. Whenever a region has children, its direct children also partition
+the complete parent range. Every otherwise unclassified interval is therefore an explicit
+`reserved` or `unmapped` region rather than an implicit gap.
 
 Physical owner/kind is the canonical classification. There is no parallel tag catalog. During v1
 compatibility migration, an adapter may project owner/kind to legacy `classificationTags`; that

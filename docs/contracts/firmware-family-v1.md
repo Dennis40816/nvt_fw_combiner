@@ -36,8 +36,10 @@ matches, the wrong count, an out-of-range result, or a failed assertion rejects 
 
 Each image-map shape has one exact `capacityBytes` and declares
 `coveragePolicy = "complete-with-explicit-gaps"`. Semantic validation proves that referenced region
-sets use the selected address space, stay in bounds, preserve parent containment and sibling overlap
-rules, and cover the root capacity. Every gap is represented by a `reserved` or `unmapped` region.
+sets use the selected address space, stay in bounds, preserve proper parent containment and sibling
+overlap rules, and partition the root capacity. Every region that has children is likewise
+partitioned by its direct children. Every otherwise unclassified interval is represented by a
+`reserved` or `unmapped` region.
 `customer-information` and `ctrlram` are physical classifications, not workflow permissions.
 
 ## Aliases
