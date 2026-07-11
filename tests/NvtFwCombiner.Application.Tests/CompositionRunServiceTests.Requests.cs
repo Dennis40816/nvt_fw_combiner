@@ -14,8 +14,7 @@ public sealed partial class CompositionRunServiceTests
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         return new CompositionRunRequest(
             "run-standard-synthetic",
-            ToRunProfile(profile),
-            compile.Plan!,
+            compile.CompiledComposition!,
             bindings ?? DefaultBindings(),
             outputFileName ?? profile.DefaultOutputFileName);
     }
@@ -46,16 +45,19 @@ public sealed partial class CompositionRunServiceTests
                     OverlapPolicy.Reject,
                     "copy scratch seed"),
             ]);
-        return new CompositionRunRequest(
-            "run-scratch",
-            new CompositionRunProfile(
+        CompiledComposition compiledComposition = CreateCompiledComposition(
+            plan,
+            new CompositionPlanProvenance(
                 "scratch-profile",
                 "1.0.0",
                 "NT-SYNTHETIC",
                 "scratch",
                 "general-merge",
                 CompositionKind.Merge),
-            plan,
+            "scratch.bin");
+        return new CompositionRunRequest(
+            "run-scratch",
+            compiledComposition,
             bindings ?? [],
             "scratch.bin");
     }
@@ -77,16 +79,19 @@ public sealed partial class CompositionRunServiceTests
             outputSpaceId,
             addressSpaces,
             []);
-        return new CompositionRunRequest(
-            "run-initializer-fingerprint",
-            new CompositionRunProfile(
+        CompiledComposition compiledComposition = CreateCompiledComposition(
+            plan,
+            new CompositionPlanProvenance(
                 "initializer-fingerprint-profile",
                 "1.0.0",
                 "NT-SYNTHETIC",
                 "fingerprint",
                 "general-merge",
                 CompositionKind.Merge),
-            plan,
+            "fingerprint.bin");
+        return new CompositionRunRequest(
+            "run-initializer-fingerprint",
+            compiledComposition,
             [],
             "fingerprint.bin");
     }
@@ -125,17 +130,20 @@ public sealed partial class CompositionRunServiceTests
                     OverlapPolicy.Reject,
                     "mutate non-output work buffer"),
             ]);
-        return new CompositionRunRequest(
-            "run-multi-reference-replace",
-            new CompositionRunProfile(
+        CompiledComposition compiledComposition = CreateCompiledComposition(
+            plan,
+            new CompositionPlanProvenance(
                 "multi-reference-replace-profile",
                 "1.0.0",
                 "NT-SYNTHETIC",
                 "multi-reference",
                 "general-replace",
-                CompositionKind.Replace,
-                IcNumberInputMode.SingleSelector),
-            plan,
+                CompositionKind.Replace),
+            "multi-reference.bin",
+            CompiledIcNumberPolicy.SingleSelector);
+        return new CompositionRunRequest(
+            "run-multi-reference-replace",
+            compiledComposition,
             [
                 new InputArtifactBinding(
                     "output-reference",
@@ -157,6 +165,13 @@ public sealed partial class CompositionRunServiceTests
             new("output-image", 4, AddressSpaceMutability.Mutable),
             new("short-input", 4, AddressSpaceMutability.Immutable, inputPaddingByte),
         ];
+        var provenance = new CompositionPlanProvenance(
+            "padded-input-profile",
+            "1.0.0",
+            "NT-SYNTHETIC",
+            "standard-merge",
+            "standard-merge",
+            CompositionKind.Merge);
         var plan = new CompositionPlan(
             ImageInitialization.Blank("output-image", 4, 0),
             addressSpaces,
@@ -171,24 +186,11 @@ public sealed partial class CompositionRunServiceTests
                     OverlapPolicy.Reject,
                     "copy padded input"),
             ],
-            new CompositionPlanProvenance(
-                "padded-input-profile",
-                "1.0.0",
-                "NT-SYNTHETIC",
-                "standard-merge",
-                "standard-merge",
-                CompositionKind.Merge));
+            provenance);
 
         return new CompositionRunRequest(
             "run-padded-input",
-            new CompositionRunProfile(
-                "padded-input-profile",
-                "1.0.0",
-                "NT-SYNTHETIC",
-                "standard-merge",
-                "standard-merge",
-                CompositionKind.Merge),
-            plan,
+            CreateCompiledComposition(plan, provenance, "padded.bin"),
             [new InputArtifactBinding("short-input", "short-safe", artifactId)],
             "padded.bin");
     }
@@ -228,15 +230,11 @@ public sealed partial class CompositionRunServiceTests
 
         return new CompositionRunRequest(
             "run-ctrlram-replace",
-            new CompositionRunProfile(
-                provenance.ProfileId,
-                provenance.ProfileVersion,
-                provenance.IcId,
-                provenance.ModeId,
-                provenance.ExperienceId,
-                provenance.CompositionKind,
-                IcNumberInputMode.SingleSelector),
-            plan,
+            CreateCompiledComposition(
+                plan,
+                provenance,
+                "ctrlram.bin",
+                CompiledIcNumberPolicy.SingleSelector),
             [
                 new InputArtifactBinding("reference-base", "reference-safe", "reference-artifact"),
                 new InputArtifactBinding("ctrlram-input", "ctrlram-safe", ctrlRamArtifactId),
@@ -251,8 +249,7 @@ public sealed partial class CompositionRunServiceTests
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         return new CompositionRunRequest(
             "run-dp-replace",
-            ToRunProfile(profile),
-            compile.Plan!,
+            compile.CompiledComposition!,
             CreateDpReplaceBindings(),
             profile.DefaultOutputFileName,
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, [icNumber]));
@@ -277,19 +274,13 @@ public sealed partial class CompositionRunServiceTests
             addressSpaces,
             [],
             provenance);
-        var profile = new CompositionRunProfile(
-            provenance.ProfileId,
-            provenance.ProfileVersion,
-            provenance.IcId,
-            provenance.ModeId,
-            provenance.ExperienceId,
-            provenance.CompositionKind,
-            IcNumberInputMode.NumericSelector);
-
         return new CompositionRunRequest(
             "run-numeric-replace",
-            profile,
-            plan,
+            CreateCompiledComposition(
+                plan,
+                provenance,
+                "numeric.bin",
+                CompiledIcNumberPolicy.NumericSelector),
             [new InputArtifactBinding("reference-base", "reference-safe", "reference-artifact")],
             "numeric.bin",
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.NumericSelector, [icCount]));
@@ -322,16 +313,19 @@ public sealed partial class CompositionRunServiceTests
                     OverlapPolicy.ReplaceExisting,
                     "final fill"),
             ]);
-        return new CompositionRunRequest(
-            runId,
-            new CompositionRunProfile(
+        CompiledComposition compiledComposition = CreateCompiledComposition(
+            plan,
+            new CompositionPlanProvenance(
                 "overwrite-profile",
                 "1.0.0",
                 "NT-SYNTHETIC",
                 "overwrite",
                 "general-merge",
                 CompositionKind.Merge),
-            plan,
+            "overwrite.bin");
+        return new CompositionRunRequest(
+            runId,
+            compiledComposition,
             [],
             "overwrite.bin");
     }

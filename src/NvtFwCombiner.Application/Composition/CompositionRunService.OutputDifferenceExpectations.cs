@@ -9,10 +9,10 @@ public sealed partial class CompositionRunService
     private static IEnumerable<OutputDifferenceExpectation> CreateOutputDifferenceExpectations(
         CompositionRunRequest request)
     {
-        string targetSpaceId = request.Plan.OutputSpaceId;
-        string? referenceSpaceId = request.Plan.OutputInitialization.ReferenceSpaceId;
+        string targetSpaceId = request.CompiledComposition.Plan.OutputSpaceId;
+        string? referenceSpaceId = request.CompiledComposition.Plan.OutputInitialization.ReferenceSpaceId;
         string icNumber = request.IcNumberSelection?.ToStableToken() ?? "unspecified";
-        foreach (CompositionOperation operation in request.Plan.OrderedOperations)
+        foreach (CompositionOperation operation in request.CompiledComposition.Plan.OrderedOperations)
         {
             if (!string.Equals(operation.TargetSpaceId, targetSpaceId, StringComparison.Ordinal))
             {
@@ -30,7 +30,7 @@ public sealed partial class CompositionRunService
                         OutputDifferenceClassifications.DeclaredReplacement,
                         true,
                         operation.OperationId,
-                        $"Accepted: staged replacement source '{binding.SourceSpaceId}' is pasted back by postbuild for {request.Profile.IcId} / {icNumber}.",
+                        $"Accepted: staged replacement source '{binding.SourceSpaceId}' is pasted back by postbuild for {request.CompiledComposition.IcId} / {icNumber}.",
                         FormatDifferenceSectionLabel(binding.SourceSpaceId, operation.Reason),
                         TpHeaderSectionIds.CtrlRamReplacement,
                         null);
@@ -54,7 +54,7 @@ public sealed partial class CompositionRunService
                                 OutputDifferenceClassifications.PostbuildCrcHeader,
                                 true,
                                 $"{operation.OperationId}: {invocation.ProcessorId}",
-                                $"Accepted: this range is inside the {request.Profile.IcId} / {icNumber} approved {sectionLabel} postbuild write ranges.",
+                                $"Accepted: this range is inside the {request.CompiledComposition.IcId} / {icNumber} approved {sectionLabel} postbuild write ranges.",
                                 sectionLabel,
                                 sectionId,
                                 section is not null && section.TryMapRangeToSourceRange(processorSegment, out ByteRange sourceRange)

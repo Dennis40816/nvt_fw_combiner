@@ -47,7 +47,7 @@ public sealed partial class RepositoryBoundaryTests
         string facade = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.cs");
         string catalog = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Catalog.cs");
         string common = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Common.cs");
-        string runAdapter = ReadText("src/NvtFwCombiner.Bootstrap/CompiledCompositionRunAdapter.cs");
+        string runner = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Runner.cs");
         string standardMerge = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.cs");
         string standardMergeDisplay = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Display.cs");
         string standardMergeCoverage = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Coverage.cs");
@@ -74,10 +74,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public static class IcMetadataFacade", icMetadata, StringComparison.Ordinal);
         Assert.Contains("TpHeaderCatalog.All", icMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("ToRunProfile", common, StringComparison.Ordinal);
-        Assert.Contains(
-            "ToLegacyRunProfile(CompiledComposition composition)",
-            runAdapter,
-            StringComparison.Ordinal);
+        Assert.Contains("CompositionRunRequest request = new(", runner, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompiledCompositionRunAdapter", runner, StringComparison.Ordinal);
         Assert.Contains("private static string FormatIssues", common, StringComparison.Ordinal);
         Assert.Contains("StandardMergeProfilesByIc", standardMerge, StringComparison.Ordinal);
         Assert.Contains("GetStandardMergePolicySummary", standardMerge, StringComparison.Ordinal);

@@ -6,9 +6,9 @@ namespace NvtFwCombiner.Application.Tests;
 
 public sealed partial class CompositionRunServiceTests
 {
-    /// <summary>Verifies preview tokens include overwritten operation details, not only final output bytes.</summary>
+    /// <summary>Verifies preview tokens bind the compiled artifact when overwritten operations produce equal bytes.</summary>
     [Fact]
-    public async Task PreviewTokenChangesWhenOverwrittenPlanDetailsChange()
+    public async Task PreviewTokenChangesWhenCompiledOperationDetailsChange()
     {
         var service = new CompositionRunService(
             new FakeArtifactReader([]),
@@ -23,7 +23,7 @@ public sealed partial class CompositionRunServiceTests
         Assert.NotEqual(first.PreviewToken, second.PreviewToken);
     }
 
-    /// <summary>Verifies preview approval includes address-space padding policy, not only output bytes.</summary>
+    /// <summary>Verifies preview approval binds compiled address-space padding policy, not only output bytes.</summary>
     [Fact]
     public async Task PreviewTokenChangesWhenInputPaddingPolicyChanges()
     {
@@ -45,7 +45,7 @@ public sealed partial class CompositionRunServiceTests
         Assert.NotEqual(withoutPadding.PreviewToken, withPadding.PreviewToken);
     }
 
-    /// <summary>Verifies preview approval includes address-space truncation policy.</summary>
+    /// <summary>Verifies preview approval binds compiled address-space truncation policy.</summary>
     [Fact]
     public async Task PreviewTokenChangesWhenInputOversizePolicyChanges()
     {
@@ -92,5 +92,26 @@ public sealed partial class CompositionRunServiceTests
         Assert.NotEqual(first.PreviewToken, second.PreviewToken);
     }
 
+    /// <summary>Verifies preview approval binds the caller-selected output file name.</summary>
+    [Fact]
+    public async Task PreviewTokenChangesWhenOutputFileNameChanges()
+    {
+        var service = new CompositionRunService(
+            new FakeArtifactReader(new Dictionary<string, byte[]>
+            {
+                ["dp-artifact"] = [1, 2, 3, 4],
+                ["tp-artifact"] = [9, 8, 7, 6],
+            }),
+            new FakeClock([FirstTimestamp, SecondTimestamp, ThirdTimestamp, FourthTimestamp]));
 
+        CompositionRunResult first = await service.PreviewAsync(
+            CreateRequest(outputFileName: "first.bin"),
+            CancellationToken.None);
+        CompositionRunResult second = await service.PreviewAsync(
+            CreateRequest(outputFileName: "second.bin"),
+            CancellationToken.None);
+
+        Assert.Equal(first.OutputBytes.ToArray(), second.OutputBytes.ToArray());
+        Assert.NotEqual(first.PreviewToken, second.PreviewToken);
+    }
 }

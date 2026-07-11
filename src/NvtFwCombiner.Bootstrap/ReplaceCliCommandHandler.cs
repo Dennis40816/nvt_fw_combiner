@@ -162,8 +162,7 @@ internal static partial class ReplaceCliCommandHandler
         var service = new CompositionRunService(reader, new SystemClock(), writer, ExternalProcessorFactory.CreateOrNull());
         var request = new CompositionRunRequest(
             CreateRunId(command, action),
-            CompiledCompositionRunAdapter.ToLegacyRunProfile(compiledComposition),
-            compiledComposition.Plan,
+            compiledComposition,
             bindings,
             outputTarget.FileName,
             icNumberSelection: icNumberSelection);

@@ -1,3 +1,4 @@
+using System.Globalization;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Composition;
@@ -7,28 +8,25 @@ public sealed class CompositionRunRequest
 {
     private readonly Dictionary<string, InputArtifactBinding> _artifactBindings;
 
-    /// <summary>Creates a run request with typed profile, plan, input bindings, and output name.</summary>
+    /// <summary>Creates a run request with one compiled composition, input bindings, and runtime output options.</summary>
     public CompositionRunRequest(
         string runId,
-        CompositionRunProfile profile,
-        CompositionPlan plan,
+        CompiledComposition compiledComposition,
         IEnumerable<InputArtifactBinding> artifactBindings,
         string outputFileName,
         string? approvedPreviewToken = null,
         IcNumberSelection? icNumberSelection = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
-        ArgumentNullException.ThrowIfNull(profile);
-        ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(compiledComposition);
         ArgumentNullException.ThrowIfNull(artifactBindings);
         ArgumentException.ThrowIfNullOrWhiteSpace(outputFileName);
         ValidateOutputFileName(outputFileName);
-        ValidateProfileMatchesPlan(profile, plan);
-        ValidateIcNumberSelection(profile, icNumberSelection);
+        ValidateExecutableComposition(compiledComposition);
+        ValidateIcNumberSelection(compiledComposition, icNumberSelection);
 
         RunId = runId;
-        Profile = profile;
-        Plan = plan;
+        CompiledComposition = compiledComposition;
         _artifactBindings = CopyBindings(artifactBindings);
         OutputFileName = outputFileName;
         ApprovedPreviewToken = string.IsNullOrWhiteSpace(approvedPreviewToken) ? null : approvedPreviewToken;
@@ -38,11 +36,8 @@ public sealed class CompositionRunRequest
     /// <summary>Stable run id for reports and diagnostics.</summary>
     public string RunId { get; }
 
-    /// <summary>Profile metadata used for report generation.</summary>
-    public CompositionRunProfile Profile { get; }
-
-    /// <summary>Compiled plan to execute.</summary>
-    public CompositionPlan Plan { get; }
+    /// <summary>Atomic compiler output containing identity, policy, and the sole execution plan.</summary>
+    public CompiledComposition CompiledComposition { get; }
 
     /// <summary>Maps required address-space ids to copied artifact bindings.</summary>
     public IReadOnlyDictionary<string, InputArtifactBinding> ArtifactBindings => _artifactBindings;
@@ -62,8 +57,7 @@ public sealed class CompositionRunRequest
         ArgumentException.ThrowIfNullOrWhiteSpace(previewToken);
         return new CompositionRunRequest(
             RunId,
-            Profile,
-            Plan,
+            CompiledComposition,
             _artifactBindings.Values,
             OutputFileName,
             previewToken,
@@ -96,30 +90,22 @@ public sealed class CompositionRunRequest
         }
     }
 
-    private static void ValidateProfileMatchesPlan(CompositionRunProfile profile, CompositionPlan plan)
+    private static void ValidateExecutableComposition(CompiledComposition compiledComposition)
     {
-        CompositionPlanProvenance? provenance = plan.Provenance;
-        if (provenance is null)
+        if (compiledComposition.Eligibility != CompiledCompositionEligibility.LegacyRuntimeExecutable ||
+            compiledComposition.Authority is not LegacyProfileCompilationAuthority)
         {
-            return;
-        }
-
-        if (!string.Equals(profile.ProfileId, provenance.ProfileId, StringComparison.Ordinal) ||
-            !string.Equals(profile.ProfileVersion, provenance.ProfileVersion, StringComparison.Ordinal) ||
-            !string.Equals(profile.IcId, provenance.IcId, StringComparison.Ordinal) ||
-            !string.Equals(profile.ModeId, provenance.ModeId, StringComparison.Ordinal) ||
-            !string.Equals(profile.ExperienceId, provenance.ExperienceId, StringComparison.Ordinal) ||
-            profile.CompositionKind != provenance.CompositionKind)
-        {
-            throw new ArgumentException("Run profile metadata must match compiled plan provenance.", nameof(profile));
+            throw new ArgumentException(
+                "Compiled composition is not executable by the current application runtime.",
+                nameof(compiledComposition));
         }
     }
 
     private static void ValidateIcNumberSelection(
-        CompositionRunProfile profile,
+        CompiledComposition compiledComposition,
         IcNumberSelection? selection)
     {
-        if (profile.CompositionKind != CompositionKind.Replace)
+        if (compiledComposition.IcNumberPolicy == CompiledIcNumberPolicy.NotApplicable)
         {
             if (selection is not null)
             {
@@ -129,20 +115,27 @@ public sealed class CompositionRunRequest
             return;
         }
 
-        if (profile.IcNumberInputMode is null)
-        {
-            throw new ArgumentException("Replace run profile must declare an IC number input mode.", nameof(profile));
-        }
-
         if (selection is null)
         {
             throw new ArgumentException("Replace runs require an IC number selection.", nameof(selection));
         }
 
-        if (selection.Mode != profile.IcNumberInputMode)
+        IcNumberInputMode expectedMode = compiledComposition.IcNumberPolicy switch
+        {
+            CompiledIcNumberPolicy.SingleSelector => IcNumberInputMode.SingleSelector,
+            CompiledIcNumberPolicy.CascadeSelector => IcNumberInputMode.CascadeSelector,
+            CompiledIcNumberPolicy.NumericSelector => IcNumberInputMode.NumericSelector,
+            CompiledIcNumberPolicy.NotApplicable => throw new InvalidOperationException(
+                "A non-applicable IC-number policy cannot require a selection."),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(compiledComposition),
+                compiledComposition.IcNumberPolicy,
+                "Unknown compiled IC-number policy."),
+        };
+        if (selection.Mode != expectedMode)
         {
             throw new ArgumentException(
-                "IC number selection mode must match the run profile IC number input mode.",
+                "IC number selection mode must match the compiled composition IC number policy.",
                 nameof(selection));
         }
 
@@ -155,6 +148,6 @@ public sealed class CompositionRunRequest
 
     private static bool IsPositiveInteger(string value)
     {
-        return int.TryParse(value, out int parsed) && parsed > 0;
+        return int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out int parsed) && parsed > 0;
     }
 }

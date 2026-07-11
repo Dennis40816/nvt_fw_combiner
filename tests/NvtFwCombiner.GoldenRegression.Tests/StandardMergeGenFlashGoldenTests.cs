@@ -68,7 +68,7 @@ public sealed class StandardMergeGenFlashGoldenTests
 
         Dictionary<string, byte[]> inputs = ReadInputs(goldenRoot, referenceCase.GetProperty("inputs"));
         byte[] expectedOutput = ReadManifestFile(goldenRoot, referenceCase.GetProperty("expectedOutput"));
-        CompositionRunResult result = await PreviewAsync(profile, compile.Plan!, inputs);
+        CompositionRunResult result = await PreviewAsync(compile.CompiledComposition!, inputs);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Empty(result.Report.Issues);
@@ -88,7 +88,7 @@ public sealed class StandardMergeGenFlashGoldenTests
         Assert.True(compile.IsSuccess, FormatIssues(compile.Issues));
 
         byte[] expectedOutput = ReadManifestFile(goldenRoot, goldenCase.GetProperty("expectedOutput"));
-        CompositionRunResult result = await PreviewAsync(profile, compile.Plan!, inputs).ConfigureAwait(false);
+        CompositionRunResult result = await PreviewAsync(compile.CompiledComposition!, inputs).ConfigureAwait(false);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Empty(result.Report.Issues);
@@ -121,12 +121,11 @@ public sealed class StandardMergeGenFlashGoldenTests
     }
 
     private static async ValueTask<CompositionRunResult> PreviewAsync(
-        CompositionProfileDefinition profile,
-        CompositionPlan plan,
+        CompiledComposition compiledComposition,
         IReadOnlyDictionary<string, byte[]> inputs)
     {
         var reader = new FakeArtifactReader(inputs.ToDictionary(
-            item => $"{profile.ProfileId}:{item.Key}",
+            item => $"{compiledComposition.ProfileId}:{item.Key}",
             item => item.Value,
             StringComparer.Ordinal));
         InputArtifactBinding[] bindings = [
@@ -135,29 +134,16 @@ public sealed class StandardMergeGenFlashGoldenTests
                 .Select(addressSpaceId => new InputArtifactBinding(
                     addressSpaceId,
                     addressSpaceId,
-                    $"{profile.ProfileId}:{addressSpaceId}")),
+                    $"{compiledComposition.ProfileId}:{addressSpaceId}")),
         ];
         var service = new CompositionRunService(reader, new FakeClock([StartedAtUtc, CompletedAtUtc]));
         var request = new CompositionRunRequest(
-            $"golden-{profile.IcId.ToLowerInvariant()}",
-            ToRunProfile(profile),
-            plan,
+            $"golden-{compiledComposition.IcId.ToLowerInvariant()}",
+            compiledComposition,
             bindings,
-            profile.DefaultOutputFileName);
+            compiledComposition.DefaultOutputFileName);
 
         return await service.PreviewAsync(request, CancellationToken.None).ConfigureAwait(false);
-    }
-
-    private static CompositionRunProfile ToRunProfile(CompositionProfileDefinition profile)
-    {
-        return new CompositionRunProfile(
-            profile.ProfileId,
-            profile.ProfileVersion,
-            profile.IcId,
-            profile.ModeId,
-            profile.ExperienceId,
-            profile.CompositionKind,
-            profile.IcNumberInputMode);
     }
 
     private static Dictionary<string, byte[]> ReadInputs(string goldenRoot, JsonElement inputs)

@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="NvtFwCombiner.Domain.Tests" />
+    <InternalsVisibleTo Include="NvtFwCombiner.Application.Tests" />
     <InternalsVisibleTo Include="NvtFwCombiner.Profiles" />
   </ItemGroup>
 

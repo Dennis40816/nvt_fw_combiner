@@ -16,7 +16,7 @@ public sealed partial class CompositionRunService
             return new BoundInputs(inputBytes, inputSummaries, issues);
         }
 
-        foreach (string addressSpaceId in request.Plan.RequiredInputAddressSpaceIds)
+        foreach (string addressSpaceId in request.CompiledComposition.Plan.RequiredInputAddressSpaceIds)
         {
             await ReadRequiredBindingAsync(
                     request,
@@ -34,7 +34,7 @@ public sealed partial class CompositionRunService
 
     private static List<CompositionIssue> ValidateArtifactBindings(CompositionRunRequest request)
     {
-        var addressSpaces = request.Plan.AddressSpaces.ToDictionary(
+        var addressSpaces = request.CompiledComposition.Plan.AddressSpaces.ToDictionary(
             addressSpace => addressSpace.AddressSpaceId,
             StringComparer.Ordinal);
         List<CompositionIssue> issues = [];

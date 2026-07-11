@@ -33,14 +33,16 @@ public sealed partial class CompositionRunServiceTests
             ]);
         return new CompositionRunRequest(
             "run-external",
-            new CompositionRunProfile(
-                "external-profile",
-                "1.0.0",
-                "NT-SYNTHETIC",
-                "external",
-                "standard-merge",
-                CompositionKind.Merge),
-            plan,
+            CreateCompiledComposition(
+                plan,
+                new CompositionPlanProvenance(
+                    "external-profile",
+                    "1.0.0",
+                    "NT-SYNTHETIC",
+                    "external",
+                    "standard-merge",
+                    CompositionKind.Merge),
+                "external.bin"),
             [],
             "external.bin");
     }
@@ -83,15 +85,17 @@ public sealed partial class CompositionRunServiceTests
             ]);
         return new CompositionRunRequest(
             "run-staged-source",
-            new CompositionRunProfile(
-                "external-staged-source-profile",
-                "1.0.0",
-                "NT-SYNTHETIC",
-                "external",
-                "ctrlram-replace",
-                CompositionKind.Replace,
-                IcNumberInputMode.SingleSelector),
-            plan,
+            CreateCompiledComposition(
+                plan,
+                new CompositionPlanProvenance(
+                    "external-staged-source-profile",
+                    "1.0.0",
+                    "NT-SYNTHETIC",
+                    "external",
+                    "ctrlram-replace",
+                    CompositionKind.Replace),
+                "external-staged-source.bin",
+                CompiledIcNumberPolicy.SingleSelector),
             [
                 new InputArtifactBinding("reference-base", "reference-base", "reference-artifact"),
                 new InputArtifactBinding(stagedSourceSpaceId, stagedSourceSpaceId, "ctrlram-artifact"),
@@ -140,15 +144,17 @@ public sealed partial class CompositionRunServiceTests
             ]);
         return new CompositionRunRequest(
             "run-nt51926-header-semantic",
-            new CompositionRunProfile(
-                "nt51926-header-semantic-profile",
-                "1.0.0",
-                "NT51926",
-                "external",
-                "ctrlram-replace",
-                CompositionKind.Replace,
-                IcNumberInputMode.SingleSelector),
-            plan,
+            CreateCompiledComposition(
+                plan,
+                new CompositionPlanProvenance(
+                    "nt51926-header-semantic-profile",
+                    "1.0.0",
+                    "NT51926",
+                    "external",
+                    "ctrlram-replace",
+                    CompositionKind.Replace),
+                "nt51926-header-semantic.bin",
+                CompiledIcNumberPolicy.SingleSelector),
             [
                 new InputArtifactBinding("reference-base", "reference-base", "reference-artifact"),
                 new InputArtifactBinding(ctrlRamSpaceId, ctrlRamSpaceId, "ctrlram-artifact"),
@@ -193,15 +199,17 @@ public sealed partial class CompositionRunServiceTests
             ]);
         return new CompositionRunRequest(
             "run-nt51927-copied-header-semantic",
-            new CompositionRunProfile(
-                "nt51927-copied-header-semantic-profile",
-                "1.0.0",
-                "NT51927",
-                "external",
-                "ctrlram-replace",
-                CompositionKind.Replace,
-                IcNumberInputMode.NumericSelector),
-            plan,
+            CreateCompiledComposition(
+                plan,
+                new CompositionPlanProvenance(
+                    "nt51927-copied-header-semantic-profile",
+                    "1.0.0",
+                    "NT51927",
+                    "external",
+                    "ctrlram-replace",
+                    CompositionKind.Replace),
+                "nt51927-copied-header-semantic.bin",
+                CompiledIcNumberPolicy.NumericSelector),
             [new InputArtifactBinding("reference-base", "reference-base", "reference-artifact")],
             "nt51927-copied-header-semantic.bin",
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.NumericSelector, ["3"]));

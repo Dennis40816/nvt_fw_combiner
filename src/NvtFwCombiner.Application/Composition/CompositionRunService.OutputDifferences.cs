@@ -12,9 +12,9 @@ public sealed partial class CompositionRunService
         byte[] outputBytes)
     {
         if (execution.Status != CompositionExecutionStatus.Succeeded ||
-            request.Profile.CompositionKind != CompositionKind.Replace ||
-            request.Plan.OutputInitialization.Kind != ImageInitializationKind.Reference ||
-            request.Plan.OutputInitialization.ReferenceSpaceId is not { } referenceSpaceId ||
+            request.CompiledComposition.CompositionKind != CompositionKind.Replace ||
+            request.CompiledComposition.Plan.OutputInitialization.Kind != ImageInitializationKind.Reference ||
+            request.CompiledComposition.Plan.OutputInitialization.ReferenceSpaceId is not { } referenceSpaceId ||
             !inputBytes.TryGetValue(referenceSpaceId, out byte[]? referenceBytes) ||
             referenceBytes.Length != outputBytes.Length)
         {

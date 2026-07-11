@@ -18,7 +18,7 @@ public sealed partial class CompositionRunService
         Dictionary<string, IReadOnlyList<ExternalProcessInvocation>>? executedCommandsByOperationId = null)
     {
         OperationRunSummary[] operations = [
-            .. request.Plan.OrderedOperations.Select(operation =>
+            .. request.CompiledComposition.Plan.OrderedOperations.Select(operation =>
             {
                 IReadOnlyList<ExternalProcessInvocation> executedCommands = executedCommandsByOperationId is not null &&
                     executedCommandsByOperationId.TryGetValue(
@@ -55,12 +55,12 @@ public sealed partial class CompositionRunService
 
         return new CompositionRunReport(
             request.RunId,
-            request.Profile.ProfileId,
-            request.Profile.ProfileVersion,
-            request.Profile.IcId,
-            request.Profile.ModeId,
-            request.Profile.ExperienceId,
-            request.Profile.CompositionKind,
+            request.CompiledComposition.ProfileId,
+            request.CompiledComposition.ProfileVersion,
+            request.CompiledComposition.IcId,
+            request.CompiledComposition.ModeId,
+            request.CompiledComposition.ExperienceId,
+            request.CompiledComposition.CompositionKind,
             startedAtUtc,
             completedAtUtc,
             inputSummaries,

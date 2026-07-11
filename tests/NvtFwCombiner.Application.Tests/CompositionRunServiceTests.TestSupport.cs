@@ -1,6 +1,6 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.Ports;
-using NvtFwCombiner.Profiles;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Application.Tests;
@@ -30,16 +30,19 @@ public sealed partial class CompositionRunServiceTests
         ];
     }
 
-    private static CompositionRunProfile ToRunProfile(CompositionProfileDefinition profile)
+    private static CompiledComposition CreateCompiledComposition(
+        CompositionPlan plan,
+        CompositionPlanProvenance provenance,
+        string defaultOutputFileName,
+        CompiledIcNumberPolicy icNumberPolicy = CompiledIcNumberPolicy.NotApplicable)
     {
-        return new CompositionRunProfile(
-            profile.ProfileId,
-            profile.ProfileVersion,
-            profile.IcId,
-            profile.ModeId,
-            profile.ExperienceId,
-            profile.CompositionKind,
-            profile.IcNumberInputMode);
+        var compiledPlan = new CompositionPlan(
+            plan.Initializations,
+            plan.OutputSpaceId,
+            plan.AddressSpaces,
+            plan.OrderedOperations,
+            provenance);
+        return CompiledComposition.CreateLegacy(compiledPlan, defaultOutputFileName, icNumberPolicy);
     }
 
     private sealed class FakeOutputWriter : ICompositionOutputWriter

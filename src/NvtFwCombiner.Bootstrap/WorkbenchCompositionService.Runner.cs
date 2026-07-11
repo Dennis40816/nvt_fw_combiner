@@ -70,8 +70,7 @@ public static partial class WorkbenchCompositionService
         CompositionRunService service = new(reader, new SystemClock(), writer, externalProcessor);
         CompositionRunRequest request = new(
             CreateWorkbenchRunId(runIdPrefix, build),
-            CompiledCompositionRunAdapter.ToLegacyRunProfile(compiledComposition),
-            compiledComposition.Plan,
+            compiledComposition,
             bindings,
             outputFileName,
             icNumberSelection: icNumberSelection);

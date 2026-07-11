@@ -132,8 +132,7 @@ public sealed partial class CompositionRunServiceTests
         var service = new CompositionRunService(reader, new FakeClock([FirstTimestamp, SecondTimestamp]), writer);
         var request = new CompositionRunRequest(
             "run-missing",
-            ToRunProfile(profile),
-            compile.Plan!,
+            compile.CompiledComposition!,
             [new InputArtifactBinding("dp-input", "dp-input", "dp-artifact")],
             profile.DefaultOutputFileName,
             approvedPreviewToken: "approved-preview-token");
@@ -333,8 +332,7 @@ public sealed partial class CompositionRunServiceTests
 
         ArgumentException exception = Assert.Throws<ArgumentException>(() => new CompositionRunRequest(
             "run-missing-ic",
-            ToRunProfile(profile),
-            compile.Plan!,
+            compile.CompiledComposition!,
             CreateDpReplaceBindings(),
             profile.DefaultOutputFileName));
 
@@ -350,28 +348,15 @@ public sealed partial class CompositionRunServiceTests
         Assert.Contains("Output file name", exception.Message, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies run metadata must match compiler-carried plan provenance.</summary>
+    /// <summary>Verifies preview approval retains the exact compiled composition artifact.</summary>
     [Fact]
-    public void RunRequestRejectsProfileMetadataMismatch()
+    public void ApprovedPreviewTokenPreservesCompiledComposition()
     {
-        CompositionProfileDefinition profile = BuiltInStandardMergeProfiles.SyntheticStandardMerge;
-        ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
-        var wrongProfile = new CompositionRunProfile(
-            "wrong-profile",
-            profile.ProfileVersion,
-            profile.IcId,
-            profile.ModeId,
-            profile.ExperienceId,
-            profile.CompositionKind);
+        CompositionRunRequest request = CreateRequest();
 
-        ArgumentException exception = Assert.Throws<ArgumentException>(() => new CompositionRunRequest(
-            "run-mismatch",
-            wrongProfile,
-            compile.Plan!,
-            DefaultBindings(),
-            profile.DefaultOutputFileName));
+        CompositionRunRequest approved = request.WithApprovedPreviewToken("approved-preview-token");
 
-        Assert.Contains("compiled plan provenance", exception.Message, StringComparison.Ordinal);
+        Assert.Same(request.CompiledComposition, approved.CompiledComposition);
     }
 
     /// <summary>Verifies run requests snapshot caller-provided binding collections.</summary>

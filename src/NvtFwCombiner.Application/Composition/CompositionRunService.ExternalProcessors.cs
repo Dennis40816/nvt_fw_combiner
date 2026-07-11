@@ -13,9 +13,9 @@ public sealed partial class CompositionRunService
     {
         var input = new CompositionExecutionInput(boundInputs.InputBytes);
         return _externalProcessor is null
-            ? CompositionEngine.Execute(request.Plan, input)
+            ? CompositionEngine.Execute(request.CompiledComposition.Plan, input)
             : await CompositionEngine.ExecuteAsync(
-                request.Plan,
+                request.CompiledComposition.Plan,
                 input,
                 (operation, inputBytes, stagedSources, token) =>
                     TransformExternalProcessorAsync(

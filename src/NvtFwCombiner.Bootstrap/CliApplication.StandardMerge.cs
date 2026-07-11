@@ -102,8 +102,7 @@ public static partial class CliApplication
         var service = new CompositionRunService(reader, new SystemClock(), writer, ExternalProcessorFactory.CreateOrNull());
         var request = new CompositionRunRequest(
             CreateRunId(action),
-            CompiledCompositionRunAdapter.ToLegacyRunProfile(compiledComposition),
-            compiledComposition.Plan,
+            compiledComposition,
             bindings,
             outputTarget.FileName);
 

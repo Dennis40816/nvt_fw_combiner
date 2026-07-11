@@ -233,7 +233,7 @@ public sealed partial class CompositionRunServiceTests
         var copiedFieldRange = new ByteRange(0x1E25C, 1);
         CompositionRunRequest request = CreateNt51927CopiedHeaderSemanticRequest();
         ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(
-            Assert.Single(request.Plan.OrderedOperations).ExternalProcessorInvocation);
+            Assert.Single(request.CompiledComposition.Plan.OrderedOperations).ExternalProcessorInvocation);
         ExternalProcessorWriteRangeSection headerCopySection = Assert.Single(invocation.AllowedWriteRangeSections);
         Assert.Equal(TpHeaderSectionIds.HeaderCopyMaster, headerCopySection.SectionId);
         Assert.Equal(new ByteRange(0x200, 0x190), headerCopySection.SourceRange);
