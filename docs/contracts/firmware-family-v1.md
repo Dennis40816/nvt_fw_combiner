@@ -56,6 +56,11 @@ signed carrier or unsigned effective slice. Byte values are exact-width lowercas
 printable text is exactly `widthBytes` characters in `0x20..0x7E`. JSON Boolean values and scalar
 coercion are not accepted.
 
+Before field-range validation, integer normalization applies a representation-independent resource
+ceiling of 4096 expanded decimal digits. Equivalent literal, decimal, and exponent forms receive the
+same verdict. This ceiling prevents compact exponent expansion from exhausting resources; it does
+not replace the much narrower signed/unsigned field representability checks.
+
 Fields and assertions are structure-relative half-open ranges and must fit the complete structure
 with checked arithmetic. Read-only fields may overlap, including multiple unsigned slices of one
 carrier. Assertions may overlap fields or other assertions and form a conjunction. Omitted

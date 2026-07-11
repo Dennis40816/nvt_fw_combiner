@@ -1,8 +1,8 @@
-using System.Globalization;
 using System.Numerics;
 using System.Text.Json;
 using NvtFwCombiner.Contracts.Firmware;
 using NvtFwCombiner.Domain.Firmware;
+using NvtFwCombiner.Profiles.Normalization;
 
 namespace NvtFwCombiner.Profiles.FirmwareFamilies;
 
@@ -132,82 +132,37 @@ public static partial class FirmwareFamilyResolutionNormalizer
 
     private static BigInteger ReadInteger(JsonElement value, string path)
     {
-        if (value.ValueKind != JsonValueKind.Number)
+        try
         {
-            throw Error(path, "Expected a JSON integer.");
+            return ContractJsonValueReader.ReadInteger(value);
         }
-
-        string raw = value.GetRawText();
-        int exponentSeparator = raw.IndexOfAny(['e', 'E']);
-        ReadOnlySpan<char> mantissa = exponentSeparator >= 0
-            ? raw.AsSpan(0, exponentSeparator)
-            : raw.AsSpan();
-        BigInteger exponent = exponentSeparator >= 0
-            ? BigInteger.Parse(
-                raw.AsSpan(exponentSeparator + 1),
-                NumberStyles.AllowLeadingSign,
-                CultureInfo.InvariantCulture)
-            : BigInteger.Zero;
-        bool negative = mantissa.StartsWith("-", StringComparison.Ordinal);
-        if (negative)
+        catch (ArgumentException exception)
         {
-            mantissa = mantissa[1..];
+            throw Error(path, exception.Message, exception);
         }
-
-        int decimalPoint = mantissa.IndexOf('.');
-        int fractionalDigits = decimalPoint >= 0 ? mantissa.Length - decimalPoint - 1 : 0;
-        string digits = decimalPoint >= 0
-            ? string.Concat(
-                mantissa[..decimalPoint].ToString(),
-                mantissa[(decimalPoint + 1)..].ToString())
-            : mantissa.ToString();
-        digits = digits.TrimStart('0');
-        if (digits.Length == 0)
-        {
-            return BigInteger.Zero;
-        }
-
-        BigInteger power = exponent - fractionalDigits;
-        if (power < 0)
-        {
-            var requiredTrailingZeros = BigInteger.Negate(power);
-            int availableTrailingZeros = digits.Length - digits.TrimEnd('0').Length;
-            if (requiredTrailingZeros > availableTrailingZeros)
-            {
-                throw Error(path, "Expected a mathematically integral JSON number.");
-            }
-
-            digits = digits[..^(int)requiredTrailingZeros];
-            power = BigInteger.Zero;
-        }
-
-        if (power > 100)
-        {
-            throw Error(path, "Integer exceeds every supported Domain numeric range.");
-        }
-
-        var integer = BigInteger.Parse(digits, NumberStyles.None, CultureInfo.InvariantCulture);
-        if (power > 0)
-        {
-            integer *= BigInteger.Pow(10, (int)power);
-        }
-
-        return negative ? BigInteger.Negate(integer) : integer;
     }
 
     private static string ReadString(JsonElement value, string path)
     {
-        return value.ValueKind == JsonValueKind.String && value.GetString() is { } text
-            ? text
-            : throw Error(path, "Expected a JSON string.");
+        try
+        {
+            return ContractJsonValueReader.ReadString(value);
+        }
+        catch (ArgumentException exception)
+        {
+            throw Error(path, exception.Message, exception);
+        }
     }
 
     private static byte[] ParseHex(string value, string path)
     {
-        return string.IsNullOrEmpty(value) ||
-            value.Length % 2 != 0 ||
-            value.Any(static character => character is not (>= '0' and <= '9') and not (>= 'a' and <= 'f'))
-            ? throw Error(path, "Expected non-empty canonical lowercase hexadecimal bytes.")
-            : Convert.FromHexString(value);
+        try
+        {
+            return ContractJsonValueReader.ParseCanonicalHex(value);
+        }
+        catch (ArgumentException exception)
+        {
+            throw Error(path, exception.Message, exception);
+        }
     }
 }

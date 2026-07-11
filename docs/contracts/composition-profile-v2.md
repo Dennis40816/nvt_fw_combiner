@@ -18,6 +18,12 @@ use exact-width lowercase hex, and printable text uses exact-width `0x20..0x7E` 
 numeric-string, signed/unsigned, text/bytes, padding, and truncation coercions are forbidden. Domain
 family validation rechecks complete value representability after normalization.
 
+Integer normalization applies the same representation-independent 4096-expanded-decimal-digit
+resource ceiling as firmware-family normalization. Literal, decimal, and exponent forms with equal
+mathematical value receive the same verdict. Field values must still pass their exact carrier or bit
+slice, while operation sequence and signed addend values remain arbitrary precision within this
+resource ceiling.
+
 `CompositionProfileDefinition` is the normalized typed form of this document. It owns:
 
 - immutable input slots and acceptance/normalization policy;
