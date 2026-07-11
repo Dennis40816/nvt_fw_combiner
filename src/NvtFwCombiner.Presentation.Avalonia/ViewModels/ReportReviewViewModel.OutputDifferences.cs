@@ -32,13 +32,16 @@ public sealed partial class ReportReviewViewModel
                     string after = hasHex ? FormatBytePreview(afterHex) : GetString(difference, "AfterSha256");
                     string range = GetRangeOrNull(difference, "Range") ?? string.Empty;
                     string semanticCategoryLabel = GetSemanticString(difference, "CategoryLabel");
+                    string semanticParentLabel = GetSemanticString(difference, "ParentLabel");
                     string semanticSubjectLabel = GetSemanticString(difference, "SubjectLabel");
                     string semanticExplanation = GetSemanticString(difference, "Explanation");
                     string semanticSubjectId = GetSemanticString(difference, "SubjectId");
-                    string sectionLabel = !string.IsNullOrWhiteSpace(semanticCategoryLabel)
-                        ? semanticCategoryLabel
+                    string sectionLabel = !string.IsNullOrWhiteSpace(semanticParentLabel)
+                        ? semanticParentLabel
                         : GetStringOrNull(difference, "SectionLabel") ??
-                        FormatDifferenceSectionLabel(classification, language);
+                        (!string.IsNullOrWhiteSpace(semanticCategoryLabel)
+                            ? semanticCategoryLabel
+                            : FormatDifferenceSectionLabel(classification, language));
                     string reason = !string.IsNullOrWhiteSpace(semanticExplanation)
                         ? semanticExplanation
                         : FormatDifferenceReason(classification, accepted, sectionLabel, language);
@@ -137,17 +140,25 @@ public sealed partial class ReportReviewViewModel
                             language,
                             $"{accepted.ToString(System.Globalization.CultureInfo.InvariantCulture)} expected / {review.ToString(System.Globalization.CultureInfo.InvariantCulture)} review",
                             $"{accepted.ToString(System.Globalization.CultureInfo.InvariantCulture)} 預期 / {review.ToString(System.Globalization.CultureInfo.InvariantCulture)} 待審查");
-                    bool hasSharedReason = rows
-                        .Select(row => row.Reason)
-                        .Distinct(StringComparer.Ordinal)
-                        .Count() == 1 &&
-                        rows.Select(IsAcceptedOutputDifference).Distinct().Count() == 1;
-                    string reason = hasSharedReason
-                        ? rows.FirstOrDefault(row => row.HasReason)?.Reason ?? string.Empty
-                        : string.Empty;
-                    return new ReportDifferenceGroupViewModel(group.Key, reason, status, rows, hasSharedReason, isAccepted);
+                    string detail = FormatDifferenceGroupDetail(rows.Length, accepted, review, language);
+                    return new ReportDifferenceGroupViewModel(group.Key, detail, status, rows, isAccepted);
                 }),
             ];
+    }
+
+    private static string FormatDifferenceGroupDetail(int count, int accepted, int review, ShellLanguage language)
+    {
+        return review == 0
+            ? count == 1
+                ? T(language, "1 expected field update", "1 筆預期欄位更新")
+                : T(
+                    language,
+                    $"{count.ToString(System.Globalization.CultureInfo.InvariantCulture)} expected field updates",
+                    $"{count.ToString(System.Globalization.CultureInfo.InvariantCulture)} 筆預期欄位更新")
+            : T(
+                language,
+                $"{accepted.ToString(System.Globalization.CultureInfo.InvariantCulture)} expected, {review.ToString(System.Globalization.CultureInfo.InvariantCulture)} review required",
+                $"{accepted.ToString(System.Globalization.CultureInfo.InvariantCulture)} 筆預期，{review.ToString(System.Globalization.CultureInfo.InvariantCulture)} 筆需審查");
     }
 
     private static string FormatDifferenceSectionLabel(string classification, ShellLanguage language)

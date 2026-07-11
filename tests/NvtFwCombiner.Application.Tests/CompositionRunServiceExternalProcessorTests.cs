@@ -194,6 +194,8 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal("nt51926-header:dlm-crc-0", semantic.SubjectId);
         Assert.Equal("DLM CRC 0", semantic.SubjectLabel);
         Assert.Equal("Expected: postbuild recalculated DLM CRC 0.", semantic.Explanation);
+        Assert.Equal("tp-header", semantic.ParentId);
+        Assert.Equal("Header", semantic.ParentLabel);
     }
 
     /// <summary>Verifies copied NT51927 header bytes retain the primary header field identity in the report.</summary>
@@ -240,6 +242,8 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal(
             "Expected: postbuild refreshed ILM CRC 0 and copied it to Header copy / master.",
             semantic.Explanation);
+        Assert.Equal(TpHeaderSectionIds.HeaderCopyMaster, semantic.ParentId);
+        Assert.Equal("Header copy / master", semantic.ParentLabel);
     }
 
     /// <summary>Verifies the verified NT51927 Header #3 continuation also survives copied-header projection.</summary>

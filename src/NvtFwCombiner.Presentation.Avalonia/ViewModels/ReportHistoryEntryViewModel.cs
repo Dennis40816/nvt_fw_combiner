@@ -21,8 +21,8 @@ public sealed class ReportHistoryEntryViewModel
             ? "No output"
             : $"{report.OutputFileName} / {report.OutputSize} bytes";
         OutputHash = report.OutputHashLabel;
-        CommandSummary = report.HasCommandOperations
-            ? FormatCount(report.CommandOperationCount, "command")
+        CommandSummary = report.HasPostbuildInvocations
+            ? FormatCount(report.PostbuildInvocationCount, "command")
             : "No external command";
         IssueSummary = report.HasPrimaryIssue
             ? FormatCount(report.BlockingIssueCount, "issue")

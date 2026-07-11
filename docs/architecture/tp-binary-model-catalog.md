@@ -304,6 +304,8 @@ For a Replace output diff, Application computes byte changes first and then emit
   "Semantic": {
     "CategoryId": "tp-flash-header",
     "CategoryLabel": "TP Flash Header",
+    "ParentId": "tp-header",
+    "ParentLabel": "Header",
     "SubjectId": "nt51926-header:dlm-crc-0",
     "SubjectLabel": "DLM CRC 0",
     "Explanation": "Expected: postbuild recalculated DLM CRC 0."
@@ -312,6 +314,8 @@ For a Replace output diff, Application computes byte changes first and then emit
 ```
 
 Presentation must render this data and must not calculate a header field from the address. Old report JSON without `Semantic` retains the legacy section-label fallback.
+
+`Semantic.ParentId` and `Semantic.ParentLabel` identify the physical parent before the field subject. For example, an in-place CRC write is grouped under `Header`, while a copied CRC is grouped under `Header copy / final backup`. The application emits this hierarchy from the approved postbuild section; Presentation does not derive it from an address or a field name.
 
 The report only emits a field title when both conditions hold:
 

@@ -77,7 +77,7 @@
                 </ItemsControl>
               </StackPanel>
 
-              <Expander IsVisible="{Binding LoadedReport.HasMutations}">
+              <Expander IsExpanded="False" IsVisible="{Binding LoadedReport.HasMutations}">
                 <Expander.Header>
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                     <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#475569" Text="{Binding Text.ChangedRangesTitle}" />
@@ -135,23 +135,21 @@
         <TabItem Header="{Binding Text.ReportTabPostbuild}">
           <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="0,12,0,0" Spacing="12">
-              <Border Classes="insetSurface" Padding="14" IsVisible="{Binding LoadedReport.HasNoCommandOperations}">
+              <Border Classes="insetSurface" Padding="14" IsVisible="{Binding LoadedReport.HasNoPostbuildInvocations}">
                 <TextBlock Classes="mutedText" Text="{Binding Text.EmptyPostbuildMessage}" TextWrapping="Wrap" />
               </Border>
 
-              <Border Classes="compactSurface contentPanel" IsVisible="{Binding LoadedReport.HasCommandOperations}">
-                <StackPanel Spacing="8">
-                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                    <TextBlock Classes="panelTitle" Text="{Binding Text.HeaderRefreshTraceTitle}" />
-                    <Label Grid.Column="1" Classes="reportBadge info" Content="{Binding LoadedReport.CommandOperationCount}" />
-                  </Grid>
-                  <ItemsControl ItemsSource="{Binding LoadedReport.CommandOperations}">
-                    <ItemsControl.ItemTemplate>
-                      <StaticResource ResourceKey="ReportCommandOperationTemplate" />
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                </StackPanel>
-              </Border>
+              <StackPanel Spacing="8" IsVisible="{Binding LoadedReport.HasPostbuildInvocations}">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                  <TextBlock Classes="panelTitle" Text="{Binding Text.HeaderRefreshTraceTitle}" />
+                  <Label Grid.Column="1" Classes="reportBadge info" Content="{Binding LoadedReport.PostbuildInvocationCount}" />
+                </Grid>
+                <ItemsControl ItemsSource="{Binding LoadedReport.PostbuildInvocations}">
+                  <ItemsControl.ItemTemplate>
+                    <StaticResource ResourceKey="ReportPostbuildInvocationTemplate" />
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
             </StackPanel>
           </ScrollViewer>
         </TabItem>

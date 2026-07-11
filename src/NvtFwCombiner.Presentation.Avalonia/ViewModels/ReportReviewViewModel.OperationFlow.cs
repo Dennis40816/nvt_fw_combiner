@@ -58,13 +58,15 @@ public sealed partial class ReportReviewViewModel
             }
         }
 
-        ReportLineViewModel[] commandOperations = [.. operations.Where(operation => operation.HasCodeBlock)];
+        ReportLineViewModel[] commandOperations = [.. operations.Where(operation =>
+            operation.HasCodeBlock || operation.HasRuntimeCommands)];
         if (commandOperations.Length > 0)
         {
+            int invocationCount = CountRuntimeInvocations(commandOperations);
             nodes.Add(new ReportOperationFlowNodeViewModel(
                 NextFlowNumber(ref sequence),
                 T(language, "Refresh header and CRC", "刷新 header 與 CRC"),
-                FormatPostbuildFlowDetail(commandOperations.Length, language),
+                FormatPostbuildFlowDetail(invocationCount, language),
                 T(language, "command details in Postbuild tab", "command 細節在 Postbuild 分頁"),
                 FormatOperationFlowStatus(commandOperations[^1].OperationStatus, language),
                 hasConnector: true));
@@ -117,7 +119,9 @@ public sealed partial class ReportReviewViewModel
 
     private static string FormatPostbuildFlowDetail(int count, ShellLanguage language)
     {
-        return count == 1
+        return count == 0
+            ? T(language, "Postbuild plan recorded without a runtime invocation", "已記錄 postbuild 計畫，但沒有實際呼叫")
+            : count == 1
             ? T(language, "1 postbuild command refreshes header/CRC", "1 個 postbuild command 更新 header/CRC")
             : T(
                 language,

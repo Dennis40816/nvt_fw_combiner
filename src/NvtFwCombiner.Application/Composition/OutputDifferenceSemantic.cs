@@ -12,7 +12,9 @@ public sealed class OutputDifferenceSemantic
         string categoryLabel,
         string subjectId,
         string subjectLabel,
-        string explanation)
+        string explanation,
+        string? parentId = null,
+        string? parentLabel = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(categoryId);
         ArgumentException.ThrowIfNullOrWhiteSpace(categoryLabel);
@@ -25,6 +27,8 @@ public sealed class OutputDifferenceSemantic
         SubjectId = subjectId;
         SubjectLabel = subjectLabel;
         Explanation = explanation;
+        ParentId = string.IsNullOrWhiteSpace(parentId) ? categoryId : parentId;
+        ParentLabel = string.IsNullOrWhiteSpace(parentLabel) ? categoryLabel : parentLabel;
     }
 
     /// <summary>Stable top-level binary category id.</summary>
@@ -41,4 +45,10 @@ public sealed class OutputDifferenceSemantic
 
     /// <summary>Plain-language explanation for the expected or review-required difference.</summary>
     public string Explanation { get; }
+
+    /// <summary>Stable physical parent section id used to group report rows before their field subject.</summary>
+    public string ParentId { get; }
+
+    /// <summary>Human-facing physical parent section title used to group report rows before their field subject.</summary>
+    public string ParentLabel { get; }
 }

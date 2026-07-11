@@ -30,11 +30,11 @@ The UI must not infer a firmware field from an output address. Doing so would du
 
 3. Existing `TpFlashMapRegionKind`, region visibility, General Replace access, compiled mappings, Combiner command plans, external processor authority, and allowed write ranges remain unchanged. The new binary model is not an authorization input.
 
-4. `CompositionRunService` projects a nested `OutputDifferences[].Semantic` object after the output byte diff is calculated. It contains a category and a field/section subject. Presentation consumes it directly and retains a fallback for historical reports that do not include the object.
+4. `CompositionRunService` projects a nested `OutputDifferences[].Semantic` object after the output byte diff is calculated. It contains a category, a physical parent section, and a field/section subject. Presentation consumes it directly and retains a fallback for historical reports that do not include the object.
 
 5. A field name is emitted only when the changed half-open range is fully inside a modeled field and the difference was classified as an approved postbuild header write. A copied-header target is mapped to a field only when the selected postbuild plan declares an equal-length source-to-target copy range; otherwise it remains a named header-copy section, not a guessed field.
 
-6. The Report Changes view groups by semantic category and leads with field name, expected/review status, and explanation. Range, hash, and hex before/after evidence are disclosed in the row details.
+6. The Report Changes view groups by the physical parent section and leads with field name, expected/review status, and explanation. Range, hash, and hex before/after evidence are disclosed in the row details.
 
 ## Consequences
 

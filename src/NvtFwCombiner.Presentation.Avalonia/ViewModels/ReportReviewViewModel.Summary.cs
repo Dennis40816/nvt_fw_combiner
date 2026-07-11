@@ -46,7 +46,7 @@ public sealed partial class ReportReviewViewModel
         IReadOnlyList<ReportLineViewModel> issues,
         ShellLanguage language)
     {
-        int commandCount = operations.Count(operation => operation.HasCodeBlock);
+        int commandCount = CountRuntimeInvocations(operations);
         ReportLineViewModel? firstBlockingIssue = issues.FirstOrDefault(issue => !IsWarning(issue));
         int warningCount = CountWarnings(issues);
         return
@@ -200,7 +200,7 @@ public sealed partial class ReportReviewViewModel
         IReadOnlyList<ReportLineViewModel> issues,
         ShellLanguage language)
     {
-        int commandCount = operations.Count(operation => operation.HasCodeBlock);
+        int commandCount = CountRuntimeInvocations(operations);
         ReportLineViewModel? primaryIssue = issues.FirstOrDefault(issue => !IsWarning(issue));
         ReportLineViewModel? firstWarning = issues.FirstOrDefault(IsWarning);
         return primaryIssue is not null
@@ -249,8 +249,8 @@ public sealed partial class ReportReviewViewModel
         IReadOnlyList<ReportLineViewModel> issues,
         ShellLanguage language)
     {
-        int commandCount = operations.Count(operation => operation.HasCodeBlock);
-        int stepCount = operations.Count - commandCount;
+        int commandCount = CountRuntimeInvocations(operations);
+        int stepCount = operations.Count(operation => !operation.HasCodeBlock);
         int blockingIssueCount = CountBlockingIssues(issues);
         int warningCount = CountWarnings(issues);
         ReportLineViewModel? firstBlockingIssue = issues.FirstOrDefault(issue => !IsWarning(issue));

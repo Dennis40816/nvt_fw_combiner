@@ -264,6 +264,12 @@ public sealed partial class ReportReviewViewModel
             : $"{addressSpaceId} {range ?? string.Empty}".Trim();
     }
 
+    private static int CountRuntimeInvocations(IEnumerable<ReportLineViewModel> operations)
+    {
+        ArgumentNullException.ThrowIfNull(operations);
+        return operations.Sum(operation => operation.RuntimeCommands.Count);
+    }
+
     private static (string ReasonSummary, string CommandBlock) ExtractCombinerCommand(string reason)
     {
         const string marker = "Combiner command: ";

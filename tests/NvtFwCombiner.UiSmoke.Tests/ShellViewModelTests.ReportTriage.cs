@@ -27,9 +27,14 @@ public sealed partial class ShellViewModelTests
             row.Title == "Commands" &&
             row.Detail == "1" &&
             row.Meta == "external processors");
-        Assert.True(report.ShouldExpandIssues);
-        Assert.True(report.ShouldExpandCommandOperations);
-        Assert.False(report.ShouldExpandStepOperations);
+        Assert.Equal(1, report.PostbuildInvocationCount);
+        ReportPostbuildInvocationViewModel invocation = Assert.Single(report.PostbuildInvocations);
+        Assert.Equal("900.01", invocation.Number);
+        Assert.Equal("Runtime invocation", invocation.Title);
+        Assert.Equal("900. Postbuild refresh", invocation.OperationTitle);
+        Assert.Equal("planned", invocation.Status);
+        Assert.Contains("argv[0]: MERGE_MODE", invocation.ArgumentListEvidence, StringComparison.Ordinal);
+        Assert.Equal("Working directory: C:\\staging\\ui-smoke-command", invocation.WorkingDirectoryDetail);
         ReportLineViewModel command = Assert.Single(report.CommandOperations);
         Assert.Equal("run-external-processor", command.OperationKind);
         Assert.Equal("(none)", command.OperationSource);
@@ -71,5 +76,28 @@ public sealed partial class ShellViewModelTests
             row.AddressSpace == "output-image" &&
             row.Range == "0x7118-0x711B (len 0x4)" &&
             row.Source == "postbuild write policy");
+    }
+
+    /// <summary>Verifies every recorded external process call receives an independently numbered Postbuild row.</summary>
+    [Fact]
+    public void ReportReviewFlattensRuntimeInvocationsPerPostbuildOperation()
+    {
+        var report = ReportReviewViewModel.FromJson(
+            ReportJsonSamples.CtrlRamCommandTrace(runtimeInvocationCount: 3),
+            "runtime-trace.json");
+
+        Assert.Equal(1, report.CommandOperationCount);
+        Assert.Equal(3, report.PostbuildInvocationCount);
+        Assert.Equal(
+            ["900.01", "900.02", "900.03"],
+            report.PostbuildInvocations.Select(invocation => invocation.Number));
+        Assert.All(report.PostbuildInvocations, invocation =>
+        {
+            Assert.Equal("Runtime invocation", invocation.Title);
+            Assert.Equal("900. Postbuild refresh", invocation.OperationTitle);
+            Assert.Contains("exe: C:\\tools\\legacy-combiner\\Combiner.exe", invocation.ArgumentListEvidence, StringComparison.Ordinal);
+        });
+        Assert.Contains("3 postbuild commands", report.OperationFlow.Single(node =>
+            node.Title == "Refresh header and CRC").Detail, StringComparison.Ordinal);
     }
 }

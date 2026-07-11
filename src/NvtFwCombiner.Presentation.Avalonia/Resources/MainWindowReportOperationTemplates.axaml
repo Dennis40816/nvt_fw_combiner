@@ -16,14 +16,18 @@
         <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Foreground="#1D4ED8" Text="{Binding Number}" />
       </Border>
     </Grid>
-    <StackPanel Grid.Column="1" Margin="0,3,0,18" Spacing="4">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-        <TextBlock Classes="panelTitle" Text="{Binding Title}" TextWrapping="Wrap" />
-        <Label Grid.Column="1" MinWidth="44" Classes="reportBadge" Content="{Binding Status}" />
-      </Grid>
-      <TextBlock FontSize="12" Foreground="#475569" Text="{Binding Detail}" TextWrapping="Wrap" />
-      <TextBlock Classes="captionText" Text="{Binding Meta}" TextWrapping="Wrap" IsVisible="{Binding HasMeta}" />
-    </StackPanel>
+    <Expander Grid.Column="1" Margin="0,3,0,18" IsExpanded="False">
+      <Expander.Header>
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+          <TextBlock Classes="panelTitle" Text="{Binding Title}" TextWrapping="Wrap" />
+          <Label Grid.Column="1" MinWidth="44" Classes="reportBadge" Content="{Binding Status}" />
+        </Grid>
+      </Expander.Header>
+      <StackPanel Margin="0,7,0,0" Spacing="4">
+        <TextBlock Classes="bodyText" Text="{Binding Detail}" TextWrapping="Wrap" />
+        <TextBlock Classes="captionText" Text="{Binding Meta}" TextWrapping="Wrap" IsVisible="{Binding HasMeta}" />
+      </StackPanel>
+    </Expander>
   </Grid>
 </DataTemplate>
 
@@ -40,65 +44,25 @@
   </Border>
 </DataTemplate>
 
-<DataTemplate x:Key="ReportRuntimeCommandTemplate" DataType="vm:ReportRuntimeCommandViewModel">
-  <StackPanel Margin="0,0,0,10" Spacing="4">
-    <TextBlock Classes="compactStrongText" Text="{Binding Title}" />
-    <views:ReportCodeBlockView Text="{Binding ArgumentListEvidence}" />
-    <TextBlock Classes="technicalCaption" Text="{Binding WorkingDirectoryDetail}" TextWrapping="Wrap" />
-  </StackPanel>
-</DataTemplate>
-
-<DataTemplate x:Key="ReportCommandOperationTemplate" DataType="vm:ReportLineViewModel">
-  <Grid ColumnDefinitions="34,*">
-    <Grid>
-      <Border Width="2" HorizontalAlignment="Center" Background="#BFDBFE" />
-      <Border
-          Width="16"
-          Height="16"
-          Margin="0,10,0,0"
-          HorizontalAlignment="Center"
-          VerticalAlignment="Top"
-          Background="#2563EB"
-          BorderBrush="#DBEAFE"
-          BorderThickness="2"
-          CornerRadius="999" />
-    </Grid>
-    <StackPanel Grid.Column="1" Margin="0,6,0,16" Spacing="7">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-        <TextBlock Classes="panelTitle" Text="{Binding Title}" TextWrapping="Wrap" />
-        <Label Grid.Column="1" MinWidth="52" Classes="reportBadge info" Content="{Binding OperationStatus}" />
-      </Grid>
-      <TextBlock Classes="bodyText" Text="{Binding Detail}" TextWrapping="Wrap" />
-      <TextBlock Classes="captionText" Text="{Binding Meta}" TextWrapping="Wrap" IsVisible="{Binding HasMeta}" />
-      <ItemsControl ItemsSource="{Binding Badges}" IsVisible="{Binding HasBadges}">
-        <ItemsControl.ItemsPanel>
-          <ItemsPanelTemplate>
-            <WrapPanel />
-          </ItemsPanelTemplate>
-        </ItemsControl.ItemsPanel>
-        <ItemsControl.ItemTemplate>
-          <StaticResource ResourceKey="ReportLineBadgeTemplate" />
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
-      <ContentControl
-          Content="{Binding}"
-          ContentTemplate="{StaticResource ReportRangeTableTemplate}"
-          IsVisible="{Binding HasRangeRows}" />
-      <TextBlock Classes="tableHeader" Text="{Binding RuntimeCommandsLabel}" IsVisible="{Binding HasRuntimeCommands}" />
-      <ItemsControl ItemsSource="{Binding RuntimeCommands}" IsVisible="{Binding HasRuntimeCommands}">
-        <ItemsControl.ItemTemplate>
-          <StaticResource ResourceKey="ReportRuntimeCommandTemplate" />
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
-      <TextBlock Classes="tableHeader" Text="{Binding CodeBlockLabel}" IsVisible="{Binding HasCodeBlock}" />
-      <views:ReportCodeBlockView Text="{Binding CodeBlock}" IsVisible="{Binding HasCodeBlock}" />
-      <ItemsControl ItemsSource="{Binding Facts}" IsVisible="{Binding HasFacts}">
-        <ItemsControl.ItemTemplate>
-          <StaticResource ResourceKey="ReportLineFactTemplate" />
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
-    </StackPanel>
-  </Grid>
+<DataTemplate x:Key="ReportPostbuildInvocationTemplate" DataType="vm:ReportPostbuildInvocationViewModel">
+  <Border Margin="0,0,0,8" Classes="compactSurface">
+    <Expander IsExpanded="False">
+      <Expander.Header>
+        <Grid Margin="10,8" ColumnDefinitions="58,*,Auto" ColumnSpacing="10">
+          <Label VerticalAlignment="Center" Classes="reportBadge info" Content="{Binding Number}" />
+          <StackPanel Grid.Column="1" Spacing="2">
+            <TextBlock Classes="panelTitle" Text="{Binding Title}" TextWrapping="Wrap" />
+            <TextBlock Classes="captionText" Text="{Binding OperationTitle}" TextWrapping="Wrap" />
+          </StackPanel>
+          <Label Grid.Column="2" VerticalAlignment="Center" Classes="reportBadge info" Content="{Binding Status}" />
+        </Grid>
+      </Expander.Header>
+      <StackPanel Margin="12,0,12,12" Spacing="7">
+        <views:ReportCodeBlockView Text="{Binding ArgumentListEvidence}" />
+        <TextBlock Classes="technicalCaption" Text="{Binding WorkingDirectoryDetail}" TextWrapping="Wrap" />
+      </StackPanel>
+    </Expander>
+  </Border>
 </DataTemplate>
 
 <DataTemplate x:Key="ReportStepOperationTemplate" DataType="vm:ReportLineViewModel">

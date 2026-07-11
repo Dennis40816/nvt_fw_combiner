@@ -30,7 +30,7 @@ public sealed partial class ReportReviewViewModel
                 : T(language, "This workflow is not reference-based; use Evidence when you need operation-order details.", "此流程不是 reference-based；需要操作順序時請查看 Evidence。")
             : HasReviewRequiredOutputDifference(outputDifferences)
                 ? T(language, "Unexpected or unaccepted changes are present. Review the detailed ranges before using the output.", "存在意外或未接受的變更；使用輸出前請先審查詳細範圍。")
-                : T(language, "Every reported change belongs to a profile-approved category. Open a category to inspect its field and evidence.", "所有回報差異都屬於 profile 核准的 category；展開 category 可查看欄位與證據。");
+                : T(language, "Every reported change belongs to a profile-approved section. Open a section to inspect its fields and evidence.", "所有回報差異都屬於 profile 核准的區段；展開區段可查看欄位與證據。");
     }
 
     private static string CreateByteDifferenceMeta(
@@ -82,7 +82,7 @@ public sealed partial class ReportReviewViewModel
         IReadOnlyList<ReportLineViewModel> issues,
         ShellLanguage language)
     {
-        int commandCount = operations.Count(operation => operation.HasCodeBlock);
+        int commandCount = CountRuntimeInvocations(operations);
         return T(
             language,
             string.Create(

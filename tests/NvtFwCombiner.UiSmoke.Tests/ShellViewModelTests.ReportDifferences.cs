@@ -16,7 +16,7 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.LoadedReport.HasOutputDifferences);
         ReportLineViewModel difference = Assert.Single(viewModel.LoadedReport.OutputDifferences);
         Assert.Equal("DLM CRC 0", difference.Title);
-        Assert.Equal("TP Flash Header", difference.SectionLabel);
+        Assert.Equal("Header", difference.SectionLabel);
         Assert.Equal("0x1C-0x1F (len 0x4)", difference.Range);
         Assert.Equal("4 bytes changed", difference.ChangedSummary);
         Assert.Equal("Expected: postbuild recalculated DLM CRC 0.", difference.Reason);
@@ -36,16 +36,23 @@ public sealed partial class ShellViewModelTests
             node.Meta == "command details in Postbuild tab");
         Assert.DoesNotContain(viewModel.LoadedReport.StepOperations, operation => operation.HasCodeBlock);
         Assert.True(viewModel.LoadedReport.HasCommandOperations);
+        Assert.True(viewModel.LoadedReport.HasPostbuildInvocations);
+        ReportPostbuildInvocationViewModel invocation = Assert.Single(viewModel.LoadedReport.PostbuildInvocations);
+        Assert.Equal("900.01", invocation.Number);
+        Assert.Equal("Runtime invocation", invocation.Title);
         Assert.Equal("Expected changes", viewModel.LoadedReport.ByteDifferenceTitle);
-        Assert.Contains("category", viewModel.LoadedReport.ByteDifferenceDetail, StringComparison.Ordinal);
+        Assert.Contains("section", viewModel.LoadedReport.ByteDifferenceDetail, StringComparison.Ordinal);
         Assert.Equal("1/1 expected", viewModel.LoadedReport.ByteDifferenceMeta);
         Assert.Equal("Inspect expected changes", viewModel.LoadedReport.NextStepTitle);
         Assert.Contains("Inspect 1 expected change", viewModel.LoadedReport.NextStepDetail, StringComparison.Ordinal);
         Assert.Contains("affected data field", viewModel.LoadedReport.NextStepDetail, StringComparison.Ordinal);
         Assert.Contains(viewModel.LoadedReport.OutputDifferenceSummaryRows, row =>
-            row.Label == "TP Flash Header" &&
+            row.Label == "Header" &&
             row.Count == "1" &&
             row.Status == "expected");
+        ReportDifferenceGroupViewModel differenceGroup = Assert.Single(viewModel.LoadedReport.OutputDifferenceGroups);
+        Assert.Equal("Header", differenceGroup.Title);
+        Assert.Equal("1 expected field update", differenceGroup.Detail);
         Assert.Contains(viewModel.LoadedReport.EvidenceRows, row =>
             row.Title == "Output diff" &&
             row.Detail == "1" &&
@@ -58,11 +65,11 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("1/1 預期", viewModel.LoadedReport.ByteDifferenceMeta);
         ReportLineViewModel localizedDifference = Assert.Single(viewModel.LoadedReport.OutputDifferences);
         Assert.Contains(localizedDifference.Badges, badge => badge.Text == "預期");
-        Assert.Equal("TP Flash Header", localizedDifference.SectionLabel);
+        Assert.Equal("Header", localizedDifference.SectionLabel);
         Assert.Equal("變更前 bytes", localizedDifference.BeforeLabel);
         Assert.Equal("AA BB CC DD", localizedDifference.BeforeValue);
         Assert.Contains(viewModel.LoadedReport.OutputDifferenceSummaryRows, row =>
-            row.Label == "TP Flash Header" &&
+            row.Label == "Header" &&
             row.Count == "1" &&
             row.Status == "預期");
         Assert.Contains(viewModel.LoadedReport.EvidenceRows, row =>

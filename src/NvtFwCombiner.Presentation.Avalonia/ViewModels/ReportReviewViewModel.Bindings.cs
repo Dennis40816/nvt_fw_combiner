@@ -128,6 +128,18 @@ public sealed partial class ReportReviewViewModel
     /// <summary>True when no external command operations are available.</summary>
     public bool HasNoCommandOperations { get; }
 
+    /// <summary>Actual postbuild process invocations flattened into independently numbered review rows.</summary>
+    public IReadOnlyList<ReportPostbuildInvocationViewModel> PostbuildInvocations { get; }
+
+    /// <summary>Number of independently numbered postbuild invocation rows.</summary>
+    public int PostbuildInvocationCount => PostbuildInvocations.Count;
+
+    /// <summary>True when postbuild invocation or declared-plan rows are available.</summary>
+    public bool HasPostbuildInvocations { get; }
+
+    /// <summary>True when no postbuild invocation or declared-plan rows are available.</summary>
+    public bool HasNoPostbuildInvocations { get; }
+
     /// <summary>Operations that do not contain an external command block.</summary>
     public IReadOnlyList<ReportLineViewModel> StepOperations { get; }
 
@@ -158,7 +170,7 @@ public sealed partial class ReportReviewViewModel
     /// <summary>Number of final output-vs-reference difference rows.</summary>
     public int OutputDifferenceCount => OutputDifferences.Count;
 
-    /// <summary>Final output differences grouped by report section.</summary>
+    /// <summary>Final output differences grouped by physical report section.</summary>
     public IReadOnlyList<ReportDifferenceGroupViewModel> OutputDifferenceGroups { get; }
 
     /// <summary>True when grouped output difference details are available.</summary>
@@ -260,12 +272,4 @@ public sealed partial class ReportReviewViewModel
     /// <summary>Compact counts for each available evidence category.</summary>
     public IReadOnlyList<ReportLineViewModel> EvidenceRows { get; }
 
-    /// <summary>True when the issue list should open by default.</summary>
-    public bool ShouldExpandIssues { get; }
-
-    /// <summary>True when external command evidence should open by default.</summary>
-    public bool ShouldExpandCommandOperations { get; }
-
-    /// <summary>True when normal operation evidence should open by default.</summary>
-    public bool ShouldExpandStepOperations { get; }
 }

@@ -60,6 +60,7 @@ public sealed partial class ReportReviewViewModel
         Operations = operations;
         CommandOperations = [.. operations.Where(operation => operation.HasCodeBlock)];
         StepOperations = [.. operations.Where(operation => !operation.HasCodeBlock)];
+        PostbuildInvocations = CreatePostbuildInvocations(operations, language);
         Mutations = mutations;
         OutputDifferences = outputDifferences;
         OutputDifferenceGroups = CreateOutputDifferenceGroups(outputDifferences, language);
@@ -79,6 +80,7 @@ public sealed partial class ReportReviewViewModel
         HasOperationFlow = OperationFlow.Count > 0;
         HasNoOperations = !HasOperationFlow && !HasOperations;
         HasCommandOperations = CommandOperations.Count > 0;
+        HasPostbuildInvocations = PostbuildInvocations.Count > 0;
         HasStepOperations = StepOperations.Count > 0;
         HasMutations = mutations.Count > 0;
         HasOutputDifferences = outputDifferences.Count > 0;
@@ -86,6 +88,7 @@ public sealed partial class ReportReviewViewModel
         HasIssues = issues.Count > 0;
         HasNoInputs = !HasInputs;
         HasNoCommandOperations = !HasCommandOperations;
+        HasNoPostbuildInvocations = !HasPostbuildInvocations;
         HasNoStepOperations = !HasStepOperations;
         HasNoMutations = !HasMutations;
         HasNoOutputDifferences = !HasOutputDifferences;
@@ -120,9 +123,6 @@ public sealed partial class ReportReviewViewModel
         AuditSummary = CreateAuditSummary(inputs, operations, mutations, outputDifferences, issues, language);
         TriageRows = CreateTriageRows(status, output, operations, issues, language);
         EvidenceRows = CreateEvidenceRows(inputs, operations, mutations, outputDifferences, issues, language);
-        ShouldExpandIssues = HasIssues && (HasPrimaryIssue || HasWarnings);
-        ShouldExpandCommandOperations = HasCommandOperations;
-        ShouldExpandStepOperations = HasStepOperations && !HasCommandOperations;
     }
 
     /// <summary>Empty report sentinel.</summary>

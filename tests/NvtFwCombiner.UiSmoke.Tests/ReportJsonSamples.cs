@@ -63,6 +63,26 @@ internal static class ReportJsonSamples
             "0123456789abcdef012345");
     }
 
+    public static string CtrlRamCommandTrace(int runtimeInvocationCount)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(runtimeInvocationCount);
+        return Create(
+            "nt51927-ctrlram-replace",
+            "NT51927",
+            "ctrlram-replace",
+            "ctrlram-replace",
+            "Replace",
+            "runtime-trace",
+            "2026-07-01T00:05:00Z",
+            [],
+            [CommandOperation(32, [], runtimeInvocationCount)],
+            [],
+            "build.bin",
+            32,
+            committed: true,
+            "0123456789abcdef012345");
+    }
+
     public static string ReplaceWithAcceptedOutputDifferences(
         string runId = "replace-diff",
         bool isHexPreviewComplete = true,
@@ -98,6 +118,8 @@ internal static class ReportJsonSamples
                     {
                         CategoryId = "tp-flash-header",
                         CategoryLabel = "TP Flash Header",
+                        ParentId = "tp-header",
+                        ParentLabel = "Header",
                         SubjectId = "nt51927-header:header-0-dlm-crc",
                         SubjectLabel = "DLM CRC 0",
                         Explanation = "Expected: postbuild recalculated DLM CRC 0.",
@@ -265,8 +287,12 @@ internal static class ReportJsonSamples
         };
     }
 
-    private static object CommandOperation(long length, IReadOnlyList<object> allowedWriteRanges)
+    private static object CommandOperation(
+        long length,
+        IReadOnlyList<object> allowedWriteRanges,
+        int runtimeInvocationCount = 1)
     {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(runtimeInvocationCount);
         return new
         {
             Sequence = 900,
@@ -280,23 +306,24 @@ internal static class ReportJsonSamples
             ToolBindingId = "legacy-combiner-1.13.0",
             ProcessorAllowedReadRanges = new[] { Range(0, length) },
             ProcessorAllowedWriteRanges = allowedWriteRanges,
-            ExecutedCommands = new[]
-            {
-                new
+            ExecutedCommands = Enumerable.Range(1, runtimeInvocationCount)
+                .Select(index => new
                 {
                     ExecutablePath = "C:\\tools\\legacy-combiner\\Combiner.exe",
-                    WorkingDirectory = "C:\\staging\\ui-smoke-command",
+                    WorkingDirectory = runtimeInvocationCount == 1
+                        ? "C:\\staging\\ui-smoke-command"
+                        : $"C:\\staging\\ui-smoke-command-{index:D2}",
                     Arguments = new[]
                     {
-                        "MERGE_MODE",
+                        index == 1 ? "MERGE_MODE" : "NT51927BASED_GEN_CRC_MODE",
                         "C:\\staging\\ui-smoke-command\\output\\nt51927_fw.bin",
                         "C:\\staging\\ui-smoke-command\\BIN\\Normal_Ctrlram.bin",
                         "0x0",
                         "0x22800",
                         "12288",
                     },
-                },
-            },
+                })
+                .ToArray(),
             Provenance = new
             {
                 Kind = "built-in-profile",

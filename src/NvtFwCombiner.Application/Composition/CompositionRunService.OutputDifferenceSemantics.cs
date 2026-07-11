@@ -22,13 +22,17 @@ public sealed partial class CompositionRunService
                 "Reference base",
                 "reference-preserved-range",
                 "Reference-preserved range",
-                "Unexpected: a range declared to stay from the reference base differs in the final output."),
+                "Unexpected: a range declared to stay from the reference base differs in the final output.",
+                "reference-base",
+                "Reference base"),
             _ => new OutputDifferenceSemantic(
                 "review-required",
                 "Review required",
                 "unexpected-range",
                 "Unexpected byte range",
-                "Not accepted by the selected profile; review before release."),
+                "Not accepted by the selected profile; review before release.",
+                "review-required",
+                "Review required"),
         };
     }
 
@@ -43,7 +47,9 @@ public sealed partial class CompositionRunService
             isCtrlRam ? "CtrlRAM" : "Replacement data",
             expectation.SectionId ?? "declared-replacement",
             expectation.SectionLabel,
-            $"Expected: this run replaced {expectation.SectionLabel}.");
+            $"Expected: this run replaced {expectation.SectionLabel}.",
+            expectation.SectionId ?? (isCtrlRam ? TpBinaryCategoryIds.CtrlRam : "replacement-data"),
+            expectation.SectionLabel);
     }
 
     private static OutputDifferenceSemantic CreatePostbuildDifferenceSemantic(
@@ -52,6 +58,7 @@ public sealed partial class CompositionRunService
         ByteRange range)
     {
         ByteRange fieldRange = MapDifferenceToHeaderSourceRange(expectation, range);
+        (string parentId, string parentLabel) = CreatePostbuildDifferenceParent(expectation);
         if (TpHeaderCatalog.IsHeaderSection(expectation.SectionId) &&
             TpHeaderCatalog.TryFindField(icId, fieldRange, out TpHeaderField? field))
         {
@@ -63,7 +70,9 @@ public sealed partial class CompositionRunService
                 "TP Flash Header",
                 $"{icId.ToLowerInvariant()}-header:{field!.FieldId}",
                 field.DisplayName,
-                explanation);
+                explanation,
+                parentId,
+                parentLabel);
         }
 
         bool isHeaderCopy = TpHeaderCatalog.IsHeaderSection(expectation.SectionId) ||
@@ -74,20 +83,41 @@ public sealed partial class CompositionRunService
                 "TP Flash Header",
                 expectation.SectionId ?? "header-refresh",
                 expectation.SectionLabel,
-                $"Expected: postbuild updated {expectation.SectionLabel}.")
+                $"Expected: postbuild updated {expectation.SectionLabel}.",
+                parentId,
+                parentLabel)
             : string.Equals(expectation.SectionId, TpHeaderSectionIds.FirmwareConfigBackup, StringComparison.Ordinal)
                 ? new OutputDifferenceSemantic(
                 TpBinaryCategoryIds.FirmwareConfiguration,
                 "FW Configuration",
                 TpHeaderSectionIds.FirmwareConfigBackup,
                 expectation.SectionLabel,
-                $"Expected: postbuild updated {expectation.SectionLabel}.")
+                $"Expected: postbuild updated {expectation.SectionLabel}.",
+                TpHeaderSectionIds.FirmwareConfigBackup,
+                expectation.SectionLabel)
             : new OutputDifferenceSemantic(
                 TpBinaryCategoryIds.OtherDocumentedRegion,
                 "Other documented regions",
                 expectation.SectionId ?? "postbuild-copy",
                 expectation.SectionLabel,
-                $"Expected: postbuild updated {expectation.SectionLabel}.");
+                $"Expected: postbuild updated {expectation.SectionLabel}.",
+                expectation.SectionId ?? "postbuild-copy",
+                expectation.SectionLabel);
+    }
+
+    private static (string ParentId, string ParentLabel) CreatePostbuildDifferenceParent(
+        OutputDifferenceExpectation expectation)
+    {
+        if (string.Equals(expectation.SectionId, TpHeaderSectionIds.FlashHeaderCrc, StringComparison.Ordinal))
+        {
+            return ("tp-header", "Header");
+        }
+
+        bool isHeaderCopy = TpHeaderCatalog.IsHeaderSection(expectation.SectionId) ||
+                            expectation.SectionId is TpHeaderSectionIds.WindowCopyRight or TpHeaderSectionIds.WindowCopyLeft;
+        return isHeaderCopy
+            ? (expectation.SectionId ?? "header-copy", expectation.SectionLabel)
+            : (expectation.SectionId ?? "postbuild-copy", expectation.SectionLabel);
     }
 
     private static ByteRange MapDifferenceToHeaderSourceRange(
