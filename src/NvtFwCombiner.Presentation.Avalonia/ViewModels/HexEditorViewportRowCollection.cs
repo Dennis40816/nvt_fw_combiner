@@ -4,10 +4,10 @@ using System.ComponentModel;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-/// <summary>Viewport rows that can swap as one collection reset instead of one layout pass per row.</summary>
+/// <summary>One bounded, replaceable window of raw-BIN rows. The document scrollbar owns total extent.</summary>
 public sealed class HexEditorViewportRowCollection : ObservableCollection<HexEditorViewportRowViewModel>
 {
-    /// <summary>Replaces the current viewport rows with one reset notification.</summary>
+    /// <summary>Replaces the current bounded window with one collection reset notification.</summary>
     public void ReplaceAll(IEnumerable<HexEditorViewportRowViewModel> rows)
     {
         ArgumentNullException.ThrowIfNull(rows);
@@ -22,31 +22,5 @@ public sealed class HexEditorViewportRowCollection : ObservableCollection<HexEdi
         OnPropertyChanged(new PropertyChangedEventArgs(nameof(Count)));
         OnPropertyChanged(new PropertyChangedEventArgs("Item[]"));
         OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
-    }
-
-    /// <summary>Appends one progressively rendered page with a single collection notification.</summary>
-    public void AppendAll(IEnumerable<HexEditorViewportRowViewModel> rows)
-    {
-        ArgumentNullException.ThrowIfNull(rows);
-
-        List<HexEditorViewportRowViewModel> additions = [.. rows];
-        if (additions.Count == 0)
-        {
-            return;
-        }
-
-        CheckReentrancy();
-        int startIndex = Items.Count;
-        foreach (HexEditorViewportRowViewModel row in additions)
-        {
-            Items.Add(row);
-        }
-
-        OnPropertyChanged(new PropertyChangedEventArgs(nameof(Count)));
-        OnPropertyChanged(new PropertyChangedEventArgs("Item[]"));
-        OnCollectionChanged(new NotifyCollectionChangedEventArgs(
-            NotifyCollectionChangedAction.Add,
-            additions,
-            startIndex));
     }
 }

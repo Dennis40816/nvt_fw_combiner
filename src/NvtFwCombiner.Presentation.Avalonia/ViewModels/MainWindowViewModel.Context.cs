@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -176,7 +177,6 @@ public sealed partial class MainWindowViewModel
     {
         if (SelectedPage == page)
         {
-            HexEditorWorkspace.IsPageActive = page == ShellPage.HexEditor;
             UpdateNavigationState();
             return;
         }
@@ -192,13 +192,15 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(IsNumberSelectorVisible));
         OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
         OnPropertyChanged(nameof(DeviceContextStatus));
-        HexEditorWorkspace.IsPageActive = page == ShellPage.HexEditor;
         UpdateNavigationState();
     }
 
     private bool CanRequestHexEditorSave()
     {
-        return IsHexEditorVisible && HexEditorWorkspace.CanSave;
+        return IsHexEditorVisible &&
+               !HexEditorWorkspace.IsTextEntryFocused &&
+               !HexEditorWorkspace.IsInlineEditActive &&
+               HexEditorWorkspace.CanSave;
     }
 
     private void RequestHexEditorSave()
@@ -207,6 +209,53 @@ public sealed partial class MainWindowViewModel
         {
             HexEditorWorkspace.RequestSaveCommand.Execute(null);
         }
+    }
+
+    private bool CanRequestHexEditorUndo()
+    {
+        return IsHexEditorVisible &&
+               !HexEditorWorkspace.IsTextEntryFocused &&
+               !HexEditorWorkspace.IsInlineEditActive &&
+               HexEditorWorkspace.UndoCommand.CanExecute(null);
+    }
+
+    private void RequestHexEditorUndo()
+    {
+        if (CanRequestHexEditorUndo())
+        {
+            HexEditorWorkspace.UndoCommand.Execute(null);
+        }
+    }
+
+    private bool CanRequestHexEditorRedo()
+    {
+        return IsHexEditorVisible &&
+               !HexEditorWorkspace.IsTextEntryFocused &&
+               !HexEditorWorkspace.IsInlineEditActive &&
+               HexEditorWorkspace.RedoCommand.CanExecute(null);
+    }
+
+    private void RequestHexEditorRedo()
+    {
+        if (CanRequestHexEditorRedo())
+        {
+            HexEditorWorkspace.RedoCommand.Execute(null);
+        }
+    }
+
+    private void HexEditorWorkspace_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is not (nameof(HexEditorWorkspaceViewModel.CanSave) or
+            nameof(HexEditorWorkspaceViewModel.ChangeCount) or
+            nameof(HexEditorWorkspaceViewModel.IsInlineEditActive) or
+            nameof(HexEditorWorkspaceViewModel.IsTextEntryFocused)))
+        {
+            return;
+        }
+
+        RequestHexEditorSaveCommand.NotifyCanExecuteChanged();
+        RequestHexEditorUndoCommand.NotifyCanExecuteChanged();
+        RequestHexEditorRedoCommand.NotifyCanExecuteChanged();
     }
 
     private void RefreshCommandState()

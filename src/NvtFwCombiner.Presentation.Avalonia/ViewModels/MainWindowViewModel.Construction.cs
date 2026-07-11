@@ -59,6 +59,8 @@ public sealed partial class MainWindowViewModel
         BeginGeneralReplaceFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Replace, GeneralReplaceMode, showNumber: true));
         ShowHexEditorCommand = new RelayCommand(ShowHexEditor);
         RequestHexEditorSaveCommand = new RelayCommand(RequestHexEditorSave, CanRequestHexEditorSave);
+        RequestHexEditorUndoCommand = new RelayCommand(RequestHexEditorUndo, CanRequestHexEditorUndo);
+        RequestHexEditorRedoCommand = new RelayCommand(RequestHexEditorRedo, CanRequestHexEditorRedo);
         ShowNormalMergeCommand = new RelayCommand(() => SelectMergeMode(NormalMergeMode));
         ShowGeneralMergeCommand = new RelayCommand(() => SelectMergeMode(GeneralMergeMode));
         BeginNormalMergeFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Merge, NormalMergeMode, showNumber: false));
@@ -95,6 +97,7 @@ public sealed partial class MainWindowViewModel
         RemoveReportHistoryEntryCommand = new RelayCommand<ReportHistoryEntryViewModel>(RemoveReportHistoryEntry);
         ShowReplaceSelectionCommand = new RelayCommand(ShowReplaceSelection);
         CloseReplaceSelectionCommand = new RelayCommand(CloseReplaceSelection);
+        HexEditorWorkspace.PropertyChanged += HexEditorWorkspace_OnPropertyChanged;
 
         AddGeneralReplaceMapping();
         AddGeneralMergeMapping();

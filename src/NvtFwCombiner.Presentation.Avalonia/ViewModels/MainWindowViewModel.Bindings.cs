@@ -315,6 +315,12 @@ public sealed partial class MainWindowViewModel
     /// <summary>Window-level save shortcut scoped to the active raw-BIN Hex Editor page.</summary>
     public IRelayCommand RequestHexEditorSaveCommand { get; }
 
+    /// <summary>Window-level undo shortcut scoped to the active raw-BIN Hex Editor page.</summary>
+    public IRelayCommand RequestHexEditorUndoCommand { get; }
+
+    /// <summary>Window-level redo shortcut scoped to the active raw-BIN Hex Editor page.</summary>
+    public IRelayCommand RequestHexEditorRedoCommand { get; }
+
     /// <summary>Command that opens Normal Merge.</summary>
     public IRelayCommand ShowNormalMergeCommand { get; }
 

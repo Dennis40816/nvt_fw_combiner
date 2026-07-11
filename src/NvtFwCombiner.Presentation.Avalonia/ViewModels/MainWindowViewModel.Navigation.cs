@@ -83,6 +83,8 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(CanGoBack));
         GoBackCommand.NotifyCanExecuteChanged();
         RequestHexEditorSaveCommand.NotifyCanExecuteChanged();
+        RequestHexEditorUndoCommand.NotifyCanExecuteChanged();
+        RequestHexEditorRedoCommand.NotifyCanExecuteChanged();
         RefreshSettingsState();
     }
 

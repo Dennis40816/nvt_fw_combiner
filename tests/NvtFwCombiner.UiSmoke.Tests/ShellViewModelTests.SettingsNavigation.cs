@@ -96,7 +96,6 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.IsHexEditorVisible);
         Assert.False(viewModel.IsReplaceVisible);
         Assert.False(viewModel.IsDeviceContextVisible);
-        Assert.True(viewModel.HexEditorWorkspace.IsPageActive);
         Assert.Equal("Home > Hex Editor", viewModel.NavigationPath);
         Assert.False(viewModel.ReplaceBaseSlot.HasFile);
     }

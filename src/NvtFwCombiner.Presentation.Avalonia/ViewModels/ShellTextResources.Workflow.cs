@@ -111,6 +111,9 @@ public sealed partial class ShellTextResources
     /// <summary>Explanation for the safe Hex Editor export confirmation.</summary>
     public string HexEditorSaveConfirmationDetail { get; private init; } = string.Empty;
 
+    /// <summary>Compact in-panel reminder that the raw editor never writes the opened source file.</summary>
+    public string HexEditorMemoryOnlyDetail { get; private init; } = string.Empty;
+
     /// <summary>Confirmation action label for the safe Hex Editor export dialog.</summary>
     public string HexEditorSaveConfirmationActionLabel { get; private init; } = string.Empty;
 
@@ -148,15 +151,27 @@ public sealed partial class ShellTextResources
 
     public string UtilToolsLabel { get; private init; } = string.Empty;
 
+    public string UtilToolsHomeTitle { get; private init; } = string.Empty;
+
+    public string UtilToolsHomeDetail { get; private init; } = string.Empty;
+
     public string HexEditorContextInsertZeroBeforeLabel { get; private init; } = string.Empty;
 
     public string HexEditorContextInsertZeroAfterLabel { get; private init; } = string.Empty;
+
+    public string HexEditorContextInsertBytesBeforeLabel { get; private init; } = string.Empty;
+
+    public string HexEditorContextInsertBytesAfterLabel { get; private init; } = string.Empty;
 
     public string HexEditorContextDeleteByteLabel { get; private init; } = string.Empty;
 
     public string HexEditorContextSetToZeroLabel { get; private init; } = string.Empty;
 
     public string HexEditorContextSetToFfLabel { get; private init; } = string.Empty;
+
+    public string HexEditorContextGoToBlockStartLabel { get; private init; } = string.Empty;
+
+    public string HexEditorContextGoToBlockEndLabel { get; private init; } = string.Empty;
 
     public string HexEditorSourceReadyDetail { get; private init; } = string.Empty;
 
@@ -176,15 +191,65 @@ public sealed partial class ShellTextResources
 
     public string HexEditorGoToAddressLabel { get; private init; } = string.Empty;
 
+    public string HexEditorAsciiSearchLabel { get; private init; } = string.Empty;
+
+    public string HexEditorAsciiSearchPlaceholder { get; private init; } = string.Empty;
+
+    public string HexEditorAsciiSearchNotFoundDetail { get; private init; } = string.Empty;
+
+    public string HexEditorInvalidAsciiSearchDetail { get; private init; } = string.Empty;
+
+    public string HexEditorAsciiSearchFoundDetail { get; private init; } = string.Empty;
+
+    public string HexEditorAsciiSearchIndexTemplate { get; private init; } = string.Empty;
+
+    public string HexEditorAsciiSearchWrappedLabel { get; private init; } = string.Empty;
+
     public string HexEditorChangeTitle { get; private init; } = string.Empty;
+
+    public string HexEditorChangedBlocksLabel { get; private init; } = string.Empty;
+
+    public string HexEditorNoChangedBlocksDetail { get; private init; } = string.Empty;
+
+    public string HexEditorChangedBlockSelectedDetail { get; private init; } = string.Empty;
+
+    public string HexEditorSelectChangedBlockTooltip { get; private init; } = string.Empty;
+
+    public string HexEditorChangedBlockValueReasonSingleTemplate { get; private init; } = string.Empty;
+
+    public string HexEditorChangedBlockValueReasonMultipleTemplate { get; private init; } = string.Empty;
+
+    public string HexEditorChangedBlockInsertReasonTemplate { get; private init; } = string.Empty;
+
+    public string HexEditorChangedBlockDeleteReasonTemplate { get; private init; } = string.Empty;
+
+    public string HexEditorChangedBlockReasonFallback { get; private init; } = string.Empty;
 
     public string HexEditorAddressColumnLabel { get; private init; } = string.Empty;
 
     public string HexEditorAsciiColumnLabel { get; private init; } = string.Empty;
 
+    public string HexEditorDocumentScrollBarAutomationName { get; private init; } = string.Empty;
+
     public string HexEditorShowOriginalRowsLabel { get; private init; } = string.Empty;
 
     public string HexEditorHexBytesLabel { get; private init; } = string.Empty;
+
+    public string HexEditorWriteModeLabel { get; private init; } = string.Empty;
+
+    public string HexEditorOverwriteModeLabel { get; private init; } = string.Empty;
+
+    public string HexEditorFillModeLabel { get; private init; } = string.Empty;
+
+    public string HexEditorOverwriteModeTooltip { get; private init; } = string.Empty;
+
+    public string HexEditorFillModeTooltip { get; private init; } = string.Empty;
+
+    public string HexEditorOverwriteGuidance { get; private init; } = string.Empty;
+
+    public string HexEditorFillGuidance { get; private init; } = string.Empty;
+
+    public string HexEditorApplyChangeLabel { get; private init; } = string.Empty;
 
     public string HexEditorHexBytesPlaceholder { get; private init; } = string.Empty;
 
@@ -196,6 +261,12 @@ public sealed partial class ShellTextResources
 
     public string HexEditorRedoLabel { get; private init; } = string.Empty;
 
+    public string HexEditorUndoTooltip { get; private init; } = string.Empty;
+
+    public string HexEditorRedoTooltip { get; private init; } = string.Empty;
+
+    public string HexEditorSaveAsTooltip { get; private init; } = string.Empty;
+
     public string HexEditorEditByteLabel { get; private init; } = string.Empty;
 
     public string HexEditorInvalidAddressDetail { get; private init; } = string.Empty;
@@ -203,6 +274,22 @@ public sealed partial class ShellTextResources
     public string HexEditorInvalidByteDetail { get; private init; } = string.Empty;
 
     public string HexEditorInvalidRangeDetail { get; private init; } = string.Empty;
+
+    public string HexEditorInputExceedsRangeDetail { get; private init; } = string.Empty;
+
+    public string HexEditorInvalidByteCountDetail { get; private init; } = string.Empty;
+
+    public string HexEditorInsertBytesBeforeTitle { get; private init; } = string.Empty;
+
+    public string HexEditorInsertBytesAfterTitle { get; private init; } = string.Empty;
+
+    public string HexEditorInsertBytesDetail { get; private init; } = string.Empty;
+
+    public string HexEditorInsertByteCountLabel { get; private init; } = string.Empty;
+
+    public string HexEditorInsertBytesMaximumTemplate { get; private init; } = string.Empty;
+
+    public string HexEditorInsertBytesActionLabel { get; private init; } = string.Empty;
 }
 
 #pragma warning restore CS1591
