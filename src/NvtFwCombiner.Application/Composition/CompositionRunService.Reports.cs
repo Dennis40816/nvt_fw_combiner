@@ -17,17 +17,22 @@ public sealed partial class CompositionRunService
         bool committed,
         Dictionary<string, IReadOnlyList<ExternalProcessInvocation>>? executedCommandsByOperationId = null)
     {
-        OperationRunStatus status = execution.Status == CompositionExecutionStatus.Succeeded
-            ? OperationRunStatus.Succeeded
-            : OperationRunStatus.Skipped;
         OperationRunSummary[] operations = [
-            .. request.Plan.OrderedOperations.Select(operation => ToOperationSummary(
-                operation,
-                status,
-                executedCommandsByOperationId is not null &&
-                executedCommandsByOperationId.TryGetValue(operation.OperationId, out IReadOnlyList<ExternalProcessInvocation>? executedCommands)
-                    ? executedCommands
-                    : [])),
+            .. request.Plan.OrderedOperations.Select(operation =>
+            {
+                IReadOnlyList<ExternalProcessInvocation> executedCommands = executedCommandsByOperationId is not null &&
+                    executedCommandsByOperationId.TryGetValue(
+                        operation.OperationId,
+                        out IReadOnlyList<ExternalProcessInvocation>? operationCommands)
+                            ? operationCommands
+                            : [];
+                OperationRunStatus status = execution.Status == CompositionExecutionStatus.Succeeded
+                    ? OperationRunStatus.Succeeded
+                    : executedCommands.Count > 0
+                        ? OperationRunStatus.Failed
+                        : OperationRunStatus.Skipped;
+                return ToOperationSummary(operation, status, executedCommands);
+            }),
         ];
 
         byte[] outputBytes = execution.OutputBytes.ToArray();

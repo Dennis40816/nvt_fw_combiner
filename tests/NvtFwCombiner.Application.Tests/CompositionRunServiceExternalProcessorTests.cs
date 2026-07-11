@@ -333,6 +333,7 @@ public sealed partial class CompositionRunServiceTests
         CompositionIssue issue = Assert.Single(result.Report.Issues);
         Assert.Equal("external-tool.process.failed", issue.Code);
         OperationRunSummary operation = Assert.Single(result.Report.Operations);
+        Assert.Equal(OperationRunStatus.Failed, operation.Status);
         _ = Assert.Single(operation.ExecutedCommands);
         Assert.Empty(result.OutputBytes.ToArray());
     }

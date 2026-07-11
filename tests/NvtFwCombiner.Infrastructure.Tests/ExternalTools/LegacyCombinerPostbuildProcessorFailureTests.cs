@@ -99,4 +99,58 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         CompositionIssue issue = Assert.Single(result.Issues);
         Assert.Equal("external-tool.write-range.violation", issue.Code);
     }
+
+    /// <summary>Retains successful command evidence when a later command fails before process launch.</summary>
+    [Fact]
+    public async Task TransformPreservesExecutedCommandsWhenLaterStagingFails()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        byte[] firmware = [0x10, 0x20, 0x30, 0x40];
+        var firstCommand = new LegacyCombinerPostbuildCommand(
+            "first",
+            LegacyCombinerCommandFamily.CrcOnlyMode,
+            "NT51927BASED_GEN_CRC_MODE",
+            "CRC32",
+            []);
+        var invalidSecondCommand = new LegacyCombinerPostbuildCommand(
+            "second",
+            LegacyCombinerCommandFamily.MergeMode,
+            "MERGE_MODE",
+            null,
+            [
+                new LegacyCombinerBlockArgument(
+                    "outside-input",
+                    LegacyCombinerBlockSourceKind.StagedFile,
+                    "Outside.bin",
+                    0,
+                    new ByteRange(firmware.Length, 1)),
+            ]);
+        var profile = new LegacyCombinerPostbuildProfile(
+            "nfc.test.later-staging-failure-v1",
+            "NTTEST",
+            "legacy-combiner-1.13.0",
+            "test_fw.bin",
+            [firstCommand, invalidSecondCommand],
+            [firstCommand, invalidSecondCommand],
+            "test command evidence preservation");
+        FakeProcessRunner runner = new(_ => new ExternalProcessResult(0, false, string.Empty, string.Empty));
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
+        ExternalProcessorRequest request = new(
+            "run-later-staging-failure",
+            profile.ProcessorId,
+            "legacy-combiner-1.13.0",
+            firmware,
+            [],
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("legacy-combiner.staging.range-outside-input", issue.Code);
+        Assert.Equal(1, runner.RunCount);
+        ExternalProcessInvocation executed = Assert.Single(result.ExecutedCommands);
+        Assert.Equal("NT51927BASED_GEN_CRC_MODE", executed.Arguments[0]);
+    }
 }

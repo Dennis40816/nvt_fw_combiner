@@ -4,6 +4,20 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellViewModelTests
 {
+    /// <summary>Keeps actual runtime argv visible even without a profile-declared command block.</summary>
+    [Fact]
+    public void ReportReviewRoutesRuntimeOnlyEvidenceToCommands()
+    {
+        var report = ReportReviewViewModel.FromJson(
+            ReportJsonSamples.RuntimeOnlyCommandTrace(),
+            "runtime-only.json");
+
+        ReportLineViewModel command = Assert.Single(report.CommandOperations);
+        Assert.False(command.HasCodeBlock);
+        Assert.True(command.HasRuntimeCommands);
+        Assert.Empty(report.StepOperations);
+    }
+
     /// <summary>Verifies report triage points users to the first issue and command evidence.</summary>
     [Fact]
     public void ReportReviewTriagePrioritizesIssueAndCommandEvidence()

@@ -58,8 +58,8 @@ public sealed partial class ReportReviewViewModel
         HasOutputArtifactPath = !string.IsNullOrWhiteSpace(OutputArtifactPath);
         Inputs = inputs;
         Operations = operations;
-        CommandOperations = [.. operations.Where(operation => operation.HasCodeBlock)];
-        StepOperations = [.. operations.Where(operation => !operation.HasCodeBlock)];
+        CommandOperations = [.. operations.Where(operation => operation.HasCodeBlock || operation.HasRuntimeCommands)];
+        StepOperations = [.. operations.Where(operation => !operation.HasCodeBlock && !operation.HasRuntimeCommands)];
         PostbuildInvocations = CreatePostbuildInvocations(operations, language);
         Mutations = mutations;
         OutputDifferences = outputDifferences;

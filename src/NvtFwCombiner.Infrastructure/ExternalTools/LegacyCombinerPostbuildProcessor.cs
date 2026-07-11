@@ -121,14 +121,17 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                 byte[] commandInputBytes = await File.ReadAllBytesAsync(firmwarePath, cancellationToken).ConfigureAwait(false);
                 if (commandInputBytes.LongLength != inputBytes.LongLength)
                 {
-                    return Fail("external-tool.output-length.changed", "External processor changed the firmware image length.");
+                    return Fail(
+                        "external-tool.output-length.changed",
+                        "External processor changed the firmware image length.",
+                        executedCommands);
                 }
 
                 ResetDirectory(binDirectory);
                 CompositionIssue? stagingIssue = MaterializeStagedBlockFiles(command.Blocks, stagedSourceBytes, binDirectory);
                 if (stagingIssue is not null)
                 {
-                    return ExternalProcessorResult.Failed([stagingIssue]);
+                    return ExternalProcessorResult.Failed([stagingIssue], executedCommands);
                 }
 
                 IReadOnlyList<string> arguments = LegacyCombinerPostbuildCommandLineBuilder.CreateArguments(

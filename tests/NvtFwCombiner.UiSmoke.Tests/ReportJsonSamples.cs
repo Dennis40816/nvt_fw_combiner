@@ -83,6 +83,25 @@ internal static class ReportJsonSamples
             "0123456789abcdef012345");
     }
 
+    public static string RuntimeOnlyCommandTrace()
+    {
+        return Create(
+            "runtime-only-profile",
+            "NT51927",
+            "ctrlram-replace",
+            "ctrlram-replace",
+            "Replace",
+            "runtime-only-trace",
+            "2026-07-01T00:05:00Z",
+            [],
+            [CommandOperation(32, [], includeDeclaredCommand: false)],
+            [],
+            "build.bin",
+            32,
+            committed: false,
+            "0123456789abcdef012345");
+    }
+
     public static string ReplaceWithAcceptedOutputDifferences(
         string runId = "replace-diff",
         bool isHexPreviewComplete = true,
@@ -290,7 +309,8 @@ internal static class ReportJsonSamples
     private static object CommandOperation(
         long length,
         IReadOnlyList<object> allowedWriteRanges,
-        int runtimeInvocationCount = 1)
+        int runtimeInvocationCount = 1,
+        bool includeDeclaredCommand = true)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(runtimeInvocationCount);
         return new
@@ -328,7 +348,9 @@ internal static class ReportJsonSamples
             {
                 Kind = "built-in-profile",
             },
-            Reason = "Run approved staged Combiner command: Combiner.exe /bin work.bin /mmap mmap.h.",
+            Reason = includeDeclaredCommand
+                ? "Run approved staged Combiner command: Combiner.exe /bin work.bin /mmap mmap.h."
+                : "Run external processor.",
         };
     }
 
