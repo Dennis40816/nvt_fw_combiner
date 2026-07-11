@@ -39,6 +39,7 @@ internal sealed class ProfileBundleFileSnapshot
             Options = FileOptions.SequentialScan,
             BufferSize = 4096,
         });
+        RegularFileGuard.RequireOpenHandle(stream.SafeFileHandle, entry.Path);
         long length = stream.Length;
         if (length > maximumBytes)
         {

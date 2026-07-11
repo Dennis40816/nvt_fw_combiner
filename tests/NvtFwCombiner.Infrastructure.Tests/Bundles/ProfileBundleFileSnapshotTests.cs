@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using NvtFwCombiner.Infrastructure.Bundles;
+using NvtFwCombiner.Infrastructure.Tests.Files;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Infrastructure.Tests.Bundles;
@@ -107,6 +108,27 @@ public sealed class ProfileBundleFileSnapshotTests
             Entry(Hash(content)),
             1024);
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => snapshot.ParseStrictJson(0));
+    }
+
+    /// <summary>Verifies a Unix FIFO is rejected before a read-only open can block.</summary>
+    [Fact(
+        Skip = "Requires a Unix FIFO fixture.",
+        SkipUnless = nameof(UnixSpecialFileTestFixture.IsUnix),
+        SkipType = typeof(UnixSpecialFileTestFixture),
+        Timeout = 5000)]
+    public void ReadRejectsUnixFifoBeforeOpening()
+    {
+        using var workspace = TempWorkspace.Create("nfc-bundle-snapshot");
+        _ = Directory.CreateDirectory(workspace.PathFor("profiles"));
+        UnixSpecialFileTestFixture.CreateFifo(workspace.PathFor("profiles/profile.json"));
+
+        UnauthorizedAccessException exception = Assert.Throws<UnauthorizedAccessException>(() =>
+            ProfileBundleFileSnapshot.Read(
+                workspace.Root,
+                Entry(new string('0', 64)),
+                1024));
+
+        Assert.Contains("regular filesystem file", exception.Message, StringComparison.Ordinal);
     }
 
     private static ProfileBundleEntry Entry(string contentHash)

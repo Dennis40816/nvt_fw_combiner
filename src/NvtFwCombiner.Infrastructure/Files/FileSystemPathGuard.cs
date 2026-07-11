@@ -80,6 +80,7 @@ internal static class FileSystemPathGuard
         }
 
         RejectReparsePoint(fullPath);
+        RegularFileGuard.RequirePath(fullPath);
         return fullPath;
     }
 
