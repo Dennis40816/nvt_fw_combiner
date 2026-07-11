@@ -148,6 +148,10 @@ public sealed partial class ShellViewModelTests
             "NT51926_FlashCode_D0102T0100_",
             viewModel.MergeOutputFileName,
             StringComparison.Ordinal);
+        Assert.StartsWith(
+            "NT51926_FlashCode_DxxxxTxxxx_",
+            viewModel.ReplaceOutputFileName,
+            StringComparison.Ordinal);
 
         viewModel.SelectedIc = "NT51950";
         JsonElement nt51950 = golden.CaseByIc("51950");

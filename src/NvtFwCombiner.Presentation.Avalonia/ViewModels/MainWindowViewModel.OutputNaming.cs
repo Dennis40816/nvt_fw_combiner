@@ -4,18 +4,12 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
 {
-    private string CreateFlashCodeOutputFileName()
+    private string CreateFlashCodeOutputFileName(IEnumerable<FirmwareSlotViewModel> candidateSlots)
     {
+        ArgumentNullException.ThrowIfNull(candidateSlots);
         return UiCompositionRunner.CreateFlashCodeOutputFileName(
             SelectedIc,
-            [.. EnumerateVersionCandidateSlots().Select(ToOutputNameCandidate)]);
-    }
-
-    private IEnumerable<FirmwareSlotViewModel> EnumerateVersionCandidateSlots()
-    {
-        return MergeSlots
-            .Concat(ReplaceSlots)
-            .Concat([ReplaceBaseSlot]);
+            [.. candidateSlots.Select(ToOutputNameCandidate)]);
     }
 
     private static WorkbenchOutputNameCandidate ToOutputNameCandidate(FirmwareSlotViewModel slot)
