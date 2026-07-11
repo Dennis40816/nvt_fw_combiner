@@ -247,6 +247,9 @@ that every IC/workflow is authorable, compilable, executable, or supported.
 ## Verification
 
 - Schema and production bundle-loader strictness and trust-anchor tests.
+- Production bundle promotion requires real-environment evidence that final-file and intermediate-directory
+  reparse points are rejected, plus an immutable-root guarantee and immediate open-time snapshot or handle
+  revalidation that closes the resolver-to-read TOCTOU interval.
 - Evidence-row disposition, all-IC resolution, alias, topology, capacity, and locator tests.
 - Map/profile mismatch, nested-region access, promotion blocker, saved-rule, and REG pending tests.
 - Mutable initialization, scalar relocation, processor authority, and immutable-source tests.
