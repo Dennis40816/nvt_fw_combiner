@@ -232,6 +232,37 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Contains("ui.general-replace.patch-hex-invalid", result.Error, StringComparison.Ordinal);
     }
 
+    /// <summary>Rejects fixed-profile range options instead of silently ignoring them on real IC runs.</summary>
+    [Theory]
+    [InlineData("--input", "ignored.bin")]
+    [InlineData("--source-start", "0")]
+    [InlineData("--target-start", "0x100")]
+    [InlineData("--length", "1")]
+    public async Task GeneralReplaceRealIcRejectsFixedProfileOptions(string option, string value)
+    {
+        using var workspace = TempWorkspace.Create();
+        string reference = workspace.Write("reference.bin", CreatePattern(0x40000, 0x66));
+
+        CliRunResult result = await RunCliAsync([
+            "general-replace",
+            "preview",
+            "--profile",
+            "NT51950",
+            "--ic-num",
+            "single",
+            "--base",
+            reference,
+            "--patch",
+            "0x100+0x1=A5",
+            option,
+            value,
+        ]);
+
+        Assert.Equal(64, result.ExitCode);
+        Assert.Contains("does not accept fixed-profile option", result.Error, StringComparison.Ordinal);
+        Assert.Contains(option, result.Error, StringComparison.Ordinal);
+    }
+
     /// <summary>Rejects General Replace-only mapping and patch options in other Replace command groups.</summary>
     [Theory]
     [InlineData("dp-replace", "--mapping")]

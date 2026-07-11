@@ -7,6 +7,26 @@ namespace NvtFwCombiner.Application.FlashMaps;
 
 public static partial class TpFlashMapCatalog
 {
+    /// <summary>Returns true when at least one approved postbuild profile accepts the selection.</summary>
+    public static bool IsNumberSelectionSupported(string icId, IcNumberSelection selection)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentNullException.ThrowIfNull(selection);
+        if (selection.Parts.Count == 0)
+        {
+            return false;
+        }
+
+        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = LegacyCombinerPostbuildCatalog.GetProfiles(icId);
+        if (profiles.Count == 0)
+        {
+            return IcNumberSelectionTokens.IsSingle(selection.Parts[^1]);
+        }
+
+        string token = LegacyCombinerPostbuildBranchRule.NormalizeToken(selection.Parts[^1]);
+        return profiles.Any(profile => profile.BranchRules.ContainsKey(token));
+    }
+
     /// <summary>Gets UI number choices from the postbuild branches available for an IC.</summary>
     public static IReadOnlyList<string> GetNumberChoices(string icId)
     {

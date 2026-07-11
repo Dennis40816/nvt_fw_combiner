@@ -5,6 +5,9 @@ namespace NvtFwCombiner.Bootstrap;
 /// </summary>
 public sealed class WorkbenchGeneralReplaceBaseSnapshot
 {
+    private static readonly StringComparison PathComparison = OperatingSystem.IsWindows()
+        ? StringComparison.OrdinalIgnoreCase
+        : StringComparison.Ordinal;
     private readonly byte[] _bytes;
 
     internal WorkbenchGeneralReplaceBaseSnapshot(string sourcePath, byte[] bytes)
@@ -28,7 +31,7 @@ public sealed class WorkbenchGeneralReplaceBaseSnapshot
     internal bool IsForSourcePath(string path)
     {
         return !string.IsNullOrWhiteSpace(path) &&
-        string.Equals(SourcePath, Path.GetFullPath(path), StringComparison.OrdinalIgnoreCase);
+        string.Equals(SourcePath, Path.GetFullPath(path), PathComparison);
     }
 
     internal ReadOnlySpan<byte> AsSpan()

@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -18,6 +19,20 @@ public static partial class WorkbenchCompositionService
     {
         Dictionary<string, string> reportSlotPaths = CreateGeneralReplaceReportSlotPaths(slotPaths, mappingInputs);
         IcNumberSelection selection = ToIcNumberSelection(number);
+
+        if (!TpFlashMapCatalog.IsNumberSelectionSupported(icId, selection))
+        {
+            context = null;
+            failure = CreatePlanningRunResult(
+                icId,
+                number,
+                WorkbenchReplaceModes.General,
+                reportSlotPaths,
+                build,
+                WorkbenchIssueCodes.ReplaceGeneralIcNumberUnsupported,
+                $"IC number selection '{number}' is not supported for {icId} General Replace.");
+            return false;
+        }
 
         if (!slotPaths.TryGetValue(WorkbenchSlotIds.ReplaceBase, out string? basePath) ||
             string.IsNullOrWhiteSpace(basePath))

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
@@ -171,6 +172,32 @@ public sealed class WorkbenchGeneralReplacePatchTests
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
     }
 
+    /// <summary>Rejects unsupported IC numbers even when mappings touch only DP bytes.</summary>
+    [Fact]
+    public async Task GeneralReplaceDpOnlyPatchStillValidatesIcNumber()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-general-patch-number");
+        string basePath = workspace.Write("base.bin", CreatePattern(0x40000, 0x72));
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51950",
+            "999",
+            "General",
+            CreateBaseSlots(basePath),
+            [],
+            [new WorkbenchGeneralReplacePatchInput(
+                "hex-dp-number",
+                "0x00100",
+                "0x00100",
+                WorkbenchGeneralReplacePatchKind.Overwrite,
+                "A5")],
+            build: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.Succeeded);
+        AssertReportHasIssue(result.ReportJson, WorkbenchIssueCodes.ReplaceGeneralIcNumberUnsupported);
+    }
+
     /// <summary>TP virtual patches select the existing checked postbuild path rather than a patch-local processor.</summary>
     [Fact]
     public async Task GeneralReplaceVirtualPatchRunsExistingPostbuildForTpRange()
@@ -207,6 +234,49 @@ public sealed class WorkbenchGeneralReplacePatchTests
                 Assert.Equal("RunExternalProcessor", operation.GetProperty("Kind").GetString());
                 Assert.Equal("nfc.nt51950.ctrlram-postbuild-v1", operation.GetProperty("ProcessorId").GetString());
             });
+    }
+
+    /// <summary>Keeps postbuild strictly after every accepted General Replace mapping.</summary>
+    [Fact]
+    public async Task GeneralReplaceManyMappingsRemainBeforePostbuild()
+    {
+        string basePath = GoldenPath("expected/51950/dp-256k/flash.bin");
+        byte[] baseBytes = await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken);
+        WorkbenchGeneralReplacePatchInput[] patches =
+        [
+            .. Enumerable.Range(0, 80).Select(index => new WorkbenchGeneralReplacePatchInput(
+                $"hex-dp-{index:D2}",
+                $"0x{0x100 + index:X6}",
+                $"0x{0x100 + index:X6}",
+                WorkbenchGeneralReplacePatchKind.Overwrite,
+                "A5")),
+            new WorkbenchGeneralReplacePatchInput(
+                "hex-tp-final",
+                "0x022C00",
+                "0x022C00",
+                WorkbenchGeneralReplacePatchKind.Overwrite,
+                baseBytes[0x22C00].ToString("X2", CultureInfo.InvariantCulture)),
+        ];
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51950",
+            "single",
+            "General",
+            CreateBaseSlots(basePath),
+            [],
+            patches,
+            build: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        using var document = JsonDocument.Parse(result.ReportJson);
+        int[] sequences =
+        [
+            .. document.RootElement.GetProperty("Operations").EnumerateArray()
+                .Select(operation => operation.GetProperty("Sequence").GetInt32()),
+        ];
+        Assert.Equal(81, sequences.Count(sequence => sequence < 1_000_000));
+        Assert.Contains(1_000_000, sequences);
     }
 
     /// <summary>Hex viewport overlays every non-overlapping staged patch without writing the immutable base BIN.</summary>

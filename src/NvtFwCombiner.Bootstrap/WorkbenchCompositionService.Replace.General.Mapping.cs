@@ -207,7 +207,7 @@ public static partial class WorkbenchCompositionService
     {
         return new ExplicitMapping(
             mappingId,
-            checked(100 + (operationIndex * 10)),
+            checked(GeneralReplaceMappingSequenceStart + operationIndex),
             ExplicitMappingOperationKind.ReplaceRange,
             addressSpaceId,
             new ByteRange(0, targetRange.Length),

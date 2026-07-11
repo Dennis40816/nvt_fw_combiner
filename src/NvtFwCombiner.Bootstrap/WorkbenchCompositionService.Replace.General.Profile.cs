@@ -12,7 +12,8 @@ public static partial class WorkbenchCompositionService
     // a 0x100-byte firmware header copy block, and General Replace has no owner-approved
     // header editing workflow yet.
     private const long GeneralReplaceProtectedHeaderLength = 0x100;
-    private const int GeneralReplacePostbuildSequence = 900;
+    private const int GeneralReplaceMappingSequenceStart = 100;
+    private const int GeneralReplacePostbuildSequence = 1_000_000;
 
     private static CompositionProfileDefinition CreateGeneralReplaceProfile(
         string icId,
