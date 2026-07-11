@@ -11,9 +11,9 @@ public static partial class WorkbenchCompositionService
         string normalizedIc = icId.ToLowerInvariant();
         return replaceMode switch
         {
-            "DP" => $"{normalizedIc}-dp-replace.bin",
-            "CtrlRAM" => $"{normalizedIc}-ctrlram-replace.bin",
-            "General" => $"{normalizedIc}-general-replace.bin",
+            WorkbenchReplaceModes.Dp => $"{normalizedIc}-dp-replace.bin",
+            WorkbenchReplaceModes.CtrlRam => $"{normalizedIc}-ctrlram-replace.bin",
+            WorkbenchReplaceModes.General => $"{normalizedIc}-general-replace.bin",
             _ => "nvt-fw-combiner-replace.bin",
         };
     }
@@ -34,6 +34,7 @@ public static partial class WorkbenchCompositionService
             replaceMode,
             slotPaths,
             [],
+            [],
             build,
             cancellationToken,
             outputPath).ConfigureAwait(false);
@@ -50,41 +51,69 @@ public static partial class WorkbenchCompositionService
         CancellationToken cancellationToken,
         string? outputPath = null)
     {
+        return await RunReplaceAsync(
+            icId,
+            number,
+            replaceMode,
+            slotPaths,
+            generalReplaceMappings,
+            [],
+            build,
+            cancellationToken,
+            outputPath).ConfigureAwait(false);
+    }
+
+    /// <summary>Runs Replace preview or build with file-backed and virtual General Replace authoring inputs.</summary>
+    public static async ValueTask<WorkbenchRunResult> RunReplaceAsync(
+        string icId,
+        string number,
+        string replaceMode,
+        IReadOnlyDictionary<string, string> slotPaths,
+        IReadOnlyList<WorkbenchGeneralReplaceMappingInput> generalReplaceMappings,
+        IReadOnlyList<WorkbenchGeneralReplacePatchInput> generalReplacePatches,
+        bool build,
+        CancellationToken cancellationToken,
+        string? outputPath = null,
+        WorkbenchGeneralReplaceBaseSnapshot? baseSnapshot = null)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(number);
         ArgumentException.ThrowIfNullOrWhiteSpace(replaceMode);
         ArgumentNullException.ThrowIfNull(slotPaths);
         ArgumentNullException.ThrowIfNull(generalReplaceMappings);
+        ArgumentNullException.ThrowIfNull(generalReplacePatches);
 
         return replaceMode switch
         {
-            "DP" when IsNt51950Or51(icId) => await RunNt51950DpReplaceAsync(
+            WorkbenchReplaceModes.Dp when IsDpPerspectiveIc(icId) => await RunDpPerspectiveDpReplaceAsync(
                 icId,
                 number,
                 slotPaths,
                 build,
                 outputPath,
                 cancellationToken).ConfigureAwait(false),
-            "DP" => CreatePlanningRunResult(
+            WorkbenchReplaceModes.Dp => CreatePlanningRunResult(
                 icId,
                 number,
                 replaceMode,
                 slotPaths,
                 build,
-                "replace.dp.profile-pending",
-                "DP Replace output is enabled only for NT51950/NT51951 until per-IC DP source mapping and golden evidence are approved."),
-            "CtrlRAM" => await RunCtrlRamReplaceAsync(
+                WorkbenchIssueCodes.ReplaceDpProfilePending,
+                $"DP Replace output is enabled only for {FormatDpPerspectiveIcIds()} until per-IC DP source mapping and golden evidence are approved."),
+            WorkbenchReplaceModes.CtrlRam => await RunCtrlRamReplaceAsync(
                 icId,
                 number,
                 slotPaths,
                 build,
                 outputPath,
                 cancellationToken).ConfigureAwait(false),
-            "General" => await RunGeneralReplaceAsync(
+            WorkbenchReplaceModes.General => await RunGeneralReplaceAsync(
                 icId,
                 number,
                 slotPaths,
                 generalReplaceMappings,
+                generalReplacePatches,
+                baseSnapshot,
                 build,
                 outputPath,
                 cancellationToken).ConfigureAwait(false),
@@ -94,7 +123,7 @@ public static partial class WorkbenchCompositionService
                 replaceMode,
                 slotPaths,
                 build,
-                "replace.mode.unknown",
+                WorkbenchIssueCodes.ReplaceModeUnknown,
                 $"Unknown Replace mode '{replaceMode}'."),
         };
     }

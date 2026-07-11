@@ -1,0 +1,50 @@
+<UserControl
+    x:Class="NvtFwCombiner.Presentation.Avalonia.Views.ReportModal"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    x:DataType="vm:MainWindowViewModel"
+    Background="#990F172A">
+  <Border
+      Classes="surface"
+      MaxWidth="1500"
+      MaxHeight="940"
+      Margin="16"
+      Padding="0"
+      HorizontalAlignment="Stretch"
+      VerticalAlignment="Stretch">
+    <Grid MinHeight="0" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="0">
+      <ContentControl Content="{Binding}" ContentTemplate="{StaticResource ReportModalHeaderTemplate}" />
+
+      <ContentControl
+          Grid.Row="1"
+          Grid.RowSpan="3"
+          Content="{Binding}"
+          ContentTemplate="{StaticResource ReportHistoryPanelTemplate}"
+          IsVisible="{Binding IsReportHistoryViewOpen}" />
+
+      <ContentControl
+          Grid.Row="2"
+          Content="{Binding}"
+          ContentTemplate="{StaticResource ReportSummaryPanelTemplate}"
+          IsVisible="{Binding IsReportReviewViewOpen}" />
+
+      <ContentControl
+          Grid.Row="3"
+          Content="{Binding}"
+          ContentTemplate="{StaticResource ReportAuditDetailsPanelTemplate}"
+          IsVisible="{Binding IsReportReviewViewOpen}" />
+
+      <StackPanel Grid.Row="4" Margin="16,14,16,14" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+        <Button
+            Classes="secondary"
+            Command="{Binding CloseReportCommand}"
+            Content="{Binding Text.CloseLabel}" />
+        <Button
+            Classes="primary"
+            Click="SaveReportButton_OnClick"
+            Content="{Binding Text.SaveReportLabel}" />
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>

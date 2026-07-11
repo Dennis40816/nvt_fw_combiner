@@ -8,8 +8,8 @@ This document is an index for the current Merge and Replace flows by IC. It is n
 
 Update this document in the same change when any of these sources change:
 
-- `src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles.cs`
-- `src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.cs`
+- `src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles*.cs`; the root file owns exposure order only, and focused partials own evidence-family profile rows.
+- `src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles*.cs`; the root file owns exposure order only, and focused partials own synthetic or production policy rows.
 - `src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.cs`
 - `docs/architecture/nt51950-nt51951-dp-length-policy.md`
 - `docs/architecture/ctrlram-postbuild-command-matrix.md`
@@ -35,12 +35,16 @@ The architecture test `IcWorkflowFlowchartReferenceCoversBuiltInIcLists` checks 
 | NT51926 | `SM-GENFLASH`: direct gen_flash profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-LEGACY-NORMAL`: `CRC_Enable`. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Implemented Standard Merge profile and CtrlRAM command core. |
 | NT51927 | `SM-GENFLASH`: direct gen_flash profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-927`: numeric single/2/3 IC and cascade. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Implemented Standard Merge profile and special CtrlRAM command core. |
 | NT51928 | `SM-GENFLASH-LD`: includes TP, DP, and LD. | `R-DP-GENERIC`: DP/LD profile wiring pending. | `R-CTRLRAM-927`: follows NT51927 for non-NB only. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | NT51928 NB is not covered and must be a separate IC if approved later. |
-| NT51929 | `SM-GENFLASH`: direct gen_flash profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51932`: follows NT51932. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Implemented Standard Merge profile and CtrlRAM command core; AB is deferred. |
+| NT51929 | `SM-GENFLASH`: direct gen_flash profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51932`: follows NT51932. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Implemented Standard Merge profile and CtrlRAM command core; deferred AB must start from full DP container then profile-declared overlays. |
 | NT51930 | `SM-FLASHMAP-DYNAMIC`: flash-map derived profile with owner golden output. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51930`: current cascade maps to `<=13 IC`. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Standard Merge golden added from `merge_bin.7z`; CtrlRAM command core implemented. |
 | NT51931 | `SM-GENFLASH`: direct gen_flash profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51930`: NT51930-based mode. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Implemented Standard Merge profile and CtrlRAM command core. |
-| NT51932 | `SM-GENFLASH`: direct gen_flash profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51932`: direct postbuild reference. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Implemented Standard Merge profile and CtrlRAM command core; AB is deferred. |
-| NT51950 | `SM-950-951-DP-PERSPECTIVE`: executable profile with owner `0x40000` DP golden output. | `R-DP-950-951`: workbench exact-base path implemented; production profile/golden pending. | `R-CTRLRAM-51950`: direct postbuild reference. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Standard Merge golden added from `merge_bin.7z`; DP Replace workbench path and CtrlRAM command core implemented. |
+| NT51932 | `SM-GENFLASH`: direct gen_flash profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51932`: direct postbuild reference. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Implemented Standard Merge profile and CtrlRAM command core; deferred AB must start from full DP container then profile-declared overlays. |
+| NT51950 | `SM-950-951-DP-PERSPECTIVE`: executable profile with owner `0x40000` DP golden output. | `R-DP-950-951`: workbench exact-base path implemented; production profile/golden pending. | `R-CTRLRAM-51950`: direct postbuild reference. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Standard Merge golden added from `merge_bin.7z`; DP Replace workbench path and CtrlRAM command core implemented. Deferred AB shares only the full-DP-first order, not the normal-merge ranges or integrity rules. |
 | NT51951 | `SM-950-951-DP-PERSPECTIVE`: follows NT51950 profile with owner `0x80000` DP golden output. | `R-DP-950-951`: follows NT51950 workbench exact-base path; production profile/golden pending. | `R-CTRLRAM-51950`: follows NT51950. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Standard Merge golden added from `merge_bin.7z`; DP Replace workbench path and CtrlRAM command core implemented. |
+
+## Deferred AB Initializer Policy
+
+NT51929, NT51932, and NT51950 AB Merge have no executable profile or UI. On owner reactivation, each profile must first copy the submitted full DP container, then apply its own declared TP/bank overlays. This records operation order only. It does not authorize reuse of NT51950/NT51951 normal Merge ranges, accepted sizes, integrity behavior, or IC-count handling. Each IC needs an owner-approved AB golden input/output, profile ranges, processor/integrity declaration, and firmware-owner review before a flowchart or implementation is promoted.
 
 ## Standard Merge flowcharts
 
@@ -51,12 +55,19 @@ Used by the executable golden-backed gen_flash profiles: NT51920, NT51923, NT519
 ```mermaid
 flowchart TD
     A["Select built-in Standard Merge profile"] --> B["Create blank output image with profile flash size and fill byte"]
-    B --> C["Copy TP input range to output, sequence 100"]
-    C --> D["Copy DP input range to output, sequence 200"]
-    D --> E["Validate declared output ranges and overlap policy"]
-    E --> F["Write output artifact"]
-    F --> G["Preview/Build report records input hashes, copied ranges, and output hash"]
+    B --> C{"TP matches declared length (at most 0x40000)?"}
+    C -- "no" --> D["Reject input"]
+    C -- "yes" --> E{"DP reaches the declared source-range end?"}
+    E -- "no" --> D
+    E -- "yes" --> F["Extract declared DP range; warn only when total DP size is unexpected"]
+    F --> G["Copy TP input range to output, sequence 100"]
+    G --> H["Copy DP input range to output, sequence 200"]
+    H --> I["Validate declared output ranges and overlap policy"]
+    I --> J["Write output artifact"]
+    J --> K["Preview/Build report records input hashes, copied ranges, warnings, and output hash"]
 ```
+
+The DP source-size notes below are expected golden lengths, not exact-size execution gates. A DP input must cover the listed DP range; other total lengths are accepted with a warning. TP input remains exact-length for its declared profile range.
 
 | IC | Output size | TP range | DP range | DP input length note |
 | --- | ---: | --- | --- | --- |

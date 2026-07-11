@@ -43,8 +43,8 @@ public sealed partial class MemoryCoverageGroupViewModel : ObservableObject
 
     /// <summary>Plain-language group summary that is quick to scan.</summary>
     public string ChangeSummary => ChangedCount == 0
-        ? $"{SegmentCount} preserved areas."
-        : $"{ChangedCount} changeable / {SegmentCount} areas.";
+        ? "No replaceable areas."
+        : $"{ChangedCount} replaceable / {SegmentCount} areas.";
 
     /// <summary>True when the group is expanded in the UI.</summary>
     [ObservableProperty]

@@ -41,6 +41,15 @@ jobs:
           if ((git rev-list -n 1 '${{ inputs.tag }}') -ne (git rev-parse HEAD)) {
             throw 'Checked-out commit does not match the requested tag.'
           }
+      - name: Confirm stable tag is reachable from main
+        shell: pwsh
+        run: |
+          $tagCommit = git rev-list -n 1 '${{ inputs.tag }}'
+          $mainCommit = git rev-parse --verify 'refs/remotes/origin/main'
+          git merge-base --is-ancestor $tagCommit $mainCommit
+          if ($LASTEXITCODE -ne 0) {
+            throw "Release tag '${{ inputs.tag }}' is not reachable from main. Merge the reviewed commit to main before dispatching a stable release."
+          }
       - name: Setup Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0 immutable reviewed commit
         with:

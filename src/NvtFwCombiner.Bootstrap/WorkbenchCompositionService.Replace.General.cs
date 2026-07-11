@@ -13,6 +13,8 @@ public static partial class WorkbenchCompositionService
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
         IReadOnlyList<WorkbenchGeneralReplaceMappingInput> mappingInputs,
+        IReadOnlyList<WorkbenchGeneralReplacePatchInput> patchInputs,
+        WorkbenchGeneralReplaceBaseSnapshot? baseSnapshot,
         bool build,
         string? outputPath,
         CancellationToken cancellationToken)
@@ -22,6 +24,8 @@ public static partial class WorkbenchCompositionService
                 number,
                 slotPaths,
                 mappingInputs,
+                patchInputs,
+                baseSnapshot,
                 build,
                 out GeneralReplaceRunContext? context,
                 out WorkbenchRunResult? failure))
@@ -31,46 +35,55 @@ public static partial class WorkbenchCompositionService
 
         if (!TryCreateGeneralReplaceMappings(
                 context!.SelectedMappings,
+                context.SelectedPatches,
+                context.Capacity,
                 out IReadOnlyList<ExplicitMapping> explicitMappings,
                 out IReadOnlyList<AddressSpace> requestAddressSpaces,
                 out IReadOnlyList<InputArtifactBinding> mappingBindings,
+                out IReadOnlyList<GeneralReplacePatchArtifact> patchArtifacts,
                 out IReadOnlyList<CompositionIssue> mappingIssues))
         {
             return CreateReplaceReportRunResult(
                 icId,
-                "General",
+                WorkbenchReplaceModes.General,
                 context.ReportSlotPaths,
                 build,
                 [],
                 mappingIssues,
-                GetReplaceDefaultOutputFileName(icId, "General"),
+                GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General),
                 succeeded: false);
         }
 
-        bool postbuildProfileResolved = TryGetPostbuildProfile(
-            icId,
-            context.BasePath,
-            out LegacyCombinerPostbuildProfile? postbuildProfile,
-            out CompositionIssue? postbuildIssue);
+        bool postbuildProfileResolved = context.BaseSnapshot is null
+            ? TryGetPostbuildProfile(
+                icId,
+                context.BasePath,
+                out LegacyCombinerPostbuildProfile? postbuildProfile,
+                out CompositionIssue? postbuildIssue)
+            : TryGetPostbuildProfile(
+                icId,
+                context.BaseSnapshot,
+                out postbuildProfile,
+                out postbuildIssue);
         IReadOnlyList<TpFlashMapRegion> regionsForMappingPolicy = TpFlashMapCatalog.GetRegions(
             icId,
             context.Selection,
             postbuildProfileResolved ? postbuildProfile : null);
         bool touchesTpRegion = GeneralReplaceTouchesTpRegion(regionsForMappingPolicy, explicitMappings);
         LegacyCombinerPostbuildCommandPlan? commandPlan = null;
-        List<ByteRange> postbuildWriteRanges = [];
+        List<LegacyCombinerPostbuildWriteRange> postbuildWriteRangeSections = [];
         if (touchesTpRegion)
         {
             if (!postbuildProfileResolved)
             {
                 return CreateReplaceReportRunResult(
                     icId,
-                    "General",
+                    WorkbenchReplaceModes.General,
                     context.ReportSlotPaths,
                     build,
                     CreateGeneralReplacePlanningOperations(explicitMappings),
                     [postbuildIssue!],
-                    GetReplaceDefaultOutputFileName(icId, "General"),
+                    GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General),
                     succeeded: false);
             }
 
@@ -82,17 +95,17 @@ public static partial class WorkbenchCompositionService
             {
                 return CreateReplaceReportRunResult(
                     icId,
-                    "General",
+                    WorkbenchReplaceModes.General,
                     context.ReportSlotPaths,
                     build,
                     CreateGeneralReplacePlanningOperations(explicitMappings),
                     [
                         new CompositionIssue(
-                            "replace.general.ic-number-unsupported",
+                            WorkbenchIssueCodes.ReplaceGeneralIcNumberUnsupported,
                             exception.Message,
                             "number"),
                     ],
-                    GetReplaceDefaultOutputFileName(icId, "General"),
+                    GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General),
                     succeeded: false);
             }
 
@@ -101,39 +114,39 @@ public static partial class WorkbenchCompositionService
             {
                 return CreateReplaceReportRunResult(
                     icId,
-                    "General",
+                    WorkbenchReplaceModes.General,
                     context.ReportSlotPaths,
                     build,
                     CreateGeneralReplacePlanningOperations(explicitMappings),
                     [
                         new CompositionIssue(
-                            "input.address-space.length-mismatch",
+                            CompositionIssueCodes.InputAddressSpaceLengthMismatch,
                             $"Base flash BIN is too short for {icId} / {number} General Replace postbuild (actual {context.Capacity} bytes, required at least {requiredCapacity} bytes).",
-                            "replace-base"),
+                            WorkbenchSlotIds.ReplaceBase),
                     ],
-                    GetReplaceDefaultOutputFileName(icId, "General"),
+                    GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General),
                     succeeded: false);
             }
 
-            postbuildWriteRanges =
+            postbuildWriteRangeSections =
             [
-                .. LegacyCombinerPostbuildPlanner.GetAllowedWriteRangesForInPlaceRefresh(commandPlan, context.Capacity),
+                .. LegacyCombinerPostbuildPlanner.GetAllowedWriteRangeSectionsForInPlaceRefresh(commandPlan, context.Capacity),
             ];
-            if (postbuildWriteRanges.Count == 0)
+            if (postbuildWriteRangeSections.Count == 0)
             {
                 return CreateReplaceReportRunResult(
                     icId,
-                    "General",
+                    WorkbenchReplaceModes.General,
                     context.ReportSlotPaths,
                     build,
                     CreateGeneralReplacePlanningOperations(explicitMappings),
                     [
                         new CompositionIssue(
-                            "replace.general.postbuild-write-range-missing",
+                            WorkbenchIssueCodes.ReplaceGeneralPostbuildWriteRangeMissing,
                             "No approved postbuild write range could be derived for TP-touching General Replace.",
                             "postbuild"),
                     ],
-                    GetReplaceDefaultOutputFileName(icId, "General"),
+                    GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General),
                     succeeded: false);
             }
         }
@@ -144,7 +157,7 @@ public static partial class WorkbenchCompositionService
             context.Capacity,
             postbuildProfileResolved ? postbuildProfile : null,
             commandPlan,
-            postbuildWriteRanges);
+            postbuildWriteRangeSections);
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(
             profile,
             explicitMappings,
@@ -153,7 +166,7 @@ public static partial class WorkbenchCompositionService
         {
             return CreateReplaceReportRunResult(
                 icId,
-                "General",
+                WorkbenchReplaceModes.General,
                 context.ReportSlotPaths,
                 build,
                 CreateGeneralReplacePlanningOperations(explicitMappings),
@@ -162,14 +175,36 @@ public static partial class WorkbenchCompositionService
                 succeeded: false);
         }
 
+        if (!TryMaterializeGeneralReplacePatchArtifacts(
+                patchArtifacts,
+                out IReadOnlyDictionary<string, byte[]> patchVirtualArtifacts,
+                out IReadOnlyList<CompositionIssue> materializationIssues))
+        {
+            return CreateReplaceReportRunResult(
+                icId,
+                WorkbenchReplaceModes.General,
+                context.ReportSlotPaths,
+                build,
+                CreateGeneralReplacePlanningOperations(explicitMappings),
+                materializationIssues,
+                profile.DefaultOutputFileName,
+                succeeded: false);
+        }
+
+        Dictionary<string, byte[]> virtualArtifacts = new(patchVirtualArtifacts, StringComparer.Ordinal);
+        if (context.BaseSnapshot is not null)
+        {
+            virtualArtifacts.Add(context.ReferenceArtifactId, context.BaseSnapshot.CopyForArtifactReader());
+        }
+
         InputArtifactBinding[] bindings =
         [
-            new("reference-base", "replace-base", context.BasePath),
+            new(CompositionAddressSpaceIds.ReferenceBase, WorkbenchSlotIds.ReplaceBase, context.ReferenceArtifactId),
             .. mappingBindings,
         ];
 
         return await RunCompiledCompositionAsync(
-            "ui-replace-general",
+            GeneralReplaceRunIdPrefix,
             profile,
             compile.Plan!,
             bindings,
@@ -179,7 +214,9 @@ public static partial class WorkbenchCompositionService
             externalProcessor: commandPlan is null ? null : ExternalProcessorFactory.CreateOrNull(),
             icNumberSelection: context.Selection,
             overwrite: true,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken,
+            virtualArtifacts,
+            context.BaseSnapshot?.SourcePath).ConfigureAwait(false);
     }
 
 }

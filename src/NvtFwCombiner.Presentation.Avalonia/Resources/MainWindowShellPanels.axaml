@@ -1,0 +1,145 @@
+<ResourceDictionary
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
+
+<DataTemplate x:Key="NavigationTrailPanelTemplate" DataType="vm:MainWindowViewModel">
+  <Border Classes="shellBar" Padding="28,6">
+    <StackPanel
+        VerticalAlignment="Center"
+        Orientation="Horizontal"
+        Spacing="8">
+      <Button
+          Classes="iconButton"
+          Command="{Binding GoBackCommand}"
+          ToolTip.Tip="{Binding Text.BackTooltip}">
+        <TextBlock Text="←" />
+      </Button>
+      <ItemsControl ItemsSource="{Binding NavigationTrail}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Orientation="Horizontal" Spacing="8" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:ShellNavigationEntryViewModel">
+            <Button Classes="breadcrumb" Command="{Binding NavigateCommand}">
+              <Grid VerticalAlignment="Center" ColumnDefinitions="Auto,Auto" ColumnSpacing="12">
+                <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="#334155" Text="{Binding Label}" />
+                <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="13" Foreground="#94A3B8" IsVisible="{Binding IsChevronVisible}" Text=">" />
+              </Grid>
+            </Button>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </Border>
+</DataTemplate>
+
+<DataTemplate x:Key="DeviceContextPanelTemplate" DataType="vm:MainWindowViewModel">
+  <Border Classes="shellBar" Padding="28,8">
+    <Grid ColumnDefinitions="*,Auto">
+      <Grid
+          Grid.Column="0"
+          ColumnDefinitions="154,132,*"
+          RowDefinitions="Auto,Auto"
+          ColumnSpacing="12"
+          RowSpacing="3"
+          VerticalAlignment="Center"
+          ToolTip.Tip="{Binding DeviceContextTitle}">
+
+        <TextBlock Grid.Row="0" Grid.Column="0" Classes="tableHeader" Text="{Binding IcLabel}" />
+        <ComboBox
+            Grid.Row="1"
+            Grid.Column="0"
+            Classes="technicalSelect"
+            Width="154"
+            ItemsSource="{Binding IcChoices}"
+            SelectedItem="{Binding SelectedIc, Mode=TwoWay}">
+          <ComboBox.ItemTemplate>
+            <DataTemplate>
+              <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="13" Text="{Binding}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+
+        <Border
+            Grid.Row="0"
+            Grid.RowSpan="2"
+            Grid.Column="1"
+            Width="132"
+            MinHeight="45"
+            Background="Transparent"
+            IsHitTestVisible="False"
+            IsVisible="{Binding IsNumberSelectorPlaceholderVisible}" />
+        <TextBlock
+            Grid.Row="0"
+            Grid.Column="1"
+            Classes="tableHeader"
+            IsVisible="{Binding IsNumberSelectorVisible}"
+            Text="{Binding NumberLabel}" />
+        <ComboBox
+            Grid.Row="1"
+            Grid.Column="1"
+            Classes="technicalSelect"
+            Width="132"
+            IsVisible="{Binding IsNumberSelectorVisible}"
+            ItemsSource="{Binding NumberSelectionChoices}"
+            SelectedItem="{Binding SelectedNumberChoice, Mode=TwoWay}">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:IcNumberChoiceViewModel">
+              <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="13" Text="{Binding DisplayLabel}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <StackPanel
+            Grid.Row="1"
+            Grid.Column="2"
+            VerticalAlignment="Center"
+            Orientation="Horizontal"
+            Spacing="8">
+          <Border
+              Width="8"
+              Height="8"
+              Background="#16A34A"
+              CornerRadius="999" />
+          <TextBlock
+              VerticalAlignment="Center"
+              Classes="bodyEmphasisText"
+              Text="{Binding DeviceContextStatus}"
+              TextAlignment="Left"
+              TextWrapping="Wrap" />
+        </StackPanel>
+      </Grid>
+    </Grid>
+  </Border>
+</DataTemplate>
+
+<DataTemplate x:Key="ReportToastPanelTemplate" DataType="vm:MainWindowViewModel">
+  <Border
+      Classes="toastSurface"
+      MaxWidth="460"
+      Margin="0,12,0,0"
+      Padding="12,10"
+      HorizontalAlignment="Center"
+      VerticalAlignment="Top"
+      >
+    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+      <TextBlock VerticalAlignment="Center" FontSize="16" Foreground="#2563EB" Text="▤" />
+      <StackPanel Grid.Column="1" Spacing="1">
+        <TextBlock Classes="bodyStrongText" Text="{Binding ShellToastTitle}" />
+        <TextBlock Classes="detailText" Text="{Binding ReportToastText}" TextWrapping="Wrap" />
+      </StackPanel>
+    </Grid>
+  </Border>
+</DataTemplate>
+
+<DataTemplate x:Key="FooterStatusPanelTemplate" DataType="vm:MainWindowViewModel">
+  <Border Classes="footerStatus">
+    <TextBlock
+        Classes="mutedText"
+        Text="{Binding FooterStatus}"
+        TextWrapping="Wrap" />
+  </Border>
+</DataTemplate>
+</ResourceDictionary>

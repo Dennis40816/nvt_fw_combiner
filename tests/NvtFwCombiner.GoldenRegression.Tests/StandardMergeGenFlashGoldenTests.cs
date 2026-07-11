@@ -176,8 +176,7 @@ public sealed class StandardMergeGenFlashGoldenTests
 
     private static byte[] ReadManifestFile(string goldenRoot, JsonElement manifestFile)
     {
-        string relativePath = manifestFile.GetProperty("path").GetString()!;
-        string fullPath = Path.Combine(goldenRoot, relativePath.Replace('/', Path.DirectorySeparatorChar));
+        string fullPath = RepositoryPaths.ManifestPath(goldenRoot, manifestFile);
         byte[] bytes = File.ReadAllBytes(fullPath);
 
         Assert.Equal(manifestFile.GetProperty("size").GetInt64(), bytes.LongLength);

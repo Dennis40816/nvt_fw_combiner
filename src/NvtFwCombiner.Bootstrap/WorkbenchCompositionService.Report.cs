@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using NvtFwCombiner.Application.Composition;
@@ -44,7 +43,7 @@ public static partial class WorkbenchCompositionService
         DateTimeOffset timestamp = DateTimeOffset.UtcNow;
         string profileId = $"{icId.ToLowerInvariant()}-{replaceMode.ToLowerInvariant()}-replace-workbench";
         var report = new CompositionRunReport(
-            $"ui-replace-{replaceMode.ToLowerInvariant()}-{(build ? "build" : "preview")}-{timestamp.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture)}",
+            CreateWorkbenchReportRunId(GetReplaceRunIdPrefix(replaceMode), build, timestamp),
             profileId,
             "0.5.0",
             icId,

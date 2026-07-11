@@ -33,6 +33,17 @@ public sealed class ExternalCombinerProcessorTests
         Assert.Equal([0, 7, 0, 0], result.OutputBytes.ToArray());
         ByteRange range = Assert.Single(result.ChangedRanges);
         Assert.Equal(new ByteRange(1, 1), range);
+        ExternalProcessInvocation executedCommand = Assert.Single(result.ExecutedCommands);
+        Assert.EndsWith(Path.Combine("legacy-combiner", "1.10", "combiner.exe"), executedCommand.ExecutablePath, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(Path.Combine(workspace.StagingRoot, "run-synthetic"), executedCommand.WorkingDirectory);
+        Assert.Equal(
+            [
+                "--input",
+                Path.Combine(workspace.StagingRoot, "run-synthetic", "work.bin"),
+                "--output",
+                Path.Combine(workspace.StagingRoot, "run-synthetic", "output.bin"),
+            ],
+            executedCommand.Arguments);
         Assert.Empty(result.Issues);
     }
 
@@ -153,6 +164,7 @@ public sealed class ExternalCombinerProcessorTests
         Assert.False(result.Succeeded);
         CompositionIssue issue = Assert.Single(result.Issues);
         Assert.Equal("external-tool.process.failed", issue.Code);
+        _ = Assert.Single(result.ExecutedCommands);
     }
 
     /// <summary>Verifies timeout exits fail closed.</summary>

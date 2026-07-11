@@ -4,6 +4,9 @@ Status: architecture runbook.
 
 This runbook lists the files and review flow for adding one IC to Merge and Replace. It is not a support claim by itself. An IC/mode is releasable only after profile validation, processor diff review, golden regression, and firmware-owner sign-off.
 
+For the active 0.8.0 cleanup target and milestone-level acceptance criteria, see
+[`0.8.0-goal-and-acceptance.md`](0.8.0-goal-and-acceptance.md).
+
 ## Non-negotiable model rules
 
 - Merge starts from a blank output image; Replace clones an immutable reference/base image.
@@ -67,12 +70,16 @@ Update only the rows that are relevant to the new IC/mode.
 
 | Area | File | What changes |
 | --- | --- | --- |
-| Standard Merge profile | `src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles.cs` | Add an executable `CompositionProfileDefinition` or owner-confirmed alias. Keep operation order, fill byte, address spaces, and output naming in the profile. |
-| Replace profile | `src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.cs` | Add DP/CtrlRAM/General Replace profile definitions when the IC has real range and access evidence. Synthetic profiles stay contract-only. |
+| IC support / exposure catalog | `src/NvtFwCombiner.Profiles/IcSupportCatalog.cs` | Add the IC id, supported workflow ids, owner-approved alias facts, and short onboarding notes. This is the first C# row to update when introducing a new IC/mode. Workflow ids must come from `IcWorkflowIds.All`; unknown ids fail catalog construction. |
+| Family policy catalog | `src/NvtFwCombiner.Profiles/DpPerspectiveCatalog.cs` or another dedicated catalog | Add shared family policy only when multiple workflows need the same lengths/ranges/rules. Current example: NT51950/NT51951 DP Perspective supported IC ids, supported lengths, and TP/customer-info preservation ranges. Shared family catalogs should also drive generated Standard Merge/Replace profile lists when possible. Do not duplicate these constants in Standard Merge, Replace, UI, or CLI code. |
+| Standard Merge profile | `src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles.GenFlash.cs`, `BuiltInStandardMergeProfiles.DpPerspective.cs`, or another focused partial; root `BuiltInStandardMergeProfiles.cs` exposes stable order only | Add an executable `CompositionProfileDefinition` or owner-confirmed alias in the focused partial that owns the evidence family. Keep operation order, fill byte, address spaces, and output naming in the profile. |
+| Replace profile | `src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.DpPerspective.cs` or another focused partial; root `BuiltInReplaceProfiles.cs` exposes stable order only | Add DP/CtrlRAM/General Replace profile definitions when the IC has real range and access evidence. Synthetic profiles stay contract-only. |
 | Profile compiler rules | `src/NvtFwCombiner.Profiles/CompositionProfileCompiler.cs` | Change only for general validation gaps, not to special-case one IC. |
 | TP/DP/CtrlRAM region catalog | `src/NvtFwCombiner.Application/FlashMaps/TpFlashMapCatalog.cs` | Add canonical flash-map rows, IC-number visibility, postbuild file names, and tags such as `tp-ctrlram`, `dp`, `protected`, or customer-info. |
-| FWConfig metadata reader/catalog | `src/NvtFwCombiner.Application/FlashMaps/FirmwareConfigMetadataReader.cs` and `TpFlashMapCatalog` | Add the IC's primary FWConfig flash start and verify Common FW/FW-bar/PID extraction with golden or owner-approved reference evidence. |
-| CtrlRAM postbuild catalog | `src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.cs` | Add structured command sequences, branch rules, staged-file names, firmware block ranges, evidence source, and `CommonFwVersionRule` metadata when one IC has multiple postbuild categories. Never assemble one shell command string. |
+| TP header/write category | `src/NvtFwCombiner.Application/FlashMaps/TpHeaderCatalog.cs` | Add TP header/postbuild write section ids, report labels, overlap priority, and postbuild block-id classification when the IC introduces a new header copy, backup, CRC, or TP window category. Keep this out of planner, UI, and CLI code. |
+| FWConfig metadata reader/catalog | `src/NvtFwCombiner.Application/FlashMaps/FirmwareConfigLayout.cs`, `FirmwareConfigMetadataReader.cs`, and `TpFlashMapCatalog` | Add the IC's primary FWConfig flash start and verify Common FW/FW-bar/PID extraction with golden or owner-approved reference evidence. When exposing NVT-copy metadata, verify exactly one `00 4E 56 54` terminal, record `T - 0xFFF` in `docs/references/nvt-fwconfig-copy-validation.md`, and require every displayed primary/copy field to match. Change offsets only through the reviewed layout catalog. |
+| Output naming metadata | `src/NvtFwCombiner.Application/FlashMaps/GenFlashVersionCatalog.cs` and `src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.FirmwareMetadata.cs` | Add DP main/sub contiguous version-byte rules, CMI register evidence when applicable, and FlashCode naming metadata only from owner-approved evidence. UI passes selected slot roles and paths; it must not decide DP/TP version offsets, CMI branches, metadata priority, or date/name format. |
+| CtrlRAM postbuild catalog | `src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.Profiles.cs` for profile rows; `LegacyCombinerPostbuildCatalog.cs` for lookup/category selection | Add structured command sequences, branch rules, staged-file names, firmware block ranges, evidence source, and `CommonFwVersionRule` metadata when one IC has multiple postbuild categories. Never assemble one shell command string. |
 | External tool manifest | `external-tools/legacy-combiner/.../manifest.json` | Add or update only when a new exact `combiner.exe` binding/version is approved. |
 | Golden manifest | `testdata/golden/standard-merge-gen-flash/manifest.json` or workflow-specific golden folder | Add owner-approved public fixtures only. Use private manifests for confidential firmware evidence. |
 | CtrlRAM golden template | `testdata/golden/ctrlram-replace/manifest.template.json` | Keep required private evidence fields synchronized when adding CtrlRAM Replace coverage. |
@@ -90,7 +97,7 @@ Do not add IC-specific byte behavior to:
 ## Standard Merge steps
 
 1. Normalize source evidence into output capacity, fill byte, address spaces, and copy ranges.
-2. Add or update a profile in `BuiltInStandardMergeProfiles`.
+2. Add or update a profile in the focused `BuiltInStandardMergeProfiles.*` partial that owns the evidence family; keep the root file limited to stable exposure order.
 3. Compile the profile and confirm blank initialization plus ordered copy operations.
 4. Add invalid input-size tests for every declared input length rule.
 5. Add or update golden regression:
@@ -100,7 +107,9 @@ Do not add IC-specific byte behavior to:
 
 Minimum tests:
 
-- `tests/NvtFwCombiner.ProfileContract.Tests/BuiltInStandardMergeProfilesTests.cs`
+- the focused `tests/NvtFwCombiner.ProfileContract.Tests/BuiltInStandardMergeProfilesTests.*.cs` file matching the changed profile family
+- `tests/NvtFwCombiner.ProfileContract.Tests/IcSupportCatalogTests.cs` when support exposure or alias facts change
+- `tests/NvtFwCombiner.ProfileContract.Tests/DpPerspectiveCatalogTests.cs` or the matching family-policy test when shared family policy changes
 - `tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeGenFlashGoldenTests.cs`
 - CLI/UI smoke tests only when the new IC changes surfaced selector behavior or output naming.
 
@@ -116,7 +125,9 @@ Minimum tests:
 
 Minimum tests:
 
-- `tests/NvtFwCombiner.ProfileContract.Tests/BuiltInReplaceProfilesTests.cs`
+- the focused `tests/NvtFwCombiner.ProfileContract.Tests/BuiltInReplaceProfilesTests.*.cs` file matching the changed profile family
+- `tests/NvtFwCombiner.ProfileContract.Tests/IcSupportCatalogTests.cs` when support exposure changes
+- `tests/NvtFwCombiner.ProfileContract.Tests/DpPerspectiveCatalogTests.cs` or the matching family-policy test when shared family policy changes
 - `tests/NvtFwCombiner.Bootstrap.Tests/ReplaceCliCommandTests.cs` when CLI can build the profile
 - UI smoke tests when the IC changes selector, slot, memory coverage, or report behavior
 - Golden regression or private golden evidence before support promotion
@@ -124,13 +135,14 @@ Minimum tests:
 ## CtrlRAM Replace steps
 
 1. Add or confirm TP flash-map CtrlRAM rows in `TpFlashMapCatalog`.
-2. Add postbuild structured commands in `LegacyCombinerPostbuildCatalog` from owner-approved postbuild/mmap evidence.
-3. Declare Common FW category rules for versioned ICs, then lock selection with catalog tests so unsupported or ambiguous versions fail closed.
-4. Declare IC-number branch rules. Use `single`/`cascade` text choices unless the owner evidence requires numeric 1/2/3 branches.
-5. Ensure selected staged-file blocks map to visible CtrlRAM rows.
-6. Ensure every CtrlRAM Replace run executes the required postbuild sequence. A raw range replacement without postbuild is not a finished image.
-7. Confirm processor allowed write ranges include every Combiner-written byte and reject all others.
-8. Run self-replacement and idempotence tests against postbuild-canonical output, then compare with owner golden output when available.
+2. Add or confirm TP header/write categories in `TpHeaderCatalog` when postbuild writes new header copy, backup, CRC, or TP window sections.
+3. Add postbuild structured commands in `LegacyCombinerPostbuildCatalog.Profiles.cs` from owner-approved postbuild/mmap evidence.
+4. Declare Common FW category rules for versioned ICs, then lock selection with catalog tests so unsupported or ambiguous versions fail closed.
+5. Declare IC-number branch rules. Use `single`/`cascade` text choices unless the owner evidence requires numeric 1/2/3 branches.
+6. Ensure selected staged-file blocks map to visible CtrlRAM rows.
+7. Ensure every CtrlRAM Replace run executes the required postbuild sequence. A raw range replacement without postbuild is not a finished image.
+8. Confirm processor allowed write ranges include every Combiner-written byte and reject all others.
+9. Run self-replacement and idempotence tests against postbuild-canonical output, then compare with owner golden output when available.
 
 Minimum tests:
 

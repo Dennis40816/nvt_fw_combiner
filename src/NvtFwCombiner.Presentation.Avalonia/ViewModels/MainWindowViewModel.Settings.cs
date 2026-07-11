@@ -57,30 +57,13 @@ public sealed partial class MainWindowViewModel
     public partial string SelectedLanguage { get; set; } = "English";
 
     /// <summary>Gets the current theme preference effect shown next to the selector.</summary>
-    public string ThemePreferenceStatus => SelectedTheme switch
-    {
-        "System" => "Follows the operating-system theme.",
-        "Light" => "Light theme is applied to this window.",
-        "Dark" => "Dark theme is applied to this window.",
-        "High contrast" => "Uses the dark visual variant until a contrast palette is added.",
-        _ => "Theme preference is saved locally.",
-    };
+    public string ThemePreferenceStatus => Text.GetThemePreferenceStatus(SelectedTheme);
 
     /// <summary>Gets the current strictness preference effect shown next to the selector.</summary>
-    public string StrictnessPreferenceStatus => SelectedStrictness switch
-    {
-        "Strict" => "Unsupported workflow states stay fail-closed.",
-        "Warn only" => "Preference is saved; firmware gates still fail closed.",
-        _ => "Strictness preference is saved locally.",
-    };
+    public string StrictnessPreferenceStatus => Text.GetStrictnessPreferenceStatus(SelectedStrictness);
 
     /// <summary>Gets the current language preference effect shown next to the selector.</summary>
-    public string LanguagePreferenceStatus => SelectedLanguage switch
-    {
-        "English" => "English shell resources are active.",
-        "Traditional Chinese" => "Preference is saved; full XAML localization is pending.",
-        _ => "Language preference is saved locally.",
-    };
+    public string LanguagePreferenceStatus => Text.GetLanguagePreferenceStatus(SelectedLanguage);
 
     /// <summary>Exports local shell preferences for best-effort UI persistence.</summary>
     public ShellPreferenceSnapshot ExportShellPreferences()
@@ -106,102 +89,129 @@ public sealed partial class MainWindowViewModel
         ReplaceSettingsRows(
             SettingsProfileRows,
             new SettingSummaryViewModel(
-                "Built-in profiles",
+                Text.Language == ShellLanguage.ChineseTraditional ? "內建 profiles" : "Built-in profiles",
                 $"{snapshot.StandardMergeProfileCount} merge / {snapshot.ReplaceProfileCount} replace",
-                "Standard Merge uses executable profiles; Replace workbench uses IC catalog data plus contract fixtures.",
-                "Wired"),
+                Text.Language == ShellLanguage.ChineseTraditional
+                    ? "Standard Merge 使用 executable profiles；Replace workbench 使用 IC catalog data 與 contract fixtures。"
+                    : "Standard Merge uses executable profiles; Replace workbench uses IC catalog data plus contract fixtures.",
+                Text.Language == ShellLanguage.ChineseTraditional ? "已串接" : "Wired"),
             new SettingSummaryViewModel(
-                "Flash-map catalog",
+                Text.Language == ShellLanguage.ChineseTraditional ? "Flash-map catalog" : "Flash-map catalog",
                 $"{snapshot.FlashMapIcCount} ICs",
-                "IC and CtrlRAM region choices are loaded from the application flash-map catalog.",
-                "Wired"),
+                Text.Language == ShellLanguage.ChineseTraditional
+                    ? "IC 與 CtrlRAM region choices 由 application flash-map catalog 載入。"
+                    : "IC and CtrlRAM region choices are loaded from the application flash-map catalog.",
+                Text.Language == ShellLanguage.ChineseTraditional ? "已串接" : "Wired"),
             new SettingSummaryViewModel(
-                "Active workflow context",
+                Text.Language == ShellLanguage.ChineseTraditional ? "作用中流程條件" : "Active workflow context",
                 $"{SelectedIc} / {SelectedNumber}",
-                "The selected IC and Number only apply to Merge and Replace workflow pages.",
-                IsDeviceContextVisible ? "Visible" : "Hidden here"));
+                Text.Language == ShellLanguage.ChineseTraditional
+                    ? "選定的 IC 與 Number 只套用在 Merge / Replace workflow pages。"
+                    : "The selected IC and Number only apply to Merge and Replace workflow pages.",
+                IsDeviceContextVisible
+                    ? Text.Language == ShellLanguage.ChineseTraditional ? "顯示中" : "Visible"
+                    : Text.Language == ShellLanguage.ChineseTraditional ? "此頁隱藏" : "Hidden here"));
 
         ReplaceSettingsRows(
             SettingsToolRows,
             new SettingSummaryViewModel(
-                "External tool binding",
-                snapshot.ToolBindingIds,
-                "CtrlRAM postbuild profiles reference approved Combiner.exe bindings by id.",
-                "Pinned"),
+                "CRC/header refresh",
+                Text.Language == ShellLanguage.ChineseTraditional ? "已設定" : "Configured",
+                Text.Language == ShellLanguage.ChineseTraditional
+                    ? "已打包的 processor support 可供核准的 postbuild refresh steps 使用。"
+                    : "Packaged processor support is available for approved postbuild refresh steps.",
+                Text.Language == ShellLanguage.ChineseTraditional ? "固定" : "Pinned"),
             new SettingSummaryViewModel(
                 "Postbuild catalog",
                 $"{snapshot.PostbuildProfileCount} ICs",
-                "Command sequences are normalized from owner-provided postbuild evidence.",
-                "Wired"),
+                Text.Language == ShellLanguage.ChineseTraditional
+                    ? "Profile evidence 已正規化成 deterministic refresh plans。"
+                    : "Profile evidence is normalized into deterministic refresh plans.",
+                Text.Language == ShellLanguage.ChineseTraditional ? "已串接" : "Wired"),
             new SettingSummaryViewModel(
-                "Tool manifest",
+                Text.Language == ShellLanguage.ChineseTraditional ? "Tool manifest" : "Tool manifest",
                 snapshot.ToolManifestPath,
-                "The packaged tool manifest pins executable name, SHA-256, adapter, and timeout.",
-                "Configured"));
+                Text.Language == ShellLanguage.ChineseTraditional
+                    ? "執行檔名稱、SHA-256、adapter 與 timeout 由 manifest 固定。"
+                    : "Executable name, SHA-256, adapter, and timeout are pinned by the manifest.",
+                Text.Language == ShellLanguage.ChineseTraditional ? "已設定" : "Configured"));
 
         ReplaceSettingsRows(
             SettingsPreferenceRows,
             new SettingSummaryViewModel(
-                "Theme",
+                Text.ThemeLabel,
                 SelectedTheme,
                 ThemePreferenceStatus,
-                SelectedTheme == "High contrast" ? "Pending" : "Saved"),
+                Text.Language == ShellLanguage.ChineseTraditional ? "已儲存" : "Saved"),
             new SettingSummaryViewModel(
-                "Strictness",
+                Text.StrictnessLabel,
                 SelectedStrictness,
                 StrictnessPreferenceStatus,
-                "Saved"),
+                Text.Language == ShellLanguage.ChineseTraditional ? "已儲存" : "Saved"),
             new SettingSummaryViewModel(
-                "Language",
+                Text.LanguageLabel,
                 SelectedLanguage,
                 LanguagePreferenceStatus,
-                SelectedLanguage == "English" ? "Saved" : "Pending"));
+                Text.Language == ShellLanguage.ChineseTraditional ? "已套用" : "Active"));
 
         ReplaceSettingsRows(
             SettingsDiagnosticsRows,
             new SettingSummaryViewModel(
-                "Report review",
-                HasLoadedReport ? LoadedReport.Title : "No report loaded",
-                "Load report JSON opens a readable evidence review panel without running firmware.",
-                HasLoadedReport ? "Loaded" : "Ready"),
+                Text.Language == ShellLanguage.ChineseTraditional ? "Report 審查" : "Report review",
+                HasLoadedReport
+                    ? LoadedReport.Title
+                    : Text.Language == ShellLanguage.ChineseTraditional ? "尚未載入 report" : "No report loaded",
+                Text.Language == ShellLanguage.ChineseTraditional
+                    ? "載入 report JSON 可在不執行韌體的情況下開啟可讀 evidence review panel。"
+                    : "Load report JSON opens a readable evidence review panel without running firmware.",
+                HasLoadedReport
+                    ? Text.Language == ShellLanguage.ChineseTraditional ? "已載入" : "Loaded"
+                    : Text.Language == ShellLanguage.ChineseTraditional ? "可使用" : "Ready"),
             new SettingSummaryViewModel(
-                "Latest run",
+                Text.Language == ShellLanguage.ChineseTraditional ? "最新執行" : "Latest run",
                 LastRunResult.Title,
                 LastRunResult.Detail,
-                LastRunResult.Succeeded ? "OK" : "Blocked"),
+                LastRunResult.Succeeded ? "OK" : Text.Language == ShellLanguage.ChineseTraditional ? "已阻擋" : "Blocked"),
             new SettingSummaryViewModel(
-                "Report history store",
-                "Local AppData",
-                "Report history is persisted locally; run report JSON can still be saved explicitly.",
-                "Enabled"),
-            new SettingSummaryViewModel(
-                "Diagnostics log",
-                "Read-only and sanitized",
-                "Run-specific diagnostics stay in Preview/Build report surfaces.",
-                "Planned"));
+                Text.Language == ShellLanguage.ChineseTraditional ? "Report history 儲存" : "Report history store",
+                Text.Language == ShellLanguage.ChineseTraditional ? "Local AppData" : "Local AppData",
+                Text.Language == ShellLanguage.ChineseTraditional
+                    ? "Report history 會儲存在本機；run report JSON 仍可另外明確儲存。"
+                    : "Report history is persisted locally; run report JSON can still be saved explicitly.",
+                Text.Language == ShellLanguage.ChineseTraditional ? "已啟用" : "Enabled"));
 
         ReplaceSettingsRows(
             SettingsReadinessRows,
             new SettingSummaryViewModel(
-                "App version",
+                Text.Language == ShellLanguage.ChineseTraditional ? "App 版本" : "App version",
                 AppVersion,
-                "Assembly informational version, VERSION file, and shell header are aligned.",
-                "Updated"),
+                Text.Language == ShellLanguage.ChineseTraditional
+                    ? "Assembly informational version、VERSION file 與 shell header 已對齊。"
+                    : "Assembly informational version, VERSION file, and shell header are aligned.",
+                Text.Language == ShellLanguage.ChineseTraditional ? "已更新" : "Updated"),
             new SettingSummaryViewModel(
-                "Device context",
-                "Workflow pages only",
-                "IC and Number are hidden on Home and Settings, then shown for Merge and Replace.",
-                "Scoped"),
+                Text.DeviceContextTitle,
+                Text.Language == ShellLanguage.ChineseTraditional ? "僅 workflow pages" : "Workflow pages only",
+                Text.Language == ShellLanguage.ChineseTraditional
+                    ? "IC 與 Number 在 Home、Settings 與 Hex Editor 隱藏，僅在 Merge / Replace 顯示。"
+                    : "IC and Number are hidden on Home, Settings, and Hex Editor, then shown only for Merge and Replace.",
+                Text.Language == ShellLanguage.ChineseTraditional ? "已限縮" : "Scoped"),
             new SettingSummaryViewModel(
-                "Preferences",
-                "Saved locally",
-                "Theme, strictness, and language are restored on startup without changing firmware gates.",
-                "Ready"),
+                Text.SettingsPreferencesTitle,
+                Text.Language == ShellLanguage.ChineseTraditional ? "本機儲存" : "Saved locally",
+                Text.Language == ShellLanguage.ChineseTraditional
+                    ? "Theme、review strictness 與 language 會在啟動時還原，但不改變 firmware gates。"
+                    : "Theme, review strictness, and language are restored on startup without changing firmware gates.",
+                Text.Language == ShellLanguage.ChineseTraditional ? "就緒" : "Ready"),
             new SettingSummaryViewModel(
-                "Navigation",
+                Text.Language == ShellLanguage.ChineseTraditional ? "導覽" : "Navigation",
                 NavigationPath,
-                "Breadcrumb entries keep page history so users can jump back multiple levels.",
-                CanGoBack ? "History available" : "At root"));
+                Text.Language == ShellLanguage.ChineseTraditional
+                    ? "Breadcrumb 會保留頁面 history，方便回到前面的層級。"
+                    : "Breadcrumb entries keep page history so users can jump back multiple levels.",
+                CanGoBack
+                    ? Text.Language == ShellLanguage.ChineseTraditional ? "有 history" : "History available"
+                    : Text.Language == ShellLanguage.ChineseTraditional ? "根層" : "At root"));
     }
 
     private static void ReplaceSettingsRows(
@@ -235,6 +245,7 @@ public sealed partial class MainWindowViewModel
 
     partial void OnSelectedLanguageChanged(string value)
     {
+        ApplyTextResources(ShellTextResources.LanguageFromPreference(value));
         OnPropertyChanged(nameof(LanguagePreferenceStatus));
         RefreshSettingsState();
     }

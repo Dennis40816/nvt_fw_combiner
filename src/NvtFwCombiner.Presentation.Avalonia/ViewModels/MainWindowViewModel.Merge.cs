@@ -21,21 +21,21 @@ public sealed partial class MainWindowViewModel
     private void RefreshMergeSlotRequirements()
     {
         IReadOnlyList<string> required = UiCompositionRunner.GetStandardMergeRequiredAddressSpaces(SelectedIc);
-        _mergeDpSlot.IsOptional = !required.Contains("dp-input", StringComparer.Ordinal);
-        _mergeTpSlot.IsOptional = !required.Contains("tp-input", StringComparer.Ordinal);
-        _mergeLdSlot.IsOptional = !required.Contains("ld-input", StringComparer.Ordinal);
+        _mergeDpSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.DpInput, StringComparer.Ordinal);
+        _mergeTpSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.TpInput, StringComparer.Ordinal);
+        _mergeLdSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.LdInput, StringComparer.Ordinal);
         MergeSlots.Clear();
-        if (required.Contains("dp-input", StringComparer.Ordinal))
+        if (required.Contains(WorkbenchAddressSpaceIds.DpInput, StringComparer.Ordinal))
         {
             MergeSlots.Add(_mergeDpSlot);
         }
 
-        if (required.Contains("tp-input", StringComparer.Ordinal))
+        if (required.Contains(WorkbenchAddressSpaceIds.TpInput, StringComparer.Ordinal))
         {
             MergeSlots.Add(_mergeTpSlot);
         }
 
-        if (required.Contains("ld-input", StringComparer.Ordinal))
+        if (required.Contains(WorkbenchAddressSpaceIds.LdInput, StringComparer.Ordinal))
         {
             MergeSlots.Add(_mergeLdSlot);
         }
@@ -68,7 +68,7 @@ public sealed partial class MainWindowViewModel
         {
             AddMergeRows(
                 $"Profile: not available for {SelectedIc}",
-                "Preview and Build stay disabled until a profile is added.",
+                "Build stays disabled until a profile is added.",
                 $"{SelectedIc} / {SelectedNumber} still refreshes Replace region policy.");
             return;
         }
@@ -97,18 +97,16 @@ public sealed partial class MainWindowViewModel
 
     private string GetStandardMergeRangeSummary()
     {
-        return SelectedIc is "NT51950" or "NT51951"
-            ? "TP paste range: 0x0A000-0x36FFF (len 0x2D000); 0x37000-0x37FFF (len 0x1000) is preserved customer information."
-            : "Address ranges come from the built-in Standard Merge profile.";
+        return UiCompositionRunner.GetStandardMergePolicySummary(SelectedIc);
     }
 
     private static string AddressSpaceLabel(string addressSpaceId)
     {
         return addressSpaceId switch
         {
-            "dp-input" => "DP",
-            "tp-input" => "TP",
-            "ld-input" => "LD",
+            WorkbenchAddressSpaceIds.DpInput => "DP",
+            WorkbenchAddressSpaceIds.TpInput => "TP",
+            WorkbenchAddressSpaceIds.LdInput => "LD",
             _ => addressSpaceId,
         };
     }
@@ -129,12 +127,12 @@ public sealed partial class MainWindowViewModel
 
     private bool CanRunMerge()
     {
-        return SelectedMergeMode switch
+        return !IsRunInProgress && (SelectedMergeMode switch
         {
             NormalMergeMode => CanRunStandardMerge(),
             GeneralMergeMode => CanRunGeneralMerge(),
             _ => false,
-        };
+        });
     }
 
     private Task RunMergeAsync(bool build)
@@ -154,27 +152,26 @@ public sealed partial class MainWindowViewModel
 
     private async Task RunStandardMergeAsync(bool build, string? outputPath)
     {
-        string previewToken = CreateStandardMergePreviewToken();
-        if (build && !HasCurrentStandardMergePreview())
-        {
-            BlockStandardMergeBuildUntilPreview();
-            return;
-        }
-
+        CancellationTokenSource? cancellationSource = null;
         try
         {
+            cancellationSource = BeginRun();
             WorkbenchRunResult result = await UiCompositionRunner.RunStandardMergeAsync(
                 SelectedIc,
                 CreateStandardMergeSlotPaths(),
                 build,
-                CancellationToken.None,
+                cancellationSource.Token,
                 outputPath);
             ApplyRunResult(result, build);
-            CompleteStandardMergeRun(build, result.Succeeded, previewToken);
+            RefreshCommandState();
+        }
+        catch (OperationCanceledException) when (cancellationSource is { IsCancellationRequested: true })
+        {
+            RefreshCommandState();
         }
         catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
         {
-            CompleteStandardMergeRun(build, false, previewToken);
+            RefreshCommandState();
             string action = build ? "Build" : "Preview";
             LastRunResult = new UiRunResultViewModel(
                 $"{action} failed",
@@ -184,38 +181,44 @@ public sealed partial class MainWindowViewModel
             OnPropertyChanged(nameof(LastRunResult));
             LoadRunErrorReport(
                 action,
-                UiCompositionRunner.GetStandardMergeProfileId(SelectedIc) ?? "standard-merge",
+                UiCompositionRunner.GetStandardMergeProfileId(SelectedIc) ?? WorkbenchWorkflowIds.StandardMerge,
                 SelectedIc,
                 SelectedNumber,
                 exception.Message,
                 CreateStandardMergeSlotPaths());
         }
+        finally
+        {
+            if (cancellationSource is not null)
+            {
+                CompleteRun(cancellationSource);
+            }
+        }
     }
 
     private async Task RunGeneralMergeAsync(bool build, string? outputPath)
     {
-        string previewToken = CreateMergePreviewToken();
-        if (build && !HasCurrentMergePreview())
-        {
-            BlockMergeBuildUntilPreview();
-            return;
-        }
-
+        CancellationTokenSource? cancellationSource = null;
         try
         {
+            cancellationSource = BeginRun();
             WorkbenchRunResult result = await UiCompositionRunner.RunGeneralMergeAsync(
                 SelectedIc,
                 GeneralMergeOutputLength,
                 CreateGeneralMergeMappingInputs(),
                 build,
-                CancellationToken.None,
+                cancellationSource.Token,
                 outputPath);
             ApplyRunResult(result, build);
-            CompleteMergeRun(build, result.Succeeded, previewToken);
+            RefreshCommandState();
+        }
+        catch (OperationCanceledException) when (cancellationSource is { IsCancellationRequested: true })
+        {
+            RefreshCommandState();
         }
         catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
         {
-            CompleteMergeRun(build, false, previewToken);
+            RefreshCommandState();
             string action = build ? "Build" : "Preview";
             LastRunResult = new UiRunResultViewModel(
                 $"{action} failed",
@@ -231,17 +234,24 @@ public sealed partial class MainWindowViewModel
                 exception.Message,
                 CreateGeneralMergeSlotPaths(),
                 compositionKind: "Merge",
-                modeId: "general-merge",
-                experienceId: "general-merge");
+                modeId: WorkbenchWorkflowIds.GeneralMerge,
+                experienceId: WorkbenchWorkflowIds.GeneralMerge);
+        }
+        finally
+        {
+            if (cancellationSource is not null)
+            {
+                CompleteRun(cancellationSource);
+            }
         }
     }
 
     private Dictionary<string, string> CreateStandardMergeSlotPaths()
     {
         Dictionary<string, string> paths = new(StringComparer.Ordinal);
-        AddPath(paths, "dp-input", _mergeDpSlot);
-        AddPath(paths, "tp-input", _mergeTpSlot);
-        AddPath(paths, "ld-input", _mergeLdSlot);
+        AddPath(paths, WorkbenchAddressSpaceIds.DpInput, _mergeDpSlot);
+        AddPath(paths, WorkbenchAddressSpaceIds.TpInput, _mergeTpSlot);
+        AddPath(paths, WorkbenchAddressSpaceIds.LdInput, _mergeLdSlot);
         return paths;
     }
 
@@ -276,9 +286,10 @@ public sealed partial class MainWindowViewModel
         var report = ReportReviewViewModel.FromJson(
             result.ReportJson,
             $"{action.ToLowerInvariant()} report",
-            result.CommittedOutputId);
+            result.CommittedOutputId,
+            Text.Language);
         string detail = result.Succeeded
-            ? $"{result.ProfileId} / {result.OutputSize} bytes / {result.OutputSha256[..Math.Min(12, result.OutputSha256.Length)]}"
+            ? $"{result.ProfileId} / {result.OutputSize} bytes / {Text.RunResultReportReadyLabel}"
             : report.Issues.Count == 0 ? result.Status : report.Issues[0].Detail;
         LastRunResult = new UiRunResultViewModel(
             result.Succeeded ? $"{action} succeeded" : $"{action} blocked",
@@ -290,7 +301,7 @@ public sealed partial class MainWindowViewModel
         LoadedReport = report;
         LoadedReportJson = result.ReportJson;
         CaptureLoadedReportInHistory();
-        SetReportToast($"{action} report generated");
+        SetReportToast(Text.FormatReportGeneratedToast(action));
         NotifyReportChanged();
         RefreshSettingsState();
     }
@@ -299,9 +310,9 @@ public sealed partial class MainWindowViewModel
     {
         return addressSpaceId switch
         {
-            "dp-input" => _mergeDpSlot,
-            "tp-input" => _mergeTpSlot,
-            "ld-input" => _mergeLdSlot,
+            WorkbenchAddressSpaceIds.DpInput => _mergeDpSlot,
+            WorkbenchAddressSpaceIds.TpInput => _mergeTpSlot,
+            WorkbenchAddressSpaceIds.LdInput => _mergeLdSlot,
             _ => null,
         };
     }

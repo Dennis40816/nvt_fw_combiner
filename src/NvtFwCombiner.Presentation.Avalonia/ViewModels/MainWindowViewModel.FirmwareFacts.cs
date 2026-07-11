@@ -23,14 +23,19 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
-        slot.SetFirmwareFacts(UiCompositionRunner.GetFirmwareSlotFacts(
-            SelectedIc,
-            slot.FilePath!,
-            includeInvalid: slot.SlotKind == FirmwareSlotKind.Base));
+        slot.SetFirmwareFacts(slot.SlotKind == FirmwareSlotKind.Dp
+            ? UiCompositionRunner.GetDpFirmwareSlotFacts(
+                SelectedIc,
+                slot.FilePath!,
+                slot.SlotId == MergeDpSlotId ? _mergeTpSlot.FilePath : null)
+            : UiCompositionRunner.GetFirmwareSlotFacts(
+                SelectedIc,
+                slot.FilePath!,
+                includeInvalid: slot.SlotKind == FirmwareSlotKind.Base));
     }
 
     private static bool SlotSupportsFirmwareFacts(FirmwareSlotViewModel slot)
     {
-        return slot.SlotKind is FirmwareSlotKind.Base or FirmwareSlotKind.Tp;
+        return slot.SlotKind is FirmwareSlotKind.Base or FirmwareSlotKind.Dp or FirmwareSlotKind.Tp;
     }
 }

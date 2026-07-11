@@ -29,7 +29,7 @@ public static partial class WorkbenchCompositionService
                 sequence,
                 CompositionOperationKind.CopyRange,
                 status,
-                "reference-base",
+                CompositionAddressSpaceIds.ReferenceBase,
                 region.Range,
                 region.PostbuildFileName ?? $"staged-{region.RegionId}",
                 new ByteRange(0, region.Range.Length),
@@ -50,7 +50,7 @@ public static partial class WorkbenchCompositionService
                     status,
                     slotId,
                     new ByteRange(0, region.Range.Length),
-                    "output-image",
+                    CompositionAddressSpaceIds.OutputImage,
                     region.Range,
                     OverlapPolicy.ReplaceExisting,
                     null,
@@ -63,7 +63,7 @@ public static partial class WorkbenchCompositionService
         }
 
         if (postbuildProfile is null &&
-            !LegacyCombinerPostbuildCatalog.TryGetDefaultProfile(icId, out postbuildProfile))
+            !IcMetadataFacade.TryGetDefaultPostbuildProfile(icId, out postbuildProfile))
         {
             return operations;
         }
@@ -84,7 +84,7 @@ public static partial class WorkbenchCompositionService
                 status,
                 null,
                 null,
-                "output-image",
+                CompositionAddressSpaceIds.OutputImage,
                 new ByteRange(0, capacity),
                 OverlapPolicy.ReplaceExisting,
                 postbuildProfile.ProcessorId,

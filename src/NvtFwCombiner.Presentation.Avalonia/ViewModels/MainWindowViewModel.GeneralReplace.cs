@@ -70,6 +70,11 @@ public sealed partial class MainWindowViewModel
         ];
     }
 
+    private void ShowHexEditor()
+    {
+        SetSelectedPage(ShellPage.HexEditor);
+    }
+
     private void GeneralReplaceMappingPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         RefreshCommandState();

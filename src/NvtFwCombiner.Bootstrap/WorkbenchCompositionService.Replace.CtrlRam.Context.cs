@@ -2,6 +2,7 @@ using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -35,16 +36,16 @@ public static partial class WorkbenchCompositionService
                 catch (ArgumentException exception)
                 {
                     validationIssues.Add(new CompositionIssue(
-                        "replace.ctrlram.ic-number-unsupported",
+                        WorkbenchIssueCodes.ReplaceCtrlRamIcNumberUnsupported,
                         exception.Message,
                         "number"));
                 }
             }
         }
-        else if (LegacyCombinerPostbuildCatalog.GetProfiles(icId).Count == 0)
+        else if (IcMetadataFacade.GetPostbuildProfiles(icId).Count == 0)
         {
             validationIssues.Add(new CompositionIssue(
-                "replace.ctrlram.postbuild-profile-missing",
+                WorkbenchIssueCodes.ReplaceCtrlRamPostbuildProfileMissing,
                 $"No legacy Combiner postbuild profile is registered for {icId}.",
                 "postbuild"));
         }
@@ -61,9 +62,9 @@ public static partial class WorkbenchCompositionService
         if (regions.Count == 0)
         {
             validationIssues.Add(new CompositionIssue(
-                "replace.ctrlram.no-mapped-region",
+                WorkbenchIssueCodes.ReplaceCtrlRamNoMappedRegion,
                 $"No postbuild-mapped CtrlRAM region is available for {icId} / {number}.",
-                "ctrlram-replace"));
+                IcWorkflowIds.CtrlRamReplace));
         }
 
         List<TpFlashMapRegion> selectedRegions =
@@ -75,9 +76,9 @@ public static partial class WorkbenchCompositionService
         if (selectedRegions.Count == 0)
         {
             validationIssues.Add(new CompositionIssue(
-                "replace.ctrlram.no-region-input",
+                WorkbenchIssueCodes.ReplaceCtrlRamNoRegionInput,
                 "Select at least one CtrlRAM replacement BIN.",
-                "ctrlram-replace"));
+                IcWorkflowIds.CtrlRamReplace));
         }
 
         if (commandPlan is not null && baseLength > 0)
@@ -88,9 +89,9 @@ public static partial class WorkbenchCompositionService
             if (baseLength < requiredCapacity)
             {
                 validationIssues.Add(new CompositionIssue(
-                    "input.address-space.length-mismatch",
+                    CompositionIssueCodes.InputAddressSpaceLengthMismatch,
                     $"Base flash BIN is too short for {icId} / {number} CtrlRAM postbuild (actual {baseLength} bytes, required at least {requiredCapacity} bytes).",
-                    "replace-base"));
+                    WorkbenchSlotIds.ReplaceBase));
             }
         }
 
@@ -109,13 +110,13 @@ public static partial class WorkbenchCompositionService
         IReadOnlyDictionary<string, string> slotPaths,
         List<CompositionIssue> validationIssues)
     {
-        if (!slotPaths.TryGetValue("replace-base", out string? suppliedBasePath) ||
+        if (!slotPaths.TryGetValue(WorkbenchSlotIds.ReplaceBase, out string? suppliedBasePath) ||
             string.IsNullOrWhiteSpace(suppliedBasePath))
         {
             validationIssues.Add(new CompositionIssue(
-                "ui.input.missing",
-                "Base flash BIN is required before CtrlRAM Replace preview/build can run.",
-                "replace-base"));
+                WorkbenchIssueCodes.InputMissing,
+                "Base flash BIN is required before CtrlRAM Replace can run.",
+                WorkbenchSlotIds.ReplaceBase));
             return (null, 0);
         }
 
@@ -123,9 +124,9 @@ public static partial class WorkbenchCompositionService
         if (!File.Exists(basePath))
         {
             validationIssues.Add(new CompositionIssue(
-                "input.artifact.read-failed",
+                WorkbenchIssueCodes.InputArtifactReadFailed,
                 "Base flash BIN path does not exist.",
-                "replace-base"));
+                WorkbenchSlotIds.ReplaceBase));
             return (basePath, 0);
         }
 
@@ -133,9 +134,9 @@ public static partial class WorkbenchCompositionService
         if (baseLength <= 0)
         {
             validationIssues.Add(new CompositionIssue(
-                "input.address-space.length-mismatch",
+                CompositionIssueCodes.InputAddressSpaceLengthMismatch,
                 "Base flash BIN must not be empty.",
-                "replace-base"));
+                WorkbenchSlotIds.ReplaceBase));
         }
 
         return (basePath, baseLength);
@@ -155,7 +156,7 @@ public static partial class WorkbenchCompositionService
     {
         List<InputArtifactBinding> bindings =
         [
-            new("reference-base", "replace-base", context.BasePath!),
+            new(CompositionAddressSpaceIds.ReferenceBase, WorkbenchSlotIds.ReplaceBase, context.BasePath!),
         ];
         foreach (TpFlashMapRegion region in context.SelectedRegions.OrderBy(region => region.Range.Start))
         {

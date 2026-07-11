@@ -5,36 +5,16 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 public sealed partial class MainWindowViewModel
 {
     /// <summary>Gets short Replace memory-map summary text.</summary>
-    public string ReplaceMemorySummary => SelectedReplaceMode switch
-    {
-        DpReplaceMode => SelectedIc is "NT51950" or "NT51951"
-            ? "Blue shows new DP bytes; gray shows TP restored from the base firmware."
-            : "Base flash stays unchanged except approved DP replacement ranges.",
-        CtrlRamReplaceMode => "Colored blocks show replaceable CtrlRAM positions; gray stays from the base firmware.",
-        GeneralReplaceMode => "Base flash stays unchanged except approved explicit replacement ranges.",
-        _ => "Select a replace mode to inspect its target ranges.",
-    };
+    public string ReplaceMemorySummary => Text.GetReplaceMemorySummary(SelectedReplaceMode);
 
     /// <summary>Status shown in the replace inspector.</summary>
-    public string ReplaceReadinessStatus => SelectedReplaceMode switch
-    {
-        DpReplaceMode => CanRunReplace()
-            ? "Ready: Preview/Build will validate DP Replace inputs and produce a report."
-            : "Preview blocked: base BIN and required DP replacement inputs are required.",
-        CtrlRamReplaceMode => CanRunReplace()
-            ? "Ready: Preview/Build will replace selected CtrlRAM regions and run postbuild."
-            : "Preview blocked: base BIN and at least one CtrlRAM region BIN are required.",
-        GeneralReplaceMode => CanRunReplace()
-            ? "Ready: Preview/Build will compile explicit mappings and run postbuild when TP ranges are touched."
-            : "Preview blocked: base BIN and at least one explicit replacement mapping are required.",
-        _ => "Preview blocked: select a Replace mode.",
-    };
+    public string ReplaceReadinessStatus => Text.GetReplaceReadinessStatus(SelectedReplaceMode, CanRunReplace());
 
     /// <summary>Gets the compact reason shown on disabled Replace preview.</summary>
     public string ReplacePreviewUnavailableReason => ReplaceReadinessStatus;
 
     /// <summary>Gets the compact reason shown on disabled Replace build.</summary>
-    public string ReplaceBuildUnavailableReason => $"Build blocked: run a valid {SelectedReplaceMode} Preview first.";
+    public string ReplaceBuildUnavailableReason => ReplaceReadinessStatus;
 
     /// <summary>Builds Replace output to a user-selected path.</summary>
     public Task BuildReplaceAsync(string outputPath)
@@ -45,7 +25,7 @@ public sealed partial class MainWindowViewModel
 
     private bool CanRunReplace()
     {
-        return SelectedReplaceMode switch
+        return !IsRunInProgress && (SelectedReplaceMode switch
         {
             DpReplaceMode => ReplaceSlots.Count > 0 &&
                 ReplaceSlots.Where(slot => !slot.IsOptional).All(slot => slot.HasFile),
@@ -54,7 +34,7 @@ public sealed partial class MainWindowViewModel
             GeneralReplaceMode => ReplaceBaseSlot.HasFile &&
                 GeneralReplaceMappings.Any(mapping => mapping.HasFile),
             _ => false,
-        };
+        });
     }
 
     private async Task RunReplaceAsync(bool build)
@@ -65,15 +45,10 @@ public sealed partial class MainWindowViewModel
     private async Task RunReplaceAsync(bool build, string? outputPath)
     {
         CloseReplaceSelectionForRun();
-        string previewToken = CreateReplacePreviewToken();
-        if (build && !HasCurrentReplacePreview())
-        {
-            BlockReplaceBuildUntilPreview();
-            return;
-        }
-
+        CancellationTokenSource? cancellationSource = null;
         try
         {
+            cancellationSource = BeginRun();
             WorkbenchRunResult result = await UiCompositionRunner.RunReplaceAsync(
                 SelectedIc,
                 SelectedNumber,
@@ -81,14 +56,18 @@ public sealed partial class MainWindowViewModel
                 CreateReplaceSlotPaths(),
                 CreateGeneralReplaceMappingInputs(),
                 build,
-                CancellationToken.None,
+                cancellationSource.Token,
                 outputPath);
             ApplyRunResult(result, build);
-            CompleteReplaceRun(build, result.Succeeded, previewToken);
+            RefreshCommandState();
+        }
+        catch (OperationCanceledException) when (cancellationSource is { IsCancellationRequested: true })
+        {
+            RefreshCommandState();
         }
         catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
         {
-            CompleteReplaceRun(build, false, previewToken);
+            RefreshCommandState();
             string action = build ? "Build" : "Preview";
             LastRunResult = new UiRunResultViewModel(
                 $"{action} failed",
@@ -107,7 +86,15 @@ public sealed partial class MainWindowViewModel
                 modeId: $"{SelectedReplaceMode.ToLowerInvariant()}-replace",
                 experienceId: $"{SelectedReplaceMode.ToLowerInvariant()}-replace");
         }
+        finally
+        {
+            if (cancellationSource is not null)
+            {
+                CompleteRun(cancellationSource);
+            }
+        }
     }
+
 
     private Dictionary<string, string> CreateReplaceSlotPaths()
     {

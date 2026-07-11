@@ -1,30 +1,31 @@
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    private static bool TryCreateNt51950DpReplaceRunContext(
+    private static bool TryCreateDpPerspectiveDpReplaceRunContext(
         string icId,
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
         bool build,
-        out Nt51950DpReplaceRunContext? context,
+        out DpPerspectiveDpReplaceRunContext? context,
         out WorkbenchRunResult? failure)
     {
         context = null;
         failure = null;
-        if (!slotPaths.TryGetValue("replace-base", out string? basePath) ||
+        if (!slotPaths.TryGetValue(WorkbenchSlotIds.ReplaceBase, out string? basePath) ||
             string.IsNullOrWhiteSpace(basePath))
         {
             failure = CreatePlanningRunResult(
                 icId,
                 number,
-                "DP",
+                WorkbenchReplaceModes.Dp,
                 slotPaths,
                 build,
-                "ui.input.missing",
-                "Base flash BIN is required before NT51950/NT51951 DP Replace can determine the DP base length.");
+                WorkbenchIssueCodes.InputMissing,
+                $"Base flash BIN is required before {FormatDpPerspectiveIcIds()} DP Replace can determine the DP base length.");
             return false;
         }
 
@@ -34,35 +35,35 @@ public static partial class WorkbenchCompositionService
             failure = CreatePlanningRunResult(
                 icId,
                 number,
-                "DP",
+                WorkbenchReplaceModes.Dp,
                 slotPaths,
                 build,
-                "input.artifact.read-failed",
+                WorkbenchIssueCodes.InputArtifactReadFailed,
                 "Base flash BIN path does not exist.");
             return false;
         }
 
         long baseLength = new FileInfo(fullBasePath).Length;
-        if (!IsSupportedNt51950DpBaseLength(baseLength))
+        if (!IsSupportedDpPerspectiveBaseLength(baseLength))
         {
             failure = CreatePlanningRunResult(
                 icId,
                 number,
-                "DP",
+                WorkbenchReplaceModes.Dp,
                 slotPaths,
                 build,
-                "input.address-space.length-mismatch",
-                $"{icId} DP Replace base flash BIN length must be one of {FormatSupportedNt51950DpBaseLengths()} (actual {FormatHexLength(baseLength)}).",
+                CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+                $"{icId} DP Replace base flash BIN length must be one of {FormatSupportedDpPerspectiveBaseLengths()} (actual {FormatHexLength(baseLength)}).",
                 baseLength);
             return false;
         }
 
         InputArtifactBinding[] bindings =
         [
-            new("reference-base", "replace-base", fullBasePath),
-            CreateBinding("dp-replacement", "replace-dp", slotPaths),
+            new(CompositionAddressSpaceIds.ReferenceBase, WorkbenchSlotIds.ReplaceBase, fullBasePath),
+            CreateBinding(CompositionAddressSpaceIds.DpReplacement, WorkbenchSlotIds.ReplaceDp, slotPaths),
         ];
-        context = new Nt51950DpReplaceRunContext(
+        context = new DpPerspectiveDpReplaceRunContext(
             ToIcNumberSelection(number),
             fullBasePath,
             baseLength,
@@ -70,7 +71,7 @@ public static partial class WorkbenchCompositionService
         return true;
     }
 
-    private sealed record Nt51950DpReplaceRunContext(
+    private sealed record DpPerspectiveDpReplaceRunContext(
         IcNumberSelection Selection,
         string BasePath,
         long Capacity,

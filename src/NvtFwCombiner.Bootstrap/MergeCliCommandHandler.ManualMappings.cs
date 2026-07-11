@@ -1,0 +1,106 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+
+namespace NvtFwCombiner.Bootstrap;
+
+internal static partial class MergeCliCommandHandler
+{
+    private static bool TryCreateMappings(
+        ParsedOptions options,
+        string icId,
+        TextWriter error,
+        [NotNullWhen(true)] out WorkbenchGeneralMergeMappingInput[]? mappings)
+    {
+        mappings = null;
+        List<string> values = options.GetValues("--mapping");
+        bool usesRule = options.Values.TryGetValue("--rule", out string? rulePath);
+        if (usesRule)
+        {
+            if (values.Count > 0)
+            {
+                error.WriteLine("error: --rule cannot be combined with manual --mapping values");
+                return false;
+            }
+
+            return TryCreateMappingsFromSavedRule(rulePath!, options.GetValues("--slot"), icId, error, out mappings);
+        }
+
+        if (options.GetValues("--slot").Count > 0)
+        {
+            error.WriteLine("error: --slot can be used only with --rule");
+            return false;
+        }
+
+        if (values.Count == 0)
+        {
+            error.WriteLine("error: at least one --mapping <source-start+target-start+length=path> value or --rule <rule.json> is required for General Merge");
+            return false;
+        }
+
+        List<WorkbenchGeneralMergeMappingInput> items = [];
+        for (int index = 0; index < values.Count; index++)
+        {
+            if (!TryParseMappingValue(values[index], index + 1, error, out WorkbenchGeneralMergeMappingInput? mapping))
+            {
+                return false;
+            }
+
+            items.Add(mapping);
+        }
+
+        mappings = [.. items];
+        return true;
+    }
+
+    private static bool TryParseMappingValue(
+        string value,
+        int index,
+        TextWriter error,
+        [NotNullWhen(true)] out WorkbenchGeneralMergeMappingInput? mapping)
+    {
+        mapping = null;
+        int separatorIndex = value.IndexOf('=', StringComparison.Ordinal);
+        if (separatorIndex <= 0 || separatorIndex == value.Length - 1)
+        {
+            error.WriteLine(
+                "error: General Merge expects --mapping <source-start+target-start+length=path>; example: --mapping 0x0+0x100+0x20=C:\\path\\source.bin");
+            return false;
+        }
+
+        string rangeText = value[..separatorIndex].Trim();
+        string path = value[(separatorIndex + 1)..].Trim();
+        if (path.Length == 0)
+        {
+            error.WriteLine("error: --mapping path must not be empty");
+            return false;
+        }
+
+        string[] parts = rangeText.Split('+', StringSplitOptions.TrimEntries);
+        if (parts.Length != 3 ||
+            !BootstrapRangeText.TryParseNonNegativeLong(parts[0], out long sourceStart) ||
+            !BootstrapRangeText.TryParseNonNegativeLong(parts[1], out long targetStart) ||
+            !BootstrapRangeText.TryParseNonNegativeLong(parts[2], out long length) ||
+            length <= 0)
+        {
+            error.WriteLine("error: --mapping must use non-negative source start, non-negative target start, and positive length");
+            return false;
+        }
+
+        mapping = new WorkbenchGeneralMergeMappingInput(
+            string.Create(CultureInfo.InvariantCulture, $"general-merge-map-{index}"),
+            Path.GetFullPath(path),
+            BootstrapRangeText.FormatHex(sourceStart),
+            BootstrapRangeText.FormatHex(targetStart),
+            BootstrapRangeText.FormatHex(length));
+        return true;
+    }
+
+    private static bool TryResolveIc(string selector, [NotNullWhen(true)] out string? icId)
+    {
+        string normalized = selector.Trim();
+        icId = WorkbenchCompositionService.GetSupportedIcIds().FirstOrDefault(candidate =>
+            string.Equals(candidate, normalized, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(candidate.Replace("NT", string.Empty, StringComparison.Ordinal), normalized, StringComparison.OrdinalIgnoreCase));
+        return icId is not null;
+    }
+}

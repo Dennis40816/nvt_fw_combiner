@@ -94,6 +94,9 @@ toolVersion
 processorId
 adapterId
 executableSha256
+resolved executable path
+staging working directory
+one completed ProcessStartInfo.ArgumentList record per invocation
 staging input length
 beforeSha256
 afterSha256

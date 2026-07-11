@@ -42,7 +42,9 @@ internal static class ProtectedPathGuard
         ArgumentNullException.ThrowIfNull(bindings);
         List<ProtectedPath> protectedPaths =
         [
-            .. bindings.Select(binding =>
+            .. bindings
+                .Where(binding => !VirtualArtifactLocator.IsVirtual(binding.ArtifactId))
+                .Select(binding =>
                 new ProtectedPath(binding.ArtifactId, $"input artifact '{binding.BindingId}'")),
         ];
         if (!string.IsNullOrWhiteSpace(outputPath))

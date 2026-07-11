@@ -1,5 +1,7 @@
 using System.Globalization;
 
+using NvtFwCombiner.Profiles;
+
 namespace NvtFwCombiner.Bootstrap;
 
 internal static class SavedRuleCliCommandHandler
@@ -79,7 +81,7 @@ internal static class SavedRuleCliCommandHandler
         await output.WriteLineAsync("CLI mapping fragments:").ConfigureAwait(false);
         foreach (SavedRuleMappingRow row in rule.MappingRows)
         {
-            string fragment = rule.SourceExperience == "general-merge"
+            string fragment = rule.SourceExperience == IcWorkflowIds.GeneralMerge
                 ? FormatGeneralMergeMapping(row)
                 : FormatGeneralReplaceMapping(row);
             await output.WriteLineAsync($"  {fragment}").ConfigureAwait(false);

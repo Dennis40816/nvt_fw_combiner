@@ -1,0 +1,30 @@
+#if DEBUG
+using Avalonia.Threading;
+using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+
+namespace NvtFwCombiner.Presentation.Avalonia;
+
+public sealed partial class MainWindow
+{
+    private static void ApplyDebugDemoWhenNoLaunchOptions(MainWindowViewModel viewModel, UiLaunchOptions launchOptions)
+    {
+        if (launchOptions.Page is not null ||
+            !string.IsNullOrWhiteSpace(launchOptions.ReportPath) ||
+            launchOptions.OpenReport ||
+            launchOptions.Issues.Count > 0 ||
+            !DebugDemoFixture.TryFindHexEditorBase(out string? basePath))
+        {
+            return;
+        }
+
+        // Keep the standard Home landing page. The fixture is prepared only for a later Hex Editor visit.
+        viewModel.SelectedIc = "NT51927";
+        viewModel.SelectedNumber = "2";
+        viewModel.SetSlotFile(WorkbenchSlotIds.ReplaceBase, basePath);
+        Dispatcher.UIThread.Post(
+            async () => await viewModel.HexEditorWorkspace.LoadAsync(basePath),
+            DispatcherPriority.Background);
+    }
+}
+#endif

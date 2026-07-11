@@ -1,5 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using NvtFwCombiner.Contracts.Reports;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
@@ -22,7 +24,7 @@ internal static class ReportJsonSamples
         string startedAtUtc = "2026-07-01T00:00:00Z",
         string outputFileName = "preview.bin",
         long outputSize = 0,
-        bool committed = false,
+        bool? committed = false,
         string outputSha256 = "abcdef")
     {
         return Create(
@@ -61,7 +63,49 @@ internal static class ReportJsonSamples
             "0123456789abcdef012345");
     }
 
-    public static string ReplaceWithAcceptedOutputDifferences(string runId = "replace-diff")
+    public static string CtrlRamCommandTrace(int runtimeInvocationCount)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(runtimeInvocationCount);
+        return Create(
+            "nt51927-ctrlram-replace",
+            "NT51927",
+            "ctrlram-replace",
+            "ctrlram-replace",
+            "Replace",
+            "runtime-trace",
+            "2026-07-01T00:05:00Z",
+            [],
+            [CommandOperation(32, [], runtimeInvocationCount)],
+            [],
+            "build.bin",
+            32,
+            committed: true,
+            "0123456789abcdef012345");
+    }
+
+    public static string RuntimeOnlyCommandTrace()
+    {
+        return Create(
+            "runtime-only-profile",
+            "NT51927",
+            "ctrlram-replace",
+            "ctrlram-replace",
+            "Replace",
+            "runtime-only-trace",
+            "2026-07-01T00:05:00Z",
+            [],
+            [CommandOperation(32, [], includeDeclaredCommand: false)],
+            [],
+            "build.bin",
+            32,
+            committed: false,
+            "0123456789abcdef012345");
+    }
+
+    public static string ReplaceWithAcceptedOutputDifferences(
+        string runId = "replace-diff",
+        bool isHexPreviewComplete = true,
+        int hexPreviewByteCount = 4)
     {
         return Create(
             "nt51927-ctrlram-replace",
@@ -84,16 +128,29 @@ internal static class ReportJsonSamples
                     "diff-001",
                     Range(28, 32),
                     4,
-                    "PostbuildCrcHeader",
+                    OutputDifferenceClassifications.PostbuildCrcHeader,
                     isAccepted: true,
                     "postbuild-single: legacy-combiner",
-                    "Accepted: this range is inside the NT51927 / single approved postbuild CRC/header write ranges."),
+                    "Accepted: this range is inside the NT51927 / single approved TP flash header / CRC fields postbuild write ranges.",
+                    "TP flash header / CRC fields",
+                    new
+                    {
+                        CategoryId = "tp-flash-header",
+                        CategoryLabel = "TP Flash Header",
+                        ParentId = "tp-header",
+                        ParentLabel = "Header",
+                        SubjectId = "nt51927-header:header-0-dlm-crc",
+                        SubjectLabel = "DLM CRC 0",
+                        Explanation = "Expected: postbuild recalculated DLM CRC 0.",
+                    },
+                    hexPreviewByteCount,
+                    isHexPreviewComplete),
             ]);
     }
 
     public static string CtrlRamWarning(
         string runId = "ui-smoke-warning",
-        string issueCode = "input.address-space.truncated",
+        string issueCode = CompositionIssueCodes.InputAddressSpaceTruncated,
         string? severity = "warning",
         string message = "Input ctrlram-input actual 6 bytes exceeded declared 4 bytes and was truncated.",
         string operationId = "replace-ctrlram")
@@ -134,6 +191,29 @@ internal static class ReportJsonSamples
             string.Empty);
     }
 
+    public static string CtrlRamInputs()
+    {
+        return Create(
+            "nt51927-ctrlram-replace",
+            "NT51927",
+            "ctrlram-replace",
+            "ctrlram-replace",
+            "Replace",
+            "ui-smoke-inputs",
+            "2026-07-01T00:00:00Z",
+            [
+                Input("reference-base", "base.bin", 262144),
+                Input("replace-ctrlram-vn", "replace-ctrlram-vn", 5728),
+                Input("replace-ctrlram-normal-slave-r", "replace-ctrlram-normal-slave-r", 12288),
+            ],
+            [],
+            [],
+            "preview.bin",
+            262144,
+            committed: false,
+            "abcdef012345");
+    }
+
     private static string Create(
         string profileId,
         string icId,
@@ -147,7 +227,7 @@ internal static class ReportJsonSamples
         IReadOnlyList<object> issues,
         string outputFileName,
         long outputSize,
-        bool committed,
+        bool? committed,
         string outputSha256,
         IReadOnlyList<object>? outputDifferences = null)
     {
@@ -183,7 +263,11 @@ internal static class ReportJsonSamples
         string classification,
         bool isAccepted,
         string evidence,
-        string explanation)
+        string explanation,
+        string? sectionLabel = null,
+        object? semantic = null,
+        int hexPreviewByteCount = 4,
+        bool isHexPreviewComplete = true)
     {
         return new
         {
@@ -194,25 +278,41 @@ internal static class ReportJsonSamples
             IsAccepted = isAccepted,
             Evidence = evidence,
             Explanation = explanation,
+            SectionLabel = sectionLabel,
+            Semantic = semantic,
             BeforeSha256 = "11111111111111111111",
             AfterSha256 = "22222222222222222222",
+            BeforeHexPreview = "AABBCCDD",
+            AfterHexPreview = "11223344",
+            HexPreviewByteCount = hexPreviewByteCount,
+            IsHexPreviewComplete = isHexPreviewComplete,
         };
     }
 
     private static object Input()
     {
+        return Input("base-input", "base.bin", 524288);
+    }
+
+    private static object Input(string addressSpaceId, string artifactId, long size)
+    {
         return new
         {
-            AddressSpaceId = "base-input",
-            BindingId = "base",
-            Size = 524288,
+            AddressSpaceId = addressSpaceId,
+            BindingId = artifactId,
+            Size = size,
             Sha256 = "abcdef0123456789",
-            ArtifactId = "base.bin",
+            ArtifactId = artifactId,
         };
     }
 
-    private static object CommandOperation(long length, IReadOnlyList<object> allowedWriteRanges)
+    private static object CommandOperation(
+        long length,
+        IReadOnlyList<object> allowedWriteRanges,
+        int runtimeInvocationCount = 1,
+        bool includeDeclaredCommand = true)
     {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(runtimeInvocationCount);
         return new
         {
             Sequence = 900,
@@ -226,11 +326,31 @@ internal static class ReportJsonSamples
             ToolBindingId = "legacy-combiner-1.13.0",
             ProcessorAllowedReadRanges = new[] { Range(0, length) },
             ProcessorAllowedWriteRanges = allowedWriteRanges,
+            ExecutedCommands = Enumerable.Range(1, runtimeInvocationCount)
+                .Select(index => new
+                {
+                    ExecutablePath = "C:\\tools\\legacy-combiner\\Combiner.exe",
+                    WorkingDirectory = runtimeInvocationCount == 1
+                        ? "C:\\staging\\ui-smoke-command"
+                        : $"C:\\staging\\ui-smoke-command-{index:D2}",
+                    Arguments = new[]
+                    {
+                        index == 1 ? "MERGE_MODE" : "NT51927BASED_GEN_CRC_MODE",
+                        "C:\\staging\\ui-smoke-command\\output\\nt51927_fw.bin",
+                        "C:\\staging\\ui-smoke-command\\BIN\\Normal_Ctrlram.bin",
+                        "0x0",
+                        "0x22800",
+                        "12288",
+                    },
+                })
+                .ToArray(),
             Provenance = new
             {
                 Kind = "built-in-profile",
             },
-            Reason = "Run approved staged Combiner command: Combiner.exe /bin work.bin /mmap mmap.h.",
+            Reason = includeDeclaredCommand
+                ? "Run approved staged Combiner command: Combiner.exe /bin work.bin /mmap mmap.h."
+                : "Run external processor.",
         };
     }
 

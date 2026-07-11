@@ -45,7 +45,19 @@ No source/profile tree, Python runtime installation, .NET runtime installation, 
 
 The stable release path accepts stable SemVer only, publishes a self-contained single-file `win-x64` Avalonia app with trimming disabled, builds the worker with PyInstaller one-file mode, copies the approved external tool subtree, copies the approved reference payload and manifest-declared golden fixture BINs, assembles a new empty directory, rejects paths outside the allowlist, writes the manifest and hashes, and creates the ZIP under `artifacts/release/`.
 
-`main-package.yml` runs the same packager on every `main` push with `-AllowPrerelease`, using the repository `VERSION` value. That workflow first uploads the ZIP, SBOM, and provenance files as a short-retention CI artifact. If GitHub Actions artifact storage is unavailable, it publishes the same files to a generated `main-package-<sha>` prerelease so the self-contained package remains downloadable. This fallback is not a stable release and does not replace the manually gated `release.yml` flow.
+`main-package.yml` runs the same packager on every `main` push with `-AllowPrerelease`, using the repository `VERSION` value. That workflow first uploads the ZIP, SBOM, and provenance files as a short-retention CI artifact. If GitHub Actions artifact storage is unavailable, it publishes the same files to a generated `main-package-<sha>` prerelease so the self-contained package remains downloadable. This fallback is not a stable release and does not replace the manually gated `release.yml` flow. A stable `release.yml` run rejects a tag that is not reachable from `main`.
+
+## Local package smoke
+
+After `scripts/package.ps1` produces a ZIP, run the deterministic local smoke before handing it to a reviewer:
+
+```powershell
+./scripts/smoke-release.ps1 -PackagePath ./artifacts/release/NvtFwCombiner-vX.Y.Z-win-x64.zip
+```
+
+The smoke extracts into a fresh temporary directory, checks the closed package surface and manifest hashes, runs the bundled CRC worker `123456789` vector, then briefly starts the self-contained desktop executable. Use `-SkipUiLaunch` only when a visible desktop startup check cannot run; that omission must be recorded in release evidence.
+
+Both `scripts/verify.py` and `scripts/package.ps1` finish by stopping the repository SDK build server and any idle, repo-bound Avalonia BuildServices collector. The cleanup is scoped to that collector command line and never targets the packaged application, CRC worker, or Combiner process.
 
 ## First-sample `v1.0.0` release workflow
 
@@ -67,4 +79,4 @@ Release evidence must include:
 - clean Windows smoke without development runtimes;
 - final third-party license/legal review.
 
-The manually dispatched release workflow only accepts an existing approved stable `vX.Y.Z` tag. Development tags never publish assets.
+The manually dispatched release workflow only accepts an existing approved stable `vX.Y.Z` tag reachable from reviewed `main`. Development tags never publish assets.

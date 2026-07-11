@@ -10,6 +10,12 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
+    private const string StandardMergeRunIdPrefix = "ui";
+    private const string GeneralMergeRunIdPrefix = "ui-merge-general";
+    private const string DpReplaceRunIdPrefix = "ui-replace-dp";
+    private const string CtrlRamReplaceRunIdPrefix = "ui-replace-ctrlram";
+    private const string GeneralReplaceRunIdPrefix = "ui-replace-general";
+
     private static async ValueTask<WorkbenchRunResult> RunCompiledCompositionAsync(
         string runIdPrefix,
         CompositionProfileDefinition profile,
@@ -21,11 +27,14 @@ public static partial class WorkbenchCompositionService
         IExternalProcessor? externalProcessor,
         IcNumberSelection? icNumberSelection,
         bool overwrite,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IReadOnlyDictionary<string, byte[]>? virtualArtifacts = null,
+        string? additionalProtectedInputPath = null)
     {
         string[] inputRoots =
         [
             .. bindings
+                .Where(binding => !VirtualArtifactLocator.IsVirtual(binding.ArtifactId))
                 .Select(binding => Path.GetDirectoryName(binding.ArtifactId)!)
                 .Distinct(StringComparer.OrdinalIgnoreCase),
         ];
@@ -36,13 +45,27 @@ public static partial class WorkbenchCompositionService
             profile.DefaultOutputFileName);
         if (build)
         {
-            ProtectedPathGuard.EnsureOutputDoesNotAliasInputs(
-                ProtectedPathGuard.CombineFullPath(outputDirectory, outputFileName),
+            List<ProtectedPathGuard.ProtectedPath> protectedPaths = ProtectedPathGuard.CreateProtectedPaths(
                 bindings,
+                outputPath: null);
+            if (!string.IsNullOrWhiteSpace(additionalProtectedInputPath))
+            {
+                protectedPaths.Add(new ProtectedPathGuard.ProtectedPath(
+                    additionalProtectedInputPath,
+                    "loaded base flash BIN"));
+            }
+
+            ProtectedPathGuard.EnsureDoesNotAlias(
+                ProtectedPathGuard.CombineFullPath(outputDirectory, outputFileName),
+                "Output path",
+                protectedPaths,
                 nameof(outputPath));
         }
 
-        FileArtifactReader reader = new(inputRoots);
+        IArtifactReader? fileReader = inputRoots.Length == 0 ? null : new FileArtifactReader(inputRoots);
+        IArtifactReader reader = virtualArtifacts is { Count: > 0 }
+            ? new OverlayArtifactReader(fileReader, virtualArtifacts)
+            : fileReader ?? throw new InvalidOperationException("A composition requires at least one physical or virtual input artifact.");
         AtomicFileCompositionOutputWriter? writer = build
             ? new AtomicFileCompositionOutputWriter(outputDirectory, overwrite)
             : null;
@@ -55,7 +78,7 @@ public static partial class WorkbenchCompositionService
             outputFileName,
             icNumberSelection: icNumberSelection);
 
-        CompositionRunResult result = await PreviewOrBuildAsync(
+        CompositionRunResult result = await CompositionRunExecutionSupport.PreviewOrBuildAsync(
                 service,
                 request,
                 build,
@@ -66,26 +89,38 @@ public static partial class WorkbenchCompositionService
 
     private static string CreateWorkbenchRunId(string prefix, bool build)
     {
-        long timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        string suffix = Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);
-        return $"{prefix}-{(build ? "build" : "preview")}-{timestamp.ToString(CultureInfo.InvariantCulture)}-{suffix}";
+        return CreateWorkbenchRunId(prefix, build, DateTimeOffset.UtcNow);
     }
 
-    private static async ValueTask<CompositionRunResult> PreviewOrBuildAsync(
-        CompositionRunService service,
-        CompositionRunRequest request,
-        bool build,
-        CancellationToken cancellationToken)
+    private static string CreateWorkbenchRunId(string prefix, bool build, DateTimeOffset timestamp)
     {
-        if (!build)
-        {
-            return await service.PreviewAsync(request, cancellationToken).ConfigureAwait(false);
-        }
+        string suffix = Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);
+        return $"{prefix}-{FormatWorkbenchRunAction(build)}-{FormatWorkbenchRunTimestamp(timestamp)}-{suffix}";
+    }
 
-        CompositionRunResult preview = await service.PreviewAsync(request, cancellationToken).ConfigureAwait(false);
-        return preview.Status == CompositionExecutionStatus.Succeeded
-            ? await service.BuildAsync(request.WithApprovedPreviewToken(preview.PreviewToken!), cancellationToken)
-                .ConfigureAwait(false)
-            : preview;
+    private static string CreateWorkbenchReportRunId(string prefix, bool build, DateTimeOffset timestamp)
+    {
+        return $"{prefix}-{FormatWorkbenchRunAction(build)}-{FormatWorkbenchRunTimestamp(timestamp)}";
+    }
+
+    private static string GetReplaceRunIdPrefix(string replaceMode)
+    {
+        return replaceMode switch
+        {
+            WorkbenchReplaceModes.Dp => DpReplaceRunIdPrefix,
+            WorkbenchReplaceModes.CtrlRam => CtrlRamReplaceRunIdPrefix,
+            WorkbenchReplaceModes.General => GeneralReplaceRunIdPrefix,
+            _ => FormattableString.Invariant($"ui-replace-{replaceMode.ToLowerInvariant()}"),
+        };
+    }
+
+    private static string FormatWorkbenchRunAction(bool build)
+    {
+        return build ? "build" : "preview";
+    }
+
+    private static string FormatWorkbenchRunTimestamp(DateTimeOffset timestamp)
+    {
+        return timestamp.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture);
     }
 }

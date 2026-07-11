@@ -1,6 +1,10 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
+using static NvtFwCombiner.Bootstrap.WorkbenchIssueCodes;
+using static NvtFwCombiner.Bootstrap.Tests.BootstrapTestData;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -8,7 +12,146 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class WorkbenchCompositionServiceTests
 {
     private const string EmptySha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-    private const int FirmwareVersionBarOffset = 0x001;
+
+    /// <summary>Verifies FlashCode output naming reads DP/FWConfig metadata outside the UI layer.</summary>
+    [Fact]
+    public void FlashCodeOutputNameUsesCatalogBackedDpAndTpMetadata()
+    {
+        string dpPath = GoldenPath("inputs/51926/dp.bin");
+        string tpPath = GoldenPath("inputs/51926/tp.bin");
+
+        WorkbenchOutputFileNameSuggestion suggestion = WorkbenchCompositionService.CreateFlashCodeOutputFileName(
+            "51926",
+            [
+                new WorkbenchOutputNameCandidate(WorkbenchOutputNameCandidateKind.Dp, dpPath),
+                new WorkbenchOutputNameCandidate(WorkbenchOutputNameCandidateKind.Tp, tpPath),
+            ],
+            new DateOnly(2026, 7, 8));
+
+        Assert.Equal("NT51926_FlashCode_D0102T0100_20260708.bin", suggestion.FileName);
+        Assert.Equal("0102", suggestion.DpVersionToken);
+        Assert.True(suggestion.HasDpVersion);
+        Assert.Equal("0100", suggestion.TpVersionToken);
+        Assert.True(suggestion.HasTpVersion);
+        Assert.Equal("20260708", suggestion.DateToken);
+    }
+
+    /// <summary>Verifies missing metadata produces explicit unknown tokens without guessing offsets.</summary>
+    [Fact]
+    public void FlashCodeOutputNameUsesUnknownTokensWhenMetadataIsMissing()
+    {
+        WorkbenchOutputFileNameSuggestion suggestion = WorkbenchCompositionService.CreateFlashCodeOutputFileName(
+            "NT51950",
+            [],
+            new DateOnly(2026, 7, 8));
+
+        Assert.Equal("NT51950_FlashCode_DxxxxTxxxx_20260708.bin", suggestion.FileName);
+        Assert.Equal("xxxx", suggestion.DpVersionToken);
+        Assert.False(suggestion.HasDpVersion);
+        Assert.Equal("xxxx", suggestion.TpVersionToken);
+        Assert.False(suggestion.HasTpVersion);
+    }
+
+    /// <summary>Verifies Standard Merge extracts a sufficient nonstandard DP artifact and reports the size warning.</summary>
+    [Fact]
+    public async Task StandardMergePreviewWarnsButDoesNotBlockUnexpectedDpLength()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-dp-length");
+        byte[] dp = File.ReadAllBytes(GoldenPath("inputs/51926/dp.bin"));
+        Array.Resize(ref dp, dp.Length + 1);
+        dp[^1] = 0xA5;
+        string dpPath = workspace.Write("dp-nonstandard.bin", dp);
+        Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
+        {
+            ["dp-input"] = dpPath,
+            ["tp-input"] = GoldenPath("inputs/51926/tp.bin"),
+        };
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeAsync(
+            "NT51926",
+            slotPaths,
+            build: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.Equal(
+            Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(GoldenPath("expected/51926/flash.bin")))).ToLowerInvariant(),
+            result.OutputSha256);
+        using var document = JsonDocument.Parse(result.ReportJson);
+        Assert.Contains(
+            document.RootElement.GetProperty("Issues").EnumerateArray(),
+            issue =>
+                issue.GetProperty("Code").GetString() == CompositionIssueCodes.InputAddressSpaceLengthUnexpected &&
+                issue.GetProperty("Severity").GetString() == "warning");
+    }
+
+    /// <summary>Verifies firmware metadata exposes display-ready postbuild category names outside the UI layer.</summary>
+    [Fact]
+    public void FirmwareConfigMetadataShortensPostbuildSetupCategoryForDisplay()
+    {
+        WorkbenchFirmwareConfigMetadata? metadata = WorkbenchCompositionService.TryReadFirmwareConfigMetadata(
+            "NT51926",
+            GoldenPath("expected/51926/flash.bin"));
+
+        Assert.NotNull(metadata);
+        Assert.True(TpFlashMapCatalog.TryGetFirmwareConfigStart("NT51926", out long firmwareConfigStart));
+        Assert.Equal(firmwareConfigStart, metadata.FirmwareConfigStart);
+        Assert.Equal("1.4.1", metadata.CommonFwVersion);
+        Assert.Equal(0x02, metadata.ChipNumber);
+        Assert.Equal("51926_1.4.1", metadata.PostbuildCategory);
+    }
+
+    /// <summary>Uses a unique, matching NVT FWConfig copy to map the verified chip number to a planner token.</summary>
+    [Fact]
+    public void FirmwareContextSuggestionUsesVerifiedNvtCopyAndApprovedBranch()
+    {
+        WorkbenchFirmwareContextSuggestion? suggestion = WorkbenchCompositionService.TryReadFirmwareContextSuggestion(
+            "NT51926",
+            GoldenPath("expected/51926/flash.bin"));
+
+        Assert.NotNull(suggestion);
+        Assert.Equal("NT51926", suggestion.IcId);
+        Assert.Equal((byte)0x02, suggestion.ChipNumber);
+        Assert.Equal("cascade", suggestion.NumberToken);
+        Assert.Equal("1.4.1", suggestion.CommonFwVersion);
+    }
+
+    /// <summary>Rejects automatic IC-number selection when the primary and unique NVT-copy FWConfigs disagree.</summary>
+    [Fact]
+    public void FirmwareContextSuggestionRejectsPrimaryAndNvtCopyMismatch()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-fwconfig-mismatch");
+        byte[] bytes = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
+        Assert.True(TpFlashMapCatalog.TryGetFirmwareConfigStart("NT51926", out long firmwareConfigStart));
+        bytes[checked((int)firmwareConfigStart + FirmwareConfigLayout.FirmwareSubVersionOffset)] ^= 0x01;
+        string path = workspace.Write("fwconfig-mismatch.bin", bytes);
+
+        WorkbenchFirmwareContextSuggestion? suggestion = WorkbenchCompositionService.TryReadFirmwareContextSuggestion(
+            "NT51926",
+            path);
+
+        Assert.Null(suggestion);
+    }
+
+    /// <summary>Uses the selected TP NVT FWConfig ChipNumber to resolve NT51950's 1IC CMI location.</summary>
+    [Fact]
+    public void Nt51950CmiMetadataRequiresTpNvtFirmwareConfig()
+    {
+        string dpPath = GoldenPath("inputs/51950/dp-256k/dp.bin");
+        string tpPath = GoldenPath("inputs/51950/dp-256k/tp.bin");
+
+        Assert.Null(WorkbenchCompositionService.TryReadCmiDpCodeMetadata("NT51950", dpPath));
+
+        WorkbenchCmiDpCodeMetadata? metadata = WorkbenchCompositionService.TryReadCmiDpCodeMetadata(
+            "NT51950",
+            dpPath,
+            tpPath);
+
+        Assert.NotNull(metadata);
+        Assert.Equal(0x3B016, metadata.Register16Offset);
+        Assert.Equal(576, metadata.JiraNumber);
+        Assert.Equal("AUTO_PRJ-576", metadata.JiraBadge);
+    }
 
     /// <summary>Verifies General Replace build writes a profile-approved DP explicit mapping.</summary>
     [Fact]
@@ -150,7 +293,7 @@ public sealed class WorkbenchCompositionServiceTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-invalid-fwbar");
         byte[] baseBytes = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
         Assert.True(TpFlashMapCatalog.TryGetFirmwareConfigStart("NT51926", out long firmwareConfigStart));
-        baseBytes[checked((int)firmwareConfigStart + FirmwareVersionBarOffset)] ^= 0x01;
+        baseBytes[checked((int)firmwareConfigStart + FirmwareConfigLayout.FirmwareVersionBarOffset)] ^= 0x01;
 
         string basePath = workspace.Write("base-invalid-fwbar.bin", baseBytes);
         string replacementPath = workspace.Write("normal.bin", baseBytes[0x22800..0x25400]);
@@ -173,7 +316,7 @@ public sealed class WorkbenchCompositionServiceTests
         using var document = JsonDocument.Parse(result.ReportJson);
         Assert.Contains(
             document.RootElement.GetProperty("Issues").EnumerateArray(),
-            issue => issue.GetProperty("Code").GetString() == "replace.ctrlram.postbuild-category-unknown");
+            issue => issue.GetProperty("Code").GetString() == ReplaceCtrlRamPostbuildCategoryUnknown);
     }
 
     /// <summary>Verifies gated Replace reports can summarize missing inputs without throwing.</summary>
@@ -204,28 +347,8 @@ public sealed class WorkbenchCompositionServiceTests
         Assert.Equal(EmptySha256, input.GetProperty("Sha256").GetString());
 
         JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
-        Assert.Equal("input.artifact.read-failed", issue.GetProperty("Code").GetString());
+        Assert.Equal(InputArtifactReadFailed, issue.GetProperty("Code").GetString());
         Assert.Equal("error", issue.GetProperty("Severity").GetString());
     }
 
-    private static byte[] CreatePattern(int length, byte seed)
-    {
-        byte[] bytes = new byte[length];
-        for (int index = 0; index < bytes.Length; index++)
-        {
-            bytes[index] = unchecked((byte)(seed + index));
-        }
-
-        return bytes;
-    }
-
-    private static string GoldenPath(string relativePath)
-    {
-        return Path.Combine(
-            RepositoryPaths.FindRepositoryRoot(),
-            "testdata",
-            "golden",
-            "standard-merge-gen-flash",
-            relativePath.Replace('/', Path.DirectorySeparatorChar));
-    }
 }

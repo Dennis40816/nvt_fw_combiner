@@ -1,0 +1,230 @@
+<ResourceDictionary
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
+
+<DataTemplate x:Key="FirmwareSlotCardTemplate" DataType="vm:FirmwareSlotViewModel">
+  <views:FirmwareSlotCard BrowseLabel="{ReflectionBinding $parent[Window].DataContext.Text.BrowseLabel}" />
+</DataTemplate>
+
+<DataTemplate x:Key="ReplaceModeContentTemplate" DataType="vm:MainWindowViewModel">
+  <StackPanel Spacing="16">
+    <Border
+        Classes="panelSurface roomyPanel"
+        IsVisible="{Binding IsNonCtrlRamStructuredReplaceModeSelected}">
+      <StackPanel Spacing="14">
+        <StackPanel Spacing="3">
+          <TextBlock Classes="sectionTitle" Text="{Binding Text.InputFilesTitle}" />
+          <TextBlock Classes="mutedText" Text="{Binding SelectedReplaceModeDescription}" TextWrapping="Wrap" />
+        </StackPanel>
+        <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSlots}">
+          <ItemsControl.ItemTemplate>
+            <StaticResource ResourceKey="FirmwareSlotCardTemplate" />
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </Border>
+
+    <Border
+        Classes="panelSurface roomyPanel"
+        IsVisible="{Binding IsCtrlRamReplaceModeSelected}">
+      <StackPanel Spacing="14">
+        <StackPanel Spacing="3">
+          <TextBlock Classes="sectionTitle" Text="{Binding Text.InputFilesTitle}" />
+          <TextBlock Classes="mutedText" Text="{Binding Text.CtrlRamInputFilesDetail}" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <ContentControl
+            Content="{Binding ReplaceBaseSlot}"
+            ContentTemplate="{StaticResource FirmwareSlotCardTemplate}" />
+
+        <ItemsControl HorizontalAlignment="Stretch" ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSlotGroups}">
+          <ItemsControl.ItemTemplate>
+            <StaticResource ResourceKey="FirmwareSlotGroupTemplate" />
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </Border>
+
+    <Border
+        Classes="panelSurface roomyPanel"
+        IsVisible="{Binding IsGeneralReplaceModeSelected}">
+      <StackPanel Spacing="16">
+        <Grid ColumnDefinitions="*" ColumnSpacing="16">
+          <StackPanel Spacing="3">
+            <TextBlock Classes="sectionTitle" Text="{Binding Text.GeneralReplaceMappingTitle}" />
+            <TextBlock Classes="mutedText" Text="{Binding SelectedReplaceModeDescription}" TextWrapping="Wrap" />
+          </StackPanel>
+        </Grid>
+
+        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+          <Border Classes="subtleSurface" Padding="10">
+            <StackPanel Spacing="2">
+              <TextBlock Classes="compactTitle" Text="{Binding Text.GeneralReplaceRuleBaseTitle}" />
+              <TextBlock Classes="captionText" Text="{Binding Text.GeneralReplaceRuleBaseDetail}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border Grid.Column="1" Classes="subtleSurface" Padding="10">
+            <StackPanel Spacing="2">
+              <TextBlock Classes="compactTitle" Text="{Binding Text.GeneralReplaceRuleBoundsTitle}" />
+              <TextBlock Classes="captionText" Text="{Binding Text.GeneralReplaceRuleBoundsDetail}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border Grid.Column="2" Classes="subtleSurface" Padding="10">
+            <StackPanel Spacing="2">
+              <TextBlock Classes="compactTitle" Text="{Binding Text.GeneralReplaceRuleLengthTitle}" />
+              <TextBlock Classes="captionText" Text="{Binding Text.GeneralReplaceRuleLengthDetail}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+        </Grid>
+
+        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,*" ColumnSpacing="14" RowSpacing="8">
+          <TextBlock Classes="panelTitle" Text="{Binding Text.GeneralReplaceRuleBaseTitle}" />
+          <TextBlock Grid.Column="1" Classes="panelTitle" Text="{Binding Text.ValidationTitle}" />
+          <ContentControl
+              Grid.Row="1"
+              Content="{Binding ReplaceBaseSlot}"
+              ContentTemplate="{StaticResource FirmwareSlotCardTemplate}" />
+          <Border
+              Classes="subtleSurface"
+              Grid.Row="1"
+              Grid.Column="1"
+              MinHeight="112"
+              Padding="12">
+            <StackPanel Spacing="4">
+              <TextBlock Classes="readinessText" Text="{Binding ReplaceReadinessStatus}" TextWrapping="Wrap" />
+              <TextBlock Classes="captionText" Text="{Binding Text.GeneralReplaceValidationDetail}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+        </Grid>
+
+        <StackPanel Spacing="12">
+          <StackPanel Spacing="10">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+              <StackPanel Spacing="3">
+                <TextBlock Classes="sectionTitle" Text="{Binding Text.ExplicitMappingsTitle}" />
+                <TextBlock Classes="mutedText" Text="{Binding Text.GeneralReplaceMappingsDetail}" TextWrapping="Wrap" />
+              </StackPanel>
+              <Button
+                  Grid.Column="1"
+                  Classes="action"
+                  VerticalAlignment="Bottom"
+                  Command="{Binding AddGeneralReplaceMappingCommand}"
+                  Content="{Binding Text.AddRangeLabel}" />
+            </Grid>
+            <Grid ColumnDefinitions="34,128,22,128,*,82,40" ColumnSpacing="8">
+              <TextBlock Grid.Column="0" Classes="tableHeader" Text="#" />
+              <TextBlock Grid.Column="1" Classes="tableHeader" Text="{Binding Text.StartLabel}" />
+              <TextBlock Grid.Column="3" Classes="tableHeader" Text="{Binding Text.EndLabel}" />
+              <TextBlock Grid.Column="4" Classes="tableHeader" Text="{Binding Text.ReplacementBinLabel}" />
+            </Grid>
+            <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding GeneralReplaceMappings}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:GeneralReplaceMappingViewModel">
+                  <views:GeneralReplaceMappingRow
+                      BrowseLabel="{ReflectionBinding $parent[Window].DataContext.Text.BrowseLabel}"
+                      RemoveRangeTooltip="{ReflectionBinding $parent[Window].DataContext.Text.RemoveRangeTooltip}"
+                      SelectReplacementBinTooltip="{ReflectionBinding $parent[Window].DataContext.Text.SelectReplacementBinTooltip}" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+  </StackPanel>
+</DataTemplate>
+
+<DataTemplate x:Key="MergeModeContentTemplate" DataType="vm:MainWindowViewModel">
+  <StackPanel Spacing="16">
+    <Border
+        Classes="panelSurface roomyPanel"
+        IsVisible="{Binding IsNormalMergeModeSelected}">
+      <StackPanel Spacing="14">
+        <StackPanel Spacing="3">
+          <TextBlock Classes="sectionTitle" Text="{Binding Text.InputFilesTitle}" />
+          <TextBlock Classes="mutedText" Text="{Binding StandardMergeSupportSummary}" TextWrapping="Wrap" />
+        </StackPanel>
+        <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding MergeSlots}">
+          <ItemsControl.ItemTemplate>
+            <StaticResource ResourceKey="FirmwareSlotCardTemplate" />
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Border Classes="subtleSurface" Padding="10,8">
+          <TextBlock Classes="readinessText" Text="{Binding MergeReadinessStatus}" TextWrapping="Wrap" />
+        </Border>
+      </StackPanel>
+    </Border>
+
+    <Border
+        Classes="panelSurface roomyPanel"
+        IsVisible="{Binding IsGeneralMergeModeSelected}">
+      <StackPanel Spacing="16">
+        <Grid ColumnDefinitions="*,180" ColumnSpacing="14">
+          <StackPanel Spacing="3">
+            <TextBlock Classes="sectionTitle" Text="{Binding Text.GeneralMergeMappingTitle}" />
+            <TextBlock Classes="mutedText" Text="{Binding Text.GeneralMergeMappingDetail}" TextWrapping="Wrap" />
+          </StackPanel>
+          <StackPanel Grid.Column="1" Spacing="4">
+            <TextBlock Classes="fieldLabel" Text="{Binding Text.OutputLengthLabel}" />
+            <TextBox
+                Classes="addressInput"
+                Text="{Binding GeneralMergeOutputLength, Mode=TwoWay}"
+                PlaceholderText="{Binding Text.OutputLengthPlaceholder}" />
+          </StackPanel>
+        </Grid>
+
+        <StackPanel Spacing="10">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <StackPanel Spacing="3">
+              <TextBlock Classes="sectionTitle" Text="{Binding Text.ExplicitMappingsTitle}" />
+              <TextBlock Classes="mutedText" Text="{Binding Text.GeneralMergeMappingsDetail}" TextWrapping="Wrap" />
+            </StackPanel>
+            <Button
+                Grid.Column="1"
+                Classes="action"
+                VerticalAlignment="Bottom"
+                Command="{Binding AddGeneralMergeMappingCommand}"
+                Content="{Binding Text.AddMappingLabel}" />
+          </Grid>
+
+          <Grid Margin="7,0,7,0" ColumnDefinitions="34,118,118,108,*,82,40" ColumnSpacing="8">
+            <TextBlock Grid.Column="0" Classes="tableHeader" HorizontalAlignment="Center" TextAlignment="Center" Text="#" />
+            <TextBlock Grid.Column="1" Classes="tableHeader" HorizontalAlignment="Center" TextAlignment="Center" Text="{Binding Text.SourceStartLabel}" />
+            <TextBlock Grid.Column="2" Classes="tableHeader" HorizontalAlignment="Center" TextAlignment="Center" Text="{Binding Text.TargetStartLabel}" />
+            <TextBlock Grid.Column="3" Classes="tableHeader" HorizontalAlignment="Center" TextAlignment="Center" Text="{Binding Text.LengthLabel}" />
+            <TextBlock Grid.Column="4" Classes="tableHeader" Margin="10,0,0,0" HorizontalAlignment="Left" Text="{Binding Text.SourceBinLabel}" />
+          </Grid>
+          <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding GeneralMergeMappings}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:GeneralMergeMappingViewModel">
+                <views:GeneralMergeMappingRow
+                    BrowseLabel="{ReflectionBinding $parent[Window].DataContext.Text.BrowseLabel}"
+                    RemoveMappingTooltip="{ReflectionBinding $parent[Window].DataContext.Text.RemoveMappingTooltip}"
+                    SelectSourceBinTooltip="{ReflectionBinding $parent[Window].DataContext.Text.SelectSourceBinTooltip}" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+
+        <Border Classes="subtleSurface" Padding="10,8">
+          <TextBlock Classes="readinessText" Text="{Binding MergeReadinessStatus}" TextWrapping="Wrap" />
+        </Border>
+      </StackPanel>
+    </Border>
+
+    <Border
+        Classes="panelSurface roomyPanel"
+        IsVisible="{Binding IsAbCodeMergeModeSelected}">
+      <StackPanel Spacing="8">
+        <TextBlock Classes="sectionTitle" Text="{Binding Text.AbCodeMergeTitle}" />
+        <TextBlock Classes="mutedText" Text="{Binding Text.AbCodeMergeDetail}" TextWrapping="Wrap" />
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</DataTemplate>
+
+</ResourceDictionary>

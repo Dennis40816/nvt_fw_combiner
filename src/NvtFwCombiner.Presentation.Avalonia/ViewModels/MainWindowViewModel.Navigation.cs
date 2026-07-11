@@ -61,10 +61,11 @@ public sealed partial class MainWindowViewModel
     {
         return page switch
         {
-            ShellPage.Home => "Home",
+            ShellPage.Home => Text.HomeLabel,
             ShellPage.Settings => SettingsPreview.Title,
             ShellPage.Merge => MergePreview.Title,
             ShellPage.Replace => ReplacePreview.Title,
+            ShellPage.HexEditor => Text.HexEditorTitle,
             _ => page.ToString(),
         };
     }
@@ -81,6 +82,9 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(NavigationPath));
         OnPropertyChanged(nameof(CanGoBack));
         GoBackCommand.NotifyCanExecuteChanged();
+        RequestHexEditorSaveCommand.NotifyCanExecuteChanged();
+        RequestHexEditorUndoCommand.NotifyCanExecuteChanged();
+        RequestHexEditorRedoCommand.NotifyCanExecuteChanged();
         RefreshSettingsState();
     }
 

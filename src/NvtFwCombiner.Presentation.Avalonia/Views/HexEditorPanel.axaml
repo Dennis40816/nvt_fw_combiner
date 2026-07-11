@@ -1,0 +1,399 @@
+<UserControl
+    x:Class="NvtFwCombiner.Presentation.Avalonia.Views.HexEditorPanel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:behaviors="using:NvtFwCombiner.Presentation.Avalonia.Behaviors"
+    xmlns:input="using:Avalonia.Input"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views"
+    x:DataType="vm:HexEditorWorkspaceViewModel">
+  <UserControl.Styles>
+    <Style Selector="Button.hexGoToAddress Path">
+      <Setter Property="Width" Value="16" />
+      <Setter Property="Height" Value="16" />
+      <Setter Property="Stroke" Value="#1D4ED8" />
+      <Setter Property="StrokeThickness" Value="1.8" />
+      <Setter Property="StrokeLineCap" Value="Round" />
+      <Setter Property="StrokeJoin" Value="Round" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.hexAsciiSearch Path">
+      <Setter Property="Width" Value="16" />
+      <Setter Property="Height" Value="16" />
+      <Setter Property="Stroke" Value="#2563EB" />
+      <Setter Property="StrokeThickness" Value="1.8" />
+      <Setter Property="StrokeLineCap" Value="Round" />
+      <Setter Property="StrokeJoin" Value="Round" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+  </UserControl.Styles>
+
+  <StackPanel Spacing="12">
+    <Grid MaxWidth="1720" ColumnDefinitions="*,336" ColumnSpacing="12">
+      <Border
+          Grid.Column="0"
+          Classes="compactSurface fileDropZone"
+          DragDrop.AllowDrop="True"
+          DragDrop.DragEnter="HexEditorSourceDrop_OnDragEnter"
+          DragDrop.DragOver="HexEditorSourceDrop_OnDragOver"
+          DragDrop.DragLeave="HexEditorSourceDrop_OnDragLeave"
+          DragDrop.Drop="HexEditorSourceDrop_OnDrop">
+        <Grid>
+          <Border Classes="dropZoneOverlay" />
+          <Grid Margin="12" ColumnDefinitions="*,Auto" ColumnSpacing="18">
+            <StackPanel Spacing="3">
+              <TextBlock Classes="panelTitle" Text="{Binding Text.SourceBinLabel}" />
+              <TextBlock Classes="bodyStrongText" Text="{Binding SourceName}" />
+              <TextBlock
+                  Classes="technicalCompactDetail"
+                  IsVisible="{Binding HasDocument}"
+                  Text="{Binding SourcePathDisplay}"
+                  TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" HorizontalAlignment="Right" Spacing="6">
+              <TextBlock
+                  HorizontalAlignment="Right"
+                  Classes="technicalValue"
+                  IsVisible="{Binding HasDocument}"
+                  Text="{Binding WorkingLengthLabel}" />
+              <Button Classes="primary" Click="OpenHexEditorSourceButton_OnClick" Content="{Binding Text.BrowseLabel}" />
+            </StackPanel>
+          </Grid>
+        </Grid>
+      </Border>
+    </Grid>
+
+    <StackPanel IsVisible="{Binding HasDocument}" Spacing="10">
+      <Grid MaxWidth="1720" ColumnDefinitions="*,336" ColumnSpacing="12">
+        <Grid ColumnDefinitions="Auto,*,196" ColumnSpacing="14">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock VerticalAlignment="Center" Classes="fieldLabel" Text="{Binding Text.HexEditorGoToAddressLabel}" />
+            <TextBox
+                x:Name="GoToAddressTextBox"
+                behaviors:HexTextInputBehavior.Mode="Address"
+                Width="132"
+                Classes="addressInput"
+                input:InputMethod.IsInputMethodEnabled="False"
+                Text="{Binding ViewportAddress, Mode=TwoWay}"
+                GotFocus="HexTextInput_OnGotFocus"
+                KeyDown="GoToAddressTextBox_OnKeyDown"
+                LostFocus="HexTextInput_OnLostFocus" />
+            <Button
+                Classes="iconButton hexGoToAddress"
+                Width="34"
+                Height="34"
+                Padding="0"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center"
+                AutomationProperties.Name="{Binding Text.HexEditorGoToAddressLabel}"
+                Command="{Binding GoToCommand}"
+                ToolTip.Tip="{Binding Text.HexEditorGoToAddressLabel}">
+              <Path Data="M1 8H15M9 2L15 8L9 14" />
+            </Button>
+            <StackPanel Margin="8,0,0,0" Orientation="Horizontal" VerticalAlignment="Center" Spacing="7">
+              <TextBlock VerticalAlignment="Center" Classes="fieldLabel" Text="{Binding Text.HexEditorShowOriginalRowsLabel}" />
+              <ToggleSwitch
+                  Classes="hexOriginalRowsToggle"
+                  Width="42"
+                  MinHeight="24"
+                  VerticalAlignment="Center"
+                  AutomationProperties.Name="{Binding Text.HexEditorShowOriginalRowsLabel}"
+                  IsChecked="{Binding IsOriginalRowsVisible, Mode=TwoWay}"
+                  ToolTip.Tip="{Binding Text.HexEditorShowOriginalRowsLabel}" />
+            </StackPanel>
+          </StackPanel>
+          <TextBlock
+              Grid.Column="1"
+              VerticalAlignment="Center"
+              Classes="captionText"
+              Text="{Binding EditorStatus}"
+              TextTrimming="CharacterEllipsis"
+              ToolTip.Tip="{Binding EditorStatus}" />
+          <Grid Grid.Column="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="4">
+            <TextBox
+                x:Name="AsciiSearchTextBox"
+                Height="34"
+                input:InputMethod.IsInputMethodEnabled="False"
+                PlaceholderText="{Binding Text.HexEditorAsciiSearchPlaceholder}"
+                Text="{Binding AsciiSearchText, Mode=TwoWay}"
+                GotFocus="HexTextInput_OnGotFocus"
+                KeyDown="AsciiSearchTextBox_OnKeyDown"
+                LostFocus="HexTextInput_OnLostFocus"
+                TextChanged="AsciiSearch_OnTextChanged"
+                TextInput="AsciiSearch_OnTextInput" />
+            <TextBlock
+                Grid.Column="1"
+                VerticalAlignment="Center"
+                Classes="technicalCaption"
+                IsVisible="{Binding HasAsciiSearchResults}"
+                Text="{Binding AsciiSearchResultLabel}" />
+            <Button
+                Grid.Column="2"
+                Width="30"
+                Height="30"
+                Padding="0"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center"
+                Classes="iconButton hexAsciiSearch"
+                AutomationProperties.Name="{Binding Text.HexEditorAsciiSearchLabel}"
+                Command="{Binding FindAsciiCommand}"
+                ToolTip.Tip="{Binding Text.HexEditorAsciiSearchLabel}">
+              <Path Data="M7 1A6 6 0 1 0 7 13A6 6 0 1 0 7 1M11.5 11.5L15 15" />
+            </Button>
+          </Grid>
+        </Grid>
+      </Grid>
+
+      <Grid MaxWidth="1720" ColumnDefinitions="*,336" ColumnSpacing="12">
+        <Border Grid.Column="0" Padding="8" Background="#F8FAFC" BorderBrush="#94A3B8" BorderThickness="1" CornerRadius="6">
+          <Grid RowDefinitions="Auto,*" RowSpacing="4">
+            <Grid Margin="0,0,20,0" ColumnDefinitions="112,*,144" ColumnSpacing="4">
+              <TextBlock
+                  VerticalAlignment="Center"
+                  Classes="hexGridHeader monoText"
+                  Padding="4,0"
+                  TextAlignment="Left"
+                  Text="{Binding Text.HexEditorAddressColumnLabel}" />
+              <ItemsControl Grid.Column="1" ItemsSource="{Binding ColumnHeaders}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <UniformGrid Columns="16" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:HexEditorColumnHeaderViewModel">
+                    <TextBlock
+                        Classes="hexGridHeader monoText"
+                        Classes.selected="{Binding IsSelected}"
+                        Text="{Binding Label}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock
+                  Grid.Column="2"
+                  VerticalAlignment="Center"
+                  Classes="hexGridHeader monoText"
+                  Text="{Binding Text.HexEditorAsciiColumnLabel}" />
+            </Grid>
+
+            <Grid
+                x:Name="HexDocumentSurface"
+                Grid.Row="1"
+                Height="{Binding HexViewportHeight}"
+                Background="Transparent"
+                ColumnDefinitions="*,20"
+                ColumnSpacing="0"
+                DoubleTapped="HexDocumentSurface_OnDoubleTapped"
+                PointerPressed="HexDocumentSurface_OnPointerPressed"
+                PointerWheelChanged="HexDocumentSurface_OnPointerWheelChanged">
+              <Grid Grid.Column="0">
+                <views:HexEditorViewportControl
+                    x:Name="HexViewport"
+                    AutomationProperties.Name="{Binding Text.HexEditorTitle}"
+                    AutomationProperties.HelpText="{Binding SelectedByteAccessibleLabel}" />
+                <TextBox
+                    x:Name="HexInlineEditor"
+                    behaviors:HexTextInputBehavior.Mode="Byte"
+                    Width="28"
+                    Height="25"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    Classes="hexCellEditor"
+                    input:InputMethod.IsInputMethodEnabled="False"
+                    IsVisible="False"
+                    MaxLength="2"
+                    GotFocus="HexTextInput_OnGotFocus"
+                    KeyDown="HexByteEditBox_OnKeyDown"
+                    LostFocus="HexByteEditBox_OnLostFocus"
+                    TextChanged="HexByteEditBox_OnTextChanged" />
+              </Grid>
+              <ScrollBar
+                  Grid.Column="1"
+                  Margin="4,0,0,0"
+                  AutomationProperties.Name="{Binding Text.HexEditorDocumentScrollBarAutomationName}"
+                  Minimum="0"
+                  Maximum="{Binding DocumentScrollMaximum}"
+                  ViewportSize="{Binding VisibleRowCount}"
+                  Value="{Binding ViewportStartRow, Mode=OneWay}"
+                  SmallChange="1"
+                  LargeChange="{Binding VisibleRowCount}"
+                  Orientation="Vertical"
+                  ValueChanged="HexDocumentScrollBar_OnValueChanged" />
+            </Grid>
+          </Grid>
+        </Border>
+
+        <Border Grid.Column="1" Classes="compactSurface" VerticalAlignment="Stretch" Padding="0">
+          <Grid RowDefinitions="Auto,Auto,*">
+            <Border Padding="14,12" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+              <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
+                <TextBlock VerticalAlignment="Center" Classes="panelTitle" Text="{Binding Text.HexEditorChangeTitle}" />
+                <Button
+                    Grid.Column="1"
+                    Width="32"
+                    Height="32"
+                    Classes="iconButton hexInspectorAction"
+                    AutomationProperties.Name="{Binding Text.HexEditorUndoLabel}"
+                    Command="{Binding UndoCommand}"
+                    ToolTip.Tip="{Binding Text.HexEditorUndoTooltip}">
+                  <Viewbox Width="18" Height="18" Stretch="Uniform">
+                    <Canvas Width="24" Height="24">
+                      <Path Data="M9 14L4 9L9 4M4 9H14.5A5.5 5.5 0 0 1 14.5 20H11" />
+                    </Canvas>
+                  </Viewbox>
+                </Button>
+                <Button
+                    Grid.Column="2"
+                    Width="32"
+                    Height="32"
+                    Classes="iconButton hexInspectorAction"
+                    AutomationProperties.Name="{Binding Text.HexEditorRedoLabel}"
+                    Command="{Binding RedoCommand}"
+                    ToolTip.Tip="{Binding Text.HexEditorRedoTooltip}">
+                  <Viewbox Width="18" Height="18" Stretch="Uniform">
+                    <Canvas Width="24" Height="24">
+                      <Path Data="M15 14L20 9L15 4M20 9H9.5A5.5 5.5 0 0 0 9.5 20H13" />
+                    </Canvas>
+                  </Viewbox>
+                </Button>
+                <Button
+                    Grid.Column="3"
+                    Width="32"
+                    Height="32"
+                    Classes="iconButton hexInspectorAction"
+                    AutomationProperties.Name="{Binding Text.HexEditorSaveAsLabel}"
+                    Command="{Binding RequestSaveCommand}"
+                    ToolTip.Tip="{Binding Text.HexEditorSaveAsTooltip}">
+                  <Viewbox Width="18" Height="18" Stretch="Uniform">
+                    <Canvas Width="24" Height="24">
+                      <Path Data="M12 3V15M7 10L12 15L17 10M5 21H19A2 2 0 0 0 21 19V17M3 17V19A2 2 0 0 0 5 21" />
+                    </Canvas>
+                  </Viewbox>
+                </Button>
+              </Grid>
+            </Border>
+
+            <StackPanel Grid.Row="1" Margin="14" Spacing="10">
+              <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <StackPanel Spacing="4">
+                  <TextBlock Classes="hexInspectorSection" Text="{Binding Text.StartLabel}" />
+                  <TextBox
+                      behaviors:HexTextInputBehavior.Mode="Address"
+                      Classes="addressInput"
+                      input:InputMethod.IsInputMethodEnabled="False"
+                      Text="{Binding RangeStartAddress, Mode=TwoWay}"
+                      GotFocus="HexTextInput_OnGotFocus"
+                      LostFocus="HexTextInput_OnLostFocus" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Spacing="4">
+                  <TextBlock Classes="hexInspectorSection" Text="{Binding Text.EndLabel}" />
+                  <TextBox
+                      behaviors:HexTextInputBehavior.Mode="Address"
+                      Classes="addressInput"
+                      input:InputMethod.IsInputMethodEnabled="False"
+                      Text="{Binding RangeEndAddress, Mode=TwoWay}"
+                      GotFocus="HexTextInput_OnGotFocus"
+                      LostFocus="HexTextInput_OnLostFocus" />
+                </StackPanel>
+              </Grid>
+
+              <StackPanel Spacing="4">
+                <TextBlock Classes="hexInspectorSection" Text="{Binding Text.HexEditorHexBytesLabel}" />
+                <TextBox
+                    behaviors:HexTextInputBehavior.Mode="ByteSequence"
+                    Classes="monoText"
+                    FontSize="13"
+                    input:InputMethod.IsInputMethodEnabled="False"
+                    PlaceholderText="{Binding Text.HexEditorHexBytesPlaceholder}"
+                    Text="{Binding RangeValue, Mode=TwoWay}"
+                    GotFocus="HexTextInput_OnGotFocus"
+                    LostFocus="HexTextInput_OnLostFocus" />
+              </StackPanel>
+
+              <Border Classes="hexInspectorHint" Classes.error="{Binding HasEditFeedback}">
+                <TextBlock
+                    Classes="captionText hexInspectorNotice"
+                    Classes.error="{Binding HasEditFeedback}"
+                    Text="{Binding EditNotice}"
+                    TextWrapping="Wrap" />
+              </Border>
+
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                <ToggleSwitch
+                    Width="42"
+                    MinHeight="24"
+                    VerticalAlignment="Center"
+                    Classes="hexWriteModeToggle"
+                    AutomationProperties.Name="{Binding CurrentWriteModeLabel}"
+                    IsChecked="{Binding IsFillModeSelected, Mode=TwoWay}"
+                    ToolTip.Tip="{Binding CurrentWriteModeTooltip}" />
+                <StackPanel Grid.Column="1" Spacing="3">
+                  <TextBlock Classes="hexInspectorSection" Text="{Binding Text.HexEditorWriteModeLabel}" />
+                  <TextBlock Classes="hexWriteModeLabel" Text="{Binding CurrentWriteModeLabel}" />
+                </StackPanel>
+              </Grid>
+
+              <Grid>
+                <Button
+                    HorizontalAlignment="Right"
+                    Classes="primary hexApplyChange"
+                    Command="{Binding ApplyRangeEditCommand}"
+                    Content="{Binding Text.HexEditorApplyChangeLabel}" />
+              </Grid>
+            </StackPanel>
+
+            <Border Grid.Row="2" Padding="14,12" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,1,0,1">
+              <Grid RowDefinitions="Auto,*" RowSpacing="8">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock VerticalAlignment="Center" Classes="hexInspectorSection" Text="{Binding Text.HexEditorChangedBlocksLabel}" />
+                  <Button
+                      Grid.Column="1"
+                      Width="28"
+                      Height="28"
+                      Classes="hexChangedBlockNavigator"
+                      Command="{Binding SelectNextChangedBlockCommand}"
+                      Content="{Binding ChangedBlockCount}"
+                      IsEnabled="{Binding HasChangedBlocks}"
+                      ToolTip.Tip="{Binding Text.HexEditorSelectChangedBlockTooltip}" />
+                </Grid>
+                <TextBlock
+                    Grid.Row="1"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Classes="captionText"
+                    IsVisible="{Binding HasNoChangedBlocks}"
+                    MaxWidth="230"
+                    Text="{Binding Text.HexEditorNoChangedBlocksDetail}"
+                    TextAlignment="Center"
+                    TextWrapping="Wrap" />
+                <ScrollViewer Grid.Row="1" IsVisible="{Binding HasChangedBlocks}" VerticalScrollBarVisibility="Auto">
+                  <ItemsControl ItemsSource="{Binding ChangedBlocks}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:HexEditorChangedBlockViewModel">
+                        <Button
+                            Classes="hexChangedBlockRow"
+                            AutomationProperties.HelpText="{Binding ReasonTooltip}"
+                            Command="{ReflectionBinding $parent[UserControl].DataContext.SelectChangedBlockCommand}"
+                            CommandParameter="{Binding}"
+                            ToolTip.Tip="{Binding ReasonTooltip}">
+                          <Grid ColumnDefinitions="32,*,Auto" ColumnSpacing="8">
+                            <TextBlock VerticalAlignment="Center" Classes="technicalValue" Text="{Binding IndexLabel}" />
+                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Classes="technicalCompactDetail" Text="{Binding RangeLabel}" />
+                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Classes="technicalCaption" Text="{Binding LengthLabel}" />
+                          </Grid>
+                        </Button>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </ScrollViewer>
+              </Grid>
+            </Border>
+
+          </Grid>
+        </Border>
+      </Grid>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

@@ -216,16 +216,10 @@ public sealed class StandardMergeCliCommandTests
             Path.Combine(goldenRoot, goldenCase.GetProperty("expectedOutput").GetProperty("path").GetString()!));
     }
 
-    private static async Task<CliRunResult> RunCliAsync(string[] args)
+    private static Task<CliRunResult> RunCliAsync(string[] args)
     {
-        using var output = new StringWriter();
-        using var error = new StringWriter();
-        int exitCode = await CliApplication
-            .RunAsync(args, output, error, TestContext.Current.CancellationToken);
-        return new CliRunResult(exitCode, output.ToString(), error.ToString());
+        return CliTestHarness.RunAsync(args, TestContext.Current.CancellationToken);
     }
-
-    private sealed record CliRunResult(int ExitCode, string Output, string Error);
 
     private sealed record GoldenCasePaths(string DpPath, string TpPath, string ExpectedPath);
 

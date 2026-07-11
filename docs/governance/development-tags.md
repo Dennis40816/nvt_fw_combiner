@@ -11,6 +11,10 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 - `v0.7.1` — patch milestone for Replace report output-difference traceability. It classifies final output-vs-reference differences as declared replacement, IC-number-specific postbuild CRC/header, or unexpected; it does not expand firmware support scope.
 - `v0.7.2` — patch milestone for General Merge v1. It adds CLI/UI explicit source-to-target mappings over a caller-declared blank output image and does not add saved-rule promotion, postbuild behavior, or new IC support claims.
 - `v0.7.3` — patch milestone for saved-rule validation, operation provenance, and General Merge saved-rule CLI consumption. It does not promote saved rules into normal workflows or enable General Replace saved-rule execution.
+- `v0.7.4` — patch milestone for report review readability, Build-first workbench interaction, DP version badges from gen_flash evidence, and TDDI Flash Header reference naming. It does not expand firmware support scope or private golden parity claims.
+- `v0.7.5` — patch milestone for bilingual English/Traditional Chinese UI resources and functional Settings state. It does not expand firmware support scope or private golden parity claims.
+- `v0.8.0` — milestone for report readability, Home workflow discoverability, General Merge shortcut exposure, report-history spacing, and repository structure cleanup. It does not claim `v1.0.0` full support-matrix sign-off or complete private golden parity.
+- `v0.9.0` — stable Util Tools raw-BIN Hex Editor milestone: one source read into memory, direct byte and range edits, overwrite/fill/insert/delete, ASCII search, structural diff navigation, undo/redo, and confirmed Save As-only output. It has no IC, profile, Flash Map, CRC, postbuild, General Replace, or report behavior and makes no firmware-validity claim.
 
 ## Branch and merge policy
 
@@ -18,7 +22,10 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 - `0.7.1` is the patch train for Replace report output-difference traceability on top of the reviewed `0.7.0` stable milestone.
 - `0.7.2` is the patch train for General Merge v1 on top of `0.7.1`.
 - `0.7.3` is the patch train for saved-rule validation and General Merge rule consumption on top of `0.7.2`.
-- `0.8.0` is the active post-`0.7.3` development train for packaging/security hardening and remaining release evidence closure.
+- `0.7.4` is the patch train for report readability, Build-first workbench UI, DP version badges, and reference naming on top of `0.7.3`.
+- `0.7.5` is the patch train for bilingual UI resources and Settings functionality on top of `0.7.4`.
+- `0.8.0` is the tagged post-`0.7.5` milestone for repository structure consolidation, report readability, workflow discoverability, and remaining release evidence closure.
+- `0.9.0` is the integration branch for the standalone raw-BIN Hex Editor milestone and subsequent UAT fixes after the reviewed stable tag.
 - `main` is the stable branch.
 - Progress to `main` must happen through reviewed merge/PR, not direct unreviewed development pushes.
 - Agent/Codex work should stay on the active milestone branch until review gates pass.
@@ -38,8 +45,9 @@ Current execution priority: normal Merge and normal Replace for DP Replace and C
 | `0.5.0-dev.N` | Normal Replace priority | DP Replace and CtrlRAM Replace workflows, IC num text choices for two-option profiles, numeric count selection for three-or-more concrete count profiles, and post-replace combiner readiness. |
 | `0.6.0-dev.N` | Workflow data-model convergence | Evaluate and refactor Merge/Replace data into a unified profile/template/catalog model across ICs. No new byte behavior without evidence. |
 | `0.7.0-dev.N` | General Merge/Replace, saved rules, and deferred AB merge | Dynamic mappings, saved-rule validation/preset projection, and deferred promotion catalog; AB bank layout resumes only after owner reactivation and golden evidence. General Merge v1 ships in `0.7.2`; saved-rule validation and General Merge CLI consumption ship in `0.7.3`; normal-workflow promotion remains separately reviewed. |
-| `0.8.0-dev.N` | Packaging/security | Release packaging, tool manifests, smoke tests. |
-| `0.9.0-rc.N` | UAT/release candidates | UX polish, internal sign-off. |
+| `0.8.0-dev.N` | Structure, catalog ownership, packaging/security | IC onboarding catalogs, large-file containment, release packaging, tool manifests, smoke tests. |
+| `v0.9.0` | Stable raw-BIN utility milestone | Standalone bounded Hex Editor, internal sign-off, and release packaging. |
+| `0.9.x` | UAT stabilization | Corrective UX and reliability patches without expanding firmware support claims. |
 | `v1.0.0` | stable | Signed-off support matrix. |
 
 ## First-sample `v1.0.0` release gate
@@ -71,8 +79,12 @@ v0.6.0-dev.N    workflow data-model convergence
 v0.7.0-dev.N    General Merge/Replace saved rules and deferred AB merge
 v0.7.2          General Merge v1
 v0.7.3          saved-rule validation and General Merge CLI consumption
-v0.8.0-dev.N    packaging/security
-v0.9.0-rc.N     UAT/release candidates
+v0.7.4          report readability and Build-first workbench UI
+v0.7.5          bilingual UI resources and Settings functionality
+v0.8.0          report readability, workflow discoverability, structure cleanup
+v0.8.x          stabilization, catalog ownership, packaging/security
+v0.9.0          stable raw-BIN Hex Editor utility milestone
+v0.9.x          UAT stabilization patches
 v1.0.0          stable
 ```
 
@@ -125,4 +137,26 @@ v1.0.0          stable
 - `saved-rule mappings` prints normalized mapping rows and CLI fragments without reading or writing firmware bytes.
 - General Merge CLI accepts `--rule <rule.json>` plus explicit `--slot <slot-id=path>` bindings and compiles resulting rows through the same General Merge planner/executor.
 - General Replace saved-rule build, UI Saved Rules, and normal-workflow promotion remain out of scope until their processor/range policy and review gates are defined.
+- `python scripts/verify.py --all`, Polytail, Codex review, and required local verification are complete before tagging.
+
+## `v0.7.4` release gate
+
+`v0.7.4` can be tagged after the report/build-first UI branch passes local verification and review gates:
+
+- Report review uses a wide, sectioned evidence modal with readable operation range tables and concise output-difference summaries.
+- Merge and Replace workbench pages expose Build as the primary action, with Build performing validation on current inputs before writing output.
+- Home workflow cards avoid IC/Number hints that only apply inside workflow pages.
+- DP version badges are derived from gen_flash evidence when rules exist; unsupported ICs show an explicit warning badge rather than a silent or guessed value.
+- TDDI Flash Header reference naming is used for owner-facing reference evidence.
+- `python scripts/verify.py --all`, Polytail, Codex review, and required local verification are complete before tagging.
+
+## `v0.7.5` release gate
+
+`v0.7.5` can be tagged after the bilingual Settings branch passes local verification and review gates:
+
+- Primary Home, Settings, Merge, Replace, and Report surfaces use the shared English/Traditional Chinese text-resource model instead of duplicated XAML or ViewModel literals.
+- Settings Language changes the active UI language immediately and persists through the local preference store.
+- Theme, Strictness, Language, catalog/tool, diagnostics, and report-history rows show implemented state or explicit limitations, with no placeholder pending wording.
+- English and Traditional Chinese UI smoke coverage verifies Settings persistence and representative navigation/report labels.
+- Visual inspection confirms Home, Settings, Merge, Replace, and Report remain aligned and readable in both languages.
 - `python scripts/verify.py --all`, Polytail, Codex review, and required local verification are complete before tagging.

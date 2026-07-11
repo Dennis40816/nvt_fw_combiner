@@ -38,26 +38,26 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetRegions(icId, selection);
         OperationRunStatus status = OperationRunStatus.Skipped;
 
-        if (replaceMode == "DP" && IsNt51950Or51(icId))
+        if (replaceMode == WorkbenchReplaceModes.Dp && IsDpPerspectiveIc(icId))
         {
-            if (dpBaseLength is not long capacity || !IsSupportedNt51950DpBaseLength(capacity))
+            if (dpBaseLength is not long capacity || !IsSupportedDpPerspectiveBaseLength(capacity))
             {
                 return [];
             }
 
             var fullContainer = new ByteRange(0, capacity);
-            ByteRange tpRestoreRange = BuiltInReplaceProfiles.Nt51950FamilyTpRestoreRange;
-            ByteRange customerInfoPreserveRange = BuiltInReplaceProfiles.Nt51950FamilyCustomerInfoPreserveRange;
+            ByteRange tpRestoreRange = DpPerspectiveCatalog.TpOverlayRange;
+            ByteRange customerInfoPreserveRange = DpPerspectiveCatalog.CustomerInfoPreserveRange;
             return
             [
                 new OperationRunSummary(
-                    "replace-dp-container",
-                    100,
+                    DpPerspectiveCatalog.ReplaceDpContainerOperationId,
+                    DpPerspectiveCatalog.ReplaceDpContainerSequence,
                     CompositionOperationKind.ReplaceRange,
                     status,
-                    "dp-replacement",
+                    CompositionAddressSpaceIds.DpReplacement,
                     fullContainer,
-                    "output-image",
+                    CompositionAddressSpaceIds.OutputImage,
                     fullContainer,
                     OverlapPolicy.Reject,
                     null,
@@ -66,13 +66,13 @@ public static partial class WorkbenchCompositionService
                     [],
                     "Replace the DP perspective container using the selected base length."),
                 new OperationRunSummary(
-                    "restore-base-tp",
-                    200,
+                    DpPerspectiveCatalog.RestoreBaseTpOperationId,
+                    DpPerspectiveCatalog.RestoreBaseTpSequence,
                     CompositionOperationKind.CopyRange,
                     status,
-                    "reference-base",
+                    CompositionAddressSpaceIds.ReferenceBase,
                     tpRestoreRange,
-                    "output-image",
+                    CompositionAddressSpaceIds.OutputImage,
                     tpRestoreRange,
                     OverlapPolicy.ReplaceExisting,
                     null,
@@ -81,13 +81,13 @@ public static partial class WorkbenchCompositionService
                     [],
                     "Restore original TP FW from the base firmware."),
                 new OperationRunSummary(
-                    "restore-base-customer-info",
-                    210,
+                    DpPerspectiveCatalog.RestoreBaseCustomerInfoOperationId,
+                    DpPerspectiveCatalog.RestoreBaseCustomerInfoSequence,
                     CompositionOperationKind.CopyRange,
                     status,
-                    "reference-base",
+                    CompositionAddressSpaceIds.ReferenceBase,
                     customerInfoPreserveRange,
-                    "output-image",
+                    CompositionAddressSpaceIds.OutputImage,
                     customerInfoPreserveRange,
                     OverlapPolicy.ReplaceExisting,
                     null,
@@ -105,9 +105,9 @@ public static partial class WorkbenchCompositionService
                 100 + (index * 10),
                 CompositionOperationKind.ReplaceRange,
                 status,
-                IsLdRegion(region) ? "ldc-replacement" : "dp-replacement",
+                GetDpReplaceSourceAddressSpaceId(icId, region),
                 new ByteRange(0, region.Range.Length),
-                "output-image",
+                CompositionAddressSpaceIds.OutputImage,
                 region.Range,
                 OverlapPolicy.ReplaceExisting,
                 null,
@@ -116,6 +116,13 @@ public static partial class WorkbenchCompositionService
                 [],
                 $"{region.DisplayName} awaits per-IC DP Replace source mapping evidence.")),
         ];
+    }
+
+    private static string GetDpReplaceSourceAddressSpaceId(string icId, TpFlashMapRegion region)
+    {
+        return DpReplaceAuthoringCatalog.TryGetAdditionalPayload(icId, region.RegionId, out DpReplaceAdditionalPayloadRule? rule)
+            ? rule.AddressSpaceId
+            : CompositionAddressSpaceIds.DpReplacement;
     }
 
     private static List<InputArtifactSummary> CreateInputSummaries(

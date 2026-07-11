@@ -1,0 +1,473 @@
+<Styles xmlns="https://github.com/avaloniaui">
+  <!-- Semantic visual roles shared by pages, report templates, and modal views. -->
+  <Style Selector="Border.surface">
+    <Setter Property="Background" Value="#FFFFFF" />
+    <Setter Property="BorderBrush" Value="#CBD5E1" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+  <Style Selector="Border.panelSurface">
+    <Setter Property="Background" Value="#FFFFFF" />
+    <Setter Property="BorderBrush" Value="#E2E8F0" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+  <Style Selector="Border.modalSurface">
+    <Setter Property="Background" Value="#FFFFFF" />
+    <Setter Property="BorderBrush" Value="#CBD5E1" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+  <Style Selector="Border.subtleSurface">
+    <Setter Property="Background" Value="#F8FAFC" />
+    <Setter Property="BorderBrush" Value="#CBD5E1" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+  <Style Selector="Border.insetSurface">
+    <Setter Property="Background" Value="#F8FAFC" />
+    <Setter Property="BorderBrush" Value="#E2E8F0" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+  </Style>
+  <Style Selector="Border.compactSurface">
+    <Setter Property="Background" Value="#FFFFFF" />
+    <Setter Property="BorderBrush" Value="#CBD5E1" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+  </Style>
+  <Style Selector="Border.compactSubtleSurface">
+    <Setter Property="Background" Value="#F8FAFC" />
+    <Setter Property="BorderBrush" Value="#CBD5E1" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+  </Style>
+  <Style Selector="Border.subtlePanel">
+    <Setter Property="Background" Value="#F8FAFC" />
+    <Setter Property="BorderBrush" Value="#E2E8F0" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+  <Style Selector="Border.warningSurface">
+    <Setter Property="Background" Value="#FFF7ED" />
+    <Setter Property="BorderBrush" Value="#FED7AA" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+  <Style Selector="Border.successSurface">
+    <Setter Property="Background" Value="#F0FDF4" />
+    <Setter Property="BorderBrush" Value="#BBF7D0" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+  <Style Selector="Border.successInset">
+    <Setter Property="Background" Value="#F0FDF4" />
+    <Setter Property="BorderBrush" Value="#BBF7D0" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+  </Style>
+  <Style Selector="Border.mappingIndex">
+    <Setter Property="Width" Value="30" />
+    <Setter Property="Height" Value="30" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Background" Value="#FFFFFF" />
+    <Setter Property="BorderBrush" Value="#CBD5E1" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="999" />
+  </Style>
+  <Style Selector="Border.footerStatus">
+    <Setter Property="Padding" Value="28,9" />
+    <Setter Property="Background" Value="#FFFFFF" />
+    <Setter Property="BorderBrush" Value="#E2E8F0" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+  </Style>
+  <Style Selector="Border.shellBar">
+    <Setter Property="Background" Value="#FFFFFF" />
+    <Setter Property="BorderBrush" Value="#E2E8F0" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+  </Style>
+  <Style Selector="Border.toastSurface">
+    <Setter Property="Background" Value="#FFFFFF" />
+    <Setter Property="BorderBrush" Value="#BFDBFE" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+  <Style Selector="Border.homePreviewSurface">
+    <Setter Property="MinHeight" Value="306" />
+    <Setter Property="Padding" Value="22" />
+    <Setter Property="Background" Value="#FFFFFF" />
+    <Setter Property="BorderBrush" Value="#E2E8F0" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+  <Style Selector="Border.roomyPanel">
+    <Setter Property="Padding" Value="18" />
+  </Style>
+  <Style Selector="Border.contentPanel">
+    <Setter Property="Padding" Value="12" />
+  </Style>
+  <Style Selector="Border.listRow">
+    <Setter Property="BorderBrush" Value="#EEF2F7" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+  </Style>
+  <Style Selector="Border.reportInputGroupHeader">
+    <Setter Property="Padding" Value="12,10" />
+    <Setter Property="Background" Value="#EFF6FF" />
+    <Setter Property="BorderBrush" Value="#BFDBFE" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+  </Style>
+  <Style Selector="Border.reportInputRow">
+    <Setter Property="Padding" Value="12,10" />
+    <Setter Property="Background" Value="#F8FAFC" />
+    <Setter Property="BorderBrush" Value="#E2E8F0" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+  </Style>
+  <Style Selector="Border.settingRow">
+    <Setter Property="Padding" Value="0,0,0,9" />
+    <Setter Property="BorderBrush" Value="#EEF2F7" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+  </Style>
+
+  <Style Selector="TextBlock.pageTitle">
+    <Setter Property="FontSize" Value="24" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#0F172A" />
+  </Style>
+  <Style Selector="TextBlock.pageSubtitle">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Foreground" Value="#64748B" />
+  </Style>
+  <Style Selector="TextBlock.previewTitle">
+    <Setter Property="FontSize" Value="25" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#0F172A" />
+  </Style>
+  <Style Selector="TextBlock.sectionTitle">
+    <Setter Property="FontSize" Value="18" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#0F172A" />
+  </Style>
+  <Style Selector="TextBlock.modalTitle">
+    <Setter Property="FontSize" Value="20" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#0F172A" />
+  </Style>
+  <Style Selector="TextBlock.cardTitle">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#0F172A" />
+  </Style>
+  <Style Selector="TextBlock.strongText">
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#0F172A" />
+  </Style>
+  <Style Selector="TextBlock.panelTitle">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#0F172A" />
+  </Style>
+  <Style Selector="TextBlock.fieldLabel">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#64748B" />
+  </Style>
+  <Style Selector="TextBlock.sectionLabel">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#64748B" />
+  </Style>
+  <Style Selector="TextBlock.compactTitle">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#0F172A" />
+  </Style>
+  <Style Selector="TextBlock.compactStrongText">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#0F172A" />
+  </Style>
+  <Style Selector="TextBlock.tableHeader">
+    <Setter Property="FontSize" Value="10" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#64748B" />
+  </Style>
+  <Style Selector="TextBlock.bodyText">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="#334155" />
+  </Style>
+  <Style Selector="TextBlock.bodyStrongText">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#0F172A" />
+  </Style>
+  <Style Selector="TextBlock.bodyEmphasisText">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#334155" />
+  </Style>
+  <Style Selector="TextBlock.detailText">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="#475569" />
+  </Style>
+  <Style Selector="TextBlock.readinessText">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#475569" />
+  </Style>
+  <Style Selector="TextBlock.mutedText">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="#64748B" />
+  </Style>
+  <Style Selector="TextBlock.captionText">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Foreground" Value="#64748B" />
+  </Style>
+  <Style Selector="TextBlock.supportingText">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Foreground" Value="#64748B" />
+  </Style>
+  <Style Selector="TextBlock.infoText">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#2563EB" />
+  </Style>
+  <Style Selector="TextBlock.microInfoText">
+    <Setter Property="FontSize" Value="10" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#2563EB" />
+  </Style>
+  <Style Selector="TextBlock.monoText">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+  </Style>
+  <Style Selector="TextBlock.technicalHeader">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontSize" Value="10" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#64748B" />
+  </Style>
+  <Style Selector="TextBlock.technicalCaption">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontSize" Value="10" />
+    <Setter Property="Foreground" Value="#64748B" />
+  </Style>
+  <Style Selector="TextBlock.technicalMeta">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Foreground" Value="#64748B" />
+  </Style>
+  <Style Selector="TextBlock.technicalDetail">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="#334155" />
+  </Style>
+  <Style Selector="TextBlock.technicalValue">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="#0F172A" />
+  </Style>
+  <Style Selector="TextBlock.technicalCompactDetail">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Foreground" Value="#334155" />
+  </Style>
+  <Style Selector="TextBlock.technicalCompactValue">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Foreground" Value="#0F172A" />
+  </Style>
+  <Style Selector="TextBlock.mappingIndex">
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#334155" />
+  </Style>
+
+  <Style Selector="Label.reportBadge">
+    <Setter Property="MinHeight" Value="22" />
+    <Setter Property="Padding" Value="8,0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="HorizontalAlignment" Value="Right" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Background" Value="#F8FAFC" />
+    <Setter Property="BorderBrush" Value="#CBD5E1" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="FontSize" Value="10" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#334155" />
+  </Style>
+  <Style Selector="Label.reportBadge.success">
+    <Setter Property="Background" Value="#F0FDF4" />
+    <Setter Property="BorderBrush" Value="#BBF7D0" />
+    <Setter Property="Foreground" Value="#166534" />
+  </Style>
+  <Style Selector="Label.reportBadge.review">
+    <Setter Property="Background" Value="#FFF7ED" />
+    <Setter Property="BorderBrush" Value="#FED7AA" />
+    <Setter Property="Foreground" Value="#9A3412" />
+  </Style>
+  <Style Selector="Label.reportBadge.info">
+    <Setter Property="Background" Value="#EAF3FF" />
+    <Setter Property="BorderBrush" Value="#BFDBFE" />
+    <Setter Property="Foreground" Value="#1D4ED8" />
+  </Style>
+  <Style Selector="Label.reportBadge.large">
+    <Setter Property="MinHeight" Value="24" />
+    <Setter Property="FontSize" Value="11" />
+  </Style>
+  <Style Selector="Label.slotBadge">
+    <Setter Property="MinHeight" Value="22" />
+    <Setter Property="Padding" Value="8,2" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Label.countBadge">
+    <Setter Property="MinHeight" Value="22" />
+    <Setter Property="Padding" Value="8,2" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Background" Value="#F8FAFC" />
+    <Setter Property="BorderBrush" Value="#CBD5E1" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="FontSize" Value="10" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#334155" />
+  </Style>
+  <Style Selector="Label.countBadge.changed">
+    <Setter Property="Background" Value="#FFF7ED" />
+    <Setter Property="BorderBrush" Value="#FDBA74" />
+    <Setter Property="Foreground" Value="#C2410C" />
+  </Style>
+  <Style Selector="TextBlock.hexInspectorSection">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#475569" />
+  </Style>
+  <Style Selector="Border.hexInspectorHint">
+    <Setter Property="Padding" Value="8,6" />
+    <Setter Property="Background" Value="#F8FAFC" />
+    <Setter Property="BorderBrush" Value="#D7E1ED" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+  </Style>
+  <Style Selector="Border.hexInspectorHint.error">
+    <Setter Property="Background" Value="#FFF1F2" />
+    <Setter Property="BorderBrush" Value="#FDA4AF" />
+  </Style>
+  <Style Selector="TextBlock.hexInspectorNotice.error">
+    <Setter Property="Foreground" Value="#BE123C" />
+  </Style>
+  <Style Selector="Button.hexChangedBlockNavigator">
+    <Setter Property="MinWidth" Value="28" />
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Background" Value="#FFFBEB" />
+    <Setter Property="BorderBrush" Value="#FCD34D" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="Foreground" Value="#92400E" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Button.hexChangedBlockNavigator:disabled">
+    <Setter Property="Background" Value="#F8FAFC" />
+    <Setter Property="BorderBrush" Value="#E2E8F0" />
+    <Setter Property="Foreground" Value="#94A3B8" />
+    <Setter Property="Opacity" Value="1" />
+  </Style>
+  <Style Selector="Button.hexChangedBlockRow">
+    <Setter Property="MinHeight" Value="34" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Padding" Value="8,5" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="#E2E8F0" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <Setter Property="CornerRadius" Value="0" />
+  </Style>
+  <Style Selector="Button.hexChangedBlockRow:pointerover">
+    <Setter Property="Background" Value="#EFF6FF" />
+  </Style>
+  <Style Selector="TextBlock.hexWriteModeLabel">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#1D4ED8" />
+  </Style>
+  <Style Selector="ToggleSwitch.hexWriteModeToggle">
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.hexApplyChange">
+    <Setter Property="MinHeight" Value="32" />
+    <Setter Property="Padding" Value="12,5" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+  <Style Selector="Button.hexInspectorAction">
+    <Setter Property="MinWidth" Value="32" />
+    <Setter Property="MinHeight" Value="32" />
+  </Style>
+  <Style Selector="Button.hexInspectorAction Path">
+    <Setter Property="Stroke" Value="#334155" />
+    <Setter Property="StrokeThickness" Value="1.8" />
+    <Setter Property="StrokeLineCap" Value="Round" />
+    <Setter Property="StrokeJoin" Value="Round" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.hexInspectorAction:pointerover Path">
+    <Setter Property="Stroke" Value="#2563EB" />
+  </Style>
+  <Style Selector="Button.hexInspectorAction:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#EFF6FF" />
+    <Setter Property="BorderBrush" Value="#93C5FD" />
+  </Style>
+  <Style Selector="Button.hexInspectorAction:disabled Path">
+    <Setter Property="Stroke" Value="#94A3B8" />
+  </Style>
+
+  <Style Selector="TextBox.readOnlyRaw">
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="AcceptsReturn" Value="True" />
+    <Setter Property="IsReadOnly" Value="True" />
+    <Setter Property="TextWrapping" Value="NoWrap" />
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Foreground" Value="#0F172A" />
+    <Setter Property="Background" Value="#F8FAFC" />
+    <Setter Property="BorderBrush" Value="#CBD5E1" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="10" />
+    <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
+    <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+  </Style>
+  <Style Selector="TextBox.hexCellEditor">
+    <Setter Property="MinWidth" Value="28" />
+    <Setter Property="MinHeight" Value="24" />
+    <Setter Property="Padding" Value="1" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Background" Value="#FFFFFF" />
+    <Setter Property="BorderBrush" Value="#2563EB" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="3" />
+  </Style>
+  <Style Selector="TextBox.hexCellEditor.invalid">
+    <Setter Property="Background" Value="#FEF2F2" />
+    <Setter Property="BorderBrush" Value="#DC2626" />
+  </Style>
+</Styles>

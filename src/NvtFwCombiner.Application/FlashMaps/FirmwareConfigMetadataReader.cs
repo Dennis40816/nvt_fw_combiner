@@ -5,14 +5,9 @@ namespace NvtFwCombiner.Application.FlashMaps;
 /// <summary>Extracts stable display facts from the FWConfig structure embedded in a flash image.</summary>
 public static class FirmwareConfigMetadataReader
 {
-    private const int FirmwareVersionOffset = 0x000;
-    private const int FirmwareVersionBarOffset = 0x001;
-    private const int FirmwareSubVersionOffset = 0x011;
-    private const int CommonFwMajorVersionOffset = 0x01A;
-    private const int CommonFwMinorVersionOffset = 0x01B;
-    private const int CommonFwAdditionalVersionOffset = 0x01C;
-    private const int ProjectIdOffset = 0x022;
-    private const int RequiredLength = ProjectIdOffset + sizeof(ushort);
+    private const int NvtEndFlagLength = 4;
+    private const int NvtEndFlagTerminalOffset = NvtEndFlagLength - 1;
+    private const int NvtCopyStartDistanceBeforeTerminal = 0xFFF;
 
     /// <summary>Attempts to read FWConfig facts from <paramref name="image"/> at <paramref name="firmwareConfigStart"/>.</summary>
     public static bool TryRead(
@@ -23,31 +18,96 @@ public static class FirmwareConfigMetadataReader
         metadata = default;
         if (firmwareConfigStart < 0 ||
             firmwareConfigStart > int.MaxValue ||
-            firmwareConfigStart + RequiredLength > image.Length)
+            firmwareConfigStart + FirmwareConfigLayout.RequiredLength > image.Length)
         {
             return false;
         }
 
         int start = (int)firmwareConfigStart;
-        byte firmwareVersion = image[start + FirmwareVersionOffset];
-        byte firmwareVersionBar = image[start + FirmwareVersionBarOffset];
-        byte commonFwMajorVersion = image[start + CommonFwMajorVersionOffset];
-        byte commonFwMinorVersion = image[start + CommonFwMinorVersionOffset];
-        byte commonFwAdditionalVersion = image[start + CommonFwAdditionalVersionOffset];
+        byte firmwareVersion = image[start + FirmwareConfigLayout.FirmwareVersionOffset];
+        byte firmwareVersionBar = image[start + FirmwareConfigLayout.FirmwareVersionBarOffset];
+        byte commonFwMajorVersion = image[start + FirmwareConfigLayout.CommonFwMajorVersionOffset];
+        byte commonFwMinorVersion = image[start + FirmwareConfigLayout.CommonFwMinorVersionOffset];
+        byte commonFwAdditionalVersion = image[start + FirmwareConfigLayout.CommonFwAdditionalVersionOffset];
         ushort projectId = BinaryPrimitives.ReadUInt16LittleEndian(
-            image.Slice(start + ProjectIdOffset, sizeof(ushort)));
+            image[(start + FirmwareConfigLayout.ProjectIdOffset)..]);
+        FirmwareConfigHardwareMetadata hardware = new(
+            image[start + FirmwareConfigLayout.FreeRunModeOffset],
+            image[start + FirmwareConfigLayout.SyncTypeOffset],
+            image[start + FirmwareConfigLayout.SenseTerminalCountOffset],
+            image[start + FirmwareConfigLayout.TouchPanelTerminalCountNormalOffset],
+            image[start + FirmwareConfigLayout.TouchPanelTerminalCountSelfOffset],
+            image[start + FirmwareConfigLayout.I2cDeviceAddressOffset],
+            image[start + FirmwareConfigLayout.InterpolationStepXOffset],
+            image[start + FirmwareConfigLayout.InterpolationStepYOffset],
+            BinaryPrimitives.ReadUInt16LittleEndian(image[(start + FirmwareConfigLayout.S2dSensorDotsOffset)..]),
+            image[start + FirmwareConfigLayout.MaxZoneCountOffset],
+            unchecked((sbyte)image[start + FirmwareConfigLayout.InterpolationStartOffsetXOffset]),
+            unchecked((sbyte)image[start + FirmwareConfigLayout.InterpolationStartOffsetYOffset]),
+            image[start + FirmwareConfigLayout.MaxFingerCountOffset],
+            ReadGipTable(image, start + FirmwareConfigLayout.GipBeforeLeftOffset),
+            ReadGipTable(image, start + FirmwareConfigLayout.GipBeforeRightOffset),
+            ReadGipTable(image, start + FirmwareConfigLayout.GipAfterLeftOffset),
+            ReadGipTable(image, start + FirmwareConfigLayout.GipAfterRightOffset));
 
         metadata = new FirmwareConfigMetadata(
             firmwareConfigStart,
             firmwareVersion,
             firmwareVersionBar,
             unchecked((byte)~firmwareVersion) == firmwareVersionBar,
-            image[start + FirmwareSubVersionOffset],
+            image[start + FirmwareConfigLayout.FirmwareSubVersionOffset],
+            image[start + FirmwareConfigLayout.ChipNumberOffset],
             commonFwMajorVersion,
             commonFwMinorVersion,
             commonFwAdditionalVersion,
-            projectId);
+            projectId,
+            hardware);
         return true;
+    }
+
+    /// <summary>
+    /// Attempts to read the common FWConfig copy located at the NVT End Flag terminal byte minus
+    /// <c>0xFFF</c>. Multiple valid NVT markers are rejected to avoid selecting an ambiguous copy.
+    /// </summary>
+    public static bool TryReadNvtCopy(ReadOnlySpan<byte> image, out FirmwareConfigMetadata metadata)
+    {
+        metadata = default;
+        long? copyStart = null;
+        for (int offset = 0; offset <= image.Length - NvtEndFlagLength; offset++)
+        {
+            if (image[offset] != 0x00 ||
+                image[offset + 1] != (byte)'N' ||
+                image[offset + 2] != (byte)'V' ||
+                image[offset + 3] != (byte)'T')
+            {
+                continue;
+            }
+
+            long candidateStart = offset + NvtEndFlagTerminalOffset - NvtCopyStartDistanceBeforeTerminal;
+            if (candidateStart < 0 ||
+                candidateStart + FirmwareConfigLayout.RequiredLength > image.Length)
+            {
+                continue;
+            }
+
+            if (copyStart is not null)
+            {
+                return false;
+            }
+
+            copyStart = candidateStart;
+        }
+
+        return copyStart is { } start && TryRead(image, start, out metadata);
+    }
+
+    private static FirmwareConfigGipTable ReadGipTable(ReadOnlySpan<byte> image, int start)
+    {
+        return new FirmwareConfigGipTable(
+            BinaryPrimitives.ReadUInt32LittleEndian(image[start..]),
+            BinaryPrimitives.ReadUInt32LittleEndian(image[(start + FirmwareConfigLayout.GipTableWordLength)..]),
+            BinaryPrimitives.ReadUInt32LittleEndian(image[(start + (2 * FirmwareConfigLayout.GipTableWordLength))..]),
+            BinaryPrimitives.ReadUInt32LittleEndian(image[(start + (3 * FirmwareConfigLayout.GipTableWordLength))..]));
     }
 }
 
@@ -58,13 +118,42 @@ public readonly record struct FirmwareConfigMetadata(
     byte FirmwareVersionBar,
     bool IsFirmwareVersionBarValid,
     byte FirmwareSubVersion,
+    byte ChipNumber,
     byte CommonFwMajorVersion,
     byte CommonFwMinorVersion,
     byte CommonFwAdditionalVersion,
-    ushort ProjectId)
+    ushort ProjectId,
+    FirmwareConfigHardwareMetadata Hardware)
 {
     /// <summary>Common FW semantic version bytes.</summary>
     public string CommonFwVersion =>
         FormattableString.Invariant(
             $"{CommonFwMajorVersion}.{CommonFwMinorVersion}.{CommonFwAdditionalVersion}");
 }
+
+/// <summary>Common-FW hardware facts defined by <c>ST_PUB_FW_CONFIG</c> offsets <c>0x029..0x07B</c>.</summary>
+public readonly record struct FirmwareConfigHardwareMetadata(
+    byte FreeRunMode,
+    byte SyncType,
+    byte SenseTerminalCount,
+    byte TouchPanelTerminalCountNormal,
+    byte TouchPanelTerminalCountSelf,
+    byte I2cDeviceAddress,
+    byte InterpolationStepX,
+    byte InterpolationStepY,
+    ushort S2dSensorDots,
+    byte MaxZoneCount,
+    sbyte InterpolationStartOffsetX,
+    sbyte InterpolationStartOffsetY,
+    byte MaxFingerCount,
+    FirmwareConfigGipTable GipBeforeLeft,
+    FirmwareConfigGipTable GipBeforeRight,
+    FirmwareConfigGipTable GipAfterLeft,
+    FirmwareConfigGipTable GipAfterRight);
+
+/// <summary>Four little-endian GIP table words for one timing/direction group.</summary>
+public readonly record struct FirmwareConfigGipTable(
+    uint Table0,
+    uint Table1,
+    uint Table2,
+    uint Table3);

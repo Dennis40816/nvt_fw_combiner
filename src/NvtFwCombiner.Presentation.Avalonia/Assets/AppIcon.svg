@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Two firmware inputs merge into one flash output">
+  <rect x="12" y="12" width="232" height="232" rx="58" fill="#1F2937"/>
+  <rect x="38" y="67" width="52" height="52" rx="12" fill="#14B8A6"/>
+  <rect x="38" y="137" width="52" height="52" rx="12" fill="#F59E0B"/>
+  <path d="M51 84h26M51 101h18M51 154h26M51 171h18" fill="none" stroke="#1F2937" stroke-linecap="round" stroke-width="7"/>
+  <path d="M99 93h20l20 29M99 163h20l20-29" fill="none" stroke="#F8FAFC" stroke-linecap="round" stroke-linejoin="round" stroke-width="10"/>
+  <path d="m133 111 12 14-17 2M133 145l12-14-17-2" fill="#F8FAFC"/>
+  <rect x="156" y="65" width="63" height="126" rx="15" fill="#F8FAFC"/>
+  <rect x="170" y="82" width="35" height="12" rx="5" fill="#14B8A6"/>
+  <rect x="170" y="103" width="35" height="12" rx="5" fill="#F59E0B"/>
+  <rect x="170" y="124" width="35" height="12" rx="5" fill="#34D399"/>
+  <path d="m171 155 10 10 19-23" fill="none" stroke="#1F2937" stroke-linecap="round" stroke-linejoin="round" stroke-width="8"/>
+</svg>

@@ -1,4 +1,6 @@
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -9,6 +11,8 @@ public static partial class WorkbenchCompositionService
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
         IReadOnlyList<WorkbenchGeneralReplaceMappingInput> mappingInputs,
+        IReadOnlyList<WorkbenchGeneralReplacePatchInput> patchInputs,
+        WorkbenchGeneralReplaceBaseSnapshot? baseSnapshot,
         bool build,
         out GeneralReplaceRunContext? context,
         out WorkbenchRunResult? failure)
@@ -16,32 +20,60 @@ public static partial class WorkbenchCompositionService
         Dictionary<string, string> reportSlotPaths = CreateGeneralReplaceReportSlotPaths(slotPaths, mappingInputs);
         IcNumberSelection selection = ToIcNumberSelection(number);
 
-        if (!slotPaths.TryGetValue("replace-base", out string? basePath) ||
+        if (!TpFlashMapCatalog.IsNumberSelectionSupported(icId, selection))
+        {
+            context = null;
+            failure = CreatePlanningRunResult(
+                icId,
+                number,
+                WorkbenchReplaceModes.General,
+                reportSlotPaths,
+                build,
+                WorkbenchIssueCodes.ReplaceGeneralIcNumberUnsupported,
+                $"IC number selection '{number}' is not supported for {icId} General Replace.");
+            return false;
+        }
+
+        if (!slotPaths.TryGetValue(WorkbenchSlotIds.ReplaceBase, out string? basePath) ||
             string.IsNullOrWhiteSpace(basePath))
         {
             context = null;
             failure = CreatePlanningRunResult(
                 icId,
                 number,
-                "General",
+                WorkbenchReplaceModes.General,
                 reportSlotPaths,
                 build,
-                "ui.input.missing",
+                WorkbenchIssueCodes.InputMissing,
                 "Base flash BIN is required before General Replace can compile explicit mappings.");
             return false;
         }
 
         string fullBasePath = Path.GetFullPath(basePath);
-        if (!File.Exists(fullBasePath))
+        if (baseSnapshot is not null && !baseSnapshot.IsForSourcePath(fullBasePath))
         {
             context = null;
             failure = CreatePlanningRunResult(
                 icId,
                 number,
-                "General",
+                WorkbenchReplaceModes.General,
                 reportSlotPaths,
                 build,
-                "input.artifact.read-failed",
+                WorkbenchIssueCodes.InputArtifactReadFailed,
+                "General Replace base snapshot does not match the selected base flash BIN path.");
+            return false;
+        }
+
+        if (baseSnapshot is null && !File.Exists(fullBasePath))
+        {
+            context = null;
+            failure = CreatePlanningRunResult(
+                icId,
+                number,
+                WorkbenchReplaceModes.General,
+                reportSlotPaths,
+                build,
+                WorkbenchIssueCodes.InputArtifactReadFailed,
                 "Base flash BIN path does not exist.");
             return false;
         }
@@ -50,31 +82,32 @@ public static partial class WorkbenchCompositionService
         [
             .. mappingInputs.Where(mapping => !string.IsNullOrWhiteSpace(mapping.FilePath)),
         ];
-        if (selectedMappings.Length == 0)
+        WorkbenchGeneralReplacePatchInput[] selectedPatches = [.. patchInputs];
+        if (selectedMappings.Length == 0 && selectedPatches.Length == 0)
         {
             context = null;
             failure = CreatePlanningRunResult(
                 icId,
                 number,
-                "General",
+                WorkbenchReplaceModes.General,
                 reportSlotPaths,
                 build,
-                "ui.input.missing",
-                "At least one General Replace mapping row must select a replacement BIN.");
+                WorkbenchIssueCodes.InputMissing,
+                "At least one General Replace mapping row or hexadecimal patch is required.");
             return false;
         }
 
-        long capacity = new FileInfo(fullBasePath).Length;
+        long capacity = baseSnapshot?.Length ?? new FileInfo(fullBasePath).Length;
         if (capacity <= 0)
         {
             context = null;
             failure = CreatePlanningRunResult(
                 icId,
                 number,
-                "General",
+                WorkbenchReplaceModes.General,
                 reportSlotPaths,
                 build,
-                "input.address-space.length-mismatch",
+                CompositionIssueCodes.InputAddressSpaceLengthMismatch,
                 "Base flash BIN must not be empty.");
             return false;
         }
@@ -83,8 +116,11 @@ public static partial class WorkbenchCompositionService
             selection,
             reportSlotPaths,
             fullBasePath,
+            baseSnapshot?.ArtifactId ?? fullBasePath,
+            baseSnapshot,
             capacity,
-            selectedMappings);
+            selectedMappings,
+            selectedPatches);
         failure = null;
         return true;
     }
@@ -93,6 +129,9 @@ public static partial class WorkbenchCompositionService
         IcNumberSelection Selection,
         IReadOnlyDictionary<string, string> ReportSlotPaths,
         string BasePath,
+        string ReferenceArtifactId,
+        WorkbenchGeneralReplaceBaseSnapshot? BaseSnapshot,
         long Capacity,
-        WorkbenchGeneralReplaceMappingInput[] SelectedMappings);
+        WorkbenchGeneralReplaceMappingInput[] SelectedMappings,
+        WorkbenchGeneralReplacePatchInput[] SelectedPatches);
 }

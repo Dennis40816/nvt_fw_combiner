@@ -1,5 +1,4 @@
 using NvtFwCombiner.Application.ExternalTools;
-using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -12,12 +11,12 @@ public static partial class WorkbenchCompositionService
         out LegacyCombinerPostbuildProfile? postbuildProfile,
         out CompositionIssue? issue)
     {
-        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = LegacyCombinerPostbuildCatalog.GetProfiles(icId);
+        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = IcMetadataFacade.GetPostbuildProfiles(icId);
         if (profiles.Count == 0)
         {
             postbuildProfile = null;
             issue = new CompositionIssue(
-                "replace.ctrlram.postbuild-profile-missing",
+                WorkbenchIssueCodes.ReplaceCtrlRamPostbuildProfileMissing,
                 $"No legacy Combiner postbuild profile is registered for {icId}.",
                 "postbuild");
             return false;
@@ -29,20 +28,20 @@ public static partial class WorkbenchCompositionService
         {
             postbuildProfile = null;
             issue = new CompositionIssue(
-                "replace.ctrlram.postbuild-category-unknown",
+                WorkbenchIssueCodes.ReplaceCtrlRamPostbuildCategoryUnknown,
                 $"{icId} has multiple legacy Combiner postbuild categories, but the base BIN FWConfig Common FW version could not be read or failed FW/bar validation.",
-                "replace-base");
+                WorkbenchSlotIds.ReplaceBase);
             return false;
         }
 
-        if (!LegacyCombinerPostbuildCatalog.TrySelectProfileForCommonFwVersion(
+        if (!IcMetadataFacade.TrySelectPostbuildProfile(
                 icId,
                 commonFwVersion,
                 out postbuildProfile,
                 out string? profileIssue))
         {
             issue = new CompositionIssue(
-                "replace.ctrlram.postbuild-category-unsupported",
+                WorkbenchIssueCodes.ReplaceCtrlRamPostbuildCategoryUnsupported,
                 profileIssue ?? $"No legacy Combiner postbuild profile is registered for {icId}.",
                 "postbuild");
             return false;
@@ -52,37 +51,52 @@ public static partial class WorkbenchCompositionService
         return true;
     }
 
-    private static bool TryReadBaseCommonFwVersion(
+    private static bool TryGetPostbuildProfile(
         string icId,
-        string basePath,
-        out string? commonFwVersion)
+        WorkbenchGeneralReplaceBaseSnapshot baseSnapshot,
+        out LegacyCombinerPostbuildProfile? postbuildProfile,
+        out CompositionIssue? issue)
     {
-        commonFwVersion = null;
-        if (!TpFlashMapCatalog.TryGetFirmwareConfigStart(icId, out long firmwareConfigStart))
+        ArgumentNullException.ThrowIfNull(baseSnapshot);
+
+        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = IcMetadataFacade.GetPostbuildProfiles(icId);
+        if (profiles.Count == 0)
         {
+            postbuildProfile = null;
+            issue = new CompositionIssue(
+                WorkbenchIssueCodes.ReplaceCtrlRamPostbuildProfileMissing,
+                $"No legacy Combiner postbuild profile is registered for {icId}.",
+                "postbuild");
             return false;
         }
 
-        try
+        string? commonFwVersion = null;
+        if (profiles.Count > 1 &&
+            !TryReadBaseCommonFwVersion(icId, baseSnapshot, out commonFwVersion))
         {
-            byte[] image = File.ReadAllBytes(basePath);
-            if (!FirmwareConfigMetadataReader.TryRead(image, firmwareConfigStart, out FirmwareConfigMetadata metadata))
-            {
-                return false;
-            }
-
-            if (!metadata.IsFirmwareVersionBarValid)
-            {
-                return false;
-            }
-
-            commonFwVersion = metadata.CommonFwVersion;
-            return true;
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
-        {
+            postbuildProfile = null;
+            issue = new CompositionIssue(
+                WorkbenchIssueCodes.ReplaceCtrlRamPostbuildCategoryUnknown,
+                $"{icId} has multiple legacy Combiner postbuild categories, but the loaded base BIN FWConfig Common FW version could not be read or failed FW/bar validation.",
+                WorkbenchSlotIds.ReplaceBase);
             return false;
         }
+
+        if (!IcMetadataFacade.TrySelectPostbuildProfile(
+                icId,
+                commonFwVersion,
+                out postbuildProfile,
+                out string? profileIssue))
+        {
+            issue = new CompositionIssue(
+                WorkbenchIssueCodes.ReplaceCtrlRamPostbuildCategoryUnsupported,
+                profileIssue ?? $"No legacy Combiner postbuild profile is registered for {icId}.",
+                "postbuild");
+            return false;
+        }
+
+        issue = null;
+        return true;
     }
 
     private static string FormatPostbuildCommandBlock(LegacyCombinerPostbuildCommandPlan commandPlan)

@@ -69,7 +69,7 @@ public sealed partial class MainWindowViewModel
 
     private long? GetSelectedMergeDpInputLength()
     {
-        return SelectedIc is "NT51950" or "NT51951" &&
+        return UiCompositionRunner.IsDpPerspectiveIc(SelectedIc) &&
             !string.IsNullOrWhiteSpace(_mergeDpSlot.FilePath) &&
             File.Exists(_mergeDpSlot.FilePath)
                 ? new FileInfo(_mergeDpSlot.FilePath).Length
@@ -79,7 +79,7 @@ public sealed partial class MainWindowViewModel
     private long? GetSelectedReplaceBaseLength()
     {
         return SelectedReplaceMode == DpReplaceMode &&
-            SelectedIc is "NT51950" or "NT51951" &&
+            UiCompositionRunner.IsDpPerspectiveIc(SelectedIc) &&
             !string.IsNullOrWhiteSpace(ReplaceBaseSlot.FilePath) &&
             File.Exists(ReplaceBaseSlot.FilePath)
                 ? new FileInfo(ReplaceBaseSlot.FilePath).Length
@@ -119,12 +119,8 @@ public sealed partial class MainWindowViewModel
 
                 AddRows(
                     $"{SelectedIc} / {SelectedNumber}: DP Replace input policy is active.",
-                    SelectedIc is "NT51950" or "NT51951"
-                        ? "DP replacement follows the selected base BIN length: 0x40000, 0x80000, or 0x100000; the original TP range is restored from base."
-                        : "Build stays gated until this IC has approved DP Replace source mapping evidence.",
-                    SelectedIc == "NT51928"
-                        ? "NT51928 exposes an explicit LDC slot; other ICs hide LDC in DP Replace."
-                        : "Only DP and TP restore regions are shown for this IC.");
+                    UiCompositionRunner.GetDpReplacePolicySummary(SelectedIc),
+                    "Visible DP Replace slots come from approved profile/catalog evidence.");
                 break;
             case CtrlRamReplaceMode:
                 ReplaceSlots.Add(ReplaceBaseSlot);
@@ -141,7 +137,7 @@ public sealed partial class MainWindowViewModel
                 AddRows(
                     $"{SelectedIc} / {SelectedNumber}: {Math.Max(ReplaceSlots.Count - 1, 0)} replaceable CtrlRAM regions.",
                     "Each CtrlRAM region slot may receive its own replacement BIN; empty slots stay from base.",
-                    "Preview and Build run the staged Combiner postbuild command sequence.",
+                    "Build validates first, then runs the staged Combiner postbuild command sequence.",
                     "Private golden outputs are still required before support parity is claimed.");
                 break;
             case GeneralReplaceMode:
@@ -156,6 +152,7 @@ public sealed partial class MainWindowViewModel
                 break;
         }
 
+        ApplyFirmwareSlotText();
         RefreshReplaceSlotGroups();
         OnPropertyChanged(nameof(SelectedReplaceModeDescription));
         OnPropertyChanged(nameof(IsDpReplaceModeSelected));

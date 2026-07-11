@@ -4,7 +4,62 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-Post-`0.7.3` development targets `0.8.0-dev.N`.
+Post-`0.9.0` development targets UAT feedback, firmware-owner evidence closure, and `1.0.0` release readiness.
+
+## [0.9.0] - 2026-07-11
+
+### Added
+
+- Standalone raw-BIN Hex Editor under Util Tools. It keeps one in-memory work copy, supports direct byte editing, overwrite/fill, insert/delete, ASCII search, original-row comparison, undo/redo, and Save As-only export without applying IC, profile, CRC, or postbuild rules.
+- IC metadata facade and catalog-backed FlashCode version decoding for the DP main/sub bytes and TP FW/sub-version output tokens.
+- NVT-copy FWConfig validation for all current Standard Merge golden outputs, plus catalog-backed CMI DP/Jira display metadata. The NT51950 CMI branch reads the validated TP ChipNumber and fails closed when it is unavailable.
+
+### Changed
+
+- Hex Editor rendering now uses one bounded custom viewport, immediate document extent, symmetric Hex/ASCII hover and selection, structural shift-block navigation, and blank-area context hit testing without creating one control per byte.
+- ASCII search runs on a bounded memory snapshot, keeps complete result counts without retaining an unbounded highlight list, and supports cancellation without blocking the desktop UI.
+- Unsaved state now reflects the actual in-memory bytes and source-address identity, including no-op edits, restored values, and insert/delete reversals.
+- Canonical verification now terminates its repository SDK compiler servers after every .NET verification run, including a failed run, so idle MSBuild/Roslyn processes do not persist.
+- External processor cancellation, timeout, desktop-window close, and CLI Ctrl+C now terminate the host-started process tree before returning control.
+
+## [0.8.0] - 2026-07-09
+
+### Added
+
+- Home now exposes General Merge as a first-class workflow shortcut alongside Normal Merge and the reserved AB Code entry.
+- Report review now groups inputs, changes, operation flow, postbuild evidence, issues, and raw JSON into clearer human-review sections.
+- Output-difference review now groups accepted and review-required byte changes with readable section labels, range summaries, and byte previews.
+
+### Changed
+
+- Home workflow rows now provide stronger hover and pressed feedback so full-row navigation is visually discoverable.
+- Report history rows reserve space for per-report delete actions so the right border and scrollbar no longer collide with the delete button.
+- Primary report status avoids exposing SHA-256 details by default while keeping the full evidence in report details.
+
+## [0.7.5] - 2026-07-08
+
+### Added
+
+- The Avalonia shell now uses English and Traditional Chinese text resources for the primary Home, Settings, Merge, Replace, and Report surfaces.
+- Settings language selection now switches the visible UI immediately and is restored through the existing preference store.
+
+### Changed
+
+- Settings preference, catalog, tool, diagnostics, and report-history rows now describe the real current state instead of showing placeholder or pending wording.
+- Report and workflow action labels are routed through the shared text-resource model so bilingual polish does not fork the XAML or ViewModel flow.
+
+## [0.7.4] - 2026-07-08
+
+### Added
+
+- DP BIN slots now show gen_flash-derived DP version badges where evidence exists, with a warning badge when a selected IC still lacks a DP version rule.
+- Report review now uses a wider evidence modal with Inputs, Changes, Operations, Postbuild, Issues, and Raw sections, including table-style operation range evidence.
+
+### Changed
+
+- Merge and Replace workbench pages now use a Build-first interaction model; Build validates current inputs automatically and disabled states surface the blocking reason in-page.
+- Home workflow cards no longer show IC/Number selection hints that are only relevant inside Merge or Replace.
+- The reference folder formerly named combiner info is now exposed as TDDI Flash Header for clearer owner-facing terminology.
 
 ## [0.7.3] - 2026-07-06
 

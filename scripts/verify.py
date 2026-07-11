@@ -15,14 +15,23 @@ WORKER_ROOT = ROOT / "tools" / "crc-worker"
 SOLUTION = ROOT / "NvtFwCombiner.slnx"
 CTRL_RAM_REPLACE_FIXTURE_VERIFIER = ROOT / "scripts" / "verify_ctrlram_replace_fixture.py"
 CTRL_RAM_SENTINEL_CREATOR = ROOT / "scripts" / "create_ctrlram_universal_sentinel.py"
+IDLE_BUILD_WORKER_STOPPER = ROOT / "scripts" / "stop-idle-build-workers.ps1"
 
 
-def run(command: list[str], *, cwd: Path = ROOT) -> None:
+def run(
+    command: list[str], *, cwd: Path = ROOT, environment: dict[str, str] | None = None
+) -> None:
     print(f"\n> {' '.join(command)}", flush=True)
-    subprocess.run(command, cwd=cwd, check=True)
+    subprocess.run(command, cwd=cwd, check=True, env=environment)
 
 
-def run_with_log(command: list[str], log_path: Path, *, cwd: Path = ROOT) -> None:
+def run_with_log(
+    command: list[str],
+    log_path: Path,
+    *,
+    cwd: Path = ROOT,
+    environment: dict[str, str] | None = None,
+) -> None:
     print(f"\n> {' '.join(command)}", flush=True)
     log_path.parent.mkdir(parents=True, exist_ok=True)
     process = subprocess.Popen(
@@ -33,6 +42,7 @@ def run_with_log(command: list[str], log_path: Path, *, cwd: Path = ROOT) -> Non
         text=True,
         encoding="utf-8",
         errors="replace",
+        env=environment,
     )
     if process.stdout is None:
         raise RuntimeError("failed to capture process output")
@@ -100,22 +110,54 @@ def resolve_dotnet() -> str:
     raise RuntimeError(f".NET SDK is not installed. Run: {install_command}")
 
 
+def stop_idle_build_workers() -> None:
+    """Stops only the repo-bound Avalonia collector left after a batch build on Windows."""
+    if sys.platform != "win32":
+        return
+
+    powershell = shutil.which("powershell") or shutil.which("pwsh")
+    if powershell is None:
+        print("warning: PowerShell was unavailable; idle Avalonia build worker cleanup was skipped.")
+        return
+
+    print(f"\n> {powershell} -File {IDLE_BUILD_WORKER_STOPPER}", flush=True)
+    result = subprocess.run(
+        [powershell, "-NoProfile", "-File", str(IDLE_BUILD_WORKER_STOPPER), "-RepositoryRoot", str(ROOT)],
+        cwd=ROOT,
+        check=False,
+    )
+    if result.returncode != 0:
+        print(f"warning: idle Avalonia build worker cleanup returned exit code {result.returncode}.")
+
+
 def verify_dotnet() -> None:
     dotnet = resolve_dotnet()
+    environment = os.environ.copy()
+    # Verification is a batch task, not an interactive build session. Avoid retaining MSBuild nodes after it ends.
+    environment["MSBUILDDISABLENODEREUSE"] = "1"
+    environment["DOTNET_CLI_DO_NOT_USE_MSBUILD_SERVER"] = "1"
     commands = (
         [dotnet, "--version"],
         [dotnet, "restore", str(SOLUTION)],
         [dotnet, "format", str(SOLUTION), "--verify-no-changes", "--no-restore"],
         [dotnet, "build", str(SOLUTION), "-c", "Release", "--no-restore"],
         [dotnet, "test", str(SOLUTION), "-c", "Release", "--no-build"],
-        [sys.executable, str(CTRL_RAM_REPLACE_FIXTURE_VERIFIER), "--configuration", "Release", "--no-build"],
+        # The full solution test command already runs CtrlRAM UI smoke tests. Keep the
+        # fixture gate here for manifest and payload-hash validation only.
+        [sys.executable, str(CTRL_RAM_REPLACE_FIXTURE_VERIFIER), "--skip-public-smoke"],
     )
     build_log = os.environ.get("NFC_DOTNET_BUILD_LOG")
-    for command in commands:
-        if build_log and len(command) > 1 and command[1] == "build":
-            run_with_log(command, Path(build_log))
-        else:
-            run(command)
+    try:
+        for command in commands:
+            if build_log and len(command) > 1 and command[1] == "build":
+                run_with_log(command, Path(build_log), environment=environment)
+            else:
+                run(command, environment=environment)
+    finally:
+        # Avalonia/Roslyn may start compiler servers even with node reuse disabled.
+        # Stop only servers from the repository-selected SDK after every verification run.
+        run([dotnet, "build-server", "shutdown"], environment=environment)
+        stop_idle_build_workers()
 
 
 def parse_args() -> argparse.Namespace:
@@ -132,17 +174,21 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--skip-python", action="store_true")
     parser.add_argument("--skip-dotnet", action="store_true")
+    parser.add_argument("--skip-structure", action="store_true")
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
     structure_only = args.structure_only
-    if structure_only and (args.all or args.skip_python or args.skip_dotnet):
+    if args.all and (args.skip_structure or args.skip_python or args.skip_dotnet):
+        raise SystemExit("--all cannot be combined with skip flags")
+    if structure_only and (args.all or args.skip_structure or args.skip_python or args.skip_dotnet):
         raise SystemExit("--structure-only cannot be combined with other selection flags")
 
     try:
-        verify_structure()
+        if not args.skip_structure:
+            verify_structure()
         if not structure_only:
             if not args.skip_python:
                 verify_python()

@@ -1,0 +1,331 @@
+<ResourceDictionary
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views">
+
+<DataTemplate x:Key="HomePageTemplate" DataType="vm:MainWindowViewModel">
+  <Grid
+      ColumnDefinitions="*,*,*"
+      ColumnSpacing="16"
+      VerticalAlignment="Top">
+    <Border Classes="homePreviewSurface">
+      <Grid RowDefinitions="Auto,Auto">
+        <StackPanel MinHeight="88" Spacing="6">
+          <TextBlock
+              FontSize="12"
+              FontWeight="SemiBold"
+              Foreground="#2563EB"
+              Text="{Binding Text.WorkflowKicker}" />
+          <TextBlock
+              FontSize="25"
+              FontWeight="SemiBold"
+              Foreground="#0F172A"
+              Text="{Binding ReplacePreview.Title}" />
+          <TextBlock
+              FontSize="13"
+              Foreground="#64748B"
+              Text="{Binding ReplacePreview.Subtitle}"
+              TextWrapping="Wrap" />
+        </StackPanel>
+        <Grid Grid.Row="1" Margin="0,18,0,0" RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+          <Button
+              Classes="command"
+              Command="{Binding BeginDpReplaceFromHomeCommand}">
+            <Border Classes="workflowCard">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                <TextBlock Classes="strongText" Text="DP Replace" />
+                <Border Grid.Column="1" Classes="workflowOpenPill">
+                  <TextBlock FontSize="12" FontWeight="SemiBold" Text="{Binding Text.OpenLabel}" />
+                </Border>
+              </Grid>
+            </Border>
+          </Button>
+          <Button
+              Grid.Row="1"
+              Classes="command"
+              Command="{Binding BeginCtrlRamReplaceFromHomeCommand}">
+            <Border Classes="workflowCard">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                <TextBlock Classes="strongText" Text="CtrlRAM Replace" />
+                <Border Grid.Column="1" Classes="workflowOpenPill">
+                  <TextBlock FontSize="12" FontWeight="SemiBold" Text="{Binding Text.OpenLabel}" />
+                </Border>
+              </Grid>
+            </Border>
+          </Button>
+          <Button
+              Grid.Row="2"
+              Classes="command"
+              Command="{Binding BeginGeneralReplaceFromHomeCommand}">
+            <Border Classes="workflowCard">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                <TextBlock Classes="strongText" Text="General Replace" />
+                <Border Grid.Column="1" Classes="workflowOpenPill">
+                  <TextBlock FontSize="12" FontWeight="SemiBold" Text="{Binding Text.OpenLabel}" />
+                </Border>
+              </Grid>
+            </Border>
+          </Button>
+        </Grid>
+      </Grid>
+    </Border>
+
+    <Border Grid.Column="1" Classes="homePreviewSurface">
+      <Grid RowDefinitions="Auto,Auto">
+        <StackPanel MinHeight="88" Spacing="6">
+          <TextBlock
+              FontSize="12"
+              FontWeight="SemiBold"
+              Foreground="#2563EB"
+              Text="{Binding Text.WorkflowKicker}" />
+          <TextBlock
+              FontSize="25"
+              FontWeight="SemiBold"
+              Foreground="#0F172A"
+              Text="{Binding MergePreview.Title}" />
+          <TextBlock
+              FontSize="13"
+              Foreground="#64748B"
+              Text="{Binding MergePreview.Subtitle}"
+              TextWrapping="Wrap" />
+        </StackPanel>
+        <Grid Grid.Row="1" Margin="0,18,0,0" RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+          <Button
+              Classes="command"
+              Command="{Binding BeginNormalMergeFromHomeCommand}">
+            <Border Classes="workflowCard">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                <TextBlock Classes="strongText" Text="Normal Merge" />
+                <Border Grid.Column="1" Classes="workflowOpenPill">
+                  <TextBlock FontSize="12" FontWeight="SemiBold" Text="{Binding Text.OpenLabel}" />
+                </Border>
+              </Grid>
+            </Border>
+          </Button>
+          <Button
+              Grid.Row="1"
+              Classes="command"
+              Command="{Binding BeginGeneralMergeFromHomeCommand}">
+            <Border Classes="workflowCard">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                <TextBlock Classes="strongText" Text="General Merge" />
+                <Border Grid.Column="1" Classes="workflowOpenPill">
+                  <TextBlock FontSize="12" FontWeight="SemiBold" Text="{Binding Text.OpenLabel}" />
+                </Border>
+              </Grid>
+            </Border>
+          </Button>
+          <Button
+              Grid.Row="2"
+              Classes="command"
+              IsEnabled="False">
+            <Border Classes="workflowCard" Background="#F8FAFC" BorderBrush="#E2E8F0">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                <TextBlock FontWeight="SemiBold" Foreground="#94A3B8" Text="AB Code" />
+                <Border Grid.Column="1" Padding="10,4" Background="#F1F5F9" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="999">
+                  <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#94A3B8" Text="{Binding Text.PendingLabel}" />
+                </Border>
+              </Grid>
+            </Border>
+          </Button>
+        </Grid>
+      </Grid>
+    </Border>
+
+    <Border Grid.Column="2" Classes="homePreviewSurface">
+      <Grid RowDefinitions="Auto,Auto">
+        <StackPanel MinHeight="88" Spacing="6">
+          <TextBlock
+              FontSize="12"
+              FontWeight="SemiBold"
+              Foreground="#0F766E"
+              Text="{Binding Text.UtilToolsLabel}" />
+          <TextBlock
+              FontSize="25"
+              FontWeight="SemiBold"
+              Foreground="#0F172A"
+              Text="{Binding Text.UtilToolsHomeTitle}" />
+          <TextBlock
+              FontSize="13"
+              Foreground="#64748B"
+              Text="{Binding Text.UtilToolsHomeDetail}"
+              TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+        <Grid Grid.Row="1" Margin="0,18,0,0" RowDefinitions="Auto" RowSpacing="8">
+          <Button
+              Classes="command"
+              Command="{Binding ShowHexEditorCommand}"
+              ToolTip.Tip="{Binding Text.HexEditorDetail}">
+            <Border Classes="workflowCard">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                <TextBlock Classes="strongText" Text="{Binding Text.HexEditorTitle}" />
+                <Border Grid.Column="1" Classes="workflowOpenPill">
+                  <TextBlock FontSize="12" FontWeight="SemiBold" Text="{Binding Text.OpenLabel}" />
+                </Border>
+              </Grid>
+            </Border>
+          </Button>
+        </Grid>
+      </Grid>
+    </Border>
+  </Grid>
+</DataTemplate>
+
+<DataTemplate x:Key="HexEditorPageTemplate" DataType="vm:MainWindowViewModel">
+  <StackPanel Spacing="16">
+    <StackPanel Margin="18,0,18,0" Spacing="4">
+      <TextBlock
+          FontSize="11"
+          FontWeight="SemiBold"
+          Foreground="#0F766E"
+          Text="{Binding HexEditorWorkspace.Text.UtilToolsLabel}" />
+      <TextBlock
+          FontSize="24"
+          FontWeight="SemiBold"
+          Foreground="#0F172A"
+          Text="{Binding HexEditorWorkspace.Text.HexEditorTitle}" />
+      <TextBlock
+          FontSize="13"
+          Foreground="#64748B"
+          Text="{Binding HexEditorWorkspace.Text.HexEditorDetail}"
+          TextWrapping="Wrap" />
+    </StackPanel>
+
+    <Border Classes="panelSurface roomyPanel">
+      <views:HexEditorPanel DataContext="{Binding HexEditorWorkspace}" />
+    </Border>
+  </StackPanel>
+</DataTemplate>
+
+<DataTemplate x:Key="SettingsPageTemplate" DataType="vm:MainWindowViewModel">
+  <Grid
+      ColumnDefinitions="1.6*,360"
+      ColumnSpacing="18">
+    <StackPanel Spacing="16">
+      <StackPanel Spacing="4">
+        <TextBlock Classes="pageTitle" Text="{Binding SettingsPreview.Title}" />
+        <TextBlock Classes="pageSubtitle" Text="{Binding SettingsPreview.Subtitle}" TextWrapping="Wrap" />
+      </StackPanel>
+      <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="12">
+        <Border Classes="panelSurface roomyPanel">
+          <StackPanel Spacing="12">
+            <StackPanel Spacing="4">
+              <TextBlock Classes="strongText" Text="{Binding Text.SettingsCatalogTitle}" />
+              <TextBlock Classes="supportingText" Text="{Binding Text.SettingsCatalogSubtitle}" TextWrapping="Wrap" />
+            </StackPanel>
+            <ItemsControl ItemsSource="{Binding SettingsProfileRows}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:SettingSummaryViewModel">
+                  <Border Classes="settingRow" Margin="0,0,0,8">
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="2">
+                      <TextBlock Classes="panelTitle" Text="{Binding Title}" />
+                      <TextBlock Grid.Column="1" Classes="infoText" Text="{Binding Status}" />
+                      <TextBlock Grid.Row="1" Classes="technicalDetail" Text="{Binding Value}" TextWrapping="Wrap" />
+                      <TextBlock Grid.Row="1" Grid.Column="1" MaxWidth="170" Classes="captionText" Text="{Binding Description}" TextWrapping="Wrap" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+        <Border Grid.Column="1" Classes="panelSurface roomyPanel">
+          <StackPanel Spacing="12">
+            <StackPanel Spacing="4">
+              <TextBlock Classes="strongText" Text="{Binding Text.SettingsRuntimeChecksTitle}" />
+              <TextBlock Classes="supportingText" Text="{Binding Text.SettingsRuntimeChecksSubtitle}" TextWrapping="Wrap" />
+            </StackPanel>
+            <ItemsControl ItemsSource="{Binding SettingsToolRows}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:SettingSummaryViewModel">
+                  <Border Classes="settingRow" Margin="0,0,0,8">
+                    <StackPanel Spacing="2">
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Classes="panelTitle" Text="{Binding Title}" />
+                        <TextBlock Grid.Column="1" Classes="infoText" Text="{Binding Status}" />
+                      </Grid>
+                      <TextBlock Classes="technicalDetail" Text="{Binding Value}" TextWrapping="Wrap" />
+                      <TextBlock Classes="captionText" Text="{Binding Description}" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+        <Border Grid.Row="1" Classes="panelSurface roomyPanel">
+          <StackPanel Spacing="12">
+            <StackPanel Spacing="4">
+              <TextBlock Classes="strongText" Text="{Binding Text.SettingsDiagnosticsTitle}" />
+              <TextBlock Classes="supportingText" Text="{Binding Text.SettingsDiagnosticsSubtitle}" TextWrapping="Wrap" />
+            </StackPanel>
+            <ItemsControl ItemsSource="{Binding SettingsDiagnosticsRows}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:SettingSummaryViewModel">
+                  <Border Classes="settingRow" Margin="0,0,0,8">
+                    <StackPanel Spacing="2">
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Classes="panelTitle" Text="{Binding Title}" />
+                        <TextBlock Grid.Column="1" Classes="infoText" Text="{Binding Status}" />
+                      </Grid>
+                      <TextBlock Classes="technicalDetail" Text="{Binding Value}" TextWrapping="Wrap" />
+                      <TextBlock Classes="captionText" Text="{Binding Description}" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+        <Border Grid.Row="1" Grid.Column="1" Classes="panelSurface roomyPanel">
+          <StackPanel Spacing="12">
+            <StackPanel Spacing="4">
+              <TextBlock Classes="strongText" Text="{Binding Text.SettingsPreferencesTitle}" />
+              <TextBlock Classes="supportingText" Text="{Binding Text.SettingsPreferencesSubtitle}" TextWrapping="Wrap" />
+            </StackPanel>
+            <Grid ColumnDefinitions="92,180,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
+              <TextBlock Classes="fieldLabel" VerticalAlignment="Center" Text="{Binding Text.ThemeLabel}" />
+              <ComboBox Grid.Column="1" Classes="settingsSelect" ItemsSource="{Binding ThemeChoices}" SelectedItem="{Binding SelectedTheme, Mode=TwoWay}" />
+              <TextBlock Grid.Column="2" VerticalAlignment="Center" Classes="captionText" Text="{Binding ThemePreferenceStatus}" TextWrapping="Wrap" />
+
+              <TextBlock Grid.Row="1" Classes="fieldLabel" VerticalAlignment="Center" Text="{Binding Text.StrictnessLabel}" />
+              <ComboBox Grid.Row="1" Grid.Column="1" Classes="settingsSelect" ItemsSource="{Binding StrictnessChoices}" SelectedItem="{Binding SelectedStrictness, Mode=TwoWay}" />
+              <TextBlock Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" Classes="captionText" Text="{Binding StrictnessPreferenceStatus}" TextWrapping="Wrap" />
+
+              <TextBlock Grid.Row="2" Classes="fieldLabel" VerticalAlignment="Center" Text="{Binding Text.LanguageLabel}" />
+              <ComboBox Grid.Row="2" Grid.Column="1" Classes="settingsSelect" ItemsSource="{Binding LanguageChoices}" SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}" />
+              <TextBlock Grid.Row="2" Grid.Column="2" VerticalAlignment="Center" Classes="captionText" Text="{Binding LanguagePreferenceStatus}" TextWrapping="Wrap" />
+            </Grid>
+          </StackPanel>
+        </Border>
+      </Grid>
+    </StackPanel>
+
+    <Border Grid.Column="1" Classes="panelSurface roomyPanel">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="sectionLabel" Text="{Binding Text.SettingsInspectorKicker}" />
+        <TextBlock Classes="modalTitle" Text="{Binding Text.SettingsReadinessTitle}" />
+        <TextBlock Classes="supportingText" Text="{Binding SettingsPreview.Status}" TextWrapping="Wrap" />
+        <ItemsControl ItemsSource="{Binding SettingsReadinessRows}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:SettingSummaryViewModel">
+              <Border Padding="0,0,0,10" BorderBrush="#EEF2F7" BorderThickness="0,0,0,1" Margin="0,0,0,8">
+                <StackPanel Spacing="3">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Classes="panelTitle" Text="{Binding Title}" />
+                    <TextBlock Grid.Column="1" Classes="infoText" Text="{Binding Status}" />
+                  </Grid>
+                  <TextBlock Classes="technicalDetail" Text="{Binding Value}" TextWrapping="Wrap" />
+                  <TextBlock Classes="captionText" Text="{Binding Description}" TextWrapping="Wrap" />
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </Border>
+  </Grid>
+</DataTemplate>
+
+</ResourceDictionary>

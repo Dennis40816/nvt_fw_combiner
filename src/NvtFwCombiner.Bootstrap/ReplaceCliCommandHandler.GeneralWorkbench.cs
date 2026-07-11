@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -16,7 +17,7 @@ internal static partial class ReplaceCliCommandHandler
     {
         if (!TryResolveWorkbenchIc(profileSelector, out string? icId))
         {
-            return await UnknownReplaceProfileAsync("general-replace", profileSelector, error).ConfigureAwait(false);
+            return await UnknownReplaceProfileAsync(IcWorkflowIds.GeneralReplace, profileSelector, error).ConfigureAwait(false);
         }
 
         if (!RequireOption(options, "--ic-num", error, out string? icNumber) ||
@@ -25,14 +26,41 @@ internal static partial class ReplaceCliCommandHandler
             return UsageError;
         }
 
-        if (!TryCreateWorkbenchGeneralMappings(options, error, out WorkbenchGeneralReplaceMappingInput[]? mappings))
+        string[] unsupportedOptions =
+        [
+            "--ic-family",
+            "--dp",
+            "--ld",
+            "--ctrlram",
+            "--input",
+            "--source-start",
+            "--target-start",
+            "--length",
+        ];
+        string[] suppliedUnsupportedOptions =
+        [
+            .. unsupportedOptions.Where(options.Values.ContainsKey),
+        ];
+        if (suppliedUnsupportedOptions.Length > 0)
+        {
+            await error.WriteLineAsync(
+                    $"error: real IC General Replace does not accept fixed-profile option(s): {string.Join(", ", suppliedUnsupportedOptions)}; use --mapping, --patch, or --fill")
+                .ConfigureAwait(false);
+            return UsageError;
+        }
+
+        if (!TryCreateWorkbenchGeneralAuthoringInputs(
+                options,
+                error,
+                out WorkbenchGeneralReplaceMappingInput[]? mappings,
+                out WorkbenchGeneralReplacePatchInput[]? patches))
         {
             return UsageError;
         }
 
         Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
         {
-            ["replace-base"] = Path.GetFullPath(basePath),
+            [WorkbenchSlotIds.ReplaceBase] = Path.GetFullPath(basePath),
         };
         Dictionary<string, string> protectedInputPaths = new(slotPaths, StringComparer.Ordinal);
         foreach (WorkbenchGeneralReplaceMappingInput mapping in mappings)
@@ -41,13 +69,13 @@ internal static partial class ReplaceCliCommandHandler
         }
 
         InputArtifactBinding[] bindings = CreateWorkbenchBindings(protectedInputPaths);
-        OutputTarget outputTarget = ResolveOutputTarget(
+        CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
             options.Values.GetValueOrDefault("--output"),
-            WorkbenchCompositionService.GetReplaceDefaultOutputFileName(icId, "General"));
+            WorkbenchCompositionService.GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General));
         string? outputPath = action == "build" ? outputTarget.FullPath : null;
         if (action == "build")
         {
-            EnsureOutputDoesNotAliasInputs(outputTarget, bindings);
+            CliCompositionRunSupport.EnsureOutputDoesNotAliasInputs(outputTarget, bindings);
             if (!options.Flags.Contains("--overwrite") && File.Exists(outputTarget.FullPath))
             {
                 await error.WriteLineAsync(
@@ -57,15 +85,20 @@ internal static partial class ReplaceCliCommandHandler
             }
         }
 
-        EnsureReportDoesNotAliasProtectedPaths(options, bindings, outputTarget, action == "build");
+        CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(
+            options.Values.GetValueOrDefault("--report"),
+            bindings,
+            outputTarget,
+            action == "build");
 
         WorkbenchRunResult result = await WorkbenchCompositionService
             .RunReplaceAsync(
                 icId,
                 icNumber,
-                "General",
+                WorkbenchReplaceModes.General,
                 slotPaths,
                 mappings,
+                patches,
                 action == "build",
                 cancellationToken,
                 outputPath)
@@ -78,39 +111,100 @@ internal static partial class ReplaceCliCommandHandler
                 output,
                 cancellationToken)
             .ConfigureAwait(false);
-        await PrintWorkbenchRunResultAsync(result, icId, "general-replace", output, error).ConfigureAwait(false);
+        await PrintWorkbenchRunResultAsync(result, icId, IcWorkflowIds.GeneralReplace, output, error).ConfigureAwait(false);
         return result.Succeeded ? Success : CompositionFailed;
     }
 
-    private static bool TryCreateWorkbenchGeneralMappings(
+    private static bool TryCreateWorkbenchGeneralAuthoringInputs(
         ParsedOptions options,
         TextWriter error,
-        [NotNullWhen(true)] out WorkbenchGeneralReplaceMappingInput[]? mappings)
+        [NotNullWhen(true)] out WorkbenchGeneralReplaceMappingInput[]? mappings,
+        [NotNullWhen(true)] out WorkbenchGeneralReplacePatchInput[]? patches)
     {
-        mappings = null;
-        List<string> values = options.GetValues("--mapping");
-        if (values.Count == 0)
+        List<string> mappingValues = options.GetValues("--mapping");
+        List<string> patchValues = options.GetValues("--patch");
+        List<string> fillValues = options.GetValues("--fill");
+        if (mappingValues.Count == 0 && patchValues.Count == 0 && fillValues.Count == 0)
         {
-            error.WriteLine("error: at least one --mapping <target-start+length=path> value is required for real IC General Replace");
+            mappings = null;
+            patches = null;
+            error.WriteLine(
+                "error: at least one --mapping <target-start+length=path>, --patch <target-start+length=hex>, or --fill <target-start+length=byte> value is required for real IC General Replace");
             return false;
         }
 
-        List<WorkbenchGeneralReplaceMappingInput> items = [];
-        for (int index = 0; index < values.Count; index++)
+        List<WorkbenchGeneralReplaceMappingInput> mappingItems = [];
+        for (int index = 0; index < mappingValues.Count; index++)
         {
             if (!TryParseWorkbenchGeneralMappingValue(
-                    values[index],
+                    mappingValues[index],
                     index + 1,
                     error,
                     out WorkbenchGeneralReplaceMappingInput? mapping))
             {
+                mappings = null;
+                patches = null;
                 return false;
             }
 
-            items.Add(mapping);
+            mappingItems.Add(mapping);
         }
 
-        mappings = [.. items];
+        List<WorkbenchGeneralReplacePatchInput> patchItems = [];
+        if (!TryAppendWorkbenchGeneralPatches(
+                "--patch",
+                patchValues,
+                WorkbenchGeneralReplacePatchKind.Overwrite,
+                "general-patch",
+                error,
+                patchItems) ||
+            !TryAppendWorkbenchGeneralPatches(
+                "--fill",
+                fillValues,
+                WorkbenchGeneralReplacePatchKind.Fill,
+                "general-fill",
+                error,
+                patchItems))
+        {
+            mappings = null;
+            patches = null;
+            return false;
+        }
+
+        mappings = [.. mappingItems];
+        patches = [.. patchItems];
+        return true;
+    }
+
+    private static bool TryAppendWorkbenchGeneralPatches(
+        string optionName,
+        List<string> values,
+        WorkbenchGeneralReplacePatchKind kind,
+        string idPrefix,
+        TextWriter error,
+        List<WorkbenchGeneralReplacePatchInput> patches)
+    {
+        for (int index = 0; index < values.Count; index++)
+        {
+            if (!TryParseWorkbenchGeneralRangeValue(
+                    optionName,
+                    values[index],
+                    error,
+                    out string? payload,
+                    out string? start,
+                    out string? endInclusive))
+            {
+                return false;
+            }
+
+            patches.Add(new WorkbenchGeneralReplacePatchInput(
+                string.Create(CultureInfo.InvariantCulture, $"{idPrefix}-{index + 1}"),
+                start,
+                endInclusive,
+                kind,
+                payload));
+        }
+
         return true;
     }
 
@@ -121,68 +215,80 @@ internal static partial class ReplaceCliCommandHandler
         [NotNullWhen(true)] out WorkbenchGeneralReplaceMappingInput? mapping)
     {
         mapping = null;
-        int separatorIndex = value.IndexOf('=', StringComparison.Ordinal);
-        if (separatorIndex <= 0 || separatorIndex == value.Length - 1)
+        if (!TryParseWorkbenchGeneralRangeValue(
+                "--mapping",
+                value,
+                error,
+                out string? path,
+                out string? start,
+                out string? endInclusive))
         {
-            error.WriteLine(
-                "error: real IC General Replace expects --mapping <target-start+length=path>; example: --mapping 0x100+0x20=C:\\path\\replacement.bin");
             return false;
         }
 
-        string rangeText = value[..separatorIndex].Trim();
-        string path = value[(separatorIndex + 1)..].Trim();
-        if (path.Length == 0)
+        if (string.IsNullOrWhiteSpace(path))
         {
             error.WriteLine("error: --mapping path must not be empty");
-            return false;
-        }
-
-        int plusIndex = rangeText.IndexOf('+', StringComparison.Ordinal);
-        if (plusIndex <= 0 || plusIndex == rangeText.Length - 1)
-        {
-            error.WriteLine("error: --mapping range must use <target-start+length>");
-            return false;
-        }
-
-        if (!TryParseCliNonNegativeLong(rangeText[..plusIndex], out long start) ||
-            !TryParseCliNonNegativeLong(rangeText[(plusIndex + 1)..], out long length) ||
-            length <= 0)
-        {
-            error.WriteLine("error: --mapping start must be non-negative and length must be positive");
-            return false;
-        }
-
-        long endInclusive;
-        try
-        {
-            endInclusive = checked(start + length - 1);
-        }
-        catch (OverflowException)
-        {
-            error.WriteLine("error: --mapping range exceeds the supported address size");
             return false;
         }
 
         mapping = new WorkbenchGeneralReplaceMappingInput(
             string.Create(CultureInfo.InvariantCulture, $"general-map-{index}"),
             Path.GetFullPath(path),
-            FormatCliHex(start),
-            FormatCliHex(endInclusive));
+            start,
+            endInclusive);
         return true;
     }
 
-    private static bool TryParseCliNonNegativeLong(string text, out long value)
+    private static bool TryParseWorkbenchGeneralRangeValue(
+        string optionName,
+        string value,
+        TextWriter error,
+        [NotNullWhen(true)] out string? payload,
+        [NotNullWhen(true)] out string? start,
+        [NotNullWhen(true)] out string? endInclusive)
     {
-        value = 0;
-        string trimmed = text.Trim();
-        bool parsed = trimmed.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
-            ? long.TryParse(trimmed[2..], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out value)
-            : long.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
-        return parsed && value >= 0;
-    }
+        payload = null;
+        start = null;
+        endInclusive = null;
+        int separatorIndex = value.IndexOf('=', StringComparison.Ordinal);
+        if (separatorIndex <= 0)
+        {
+            error.WriteLine(
+                $"error: {optionName} expects <target-start+length=value>; example: {optionName} 0x100+0x20=value");
+            return false;
+        }
 
-    private static string FormatCliHex(long value)
-    {
-        return string.Create(CultureInfo.InvariantCulture, $"0x{value:X}");
+        string rangeText = value[..separatorIndex].Trim();
+        payload = value[(separatorIndex + 1)..].Trim();
+        int plusIndex = rangeText.IndexOf('+', StringComparison.Ordinal);
+        if (plusIndex <= 0 || plusIndex == rangeText.Length - 1)
+        {
+            error.WriteLine($"error: {optionName} range must use <target-start+length>");
+            return false;
+        }
+
+        if (!BootstrapRangeText.TryParseNonNegativeLong(rangeText[..plusIndex], out long rangeStart) ||
+            !BootstrapRangeText.TryParseNonNegativeLong(rangeText[(plusIndex + 1)..], out long length) ||
+            length <= 0)
+        {
+            error.WriteLine($"error: {optionName} start must be non-negative and length must be positive");
+            return false;
+        }
+
+        long rangeEndInclusive;
+        try
+        {
+            rangeEndInclusive = checked(rangeStart + length - 1);
+        }
+        catch (OverflowException)
+        {
+            error.WriteLine($"error: {optionName} range exceeds the supported address size");
+            return false;
+        }
+
+        start = BootstrapRangeText.FormatHex(rangeStart);
+        endInclusive = BootstrapRangeText.FormatHex(rangeEndInclusive);
+        return true;
     }
 }

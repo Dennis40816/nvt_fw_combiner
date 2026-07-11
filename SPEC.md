@@ -1,7 +1,7 @@
 # NVT FW Combiner（NFC）實作規格
 
 > 文件狀態：`Repository Bootstrap Baseline`
-> 文件版本：`0.7.3`
+> 文件版本：`0.9.0`
 > 基準日期：`2026-06-25`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
@@ -33,11 +33,14 @@
 As of 2026-06-30, near-term implementation focuses on normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows.
 
 - AB Code Merge is intentionally deferred for now. Existing AB evidence remains reference material only; do not spend implementation effort on AB unless the owner explicitly reactivates it.
+- When AB Code Merge is reactivated, NT51929, NT51932, and NT51950 must initialize from a full submitted DP container before applying profile-declared TP or bank overlays. This is an operation-order direction only: it does not infer shared ranges, IC-number branches, CRC behavior, or output sizes from the current NT51950 normal Merge profile. Each IC still requires AB golden inputs/outputs and firmware-owner review before execution or UI exposure.
 - Normal/Standard Merge includes NT51950 and NT51951 through the DP Perspective selected-container policy. Current owner golden cases are recorded; firmware-owner sign-off is still required before production promotion.
 - CtrlRAM Replace requires legacy `combiner.exe` CRC/header recalculation after replacement. Combiner `1.13.0` is imported under `external-tools/legacy-combiner/1.13.0/` and is pinned by SHA-256 manifest.
 - Owner-provided postbuild scripts are the behavioral truth for CtrlRAM Replace command order; mmap files explain offsets and sizes; TP Overview is the documentation baseline to correct when it conflicts with postbuild/mmap evidence.
 - CtrlRAM postbuild command sequences must be generated as structured command/argv data and tested against the hsi Combiner guide, not assembled as one shell command string. NT51927 requires explicit single, 2IC, and 3IC Replace branches.
+- FlashCode output naming uses the fixed `NT51xxx_FlashCode_DxxxxTxxxx_YYYYMMDD.bin` form and treats DP version as two contiguous bytes: main version byte followed by sub version byte. TP uses the validated FW version and FW sub-version bytes. The offsets are catalog-owned facts; UI must display decoded tokens or explicit unknown placeholders, never infer version bytes from file names.
 - NT51950/NT51951 normal Merge and DP Replace should use the DP image as the base container and overlay/preserve the TP range. Standard Merge DP inputs are limited to the owner-confirmed DP Perspective sizes `0x40000`, `0x80000`, and `0x100000`; the Standard Merge output length follows the selected DP input length. DP Replace must derive its work length from the selected base firmware length, which must be one of `0x40000`, `0x80000`, or `0x100000`; never hard-code the maximum container as the base. The confirmed TP overlay range is `0x0A000-0x36FFF (len 0x2D000)`; `0x37000-0x37FFF (len 0x1000)` is customer info and must not be overwritten by the TP overlay.
+- Other Standard Merge profiles extract only their declared DP source ranges. A DP artifact that reaches the required end offset may have an arbitrary total length; a non-golden length is a report warning, not a build blocker. TP remains exact-length profile input and every Standard Merge TP source length must be `<= 0x40000`. NT51950/NT51951 remain the exception because they paste a full DP container and retain their strict approved-size gate.
 - NT51917 follows NT51927. NT51919 follows NT51929. NT51928 non-NB follows NT51927, while NT51928 NB is a separate IC and must not inherit that profile unless explicitly approved.
 - NT51930 currently has no `>13 IC` product target; map cascade to the `<=13 IC` DiffDLM branch (`0x2F200`, size `65024`) until owner data reactivates larger counts.
 - FW Register ranges should be captured as first-class map evidence when the owner updates TP Overview. A future REG Replace workflow may use those ranges, but current Replace scope remains DP Replace, CtrlRAM Replace, and General Replace.
@@ -74,7 +77,8 @@ Replace：
 
 - `dp-replace`：DP whole 或 profile-declared partitions；LD replacement also belongs to DP Replace and may be modeled as a separate LD replacement BIN/slot from the DP BIN；不再提供獨立 TP persona replace 分類。
 - `ctrlram-replace`：只操作被標記為 `tp-ctrlram` 的 named regions/groups。
-- `general-replace`：required reference BIN 加上一或多個 replacement BIN；使用者自由建立多筆 explicit mappings，但仍受 protected ranges、alignment、overlap、processor dependency 與 Preview gate 約束。Any mapping that touches a TP-classified range must compile with an approved legacy Combiner CRC/header refresh after the replacement mutation.
+- `general-replace`：required reference BIN 加上一或多個 replacement BIN；使用者自由建立多筆 explicit mappings，但仍受 protected ranges、alignment、overlap、processor dependency 與 Preview/Build validation 約束。Any mapping that touches a TP-classified range must compile with an approved legacy Combiner CRC/header refresh after the replacement mutation.
+- `Hex Editor`（`0.9.0`）：由 Home 的 `Util Tools` 獨立入口開啟，是無 firmware 語意的 raw BIN 工具。它將最多 `0x800000` bytes 的來源讀取一次到私有記憶體，可 overwrite/fill、單筆或 bounded multi-byte insert、delete、undo/redo，並以確認後的 Save As 輸出新 BIN；不會讀取或修改 IC、profile、Flash Map、CRC、postbuild、General Replace 或 report。
 
 Experience 只控制 catalog、UI authoring policy 與 profile compile constraints。Executor 不依 `experienceId` 寫 workflow-specific branch。
 
@@ -538,276 +542,17 @@ RegionAccessRule
 
 This avoids duplicating memory maps for DP/CtrlRAM/General Replace while keeping each UI constrained.
 
-### 7.5 Replace authoring rules
+### 7.5 Detailed Authoring and Operation Rules
 
-- **DP Replace**：DP may be whole or declared parts. LD replacement is treated as DP Replace and may use a separate LD replacement BIN/slot from the DP BIN. TP-specific replace categories are not exposed.
-- **CtrlRAM Replace**：only regions tagged `tp-ctrlram` or approved CtrlRAM groups may be replaced.
-- **General Replace**：explicit ranges are allowed only where profile access is `explicit-range`; protected regions remain blocked. If an explicit mapping touches a TP-classified range, the compiled plan must run an approved legacy Combiner CRC/header refresh after that mapping; profiles without that post-mutation processor stage fail closed.
-- **General Merge**：input cardinality is extensible; every mapping row compiles to standard operations.
-
-### 7.6 Operation algebra
-
-Only these mutation/processing primitives are allowed：
-
-```text
-initialize-image
-create-work-buffer
-copy-range
-fill-range
-patch-scalar
-replace-range
-run-external-processor
-assert-range
-validate-checksum
-extract-metadata
-finalize-output
-```
-
-Every operation declares id, sequence, source/target spaces and ranges, overlap policy, pre/postconditions and reason. UI drag/drop is only an authoring interaction; it cannot directly mutate bytes.
-
-### 7.7 Integrity and external processor authority
-
-Do not use `needsCrc: bool`.
-
-```text
-IntegrityDisposition
-  none
-  verify-existing
-  recalculate-and-write
-
-ProcessorAuthority
-  calculate
-  transform
-```
-
-Inventory may contain `unknown`, but a supported profile may not. `transform` can modify only host-created staging copy and only declared write ranges. Host independently verifies the resulting diff.
-
-### 7.8 Range and mutation invariants
-
-- Internal ranges are half-open `[start, endExclusive)`.
-- JSON uses `start` + `length`; UI may additionally show inclusive end.
-- Arithmetic is checked; overflow and out-of-bounds fail before execution.
-- Overlap defaults to reject and must be explicitly declared per operation.
-- Every mutation records operation id, target space/range, before/after digest, changed ranges and reason.
+The supported Replace/Merge authoring policies, operation algebra, integrity authority, and range invariants are maintained in [Experience and Operation Rules](docs/specs/experience-and-operation-rules.md). This includes the ADR 0014 raw-BIN Hex Editor exception.
 
 ## 8. Profile Schema
 
-Canonical definition contract is [`docs/contracts/composition-profile-v1.md`](docs/contracts/composition-profile-v1.md); run binding and report are independently versioned.
-
-### 8.1 Top-level profile fields
-
-```json
-{
-  "schemaVersion": "1.0",
-  "profileId": "nt51950-dp-replace-v1",
-  "profileVersion": "1.0.0",
-  "supportStatus": "candidate",
-  "icId": "NT51950",
-  "modeId": "dp-replace",
-  "compositionKind": "replace",
-  "experience": {
-    "experienceId": "dp-replace",
-    "audience": "dp",
-    "layoutPolicy": "constrained",
-    "inputPolicy": "fixed",
-    "icNumInputMode": "single",
-    "displayNameKey": "experience.dp.replace",
-    "regionAccessRules": []
-  },
-  "image": {},
-  "inputSlots": [],
-  "addressSpaces": [],
-  "regions": [],
-  "views": [],
-  "operations": [],
-  "validations": [],
-  "outputNaming": {}
-}
-```
-
-### 8.2 Supported experiences
-
-| Experience | Composition | Initializer | Audience | Layout |
-| --- | --- | --- | --- | --- |
-| `standard-merge` | Merge | blank | system | fixed |
-| `ab-merge` | Merge | blank | system | fixed |
-| `general-merge` | Merge | blank | advanced | user-defined |
-| `dp-replace` | Replace | reference | dp | constrained |
-| `ctrlram-replace` | Replace | reference | ctrlram | constrained |
-| `general-replace` | Replace | reference | advanced | user-defined |
-
-This table is a product catalog baseline, not an executor enum. Future experiences reuse the same orthogonal fields.
-
-### 8.3 Inputs, cardinality and instancing
-
-Input slots declare role, requirement, cardinality, accepted extensions, size/content guards and compatibility tags. General modes use an extensible slot template instantiated into stable `bindingId` values at run time. Filename is never the source of IC/range truth.
-
-### 8.4 Region access rules
-
-Region access rules are deny-by-default from the product experience perspective:
-
-- hidden：not shown and not authorable。
-- read-only：can be displayed but cannot be replaced/mapped。
-- whole：only complete region replacement/mapping。
-- parts：only declared sub-regions。
-- explicit-range：general authoring may create explicit ranges after constraints pass。
-
-Compiler checks experience, region policy, atomicity, overlap and processor dependencies. UI may pre-filter choices, but compiler is the authority.
-
-### 8.5 External processor / legacy combiner binding
-
-A `run-external-processor` operation may use pure calculation, Python worker calculation, or legacy `combiner.exe` transform. Production combiner transforms are represented by tool binding fields in `processorInvocation.parameters` until the next schema minor revision introduces first-class tool binding fields.
-
-Example shape:
-
-```json
-{
-  "operationId": "run-header-crc",
-  "sequence": 900,
-  "kind": "run-external-processor",
-  "targetSpaceId": "output-image",
-  "targetRange": { "start": 0, "length": 524288 },
-  "integrityDisposition": "recalculate-and-write",
-  "processorInvocation": {
-    "processorId": "nfc.nt51950.header-crc-v1",
-    "contractVersion": "2.0.0",
-    "authority": "transform",
-    "purpose": "header-and-integrity",
-    "allowedReadRanges": [
-      { "start": 0, "length": 524288 }
-    ],
-    "allowedWriteRanges": [
-      { "start": 41264, "length": 4 }
-    ],
-    "parameters": {
-      "toolId": "legacy-combiner",
-      "toolVersion": "1.10",
-      "toolBindingId": "legacy-combiner-1.10",
-      "adapterId": "legacy-combiner-inplace-v1"
-    },
-    "failurePolicy": "fail-closed"
-  },
-  "reason": "Run approved legacy combiner.exe 1.10 to recalculate and write CRC/header bytes."
-}
-```
-
-The example ranges are placeholders for documentation only. A supported profile must use owner-approved ranges and golden evidence.
+The canonical versioned profile contract is [composition-profile-v1](docs/contracts/composition-profile-v1.md). Product-level supported experiences, input/region access policy, and external processor binding expectations are in [Profile Schema Summary](docs/specs/profile-schema.md).
 
 ## 9. External Processor Protocols
 
-### 9.1 Protocol families
-
-| Family | Current status | Purpose |
-| --- | --- | --- |
-| Python CRC worker Protocol 1.0 | Implemented prototype | pure CRC calculation, no file mutation |
-| Staged transform Protocol 2.x | Reserved concept | host-created staging copy mutation with independent diff |
-| External combiner tool runner | Staged adapter implemented for approved Combiner 1.13.0 CtrlRAM postbuild; production parity still gated by profiles/golden evidence | call approved legacy `combiner.exe` versions for CRC/Header transform |
-
-### 9.2 Process 與 filesystem 安全規則
-
-- `UseShellExecute = false`；不拼 shell command。
-- executable path 由 installation layout、tool manifest 與 release manifest 決定，不接受 per-run input。
-- working directory 是 host 建立的 private staging directory。
-- request/manifest 只允許 approved staging tokens；拒絕 separator、`..`、drive、UNC、symlink、junction/reparse traversal。
-- worker/tool environment 使用 allowlist；network disabled；不得 spawn child process/load plugin unless explicitly approved by tool manifest and security review。
-- timeout 預設 5 秒；超時 kill process tree。
-- stdout/stderr 均有大小上限；machine-readable result 需受 schema 約束。
-- transform 後 host 驗證 file count、name、length、SHA-256、changed ranges 與 postconditions。
-- worker/tool failure 不得 fallback 至不同 algorithm 或未審核 C# rewrite。
-
-### 9.3 Applicability model
-
-每個相關 profile stage 分別宣告：
-
-```text
-integrityDisposition = none | verifyExisting | recalculateAndWrite
-processorAuthority   = calculate | transform
-processorPurpose     = checksum | header | headerAndIntegrity | relocation | compositePostProcess
-toolBindingId        = optional exact external tool binding for legacy combiner transforms
-```
-
-Planning matrix 可使用 `unknown`，但 supported profile 不可。Protocol 1 對應 `calculate` authority；staged transform 與 external combiner runner 對應受控的 `transform` authority。Current evidence matrix 見 [`integrity-processing-matrix.md`](docs/architecture/integrity-processing-matrix.md)。
-
-### 9.4 Protocol 1.x calculate request/response
-
-```json
-{
-  "protocolVersion": "1.0",
-  "requestId": "demo",
-  "operation": "calculate",
-  "algorithmId": "crc-32-mpeg-2",
-  "payloadBase64": "MTIzNDU2Nzg5"
-}
-```
-
-```json
-{
-  "protocolVersion": "1.0",
-  "requestId": "demo",
-  "ok": true,
-  "workerVersion": "0.1.0",
-  "result": {
-    "algorithmId": "crc-32-mpeg-2",
-    "valueUnsigned": 58124007,
-    "valueHex": "0x0376E6E7",
-    "bytesLittleEndianHex": "E7E67603"
-  }
-}
-```
-
-### 9.5 Staged transform reservation
-
-Draft transform request needs:
-
-```text
-protocolVersion/requestId
-processorId or toolBindingId
-workingFile (host-created relative name, usually work.bin)
-addressSpaceId/expectedLength
-allowedReadRanges[]
-allowedWriteRanges[]
-typed parameters
-```
-
-response needs before/after hash, processor id, claimed changed ranges and checks. host 必須自行 diff；worker/tool claim 只作 evidence，不作授權。
-
-Exact legacy combiner command shape, version mapping, header fields, params, TPA/TPB rewrite policy and minimum write ranges are provided by owner and captured by ADR/profile/tool manifest before production support.
-
-### 9.6 Host ports
-
-```csharp
-public interface ICrcCalculator
-{
-    Task<CrcCalculationResult> CalculateAsync(
-        CrcCalculationRequest request,
-        CancellationToken cancellationToken);
-}
-
-public interface IFirmwarePostProcessor
-{
-    Task<PostProcessResult> TransformAsync(
-        PostProcessRequest request,
-        CancellationToken cancellationToken);
-}
-```
-
-Application 不知道 `Process`、PyInstaller、legacy `combiner.exe` path 或 staging path。Infrastructure adapter 負責 process/filesystem；Application 負責 policy、diff verdict 與 mutation trace。
-
-### 9.7 Acceptance tests
-
-- Empty payload -> `0xFFFFFFFF`。
-- `123456789` -> `0x0376E6E7`。
-- tool version `1.10` is preserved as string and never normalized to `1.1`。
-- unknown tool binding fails closed。
-- wrong executable SHA-256 fails closed。
-- fake combiner mutating only allowed ranges passes。
-- fake combiner mutating one byte outside allowed range fails。
-- file length change fails。
-- path traversal、absolute path、symlink/reparse、extra file、length change。
-- worker/tool claims incomplete/incorrect changed ranges。
-- crash/timeout leaves original artifacts/output unchanged。
-- deterministic replay。
-- clean Windows package without system Python for released components。
+The canonical CRC worker contracts are [Protocol 1](docs/contracts/crc-worker-v1.md) and the [staged transform draft](docs/contracts/crc-worker-transform-v2-draft.md). The product safety rules, host boundary, and acceptance expectations are in [External Processor Protocols](docs/specs/external-processor-protocols.md).
 
 ## 10. Unified Composition Pipeline
 
@@ -910,7 +655,7 @@ The UI must make atomicity visible: whole-only, declared-parts, or explicit-rang
 
 ### 11.4 Preview/Build separation
 
-Preview is mandatory before Build. Build button should be disabled when profile compile, input validation, range policy, processor/tool readiness, or integrity disposition is unresolved.
+Build automatically runs the same validation path as Preview before committing output. Build remains disabled only when required UI inputs are missing; profile compile, input validation, range policy, processor/tool readiness, and integrity disposition failures must produce a Preview/Build report instead of relying on a stale manual Preview gate.
 
 Preview/Build reports and diagnostics open in a report modal after the action completes or fails; they are not first-level pages. The UI must be structured for bilingual English/Chinese text resources rather than hard-coded display strings. The initial default language is English.
 
@@ -948,13 +693,8 @@ The owner requested review participation. Assistant/Codex review should focus on
 
 ## 14. Next Milestones
 
-- `0.1.x`：bootstrap/app shell/governance fixes。
-- `0.2.0`：memory core、composition operation execution、profile compiler validation。
-- `0.3.0`：standard merge parity for first IC group。
-- `0.4.0`：all standard merge profiles。
-- `0.5.0`：normal Replace priority beta for DP/CtrlRAM。
-- `0.6.0`：workflow data-model convergence for unified Merge/Replace profile, runner, and UI contracts。
-- `0.7.0`：General Merge/Replace, saved rules, and deferred AB work only after owner reactivation。
+- `0.1.x–0.5.0`：bootstrap, composition core, Standard Merge parity, and DP/CtrlRAM Replace beta。
+- `0.6.0–0.7.0`：unified workflow data model, General Merge/Replace, saved rules, and deferred AB work only after owner reactivation。
 - `0.8.0`：packaging/performance。
-- `0.9.0`：UAT RC。
+- `0.9.0`：stable Util Tools raw-BIN Hex Editor milestone；後續 UAT 修正進入 `0.9.x`。
 - `1.0.0`：signed-off support matrix。

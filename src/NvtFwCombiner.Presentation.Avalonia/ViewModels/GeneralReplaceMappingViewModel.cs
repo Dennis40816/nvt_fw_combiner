@@ -24,7 +24,7 @@ public sealed partial class GeneralReplaceMappingViewModel : ObservableObject
     public string DisplayName => HasFile ? Path.GetFileName(FilePath!) : "No replacement BIN selected";
 
     /// <summary>Displayed selected file path.</summary>
-    public string DisplayDetail => HasFile ? FilePath! : string.Empty;
+    public string DisplayDetail => HasFile ? FirmwarePathDisplay.Normalize(FilePath!) : string.Empty;
 
     /// <summary>True when a local input file is selected.</summary>
     public bool HasFile => !string.IsNullOrWhiteSpace(FilePath);

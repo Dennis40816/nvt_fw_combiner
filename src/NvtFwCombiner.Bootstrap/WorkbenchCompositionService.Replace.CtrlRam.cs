@@ -21,7 +21,7 @@ public static partial class WorkbenchCompositionService
         {
             return CreateReplaceReportRunResult(
                 icId,
-                "CtrlRAM",
+                WorkbenchReplaceModes.CtrlRam,
                 slotPaths,
                 build,
                 CreateCtrlRamPlanningOperations(
@@ -32,20 +32,21 @@ public static partial class WorkbenchCompositionService
                     runnablePreview: false,
                     context.PostbuildProfile),
                 context.ValidationIssues,
-                GetReplaceDefaultOutputFileName(icId, "CtrlRAM"),
+                GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.CtrlRam),
                 succeeded: false);
         }
 
-        IReadOnlyList<ByteRange> postbuildWriteRanges = LegacyCombinerPostbuildPlanner.GetAllowedWriteRangesForStagedSources(
+        IReadOnlyList<LegacyCombinerPostbuildWriteRange> postbuildWriteRangeSections =
+            LegacyCombinerPostbuildPlanner.GetAllowedWriteRangeSectionsForStagedSources(
             context.CommandPlan!,
             context.BaseLength,
             context.Regions.Select(region => region.Range),
             context.Regions.Select(region => region.Range));
-        if (postbuildWriteRanges.Count == 0)
+        if (postbuildWriteRangeSections.Count == 0)
         {
             return CreateReplaceReportRunResult(
                 icId,
-                "CtrlRAM",
+                WorkbenchReplaceModes.CtrlRam,
                 slotPaths,
                 build,
                 CreateCtrlRamPlanningOperations(
@@ -57,11 +58,11 @@ public static partial class WorkbenchCompositionService
                     context.PostbuildProfile),
                 [
                     new CompositionIssue(
-                        "replace.ctrlram.postbuild-write-range-missing",
+                        WorkbenchIssueCodes.ReplaceCtrlRamPostbuildWriteRangeMissing,
                         "No approved postbuild write range could be derived from the legacy Combiner command plan.",
                         "postbuild"),
                 ],
-                GetReplaceDefaultOutputFileName(icId, "CtrlRAM"),
+                GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.CtrlRam),
                 succeeded: false);
         }
 
@@ -73,13 +74,13 @@ public static partial class WorkbenchCompositionService
             context.SelectedRegions,
             context.PostbuildProfile!,
             context.CommandPlan!,
-            postbuildWriteRanges);
+            postbuildWriteRangeSections);
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         if (!compile.IsSuccess)
         {
             return CreateReplaceReportRunResult(
                 icId,
-                "CtrlRAM",
+                WorkbenchReplaceModes.CtrlRam,
                 slotPaths,
                 build,
                 CreateCtrlRamPlanningOperations(
@@ -97,7 +98,7 @@ public static partial class WorkbenchCompositionService
         InputArtifactBinding[] bindings = CreateCtrlRamReplaceBindings(context, slotPaths);
 
         return await RunCompiledCompositionAsync(
-            "ui-replace-ctrlram",
+            CtrlRamReplaceRunIdPrefix,
             profile,
             compile.Plan!,
             bindings,

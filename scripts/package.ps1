@@ -45,7 +45,9 @@ $PackageRoot = Join-Path $WorkRoot $PackageName
 $AppPublish = Join-Path $WorkRoot 'app-publish'
 $WorkerBuild = Join-Path $WorkRoot 'worker-build'
 $WorkerDist = Join-Path $WorkRoot 'worker-dist'
+$IdleBuildWorkerStopper = Join-Path $PSScriptRoot 'stop-idle-build-workers.ps1'
 
+try {
 Remove-Item -LiteralPath $ReleaseRoot, $WorkRoot -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $ReleaseRoot, $PackageRoot, $AppPublish, $WorkerBuild, $WorkerDist | Out-Null
 
@@ -271,8 +273,9 @@ Private golden inputs, unmanifested BIN files, generated firmware outputs, refco
 
 $ReferenceFiles = @(
     'docs/references/verification-report.md',
-    'docs/references/combiner-info-2026-07-03.md',
-    'docs/references/combiner-info-2026-07-03/TDDI_Flash_Header .xlsx',
+    'docs/references/tddi-flash-header.md',
+    'docs/references/nvt-fwconfig-copy-validation.md',
+    'docs/references/tddi-flash-header/TDDI_Flash_Header.xlsx',
     'docs/architecture/ctrlram-postbuild-command-matrix.md',
     'docs/architecture/ctrlram-postbuild-investigation-reference.md',
     'docs/architecture/ctrlram-postbuild-original-pasteback.md',
@@ -466,3 +469,19 @@ Compress-Archive -LiteralPath $PackageRoot -DestinationPath $ZipPath -Compressio
 Write-Host "Release package: $ZipPath"
 Write-Host "Application SHA-256: $AppHash"
 Write-Host "Worker SHA-256: $WorkerHash"
+}
+finally {
+    # Publishing can leave MSBuild/Roslyn servers alive after a successful or failed package run.
+    # They are build helpers, not package runtime dependencies, so always stop the repository SDK servers.
+    & $DotNet build-server shutdown
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "dotnet build-server shutdown returned exit code $LASTEXITCODE."
+    }
+
+    if (Test-Path -LiteralPath $IdleBuildWorkerStopper -PathType Leaf) {
+        & $IdleBuildWorkerStopper -RepositoryRoot $RepoRoot
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "idle Avalonia build worker cleanup returned exit code $LASTEXITCODE."
+        }
+    }
+}

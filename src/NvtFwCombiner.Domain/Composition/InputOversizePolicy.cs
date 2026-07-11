@@ -8,4 +8,7 @@ public enum InputOversizePolicy
 
     /// <summary>Keep the leading declared bytes and emit a run diagnostic for the discarded tail bytes.</summary>
     TruncateWithWarning = 1,
+
+    /// <summary>Use only the declared source range; unexpected artifact lengths are reported separately as warnings.</summary>
+    ExtractDeclaredRange = 2,
 }

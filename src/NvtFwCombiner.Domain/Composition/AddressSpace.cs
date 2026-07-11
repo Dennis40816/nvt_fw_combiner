@@ -4,6 +4,7 @@ namespace NvtFwCombiner.Domain.Composition;
 public sealed class AddressSpace
 {
     private readonly long[] _allowedInputLengths;
+    private readonly long[] _expectedInputLengths;
 
     /// <summary>Creates an address space with a checked non-empty byte length.</summary>
     public AddressSpace(
@@ -12,7 +13,8 @@ public sealed class AddressSpace
         AddressSpaceMutability mutability,
         byte? inputPaddingByte = null,
         InputOversizePolicy inputOversizePolicy = InputOversizePolicy.Reject,
-        IReadOnlyList<long>? allowedInputLengths = null)
+        IReadOnlyList<long>? allowedInputLengths = null,
+        IReadOnlyList<long>? expectedInputLengths = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(length);
@@ -22,6 +24,7 @@ public sealed class AddressSpace
         }
 
         _allowedInputLengths = NormalizeAllowedInputLengths(allowedInputLengths, length);
+        _expectedInputLengths = NormalizeExpectedInputLengths(expectedInputLengths, length);
         AddressSpaceId = addressSpaceId;
         Length = length;
         Mutability = mutability;
@@ -46,6 +49,9 @@ public sealed class AddressSpace
 
     /// <summary>Exact source artifact lengths accepted for this address space; empty means any length allowed by padding/truncation policy.</summary>
     public IReadOnlyList<long> AllowedInputLengths => _allowedInputLengths;
+
+    /// <summary>Known source artifact lengths that remain non-blocking expectations for diagnostics and traceability.</summary>
+    public IReadOnlyList<long> ExpectedInputLengths => _expectedInputLengths;
 
     /// <summary>Returns true when <paramref name="range"/> is fully inside this address space.</summary>
     public bool Contains(ByteRange range)
@@ -74,6 +80,33 @@ public sealed class AddressSpace
                 throw new ArgumentOutOfRangeException(
                     nameof(allowedInputLengths),
                     "Allowed input lengths cannot exceed the declared address-space length.");
+            }
+        }
+
+        return normalized;
+    }
+
+    private static long[] NormalizeExpectedInputLengths(IReadOnlyList<long>? expectedInputLengths, long declaredLength)
+    {
+        if (expectedInputLengths is null)
+        {
+            return [];
+        }
+
+        if (expectedInputLengths.Count == 0)
+        {
+            throw new ArgumentException("Expected input lengths cannot be empty when supplied.", nameof(expectedInputLengths));
+        }
+
+        long[] normalized = [.. expectedInputLengths.Order().Distinct()];
+        foreach (long expectedLength in normalized)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(expectedLength, nameof(expectedInputLengths));
+            if (expectedLength < declaredLength)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(expectedInputLengths),
+                    "Expected input lengths cannot be shorter than the declared address-space length.");
             }
         }
 

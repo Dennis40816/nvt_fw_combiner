@@ -7,7 +7,7 @@ This table defines the owner-side one-file smoke validation for CtrlRAM Replace 
 
 ## Universal BIN
 
-Create one file at least `0x23000` bytes long. `0x23000` covers the largest currently inspected CtrlRAM postbuild input: NT51930 Common FW 1.x extended cascade `DiffDLM.bin`.
+Create one file at least `0x23000` bytes long. This deliberately conservative size retains coverage for the largest archived CtrlRAM input evidence. The active catalog currently selects no `0x23000` branch; NT51930 Common FW `1.x` uses the approved `0xFE00` `DiffDLM.bin` range for numeric counts `2..29`.
 
 Recommended content:
 
@@ -40,13 +40,13 @@ The `51926 TP Flashmap` detail sheet still carries the 2.0.0-style single table,
 
 Committed NT51926 `1.4.1` BIN evidence has exactly one little-endian end-flag marker (`00 4E 56 54`) and it starts at `0x3BFFC`. The same check on the 2026-07-05 base, Standard Merge TP input, and Standard Merge expected flash shows `0x34FFC = 00 00 00 00`. Use the selected postbuild category for FWConfig/header-copy lengths, and do not treat the 2.0.0 mmap `FLASHMAP_ENDFLAG 0x34FFC` row as the actual marker location for the current `1.4.1` fixture.
 
-NT51930 has an `IC > 13, Max29` extended DiffDLM row and TP Overview category notes in the 2026-07-05 10:34:14 workbook. Its 1.x and 2.0.0 postbuild categories still consume different CtrlRAM slots:
+NT51930 has an archived `IC > 13, Max29` extended DiffDLM row in the 2026-07-05 10:34:14 workbook, but no current product evidence authorizes that branch. Both 1.x and 2.0.0 categories therefore keep counts `14..29` on the approved `0xFE00` cascade DiffDLM range until the owner explicitly reactivates the extended command.
 
 | NT51930 source | Branch | MP | VN | DiffDLM | Header copy |
 | --- | --- | --- | --- | --- | --- |
 | Common FW 1.x postbuild | single | consumed | len `0x195E` | none | `0x7000 -> 0x28FB0` len `0x100` |
 | Common FW 1.x postbuild | cascade `2..13` | consumed | len `0x195E` | len `0xFE00` | `0x7000 -> 0x28FB0` len `0x100` |
-| Common FW 1.x postbuild | cascade `14..29` | consumed | len `0x195E` | len `0x23000` | `0x7000 -> 0x28FB0` len `0x100` |
+| Common FW 1.x postbuild | cascade `14..29` | consumed | len `0x195E` | len `0xFE00` | `0x7000 -> 0x28FB0` len `0x100` |
 | Common FW 2.0.0 postbuild | cascade `2..29` | not consumed | len `0x1960` | len `0xFE00` | `0x7000 -> 0x28FB0` len `0x200`, plus second header command |
 
 ## Full IC Table
@@ -76,7 +76,7 @@ Ranges are TP work-image half-open ranges.
 | NT51929 | NT51932 alias, cascade | single slots plus DiffDLM `[0x2D100,0x35D00)` `0x8C00` |
 | NT51930 | Common FW 1.x single | NF `[0x1FC00,0x21650)` `0x1A50`; Normal `[0x21650,0x24250)` `0x2C00`; MP `[0x24250,0x27650)` `0x3400`; VN `[0x27650,0x28FAE)` `0x195E` |
 | NT51930 | Common FW 1.x cascade `2..13` | single slots plus DiffDLM `[0x2F200,0x3F000)` `0xFE00` |
-| NT51930 | Common FW 1.x cascade `14..29` | single slots plus DiffDLM `[0x2F200,0x52200)` `0x23000` |
+| NT51930 | Common FW 1.x cascade `14..29` | single slots plus approved DiffDLM `[0x2F200,0x3F000)` `0xFE00`; archived extended row remains disabled pending product evidence |
 | NT51930 | Common FW 2.0.0 single | NF `[0x1FC00,0x21650)` `0x1A50`; Normal `[0x21650,0x24250)` `0x2C00`; VN `[0x27650,0x28FB0)` `0x1960` |
 | NT51930 | Common FW 2.0.0 cascade `2..29` | single slots plus DiffDLM `[0x2F200,0x3F000)` `0xFE00` |
 | NT51931 | official single, currently blocked by Combiner 1.13.0 crash | NF `[0x16800,0x177D0)` `0xFD0`; Normal `[0x177D0,0x19FD0)` `0x2800`; MP `[0x19FD0,0x1C3D0)` `0x2400`; VN `[0x1C3D0,0x1DA30)` `0x1660` |

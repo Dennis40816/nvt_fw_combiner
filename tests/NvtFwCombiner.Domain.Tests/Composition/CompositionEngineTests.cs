@@ -3,7 +3,7 @@ using NvtFwCombiner.Domain.Composition;
 namespace NvtFwCombiner.Domain.Tests.Composition;
 
 /// <summary>Tests shared composition engine execution semantics.</summary>
-public sealed class CompositionEngineTests
+public sealed partial class CompositionEngineTests
 {
     /// <summary>Verifies blank initialization fills the output before copy operations execute.</summary>
     [Fact]
@@ -121,7 +121,7 @@ public sealed class CompositionEngineTests
 
         Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
         CompositionIssue issue = Assert.Single(result.Issues);
-        Assert.Equal("input.address-space.length-mismatch", issue.Code);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, issue.Code);
         Assert.Contains("0x2, 0x4", issue.Message, StringComparison.Ordinal);
         Assert.Contains("actual length is 3 bytes", issue.Message, StringComparison.Ordinal);
     }
@@ -151,10 +151,46 @@ public sealed class CompositionEngineTests
 
         Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
         CompositionIssue issue = Assert.Single(result.Issues);
-        Assert.Equal("input.address-space.length-mismatch", issue.Code);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, issue.Code);
         Assert.Contains("exceed declared length", issue.Message, StringComparison.Ordinal);
         Assert.Contains("actual 3 bytes", issue.Message, StringComparison.Ordinal);
         Assert.Contains("declared 2 bytes", issue.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies approved DP range extraction accepts a sufficient nonstandard artifact and reports a warning.</summary>
+    [Fact]
+    public void DeclaredRangeExtractionUsesOnlyRequiredBytesAndWarnsForUnexpectedLength()
+    {
+        CompositionPlan plan = CreateBlankPlan(
+            2,
+            new AddressSpace(
+                "input",
+                2,
+                AddressSpaceMutability.Immutable,
+                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
+                expectedInputLengths: [4]),
+            CompositionOperation.CopyRange(
+                "copy-input",
+                10,
+                "input",
+                new ByteRange(0, 2),
+                "output-image",
+                new ByteRange(0, 2),
+                OverlapPolicy.Reject,
+                "copy declared source range"));
+        var input = new CompositionExecutionInput(new Dictionary<string, byte[]>
+        {
+            ["input"] = [0x11, 0x22, 0x33],
+        });
+
+        CompositionExecutionResult result = CompositionEngine.Execute(plan, input);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal([0x11, 0x22], result.OutputBytes.ToArray());
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthUnexpected, issue.Code);
+        Assert.Equal(CompositionIssueSeverity.Warning, issue.Severity);
+        Assert.Contains("unexpected length 3 bytes", issue.Message, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies CtrlRAM replace inputs may truncate oversized source bytes with a run diagnostic.</summary>
@@ -193,7 +229,7 @@ public sealed class CompositionEngineTests
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Equal([0, 0xAA, 0xBB, 0], result.OutputBytes.ToArray());
         CompositionIssue issue = Assert.Single(result.Issues);
-        Assert.Equal("input.address-space.truncated", issue.Code);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceTruncated, issue.Code);
         Assert.Equal(CompositionIssueSeverity.Warning, issue.Severity);
         Assert.Equal("ctrlram-input", issue.OperationId);
         Assert.Contains("from 4 to 2 bytes", issue.Message, StringComparison.Ordinal);
@@ -247,7 +283,7 @@ public sealed class CompositionEngineTests
 
         Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
         CompositionIssue issue = Assert.Single(result.Issues);
-        Assert.Equal("execution.capacity.unsupported", issue.Code);
+        Assert.Equal(CompositionIssueCodes.ExecutionCapacityUnsupported, issue.Code);
     }
 
     /// <summary>Verifies patch-scalar writes exactly the supplied bytes without implicit endian conversion.</summary>
@@ -314,7 +350,7 @@ public sealed class CompositionEngineTests
 
         Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
         CompositionIssue issue = Assert.Single(result.Issues);
-        Assert.Equal("input.address-space.missing", issue.Code);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceMissing, issue.Code);
         Assert.Empty(result.OutputBytes.ToArray());
     }
 
@@ -345,277 +381,7 @@ public sealed class CompositionEngineTests
 
         Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
         CompositionIssue issue = Assert.Single(result.Issues);
-        Assert.Equal("input.mutable-address-space.missing", issue.Code);
+        Assert.Equal(CompositionIssueCodes.InputMutableAddressSpaceMissing, issue.Code);
     }
 
-    /// <summary>Verifies external processor operations use the engine hook and produce normal mutation trace.</summary>
-    [Fact]
-    public async Task ExternalProcessorOperationMutatesThroughHook()
-    {
-        CompositionPlan plan = CreateBlankPlan(
-            4,
-            CreateExternalOperation());
-
-        CompositionExecutionResult result = await CompositionEngine.ExecuteAsync(
-            plan,
-            EmptyInput(),
-            (operation, inputBytes, stagedSources, _) =>
-            {
-                Assert.Equal("run-crc", operation.OperationId);
-                Assert.Equal([0xFF, 0xFF, 0xFF, 0xFF], inputBytes.ToArray());
-                Assert.Empty(stagedSources);
-                byte[] output = inputBytes.ToArray();
-                output[2] = 0x44;
-                return ValueTask.FromResult(CompositionExternalProcessorResult.Success(output));
-            },
-            CancellationToken.None);
-
-        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0xFF, 0xFF, 0x44, 0xFF], result.OutputBytes.ToArray());
-        MutationRecord mutation = Assert.Single(result.Mutations);
-        Assert.Equal(CompositionOperationKind.RunExternalProcessor, mutation.OperationKind);
-        Assert.Equal([new ByteRange(2, 1)], mutation.ChangedRanges);
-    }
-
-    /// <summary>Verifies staged source bytes reach the external hook without first changing the target image.</summary>
-    [Fact]
-    public async Task ExternalProcessorReceivesStagedSourcesWithoutHostPrePaste()
-    {
-        AddressSpace[] addressSpaces =
-        [
-            new("reference-base", 4, AddressSpaceMutability.Immutable),
-            new("ctrlram-input", 2, AddressSpaceMutability.Immutable, inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
-            new("output-image", 4, AddressSpaceMutability.Mutable),
-        ];
-        var plan = new CompositionPlan(
-            ImageInitialization.Reference("output-image", "reference-base", 4),
-            addressSpaces,
-            [
-                CompositionOperation.RunExternalProcessor(
-                    "run-postbuild",
-                    10,
-                    "output-image",
-                    new ByteRange(0, 4),
-                    new ExternalProcessorInvocation(
-                        "processor-v1",
-                        "tool-v1",
-                        [new ByteRange(0, 4)],
-                        [new ByteRange(1, 2)],
-                        [
-                            new ExternalProcessorStagedSourceBinding(
-                                "ctrlram-input",
-                                new ByteRange(0, 2),
-                                new ByteRange(1, 2)),
-                        ]),
-                    OverlapPolicy.ReplaceExisting,
-                    "run combiner pasteback"),
-            ],
-            CreateCtrlRamReplaceProvenance());
-        var input = new CompositionExecutionInput(new Dictionary<string, byte[]>
-        {
-            ["reference-base"] = [0x10, 0x20, 0x30, 0x40],
-            ["ctrlram-input"] = [0xAA, 0xBB, 0xCC],
-        });
-
-        CompositionExecutionResult result = await CompositionEngine.ExecuteAsync(
-            plan,
-            input,
-            (_, inputBytes, stagedSources, _) =>
-            {
-                Assert.Equal([0x10, 0x20, 0x30, 0x40], inputBytes.ToArray());
-                ExternalProcessorStagedSource stagedSource = Assert.Single(stagedSources);
-                Assert.Equal(new ByteRange(1, 2), stagedSource.FirmwareRange);
-                Assert.Equal([0xAA, 0xBB], stagedSource.Bytes.ToArray());
-                byte[] output = inputBytes.ToArray();
-                stagedSource.Bytes.CopyTo(output.AsMemory((int)stagedSource.FirmwareRange.Start));
-                return ValueTask.FromResult(CompositionExternalProcessorResult.Success(output));
-            },
-            CancellationToken.None);
-
-        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0x10, 0xAA, 0xBB, 0x40], result.OutputBytes.ToArray());
-        Assert.Contains(result.Issues, issue => issue.Code == "input.address-space.truncated");
-    }
-
-    /// <summary>Verifies truncation diagnostics remain visible when a later processor fails.</summary>
-    [Fact]
-    public async Task ExternalProcessorFailureKeepsPriorTruncationIssue()
-    {
-        AddressSpace[] addressSpaces =
-        [
-            new("reference-base", 4, AddressSpaceMutability.Immutable),
-            new("ctrlram-input", 2, AddressSpaceMutability.Immutable, inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
-            new("output-image", 4, AddressSpaceMutability.Mutable),
-        ];
-        var plan = new CompositionPlan(
-            ImageInitialization.Reference("output-image", "reference-base", 4),
-            addressSpaces,
-            [
-                CompositionOperation.ReplaceRange(
-                    "replace-ctrlram",
-                    10,
-                    "ctrlram-input",
-                    new ByteRange(0, 2),
-                    "output-image",
-                    new ByteRange(1, 2),
-                    OverlapPolicy.Reject,
-                    "replace ctrlram"),
-                CompositionOperation.RunExternalProcessor(
-                    "run-crc",
-                    20,
-                    "output-image",
-                    new ByteRange(0, 4),
-                    CreateExternalInvocation(writeRange: new ByteRange(3, 1)),
-                    OverlapPolicy.ReplaceExisting,
-                    "run crc"),
-            ],
-            CreateCtrlRamReplaceProvenance());
-        var input = new CompositionExecutionInput(new Dictionary<string, byte[]>
-        {
-            ["reference-base"] = [0, 0, 0, 0],
-            ["ctrlram-input"] = [0xAA, 0xBB, 0xCC],
-        });
-
-        CompositionExecutionResult result = await CompositionEngine.ExecuteAsync(
-            plan,
-            input,
-            (_, _, _, _) => ValueTask.FromResult(CompositionExternalProcessorResult.Failed([
-                new CompositionIssue("external-tool.process.failed", "processor failed", "run-crc"),
-            ])),
-            CancellationToken.None);
-
-        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
-        Assert.Contains(result.Issues, issue => issue.Code == "input.address-space.truncated");
-        Assert.Contains(result.Issues, issue => issue.Code == "external-tool.process.failed");
-    }
-
-    /// <summary>Verifies external processor operations fail closed when no adapter hook is supplied.</summary>
-    [Fact]
-    public void ExternalProcessorOperationRequiresHook()
-    {
-        CompositionPlan plan = CreateBlankPlan(
-            4,
-            CreateExternalOperation());
-
-        CompositionExecutionResult result = CompositionEngine.Execute(plan, EmptyInput());
-
-        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
-        CompositionIssue issue = Assert.Single(result.Issues);
-        Assert.Equal("execution.external-processor.unavailable", issue.Code);
-        Assert.Equal("run-crc", issue.OperationId);
-    }
-
-    /// <summary>Verifies processor write authority must stay inside the staged target range.</summary>
-    [Fact]
-    public void ExternalProcessorAllowedWriteRangeMustStayInsideTargetRange()
-    {
-        ExternalProcessorInvocation invocation = CreateExternalInvocation(writeRange: new ByteRange(3, 2));
-
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => CreateBlankPlan(
-            4,
-            CompositionOperation.RunExternalProcessor(
-                "run-crc",
-                10,
-                "output-image",
-                new ByteRange(0, 4),
-                invocation,
-                OverlapPolicy.Reject,
-                "run approved fake processor")));
-    }
-
-    /// <summary>Verifies staged external processors always receive the full target image coordinate space.</summary>
-    [Fact]
-    public void ExternalProcessorTargetRangeMustCoverFullTargetSpace()
-    {
-        ExternalProcessorInvocation invocation = CreateExternalInvocation(writeRange: new ByteRange(1, 1));
-
-        _ = Assert.Throws<ArgumentException>(() => CreateBlankPlan(
-            4,
-            CompositionOperation.RunExternalProcessor(
-                "run-crc",
-                10,
-                "output-image",
-                new ByteRange(1, 2),
-                invocation,
-                OverlapPolicy.Reject,
-                "run approved fake processor")));
-    }
-
-    private static CompositionExecutionInput EmptyInput()
-    {
-        return new CompositionExecutionInput(new Dictionary<string, byte[]>());
-    }
-
-    private static CompositionPlan CreateBlankPlan(
-        long capacity,
-        params object[] declarations)
-    {
-        List<AddressSpace> addressSpaces =
-        [
-            new("output-image", capacity, AddressSpaceMutability.Mutable),
-        ];
-        List<CompositionOperation> operations = [];
-        foreach (object declaration in declarations)
-        {
-            if (declaration is AddressSpace addressSpace)
-            {
-                addressSpaces.Add(addressSpace);
-            }
-            else if (declaration is CompositionOperation operation)
-            {
-                operations.Add(operation);
-            }
-        }
-
-        return new CompositionPlan(ImageInitialization.Blank("output-image", capacity, 0xFF), addressSpaces, operations);
-    }
-
-    private static CompositionPlan CreateReferencePlan(
-        long capacity,
-        AddressSpace sourceSpace,
-        CompositionOperation operation)
-    {
-        AddressSpace[] addressSpaces =
-        [
-            new("reference-base", capacity, AddressSpaceMutability.Immutable),
-            new("output-image", capacity, AddressSpaceMutability.Mutable),
-            sourceSpace,
-        ];
-        return new CompositionPlan(
-            ImageInitialization.Reference("output-image", "reference-base", capacity),
-            addressSpaces,
-            [operation]);
-    }
-
-    private static CompositionOperation CreateExternalOperation()
-    {
-        return CompositionOperation.RunExternalProcessor(
-            "run-crc",
-            10,
-            "output-image",
-            new ByteRange(0, 4),
-            CreateExternalInvocation(),
-            OverlapPolicy.Reject,
-            "run approved fake processor");
-    }
-
-    private static ExternalProcessorInvocation CreateExternalInvocation(ByteRange? writeRange = null)
-    {
-        return new ExternalProcessorInvocation(
-            "processor-v1",
-            "tool-v1",
-            [new ByteRange(0, 4)],
-            [writeRange ?? new ByteRange(2, 1)]);
-    }
-
-    private static CompositionPlanProvenance CreateCtrlRamReplaceProvenance()
-    {
-        return new CompositionPlanProvenance(
-            "ctrlram-replace-profile",
-            "1.0.0",
-            "NT-SYNTHETIC",
-            "ctrlram-replace",
-            "ctrlram-replace",
-            CompositionKind.Replace);
-    }
 }

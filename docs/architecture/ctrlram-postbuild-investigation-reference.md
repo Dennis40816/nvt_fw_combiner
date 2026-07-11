@@ -26,7 +26,7 @@ Repository evidence used:
 
 - `src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.cs`
 - `src/NvtFwCombiner.Application/FlashMaps/TpFlashMapCatalog.cs`
-- `src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles.cs`
+- `src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles*.cs`
 - `testdata/golden/standard-merge-gen-flash/manifest.json`
 - `testdata/golden/standard-merge-gen-flash/test_ic_config.json`
 - `external-tools/legacy-combiner/1.13.0/Combiner.exe`

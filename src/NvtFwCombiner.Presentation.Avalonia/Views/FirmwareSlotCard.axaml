@@ -1,0 +1,68 @@
+<UserControl
+    x:Class="NvtFwCombiner.Presentation.Avalonia.Views.FirmwareSlotCard"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    x:Name="Root"
+    x:DataType="vm:FirmwareSlotViewModel">
+  <Border
+      Classes="fileDropZone"
+      HorizontalAlignment="Stretch"
+      Margin="0,0,0,10"
+      Padding="0"
+      Background="{Binding SlotBackgroundBrush}"
+      BorderBrush="{Binding SlotBorderBrush}"
+      BorderThickness="{Binding SlotBorderThickness}"
+      CornerRadius="8"
+      DragDrop.AllowDrop="True"
+      DragDrop.DragEnter="DropZone_OnDragEnter"
+      DragDrop.DragOver="SlotDragOver_OnDragOver"
+      DragDrop.DragLeave="DropZone_OnDragLeave"
+      DragDrop.Drop="SlotDrop_OnDrop"
+      Tag="{Binding SlotId}">
+    <Grid>
+      <Border Classes="dropZoneOverlay" />
+      <Grid Margin="14" ColumnDefinitions="*,Auto" ColumnSpacing="14">
+        <StackPanel Spacing="4">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Border
+                Classes="slotTypeIcon"
+                Background="{Binding SlotIconBackgroundBrush}"
+                BorderBrush="{Binding SlotIconBorderBrush}"
+                ToolTip.Tip="{Binding SlotIconTooltip}">
+              <Path
+                  Data="{Binding SlotIconPathData}"
+                  Stroke="{Binding SlotIconForegroundBrush}" />
+            </Border>
+            <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Title}" />
+            <Label
+                Classes="slotBadge"
+                Background="{Binding RequirementBadgeBackgroundBrush}"
+                BorderBrush="{Binding RequirementBadgeBorderBrush}"
+                Foreground="{Binding RequirementBadgeForegroundBrush}"
+                Content="{Binding RequirementLabel}" />
+          </StackPanel>
+          <TextBlock Classes="mutedText" Text="{Binding Description}" TextWrapping="Wrap" />
+          <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#334155" Text="{Binding DisplayName}" TextWrapping="Wrap" />
+          <ItemsControl IsVisible="{Binding HasFirmwareFacts}" ItemsSource="{Binding FirmwareFacts}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel Orientation="Horizontal" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <StaticResource ResourceKey="FirmwareSlotFactTemplate" />
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Classes="technicalMeta" IsVisible="{Binding HasFile}" Text="{Binding DisplayDetail}" TextWrapping="Wrap" />
+        </StackPanel>
+        <Button
+            Grid.Column="1"
+            Classes="action browseAction"
+            Click="BrowseButton_OnClick"
+            Content="{Binding BrowseLabel, ElementName=Root}"
+            Tag="{Binding SlotId}" />
+      </Grid>
+    </Grid>
+  </Border>
+</UserControl>

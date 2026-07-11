@@ -12,7 +12,8 @@ public static partial class WorkbenchCompositionService
     // a 0x100-byte firmware header copy block, and General Replace has no owner-approved
     // header editing workflow yet.
     private const long GeneralReplaceProtectedHeaderLength = 0x100;
-    private const int GeneralReplacePostbuildSequence = 900;
+    private const int GeneralReplaceMappingSequenceStart = 100;
+    private const int GeneralReplacePostbuildSequence = 1_000_000;
 
     private static CompositionProfileDefinition CreateGeneralReplaceProfile(
         string icId,
@@ -20,9 +21,10 @@ public static partial class WorkbenchCompositionService
         long capacity,
         LegacyCombinerPostbuildProfile? postbuildProfile,
         LegacyCombinerPostbuildCommandPlan? commandPlan,
-        IReadOnlyList<ByteRange> postbuildWriteRanges)
+        IReadOnlyList<LegacyCombinerPostbuildWriteRange> postbuildWriteRangeSections)
     {
         string normalizedIc = icId.ToLowerInvariant();
+        ByteRange[] postbuildWriteRanges = [.. postbuildWriteRangeSections.Select(section => section.Range)];
         ProfileRegion[] regions = CreateGeneralReplaceRegions(
             icId,
             selection,
@@ -47,13 +49,15 @@ public static partial class WorkbenchCompositionService
                 CompositionOperation.RunExternalProcessor(
                     $"postbuild-{commandPlan.Branch.ToString().ToLowerInvariant()}",
                     GeneralReplacePostbuildSequence,
-                    "output-image",
+                    CompositionAddressSpaceIds.OutputImage,
                     new ByteRange(0, capacity),
                     new ExternalProcessorInvocation(
                         postbuildProfile.ProcessorId,
                         postbuildProfile.ToolBindingId,
                         [new ByteRange(0, capacity)],
-                        postbuildWriteRanges),
+                        postbuildWriteRanges,
+                        allowedWriteRangeSections: postbuildWriteRangeSections.Select(section =>
+                            new ExternalProcessorWriteRangeSection(section.SectionId, section.Range, section.SourceRange))),
                     OverlapPolicy.ReplaceExisting,
                     $"Run {commandPlan.Branch} legacy Combiner postbuild after TP-touching General Replace mappings. Combiner command: {FormatPostbuildCommandBlock(commandPlan)}."),
             ];
@@ -62,14 +66,14 @@ public static partial class WorkbenchCompositionService
             $"{normalizedIc}-general-replace-workbench",
             "0.7.0",
             icId,
-            "general-replace",
+            IcWorkflowIds.GeneralReplace,
             CompositionKind.Replace,
-            "general-replace",
+            IcWorkflowIds.GeneralReplace,
             $"{normalizedIc}-general-replace.bin",
-            ImageInitialization.Reference("output-image", "reference-base", capacity),
+            ImageInitialization.Reference(CompositionAddressSpaceIds.OutputImage, CompositionAddressSpaceIds.ReferenceBase, capacity),
             [
-                new AddressSpace("reference-base", capacity, AddressSpaceMutability.Immutable),
-                new AddressSpace("output-image", capacity, AddressSpaceMutability.Mutable),
+                new AddressSpace(CompositionAddressSpaceIds.ReferenceBase, capacity, AddressSpaceMutability.Immutable),
+                new AddressSpace(CompositionAddressSpaceIds.OutputImage, capacity, AddressSpaceMutability.Mutable),
             ],
             operations,
             regions,
@@ -94,7 +98,7 @@ public static partial class WorkbenchCompositionService
             AddGeneralReplaceSplitRegion(
                 regions,
                 "protected-header",
-                "output-image",
+                CompositionAddressSpaceIds.OutputImage,
                 new ByteRange(0, protectedHeaderEnd),
                 RegionAtomicity.Whole,
                 RegionWritePolicy.Forbidden,
@@ -118,7 +122,7 @@ public static partial class WorkbenchCompositionService
             AddGeneralReplaceSplitRegion(
                 regions,
                 region.RegionId,
-                "output-image",
+                CompositionAddressSpaceIds.OutputImage,
                 ByteRange.FromStartEndExclusive(start, end),
                 explicitRange ? RegionAtomicity.ExplicitMapping : RegionAtomicity.Whole,
                 explicitRange ? RegionWritePolicy.GeneralExplicit : RegionWritePolicy.Forbidden,
@@ -132,7 +136,7 @@ public static partial class WorkbenchCompositionService
             {
                 regions.Add(new ProfileRegion(
                     FormattableString.Invariant($"postbuild-write-{index:D2}"),
-                    "output-image",
+                    CompositionAddressSpaceIds.OutputImage,
                     range,
                     RegionAtomicity.Whole,
                     RegionWritePolicy.Forbidden,

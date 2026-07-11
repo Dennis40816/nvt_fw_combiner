@@ -1,0 +1,386 @@
+using System.Reflection;
+using Avalonia;
+using NvtFwCombiner.Presentation.Avalonia.Behaviors;
+using NvtFwCombiner.Presentation.Avalonia.Views;
+using NvtFwCombiner.TestSupport;
+
+namespace NvtFwCombiner.UiSmoke.Tests;
+
+/// <summary>Regression coverage for shared Avalonia visual-control contracts.</summary>
+public sealed class XamlControlStyleContractTests
+{
+    /// <summary>Keeps every technical hexadecimal field on one canonical display format.</summary>
+    [Fact]
+    public void HexInputBehaviorNormalizesAddressesBytesAndExcelPaste()
+    {
+        Assert.Equal("0xAB12", HexTextInputBehavior.NormalizeText("0Xab12g", HexTextInputMode.Address));
+        Assert.Equal("0x123A", HexTextInputBehavior.NormalizeText("123a", HexTextInputMode.Address));
+        Assert.Equal("C5", HexTextInputBehavior.NormalizeText("c5z", HexTextInputMode.Byte));
+        Assert.Equal(
+            "A5\t5A\r\n01,FF",
+            HexTextInputBehavior.NormalizeText("a5\t5a\r\n01,ffz", HexTextInputMode.ByteSequence));
+    }
+
+    /// <summary>Ensures badge alignment and raw-text scrolling remain centralized.</summary>
+    [Fact]
+    public void SharedControlStylesDefineTheBadgeAndReadOnlyRawContracts()
+    {
+        string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
+
+        Assert.Contains("Selector=\"Label.reportBadge\"", styles, StringComparison.Ordinal);
+        Assert.Contains("HorizontalContentAlignment\" Value=\"Center\"", styles, StringComparison.Ordinal);
+        Assert.Contains("VerticalContentAlignment\" Value=\"Center\"", styles, StringComparison.Ordinal);
+        Assert.Contains("MinHeight\" Value=\"22\"", styles, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"TextBox.readOnlyRaw\"", styles, StringComparison.Ordinal);
+        Assert.Contains("IsReadOnly\" Value=\"True\"", styles, StringComparison.Ordinal);
+        Assert.Contains("ScrollViewer.HorizontalScrollBarVisibility\" Value=\"Auto\"", styles, StringComparison.Ordinal);
+        Assert.Contains("ScrollViewer.VerticalScrollBarVisibility\" Value=\"Auto\"", styles, StringComparison.Ordinal);
+    }
+
+    /// <summary>Ensures the Report raw payload uses the shared read-only text control.</summary>
+    [Fact]
+    public void ReportRawPayloadUsesTheSharedReadOnlyTextBox()
+    {
+        string rawTemplate = ReadPresentationFile("Resources/MainWindowReportAuditTemplates.axaml");
+        Assert.Contains("<TextBox", rawTemplate, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"readOnlyRaw\"", rawTemplate, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding LoadedReportJson, Mode=OneWay}\"", rawTemplate, StringComparison.Ordinal);
+        Assert.DoesNotContain("<ScrollViewer MaxHeight=\"320\"", rawTemplate, StringComparison.Ordinal);
+    }
+
+    /// <summary>Ensures application resources expose the shared control style library to all views.</summary>
+    [Fact]
+    public void SharedControlStyleLibraryIsIncludedByTheApplication()
+    {
+        string application = ReadPresentationFile("App.axaml");
+        string slotCard = ReadPresentationFile("Views/FirmwareSlotCard.axaml");
+
+        Assert.Contains("Styles/MainWindowControlStyles.axaml", application, StringComparison.Ordinal);
+        Assert.Contains("<Label", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"slotBadge\"", slotCard, StringComparison.Ordinal);
+    }
+
+    /// <summary>Ensures Hex Editor uses the shared safe-save and immutable-reference interaction contracts.</summary>
+    [Fact]
+    public void HexEditorUsesConfirmedSaveAndReadOnlyReferenceRows()
+    {
+        string shell = ReadPresentationFile("MainWindow.axaml");
+        string hexEditor = ReadPresentationFile("Views/HexEditorPanel.axaml");
+        string viewport = ReadPresentationFile("Views/HexEditorViewportControl.cs");
+        string historyFeedback = ReadPresentationFile("Views/HexEditorViewportControl.HistoryFeedback.cs");
+        string renderingSupport = ReadPresentationFile("Views/HexEditorViewportControl.RenderingSupport.cs");
+        string sharedStyles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
+
+        Assert.Contains("Gesture=\"Ctrl+S\"", shell, StringComparison.Ordinal);
+        Assert.Contains("RequestHexEditorSaveCommand", shell, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"HexInlineEditor\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("<views:HexEditorViewportControl", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("row.IsOriginalRowVisible", viewport, StringComparison.Ordinal);
+        Assert.Contains("DrawReferenceRow", viewport, StringComparison.Ordinal);
+        Assert.Contains("ReferenceChangedBrush", viewport, StringComparison.Ordinal);
+        Assert.Contains("DrawAsciiStructuralBlocks", viewport, StringComparison.Ordinal);
+        Assert.DoesNotContain("IBrush StructuralBrush =", viewport, StringComparison.Ordinal);
+        Assert.Contains("$\"{displayAddress}  orig\"", renderingSupport, StringComparison.Ordinal);
+        Assert.Contains("HistoryFeedbackVersion", viewport, StringComparison.Ordinal);
+        Assert.Contains("DispatcherTimer", historyFeedback, StringComparison.Ordinal);
+        Assert.Contains("DrawHistoryFeedback", historyFeedback, StringComparison.Ordinal);
+        Assert.Contains("DrawAsciiSearchRanges", viewport, StringComparison.Ordinal);
+        Assert.Equal(2, viewport.Split("DrawHoverOutline(context, rect", StringSplitOptions.None).Length - 1);
+        Assert.Contains("TextChanged=\"HexByteEditBox_OnTextChanged\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("behaviors:HexTextInputBehavior.Mode=\"Byte\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("behaviors:HexTextInputBehavior.Mode=\"ByteSequence\"", hexEditor, StringComparison.Ordinal);
+        Assert.Equal(3, hexEditor.Split("behaviors:HexTextInputBehavior.Mode=\"Address\"", StringSplitOptions.None).Length - 1);
+        Assert.Contains("behaviors:HexTextInputBehavior.Mode", sharedStyles, StringComparison.Ordinal);
+        Assert.Contains("input:InputMethod.IsInputMethodEnabled=\"False\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("HexEditorSourceDrop_OnDrop", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("Height=\"{Binding HexViewportHeight}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Tip=\"{Binding EditorStatus}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"hexInspectorHint\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("Classes.error=\"{Binding HasEditFeedback}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding EditNotice}\"", hexEditor, StringComparison.Ordinal);
+        Assert.DoesNotContain("Classes=\"hexInspectorFeedback\"", hexEditor, StringComparison.Ordinal);
+        Assert.DoesNotContain("Text=\"{Binding EditFeedback}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"Border.hexInspectorHint\"", ReadPresentationFile("Styles/MainWindowControlStyles.axaml"), StringComparison.Ordinal);
+        Assert.Contains("Selector=\"Border.hexInspectorHint.error\"", ReadPresentationFile("Styles/MainWindowControlStyles.axaml"), StringComparison.Ordinal);
+    }
+
+    /// <summary>Uses one hover overlay policy for both Hex and ASCII across every visible byte state.</summary>
+    [Fact]
+    public void HexEditorHoverOutlineDoesNotDisappearBehindByteState()
+    {
+        foreach (HexEditorCellVisualState state in Enum.GetValues<HexEditorCellVisualState>())
+        {
+            Assert.True(HexEditorViewportControl.ShouldDrawHoverOutline(isReference: false, isHovered: true, state));
+            Assert.False(HexEditorViewportControl.ShouldDrawHoverOutline(isReference: false, isHovered: false, state));
+            Assert.False(HexEditorViewportControl.ShouldDrawHoverOutline(isReference: true, isHovered: true, state));
+        }
+    }
+
+    /// <summary>Ensures the Hex Editor inspector remains compact and the source and data surfaces share one workbench grid.</summary>
+    [Fact]
+    public void HexEditorInspectorUsesCompactTopAlignedLayout()
+    {
+        string shell = ReadPresentationFile("MainWindow.axaml");
+        string hexEditor = ReadPresentationFile("Views/HexEditorPanel.axaml");
+        string codeBehind = ReadPresentationFile("Views/HexEditorPanel.axaml.cs");
+
+        Assert.Contains("<ScrollViewer Grid.Row=\"3\">", shell, StringComparison.Ordinal);
+        Assert.True(
+            shell.IndexOf("ContentTemplate=\"{StaticResource HexEditorPageTemplate}\"", StringComparison.Ordinal) <
+            shell.IndexOf("</ScrollViewer>", StringComparison.Ordinal));
+        Assert.Contains("MaxWidth=\"1720\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("ColumnDefinitions=\"*,336\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("Grid.Column=\"1\" Classes=\"compactSurface\" VerticalAlignment=\"Stretch\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("ColumnDefinitions=\"*,*\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("<ScrollBar", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("ColumnDefinitions=\"*,20\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("Maximum=\"{Binding DocumentScrollMaximum}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("ViewportSize=\"{Binding VisibleRowCount}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("ValueChanged=\"HexDocumentScrollBar_OnValueChanged\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding Text.HexEditorDocumentScrollBarAutomationName}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"iconButton hexGoToAddress\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Tip=\"{Binding Text.HexEditorGoToAddressLabel}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding FindAsciiCommand}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.HelpText=\"{Binding SelectedByteAccessibleLabel}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"GoToAddressTextBox\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("KeyDown=\"GoToAddressTextBox_OnKeyDown\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"AsciiSearchTextBox\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("KeyDown=\"AsciiSearchTextBox_OnKeyDown\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("AddHandler(KeyDownEvent, HexEditorPanel_OnKeyDown, RoutingStrategies.Tunnel)", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("ColumnDefinitions=\"Auto,*,196\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("ToggleSwitch", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"hexOriginalRowsToggle\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("SelectNextChangedBlockCommand", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("ChangedBlockCount", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding ApplyRangeEditCommand}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"hexWriteModeToggle\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding CurrentWriteModeLabel}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"iconButton hexInspectorAction\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"primary hexApplyChange\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding ChangedBlocks}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Tip=\"{Binding ReasonTooltip}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.HelpText=\"{Binding ReasonTooltip}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("TextAlignment=\"Left\"", hexEditor, StringComparison.Ordinal);
+        Assert.DoesNotContain("Classes=\"hexEditMode\"", hexEditor, StringComparison.Ordinal);
+        Assert.DoesNotContain("Approved region", hexEditor, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Maintains the compact Utility card hierarchy while keeping the full raw-editor warning on hover.</summary>
+    [Fact]
+    public void HomeUtilityCardUsesOneLineSummaryAndHoverDetail()
+    {
+        string homeTemplates = ReadPresentationFile("Resources/MainWindowPageTemplates.axaml");
+
+        Assert.Contains("Text=\"{Binding Text.UtilToolsLabel}\"", homeTemplates, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.UtilToolsHomeTitle}\"", homeTemplates, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.UtilToolsHomeDetail}\"", homeTemplates, StringComparison.Ordinal);
+        Assert.Contains("TextTrimming=\"CharacterEllipsis\"", homeTemplates, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Tip=\"{Binding Text.HexEditorDetail}\"", homeTemplates, StringComparison.Ordinal);
+    }
+
+    /// <summary>Keeps bounded multi-byte insertion explicit, accessible, and separate from overwrite/fill mode.</summary>
+    [Fact]
+    public void HexEditorBatchInsertUsesAContextActionAndBoundedModal()
+    {
+        string shell = ReadPresentationFile("MainWindow.axaml");
+        string insertModal = ReadPresentationFile("Views/HexEditorInsertBytesModal.axaml");
+
+        Assert.Contains("<views:HexEditorInsertBytesModal", shell, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsInsertBytesPromptOpen}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("<NumericUpDown", insertModal, StringComparison.Ordinal);
+        Assert.Contains("Maximum=\"{Binding MaximumInsertByteCount}\"", insertModal, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding ConfirmInsertBytesCommand}\"", insertModal, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding CancelInsertBytesCommand}\"", insertModal, StringComparison.Ordinal);
+    }
+
+    /// <summary>Keeps each byte value centered on the calculated 16-column viewport geometry.</summary>
+    [Fact]
+    public void HexEditorByteCellsCenterTheirContentUnderTheHeader()
+    {
+        string viewport = ReadPresentationFile("Views/HexEditorViewportControl.cs");
+
+        Assert.Contains("private const int BytesPerRow = 16", viewport, StringComparison.Ordinal);
+        Assert.Contains("rect.X + ((rect.Width - text.Width) / 2)", viewport, StringComparison.Ordinal);
+        Assert.Contains("rect.Y + ((rect.Height - text.Height) / 2)", viewport, StringComparison.Ordinal);
+        Assert.Contains("GetCellWidth()", viewport, StringComparison.Ordinal);
+    }
+
+    /// <summary>Prevents document scrolling from recreating a control, binding, and template for every visible byte.</summary>
+    [Fact]
+    public void HexEditorUsesReadMostlyCellsAndOneSharedContextMenu()
+    {
+        string hexEditor = ReadPresentationFile("Views/HexEditorPanel.axaml");
+        string codeBehind = ReadPresentationFile("Views/HexEditorPanel.axaml.cs");
+        string viewport = ReadPresentationFile("Views/HexEditorViewportControl.cs");
+        string viewportInteraction = ReadPresentationFile("Views/HexEditorViewportControl.Interaction.cs");
+        string viewportStructuralBlocks = ReadPresentationFile("Views/HexEditorViewportControl.StructuralBlocks.cs");
+        string renderingSupport = ReadPresentationFile("Views/HexEditorViewportControl.RenderingSupport.cs");
+        string hexInputBehavior = ReadPresentationFile("Behaviors/HexTextInputBehavior.cs");
+
+        Assert.Contains("<views:HexEditorViewportControl", hexEditor, StringComparison.Ordinal);
+        Assert.DoesNotContain("ItemsSource=\"{Binding ViewportRows}\"", hexEditor, StringComparison.Ordinal);
+        Assert.DoesNotContain("<ContentControl", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("public override void Render(DrawingContext context)", viewport, StringComparison.Ordinal);
+        Assert.Contains("DrawByte(context", viewport, StringComparison.Ordinal);
+        Assert.True(viewport.Split("_hoveredAddress,", StringSplitOptions.None).Length >= 3);
+        Assert.Contains("CreateHexTextCache", renderingSupport, StringComparison.Ordinal);
+        Assert.Contains("PointerPressed += OnPointerPressed", viewport, StringComparison.Ordinal);
+        Assert.Contains("TryHitTestAscii", viewportInteraction, StringComparison.Ordinal);
+        Assert.True(
+            viewportInteraction.IndexOf("TryHitTestAscii(point", StringComparison.Ordinal) <
+            viewportInteraction.IndexOf("TryHitTestStructuralAscii(point", StringComparison.Ordinal));
+        Assert.Contains("!TryHitTestAscii(point, out cell, out bounds)", viewportInteraction, StringComparison.Ordinal);
+        Assert.Contains("HexViewport.TryGetAsciiCellAt(point", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("protected override void OnPointerWheelChanged", viewportInteraction, StringComparison.Ordinal);
+        Assert.Contains("ScrollRequested?.Invoke", viewportInteraction, StringComparison.Ordinal);
+        Assert.Contains("Background=\"Transparent\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("KeyDown += OnKeyDown", viewport, StringComparison.Ordinal);
+        Assert.Contains("GotFocus=\"HexTextInput_OnGotFocus\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("LostFocus=\"HexTextInput_OnLostFocus\"", hexEditor, StringComparison.Ordinal);
+        Assert.DoesNotContain("<Button.ContextMenu>", hexEditor, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsAuthoringDisplayVisible", hexEditor, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsEditorVisible", hexEditor, StringComparison.Ordinal);
+        Assert.DoesNotContain("VirtualizingStackPanel", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("new ContextMenu()", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("_hexByteContextMenu.Open(HexViewport)", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("RequestInsertBytesBeforeCommand.Execute", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("RequestInsertBytesAfterCommand.Execute", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("StructuralBlockContextMenuRequested", viewport, StringComparison.Ordinal);
+        Assert.Contains("TryHitTestStructuralAscii", viewportStructuralBlocks, StringComparison.Ordinal);
+        Assert.Contains("ContainsStructuralPoint", viewportStructuralBlocks, StringComparison.Ordinal);
+        Assert.Contains("row.IsOriginalRowVisible ? RowHeight * 2 : RowHeight", viewportStructuralBlocks, StringComparison.Ordinal);
+        Assert.Contains("HexViewport.TryGetStructuralBlockAt", codeBehind, StringComparison.Ordinal);
+        Assert.True(
+            codeBehind.IndexOf("HexViewport.TryGetStructuralBlockAt", StringComparison.Ordinal) <
+            codeBehind.IndexOf("HexViewport.TryGetCellAt(point", StringComparison.Ordinal));
+        Assert.Contains("GoToChangedBlockStartCommand.Execute", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("GoToChangedBlockEndCommand.Execute", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("NormalizeAddress", hexInputBehavior, StringComparison.Ordinal);
+        Assert.Contains("NormalizeByteSequence", hexInputBehavior, StringComparison.Ordinal);
+        Assert.DoesNotContain("KeepAsciiHexOnly", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("HexDocumentScrollBar_OnValueChanged", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"HexDocumentSurface\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("HexViewport_OnScrollRequested", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("HexDocumentSurface_OnPointerWheelChanged", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("HexDocumentSurface_OnDoubleTapped", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("QueueDocumentScroll", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("QueueViewportLayout", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("HexEditorSourceDrop_OnDrop", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("HexTextInput_OnGotFocus", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("CompleteInlineEdit", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("SetViewportStartRowCommand.Execute", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("_isDocumentScrollQueued", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("DispatcherPriority.Render", codeBehind, StringComparison.Ordinal);
+    }
+
+    /// <summary>Right-click hit testing includes blank pixels inside one wrapped structural outline.</summary>
+    [Fact]
+    public void HexEditorStructuralOutlineIncludesBlankAndCrossRowAreas()
+    {
+        MethodInfo hitTest = typeof(HexEditorViewportControl).GetMethod(
+            "ContainsStructuralPoint",
+            BindingFlags.NonPublic | BindingFlags.Static) ??
+            throw new InvalidOperationException("Structural outline hit test was not found.");
+        Rect[] segments =
+        [
+            new Rect(140, 10, 30, 48),
+            new Rect(80, 60, 40, 48),
+        ];
+
+        bool Contains(Point point)
+        {
+            return (bool)hitTest.Invoke(null, [segments, point, 80d, 220d])!;
+        }
+
+        Assert.True(Contains(new Point(200, 30))); // Blank tail of the first wrapped row.
+        Assert.True(Contains(new Point(100, 59))); // Blank gap between wrapped rows.
+        Assert.True(Contains(new Point(90, 90))); // Blank head of the final wrapped row.
+        Assert.False(Contains(new Point(70, 59)));
+        Assert.False(Contains(new Point(221, 30)));
+    }
+
+    /// <summary>Ensures the desktop shell and distributed executable use the dedicated compact app icon.</summary>
+    [Fact]
+    public void PresentationUsesTheDedicatedApplicationIcon()
+    {
+        string shell = ReadPresentationFile("MainWindow.axaml");
+        string project = ReadPresentationFile("NvtFwCombiner.Presentation.Avalonia.csproj");
+        string icon = RepositoryPaths.FromRepositoryRoot(
+            "src",
+            "NvtFwCombiner.Presentation.Avalonia",
+            "Assets",
+            "AppIcon.ico");
+
+        Assert.Contains("Icon=\"/Assets/AppIcon.ico\"", shell, StringComparison.Ordinal);
+        Assert.Contains("<ApplicationIcon>Assets\\AppIcon.ico</ApplicationIcon>", project, StringComparison.Ordinal);
+        Assert.True(File.Exists(icon));
+        Assert.NotEqual(0, new FileInfo(icon).Length);
+    }
+
+    /// <summary>Ensures the local fixture is Debug-only and never changes the default landing page.</summary>
+    [Fact]
+    public void DebugHexFixturePreloadsWithoutForcingHexEditorNavigation()
+    {
+        string debugDemo = ReadPresentationFile("MainWindow.DebugDemo.cs");
+        string startup = ReadPresentationFile("MainWindow.Report.cs");
+
+        Assert.StartsWith("#if DEBUG", debugDemo, StringComparison.Ordinal);
+        Assert.Contains("SetSlotFile(WorkbenchSlotIds.ReplaceBase, basePath)", debugDemo, StringComparison.Ordinal);
+        Assert.Contains("HexEditorWorkspace.LoadAsync(basePath)", debugDemo, StringComparison.Ordinal);
+        Assert.DoesNotContain("ShowHexEditorCommand.Execute", debugDemo, StringComparison.Ordinal);
+        Assert.Contains("#if DEBUG", startup, StringComparison.Ordinal);
+    }
+
+    /// <summary>Prevents repeated shell, panel, row, and text property bundles from drifting back into templates.</summary>
+    [Fact]
+    public void SharedControlStylesOwnTheCommonXamlRoles()
+    {
+        string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
+        foreach (string selector in new[]
+        {
+            "Border.shellBar",
+            "Border.homePreviewSurface",
+            "Border.roomyPanel",
+            "Border.contentPanel",
+            "Border.listRow",
+            "Border.settingRow",
+            "TextBlock.panelTitle",
+            "TextBlock.supportingText",
+            "TextBlock.infoText",
+            "TextBlock.technicalValue",
+        })
+        {
+            Assert.Contains($"Selector=\"{selector}\"", styles, StringComparison.Ordinal);
+        }
+
+        string[] legacyPropertyBundles =
+        [
+            "FontSize=\"13\" FontWeight=\"SemiBold\" Foreground=\"#0F172A\"",
+            "FontSize=\"12\" Foreground=\"#64748B\"",
+            "FontSize=\"11\" Foreground=\"#64748B\"",
+            "FontSize=\"10\" FontWeight=\"SemiBold\" Foreground=\"#64748B\"",
+            "FontFamily=\"Cascadia Mono, Consolas\" FontSize=\"12\" Foreground=\"#0F172A\"",
+        ];
+
+        foreach (string xaml in ReadPresentationXamlFiles())
+        {
+            foreach (string bundle in legacyPropertyBundles)
+            {
+                Assert.DoesNotContain(bundle, xaml, StringComparison.Ordinal);
+            }
+        }
+    }
+
+    private static string ReadPresentationFile(string relativePath)
+    {
+        return File.ReadAllText(
+            RepositoryPaths.FromRepositoryRoot("src", "NvtFwCombiner.Presentation.Avalonia", relativePath));
+    }
+
+    private static IEnumerable<string> ReadPresentationXamlFiles()
+    {
+        string presentationRoot = RepositoryPaths.FromRepositoryRoot("src", "NvtFwCombiner.Presentation.Avalonia");
+        return Directory.EnumerateFiles(presentationRoot, "*.axaml", SearchOption.AllDirectories)
+            .Select(File.ReadAllText);
+    }
+}

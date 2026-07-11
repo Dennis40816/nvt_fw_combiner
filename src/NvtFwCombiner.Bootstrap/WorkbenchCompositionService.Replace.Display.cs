@@ -1,8 +1,6 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
-using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -17,8 +15,8 @@ public static partial class WorkbenchCompositionService
     {
         return replaceMode switch
         {
-            "DP" => GetDpReplaceInputSlots(icId),
-            "CtrlRAM" => GetCtrlRamReplaceInputSlots(icId, number, basePath),
+            WorkbenchReplaceModes.Dp => GetDpReplaceInputSlots(icId),
+            WorkbenchReplaceModes.CtrlRam => GetCtrlRamReplaceInputSlots(icId, number, basePath),
             _ => [],
         };
     }
@@ -32,7 +30,7 @@ public static partial class WorkbenchCompositionService
         string? ctrlRamBasePath = null)
     {
         IcNumberSelection selection = ToIcNumberSelection(number);
-        LegacyCombinerPostbuildProfile? postbuildProfile = replaceMode == "CtrlRAM" &&
+        LegacyCombinerPostbuildProfile? postbuildProfile = replaceMode == WorkbenchReplaceModes.CtrlRam &&
             TryResolvePostbuildProfileForDisplay(icId, ctrlRamBasePath, out LegacyCombinerPostbuildProfile? profile)
                 ? profile
                 : null;
@@ -52,13 +50,11 @@ public static partial class WorkbenchCompositionService
             ]
             : replaceMode switch
             {
-                "DP" => CreateDpReplaceRows(icId, regions, dpBaseLength),
-                "CtrlRAM" => CreateCtrlRamReplaceRows(
-                    regions,
+                WorkbenchReplaceModes.Dp => CreateDpReplaceRows(icId, regions, dpBaseLength),
+                WorkbenchReplaceModes.CtrlRam => CreateCtrlRamReplaceRows(
                     TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile)),
-                "General" =>
+                WorkbenchReplaceModes.General =>
                 [
-                    .. CreatePreserveRows(regions),
                     new WorkbenchMemoryMapRow(
                         "Runtime range",
                         "Base flash",
@@ -92,17 +88,17 @@ public static partial class WorkbenchCompositionService
         long? dpBaseLength = null,
         string? ctrlRamBasePath = null)
     {
-        if (replaceMode == "DP" && IsNt51950Or51(icId))
+        if (replaceMode == WorkbenchReplaceModes.Dp && IsDpPerspectiveIc(icId))
         {
             return dpBaseLength is long value
-                ? IsSupportedNt51950DpBaseLength(value)
+                ? IsSupportedDpPerspectiveBaseLength(value)
                     ? FormatFullRange(value)
                     : $"Unsupported base BIN length {FormatHexLength(value)}"
-                : $"Base BIN length: {FormatSupportedNt51950DpBaseLengths()}";
+                : $"Base BIN length: {FormatSupportedDpPerspectiveBaseLengths()}";
         }
 
         IcNumberSelection selection = ToIcNumberSelection(number);
-        LegacyCombinerPostbuildProfile? postbuildProfile = replaceMode == "CtrlRAM" &&
+        LegacyCombinerPostbuildProfile? postbuildProfile = replaceMode == WorkbenchReplaceModes.CtrlRam &&
             TryResolvePostbuildProfileForDisplay(icId, ctrlRamBasePath, out LegacyCombinerPostbuildProfile? profile)
                 ? profile
                 : null;
@@ -112,160 +108,4 @@ public static partial class WorkbenchCompositionService
             : FormatFullRange(regions.Max(region => region.Range.EndExclusive));
     }
 
-    /// <summary>Gets final visual coverage segments for the selected Replace view.</summary>
-    public static IReadOnlyList<WorkbenchMemoryCoverageSegment> GetReplaceCoverageSegments(
-        string icId,
-        string number,
-        string replaceMode,
-        long? dpBaseLength = null,
-        string? ctrlRamBasePath = null)
-    {
-        IcNumberSelection selection = ToIcNumberSelection(number);
-        LegacyCombinerPostbuildProfile? postbuildProfile = replaceMode == "CtrlRAM" &&
-            TryResolvePostbuildProfileForDisplay(icId, ctrlRamBasePath, out LegacyCombinerPostbuildProfile? profile)
-                ? profile
-                : null;
-        IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetRegions(
-            icId,
-            selection,
-            postbuildProfile);
-        if (regions.Count == 0)
-        {
-            return
-            [
-                new WorkbenchMemoryCoverageSegment(
-                    "No range",
-                    "No profile",
-                    $"No TP Overview flash-map profile is available for {icId}.",
-                    "#CBD5E1",
-                    280,
-                    false),
-            ];
-        }
-
-        if (replaceMode == "DP" && IsNt51950Or51(icId))
-        {
-            if (dpBaseLength is not long selectedBaseLength)
-            {
-                return
-                [
-                    new WorkbenchMemoryCoverageSegment(
-                        "Base length pending",
-                        "DP base required",
-                        $"Select a base BIN to resolve the actual DP Replace length ({FormatSupportedNt51950DpBaseLengths()}).",
-                        "#E2E8F0",
-                        280,
-                        false),
-                ];
-            }
-
-            if (!IsSupportedNt51950DpBaseLength(selectedBaseLength))
-            {
-                return
-                [
-                    new WorkbenchMemoryCoverageSegment(
-                        $"Unsupported {FormatHexLength(selectedBaseLength)}",
-                        "Unsupported base",
-                        $"This base BIN length is not approved for NT51950/NT51951 DP Replace; use {FormatSupportedNt51950DpBaseLengths()}.",
-                        "#FCA5A5",
-                        280,
-                        false),
-                ];
-            }
-
-            long selectedCapacity = selectedBaseLength;
-            ByteRange tpRestoreRange = BuiltInReplaceProfiles.Nt51950FamilyTpRestoreRange;
-            ByteRange customerInfoPreserveRange = BuiltInReplaceProfiles.Nt51950FamilyCustomerInfoPreserveRange;
-            CoverageSegment[] dpSegments =
-            [
-                new CoverageSegment(
-                    new ByteRange(0, selectedCapacity),
-                    "Base flash",
-                    "Kept from the original base firmware unless a replacement covers it.",
-                    "#E2E8F0",
-                    false),
-            ];
-            var dpRange = new ByteRange(0, selectedCapacity);
-            dpSegments = ApplyCoverageWrite(
-                dpSegments,
-                new CoverageSegment(
-                    dpRange,
-                    "Changed DP BIN",
-                    $"Replacement DP fills the selected base DP length {FormatDisplayRange(dpRange)}; shorter inputs are padded by profile policy.",
-                    "#2563EB",
-                    true));
-            dpSegments = ApplyCoverageWrite(
-                dpSegments,
-                new CoverageSegment(
-                    tpRestoreRange,
-                    "Restored TP",
-                    $"Original TP FW at {FormatDisplayRange(tpRestoreRange)} is copied back from the base firmware.",
-                    "#64748B",
-                    false));
-            dpSegments = ApplyCoverageWrite(
-                dpSegments,
-                new CoverageSegment(
-                    customerInfoPreserveRange,
-                    "Preserved customer info",
-                    $"Customer information at {FormatDisplayRange(customerInfoPreserveRange)} is copied back from the base firmware.",
-                    "#64748B",
-                    false));
-            return ToWorkbenchCoverageSegments(dpSegments, selectedCapacity);
-        }
-
-        long capacity = regions.Max(region => region.Range.EndExclusive);
-        CoverageSegment[] segments =
-        [
-            new CoverageSegment(
-                new ByteRange(0, capacity),
-                "Base flash",
-                "Kept from the original base firmware unless a replacement covers it.",
-                "#E2E8F0",
-                false),
-        ];
-
-        foreach (TpFlashMapRegion region in regions
-            .Where(IsPreservedRegion)
-            .OrderBy(region => region.Range.Start))
-        {
-            segments = ApplyCoverageWrite(
-                segments,
-                new CoverageSegment(
-                    region.Range,
-                    "Preserve",
-                    $"{region.DisplayName} stays from the original base firmware.",
-                    "#94A3B8",
-                    false));
-        }
-
-        IEnumerable<TpFlashMapRegion> replacementRegions = replaceMode switch
-        {
-            "DP" => GetDpReplaceRegions(icId, regions),
-            "CtrlRAM" => TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile),
-            _ => [],
-        };
-
-        foreach (TpFlashMapRegion region in replacementRegions.OrderBy(region => region.Range.Start))
-        {
-            string label = replaceMode switch
-            {
-                "DP" => IsLdRegion(region) ? "Changed LDC BIN" : "Changed DP BIN",
-                "CtrlRAM" => region.DisplayName,
-                _ => "Replacement BIN",
-            };
-            string detail = replaceMode == "CtrlRAM"
-                ? $"{region.DisplayName} can be replaced here. Empty input keeps the original firmware; Preview lists the CRC/header refresh command."
-                : $"{region.DisplayName}; {ActionSummaryForReplaceMode(replaceMode)}";
-            segments = ApplyCoverageWrite(
-                segments,
-                new CoverageSegment(
-                    region.Range,
-                    label,
-                    detail,
-                    CoverageFill(label),
-                    true));
-        }
-
-        return ToWorkbenchCoverageSegments(segments, capacity);
-    }
 }
