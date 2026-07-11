@@ -9,18 +9,53 @@ public sealed class FirmwareMetadataPredicateTests
     [Fact]
     public void ScalarFactoriesPreserveTypedValues()
     {
-        var flag = FirmwareMetadataValue.FromFlag(true);
-        var integer = FirmwareMetadataValue.FromInteger(2);
+        byte[] source = [0, 2];
+        var signed = FirmwareMetadataValue.FromSignedInteger(-2);
+        var unsigned = FirmwareMetadataValue.FromUnsignedInteger(2);
+        var bytes = FirmwareMetadataValue.FromBytes(source);
         var text = FirmwareMetadataValue.FromText("standard");
         var whitespace = FirmwareMetadataValue.FromText(" ");
+        source[0] = 9;
 
-        Assert.Equal(FirmwareMetadataValueKind.Flag, flag.Kind);
-        Assert.True(flag.FlagValue);
-        Assert.Equal(FirmwareMetadataValueKind.SignedInteger, integer.Kind);
-        Assert.Equal(2, integer.IntegerValue);
+        Assert.Equal(FirmwareMetadataValueKind.SignedInteger, signed.Kind);
+        Assert.Equal(-2, signed.SignedIntegerValue);
+        Assert.Equal(FirmwareMetadataValueKind.UnsignedInteger, unsigned.Kind);
+        Assert.Equal(2UL, unsigned.UnsignedIntegerValue);
+        Assert.Equal(FirmwareMetadataValueKind.Bytes, bytes.Kind);
+        Assert.Equal("0002", bytes.BytesValue?.Hex);
         Assert.Equal(FirmwareMetadataValueKind.Text, text.Kind);
         Assert.Equal("standard", text.TextValue);
         Assert.Equal(" ", whitespace.TextValue);
+    }
+
+    /// <summary>Verifies byte values copy input and compare/hash by content.</summary>
+    [Fact]
+    public void ByteValuesUseStructuralImmutableIdentity()
+    {
+        byte[] source = [0, 1, 255];
+        var first = FirmwareMetadataValue.FromBytes(source);
+        var second = FirmwareMetadataValue.FromBytes([0, 1, 255]);
+        var different = FirmwareMetadataValue.FromBytes([0, 1, 254]);
+        source[0] = 9;
+
+        Assert.Equal(first, second);
+        Assert.Equal(first.GetHashCode(), second.GetHashCode());
+        Assert.NotEqual(first, different);
+        Assert.Equal("0001ff", first.BytesValue?.ToString());
+    }
+
+    /// <summary>Verifies signed, unsigned, bytes, and text never coerce during equality.</summary>
+    [Fact]
+    public void ScalarKindsRemainDistinct()
+    {
+        var signed = FirmwareMetadataValue.FromSignedInteger(2);
+        var unsigned = FirmwareMetadataValue.FromUnsignedInteger(2);
+        var bytes = FirmwareMetadataValue.FromBytes([2]);
+        var text = FirmwareMetadataValue.FromText("2");
+
+        Assert.NotEqual(signed, unsigned);
+        Assert.NotEqual(unsigned, bytes);
+        Assert.NotEqual(bytes, text);
     }
 
     /// <summary>Verifies equality distinguishes matching, conflicting, and missing facts.</summary>
@@ -31,7 +66,7 @@ public sealed class FirmwareMetadataPredicateTests
             "firmware-config",
             "chip-number",
             FirmwareMetadataPredicateOperator.Equal,
-            [FirmwareMetadataValue.FromInteger(2)]);
+            [FirmwareMetadataValue.FromUnsignedInteger(2)]);
 
         Assert.Equal(FirmwarePredicateResult.Missing, predicate.Evaluate(Facts()));
         Assert.Equal(FirmwarePredicateResult.Match, predicate.Evaluate(Facts(("chip-number", 2))));
@@ -46,12 +81,12 @@ public sealed class FirmwareMetadataPredicateTests
             "firmware-config",
             "chip-number",
             FirmwareMetadataPredicateOperator.NotEqual,
-            [FirmwareMetadataValue.FromInteger(1)]);
+            [FirmwareMetadataValue.FromUnsignedInteger(1)]);
         var oneOf = new FirmwareMetadataPredicate(
             "firmware-config",
             "chip-number",
             FirmwareMetadataPredicateOperator.OneOf,
-            [FirmwareMetadataValue.FromInteger(2), FirmwareMetadataValue.FromInteger(3)]);
+            [FirmwareMetadataValue.FromUnsignedInteger(2), FirmwareMetadataValue.FromUnsignedInteger(3)]);
 
         Assert.Equal(FirmwarePredicateResult.Match, notEqual.Evaluate(Facts(("chip-number", 2))));
         Assert.Equal(FirmwarePredicateResult.NoMatch, oneOf.Evaluate(Facts(("chip-number", 1))));
@@ -66,7 +101,7 @@ public sealed class FirmwareMetadataPredicateTests
             "firmware-config",
             "value",
             FirmwareMetadataPredicateOperator.Equal,
-            [FirmwareMetadataValue.FromInteger(2)]);
+            [FirmwareMetadataValue.FromUnsignedInteger(2)]);
 
         Assert.Equal(
             FirmwarePredicateResult.NoMatch,
@@ -78,7 +113,13 @@ public sealed class FirmwareMetadataPredicateTests
             FirmwarePredicateResult.NoMatch,
             predicate.Evaluate(new Dictionary<string, FirmwareMetadataValue>(StringComparer.Ordinal)
             {
-                ["value"] = FirmwareMetadataValue.FromFlag(true),
+                ["value"] = FirmwareMetadataValue.FromSignedInteger(2),
+            }));
+        Assert.Equal(
+            FirmwarePredicateResult.NoMatch,
+            predicate.Evaluate(new Dictionary<string, FirmwareMetadataValue>(StringComparer.Ordinal)
+            {
+                ["value"] = FirmwareMetadataValue.FromBytes([2]),
             }));
     }
 
@@ -90,12 +131,12 @@ public sealed class FirmwareMetadataPredicateTests
             "firmware-config-primary",
             "chip-number",
             FirmwareMetadataPredicateOperator.Equal,
-            [FirmwareMetadataValue.FromInteger(2)]);
+            [FirmwareMetadataValue.FromUnsignedInteger(2)]);
         var copy = new FirmwareMetadataPredicate(
             "firmware-config-copy",
             "chip-number",
             FirmwareMetadataPredicateOperator.Equal,
-            [FirmwareMetadataValue.FromInteger(2)]);
+            [FirmwareMetadataValue.FromUnsignedInteger(2)]);
 
         Assert.NotEqual(primary.MetadataStructureId, copy.MetadataStructureId);
         Assert.Equal(primary.FieldId, copy.FieldId);
@@ -105,21 +146,22 @@ public sealed class FirmwareMetadataPredicateTests
     [Fact]
     public void ExpectedValuesExposeReadOnlySnapshot()
     {
-        FirmwareMetadataValue[] source = [FirmwareMetadataValue.FromInteger(2)];
+        FirmwareMetadataValue[] source = [FirmwareMetadataValue.FromUnsignedInteger(2)];
         var predicate = new FirmwareMetadataPredicate(
             "firmware-config",
             "chip-number",
             FirmwareMetadataPredicateOperator.Equal,
             source);
-        source[0] = FirmwareMetadataValue.FromInteger(3);
+        source[0] = FirmwareMetadataValue.FromUnsignedInteger(3);
 
         Assert.Equal("firmware-config", predicate.MetadataStructureId);
         IList<FirmwareMetadataValue> exposed = Assert.IsType<IList<FirmwareMetadataValue>>(
             predicate.ExpectedValues,
             exactMatch: false);
         Assert.True(exposed.IsReadOnly);
-        _ = Assert.Throws<NotSupportedException>(() => exposed[0] = FirmwareMetadataValue.FromInteger(4));
-        Assert.Equal(FirmwareMetadataValue.FromInteger(2), predicate.ExpectedValues[0]);
+        _ = Assert.Throws<NotSupportedException>(() =>
+            exposed[0] = FirmwareMetadataValue.FromUnsignedInteger(4));
+        Assert.Equal(FirmwareMetadataValue.FromUnsignedInteger(2), predicate.ExpectedValues[0]);
     }
 
     /// <summary>Verifies constructor cardinality and uniqueness rules fail closed.</summary>
@@ -135,12 +177,12 @@ public sealed class FirmwareMetadataPredicateTests
             "firmware-config",
             "chip-number",
             FirmwareMetadataPredicateOperator.OneOf,
-            [FirmwareMetadataValue.FromInteger(2), FirmwareMetadataValue.FromInteger(2)]));
+            [FirmwareMetadataValue.FromUnsignedInteger(2), FirmwareMetadataValue.FromUnsignedInteger(2)]));
         _ = Assert.Throws<ArgumentException>(() => new FirmwareMetadataPredicate(
             "firmware-config",
             "chip-number",
             FirmwareMetadataPredicateOperator.Equal,
-            [FirmwareMetadataValue.FromInteger(2), FirmwareMetadataValue.FromInteger(3)]));
+            [FirmwareMetadataValue.FromUnsignedInteger(2), FirmwareMetadataValue.FromUnsignedInteger(3)]));
         _ = Assert.Throws<ArgumentException>(() => new FirmwareMetadataPredicate(
             "firmware-config",
             "chip-number",
@@ -156,18 +198,19 @@ public sealed class FirmwareMetadataPredicateTests
             "firmware-config",
             "chip-number",
             (FirmwareMetadataPredicateOperator)int.MaxValue,
-            [FirmwareMetadataValue.FromInteger(2)]));
+            [FirmwareMetadataValue.FromUnsignedInteger(2)]));
         _ = Assert.Throws<ArgumentException>(() => new FirmwareMetadataPredicate(
             " ",
             "chip-number",
             FirmwareMetadataPredicateOperator.Equal,
-            [FirmwareMetadataValue.FromInteger(2)]));
+            [FirmwareMetadataValue.FromUnsignedInteger(2)]));
         _ = Assert.Throws<ArgumentException>(() => new FirmwareMetadataPredicate(
             "firmware-config",
             " ",
             FirmwareMetadataPredicateOperator.Equal,
-            [FirmwareMetadataValue.FromInteger(2)]));
+            [FirmwareMetadataValue.FromUnsignedInteger(2)]));
         _ = Assert.Throws<ArgumentException>(() => FirmwareMetadataValue.FromText(string.Empty));
+        _ = Assert.Throws<ArgumentException>(() => FirmwareMetadataValue.FromBytes([]));
     }
 
     /// <summary>Verifies field matching is ordinal regardless of the caller's dictionary comparer.</summary>
@@ -178,10 +221,10 @@ public sealed class FirmwareMetadataPredicateTests
             "firmware-config",
             "chip-number",
             FirmwareMetadataPredicateOperator.Equal,
-            [FirmwareMetadataValue.FromInteger(2)]);
+            [FirmwareMetadataValue.FromUnsignedInteger(2)]);
         var facts = new Dictionary<string, FirmwareMetadataValue>(StringComparer.OrdinalIgnoreCase)
         {
-            ["CHIP-NUMBER"] = FirmwareMetadataValue.FromInteger(2),
+            ["CHIP-NUMBER"] = FirmwareMetadataValue.FromUnsignedInteger(2),
         };
 
         Assert.Equal(FirmwarePredicateResult.Missing, predicate.Evaluate(facts));
@@ -195,7 +238,7 @@ public sealed class FirmwareMetadataPredicateTests
             "firmware-config",
             "chip-number",
             FirmwareMetadataPredicateOperator.Equal,
-            [FirmwareMetadataValue.FromInteger(2)]);
+            [FirmwareMetadataValue.FromUnsignedInteger(2)]);
         var facts = new Dictionary<string, FirmwareMetadataValue>(StringComparer.Ordinal)
         {
             ["chip-number"] = null!,
@@ -206,11 +249,11 @@ public sealed class FirmwareMetadataPredicateTests
     }
 
     private static Dictionary<string, FirmwareMetadataValue> Facts(
-        params (string FieldId, long Value)[] entries)
+        params (string FieldId, ulong Value)[] entries)
     {
         return entries.ToDictionary(
             entry => entry.FieldId,
-            entry => FirmwareMetadataValue.FromInteger(entry.Value),
+            entry => FirmwareMetadataValue.FromUnsignedInteger(entry.Value),
             StringComparer.Ordinal);
     }
 }

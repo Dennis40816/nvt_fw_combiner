@@ -197,12 +197,12 @@ public sealed class FirmwareMapApplicabilityTests
             "compile-request");
     }
 
-    private static FirmwareMetadataPredicate Equal(string fieldId, long value)
+    private static FirmwareMetadataPredicate Equal(string fieldId, ulong value)
     {
         return new FirmwareMetadataPredicate(
             "firmware-config",
             fieldId,
             FirmwareMetadataPredicateOperator.Equal,
-            [FirmwareMetadataValue.FromInteger(value)]);
+            [FirmwareMetadataValue.FromUnsignedInteger(value)]);
     }
 }
