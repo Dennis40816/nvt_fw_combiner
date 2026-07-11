@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace NvtFwCombiner.Domain.Firmware;
 
 /// <summary>Immutable declaration of one located and asserted firmware metadata structure.</summary>
@@ -90,6 +92,49 @@ public sealed class FirmwareMetadataStructure
 
     /// <summary>Assertions in deterministic structure-relative range order.</summary>
     public IReadOnlyList<FirmwareMetadataByteAssertion> Assertions { get; }
+
+    /// <summary>Atomically validates and decodes one already-located exact structure slice.</summary>
+    public bool TryDecode(
+        ReadOnlySpan<byte> bytes,
+        [NotNullWhen(true)] out FirmwareDecodedMetadataStructure? result)
+    {
+        result = null;
+        if (bytes.Length != LengthBytes)
+        {
+            return false;
+        }
+
+        foreach (FirmwareMetadataByteAssertion assertion in _assertions)
+        {
+            int start = checked((int)assertion.Range.Start);
+            int length = checked((int)assertion.Range.Length);
+            if (!assertion.Matches(bytes.Slice(start, length)))
+            {
+                return false;
+            }
+        }
+
+        List<FirmwareDecodedMetadataFact> facts = [];
+        foreach (FirmwareMetadataField field in _fields)
+        {
+            int start = checked((int)field.Range.Start);
+            if (!field.TryDecode(
+                bytes.Slice(start, field.WidthBytes),
+                out FirmwareMetadataValue? value))
+            {
+                return false;
+            }
+
+            facts.Add(new FirmwareDecodedMetadataFact(
+                ArtifactBindingId,
+                StructureId,
+                field.FieldId,
+                value));
+        }
+
+        result = new FirmwareDecodedMetadataStructure(ArtifactBindingId, StructureId, facts);
+        return true;
+    }
 
     private static void ValidateLocatorShape(
         FirmwareMetadataLocator locator,
