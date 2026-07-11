@@ -145,11 +145,7 @@ public sealed class SystemExternalProcessRunnerTests
         for (int attempt = 0; attempt < 200; attempt++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (File.Exists(path) && int.TryParse(
-                    File.ReadAllText(path),
-                    NumberStyles.Integer,
-                    CultureInfo.InvariantCulture,
-                    out int processId))
+            if (TryReadProcessId(path, out int processId))
             {
                 try
                 {
@@ -166,6 +162,24 @@ public sealed class SystemExternalProcessRunnerTests
         }
 
         throw new TimeoutException("The test process did not report its process id.");
+    }
+
+    private static bool TryReadProcessId(string path, out int processId)
+    {
+        processId = 0;
+        try
+        {
+            return File.Exists(path) && int.TryParse(
+                File.ReadAllText(path),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out processId);
+        }
+        catch (IOException)
+        {
+            // Set-Content can publish the path before releasing its write handle. The caller retries.
+            return false;
+        }
     }
 
     private static async Task AssertProcessExitedAsync(TestProcessIdentity expected, CancellationToken cancellationToken)
