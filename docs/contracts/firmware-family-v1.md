@@ -33,6 +33,8 @@ search range, exact marker bytes, checked signed result offset, at least one str
 and an allowed result region. `unique` requires exactly one match. `terminal-match` requires an
 exact evidenced match count and explicitly selects the lowest- or highest-address match. Zero
 matches, the wrong count, an out-of-range result, or a failed assertion rejects resolution.
+Matching examines every byte start where the complete marker fits, including overlapping matches.
+A terminal expected count cannot exceed `searchLength - markerLength + 1`.
 
 Every metadata structure declares one stable `artifactBindingId`; it matches the `artifactId` in
 runtime map-resolution inputs and is never a path or filename. Structure ids are ordinally unique

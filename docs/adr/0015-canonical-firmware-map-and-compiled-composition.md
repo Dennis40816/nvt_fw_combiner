@@ -113,7 +113,10 @@ snapshot. Caller-supplied decoded facts and derived selections are forbidden. Me
 a closed discriminated model: absolute range, region-relative, or
 marker-relative. Marker-relative rules declare a bounded search range, exact marker, approved
 match policy/cardinality, checked relative result, expected structure, and allowed result region.
-Zero, ambiguous, out-of-range, or structurally invalid results are never guessed.
+Marker evaluation tests every byte start whose complete marker fits the bounded range, so overlapping
+matches count. A terminal expected count cannot exceed the bounded candidate-start count
+`searchLength - markerLength + 1`. Zero, ambiguous, out-of-range, or structurally invalid results are
+never guessed.
 
 A `ResolvedFirmwareImageMap` atomically records the selected physical map, every predicate and
 locator outcome, resolver-owned decoded/derived facts, input artifact hashes, and alias/evidence
