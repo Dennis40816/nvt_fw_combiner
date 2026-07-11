@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Profiles.V2;
 
@@ -58,6 +59,22 @@ internal static partial class CompositionProfileValueRules
     {
         return value.Length == 64 && value.All(static character =>
             character is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
+    }
+
+    internal static ByteRange RequireRange(ByteRange value, string parameterName)
+    {
+        try
+        {
+            return new ByteRange(value.Start, value.Length);
+        }
+        catch (ArgumentOutOfRangeException exception)
+        {
+            throw new ArgumentOutOfRangeException(parameterName, value, exception.Message);
+        }
+        catch (OverflowException exception)
+        {
+            throw new ArgumentOutOfRangeException(parameterName, value, exception.Message);
+        }
     }
 
     [GeneratedRegex("^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$", RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
