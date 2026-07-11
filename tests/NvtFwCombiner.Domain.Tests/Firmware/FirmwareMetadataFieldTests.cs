@@ -96,6 +96,126 @@ public sealed class FirmwareMetadataFieldTests
         Assert.False(signedWord.CanRepresent(FirmwareMetadataValue.FromSignedInteger((long)int.MaxValue + 1)));
     }
 
+    /// <summary>Verifies bytes are snapshotted and printable ASCII is decoded without normalization.</summary>
+    [Fact]
+    public void TryDecodePreservesBytesAndStrictPrintableAscii()
+    {
+        var bytesField = new FirmwareMetadataField("pid", 0, 2, FirmwareMetadataEncoding.Bytes);
+        var textField = new FirmwareMetadataField("label", 0, 3, FirmwareMetadataEncoding.PrintableAscii);
+        byte[] source = [0x00, 0x01];
+
+        Assert.True(bytesField.TryDecode(source, out FirmwareMetadataValue? bytes));
+        source[0] = 0xFF;
+        Assert.Equal("0001", bytes.BytesValue?.Hex);
+        Assert.True(textField.TryDecode([(byte)' ', (byte)'A', (byte)'~'], out FirmwareMetadataValue? text));
+        Assert.Equal(" A~", text.TextValue);
+
+        Assert.False(textField.TryDecode([0x1F, (byte)'A', (byte)'B'], out FirmwareMetadataValue? control));
+        Assert.Null(control);
+        Assert.False(textField.TryDecode([(byte)'A', 0x7F, (byte)'B'], out FirmwareMetadataValue? delete));
+        Assert.Null(delete);
+        Assert.False(textField.TryDecode([(byte)'A', 0x80, (byte)'B'], out FirmwareMetadataValue? high));
+        Assert.Null(high);
+    }
+
+    /// <summary>Verifies unsigned carriers normalize byte order before applying a bit slice.</summary>
+    [Fact]
+    public void TryDecodeUnsignedUsesDeclaredByteOrderAndBitSlice()
+    {
+        FirmwareMetadataField little = UnsignedField(4, FirmwareMetadataByteOrder.LittleEndian);
+        FirmwareMetadataField big = UnsignedField(4, FirmwareMetadataByteOrder.BigEndian);
+        var slice = new FirmwareMetadataField(
+            "slice",
+            0,
+            2,
+            FirmwareMetadataEncoding.UnsignedInteger,
+            FirmwareMetadataByteOrder.BigEndian,
+            new FirmwareMetadataBitSlice(4, 8));
+        var wholeCarrierSlice = new FirmwareMetadataField(
+            "whole-carrier-slice",
+            0,
+            4,
+            FirmwareMetadataEncoding.UnsignedInteger,
+            FirmwareMetadataByteOrder.BigEndian,
+            new FirmwareMetadataBitSlice(0, 32));
+        var highestBitSlice = new FirmwareMetadataField(
+            "highest-bit-slice",
+            0,
+            4,
+            FirmwareMetadataEncoding.UnsignedInteger,
+            FirmwareMetadataByteOrder.BigEndian,
+            new FirmwareMetadataBitSlice(31, 1));
+
+        Assert.True(little.TryDecode([0x78, 0x56, 0x34, 0x12], out FirmwareMetadataValue? littleValue));
+        Assert.True(big.TryDecode([0x12, 0x34, 0x56, 0x78], out FirmwareMetadataValue? bigValue));
+        Assert.True(slice.TryDecode([0x12, 0x34], out FirmwareMetadataValue? sliceValue));
+        Assert.True(wholeCarrierSlice.TryDecode(
+            [0xFF, 0xFF, 0xFF, 0xFF],
+            out FirmwareMetadataValue? wholeCarrierValue));
+        Assert.True(highestBitSlice.TryDecode(
+            [0x80, 0x00, 0x00, 0x00],
+            out FirmwareMetadataValue? highestBitSet));
+        Assert.True(highestBitSlice.TryDecode(
+            [0x7F, 0xFF, 0xFF, 0xFF],
+            out FirmwareMetadataValue? highestBitClear));
+
+        Assert.Equal(0x12345678UL, littleValue.UnsignedIntegerValue);
+        Assert.Equal(littleValue, bigValue);
+        Assert.Equal(0x23UL, sliceValue.UnsignedIntegerValue);
+        Assert.Equal(uint.MaxValue, wholeCarrierValue.UnsignedIntegerValue);
+        Assert.Equal(1UL, highestBitSet.UnsignedIntegerValue);
+        Assert.Equal(0UL, highestBitClear.UnsignedIntegerValue);
+        Assert.True(little.CanRepresent(littleValue));
+        Assert.True(slice.CanRepresent(sliceValue));
+    }
+
+    /// <summary>Verifies signed carriers use full-width two's-complement for every supported width.</summary>
+    [Fact]
+    public void TryDecodeSignedUsesFullWidthTwosComplement()
+    {
+        (FirmwareMetadataField Field, byte[] Bytes, long Expected)[] cases =
+        [
+            (SignedField(1, FirmwareMetadataByteOrder.LittleEndian), [0x80], -128),
+            (SignedField(1, FirmwareMetadataByteOrder.BigEndian), [0x7F], 127),
+            (SignedField(2, FirmwareMetadataByteOrder.LittleEndian), [0x00, 0x80], short.MinValue),
+            (SignedField(2, FirmwareMetadataByteOrder.BigEndian), [0x7F, 0xFF], short.MaxValue),
+            (SignedField(3, FirmwareMetadataByteOrder.LittleEndian), [0xFE, 0xFF, 0xFF], -2),
+            (SignedField(3, FirmwareMetadataByteOrder.BigEndian), [0x7F, 0xFF, 0xFF], 0x7FFFFF),
+            (SignedField(4, FirmwareMetadataByteOrder.LittleEndian), [0x00, 0x00, 0x00, 0x80], int.MinValue),
+            (SignedField(4, FirmwareMetadataByteOrder.BigEndian), [0x7F, 0xFF, 0xFF, 0xFF], int.MaxValue),
+        ];
+
+        foreach ((FirmwareMetadataField field, byte[] bytes, long expected) in cases)
+        {
+            Assert.True(field.TryDecode(bytes, out FirmwareMetadataValue? decoded));
+            Assert.Equal(expected, decoded.SignedIntegerValue);
+            Assert.True(field.CanRepresent(decoded));
+        }
+    }
+
+    /// <summary>Verifies every encoding rejects carriers whose byte width is not exact.</summary>
+    [Fact]
+    public void TryDecodeRejectsWrongCarrierWidthWithoutValue()
+    {
+        FirmwareMetadataField[] fields =
+        [
+            new FirmwareMetadataField("bytes", 0, 2, FirmwareMetadataEncoding.Bytes),
+            new FirmwareMetadataField("text", 0, 2, FirmwareMetadataEncoding.PrintableAscii),
+            UnsignedField(2, FirmwareMetadataByteOrder.LittleEndian),
+            SignedField(2, FirmwareMetadataByteOrder.BigEndian),
+        ];
+
+        foreach (FirmwareMetadataField field in fields)
+        {
+            Assert.False(field.TryDecode([0x01], out FirmwareMetadataValue? shortValue));
+            Assert.Null(shortValue);
+            Assert.False(field.TryDecode([0x01, 0x02, 0x03], out FirmwareMetadataValue? longValue));
+            Assert.Null(longValue);
+            Assert.False(field.TryDecode([], out FirmwareMetadataValue? emptyValue));
+            Assert.Null(emptyValue);
+        }
+    }
+
     /// <summary>Verifies numeric declarations require one-to-four-byte carriers and explicit order.</summary>
     [Fact]
     public void ConstructorRejectsInvalidNumericOptions()
@@ -219,5 +339,29 @@ public sealed class FirmwareMetadataFieldTests
 
         FirmwareMetadataField field = new("bytes", 0, 1, FirmwareMetadataEncoding.Bytes);
         _ = Assert.Throws<ArgumentNullException>(() => field.CanRepresent(null!));
+    }
+
+    private static FirmwareMetadataField UnsignedField(
+        int widthBytes,
+        FirmwareMetadataByteOrder byteOrder)
+    {
+        return new FirmwareMetadataField(
+            "unsigned",
+            0,
+            widthBytes,
+            FirmwareMetadataEncoding.UnsignedInteger,
+            byteOrder);
+    }
+
+    private static FirmwareMetadataField SignedField(
+        int widthBytes,
+        FirmwareMetadataByteOrder byteOrder)
+    {
+        return new FirmwareMetadataField(
+            "signed",
+            0,
+            widthBytes,
+            FirmwareMetadataEncoding.SignedInteger,
+            byteOrder);
     }
 }

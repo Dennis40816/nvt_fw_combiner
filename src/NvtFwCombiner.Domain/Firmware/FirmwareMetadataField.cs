@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Domain.Firmware;
@@ -140,6 +141,48 @@ public sealed class FirmwareMetadataField
         };
     }
 
+    /// <summary>Decodes an exact-width carrier without coercion or replacement characters.</summary>
+    public bool TryDecode(
+        ReadOnlySpan<byte> bytes,
+        [NotNullWhen(true)] out FirmwareMetadataValue? value)
+    {
+        value = null;
+        if (bytes.Length != WidthBytes)
+        {
+            return false;
+        }
+
+        switch (Encoding)
+        {
+            case FirmwareMetadataEncoding.Bytes:
+                value = FirmwareMetadataValue.FromBytes(bytes);
+                return true;
+            case FirmwareMetadataEncoding.PrintableAscii:
+                return TryDecodePrintableAscii(bytes, out value);
+            case FirmwareMetadataEncoding.UnsignedInteger:
+                ulong unsignedValue = DecodeUnsigned(bytes, ByteOrder!.Value);
+                if (BitSlice is { } bitSlice)
+                {
+                    ulong mask = (1UL << bitSlice.BitCount) - 1UL;
+                    unsignedValue = (unsignedValue >> bitSlice.LeastSignificantBit) & mask;
+                }
+
+                value = FirmwareMetadataValue.FromUnsignedInteger(unsignedValue);
+                return true;
+            case FirmwareMetadataEncoding.SignedInteger:
+                ulong carrier = DecodeUnsigned(bytes, ByteOrder!.Value);
+                int bitCount = checked(WidthBytes * 8);
+                ulong signBit = 1UL << (bitCount - 1);
+                long signedValue = (carrier & signBit) == 0
+                    ? (long)carrier
+                    : checked((long)carrier - (1L << bitCount));
+                value = FirmwareMetadataValue.FromSignedInteger(signedValue);
+                return true;
+            default:
+                throw new InvalidOperationException("Unknown metadata encoding.");
+        }
+    }
+
     private static void ValidateEncodingOptions(
         FirmwareMetadataEncoding encoding,
         int widthBytes,
@@ -184,6 +227,48 @@ public sealed class FirmwareMetadataField
             FirmwareMetadataEncoding.SignedInteger => FirmwareMetadataValueKind.SignedInteger,
             _ => throw new InvalidOperationException("Unknown metadata encoding."),
         };
+    }
+
+    private static bool TryDecodePrintableAscii(
+        ReadOnlySpan<byte> bytes,
+        [NotNullWhen(true)] out FirmwareMetadataValue? value)
+    {
+        value = null;
+        char[] characters = new char[bytes.Length];
+        for (int index = 0; index < bytes.Length; index++)
+        {
+            byte current = bytes[index];
+            if (current is < 0x20 or > 0x7E)
+            {
+                return false;
+            }
+
+            characters[index] = (char)current;
+        }
+
+        value = FirmwareMetadataValue.FromText(new string(characters));
+        return true;
+    }
+
+    private static ulong DecodeUnsigned(ReadOnlySpan<byte> bytes, FirmwareMetadataByteOrder byteOrder)
+    {
+        ulong value = 0;
+        if (byteOrder == FirmwareMetadataByteOrder.BigEndian)
+        {
+            foreach (byte current in bytes)
+            {
+                value = (value << 8) | current;
+            }
+
+            return value;
+        }
+
+        for (int index = bytes.Length - 1; index >= 0; index--)
+        {
+            value = (value << 8) | bytes[index];
+        }
+
+        return value;
     }
 
     private static bool IsExactPrintableAscii(string? value, int widthBytes)
