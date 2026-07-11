@@ -2,10 +2,10 @@ using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Domain.Tests.Firmware;
 
-/// <summary>Tests deterministic, three-state firmware-map applicability.</summary>
+/// <summary>Tests deterministic pre-resolution firmware-map applicability.</summary>
 public sealed class FirmwareMapApplicabilityTests
 {
-    /// <summary>Verifies a topology-independent shape matches exact member, mode, and capacity.</summary>
+    /// <summary>Verifies a topology-independent shape matches exact static identity.</summary>
     [Fact]
     public void EvaluateMatchesTopologyIndependentShape()
     {
@@ -34,9 +34,9 @@ public sealed class FirmwareMapApplicabilityTests
             applicability.Evaluate(Inputs(capacityBytes: 128)));
     }
 
-    /// <summary>Verifies a required topology is pending until selected and rejects a wrong count.</summary>
+    /// <summary>Verifies requested topology matches exactly and missing topology remains pending.</summary>
     [Fact]
-    public void EvaluateHandlesTopologyWithoutGuessing()
+    public void EvaluateHandlesRequestedTopologyWithoutGuessing()
     {
         FirmwareMapApplicability applicability = CreateApplicability(
             TopologyRequirement.RequireSingleChip());
@@ -44,96 +44,39 @@ public sealed class FirmwareMapApplicabilityTests
         Assert.Equal(FirmwareApplicabilityResult.Pending, applicability.Evaluate(Inputs()));
         Assert.Equal(
             FirmwareApplicabilityResult.Match,
-            applicability.Evaluate(Inputs(topology: Selection(1, "single"))));
+            applicability.Evaluate(Inputs(requestedTopology: Selection(1, "single"))));
         Assert.Equal(
             FirmwareApplicabilityResult.NoMatch,
-            applicability.Evaluate(Inputs(topology: Selection(2, "cascade"))));
+            applicability.Evaluate(Inputs(requestedTopology: Selection(2, "cascade"))));
     }
 
-    /// <summary>Verifies Common FW category matching is ordinal and missing data remains pending.</summary>
+    /// <summary>Verifies Common FW category remains pending until resolver-owned derivation.</summary>
     [Fact]
-    public void EvaluateHandlesCommonFirmwareCategory()
+    public void EvaluateDefersCommonFirmwareCategoryToResolver()
     {
         FirmwareMapApplicability applicability = CreateApplicability(
             TopologyRequirement.NoTopologyConstraint(),
             commonFirmwareCategoryIds: ["standard"]);
 
         Assert.Equal(FirmwareApplicabilityResult.Pending, applicability.Evaluate(Inputs()));
-        Assert.Equal(
-            FirmwareApplicabilityResult.Match,
-            applicability.Evaluate(Inputs(commonFirmwareCategoryId: "standard")));
-        Assert.Equal(
-            FirmwareApplicabilityResult.NoMatch,
-            applicability.Evaluate(Inputs(commonFirmwareCategoryId: "STANDARD")));
     }
 
-    /// <summary>Verifies metadata predicates remain pending until a map scopes their source.</summary>
+    /// <summary>Verifies metadata predicates remain pending even when matching artifact bytes exist.</summary>
     [Fact]
-    public void EvaluateDefersMetadataPredicatesUntilMapScopesFacts()
+    public void EvaluateDefersMetadataPredicatesToResolver()
     {
         FirmwareMapApplicability applicability = CreateApplicability(
             TopologyRequirement.NoTopologyConstraint(),
             metadataPredicates: [Equal("chip-number", 2)]);
-        FirmwareDecodedMetadataFact matchingUnrelatedFact = new(
-            "unrelated-chip-number",
-            "firmware",
-            "unrelated-config",
-            "chip-number",
-            FirmwareMetadataValue.FromInteger(2));
-        FirmwareDecodedMetadataFact contradictingUnrelatedFact = new(
-            "unrelated-chip-number",
-            "firmware",
-            "unrelated-config",
-            "chip-number",
-            FirmwareMetadataValue.FromInteger(1));
-        FirmwareDecodedMetadataFact matchingExactSourceFact = new(
-            "exact-chip-number",
-            "firmware",
-            "firmware-config",
-            "chip-number",
-            FirmwareMetadataValue.FromInteger(2));
-        FirmwareDecodedMetadataFact contradictingExactSourceFact = new(
-            "exact-chip-number",
-            "firmware",
-            "firmware-config",
-            "chip-number",
-            FirmwareMetadataValue.FromInteger(1));
 
-        Assert.Equal(FirmwareApplicabilityResult.Pending, applicability.Evaluate(Inputs()));
         Assert.Equal(
             FirmwareApplicabilityResult.Pending,
-            applicability.Evaluate(Inputs(decodedFacts: [matchingUnrelatedFact])));
-        Assert.Equal(
-            FirmwareApplicabilityResult.Pending,
-            applicability.Evaluate(Inputs(decodedFacts: [contradictingUnrelatedFact])));
-        Assert.Equal(
-            FirmwareApplicabilityResult.Pending,
-            applicability.Evaluate(Inputs(decodedFacts: [matchingExactSourceFact])));
-        Assert.Equal(
-            FirmwareApplicabilityResult.Pending,
-            applicability.Evaluate(Inputs(decodedFacts: [contradictingExactSourceFact])));
+            applicability.Evaluate(Inputs(artifacts: [Payload("tp-firmware", 2)])));
     }
 
-    /// <summary>Verifies known non-metadata contradictions outrank deferred metadata predicates.</summary>
+    /// <summary>Verifies known contradictions outrank resolver-owned pending discriminators.</summary>
     [Fact]
-    public void EvaluatePrioritizesKnownContradictionOverDeferredMetadata()
-    {
-        FirmwareMapApplicability applicability = CreateApplicability(
-            TopologyRequirement.NoTopologyConstraint(),
-            metadataPredicates:
-        [
-            Equal("chip-number", 2),
-            Equal("common-version", 7),
-        ]);
-
-        Assert.Equal(
-            FirmwareApplicabilityResult.NoMatch,
-            applicability.Evaluate(Inputs(memberId: "NT00002")));
-    }
-
-    /// <summary>Verifies contradictions across discriminator groups outrank missing facts.</summary>
-    [Fact]
-    public void EvaluatePrioritizesAnyKnownDiscriminatorContradiction()
+    public void EvaluatePrioritizesKnownContradictions()
     {
         FirmwareMapApplicability applicability = CreateApplicability(
             TopologyRequirement.RequireSingleChip(),
@@ -145,35 +88,25 @@ public sealed class FirmwareMapApplicabilityTests
             applicability.Evaluate(Inputs(memberId: "NT00002")));
         Assert.Equal(
             FirmwareApplicabilityResult.NoMatch,
-            applicability.Evaluate(Inputs(commonFirmwareCategoryId: "other")));
-        Assert.Equal(
-            FirmwareApplicabilityResult.NoMatch,
-            applicability.Evaluate(Inputs(topology: Selection(2, "cascade"))));
+            applicability.Evaluate(Inputs(requestedTopology: Selection(2, "cascade"))));
     }
 
-    /// <summary>Verifies duplicate field ids from different artifacts remain unresolved until map scoping.</summary>
+    /// <summary>Verifies multiple artifact bindings never trigger pre-resolver metadata guessing.</summary>
     [Fact]
-    public void EvaluateDoesNotGuessBetweenArtifactScopedFacts()
+    public void EvaluateDoesNotGuessBetweenArtifactPayloads()
     {
         FirmwareMapApplicability applicability = CreateApplicability(
             TopologyRequirement.NoTopologyConstraint(),
             metadataPredicates: [Equal("chip-number", 2)]);
-        FirmwareArtifactIdentity[] artifacts =
+        FirmwareArtifactPayload[] artifacts =
         [
-            Artifact(),
-            new FirmwareArtifactIdentity("backup", new string('1', 64), 64),
-        ];
-        FirmwareDecodedMetadataFact[] facts =
-        [
-            new("primary-chip-number", "firmware", "primary-config", "chip-number",
-                FirmwareMetadataValue.FromInteger(2)),
-            new("backup-chip-number", "backup", "backup-config", "chip-number",
-                FirmwareMetadataValue.FromInteger(2)),
+            Payload("tp-firmware", 2),
+            Payload("dp-firmware", 2),
         ];
 
         Assert.Equal(
             FirmwareApplicabilityResult.Pending,
-            applicability.Evaluate(Inputs(artifacts: artifacts, decodedFacts: facts)));
+            applicability.Evaluate(Inputs(artifacts: artifacts)));
     }
 
     /// <summary>Verifies constructor snapshots remain immutable and ordinally sorted.</summary>
@@ -239,40 +172,20 @@ public sealed class FirmwareMapApplicabilityTests
         string memberId = "NT00001",
         string modeId = "standard",
         long capacityBytes = 64,
-        TopologySelection? topology = null,
-        string? commonFirmwareCategoryId = null,
-        IEnumerable<FirmwareArtifactIdentity>? artifacts = null,
-        IEnumerable<FirmwareDecodedMetadataFact>? decodedFacts = null)
+        TopologySelection? requestedTopology = null,
+        IEnumerable<FirmwareArtifactPayload>? artifacts = null)
     {
-        List<FirmwareDecodedMetadataFact> facts = [.. decodedFacts ?? []];
-        FirmwareCommonCategorySelection? category = null;
-        if (commonFirmwareCategoryId is not null)
-        {
-            const string categoryFactId = "common-category-selection";
-            facts.Add(new FirmwareDecodedMetadataFact(
-                categoryFactId,
-                "firmware",
-                "firmware-config",
-                "common-category",
-                FirmwareMetadataValue.FromText(commonFirmwareCategoryId)));
-            category = new FirmwareCommonCategorySelection(
-                commonFirmwareCategoryId,
-                categoryFactId);
-        }
-
         return new FirmwareMapResolutionInputs(
             memberId,
             modeId,
             capacityBytes,
-            topology,
-            category,
-            artifacts ?? [Artifact()],
-            facts);
+            requestedTopology,
+            artifacts ?? [Payload("tp-firmware", 1)]);
     }
 
-    private static FirmwareArtifactIdentity Artifact()
+    private static FirmwareArtifactPayload Payload(string artifactId, byte value)
     {
-        return new FirmwareArtifactIdentity("firmware", new string('0', 64), 64);
+        return new FirmwareArtifactPayload(artifactId, [value]);
     }
 
     private static TopologySelection Selection(int chipCount, string label)
@@ -292,5 +205,4 @@ public sealed class FirmwareMapApplicabilityTests
             FirmwareMetadataPredicateOperator.Equal,
             [FirmwareMetadataValue.FromInteger(value)]);
     }
-
 }

@@ -1,10 +1,11 @@
+using System.Security.Cryptography;
+
 namespace NvtFwCombiner.Domain.Firmware;
 
-/// <summary>Immutable identity of one named firmware artifact used for map resolution.</summary>
+/// <summary>Immutable identity computed from one snapshotted firmware artifact.</summary>
 public sealed record FirmwareArtifactIdentity
 {
-    /// <summary>Creates a named artifact identity from verified bytes.</summary>
-    public FirmwareArtifactIdentity(string artifactId, string sha256, long lengthBytes)
+    internal FirmwareArtifactIdentity(string artifactId, string sha256, long lengthBytes)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(artifactId);
         ArgumentException.ThrowIfNullOrWhiteSpace(sha256);
@@ -19,7 +20,7 @@ public sealed record FirmwareArtifactIdentity
         LengthBytes = lengthBytes;
     }
 
-    /// <summary>Stable artifact binding identifier.</summary>
+    /// <summary>Stable family-declared artifact binding identifier.</summary>
     public string ArtifactId { get; }
 
     /// <summary>Lowercase SHA-256 of the immutable artifact bytes.</summary>
@@ -35,89 +36,68 @@ public sealed record FirmwareArtifactIdentity
     }
 }
 
-/// <summary>One decoded metadata value with exact artifact and structure provenance.</summary>
-public sealed record FirmwareDecodedMetadataFact
+/// <summary>One immutable firmware artifact payload used only during map resolution.</summary>
+public sealed class FirmwareArtifactPayload
 {
-    /// <summary>Creates one provenance-linked decoded metadata fact.</summary>
-    public FirmwareDecodedMetadataFact(
-        string factId,
-        string artifactId,
-        string metadataStructureId,
-        string fieldId,
-        FirmwareMetadataValue value)
+    private readonly byte[] _bytes;
+
+    /// <summary>Snapshots bytes and computes the sole artifact identity.</summary>
+    public FirmwareArtifactPayload(string artifactId, ReadOnlySpan<byte> bytes)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(factId);
         ArgumentException.ThrowIfNullOrWhiteSpace(artifactId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(metadataStructureId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(fieldId);
-        ArgumentNullException.ThrowIfNull(value);
-        FactId = factId;
-        ArtifactId = artifactId;
-        MetadataStructureId = metadataStructureId;
-        FieldId = fieldId;
-        Value = value;
+        if (bytes.IsEmpty)
+        {
+            throw new ArgumentException("Firmware artifact payloads cannot be empty.", nameof(bytes));
+        }
+
+        _bytes = bytes.ToArray();
+        string sha256 = Convert.ToHexString(SHA256.HashData(_bytes)).ToLowerInvariant();
+        Identity = new FirmwareArtifactIdentity(artifactId, sha256, _bytes.LongLength);
     }
 
-    /// <summary>Stable decoded-fact identity used by derived selections.</summary>
-    public string FactId { get; }
+    /// <summary>Identity derived from the private byte snapshot.</summary>
+    public FirmwareArtifactIdentity Identity { get; }
 
-    /// <summary>Named immutable artifact that produced this fact.</summary>
-    public string ArtifactId { get; }
+    /// <summary>Stable family-declared artifact binding identifier.</summary>
+    public string ArtifactId => Identity.ArtifactId;
 
-    /// <summary>Canonical metadata structure whose locator produced this fact.</summary>
-    public string MetadataStructureId { get; }
+    /// <summary>Lowercase SHA-256 of the private byte snapshot.</summary>
+    public string Sha256 => Identity.Sha256;
 
-    /// <summary>Canonical field identifier inside the metadata structure.</summary>
-    public string FieldId { get; }
+    /// <summary>Exact private byte-snapshot length.</summary>
+    public long LengthBytes => Identity.LengthBytes;
 
-    /// <summary>Typed decoded field value.</summary>
-    public FirmwareMetadataValue Value { get; }
+    internal ReadOnlySpan<byte> Bytes => _bytes;
 }
 
-/// <summary>Derived Common FW category plus the decoded fact that selected it.</summary>
-public sealed record FirmwareCommonCategorySelection
-{
-    /// <summary>Creates a category selection linked to one decoded fact.</summary>
-    public FirmwareCommonCategorySelection(string categoryId, string sourceFactId)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(categoryId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(sourceFactId);
-        CategoryId = categoryId;
-        SourceFactId = sourceFactId;
-    }
-
-    /// <summary>Selected Common FW category id.</summary>
-    public string CategoryId { get; }
-
-    /// <summary>Decoded fact from which the category was derived.</summary>
-    public string SourceFactId { get; }
-}
-
-/// <summary>Single public atomic input boundary for firmware-map resolution.</summary>
+/// <summary>Single public atomic run-input boundary for firmware-map resolution.</summary>
 public sealed class FirmwareMapResolutionInputs
 {
-    private readonly FirmwareArtifactIdentity[] _artifacts;
-    private readonly FirmwareDecodedMetadataFact[] _decodedFacts;
+    private readonly FirmwareArtifactPayload[] _artifacts;
 
-    /// <summary>Creates immutable resolution inputs from artifact and locator provenance.</summary>
+    /// <summary>Creates immutable resolution inputs from requested selections and artifact bytes.</summary>
     public FirmwareMapResolutionInputs(
         string memberId,
         string modeId,
         long capacityBytes,
-        TopologySelection? topologySelection,
-        FirmwareCommonCategorySelection? commonFirmwareCategory,
-        IEnumerable<FirmwareArtifactIdentity> artifacts,
-        IEnumerable<FirmwareDecodedMetadataFact> decodedFacts)
+        TopologySelection? requestedTopology,
+        IEnumerable<FirmwareArtifactPayload> artifacts)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(memberId);
         ArgumentException.ThrowIfNullOrWhiteSpace(modeId);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacityBytes);
+        if (requestedTopology is not null && requestedTopology.Source != TopologySelectionSource.Requested)
+        {
+            throw new ArgumentException(
+                "Map-resolution inputs may contain only caller-requested topology.",
+                nameof(requestedTopology));
+        }
 
         ArgumentNullException.ThrowIfNull(artifacts);
         _artifacts = [.. artifacts];
         if (_artifacts.Length == 0)
         {
-            throw new ArgumentException("Map resolution requires a named firmware artifact.", nameof(artifacts));
+            throw new ArgumentException("Map resolution requires a firmware artifact payload.", nameof(artifacts));
         }
 
         if (_artifacts.Any(static artifact => artifact is null))
@@ -125,47 +105,20 @@ public sealed class FirmwareMapResolutionInputs
             throw new ArgumentException("Resolution artifacts cannot contain null.", nameof(artifacts));
         }
 
-        EnsureUniqueIds(
-            _artifacts.Select(static artifact => artifact.ArtifactId),
-            nameof(artifacts),
-            "Resolution artifact ids");
+        if (_artifacts.Select(static artifact => artifact.ArtifactId).Distinct(StringComparer.Ordinal).Count() !=
+            _artifacts.Length)
+        {
+            throw new ArgumentException("Resolution artifact ids must be ordinally unique.", nameof(artifacts));
+        }
+
         Array.Sort(_artifacts, static (left, right) =>
             StringComparer.Ordinal.Compare(left.ArtifactId, right.ArtifactId));
-
-        ArgumentNullException.ThrowIfNull(decodedFacts);
-        _decodedFacts = [.. decodedFacts];
-        if (_decodedFacts.Any(static fact => fact is null))
-        {
-            throw new ArgumentException("Decoded metadata facts cannot contain null.", nameof(decodedFacts));
-        }
-
-        EnsureUniqueIds(
-            _decodedFacts.Select(static fact => fact.FactId),
-            nameof(decodedFacts),
-            "Decoded metadata fact ids");
-        EnsureUniqueFactSources(_decodedFacts, nameof(decodedFacts));
-        foreach (FirmwareDecodedMetadataFact fact in _decodedFacts)
-        {
-            if (!_artifacts.Any(artifact =>
-                StringComparer.Ordinal.Equals(artifact.ArtifactId, fact.ArtifactId)))
-            {
-                throw new ArgumentException(
-                    $"Decoded fact '{fact.FactId}' references unknown artifact '{fact.ArtifactId}'.",
-                    nameof(decodedFacts));
-            }
-        }
-
-        Array.Sort(_decodedFacts, static (left, right) =>
-            StringComparer.Ordinal.Compare(left.FactId, right.FactId));
-        ValidateDerivedSelections(topologySelection, commonFirmwareCategory, _decodedFacts);
 
         MemberId = memberId;
         ModeId = modeId;
         CapacityBytes = capacityBytes;
-        TopologySelection = topologySelection;
-        CommonFirmwareCategory = commonFirmwareCategory;
+        RequestedTopology = requestedTopology;
         Artifacts = Array.AsReadOnly(_artifacts);
-        DecodedFacts = Array.AsReadOnly(_decodedFacts);
     }
 
     /// <summary>Selected IC member id.</summary>
@@ -177,66 +130,9 @@ public sealed class FirmwareMapResolutionInputs
     /// <summary>Selected exact image capacity.</summary>
     public long CapacityBytes { get; }
 
-    /// <summary>Requested or derived topology, when required.</summary>
-    public TopologySelection? TopologySelection { get; }
+    /// <summary>Optional caller-authored topology selection.</summary>
+    public TopologySelection? RequestedTopology { get; }
 
-    /// <summary>Derived Common FW category, when available.</summary>
-    public FirmwareCommonCategorySelection? CommonFirmwareCategory { get; }
-
-    /// <summary>Named immutable artifact identities in ordinal id order.</summary>
-    public IReadOnlyList<FirmwareArtifactIdentity> Artifacts { get; }
-
-    /// <summary>Decoded locator facts in ordinal fact-id order.</summary>
-    public IReadOnlyList<FirmwareDecodedMetadataFact> DecodedFacts { get; }
-
-    private static void ValidateDerivedSelections(
-        TopologySelection? topologySelection,
-        FirmwareCommonCategorySelection? commonFirmwareCategory,
-        IReadOnlyList<FirmwareDecodedMetadataFact> decodedFacts)
-    {
-        if (topologySelection?.Source == TopologySelectionSource.Derived &&
-            !decodedFacts.Any(fact => StringComparer.Ordinal.Equals(fact.FactId, topologySelection.SourceId)))
-        {
-            throw new ArgumentException(
-                "Derived topology source must reference a decoded metadata fact.",
-                nameof(topologySelection));
-        }
-
-        if (commonFirmwareCategory is not null &&
-            !decodedFacts.Any(fact =>
-                StringComparer.Ordinal.Equals(fact.FactId, commonFirmwareCategory.SourceFactId)))
-        {
-            throw new ArgumentException(
-                "Common FW category source must reference a decoded metadata fact.",
-                nameof(commonFirmwareCategory));
-        }
-    }
-
-    private static void EnsureUniqueIds(
-        IEnumerable<string> ids,
-        string parameterName,
-        string subject)
-    {
-        string[] snapshot = [.. ids];
-        if (snapshot.Distinct(StringComparer.Ordinal).Count() != snapshot.Length)
-        {
-            throw new ArgumentException($"{subject} must be ordinally unique.", parameterName);
-        }
-    }
-
-    private static void EnsureUniqueFactSources(
-        IEnumerable<FirmwareDecodedMetadataFact> facts,
-        string parameterName)
-    {
-        HashSet<(string ArtifactId, string MetadataStructureId, string FieldId)> sources = [];
-        foreach (FirmwareDecodedMetadataFact fact in facts)
-        {
-            if (!sources.Add((fact.ArtifactId, fact.MetadataStructureId, fact.FieldId)))
-            {
-                throw new ArgumentException(
-                    "Decoded metadata fact sources must be ordinally unique.",
-                    parameterName);
-            }
-        }
-    }
+    /// <summary>Immutable artifact payloads in ordinal binding-id order.</summary>
+    public IReadOnlyList<FirmwareArtifactPayload> Artifacts { get; }
 }

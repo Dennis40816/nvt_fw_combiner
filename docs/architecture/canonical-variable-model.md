@@ -172,24 +172,19 @@ Map-resolution input is one atomic Domain value:
 ```text
 FirmwareMapResolutionInputs
   memberId / modeId / exact capacity
-  topology: count + label + requested|derived + sourceId
-  Common FW category + sourceFactId?
-  artifacts[]: artifactId (= declared artifactBindingId) + SHA-256 + exact length
-  decodedFacts[]
-    factId
-    artifactId
-    metadataStructureId
-    fieldId
-    typed value
+  requestedTopology?: count + label + requested sourceId
+  artifactPayloads[]
+    artifactId (= declared artifactBindingId)
+    private immutable byte snapshot
+    computed SHA-256 + exact length
 ```
 
-Every derived topology/category source references a declared decoded `factId`, and every decoded fact
-references a declared artifact. Facts with the same `fieldId` from different artifacts/locators stay
-independent, while duplicate facts from the same artifact, metadata structure, and field are invalid.
-Pre-resolver applicability leaves metadata predicates pending. Every predicate names its metadata
-structure; that structure names its artifact binding. A resolver may compare a predicate or create a
-field-only index only inside that exact artifact/structure scope; it never collapses or chooses the
-first fact globally.
+Domain snapshots each payload and computes its identity; callers cannot supply bytes and hashes as
+parallel authorities. Decoded fields, locator outcomes, Common FW category, and derived topology are
+resolver-owned candidate data. Pre-resolver applicability leaves those discriminators pending. Every
+predicate names its metadata structure, and that structure names its artifact binding; comparison is
+therefore limited to the exact `(artifactId, metadataStructureId, fieldId)` scope. Only outcomes from
+the uniquely selected map enter `ResolvedFirmwareImageMap`, which retains identities but never bytes.
 
 Compile result:
 

@@ -85,29 +85,17 @@ public sealed class FirmwareMapApplicability
         bool pending = false;
         if (TopologyRequirement.Kind != TopologyRequirementKind.None)
         {
-            if (inputs.TopologySelection is null)
+            if (inputs.RequestedTopology is null)
             {
                 pending = true;
             }
-            else if (!TopologyRequirement.Matches(inputs.TopologySelection))
+            else if (!TopologyRequirement.Matches(inputs.RequestedTopology))
             {
                 return FirmwareApplicabilityResult.NoMatch;
             }
         }
 
-        if (_commonFirmwareCategoryIds.Length != 0)
-        {
-            if (inputs.CommonFirmwareCategory is null)
-            {
-                pending = true;
-            }
-            else if (!_commonFirmwareCategoryIds.Contains(
-                inputs.CommonFirmwareCategory.CategoryId,
-                StringComparer.Ordinal))
-            {
-                return FirmwareApplicabilityResult.NoMatch;
-            }
-        }
+        pending |= _commonFirmwareCategoryIds.Length != 0;
 
         // Metadata facts become comparable only after the candidate map scopes their
         // artifact and metadata structure during locator resolution.

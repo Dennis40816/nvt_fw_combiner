@@ -98,7 +98,8 @@ Resolution separates:
 - `TopologyRequirement`: none, single, cascade, or exact count;
 - `TopologySelection`: requested or derived value, source, and required exact count;
 - `MapApplicability`: member, mode, topology, capacity, Common FW category, and metadata predicates;
-- `ResolutionInputs`: named immutable artifact hashes, lengths, and decoded locator facts; and
+- `ResolutionInputs`: requested selections plus immutable artifact payloads snapshotted and hashed
+  by Domain; and
 - `FirmwareMapResolutionResult`: pending, uniquely resolved, or rejected.
 
 Topology-independent behavior is applicability with no topology requirement; it is not an alias.
@@ -106,14 +107,19 @@ Shared RegionSets are direct references. Only owner-approved inheritance uses a 
 Aliases never infer a whole map, processor, range, capacity, or capability, and resolution rejects
 cycles, ambiguity, and applicability leaks.
 
-Metadata locators are a closed discriminated model: absolute range, region-relative, or
+Application reads artifact bytes before the Domain boundary. Domain accepts no artifact-reader port,
+defensively snapshots every payload, and computes the only accepted hash/length identity from that
+snapshot. Caller-supplied decoded facts and derived selections are forbidden. Metadata locators are
+a closed discriminated model: absolute range, region-relative, or
 marker-relative. Marker-relative rules declare a bounded search range, exact marker, approved
 match policy/cardinality, checked relative result, expected structure, and allowed result region.
 Zero, ambiguous, out-of-range, or structurally invalid results are never guessed.
 
 A `ResolvedFirmwareImageMap` atomically records the selected physical map, every predicate and
-locator outcome, input artifact hashes, and alias/evidence chain. It does not grant workflow
-execution. A profile is the only owner of executable workflow policy and promotion state.
+locator outcome, resolver-owned decoded/derived facts, input artifact hashes, and alias/evidence
+chain. Candidate outcomes stay private to one candidate and are discarded unless that map is the
+unique result. Resolved maps never retain artifact bytes. They do not grant workflow execution; a
+profile is the only owner of executable workflow policy and promotion state.
 
 ### Profile and compiled composition boundary
 
