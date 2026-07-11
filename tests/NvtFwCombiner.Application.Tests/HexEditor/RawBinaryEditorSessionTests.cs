@@ -161,6 +161,33 @@ public sealed class RawBinaryEditorSessionTests
         Assert.Equal(1, insertion.Count);
     }
 
+    /// <summary>Keeps an adjacent deletion attached to the structural block that caused it.</summary>
+    [Fact]
+    public void SameLengthInsertDeleteReportsBothStructuralCauses()
+    {
+        var session = new RawBinaryEditorSession();
+        _ = session.Load([0x10, 0x20, 0x30, 0x40]);
+
+        Assert.True(session.InsertZeroBefore("0x1").Succeeded);
+        Assert.True(session.DeleteByte("0x2").Succeeded);
+
+        RawBinaryEditorChangedRange range = Assert.Single(session.GetChangedRanges());
+        Assert.Equal(1, range.Start);
+        Assert.Equal(2, range.EndExclusive);
+        Assert.Collection(
+            range.StructuralChanges,
+            insertion =>
+            {
+                Assert.Equal(RawBinaryEditorStructuralChangeKind.Insert, insertion.Kind);
+                Assert.Equal(1, insertion.Address);
+            },
+            deletion =>
+            {
+                Assert.Equal(RawBinaryEditorStructuralChangeKind.Delete, deletion.Kind);
+                Assert.Equal(2, deletion.Address);
+            });
+    }
+
     /// <summary>Tracks one bounded multi-byte insertion as one undoable structural cause.</summary>
     [Fact]
     public void InsertManyBytesReportsStructuralCauseAndRetainedValueEdits()

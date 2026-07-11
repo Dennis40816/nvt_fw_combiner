@@ -370,7 +370,10 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     {
         if (cell is not null && cell.IsEditable)
         {
-            ApplyOperation(_session.InsertZeroAfter(cell.Address), cell.Address);
+            string selectedAddress = TryParseAddressLabel(cell.Address, out long anchor)
+                ? FormatAddress(checked(anchor + 1))
+                : cell.Address;
+            ApplyOperation(_session.InsertZeroAfter(cell.Address), selectedAddress);
         }
     }
 

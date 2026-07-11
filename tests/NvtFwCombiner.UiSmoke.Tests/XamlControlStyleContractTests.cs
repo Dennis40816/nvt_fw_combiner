@@ -85,7 +85,7 @@ public sealed class XamlControlStyleContractTests
         Assert.Contains("DispatcherTimer", historyFeedback, StringComparison.Ordinal);
         Assert.Contains("DrawHistoryFeedback", historyFeedback, StringComparison.Ordinal);
         Assert.Contains("DrawAsciiSearchRanges", viewport, StringComparison.Ordinal);
-        Assert.Contains("DrawRoundedRectangle(context, HoverBrush, HoverPen, rect, 3);", viewport, StringComparison.Ordinal);
+        Assert.Equal(2, viewport.Split("DrawHoverOutline(context, rect", StringSplitOptions.None).Length - 1);
         Assert.Contains("TextChanged=\"HexByteEditBox_OnTextChanged\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("behaviors:HexTextInputBehavior.Mode=\"Byte\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("behaviors:HexTextInputBehavior.Mode=\"ByteSequence\"", hexEditor, StringComparison.Ordinal);
@@ -102,6 +102,18 @@ public sealed class XamlControlStyleContractTests
         Assert.DoesNotContain("Text=\"{Binding EditFeedback}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("Selector=\"Border.hexInspectorHint\"", ReadPresentationFile("Styles/MainWindowControlStyles.axaml"), StringComparison.Ordinal);
         Assert.Contains("Selector=\"Border.hexInspectorHint.error\"", ReadPresentationFile("Styles/MainWindowControlStyles.axaml"), StringComparison.Ordinal);
+    }
+
+    /// <summary>Uses one hover overlay policy for both Hex and ASCII across every visible byte state.</summary>
+    [Fact]
+    public void HexEditorHoverOutlineDoesNotDisappearBehindByteState()
+    {
+        foreach (HexEditorCellVisualState state in Enum.GetValues<HexEditorCellVisualState>())
+        {
+            Assert.True(HexEditorViewportControl.ShouldDrawHoverOutline(isReference: false, isHovered: true, state));
+            Assert.False(HexEditorViewportControl.ShouldDrawHoverOutline(isReference: false, isHovered: false, state));
+            Assert.False(HexEditorViewportControl.ShouldDrawHoverOutline(isReference: true, isHovered: true, state));
+        }
     }
 
     /// <summary>Ensures the Hex Editor inspector remains compact and the source and data surfaces share one workbench grid.</summary>

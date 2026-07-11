@@ -472,18 +472,28 @@ public sealed partial class HexEditorPanel : UserControl
         try
         {
             cell.EditValue = HexInlineEditor.Text ?? string.Empty;
-            HexInlineEditor.IsVisible = false;
-            _inlineEditCell = null;
-            viewModel.SetTextEntryFocused(false);
             if (commit)
             {
                 viewModel.CommitByteEditCommand.Execute(cell);
+                if (cell.IsEditing)
+                {
+                    viewModel.SetTextEntryFocused(true);
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        _ = HexInlineEditor.Focus();
+                        HexInlineEditor.SelectAll();
+                    }, DispatcherPriority.Input);
+                    return;
+                }
             }
             else
             {
                 viewModel.CancelByteEditCommand.Execute(cell);
             }
 
+            HexInlineEditor.IsVisible = false;
+            _inlineEditCell = null;
+            viewModel.SetTextEntryFocused(false);
             _ = HexViewport.Focus();
         }
         finally

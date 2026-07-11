@@ -62,7 +62,17 @@ public sealed partial class RawBinaryEditorSession
             boundary.EndExclusive,
             boundary.Kind,
             [.. valueChanges.Where(change => change.Start < boundary.EndExclusive && change.EndExclusive > boundary.Start)],
-            [.. structuralChanges.Where(change => change.Address >= boundary.Start && change.Address < boundary.EndExclusive)]))];
+            [.. structuralChanges.Where(change => IsStructuralChangeInBoundary(change, boundary.Start, boundary.EndExclusive))]))];
+    }
+
+    private static bool IsStructuralChangeInBoundary(
+        RawBinaryEditorStructuralChange change,
+        int start,
+        int endExclusive)
+    {
+        return change.Address >= start &&
+               (change.Address < endExclusive ||
+                (change.Kind == RawBinaryEditorStructuralChangeKind.Delete && change.Address == endExclusive));
     }
 
     private static RawBinaryEditorChangeKind GetChangeKind(

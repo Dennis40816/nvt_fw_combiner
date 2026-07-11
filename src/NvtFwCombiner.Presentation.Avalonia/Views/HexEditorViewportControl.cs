@@ -32,7 +32,6 @@ public sealed partial class HexEditorViewportControl : Control
     private static readonly IBrush SelectedRowBrush = Brush.Parse("#E6F0FF");
     private static readonly IBrush ChangedBrush = Brush.Parse("#FEF3C7");
     private static readonly IBrush ChangedRowBrush = Brush.Parse("#FFFBEB");
-    private static readonly IBrush HoverBrush = Brush.Parse("#EAF3FF");
     private static readonly IBrush ReferenceRowBrush = Brush.Parse("#FDF2F8");
     private static readonly IBrush ReferenceChangedBrush = Brush.Parse("#FBCFE8");
     private static readonly IBrush ReferenceMarkerBrush = Brush.Parse("#DB2777");
@@ -42,7 +41,7 @@ public sealed partial class HexEditorViewportControl : Control
     private static readonly IPen SelectedPen = new Pen(Brush.Parse("#2563EB"), 1);
     private static readonly IPen ChangedPen = new Pen(Brush.Parse("#FDE68A"), 1);
     private static readonly IPen StructuralPen = new Pen(Brush.Parse("#6366F1"), 1.5);
-    private static readonly IPen HoverPen = new Pen(Brush.Parse("#BFDBFE"), 1);
+    private static readonly IPen HoverPen = new Pen(Brush.Parse("#0EA5E9"), 1.5);
     private static readonly IPen SearchMatchPen = new Pen(Brush.Parse("#86EFAC"), 1);
     private static readonly IPen ReferenceChangedPen = new Pen(Brush.Parse("#F472B6"), 1);
     private static readonly Typeface NormalTypeface = new(new FontFamily("Cascadia Mono, Consolas"));
@@ -292,12 +291,14 @@ public sealed partial class HexEditorViewportControl : Control
     {
         Rect rect = GetCellRect(index, y).Deflate(1);
         bool isHovered = !isReference && string.Equals(_hoveredAddress, cell.Address, StringComparison.Ordinal);
-        IBrush? background = ResolveCellBackground(cell, isReference, isHovered);
-        IPen? pen = ResolveCellPen(cell, isReference, isHovered);
+        IBrush? background = ResolveCellBackground(cell, isReference);
+        IPen? pen = ResolveCellPen(cell, isReference);
         if (background is not null || pen is not null)
         {
             DrawRoundedRectangle(context, background, pen, rect, 3);
         }
+
+        DrawHoverOutline(context, rect, isReference, isHovered, GetVisualState(cell));
 
         DrawHistoryFeedback(context, cell, rect, isReference);
 
@@ -343,36 +344,74 @@ public sealed partial class HexEditorViewportControl : Control
 
     private static IBrush? ResolveCellBackground(
         HexEditorByteCellViewModel cell,
-        bool isReference,
-        bool isHovered)
+        bool isReference)
     {
-        return (isReference, cell.IsSelected, cell.IsAsciiSearchMatch, cell.IsDataChanged, isHovered) switch
+        return (isReference, cell.IsSelected, cell.IsAsciiSearchMatch, cell.IsDataChanged) switch
         {
-            (true, _, _, true, _) => ReferenceChangedBrush,
-            (true, _, _, false, _) => null,
-            (false, true, _, _, _) => SelectedBrush,
-            (false, false, true, _, _) => SearchMatchBrush,
-            (false, false, false, true, _) => ChangedBrush,
-            (false, false, false, false, true) => HoverBrush,
+            (true, _, _, true) => ReferenceChangedBrush,
+            (true, _, _, false) => null,
+            (false, true, _, _) => SelectedBrush,
+            (false, false, true, _) => SearchMatchBrush,
+            (false, false, false, true) => ChangedBrush,
             _ => null,
         };
     }
 
     private static IPen? ResolveCellPen(
         HexEditorByteCellViewModel cell,
-        bool isReference,
-        bool isHovered)
+        bool isReference)
     {
-        return (isReference, cell.IsSelected, cell.IsAsciiSearchMatch, cell.IsDataChanged, isHovered) switch
+        return (isReference, cell.IsSelected, cell.IsAsciiSearchMatch, cell.IsDataChanged) switch
         {
-            (true, _, _, true, _) => ReferenceChangedPen,
-            (true, _, _, false, _) => null,
-            (false, true, _, _, _) => SelectedPen,
-            (false, false, true, _, _) => SearchMatchPen,
-            (false, false, false, true, _) => ChangedPen,
-            (false, false, false, false, true) => HoverPen,
+            (true, _, _, true) => ReferenceChangedPen,
+            (true, _, _, false) => null,
+            (false, true, _, _) => SelectedPen,
+            (false, false, true, _) => SearchMatchPen,
+            (false, false, false, true) => ChangedPen,
             _ => null,
         };
+    }
+
+    internal static bool ShouldDrawHoverOutline(
+        bool isReference,
+        bool isHovered,
+        HexEditorCellVisualState visualState)
+    {
+        return (isReference, isHovered, visualState) switch
+        {
+            (false, true, HexEditorCellVisualState.Normal or
+                HexEditorCellVisualState.Selected or
+                HexEditorCellVisualState.Changed or
+                HexEditorCellVisualState.SearchMatch or
+                HexEditorCellVisualState.Structural) => true,
+            _ => false,
+        };
+    }
+
+    private static void DrawHoverOutline(
+        DrawingContext context,
+        Rect rect,
+        bool isReference,
+        bool isHovered,
+        HexEditorCellVisualState visualState)
+    {
+        if (ShouldDrawHoverOutline(isReference, isHovered, visualState))
+        {
+            DrawRoundedRectangle(context, null, HoverPen, rect, 3);
+        }
+    }
+
+    private static HexEditorCellVisualState GetVisualState(HexEditorByteCellViewModel cell)
+    {
+        return cell.IsSelected
+            ? HexEditorCellVisualState.Selected
+            : cell.IsAsciiSearchMatch
+                ? HexEditorCellVisualState.SearchMatch
+                : cell.IsDataChanged
+                    ? HexEditorCellVisualState.Changed
+                    : cell.IsStructuralChanged
+                        ? HexEditorCellVisualState.Structural
+                        : HexEditorCellVisualState.Normal;
     }
 
     private void DrawAscii(
@@ -405,10 +444,7 @@ public sealed partial class HexEditorViewportControl : Control
                 DrawRoundedRectangle(context, ChangedBrush, ChangedPen, rect, 3);
             }
 
-            if (isHovered)
-            {
-                DrawRoundedRectangle(context, HoverBrush, HoverPen, rect, 3);
-            }
+            DrawHoverOutline(context, rect, isReference, isHovered, GetVisualState(cell));
 
             DrawHistoryFeedback(context, cell, rect, isReference);
 
@@ -524,4 +560,13 @@ public sealed partial class HexEditorViewportControl : Control
         return -1;
     }
 
+}
+
+internal enum HexEditorCellVisualState
+{
+    Normal,
+    Selected,
+    Changed,
+    SearchMatch,
+    Structural,
 }

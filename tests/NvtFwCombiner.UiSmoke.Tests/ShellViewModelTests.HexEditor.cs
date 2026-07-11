@@ -88,6 +88,7 @@ public sealed partial class ShellViewModelTests
         HexEditorViewportRowViewModel firstRow = editor.ViewportRows[0];
         HexEditorByteCellViewModel target = firstRow.Bytes[1];
         editor.InsertZeroAfterCommand.Execute(target);
+        Assert.Equal("0x000002", editor.SelectedByteAddress);
         editor.SetByteToFfCommand.Execute(editor.ViewportRows[0].Bytes[0]);
         firstRow = editor.ViewportRows[0];
 
@@ -111,6 +112,27 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(source, File.ReadAllBytes(sourcePath));
         Assert.Equal((byte)0xFF, File.ReadAllBytes(outputPath)[0]);
         Assert.Equal(source.Length + 1, new FileInfo(outputPath).Length);
+    }
+
+    /// <summary>Keeps an invalid inline byte active so the user can correct or cancel it.</summary>
+    [Fact]
+    public async Task HexEditorInvalidInlineByteRemainsEditable()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-raw-hex-inline-invalid");
+        string sourcePath = workspace.Write("source.bin", [0x10]);
+        MainWindowViewModel shell = ShellViewModelFactory.Create();
+        HexEditorWorkspaceViewModel editor = shell.HexEditorWorkspace;
+
+        await editor.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
+        HexEditorByteCellViewModel cell = editor.ViewportRows[0].Bytes[0];
+        editor.BeginByteEditCommand.Execute(cell);
+        cell.EditValue = "F";
+        editor.CommitByteEditCommand.Execute(cell);
+
+        Assert.True(editor.IsInlineEditActive);
+        Assert.True(cell.IsEditing);
+        Assert.NotEmpty(cell.InlineValidationMessage);
+        Assert.False(editor.CanSave);
     }
 
     /// <summary>Keeps earlier rows visible when Go to moves the bounded window to a later address.</summary>
