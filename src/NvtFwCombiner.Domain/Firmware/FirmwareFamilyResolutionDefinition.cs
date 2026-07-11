@@ -4,7 +4,7 @@ using NvtFwCombiner.Domain.Composition;
 namespace NvtFwCombiner.Domain.Firmware;
 
 /// <summary>Immutable post-normalization family facts used for candidate-scoped map resolution.</summary>
-public sealed class FirmwareFamilyResolutionDefinition
+public sealed partial class FirmwareFamilyResolutionDefinition
 {
     private readonly FirmwareImageMap[] _imageMaps;
     private readonly FirmwareMetadataSet[] _metadataSets;
