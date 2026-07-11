@@ -64,6 +64,18 @@ internal static partial class CompositionProfileNormalizer
         }
     }
 
+    private static string ReadString(JsonElement value, string path)
+    {
+        try
+        {
+            return ContractJsonValueReader.ReadString(value);
+        }
+        catch (ArgumentException exception)
+        {
+            throw Error(path, exception.Message, exception);
+        }
+    }
+
     private static JsonElement Require(JsonElement? value, string path)
     {
         return value ?? throw Error(path, "Required integer is missing.");
