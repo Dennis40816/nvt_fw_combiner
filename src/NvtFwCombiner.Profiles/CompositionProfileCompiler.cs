@@ -48,7 +48,11 @@ public static partial class CompositionProfileCompiler
                 profile.ExperienceId,
                 profile.CompositionKind);
             var plan = new CompositionPlan(profile.Initialization, addressSpaces, operations, provenance);
-            return ProfileCompileResult.Succeeded(plan);
+            var compiledComposition = CompiledComposition.CreateLegacy(
+                plan,
+                profile.DefaultOutputFileName,
+                CompileIcNumberPolicy(profile.IcNumberInputMode));
+            return ProfileCompileResult.Succeeded(compiledComposition);
         }
         catch (ArgumentException exception)
         {
@@ -56,5 +60,17 @@ public static partial class CompositionProfileCompiler
                 new CompositionIssue("profile.plan.invalid", exception.Message),
             ]);
         }
+    }
+
+    private static CompiledIcNumberPolicy CompileIcNumberPolicy(IcNumberInputMode? inputMode)
+    {
+        return inputMode switch
+        {
+            null => CompiledIcNumberPolicy.NotApplicable,
+            IcNumberInputMode.SingleSelector => CompiledIcNumberPolicy.SingleSelector,
+            IcNumberInputMode.CascadeSelector => CompiledIcNumberPolicy.CascadeSelector,
+            IcNumberInputMode.NumericSelector => CompiledIcNumberPolicy.NumericSelector,
+            _ => throw new InvalidOperationException("Profile IC-number mode was not validated."),
+        };
     }
 }

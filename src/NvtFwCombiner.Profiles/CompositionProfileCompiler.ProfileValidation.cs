@@ -11,6 +11,7 @@ public static partial class CompositionProfileCompiler
     {
         List<CompositionIssue> issues = [];
         ValidateInputPaddingPolicy(profile, requestAddressSpaces, issues);
+        ValidateIcNumberPolicy(profile, issues);
 
         AddDuplicateIssues(
             profile.Regions,
@@ -63,6 +64,32 @@ public static partial class CompositionProfileCompiler
         }
 
         return issues;
+    }
+
+    private static void ValidateIcNumberPolicy(
+        CompositionProfileDefinition profile,
+        List<CompositionIssue> issues)
+    {
+        if (profile.IcNumberInputMode is { } inputMode && !Enum.IsDefined(inputMode))
+        {
+            issues.Add(new CompositionIssue(
+                "profile.ic-number-mode.unknown",
+                "Profile declares an unknown IC-number input mode."));
+            return;
+        }
+
+        if (profile.CompositionKind == CompositionKind.Merge && profile.IcNumberInputMode is not null)
+        {
+            issues.Add(new CompositionIssue(
+                "profile.ic-number-mode.not-applicable",
+                "Merge profiles cannot declare an IC-number input mode."));
+        }
+        else if (profile.CompositionKind == CompositionKind.Replace && profile.IcNumberInputMode is null)
+        {
+            issues.Add(new CompositionIssue(
+                "profile.ic-number-mode.required",
+                "Replace profiles require an IC-number input mode."));
+        }
     }
 
     private static void ValidateInputPaddingPolicy(

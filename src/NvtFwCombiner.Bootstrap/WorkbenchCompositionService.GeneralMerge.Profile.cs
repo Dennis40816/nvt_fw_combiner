@@ -97,8 +97,7 @@ public static partial class WorkbenchCompositionService
                     WorkbenchGeneralMergeIds.OutputRegionId,
                     RegionAccessKind.ExplicitRange,
                     "General Merge explicit mapping output."),
-            ],
-            IcNumberInputMode.SingleSelector);
+            ]);
     }
 
     private static long GetGeneralMergeCatalogFallbackCapacity(string icId)

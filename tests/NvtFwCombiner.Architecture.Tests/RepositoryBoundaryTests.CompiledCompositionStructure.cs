@@ -9,6 +9,9 @@ public sealed partial class RepositoryBoundaryTests
         string project = ReadText("src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj");
         string composition = ReadText(
             "src/NvtFwCombiner.Domain/Composition/CompiledComposition.cs");
+        string compiler = ReadText(
+            "src/NvtFwCombiner.Profiles/CompositionProfileCompiler.cs");
+        string profileSources = ReadProfileSources();
 
         Assert.Contains(
             "<InternalsVisibleTo Include=\"NvtFwCombiner.Profiles\" />",
@@ -28,5 +31,7 @@ public sealed partial class RepositoryBoundaryTests
             "public static CompiledComposition Create",
             composition,
             StringComparison.Ordinal);
+        Assert.Contains("CompiledComposition.CreateLegacy(", compiler, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(profileSources, "CompiledComposition.CreateLegacy("));
     }
 }
