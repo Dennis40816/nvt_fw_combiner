@@ -20,6 +20,14 @@ internal static partial class CompositionProfileValueRules
             : value;
     }
 
+    internal static string RequireIssueCode(string value, string parameterName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value, parameterName);
+        return !IssueCodePattern().IsMatch(value)
+            ? throw new ArgumentException("Value is not a canonical issue code.", parameterName)
+            : value;
+    }
+
     internal static string[] SnapshotIds(
         IEnumerable<string> values,
         string parameterName,
@@ -59,4 +67,7 @@ internal static partial class CompositionProfileValueRules
         "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$",
         RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
     private static partial Regex SemanticVersionPattern();
+
+    [GeneratedRegex("^[A-Z][A-Z0-9_]+$", RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
+    private static partial Regex IssueCodePattern();
 }
