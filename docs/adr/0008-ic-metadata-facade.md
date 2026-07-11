@@ -1,10 +1,16 @@
 # ADR 0008: Project Canonical IC Facts Through a Read-Only Metadata Facade
 
-- Status: Accepted
+- Status: Accepted; catalog ownership superseded after ADR 0015 compatibility migration
 - Date: 2026-07-10
 - Owners: Product owner + architecture owner
+- Superseded by: ADR 0015 after old-catalog removal
 
 ## Context
+
+> Compatibility note: ADR 0015 replaces the independent catalog ownership and Bootstrap join
+> described below with canonical firmware-family/profile documents and resolved maps. The
+> read-only facade and historical report snapshot principles remain valid during and after the
+> migration.
 
 The workbench needs onboarding/workflow exposure, TP Overview flash-map facts, FWConfig discovery, TP Header section labels, and postbuild category availability. These facts have distinct canonical owners. Letting each UI, CLI, Settings, and report-adjacent caller join those catalogs independently invites drift when an IC is added.
 
