@@ -167,6 +167,29 @@ Evidence inventories may use `unknown`; supported profiles may not. `transform` 
 
 ## Runtime and derived variables
 
+Map-resolution input is one atomic Domain value:
+
+```text
+FirmwareMapResolutionInputs
+  memberId / modeId / exact capacity
+  topology: count + label + requested|derived + sourceId
+  Common FW category + sourceFactId?
+  artifacts[]: artifactId + SHA-256 + exact length
+  decodedFacts[]
+    factId
+    artifactId
+    metadataStructureId
+    fieldId
+    typed value
+```
+
+Every derived topology/category source references a declared decoded `factId`, and every decoded fact
+references a declared artifact. Facts with the same `fieldId` from different artifacts/locators stay
+independent, while duplicate facts from the same artifact, metadata structure, and field are invalid.
+Pre-resolver applicability leaves metadata predicates pending. A resolver may compare a predicate or
+create a field-only index only after the candidate map identifies the applicable artifact and metadata
+structure; it never collapses or chooses the first fact globally.
+
 Compile result:
 
 ```text
