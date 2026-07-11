@@ -1,0 +1,526 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
+  "title": "NVT FW Combiner Firmware Family 1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "familyId",
+    "familyVersion",
+    "members",
+    "capabilities",
+    "regionSets",
+    "metadataSets",
+    "imageMaps",
+    "factAliases",
+    "evidenceRefs"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "familyId": { "$ref": "#/$defs/id" },
+    "familyVersion": { "$ref": "#/$defs/semver" },
+    "members": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/member" }
+    },
+    "capabilities": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/capability" }
+    },
+    "regionSets": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/regionSet" }
+    },
+    "metadataSets": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/metadataSet" }
+    },
+    "imageMaps": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/imageMap" }
+    },
+    "factAliases": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/factAlias" }
+    },
+    "evidenceRefs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/id" }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "icId": {
+      "type": "string",
+      "pattern": "^NT[0-9A-Z-]+$"
+    },
+    "byteRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "length"],
+      "properties": {
+        "start": { "type": "integer", "minimum": 0 },
+        "length": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "addressedRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["addressSpaceId", "start", "length"],
+      "properties": {
+        "addressSpaceId": { "$ref": "#/$defs/id" },
+        "start": { "type": "integer", "minimum": 0 },
+        "length": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "scalar": {
+      "oneOf": [
+        { "type": "boolean" },
+        { "type": "integer" },
+        { "type": "string", "minLength": 1 }
+      ]
+    },
+    "member": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["memberId", "displayName"],
+      "properties": {
+        "memberId": { "$ref": "#/$defs/icId" },
+        "displayName": { "type": "string", "minLength": 1 }
+      }
+    },
+    "capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capabilityId", "state", "memberIds", "evidenceRefs"],
+      "properties": {
+        "capabilityId": { "$ref": "#/$defs/id" },
+        "state": {
+          "enum": ["confirmed-present", "confirmed-absent", "unknown"]
+        },
+        "memberIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/icId" }
+        },
+        "reason": { "type": "string", "minLength": 1 },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    "regionSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["regionSetId", "addressSpaceId", "regions", "evidenceRefs"],
+      "properties": {
+        "regionSetId": { "$ref": "#/$defs/id" },
+        "addressSpaceId": { "$ref": "#/$defs/id" },
+        "regions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/region" }
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    "region": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "regionId",
+        "owner",
+        "kind",
+        "range",
+        "writeConstraint",
+        "alignment"
+      ],
+      "properties": {
+        "regionId": { "$ref": "#/$defs/id" },
+        "parentRegionId": { "$ref": "#/$defs/id" },
+        "owner": {
+          "enum": [
+            "system",
+            "dp",
+            "tp",
+            "ldc",
+            "register",
+            "customer",
+            "shared",
+            "reserved",
+            "unknown"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "image",
+            "code",
+            "header",
+            "data",
+            "command",
+            "firmware-config",
+            "ctrlram",
+            "customer-information",
+            "checksum",
+            "padding",
+            "reserved",
+            "unmapped"
+          ]
+        },
+        "range": { "$ref": "#/$defs/byteRange" },
+        "writeConstraint": {
+          "enum": ["forbidden", "whole-region", "declared-subregions", "explicit-range"]
+        },
+        "alignment": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "topologyRequirement": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": { "kind": { "const": "none" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": { "kind": { "const": "single" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "minimumChipCount"],
+          "properties": {
+            "kind": { "const": "cascade" },
+            "minimumChipCount": { "type": "integer", "minimum": 2 },
+            "maximumChipCount": { "type": "integer", "minimum": 2 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "chipCount"],
+          "properties": {
+            "kind": { "const": "exact-count" },
+            "chipCount": { "type": "integer", "minimum": 1 }
+          }
+        }
+      ]
+    },
+    "metadataPredicate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fieldId", "operator", "expectedValues"],
+      "properties": {
+        "fieldId": { "$ref": "#/$defs/id" },
+        "operator": { "enum": ["equals", "not-equals", "one-of"] },
+        "expectedValues": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/scalar" }
+        }
+      }
+    },
+    "applicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["memberIds", "modeIds", "topologyRequirement", "capacityBytes"],
+      "properties": {
+        "memberIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/icId" }
+        },
+        "modeIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "topologyRequirement": { "$ref": "#/$defs/topologyRequirement" },
+        "capacityBytes": { "type": "integer", "minimum": 1 },
+        "commonFirmwareCategoryIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "metadataPredicates": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/metadataPredicate" }
+        }
+      }
+    },
+    "imageMap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mapId",
+        "addressSpaceId",
+        "applicability",
+        "coveragePolicy",
+        "regionSetIds",
+        "metadataSetIds",
+        "evidenceRefs"
+      ],
+      "properties": {
+        "mapId": { "$ref": "#/$defs/id" },
+        "addressSpaceId": { "$ref": "#/$defs/id" },
+        "applicability": { "$ref": "#/$defs/applicability" },
+        "coveragePolicy": { "const": "complete-with-explicit-gaps" },
+        "regionSetIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "metadataSetIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    "metadataSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metadataSetId", "structures", "evidenceRefs"],
+      "properties": {
+        "metadataSetId": { "$ref": "#/$defs/id" },
+        "structures": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/metadataStructure" }
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    "metadataStructure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["structureId", "length", "locator", "fields", "assertions"],
+      "properties": {
+        "structureId": { "$ref": "#/$defs/id" },
+        "length": { "type": "integer", "minimum": 1 },
+        "locator": { "$ref": "#/$defs/locator" },
+        "fields": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/metadataField" }
+        },
+        "assertions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/byteAssertion" }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "locator": {
+                "properties": { "kind": { "const": "marker-relative" } },
+                "required": ["kind"]
+              }
+            },
+            "required": ["locator"]
+          },
+          "then": {
+            "properties": { "assertions": { "minItems": 1 } }
+          }
+        }
+      ]
+    },
+    "metadataField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fieldId", "offset", "widthBytes", "encoding"],
+      "properties": {
+        "fieldId": { "$ref": "#/$defs/id" },
+        "offset": { "type": "integer", "minimum": 0 },
+        "widthBytes": { "type": "integer", "minimum": 1 },
+        "encoding": { "enum": ["bytes", "unsigned-integer", "ascii"] },
+        "byteOrder": { "enum": ["little", "big"] },
+        "bitSlice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["leastSignificantBit", "bitCount"],
+          "properties": {
+            "leastSignificantBit": { "type": "integer", "minimum": 0 },
+            "bitCount": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "byteAssertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["offset", "expectedHex"],
+      "properties": {
+        "offset": { "type": "integer", "minimum": 0 },
+        "expectedHex": { "$ref": "#/$defs/hexBytes" },
+        "maskHex": { "$ref": "#/$defs/hexBytes" }
+      }
+    },
+    "hexBytes": {
+      "type": "string",
+      "pattern": "^(?:[0-9a-f]{2})+$"
+    },
+    "markerSelection": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": { "kind": { "const": "unique" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "terminal", "expectedMatchCount"],
+          "properties": {
+            "kind": { "const": "terminal-match" },
+            "terminal": { "enum": ["lowest-address", "highest-address"] },
+            "expectedMatchCount": { "type": "integer", "minimum": 1 }
+          }
+        }
+      ]
+    },
+    "locator": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "range", "allowedResultRegionId"],
+          "properties": {
+            "kind": { "const": "absolute-range" },
+            "range": { "$ref": "#/$defs/addressedRange" },
+            "allowedResultRegionId": { "$ref": "#/$defs/id" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "regionId", "offset", "allowedResultRegionId"],
+          "properties": {
+            "kind": { "const": "region-relative" },
+            "regionId": { "$ref": "#/$defs/id" },
+            "offset": { "type": "integer", "minimum": 0 },
+            "allowedResultRegionId": { "$ref": "#/$defs/id" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "searchRange",
+            "markerHex",
+            "selection",
+            "resultOffset",
+            "allowedResultRegionId"
+          ],
+          "properties": {
+            "kind": { "const": "marker-relative" },
+            "searchRange": { "$ref": "#/$defs/addressedRange" },
+            "markerHex": { "$ref": "#/$defs/hexBytes" },
+            "selection": { "$ref": "#/$defs/markerSelection" },
+            "resultOffset": { "type": "integer" },
+            "allowedResultRegionId": { "$ref": "#/$defs/id" }
+          }
+        }
+      ]
+    },
+    "aliasApplicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["modeIds", "topologyRequirement", "capacityBytes"],
+      "properties": {
+        "modeIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "topologyRequirement": { "$ref": "#/$defs/topologyRequirement" },
+        "capacityBytes": { "type": "integer", "minimum": 1 },
+        "commonFirmwareCategoryIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "metadataPredicates": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/metadataPredicate" }
+        }
+      }
+    },
+    "factAlias": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "aliasId",
+        "factKind",
+        "targetMemberId",
+        "targetFactId",
+        "sourceMemberId",
+        "sourceFactId",
+        "applicability",
+        "reason",
+        "evidenceRefs"
+      ],
+      "properties": {
+        "aliasId": { "$ref": "#/$defs/id" },
+        "factKind": { "enum": ["region-set", "metadata-set", "capability"] },
+        "targetMemberId": { "$ref": "#/$defs/icId" },
+        "targetFactId": { "$ref": "#/$defs/id" },
+        "sourceMemberId": { "$ref": "#/$defs/icId" },
+        "sourceFactId": { "$ref": "#/$defs/id" },
+        "applicability": { "$ref": "#/$defs/aliasApplicability" },
+        "reason": { "type": "string", "minLength": 1 },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        }
+      }
+    }
+  }
+}
