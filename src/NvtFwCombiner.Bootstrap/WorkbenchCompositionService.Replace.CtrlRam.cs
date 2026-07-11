@@ -99,8 +99,7 @@ public static partial class WorkbenchCompositionService
 
         return await RunCompiledCompositionAsync(
             CtrlRamReplaceRunIdPrefix,
-            profile,
-            compile.Plan!,
+            compile.CompiledComposition!,
             bindings,
             context.BasePath!,
             build,

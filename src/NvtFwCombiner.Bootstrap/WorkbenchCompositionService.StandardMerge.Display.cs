@@ -80,7 +80,7 @@ public static partial class WorkbenchCompositionService
                 FormatStandardMergeInitializationDetail(profile, dpInputLength)),
         ];
 
-        foreach (CompositionOperation operation in compile.Plan!.OrderedOperations)
+        foreach (CompositionOperation operation in compile.CompiledComposition!.Plan.OrderedOperations)
         {
             string afterSource = operation.SourceSpaceId is null
                 ? operation.Kind.ToString()

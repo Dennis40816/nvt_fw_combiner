@@ -4,7 +4,6 @@ using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Files;
 using NvtFwCombiner.Infrastructure.Time;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -18,8 +17,7 @@ public static partial class WorkbenchCompositionService
 
     private static async ValueTask<WorkbenchRunResult> RunCompiledCompositionAsync(
         string runIdPrefix,
-        CompositionProfileDefinition profile,
-        CompositionPlan plan,
+        CompiledComposition compiledComposition,
         IReadOnlyList<InputArtifactBinding> bindings,
         string firstInputPath,
         bool build,
@@ -42,7 +40,7 @@ public static partial class WorkbenchCompositionService
             firstInputPath,
             build,
             outputPath,
-            profile.DefaultOutputFileName);
+            compiledComposition.DefaultOutputFileName);
         if (build)
         {
             List<ProtectedPathGuard.ProtectedPath> protectedPaths = ProtectedPathGuard.CreateProtectedPaths(
@@ -72,8 +70,8 @@ public static partial class WorkbenchCompositionService
         CompositionRunService service = new(reader, new SystemClock(), writer, externalProcessor);
         CompositionRunRequest request = new(
             CreateWorkbenchRunId(runIdPrefix, build),
-            ToRunProfile(profile),
-            plan,
+            CompiledCompositionRunAdapter.ToLegacyRunProfile(compiledComposition),
+            compiledComposition.Plan,
             bindings,
             outputFileName,
             icNumberSelection: icNumberSelection);

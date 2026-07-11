@@ -29,7 +29,8 @@ public static partial class WorkbenchCompositionService
             throw new InvalidOperationException(FormatIssues(compile.Issues));
         }
 
-        CompositionPlan plan = compile.Plan!;
+        CompiledComposition compiledComposition = compile.CompiledComposition!;
+        CompositionPlan plan = compiledComposition.Plan;
         InputArtifactBinding[] bindings = [
             .. plan.RequiredInputAddressSpaceIds
                 .Order(StringComparer.Ordinal)
@@ -38,8 +39,7 @@ public static partial class WorkbenchCompositionService
 
         return await RunCompiledCompositionAsync(
             StandardMergeRunIdPrefix,
-            profile,
-            plan,
+            compiledComposition,
             bindings,
             bindings[0].ArtifactId,
             build,

@@ -203,8 +203,7 @@ public static partial class WorkbenchCompositionService
             : null;
         return compileFailure ?? await RunCompiledCompositionAsync(
             GeneralMergeRunIdPrefix,
-            profile,
-            compile.Plan!,
+            compile.CompiledComposition!,
             mappingBindings,
             mappingBindings[0].ArtifactId,
             build,

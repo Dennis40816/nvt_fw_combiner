@@ -132,7 +132,8 @@ internal static partial class ReplaceCliCommandHandler
             return SoftwareError;
         }
 
-        CompositionPlan plan = compile.Plan!;
+        CompiledComposition compiledComposition = compile.CompiledComposition!;
+        CompositionPlan plan = compiledComposition.Plan;
         if (!TryCreateBindings(plan, options, error, out IReadOnlyList<InputArtifactBinding> bindings))
         {
             return UsageError;
@@ -140,7 +141,7 @@ internal static partial class ReplaceCliCommandHandler
 
         CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
             options.Values.GetValueOrDefault("--output"),
-            selectedProfile.DefaultOutputFileName);
+            compiledComposition.DefaultOutputFileName);
         if (action == "build")
         {
             CliCompositionRunSupport.EnsureOutputDoesNotAliasInputs(outputTarget, bindings);
@@ -161,8 +162,8 @@ internal static partial class ReplaceCliCommandHandler
         var service = new CompositionRunService(reader, new SystemClock(), writer, ExternalProcessorFactory.CreateOrNull());
         var request = new CompositionRunRequest(
             CreateRunId(command, action),
-            CliCompositionRunSupport.ToRunProfile(selectedProfile),
-            plan,
+            CompiledCompositionRunAdapter.ToLegacyRunProfile(compiledComposition),
+            compiledComposition.Plan,
             bindings,
             outputTarget.FileName,
             icNumberSelection: icNumberSelection);

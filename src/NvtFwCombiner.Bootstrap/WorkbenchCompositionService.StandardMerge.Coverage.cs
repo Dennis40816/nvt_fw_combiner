@@ -83,7 +83,7 @@ public static partial class WorkbenchCompositionService
                 false),
         ];
 
-        foreach (CompositionOperation operation in compile.Plan!.OrderedOperations)
+        foreach (CompositionOperation operation in compile.CompiledComposition!.Plan.OrderedOperations)
         {
             string label = operation.SourceSpaceId is null
                 ? ActionLabel(operation.Kind)

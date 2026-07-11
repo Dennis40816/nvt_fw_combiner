@@ -1,6 +1,5 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -42,18 +41,6 @@ public static partial class WorkbenchCompositionService
         return slotPaths.TryGetValue(addressSpaceId, out string? path) && !string.IsNullOrWhiteSpace(path)
             ? new InputArtifactBinding(addressSpaceId, addressSpaceId, Path.GetFullPath(path))
             : throw new InvalidOperationException($"Input slot '{addressSpaceId}' is required.");
-    }
-
-    private static CompositionRunProfile ToRunProfile(CompositionProfileDefinition profile)
-    {
-        return new CompositionRunProfile(
-            profile.ProfileId,
-            profile.ProfileVersion,
-            profile.IcId,
-            profile.ModeId,
-            profile.ExperienceId,
-            profile.CompositionKind,
-            profile.IcNumberInputMode);
     }
 
     private static string FormatIssues(IEnumerable<CompositionIssue> issues)

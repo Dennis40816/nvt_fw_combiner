@@ -78,6 +78,6 @@ public static partial class WorkbenchCompositionService
     private static IReadOnlyList<string> GetRequiredAddressSpaces(CompositionProfileDefinition profile)
     {
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
-        return compile.IsSuccess ? compile.Plan!.RequiredInputAddressSpaceIds : [];
+        return compile.IsSuccess ? compile.CompiledComposition!.Plan.RequiredInputAddressSpaceIds : [];
     }
 }

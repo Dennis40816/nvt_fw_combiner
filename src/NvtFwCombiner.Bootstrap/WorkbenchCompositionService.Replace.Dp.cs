@@ -30,16 +30,11 @@ public static partial class WorkbenchCompositionService
             icId,
             context!.Capacity);
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
-        if (!compile.IsSuccess)
-        {
-            throw new InvalidOperationException(FormatIssues(compile.Issues));
-        }
-
-        CompositionPlan plan = compile.Plan!;
-        return await RunCompiledCompositionAsync(
+        return !compile.IsSuccess
+            ? throw new InvalidOperationException(FormatIssues(compile.Issues))
+            : await RunCompiledCompositionAsync(
             DpReplaceRunIdPrefix,
-            profile,
-            plan,
+            compile.CompiledComposition!,
             context.Bindings,
             context.BasePath,
             build,

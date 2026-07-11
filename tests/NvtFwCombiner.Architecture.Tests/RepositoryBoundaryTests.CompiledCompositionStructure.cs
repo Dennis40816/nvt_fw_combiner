@@ -12,6 +12,12 @@ public sealed partial class RepositoryBoundaryTests
         string compiler = ReadText(
             "src/NvtFwCombiner.Profiles/CompositionProfileCompiler.cs");
         string profileSources = ReadProfileSources();
+        string runAdapter = ReadText(
+            "src/NvtFwCombiner.Bootstrap/CompiledCompositionRunAdapter.cs");
+        string runner = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Runner.cs");
+        string bootstrapWithoutAdapter = ReadBootstrapSources()
+            .Replace(runAdapter, string.Empty, StringComparison.Ordinal);
 
         Assert.Contains(
             "<InternalsVisibleTo Include=\"NvtFwCombiner.Profiles\" />",
@@ -33,5 +39,9 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
         Assert.Contains("CompiledComposition.CreateLegacy(", compiler, StringComparison.Ordinal);
         Assert.Equal(1, CountOccurrences(profileSources, "CompiledComposition.CreateLegacy("));
+        Assert.Contains("CompiledComposition compiledComposition", runner, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileDefinition profile,", runner, StringComparison.Ordinal);
+        Assert.DoesNotContain("compile.Plan", bootstrapWithoutAdapter, StringComparison.Ordinal);
+        Assert.DoesNotContain("new CompositionRunProfile(", bootstrapWithoutAdapter, StringComparison.Ordinal);
     }
 }

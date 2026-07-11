@@ -28,7 +28,7 @@ public static partial class CliApplication
         {
             ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
             string inputs = compile.IsSuccess
-                ? string.Join(", ", compile.Plan!.RequiredInputAddressSpaceIds)
+                ? string.Join(", ", compile.CompiledComposition!.Plan.RequiredInputAddressSpaceIds)
                 : "compile-error";
             await output.WriteLineAsync(
                     string.Create(
@@ -43,7 +43,7 @@ public static partial class CliApplication
         {
             ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
             string inputs = compile.IsSuccess
-                ? string.Join(", ", compile.Plan!.RequiredInputAddressSpaceIds)
+                ? string.Join(", ", compile.CompiledComposition!.Plan.RequiredInputAddressSpaceIds)
                 : "compile-error";
             await output.WriteLineAsync(
                     string.Create(

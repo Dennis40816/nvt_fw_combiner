@@ -205,8 +205,7 @@ public static partial class WorkbenchCompositionService
 
         return await RunCompiledCompositionAsync(
             GeneralReplaceRunIdPrefix,
-            profile,
-            compile.Plan!,
+            compile.CompiledComposition!,
             bindings,
             context.BasePath,
             build,
