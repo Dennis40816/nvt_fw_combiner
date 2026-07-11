@@ -239,8 +239,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ReportOperationFlowNodeTemplate", reportOperationTemplates, StringComparison.Ordinal);
         Assert.Contains("ReportHistoryEntryTemplate", reportHistoryTemplates, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.OperationFlow", reportAuditTemplates, StringComparison.Ordinal);
-        Assert.Contains("LoadedReport.CommandOperations", reportAuditTemplates, StringComparison.Ordinal);
         Assert.Contains("LoadedReport.StepOperations", reportAuditTemplates, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.PostbuildInvocations", reportAuditTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("LoadedReport.CommandOperations", reportAuditTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("ColumnDefinitions=\"24,*\"", shell, StringComparison.Ordinal);
         Assert.Contains("FontFamily=\"fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Classes=\"secondary\" Content=\"{Binding PreviewActionLabel}\"", shell, StringComparison.Ordinal);

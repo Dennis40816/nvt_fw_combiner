@@ -145,17 +145,18 @@
               FontSize="25"
               FontWeight="SemiBold"
               Foreground="#0F172A"
-              Text="{Binding Text.HexEditorTitle}" />
+              Text="{Binding Text.UtilToolsHomeTitle}" />
           <TextBlock
               FontSize="13"
               Foreground="#64748B"
-              Text="{Binding Text.HexEditorDetail}"
-              TextWrapping="Wrap" />
+              Text="{Binding Text.UtilToolsHomeDetail}"
+              TextTrimming="CharacterEllipsis" />
         </StackPanel>
         <Grid Grid.Row="1" Margin="0,18,0,0" RowDefinitions="Auto" RowSpacing="8">
           <Button
               Classes="command"
-              Command="{Binding ShowHexEditorCommand}">
+              Command="{Binding ShowHexEditorCommand}"
+              ToolTip.Tip="{Binding Text.HexEditorDetail}">
             <Border Classes="workflowCard">
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
                 <TextBlock Classes="strongText" Text="{Binding Text.HexEditorTitle}" />

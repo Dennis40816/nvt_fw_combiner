@@ -344,6 +344,98 @@
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="#334155" />
   </Style>
+  <Style Selector="Label.countBadge.changed">
+    <Setter Property="Background" Value="#FFF7ED" />
+    <Setter Property="BorderBrush" Value="#FDBA74" />
+    <Setter Property="Foreground" Value="#C2410C" />
+  </Style>
+  <Style Selector="TextBlock.hexInspectorSection">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#475569" />
+  </Style>
+  <Style Selector="Border.hexInspectorHint">
+    <Setter Property="Padding" Value="8,6" />
+    <Setter Property="Background" Value="#F8FAFC" />
+    <Setter Property="BorderBrush" Value="#D7E1ED" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+  </Style>
+  <Style Selector="Border.hexInspectorHint.error">
+    <Setter Property="Background" Value="#FFF1F2" />
+    <Setter Property="BorderBrush" Value="#FDA4AF" />
+  </Style>
+  <Style Selector="TextBlock.hexInspectorNotice.error">
+    <Setter Property="Foreground" Value="#BE123C" />
+  </Style>
+  <Style Selector="Button.hexChangedBlockNavigator">
+    <Setter Property="MinWidth" Value="28" />
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Background" Value="#FFFBEB" />
+    <Setter Property="BorderBrush" Value="#FCD34D" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="Foreground" Value="#92400E" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Button.hexChangedBlockNavigator:disabled">
+    <Setter Property="Background" Value="#F8FAFC" />
+    <Setter Property="BorderBrush" Value="#E2E8F0" />
+    <Setter Property="Foreground" Value="#94A3B8" />
+    <Setter Property="Opacity" Value="1" />
+  </Style>
+  <Style Selector="Button.hexChangedBlockRow">
+    <Setter Property="MinHeight" Value="34" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Padding" Value="8,5" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="#E2E8F0" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <Setter Property="CornerRadius" Value="0" />
+  </Style>
+  <Style Selector="Button.hexChangedBlockRow:pointerover">
+    <Setter Property="Background" Value="#EFF6FF" />
+  </Style>
+  <Style Selector="TextBlock.hexWriteModeLabel">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#1D4ED8" />
+  </Style>
+  <Style Selector="ToggleSwitch.hexWriteModeToggle">
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.hexApplyChange">
+    <Setter Property="MinHeight" Value="32" />
+    <Setter Property="Padding" Value="12,5" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+  <Style Selector="Button.hexInspectorAction">
+    <Setter Property="MinWidth" Value="32" />
+    <Setter Property="MinHeight" Value="32" />
+  </Style>
+  <Style Selector="Button.hexInspectorAction Path">
+    <Setter Property="Stroke" Value="#334155" />
+    <Setter Property="StrokeThickness" Value="1.8" />
+    <Setter Property="StrokeLineCap" Value="Round" />
+    <Setter Property="StrokeJoin" Value="Round" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.hexInspectorAction:pointerover Path">
+    <Setter Property="Stroke" Value="#2563EB" />
+  </Style>
+  <Style Selector="Button.hexInspectorAction:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#EFF6FF" />
+    <Setter Property="BorderBrush" Value="#93C5FD" />
+  </Style>
+  <Style Selector="Button.hexInspectorAction:disabled Path">
+    <Setter Property="Stroke" Value="#94A3B8" />
+  </Style>
 
   <Style Selector="TextBox.readOnlyRaw">
     <Setter Property="MinHeight" Value="0" />
@@ -377,15 +469,5 @@
   <Style Selector="TextBox.hexCellEditor.invalid">
     <Setter Property="Background" Value="#FEF2F2" />
     <Setter Property="BorderBrush" Value="#DC2626" />
-  </Style>
-  <Style Selector="TextBlock.hexReferenceCell">
-    <Setter Property="MinWidth" Value="28" />
-    <Setter Property="MinHeight" Value="24" />
-    <Setter Property="HorizontalAlignment" Value="Center" />
-    <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="TextAlignment" Value="Center" />
-    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
-    <Setter Property="FontSize" Value="12" />
-    <Setter Property="Foreground" Value="#64748B" />
   </Style>
 </Styles>

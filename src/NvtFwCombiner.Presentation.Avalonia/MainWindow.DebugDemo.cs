@@ -1,4 +1,5 @@
 #if DEBUG
+using Avalonia.Threading;
 using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -21,6 +22,9 @@ public sealed partial class MainWindow
         viewModel.SelectedIc = "NT51927";
         viewModel.SelectedNumber = "2";
         viewModel.SetSlotFile(WorkbenchSlotIds.ReplaceBase, basePath);
+        Dispatcher.UIThread.Post(
+            async () => await viewModel.HexEditorWorkspace.LoadAsync(basePath),
+            DispatcherPriority.Background);
     }
 }
 #endif

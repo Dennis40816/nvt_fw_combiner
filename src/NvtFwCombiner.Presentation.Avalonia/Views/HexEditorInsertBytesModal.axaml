@@ -1,0 +1,47 @@
+<UserControl
+    x:Class="NvtFwCombiner.Presentation.Avalonia.Views.HexEditorInsertBytesModal"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    x:DataType="vm:HexEditorWorkspaceViewModel"
+    Background="#660F172A">
+  <Border
+      Classes="modalSurface"
+      Width="380"
+      Padding="20"
+      HorizontalAlignment="Center"
+      VerticalAlignment="Center"
+      BorderBrush="#6366F1">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="16">
+      <StackPanel Spacing="5">
+        <TextBlock Classes="modalTitle" Text="{Binding InsertBytesPromptTitle}" />
+        <TextBlock Classes="mutedText" Text="{Binding Text.HexEditorInsertBytesDetail}" TextWrapping="Wrap" />
+      </StackPanel>
+
+      <Grid Grid.Row="1" ColumnDefinitions="110,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="8">
+        <TextBlock Classes="fieldLabel" Text="{Binding Text.HexEditorAddressColumnLabel}" />
+        <TextBlock Grid.Column="1" Classes="technicalValue" Text="{Binding InsertTargetAddress}" />
+        <TextBlock Grid.Row="1" Classes="fieldLabel" Text="{Binding Text.HexEditorInsertByteCountLabel}" />
+        <StackPanel Grid.Row="1" Grid.Column="1" Spacing="4">
+          <NumericUpDown
+              AutomationProperties.Name="{Binding Text.HexEditorInsertByteCountLabel}"
+              Minimum="1"
+              Maximum="{Binding MaximumInsertByteCount}"
+              Increment="1"
+              FormatString="0"
+              Value="{Binding InsertByteCount, Mode=TwoWay}" />
+          <TextBlock Classes="captionText" Text="{Binding InsertBytesMaximumLabel}" />
+        </StackPanel>
+      </Grid>
+
+      <Border Grid.Row="2" Classes="hexInspectorHint error" IsVisible="{Binding HasInsertBytesFeedback}">
+        <TextBlock Classes="captionText hexInspectorNotice error" Text="{Binding InsertBytesFeedback}" TextWrapping="Wrap" />
+      </Border>
+
+      <StackPanel Grid.Row="3" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+        <Button Classes="secondary" Command="{Binding CancelInsertBytesCommand}" Content="{Binding Text.CloseLabel}" />
+        <Button Classes="primary" Command="{Binding ConfirmInsertBytesCommand}" Content="{Binding Text.HexEditorInsertBytesActionLabel}" />
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>

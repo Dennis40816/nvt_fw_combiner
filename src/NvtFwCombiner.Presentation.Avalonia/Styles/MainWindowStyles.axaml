@@ -1,4 +1,7 @@
-<Styles xmlns="https://github.com/avaloniaui">
+<Styles
+    xmlns="https://github.com/avaloniaui"
+    xmlns:behaviors="using:NvtFwCombiner.Presentation.Avalonia.Behaviors"
+    xmlns:input="using:Avalonia.Input">
   <Style Selector="TabControl.reportTabs">
     <Setter Property="FontSize" Value="12" />
   </Style>
@@ -119,5 +122,7 @@
     <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
     <Setter Property="FontSize" Value="13" />
     <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="behaviors:HexTextInputBehavior.Mode" Value="Address" />
+    <Setter Property="input:InputMethod.IsInputMethodEnabled" Value="False" />
   </Style>
 </Styles>

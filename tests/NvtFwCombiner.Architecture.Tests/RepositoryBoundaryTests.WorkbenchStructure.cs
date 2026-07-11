@@ -120,10 +120,10 @@ public sealed partial class RepositoryBoundaryTests
         string runner = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.HexEditor.cs");
         string session = ReadText("src/NvtFwCombiner.Application/HexEditor/RawBinaryEditorSession.cs");
 
-        Assert.Contains("SaveAsHexEditorButton_OnClick", panel, StringComparison.Ordinal);
+        Assert.Contains("RequestSaveCommand", panel, StringComparison.Ordinal);
         Assert.Contains("InsertZeroBeforeCommand", panelCodeBehind, StringComparison.Ordinal);
         Assert.Contains("DeleteByteCommand", panelCodeBehind, StringComparison.Ordinal);
-        Assert.Contains("PickEditedFirmwareOutputPathAsync", panelCodeBehind, StringComparison.Ordinal);
+        Assert.Contains("SetViewportStartRowCommand", panelCodeBehind, StringComparison.Ordinal);
         Assert.Contains("CreateRawBinaryEditorSession", runner, StringComparison.Ordinal);
         Assert.Contains("RawBinaryEditorSession", session, StringComparison.Ordinal);
         Assert.DoesNotContain("GeneralReplace", panel, StringComparison.Ordinal);
