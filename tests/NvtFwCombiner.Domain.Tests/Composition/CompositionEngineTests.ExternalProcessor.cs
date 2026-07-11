@@ -65,8 +65,7 @@ public sealed partial class CompositionEngineTests
                         ]),
                     OverlapPolicy.ReplaceExisting,
                     "run combiner pasteback"),
-            ],
-            CreateCtrlRamReplaceProvenance());
+            ]);
         var input = new CompositionExecutionInput(new Dictionary<string, byte[]>
         {
             ["reference-base"] = [0x10, 0x20, 0x30, 0x40],
@@ -124,8 +123,7 @@ public sealed partial class CompositionEngineTests
                     CreateExternalInvocation(writeRange: new ByteRange(3, 1)),
                     OverlapPolicy.ReplaceExisting,
                     "run crc"),
-            ],
-            CreateCtrlRamReplaceProvenance());
+            ]);
         var input = new CompositionExecutionInput(new Dictionary<string, byte[]>
         {
             ["reference-base"] = [0, 0, 0, 0],

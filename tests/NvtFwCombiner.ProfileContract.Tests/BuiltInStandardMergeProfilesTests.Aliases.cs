@@ -31,13 +31,13 @@ public sealed partial class BuiltInStandardMergeProfilesTests
                 .Where(space => space.Mutability == AddressSpaceMutability.Immutable)
                 .Select(space => (space.AddressSpaceId, space.Length)));
         Assert.Equal(
-            referenceCompile.Plan!.OrderedOperations.Select(operation => (
+            referenceCompile.CompiledComposition!.Plan.OrderedOperations.Select(operation => (
                 operation.OperationId,
                 operation.Sequence,
                 operation.SourceSpaceId,
                 operation.SourceRange,
                 operation.TargetRange)),
-            aliasCompile.Plan!.OrderedOperations.Select(operation => (
+            aliasCompile.CompiledComposition!.Plan.OrderedOperations.Select(operation => (
                 operation.OperationId,
                 operation.Sequence,
                 operation.SourceSpaceId,

@@ -6,7 +6,7 @@ namespace NvtFwCombiner.ProfileContract.Tests;
 /// <summary>Tests legacy profile compilation into one atomic composition artifact.</summary>
 public sealed class CompositionProfileCompilerArtifactTests
 {
-    /// <summary>Verifies successful compilation stores one artifact and exposes its plan only by projection.</summary>
+    /// <summary>Verifies successful compilation returns one artifact as the only plan authority.</summary>
     [Fact]
     public void CompileReturnsAtomicLegacyArtifact()
     {
@@ -16,7 +16,7 @@ public sealed class CompositionProfileCompilerArtifactTests
 
         Assert.True(result.IsSuccess, FormatIssues(result.Issues));
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
-        Assert.Same(composition.Plan, result.Plan);
+        Assert.Null(typeof(ProfileCompileResult).GetProperty("Plan"));
         Assert.Equal(profile.ProfileId, composition.ProfileId);
         Assert.Equal(profile.ProfileVersion, composition.ProfileVersion);
         Assert.Equal(profile.IcId, composition.IcId);
@@ -118,7 +118,6 @@ public sealed class CompositionProfileCompilerArtifactTests
     {
         Assert.False(result.IsSuccess);
         Assert.Null(result.CompiledComposition);
-        Assert.Null(result.Plan);
         Assert.Contains(result.Issues, issue => issue.Code == issueCode);
     }
 

@@ -5,21 +5,22 @@ public sealed partial class CompiledComposition
 {
     private CompiledComposition(
         CompositionPlan plan,
-        CompositionPlanProvenance provenance,
+        LegacyCompiledCompositionIdentity identity,
         string defaultOutputFileName,
         CompiledIcNumberPolicy icNumberPolicy)
     {
-        ValidateCompositionKind(provenance.CompositionKind);
-        ValidateIcNumberPolicy(provenance.CompositionKind, icNumberPolicy);
+        ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(identity);
+        ValidateIcNumberPolicy(identity.CompositionKind, icNumberPolicy);
         ValidateDefaultOutputFileName(defaultOutputFileName);
 
         Plan = plan;
-        ProfileId = provenance.ProfileId;
-        ProfileVersion = provenance.ProfileVersion;
-        IcId = provenance.IcId;
-        ModeId = provenance.ModeId;
-        ExperienceId = provenance.ExperienceId;
-        CompositionKind = provenance.CompositionKind;
+        ProfileId = identity.ProfileId;
+        ProfileVersion = identity.ProfileVersion;
+        IcId = identity.IcId;
+        ModeId = identity.ModeId;
+        ExperienceId = identity.ExperienceId;
+        CompositionKind = identity.CompositionKind;
         DefaultOutputFileName = defaultOutputFileName;
         IcNumberPolicy = icNumberPolicy;
         Eligibility = CompiledCompositionEligibility.LegacyRuntimeExecutable;
@@ -66,25 +67,11 @@ public sealed partial class CompiledComposition
     /// <summary>Creates an artifact from the existing typed profile compiler without bundle or map claims.</summary>
     internal static CompiledComposition CreateLegacy(
         CompositionPlan plan,
+        LegacyCompiledCompositionIdentity identity,
         string defaultOutputFileName,
         CompiledIcNumberPolicy icNumberPolicy)
     {
-        ArgumentNullException.ThrowIfNull(plan);
-        CompositionPlanProvenance provenance = plan.Provenance ?? throw new ArgumentException(
-            "Legacy compiled compositions require plan provenance from the typed profile compiler.",
-            nameof(plan));
-        return new CompiledComposition(plan, provenance, defaultOutputFileName, icNumberPolicy);
-    }
-
-    private static void ValidateCompositionKind(CompositionKind compositionKind)
-    {
-        if (!Enum.IsDefined(compositionKind))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(compositionKind),
-                compositionKind,
-                "Unknown composition kind.");
-        }
+        return new CompiledComposition(plan, identity, defaultOutputFileName, icNumberPolicy);
     }
 
     private static void ValidateIcNumberPolicy(

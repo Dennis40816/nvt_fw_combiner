@@ -16,13 +16,10 @@ public sealed class ProfileCompileResult
     /// <summary>Atomic compiled artifact when compilation succeeded.</summary>
     public CompiledComposition? CompiledComposition { get; }
 
-    /// <summary>Temporary compatibility projection of the artifact's sole plan.</summary>
-    public CompositionPlan? Plan => CompiledComposition?.Plan;
-
     /// <summary>Structured compilation issues.</summary>
     public IReadOnlyList<CompositionIssue> Issues { get; }
 
-    /// <summary>True when a validated plan is available.</summary>
+    /// <summary>True when one compiled artifact is available.</summary>
     public bool IsSuccess => CompiledComposition is not null;
 
     /// <summary>Creates a successful compilation result.</summary>

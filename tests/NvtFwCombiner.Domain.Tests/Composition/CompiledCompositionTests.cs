@@ -37,25 +37,62 @@ public sealed class CompiledCompositionTests
             BindingFlags.Static | BindingFlags.Public));
     }
 
-    /// <summary>Verifies legacy artifacts cannot reconstruct profile identity outside compiler-owned plan provenance.</summary>
+    /// <summary>Verifies legacy artifacts require both a byte plan and compiler-owned identity.</summary>
     [Fact]
-    public void LegacyArtifactRequiresPlanProvenance()
+    public void LegacyArtifactRequiresPlanAndIdentity()
     {
         var plan = new CompositionPlan(
             ImageInitialization.Blank("output-image", 4, 0),
             [new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable)],
             []);
+        LegacyCompiledCompositionIdentity identity = CreateMergeIdentity();
 
         _ = Assert.Throws<ArgumentNullException>(() => CompiledComposition.CreateLegacy(
             null!,
+            identity,
             "output.bin",
             CompiledIcNumberPolicy.NotApplicable));
-        ArgumentException exception = Assert.Throws<ArgumentException>(() => CompiledComposition.CreateLegacy(
+        _ = Assert.Throws<ArgumentNullException>(() => CompiledComposition.CreateLegacy(
             plan,
+            null!,
             "output.bin",
             CompiledIcNumberPolicy.NotApplicable));
+    }
 
-        Assert.Contains("plan provenance", exception.Message, StringComparison.Ordinal);
+    /// <summary>Verifies every legacy identity field is mandatory at the Domain minting boundary.</summary>
+    [Theory]
+    [InlineData("", "1.0.0", "NT-SYNTHETIC", "standard", "standard-merge")]
+    [InlineData("profile-a", "", "NT-SYNTHETIC", "standard", "standard-merge")]
+    [InlineData("profile-a", "1.0.0", "", "standard", "standard-merge")]
+    [InlineData("profile-a", "1.0.0", "NT-SYNTHETIC", "", "standard-merge")]
+    [InlineData("profile-a", "1.0.0", "NT-SYNTHETIC", "standard", "")]
+    public void LegacyIdentityRequiresEveryField(
+        string profileId,
+        string profileVersion,
+        string icId,
+        string modeId,
+        string experienceId)
+    {
+        _ = Assert.Throws<ArgumentException>(() => new LegacyCompiledCompositionIdentity(
+            profileId,
+            profileVersion,
+            icId,
+            modeId,
+            experienceId,
+            CompositionKind.Merge));
+    }
+
+    /// <summary>Verifies an unknown composition kind cannot enter a compiled identity.</summary>
+    [Fact]
+    public void LegacyIdentityRejectsUnknownCompositionKind()
+    {
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new LegacyCompiledCompositionIdentity(
+            "invalid-kind",
+            "1.0.0",
+            "NT-SYNTHETIC",
+            "invalid",
+            "standard-merge",
+            (CompositionKind)int.MaxValue));
     }
 
     /// <summary>Verifies IC-number policy remains closed and consistent with Merge or Replace intent.</summary>
@@ -67,32 +104,20 @@ public sealed class CompiledCompositionTests
 
         _ = Assert.Throws<ArgumentException>(() => CompiledComposition.CreateLegacy(
             mergePlan,
+            CreateMergeIdentity(),
             "output.bin",
             CompiledIcNumberPolicy.SingleSelector));
         _ = Assert.Throws<ArgumentException>(() => CompiledComposition.CreateLegacy(
             replacePlan,
+            CreateReplaceIdentity(),
             "output.bin",
             CompiledIcNumberPolicy.NotApplicable));
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => CompiledComposition.CreateLegacy(
             replacePlan,
+            CreateReplaceIdentity(),
             "output.bin",
             (CompiledIcNumberPolicy)int.MaxValue));
 
-        var invalidKindPlan = new CompositionPlan(
-            ImageInitialization.Blank("output-image", 4, 0),
-            [new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable)],
-            [],
-            new CompositionPlanProvenance(
-                "invalid-kind",
-                "1.0.0",
-                "NT-SYNTHETIC",
-                "invalid",
-                "standard-merge",
-                (CompositionKind)int.MaxValue));
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => CompiledComposition.CreateLegacy(
-            invalidKindPlan,
-            "output.bin",
-            CompiledIcNumberPolicy.NotApplicable));
     }
 
     /// <summary>Verifies every supported Replace IC-number policy is represented without null or unknown states.</summary>
@@ -268,7 +293,7 @@ public sealed class CompiledCompositionTests
             "fill output tail");
         AddressSpace[] spaces = reverseDeclarations ? [output, input] : [input, output];
         CompositionOperation[] operations = reverseDeclarations ? [fill, copy] : [copy, fill];
-        var provenance = new CompositionPlanProvenance(
+        var identity = new LegacyCompiledCompositionIdentity(
             profileId,
             profileVersion,
             icId,
@@ -278,43 +303,30 @@ public sealed class CompiledCompositionTests
         var plan = new CompositionPlan(
             ImageInitialization.Blank("output-image", 4, initializationFillByte),
             spaces,
-            operations,
-            provenance);
+            operations);
         return CompiledComposition.CreateLegacy(
             plan,
+            identity,
             defaultOutputFileName,
             CompiledIcNumberPolicy.NotApplicable);
     }
 
     private static CompiledComposition CreateReplace(CompiledIcNumberPolicy policy)
     {
-        var provenance = new CompositionPlanProvenance(
-            "replace-profile",
-            "1.0.0",
-            "NT-SYNTHETIC",
-            "replace",
-            "general-replace",
-            CompositionKind.Replace);
+        LegacyCompiledCompositionIdentity identity = CreateReplaceIdentity();
         var plan = new CompositionPlan(
             ImageInitialization.Reference("output-image", "reference", 4),
             [
                 new AddressSpace("reference", 4, AddressSpaceMutability.Immutable),
                 new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable),
             ],
-            [],
-            provenance);
-        return CompiledComposition.CreateLegacy(plan, "replace.bin", policy);
+            []);
+        return CompiledComposition.CreateLegacy(plan, identity, "replace.bin", policy);
     }
 
     private static CompiledComposition CreateMultiOutput(string outputSpaceId)
     {
-        var provenance = new CompositionPlanProvenance(
-            "profile-a",
-            "1.0.0",
-            "NT-SYNTHETIC",
-            "standard",
-            "standard-merge",
-            CompositionKind.Merge);
+        LegacyCompiledCompositionIdentity identity = CreateMergeIdentity();
         var plan = new CompositionPlan(
             [
                 ImageInitialization.Blank("output-image", 4, 0),
@@ -325,10 +337,10 @@ public sealed class CompiledCompositionTests
                 new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable),
                 new AddressSpace("scratch", 4, AddressSpaceMutability.Mutable),
             ],
-            [],
-            provenance);
+            []);
         return CompiledComposition.CreateLegacy(
             plan,
+            identity,
             "output.bin",
             CompiledIcNumberPolicy.NotApplicable);
     }
@@ -338,7 +350,7 @@ public sealed class CompiledCompositionTests
         byte patchByte = 0x11,
         OverlapPolicy overlapPolicy = OverlapPolicy.Reject)
     {
-        var provenance = new CompositionPlanProvenance(
+        var identity = new LegacyCompiledCompositionIdentity(
             "patch-profile",
             "1.0.0",
             "NT-SYNTHETIC",
@@ -357,10 +369,10 @@ public sealed class CompiledCompositionTests
                     [patchByte],
                     overlapPolicy,
                     "patch one byte"),
-            ],
-            provenance);
+            ]);
         return CompiledComposition.CreateLegacy(
             plan,
+            identity,
             "patch.bin",
             CompiledIcNumberPolicy.NotApplicable);
     }
@@ -392,7 +404,7 @@ public sealed class CompiledCompositionTests
                     new ByteRange(writeStart, 2),
                     new ByteRange(writeSectionSourceStart, 2)),
             ]);
-        var provenance = new CompositionPlanProvenance(
+        var identity = new LegacyCompiledCompositionIdentity(
             "processor-profile",
             "1.0.0",
             "NT-SYNTHETIC",
@@ -414,11 +426,33 @@ public sealed class CompiledCompositionTests
                     invocation,
                     OverlapPolicy.Reject,
                     "run processor"),
-            ],
-            provenance);
+            ]);
         return CompiledComposition.CreateLegacy(
             plan,
+            identity,
             "processor.bin",
             CompiledIcNumberPolicy.NotApplicable);
+    }
+
+    private static LegacyCompiledCompositionIdentity CreateMergeIdentity()
+    {
+        return new LegacyCompiledCompositionIdentity(
+            "profile-a",
+            "1.0.0",
+            "NT-SYNTHETIC",
+            "standard",
+            "standard-merge",
+            CompositionKind.Merge);
+    }
+
+    private static LegacyCompiledCompositionIdentity CreateReplaceIdentity()
+    {
+        return new LegacyCompiledCompositionIdentity(
+            "replace-profile",
+            "1.0.0",
+            "NT-SYNTHETIC",
+            "replace",
+            "general-replace",
+            CompositionKind.Replace);
     }
 }

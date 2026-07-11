@@ -29,7 +29,7 @@ public sealed class BuiltInReplaceProfilesTests
         Assert.Equal(IcNumberInputMode.SingleSelector, profile.IcNumberInputMode);
         Assert.Contains(profile.AddressSpaces, space => space.AddressSpaceId == "dp-replacement" && space.InputPaddingByte == 0xFF);
         Assert.Contains(profile.AddressSpaces, space => space.AddressSpaceId == "ld-replacement" && space.InputPaddingByte == 0xFF);
-        Assert.Equal(["replace-dp", "replace-ld"], result.Plan!.OrderedOperations.Select(operation => operation.OperationId));
+        Assert.Equal(["replace-dp", "replace-ld"], result.CompiledComposition!.Plan.OrderedOperations.Select(operation => operation.OperationId));
         Assert.Contains(profile.Regions, region => region.RegionId == "ld" && region.ClassificationTags.Contains("ld", StringComparer.Ordinal));
     }
 
@@ -56,7 +56,7 @@ public sealed class BuiltInReplaceProfilesTests
             space.InputPaddingByte == 0x00 &&
             space.AllowedInputLengths.SequenceEqual(DpPerspectiveCatalog.SupportedContainerLengths));
 
-        CompositionOperation[] operations = [.. result.Plan!.OrderedOperations];
+        CompositionOperation[] operations = [.. result.CompiledComposition!.Plan.OrderedOperations];
         Assert.Equal(
             [
                 DpPerspectiveCatalog.ReplaceDpContainerOperationId,
@@ -99,10 +99,10 @@ public sealed class BuiltInReplaceProfilesTests
                 DpPerspectiveCatalog.RestoreBaseTpOperationId,
                 DpPerspectiveCatalog.RestoreBaseCustomerInfoOperationId,
             ],
-            result.Plan!.OrderedOperations.Select(operation => operation.OperationId));
-        Assert.Equal(new ByteRange(0, capacity), result.Plan.OrderedOperations[0].TargetRange);
-        Assert.Equal(BuiltInReplaceProfiles.DpPerspectiveTpRestoreRange, result.Plan.OrderedOperations[1].TargetRange);
-        Assert.Equal(BuiltInReplaceProfiles.DpPerspectiveCustomerInfoPreserveRange, result.Plan.OrderedOperations[2].TargetRange);
+            result.CompiledComposition!.Plan.OrderedOperations.Select(operation => operation.OperationId));
+        Assert.Equal(new ByteRange(0, capacity), result.CompiledComposition!.Plan.OrderedOperations[0].TargetRange);
+        Assert.Equal(BuiltInReplaceProfiles.DpPerspectiveTpRestoreRange, result.CompiledComposition!.Plan.OrderedOperations[1].TargetRange);
+        Assert.Equal(BuiltInReplaceProfiles.DpPerspectiveCustomerInfoPreserveRange, result.CompiledComposition!.Plan.OrderedOperations[2].TargetRange);
     }
 
     /// <summary>Verifies fixed CtrlRAM Replace compiles with oversized-input truncation policy.</summary>
@@ -149,7 +149,7 @@ public sealed class BuiltInReplaceProfilesTests
 
         Assert.True(result.IsSuccess, FormatIssues(result.Issues));
         Assert.Equal(IcNumberInputMode.SingleSelector, profile.IcNumberInputMode);
-        CompositionOperation operation = Assert.Single(result.Plan!.OrderedOperations);
+        CompositionOperation operation = Assert.Single(result.CompiledComposition!.Plan.OrderedOperations);
         Assert.Equal(CompositionOperationKind.ReplaceRange, operation.Kind);
     }
 

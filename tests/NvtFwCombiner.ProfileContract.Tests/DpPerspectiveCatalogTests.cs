@@ -57,13 +57,13 @@ public sealed class DpPerspectiveCatalogTests
         Assert.Contains(merge.AddressSpaces, space =>
             space.AddressSpaceId == "tp-input" &&
             space.Length == DpPerspectiveCatalog.TpInputLength);
-        Assert.Contains(mergeCompile.Plan!.OrderedOperations, operation =>
+        Assert.Contains(mergeCompile.CompiledComposition!.Plan.OrderedOperations, operation =>
             operation.OperationId == DpPerspectiveCatalog.OverlayTpOperationId &&
             operation.TargetRange == DpPerspectiveCatalog.TpOverlayRange);
-        Assert.Contains(replaceCompile.Plan!.OrderedOperations, operation =>
+        Assert.Contains(replaceCompile.CompiledComposition!.Plan.OrderedOperations, operation =>
             operation.OperationId == DpPerspectiveCatalog.RestoreBaseTpOperationId &&
             operation.TargetRange == DpPerspectiveCatalog.TpOverlayRange);
-        Assert.Contains(replaceCompile.Plan.OrderedOperations, operation =>
+        Assert.Contains(replaceCompile.CompiledComposition!.Plan.OrderedOperations, operation =>
             operation.OperationId == DpPerspectiveCatalog.RestoreBaseCustomerInfoOperationId &&
             operation.TargetRange == DpPerspectiveCatalog.CustomerInfoPreserveRange);
     }

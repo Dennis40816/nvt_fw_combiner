@@ -40,16 +40,17 @@ public static partial class CompositionProfileCompiler
                 .. profile.AddressSpaces,
                 .. requestAddressSpaces,
             ];
-            var provenance = new CompositionPlanProvenance(
+            var identity = new LegacyCompiledCompositionIdentity(
                 profile.ProfileId,
                 profile.ProfileVersion,
                 profile.IcId,
                 profile.ModeId,
                 profile.ExperienceId,
                 profile.CompositionKind);
-            var plan = new CompositionPlan(profile.Initialization, addressSpaces, operations, provenance);
+            var plan = new CompositionPlan(profile.Initialization, addressSpaces, operations);
             var compiledComposition = CompiledComposition.CreateLegacy(
                 plan,
+                identity,
                 profile.DefaultOutputFileName,
                 CompileIcNumberPolicy(profile.IcNumberInputMode));
             return ProfileCompileResult.Succeeded(compiledComposition);

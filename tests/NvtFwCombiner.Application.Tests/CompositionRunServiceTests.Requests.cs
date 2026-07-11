@@ -47,7 +47,7 @@ public sealed partial class CompositionRunServiceTests
             ]);
         CompiledComposition compiledComposition = CreateCompiledComposition(
             plan,
-            new CompositionPlanProvenance(
+            new LegacyCompiledCompositionIdentity(
                 "scratch-profile",
                 "1.0.0",
                 "NT-SYNTHETIC",
@@ -81,7 +81,7 @@ public sealed partial class CompositionRunServiceTests
             []);
         CompiledComposition compiledComposition = CreateCompiledComposition(
             plan,
-            new CompositionPlanProvenance(
+            new LegacyCompiledCompositionIdentity(
                 "initializer-fingerprint-profile",
                 "1.0.0",
                 "NT-SYNTHETIC",
@@ -132,7 +132,7 @@ public sealed partial class CompositionRunServiceTests
             ]);
         CompiledComposition compiledComposition = CreateCompiledComposition(
             plan,
-            new CompositionPlanProvenance(
+            new LegacyCompiledCompositionIdentity(
                 "multi-reference-replace-profile",
                 "1.0.0",
                 "NT-SYNTHETIC",
@@ -165,7 +165,7 @@ public sealed partial class CompositionRunServiceTests
             new("output-image", 4, AddressSpaceMutability.Mutable),
             new("short-input", 4, AddressSpaceMutability.Immutable, inputPaddingByte),
         ];
-        var provenance = new CompositionPlanProvenance(
+        var identity = new LegacyCompiledCompositionIdentity(
             "padded-input-profile",
             "1.0.0",
             "NT-SYNTHETIC",
@@ -185,12 +185,11 @@ public sealed partial class CompositionRunServiceTests
                     new ByteRange(0, 4),
                     OverlapPolicy.Reject,
                     "copy padded input"),
-            ],
-            provenance);
+            ]);
 
         return new CompositionRunRequest(
             "run-padded-input",
-            CreateCompiledComposition(plan, provenance, "padded.bin"),
+            CreateCompiledComposition(plan, identity, "padded.bin"),
             [new InputArtifactBinding("short-input", "short-safe", artifactId)],
             "padded.bin");
     }
@@ -205,7 +204,7 @@ public sealed partial class CompositionRunServiceTests
             new("ctrlram-input", 2, AddressSpaceMutability.Immutable, inputOversizePolicy: inputOversizePolicy),
             new("output-image", 4, AddressSpaceMutability.Mutable),
         ];
-        var provenance = new CompositionPlanProvenance(
+        var identity = new LegacyCompiledCompositionIdentity(
             "ctrlram-replace-profile",
             "1.0.0",
             "NT-SYNTHETIC",
@@ -225,14 +224,13 @@ public sealed partial class CompositionRunServiceTests
                     new ByteRange(1, 2),
                     OverlapPolicy.Reject,
                     "replace ctrlram"),
-            ],
-            provenance);
+            ]);
 
         return new CompositionRunRequest(
             "run-ctrlram-replace",
             CreateCompiledComposition(
                 plan,
-                provenance,
+                identity,
                 "ctrlram.bin",
                 CompiledIcNumberPolicy.SingleSelector),
             [
@@ -257,7 +255,7 @@ public sealed partial class CompositionRunServiceTests
 
     private static CompositionRunRequest CreateNumericReplaceRequest(string icCount)
     {
-        var provenance = new CompositionPlanProvenance(
+        var identity = new LegacyCompiledCompositionIdentity(
             "numeric-replace",
             "1.0.0",
             "NT51927",
@@ -272,13 +270,12 @@ public sealed partial class CompositionRunServiceTests
         var plan = new CompositionPlan(
             ImageInitialization.Reference("output-image", "reference-base", 4),
             addressSpaces,
-            [],
-            provenance);
+            []);
         return new CompositionRunRequest(
             "run-numeric-replace",
             CreateCompiledComposition(
                 plan,
-                provenance,
+                identity,
                 "numeric.bin",
                 CompiledIcNumberPolicy.NumericSelector),
             [new InputArtifactBinding("reference-base", "reference-safe", "reference-artifact")],
@@ -315,7 +312,7 @@ public sealed partial class CompositionRunServiceTests
             ]);
         CompiledComposition compiledComposition = CreateCompiledComposition(
             plan,
-            new CompositionPlanProvenance(
+            new LegacyCompiledCompositionIdentity(
                 "overwrite-profile",
                 "1.0.0",
                 "NT-SYNTHETIC",

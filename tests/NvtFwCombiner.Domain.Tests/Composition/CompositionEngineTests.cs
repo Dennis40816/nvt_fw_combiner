@@ -216,8 +216,7 @@ public sealed partial class CompositionEngineTests
                     new ByteRange(1, 2),
                     OverlapPolicy.Reject,
                     "replace ctrlram"),
-            ],
-            CreateCtrlRamReplaceProvenance());
+            ]);
         var input = new CompositionExecutionInput(new Dictionary<string, byte[]>
         {
             ["reference-base"] = [0, 0, 0, 0],

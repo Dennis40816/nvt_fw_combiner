@@ -33,10 +33,10 @@ public sealed partial class BuiltInStandardMergeProfilesTests
             space.InputPaddingByte is null);
         Assert.Equal(
             [DpPerspectiveCatalog.CopyDpContainerOperationId, DpPerspectiveCatalog.OverlayTpOperationId],
-            result.Plan!.OrderedOperations.Select(operation => operation.OperationId));
+            result.CompiledComposition!.Plan.OrderedOperations.Select(operation => operation.OperationId));
 
-        CompositionOperation dpCopy = result.Plan.OrderedOperations[0];
-        CompositionOperation tpOverlay = result.Plan.OrderedOperations[1];
+        CompositionOperation dpCopy = result.CompiledComposition!.Plan.OrderedOperations[0];
+        CompositionOperation tpOverlay = result.CompiledComposition!.Plan.OrderedOperations[1];
         Assert.Equal(new ByteRange(0, DpPerspectiveCatalog.MaxContainerLength), dpCopy.TargetRange);
         Assert.Equal(DpPerspectiveCatalog.TpOverlayRange, tpOverlay.TargetRange);
         Assert.Equal(OverlapPolicy.ReplaceExisting, tpOverlay.OverlapPolicy);
@@ -59,7 +59,7 @@ public sealed partial class BuiltInStandardMergeProfilesTests
         Array.Fill(tp, (byte)0xDD, 0x0A000, 0x2D000);
 
         CompositionExecutionResult result = CompositionEngine.Execute(
-            compile.Plan!,
+            compile.CompiledComposition!.Plan,
             new CompositionExecutionInput(new Dictionary<string, byte[]>(StringComparer.Ordinal)
             {
                 ["dp-input"] = dp,
@@ -94,7 +94,7 @@ public sealed partial class BuiltInStandardMergeProfilesTests
         Array.Fill(dp, (byte)0xCA, 0x37000, 0x1000);
 
         CompositionExecutionResult result = CompositionEngine.Execute(
-            compile.Plan!,
+            compile.CompiledComposition!.Plan,
             new CompositionExecutionInput(new Dictionary<string, byte[]>(StringComparer.Ordinal)
             {
                 ["dp-input"] = dp,
@@ -133,7 +133,7 @@ public sealed partial class BuiltInStandardMergeProfilesTests
         Assert.True(compile.IsSuccess, FormatIssues(compile.Issues));
 
         CompositionExecutionResult result = CompositionEngine.Execute(
-            compile.Plan!,
+            compile.CompiledComposition!.Plan,
             new CompositionExecutionInput(new Dictionary<string, byte[]>(StringComparer.Ordinal)
             {
                 ["dp-input"] = new byte[0x100001],
@@ -155,7 +155,7 @@ public sealed partial class BuiltInStandardMergeProfilesTests
         Assert.True(compile.IsSuccess, FormatIssues(compile.Issues));
 
         CompositionExecutionResult result = CompositionEngine.Execute(
-            compile.Plan!,
+            compile.CompiledComposition!.Plan,
             new CompositionExecutionInput(new Dictionary<string, byte[]>(StringComparer.Ordinal)
             {
                 ["dp-input"] = new byte[0x40000],

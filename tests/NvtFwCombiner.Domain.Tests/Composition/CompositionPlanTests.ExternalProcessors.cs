@@ -66,8 +66,7 @@ public sealed partial class CompositionPlanTests
                         [new ByteRange(3, 1)]),
                     OverlapPolicy.Reject,
                     "run crc"),
-            ],
-            CreateCtrlRamReplaceProvenance());
+            ]);
 
         Assert.Contains("ctrlram-input", plan.RequiredInputAddressSpaceIds);
     }

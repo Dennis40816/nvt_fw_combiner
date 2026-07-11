@@ -19,8 +19,8 @@ public sealed partial class BuiltInStandardMergeProfilesTests
         Assert.Equal("standard-merge", profile.ModeId);
         Assert.Equal("standard-merge", profile.ExperienceId);
         Assert.Equal(CompositionKind.Merge, profile.CompositionKind);
-        Assert.Equal(["copy-dp", "copy-tp"], result.Plan!.OrderedOperations.Select(operation => operation.OperationId));
-        Assert.All(result.Plan.OrderedOperations, operation => Assert.Equal(OverlapPolicy.Reject, operation.OverlapPolicy));
+        Assert.Equal(["copy-dp", "copy-tp"], result.CompiledComposition!.Plan.OrderedOperations.Select(operation => operation.OperationId));
+        Assert.All(result.CompiledComposition!.Plan.OrderedOperations, operation => Assert.Equal(OverlapPolicy.Reject, operation.OverlapPolicy));
     }
 
     /// <summary>Verifies NT51930 Standard Merge uses the flash-map dynamic layout ranges.</summary>
@@ -37,12 +37,12 @@ public sealed partial class BuiltInStandardMergeProfilesTests
         Assert.Equal(0x40000, profile.Initialization.Capacity);
         Assert.Equal(
             ["copy-tp", "copy-dp"],
-            result.Plan!.OrderedOperations.Select(operation => operation.OperationId));
-        Assert.Contains(result.Plan.OrderedOperations, operation =>
+            result.CompiledComposition!.Plan.OrderedOperations.Select(operation => operation.OperationId));
+        Assert.Contains(result.CompiledComposition!.Plan.OrderedOperations, operation =>
             operation.OperationId == "copy-tp" &&
             operation.SourceRange == ByteRange.FromStartEndExclusive(0x07000, 0x40000) &&
             operation.TargetRange == ByteRange.FromStartEndExclusive(0x07000, 0x40000));
-        Assert.Contains(result.Plan.OrderedOperations, operation =>
+        Assert.Contains(result.CompiledComposition!.Plan.OrderedOperations, operation =>
             operation.OperationId == "copy-dp" &&
             operation.SourceRange == ByteRange.FromStartEndExclusive(0x00000, 0x06000) &&
             operation.TargetRange == ByteRange.FromStartEndExclusive(0x00000, 0x06000));

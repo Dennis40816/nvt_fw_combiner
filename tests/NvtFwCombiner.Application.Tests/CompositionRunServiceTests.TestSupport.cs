@@ -32,17 +32,11 @@ public sealed partial class CompositionRunServiceTests
 
     private static CompiledComposition CreateCompiledComposition(
         CompositionPlan plan,
-        CompositionPlanProvenance provenance,
+        LegacyCompiledCompositionIdentity identity,
         string defaultOutputFileName,
         CompiledIcNumberPolicy icNumberPolicy = CompiledIcNumberPolicy.NotApplicable)
     {
-        var compiledPlan = new CompositionPlan(
-            plan.Initializations,
-            plan.OutputSpaceId,
-            plan.AddressSpaces,
-            plan.OrderedOperations,
-            provenance);
-        return CompiledComposition.CreateLegacy(compiledPlan, defaultOutputFileName, icNumberPolicy);
+        return CompiledComposition.CreateLegacy(plan, identity, defaultOutputFileName, icNumberPolicy);
     }
 
     private sealed class FakeOutputWriter : ICompositionOutputWriter

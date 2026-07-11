@@ -9,8 +9,14 @@ public sealed partial class RepositoryBoundaryTests
         string project = ReadText("src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj");
         string composition = ReadText(
             "src/NvtFwCombiner.Domain/Composition/CompiledComposition.cs");
+        string plan = ReadText(
+            "src/NvtFwCombiner.Domain/Composition/CompositionPlan.cs");
+        string identity = ReadText(
+            "src/NvtFwCombiner.Domain/Composition/LegacyCompiledCompositionIdentity.cs");
         string compiler = ReadText(
             "src/NvtFwCombiner.Profiles/CompositionProfileCompiler.cs");
+        string compileResult = ReadText(
+            "src/NvtFwCombiner.Profiles/ProfileCompileResult.cs");
         string profileSources = ReadProfileSources();
         string request = ReadText(
             "src/NvtFwCombiner.Application/Composition/CompositionRunRequest.cs");
@@ -48,6 +54,17 @@ public sealed partial class RepositoryBoundaryTests
             "public static CompiledComposition Create",
             composition,
             StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionPlanProvenance", plan, StringComparison.Ordinal);
+        Assert.DoesNotContain("Provenance { get; }", plan, StringComparison.Ordinal);
+        Assert.Contains("internal sealed class LegacyCompiledCompositionIdentity", identity, StringComparison.Ordinal);
+        Assert.DoesNotContain("public sealed class LegacyCompiledCompositionIdentity", identity, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionPlan? Plan", compileResult, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Domain",
+            "Composition",
+            "CompositionPlanProvenance.cs")));
         Assert.Contains("CompiledComposition.CreateLegacy(", compiler, StringComparison.Ordinal);
         Assert.Equal(1, CountOccurrences(profileSources, "CompiledComposition.CreateLegacy("));
         Assert.Contains("CompiledComposition compiledComposition", request, StringComparison.Ordinal);

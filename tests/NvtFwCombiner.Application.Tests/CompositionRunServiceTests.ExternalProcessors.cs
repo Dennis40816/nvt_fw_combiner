@@ -35,7 +35,7 @@ public sealed partial class CompositionRunServiceTests
             "run-external",
             CreateCompiledComposition(
                 plan,
-                new CompositionPlanProvenance(
+                new LegacyCompiledCompositionIdentity(
                     "external-profile",
                     "1.0.0",
                     "NT-SYNTHETIC",
@@ -87,7 +87,7 @@ public sealed partial class CompositionRunServiceTests
             "run-staged-source",
             CreateCompiledComposition(
                 plan,
-                new CompositionPlanProvenance(
+                new LegacyCompiledCompositionIdentity(
                     "external-staged-source-profile",
                     "1.0.0",
                     "NT-SYNTHETIC",
@@ -146,7 +146,7 @@ public sealed partial class CompositionRunServiceTests
             "run-nt51926-header-semantic",
             CreateCompiledComposition(
                 plan,
-                new CompositionPlanProvenance(
+                new LegacyCompiledCompositionIdentity(
                     "nt51926-header-semantic-profile",
                     "1.0.0",
                     "NT51926",
@@ -201,7 +201,7 @@ public sealed partial class CompositionRunServiceTests
             "run-nt51927-copied-header-semantic",
             CreateCompiledComposition(
                 plan,
-                new CompositionPlanProvenance(
+                new LegacyCompiledCompositionIdentity(
                     "nt51927-copied-header-semantic-profile",
                     "1.0.0",
                     "NT51927",

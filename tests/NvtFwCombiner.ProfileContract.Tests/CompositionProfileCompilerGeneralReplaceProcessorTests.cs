@@ -116,7 +116,7 @@ public sealed partial class CompositionProfileCompilerTests
 
         Assert.True(result.IsSuccess, FormatIssues(result.Issues));
         Assert.Collection(
-            result.Plan!.OrderedOperations,
+            result.CompiledComposition!.Plan.OrderedOperations,
             operation => Assert.Equal(CompositionOperationKind.ReplaceRange, operation.Kind),
             operation => Assert.Equal(CompositionOperationKind.RunExternalProcessor, operation.Kind));
     }

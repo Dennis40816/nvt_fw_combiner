@@ -31,7 +31,7 @@ public sealed partial class BuiltInStandardMergeProfilesTests
             Assert.Equal("standard-merge", profile.ExperienceId);
             Assert.Equal(CompositionKind.Merge, profile.CompositionKind);
             Assert.Equal(ImageInitializationKind.Blank, profile.Initialization.Kind);
-            Assert.All(result.Plan!.OrderedOperations, operation => Assert.Equal(OverlapPolicy.Reject, operation.OverlapPolicy));
+            Assert.All(result.CompiledComposition!.Plan.OrderedOperations, operation => Assert.Equal(OverlapPolicy.Reject, operation.OverlapPolicy));
         }
     }
 
@@ -45,7 +45,7 @@ public sealed partial class BuiltInStandardMergeProfilesTests
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(["copy-tp", "copy-dp", "copy-ld"], result.Plan!.OrderedOperations.Select(operation => operation.OperationId));
+        Assert.Equal(["copy-tp", "copy-dp", "copy-ld"], result.CompiledComposition!.Plan.OrderedOperations.Select(operation => operation.OperationId));
         Assert.Contains(profile.AddressSpaces, addressSpace => addressSpace.AddressSpaceId == "ld-input");
     }
 
