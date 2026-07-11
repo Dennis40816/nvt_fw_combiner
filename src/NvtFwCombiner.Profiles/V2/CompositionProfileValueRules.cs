@@ -1,0 +1,62 @@
+using System.Text.RegularExpressions;
+
+namespace NvtFwCombiner.Profiles.V2;
+
+internal static partial class CompositionProfileValueRules
+{
+    internal static string RequireId(string value, string parameterName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value, parameterName);
+        return !CanonicalIdPattern().IsMatch(value)
+            ? throw new ArgumentException("Identifier is not in canonical lowercase form.", parameterName)
+            : value;
+    }
+
+    internal static string RequireSemanticVersion(string value, string parameterName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value, parameterName);
+        return !SemanticVersionPattern().IsMatch(value)
+            ? throw new ArgumentException("Value is not a canonical semantic version.", parameterName)
+            : value;
+    }
+
+    internal static string[] SnapshotIds(
+        IEnumerable<string> values,
+        string parameterName,
+        bool requireValue)
+    {
+        ArgumentNullException.ThrowIfNull(values, parameterName);
+        string[] snapshot = [.. values];
+        if (requireValue && snapshot.Length == 0)
+        {
+            throw new ArgumentException("At least one identifier is required.", parameterName);
+        }
+
+        for (int index = 0; index < snapshot.Length; index++)
+        {
+            _ = RequireId(snapshot[index], parameterName);
+        }
+
+        if (snapshot.Distinct(StringComparer.Ordinal).Count() != snapshot.Length)
+        {
+            throw new ArgumentException("Identifiers must be ordinally unique.", parameterName);
+        }
+
+        Array.Sort(snapshot, StringComparer.Ordinal);
+        return snapshot;
+    }
+
+    internal static bool IsLowercaseSha256(string value)
+    {
+        return value.Length == 64 && value.All(static character =>
+            character is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
+    }
+
+    [GeneratedRegex("^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$", RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
+    private static partial Regex CanonicalIdPattern();
+
+    [GeneratedRegex(
+        "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$",
+        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
+    private static partial Regex SemanticVersionPattern();
+}
