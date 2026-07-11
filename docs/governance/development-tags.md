@@ -46,7 +46,8 @@ Current execution priority: normal Merge and normal Replace for DP Replace and C
 | `0.6.0-dev.N` | Workflow data-model convergence | Evaluate and refactor Merge/Replace data into a unified profile/template/catalog model across ICs. No new byte behavior without evidence. |
 | `0.7.0-dev.N` | General Merge/Replace, saved rules, and deferred AB merge | Dynamic mappings, saved-rule validation/preset projection, and deferred promotion catalog; AB bank layout resumes only after owner reactivation and golden evidence. General Merge v1 ships in `0.7.2`; saved-rule validation and General Merge CLI consumption ship in `0.7.3`; normal-workflow promotion remains separately reviewed. |
 | `0.8.0-dev.N` | Structure, catalog ownership, packaging/security | IC onboarding catalogs, large-file containment, release packaging, tool manifests, smoke tests. |
-| `0.9.0-rc.N` | UAT/release candidates | UX polish, internal sign-off. |
+| `v0.9.0` | Stable raw-BIN utility milestone | Standalone bounded Hex Editor, internal sign-off, and release packaging. |
+| `0.9.x` | UAT stabilization | Corrective UX and reliability patches without expanding firmware support claims. |
 | `v1.0.0` | stable | Signed-off support matrix. |
 
 ## First-sample `v1.0.0` release gate
@@ -82,7 +83,8 @@ v0.7.4          report readability and Build-first workbench UI
 v0.7.5          bilingual UI resources and Settings functionality
 v0.8.0          report readability, workflow discoverability, structure cleanup
 v0.8.x          stabilization, catalog ownership, packaging/security
-v0.9.0-rc.N     UAT/release candidates
+v0.9.0          stable raw-BIN Hex Editor utility milestone
+v0.9.x          UAT stabilization patches
 v1.0.0          stable
 ```
 
