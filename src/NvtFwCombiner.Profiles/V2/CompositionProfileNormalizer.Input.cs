@@ -37,7 +37,8 @@ internal static partial class CompositionProfileNormalizer
             "tp-firmware" => CompositionProfileArtifactClass.TpFirmware,
             "dp-firmware" => CompositionProfileArtifactClass.DpFirmware,
             "reference-image" => CompositionProfileArtifactClass.ReferenceImage,
-            "ctrlram-replacement" => CompositionProfileArtifactClass.CtrlRamReplacement,
+            CompositionProfileWireTokens.CtrlRamReplacementArtifactClass =>
+                CompositionProfileArtifactClass.CtrlRamReplacement,
             "auxiliary" => CompositionProfileArtifactClass.Auxiliary,
             _ => throw Error(path, "Unknown input artifact class."),
         };

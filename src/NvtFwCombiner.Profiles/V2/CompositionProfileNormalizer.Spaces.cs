@@ -25,7 +25,7 @@ internal static partial class CompositionProfileNormalizer
                 document,
                 CompositionProfileSpaceKind.WorkBuffer,
                 path),
-            "output-image" => NormalizeMutableSpace(
+            CompositionProfileWireTokens.OutputImageSpaceKind => NormalizeMutableSpace(
                 document,
                 CompositionProfileSpaceKind.OutputImage,
                 path),

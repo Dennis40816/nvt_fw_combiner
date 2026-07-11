@@ -112,6 +112,29 @@ public sealed partial class RepositoryBoundaryTests
         }
     }
 
+    /// <summary>Verifies profile JSON vocabulary remains Contracts-owned instead of masquerading as address-space ids.</summary>
+    [Fact]
+    public void CompositionProfileWireTokensStayContractOwned()
+    {
+        string profileWireTokens = ReadText(
+            "src/NvtFwCombiner.Contracts/Profiles/CompositionProfileWireTokens.cs");
+        string profileSources = ReadProfileSources();
+
+        Assert.Contains(
+            "public const string OutputImageSpaceKind = \"output-image\"",
+            profileWireTokens,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "public const string CtrlRamReplacementArtifactClass = \"ctrlram-replacement\"",
+            profileWireTokens,
+            StringComparison.Ordinal);
+        Assert.Contains("CompositionProfileWireTokens.OutputImageSpaceKind", profileSources, StringComparison.Ordinal);
+        Assert.Contains(
+            "CompositionProfileWireTokens.CtrlRamReplacementArtifactClass",
+            profileSources,
+            StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies dynamic CtrlRAM replacement report labels are parsed by one Domain helper.</summary>
     [Fact]
     public void DynamicCtrlRamReplacementLabelsStayDomainOwned()
