@@ -105,6 +105,53 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
         Assert.Empty(definition.GetStructuresForMap("plain-map"));
     }
 
+    /// <summary>Verifies map-bound capability evidence remains immutable and separate from map selection facts.</summary>
+    [Fact]
+    public void ConstructorStoresCapabilityBindingsWithoutChangingMapFacts()
+    {
+        FirmwareImageMap map = Map("plain-map");
+        FirmwareCapabilityFact value = new(
+            "ab-code-evidence",
+            "ab-code",
+            FirmwareCapabilityState.ConfirmedPresent,
+            "synthetic evidence",
+            ["capability-evidence"]);
+        FirmwareMapFactKey key = new("NT00001", "plain-map", FirmwareFactKind.Capability, "ab-code-evidence");
+        var binding = new FirmwareMapFactBinding<FirmwareCapabilityFact>(
+            key,
+            key,
+            value.CanonicalFactId,
+            value,
+            new FirmwareFactApplicability(
+                ["standard"],
+                TopologyRequirement.NoTopologyConstraint(),
+                16),
+            new FirmwareFactProvenance(key, key, [], value.EvidenceRefs));
+
+        var definition = new FirmwareFamilyResolutionDefinition(
+            "synthetic-family",
+            "1.0.0",
+            FamilyHash,
+            [map],
+            [],
+            [binding]);
+
+        FirmwareMapFactBinding<FirmwareCapabilityFact> stored = Assert.Single(definition.CapabilityBindings);
+        Assert.Same(value, stored.Value);
+        Assert.Equal(["plain-map"], definition.ImageMaps.Select(static item => item.MapId));
+        Assert.Empty(definition.RequiredArtifactBindingIds);
+        Assert.Equal(
+            [FirmwareFactKind.RegionSet, FirmwareFactKind.Capability],
+            definition.EnumerateFactProvenance().Select(static provenance => provenance.EffectiveKey.FactKind));
+        IList<FirmwareMapFactBinding<FirmwareCapabilityFact>> view = Assert.IsType<IList<FirmwareMapFactBinding<FirmwareCapabilityFact>>>(
+            definition.CapabilityBindings,
+            exactMatch: false);
+        Assert.True(view.IsReadOnly);
+        Assert.DoesNotContain(
+            typeof(FirmwareFamilyResolutionDefinition).GetConstructors(),
+            constructor => constructor.GetParameters().Length == 6);
+    }
+
     /// <summary>Verifies one map canonically orders structures and deduplicates shared bindings.</summary>
     [Fact]
     public void ConstructorCanonicalizesSelectedStructuresAndSharedBindings()

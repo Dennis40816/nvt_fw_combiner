@@ -48,9 +48,10 @@ alias identity, not inferred lookup results. Its availability is exactly that ma
 non-member applicability.
 
 A direct capability row declares `capabilityFactId`, technical `capabilityId`, one `memberId`, one
-`mapId`, applicability, state, reason, and evidence. `capabilityFactId` is the aliasable row identity;
-`capabilityId` identifies the technical property. This supports different evidence states across
-members and maps without making capability state a map-selection or execution input. Its map must
+`mapId`, applicability, state, reason, and evidence. `capabilityFactId` is the aliasable row
+identifier within the normalized map-fact key; it is not family-global and may repeat only for a
+different member/map key. `capabilityId` identifies the technical property. This supports different
+evidence states across members and maps without making capability state a map-selection or execution input. Its map must
 exist, include the declared member, select every structure used by its predicates, and contain the
 capability applicability. The same rules apply after capability alias expansion.
 
@@ -180,3 +181,8 @@ content hash.
 - Capability state isolation from map resolution and composition support.
 - Stable ordered provenance and fingerprint coverage.
 - Architecture tests keep alias resolution in Profiles and one compiler/executor path.
+
+The v1.1 normalizer phase verifies stable binding provenance only. A resolved-map result and the
+non-legacy v2 compiler do not exist yet, so no current `CompiledComposition` fingerprint can claim
+map/alias provenance coverage. The subsequent resolved-map/compiler phase must include the selected
+effective/direct keys, ordered alias hops, and evidence ids from the bindings it actually uses.

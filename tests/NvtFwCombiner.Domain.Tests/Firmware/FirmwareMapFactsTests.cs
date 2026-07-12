@@ -6,6 +6,31 @@ namespace NvtFwCombiner.Domain.Tests.Firmware;
 /// <summary>Tests immutable member/map fact identities, bindings, and provenance.</summary>
 public sealed class FirmwareMapFactsTests
 {
+    /// <summary>Verifies map-scoped capability evidence is immutable and remains a non-executable fact value.</summary>
+    [Fact]
+    public void CapabilityFactCreatesImmutableEvidenceValue()
+    {
+        string[] evidenceRefs = ["evidence-z", "evidence-a"];
+        FirmwareCapabilityFact capability = new(
+            "ab-code-evidence",
+            "ab-code",
+            FirmwareCapabilityState.ConfirmedPresent,
+            "synthetic evidence",
+            evidenceRefs);
+        evidenceRefs[0] = "changed";
+
+        Assert.Equal(FirmwareFactKind.Capability, capability.FactKind);
+        Assert.Equal("ab-code-evidence", capability.CanonicalFactId);
+        Assert.Equal(["evidence-a", "evidence-z"], capability.EvidenceRefs);
+        Assert.Equal(FirmwareCapabilityState.ConfirmedPresent, capability.State);
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new FirmwareCapabilityFact(
+            "invalid",
+            "ab-code",
+            (FirmwareCapabilityState)int.MaxValue,
+            "synthetic evidence",
+            ["evidence"]));
+    }
+
     /// <summary>Verifies direct bindings retain their complete effective identity and terminal evidence.</summary>
     [Fact]
     public void DirectBindingRetainsEffectiveAndDirectIdentity()

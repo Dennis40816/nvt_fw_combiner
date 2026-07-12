@@ -47,8 +47,9 @@ public sealed class FirmwareImageMap
             mapId,
             FirmwareFactKind.MetadataSet,
             requireValue: false);
-        ValidateBindingApplicability(_regionSetBindings, applicability);
-        ValidateBindingApplicability(_metadataSetBindings, applicability);
+        Dictionary<string, FirmwareMetadataStructure> structuresById = BuildStructureIndex(_metadataSetBindings);
+        ValidateBindingApplicability(_regionSetBindings, applicability, structuresById);
+        ValidateBindingApplicability(_metadataSetBindings, applicability, structuresById);
         ValidateBindingCoverage(_regionSetBindings, applicability.MemberIds, FirmwareFactKind.RegionSet);
         ValidateBindingCoverage(_metadataSetBindings, applicability.MemberIds, FirmwareFactKind.MetadataSet);
         ValidateCanonicalValueIdentity(_regionSetBindings);
@@ -253,12 +254,17 @@ public sealed class FirmwareImageMap
 
     private static void ValidateBindingApplicability<TFact>(
         IReadOnlyList<FirmwareMapFactBinding<TFact>> bindings,
-        FirmwareMapApplicability mapApplicability)
+        FirmwareMapApplicability mapApplicability,
+        IReadOnlyDictionary<string, FirmwareMetadataStructure> structuresById)
         where TFact : class, IFirmwareMapFact
     {
+        var mapFactApplicability = FirmwareFactApplicability.FromMap(mapApplicability);
         foreach (FirmwareMapFactBinding<TFact> binding in bindings)
         {
-            if (!binding.Applicability.MatchesMapApplicability(mapApplicability))
+            if (!FirmwareFactApplicabilityRelations.HasSameScope(
+                    binding.Applicability,
+                    mapFactApplicability,
+                    structuresById))
             {
                 throw new ArgumentException(
                     "Physical fact bindings must equal the containing map applicability.",
@@ -266,13 +272,36 @@ public sealed class FirmwareImageMap
             }
 
             if (binding.Provenance.AliasChain.Count != 0 &&
-                !binding.Applicability.HasSameShape(binding.Provenance.AliasChain[0].Applicability))
+                !FirmwareFactApplicabilityRelations.HasSameScope(
+                    binding.Applicability,
+                    binding.Provenance.AliasChain[0].Applicability,
+                    structuresById))
             {
                 throw new ArgumentException(
                     "An alias binding must equal its first target-to-source hop applicability.",
                     nameof(bindings));
             }
         }
+    }
+
+    private static Dictionary<string, FirmwareMetadataStructure> BuildStructureIndex(
+        IReadOnlyList<FirmwareMapFactBinding<FirmwareMetadataSet>> bindings)
+    {
+        var structuresById = new Dictionary<string, FirmwareMetadataStructure>(StringComparer.Ordinal);
+        foreach (FirmwareMetadataStructure structure in bindings
+                     .GroupBy(static binding => binding.CanonicalFactId, StringComparer.Ordinal)
+                     .Select(static group => group.First().Value)
+                     .SelectMany(static set => set.Structures))
+        {
+            if (!structuresById.TryAdd(structure.StructureId, structure))
+            {
+                throw new ArgumentException(
+                    $"Metadata structure id '{structure.StructureId}' is ambiguous within one image map.",
+                    nameof(bindings));
+            }
+        }
+
+        return structuresById;
     }
 
     private static FirmwareRegionSet[] DeriveCanonicalValues(

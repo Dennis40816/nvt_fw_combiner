@@ -13,12 +13,12 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
 
     /// <summary>Verifies direct family facts and typed predicates normalize into one Domain definition.</summary>
     [Fact]
-    public void NormalizeAliasFreeCreatesCandidateScopedDomainFacts()
+    public void NormalizeCreatesCandidateScopedDomainFacts()
     {
         FirmwareFamilyDocument document = Document();
 
         FirmwareFamilyResolutionDefinition definition =
-            FirmwareFamilyResolutionNormalizer.NormalizeAliasFree(document, FamilyHash);
+            FirmwareFamilyResolutionNormalizer.Normalize(document, FamilyHash);
 
         Assert.Equal("synthetic-family", definition.FamilyId);
         Assert.Equal("1.0.0", definition.FamilyVersion);
@@ -63,7 +63,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
 
     /// <summary>Verifies all locator and topology tokens map to their closed Domain forms.</summary>
     [Fact]
-    public void NormalizeAliasFreeMapsClosedLocatorAndTopologyShapes()
+    public void NormalizeMapsClosedLocatorAndTopologyShapes()
     {
         (FirmwareMetadataLocatorDocument Locator, FirmwareTopologyRequirementDocument Topology,
             FirmwareMetadataLocatorKind LocatorKind, TopologyRequirementKind TopologyKind)[] cases =
@@ -105,7 +105,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
                      FirmwareMetadataLocatorKind locatorKind, TopologyRequirementKind topologyKind) in cases)
         {
             FirmwareFamilyResolutionDefinition definition =
-                FirmwareFamilyResolutionNormalizer.NormalizeAliasFree(
+                FirmwareFamilyResolutionNormalizer.Normalize(
                     Document(locator: locator, topology: topology, includePredicate: false),
                     FamilyHash);
             FirmwareImageMap map = Assert.Single(definition.ImageMaps);
@@ -164,7 +164,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
 
     /// <summary>Verifies every closed physical enum token maps without fallback or alias inference.</summary>
     [Fact]
-    public void NormalizeAliasFreeMapsEveryPhysicalEnumToken()
+    public void NormalizeMapsEveryPhysicalEnumToken()
     {
         (string Token, FirmwareRegionOwner Value)[] owners =
         [
@@ -222,7 +222,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
 
     /// <summary>Verifies all predicate operators and typed scalar kinds use exact field context.</summary>
     [Fact]
-    public void NormalizeAliasFreeMapsEveryPredicateOperatorAndValueKind()
+    public void NormalizeMapsEveryPredicateOperatorAndValueKind()
     {
         (FirmwareMetadataPredicateDocument Predicate, FirmwareMetadataPredicateOperator Comparison,
             FirmwareMetadataValue[] ExpectedValues)[] cases =
@@ -250,7 +250,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
                      FirmwareMetadataValue[] expectedValues) in cases)
         {
             FirmwareFamilyResolutionDefinition definition =
-                FirmwareFamilyResolutionNormalizer.NormalizeAliasFree(
+                FirmwareFamilyResolutionNormalizer.Normalize(
                     WithPredicate(Document(), sourcePredicate),
                     FamilyHash);
             FirmwareMetadataPredicate predicate =
@@ -263,7 +263,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
 
     /// <summary>Verifies predicates cannot use a globally known but unselected structure or unknown field.</summary>
     [Fact]
-    public void NormalizeAliasFreeKeepsPredicateLookupCandidateScoped()
+    public void NormalizeKeepsPredicateLookupCandidateScoped()
     {
         FirmwareFamilyDocument source = Document();
         FirmwareMetadataSetDocument primarySet = Assert.Single(source.MetadataSets);
@@ -313,28 +313,36 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         Assert.Equal(
             "imageMaps[0].applicability.metadataPredicates[0].metadataStructureId",
             Assert.Throws<FirmwareFamilyNormalizationException>(() =>
-                FirmwareFamilyResolutionNormalizer.NormalizeAliasFree(unselected, FamilyHash)).Path);
+                FirmwareFamilyResolutionNormalizer.Normalize(unselected, FamilyHash)).Path);
         Assert.Equal(
             "imageMaps[0].applicability.metadataPredicates[0].fieldId",
             Assert.Throws<FirmwareFamilyNormalizationException>(() =>
-                FirmwareFamilyResolutionNormalizer.NormalizeAliasFree(unknownField, FamilyHash)).Path);
+                FirmwareFamilyResolutionNormalizer.Normalize(unknownField, FamilyHash)).Path);
     }
 
-    /// <summary>Verifies unresolved aliases are rejected instead of losing source/provenance facts.</summary>
+    /// <summary>Verifies an alias source must resolve to a direct or aliased map-bound fact.</summary>
     [Fact]
-    public void NormalizeAliasFreeRejectsAliasDeclarations()
+    public void NormalizeRejectsAliasWithUnresolvedSourceFact()
     {
-        FirmwareFamilyDocument document = Document() with
+        FirmwareFamilyDocument source = Document(includePredicate: false);
+        FirmwareImageMapDocument map = Assert.Single(source.ImageMaps);
+        FirmwareFamilyDocument document = source with
         {
+            ImageMaps =
+            [
+                map with { MetadataSetIds = ["target-metadata"] },
+                map with { MapId = "source-map", MetadataSetIds = ["missing-metadata"] },
+            ],
             FactAliases =
             [
-                new FirmwareFactAliasDocument(
+                new FirmwareMetadataSetAliasDocument(
                     "alias",
-                    "metadata-set",
                     "NT00001",
+                    "map",
                     "target-metadata",
                     "NT00001",
-                    "metadata",
+                    "source-map",
+                    "missing-metadata",
                     new FirmwareAliasApplicabilityDocument(
                         ["standard"],
                         new FirmwareTopologyRequirementDocument("none"),
@@ -345,18 +353,18 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         };
 
         FirmwareFamilyNormalizationException exception = Assert.Throws<FirmwareFamilyNormalizationException>(() =>
-            FirmwareFamilyResolutionNormalizer.NormalizeAliasFree(document, FamilyHash));
+            FirmwareFamilyResolutionNormalizer.Normalize(document, FamilyHash));
 
-        Assert.Equal("factAliases", exception.Path);
+        Assert.Equal("factAliases[0].source", exception.Path);
     }
 
     /// <summary>Verifies map and capability member references must resolve to declared family members.</summary>
     [Fact]
-    public void NormalizeAliasFreeRejectsUnknownMemberReferences()
+    public void NormalizeRejectsUnknownMemberReferences()
     {
         FirmwareFamilyDocument source = Document();
         FirmwareImageMapDocument map = Assert.Single(source.ImageMaps);
-        FirmwareCapabilityDocument capability = Assert.Single(source.Capabilities);
+        FirmwareCapabilityFactDocument capability = Assert.Single(source.Capabilities);
         FirmwareFamilyDocument badMap = source with
         {
             ImageMaps = [map with
@@ -366,22 +374,22 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         };
         FirmwareFamilyDocument badCapability = source with
         {
-            Capabilities = [capability with { MemberIds = ["NT99999"] }],
+            Capabilities = [capability with { MemberId = "NT99999" }],
         };
 
         FirmwareFamilyNormalizationException mapException = Assert.Throws<FirmwareFamilyNormalizationException>(() =>
-            FirmwareFamilyResolutionNormalizer.NormalizeAliasFree(badMap, FamilyHash));
+            FirmwareFamilyResolutionNormalizer.Normalize(badMap, FamilyHash));
         FirmwareFamilyNormalizationException capabilityException =
             Assert.Throws<FirmwareFamilyNormalizationException>(() =>
-                FirmwareFamilyResolutionNormalizer.NormalizeAliasFree(badCapability, FamilyHash));
+                FirmwareFamilyResolutionNormalizer.Normalize(badCapability, FamilyHash));
 
         Assert.Equal("imageMaps[0].applicability.memberIds", mapException.Path);
-        Assert.Equal("capabilities[0].memberIds", capabilityException.Path);
+        Assert.Equal("capabilities[0].memberId", capabilityException.Path);
     }
 
     /// <summary>Verifies map references and normalized region facts cannot remain missing or orphaned.</summary>
     [Fact]
-    public void NormalizeAliasFreeRejectsMissingAndOrphanFactReferences()
+    public void NormalizeRejectsMissingAndOrphanFactReferences()
     {
         FirmwareFamilyDocument source = Document();
         FirmwareImageMapDocument map = Assert.Single(source.ImageMaps);
@@ -406,20 +414,20 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         Assert.Equal(
             "imageMaps[0].regionSetIds[0]",
             Assert.Throws<FirmwareFamilyNormalizationException>(() =>
-                FirmwareFamilyResolutionNormalizer.NormalizeAliasFree(missingRegion, FamilyHash)).Path);
+                FirmwareFamilyResolutionNormalizer.Normalize(missingRegion, FamilyHash)).Path);
         Assert.Equal(
             "imageMaps[0].metadataSetIds[0]",
             Assert.Throws<FirmwareFamilyNormalizationException>(() =>
-                FirmwareFamilyResolutionNormalizer.NormalizeAliasFree(missingMetadata, FamilyHash)).Path);
+                FirmwareFamilyResolutionNormalizer.Normalize(missingMetadata, FamilyHash)).Path);
         Assert.Equal(
             "regionSets",
             Assert.Throws<FirmwareFamilyNormalizationException>(() =>
-                FirmwareFamilyResolutionNormalizer.NormalizeAliasFree(orphanRegion, FamilyHash)).Path);
+                FirmwareFamilyResolutionNormalizer.Normalize(orphanRegion, FamilyHash)).Path);
     }
 
     /// <summary>Verifies metadata orphans reject and shared facts retain one normalized Domain identity.</summary>
     [Fact]
-    public void NormalizeAliasFreeClosesNormalizedFactGraph()
+    public void NormalizeClosesNormalizedFactGraph()
     {
         FirmwareFamilyDocument source = Document();
         FirmwareMetadataSetDocument metadataSet = Assert.Single(source.MetadataSets);
@@ -449,10 +457,10 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         Assert.Equal(
             "$",
             Assert.Throws<FirmwareFamilyNormalizationException>(() =>
-                FirmwareFamilyResolutionNormalizer.NormalizeAliasFree(orphanMetadata, FamilyHash)).Path);
+                FirmwareFamilyResolutionNormalizer.Normalize(orphanMetadata, FamilyHash)).Path);
 
         FirmwareFamilyResolutionDefinition definition =
-            FirmwareFamilyResolutionNormalizer.NormalizeAliasFree(sharedFacts, FamilyHash);
+            FirmwareFamilyResolutionNormalizer.Normalize(sharedFacts, FamilyHash);
         FirmwareImageMap[] maps = [.. definition.ImageMaps];
         Assert.Same(maps[0].RegionSets[0], maps[1].RegionSets[0]);
         Assert.Same(
@@ -462,20 +470,20 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
 
     /// <summary>Verifies capability evidence state never changes resolution-map eligibility.</summary>
     [Fact]
-    public void NormalizeAliasFreeDoesNotUseCapabilitiesAsResolutionPolicy()
+    public void NormalizeDoesNotUseCapabilitiesAsResolutionPolicy()
     {
         string[] states = ["confirmed-present", "confirmed-absent", "unknown"];
         foreach (string state in states)
         {
             FirmwareFamilyDocument source = Document();
-            FirmwareCapabilityDocument capability = Assert.Single(source.Capabilities);
+            FirmwareCapabilityFactDocument capability = Assert.Single(source.Capabilities);
             FirmwareFamilyDocument document = source with
             {
                 Capabilities = [capability with { State = state }],
             };
 
             FirmwareFamilyResolutionDefinition definition =
-                FirmwareFamilyResolutionNormalizer.NormalizeAliasFree(document, FamilyHash);
+                FirmwareFamilyResolutionNormalizer.Normalize(document, FamilyHash);
 
             Assert.Equal("map", Assert.Single(definition.ImageMaps).MapId);
             Assert.Equal(["tp-firmware"], definition.RequiredArtifactBindingIds);
@@ -484,7 +492,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
 
     /// <summary>Verifies JSON integer conversion accepts integral forms and rejects fractions or Domain overflow.</summary>
     [Fact]
-    public void NormalizeAliasFreeChecksNumericDomainBoundaries()
+    public void NormalizeChecksNumericDomainBoundaries()
     {
         FirmwareFamilyDocument source = Document();
         FirmwareImageMapDocument map = Assert.Single(source.ImageMaps);
@@ -526,25 +534,25 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         Assert.Equal(
             "imageMaps[0].applicability.capacityBytes",
             Assert.Throws<FirmwareFamilyNormalizationException>(() =>
-                FirmwareFamilyResolutionNormalizer.NormalizeAliasFree(fractional, FamilyHash)).Path);
+                FirmwareFamilyResolutionNormalizer.Normalize(fractional, FamilyHash)).Path);
         Assert.Equal(
             "imageMaps[0].applicability.capacityBytes",
             Assert.Throws<FirmwareFamilyNormalizationException>(() =>
-                FirmwareFamilyResolutionNormalizer.NormalizeAliasFree(overflow, FamilyHash)).Path);
+                FirmwareFamilyResolutionNormalizer.Normalize(overflow, FamilyHash)).Path);
         Assert.Equal(
             "imageMaps[0].applicability.capacityBytes",
             Assert.Throws<FirmwareFamilyNormalizationException>(() =>
-                FirmwareFamilyResolutionNormalizer.NormalizeAliasFree(roundedFraction, FamilyHash)).Path);
+                FirmwareFamilyResolutionNormalizer.Normalize(roundedFraction, FamilyHash)).Path);
         Assert.Equal(
             16,
-            Assert.Single(FirmwareFamilyResolutionNormalizer.NormalizeAliasFree(
+            Assert.Single(FirmwareFamilyResolutionNormalizer.Normalize(
                 scientificInteger,
                 FamilyHash).ImageMaps).CapacityBytes);
     }
 
     /// <summary>Verifies checked range overflow is path-wrapped with the original exception.</summary>
     [Fact]
-    public void NormalizeAliasFreeWrapsCheckedRangeOverflow()
+    public void NormalizeWrapsCheckedRangeOverflow()
     {
         FirmwareFamilyDocument source = Document();
         FirmwareRegionSetDocument regionSet = Assert.Single(source.RegionSets);
@@ -562,7 +570,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         };
 
         FirmwareFamilyNormalizationException exception = Assert.Throws<FirmwareFamilyNormalizationException>(() =>
-            FirmwareFamilyResolutionNormalizer.NormalizeAliasFree(overflow, FamilyHash));
+            FirmwareFamilyResolutionNormalizer.Normalize(overflow, FamilyHash));
 
         Assert.Equal("regionSets[physical].regions[0]", exception.Path);
         _ = Assert.IsType<OverflowException>(exception.InnerException);
@@ -570,7 +578,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
 
     /// <summary>Verifies predicate JSON values are converted only in their exact field context.</summary>
     [Fact]
-    public void NormalizeAliasFreeRejectsWrongPredicateKindAndRange()
+    public void NormalizeRejectsWrongPredicateKindAndRange()
     {
         FirmwareFamilyDocument source = Document();
         FirmwareImageMapDocument map = Assert.Single(source.ImageMaps);
@@ -585,16 +593,16 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         Assert.Equal(
             "imageMaps[0].applicability.metadataPredicates[0].expectedValues[0]",
             Assert.Throws<FirmwareFamilyNormalizationException>(() =>
-                FirmwareFamilyResolutionNormalizer.NormalizeAliasFree(wrongKind, FamilyHash)).Path);
+                FirmwareFamilyResolutionNormalizer.Normalize(wrongKind, FamilyHash)).Path);
         Assert.Equal(
             "imageMaps[0].applicability.metadataPredicates[0].expectedValues[0]",
             Assert.Throws<FirmwareFamilyNormalizationException>(() =>
-                FirmwareFamilyResolutionNormalizer.NormalizeAliasFree(outOfRange, FamilyHash)).Path);
+                FirmwareFamilyResolutionNormalizer.Normalize(outOfRange, FamilyHash)).Path);
     }
 
     /// <summary>Verifies wrapped Domain invariant failures preserve path and inner exception.</summary>
     [Fact]
-    public void NormalizeAliasFreePreservesDomainInvariantFailure()
+    public void NormalizePreservesDomainInvariantFailure()
     {
         FirmwareFamilyDocument source = Document();
         FirmwareImageMapDocument map = Assert.Single(source.ImageMaps);
@@ -607,7 +615,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         };
 
         FirmwareFamilyNormalizationException exception = Assert.Throws<FirmwareFamilyNormalizationException>(() =>
-            FirmwareFamilyResolutionNormalizer.NormalizeAliasFree(tooSmall, FamilyHash));
+            FirmwareFamilyResolutionNormalizer.Normalize(tooSmall, FamilyHash));
 
         Assert.Equal("imageMaps[0]", exception.Path);
         _ = Assert.IsType<ArgumentException>(exception.InnerException, exactMatch: false);

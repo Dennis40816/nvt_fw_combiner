@@ -54,7 +54,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         };
 
         FirmwareFamilyResolutionDefinition definition =
-            FirmwareFamilyResolutionNormalizer.NormalizeAliasFree(singleRegion, FamilyHash);
+            FirmwareFamilyResolutionNormalizer.Normalize(singleRegion, FamilyHash);
         return Assert.Single(Assert.Single(definition.ImageMaps).Regions);
     }
 
@@ -69,6 +69,16 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
             {
                 Applicability = map.Applicability with { MetadataPredicates = [predicate] },
             }],
+            Capabilities =
+            [
+                Assert.Single(source.Capabilities) with
+                {
+                    Applicability = Assert.Single(source.Capabilities).Applicability with
+                    {
+                        MetadataPredicates = [predicate],
+                    },
+                },
+            ],
         };
     }
 
@@ -88,15 +98,23 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
             ]
             : [];
         return new FirmwareFamilyDocument(
-            "1.0",
+            "1.1",
             "synthetic-family",
             "1.0.0",
             [new FirmwareFamilyMemberDocument("NT00001", "Synthetic IC")],
             [
-                new FirmwareCapabilityDocument(
+                new FirmwareCapabilityFactDocument(
+                    "ab-code-evidence",
                     "ab-code",
+                    "NT00001",
+                    "map",
+                    new FirmwareAliasApplicabilityDocument(
+                        ["standard"],
+                        topology ?? new FirmwareTopologyRequirementDocument("none"),
+                        Number("16.0"),
+                        MetadataPredicates: predicates),
                     "confirmed-present",
-                    ["NT00001"],
+                    "synthetic capability evidence",
                     ["capability-evidence"]),
             ],
             [RegionSet()],

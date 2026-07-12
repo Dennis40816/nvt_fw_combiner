@@ -1,5 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
+using Json.Schema;
 using NvtFwCombiner.Infrastructure.Bundles;
 using NvtFwCombiner.TestSupport;
 
@@ -121,6 +123,60 @@ public sealed class ProfileBundleSchemaValidatorTests
             StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies the repository's v1.1 family schema remains a closed Draft 2020-12 schema.</summary>
+    [Fact]
+    public void ParseSchemaAcceptsRepositoryFirmwareFamilyV11Contract()
+    {
+        const string schemaId = "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json";
+        string path = RepositoryPaths.FromRepositoryRoot(
+            "docs",
+            "contracts",
+            "firmware-family-v1.schema.json");
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
+
+        JsonSchema schema = ProfileBundleSchemaValidator.ParseSchema(path, schemaId, document.RootElement);
+
+        Assert.NotNull(schema);
+    }
+
+    /// <summary>Verifies the repository family schema accepts one complete v1.1 alias shape and rejects drift.</summary>
+    [Theory]
+    [InlineData("valid")]
+    [InlineData("missing-target-fact")]
+    [InlineData("wrong-discriminator")]
+    [InlineData("unknown-property")]
+    public void ValidateEntriesEnforcesRepositoryFirmwareFamilyV11AliasContract(string mutation)
+    {
+        string family = FirmwareFamilyV11AliasJson();
+        family = mutation switch
+        {
+            "valid" => family,
+            "missing-target-fact" => family.Replace(
+                "\"targetCapabilityFactId\": \"target-capability\",",
+                string.Empty,
+                StringComparison.Ordinal),
+            "wrong-discriminator" => family.Replace(
+                "\"factKind\": \"capability\"",
+                "\"factKind\": \"wrong\"",
+                StringComparison.Ordinal),
+            "unknown-property" => family.Replace(
+                "\"reason\": \"synthetic alias\"",
+                "\"unexpected\": true, \"reason\": \"synthetic alias\"",
+                StringComparison.Ordinal),
+            _ => throw new ArgumentOutOfRangeException(nameof(mutation), mutation, "Unknown schema mutation."),
+        };
+        ProfileBundleEntrySnapshotCollection collection = CaptureFirmwareFamily(family);
+
+        if (mutation == "valid")
+        {
+            ProfileBundleSchemaValidator.ValidateEntries(collection, 32);
+            return;
+        }
+
+        _ = Assert.Throws<InvalidDataException>(() =>
+            ProfileBundleSchemaValidator.ValidateEntries(collection, 32));
+    }
+
     private static ProfileBundleEntrySnapshotCollection Capture(string schema, string profile)
     {
         using var workspace = TempWorkspace.Create("nfc-bundle-schema-validation");
@@ -153,13 +209,52 @@ public sealed class ProfileBundleSchemaValidatorTests
             new ProfileBundleEntrySnapshotLimits(8, 4096, 8192, 8));
     }
 
+    private static ProfileBundleEntrySnapshotCollection CaptureFirmwareFamily(string family)
+    {
+        const string schemaId = "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json";
+        using var workspace = TempWorkspace.Create("nfc-firmware-family-v11-schema-validation");
+        byte[] schemaBytes = File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
+            "docs",
+            "contracts",
+            "firmware-family-v1.schema.json"));
+        byte[] familyBytes = Encoding.UTF8.GetBytes(family);
+        _ = workspace.Write("profile-bundle.json", Encoding.UTF8.GetBytes("{}"));
+        _ = workspace.Write("schemas/firmware-family-v1.schema.json", schemaBytes);
+        _ = workspace.Write("families/family.json", familyBytes);
+
+        return ProfileBundleEntrySnapshotCollection.Capture(
+            workspace.Root,
+            "profile-bundle.json",
+            new ProfileBundleManifest(
+                "bundle",
+                "1.0.0",
+                new string('a', 64),
+                "release-manifest",
+                [
+                    Entry(
+                        "schema",
+                        ProfileBundleEntryKind.Schema,
+                        "schemas/firmware-family-v1.schema.json",
+                        schemaBytes,
+                        schemaId),
+                    Entry(
+                        "family",
+                        ProfileBundleEntryKind.FirmwareFamily,
+                        "families/family.json",
+                        familyBytes,
+                        schemaId),
+                ]),
+            new ProfileBundleEntrySnapshotLimits(8, 65536, 131072, 32));
+    }
+
     private static ProfileBundleEntry Entry(
         string entryId,
         ProfileBundleEntryKind kind,
         string path,
-        byte[] bytes)
+        byte[] bytes,
+        string schemaId = SchemaId)
     {
-        return new ProfileBundleEntry(entryId, kind, path, SchemaId, Hash(bytes));
+        return new ProfileBundleEntry(entryId, kind, path, schemaId, Hash(bytes));
     }
 
     private static string Schema(string valueType)
@@ -188,5 +283,74 @@ public sealed class ProfileBundleSchemaValidatorTests
     private static string Hash(byte[] bytes)
     {
         return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+    }
+
+    private static string FirmwareFamilyV11AliasJson()
+    {
+        return /*lang=json,strict*/ """
+            {
+              "schemaVersion": "1.1",
+              "familyId": "synthetic-family",
+              "familyVersion": "1.0.0",
+              "members": [
+                { "memberId": "NT00001", "displayName": "Synthetic IC" }
+              ],
+              "capabilities": [],
+              "regionSets": [
+                {
+                  "regionSetId": "physical",
+                  "addressSpaceId": "flash",
+                  "regions": [
+                    {
+                      "regionId": "root",
+                      "owner": "system",
+                      "kind": "image",
+                      "range": { "start": 0, "length": 16 },
+                      "writeConstraint": "forbidden",
+                      "alignment": 1
+                    }
+                  ],
+                  "evidenceRefs": ["region-evidence"]
+                }
+              ],
+              "metadataSets": [],
+              "imageMaps": [
+                {
+                  "mapId": "map",
+                  "addressSpaceId": "flash",
+                  "applicability": {
+                    "memberIds": ["NT00001"],
+                    "modeIds": ["standard"],
+                    "topologyRequirement": { "kind": "none" },
+                    "capacityBytes": 16
+                  },
+                  "coveragePolicy": "complete-with-explicit-gaps",
+                  "regionSetIds": ["physical"],
+                  "metadataSetIds": [],
+                  "evidenceRefs": ["map-evidence"]
+                }
+              ],
+              "factAliases": [
+                {
+                  "aliasId": "capability-alias",
+                  "factKind": "capability",
+                  "targetMemberId": "NT00001",
+                  "targetMapId": "map",
+                  "targetCapabilityFactId": "target-capability",
+                  "sourceMemberId": "NT00001",
+                  "sourceMapId": "map",
+                  "sourceCapabilityFactId": "source-capability",
+                  "applicability": {
+                    "modeIds": ["standard"],
+                    "topologyRequirement": { "kind": "none" },
+                    "capacityBytes": 16
+                  },
+                  "reason": "synthetic alias",
+                  "evidenceRefs": ["alias-evidence"]
+                }
+              ],
+              "evidenceRefs": ["family-evidence"]
+            }
+            """;
     }
 }

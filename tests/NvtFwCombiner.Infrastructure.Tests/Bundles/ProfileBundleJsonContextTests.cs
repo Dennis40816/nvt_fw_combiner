@@ -1,5 +1,6 @@
 using System.Text.Json;
 using NvtFwCombiner.Contracts.Bundles;
+using NvtFwCombiner.Contracts.Firmware;
 using NvtFwCombiner.Infrastructure.Bundles;
 
 namespace NvtFwCombiner.Infrastructure.Tests.Bundles;
@@ -63,5 +64,48 @@ public sealed class ProfileBundleJsonContextTests
         Assert.Equal(
             "NvtFwCombiner.Contracts.Profiles.CompositionProfileDocument",
             ProfileBundleJsonContext.Default.CompositionProfileDocument.Type.FullName);
+    }
+
+    /// <summary>Verifies generated firmware-family metadata accepts a non-leading v1.1 alias discriminator.</summary>
+    [Fact]
+    public void ContextDeserializesOutOfOrderMapBoundAlias()
+    {
+        const string json = """
+            {
+              "schemaVersion": "1.1",
+              "familyId": "family",
+              "familyVersion": "1.0.0",
+              "members": [],
+              "capabilities": [],
+              "regionSets": [],
+              "metadataSets": [],
+              "imageMaps": [],
+              "factAliases": [
+                {
+                  "aliasId": "alias",
+                  "targetMemberId": "NT00001",
+                  "factKind": "capability",
+                  "targetMapId": "target-map",
+                  "targetCapabilityFactId": "target-capability",
+                  "sourceMemberId": "NT00002",
+                  "sourceMapId": "source-map",
+                  "sourceCapabilityFactId": "source-capability",
+                  "applicability": {
+                    "modeIds": ["standard"],
+                    "topologyRequirement": { "kind": "none" },
+                    "capacityBytes": 16
+                  },
+                  "reason": "synthetic alias",
+                  "evidenceRefs": ["evidence"]
+                }
+              ],
+              "evidenceRefs": []
+            }
+            """;
+
+        FirmwareFamilyDocument family = Assert.IsType<FirmwareFamilyDocument>(
+            JsonSerializer.Deserialize(json, ProfileBundleJsonContext.Default.FirmwareFamilyDocument));
+
+        _ = Assert.IsType<FirmwareCapabilityAliasDocument>(Assert.Single(family.FactAliases));
     }
 }

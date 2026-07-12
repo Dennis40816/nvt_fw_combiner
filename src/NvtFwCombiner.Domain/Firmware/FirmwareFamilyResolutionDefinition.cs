@@ -8,6 +8,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
 {
     private readonly FirmwareImageMap[] _imageMaps;
     private readonly FirmwareMetadataSet[] _metadataSets;
+    private readonly FirmwareMapFactBinding<FirmwareCapabilityFact>[] _capabilityBindings;
     private readonly string[] _requiredArtifactBindingIds;
     private readonly Dictionary<string, IReadOnlyList<FirmwareMetadataStructure>> _structuresByMap;
 
@@ -18,6 +19,18 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         string familyContentHash,
         IEnumerable<FirmwareImageMap> imageMaps,
         IEnumerable<FirmwareMetadataSet> metadataSets)
+        : this(familyId, familyVersion, familyContentHash, imageMaps, metadataSets, [])
+    {
+    }
+
+    /// <summary>Creates one normalized family after Profiles has validated map-bound capability semantics.</summary>
+    internal FirmwareFamilyResolutionDefinition(
+        string familyId,
+        string familyVersion,
+        string familyContentHash,
+        IEnumerable<FirmwareImageMap> imageMaps,
+        IEnumerable<FirmwareMetadataSet> metadataSets,
+        IEnumerable<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityBindings)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(familyId);
         ArgumentException.ThrowIfNullOrWhiteSpace(familyVersion);
@@ -31,6 +44,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
 
         _imageMaps = SnapshotMaps(imageMaps);
         _metadataSets = SnapshotMetadataSets(metadataSets);
+        _capabilityBindings = SnapshotCapabilityBindings(capabilityBindings, _imageMaps);
         ValidateFamilyStructureIds(_metadataSets);
 
         Dictionary<string, FirmwareMetadataSet> metadataSetsById = _metadataSets.ToDictionary(
@@ -71,6 +85,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         FamilyContentHash = familyContentHash;
         ImageMaps = Array.AsReadOnly(_imageMaps);
         MetadataSets = Array.AsReadOnly(_metadataSets);
+        CapabilityBindings = Array.AsReadOnly(_capabilityBindings);
         RequiredArtifactBindingIds = Array.AsReadOnly(_requiredArtifactBindingIds);
     }
 
@@ -88,6 +103,31 @@ public sealed partial class FirmwareFamilyResolutionDefinition
 
     /// <summary>Referenced metadata sets in ordinal set-id order.</summary>
     public IReadOnlyList<FirmwareMetadataSet> MetadataSets { get; }
+
+    /// <summary>Map-bound technical capability evidence that never changes map eligibility or Build support.</summary>
+    public IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> CapabilityBindings { get; }
+
+    /// <summary>Enumerates owned physical and capability provenance in deterministic binding order.</summary>
+    public IEnumerable<FirmwareFactProvenance> EnumerateFactProvenance()
+    {
+        foreach (FirmwareImageMap map in _imageMaps)
+        {
+            foreach (FirmwareMapFactBinding<FirmwareRegionSet> binding in map.RegionSetBindings)
+            {
+                yield return binding.Provenance;
+            }
+
+            foreach (FirmwareMapFactBinding<FirmwareMetadataSet> binding in map.MetadataSetBindings)
+            {
+                yield return binding.Provenance;
+            }
+        }
+
+        foreach (FirmwareMapFactBinding<FirmwareCapabilityFact> binding in _capabilityBindings)
+        {
+            yield return binding.Provenance;
+        }
+    }
 
     /// <summary>Artifact bindings reachable from at least one candidate map.</summary>
     public IReadOnlyList<string> RequiredArtifactBindingIds { get; }
@@ -181,6 +221,69 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         Array.Sort(snapshot, static (left, right) =>
             StringComparer.Ordinal.Compare(left.MetadataSetId, right.MetadataSetId));
         return snapshot;
+    }
+
+    private static FirmwareMapFactBinding<FirmwareCapabilityFact>[] SnapshotCapabilityBindings(
+        IEnumerable<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityBindings,
+        IReadOnlyList<FirmwareImageMap> maps)
+    {
+        ArgumentNullException.ThrowIfNull(capabilityBindings);
+        FirmwareMapFactBinding<FirmwareCapabilityFact>[] snapshot = [.. capabilityBindings];
+        if (snapshot.Any(static binding => binding is null))
+        {
+            throw new ArgumentException("Capability bindings cannot contain null.", nameof(capabilityBindings));
+        }
+
+        if (snapshot.Select(static binding => binding.EffectiveKey).Distinct().Count() != snapshot.Length)
+        {
+            throw new ArgumentException("Capability binding effective keys must be ordinally unique.", nameof(capabilityBindings));
+        }
+
+        foreach (FirmwareMapFactBinding<FirmwareCapabilityFact> binding in snapshot)
+        {
+            FirmwareImageMap effectiveMap = FindCapabilityMap(maps, binding.EffectiveKey, nameof(capabilityBindings));
+            FirmwareImageMap directSourceMap = FindCapabilityMap(
+                maps,
+                binding.DirectSourceKey,
+                nameof(capabilityBindings));
+            if (binding.EffectiveKey.FactKind != FirmwareFactKind.Capability ||
+                binding.DirectSourceKey.FactKind != FirmwareFactKind.Capability ||
+                !effectiveMap.Applicability.MemberIds.Contains(binding.EffectiveKey.MemberId, StringComparer.Ordinal) ||
+                !directSourceMap.Applicability.MemberIds.Contains(binding.DirectSourceKey.MemberId, StringComparer.Ordinal))
+            {
+                throw new ArgumentException("Capability bindings must use a member selected by their effective map.", nameof(capabilityBindings));
+            }
+        }
+
+        Array.Sort(snapshot, static (left, right) =>
+        {
+            int member = StringComparer.Ordinal.Compare(left.EffectiveKey.MemberId, right.EffectiveKey.MemberId);
+            if (member != 0)
+            {
+                return member;
+            }
+
+            int map = StringComparer.Ordinal.Compare(left.EffectiveKey.MapId, right.EffectiveKey.MapId);
+            return map != 0
+                ? map
+                : StringComparer.Ordinal.Compare(left.EffectiveKey.FactId, right.EffectiveKey.FactId);
+        });
+        return snapshot;
+    }
+
+    private static FirmwareImageMap FindCapabilityMap(
+        IReadOnlyList<FirmwareImageMap> maps,
+        FirmwareMapFactKey key,
+        string parameterName)
+    {
+        _ = key.FactKind == FirmwareFactKind.Capability
+            ? true
+            : throw new ArgumentException("Capability bindings must use capability fact keys.", parameterName);
+
+        return maps.FirstOrDefault(map => StringComparer.Ordinal.Equals(map.MapId, key.MapId)) ??
+            throw new ArgumentException(
+                $"Capability binding references unknown image map '{key.MapId}'.",
+                parameterName);
     }
 
     private static void ValidateFamilyStructureIds(IEnumerable<FirmwareMetadataSet> metadataSets)

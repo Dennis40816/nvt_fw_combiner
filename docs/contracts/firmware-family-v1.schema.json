@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-  "title": "NVT FW Combiner Firmware Family 1.0",
+  "title": "NVT FW Combiner Firmware Family 1.1",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -17,7 +17,7 @@
     "evidenceRefs"
   ],
   "properties": {
-    "schemaVersion": { "const": "1.0" },
+    "schemaVersion": { "const": "1.1" },
     "familyId": { "$ref": "#/$defs/id" },
     "familyVersion": { "$ref": "#/$defs/semver" },
     "members": {
@@ -27,7 +27,7 @@
     },
     "capabilities": {
       "type": "array",
-      "items": { "$ref": "#/$defs/capability" }
+      "items": { "$ref": "#/$defs/capabilityFact" }
     },
     "regionSets": {
       "type": "array",
@@ -101,20 +101,27 @@
         "displayName": { "type": "string", "minLength": 1 }
       }
     },
-    "capability": {
+    "capabilityFact": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["capabilityId", "state", "memberIds", "evidenceRefs"],
+      "required": [
+        "capabilityFactId",
+        "capabilityId",
+        "memberId",
+        "mapId",
+        "applicability",
+        "state",
+        "reason",
+        "evidenceRefs"
+      ],
       "properties": {
+        "capabilityFactId": { "$ref": "#/$defs/id" },
         "capabilityId": { "$ref": "#/$defs/id" },
+        "memberId": { "$ref": "#/$defs/icId" },
+        "mapId": { "$ref": "#/$defs/id" },
+        "applicability": { "$ref": "#/$defs/aliasApplicability" },
         "state": {
           "enum": ["confirmed-present", "confirmed-absent", "unknown"]
-        },
-        "memberIds": {
-          "type": "array",
-          "minItems": 1,
-          "uniqueItems": true,
-          "items": { "$ref": "#/$defs/icId" }
         },
         "reason": { "type": "string", "minLength": 1 },
         "evidenceRefs": {
@@ -548,26 +555,107 @@
       }
     },
     "factAlias": {
+      "oneOf": [
+        { "$ref": "#/$defs/regionSetAlias" },
+        { "$ref": "#/$defs/metadataSetAlias" },
+        { "$ref": "#/$defs/capabilityAlias" }
+      ]
+    },
+    "regionSetAlias": {
       "type": "object",
       "additionalProperties": false,
       "required": [
         "aliasId",
         "factKind",
         "targetMemberId",
-        "targetFactId",
+        "targetMapId",
+        "targetRegionSetId",
         "sourceMemberId",
-        "sourceFactId",
+        "sourceMapId",
+        "sourceRegionSetId",
         "applicability",
         "reason",
         "evidenceRefs"
       ],
       "properties": {
         "aliasId": { "$ref": "#/$defs/id" },
-        "factKind": { "enum": ["region-set", "metadata-set", "capability"] },
+        "factKind": { "const": "region-set" },
         "targetMemberId": { "$ref": "#/$defs/icId" },
-        "targetFactId": { "$ref": "#/$defs/id" },
+        "targetMapId": { "$ref": "#/$defs/id" },
+        "targetRegionSetId": { "$ref": "#/$defs/id" },
         "sourceMemberId": { "$ref": "#/$defs/icId" },
-        "sourceFactId": { "$ref": "#/$defs/id" },
+        "sourceMapId": { "$ref": "#/$defs/id" },
+        "sourceRegionSetId": { "$ref": "#/$defs/id" },
+        "applicability": { "$ref": "#/$defs/aliasApplicability" },
+        "reason": { "type": "string", "minLength": 1 },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    "metadataSetAlias": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "aliasId",
+        "factKind",
+        "targetMemberId",
+        "targetMapId",
+        "targetMetadataSetId",
+        "sourceMemberId",
+        "sourceMapId",
+        "sourceMetadataSetId",
+        "applicability",
+        "reason",
+        "evidenceRefs"
+      ],
+      "properties": {
+        "aliasId": { "$ref": "#/$defs/id" },
+        "factKind": { "const": "metadata-set" },
+        "targetMemberId": { "$ref": "#/$defs/icId" },
+        "targetMapId": { "$ref": "#/$defs/id" },
+        "targetMetadataSetId": { "$ref": "#/$defs/id" },
+        "sourceMemberId": { "$ref": "#/$defs/icId" },
+        "sourceMapId": { "$ref": "#/$defs/id" },
+        "sourceMetadataSetId": { "$ref": "#/$defs/id" },
+        "applicability": { "$ref": "#/$defs/aliasApplicability" },
+        "reason": { "type": "string", "minLength": 1 },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    "capabilityAlias": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "aliasId",
+        "factKind",
+        "targetMemberId",
+        "targetMapId",
+        "targetCapabilityFactId",
+        "sourceMemberId",
+        "sourceMapId",
+        "sourceCapabilityFactId",
+        "applicability",
+        "reason",
+        "evidenceRefs"
+      ],
+      "properties": {
+        "aliasId": { "$ref": "#/$defs/id" },
+        "factKind": { "const": "capability" },
+        "targetMemberId": { "$ref": "#/$defs/icId" },
+        "targetMapId": { "$ref": "#/$defs/id" },
+        "targetCapabilityFactId": { "$ref": "#/$defs/id" },
+        "sourceMemberId": { "$ref": "#/$defs/icId" },
+        "sourceMapId": { "$ref": "#/$defs/id" },
+        "sourceCapabilityFactId": { "$ref": "#/$defs/id" },
         "applicability": { "$ref": "#/$defs/aliasApplicability" },
         "reason": { "type": "string", "minLength": 1 },
         "evidenceRefs": {

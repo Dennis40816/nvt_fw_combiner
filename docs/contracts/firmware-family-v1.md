@@ -1,4 +1,4 @@
-# Firmware Family Contract 1.0
+# Firmware Family Contract 1.1
 
 The executable schema is [`firmware-family-v1.schema.json`](firmware-family-v1.schema.json).
 It is the canonical source for physical firmware facts shared by Normal, AB, Merge, Replace,
@@ -78,11 +78,28 @@ partitioned by its direct children. Every otherwise unclassified interval is rep
 
 ## Aliases
 
-An alias copies exactly one `region-set`, `metadata-set`, or `capability` fact under explicit
-applicability and evidence. Alias applicability includes the same mode, topology, capacity, Common
-FW category, and metadata predicates used by maps. It does not alias a whole IC, map, processor,
-capacity, promotion state, or workflow. Alias cycles, unresolved ids, conflicting aliases, and
-applicability wider than either the source fact or target map are semantic validation errors.
+Every direct physical fact and alias uses the exact key
+`(memberId, mapId, factKind, factId)`. Region-set and metadata-set aliases name source and target
+map ids plus kind-specific set ids. Capability aliases name source and target map ids plus
+kind-specific capability fact ids. An alias copies immutable terminal values into bindings; it never
+clones a set, rewrites an effective id to its source id, aliases a whole IC or map, or grants a
+workflow, processor, capacity, promotion state, or execution permission.
 
-Technical capabilities such as `ab-code` or pending `register-replace` are evidence facts only.
-Only a promoted `composition-profile-v2` can make a workflow executable.
+Region-set and metadata-set alias applicability must exactly equal the complete non-member
+applicability of the target map. Every hop must be contained by its immediate source and terminal
+direct availability. A resolved target map revalidates terminal region and metadata values against
+its own address space, capacity, region graph, locator geometry, fields, assertions, and artifact
+bindings. Conditional physical bindings require separate maps.
+
+Capability facts are one map-bound row per `(capabilityFactId, memberId, mapId)`; `capabilityFactId`
+is map-key-local rather than family-global. Each row has a technical `capabilityId`, typed applicability,
+state, reason, and evidence. Capability aliases preserve that
+evidence provenance but never participate in map eligibility or grant Build support. For one
+`(memberId, mapId, capabilityId)`, overlapping capability applicability is rejected even when state
+is equal.
+
+All aliases are closed, map-bound facts. Unknown maps, members, set/fact ids, wrong kinds,
+direct/alias conflicts, duplicate target providers, structural cycles, metadata dependency cycles,
+ambiguous metadata structure providers, unsatisfied predicates, unknown implication, or widened
+applicability fail closed. The normalized result retains effective key, direct source key, ordered
+target-to-source hops, direct/alias evidence, and the trusted family content hash.

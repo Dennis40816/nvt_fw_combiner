@@ -19,7 +19,7 @@ public sealed record FirmwareFamilyDocument(
     string FamilyId,
     string FamilyVersion,
     IReadOnlyList<FirmwareFamilyMemberDocument> Members,
-    IReadOnlyList<FirmwareCapabilityDocument> Capabilities,
+    IReadOnlyList<FirmwareCapabilityFactDocument> Capabilities,
     IReadOnlyList<FirmwareRegionSetDocument> RegionSets,
     IReadOnlyList<FirmwareMetadataSetDocument> MetadataSets,
     IReadOnlyList<FirmwareImageMapDocument> ImageMaps,
@@ -31,19 +31,24 @@ public sealed record FirmwareFamilyDocument(
 /// <param name="DisplayName">Human-readable IC name.</param>
 public sealed record FirmwareFamilyMemberDocument(string MemberId, string DisplayName);
 
-/// <summary>DTO for one evidence-backed capability fact.</summary>
-/// <param name="CapabilityId">Stable capability identifier.</param>
+/// <summary>DTO for one map-bound evidence-backed technical capability fact.</summary>
+/// <param name="CapabilityFactId">Stable aliasable capability fact identifier.</param>
+/// <param name="CapabilityId">Technical capability identifier.</param>
+/// <param name="MemberId">Member covered by this fact.</param>
+/// <param name="MapId">Physical map covered by this fact.</param>
+/// <param name="Applicability">Static non-member applicability.</param>
 /// <param name="State">Closed source capability state token.</param>
-/// <param name="MemberIds">Members covered by the fact.</param>
 /// <param name="EvidenceRefs">Evidence manifest references.</param>
-/// <param name="Reason">Optional source explanation.</param>
-public sealed record FirmwareCapabilityDocument(
+/// <param name="Reason">Required source explanation.</param>
+public sealed record FirmwareCapabilityFactDocument(
+    string CapabilityFactId,
     string CapabilityId,
+    string MemberId,
+    string MapId,
+    FirmwareAliasApplicabilityDocument Applicability,
     string State,
-    IReadOnlyList<string> MemberIds,
-    IReadOnlyList<string> EvidenceRefs,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    string? Reason = null);
+    string Reason,
+    IReadOnlyList<string> EvidenceRefs);
 
 /// <summary>DTO for one canonical physical region fact set.</summary>
 /// <param name="RegionSetId">Stable fact-set identifier.</param>
@@ -151,23 +156,83 @@ public sealed record FirmwareAliasApplicabilityDocument(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     IReadOnlyList<FirmwareMetadataPredicateDocument>? MetadataPredicates = null);
 
-/// <summary>DTO for one explicit source-to-target fact alias.</summary>
-/// <param name="AliasId">Stable alias identifier.</param>
-/// <param name="FactKind">Closed aliased fact kind token.</param>
-/// <param name="TargetMemberId">Member receiving the fact.</param>
-/// <param name="TargetFactId">Target fact identifier.</param>
-/// <param name="SourceMemberId">Member supplying the fact.</param>
-/// <param name="SourceFactId">Source fact identifier.</param>
-/// <param name="Applicability">Non-widening alias applicability declaration.</param>
-/// <param name="Reason">Required source explanation.</param>
-/// <param name="EvidenceRefs">Evidence manifest references.</param>
-public sealed record FirmwareFactAliasDocument(
+/// <summary>Shared DTO fields for one map-bound source-to-target fact alias.</summary>
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "factKind")]
+[JsonDerivedType(typeof(FirmwareRegionSetAliasDocument), "region-set")]
+[JsonDerivedType(typeof(FirmwareMetadataSetAliasDocument), "metadata-set")]
+[JsonDerivedType(typeof(FirmwareCapabilityAliasDocument), "capability")]
+public abstract record FirmwareFactAliasDocument(
     string AliasId,
-    string FactKind,
     string TargetMemberId,
-    string TargetFactId,
+    string TargetMapId,
     string SourceMemberId,
-    string SourceFactId,
+    string SourceMapId,
     FirmwareAliasApplicabilityDocument Applicability,
     string Reason,
     IReadOnlyList<string> EvidenceRefs);
+
+/// <summary>DTO for one map-bound region-set alias.</summary>
+public sealed record FirmwareRegionSetAliasDocument(
+    string AliasId,
+    string TargetMemberId,
+    string TargetMapId,
+    string TargetRegionSetId,
+    string SourceMemberId,
+    string SourceMapId,
+    string SourceRegionSetId,
+    FirmwareAliasApplicabilityDocument Applicability,
+    string Reason,
+    IReadOnlyList<string> EvidenceRefs)
+    : FirmwareFactAliasDocument(
+        AliasId,
+        TargetMemberId,
+        TargetMapId,
+        SourceMemberId,
+        SourceMapId,
+        Applicability,
+        Reason,
+        EvidenceRefs);
+
+/// <summary>DTO for one map-bound metadata-set alias.</summary>
+public sealed record FirmwareMetadataSetAliasDocument(
+    string AliasId,
+    string TargetMemberId,
+    string TargetMapId,
+    string TargetMetadataSetId,
+    string SourceMemberId,
+    string SourceMapId,
+    string SourceMetadataSetId,
+    FirmwareAliasApplicabilityDocument Applicability,
+    string Reason,
+    IReadOnlyList<string> EvidenceRefs)
+    : FirmwareFactAliasDocument(
+        AliasId,
+        TargetMemberId,
+        TargetMapId,
+        SourceMemberId,
+        SourceMapId,
+        Applicability,
+        Reason,
+        EvidenceRefs);
+
+/// <summary>DTO for one map-bound capability fact alias.</summary>
+public sealed record FirmwareCapabilityAliasDocument(
+    string AliasId,
+    string TargetMemberId,
+    string TargetMapId,
+    string TargetCapabilityFactId,
+    string SourceMemberId,
+    string SourceMapId,
+    string SourceCapabilityFactId,
+    FirmwareAliasApplicabilityDocument Applicability,
+    string Reason,
+    IReadOnlyList<string> EvidenceRefs)
+    : FirmwareFactAliasDocument(
+        AliasId,
+        TargetMemberId,
+        TargetMapId,
+        SourceMemberId,
+        SourceMapId,
+        Applicability,
+        Reason,
+        EvidenceRefs);

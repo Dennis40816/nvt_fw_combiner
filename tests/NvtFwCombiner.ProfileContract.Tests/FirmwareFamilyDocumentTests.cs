@@ -13,7 +13,7 @@ public sealed class FirmwareFamilyDocumentTests
     {
         const string json = """
             {
-              "schemaVersion": "1.0",
+              "schemaVersion": "1.1",
               "familyId": "synthetic-family",
               "familyVersion": "1.2.3",
               "members": [
@@ -21,9 +21,16 @@ public sealed class FirmwareFamilyDocumentTests
               ],
               "capabilities": [
                 {
+                  "capabilityFactId": "ab-code-evidence",
                   "capabilityId": "ab-code",
+                  "memberId": "NT00001",
+                  "mapId": "cascade-map",
+                  "applicability": {
+                    "modeIds": ["standard"],
+                    "topologyRequirement": { "kind": "exact-count", "chipCount": 2 },
+                    "capacityBytes": 32
+                  },
                   "state": "confirmed-present",
-                  "memberIds": ["NT00001"],
                   "reason": "synthetic evidence",
                   "evidenceRefs": ["capability-evidence"]
                 }
@@ -136,9 +143,11 @@ public sealed class FirmwareFamilyDocumentTests
                   "aliasId": "metadata-alias",
                   "factKind": "metadata-set",
                   "targetMemberId": "NT00001",
-                  "targetFactId": "target-metadata",
+                  "targetMapId": "cascade-map",
+                  "targetMetadataSetId": "target-metadata",
                   "sourceMemberId": "NT00001",
-                  "sourceFactId": "metadata",
+                  "sourceMapId": "cascade-map",
+                  "sourceMetadataSetId": "metadata",
                   "applicability": {
                     "modeIds": ["standard"],
                     "topologyRequirement": { "kind": "exact-count", "chipCount": 2 },
@@ -163,7 +172,7 @@ public sealed class FirmwareFamilyDocumentTests
         FirmwareFamilyDocument document = Assert.IsType<FirmwareFamilyDocument>(
             JsonSerializer.Deserialize<FirmwareFamilyDocument>(json, StrictOptions()));
 
-        Assert.Equal("1.0", document.SchemaVersion);
+        Assert.Equal("1.1", document.SchemaVersion);
         Assert.Equal("synthetic-family", document.FamilyId);
         Assert.Equal("NT00001", Assert.Single(document.Members).MemberId);
         Assert.Equal("synthetic evidence", Assert.Single(document.Capabilities).Reason);
@@ -192,7 +201,16 @@ public sealed class FirmwareFamilyDocumentTests
         Assert.Equal(JsonValueKind.Number, numericExpected.ValueKind);
         Assert.Equal(2, numericExpected.GetInt32());
 
-        FirmwareFactAliasDocument alias = Assert.Single(document.FactAliases);
+        FirmwareCapabilityFactDocument capability = Assert.Single(document.Capabilities);
+        Assert.Equal("ab-code-evidence", capability.CapabilityFactId);
+        Assert.Equal("cascade-map", capability.MapId);
+        Assert.Equal("exact-count", capability.Applicability.TopologyRequirement.Kind);
+
+        FirmwareMetadataSetAliasDocument alias = Assert.IsType<FirmwareMetadataSetAliasDocument>(
+            Assert.Single(document.FactAliases));
+        Assert.Equal("cascade-map", alias.TargetMapId);
+        Assert.Equal("target-metadata", alias.TargetMetadataSetId);
+        Assert.Equal("metadata", alias.SourceMetadataSetId);
         Assert.Equal("exact-count", alias.Applicability.TopologyRequirement.Kind);
         Assert.Equal(2, alias.Applicability.TopologyRequirement.ChipCount?.GetInt32());
         JsonElement textExpected = alias.Applicability.MetadataPredicates![0].ExpectedValues[0];
@@ -334,10 +352,79 @@ public sealed class FirmwareFamilyDocumentTests
             JsonSerializer.Deserialize<FirmwareFamilyMemberDocument>(json, StrictOptions()));
     }
 
+    /// <summary>Verifies the three closed map-bound alias shapes deserialize without declaration-order inference.</summary>
+    [Fact]
+    public void FactAliasShapesMapToClosedTransportTypes()
+    {
+        const string json = """
+            [
+              {
+                "aliasId": "region-alias",
+                "targetMemberId": "NT00001",
+                "factKind": "region-set",
+                "targetMapId": "target-map",
+                "targetRegionSetId": "target-regions",
+                "sourceMemberId": "NT00002",
+                "sourceMapId": "source-map",
+                "sourceRegionSetId": "source-regions",
+                "applicability": {
+                  "modeIds": ["standard"],
+                  "topologyRequirement": { "kind": "none" },
+                  "capacityBytes": 16
+                },
+                "reason": "synthetic region alias",
+                "evidenceRefs": ["region-evidence"]
+              },
+              {
+                "factKind": "metadata-set",
+                "aliasId": "metadata-alias",
+                "targetMemberId": "NT00001",
+                "targetMapId": "target-map",
+                "targetMetadataSetId": "target-metadata",
+                "sourceMemberId": "NT00002",
+                "sourceMapId": "source-map",
+                "sourceMetadataSetId": "source-metadata",
+                "applicability": {
+                  "modeIds": ["standard"],
+                  "topologyRequirement": { "kind": "none" },
+                  "capacityBytes": 16
+                },
+                "reason": "synthetic metadata alias",
+                "evidenceRefs": ["metadata-evidence"]
+              },
+              {
+                "factKind": "capability",
+                "aliasId": "capability-alias",
+                "targetMemberId": "NT00001",
+                "targetMapId": "target-map",
+                "targetCapabilityFactId": "target-capability",
+                "sourceMemberId": "NT00002",
+                "sourceMapId": "source-map",
+                "sourceCapabilityFactId": "source-capability",
+                "applicability": {
+                  "modeIds": ["standard"],
+                  "topologyRequirement": { "kind": "none" },
+                  "capacityBytes": 16
+                },
+                "reason": "synthetic capability alias",
+                "evidenceRefs": ["capability-evidence"]
+              }
+            ]
+            """;
+
+        FirmwareFactAliasDocument[] aliases = Assert.IsType<FirmwareFactAliasDocument[]>(
+            JsonSerializer.Deserialize<FirmwareFactAliasDocument[]>(json, StrictOptions()));
+
+        _ = Assert.IsType<FirmwareRegionSetAliasDocument>(aliases[0]);
+        _ = Assert.IsType<FirmwareMetadataSetAliasDocument>(aliases[1]);
+        _ = Assert.IsType<FirmwareCapabilityAliasDocument>(aliases[2]);
+    }
+
     private static JsonSerializerOptions StrictOptions()
     {
         return new JsonSerializerOptions
         {
+            AllowOutOfOrderMetadataProperties = true,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             PropertyNameCaseInsensitive = false,
             UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,

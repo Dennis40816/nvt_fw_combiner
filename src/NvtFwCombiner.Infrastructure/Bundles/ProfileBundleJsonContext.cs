@@ -7,6 +7,7 @@ namespace NvtFwCombiner.Infrastructure.Bundles;
 
 /// <summary>Source-generated strict JSON metadata for canonical bundle document roots.</summary>
 [JsonSourceGenerationOptions(
+    AllowOutOfOrderMetadataProperties = true,
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     PropertyNameCaseInsensitive = false,
     UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
