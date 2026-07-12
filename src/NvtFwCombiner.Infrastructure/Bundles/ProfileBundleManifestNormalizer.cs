@@ -76,6 +76,18 @@ internal static class ProfileBundleManifestNormalizer
             }
         }
 
+        foreach ((ProfileBundleEntry entry, int index) in entries.Select(static (entry, index) => (entry, index)))
+        {
+            if (entry.Kind == ProfileBundleEntryKind.Schema && !entries.Any(content =>
+                content.Kind != ProfileBundleEntryKind.Schema &&
+                StringComparer.Ordinal.Equals(content.SchemaId, entry.SchemaId)))
+            {
+                throw Error(
+                    $"entries[{index}].schemaId",
+                    $"Schema id '{entry.SchemaId}' is not used by a bundle content entry.");
+            }
+        }
+
         string calculatedHash = ProfileBundleEntryArrayHasher.CalculateContentHash(entryDocuments);
         return !StringComparer.Ordinal.Equals(document.ContentHash, calculatedHash)
             ? throw Error("contentHash", "Bundle entry-array content hash does not match the manifest.")

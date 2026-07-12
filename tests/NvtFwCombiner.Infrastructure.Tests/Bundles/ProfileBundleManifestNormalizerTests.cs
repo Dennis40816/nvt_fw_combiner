@@ -46,7 +46,7 @@ public sealed class ProfileBundleManifestNormalizerTests
             ProfileBundleManifestNormalizer.Normalize(Document() with { SchemaVersion = "2.0" }));
         ProfileBundleManifestNormalizationException algorithm = Assert.Throws<ProfileBundleManifestNormalizationException>(() =>
             ProfileBundleManifestNormalizer.Normalize(Document() with { HashAlgorithm = "sha256" }));
-        ProfileBundleEntryDocument entry = Assert.Single(Document().Entries);
+        ProfileBundleEntryDocument entry = Document().Entries[0];
         ProfileBundleManifestNormalizationException kind = Assert.Throws<ProfileBundleManifestNormalizationException>(() =>
             ProfileBundleManifestNormalizer.Normalize(Document([entry with { Kind = "future" }])));
         ProfileBundleManifestNormalizationException prefix = Assert.Throws<ProfileBundleManifestNormalizationException>(() =>
@@ -107,6 +107,21 @@ public sealed class ProfileBundleManifestNormalizerTests
         Assert.Equal("entries[1].schemaId", exception.Path);
     }
 
+    /// <summary>Verifies every schema listed by the closed bundle is used by at least one content entry.</summary>
+    [Fact]
+    public void NormalizeRejectsOrphanedSchema()
+    {
+        ProfileBundleEntryDocument schema = Entry(
+            "schema",
+            "schema",
+            "schemas/composition-profile-v2.schema.json");
+
+        ProfileBundleManifestNormalizationException exception = Assert.Throws<ProfileBundleManifestNormalizationException>(() =>
+            ProfileBundleManifestNormalizer.Normalize(Document([schema])));
+
+        Assert.Equal("entries[0].schemaId", exception.Path);
+    }
+
     /// <summary>Verifies null and empty entry arrays fail before a manifest can be trusted.</summary>
     [Fact]
     public void NormalizeRejectsMissingAndEmptyEntries()
@@ -139,6 +154,7 @@ public sealed class ProfileBundleManifestNormalizerTests
         IReadOnlyList<ProfileBundleEntryDocument> values = entries ??
         [
             Entry("schema", "schema", "schemas/composition-profile-v2.schema.json"),
+            Entry("profile", "composition-profile", "profiles/profile.json"),
         ];
         return new ProfileBundleDocument(
             "1.0",

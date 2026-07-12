@@ -11,6 +11,11 @@
     <PackageReference Include="JsonSchema.Net" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource
+      Include="..\..\docs\contracts\profile-bundle-v1.schema.json"
+      LogicalName="NvtFwCombiner.Infrastructure.Bundles.Schemas.profile-bundle-v1.schema.json" />
+  </ItemGroup>
+  <ItemGroup>
     <InternalsVisibleTo Include="NvtFwCombiner.Infrastructure.Tests" />
   </ItemGroup>
 </Project>

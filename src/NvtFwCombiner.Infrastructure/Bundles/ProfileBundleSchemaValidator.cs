@@ -8,6 +8,21 @@ internal static class ProfileBundleSchemaValidator
 {
     private const string Draft202012SchemaId = "https://json-schema.org/draft/2020-12/schema";
 
+    internal static void ValidateManifest(
+        ProfileBundleFileSnapshot manifestSnapshot,
+        int maximumJsonDepth)
+    {
+        ArgumentNullException.ThrowIfNull(manifestSnapshot);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumJsonDepth);
+
+        using JsonDocument document = manifestSnapshot.ParseStrictJson(maximumJsonDepth);
+        ValidateInstance(
+            ProfileBundleManifestSchema.Schema,
+            document.RootElement,
+            manifestSnapshot.ManifestPath,
+            ProfileBundleManifestSchema.SchemaId);
+    }
+
     internal static void ValidateEntries(
         ProfileBundleEntrySnapshotCollection collection,
         int maximumJsonDepth)
@@ -20,7 +35,10 @@ internal static class ProfileBundleSchemaValidator
         {
             if (entry.Entry.Kind == ProfileBundleEntryKind.Schema)
             {
-                schemas.Add(entry.Entry.SchemaId, ParseSchema(entry, maximumJsonDepth));
+                using JsonDocument document = entry.FileSnapshot.ParseStrictJson(maximumJsonDepth);
+                schemas.Add(
+                    entry.Entry.SchemaId,
+                    ParseSchema(entry.Entry.Path, entry.Entry.SchemaId, document.RootElement));
             }
         }
 
@@ -39,13 +57,7 @@ internal static class ProfileBundleSchemaValidator
             }
 
             using JsonDocument document = entry.FileSnapshot.ParseStrictJson(maximumJsonDepth);
-            EvaluationResults result = schema.Evaluate(document.RootElement, EvaluationOptions);
-            if (!result.IsValid)
-            {
-                throw Error(
-                    entry.Entry.Path,
-                    $"Bundle entry does not satisfy schema '{entry.Entry.SchemaId}'.");
-            }
+            ValidateInstance(schema, document.RootElement, entry.Entry.Path, entry.Entry.SchemaId);
         }
     }
 
@@ -55,23 +67,21 @@ internal static class ProfileBundleSchemaValidator
         RequireFormatValidation = true,
     };
 
-    private static JsonSchema ParseSchema(ProfileBundleEntrySnapshot entry, int maximumJsonDepth)
+    internal static JsonSchema ParseSchema(string schemaPath, string schemaId, JsonElement root)
     {
-        using JsonDocument document = entry.FileSnapshot.ParseStrictJson(maximumJsonDepth);
-        JsonElement root = document.RootElement;
         if (root.ValueKind != JsonValueKind.Object)
         {
-            throw Error(entry.Entry.Path, "Bundle schema root must be an object.");
+            throw Error(schemaPath, "Bundle schema root must be an object.");
         }
 
-        ValidateRequiredRootString(root, "$schema", Draft202012SchemaId, entry.Entry.Path);
-        ValidateRequiredRootString(root, "$id", entry.Entry.SchemaId, entry.Entry.Path);
-        ValidateSchemaReferences(root, isRoot: true, entry.Entry.Path);
+        ValidateRequiredRootString(root, "$schema", Draft202012SchemaId, schemaPath);
+        ValidateRequiredRootString(root, "$id", schemaId, schemaPath);
+        ValidateSchemaReferences(root, isRoot: true, schemaPath);
 
         EvaluationResults metaValidation = MetaSchemas.Draft202012.Evaluate(root, EvaluationOptions);
         if (!metaValidation.IsValid)
         {
-            throw Error(entry.Entry.Path, "Bundle schema does not satisfy Draft 2020-12.");
+            throw Error(schemaPath, "Bundle schema does not satisfy Draft 2020-12.");
         }
 
         try
@@ -83,11 +93,24 @@ internal static class ProfileBundleSchemaValidator
         }
         catch (JsonSchemaException exception)
         {
-            throw Error(entry.Entry.Path, "Bundle schema could not be parsed.", exception);
+            throw Error(schemaPath, "Bundle schema could not be parsed.", exception);
         }
         catch (JsonException exception)
         {
-            throw Error(entry.Entry.Path, "Bundle schema could not be parsed.", exception);
+            throw Error(schemaPath, "Bundle schema could not be parsed.", exception);
+        }
+    }
+
+    private static void ValidateInstance(
+        JsonSchema schema,
+        JsonElement document,
+        string documentPath,
+        string schemaId)
+    {
+        EvaluationResults result = schema.Evaluate(document, EvaluationOptions);
+        if (!result.IsValid)
+        {
+            throw Error(documentPath, $"Bundle document does not satisfy schema '{schemaId}'.");
         }
     }
 
