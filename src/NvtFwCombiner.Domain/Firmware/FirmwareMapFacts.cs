@@ -132,6 +132,68 @@ public sealed class FirmwareFactApplicability
             HaveSamePredicates(MetadataPredicates, applicability.MetadataPredicates);
     }
 
+    /// <summary>
+    /// Evaluates this fact scope against one already-resolved map without using profile or execution policy.
+    /// </summary>
+    internal FirmwareApplicabilityResult Evaluate(
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap)
+    {
+        ArgumentNullException.ThrowIfNull(resolvedMap);
+        if (!ModeIds.Contains(resolvedMap.ModeId, StringComparer.Ordinal) ||
+            CapacityBytes != resolvedMap.CapacityBytes)
+        {
+            return FirmwareApplicabilityResult.NoMatch;
+        }
+
+        bool hasPendingRequirement = CommonFirmwareCategoryIds.Count != 0;
+
+        if (TopologyRequirement.Kind != TopologyRequirementKind.None)
+        {
+            if (resolvedMap.TopologySelection is null)
+            {
+                hasPendingRequirement = true;
+            }
+            else if (!TopologyRequirement.Matches(resolvedMap.TopologySelection))
+            {
+                return FirmwareApplicabilityResult.NoMatch;
+            }
+        }
+
+        var structuresById = resolvedMap.ResolvedMetadataStructures.ToDictionary(
+            static structure => structure.DecodedStructure.MetadataStructureId,
+            StringComparer.Ordinal);
+        foreach (FirmwareMetadataPredicate predicate in MetadataPredicates)
+        {
+            if (!structuresById.TryGetValue(
+                predicate.MetadataStructureId,
+                out FirmwareResolvedMetadataStructure? structure))
+            {
+                hasPendingRequirement = true;
+                continue;
+            }
+
+            var fields = structure.DecodedStructure.Facts.ToDictionary(
+                static fact => fact.FieldId,
+                static fact => fact.Value,
+                StringComparer.Ordinal);
+            FirmwarePredicateResult result = predicate.Evaluate(fields).Result;
+            if (result == FirmwarePredicateResult.Missing)
+            {
+                hasPendingRequirement = true;
+                continue;
+            }
+
+            if (result == FirmwarePredicateResult.NoMatch)
+            {
+                return FirmwareApplicabilityResult.NoMatch;
+            }
+        }
+
+        return hasPendingRequirement
+            ? FirmwareApplicabilityResult.Pending
+            : FirmwareApplicabilityResult.Match;
+    }
+
     /// <summary>Returns whether two fact applicability values have one exact physical binding shape.</summary>
     public bool HasSameShape(FirmwareFactApplicability other)
     {

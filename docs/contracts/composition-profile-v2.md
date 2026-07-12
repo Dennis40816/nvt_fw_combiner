@@ -10,6 +10,10 @@ A profile binds an exact firmware-family content hash and an explicit set of com
 The compiler accepts one already resolved map, proves it is in that set, and records the exact map
 and resolution fingerprint in `CompiledComposition`. The profile references canonical region and
 metadata ids; it does not redeclare physical ranges, locators, capacities, aliases, or capabilities.
+`requiredCapabilityIds` are requirements, not profile-owned evidence: each requires exactly one
+applicable `confirmed-present` capability binding for the resolved effective member and map.
+`confirmed-absent`, `unknown`, missing, ambiguous, or unavailable applicability evidence rejects
+admission. Capability evidence does not change map selection, profile promotion, or execution support.
 
 Metadata-value validation expected values use the exact typed field semantics from
 [ADR 0016](../adr/0016-typed-firmware-metadata-values.md). Profiles resolve the referenced family

@@ -98,6 +98,13 @@ evidence provenance but never participate in map eligibility or grant Build supp
 `(memberId, mapId, capabilityId)`, overlapping capability applicability is rejected even when state
 is equal.
 
+When a composition profile requires a technical capability, Profiles evaluates only bindings whose
+effective member and map equal the resolved selection. Exactly one applicable `confirmed-present`
+binding is required; direct-source identity, declaration order, `confirmed-absent`, `unknown`,
+missing evidence, ambiguity, or unavailable Common FW category selection all fail closed. The
+selected binding retains its effective/direct keys and complete alias provenance for later compiler
+fingerprinting; it still does not grant promotion or runtime execution authority.
+
 All aliases are closed, map-bound facts. Unknown maps, members, set/fact ids, wrong kinds,
 direct/alias conflicts, duplicate target providers, structural cycles, metadata dependency cycles,
 ambiguous metadata structure providers, unsatisfied predicates, unknown implication, or widened
