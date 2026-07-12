@@ -159,4 +159,23 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private static async Task<int> RunStandardMergeAsync", standardMerge, StringComparison.Ordinal);
         Assert.Contains("private static async Task WriteUsageAsync", usage, StringComparison.Ordinal);
     }
+
+    /// <summary>Verifies built-in Replace CLI selection policy comes only from the compiled artifact.</summary>
+    [Fact]
+    public void ReplaceCliConsumesCompiledIcNumberPolicy()
+    {
+        string handler = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.cs");
+        string icNumbers = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.IcNumbers.cs");
+        int compileIndex = handler.IndexOf("TryCompileProfile", StringComparison.Ordinal);
+        int selectionIndex = handler.IndexOf("TryCreateIcNumberSelection", StringComparison.Ordinal);
+        int compiledArgumentIndex = handler.IndexOf("compiledComposition,", selectionIndex, StringComparison.Ordinal);
+
+        Assert.True(compileIndex >= 0, "Replace CLI must compile the selected profile.");
+        Assert.True(selectionIndex > compileIndex, "Replace CLI must create IC-number selection after compilation.");
+        Assert.True(compiledArgumentIndex > selectionIndex, "Replace CLI must pass the compiled artifact to selection.");
+        Assert.Contains("CompiledComposition composition", icNumbers, StringComparison.Ordinal);
+        Assert.Contains("composition.IcNumberPolicy", icNumbers, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileDefinition", icNumbers, StringComparison.Ordinal);
+        Assert.DoesNotContain("IcNumberInputMode", icNumbers, StringComparison.Ordinal);
+    }
 }

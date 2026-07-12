@@ -116,7 +116,7 @@ internal static partial class ReplaceCliCommandHandler
             return UsageError;
         }
 
-        if (!TryCreateIcNumberSelection(selectedProfile, options, error, out IcNumberSelection? icNumberSelection))
+        if (!RequireOption(options, "--ic-num", error, out string? icNumber))
         {
             return UsageError;
         }
@@ -133,6 +133,16 @@ internal static partial class ReplaceCliCommandHandler
         }
 
         CompiledComposition compiledComposition = compile.CompiledComposition!;
+        if (!TryCreateIcNumberSelection(
+                compiledComposition,
+                options,
+                icNumber,
+                error,
+                out IcNumberSelection? icNumberSelection))
+        {
+            return UsageError;
+        }
+
         CompositionPlan plan = compiledComposition.Plan;
         if (!TryCreateBindings(plan, options, error, out IReadOnlyList<InputArtifactBinding> bindings))
         {
