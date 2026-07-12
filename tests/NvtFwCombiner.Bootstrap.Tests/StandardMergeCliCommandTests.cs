@@ -193,6 +193,43 @@ public sealed class StandardMergeCliCommandTests
         Assert.Equal(0x22, output[0x7000]);
     }
 
+    /// <summary>Verifies the NT51931 V2 route accepts its approved outer DP container without an extraction warning.</summary>
+    [Fact]
+    public async Task StandardMergeBuildWritesCallerOutputThroughNt51931V2Profile()
+    {
+        using var workspace = TempWorkspace.Create();
+        byte[] dp = new byte[0x80000];
+        byte[] tp = new byte[0x3C000];
+        dp[0x3E000] = 0x11;
+        tp[0] = 0x22;
+        string dpPath = workspace.Write("dp.bin", dp);
+        string tpPath = workspace.Write("tp.bin", tp);
+        string outputPath = workspace.PathFor("caller-output.bin");
+
+        CliRunResult result = await RunCliAsync(
+        [
+            "standard-merge",
+            "build",
+            "--profile",
+            "NT51931",
+            "--dp",
+            dpPath,
+            "--tp",
+            tpPath,
+            "--output",
+            outputPath,
+            "--overwrite",
+        ]);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.DoesNotContain("Issues:", result.Output, StringComparison.Ordinal);
+        Assert.True(File.Exists(outputPath));
+        byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
+        Assert.Equal(0x40000, output.Length);
+        Assert.Equal(0x22, output[0]);
+        Assert.Equal(0x11, output[0x3E000]);
+    }
+
     /// <summary>Verifies the NT51928 V2 profile binds the required LDC BIN through the generic Standard Merge CLI.</summary>
     [Fact]
     public async Task StandardMergeBuildWritesCallerOutputThroughNt51928V2ProfileWithLdc()

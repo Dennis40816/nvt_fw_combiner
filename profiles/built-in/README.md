@@ -35,7 +35,9 @@ Merge bundle and still requires its independent firmware-owner evidence.
 Standard Merge profile. Its physical map preserves TP `[0x00000, 0x3C000)`, the explicit forbidden
 gap, and DP `[0x3E000, 0x40000)`. The V2 profile accepts the owner-approved `0x80000` DP container
 while copying only the `0x40000` declared source span. It has direct legacy-plan and golden-byte
-parity, but Bootstrap routing remains a separate firmware-owner-reviewed phase.
+parity. Bootstrap packages the bundle through its content-hash anchor and selects its V2 artifact
+without a legacy compile fallback; firmware-owner migration review remains required before release
+support.
 
 `nt51928-standard-merge` is the hash-anchored V2 Standard Merge route for standalone non-NB
 NT51928. Its `0x80000` physical map models TP `[0x00000, 0x35000)`, DP

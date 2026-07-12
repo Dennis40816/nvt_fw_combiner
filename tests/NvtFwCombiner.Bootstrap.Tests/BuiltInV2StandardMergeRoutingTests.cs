@@ -16,6 +16,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
     [InlineData("NT51928", "nt51928-standard-merge-gen-flash", "nt51928-standard-merge", "4c0574d52d78bcdca8461fb0660d58f781221a27bfa93e541edf076a5432574d", "dp-input,ld-input,tp-input", "DpFirmware,Auxiliary,TpFirmware")]
     [InlineData("NT51929", "nt51929-standard-merge-gen-flash", "nt51929-standard-merge", "456697118dbf707a060228a5f124341c9c9f32957153ff7dfd1a5f752887236a", "dp-input,tp-input", "DpFirmware,TpFirmware")]
     [InlineData("NT51930", "nt51930-standard-merge-flashmap", "nt51930-standard-merge", "046409a16d3b7bdfd942407e8702f08ddb40f20fd94ff297e449f141d4b13cbb", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51931", "nt51931-standard-merge-gen-flash", "nt51931-standard-merge", "ff3ac6d142ffdbef52c9b088b692e25fe36b38f9cbcf2b43c06894b00ee97d4f", "dp-input,tp-input", "DpFirmware,TpFirmware")]
     [InlineData("NT51932", "nt51932-standard-merge-gen-flash", "nt51929-standard-merge", "456697118dbf707a060228a5f124341c9c9f32957153ff7dfd1a5f752887236a", "dp-input,tp-input", "DpFirmware,TpFirmware")]
     public void RegisteredStandardMergeUsesDeployedTrustedV2Artifact(
         string icId,
