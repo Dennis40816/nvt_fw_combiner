@@ -1,5 +1,4 @@
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -14,7 +13,7 @@ public static partial class WorkbenchCompositionService
     /// <summary>Gets readable memory-map rows for the selected Standard Merge profile and DP input length.</summary>
     public static IReadOnlyList<WorkbenchMemoryMapRow> GetStandardMergeMemoryMapRows(string icId, long? dpInputLength)
     {
-        if (!StandardMergeProfilesByIc.TryGetValue(icId, out CompositionProfileDefinition? profile))
+        if (FindStandardMergeProfileSummaryByIc(icId) is null)
         {
             return
             [
@@ -27,20 +26,12 @@ public static partial class WorkbenchCompositionService
             ];
         }
 
-        if (IsDpPerspectiveLengthPending(profile, dpInputLength))
-        {
-            return
-            [
-                new WorkbenchMemoryMapRow(
-                    FormatStandardMergeInitializationRangeLabel(profile, dpInputLength),
-                    "No output",
-                    "Initialize",
-                    $"Blank output 0x{profile.Initialization.FillByte:X2}",
-                    FormatStandardMergeInitializationDetail(profile, dpInputLength)),
-            ];
-        }
-
-        if (!TryResolveStandardMergeProfileForDisplay(profile, dpInputLength, out profile, out string profileIssue))
+        bool lengthPending = IsStandardMergeDpLengthPending(icId, dpInputLength);
+        if (!TryCompileStandardMerge(
+                icId,
+                lengthPending ? null : dpInputLength,
+                out CompiledComposition? composition,
+                out IReadOnlyList<CompositionIssue> issues))
         {
             return
             [
@@ -49,38 +40,27 @@ public static partial class WorkbenchCompositionService
                     "Profile",
                     "Blocked",
                     "No output",
-                    profileIssue),
+                    FormatIssues(issues)),
             ];
         }
 
-        ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
-        if (!compile.IsSuccess)
-        {
-            return
-            [
-                new WorkbenchMemoryMapRow(
-                    "Profile",
-                    "Profile",
-                    "Blocked",
-                    "No output",
-                    FormatIssues(compile.Issues)),
-            ];
-        }
-
-        string initializedState = profile.Initialization.Kind == ImageInitializationKind.Blank
-            ? $"Blank output 0x{profile.Initialization.FillByte:X2}"
-            : $"Reference {profile.Initialization.ReferenceSpaceId}";
+        ImageInitialization initialization = composition.Plan.OutputInitialization;
+        string initializedState = FormatStandardMergeInitializationState(initialization);
         List<WorkbenchMemoryMapRow> rows =
         [
             new(
-                FormatStandardMergeInitializationRangeLabel(profile, dpInputLength),
+                FormatStandardMergeInitializationRangeLabel(composition, lengthPending),
                 "No output",
                 "Initialize",
                 initializedState,
-                FormatStandardMergeInitializationDetail(profile, dpInputLength)),
+                FormatStandardMergeInitializationDetail(icId, lengthPending)),
         ];
+        if (lengthPending)
+        {
+            return rows;
+        }
 
-        foreach (CompositionOperation operation in compile.CompiledComposition!.Plan.OrderedOperations)
+        foreach (CompositionOperation operation in composition.Plan.OrderedOperations)
         {
             string afterSource = operation.SourceSpaceId is null
                 ? operation.Kind.ToString()
@@ -98,5 +78,4 @@ public static partial class WorkbenchCompositionService
 
         return rows;
     }
-
 }

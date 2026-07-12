@@ -27,6 +27,9 @@ public static class WorkbenchIssueCodes
     /// <summary>General Merge output capacity exceeds supported in-memory composition limits.</summary>
     public const string GeneralMergeCapacityUnsupported = "ui.general-merge.capacity-unsupported";
 
+    /// <summary>Standard Merge DP Perspective input length is not approved by the profile.</summary>
+    public const string StandardMergeDpLengthUnsupported = "standard-merge.dp-length-unsupported";
+
     /// <summary>General Replace mapping range text is invalid.</summary>
     public const string GeneralReplaceRangeInvalid = "ui.general-replace.range-invalid";
 

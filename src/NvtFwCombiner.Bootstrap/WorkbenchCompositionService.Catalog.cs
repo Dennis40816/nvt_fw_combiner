@@ -55,6 +55,13 @@ public static partial class WorkbenchCompositionService
         return ReplaceProfileSummaries;
     }
 
+    private static WorkbenchProfileSummary? FindStandardMergeProfileSummaryByIc(string icId)
+    {
+        ArgumentNullException.ThrowIfNull(icId);
+        return StandardMergeProfileSummaries.FirstOrDefault(profile =>
+            string.Equals(profile.IcId, icId, StringComparison.Ordinal));
+    }
+
     /// <summary>Returns true when the IC uses the DP Perspective family policy.</summary>
     public static bool IsDpPerspectiveIc(string icId)
     {

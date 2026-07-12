@@ -178,4 +178,38 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("CompositionProfileDefinition", icNumbers, StringComparison.Ordinal);
         Assert.DoesNotContain("IcNumberInputMode", icNumbers, StringComparison.Ordinal);
     }
+
+    /// <summary>Verifies Standard Merge CLI and Workbench Run share one compiled-resolution boundary.</summary>
+    [Fact]
+    public void StandardMergeRuntimeConsumesSharedCompiledResolver()
+    {
+        string cli = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.StandardMerge.cs");
+        string run = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Run.cs");
+        string displayProfile = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.DisplayProfile.cs");
+        string display = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Display.cs");
+        string coverage = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Coverage.cs");
+        string resolver = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Compilation.cs");
+
+        foreach (string runtimeSource in new[] { cli, run, displayProfile, display, coverage })
+        {
+            Assert.Contains("TryCompileStandardMerge", runtimeSource, StringComparison.Ordinal);
+            Assert.DoesNotContain("CompositionProfileDefinition", runtimeSource, StringComparison.Ordinal);
+            Assert.DoesNotContain("CompositionProfileCompiler", runtimeSource, StringComparison.Ordinal);
+            Assert.DoesNotContain("ProfileCompileResult", runtimeSource, StringComparison.Ordinal);
+            Assert.DoesNotContain("BuiltInStandardMergeProfiles", runtimeSource, StringComparison.Ordinal);
+            Assert.DoesNotContain("NvtFwCombiner.Profiles", runtimeSource, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("out CompiledComposition? composition", resolver, StringComparison.Ordinal);
+        Assert.Contains("SequenceEqual", cli, StringComparison.Ordinal);
+        Assert.Contains("CreateDpPerspectiveProfileForInputLength", resolver, StringComparison.Ordinal);
+        Assert.Contains("CompositionProfileCompiler.Compile", resolver, StringComparison.Ordinal);
+        Assert.DoesNotContain("new CompositionPlan", resolver, StringComparison.Ordinal);
+        Assert.DoesNotContain("new CompositionOperation", resolver, StringComparison.Ordinal);
+        Assert.DoesNotContain("RunCompiledCompositionAsync", resolver, StringComparison.Ordinal);
+    }
 }

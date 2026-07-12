@@ -1,6 +1,5 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -17,19 +16,17 @@ public static partial class WorkbenchCompositionService
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentNullException.ThrowIfNull(slotPaths);
 
-        if (!StandardMergeProfilesByIc.TryGetValue(icId, out CompositionProfileDefinition? profile))
+        if (FindStandardMergeProfileSummaryByIc(icId) is null)
         {
             throw new InvalidOperationException($"Standard Merge is not available for '{icId}'.");
         }
 
-        profile = ResolveStandardMergeProfileForInputs(profile, slotPaths);
-        ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
-        if (!compile.IsSuccess)
+        long? dpInputLength = GetExistingStandardMergeDpInputLength(slotPaths);
+        if (!TryCompileStandardMerge(icId, dpInputLength, out CompiledComposition? compiledComposition, out IReadOnlyList<CompositionIssue> issues))
         {
-            throw new InvalidOperationException(FormatIssues(compile.Issues));
+            throw new InvalidOperationException(FormatIssues(issues));
         }
 
-        CompiledComposition compiledComposition = compile.CompiledComposition!;
         CompositionPlan plan = compiledComposition.Plan;
         InputArtifactBinding[] bindings = [
             .. plan.RequiredInputAddressSpaceIds
@@ -50,17 +47,12 @@ public static partial class WorkbenchCompositionService
             cancellationToken).ConfigureAwait(false);
     }
 
-    private static CompositionProfileDefinition ResolveStandardMergeProfileForInputs(
-        CompositionProfileDefinition profile,
-        IReadOnlyDictionary<string, string> slotPaths)
+    private static long? GetExistingStandardMergeDpInputLength(IReadOnlyDictionary<string, string> slotPaths)
     {
-        return !BuiltInStandardMergeProfiles.IsDpPerspectiveStandardMergeProfile(profile) ||
-            !slotPaths.TryGetValue(CompositionAddressSpaceIds.DpInput, out string? dpPath) ||
+        return !slotPaths.TryGetValue(CompositionAddressSpaceIds.DpInput, out string? dpPath) ||
             string.IsNullOrWhiteSpace(dpPath) ||
             !File.Exists(dpPath)
-                ? profile
-                : BuiltInStandardMergeProfiles.CreateDpPerspectiveProfileForInputLength(
-                    profile.IcId,
-                    new FileInfo(dpPath).Length);
+                ? null
+                : new FileInfo(dpPath).Length;
     }
 }

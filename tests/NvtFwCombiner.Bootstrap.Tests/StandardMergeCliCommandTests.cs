@@ -7,8 +7,11 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class StandardMergeCliCommandTests
 {
     /// <summary>Verifies Standard Merge preview can export a structured JSON report.</summary>
-    [Fact]
-    public async Task StandardMergePreviewWritesReportJson()
+    [Theory]
+    [InlineData("51920")]
+    [InlineData("NT51920")]
+    [InlineData("nt51920-standard-merge-gen-flash")]
+    public async Task StandardMergePreviewWritesReportJson(string profileSelector)
     {
         using var workspace = TempWorkspace.Create();
         byte[] dp = new byte[0x40000];
@@ -23,7 +26,7 @@ public sealed class StandardMergeCliCommandTests
             "standard-merge",
             "preview",
             "--profile",
-            "51920",
+            profileSelector,
             "--dp",
             dpPath,
             "--tp",
@@ -44,6 +47,67 @@ public sealed class StandardMergeCliCommandTests
         Assert.Equal("standard-merge", root.GetProperty("ExperienceId").GetString());
         Assert.Equal(2, root.GetProperty("Operations").GetArrayLength());
         Assert.Equal("copy-tp", root.GetProperty("Operations")[0].GetProperty("OperationId").GetString());
+    }
+
+    /// <summary>Unknown Standard Merge selectors remain a usage error.</summary>
+    [Fact]
+    public async Task StandardMergePreviewRejectsUnknownProfile()
+    {
+        CliRunResult result = await RunCliAsync([
+            "standard-merge",
+            "preview",
+            "--profile",
+            "NT00000",
+        ]);
+
+        Assert.Equal(64, result.ExitCode);
+        Assert.Contains("unknown standard merge profile 'NT00000'", result.Error, StringComparison.Ordinal);
+    }
+
+    /// <summary>Required input validation still runs before DP-length specialization.</summary>
+    [Fact]
+    public async Task StandardMergePreviewRejectsMissingRequiredInput()
+    {
+        using var workspace = TempWorkspace.Create();
+        string dpPath = workspace.Write("dp.bin", new byte[0x40000]);
+
+        CliRunResult result = await RunCliAsync([
+            "standard-merge",
+            "preview",
+            "--profile",
+            "51950",
+            "--dp",
+            dpPath,
+        ]);
+
+        Assert.Equal(64, result.ExitCode);
+        Assert.Contains("--tp is required for address space 'tp-input'", result.Error, StringComparison.Ordinal);
+    }
+
+    /// <summary>Inputs outside the compiled profile summary remain rejected.</summary>
+    [Fact]
+    public async Task StandardMergePreviewRejectsUnusedInput()
+    {
+        using var workspace = TempWorkspace.Create();
+        string dpPath = workspace.Write("dp.bin", new byte[0x40000]);
+        string tpPath = workspace.Write("tp.bin", new byte[0x30000]);
+        string ldPath = workspace.Write("ld.bin", [0x11]);
+
+        CliRunResult result = await RunCliAsync([
+            "standard-merge",
+            "preview",
+            "--profile",
+            "51920",
+            "--dp",
+            dpPath,
+            "--tp",
+            tpPath,
+            "--ld",
+            ldPath,
+        ]);
+
+        Assert.Equal(64, result.ExitCode);
+        Assert.Contains("--ld is not used by this profile", result.Error, StringComparison.Ordinal);
     }
 
     /// <summary>Rejects report paths that would overwrite an input BIN.</summary>
@@ -193,6 +257,29 @@ public sealed class StandardMergeCliCommandTests
         byte[] expected = await File.ReadAllBytesAsync(golden.ExpectedPath, TestContext.Current.CancellationToken);
         Assert.Equal(0x40000, actual.Length);
         Assert.Equal(expected, actual);
+    }
+
+    /// <summary>Unsupported DP Perspective lengths fail closed before composition starts.</summary>
+    [Fact]
+    public async Task StandardMergePreviewRejectsUnsupportedDpPerspectiveLength()
+    {
+        using var workspace = TempWorkspace.Create();
+        string dpPath = workspace.Write("dp.bin", new byte[0x40001]);
+        string tpPath = workspace.Write("tp.bin", new byte[0x30000]);
+
+        CliRunResult result = await RunCliAsync([
+            "standard-merge",
+            "preview",
+            "--profile",
+            "51950",
+            "--dp",
+            dpPath,
+            "--tp",
+            tpPath,
+        ]);
+
+        Assert.Equal(70, result.ExitCode);
+        Assert.Contains("accepts DP input lengths", result.Error, StringComparison.Ordinal);
     }
 
     private static GoldenCasePaths LoadGoldenCase(string caseId)
