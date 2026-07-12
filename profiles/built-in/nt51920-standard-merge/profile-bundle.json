@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "1.0",
+  "bundleId": "nt51920-standard-merge-pilot",
+  "bundleVersion": "0.9.1-v2-pilot.1",
+  "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
+  "contentHash": "d75ee5b099d2a3d8515d4c13a1f70b50c3f0cbff98f0578910f7929abbe03260",
+  "trustAnchorBindingId": "built-in-profile-bundle-v2",
+  "entries": [
+    {
+      "entryId": "composition-profile-v2-schema",
+      "kind": "schema",
+      "path": "schemas/composition-profile-v2.schema.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "8562d76f9572c846bf5c0c4876893109490257afc59e4a2cb8a6b9133ed381f6"
+    },
+    {
+      "entryId": "firmware-family-v1-schema",
+      "kind": "schema",
+      "path": "schemas/firmware-family-v1.schema.json",
+      "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
+      "contentHash": "0dd353296e02e448dcc653028fd3b3ce6ad7fdd8e11a1ce11a465b46f0b471d7"
+    },
+    {
+      "entryId": "nt51920-family",
+      "kind": "firmware-family",
+      "path": "families/nt51920.json",
+      "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
+      "contentHash": "6080fd9325218874a41df3903906a89ba50eb3b446544f1b8ac6bfe673a6f6e4"
+    },
+    {
+      "entryId": "nt51920-standard-merge-profile",
+      "kind": "composition-profile",
+      "path": "profiles/nt51920-standard-merge.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "350ffda1be2fe9e0af1949c0971feff8a9e37fd438472ab495b372639ef77658"
+    }
+  ]
+}
