@@ -1,0 +1,184 @@
+{
+  "schemaVersion": "1.1",
+  "familyId": "nt51929-nt51932",
+  "familyVersion": "1.0.0",
+  "members": [
+    {
+      "memberId": "NT51919",
+      "displayName": "NT51919"
+    },
+    {
+      "memberId": "NT51929",
+      "displayName": "NT51929"
+    },
+    {
+      "memberId": "NT51932",
+      "displayName": "NT51932"
+    }
+  ],
+  "capabilities": [],
+  "regionSets": [
+    {
+      "regionSetId": "nt51929-nt51932-standard-merge-flash",
+      "addressSpaceId": "flash",
+      "regions": [
+        {
+          "regionId": "flash-image",
+          "owner": "system",
+          "kind": "image",
+          "range": {
+            "start": 0,
+            "length": 262144
+          },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "dp-code",
+          "parentRegionId": "flash-image",
+          "owner": "dp",
+          "kind": "code",
+          "range": {
+            "start": 0,
+            "length": 24576
+          },
+          "writeConstraint": "whole-region",
+          "alignment": 1
+        },
+        {
+          "regionId": "unmapped-gap",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": {
+            "start": 24576,
+            "length": 4096
+          },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "tp-code",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "code",
+          "range": {
+            "start": 28672,
+            "length": 233472
+          },
+          "writeConstraint": "whole-region",
+          "alignment": 1
+        }
+      ],
+      "evidenceRefs": [
+        "gen-flash-bin-v2-51929-golden",
+        "gen-flash-bin-v2-51932-golden"
+      ]
+    }
+  ],
+  "metadataSets": [],
+  "imageMaps": [
+    {
+      "mapId": "nt51919-standard-merge-256k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [
+          "NT51919"
+        ],
+        "modeIds": [
+          "standard-merge"
+        ],
+        "topologyRequirement": {
+          "kind": "none"
+        },
+        "capacityBytes": 262144
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51919-standard-merge-flash"
+      ],
+      "metadataSetIds": [],
+      "evidenceRefs": [
+        "standard-merge-alias-51919-to-51929"
+      ]
+    },
+    {
+      "mapId": "nt51929-standard-merge-256k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [
+          "NT51929"
+        ],
+        "modeIds": [
+          "standard-merge"
+        ],
+        "topologyRequirement": {
+          "kind": "none"
+        },
+        "capacityBytes": 262144
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51929-nt51932-standard-merge-flash"
+      ],
+      "metadataSetIds": [],
+      "evidenceRefs": [
+        "gen-flash-bin-v2-51929-golden"
+      ]
+    },
+    {
+      "mapId": "nt51932-standard-merge-256k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [
+          "NT51932"
+        ],
+        "modeIds": [
+          "standard-merge"
+        ],
+        "topologyRequirement": {
+          "kind": "none"
+        },
+        "capacityBytes": 262144
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51929-nt51932-standard-merge-flash"
+      ],
+      "metadataSetIds": [],
+      "evidenceRefs": [
+        "gen-flash-bin-v2-51932-golden"
+      ]
+    }
+  ],
+  "factAliases": [
+    {
+      "aliasId": "nt51919-standard-merge-region-set-alias",
+      "factKind": "region-set",
+      "targetMemberId": "NT51919",
+      "targetMapId": "nt51919-standard-merge-256k",
+      "targetRegionSetId": "nt51919-standard-merge-flash",
+      "sourceMemberId": "NT51929",
+      "sourceMapId": "nt51929-standard-merge-256k",
+      "sourceRegionSetId": "nt51929-nt51932-standard-merge-flash",
+      "applicability": {
+        "modeIds": [
+          "standard-merge"
+        ],
+        "topologyRequirement": {
+          "kind": "none"
+        },
+        "capacityBytes": 262144
+      },
+      "reason": "Owner-confirmed NT51919 Standard Merge alias of NT51929 retains target map identity and source physical-region evidence.",
+      "evidenceRefs": [
+        "standard-merge-alias-51919-to-51929"
+      ]
+    }
+  ],
+  "evidenceRefs": [
+    "gen-flash-bin-v2-51929-golden",
+    "gen-flash-bin-v2-51932-golden",
+    "standard-merge-alias-51919-to-51929"
+  ]
+}
