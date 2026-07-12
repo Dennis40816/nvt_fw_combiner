@@ -6,7 +6,7 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Golden migration evidence for canonical V2 Standard Merge families.</summary>
-public sealed class Nt51929FamilyV2StandardMergeGoldenTests
+public sealed class CanonicalV2StandardMergeGoldenTests
 {
     /// <summary>Verifies every family member retains legacy plan geometry and the owner-approved reference bytes.</summary>
     [Theory]
@@ -15,6 +15,7 @@ public sealed class Nt51929FamilyV2StandardMergeGoldenTests
     [InlineData("nt51929-standard-merge", "01b84018c975ee4c7c52b36d594e2919a346294b713e060c496e597237ae3de3", "NT51932", "nt51932-standard-merge-gen-flash", "51932", "nt51932-standard-merge-gen-flash.bin", 0x6000, false)]
     [InlineData("nt51923-standard-merge", "6c1d0336b4c2e4df61a47258937b75c598e06daa189f50d1b5457381434df7ec", "NT51923", "nt51923-standard-merge-gen-flash", "51923", "nt51923-standard-merge-gen-flash.bin", 0x40000, false)]
     [InlineData("nt51923-standard-merge", "6c1d0336b4c2e4df61a47258937b75c598e06daa189f50d1b5457381434df7ec", "NT51926", "nt51926-standard-merge-gen-flash", "51926", "nt51926-standard-merge-gen-flash.bin", 0x40000, false)]
+    [InlineData("nt51930-standard-merge", "f1c9d60f024ad4aae17c5e16f285d88acbd38977f048daf264184c2f6d75855b", "NT51930", "nt51930-standard-merge-flashmap", "51930", "nt51930-standard-merge-flashmap.bin", 0x6000, false)]
     public async Task TrustedV2BundleMatchesLegacyPlanAndOwnerApprovedGoldenBytes(
         string bundleDirectory,
         string bundleContentHash,

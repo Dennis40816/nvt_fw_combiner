@@ -1,0 +1,175 @@
+{
+  "schemaVersion": "2.0",
+  "profileId": "nt51930-standard-merge-flashmap",
+  "profileVersion": "0.5.0",
+  "promotion": {
+    "stage": "supported",
+    "blockers": []
+  },
+  "compositionKind": "merge",
+  "experience": {
+    "experienceId": "standard-merge",
+    "audience": "system",
+    "layoutPolicy": "fixed",
+    "inputPolicy": "fixed",
+    "topologyAuthoring": "hidden",
+    "displayNameKey": "profile.nt51930.standard-merge"
+  },
+  "mapBinding": {
+    "familyId": "nt51930",
+    "familyVersion": "1.0.0",
+    "familyContentHash": "c67d954bfef9cd946b4fe8c4550e222fcbe8c0c4f6e92c0dfef652cc36e8c0a2",
+    "mapIds": [
+      "nt51930-standard-merge-256k"
+    ],
+    "requiredRegionIds": [
+      "tp-code",
+      "dp-code"
+    ],
+    "requiredMetadataStructureIds": [],
+    "requiredCapabilityIds": []
+  },
+  "inputSlots": [
+    {
+      "slotId": "tp-input",
+      "role": "tp",
+      "artifactClass": "tp-firmware",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [
+        ".bin"
+      ],
+      "acceptance": {
+        "lengthRule": {
+          "kind": "tp-maximum-256k",
+          "maximumBytes": 262144
+        },
+        "normalization": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "slotId": "dp-input",
+      "role": "dp",
+      "artifactClass": "dp-firmware",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [
+        ".bin"
+      ],
+      "acceptance": {
+        "lengthRule": {
+          "kind": "normal-dp-extract-with-warning",
+          "issueCode": "DP_SIZE_WARNING"
+        },
+        "normalization": {
+          "kind": "none"
+        }
+      }
+    }
+  ],
+  "spaces": [
+    {
+      "spaceId": "tp-input",
+      "kind": "input-artifact",
+      "slotId": "tp-input",
+      "instancePolicy": "singleton"
+    },
+    {
+      "spaceId": "dp-input",
+      "kind": "input-artifact",
+      "slotId": "dp-input",
+      "instancePolicy": "singleton"
+    },
+    {
+      "spaceId": "output-image",
+      "kind": "output-image",
+      "capacity": {
+        "kind": "resolved-map"
+      },
+      "initializer": {
+        "kind": "blank",
+        "fillByte": 0
+      }
+    }
+  ],
+  "views": [
+    {
+      "viewId": "tp-source",
+      "spaceId": "tp-input",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "tp-code"
+      }
+    },
+    {
+      "viewId": "dp-source",
+      "spaceId": "dp-input",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "dp-code"
+      }
+    },
+    {
+      "viewId": "tp-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "tp-code"
+      }
+    },
+    {
+      "viewId": "dp-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "dp-code"
+      }
+    }
+  ],
+  "metadataBindings": [],
+  "regionAccessRules": [
+    {
+      "regionId": "tp-code",
+      "access": "whole",
+      "reason": "Owner-approved NT51930 FlashMap Standard Merge TP range."
+    },
+    {
+      "regionId": "dp-code",
+      "access": "whole",
+      "reason": "Owner-approved NT51930 FlashMap Standard Merge DP range."
+    }
+  ],
+  "operations": [
+    {
+      "operationId": "copy-tp",
+      "sequence": 100,
+      "overlapPolicy": "reject",
+      "reason": "Copy the reviewed NT51930 TP range.",
+      "kind": "copy-range",
+      "sourceViewId": "tp-source",
+      "targetViewId": "tp-output"
+    },
+    {
+      "operationId": "copy-dp",
+      "sequence": 200,
+      "overlapPolicy": "reject",
+      "reason": "Copy the reviewed NT51930 DP range.",
+      "kind": "copy-range",
+      "sourceViewId": "dp-source",
+      "targetViewId": "dp-output"
+    }
+  ],
+  "validations": [],
+  "processorStages": [],
+  "output": {
+    "fileNameTemplate": "nt51930-standard-merge-flashmap.bin",
+    "allowOverride": true,
+    "invalidCharacterPolicy": "reject",
+    "requiredTokenIds": []
+  },
+  "evidenceRefs": [
+    "merge-bin-51930-flashmap-golden"
+  ]
+}

@@ -24,3 +24,9 @@ physical map preserves TP `[0x00000, 0x3C000)`, the explicit forbidden gap, and 
 owner-approved golden-byte parity. Bootstrap packages the bundle through its content-hash anchor
 and selects its V2 artifacts for both ICs without a legacy compile fallback. Release support still
 requires firmware-owner migration review.
+
+`nt51930-standard-merge` is a canonical V2 candidate family for the standalone NT51930 FlashMap
+Standard Merge profile. Its physical map preserves DP `[0x00000, 0x06000)`, the explicit forbidden
+gap, and TP `[0x07000, 0x40000)`. Its direct owner golden, legacy-plan parity, and Normal DP
+extraction contract are locked before a separate Bootstrap routing phase. CtrlRAM postbuild remains
+outside this Standard Merge bundle and still requires its independent firmware-owner evidence.
