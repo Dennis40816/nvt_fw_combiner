@@ -38,8 +38,8 @@ public sealed class WorkbenchCatalogProjectionTests
         string originalIcId = supportedIcIds[0];
         string originalNumberChoice = numberChoices[0];
 
-        IList<string> mutableIcIds = (IList<string>)supportedIcIds;
-        IList<string> mutableNumberChoices = (IList<string>)numberChoices;
+        var mutableIcIds = (IList<string>)supportedIcIds;
+        var mutableNumberChoices = (IList<string>)numberChoices;
         Assert.True(mutableIcIds.IsReadOnly);
         Assert.True(mutableNumberChoices.IsReadOnly);
         _ = Assert.Throws<NotSupportedException>(() => mutableIcIds[0] = "NT00000");
