@@ -7,8 +7,19 @@ namespace NvtFwCombiner.Domain.Composition;
 public sealed partial class CompiledComposition
 {
     private const string LegacyFingerprintFormat = "nfc.compiled-composition.legacy.v1";
+    private const string V2FingerprintFormat = "nfc.compiled-composition.profile-v2.v1";
 
     private static string CalculateCompilationFingerprint(CompiledComposition composition)
+    {
+        return composition.Authority switch
+        {
+            LegacyProfileCompilationAuthority => CalculateLegacyCompilationFingerprint(composition),
+            ProfileBundleV2CompilationAuthority => CalculateV2CompilationFingerprint(composition),
+            _ => throw new InvalidOperationException("Unknown compiled composition authority."),
+        };
+    }
+
+    private static string CalculateLegacyCompilationFingerprint(CompiledComposition composition)
     {
         var builder = new StringBuilder();
         AppendField(builder, "format", LegacyFingerprintFormat);
@@ -26,6 +37,58 @@ public sealed partial class CompiledComposition
         AppendField(builder, "output.default-file-name", composition.DefaultOutputFileName);
         AppendEnum(builder, "run-policy.ic-number", composition.IcNumberPolicy);
         AppendEnum(builder, "eligibility", composition.Eligibility);
+        AppendPlan(builder, composition.Plan);
+
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())))
+            .ToLowerInvariant();
+    }
+
+    private static string CalculateV2CompilationFingerprint(CompiledComposition composition)
+    {
+        V2CompiledCompositionDetails details = composition.V2Details ?? throw new InvalidOperationException(
+            "Profile-bundle-v2 artifacts require paired v2 details.");
+        V2CompilationProvenance provenance = details.Provenance;
+        CompiledOutputNamingRequirement output = details.OutputNamingRequirement;
+        var builder = new StringBuilder();
+        AppendField(builder, "format", V2FingerprintFormat);
+        AppendField(builder, "authority.kind", "profile-bundle-v2");
+        AppendField(
+            builder,
+            "authority.model-version",
+            ((ProfileBundleV2CompilationAuthority)composition.Authority).ModelVersion);
+        AppendField(builder, "profile.id", composition.ProfileId);
+        AppendField(builder, "profile.version", composition.ProfileVersion);
+        AppendField(builder, "profile.ic", composition.IcId);
+        AppendField(builder, "profile.mode", composition.ModeId);
+        AppendField(builder, "profile.experience", composition.ExperienceId);
+        AppendEnum(builder, "profile.composition-kind", composition.CompositionKind);
+        AppendEnum(builder, "run-policy.ic-number", composition.IcNumberPolicy);
+        AppendEnum(builder, "eligibility", composition.Eligibility);
+        AppendField(builder, "bundle.id", provenance.Bundle.BundleId);
+        AppendField(builder, "bundle.version", provenance.Bundle.BundleVersion);
+        AppendField(builder, "bundle.content-hash", provenance.Bundle.ContentHash);
+        AppendField(builder, "bundle.trust-anchor-binding-id", provenance.Bundle.TrustAnchorBindingId);
+        AppendField(builder, "profile-entry.id", provenance.ProfileEntry.EntryId);
+        AppendField(builder, "profile-entry.content-hash", provenance.ProfileEntry.ContentHash);
+        AppendField(builder, "resolved-map.fingerprint", provenance.ResolvedMap.ResolutionFingerprint);
+        AppendEnum(builder, "promotion.stage", provenance.Promotion.Stage);
+        AppendInteger(builder, "promotion.blocker.count", provenance.Promotion.Blockers.Count);
+        for (int index = 0; index < provenance.Promotion.Blockers.Count; index++)
+        {
+            CompiledProfilePromotionBlocker blocker = provenance.Promotion.Blockers[index];
+            string prefix = FormattableString.Invariant($"promotion.blocker.{index}");
+            AppendField(builder, $"{prefix}.id", blocker.BlockerId);
+            AppendEnum(builder, $"{prefix}.kind", blocker.Kind);
+            AppendField(builder, $"{prefix}.reason", blocker.Reason);
+            AppendStringList(builder, $"{prefix}.evidence", blocker.EvidenceRefs);
+        }
+
+        AppendStringList(builder, "profile.evidence", provenance.ProfileEvidenceRefs);
+        AppendValidationRequirements(builder, provenance.ValidationRequirements);
+        AppendField(builder, "output.template", output.FileNameTemplate);
+        AppendInteger(builder, "output.allow-override", output.AllowOverride ? 1 : 0);
+        AppendEnum(builder, "output.invalid-character-policy", output.InvalidCharacterPolicy);
+        AppendStringList(builder, "output.required-token", output.RequiredTokenIds);
         AppendPlan(builder, composition.Plan);
 
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())))
@@ -159,6 +222,100 @@ public sealed partial class CompiledComposition
         for (int index = 0; index < values.Count; index++)
         {
             AppendInteger(builder, FormattableString.Invariant($"{fieldPrefix}.{index}"), values[index]);
+        }
+    }
+
+    private static void AppendStringList(StringBuilder builder, string fieldPrefix, IReadOnlyList<string> values)
+    {
+        AppendInteger(builder, $"{fieldPrefix}.count", values.Count);
+        for (int index = 0; index < values.Count; index++)
+        {
+            AppendField(builder, FormattableString.Invariant($"{fieldPrefix}.{index}"), values[index]);
+        }
+    }
+
+    private static void AppendValidationRequirements(
+        StringBuilder builder,
+        IReadOnlyList<CompiledValidationRequirement> requirements)
+    {
+        AppendInteger(builder, "validation.count", requirements.Count);
+        for (int index = 0; index < requirements.Count; index++)
+        {
+            CompiledValidationRequirement requirement = requirements[index];
+            string prefix = FormattableString.Invariant($"validation.{index}");
+            AppendField(builder, $"{prefix}.rule-id", requirement.RuleId);
+            AppendEnum(builder, $"{prefix}.stage", requirement.Stage);
+            AppendEnum(builder, $"{prefix}.severity", requirement.Severity);
+            AppendField(builder, $"{prefix}.issue-code", requirement.IssueCode);
+            AppendEnum(builder, $"{prefix}.kind", requirement.Kind);
+            switch (requirement)
+            {
+                case CompiledMetadataValueValidation metadata:
+                    AppendFieldReference(builder, $"{prefix}.field", metadata.Field);
+                    AppendEnum(builder, $"{prefix}.comparison", metadata.Comparison);
+                    AppendValidationLiterals(builder, $"{prefix}.expected", metadata.ExpectedValues);
+                    break;
+                case CompiledPidSanityValidation pid:
+                    AppendFieldReference(builder, $"{prefix}.field", pid.Field);
+                    break;
+                case CompiledMetadataEqualityValidation equality:
+                    AppendFieldReference(builder, $"{prefix}.left", equality.Left);
+                    AppendFieldReference(builder, $"{prefix}.right", equality.Right);
+                    break;
+                case CompiledRejectMetadataBytePatternValidation rejected:
+                    AppendFieldReference(builder, $"{prefix}.field", rejected.Field);
+                    AppendInteger(builder, $"{prefix}.rejected-pattern.count", rejected.RejectedPatterns.Count);
+                    for (int patternIndex = 0; patternIndex < rejected.RejectedPatterns.Count; patternIndex++)
+                    {
+                        AppendEnum(
+                            builder,
+                            FormattableString.Invariant($"{prefix}.rejected-pattern.{patternIndex}"),
+                            rejected.RejectedPatterns[patternIndex]);
+                    }
+
+                    break;
+                case CompiledViewByteAssertionValidation assertion:
+                    AppendField(builder, $"{prefix}.view-id", assertion.ViewId);
+                    AppendField(builder, $"{prefix}.expected", assertion.Expected.Hex);
+                    AppendField(builder, $"{prefix}.mask", assertion.Mask?.Hex ?? string.Empty);
+                    break;
+                default:
+                    throw new InvalidOperationException("Unknown compiled validation requirement kind.");
+            }
+        }
+    }
+
+    private static void AppendFieldReference(
+        StringBuilder builder,
+        string prefix,
+        CompiledValidationFieldReference field)
+    {
+        AppendField(builder, $"{prefix}.binding-id", field.BindingId);
+        AppendField(builder, $"{prefix}.field-id", field.FieldId);
+    }
+
+    private static void AppendValidationLiterals(
+        StringBuilder builder,
+        string prefix,
+        IReadOnlyList<CompiledValidationScalarLiteral> values)
+    {
+        AppendInteger(builder, $"{prefix}.count", values.Count);
+        for (int index = 0; index < values.Count; index++)
+        {
+            CompiledValidationScalarLiteral value = values[index];
+            string valuePrefix = FormattableString.Invariant($"{prefix}.{index}");
+            AppendEnum(builder, $"{valuePrefix}.kind", value.Kind);
+            switch (value)
+            {
+                case CompiledValidationIntegerLiteral integer:
+                    AppendField(builder, $"{valuePrefix}.integer", integer.Value.ToString(CultureInfo.InvariantCulture));
+                    break;
+                case CompiledValidationTextLiteral text:
+                    AppendField(builder, $"{valuePrefix}.text", text.Value);
+                    break;
+                default:
+                    throw new InvalidOperationException("Unknown compiled validation literal kind.");
+            }
         }
     }
 

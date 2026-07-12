@@ -25,6 +25,39 @@ public sealed partial class CompiledComposition
         IcNumberPolicy = icNumberPolicy;
         Eligibility = CompiledCompositionEligibility.LegacyRuntimeExecutable;
         Authority = new LegacyProfileCompilationAuthority();
+        V2Details = null;
+        CompilationFingerprint = CalculateCompilationFingerprint(this);
+    }
+
+    private CompiledComposition(
+        CompositionPlan plan,
+        V2CompiledCompositionIdentity identity,
+        CompiledIcNumberPolicy icNumberPolicy)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(identity);
+        if (identity.Details.Provenance.Promotion.Stage < CompiledProfilePromotionStage.Compilable)
+        {
+            throw new ArgumentException(
+                "Only compilable v2 profiles may produce a complete composition plan.",
+                nameof(identity));
+        }
+
+        ValidateIcNumberPolicy(identity.CompositionKind, icNumberPolicy);
+        ValidateDefaultOutputFileName(identity.Details.OutputNamingRequirement.FileNameTemplate);
+
+        Plan = plan;
+        ProfileId = identity.ProfileId;
+        ProfileVersion = identity.ProfileVersion;
+        IcId = identity.Details.Provenance.ResolvedMap.MemberId;
+        ModeId = identity.Details.Provenance.ResolvedMap.ModeId;
+        ExperienceId = identity.ExperienceId;
+        CompositionKind = identity.CompositionKind;
+        DefaultOutputFileName = identity.Details.OutputNamingRequirement.FileNameTemplate;
+        IcNumberPolicy = icNumberPolicy;
+        Eligibility = CompiledCompositionEligibility.V2PlanCompiled;
+        Authority = new ProfileBundleV2CompilationAuthority();
+        V2Details = identity.Details;
         CompilationFingerprint = CalculateCompilationFingerprint(this);
     }
 
@@ -61,6 +94,9 @@ public sealed partial class CompiledComposition
     /// <summary>Authority that established this artifact.</summary>
     public CompositionCompilationAuthority Authority { get; }
 
+    /// <summary>Paired profile-bundle-v2 provenance and output requirements; null only for legacy artifacts.</summary>
+    public V2CompiledCompositionDetails? V2Details { get; }
+
     /// <summary>Canonical lowercase SHA-256 over the complete compiled policy and plan.</summary>
     public string CompilationFingerprint { get; }
 
@@ -72,6 +108,15 @@ public sealed partial class CompiledComposition
         CompiledIcNumberPolicy icNumberPolicy)
     {
         return new CompiledComposition(plan, identity, defaultOutputFileName, icNumberPolicy);
+    }
+
+    /// <summary>Creates a complete but non-executable profile-bundle-v2 plan artifact.</summary>
+    internal static CompiledComposition CreateV2(
+        CompositionPlan plan,
+        V2CompiledCompositionIdentity identity,
+        CompiledIcNumberPolicy icNumberPolicy)
+    {
+        return new CompiledComposition(plan, identity, icNumberPolicy);
     }
 
     private static void ValidateIcNumberPolicy(

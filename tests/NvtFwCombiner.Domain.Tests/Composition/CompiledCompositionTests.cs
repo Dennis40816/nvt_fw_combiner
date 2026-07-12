@@ -4,7 +4,7 @@ using NvtFwCombiner.Domain.Composition;
 namespace NvtFwCombiner.Domain.Tests.Composition;
 
 /// <summary>Tests atomic compiled-composition identity and fingerprint invariants.</summary>
-public sealed class CompiledCompositionTests
+public sealed partial class CompiledCompositionTests
 {
     /// <summary>Verifies a legacy artifact carries only the identity and authority the legacy compiler can prove.</summary>
     [Fact]

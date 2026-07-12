@@ -18,3 +18,14 @@ public sealed class LegacyProfileCompilationAuthority : CompositionCompilationAu
     /// <summary>Exact legacy profile model version represented by this authority.</summary>
     public string ModelVersion { get; } = "0.2";
 }
+
+/// <summary>Authority produced by the normalized profile-bundle-v2 compiler boundary.</summary>
+public sealed class ProfileBundleV2CompilationAuthority : CompositionCompilationAuthority
+{
+    internal ProfileBundleV2CompilationAuthority()
+    {
+    }
+
+    /// <summary>Exact closed v2 compiler-model version represented by this authority.</summary>
+    public string ModelVersion { get; } = "1.0";
+}

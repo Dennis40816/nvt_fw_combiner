@@ -50,6 +50,10 @@ public sealed partial class RepositoryBoundaryTests
             "internal static CompiledComposition CreateLegacy",
             composition,
             StringComparison.Ordinal);
+        Assert.Contains(
+            "internal static CompiledComposition CreateV2",
+            composition,
+            StringComparison.Ordinal);
         Assert.DoesNotContain(
             "public static CompiledComposition Create",
             composition,
@@ -67,7 +71,16 @@ public sealed partial class RepositoryBoundaryTests
             "CompositionPlanProvenance.cs")));
         Assert.Contains("CompiledComposition.CreateLegacy(", compiler, StringComparison.Ordinal);
         Assert.Equal(1, CountOccurrences(profileSources, "CompiledComposition.CreateLegacy("));
+        Assert.Equal(0, CountOccurrences(profileSources, "CompiledComposition.CreateV2("));
         Assert.Contains("CompiledComposition compiledComposition", request, StringComparison.Ordinal);
+        Assert.Contains(
+            "CompiledCompositionEligibility.LegacyRuntimeExecutable",
+            request,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompiledCompositionEligibility.V2PlanCompiled",
+            request,
+            StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionRunProfile", request, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionPlan plan", request, StringComparison.Ordinal);
         Assert.Contains(
