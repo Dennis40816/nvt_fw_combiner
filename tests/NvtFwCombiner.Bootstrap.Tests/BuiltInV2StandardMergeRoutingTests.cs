@@ -14,6 +14,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
     [InlineData("NT51923", "nt51923-standard-merge-gen-flash", "nt51923-standard-merge", "6c1d0336b4c2e4df61a47258937b75c598e06daa189f50d1b5457381434df7ec")]
     [InlineData("NT51926", "nt51926-standard-merge-gen-flash", "nt51923-standard-merge", "6c1d0336b4c2e4df61a47258937b75c598e06daa189f50d1b5457381434df7ec")]
     [InlineData("NT51929", "nt51929-standard-merge-gen-flash", "nt51929-standard-merge", "01b84018c975ee4c7c52b36d594e2919a346294b713e060c496e597237ae3de3")]
+    [InlineData("NT51930", "nt51930-standard-merge-flashmap", "nt51930-standard-merge", "f1c9d60f024ad4aae17c5e16f285d88acbd38977f048daf264184c2f6d75855b")]
     [InlineData("NT51932", "nt51932-standard-merge-gen-flash", "nt51929-standard-merge", "01b84018c975ee4c7c52b36d594e2919a346294b713e060c496e597237ae3de3")]
     public void RegisteredStandardMergeUsesDeployedTrustedV2Artifact(
         string icId,

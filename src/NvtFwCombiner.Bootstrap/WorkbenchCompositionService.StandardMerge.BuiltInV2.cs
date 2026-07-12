@@ -21,6 +21,9 @@ public static partial class WorkbenchCompositionService
     private static readonly BuiltInV2StandardMergeBundle s_nt51923FamilyV2Bundle = new(
         "profiles\\built-in\\nt51923-standard-merge",
         "6c1d0336b4c2e4df61a47258937b75c598e06daa189f50d1b5457381434df7ec");
+    private static readonly BuiltInV2StandardMergeBundle s_nt51930V2Bundle = new(
+        "profiles\\built-in\\nt51930-standard-merge",
+        "f1c9d60f024ad4aae17c5e16f285d88acbd38977f048daf264184c2f6d75855b");
     private static readonly ReadOnlyCollection<BuiltInV2StandardMergeRegistration> s_builtInV2StandardMergeRegistrations =
         Array.AsReadOnly(
         [
@@ -49,6 +52,11 @@ public static partial class WorkbenchCompositionService
                 "nt51929-standard-merge-gen-flash",
                 "0.5.0",
                 s_nt51929FamilyV2Bundle),
+            new BuiltInV2StandardMergeRegistration(
+                "NT51930",
+                "nt51930-standard-merge-flashmap",
+                "0.5.0",
+                s_nt51930V2Bundle),
             new BuiltInV2StandardMergeRegistration(
                 "NT51932",
                 "nt51932-standard-merge-gen-flash",
