@@ -1,7 +1,8 @@
 # ADR 0016: Use closed typed firmware metadata values and decoding rules
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-11
+- Accepted: 2026-07-12 by the product and architecture owner
 - Owners: Product owner + architecture owner + firmware reviewers
 - Amends: ADR 0015
 - Preserves: ADR 0012

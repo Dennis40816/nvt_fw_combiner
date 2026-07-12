@@ -1,7 +1,8 @@
 # ADR 0017: Bind firmware fact aliases to explicit maps
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-11
+- Accepted: 2026-07-12 by the product and architecture owner
 - Owners: Product owner + architecture owner + firmware reviewers
 - Amends: ADR 0015 and the firmware-family-v1 contract
 
@@ -20,10 +21,10 @@ authority.
 
 ## Decision
 
-If accepted, the executable `firmware-family-v1` contract advances from draft schema version `1.0`
+The executable `firmware-family-v1` contract advances from draft schema version `1.0`
 to `1.1`; the major contract and filename stay v1. The schema, DTOs, semantic normalizer, examples,
-and tests change in one contract phase. Until that phase lands, this ADR is not normative and ADR
-0015 plus the current v1.0 schema remain authoritative.
+and tests change in one contract phase. Until that phase lands, the current v1.0 schema remains the
+only executable form of this decision.
 
 Aliases use three closed contract shapes: region set, metadata set, and capability. Every alias
 declares exact source and target member/map ids, applicability, reason, and evidence. Region and
@@ -165,7 +166,8 @@ content hash.
   v1.1 authoring. Profiles must not infer or mechanically expand missing scope, and v1.0 rows are not
   silently accepted as v1.1.
 - No firmware range, operation, processor, support status, or output changes in this decision.
-- This R2 contract change requires product/architecture approval before the ADR becomes Accepted.
+- This R2 contract change has product/architecture approval; its implementation still requires
+  contract, normalization, and test evidence before it becomes executable.
 - AB executable behavior remains a separate R3 evidence and firmware-owner gate.
 
 ## Verification
