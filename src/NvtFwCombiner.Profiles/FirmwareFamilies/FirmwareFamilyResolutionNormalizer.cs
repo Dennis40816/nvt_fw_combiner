@@ -128,13 +128,13 @@ public static partial class FirmwareFamilyResolutionNormalizer
 
         try
         {
-            return new FirmwareImageMap(
+            return FirmwareImageMap.CreateDirect(
                 document.MapId,
                 document.AddressSpaceId,
                 applicability,
                 coveragePolicy,
                 regionSets,
-                document.MetadataSetIds,
+                metadataSets,
                 document.EvidenceRefs);
         }
         catch (ArgumentException exception)

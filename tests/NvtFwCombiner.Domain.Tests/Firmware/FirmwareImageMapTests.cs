@@ -286,7 +286,7 @@ public sealed partial class FirmwareImageMapTests
         _ = Assert.Throws<ArgumentException>(() => Create(evidenceRefs: []));
         _ = Assert.Throws<ArgumentException>(() => Create(evidenceRefs: ["evidence", "evidence"]));
         _ = Assert.Throws<ArgumentException>(() => Create(evidenceRefs: [" "]));
-        _ = Assert.Throws<ArgumentNullException>(() => new FirmwareImageMap(
+        _ = Assert.Throws<ArgumentNullException>(() => FirmwareImageMap.CreateDirect(
             "synthetic-map",
             "flash",
             null!,
@@ -294,7 +294,7 @@ public sealed partial class FirmwareImageMapTests
             [Set("regions", [Region("root", 0, 16)])],
             [],
             ["evidence"]));
-        _ = Assert.Throws<ArgumentNullException>(() => new FirmwareImageMap(
+        _ = Assert.Throws<ArgumentNullException>(() => FirmwareImageMap.CreateDirect(
             "synthetic-map",
             "flash",
             Applicability(),
@@ -302,7 +302,7 @@ public sealed partial class FirmwareImageMapTests
             [Set("regions", [Region("root", 0, 16)])],
             null!,
             ["evidence"]));
-        _ = Assert.Throws<ArgumentNullException>(() => new FirmwareImageMap(
+        _ = Assert.Throws<ArgumentNullException>(() => FirmwareImageMap.CreateDirect(
             "synthetic-map",
             "flash",
             Applicability(),
@@ -322,13 +322,13 @@ public sealed partial class FirmwareImageMapTests
         IEnumerable<string>? metadataSetIds = null,
         IEnumerable<string>? evidenceRefs = null)
     {
-        return new FirmwareImageMap(
+        return FirmwareImageMap.CreateDirect(
             mapId,
             addressSpaceId,
             Applicability(capacityBytes),
             coveragePolicy,
             regionSets ?? [Set("regions", [Region("root", 0, capacityBytes)])],
-            metadataSetIds ?? [],
+            (metadataSetIds ?? []).Select(MetadataSet),
             evidenceRefs ?? ["evidence"]);
     }
 
@@ -347,6 +347,24 @@ public sealed partial class FirmwareImageMapTests
         string addressSpaceId = "flash")
     {
         return new FirmwareRegionSet(regionSetId, addressSpaceId, regions, ["region-evidence"]);
+    }
+
+    private static FirmwareMetadataSet MetadataSet(string metadataSetId)
+    {
+        return new FirmwareMetadataSet(
+            metadataSetId,
+            [
+                new FirmwareMetadataStructure(
+                    $"{metadataSetId}-structure",
+                    "tp-firmware",
+                    1,
+                    new FirmwareAbsoluteRangeLocator(
+                        new FirmwareAddressedRange("flash", new ByteRange(0, 1)),
+                        "root"),
+                    [],
+                    []),
+            ],
+            ["metadata-evidence"]);
     }
 
     private static FirmwareRegion Gap(

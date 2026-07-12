@@ -1,7 +1,7 @@
 namespace NvtFwCombiner.Domain.Firmware;
 
 /// <summary>Immutable evidence-backed group of physical regions in one address space.</summary>
-public sealed class FirmwareRegionSet
+public sealed class FirmwareRegionSet : IFirmwareMapFact
 {
     private readonly FirmwareRegion[] _regions;
     private readonly string[] _evidenceRefs;
@@ -45,6 +45,12 @@ public sealed class FirmwareRegionSet
 
     /// <summary>Stable physical fact-set identifier.</summary>
     public string RegionSetId { get; }
+
+    /// <inheritdoc />
+    public FirmwareFactKind FactKind => FirmwareFactKind.RegionSet;
+
+    /// <inheritdoc />
+    public string CanonicalFactId => RegionSetId;
 
     /// <summary>Address space used by every region range in this set.</summary>
     public string AddressSpaceId { get; }

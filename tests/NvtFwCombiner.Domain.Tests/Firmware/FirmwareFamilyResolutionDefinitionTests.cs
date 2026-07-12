@@ -20,8 +20,8 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
             Structure("config", artifactBindingId: "display-firmware"));
         FirmwareImageMap[] maps =
         [
-            Map("map-z", metadataSetIds: ["metadata-z"]),
-            Map("map-a", metadataSetIds: ["metadata-a"]),
+            Map("map-z", metadataSets: [setZ]),
+            Map("map-a", metadataSets: [setA]),
         ];
         FirmwareMetadataSet[] sets = [setZ, setA];
 
@@ -72,8 +72,8 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
         FirmwareMetadataSet setB = MetadataSet("metadata-b", Structure("config-b"));
         FirmwareFamilyResolutionDefinition definition = Definition(
             [
-                Map("map-a", metadataSetIds: ["metadata-a"]),
-                Map("map-b", metadataSetIds: ["metadata-b"]),
+                Map("map-a", metadataSets: [setA]),
+                Map("map-b", metadataSets: [setB]),
             ],
             [setA, setB]);
 
@@ -117,7 +117,7 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
             Structure("alpha", artifactBindingId: "shared-firmware"));
 
         FirmwareFamilyResolutionDefinition definition = Definition(
-            [Map("map", metadataSetIds: ["metadata-z", "metadata-a"])],
+            [Map("map", metadataSets: [setZ, setA])],
             [setZ, setA]);
 
         Assert.Equal(
@@ -143,8 +143,8 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
 
         FirmwareFamilyResolutionDefinition definition = Definition(
             [
-                Map("region-map", metadataSetIds: ["region-relative-metadata"]),
-                Map("marker-map", metadataSetIds: ["marker-relative-metadata"]),
+                Map("region-map", metadataSets: [regionRelative]),
+                Map("marker-map", metadataSets: [markerRelative]),
             ],
             [regionRelative, markerRelative]);
 
@@ -163,8 +163,8 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
 
         FirmwareFamilyResolutionDefinition definition = Definition(
             [
-                Map("map-a", metadataSetIds: ["metadata"]),
-                Map("map-b", metadataSetIds: ["metadata"]),
+                Map("map-a", metadataSets: [metadataSet]),
+                Map("map-b", metadataSets: [metadataSet]),
             ],
             [metadataSet]);
 
@@ -177,7 +177,7 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
     public void ConstructorRejectsInvalidIdentityAndCollections()
     {
         FirmwareMetadataSet metadataSet = MetadataSet("metadata", Structure("config"));
-        FirmwareImageMap map = Map("map", metadataSetIds: ["metadata"]);
+        FirmwareImageMap map = Map("map", metadataSets: [metadataSet]);
 
         _ = Assert.Throws<ArgumentException>(() => Definition([map], [metadataSet], familyId: " "));
         _ = Assert.Throws<ArgumentException>(() => Definition([map], [metadataSet], familyVersion: " "));
@@ -205,27 +205,27 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
             [Map("plain-map")],
             null!));
         _ = Assert.Throws<ArgumentException>(() => Definition([Map("plain-map")], [null!]));
+        FirmwareMetadataSet sameA = MetadataSet("same", Structure("a"));
+        FirmwareMetadataSet sameB = MetadataSet("same", Structure("b"));
         _ = Assert.Throws<ArgumentException>(() => Definition(
-            [Map("map", metadataSetIds: ["same"])],
-            [MetadataSet("same", Structure("a")), MetadataSet("same", Structure("b"))]));
+            [Map("map", metadataSets: [sameA])],
+            [sameA, sameB]));
     }
 
     /// <summary>Verifies map/set and family-global structure cross-references are exact.</summary>
     [Fact]
     public void ConstructorRejectsInvalidMetadataCrossReferences()
     {
-        _ = Assert.Throws<ArgumentException>(() => Definition(
-            [Map("map", metadataSetIds: ["missing"])],
-            []));
+        FirmwareMetadataSet missing = MetadataSet("missing", Structure("missing"));
+        _ = Assert.Throws<ArgumentException>(() => Definition([Map("map", metadataSets: [missing])], []));
         _ = Assert.Throws<ArgumentException>(() => Definition(
             [Map("plain-map")],
             [MetadataSet("orphan", Structure("config"))]));
+        FirmwareMetadataSet metadataA = MetadataSet("metadata-a", Structure("same"));
+        FirmwareMetadataSet metadataB = MetadataSet("metadata-b", Structure("same"));
         _ = Assert.Throws<ArgumentException>(() => Definition(
-            [Map("map", metadataSetIds: ["metadata-a", "metadata-b"])],
-            [
-                MetadataSet("metadata-a", Structure("same")),
-                MetadataSet("metadata-b", Structure("same")),
-            ]));
+            [Map("map", metadataSets: [metadataA, metadataB])],
+            [metadataA, metadataB]));
     }
 
     /// <summary>Verifies predicates resolve only through the map-selected structure and field.</summary>
@@ -238,14 +238,14 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
 
         _ = Assert.Throws<ArgumentException>(() => Definition(
             [
-                Map("map-a", metadataSetIds: ["metadata-a"], predicates: [unselected]),
-                Map("map-b", metadataSetIds: ["metadata-b"]),
+                Map("map-a", metadataSets: [setA], predicates: [unselected]),
+                Map("map-b", metadataSets: [setB]),
             ],
             [setA, setB]));
 
         FirmwareMetadataPredicate missingField = Predicate("config-a", "missing", Unsigned(1));
         _ = Assert.Throws<ArgumentException>(() => Definition(
-            [Map("map-a", metadataSetIds: ["metadata-a"], predicates: [missingField])],
+            [Map("map-a", metadataSets: [setA], predicates: [missingField])],
             [setA]));
     }
 
@@ -271,7 +271,7 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
             FirmwareMetadataPredicate predicate = Predicate("config", "value", value);
 
             _ = Assert.Throws<ArgumentException>(() => Definition(
-                [Map("map", metadataSetIds: ["metadata"], predicates: [predicate])],
+                [Map("map", metadataSets: [metadataSet], predicates: [predicate])],
                 [metadataSet]));
         }
 
@@ -283,7 +283,7 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
             FirmwareMetadataPredicateOperator.OneOf,
             [Unsigned(1), Unsigned(256)]);
         _ = Assert.Throws<ArgumentException>(() => Definition(
-            [Map("one-of-map", metadataSetIds: ["one-of-metadata"], predicates: [oneOf])],
+            [Map("one-of-map", metadataSets: [oneOfSet], predicates: [oneOf])],
             [oneOfSet]));
     }
 
@@ -365,10 +365,10 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
 
         _ = Assert.Throws<ArgumentException>(() => Definition(
             [
-                Map("wide-map", metadataSetIds: ["metadata"]),
+                Map("wide-map", metadataSets: [metadataSet]),
                 Map(
                     "narrow-map",
-                    metadataSetIds: ["metadata"],
+                    metadataSets: [metadataSet],
                     regionSets: [RegionSet(metadataLength: 4)]),
             ],
             [metadataSet]));
@@ -391,12 +391,12 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
 
     private static FirmwareImageMap Map(
         string mapId,
-        IEnumerable<string>? metadataSetIds = null,
+        IEnumerable<FirmwareMetadataSet>? metadataSets = null,
         IEnumerable<FirmwareMetadataPredicate>? predicates = null,
         IEnumerable<string>? commonFirmwareCategoryIds = null,
         IEnumerable<FirmwareRegionSet>? regionSets = null)
     {
-        return new FirmwareImageMap(
+        return FirmwareImageMap.CreateDirect(
             mapId,
             "flash",
             new FirmwareMapApplicability(
@@ -408,7 +408,7 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
                 predicates),
             FirmwareImageMapCoveragePolicy.CompleteWithExplicitGaps,
             regionSets ?? [RegionSet()],
-            metadataSetIds ?? [],
+            metadataSets ?? [],
             ["map-evidence"]);
     }
 
@@ -553,7 +553,7 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
     {
         FirmwareMetadataSet metadataSet = MetadataSet("metadata", Structure("config", locator: locator));
         return Definition(
-            [Map("map", metadataSetIds: ["metadata"])],
+            [Map("map", metadataSets: [metadataSet])],
             [metadataSet]);
     }
 }

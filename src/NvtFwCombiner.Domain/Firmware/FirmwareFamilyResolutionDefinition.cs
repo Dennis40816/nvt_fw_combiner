@@ -43,7 +43,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
 
         foreach (FirmwareImageMap map in _imageMaps)
         {
-            FirmwareMetadataStructure[] structures = ResolveStructures(
+            FirmwareMetadataStructure[] structures = ResolveBoundMetadataStructures(
                 map,
                 metadataSetsById,
                 referencedMetadataSetIds);
@@ -197,23 +197,27 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         }
     }
 
-    private static FirmwareMetadataStructure[] ResolveStructures(
+    private static FirmwareMetadataStructure[] ResolveBoundMetadataStructures(
         FirmwareImageMap map,
         Dictionary<string, FirmwareMetadataSet> metadataSetsById,
         HashSet<string> referencedMetadataSetIds)
     {
         List<FirmwareMetadataStructure> structures = [];
-        foreach (string metadataSetId in map.MetadataSetIds)
+        foreach (FirmwareMapFactBinding<FirmwareMetadataSet> binding in map.MetadataSetBindings
+                     .GroupBy(static binding => binding.CanonicalFactId, StringComparer.Ordinal)
+                     .Select(static group => group.First()))
         {
-            if (!metadataSetsById.TryGetValue(metadataSetId, out FirmwareMetadataSet? metadataSet))
+            if (!metadataSetsById.TryGetValue(binding.CanonicalFactId, out FirmwareMetadataSet? metadataSet) ||
+                !ReferenceEquals(metadataSet, binding.Value))
             {
                 throw new ArgumentException(
-                    $"Image map '{map.MapId}' references unknown metadata set '{metadataSetId}'.",
+                    $"Image map '{map.MapId}' binding references an unknown canonical metadata set " +
+                    $"'{binding.CanonicalFactId}'.",
                     nameof(map));
             }
 
-            _ = referencedMetadataSetIds.Add(metadataSetId);
-            structures.AddRange(metadataSet.Structures);
+            _ = referencedMetadataSetIds.Add(binding.CanonicalFactId);
+            structures.AddRange(binding.Value.Structures);
         }
 
         FirmwareMetadataStructure[] snapshot = [.. structures];

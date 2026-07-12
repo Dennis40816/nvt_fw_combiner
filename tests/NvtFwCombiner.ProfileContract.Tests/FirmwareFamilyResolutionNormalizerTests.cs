@@ -28,6 +28,12 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         Assert.Equal(16, map.CapacityBytes);
         Assert.Equal(["physical"], map.RegionSets.Select(static set => set.RegionSetId));
         Assert.Equal(["metadata"], map.MetadataSetIds);
+        FirmwareMapFactBinding<FirmwareRegionSet> regionBinding = Assert.Single(map.RegionSetBindings);
+        FirmwareMapFactBinding<FirmwareMetadataSet> metadataBinding = Assert.Single(map.MetadataSetBindings);
+        Assert.Equal(regionBinding.EffectiveKey, regionBinding.DirectSourceKey);
+        Assert.Equal(metadataBinding.EffectiveKey, metadataBinding.DirectSourceKey);
+        Assert.Empty(regionBinding.Provenance.AliasChain);
+        Assert.Empty(metadataBinding.Provenance.AliasChain);
         Assert.Equal(["tp-firmware"], definition.RequiredArtifactBindingIds);
         FirmwareMetadataPredicate predicate = Assert.Single(map.Applicability.MetadataPredicates);
         Assert.Equal(FirmwareMetadataValue.FromUnsignedInteger(2), Assert.Single(predicate.ExpectedValues));

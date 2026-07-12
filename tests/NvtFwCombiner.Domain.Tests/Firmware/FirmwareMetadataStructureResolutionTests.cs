@@ -338,8 +338,8 @@ public sealed class FirmwareMetadataStructureResolutionTests
         FirmwareMetadataSet setB = MetadataSet("metadata-b", structureB);
         FirmwareFamilyResolutionDefinition definition = Definition(
             [
-                Map("map-a", ["metadata-a"]),
-                Map("map-b", ["metadata-b"]),
+                Map("map-a", [setA]),
+                Map("map-b", [setB]),
             ],
             [setA, setB]);
         FirmwareMapResolutionInputs inputs = Inputs(new FirmwareArtifactPayload("tp-firmware", new byte[32]));
@@ -397,7 +397,7 @@ public sealed class FirmwareMetadataStructureResolutionTests
     private static FirmwareFamilyResolutionDefinition Definition(FirmwareMetadataStructure structure)
     {
         FirmwareMetadataSet metadataSet = MetadataSet("metadata", structure);
-        return Definition([Map("map", ["metadata"])], [metadataSet]);
+        return Definition([Map("map", [metadataSet])], [metadataSet]);
     }
 
     private static FirmwareFamilyResolutionDefinition Definition(
@@ -412,9 +412,9 @@ public sealed class FirmwareMetadataStructureResolutionTests
             metadataSets);
     }
 
-    private static FirmwareImageMap Map(string mapId, IEnumerable<string> metadataSetIds)
+    private static FirmwareImageMap Map(string mapId, IEnumerable<FirmwareMetadataSet> metadataSets)
     {
-        return new FirmwareImageMap(
+        return FirmwareImageMap.CreateDirect(
             mapId,
             "flash",
             new FirmwareMapApplicability(
@@ -424,7 +424,7 @@ public sealed class FirmwareMetadataStructureResolutionTests
                 32),
             FirmwareImageMapCoveragePolicy.CompleteWithExplicitGaps,
             [RegionSet()],
-            metadataSetIds,
+            metadataSets,
             ["map-evidence"]);
     }
 

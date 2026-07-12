@@ -1,7 +1,7 @@
 namespace NvtFwCombiner.Domain.Firmware;
 
 /// <summary>Immutable evidence-backed collection of canonical metadata structures.</summary>
-public sealed class FirmwareMetadataSet
+public sealed class FirmwareMetadataSet : IFirmwareMapFact
 {
     private readonly FirmwareMetadataStructure[] _structures;
     private readonly string[] _evidenceRefs;
@@ -43,6 +43,12 @@ public sealed class FirmwareMetadataSet
 
     /// <summary>Stable metadata fact-set identifier.</summary>
     public string MetadataSetId { get; }
+
+    /// <inheritdoc />
+    public FirmwareFactKind FactKind => FirmwareFactKind.MetadataSet;
+
+    /// <inheritdoc />
+    public string CanonicalFactId => MetadataSetId;
 
     /// <summary>Metadata structures in ordinal id order.</summary>
     public IReadOnlyList<FirmwareMetadataStructure> Structures { get; }
