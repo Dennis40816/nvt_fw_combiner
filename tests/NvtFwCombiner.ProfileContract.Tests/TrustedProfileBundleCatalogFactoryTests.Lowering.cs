@@ -68,6 +68,27 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal(["output-code", "tp-code"], details.RegionAccessContract.ResolvedViews.Select(static view => view.ViewId));
     }
 
+    /// <summary>Verifies only the fully lowered supported token-free declaration mints a V2 runtime artifact.</summary>
+    [Fact]
+    public void BlankCopyLoweringMintsRuntimeArtifactOnlyForSupportedTokenFreeProfile()
+    {
+        V2CompositionPlanCompileResult runtime = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+            familyHash => RuntimeSupportedProfileJson(familyHash)));
+        V2CompositionPlanCompileResult candidate = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+            familyHash => RuntimeSupportedProfileJson(familyHash, "executable-candidate")));
+        V2CompositionPlanCompileResult tokenized = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+            familyHash => RuntimeSupportedProfileJson(familyHash, "supported", tokenizedOutput: true)));
+        V2CompositionPlanCompileResult overridable = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+            familyHash => RuntimeSupportedProfileJson(familyHash, "supported", allowOutputOverride: true)));
+
+        Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, runtime.CompiledComposition?.Eligibility);
+        Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, candidate.CompiledComposition?.Eligibility);
+        Assert.Null(tokenized.CompiledComposition);
+        Assert.Equal("profile.v2.plan.unsupported-declaration", Assert.Single(tokenized.Issues).Code);
+        Assert.Null(overridable.CompiledComposition);
+        Assert.Equal("profile.v2.plan.unsupported-declaration", Assert.Single(overridable.Issues).Code);
+    }
+
     /// <summary>Verifies a region slice ending exactly at its half-open boundary lowers while one byte beyond fails closed.</summary>
     [Theory]
     [InlineData(16, true)]
@@ -384,6 +405,25 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         }
 
         return profileNode.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+    }
+
+    private static string RuntimeSupportedProfileJson(
+        string familyHash,
+        string stage = "supported",
+        bool tokenizedOutput = false,
+        bool allowOutputOverride = false)
+    {
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(SupportedProfileJson(familyHash)));
+        JsonObject promotion = Assert.IsType<JsonObject>(profile["promotion"]);
+        promotion["stage"] = stage;
+        promotion["blockers"] = new JsonArray();
+        JsonObject output = Assert.IsType<JsonObject>(profile["output"]);
+        output["fileNameTemplate"] = tokenizedOutput ? "{original-name}.bin" : "v2-output.bin";
+        output["allowOverride"] = allowOutputOverride;
+        output["requiredTokenIds"] = tokenizedOutput
+            ? new JsonArray("original-name")
+            : [];
+        return profile.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
     }
 
     private static string ProfileRequiringCapability(string profileJson)

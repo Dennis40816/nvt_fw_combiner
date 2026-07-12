@@ -105,7 +105,8 @@ public sealed partial class CompositionRunService
                 binding.AddressSpaceId,
                 binding.BindingId,
                 buffer.LongLength,
-                ToSha256Hex(buffer)));
+                ToSha256Hex(buffer),
+                binding.OriginalFileName));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

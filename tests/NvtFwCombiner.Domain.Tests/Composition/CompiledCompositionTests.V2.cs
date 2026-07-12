@@ -51,6 +51,22 @@ public sealed partial class CompiledCompositionTests
         _ = Assert.Throws<ArgumentException>(() => CreateV2(promotion: promotion));
     }
 
+    /// <summary>Verifies only a supported token-free V2 artifact can receive the separate runtime eligibility.</summary>
+    [Fact]
+    public void V2RuntimeArtifactRequiresSupportedUnblockedTokenFreePromotion()
+    {
+        CompiledComposition runtime = CreateV2(
+            promotion: new CompiledProfilePromotion(CompiledProfilePromotionStage.Supported, []),
+            outputTemplate: "runtime.bin",
+            requiredOutputTokenIds: [],
+            runtimeExecutable: true);
+
+        Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, runtime.Eligibility);
+        _ = Assert.IsType<ProfileBundleV2CompilationAuthority>(runtime.Authority);
+        Assert.Equal("runtime.bin", runtime.DefaultOutputFileName);
+        _ = Assert.Throws<ArgumentException>(() => CreateV2(runtimeExecutable: true));
+    }
+
     /// <summary>Verifies profile-bundle and output requirement values cannot be forged with malformed or ambiguous identities.</summary>
     [Fact]
     public void V2IdentityAndOutputRequirementsRejectInvalidValues()
@@ -349,7 +365,8 @@ public sealed partial class CompiledCompositionTests
         CompiledInputContract? inputContract = null,
         CompiledRegionAccessContract? regionAccessContract = null,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap? resolvedMap = null,
-        CompositionPlan? plan = null)
+        CompositionPlan? plan = null,
+        bool runtimeExecutable = false)
     {
         resolvedMap ??= CreateResolvedMap(familyContentHash);
         var bundle = new ProfileBundleIdentity(
@@ -401,10 +418,15 @@ public sealed partial class CompiledCompositionTests
                 new ByteRange(0, 4),
                 OverlapPolicy.Reject,
                 "copy synthetic immutable input")]);
-        return CompiledComposition.CreateV2(
-            plan,
-            identity,
-            CompiledIcNumberPolicy.NotApplicable);
+        return runtimeExecutable
+            ? CompiledComposition.CreateV2RuntimeExecutable(
+                plan,
+                identity,
+                CompiledIcNumberPolicy.NotApplicable)
+            : CompiledComposition.CreateV2(
+                plan,
+                identity,
+                CompiledIcNumberPolicy.NotApplicable);
     }
 
     private static CompiledInputContract CreateInputContract()

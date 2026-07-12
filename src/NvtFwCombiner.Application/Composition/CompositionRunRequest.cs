@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Collections.ObjectModel;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Composition;
@@ -6,8 +7,6 @@ namespace NvtFwCombiner.Application.Composition;
 /// <summary>Application request for previewing or building a compiled composition profile.</summary>
 public sealed class CompositionRunRequest
 {
-    private readonly Dictionary<string, InputArtifactBinding> _artifactBindings;
-
     /// <summary>Creates a run request with one compiled composition, input bindings, and runtime output options.</summary>
     public CompositionRunRequest(
         string runId,
@@ -21,13 +20,15 @@ public sealed class CompositionRunRequest
         ArgumentNullException.ThrowIfNull(compiledComposition);
         ArgumentNullException.ThrowIfNull(artifactBindings);
         ArgumentException.ThrowIfNullOrWhiteSpace(outputFileName);
+        Dictionary<string, InputArtifactBinding> copiedBindings = CopyBindings(artifactBindings);
         ValidateOutputFileName(outputFileName);
         ValidateExecutableComposition(compiledComposition);
         ValidateIcNumberSelection(compiledComposition, icNumberSelection);
+        ValidateV2RuntimeRequest(compiledComposition, copiedBindings, outputFileName);
 
         RunId = runId;
         CompiledComposition = compiledComposition;
-        _artifactBindings = CopyBindings(artifactBindings);
+        ArtifactBindings = new ReadOnlyDictionary<string, InputArtifactBinding>(copiedBindings);
         OutputFileName = outputFileName;
         ApprovedPreviewToken = string.IsNullOrWhiteSpace(approvedPreviewToken) ? null : approvedPreviewToken;
         IcNumberSelection = icNumberSelection;
@@ -40,7 +41,7 @@ public sealed class CompositionRunRequest
     public CompiledComposition CompiledComposition { get; }
 
     /// <summary>Maps required address-space ids to copied artifact bindings.</summary>
-    public IReadOnlyDictionary<string, InputArtifactBinding> ArtifactBindings => _artifactBindings;
+    public IReadOnlyDictionary<string, InputArtifactBinding> ArtifactBindings { get; }
 
     /// <summary>Output file name proposed by profile naming policy or caller override.</summary>
     public string OutputFileName { get; }
@@ -58,7 +59,7 @@ public sealed class CompositionRunRequest
         return new CompositionRunRequest(
             RunId,
             CompiledComposition,
-            _artifactBindings.Values,
+            ArtifactBindings.Values,
             OutputFileName,
             previewToken,
             IcNumberSelection);
@@ -92,12 +93,91 @@ public sealed class CompositionRunRequest
 
     private static void ValidateExecutableComposition(CompiledComposition compiledComposition)
     {
-        if (compiledComposition.Eligibility != CompiledCompositionEligibility.LegacyRuntimeExecutable ||
-            compiledComposition.Authority is not LegacyProfileCompilationAuthority)
+        if (compiledComposition.Eligibility == CompiledCompositionEligibility.LegacyRuntimeExecutable &&
+            compiledComposition.Authority is LegacyProfileCompilationAuthority)
+        {
+            return;
+        }
+
+        if (compiledComposition.Eligibility == CompiledCompositionEligibility.V2RuntimeExecutable &&
+            compiledComposition.Authority is ProfileBundleV2CompilationAuthority &&
+            compiledComposition.V2Details is not null)
+        {
+            return;
+        }
+
+        throw new ArgumentException(
+            "Compiled composition is not executable by the current application runtime.",
+            nameof(compiledComposition));
+    }
+
+    private static void ValidateV2RuntimeRequest(
+        CompiledComposition compiledComposition,
+        Dictionary<string, InputArtifactBinding> bindings,
+        string outputFileName)
+    {
+        if (compiledComposition.Authority is not ProfileBundleV2CompilationAuthority)
+        {
+            return;
+        }
+
+        V2CompiledCompositionDetails details = compiledComposition.V2Details ?? throw new ArgumentException(
+            "V2 runtime artifacts require compiled V2 details.",
+            nameof(compiledComposition));
+        CompiledOutputNamingRequirement output = details.OutputNamingRequirement;
+        if (output.RequiredTokenIds.Count != 0 || output.AllowOverride)
         {
             throw new ArgumentException(
-                "Compiled composition is not executable by the current application runtime.",
+                "V2 runtime artifacts require a token-free non-overridable output template until token rendering is available.",
                 nameof(compiledComposition));
+        }
+
+        if (!string.Equals(outputFileName, output.FileNameTemplate, StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "Output file name must match the compiled V2 template when overrides are forbidden.",
+                nameof(outputFileName));
+        }
+
+        IReadOnlyList<CompiledInputSpaceBinding> expectedBindings = details.InputContract.SpaceBindings;
+        if (bindings.Count != expectedBindings.Count)
+        {
+            throw new ArgumentException(
+                "V2 runtime bindings must exactly match the compiled input contract.",
+                nameof(bindings));
+        }
+
+        var slots = details.InputContract.Slots.ToDictionary(
+            static slot => slot.SlotId,
+            StringComparer.Ordinal);
+        foreach (CompiledInputSpaceBinding expected in expectedBindings)
+        {
+            if (!bindings.TryGetValue(expected.AddressSpaceId, out InputArtifactBinding? binding))
+            {
+                throw new ArgumentException(
+                    $"V2 runtime requires an artifact binding for address space '{expected.AddressSpaceId}'.",
+                    nameof(bindings));
+            }
+
+            CompiledInputSlotRequirement slot = slots[expected.SlotId];
+            if (expected.InstancePolicy != CompiledInputInstancePolicy.Singleton ||
+                !slot.Required ||
+                slot.Cardinality != CompiledInputSlotCardinality.ExactlyOne ||
+                binding.ArtifactClass != slot.ArtifactClass ||
+                binding.OriginalFileName is null)
+            {
+                throw new ArgumentException(
+                    $"V2 runtime binding '{expected.AddressSpaceId}' does not satisfy the compiled singleton slot contract.",
+                    nameof(bindings));
+            }
+
+            string extension = Path.GetExtension(binding.OriginalFileName);
+            if (!slot.AcceptedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException(
+                    $"V2 runtime binding '{expected.AddressSpaceId}' has an unaccepted original file extension.",
+                    nameof(bindings));
+            }
         }
     }
 

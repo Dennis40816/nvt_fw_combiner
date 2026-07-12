@@ -3,7 +3,7 @@ using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Profiles.V2;
 
-/// <summary>Closed result of lowering an admitted V2 declaration into one non-executable composition plan.</summary>
+/// <summary>Closed result of lowering an admitted V2 declaration into one atomic composition artifact.</summary>
 internal sealed class V2CompositionPlanCompileResult
 {
     private readonly CompositionIssue[] _issues;
@@ -34,7 +34,7 @@ internal sealed class V2CompositionPlanCompileResult
         Issues = Array.AsReadOnly(_issues);
     }
 
-    /// <summary>One complete non-executable V2 plan artifact when all supported declarations compiled.</summary>
+    /// <summary>One complete V2 artifact when all supported declarations compiled.</summary>
     internal CompiledComposition? CompiledComposition { get; }
 
     /// <summary>Deterministic unsupported or incomplete declaration diagnostics.</summary>
@@ -55,7 +55,7 @@ internal sealed class V2CompositionPlanCompileResult
     }
 }
 
-/// <summary>Profiles-owned first lowering slice for admitted blank-output V2 Merge declarations.</summary>
+/// <summary>Profiles-owned lowering slice for admitted blank-output V2 Merge declarations.</summary>
 internal static partial class V2CompositionPlanCompiler
 {
     private const string PreparationNotAdmitted = "profile.v2.plan.preparation-not-admitted";
@@ -70,7 +70,7 @@ internal static partial class V2CompositionPlanCompiler
     private const string InvalidRegionAccess = "profile.v2.plan.invalid-region-access";
     private const string RegionAccessDenied = "profile.v2.plan.region-access-denied";
 
-    /// <summary>Lowers the closed blank-output V2 operation subset and never grants Application runtime eligibility.</summary>
+    /// <summary>Lowers the closed blank-output V2 operation subset and grants runtime eligibility only for supported token-free profiles.</summary>
     internal static V2CompositionPlanCompileResult Compile(V2CompositionPreparationResult preparation)
     {
         ArgumentNullException.ThrowIfNull(preparation);
@@ -146,10 +146,16 @@ internal static partial class V2CompositionPlanCompiler
             profile.Experience.ExperienceId,
             profile.CompositionKind,
             new V2CompiledCompositionDetails(provenance, inputContract, regionAccess.Contract, outputNaming));
-        return V2CompositionPlanCompileResult.Succeeded(CompiledComposition.CreateV2(
-            plan,
-            identity,
-            CompiledIcNumberPolicy.NotApplicable));
+        CompiledComposition artifact = profile.Promotion.Stage == CompositionProfilePromotionStage.Supported
+            ? CompiledComposition.CreateV2RuntimeExecutable(
+                plan,
+                identity,
+                CompiledIcNumberPolicy.NotApplicable)
+            : CompiledComposition.CreateV2(
+                plan,
+                identity,
+                CompiledIcNumberPolicy.NotApplicable);
+        return V2CompositionPlanCompileResult.Succeeded(artifact);
     }
 
     private static void ValidateSupportedProfile(CompositionProfileDefinition profile, List<CompositionIssue> issues)
@@ -162,6 +168,12 @@ internal static partial class V2CompositionPlanCompiler
         if (profile.Promotion.Stage < CompositionProfilePromotionStage.Compilable)
         {
             AddUnsupported(issues, "promotion stage must be Compilable or later");
+        }
+
+        if (profile.Promotion.Stage == CompositionProfilePromotionStage.Supported &&
+            (profile.Output.RequiredTokenIds.Count != 0 || profile.Output.AllowOverride))
+        {
+            AddUnsupported(issues, "supported profiles require a token-free non-overridable output template until token rendering is lowered");
         }
 
         if (profile.MetadataBindings.Count != 0 ||
@@ -197,6 +209,13 @@ internal static partial class V2CompositionPlanCompiler
                     issues,
                     $"input space '{inputSpace.SpaceId}' must bind one required singleton exact-map-capacity or tp-maximum-256k unnormalized slot");
             }
+        }
+
+        if (profile.Spaces.OfType<InputArtifactProfileSpace>()
+            .GroupBy(static space => space.SlotId, StringComparer.Ordinal)
+            .Any(static group => group.Count() != 1))
+        {
+            AddUnsupported(issues, "current runtime lowering requires exactly one immutable address space per input slot");
         }
 
         foreach (CompositionProfileOperation operation in profile.Operations)

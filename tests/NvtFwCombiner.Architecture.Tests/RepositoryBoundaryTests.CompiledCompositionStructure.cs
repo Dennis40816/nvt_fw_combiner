@@ -58,6 +58,10 @@ public sealed partial class RepositoryBoundaryTests
             "internal static CompiledComposition CreateV2",
             composition,
             StringComparison.Ordinal);
+        Assert.Contains(
+            "internal static CompiledComposition CreateV2RuntimeExecutable",
+            composition,
+            StringComparison.Ordinal);
         Assert.DoesNotContain(
             "public static CompiledComposition Create",
             composition,
@@ -76,18 +80,25 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("CompiledComposition.CreateLegacy(", compiler, StringComparison.Ordinal);
         Assert.Equal(1, CountOccurrences(profileSources, "CompiledComposition.CreateLegacy("));
         Assert.Equal(1, CountOccurrences(profileSources, "CompiledComposition.CreateV2("));
+        Assert.Equal(1, CountOccurrences(profileSources, "CompiledComposition.CreateV2RuntimeExecutable("));
         Assert.Contains("profile.Family.Family.ResolveMap", preparation, StringComparison.Ordinal);
         Assert.Contains("CompositionProfileMapAdmissionValidator.Validate", preparation, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionPlan", preparation, StringComparison.Ordinal);
         Assert.DoesNotContain("CompiledComposition.CreateV2", preparation, StringComparison.Ordinal);
         Assert.DoesNotContain("NvtFwCombiner.Application", preparation, StringComparison.Ordinal);
         Assert.Contains("CompiledComposition.CreateV2", v2Compiler, StringComparison.Ordinal);
+        Assert.Contains("CompiledComposition.CreateV2RuntimeExecutable", v2Compiler, StringComparison.Ordinal);
         Assert.DoesNotContain("NvtFwCombiner.Application", v2Compiler, StringComparison.Ordinal);
         Assert.Contains("CompiledComposition compiledComposition", request, StringComparison.Ordinal);
         Assert.Contains(
             "CompiledCompositionEligibility.LegacyRuntimeExecutable",
             request,
             StringComparison.Ordinal);
+        Assert.Contains(
+            "CompiledCompositionEligibility.V2RuntimeExecutable",
+            request,
+            StringComparison.Ordinal);
+        Assert.Contains("ProfileBundleV2CompilationAuthority", request, StringComparison.Ordinal);
         Assert.DoesNotContain(
             "CompiledCompositionEligibility.V2PlanCompiled",
             request,

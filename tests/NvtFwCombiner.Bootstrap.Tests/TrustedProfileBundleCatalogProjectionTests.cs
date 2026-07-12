@@ -1,5 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json.Nodes;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Contracts.Bundles;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
@@ -20,7 +22,7 @@ public sealed class TrustedProfileBundleCatalogProjectionTests
 
     /// <summary>Verifies the bridge preserves trusted entry identity while Profiles owns semantic normalization.</summary>
     [Fact]
-    public void CreateProjectsOneTrustedBundleIntoAnExactlyBoundNormalizedCatalog()
+    public async Task CreateProjectsTrustedBundleIntoRuntimeArtifactAndExistingEngine()
     {
         using var workspace = TempWorkspace.Create("nfc-bootstrap-trusted-catalog");
         byte[] familySchema = ReadSchema("firmware-family-v1.schema.json");
@@ -30,13 +32,20 @@ public sealed class TrustedProfileBundleCatalogProjectionTests
         byte[] family = Encoding.UTF8.GetBytes(familyJson);
         string familyHash = Hash(family);
         string profileJson = TrustedV2BundleTestDocuments.ProfileJson(familyHash)
-            .Replace("\"stage\": \"known\"", "\"stage\": \"compilable\"", StringComparison.Ordinal)
             .Replace("\"artifactClass\": \"tp-firmware\"", "\"artifactClass\": \"reference-image\"", StringComparison.Ordinal)
             .Replace(
                 "\"lengthRule\": { \"kind\": \"tp-maximum-256k\", \"maximumBytes\": 262144 }",
                 "\"lengthRule\": { \"kind\": \"exact-resolved-map-capacity\" }",
                 StringComparison.Ordinal)
             .Replace("\"access\": \"read-only\"", "\"access\": \"whole\"", StringComparison.Ordinal);
+        JsonObject profileNode = Assert.IsType<JsonObject>(JsonNode.Parse(profileJson));
+        JsonObject promotion = Assert.IsType<JsonObject>(profileNode["promotion"]);
+        promotion["stage"] = "supported";
+        promotion["blockers"] = new JsonArray();
+        JsonObject output = Assert.IsType<JsonObject>(profileNode["output"]);
+        output["fileNameTemplate"] = "v2-output.bin";
+        output["requiredTokenIds"] = new JsonArray();
+        profileJson = profileNode.ToJsonString();
         byte[] profile = Encoding.UTF8.GetBytes(profileJson);
         var entries = new List<ProfileBundleEntryDocument>
         {
@@ -90,8 +99,31 @@ public sealed class TrustedProfileBundleCatalogProjectionTests
         CompiledComposition artifact = Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
         Assert.True(compilation.IsCompiled);
         Assert.Empty(compilation.Issues);
-        Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, artifact.Eligibility);
+        Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
         Assert.Equal("root", Assert.Single(artifact.V2Details!.RegionAccessContract.Requirements).RegionId);
+
+        var service = new CompositionRunService(
+            new FakeArtifactReader(new Dictionary<string, byte[]> { ["tp-artifact"] = [.. Enumerable.Range(0, 16).Select(static value => (byte)value)] }),
+            new FakeClock([
+                new DateTimeOffset(2026, 7, 12, 0, 0, 0, TimeSpan.Zero),
+                new DateTimeOffset(2026, 7, 12, 0, 0, 1, TimeSpan.Zero),
+            ]));
+        var request = new CompositionRunRequest(
+            "trusted-v2-run",
+            artifact,
+            [new InputArtifactBinding(
+                "tp-source",
+                "tp-source",
+                "tp-artifact",
+                "input.bin",
+                CompiledInputArtifactClass.ReferenceImage)],
+            "v2-output.bin");
+
+        CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal(Enumerable.Range(0, 16).Select(static value => (byte)value).ToArray(), result.OutputBytes.ToArray());
+        Assert.Equal(artifact.CompilationFingerprint, result.Report.CompilationFingerprint);
     }
 
     private static byte[] ReadSchema(string fileName)

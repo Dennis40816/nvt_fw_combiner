@@ -39,7 +39,12 @@ resource ceiling.
 
 ## Compiled Plan Boundary
 
-When a profile is admitted to one resolved map, lowering produces one non-executable V2 plan artifact.
+When a profile is admitted to one resolved map, lowering produces one V2 plan artifact. The
+`V2PlanCompiled` eligibility remains non-executable. The separate `V2RuntimeExecutable` eligibility
+is minted only by the Profiles compiler for the closed blank-output Merge subset when promotion is
+exactly `supported`, blockers are empty, each input slot has exactly one immutable singleton space,
+and the output template is token-free and non-overridable. `executable-candidate` is not runtime
+authority.
 Its `CompiledInputContract` retains each slot's id, role, artifact class, required/cardinality policy,
 accepted extensions, typed length rule, typed normalization rule, and every immutable plan-space binding
 including instance policy. The artifact does not treat `AddressSpace` geometry as a second source of
@@ -62,7 +67,7 @@ policy and logical view-provenance facts in the V2 compilation fingerprint. The 
 sole authority for physical region ranges; compiled views retain only their resolved half-open logical range
 and exact physical region-chain identity so the artifact can verify that provenance.
 
-The current non-executable blank-output subset lowers only `copy-range`, `fill-range`, `patch-scalar`, and
+The current blank-output subset lowers only `copy-range`, `fill-range`, `patch-scalar`, and
 checked `transform-scalar` operations with `reject` overlap policy. `replace-range`, clone initialization,
 metadata validation, processor stages, and every runtime authority remain outside this subset and fail closed.
 
@@ -97,7 +102,11 @@ a physical TP `ctrlram` region; it always emits the declared warning. These targ
 checks are mandatory compiler semantic validation because they cross-reference the resolved family
 map. Reference images, mutable work buffers, and processor-owned non-CtrlRAM flows remain exact.
 Original input file names are an unconditional v2 provenance/UI invariant rather than a configurable
-profile flag; output names still follow `output.fileNameTemplate`.
+profile flag; a V2 runtime binding supplies its original plain filename and caller-declared typed slot
+assertion, which Application matches to the compiled slot and accepted extension before reading bytes.
+The original filename remains in reports and preview-token identity. Runtime templates are token-free
+and non-overridable, and require the exact compiled filename; other V2 naming forms remain
+non-executable until token rendering is implemented. Output names still follow `output.fileNameTemplate`.
 
 ## Metadata and validation
 

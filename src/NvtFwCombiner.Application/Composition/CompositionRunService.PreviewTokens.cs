@@ -19,6 +19,7 @@ public sealed partial class CompositionRunService
         {
             AppendTokenField(builder, "input.address-space", input.AddressSpaceId);
             AppendTokenField(builder, "input.artifact", input.ArtifactId);
+            AppendTokenField(builder, "input.original-file-name", input.OriginalFileName ?? string.Empty);
             AppendTokenField(builder, "input.size", input.Size.ToString(CultureInfo.InvariantCulture));
             AppendTokenField(builder, "input.sha256", input.Sha256);
         }

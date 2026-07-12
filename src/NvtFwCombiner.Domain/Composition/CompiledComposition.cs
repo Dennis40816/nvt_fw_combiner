@@ -32,7 +32,8 @@ public sealed partial class CompiledComposition
     private CompiledComposition(
         CompositionPlan plan,
         V2CompiledCompositionIdentity identity,
-        CompiledIcNumberPolicy icNumberPolicy)
+        CompiledIcNumberPolicy icNumberPolicy,
+        CompiledCompositionEligibility eligibility)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(identity);
@@ -46,6 +47,7 @@ public sealed partial class CompiledComposition
         ValidateIcNumberPolicy(identity.CompositionKind, icNumberPolicy);
         ValidateDefaultOutputFileName(identity.Details.OutputNamingRequirement.FileNameTemplate);
         ValidateV2InputRequirements(plan, identity.Details);
+        ValidateV2Eligibility(identity.Details, eligibility);
 
         Plan = plan;
         ProfileId = identity.ProfileId;
@@ -56,7 +58,7 @@ public sealed partial class CompiledComposition
         CompositionKind = identity.CompositionKind;
         DefaultOutputFileName = identity.Details.OutputNamingRequirement.FileNameTemplate;
         IcNumberPolicy = icNumberPolicy;
-        Eligibility = CompiledCompositionEligibility.V2PlanCompiled;
+        Eligibility = eligibility;
         Authority = new ProfileBundleV2CompilationAuthority();
         V2Details = identity.Details;
         CompilationFingerprint = CalculateCompilationFingerprint(this);
@@ -117,7 +119,16 @@ public sealed partial class CompiledComposition
         V2CompiledCompositionIdentity identity,
         CompiledIcNumberPolicy icNumberPolicy)
     {
-        return new CompiledComposition(plan, identity, icNumberPolicy);
+        return new CompiledComposition(plan, identity, icNumberPolicy, CompiledCompositionEligibility.V2PlanCompiled);
+    }
+
+    /// <summary>Creates a trusted profile-bundle-v2 artifact admitted to the current closed runtime subset.</summary>
+    internal static CompiledComposition CreateV2RuntimeExecutable(
+        CompositionPlan plan,
+        V2CompiledCompositionIdentity identity,
+        CompiledIcNumberPolicy icNumberPolicy)
+    {
+        return new CompiledComposition(plan, identity, icNumberPolicy, CompiledCompositionEligibility.V2RuntimeExecutable);
     }
 
     private static void ValidateIcNumberPolicy(
@@ -248,6 +259,34 @@ public sealed partial class CompiledComposition
         foreach (AddressSpace tpInputSpace in tpInputSpaces)
         {
             ValidateTpMaximumInputGeometry(tpInputSpace, details.RegionAccessContract.ResolvedViews);
+        }
+    }
+
+    private static void ValidateV2Eligibility(
+        V2CompiledCompositionDetails details,
+        CompiledCompositionEligibility eligibility)
+    {
+        if (eligibility == CompiledCompositionEligibility.V2PlanCompiled)
+        {
+            return;
+        }
+
+        if (eligibility != CompiledCompositionEligibility.V2RuntimeExecutable)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(eligibility),
+                eligibility,
+                "Unknown profile-bundle-v2 composition eligibility.");
+        }
+
+        if (details.Provenance.Promotion.Stage != CompiledProfilePromotionStage.Supported ||
+            details.Provenance.Promotion.Blockers.Count != 0 ||
+            details.OutputNamingRequirement.RequiredTokenIds.Count != 0 ||
+            details.OutputNamingRequirement.AllowOverride)
+        {
+            throw new ArgumentException(
+                "V2 runtime execution requires a supported, unblocked profile with a token-free non-overridable output template.",
+                nameof(details));
         }
     }
 
