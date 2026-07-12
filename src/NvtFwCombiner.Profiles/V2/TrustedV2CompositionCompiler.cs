@@ -9,6 +9,8 @@ internal static class TrustedV2CompositionCompiler
     private const string SelectionUnresolved = "profile.v2.compile.selection-unresolved";
     private const string ProfileExperienceMismatch = "profile.v2.compile.profile-experience-mismatch";
     private const string MapSelectionInvalid = "profile.v2.compile.map-selection-invalid";
+    private const string MapCapacityRequired = "profile.v2.compile.map-capacity-required";
+    private const string MapCapacityUnavailable = "profile.v2.compile.map-capacity-unavailable";
     private const string PreparationNotAdmitted = "profile.v2.compile.preparation-not-admitted";
 
     internal static V2CompositionPlanCompileResult Compile(
@@ -16,7 +18,8 @@ internal static class TrustedV2CompositionCompiler
         string profileId,
         string profileVersion,
         string memberId,
-        string modeId)
+        string modeId,
+        long? requestedMapCapacity = null)
     {
         ArgumentNullException.ThrowIfNull(catalog);
         ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
@@ -51,12 +54,37 @@ internal static class TrustedV2CompositionCompiler
                 map.Applicability.MemberIds.Contains(memberId, StringComparer.Ordinal) &&
                 map.Applicability.ModeIds.Contains(modeId, StringComparer.Ordinal)),
         ];
-        if (mapCandidates.Length != 1)
+        if (mapCandidates.Length == 0)
         {
             return Failed(
                 [],
                 MapSelectionInvalid,
-                "The selected trusted V2 profile must identify exactly one canonical image map.");
+                "The selected trusted V2 profile does not identify a canonical image map for the requested member and mode.");
+        }
+
+        if (requestedMapCapacity is { } capacity)
+        {
+            mapCandidates =
+            [
+                .. mapCandidates.Where(map => map.CapacityBytes == capacity),
+            ];
+            if (mapCandidates.Length == 0)
+            {
+                return Failed(
+                    [],
+                    MapCapacityUnavailable,
+                    "The selected trusted V2 profile has no canonical image map for the requested capacity.");
+            }
+        }
+
+        if (mapCandidates.Length != 1)
+        {
+            return Failed(
+                [],
+                requestedMapCapacity is null ? MapCapacityRequired : MapSelectionInvalid,
+                requestedMapCapacity is null
+                    ? "The selected trusted V2 profile requires one exact map capacity."
+                    : "The selected trusted V2 profile must identify exactly one canonical image map for the requested capacity.");
         }
 
         V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(

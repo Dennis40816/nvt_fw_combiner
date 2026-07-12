@@ -40,21 +40,45 @@ internal static partial class V2CompositionPlanCompiler
         return [.. operations];
     }
 
-    private static void ValidateRejectOperationOverlaps(
+    private static void ValidateOperationOverlaps(
         IReadOnlyList<CompositionOperation> operations,
         List<CompositionIssue> issues)
     {
         var priorWrites = new List<CompositionOperation>();
         foreach (CompositionOperation operation in operations.OrderBy(static operation => operation.Sequence).ThenBy(static operation => operation.OperationId, StringComparer.Ordinal))
         {
-            CompositionOperation? prior = priorWrites.FirstOrDefault(candidate =>
+            CompositionOperation[] overlaps =
+            [
+                .. priorWrites.Where(candidate =>
                 StringComparer.Ordinal.Equals(candidate.TargetSpaceId, operation.TargetSpaceId) &&
-                candidate.TargetRange.Overlaps(operation.TargetRange));
-            if (prior is not null)
+                candidate.TargetRange.Overlaps(operation.TargetRange)),
+            ];
+            if (overlaps.Length == 0)
             {
+                if (operation.OverlapPolicy == OverlapPolicy.ReplaceExisting)
+                {
+                    issues.Add(new CompositionIssue(
+                        OperationOverlap,
+                        $"Operation '{operation.OperationId}' declares ReplaceExisting but has no earlier write covering its target range in target space '{operation.TargetSpaceId}'.",
+                        operation.OperationId));
+                    return;
+                }
+            }
+            else if (operation.OverlapPolicy != OverlapPolicy.ReplaceExisting)
+            {
+                CompositionOperation prior = overlaps[0];
                 issues.Add(new CompositionIssue(
                     OperationOverlap,
                     $"Operation '{operation.OperationId}' overlaps earlier operation '{prior.OperationId}' in target space '{operation.TargetSpaceId}'.",
+                    operation.OperationId));
+                return;
+            }
+            else if (operation.Kind != CompositionOperationKind.CopyRange ||
+                     !overlaps.Any(candidate => candidate.TargetRange.Contains(operation.TargetRange)))
+            {
+                issues.Add(new CompositionIssue(
+                    OperationOverlap,
+                    $"Operation '{operation.OperationId}' declares ReplaceExisting but no earlier write fully covers its target range in target space '{operation.TargetSpaceId}'.",
                     operation.OperationId));
                 return;
             }
@@ -104,7 +128,7 @@ internal static partial class V2CompositionPlanCompiler
             source.Range,
             target.SpaceId,
             target.Range,
-            OverlapPolicy.Reject,
+            operation.OverlapPolicy,
             operation.Reason));
     }
 

@@ -222,6 +222,52 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal("profile.v2.compile.profile-experience-mismatch", Assert.Single(rejected.Issues).Code);
     }
 
+    /// <summary>Verifies a profile with capacity variants never selects a default map and lowers only the explicitly requested map.</summary>
+    [Fact]
+    public void TrustedCompilerRequiresExactCapacityForMultipleCanonicalMaps()
+    {
+        string familyJson = FamilyJsonWithCapacityVariants();
+        string profileJson = RuntimeProfileForCapacityVariants(Hash(familyJson));
+        TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson, profileJson);
+
+        V2CompositionPlanCompileResult missing = TrustedV2CompositionCompiler.Compile(
+            catalog,
+            "profile",
+            "1.0.0",
+            "NT00001",
+            "standard");
+        V2CompositionPlanCompileResult sixteen = TrustedV2CompositionCompiler.Compile(
+            catalog,
+            "profile",
+            "1.0.0",
+            "NT00001",
+            "standard",
+            requestedMapCapacity: 16);
+        V2CompositionPlanCompileResult thirtyTwo = TrustedV2CompositionCompiler.Compile(
+            catalog,
+            "profile",
+            "1.0.0",
+            "NT00001",
+            "standard",
+            requestedMapCapacity: 32);
+        V2CompositionPlanCompileResult unavailable = TrustedV2CompositionCompiler.Compile(
+            catalog,
+            "profile",
+            "1.0.0",
+            "NT00001",
+            "standard",
+            requestedMapCapacity: 64);
+
+        Assert.Null(missing.CompiledComposition);
+        Assert.Equal("profile.v2.compile.map-capacity-required", Assert.Single(missing.Issues).Code);
+        Assert.Equal("map", sixteen.CompiledComposition?.V2Details?.Provenance.ResolvedMap.ImageMap.MapId);
+        Assert.Equal(16, sixteen.CompiledComposition?.Plan.OutputInitialization.Capacity);
+        Assert.Equal("map-32", thirtyTwo.CompiledComposition?.V2Details?.Provenance.ResolvedMap.ImageMap.MapId);
+        Assert.Equal(32, thirtyTwo.CompiledComposition?.Plan.OutputInitialization.Capacity);
+        Assert.Null(unavailable.CompiledComposition);
+        Assert.Equal("profile.v2.compile.map-capacity-unavailable", Assert.Single(unavailable.Issues).Code);
+    }
+
     private static TrustedProfileBundleCatalog CreateCatalog(
         string? familyJson = null,
         string? profileJson = null,
@@ -300,5 +346,37 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         alternate["mapId"] = "alternate-map";
         maps.Add(alternate);
         return family.ToJsonString();
+    }
+
+    private static string FamilyJsonWithCapacityVariants()
+    {
+        JsonObject family = Assert.IsType<JsonObject>(JsonNode.Parse(FamilyJsonWithRootWriteConstraint("explicit-range")));
+        JsonArray regionSets = Assert.IsType<JsonArray>(family["regionSets"]);
+        JsonObject secondRegionSet = Assert.IsType<JsonObject>(regionSets[0]?.DeepClone());
+        secondRegionSet["regionSetId"] = "physical-32";
+        JsonObject root = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(secondRegionSet["regions"])[0]);
+        root["range"] = new JsonObject { ["start"] = 0, ["length"] = 32 };
+        regionSets.Add(secondRegionSet);
+        JsonArray maps = Assert.IsType<JsonArray>(family["imageMaps"]);
+        JsonObject secondMap = Assert.IsType<JsonObject>(maps[0]?.DeepClone());
+        secondMap["mapId"] = "map-32";
+        Assert.IsType<JsonObject>(secondMap["applicability"])["capacityBytes"] = 32;
+        secondMap["regionSetIds"] = new JsonArray("physical-32");
+        maps.Add(secondMap);
+        return family.ToJsonString();
+    }
+
+    private static string RuntimeProfileForCapacityVariants(string familyHash)
+    {
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(RuntimeSupportedProfileJson(familyHash)));
+        Assert.IsType<JsonObject>(profile["experience"])["experienceId"] = "standard";
+        Assert.IsType<JsonArray>(Assert.IsType<JsonObject>(profile["mapBinding"])["mapIds"]).Add("map-32");
+        Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["regionAccessRules"])[0])["access"] = "explicit-range";
+        Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["views"])[1])["selector"] = new JsonObject
+        {
+            ["kind"] = "map-region",
+            ["regionId"] = "root",
+        };
+        return profile.ToJsonString();
     }
 }

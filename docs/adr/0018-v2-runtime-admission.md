@@ -1,6 +1,6 @@
 # ADR 0018: V2 Runtime Admission for the Closed Blank-Output Subset
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-12
 - Owners: Product owner + architecture owner
 - Amends: ADR 0015 and composition-profile-v2
@@ -22,7 +22,10 @@ Profiles is the only production assembly that can mint either artifact. A V2 run
 - `supported` promotion with no blockers;
 - trusted bundle/profile identity and a unique resolved map;
 - Merge, one engine-owned blank output, exactly one immutable singleton space per input slot, and
-  only the existing copy/fill/patch/checked-transform operations with rejected overlap;
+  only the existing copy/fill/patch/checked-transform operations. Writes normally reject overlap.
+  A later `copy-range` may declare `replace-existing` only when one earlier write in the same output
+  space fully contains its target range; partial, uncovered, cross-space, and reversed writes remain
+  rejected;
 - no metadata bindings, validations, processor stages, clone initialization, or extra mutable space;
 - a token-free output template using the `reject` invalid-character policy.
 
@@ -39,6 +42,10 @@ paths, dynamic naming, or `replace-underscore` rendering.
 The existing engine remains the only executor. Preview tokens use the complete compilation
 fingerprint, and Application run reports record it; for V2 this fingerprint binds the bundle, profile
 entry, resolved map, promotion, input contract, output policy, and plan.
+
+When one trusted profile binds multiple canonical maps, the compiler requires an exact requested
+capacity before resolution. It never selects a largest/default map. Existing profiles bound to one
+map retain their capacity-free call path.
 
 ## Consequences
 

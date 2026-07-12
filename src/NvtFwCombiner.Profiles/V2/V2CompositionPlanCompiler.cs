@@ -108,7 +108,7 @@ internal static partial class V2CompositionPlanCompiler
         }
 
         CompositionOperation[] operations = LowerOperations(profile, views, regionAccess, issues);
-        ValidateRejectOperationOverlaps(operations, issues);
+        ValidateOperationOverlaps(operations, issues);
         if (issues.Count != 0)
         {
             return V2CompositionPlanCompileResult.Failed(issues);
@@ -221,15 +221,19 @@ internal static partial class V2CompositionPlanCompiler
 
         foreach (CompositionProfileOperation operation in profile.Operations)
         {
-            if (operation.OverlapPolicy != OverlapPolicy.Reject ||
-                operation is not CopyOrReplaceProfileOperation { Kind: CompositionProfileOperationKind.CopyRange } and
-                    not FillRangeProfileOperation and
-                    not PatchScalarProfileOperation and
-                    not TransformScalarProfileOperation)
+            bool isCopyRange = operation is CopyOrReplaceProfileOperation
+            {
+                Kind: CompositionProfileOperationKind.CopyRange,
+            };
+            bool isSupportedOperation = isCopyRange ||
+                operation is FillRangeProfileOperation or PatchScalarProfileOperation or TransformScalarProfileOperation;
+            bool hasSupportedOverlapPolicy = operation.OverlapPolicy == OverlapPolicy.Reject ||
+                (isCopyRange && operation.OverlapPolicy == OverlapPolicy.ReplaceExisting);
+            if (!isSupportedOperation || !hasSupportedOverlapPolicy)
             {
                 AddUnsupported(
                     issues,
-                    $"operation '{operation.OperationId}' is outside the CopyRange/FillRange/PatchScalar/TransformScalar Reject lowering subset",
+                    $"operation '{operation.OperationId}' is outside the CopyRange/FillRange/PatchScalar/TransformScalar subset with Reject or fully-covered CopyRange ReplaceExisting overlap",
                     operation.OperationId);
             }
         }

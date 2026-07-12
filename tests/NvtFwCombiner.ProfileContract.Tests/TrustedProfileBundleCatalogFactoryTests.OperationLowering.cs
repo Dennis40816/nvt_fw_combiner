@@ -156,6 +156,43 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Contains("fill-output", issue.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies a later CopyRange may replace bytes only when an earlier write fully covers its target range.</summary>
+    [Fact]
+    public void BlankOutputLoweringAcceptsFullyCoveredReplaceExistingCopy()
+    {
+        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+            familyHash => ProfileWithFullyCoveredReplaceExistingCopy(SupportedProfileJson(familyHash))));
+
+        CompositionOperation[] operations = [.. result.CompiledComposition!.Plan.OrderedOperations];
+        Assert.Equal(["copy-base", "copy-overlay"], operations.Select(static operation => operation.OperationId));
+        Assert.Equal([OverlapPolicy.Reject, OverlapPolicy.ReplaceExisting], operations.Select(static operation => operation.OverlapPolicy));
+    }
+
+    /// <summary>Verifies ReplaceExisting remains closed for uncovered, partial, and reversed overlay declarations.</summary>
+    [Theory]
+    [InlineData("uncovered")]
+    [InlineData("partial")]
+    [InlineData("reversed")]
+    public void BlankOutputLoweringRejectsReplaceExistingWithoutEarlierFullCoverage(string scenario)
+    {
+        string familyJson = scenario == "partial"
+            ? FamilyJsonWithRootWriteConstraint("explicit-range")
+            : FamilyJsonWithRootWriteConstraint("whole-region");
+        string profileJson = scenario switch
+        {
+            "uncovered" => ProfileWithUncoveredReplaceExistingCopy(SupportedProfileJson(Hash(familyJson))),
+            "partial" => ProfileWithPartiallyCoveredReplaceExistingCopy(SupportedProfileJson(Hash(familyJson), access: "explicit-range")),
+            "reversed" => ProfileWithReversedReplaceExistingCopy(SupportedProfileJson(Hash(familyJson))),
+            _ => throw new ArgumentOutOfRangeException(nameof(scenario), scenario, "Unknown overlap scenario."),
+        };
+        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+            _ => profileJson,
+            familyJson));
+
+        Assert.Null(result.CompiledComposition);
+        Assert.Equal("profile.v2.plan.operation-overlap", Assert.Single(result.Issues).Code);
+    }
+
     /// <summary>Verifies adjacent half-open target ranges remain non-overlapping and preserve canonical sequence and provenance.</summary>
     [Fact]
     public void BlankOutputLoweringAcceptsAdjacentWritesInDeterministicOrder()
@@ -314,6 +351,86 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             ["targetViewId"] = "output-code",
             ["valueHex"] = "00112233445566778899aabbccddeeff",
         });
+        return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    private static string ProfileWithFullyCoveredReplaceExistingCopy(string profileJson)
+    {
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(profileJson));
+        JsonArray operations = Assert.IsType<JsonArray>(profile["operations"]);
+        JsonObject baseCopy = Assert.IsType<JsonObject>(operations[0]);
+        baseCopy["operationId"] = "copy-base";
+        baseCopy["sequence"] = 100;
+        operations.Add(new JsonObject
+        {
+            ["operationId"] = "copy-overlay",
+            ["sequence"] = 200,
+            ["overlapPolicy"] = "replace-existing",
+            ["reason"] = "Replace an already written synthetic output range.",
+            ["kind"] = "copy-range",
+            ["sourceViewId"] = "tp-code",
+            ["targetViewId"] = "output-code",
+        });
+        return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    private static string ProfileWithUncoveredReplaceExistingCopy(string profileJson)
+    {
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(profileJson));
+        JsonObject operation = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["operations"])[0]);
+        operation["overlapPolicy"] = "replace-existing";
+        return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    private static string ProfileWithPartiallyCoveredReplaceExistingCopy(string profileJson)
+    {
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(profileJson));
+        JsonArray views = Assert.IsType<JsonArray>(profile["views"]);
+        views.Add(new JsonObject
+        {
+            ["viewId"] = "tp-head",
+            ["spaceId"] = "tp-source",
+            ["selector"] = new JsonObject
+            {
+                ["kind"] = "space-range",
+                ["range"] = new JsonObject { ["start"] = 0, ["length"] = 8 },
+            },
+        });
+        views.Add(new JsonObject
+        {
+            ["viewId"] = "output-head",
+            ["spaceId"] = "output",
+            ["selector"] = new JsonObject
+            {
+                ["kind"] = "space-range",
+                ["range"] = new JsonObject { ["start"] = 0, ["length"] = 8 },
+            },
+        });
+        JsonArray operations = Assert.IsType<JsonArray>(profile["operations"]);
+        JsonObject baseCopy = Assert.IsType<JsonObject>(operations[0]);
+        baseCopy["operationId"] = "copy-base";
+        baseCopy["sequence"] = 100;
+        baseCopy["sourceViewId"] = "tp-head";
+        baseCopy["targetViewId"] = "output-head";
+        operations.Add(new JsonObject
+        {
+            ["operationId"] = "copy-overlay",
+            ["sequence"] = 200,
+            ["overlapPolicy"] = "replace-existing",
+            ["reason"] = "Attempt to replace a synthetic range only partially written before.",
+            ["kind"] = "copy-range",
+            ["sourceViewId"] = "tp-code",
+            ["targetViewId"] = "output-code",
+        });
+        return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    private static string ProfileWithReversedReplaceExistingCopy(string profileJson)
+    {
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(ProfileWithFullyCoveredReplaceExistingCopy(profileJson)));
+        JsonArray operations = Assert.IsType<JsonArray>(profile["operations"]);
+        Assert.IsType<JsonObject>(operations[0])["sequence"] = 200;
+        Assert.IsType<JsonObject>(operations[1])["sequence"] = 100;
         return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
     }
 
