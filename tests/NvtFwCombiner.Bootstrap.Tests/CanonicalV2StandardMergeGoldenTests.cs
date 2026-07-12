@@ -17,7 +17,8 @@ public sealed class CanonicalV2StandardMergeGoldenTests
     [InlineData("nt51923-standard-merge", "2fa763cce4d9bbaa623821905683cb7ebc832174d916fb338aa8a3cde31b2f59", "NT51926", "nt51926-standard-merge-gen-flash", "51926", "nt51926-standard-merge-gen-flash.bin", 0x40000, 0x40000, false)]
     [InlineData("nt51930-standard-merge", "046409a16d3b7bdfd942407e8702f08ddb40f20fd94ff297e449f141d4b13cbb", "NT51930", "nt51930-standard-merge-flashmap", "51930", "nt51930-standard-merge-flashmap.bin", 0x6000, 0x40000, false)]
     [InlineData("nt51931-standard-merge", "ff3ac6d142ffdbef52c9b088b692e25fe36b38f9cbcf2b43c06894b00ee97d4f", "NT51931", "nt51931-standard-merge-gen-flash", "51931", "nt51931-standard-merge-gen-flash.bin", 0x40000, 0x80000, false)]
-    [InlineData("nt51927-standard-merge", "058e8850a601a6d850c89413e9064e5e040c973a2536bfe902ee717904f45230", "NT51927", "nt51927-standard-merge-gen-flash", "51927", "nt51927-standard-merge-gen-flash.bin", 0x40000, 0x200000, false)]
+    [InlineData("nt51927-standard-merge", "b1ee7a6ba5aa4d2ddcea2cb94a4aef23839e6e4353687df0115049ec15c019ef", "NT51917", "nt51917-standard-merge-gen-flash-alias", "51927", "nt51917-standard-merge-gen-flash-alias.bin", 0x40000, 0x200000, true)]
+    [InlineData("nt51927-standard-merge", "b1ee7a6ba5aa4d2ddcea2cb94a4aef23839e6e4353687df0115049ec15c019ef", "NT51927", "nt51927-standard-merge-gen-flash", "51927", "nt51927-standard-merge-gen-flash.bin", 0x40000, 0x200000, false)]
     [InlineData("nt51928-standard-merge", "4c0574d52d78bcdca8461fb0660d58f781221a27bfa93e541edf076a5432574d", "NT51928", "nt51928-standard-merge-gen-flash", "51928", "nt51928-standard-merge-gen-flash.bin", 0x40000, 0x80000, false)]
     public async Task TrustedV2BundleMatchesLegacyPlanAndOwnerApprovedGoldenBytes(
         string bundleDirectory,
@@ -65,11 +66,32 @@ public sealed class CanonicalV2StandardMergeGoldenTests
         FirmwareFactProvenance provenance = Assert.Single(details.Provenance.ResolvedMap.FactProvenance);
         if (expectsAlias)
         {
-            Assert.Equal("nt51919-standard-merge-flash", provenance.EffectiveKey.FactId);
-            Assert.Equal("NT51929", provenance.DirectSourceKey.MemberId);
-            Assert.Equal("nt51929-standard-merge-256k", provenance.DirectSourceKey.MapId);
-            Assert.Equal("nt51929-nt51932-standard-merge-flash", provenance.DirectSourceKey.FactId);
-            Assert.Equal("nt51919-standard-merge-region-set-alias", Assert.Single(provenance.AliasChain).AliasId);
+            (string EffectiveMapId, string EffectiveFactId, string SourceMemberId, string SourceMapId, string SourceFactId, string AliasId) = composition.IcId switch
+            {
+                "NT51917" => (
+                    "nt51917-standard-merge-256k",
+                    "nt51917-standard-merge-flash",
+                    "NT51927",
+                    "nt51927-standard-merge-256k",
+                    "nt51927-standard-merge-flash",
+                    "nt51917-standard-merge-region-set-alias"),
+                "NT51919" => (
+                    "nt51919-standard-merge-256k",
+                    "nt51919-standard-merge-flash",
+                    "NT51929",
+                    "nt51929-standard-merge-256k",
+                    "nt51929-nt51932-standard-merge-flash",
+                    "nt51919-standard-merge-region-set-alias"),
+                _ => throw new Xunit.Sdk.XunitException($"Unexpected region-set alias for {composition.IcId}."),
+            };
+
+            Assert.Equal(composition.IcId, provenance.EffectiveKey.MemberId);
+            Assert.Equal(EffectiveMapId, provenance.EffectiveKey.MapId);
+            Assert.Equal(EffectiveFactId, provenance.EffectiveKey.FactId);
+            Assert.Equal(SourceMemberId, provenance.DirectSourceKey.MemberId);
+            Assert.Equal(SourceMapId, provenance.DirectSourceKey.MapId);
+            Assert.Equal(SourceFactId, provenance.DirectSourceKey.FactId);
+            Assert.Equal(AliasId, Assert.Single(provenance.AliasChain).AliasId);
             return;
         }
 

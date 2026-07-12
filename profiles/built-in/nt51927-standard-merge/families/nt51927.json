@@ -4,6 +4,10 @@
   "familyVersion": "1.0.0",
   "members": [
     {
+      "memberId": "NT51917",
+      "displayName": "NT51917"
+    },
+    {
       "memberId": "NT51927",
       "displayName": "NT51927"
     }
@@ -70,6 +74,30 @@
   "metadataSets": [],
   "imageMaps": [
     {
+      "mapId": "nt51917-standard-merge-256k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [
+          "NT51917"
+        ],
+        "modeIds": [
+          "standard-merge"
+        ],
+        "topologyRequirement": {
+          "kind": "none"
+        },
+        "capacityBytes": 262144
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51917-standard-merge-flash"
+      ],
+      "metadataSetIds": [],
+      "evidenceRefs": [
+        "standard-merge-alias-51917-to-51927"
+      ]
+    },
+    {
       "mapId": "nt51927-standard-merge-256k",
       "addressSpaceId": "flash",
       "applicability": {
@@ -94,8 +122,33 @@
       ]
     }
   ],
-  "factAliases": [],
+  "factAliases": [
+    {
+      "aliasId": "nt51917-standard-merge-region-set-alias",
+      "factKind": "region-set",
+      "targetMemberId": "NT51917",
+      "targetMapId": "nt51917-standard-merge-256k",
+      "targetRegionSetId": "nt51917-standard-merge-flash",
+      "sourceMemberId": "NT51927",
+      "sourceMapId": "nt51927-standard-merge-256k",
+      "sourceRegionSetId": "nt51927-standard-merge-flash",
+      "applicability": {
+        "modeIds": [
+          "standard-merge"
+        ],
+        "topologyRequirement": {
+          "kind": "none"
+        },
+        "capacityBytes": 262144
+      },
+      "reason": "Owner-confirmed NT51917 Standard Merge alias of NT51927 retains target map identity and source physical-region evidence.",
+      "evidenceRefs": [
+        "standard-merge-alias-51917-to-51927"
+      ]
+    }
+  ],
   "evidenceRefs": [
-    "gen-flash-bin-v2-51927-golden"
+    "gen-flash-bin-v2-51927-golden",
+    "standard-merge-alias-51917-to-51927"
   ]
 }

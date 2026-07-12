@@ -53,7 +53,7 @@ The active 0.8.0 cleanup goal and milestone acceptance criteria are tracked in
 
 | IC | Standard Merge | AB Merge | Replace planning | Integrity evidence | Current evidence | 1.0 status |
 | --- | --- | --- | --- | --- | --- | --- |
-| NT51917 | executable owner-confirmed alias of NT51927 | no evidence | DP/CtrlRAM priority | CtrlRAM Replace uses the NT51927 reference flow | owner alias confirmation + NT51927 golden-byte alias regression | Candidate; postbuild core implemented |
+| NT51917 | canonical V2 Standard Merge route; map-bound alias of NT51927 | no evidence | DP/CtrlRAM priority | CtrlRAM Replace uses the NT51927 reference flow | owner alias confirmation + NT51927 golden-byte alias regression + trusted V2 map-bound alias/plan/golden parity + packaged Bootstrap routing | Candidate; firmware-owner migration review pending |
 | NT51919 | canonical V2 Standard Merge route; map-bound alias of NT51929 | no evidence | DP/CtrlRAM priority | CtrlRAM Replace uses the NT51929/NT51932 reference flow | owner alias confirmation + NT51929 golden-byte alias regression + trusted V2 map-bound alias/plan/golden parity + packaged Bootstrap routing | Candidate; firmware-owner migration review pending |
 | NT51920 | reference candidate; canonical V2 Standard Merge route | no evidence | DP/CtrlRAM/General TBD | Unknown | `gen_flash_bin_v2` config + trusted V2 bundle/plan/golden parity + packaged Bootstrap routing | Candidate; firmware-owner migration review pending |
 | NT51923 | canonical V2 Standard Merge route | no evidence | DP/CtrlRAM/General TBD | Unknown | `gen_flash_bin_v2` config + trusted V2 map/plan/golden parity + packaged Bootstrap routing | Candidate; firmware-owner migration review pending |

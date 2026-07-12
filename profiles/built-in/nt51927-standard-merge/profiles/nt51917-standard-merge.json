@@ -1,6 +1,6 @@
 {
   "schemaVersion": "2.0",
-  "profileId": "nt51927-standard-merge-gen-flash",
+  "profileId": "nt51917-standard-merge-gen-flash-alias",
   "profileVersion": "0.5.0",
   "promotion": {
     "stage": "supported",
@@ -13,14 +13,14 @@
     "layoutPolicy": "fixed",
     "inputPolicy": "fixed",
     "topologyAuthoring": "hidden",
-    "displayNameKey": "profile.nt51927.standard-merge"
+    "displayNameKey": "profile.nt51917.standard-merge"
   },
   "mapBinding": {
     "familyId": "nt51927",
     "familyVersion": "1.0.0",
     "familyContentHash": "4eb967a44906205202e1a6d07418637562a6576dc2943ce7cb2b6b518d064360",
     "mapIds": [
-      "nt51927-standard-merge-256k"
+      "nt51917-standard-merge-256k"
     ],
     "requiredRegionIds": [
       "tp-code",
@@ -136,12 +136,12 @@
     {
       "regionId": "tp-code",
       "access": "whole",
-      "reason": "Owner-approved gen_flash_bin_v2 NT51927 Standard Merge TP range."
+      "reason": "Owner-confirmed NT51917 alias inherits the NT51927 Standard Merge TP range."
     },
     {
       "regionId": "dp-code",
       "access": "whole",
-      "reason": "Owner-approved gen_flash_bin_v2 NT51927 Standard Merge DP range."
+      "reason": "Owner-confirmed NT51917 alias inherits the NT51927 Standard Merge DP range."
     }
   ],
   "operations": [
@@ -149,7 +149,7 @@
       "operationId": "copy-tp",
       "sequence": 100,
       "overlapPolicy": "reject",
-      "reason": "Copy the reviewed NT51927 TP range.",
+      "reason": "Copy the owner-confirmed NT51917 alias TP range.",
       "kind": "copy-range",
       "sourceViewId": "tp-source",
       "targetViewId": "tp-output"
@@ -158,7 +158,7 @@
       "operationId": "copy-dp",
       "sequence": 200,
       "overlapPolicy": "reject",
-      "reason": "Copy the reviewed NT51927 DP range.",
+      "reason": "Copy the owner-confirmed NT51917 alias DP range.",
       "kind": "copy-range",
       "sourceViewId": "dp-source",
       "targetViewId": "dp-output"
@@ -167,12 +167,12 @@
   "validations": [],
   "processorStages": [],
   "output": {
-    "fileNameTemplate": "nt51927-standard-merge-gen-flash.bin",
+    "fileNameTemplate": "nt51917-standard-merge-gen-flash-alias.bin",
     "allowOverride": true,
     "invalidCharacterPolicy": "reject",
     "requiredTokenIds": []
   },
   "evidenceRefs": [
-    "gen-flash-bin-v2-51927-golden"
+    "standard-merge-alias-51917-to-51927"
   ]
 }

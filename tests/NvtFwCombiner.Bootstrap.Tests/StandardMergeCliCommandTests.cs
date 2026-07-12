@@ -230,9 +230,11 @@ public sealed class StandardMergeCliCommandTests
         Assert.Equal(0x11, output[0x3E000]);
     }
 
-    /// <summary>Verifies the NT51927 V2 route accepts its approved two-mebibyte DP container without an extraction warning.</summary>
-    [Fact]
-    public async Task StandardMergeBuildWritesCallerOutputThroughNt51927V2Profile()
+    /// <summary>Verifies the NT51917 alias and NT51927 direct V2 routes accept their approved two-mebibyte DP container without an extraction warning.</summary>
+    [Theory]
+    [InlineData("NT51917")]
+    [InlineData("NT51927")]
+    public async Task StandardMergeBuildWritesCallerOutputThroughNt51927FamilyV2Profile(string icId)
     {
         using var workspace = TempWorkspace.Create();
         byte[] dp = new byte[0x200000];
@@ -248,7 +250,7 @@ public sealed class StandardMergeCliCommandTests
             "standard-merge",
             "build",
             "--profile",
-            "NT51927",
+            icId,
             "--dp",
             dpPath,
             "--tp",
