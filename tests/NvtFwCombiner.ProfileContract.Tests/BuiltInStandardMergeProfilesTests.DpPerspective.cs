@@ -74,15 +74,18 @@ public sealed partial class BuiltInStandardMergeProfilesTests
         Assert.All(output[0x38000..], value => Assert.Equal(0x11, value));
     }
 
-    /// <summary>Verifies approved NT51950/NT51951 DP variants create matching output-length profiles.</summary>
+    /// <summary>Verifies every approved NT51950/NT51951 DP variant preserves the Normal Merge byte contract.</summary>
     [Theory]
-    [InlineData(0x40000)]
-    [InlineData(0x80000)]
-    [InlineData(0x100000)]
-    public void DpPerspectiveExecutionAcceptsDeclaredDpInputLengths(int dpLength)
+    [InlineData("NT51950", 0x40000)]
+    [InlineData("NT51950", 0x80000)]
+    [InlineData("NT51950", 0x100000)]
+    [InlineData("NT51951", 0x40000)]
+    [InlineData("NT51951", 0x80000)]
+    [InlineData("NT51951", 0x100000)]
+    public void DpPerspectiveExecutionPreservesNormalMergeByteContract(string icId, int dpLength)
     {
         CompositionProfileDefinition profile = BuiltInStandardMergeProfiles.CreateDpPerspectiveProfileForInputLength(
-            "NT51951",
+            icId,
             dpLength);
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         Assert.True(compile.IsSuccess, FormatIssues(compile.Issues));
