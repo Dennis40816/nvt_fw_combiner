@@ -209,6 +209,7 @@ public sealed class V2CompilationProvenance
 {
     private readonly string[] _profileEvidenceRefs;
     private readonly CompiledValidationRequirement[] _validationRequirements;
+    private readonly CompiledCapabilityAdmission[] _requiredCapabilities;
 
     internal V2CompilationProvenance(
         ProfileBundleIdentity bundle,
@@ -216,7 +217,8 @@ public sealed class V2CompilationProvenance
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         CompiledProfilePromotion promotion,
         IEnumerable<string> profileEvidenceRefs,
-        IEnumerable<CompiledValidationRequirement> validationRequirements)
+        IEnumerable<CompiledValidationRequirement> validationRequirements,
+        IEnumerable<CompiledCapabilityAdmission> requiredCapabilities)
     {
         ArgumentNullException.ThrowIfNull(bundle);
         ArgumentNullException.ThrowIfNull(profileEntry);
@@ -245,12 +247,40 @@ public sealed class V2CompilationProvenance
                 : StringComparer.Ordinal.Compare(left.RuleId, right.RuleId);
         });
 
+        ArgumentNullException.ThrowIfNull(requiredCapabilities);
+        _requiredCapabilities = [.. requiredCapabilities];
+        if (_requiredCapabilities.Any(static capability => capability is null) ||
+            _requiredCapabilities.Select(static capability => capability.RequiredCapabilityId)
+                .Distinct(StringComparer.Ordinal).Count() != _requiredCapabilities.Length)
+        {
+            throw new ArgumentException(
+                "Required capability admissions must be non-null with ordinally unique capability ids.",
+                nameof(requiredCapabilities));
+        }
+
+        Array.Sort(_requiredCapabilities, static (left, right) => StringComparer.Ordinal.Compare(
+            left.RequiredCapabilityId,
+            right.RequiredCapabilityId));
+        foreach (CompiledCapabilityAdmission capability in _requiredCapabilities)
+        {
+            FirmwareMapFactBinding<FirmwareCapabilityFact> binding = capability.Binding;
+            if (!StringComparer.Ordinal.Equals(binding.EffectiveKey.MemberId, resolvedMap.MemberId) ||
+                !StringComparer.Ordinal.Equals(binding.EffectiveKey.MapId, resolvedMap.ImageMap.MapId) ||
+                binding.Applicability.Evaluate(resolvedMap) != FirmwareApplicabilityResult.Match)
+            {
+                throw new ArgumentException(
+                    "Required capability admissions must apply to the compiled resolved map.",
+                    nameof(requiredCapabilities));
+            }
+        }
+
         Bundle = bundle;
         ProfileEntry = profileEntry;
         ResolvedMap = resolvedMap;
         Promotion = promotion;
         ProfileEvidenceRefs = Array.AsReadOnly(_profileEvidenceRefs);
         ValidationRequirements = Array.AsReadOnly(_validationRequirements);
+        RequiredCapabilities = Array.AsReadOnly(_requiredCapabilities);
     }
 
     /// <summary>Trusted bundle-root identity recorded by the compiler.</summary>
@@ -270,6 +300,9 @@ public sealed class V2CompilationProvenance
 
     /// <summary>Complete closed validation stages retained for future runtime admission.</summary>
     public IReadOnlyList<CompiledValidationRequirement> ValidationRequirements { get; }
+
+    /// <summary>Exact admitted confirmed-present capability bindings in canonical profile requirement order.</summary>
+    public IReadOnlyList<CompiledCapabilityAdmission> RequiredCapabilities { get; }
 }
 
 /// <summary>Single typed v2 artifact payload that keeps provenance and unrendered naming requirements paired.</summary>
@@ -277,16 +310,22 @@ public sealed class V2CompiledCompositionDetails
 {
     internal V2CompiledCompositionDetails(
         V2CompilationProvenance provenance,
+        CompiledInputContract inputContract,
         CompiledOutputNamingRequirement outputNamingRequirement)
     {
         ArgumentNullException.ThrowIfNull(provenance);
+        ArgumentNullException.ThrowIfNull(inputContract);
         ArgumentNullException.ThrowIfNull(outputNamingRequirement);
         Provenance = provenance;
+        InputContract = inputContract;
         OutputNamingRequirement = outputNamingRequirement;
     }
 
     /// <summary>Resolved bundle, map, promotion, evidence, and validation provenance.</summary>
     public V2CompilationProvenance Provenance { get; }
+
+    /// <summary>Complete immutable profile input slot policy and its immutable plan address-space bindings.</summary>
+    public CompiledInputContract InputContract { get; }
 
     /// <summary>Unrendered profile-owned output naming requirement.</summary>
     public CompiledOutputNamingRequirement OutputNamingRequirement { get; }

@@ -37,7 +37,7 @@ public sealed partial class CompiledCompositionTests
         Assert.True(composition.CompilationFingerprint.All(character =>
             character is (>= '0' and <= '9') or (>= 'a' and <= 'f')));
         Assert.Equal(
-            "37d6f2f2164dcbeea85eec23c259ad608a808c988c54fbc52701696bb01f2e84",
+            "010179533127bbcadd4942b9ce610e23d69449f5845261911bf7a474a7a8aaf0",
             composition.CompilationFingerprint);
         Assert.Null(typeof(CompiledComposition).GetMethod("CreateV2", BindingFlags.Static | BindingFlags.Public));
     }
@@ -289,7 +289,9 @@ public sealed partial class CompiledCompositionTests
         CompiledOutputInvalidCharacterPolicy outputInvalidCharacterPolicy = CompiledOutputInvalidCharacterPolicy.ReplaceUnderscore,
         IEnumerable<string>? requiredOutputTokenIds = null,
         IEnumerable<string>? profileEvidenceRefs = null,
-        IEnumerable<CompiledValidationRequirement>? validationRequirements = null)
+        IEnumerable<CompiledValidationRequirement>? validationRequirements = null,
+        IEnumerable<CompiledCapabilityAdmission>? requiredCapabilities = null,
+        CompiledInputContract? inputContract = null)
     {
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = CreateResolvedMap(familyContentHash);
         var bundle = new ProfileBundleIdentity(
@@ -304,13 +306,14 @@ public sealed partial class CompiledCompositionTests
             resolvedMap,
             promotion ?? new CompiledProfilePromotion(CompiledProfilePromotionStage.Compilable, []),
             profileEvidenceRefs ?? ["profile-evidence"],
-            validationRequirements ?? []);
+            validationRequirements ?? [],
+            requiredCapabilities ?? []);
         var output = new CompiledOutputNamingRequirement(
             outputTemplate,
             allowOutputOverride,
             outputInvalidCharacterPolicy,
             requiredOutputTokenIds ?? ["original-name"]);
-        var details = new V2CompiledCompositionDetails(provenance, output);
+        var details = new V2CompiledCompositionDetails(provenance, inputContract ?? CreateInputContract(), output);
         var identity = new V2CompiledCompositionIdentity(
             "profile-v2",
             "2.0.0",
@@ -320,7 +323,11 @@ public sealed partial class CompiledCompositionTests
         var plan = new CompositionPlan(
             ImageInitialization.Blank("output-image", 4, 0),
             [
-                new AddressSpace("input", 4, AddressSpaceMutability.Immutable),
+                new AddressSpace(
+                    "input",
+                    4,
+                    AddressSpaceMutability.Immutable,
+                    allowedInputLengths: [4]),
                 new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable),
             ],
             [CompositionOperation.CopyRange(
@@ -336,6 +343,24 @@ public sealed partial class CompiledCompositionTests
             plan,
             identity,
             CompiledIcNumberPolicy.NotApplicable);
+    }
+
+    private static CompiledInputContract CreateInputContract()
+    {
+        return new CompiledInputContract(
+            [new CompiledInputSlotRequirement(
+                "input-slot",
+                "input",
+                CompiledInputArtifactClass.ReferenceImage,
+                required: true,
+                CompiledInputSlotCardinality.ExactlyOne,
+                [".bin"],
+                new CompiledExactResolvedMapCapacityInputLengthRequirement(4),
+                new CompiledNoInputNormalization())],
+            [new CompiledInputSpaceBinding(
+                "input",
+                "input-slot",
+                CompiledInputInstancePolicy.Singleton)]);
     }
 
     private static FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap CreateResolvedMap(

@@ -1,13 +1,14 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Domain.Composition;
 
 public sealed partial class CompiledComposition
 {
     private const string LegacyFingerprintFormat = "nfc.compiled-composition.legacy.v1";
-    private const string V2FingerprintFormat = "nfc.compiled-composition.profile-v2.v1";
+    private const string V2FingerprintFormat = "nfc.compiled-composition.profile-v2.v2";
 
     private static string CalculateCompilationFingerprint(CompiledComposition composition)
     {
@@ -85,6 +86,8 @@ public sealed partial class CompiledComposition
 
         AppendStringList(builder, "profile.evidence", provenance.ProfileEvidenceRefs);
         AppendValidationRequirements(builder, provenance.ValidationRequirements);
+        AppendCapabilityAdmissions(builder, provenance.RequiredCapabilities);
+        AppendInputContract(builder, details.InputContract);
         AppendField(builder, "output.template", output.FileNameTemplate);
         AppendInteger(builder, "output.allow-override", output.AllowOverride ? 1 : 0);
         AppendEnum(builder, "output.invalid-character-policy", output.InvalidCharacterPolicy);
@@ -305,6 +308,292 @@ public sealed partial class CompiledComposition
                     throw new InvalidOperationException("Unknown compiled validation requirement kind.");
             }
         }
+    }
+
+    private static void AppendInputContract(StringBuilder builder, CompiledInputContract contract)
+    {
+        AppendInteger(builder, "input.slot.count", contract.Slots.Count);
+        for (int index = 0; index < contract.Slots.Count; index++)
+        {
+            CompiledInputSlotRequirement slot = contract.Slots[index];
+            string prefix = FormattableString.Invariant($"input.slot.{index}");
+            AppendField(builder, $"{prefix}.id", slot.SlotId);
+            AppendField(builder, $"{prefix}.role", slot.Role);
+            AppendEnum(builder, $"{prefix}.artifact-class", slot.ArtifactClass);
+            AppendInteger(builder, $"{prefix}.required", slot.Required ? 1 : 0);
+            AppendEnum(builder, $"{prefix}.cardinality", slot.Cardinality);
+            AppendStringList(builder, $"{prefix}.extension", slot.AcceptedExtensions);
+            AppendInputLengthRequirement(builder, $"{prefix}.length", slot.LengthRequirement);
+            AppendInputNormalization(builder, $"{prefix}.normalization", slot.Normalization);
+        }
+
+        AppendInteger(builder, "input.binding.count", contract.SpaceBindings.Count);
+        for (int index = 0; index < contract.SpaceBindings.Count; index++)
+        {
+            CompiledInputSpaceBinding binding = contract.SpaceBindings[index];
+            string prefix = FormattableString.Invariant($"input.binding.{index}");
+            AppendField(builder, $"{prefix}.address-space", binding.AddressSpaceId);
+            AppendField(builder, $"{prefix}.slot", binding.SlotId);
+            AppendEnum(builder, $"{prefix}.instance-policy", binding.InstancePolicy);
+        }
+    }
+
+    private static void AppendInputLengthRequirement(
+        StringBuilder builder,
+        string prefix,
+        CompiledInputLengthRequirement requirement)
+    {
+        AppendEnum(builder, $"{prefix}.kind", requirement.Kind);
+        switch (requirement)
+        {
+            case CompiledExactBytesInputLengthRequirement exact:
+                AppendInteger(builder, $"{prefix}.bytes", exact.Bytes);
+                break;
+            case CompiledExactResolvedMapCapacityInputLengthRequirement resolved:
+                AppendInteger(builder, $"{prefix}.bytes", resolved.Bytes);
+                break;
+            case CompiledBoundedInputLengthRequirement bounded:
+                AppendInteger(builder, $"{prefix}.minimum-bytes", bounded.MinimumBytes);
+                AppendInteger(builder, $"{prefix}.maximum-bytes", bounded.MaximumBytes);
+                break;
+            case CompiledNormalDpExtractWithWarningInputLengthRequirement normalDp:
+                AppendField(builder, $"{prefix}.issue-code", normalDp.IssueCode);
+                break;
+            case CompiledTpMaximum256KInputLengthRequirement:
+                AppendInteger(builder, $"{prefix}.maximum-bytes", CompiledTpMaximum256KInputLengthRequirement.MaximumBytes);
+                break;
+            default:
+                throw new InvalidOperationException("Unknown compiled input length requirement.");
+        }
+    }
+
+    private static void AppendInputNormalization(
+        StringBuilder builder,
+        string prefix,
+        CompiledInputNormalization normalization)
+    {
+        AppendEnum(builder, $"{prefix}.kind", normalization.Kind);
+        switch (normalization)
+        {
+            case CompiledNoInputNormalization:
+                return;
+            case CompiledPadShorterInputNormalization padded:
+                AppendInteger(builder, $"{prefix}.fill-byte", padded.FillByte);
+                AppendField(builder, $"{prefix}.evidence", padded.EvidenceRef);
+                return;
+            case CompiledTruncateCtrlRamInputNormalization truncated:
+                AppendField(builder, $"{prefix}.warning-issue-code", truncated.WarningIssueCode);
+                AppendField(builder, $"{prefix}.evidence", truncated.EvidenceRef);
+                return;
+            default:
+                throw new InvalidOperationException("Unknown compiled input normalization.");
+        }
+    }
+
+    private static void AppendCapabilityAdmissions(
+        StringBuilder builder,
+        IReadOnlyList<CompiledCapabilityAdmission> admissions)
+    {
+        AppendInteger(builder, "capability-admission.count", admissions.Count);
+        for (int index = 0; index < admissions.Count; index++)
+        {
+            CompiledCapabilityAdmission admission = admissions[index];
+            FirmwareMapFactBinding<FirmwareCapabilityFact> binding = admission.Binding;
+            FirmwareCapabilityFact capability = binding.Value;
+            string prefix = FormattableString.Invariant($"capability-admission.{index}");
+            AppendField(builder, $"{prefix}.required-capability-id", admission.RequiredCapabilityId);
+            AppendFactKey(builder, $"{prefix}.effective-key", binding.EffectiveKey);
+            AppendFactKey(builder, $"{prefix}.direct-source-key", binding.DirectSourceKey);
+            AppendField(builder, $"{prefix}.canonical-fact-id", binding.CanonicalFactId);
+            AppendField(builder, $"{prefix}.fact-id", capability.CapabilityFactId);
+            AppendField(builder, $"{prefix}.capability-id", capability.CapabilityId);
+            AppendEnum(builder, $"{prefix}.state", capability.State);
+            AppendField(builder, $"{prefix}.reason", capability.Reason);
+            AppendStringList(builder, $"{prefix}.fact-evidence", capability.EvidenceRefs);
+            AppendFactApplicability(builder, $"{prefix}.applicability", binding.Applicability);
+            AppendFactProvenance(builder, $"{prefix}.provenance", binding.Provenance);
+        }
+    }
+
+    private static void AppendFactProvenance(
+        StringBuilder builder,
+        string prefix,
+        FirmwareFactProvenance provenance)
+    {
+        AppendFactKey(builder, $"{prefix}.effective-key", provenance.EffectiveKey);
+        AppendFactKey(builder, $"{prefix}.direct-source-key", provenance.DirectSourceKey);
+        AppendInteger(builder, $"{prefix}.alias.count", provenance.AliasChain.Count);
+        for (int index = 0; index < provenance.AliasChain.Count; index++)
+        {
+            FirmwareFactAliasHop alias = provenance.AliasChain[index];
+            string aliasPrefix = FormattableString.Invariant($"{prefix}.alias.{index}");
+            AppendField(builder, $"{aliasPrefix}.id", alias.AliasId);
+            AppendFactKey(builder, $"{aliasPrefix}.target-key", alias.TargetKey);
+            AppendFactKey(builder, $"{aliasPrefix}.source-key", alias.SourceKey);
+            AppendFactApplicability(builder, $"{aliasPrefix}.applicability", alias.Applicability);
+            AppendField(builder, $"{aliasPrefix}.reason", alias.Reason);
+            AppendStringList(builder, $"{aliasPrefix}.evidence", alias.EvidenceRefs);
+        }
+
+        AppendStringList(builder, $"{prefix}.direct-evidence", provenance.DirectEvidenceRefs);
+    }
+
+    private static void AppendFactKey(StringBuilder builder, string prefix, FirmwareMapFactKey key)
+    {
+        AppendField(builder, $"{prefix}.member-id", key.MemberId);
+        AppendField(builder, $"{prefix}.map-id", key.MapId);
+        AppendEnum(builder, $"{prefix}.kind", key.FactKind);
+        AppendField(builder, $"{prefix}.fact-id", key.FactId);
+    }
+
+    private static void AppendFactApplicability(
+        StringBuilder builder,
+        string prefix,
+        FirmwareFactApplicability applicability)
+    {
+        AppendStringList(builder, $"{prefix}.mode", applicability.ModeIds);
+        AppendTopologyRequirement(builder, $"{prefix}.topology", applicability.TopologyRequirement);
+        AppendInteger(builder, $"{prefix}.capacity", applicability.CapacityBytes);
+        AppendStringList(builder, $"{prefix}.common-category", applicability.CommonFirmwareCategoryIds);
+        AppendPredicateDefinitions(builder, $"{prefix}.predicate", applicability.MetadataPredicates);
+    }
+
+    private static void AppendTopologyRequirement(StringBuilder builder, string prefix, TopologyRequirement requirement)
+    {
+        AppendEnum(builder, $"{prefix}.kind", requirement.Kind);
+        AppendNullableInteger(builder, $"{prefix}.minimum-chip-count", requirement.MinimumChipCount);
+        AppendNullableInteger(builder, $"{prefix}.maximum-chip-count", requirement.MaximumChipCount);
+        AppendNullableInteger(builder, $"{prefix}.exact-chip-count", requirement.ExactChipCount);
+    }
+
+    private static void AppendPredicateDefinitions(
+        StringBuilder builder,
+        string prefix,
+        IReadOnlyList<FirmwareMetadataPredicate> predicates)
+    {
+        FirmwareMetadataPredicate[] ordered = [.. predicates];
+        Array.Sort(ordered, ComparePredicates);
+        AppendInteger(builder, $"{prefix}.count", ordered.Length);
+        for (int index = 0; index < ordered.Length; index++)
+        {
+            FirmwareMetadataPredicate predicate = ordered[index];
+            string predicatePrefix = FormattableString.Invariant($"{prefix}.{index}");
+            AppendField(builder, $"{predicatePrefix}.structure-id", predicate.MetadataStructureId);
+            AppendField(builder, $"{predicatePrefix}.field-id", predicate.FieldId);
+            AppendEnum(builder, $"{predicatePrefix}.comparison", predicate.Comparison);
+            AppendMetadataValueList(builder, $"{predicatePrefix}.expected", predicate.ExpectedValues);
+        }
+    }
+
+    private static void AppendMetadataValueList(
+        StringBuilder builder,
+        string prefix,
+        IReadOnlyList<FirmwareMetadataValue> values)
+    {
+        FirmwareMetadataValue[] ordered = [.. values];
+        Array.Sort(ordered, CompareMetadataValues);
+        AppendInteger(builder, $"{prefix}.count", ordered.Length);
+        for (int index = 0; index < ordered.Length; index++)
+        {
+            AppendMetadataValue(builder, FormattableString.Invariant($"{prefix}.{index}"), ordered[index]);
+        }
+    }
+
+    private static void AppendMetadataValue(StringBuilder builder, string prefix, FirmwareMetadataValue value)
+    {
+        AppendEnum(builder, $"{prefix}.kind", value.Kind);
+        switch (value.Kind)
+        {
+            case FirmwareMetadataValueKind.SignedInteger:
+                AppendInteger(builder, $"{prefix}.signed", value.SignedIntegerValue!.Value);
+                break;
+            case FirmwareMetadataValueKind.UnsignedInteger:
+                AppendUnsignedInteger(builder, $"{prefix}.unsigned", value.UnsignedIntegerValue!.Value);
+                break;
+            case FirmwareMetadataValueKind.Bytes:
+                AppendField(builder, $"{prefix}.bytes", value.BytesValue!.Hex);
+                break;
+            case FirmwareMetadataValueKind.Text:
+                AppendField(builder, $"{prefix}.text", value.TextValue!);
+                break;
+            default:
+                throw new InvalidOperationException("Unknown firmware metadata value kind.");
+        }
+    }
+
+    private static void AppendNullableInteger(StringBuilder builder, string fieldName, long? value)
+    {
+        AppendInteger(builder, $"{fieldName}.present", value is null ? 0 : 1);
+        if (value is { } known)
+        {
+            AppendInteger(builder, fieldName, known);
+        }
+    }
+
+    private static void AppendUnsignedInteger(StringBuilder builder, string fieldName, ulong value)
+    {
+        AppendField(builder, fieldName, value.ToString(CultureInfo.InvariantCulture));
+    }
+
+    private static int ComparePredicates(FirmwareMetadataPredicate left, FirmwareMetadataPredicate right)
+    {
+        int structure = StringComparer.Ordinal.Compare(left.MetadataStructureId, right.MetadataStructureId);
+        if (structure != 0)
+        {
+            return structure;
+        }
+
+        int field = StringComparer.Ordinal.Compare(left.FieldId, right.FieldId);
+        if (field != 0)
+        {
+            return field;
+        }
+
+        int comparison = left.Comparison.CompareTo(right.Comparison);
+        if (comparison != 0)
+        {
+            return comparison;
+        }
+
+        FirmwareMetadataValue[] leftValues = [.. left.ExpectedValues];
+        FirmwareMetadataValue[] rightValues = [.. right.ExpectedValues];
+        Array.Sort(leftValues, CompareMetadataValues);
+        Array.Sort(rightValues, CompareMetadataValues);
+        int count = leftValues.Length.CompareTo(rightValues.Length);
+        if (count != 0)
+        {
+            return count;
+        }
+
+        for (int index = 0; index < leftValues.Length; index++)
+        {
+            int value = CompareMetadataValues(leftValues[index], rightValues[index]);
+            if (value != 0)
+            {
+                return value;
+            }
+        }
+
+        return 0;
+    }
+
+    private static int CompareMetadataValues(FirmwareMetadataValue left, FirmwareMetadataValue right)
+    {
+        int kind = left.Kind.CompareTo(right.Kind);
+        return kind != 0
+            ? kind
+            : left.Kind switch
+            {
+                FirmwareMetadataValueKind.SignedInteger => left.SignedIntegerValue!.Value.CompareTo(
+                    right.SignedIntegerValue!.Value),
+                FirmwareMetadataValueKind.UnsignedInteger => left.UnsignedIntegerValue!.Value.CompareTo(
+                    right.UnsignedIntegerValue!.Value),
+                FirmwareMetadataValueKind.Bytes => StringComparer.Ordinal.Compare(
+                    left.BytesValue!.Hex,
+                    right.BytesValue!.Hex),
+                FirmwareMetadataValueKind.Text => StringComparer.Ordinal.Compare(left.TextValue, right.TextValue),
+                _ => throw new InvalidOperationException("Unknown firmware metadata value kind."),
+            };
     }
 
     private static void AppendFieldReference(

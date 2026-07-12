@@ -45,6 +45,7 @@ public sealed partial class CompiledComposition
 
         ValidateIcNumberPolicy(identity.CompositionKind, icNumberPolicy);
         ValidateDefaultOutputFileName(identity.Details.OutputNamingRequirement.FileNameTemplate);
+        ValidateV2InputRequirements(plan, identity.Details);
 
         Plan = plan;
         ProfileId = identity.ProfileId;
@@ -152,6 +153,67 @@ public sealed partial class CompiledComposition
             throw new ArgumentException(
                 "Default output file name must be a plain filename without path or control syntax.",
                 nameof(defaultOutputFileName));
+        }
+    }
+
+    private static void ValidateV2InputRequirements(
+        CompositionPlan plan,
+        V2CompiledCompositionDetails details)
+    {
+        var addressSpaces = plan.AddressSpaces.ToDictionary(
+            static space => space.AddressSpaceId,
+            StringComparer.Ordinal);
+        string[] immutableAddressSpaceIds =
+        [
+            .. plan.AddressSpaces
+                .Where(static space => space.Mutability == AddressSpaceMutability.Immutable)
+                .Select(static space => space.AddressSpaceId)
+                .Order(StringComparer.Ordinal),
+        ];
+        var declaredAddressSpaceIds = new HashSet<string>(StringComparer.Ordinal);
+        var slots = details.InputContract.Slots.ToDictionary(
+            static requirement => requirement.SlotId,
+            StringComparer.Ordinal);
+        foreach (CompiledInputSpaceBinding binding in details.InputContract.SpaceBindings)
+        {
+            CompiledInputSlotRequirement requirement = slots[binding.SlotId];
+            string addressSpaceId = binding.AddressSpaceId;
+            if (binding.InstancePolicy != CompiledInputInstancePolicy.Singleton ||
+                !requirement.Required ||
+                requirement.Cardinality != CompiledInputSlotCardinality.ExactlyOne ||
+                requirement.LengthRequirement is not CompiledExactResolvedMapCapacityInputLengthRequirement ||
+                requirement.Normalization is not CompiledNoInputNormalization)
+            {
+                throw new ArgumentException(
+                    "Current V2 plan artifacts require singleton required exact-map-capacity inputs without normalization.",
+                    nameof(details));
+            }
+
+            if (!addressSpaces.TryGetValue(addressSpaceId, out AddressSpace? addressSpace) ||
+                addressSpace.Mutability != AddressSpaceMutability.Immutable ||
+                !declaredAddressSpaceIds.Add(addressSpaceId))
+            {
+                throw new ArgumentException(
+                    "Every compiled input address space must exist once and be immutable.",
+                    nameof(details));
+            }
+
+            var exact = (CompiledExactResolvedMapCapacityInputLengthRequirement)requirement.LengthRequirement;
+            if (exact.Bytes != details.Provenance.ResolvedMap.CapacityBytes ||
+                addressSpace.Length != exact.Bytes ||
+                !addressSpace.AllowedInputLengths.SequenceEqual([exact.Bytes]))
+            {
+                throw new ArgumentException(
+                    "Exact resolved-map-capacity input requirements must agree with their immutable plan spaces.",
+                    nameof(details));
+            }
+        }
+
+        if (!immutableAddressSpaceIds.SequenceEqual(declaredAddressSpaceIds.Order(StringComparer.Ordinal), StringComparer.Ordinal))
+        {
+            throw new ArgumentException(
+                "Every immutable plan address space must belong to exactly one compiled input slot.",
+                nameof(details));
         }
     }
 }

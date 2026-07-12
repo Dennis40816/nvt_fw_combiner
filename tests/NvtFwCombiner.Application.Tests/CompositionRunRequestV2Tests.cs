@@ -35,6 +35,7 @@ public sealed class CompositionRunRequestV2Tests
             resolvedMap,
             new CompiledProfilePromotion(CompiledProfilePromotionStage.Compilable, []),
             ["profile-evidence"],
+            [],
             []);
         var output = new CompiledOutputNamingRequirement(
             "{original-name}.bin",
@@ -46,15 +47,40 @@ public sealed class CompositionRunRequestV2Tests
             "2.0.0",
             "standard-merge",
             CompositionKind.Merge,
-            new V2CompiledCompositionDetails(provenance, output));
+            new V2CompiledCompositionDetails(provenance, CreateInputContract(), output));
         var plan = new CompositionPlan(
             ImageInitialization.Blank("output-image", 4, 0),
-            [new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable)],
+            [
+                new AddressSpace(
+                    "input",
+                    4,
+                    AddressSpaceMutability.Immutable,
+                    allowedInputLengths: [4]),
+                new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable),
+            ],
             []);
         return CompiledComposition.CreateV2(
             plan,
             identity,
             CompiledIcNumberPolicy.NotApplicable);
+    }
+
+    private static CompiledInputContract CreateInputContract()
+    {
+        return new CompiledInputContract(
+            [new CompiledInputSlotRequirement(
+                "input-slot",
+                "input",
+                CompiledInputArtifactClass.ReferenceImage,
+                required: true,
+                CompiledInputSlotCardinality.ExactlyOne,
+                [".bin"],
+                new CompiledExactResolvedMapCapacityInputLengthRequirement(4),
+                new CompiledNoInputNormalization())],
+            [new CompiledInputSpaceBinding(
+                "input",
+                "input-slot",
+                CompiledInputInstancePolicy.Singleton)]);
     }
 
     private static FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap CreateResolvedMap()

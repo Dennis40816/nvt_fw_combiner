@@ -37,6 +37,24 @@ resource ceiling.
 - one ordered operation list and closed processor stages; and
 - output naming.
 
+## Compiled Plan Boundary
+
+When a profile is admitted to one resolved map, lowering produces one non-executable V2 plan artifact.
+Its `CompiledInputContract` retains each slot's id, role, artifact class, required/cardinality policy,
+accepted extensions, typed length rule, typed normalization rule, and every immutable plan-space binding
+including instance policy. The artifact does not treat `AddressSpace` geometry as a second source of
+input acceptance policy; the plan projection must agree with the compiled contract.
+
+Every admitted `requiredCapabilityIds` binding is retained in compilation provenance as the exact
+effective/direct `FirmwareMapFactBinding`, including capability value, applicability, alias chain, and
+evidence. The V2 compilation fingerprint format is `nfc.compiled-composition.profile-v2.v2` and binds
+these compiled input and capability-admission decisions as well as bundle, map, promotion, validation,
+output, and plan facts.
+
+The first blank-copy lowering subset explicitly rejects any nonempty `regionAccessRules`. Region access
+remains profile-owned authoring policy and cannot be silently dropped or treated as a UI-only restriction;
+it will be lowered only with its complete nested-region and physical-write-constraint semantics.
+
 Every mutable space has exactly one engine-owned `blank` or immutable-slot `clone` initializer.
 `clone.sourceSlotId` cannot reference a mutable space, which removes mutable initializer cycles by
 construction. Exactly one space has kind `output-image`; it is the final output, and the `output`
