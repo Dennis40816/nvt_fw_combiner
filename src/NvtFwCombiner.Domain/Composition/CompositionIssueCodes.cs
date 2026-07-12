@@ -32,4 +32,10 @@ public static class CompositionIssueCodes
 
     /// <summary>An external processor changed the staged byte length.</summary>
     public const string ExecutionExternalProcessorLengthMismatch = "execution.external-processor.length-mismatch";
+
+    /// <summary>A scalar transform source value did not match its declared expected value.</summary>
+    public const string ExecutionScalarTransformExpectedValueMismatch = "execution.scalar-transform.expected-value-mismatch";
+
+    /// <summary>A scalar transform result did not fit the declared unsigned width.</summary>
+    public const string ExecutionScalarTransformOverflow = "execution.scalar-transform.overflow";
 }

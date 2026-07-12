@@ -49,9 +49,36 @@ public sealed partial class CompositionPlan
             ValidateExternalProcessorRanges(operation, targetSpace);
         }
 
+        if (operation.Kind == CompositionOperationKind.TransformScalar)
+        {
+            ValidateScalarTransform(operation);
+        }
+        else if (operation.ScalarTransform is not null)
+        {
+            throw new ArgumentException(
+                $"Operation '{operation.OperationId}' has scalar transform metadata but is not a transform operation.",
+                nameof(operation));
+        }
+
         if (operation.SourceSpaceId is not null && operation.SourceRange is not null)
         {
             ValidateSourceRange(operation);
+        }
+    }
+
+    private static void ValidateScalarTransform(CompositionOperation operation)
+    {
+        ScalarTransform transform = operation.ScalarTransform ?? throw new ArgumentException(
+            $"Operation '{operation.OperationId}' is missing scalar transform metadata.",
+            nameof(operation));
+        ByteRange sourceRange = operation.SourceRange ?? throw new ArgumentException(
+            $"Operation '{operation.OperationId}' is missing scalar transform source range.",
+            nameof(operation));
+        if (sourceRange.Length != transform.WidthBytes || operation.TargetRange.Length != transform.WidthBytes)
+        {
+            throw new ArgumentException(
+                $"Operation '{operation.OperationId}' scalar transform ranges must match its declared width.",
+                nameof(operation));
         }
     }
 

@@ -54,7 +54,14 @@ public static partial class CompositionEngine
             }
             else
             {
-                ApplyHostOperation(operation, normalizedInputs.InputBytes, mutableBuffers);
+                CompositionIssue? hostIssue = ApplyHostOperation(
+                    operation,
+                    normalizedInputs.InputBytes,
+                    mutableBuffers);
+                if (hostIssue is not null)
+                {
+                    return CompositionExecutionResult.Failed([.. normalizedInputs.Issues, hostIssue]);
+                }
             }
 
             byte[] after = ReadSlice(targetBuffer, operation.TargetRange);

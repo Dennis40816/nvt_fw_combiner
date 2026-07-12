@@ -156,11 +156,33 @@ public sealed partial class CompiledComposition
             $"{prefix}.fill-byte",
             operation.FillByte?.ToString(CultureInfo.InvariantCulture) ?? string.Empty);
         AppendField(builder, $"{prefix}.patch-bytes", Convert.ToHexString(operation.PatchBytes.Span).ToLowerInvariant());
+        AppendScalarTransform(builder, prefix, operation.ScalarTransform);
         AppendField(builder, $"{prefix}.reason", operation.Reason);
         AppendField(builder, $"{prefix}.provenance.kind", operation.Provenance.Kind);
         AppendField(builder, $"{prefix}.provenance.source-id", operation.Provenance.SourceId ?? string.Empty);
         AppendField(builder, $"{prefix}.provenance.source-version", operation.Provenance.SourceVersion ?? string.Empty);
         AppendProcessor(builder, prefix, operation.ExternalProcessorInvocation);
+    }
+
+    private static void AppendScalarTransform(
+        StringBuilder builder,
+        string operationPrefix,
+        ScalarTransform? transform)
+    {
+        if (transform is null)
+        {
+            return;
+        }
+
+        string prefix = $"{operationPrefix}.scalar-transform";
+        AppendEnum(builder, $"{prefix}.width", transform.Width);
+        AppendEnum(builder, $"{prefix}.byte-order", transform.ByteOrder);
+        AppendField(builder, $"{prefix}.addend", transform.Addend.ToString(CultureInfo.InvariantCulture));
+        AppendField(
+            builder,
+            $"{prefix}.expected-before",
+            transform.ExpectedBefore?.ToString(CultureInfo.InvariantCulture) ?? string.Empty);
+        AppendEnum(builder, $"{prefix}.overflow-policy", transform.OverflowPolicy);
     }
 
     private static void AppendProcessor(
