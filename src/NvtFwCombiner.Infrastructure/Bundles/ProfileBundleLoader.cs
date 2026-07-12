@@ -70,15 +70,22 @@ internal sealed class ProfileBundleLoadLimits
 /// <summary>One external-anchor-verified manifest and immutable validated entry snapshots.</summary>
 internal sealed class TrustedProfileBundle
 {
+    private readonly ProfileBundleEntrySnapshotCollection _entrySnapshots;
+    private readonly int _maximumJsonDepth;
+
     internal TrustedProfileBundle(
         ProfileBundleFileSnapshot manifestSnapshot,
-        ProfileBundleEntrySnapshotCollection entrySnapshots)
+        ProfileBundleEntrySnapshotCollection entrySnapshots,
+        int maximumJsonDepth)
     {
         ArgumentNullException.ThrowIfNull(manifestSnapshot);
         ArgumentNullException.ThrowIfNull(entrySnapshots);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumJsonDepth);
         ManifestSha256 = manifestSnapshot.ActualSha256;
         Manifest = entrySnapshots.Manifest;
         Entries = entrySnapshots.Entries;
+        _entrySnapshots = entrySnapshots;
+        _maximumJsonDepth = maximumJsonDepth;
     }
 
     internal string ManifestSha256 { get; }
@@ -86,6 +93,16 @@ internal sealed class TrustedProfileBundle
     internal ProfileBundleManifest Manifest { get; }
 
     internal IReadOnlyList<ProfileBundleEntrySnapshot> Entries { get; }
+
+    /// <summary>Projects immutable canonical JSON trees after source-generated DTO compatibility validation.</summary>
+    internal TrustedProfileBundleDocumentProjection CreateDocumentProjection()
+    {
+        return new TrustedProfileBundleDocumentProjection(
+            ManifestSha256,
+            Manifest,
+            _entrySnapshots.Entries,
+            _maximumJsonDepth);
+    }
 }
 
 /// <summary>Loads one closed profile bundle into immutable, schema-validated snapshots.</summary>
@@ -130,7 +147,7 @@ internal static class ProfileBundleLoader
             ? true
             : throw new IOException("Bundle manifest changed during trusted bundle capture.");
 
-        return new TrustedProfileBundle(manifestSnapshot, entrySnapshots);
+        return new TrustedProfileBundle(manifestSnapshot, entrySnapshots, limits.MaximumJsonDepth);
     }
 
     private static ProfileBundleDocument DeserializeManifest(
