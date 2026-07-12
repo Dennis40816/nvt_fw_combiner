@@ -1,15 +1,18 @@
 using System.Collections.ObjectModel;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    private static ReadOnlyCollection<WorkbenchProfileSummary> StandardMergeProfileSummaries { get; } =
-        Array.AsReadOnly(BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles
-            .OrderBy(static profile => profile.IcId, StringComparer.Ordinal)
-            .Select(CreateProfileSummary)
-            .ToArray());
+    private const string StandardMergeFallbackOutputFileName = "nvt-fw-combiner-output.bin";
+
+    private static readonly Lazy<ReadOnlyCollection<WorkbenchProfileSummary>> s_standardMergeProfileSummaries = new(
+        CreateStandardMergeProfileSummaries);
+
+    private static ReadOnlyCollection<WorkbenchProfileSummary> StandardMergeProfileSummaries =>
+        s_standardMergeProfileSummaries.Value;
 
     private static ReadOnlyCollection<WorkbenchProfileSummary> ReplaceProfileSummaries { get; } =
         Array.AsReadOnly(BuiltInReplaceProfiles.All
@@ -111,14 +114,35 @@ public static partial class WorkbenchCompositionService
                 null,
                 CompileSucceeded: false,
                 Array.AsReadOnly(compile.Issues.Select(static issue => issue.Code).ToArray()))
-            : new WorkbenchProfileSummary(
-                composition.ProfileId,
-                composition.IcId,
-                composition.CompositionKind,
-                Array.AsReadOnly(composition.Plan.RequiredInputAddressSpaceIds.ToArray()),
-                composition.DefaultOutputFileName,
-                composition.IcNumberPolicy,
-                CompileSucceeded: true,
-                []);
+            : CreateProfileSummary(composition);
+    }
+
+    private static ReadOnlyCollection<WorkbenchProfileSummary> CreateStandardMergeProfileSummaries()
+    {
+        WorkbenchProfileSummary[] summaries =
+        [
+            .. BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles
+                .Where(static profile => !IsNt51920V2StandardMerge(profile.IcId))
+                .Select(CreateProfileSummary),
+            CreateNt51920V2StandardMergeProfileSummary(),
+        ];
+        return Array.AsReadOnly(
+            summaries
+                .OrderBy(static profile => profile.IcId, StringComparer.Ordinal)
+                .ToArray());
+    }
+
+    private static WorkbenchProfileSummary CreateProfileSummary(CompiledComposition composition)
+    {
+        ArgumentNullException.ThrowIfNull(composition);
+        return new WorkbenchProfileSummary(
+            composition.ProfileId,
+            composition.IcId,
+            composition.CompositionKind,
+            Array.AsReadOnly(composition.Plan.RequiredInputAddressSpaceIds.ToArray()),
+            composition.DefaultOutputFileName,
+            composition.IcNumberPolicy,
+            CompileSucceeded: true,
+            []);
     }
 }

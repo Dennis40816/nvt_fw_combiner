@@ -31,7 +31,7 @@ public static partial class WorkbenchCompositionService
         InputArtifactBinding[] bindings = [
             .. plan.RequiredInputAddressSpaceIds
                 .Order(StringComparer.Ordinal)
-                .Select(addressSpaceId => CreateBinding(addressSpaceId, slotPaths)),
+                .Select(addressSpaceId => CreateBinding(compiledComposition, addressSpaceId, slotPaths)),
         ];
 
         return await RunCompiledCompositionAsync(

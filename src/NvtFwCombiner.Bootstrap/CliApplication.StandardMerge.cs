@@ -95,6 +95,14 @@ public static partial class CliApplication
             return SoftwareError;
         }
 
+        bindings =
+        [
+            .. bindings.Select(binding => CompiledCompositionInputBindingFactory.Create(
+                compiledComposition,
+                binding.AddressSpaceId,
+                binding.ArtifactId)),
+        ];
+
         CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
             options.Values.GetValueOrDefault("--output"),
             compiledComposition.DefaultOutputFileName);

@@ -7,7 +7,9 @@ namespace NvtFwCombiner.Bootstrap;
 public static partial class WorkbenchCompositionService
 {
     private static readonly Dictionary<string, CompositionProfileDefinition> StandardMergeProfilesByIc =
-        BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles.ToDictionary(
+        BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles
+            .Where(static profile => !IsNt51920V2StandardMerge(profile.IcId))
+            .ToDictionary(
             static profile => profile.IcId,
             StringComparer.Ordinal);
 
@@ -20,6 +22,11 @@ public static partial class WorkbenchCompositionService
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         composition = null;
         issues = [];
+        if (IsNt51920V2StandardMerge(icId))
+        {
+            return TryCompileNt51920V2StandardMerge(out composition, out issues);
+        }
+
         if (!StandardMergeProfilesByIc.TryGetValue(icId, out CompositionProfileDefinition? profile))
         {
             return false;

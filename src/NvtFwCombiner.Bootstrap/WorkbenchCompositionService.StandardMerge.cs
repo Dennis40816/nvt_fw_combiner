@@ -9,7 +9,7 @@ public static partial class WorkbenchCompositionService
     public static bool IsStandardMergeSupported(string icId)
     {
         return IcMetadataFacade.SupportsWorkflow(icId, IcWorkflowIds.StandardMerge) &&
-            FindStandardMergeProfileSummaryByIc(icId) is not null;
+            FindStandardMergeProfileSummaryByIc(icId) is { CompileSucceeded: true };
     }
 
     /// <summary>Gets the built-in standard merge profile id for the selected IC, if any.</summary>
@@ -28,7 +28,7 @@ public static partial class WorkbenchCompositionService
     public static string GetStandardMergeDefaultOutputFileName(string icId)
     {
         return FindStandardMergeProfileSummaryByIc(icId)?.DefaultOutputFileName ??
-            "nvt-fw-combiner-output.bin";
+            StandardMergeFallbackOutputFileName;
     }
 
     /// <summary>Gets a compact, catalog-backed policy summary for the selected Standard Merge IC.</summary>

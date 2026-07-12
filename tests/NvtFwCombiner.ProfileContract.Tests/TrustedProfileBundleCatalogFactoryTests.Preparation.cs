@@ -192,6 +192,36 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             preparation.Issues.Select(static issue => issue.Code));
     }
 
+    /// <summary>Verifies the Profiles-owned compiler facade resolves the exact canonical map and rejects a mismatched experience.</summary>
+    [Fact]
+    public void TrustedCompilerUsesSelectedProfileExperienceAndCanonicalMap()
+    {
+        string familyJson = FamilyJsonWithRootWriteConstraint("whole-region");
+        string profileJson = RuntimeSupportedProfileJson(Hash(familyJson)).Replace(
+            "\"experienceId\": \"display-merge\"",
+            "\"experienceId\": \"standard\"",
+            StringComparison.Ordinal);
+        TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson, profileJson);
+
+        V2CompositionPlanCompileResult admitted = TrustedV2CompositionCompiler.Compile(
+            catalog,
+            "profile",
+            "1.0.0",
+            "NT00001",
+            "standard");
+        V2CompositionPlanCompileResult rejected = TrustedV2CompositionCompiler.Compile(
+            catalog,
+            "profile",
+            "1.0.0",
+            "NT00001",
+            "replace");
+
+        Assert.NotNull(admitted.CompiledComposition);
+        Assert.Empty(admitted.Issues);
+        Assert.Null(rejected.CompiledComposition);
+        Assert.Equal("profile.v2.compile.profile-experience-mismatch", Assert.Single(rejected.Issues).Code);
+    }
+
     private static TrustedProfileBundleCatalog CreateCatalog(
         string? familyJson = null,
         string? profileJson = null,

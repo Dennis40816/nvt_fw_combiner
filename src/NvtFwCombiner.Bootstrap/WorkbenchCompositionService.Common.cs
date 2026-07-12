@@ -35,11 +35,15 @@ public static partial class WorkbenchCompositionService
     }
 
     private static InputArtifactBinding CreateBinding(
+        CompiledComposition compiledComposition,
         string addressSpaceId,
         IReadOnlyDictionary<string, string> slotPaths)
     {
         return slotPaths.TryGetValue(addressSpaceId, out string? path) && !string.IsNullOrWhiteSpace(path)
-            ? new InputArtifactBinding(addressSpaceId, addressSpaceId, Path.GetFullPath(path))
+            ? CompiledCompositionInputBindingFactory.Create(
+                compiledComposition,
+                addressSpaceId,
+                Path.GetFullPath(path))
             : throw new InvalidOperationException($"Input slot '{addressSpaceId}' is required.");
     }
 

@@ -49,6 +49,42 @@ public sealed class StandardMergeCliCommandTests
         Assert.Equal("copy-tp", root.GetProperty("Operations")[0].GetProperty("OperationId").GetString());
     }
 
+    /// <summary>Verifies the NT51920 V2 profile accepts a caller-selected plain output path through the Standard Merge CLI.</summary>
+    [Fact]
+    public async Task StandardMergeBuildWritesCallerOutputThroughNt51920V2Profile()
+    {
+        using var workspace = TempWorkspace.Create();
+        byte[] dp = new byte[0x40000];
+        byte[] tp = new byte[0x30000];
+        dp[0x3E000] = 0x11;
+        tp[0] = 0x22;
+        string dpPath = workspace.Write("dp.bin", dp);
+        string tpPath = workspace.Write("tp.bin", tp);
+        string outputPath = workspace.PathFor("caller-output.bin");
+
+        CliRunResult result = await RunCliAsync(
+        [
+            "standard-merge",
+            "build",
+            "--profile",
+            "NT51920",
+            "--dp",
+            dpPath,
+            "--tp",
+            tpPath,
+            "--output",
+            outputPath,
+            "--overwrite",
+        ]);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.True(File.Exists(outputPath));
+        byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
+        Assert.Equal(0x40000, output.Length);
+        Assert.Equal(0x22, output[0]);
+        Assert.Equal(0x11, output[0x3E000]);
+    }
+
     /// <summary>Unknown Standard Merge selectors remain a usage error.</summary>
     [Fact]
     public async Task StandardMergePreviewRejectsUnknownProfile()
