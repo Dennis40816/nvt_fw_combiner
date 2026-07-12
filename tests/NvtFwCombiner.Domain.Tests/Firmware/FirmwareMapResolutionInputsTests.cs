@@ -75,6 +75,15 @@ public sealed class FirmwareMapResolutionInputsTests
         _ = Assert.Throws<ArgumentException>(() => Inputs(requestedTopology: derived));
     }
 
+    /// <summary>Verifies metadata-independent candidate selection may begin without an artifact payload.</summary>
+    [Fact]
+    public void ConstructorAllowsNoArtifactsForMetadataIndependentResolution()
+    {
+        FirmwareMapResolutionInputs inputs = Inputs(artifacts: []);
+
+        Assert.Empty(inputs.Artifacts);
+    }
+
     /// <summary>Verifies selection and artifact collection boundaries fail closed.</summary>
     [Fact]
     public void ConstructorRejectsInvalidBoundaries()
@@ -82,7 +91,6 @@ public sealed class FirmwareMapResolutionInputsTests
         _ = Assert.Throws<ArgumentException>(() => Inputs(memberId: " "));
         _ = Assert.Throws<ArgumentException>(() => Inputs(modeId: " "));
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => Inputs(capacityBytes: 0));
-        _ = Assert.Throws<ArgumentException>(() => Inputs(artifacts: []));
         _ = Assert.Throws<ArgumentException>(() => Inputs(artifacts: [null!]));
         _ = Assert.Throws<ArgumentException>(() => Inputs(artifacts:
             [Payload("same", 1), Payload("same", 2)]));

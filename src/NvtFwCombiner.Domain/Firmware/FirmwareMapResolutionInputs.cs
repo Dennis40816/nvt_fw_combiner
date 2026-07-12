@@ -75,7 +75,7 @@ public sealed class FirmwareMapResolutionInputs
 {
     private readonly FirmwareArtifactPayload[] _artifacts;
 
-    /// <summary>Creates immutable resolution inputs from requested selections and artifact bytes.</summary>
+    /// <summary>Creates immutable resolution inputs from requested selections and zero or more artifact bytes.</summary>
     public FirmwareMapResolutionInputs(
         string memberId,
         string modeId,
@@ -95,11 +95,6 @@ public sealed class FirmwareMapResolutionInputs
 
         ArgumentNullException.ThrowIfNull(artifacts);
         _artifacts = [.. artifacts];
-        if (_artifacts.Length == 0)
-        {
-            throw new ArgumentException("Map resolution requires a firmware artifact payload.", nameof(artifacts));
-        }
-
         if (_artifacts.Any(static artifact => artifact is null))
         {
             throw new ArgumentException("Resolution artifacts cannot contain null.", nameof(artifacts));
@@ -133,6 +128,6 @@ public sealed class FirmwareMapResolutionInputs
     /// <summary>Optional caller-authored topology selection.</summary>
     public TopologySelection? RequestedTopology { get; }
 
-    /// <summary>Immutable artifact payloads in ordinal binding-id order.</summary>
+    /// <summary>Immutable artifact payloads in ordinal binding-id order; may be empty for metadata-independent candidates.</summary>
     public IReadOnlyList<FirmwareArtifactPayload> Artifacts { get; }
 }
