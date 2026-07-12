@@ -54,6 +54,8 @@ public sealed partial class RepositoryBoundaryTests
         string standardMergeDisplayProfile = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.DisplayProfile.cs");
         string standardMergeCompilation = ReadText(
             "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Compilation.cs");
+        string standardMergeBuiltInV2 = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs");
         string standardMergeRun = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Run.cs");
         string generalMergeProfile = ReadText(
             "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Profile.cs");
@@ -86,6 +88,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("CompiledCompositionRunAdapter", runner, StringComparison.Ordinal);
         Assert.Contains("private static string FormatIssues", common, StringComparison.Ordinal);
         Assert.Contains("StandardMergeProfilesByIc", standardMergeCompilation, StringComparison.Ordinal);
+        Assert.Contains("TryGetBuiltInV2StandardMergeCompilation", standardMergeCompilation, StringComparison.Ordinal);
+        Assert.DoesNotContain("Nt51920V2", standardMergeCompilation, StringComparison.Ordinal);
         Assert.DoesNotContain("StandardMergeProfilesByIc", standardMerge, StringComparison.Ordinal);
         Assert.DoesNotContain("StandardMergeProfilesByIc", generalMergeProfile, StringComparison.Ordinal);
         Assert.Contains("TryCompileStandardMerge", standardMerge, StringComparison.Ordinal);
@@ -105,6 +109,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("RunStandardMergeAsync", standardMergeRun, StringComparison.Ordinal);
         Assert.Contains("GetExistingStandardMergeDpInputLength", standardMergeRun, StringComparison.Ordinal);
         Assert.Contains("TryCompileStandardMerge", standardMergeRun, StringComparison.Ordinal);
+        Assert.Contains("ReadOnlyCollection<BuiltInV2StandardMergeRegistration>", standardMergeBuiltInV2, StringComparison.Ordinal);
+        Assert.Contains("ProfileBundleLoader.Load", standardMergeBuiltInV2, StringComparison.Ordinal);
+        Assert.Contains("TrustedV2CompositionCompiler.Compile", standardMergeBuiltInV2, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileCompiler", standardMergeBuiltInV2, StringComparison.Ordinal);
         Assert.Contains("TryReadBaseCommonFwVersion", firmwareMetadata, StringComparison.Ordinal);
         Assert.Contains("FirmwareConfigMetadataReader.TryReadBackup", firmwareMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("FirmwareConfigMetadataReader.TryRead(", firmwareMetadata, StringComparison.Ordinal);

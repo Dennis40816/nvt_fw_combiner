@@ -13,6 +13,7 @@ only; release support remains governed by the matrix and firmware-owner gate.
 `nt51929-standard-merge` is the next canonical V2 candidate family. It declares the shared
 NT51929/NT51932 physical map and the owner-confirmed NT51919 map-bound region-set alias. Its three
 profiles are locked against existing legacy plan geometry and owner-approved 51929/51932 golden
-outputs, including the Normal DP extraction warning contract. It is not yet packaged or selected by
-Bootstrap; runtime migration remains subject to the firmware-owner review recorded in the support
+outputs, including the Normal DP extraction warning contract. Bootstrap packages the bundle through
+its content-hash anchor and selects its V2 artifacts for all three ICs without a legacy compile
+fallback. Runtime migration remains subject to the firmware-owner review recorded in the support
 matrix.

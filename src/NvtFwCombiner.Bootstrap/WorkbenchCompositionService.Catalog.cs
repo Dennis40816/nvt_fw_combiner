@@ -122,9 +122,9 @@ public static partial class WorkbenchCompositionService
         WorkbenchProfileSummary[] summaries =
         [
             .. BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles
-                .Where(static profile => !IsNt51920V2StandardMerge(profile.IcId))
+                .Where(static profile => !IsBuiltInV2StandardMerge(profile.IcId))
                 .Select(CreateProfileSummary),
-            CreateNt51920V2StandardMergeProfileSummary(),
+            .. BuiltInV2StandardMergeRegistrations.Select(static registration => registration.CreateProfileSummary()),
         ];
         return Array.AsReadOnly(
             summaries

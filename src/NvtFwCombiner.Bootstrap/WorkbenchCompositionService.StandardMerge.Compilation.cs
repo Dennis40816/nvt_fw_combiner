@@ -8,7 +8,7 @@ public static partial class WorkbenchCompositionService
 {
     private static readonly Dictionary<string, CompositionProfileDefinition> StandardMergeProfilesByIc =
         BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles
-            .Where(static profile => !IsNt51920V2StandardMerge(profile.IcId))
+            .Where(static profile => !IsBuiltInV2StandardMerge(profile.IcId))
             .ToDictionary(
             static profile => profile.IcId,
             StringComparer.Ordinal);
@@ -22,9 +22,9 @@ public static partial class WorkbenchCompositionService
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         composition = null;
         issues = [];
-        if (IsNt51920V2StandardMerge(icId))
+        if (TryGetBuiltInV2StandardMergeCompilation(icId, out composition, out issues))
         {
-            return TryCompileNt51920V2StandardMerge(out composition, out issues);
+            return composition is not null;
         }
 
         if (!StandardMergeProfilesByIc.TryGetValue(icId, out CompositionProfileDefinition? profile))
