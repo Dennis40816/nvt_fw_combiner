@@ -182,6 +182,7 @@ internal static class V2StandardMergeGoldenTestSupport
         {
             "dp-input" => ("dp.bin", CompiledInputArtifactClass.DpFirmware),
             "tp-input" => ("tp.bin", CompiledInputArtifactClass.TpFirmware),
+            "ld-input" => ("ld.bin", CompiledInputArtifactClass.Auxiliary),
             _ => throw new ArgumentOutOfRangeException(nameof(addressSpaceId), addressSpaceId, "Unsupported Standard Merge input space."),
         };
         return new InputArtifactBinding(

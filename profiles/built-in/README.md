@@ -30,3 +30,9 @@ Merge profile. Its physical map preserves DP `[0x00000, 0x06000)`, the explicit 
 TP `[0x07000, 0x40000)`. Bootstrap packages the bundle through its content-hash anchor and selects
 its V2 artifact without a legacy compile fallback. CtrlRAM postbuild remains outside this Standard
 Merge bundle and still requires its independent firmware-owner evidence.
+
+`nt51928-standard-merge` is a canonical V2 candidate for the standalone non-NB NT51928 Standard
+Merge profile. Its `0x80000` physical map models TP `[0x00000, 0x35000)`, DP
+`[0x3C000, 0x40000)`, LDC `[0x40000, 0x62000)`, and both forbidden gaps. The third input is a typed
+`auxiliary` LDC slot with exact map capacity, not a special execution path. Trusted-bundle,
+legacy-plan, and owner-golden parity must pass before a separate Bootstrap routing phase.
