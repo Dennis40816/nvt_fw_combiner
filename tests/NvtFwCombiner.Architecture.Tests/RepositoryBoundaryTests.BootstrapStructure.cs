@@ -323,4 +323,20 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("TryParseCliNonNegativeLong", bootstrapSource, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies trusted bundle catalog handoff remains a structural Bootstrap bridge.</summary>
+    [Fact]
+    public void BootstrapTrustedBundleCatalogBridgeDoesNotOwnSemanticResolution()
+    {
+        string bridge = ReadText("src/NvtFwCombiner.Bootstrap/TrustedProfileBundleCatalogProjection.cs");
+        string infrastructureProject = ReadText("src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj");
+
+        Assert.Contains("TrustedProfileBundleCatalogFactory.Create", bridge, StringComparison.Ordinal);
+        Assert.Contains("CopyIdentity", bridge, StringComparison.Ordinal);
+        Assert.DoesNotContain("JsonSerializer", bridge, StringComparison.Ordinal);
+        Assert.DoesNotContain("Normalizer", bridge, StringComparison.Ordinal);
+        Assert.DoesNotContain("MapResolution", bridge, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileCompiler", bridge, StringComparison.Ordinal);
+        Assert.DoesNotContain("NvtFwCombiner.Profiles", infrastructureProject, StringComparison.Ordinal);
+    }
+
 }

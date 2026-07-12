@@ -17,5 +17,7 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="NvtFwCombiner.Infrastructure.Tests" />
+    <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap" />
+    <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap.Tests" />
   </ItemGroup>
 </Project>

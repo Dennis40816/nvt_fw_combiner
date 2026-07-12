@@ -47,7 +47,9 @@ public sealed class TrustedProfileBundleDocumentProjectionTests
     {
         using TempWorkspace workspace = PrepareBundle(out ProfileBundleTrustAnchor trustAnchor, out _);
         TrustedProfileBundle bundle = Load(workspace, trustAnchor);
-        _ = workspace.Write("families/family.json", Encoding.UTF8.GetBytes(FamilyJson("changed-family")));
+        _ = workspace.Write(
+            "families/family.json",
+            Encoding.UTF8.GetBytes(TrustedV2BundleTestDocuments.FamilyJson("changed-family")));
 
         TrustedProfileBundleDocumentProjection projection = bundle.CreateDocumentProjection();
 
@@ -153,8 +155,8 @@ public sealed class TrustedProfileBundleDocumentProjectionTests
             "composition-profile-v2.schema.json",
             TrustedProfileBundleDocumentProjection.CompositionProfileSchemaId,
             profileSchemaId);
-        byte[] family = Encoding.UTF8.GetBytes(FamilyJson("family"));
-        byte[] profile = Encoding.UTF8.GetBytes(ProfileJson(Hash(family)));
+        byte[] family = Encoding.UTF8.GetBytes(TrustedV2BundleTestDocuments.FamilyJson("family"));
+        byte[] profile = Encoding.UTF8.GetBytes(TrustedV2BundleTestDocuments.ProfileJson(Hash(family)));
         var entries = new List<ProfileBundleEntryDocument>
         {
             new("family-schema", "schema", "schemas/family.schema.json", familySchemaId, Hash(familySchema)),
@@ -257,165 +259,6 @@ public sealed class TrustedProfileBundleDocumentProjectionTests
               "additionalProperties": false,
               "required": ["value"],
               "properties": { "value": { "type": "integer" } }
-            }
-            """;
-    }
-
-    private static string FamilyJson(string familyId)
-    {
-        return $$"""
-            {
-              "schemaVersion": "1.1",
-              "familyId": "{{familyId}}",
-              "familyVersion": "1.0.0",
-              "members": [
-                { "memberId": "NT00001", "displayName": "Synthetic IC" }
-              ],
-              "capabilities": [],
-              "regionSets": [
-                {
-                  "regionSetId": "physical",
-                  "addressSpaceId": "flash",
-                  "regions": [
-                    {
-                      "regionId": "root",
-                      "owner": "system",
-                      "kind": "image",
-                      "range": { "start": 0, "length": 16 },
-                      "writeConstraint": "forbidden",
-                      "alignment": 1
-                    }
-                  ],
-                  "evidenceRefs": ["region-evidence"]
-                }
-              ],
-              "metadataSets": [],
-              "imageMaps": [
-                {
-                  "mapId": "map",
-                  "addressSpaceId": "flash",
-                  "applicability": {
-                    "memberIds": ["NT00001"],
-                    "modeIds": ["standard"],
-                    "topologyRequirement": { "kind": "none" },
-                    "capacityBytes": 16
-                  },
-                  "coveragePolicy": "complete-with-explicit-gaps",
-                  "regionSetIds": ["physical"],
-                  "metadataSetIds": [],
-                  "evidenceRefs": ["map-evidence"]
-                }
-              ],
-              "factAliases": [],
-              "evidenceRefs": ["family-evidence"]
-            }
-            """;
-    }
-
-    private static string ProfileJson(string familyContentHash)
-    {
-        return $$"""
-            {
-              "schemaVersion": "2.0",
-              "profileId": "profile",
-              "profileVersion": "1.0.0",
-              "promotion": {
-                "stage": "known",
-                "blockers": [
-                  {
-                    "blockerId": "golden-missing",
-                    "kind": "golden",
-                    "reason": "Synthetic profile has no owner-approved golden.",
-                    "evidenceRefs": []
-                  }
-                ]
-              },
-              "compositionKind": "merge",
-              "experience": {
-                "experienceId": "display-merge",
-                "audience": "system",
-                "layoutPolicy": "fixed",
-                "inputPolicy": "fixed",
-                "topologyAuthoring": "hidden",
-                "displayNameKey": "profile.synthetic.merge"
-              },
-              "mapBinding": {
-                "familyId": "family",
-                "familyVersion": "1.0.0",
-                "familyContentHash": "{{familyContentHash}}",
-                "mapIds": ["map"],
-                "requiredRegionIds": ["root"],
-                "requiredMetadataStructureIds": [],
-                "requiredCapabilityIds": []
-              },
-              "inputSlots": [
-                {
-                  "slotId": "tp-input",
-                  "role": "tp",
-                  "artifactClass": "tp-firmware",
-                  "required": true,
-                  "cardinality": "exactly-one",
-                  "acceptedExtensions": [".bin"],
-                  "acceptance": {
-                    "lengthRule": { "kind": "tp-maximum-256k", "maximumBytes": 262144 },
-                    "normalization": { "kind": "none" }
-                  }
-                }
-              ],
-              "spaces": [
-                {
-                  "spaceId": "tp-source",
-                  "kind": "input-artifact",
-                  "slotId": "tp-input",
-                  "instancePolicy": "singleton"
-                },
-                {
-                  "spaceId": "output",
-                  "kind": "output-image",
-                  "capacity": { "kind": "resolved-map" },
-                  "initializer": { "kind": "blank", "fillByte": 255 }
-                }
-              ],
-              "views": [
-                {
-                  "viewId": "tp-code",
-                  "spaceId": "tp-source",
-                  "selector": { "kind": "map-region", "regionId": "root" }
-                },
-                {
-                  "viewId": "output-code",
-                  "spaceId": "output",
-                  "selector": { "kind": "space-range", "range": { "start": 0, "length": 16 } }
-                }
-              ],
-              "metadataBindings": [],
-              "regionAccessRules": [
-                {
-                  "regionId": "root",
-                  "access": "read-only",
-                  "reason": "Synthetic source is immutable."
-                }
-              ],
-              "operations": [
-                {
-                  "operationId": "copy-code",
-                  "sequence": 0,
-                  "overlapPolicy": "reject",
-                  "reason": "Copy the declared source view.",
-                  "kind": "copy-range",
-                  "sourceViewId": "tp-code",
-                  "targetViewId": "output-code"
-                }
-              ],
-              "validations": [],
-              "processorStages": [],
-              "output": {
-                "fileNameTemplate": "{original-name}_merged.bin",
-                "allowOverride": false,
-                "invalidCharacterPolicy": "replace-underscore",
-                "requiredTokenIds": ["original-name"]
-              },
-              "evidenceRefs": ["synthetic-evidence"]
             }
             """;
     }
