@@ -39,6 +39,12 @@ parity. Bootstrap packages the bundle through its content-hash anchor and select
 without a legacy compile fallback; firmware-owner migration review remains required before release
 support.
 
+`nt51927-standard-merge` is a canonical V2 data candidate for standalone NT51927. It preserves TP
+`[0x00000, 0x35000)`, the explicit gap, and DP `[0x3C000, 0x40000)`. Its profile accepts the
+owner-approved `0x200000` DP outer container while copying only the `0x40000` declared source span.
+The direct V2 bundle has legacy-plan and golden-byte parity; NT51917 remains a separate map-bound
+alias and runtime-routing phase.
+
 `nt51928-standard-merge` is the hash-anchored V2 Standard Merge route for standalone non-NB
 NT51928. Its `0x80000` physical map models TP `[0x00000, 0x35000)`, DP
 `[0x3C000, 0x40000)`, LDC `[0x40000, 0x62000)`, and both forbidden gaps. The third input is a typed
