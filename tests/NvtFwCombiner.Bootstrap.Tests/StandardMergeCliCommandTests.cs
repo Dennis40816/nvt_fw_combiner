@@ -193,6 +193,72 @@ public sealed class StandardMergeCliCommandTests
         Assert.Equal(0x22, output[0x7000]);
     }
 
+    /// <summary>Verifies the NT51928 V2 profile binds the required LDC BIN through the generic Standard Merge CLI.</summary>
+    [Fact]
+    public async Task StandardMergeBuildWritesCallerOutputThroughNt51928V2ProfileWithLdc()
+    {
+        using var workspace = TempWorkspace.Create();
+        byte[] dp = new byte[0x80000];
+        byte[] tp = new byte[0x35000];
+        byte[] ld = new byte[0x80000];
+        dp[0x3C000] = 0x11;
+        tp[0] = 0x22;
+        ld[0x40000] = 0x33;
+        string dpPath = workspace.Write("dp.bin", dp);
+        string tpPath = workspace.Write("tp.bin", tp);
+        string ldPath = workspace.Write("ld.bin", ld);
+        string outputPath = workspace.PathFor("caller-output.bin");
+
+        CliRunResult result = await RunCliAsync(
+        [
+            "standard-merge",
+            "build",
+            "--profile",
+            "NT51928",
+            "--dp",
+            dpPath,
+            "--tp",
+            tpPath,
+            "--ld",
+            ldPath,
+            "--output",
+            outputPath,
+            "--overwrite",
+        ]);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.True(File.Exists(outputPath));
+        byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
+        Assert.Equal(0x80000, output.Length);
+        Assert.Equal(0x22, output[0]);
+        Assert.Equal(0x11, output[0x3C000]);
+        Assert.Equal(0x33, output[0x40000]);
+    }
+
+    /// <summary>Verifies the NT51928 V2 route rejects a missing required LDC BIN before composition starts.</summary>
+    [Fact]
+    public async Task StandardMergePreviewRejectsMissingLdcForNt51928V2Profile()
+    {
+        using var workspace = TempWorkspace.Create();
+        string dpPath = workspace.Write("dp.bin", new byte[0x80000]);
+        string tpPath = workspace.Write("tp.bin", new byte[0x35000]);
+
+        CliRunResult result = await RunCliAsync(
+        [
+            "standard-merge",
+            "preview",
+            "--profile",
+            "NT51928",
+            "--dp",
+            dpPath,
+            "--tp",
+            tpPath,
+        ]);
+
+        Assert.Equal(64, result.ExitCode);
+        Assert.Contains("--ld is required for address space 'ld-input'", result.Error, StringComparison.Ordinal);
+    }
+
     /// <summary>Unknown Standard Merge selectors remain a usage error.</summary>
     [Fact]
     public async Task StandardMergePreviewRejectsUnknownProfile()

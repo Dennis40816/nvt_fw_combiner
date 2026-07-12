@@ -71,7 +71,9 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void BootstrapKeepsDpReplaceIcFactsCatalogOwned()
     {
-        string bootstrapSource = ReadBootstrapSources();
+        string bootstrapSource = string.Concat(
+            ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.DpWorkbench.cs"),
+            ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.cs"));
 
         Assert.Contains("DpPerspectiveCatalog.FormatSupportedIcIds()", bootstrapSource, StringComparison.Ordinal);
         Assert.DoesNotContain("NT51950/NT51951", bootstrapSource, StringComparison.Ordinal);
