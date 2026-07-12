@@ -1,7 +1,6 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using NvtFwCombiner.Application.FlashMaps;
-using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 using static NvtFwCombiner.Bootstrap.WorkbenchIssueCodes;
 using static NvtFwCombiner.Bootstrap.Tests.BootstrapTestData;
@@ -81,7 +80,7 @@ public sealed class WorkbenchCompositionServiceTests
         Assert.Contains(
             document.RootElement.GetProperty("Issues").EnumerateArray(),
             issue =>
-                issue.GetProperty("Code").GetString() == CompositionIssueCodes.InputAddressSpaceLengthUnexpected &&
+                issue.GetProperty("Code").GetString() == "DP_SIZE_WARNING" &&
                 issue.GetProperty("Severity").GetString() == "warning");
     }
 

@@ -21,5 +21,6 @@ matrix.
 `nt51923-standard-merge` is a canonical V2 candidate family for NT51923 and NT51926. Its shared
 physical map preserves TP `[0x00000, 0x3C000)`, the explicit forbidden gap, and DP
 `[0x3E000, 0x40000)`. Both profiles have trusted-bundle, legacy-plan, Normal DP extraction, and
-owner-approved golden-byte parity. Bootstrap routing remains intentionally deferred to its own
-reviewed phase; release support still requires firmware-owner migration review.
+owner-approved golden-byte parity. Bootstrap packages the bundle through its content-hash anchor
+and selects its V2 artifacts for both ICs without a legacy compile fallback. Release support still
+requires firmware-owner migration review.

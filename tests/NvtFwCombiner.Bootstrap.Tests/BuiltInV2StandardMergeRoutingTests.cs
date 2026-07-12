@@ -11,6 +11,8 @@ public sealed class BuiltInV2StandardMergeRoutingTests
     [Theory]
     [InlineData("NT51919", "nt51919-standard-merge-gen-flash-alias", "nt51929-standard-merge", "01b84018c975ee4c7c52b36d594e2919a346294b713e060c496e597237ae3de3")]
     [InlineData("NT51920", "nt51920-standard-merge-gen-flash", "nt51920-standard-merge", "2acde361b0537210c4707f2a77a112d659ac885254ef863df2a2d75baa12ff53")]
+    [InlineData("NT51923", "nt51923-standard-merge-gen-flash", "nt51923-standard-merge", "6c1d0336b4c2e4df61a47258937b75c598e06daa189f50d1b5457381434df7ec")]
+    [InlineData("NT51926", "nt51926-standard-merge-gen-flash", "nt51923-standard-merge", "6c1d0336b4c2e4df61a47258937b75c598e06daa189f50d1b5457381434df7ec")]
     [InlineData("NT51929", "nt51929-standard-merge-gen-flash", "nt51929-standard-merge", "01b84018c975ee4c7c52b36d594e2919a346294b713e060c496e597237ae3de3")]
     [InlineData("NT51932", "nt51932-standard-merge-gen-flash", "nt51929-standard-merge", "01b84018c975ee4c7c52b36d594e2919a346294b713e060c496e597237ae3de3")]
     public void RegisteredStandardMergeUsesDeployedTrustedV2Artifact(
