@@ -115,6 +115,47 @@ public sealed class FirmwareMapResolutionResultTests
         Assert.Empty(typeof(ResolvedFirmwareImageMap).GetConstructors());
     }
 
+    /// <summary>Verifies resolution fingerprints are canonical, payload-free, and sensitive to atomic artifact identity.</summary>
+    [Fact]
+    public void UniqueResultCalculatesCanonicalResolutionFingerprint()
+    {
+        FirmwareFamilyResolutionDefinition definition = Definition(Map());
+        var firstA = new FirmwareArtifactPayload("a-artifact", [0x01]);
+        var firstZ = new FirmwareArtifactPayload("z-artifact", [0x02]);
+        var changedZ = new FirmwareArtifactPayload("z-artifact", [0x03]);
+
+        ResolvedFirmwareImageMap first = Assert.IsType<ResolvedFirmwareImageMap>(
+            definition.ResolveMap(Inputs(firstZ, firstA)).ResolvedMap);
+        ResolvedFirmwareImageMap reordered = Assert.IsType<ResolvedFirmwareImageMap>(
+            definition.ResolveMap(Inputs(firstA, firstZ)).ResolvedMap);
+        ResolvedFirmwareImageMap changed = Assert.IsType<ResolvedFirmwareImageMap>(
+            definition.ResolveMap(Inputs(firstA, changedZ)).ResolvedMap);
+
+        Assert.Equal(
+            "6db193dc60ba9d7793605c6a9acab7377131112b8c75c205f76b38fc6ab5f09c",
+            first.ResolutionFingerprint);
+        Assert.Equal(first.ResolutionFingerprint, reordered.ResolutionFingerprint);
+        Assert.NotEqual(first.ResolutionFingerprint, changed.ResolutionFingerprint);
+    }
+
+    /// <summary>Verifies physical direct and alias evidence are both part of the selected-map fingerprint.</summary>
+    [Fact]
+    public void UniqueResultFingerprintIncludesPhysicalFactProvenance()
+    {
+        ResolvedFirmwareImageMap directOne = Assert.IsType<ResolvedFirmwareImageMap>(
+            Definition(Map(regionEvidence: "region-evidence-one")).ResolveMap(Inputs()).ResolvedMap);
+        ResolvedFirmwareImageMap directTwo = Assert.IsType<ResolvedFirmwareImageMap>(
+            Definition(Map(regionEvidence: "region-evidence-two")).ResolveMap(Inputs()).ResolvedMap);
+        ResolvedFirmwareImageMap aliasOne = Assert.IsType<ResolvedFirmwareImageMap>(
+            Definition(AliasedMap("alias-evidence-one")).ResolveMap(Inputs()).ResolvedMap);
+        ResolvedFirmwareImageMap aliasTwo = Assert.IsType<ResolvedFirmwareImageMap>(
+            Definition(AliasedMap("alias-evidence-two")).ResolveMap(Inputs()).ResolvedMap);
+
+        Assert.NotEqual(directOne.ResolutionFingerprint, directTwo.ResolutionFingerprint);
+        Assert.NotEqual(aliasOne.ResolutionFingerprint, aliasTwo.ResolutionFingerprint);
+        Assert.Contains(aliasOne.FactProvenance, static provenance => provenance.AliasChain.Count == 1);
+    }
+
     /// <summary>Verifies maps missing a topology or Common FW derivation cannot become unique.</summary>
     [Fact]
     public void ResolveMapKeepsIncompleteStaticApplicabilityPending()
@@ -186,7 +227,8 @@ public sealed class FirmwareMapResolutionResultTests
 
     private static FirmwareImageMap Map(
         TopologyRequirement? topologyRequirement = null,
-        IEnumerable<string>? commonFirmwareCategoryIds = null)
+        IEnumerable<string>? commonFirmwareCategoryIds = null,
+        string regionEvidence = "region-evidence")
     {
         return FirmwareImageMap.CreateDirect(
             "map",
@@ -208,7 +250,56 @@ public sealed class FirmwareMapResolutionResultTests
                     FirmwareRegionKind.Image,
                     new ByteRange(0, 32),
                     FirmwareWriteConstraint.Forbidden)],
-                ["region-evidence"])],
+                [regionEvidence])],
+            [],
+            ["map-evidence"]);
+    }
+
+    private static FirmwareImageMap AliasedMap(string aliasEvidence)
+    {
+        var applicability = new FirmwareMapApplicability(
+            ["NT00001"],
+            ["standard"],
+            TopologyRequirement.NoTopologyConstraint(),
+            32);
+        var regionSet = new FirmwareRegionSet(
+            "physical",
+            "flash",
+            [new FirmwareRegion(
+                "root",
+                parentRegionId: null,
+                FirmwareRegionOwner.System,
+                FirmwareRegionKind.Image,
+                new ByteRange(0, 32),
+                FirmwareWriteConstraint.Forbidden)],
+            ["direct-evidence"]);
+        var target = new FirmwareMapFactKey("NT00001", "map", FirmwareFactKind.RegionSet, "alias-physical");
+        var source = new FirmwareMapFactKey("NT00001", "map", FirmwareFactKind.RegionSet, "physical");
+        var provenance = new FirmwareFactProvenance(
+            target,
+            source,
+            [new FirmwareFactAliasHop(
+                "physical-alias",
+                target,
+                source,
+                FirmwareFactApplicability.FromMap(applicability),
+                "Synthetic physical fact inheritance.",
+                [aliasEvidence])],
+            regionSet.EvidenceRefs);
+        var binding = new FirmwareMapFactBinding<FirmwareRegionSet>(
+            target,
+            source,
+            regionSet.CanonicalFactId,
+            regionSet,
+            FirmwareFactApplicability.FromMap(applicability),
+            provenance);
+
+        return new FirmwareImageMap(
+            "map",
+            "flash",
+            applicability,
+            FirmwareImageMapCoveragePolicy.CompleteWithExplicitGaps,
+            [binding],
             [],
             ["map-evidence"]);
     }

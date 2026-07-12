@@ -1,3 +1,4 @@
+using System.Globalization;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using ResolvedFirmwareImageMap = NvtFwCombiner.Domain.Firmware.FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap;
@@ -141,6 +142,141 @@ public sealed class FirmwareMapResolutionTests
             resolved.FactProvenance);
     }
 
+    /// <summary>Verifies decoded metadata outcomes participate in the selected-map fingerprint.</summary>
+    [Fact]
+    public void ResolveMapFingerprintChangesWhenDecodedMetadataChanges()
+    {
+        FirmwareMetadataSet metadata = MetadataSet(Config("config", "tp-firmware"));
+        FirmwareImageMap map = Map("map", [metadata]);
+        FirmwareFamilyResolutionDefinition definition = Definition([map], [metadata]);
+
+        ResolvedFirmwareImageMap first = Assert.IsType<ResolvedFirmwareImageMap>(
+            definition.ResolveMap(Inputs([new FirmwareArtifactPayload("tp-firmware", [0x02])])).ResolvedMap);
+        ResolvedFirmwareImageMap changed = Assert.IsType<ResolvedFirmwareImageMap>(
+            definition.ResolveMap(Inputs([new FirmwareArtifactPayload("tp-firmware", [0x03])])).ResolvedMap);
+
+        Assert.Equal("config", Assert.Single(first.ResolvedMetadataStructures).DecodedStructure.MetadataStructureId);
+        Assert.NotEqual(first.ResolutionFingerprint, changed.ResolutionFingerprint);
+    }
+
+    /// <summary>Verifies semantically unordered predicates and expected values have one canonical fingerprint order.</summary>
+    [Fact]
+    public void ResolveMapFingerprintIgnoresPredicateAndOneOfDeclarationOrder()
+    {
+        FirmwareMetadataSet metadata = MetadataSet(Config("config", "tp-firmware"));
+        var equal = new FirmwareMetadataPredicate(
+            "config",
+            "chip-number",
+            FirmwareMetadataPredicateOperator.Equal,
+            [FirmwareMetadataValue.FromUnsignedInteger(2)]);
+        var oneOfFirst = new FirmwareMetadataPredicate(
+            "config",
+            "chip-number",
+            FirmwareMetadataPredicateOperator.OneOf,
+            [FirmwareMetadataValue.FromUnsignedInteger(2), FirmwareMetadataValue.FromUnsignedInteger(1)]);
+        var oneOfSecond = new FirmwareMetadataPredicate(
+            "config",
+            "chip-number",
+            FirmwareMetadataPredicateOperator.OneOf,
+            [FirmwareMetadataValue.FromUnsignedInteger(1), FirmwareMetadataValue.FromUnsignedInteger(2)]);
+
+        ResolvedFirmwareImageMap first = Assert.IsType<ResolvedFirmwareImageMap>(Definition(
+            [Map("map", [metadata], [oneOfFirst, equal])],
+            [metadata]).ResolveMap(Inputs([new FirmwareArtifactPayload("tp-firmware", [0x02])])).ResolvedMap);
+        ResolvedFirmwareImageMap reordered = Assert.IsType<ResolvedFirmwareImageMap>(Definition(
+            [Map("map", [metadata], [equal, oneOfSecond])],
+            [metadata]).ResolveMap(Inputs([new FirmwareArtifactPayload("tp-firmware", [0x02])])).ResolvedMap);
+
+        Assert.Equal(first.ResolutionFingerprint, reordered.ResolutionFingerprint);
+    }
+
+    /// <summary>Verifies resolver-owned family, mode, capacity, and topology selections all affect the fingerprint.</summary>
+    [Fact]
+    public void ResolveMapFingerprintIncludesStaticSelectionFacts()
+    {
+        FirmwareImageMap baselineMap = Map(
+            "map",
+            [],
+            memberId: "NT00001",
+            modeId: "standard",
+            capacityBytes: 32,
+            topologyRequirement: TopologyRequirement.RequireCascade(2, 3));
+        TopologySelection twoChips = new(2, "cascade", TopologySelectionSource.Requested, "chip-number");
+        TopologySelection threeChips = new(3, "cascade", TopologySelectionSource.Requested, "chip-number");
+        ResolvedFirmwareImageMap baseline = Resolve(
+            Definition([baselineMap], []),
+            Inputs([], requestedTopology: twoChips));
+        ResolvedFirmwareImageMap changedFamily = Resolve(
+            Definition([baselineMap], [], familyId: "synthetic-family-two"),
+            Inputs([], requestedTopology: twoChips));
+        ResolvedFirmwareImageMap changedMode = Resolve(
+            Definition(
+                [Map("map", [], modeId: "other", topologyRequirement: TopologyRequirement.RequireCascade(2, 3))],
+                []),
+            Inputs([], modeId: "other", requestedTopology: twoChips));
+        ResolvedFirmwareImageMap changedCapacity = Resolve(
+            Definition(
+                [Map("map", [], capacityBytes: 64, topologyRequirement: TopologyRequirement.RequireCascade(2, 3))],
+                []),
+            Inputs([], capacityBytes: 64, requestedTopology: twoChips));
+        ResolvedFirmwareImageMap changedTopology = Resolve(
+            Definition([baselineMap], []),
+            Inputs([], requestedTopology: threeChips));
+
+        Assert.NotEqual(baseline.ResolutionFingerprint, changedFamily.ResolutionFingerprint);
+        Assert.NotEqual(baseline.ResolutionFingerprint, changedMode.ResolutionFingerprint);
+        Assert.NotEqual(baseline.ResolutionFingerprint, changedCapacity.ResolutionFingerprint);
+        Assert.NotEqual(baseline.ResolutionFingerprint, changedTopology.ResolutionFingerprint);
+    }
+
+    /// <summary>Verifies marker-selected locator outcomes affect the fingerprint even when decoded facts are equal.</summary>
+    [Fact]
+    public void ResolveMapFingerprintIncludesMarkerLocatorOutcome()
+    {
+        byte[] artifactBytes = [0xA1, 0x02, 0xB2, 0x02];
+        FirmwareMetadataSet firstMetadata = MetadataSet(MarkerConfig("config", "tp-firmware", 0xA1));
+        FirmwareMetadataSet secondMetadata = MetadataSet(MarkerConfig("config", "tp-firmware", 0xB2));
+        ResolvedFirmwareImageMap first = Resolve(
+            Definition([Map("map", [firstMetadata])], [firstMetadata]),
+            Inputs([new FirmwareArtifactPayload("tp-firmware", artifactBytes)]));
+        ResolvedFirmwareImageMap second = Resolve(
+            Definition([Map("map", [secondMetadata])], [secondMetadata]),
+            Inputs([new FirmwareArtifactPayload("tp-firmware", artifactBytes)]));
+
+        FirmwareResolvedMetadataStructure firstStructure = Assert.Single(first.ResolvedMetadataStructures);
+        FirmwareResolvedMetadataStructure secondStructure = Assert.Single(second.ResolvedMetadataStructures);
+        Assert.Equal(firstStructure.DecodedStructure.Facts.Single().Value, secondStructure.DecodedStructure.Facts.Single().Value);
+        Assert.NotEqual(firstStructure.LocatorOutcome.SelectedMarkerStart, secondStructure.LocatorOutcome.SelectedMarkerStart);
+        Assert.NotEqual(first.ResolutionFingerprint, second.ResolutionFingerprint);
+    }
+
+    /// <summary>Verifies metadata scalar kinds, predicate outcomes, UTF-8 evidence, and invariant number formatting have one vector.</summary>
+    [Fact]
+    public void ResolveMapFingerprintUsesInvariantTypedMetadataVector()
+    {
+        CultureInfo originalCulture = CultureInfo.CurrentCulture;
+        CultureInfo originalUiCulture = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("fr-FR");
+
+            FirmwareMetadataSet metadata = FingerprintVectorMetadataSet();
+            ResolvedFirmwareImageMap resolved = Resolve(
+                Definition([FingerprintVectorMap(metadata)], [metadata]),
+                Inputs([new FirmwareArtifactPayload("tp-firmware", [0xFE, 0x02, 0xAA, 0x5A, 0xA1, 0x03])]));
+
+            Assert.Equal(
+                "bebb23ca88b05da44a936ff1dfd05d993e6db37a302a225b6e373e42e4614ade",
+                resolved.ResolutionFingerprint);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = originalCulture;
+            CultureInfo.CurrentUICulture = originalUiCulture;
+        }
+    }
+
     /// <summary>Verifies a supplied predicate mismatch rejects instead of remaining pending.</summary>
     [Fact]
     public void ResolveMapRejectsSuppliedPredicateMismatch()
@@ -263,39 +399,49 @@ public sealed class FirmwareMapResolutionTests
 
     private static FirmwareFamilyResolutionDefinition Definition(
         IEnumerable<FirmwareImageMap> maps,
-        IEnumerable<FirmwareMetadataSet> metadataSets)
+        IEnumerable<FirmwareMetadataSet> metadataSets,
+        string familyId = "synthetic-family")
     {
         return new FirmwareFamilyResolutionDefinition(
-            "synthetic-family",
+            familyId,
             "1.0.0",
             FamilyHash,
             maps,
             metadataSets);
     }
 
-    private static FirmwareMapResolutionInputs Inputs(IEnumerable<FirmwareArtifactPayload> artifacts)
+    private static FirmwareMapResolutionInputs Inputs(
+        IEnumerable<FirmwareArtifactPayload> artifacts,
+        string memberId = "NT00001",
+        string modeId = "standard",
+        long capacityBytes = 32,
+        TopologySelection? requestedTopology = null)
     {
         return new FirmwareMapResolutionInputs(
-            "NT00001",
-            "standard",
-            32,
-            requestedTopology: null,
+            memberId,
+            modeId,
+            capacityBytes,
+            requestedTopology,
             artifacts);
     }
 
     private static FirmwareImageMap Map(
         string mapId,
         IEnumerable<FirmwareMetadataSet> metadataSets,
-        IEnumerable<FirmwareMetadataPredicate>? predicates = null)
+        IEnumerable<FirmwareMetadataPredicate>? predicates = null,
+        string memberId = "NT00001",
+        string modeId = "standard",
+        long capacityBytes = 32,
+        TopologyRequirement? topologyRequirement = null)
     {
         return FirmwareImageMap.CreateDirect(
             mapId,
             "flash",
             new FirmwareMapApplicability(
-                ["NT00001"],
-                ["standard"],
-                TopologyRequirement.NoTopologyConstraint(),
-                32,
+                [memberId],
+                [modeId],
+                topologyRequirement ?? TopologyRequirement.NoTopologyConstraint(),
+                capacityBytes,
                 metadataPredicates: predicates),
             FirmwareImageMapCoveragePolicy.CompleteWithExplicitGaps,
             [new FirmwareRegionSet(
@@ -306,7 +452,7 @@ public sealed class FirmwareMapResolutionTests
                     parentRegionId: null,
                     FirmwareRegionOwner.System,
                     FirmwareRegionKind.Image,
-                    new ByteRange(0, 32),
+                    new ByteRange(0, capacityBytes),
                     FirmwareWriteConstraint.Forbidden)],
                 ["region-evidence"])],
             metadataSets,
@@ -357,5 +503,115 @@ public sealed class FirmwareMapResolutionTests
                 "root"),
             [],
             [FirmwareMetadataByteAssertion.Exact(0, [0xAA])]);
+    }
+
+    private static FirmwareMetadataStructure MarkerConfig(
+        string structureId,
+        string artifactBindingId,
+        byte markerByte)
+    {
+        return new FirmwareMetadataStructure(
+            structureId,
+            artifactBindingId,
+            1,
+            new FirmwareMarkerRelativeLocator(
+                new FirmwareAddressedRange("flash", new ByteRange(0, 4)),
+                [markerByte],
+                new FirmwareUniqueMarkerSelection(),
+                1,
+                "root"),
+            [new FirmwareMetadataField(
+                "chip-number",
+                0,
+                1,
+                FirmwareMetadataEncoding.UnsignedInteger,
+                FirmwareMetadataByteOrder.LittleEndian)],
+            [FirmwareMetadataByteAssertion.Exact(0, [0x02])]);
+    }
+
+    private static FirmwareMetadataSet FingerprintVectorMetadataSet()
+    {
+        return MetadataSet(
+            "metadata",
+            new FirmwareMetadataStructure(
+                "absolute",
+                "tp-firmware",
+                4,
+                new FirmwareAbsoluteRangeLocator(
+                    new FirmwareAddressedRange("flash", new ByteRange(0, 4)),
+                    "root"),
+                [
+                    new FirmwareMetadataField(
+                        "signed",
+                        0,
+                        1,
+                        FirmwareMetadataEncoding.SignedInteger,
+                        FirmwareMetadataByteOrder.LittleEndian),
+                    new FirmwareMetadataField(
+                        "unsigned",
+                        1,
+                        1,
+                        FirmwareMetadataEncoding.UnsignedInteger,
+                        FirmwareMetadataByteOrder.LittleEndian),
+                    new FirmwareMetadataField("bytes", 2, 1, FirmwareMetadataEncoding.Bytes),
+                    new FirmwareMetadataField("text", 3, 1, FirmwareMetadataEncoding.PrintableAscii),
+                ],
+                []),
+            new FirmwareMetadataStructure(
+                "marker",
+                "tp-firmware",
+                1,
+                new FirmwareMarkerRelativeLocator(
+                    new FirmwareAddressedRange("flash", new ByteRange(4, 1)),
+                    [0xA1],
+                    new FirmwareUniqueMarkerSelection(),
+                    1,
+                    "root"),
+                [new FirmwareMetadataField(
+                    "code",
+                    0,
+                    1,
+                    FirmwareMetadataEncoding.UnsignedInteger,
+                    FirmwareMetadataByteOrder.LittleEndian)],
+                [FirmwareMetadataByteAssertion.Exact(0, [0x03])]));
+    }
+
+    private static FirmwareImageMap FingerprintVectorMap(FirmwareMetadataSet metadata)
+    {
+        return FirmwareImageMap.CreateDirect(
+            "map",
+            "flash",
+            new FirmwareMapApplicability(
+                ["NT00001"],
+                ["standard"],
+                TopologyRequirement.NoTopologyConstraint(),
+                32,
+                metadataPredicates:
+                [new FirmwareMetadataPredicate(
+                    "marker",
+                    "code",
+                    FirmwareMetadataPredicateOperator.Equal,
+                    [FirmwareMetadataValue.FromUnsignedInteger(3)])]),
+            FirmwareImageMapCoveragePolicy.CompleteWithExplicitGaps,
+            [new FirmwareRegionSet(
+                "physical",
+                "flash",
+                [new FirmwareRegion(
+                    "root",
+                    parentRegionId: null,
+                    FirmwareRegionOwner.System,
+                    FirmwareRegionKind.Image,
+                    new ByteRange(0, 32),
+                    FirmwareWriteConstraint.Forbidden)],
+                ["實體-evidence"])],
+            [metadata],
+            ["map-證據"]);
+    }
+
+    private static ResolvedFirmwareImageMap Resolve(
+        FirmwareFamilyResolutionDefinition definition,
+        FirmwareMapResolutionInputs inputs)
+    {
+        return Assert.IsType<ResolvedFirmwareImageMap>(definition.ResolveMap(inputs).ResolvedMap);
     }
 }

@@ -206,7 +206,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
     private static readonly object ResolvedMapConstructionToken = new();
 
     /// <summary>One uniquely selected canonical map with only immutable identities and decoded outcomes.</summary>
-    public sealed class ResolvedFirmwareImageMap
+    public sealed partial class ResolvedFirmwareImageMap
     {
         private readonly FirmwareArtifactIdentity[] _artifactIdentities;
         private readonly FirmwareResolvedMetadataStructure[] _resolvedMetadataStructures;
@@ -261,6 +261,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             ResolvedMetadataStructures = Array.AsReadOnly(_resolvedMetadataStructures);
             PredicateOutcomes = Array.AsReadOnly(_predicateOutcomes);
             FactProvenance = Array.AsReadOnly(_factProvenance);
+            ResolutionFingerprint = CalculateResolutionFingerprint(this);
         }
 
         /// <summary>Trusted source-family identifier.</summary>
@@ -298,6 +299,9 @@ public sealed partial class FirmwareFamilyResolutionDefinition
 
         /// <summary>Selected member/map physical fact provenance in deterministic key order.</summary>
         public IReadOnlyList<FirmwareFactProvenance> FactProvenance { get; }
+
+        /// <summary>Canonical lowercase SHA-256 over the resolved physical map and resolver-owned outcomes.</summary>
+        public string ResolutionFingerprint { get; }
 
         private static FirmwareArtifactIdentity[] SnapshotArtifactIdentities(
             IEnumerable<FirmwareArtifactIdentity> artifactIdentities)
