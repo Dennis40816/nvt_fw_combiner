@@ -52,7 +52,7 @@ input acceptance policy; the plan projection must agree with the compiled contra
 
 Every admitted `requiredCapabilityIds` binding is retained in compilation provenance as the exact
 effective/direct `FirmwareMapFactBinding`, including capability value, applicability, alias chain, and
-evidence. The V2 compilation fingerprint format is `nfc.compiled-composition.profile-v2.v3` and binds
+evidence. The V2 compilation fingerprint format is `nfc.compiled-composition.profile-v2.v4` and binds
 these compiled input and capability-admission decisions as well as bundle, map, promotion, validation,
 output, and plan facts.
 
