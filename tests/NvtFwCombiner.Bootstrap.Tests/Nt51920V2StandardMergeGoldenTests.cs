@@ -13,7 +13,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Golden migration evidence for the first canonical V2 Standard Merge bundle.</summary>
 public sealed class Nt51920V2StandardMergeGoldenTests
 {
-    private const string BundleContentHash = "d75ee5b099d2a3d8515d4c13a1f70b50c3f0cbff98f0578910f7929abbe03260";
+    private const string BundleContentHash = "2acde361b0537210c4707f2a77a112d659ac885254ef863df2a2d75baa12ff53";
     private static readonly DateTimeOffset StartedAtUtc = new(2026, 7, 12, 0, 0, 0, TimeSpan.Zero);
     private static readonly DateTimeOffset CompletedAtUtc = new(2026, 7, 12, 0, 0, 1, TimeSpan.Zero);
 

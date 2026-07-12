@@ -51,19 +51,34 @@ public sealed partial class CompiledCompositionTests
         _ = Assert.Throws<ArgumentException>(() => CreateV2(promotion: promotion));
     }
 
-    /// <summary>Verifies only a supported token-free V2 artifact can receive the separate runtime eligibility.</summary>
+    /// <summary>Verifies only a supported token-free reject-policy V2 artifact can receive runtime eligibility.</summary>
     [Fact]
     public void V2RuntimeArtifactRequiresSupportedUnblockedTokenFreePromotion()
     {
         CompiledComposition runtime = CreateV2(
             promotion: new CompiledProfilePromotion(CompiledProfilePromotionStage.Supported, []),
             outputTemplate: "runtime.bin",
+            outputInvalidCharacterPolicy: CompiledOutputInvalidCharacterPolicy.Reject,
             requiredOutputTokenIds: [],
             runtimeExecutable: true);
 
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, runtime.Eligibility);
         _ = Assert.IsType<ProfileBundleV2CompilationAuthority>(runtime.Authority);
         Assert.Equal("runtime.bin", runtime.DefaultOutputFileName);
+        CompiledComposition overridable = CreateV2(
+            promotion: new CompiledProfilePromotion(CompiledProfilePromotionStage.Supported, []),
+            outputTemplate: "runtime.bin",
+            outputInvalidCharacterPolicy: CompiledOutputInvalidCharacterPolicy.Reject,
+            requiredOutputTokenIds: [],
+            allowOutputOverride: true,
+            runtimeExecutable: true);
+        Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, overridable.Eligibility);
+        _ = Assert.Throws<ArgumentException>(() => CreateV2(
+            promotion: new CompiledProfilePromotion(CompiledProfilePromotionStage.Supported, []),
+            outputTemplate: "runtime.bin",
+            outputInvalidCharacterPolicy: CompiledOutputInvalidCharacterPolicy.ReplaceUnderscore,
+            requiredOutputTokenIds: [],
+            runtimeExecutable: true));
         _ = Assert.Throws<ArgumentException>(() => CreateV2(runtimeExecutable: true));
     }
 

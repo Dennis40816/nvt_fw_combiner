@@ -56,7 +56,7 @@ public sealed class CompiledOutputNamingRequirement
                 nameof(requiredTokenIds));
         }
 
-        ValidateWindowsTemplateSafety(fileNameTemplate, invalidCharacterPolicy);
+        ValidateWindowsTemplateSafety(fileNameTemplate, invalidCharacterPolicy, nameof(fileNameTemplate));
 
         FileNameTemplate = fileNameTemplate;
         AllowOverride = allowOverride;
@@ -75,6 +75,25 @@ public sealed class CompiledOutputNamingRequirement
 
     /// <summary>Profile tokens required before a future runtime may render this template.</summary>
     public IReadOnlyList<string> RequiredTokenIds { get; }
+
+    /// <summary>Validates a literal runtime output filename under the closed Windows-safe V2 policy.</summary>
+    public static void ValidateRuntimeLiteralFileName(string fileName, string parameterName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName, parameterName);
+        if (fileName.IndexOfAny(['/', '\\', ':']) >= 0 ||
+            fileName is "." or ".." ||
+            fileName.Any(char.IsControl))
+        {
+            throw new ArgumentException(
+                "Runtime output file names must not contain path or control syntax.",
+                parameterName);
+        }
+
+        ValidateWindowsTemplateSafety(
+            fileName,
+            CompiledOutputInvalidCharacterPolicy.Reject,
+            parameterName);
+    }
 
     private static string[] ExtractTokenIds(string template)
     {
@@ -140,7 +159,8 @@ public sealed class CompiledOutputNamingRequirement
 
     private static void ValidateWindowsTemplateSafety(
         string template,
-        CompiledOutputInvalidCharacterPolicy invalidCharacterPolicy)
+        CompiledOutputInvalidCharacterPolicy invalidCharacterPolicy,
+        string parameterName)
     {
         string candidate = ReplaceTokenOccurrences(template);
         if (invalidCharacterPolicy == CompiledOutputInvalidCharacterPolicy.ReplaceUnderscore)
@@ -159,7 +179,7 @@ public sealed class CompiledOutputNamingRequirement
         {
             throw new ArgumentException(
                 "Reject output policy cannot declare invalid filename characters.",
-                nameof(template));
+                parameterName);
         }
 
         if (candidate.Length == 0 || candidate is "." or ".." ||
@@ -167,7 +187,7 @@ public sealed class CompiledOutputNamingRequirement
         {
             throw new ArgumentException(
                 "Output templates must be safe Windows file names after token rendering.",
-                nameof(template));
+                parameterName);
         }
     }
 

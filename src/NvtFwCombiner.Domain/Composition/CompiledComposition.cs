@@ -282,10 +282,10 @@ public sealed partial class CompiledComposition
         if (details.Provenance.Promotion.Stage != CompiledProfilePromotionStage.Supported ||
             details.Provenance.Promotion.Blockers.Count != 0 ||
             details.OutputNamingRequirement.RequiredTokenIds.Count != 0 ||
-            details.OutputNamingRequirement.AllowOverride)
+            details.OutputNamingRequirement.InvalidCharacterPolicy != CompiledOutputInvalidCharacterPolicy.Reject)
         {
             throw new ArgumentException(
-                "V2 runtime execution requires a supported, unblocked profile with a token-free non-overridable output template.",
+                "V2 runtime execution requires a supported, unblocked profile with a token-free reject output template.",
                 nameof(details));
         }
     }

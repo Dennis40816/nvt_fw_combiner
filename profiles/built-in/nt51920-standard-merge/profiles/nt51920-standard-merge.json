@@ -164,7 +164,7 @@
   "processorStages": [],
   "output": {
     "fileNameTemplate": "nt51920-standard-merge-gen-flash.bin",
-    "allowOverride": false,
+    "allowOverride": true,
     "invalidCharacterPolicy": "reject",
     "requiredTokenIds": []
   },

@@ -171,9 +171,10 @@ internal static partial class V2CompositionPlanCompiler
         }
 
         if (profile.Promotion.Stage == CompositionProfilePromotionStage.Supported &&
-            (profile.Output.RequiredTokenIds.Count != 0 || profile.Output.AllowOverride))
+            (profile.Output.RequiredTokenIds.Count != 0 ||
+             profile.Output.InvalidCharacterPolicy != CompositionProfileInvalidCharacterPolicy.Reject))
         {
-            AddUnsupported(issues, "supported profiles require a token-free non-overridable output template until token rendering is lowered");
+            AddUnsupported(issues, "supported profiles require a token-free reject output template until token rendering is lowered");
         }
 
         if (profile.MetadataBindings.Count != 0 ||

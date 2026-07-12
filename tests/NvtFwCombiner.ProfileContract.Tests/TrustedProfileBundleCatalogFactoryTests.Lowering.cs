@@ -80,13 +80,17 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             familyHash => RuntimeSupportedProfileJson(familyHash, "supported", tokenizedOutput: true)));
         V2CompositionPlanCompileResult overridable = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
             familyHash => RuntimeSupportedProfileJson(familyHash, "supported", allowOutputOverride: true)));
+        V2CompositionPlanCompileResult replacementPolicy = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+            familyHash => RuntimeSupportedProfileJson(familyHash, "supported", invalidCharacterPolicy: "replace-underscore")));
 
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, runtime.CompiledComposition?.Eligibility);
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, candidate.CompiledComposition?.Eligibility);
         Assert.Null(tokenized.CompiledComposition);
         Assert.Equal("profile.v2.plan.unsupported-declaration", Assert.Single(tokenized.Issues).Code);
-        Assert.Null(overridable.CompiledComposition);
-        Assert.Equal("profile.v2.plan.unsupported-declaration", Assert.Single(overridable.Issues).Code);
+        Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, overridable.CompiledComposition?.Eligibility);
+        Assert.Empty(overridable.Issues);
+        Assert.Null(replacementPolicy.CompiledComposition);
+        Assert.Equal("profile.v2.plan.unsupported-declaration", Assert.Single(replacementPolicy.Issues).Code);
     }
 
     /// <summary>Verifies a region slice ending exactly at its half-open boundary lowers while one byte beyond fails closed.</summary>
@@ -411,7 +415,8 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         string familyHash,
         string stage = "supported",
         bool tokenizedOutput = false,
-        bool allowOutputOverride = false)
+        bool allowOutputOverride = false,
+        string invalidCharacterPolicy = "reject")
     {
         JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(SupportedProfileJson(familyHash)));
         JsonObject promotion = Assert.IsType<JsonObject>(profile["promotion"]);
@@ -420,6 +425,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         JsonObject output = Assert.IsType<JsonObject>(profile["output"]);
         output["fileNameTemplate"] = tokenizedOutput ? "{original-name}.bin" : "v2-output.bin";
         output["allowOverride"] = allowOutputOverride;
+        output["invalidCharacterPolicy"] = invalidCharacterPolicy;
         output["requiredTokenIds"] = tokenizedOutput
             ? new JsonArray("original-name")
             : [];

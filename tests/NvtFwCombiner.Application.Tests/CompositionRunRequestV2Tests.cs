@@ -42,11 +42,23 @@ public sealed class CompositionRunRequestV2Tests
         Assert.Equal("input.bin", Assert.Single(request.ArtifactBindings.Values).OriginalFileName);
     }
 
-    /// <summary>Verifies this runtime slice rejects an otherwise safe output override until token rendering owns the policy.</summary>
+    /// <summary>Verifies a token-free V2 artifact can allow a safe plain-file-name output override.</summary>
     [Fact]
-    public void RuntimeArtifactRejectsOutputOverridePolicy()
+    public void RuntimeArtifactAllowsStaticOutputOverridePolicy()
     {
-        _ = Assert.Throws<ArgumentException>(() => CreateV2RuntimeExecutable(allowOutputOverride: true));
+        CompiledComposition composition = CreateV2RuntimeExecutable(allowOutputOverride: true);
+        var request = new CompositionRunRequest(
+            "v2-override",
+            composition,
+            [CreateBinding()],
+            "caller-output.bin");
+
+        Assert.Equal("caller-output.bin", request.OutputFileName);
+        _ = Assert.Throws<ArgumentException>(() => new CompositionRunRequest(
+            "v2-unsafe-override",
+            composition,
+            [CreateBinding()],
+            "caller?.bin"));
     }
 
     /// <summary>Verifies V2 runtime request construction rejects missing provenance, class/extension mismatch, extras, and forbidden output overrides.</summary>
@@ -103,13 +115,13 @@ public sealed class CompositionRunRequestV2Tests
     [Fact]
     public async Task V2RuntimeArtifactRunsThroughPreviewAndBuildWithFingerprintParity()
     {
-        CompiledComposition composition = CreateV2RuntimeExecutable();
+        CompiledComposition composition = CreateV2RuntimeExecutable(allowOutputOverride: true);
         var writer = new RecordingOutputWriter();
         var service = new CompositionRunService(
             new FakeArtifactReader(new Dictionary<string, byte[]> { ["input-artifact"] = [1, 2, 3, 4] }),
             new FakeClock([FirstTimestamp, SecondTimestamp, ThirdTimestamp, FourthTimestamp]),
             writer);
-        var request = new CompositionRunRequest("v2-run", composition, [CreateBinding()], "v2-output.bin");
+        var request = new CompositionRunRequest("v2-run", composition, [CreateBinding()], "caller-output.bin");
 
         AssertBindingSnapshotCannotBeMutated(request);
         CompositionRunResult preview = await service.PreviewAsync(request, CancellationToken.None);
@@ -126,7 +138,39 @@ public sealed class CompositionRunRequestV2Tests
         Assert.Equal(composition.CompilationFingerprint, build.Report.CompilationFingerprint);
         Assert.Equal("input.bin", Assert.Single(preview.Report.Inputs).OriginalFileName);
         Assert.True(writer.WasCalled);
-        Assert.Equal("v2-output.bin", writer.FileName);
+        Assert.Equal("caller-output.bin", writer.FileName);
+    }
+
+    /// <summary>Verifies an allowed V2 output override remains part of Preview-to-Build approval identity.</summary>
+    [Fact]
+    public async Task V2OutputOverrideChangeInvalidatesApprovedBuild()
+    {
+        CompiledComposition composition = CreateV2RuntimeExecutable(allowOutputOverride: true);
+        var writer = new RecordingOutputWriter();
+        var service = new CompositionRunService(
+            new FakeArtifactReader(new Dictionary<string, byte[]> { ["input-artifact"] = [1, 2, 3, 4] }),
+            new FakeClock([FirstTimestamp, SecondTimestamp, ThirdTimestamp, FourthTimestamp]),
+            writer);
+        var previewRequest = new CompositionRunRequest(
+            "v2-override",
+            composition,
+            [CreateBinding()],
+            "caller-output.bin");
+        var changedOutputRequest = new CompositionRunRequest(
+            "v2-override",
+            composition,
+            [CreateBinding()],
+            "other-output.bin");
+
+        CompositionRunResult preview = await service.PreviewAsync(previewRequest, CancellationToken.None);
+        CompositionRunResult build = await service.BuildAsync(
+            changedOutputRequest.WithApprovedPreviewToken(Assert.IsType<string>(preview.PreviewToken)),
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, preview.Status);
+        Assert.Equal(CompositionExecutionStatus.Failed, build.Status);
+        Assert.Null(build.CommittedOutputId);
+        Assert.False(writer.WasCalled);
     }
 
     /// <summary>Verifies original filename provenance cannot be changed after preview without invalidating Build approval.</summary>

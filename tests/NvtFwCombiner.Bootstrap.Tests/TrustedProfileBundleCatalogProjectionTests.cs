@@ -44,6 +44,7 @@ public sealed class TrustedProfileBundleCatalogProjectionTests
         promotion["blockers"] = new JsonArray();
         JsonObject output = Assert.IsType<JsonObject>(profileNode["output"]);
         output["fileNameTemplate"] = "v2-output.bin";
+        output["invalidCharacterPolicy"] = "reject";
         output["requiredTokenIds"] = new JsonArray();
         profileJson = profileNode.ToJsonString();
         byte[] profile = Encoding.UTF8.GetBytes(profileJson);

@@ -24,15 +24,17 @@ Profiles is the only production assembly that can mint either artifact. A V2 run
 - Merge, one engine-owned blank output, exactly one immutable singleton space per input slot, and
   only the existing copy/fill/patch/checked-transform operations with rejected overlap;
 - no metadata bindings, validations, processor stages, clone initialization, or extra mutable space;
-- a token-free, non-overridable output template.
+- a token-free output template using the `reject` invalid-character policy.
 
 Application accepts exactly the paired authority/eligibility tuples
 `LegacyRuntimeExecutable` plus `LegacyProfileCompilationAuthority`, or `V2RuntimeExecutable` plus
 `ProfileBundleV2CompilationAuthority`. It rejects every other tuple, including all
 `V2PlanCompiled` artifacts. V2 request bindings must exactly match the compiled input spaces, slot
 typed slot assertion, original plain filename, and accepted extension. The original filename is
-reported and participates in Preview-to-Build identity. The non-overridable token-free output template
-must equal the requested output filename.
+reported and participates in Preview-to-Build identity. A token-free template supplies the default
+output name. When `allowOverride` is false it must equal the requested output filename; when true,
+Application accepts another Windows-safe plain filename. This does not add token rendering, output
+paths, dynamic naming, or `replace-underscore` rendering.
 
 The existing engine remains the only executor. Preview tokens use the complete compilation
 fingerprint, and Application run reports record it; for V2 this fingerprint binds the bundle, profile

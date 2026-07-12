@@ -125,14 +125,18 @@ public sealed class CompositionRunRequest
             "V2 runtime artifacts require compiled V2 details.",
             nameof(compiledComposition));
         CompiledOutputNamingRequirement output = details.OutputNamingRequirement;
-        if (output.RequiredTokenIds.Count != 0 || output.AllowOverride)
+        if (output.RequiredTokenIds.Count != 0 ||
+            output.InvalidCharacterPolicy != CompiledOutputInvalidCharacterPolicy.Reject)
         {
             throw new ArgumentException(
-                "V2 runtime artifacts require a token-free non-overridable output template until token rendering is available.",
+                "V2 runtime artifacts require a token-free reject output template until token rendering is available.",
                 nameof(compiledComposition));
         }
 
-        if (!string.Equals(outputFileName, output.FileNameTemplate, StringComparison.Ordinal))
+        CompiledOutputNamingRequirement.ValidateRuntimeLiteralFileName(outputFileName, nameof(outputFileName));
+
+        if (!output.AllowOverride &&
+            !string.Equals(outputFileName, output.FileNameTemplate, StringComparison.Ordinal))
         {
             throw new ArgumentException(
                 "Output file name must match the compiled V2 template when overrides are forbidden.",

@@ -43,8 +43,8 @@ When a profile is admitted to one resolved map, lowering produces one V2 plan ar
 `V2PlanCompiled` eligibility remains non-executable. The separate `V2RuntimeExecutable` eligibility
 is minted only by the Profiles compiler for the closed blank-output Merge subset when promotion is
 exactly `supported`, blockers are empty, each input slot has exactly one immutable singleton space,
-and the output template is token-free and non-overridable. `executable-candidate` is not runtime
-authority.
+and the output template is token-free with the `reject` invalid-character policy.
+`executable-candidate` is not runtime authority.
 Its `CompiledInputContract` retains each slot's id, role, artifact class, required/cardinality policy,
 accepted extensions, typed length rule, typed normalization rule, and every immutable plan-space binding
 including instance policy. The artifact does not treat `AddressSpace` geometry as a second source of
@@ -104,9 +104,12 @@ map. Reference images, mutable work buffers, and processor-owned non-CtrlRAM flo
 Original input file names are an unconditional v2 provenance/UI invariant rather than a configurable
 profile flag; a V2 runtime binding supplies its original plain filename and caller-declared typed slot
 assertion, which Application matches to the compiled slot and accepted extension before reading bytes.
-The original filename remains in reports and preview-token identity. Runtime templates are token-free
-and non-overridable, and require the exact compiled filename; other V2 naming forms remain
-non-executable until token rendering is implemented. Output names still follow `output.fileNameTemplate`.
+The original filename remains in reports and preview-token identity. Runtime templates are token-free.
+Their static template supplies the default output filename; `allowOverride: false` requires that exact
+filename, while `allowOverride: true` accepts another Windows-safe caller filename that is bound to
+the Preview-to-Build token. Runtime admission requires the `reject` invalid-character policy;
+`replace-underscore` remains non-executable until token rendering is implemented. Output names still
+follow `output.fileNameTemplate`.
 
 ## Metadata and validation
 
