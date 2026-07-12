@@ -24,6 +24,12 @@ Every listed entry is hashed before parsing. The production loader rejects:
 All runtime content is below one loader-selected immutable bundle root. Profile documents cannot
 contain host paths, commands, scripts, or arbitrary processor parameters.
 
+Each listed schema declares exactly the Draft 2020-12 `$schema` URI and the `$id` named by its
+manifest `schemaId`. Schema and content validation run only over immutable bundle snapshots with
+format assertions enabled. `$ref`, `$dynamicRef`, and `$recursiveRef` must be local fragment
+references; nested `$id` and `$schema` declarations are rejected. A profile bundle therefore cannot
+discover schemas from the network, another bundle, or mutable process-global state.
+
 ## Packaging boundary
 
 Repository schemas remain reviewable source contracts under `docs/contracts`. Packaging may copy

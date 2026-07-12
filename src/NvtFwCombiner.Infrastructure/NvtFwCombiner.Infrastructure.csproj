@@ -8,6 +8,9 @@
     <ProjectReference Include="..\NvtFwCombiner.Application\NvtFwCombiner.Application.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="JsonSchema.Net" />
+  </ItemGroup>
+  <ItemGroup>
     <InternalsVisibleTo Include="NvtFwCombiner.Infrastructure.Tests" />
   </ItemGroup>
 </Project>
