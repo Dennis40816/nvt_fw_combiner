@@ -45,7 +45,7 @@ internal sealed class TrustedCompositionProfileCatalogEntry
 }
 
 /// <summary>Atomic immutable catalog of normalized family/profile facts from one trusted bundle projection.</summary>
-internal sealed class TrustedProfileBundleCatalog
+internal sealed partial class TrustedProfileBundleCatalog
 {
     private readonly TrustedFirmwareFamilyCatalogEntry[] _families;
     private readonly TrustedCompositionProfileCatalogEntry[] _profiles;

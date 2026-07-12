@@ -15,6 +15,8 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Domain/Composition/LegacyCompiledCompositionIdentity.cs");
         string compiler = ReadText(
             "src/NvtFwCombiner.Profiles/CompositionProfileCompiler.cs");
+        string preparation = ReadText(
+            "src/NvtFwCombiner.Profiles/V2/V2CompositionPreparationService.cs");
         string compileResult = ReadText(
             "src/NvtFwCombiner.Profiles/ProfileCompileResult.cs");
         string profileSources = ReadProfileSources();
@@ -72,6 +74,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("CompiledComposition.CreateLegacy(", compiler, StringComparison.Ordinal);
         Assert.Equal(1, CountOccurrences(profileSources, "CompiledComposition.CreateLegacy("));
         Assert.Equal(0, CountOccurrences(profileSources, "CompiledComposition.CreateV2("));
+        Assert.Contains("profile.Family.Family.ResolveMap", preparation, StringComparison.Ordinal);
+        Assert.Contains("CompositionProfileMapAdmissionValidator.Validate", preparation, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionPlan", preparation, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompiledComposition.CreateV2", preparation, StringComparison.Ordinal);
+        Assert.DoesNotContain("NvtFwCombiner.Application", preparation, StringComparison.Ordinal);
         Assert.Contains("CompiledComposition compiledComposition", request, StringComparison.Ordinal);
         Assert.Contains(
             "CompiledCompositionEligibility.LegacyRuntimeExecutable",

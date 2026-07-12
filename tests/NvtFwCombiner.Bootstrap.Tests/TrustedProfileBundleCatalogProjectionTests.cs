@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using NvtFwCombiner.Contracts.Bundles;
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.Bundles;
 using NvtFwCombiner.Profiles.V2;
 using NvtFwCombiner.TestSupport;
@@ -60,6 +61,20 @@ public sealed class TrustedProfileBundleCatalogProjectionTests
         Assert.Equal("profile-entry", profileEntry.Identity.EntryId);
         Assert.Same(familyEntry, profileEntry.Family);
         Assert.Equal("map", Assert.Single(profileEntry.Profile.MapBinding.MapIds));
+
+        TrustedProfileBundleCatalog.ProfileSelection selection = Assert.IsType<TrustedProfileBundleCatalog.ProfileSelection>(
+            catalog.SelectProfile("profile", "1.0.0").Selection);
+        V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(
+            catalog,
+            new V2CompositionPreparationRequest(
+                selection,
+                new FirmwareMapResolutionInputs("NT00001", "standard", 16, requestedTopology: null, [])));
+
+        Assert.True(preparation.IsAdmitted);
+        Assert.Equal(V2CompositionPreparationStatus.Admitted, preparation.Status);
+        Assert.Equal(FirmwareMapResolutionStatus.Unique, preparation.MapResolution?.Status);
+        Assert.Same(profileEntry.Profile, preparation.Admission?.Profile);
+        Assert.Equal("map", preparation.Admission?.ResolvedMap.ImageMap.MapId);
     }
 
     private static byte[] ReadSchema(string fileName)

@@ -7,7 +7,7 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.ProfileContract.Tests;
 
 /// <summary>Tests atomic normalization and exact family binding for trusted V2 bundle catalog sources.</summary>
-public sealed class TrustedProfileBundleCatalogFactoryTests
+public sealed partial class TrustedProfileBundleCatalogFactoryTests
 {
     private const string FirmwareFamilySchemaId =
         "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json";
@@ -119,13 +119,14 @@ public sealed class TrustedProfileBundleCatalogFactoryTests
 
     private static TrustedProfileBundleCatalogSource Source(
         IEnumerable<TrustedFirmwareFamilyJsonSource> families,
-        IEnumerable<TrustedCompositionProfileJsonSource> profiles)
+        IEnumerable<TrustedCompositionProfileJsonSource> profiles,
+        string bundleContentHash = BundleHash)
     {
         return new TrustedProfileBundleCatalogSource(
             ManifestHash,
             "bundle",
             "1.0.0",
-            BundleHash,
+            bundleContentHash,
             "release-binding",
             families,
             profiles);
