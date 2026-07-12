@@ -62,10 +62,14 @@ internal static partial class V2CompositionPlanCompiler
     private const string UnsupportedDeclaration = "profile.v2.plan.unsupported-declaration";
     private const string InvalidView = "profile.v2.plan.invalid-view";
     private const string CopyLengthMismatch = "profile.v2.plan.copy-length-mismatch";
+    private const string OperationLengthMismatch = "profile.v2.plan.operation-length-mismatch";
+    private const string OperationOverlap = "profile.v2.plan.operation-overlap";
+    private const string ScalarWidthMismatch = "profile.v2.plan.scalar-width-mismatch";
+    private const string InvalidScalarTransform = "profile.v2.plan.invalid-scalar-transform";
     private const string InvalidRegionAccess = "profile.v2.plan.invalid-region-access";
     private const string RegionAccessDenied = "profile.v2.plan.region-access-denied";
 
-    /// <summary>Lowers only the closed blank-copy V2 subset and never grants Application runtime eligibility.</summary>
+    /// <summary>Lowers the closed blank-output V2 operation subset and never grants Application runtime eligibility.</summary>
     internal static V2CompositionPlanCompileResult Compile(V2CompositionPreparationResult preparation)
     {
         ArgumentNullException.ThrowIfNull(preparation);
@@ -97,7 +101,8 @@ internal static partial class V2CompositionPlanCompiler
             return V2CompositionPlanCompileResult.Failed(issues);
         }
 
-        CompositionOperation[] operations = LowerCopyOperations(profile, views, regionAccess, issues);
+        CompositionOperation[] operations = LowerOperations(profile, views, regionAccess, issues);
+        ValidateRejectOperationOverlaps(operations, issues);
         if (issues.Count != 0)
         {
             return V2CompositionPlanCompileResult.Failed(issues);
@@ -188,10 +193,16 @@ internal static partial class V2CompositionPlanCompiler
 
         foreach (CompositionProfileOperation operation in profile.Operations)
         {
-            if (operation is not CopyOrReplaceProfileOperation { Kind: CompositionProfileOperationKind.CopyRange } ||
-                operation.OverlapPolicy != OverlapPolicy.Reject)
+            if (operation.OverlapPolicy != OverlapPolicy.Reject ||
+                operation is not CopyOrReplaceProfileOperation { Kind: CompositionProfileOperationKind.CopyRange } and
+                    not FillRangeProfileOperation and
+                    not PatchScalarProfileOperation and
+                    not TransformScalarProfileOperation)
             {
-                AddUnsupported(issues, $"operation '{operation.OperationId}' is outside the CopyRange/Reject lowering subset", operation.OperationId);
+                AddUnsupported(
+                    issues,
+                    $"operation '{operation.OperationId}' is outside the CopyRange/FillRange/PatchScalar/TransformScalar Reject lowering subset",
+                    operation.OperationId);
             }
         }
     }
@@ -421,55 +432,9 @@ internal static partial class V2CompositionPlanCompiler
         return true;
     }
 
-    private static CompositionOperation[] LowerCopyOperations(
-        CompositionProfileDefinition profile,
-        IReadOnlyDictionary<string, ResolvedView> views,
-        LoweredRegionAccess regionAccess,
-        List<CompositionIssue> issues)
-    {
-        var operations = new List<CompositionOperation>();
-        foreach (CopyOrReplaceProfileOperation operation in profile.Operations.OfType<CopyOrReplaceProfileOperation>())
-        {
-            if (!views.TryGetValue(operation.SourceViewId, out ResolvedView? source) || source is null ||
-                !views.TryGetValue(operation.TargetViewId, out ResolvedView? target) || target is null)
-            {
-                issues.Add(new CompositionIssue(InvalidView, $"Operation '{operation.OperationId}' references an unresolved view.", operation.OperationId));
-                continue;
-            }
-
-            if (source.Range.Length != target.Range.Length)
-            {
-                issues.Add(new CompositionIssue(CopyLengthMismatch, $"Operation '{operation.OperationId}' source and target views have different lengths.", operation.OperationId));
-                continue;
-            }
-
-            if (!TryAuthorizeTargetWrite(operation, target, regionAccess, issues))
-            {
-                continue;
-            }
-
-            if (operation.Sequence > int.MaxValue)
-            {
-                AddUnsupported(issues, $"operation '{operation.OperationId}' sequence exceeds Int32", operation.OperationId);
-                continue;
-            }
-
-            operations.Add(CompositionOperation.CopyRange(
-                operation.OperationId,
-                (int)operation.Sequence,
-                source.SpaceId,
-                source.Range,
-                target.SpaceId,
-                target.Range,
-                OverlapPolicy.Reject,
-                operation.Reason));
-        }
-
-        return [.. operations];
-    }
-
     private static bool TryAuthorizeTargetWrite(
-        CopyOrReplaceProfileOperation operation,
+        string operationId,
+        string targetViewId,
         ResolvedView target,
         LoweredRegionAccess regionAccess,
         List<CompositionIssue> issues)
@@ -482,8 +447,8 @@ internal static partial class V2CompositionPlanCompiler
         {
             AddAccessDenied(
                 issues,
-                operation,
-                $"target view '{operation.TargetViewId}' has no declared profile access rule");
+                operationId,
+                $"target view '{targetViewId}' has no declared profile access rule");
             return false;
         }
 
@@ -493,7 +458,7 @@ internal static partial class V2CompositionPlanCompiler
             {
                 AddAccessDenied(
                     issues,
-                    operation,
+                    operationId,
                     $"profile access '{rule.Requirement.Access}' for region '{rule.Region.RegionId}' does not authorize its target range");
                 return false;
             }
@@ -505,7 +470,7 @@ internal static partial class V2CompositionPlanCompiler
             {
                 AddAccessDenied(
                     issues,
-                    operation,
+                    operationId,
                     $"physical write constraint '{region.WriteConstraint}' for region '{region.RegionId}' does not authorize its target range");
                 return false;
             }
@@ -556,13 +521,13 @@ internal static partial class V2CompositionPlanCompiler
 
     private static void AddAccessDenied(
         List<CompositionIssue> issues,
-        CopyOrReplaceProfileOperation operation,
+        string operationId,
         string detail)
     {
         issues.Add(new CompositionIssue(
             RegionAccessDenied,
-            $"Operation '{operation.OperationId}' {detail}.",
-            operation.OperationId));
+            $"Operation '{operationId}' {detail}.",
+            operationId));
     }
 
     private static CompiledPhysicalRegionConstraint[] ToCompiledRegionChain(

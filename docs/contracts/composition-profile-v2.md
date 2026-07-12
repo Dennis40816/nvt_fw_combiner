@@ -51,7 +51,7 @@ evidence. The V2 compilation fingerprint format is `nfc.compiled-composition.pro
 these compiled input and capability-admission decisions as well as bundle, map, promotion, validation,
 output, and plan facts.
 
-The blank-copy lowering subset compiles every `regionAccessRules` declaration with the complete canonical
+The blank-output lowering subset compiles every `regionAccessRules` declaration with the complete canonical
 physical ancestor chain for every logical view. Region access remains profile-owned authoring policy and
 cannot be silently dropped or treated as a UI-only restriction. A target write is deny-by-default: every
 applicable profile rule and every governing physical write constraint must allow its half-open range.
@@ -61,6 +61,10 @@ alignment. `hidden` and `read-only` never authorize a target write. The compiler
 policy and logical view-provenance facts in the V2 compilation fingerprint. The selected map remains the
 sole authority for physical region ranges; compiled views retain only their resolved half-open logical range
 and exact physical region-chain identity so the artifact can verify that provenance.
+
+The current non-executable blank-output subset lowers only `copy-range`, `fill-range`, `patch-scalar`, and
+checked `transform-scalar` operations with `reject` overlap policy. `replace-range`, clone initialization,
+metadata validation, processor stages, and every runtime authority remain outside this subset and fail closed.
 
 Every mutable space has exactly one engine-owned `blank` or immutable-slot `clone` initializer.
 `clone.sourceSlotId` cannot reference a mutable space, which removes mutable initializer cycles by
