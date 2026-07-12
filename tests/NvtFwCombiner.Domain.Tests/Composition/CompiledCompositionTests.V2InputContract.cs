@@ -139,6 +139,28 @@ public sealed partial class CompiledCompositionTests
         Assert.Equal(["capability-alias"], aliased.Binding.Provenance.AliasChain.Select(static alias => alias.AliasId));
     }
 
+    /// <summary>Verifies independently variable admitted capability and alias-provenance fields bind V2 identity.</summary>
+    [Fact]
+    public void V2FingerprintBindsCompleteCapabilityAdmissionProvenance()
+    {
+        CompiledComposition baseline = CreateV2(requiredCapabilities: [AliasedCapabilityAdmission()]);
+        CompiledComposition[] variants =
+        [
+            CreateV2(requiredCapabilities: [AliasedCapabilityAdmission(requiredCapabilityId: "ab-code-two")]),
+            CreateV2(requiredCapabilities: [AliasedCapabilityAdmission(capabilityReason: "changed source reason")]),
+            CreateV2(requiredCapabilities: [AliasedCapabilityAdmission(capabilityEvidenceRefs: ["changed-source-evidence"])]),
+            CreateV2(requiredCapabilities: [AliasedCapabilityAdmission(targetFactId: "changed-target-fact")]),
+            CreateV2(requiredCapabilities: [AliasedCapabilityAdmission(sourceMemberId: "source-member-two")]),
+            CreateV2(requiredCapabilities: [AliasedCapabilityAdmission(sourceMapId: "source-map-two")]),
+            CreateV2(requiredCapabilities: [AliasedCapabilityAdmission(sourceFactId: "changed-source-fact")]),
+            CreateV2(requiredCapabilities: [AliasedCapabilityAdmission(modeIds: ["alternate", "standard"])]),
+            CreateV2(requiredCapabilities: [AliasedCapabilityAdmission(aliasReason: "changed alias reason")]),
+            CreateV2(requiredCapabilities: [AliasedCapabilityAdmission(aliasEvidenceRefs: ["changed-alias-evidence"])]),
+        ];
+
+        Assert.All(variants, variant => Assert.NotEqual(baseline.CompilationFingerprint, variant.CompilationFingerprint));
+    }
+
     /// <summary>Verifies capability admission cannot be forged with a mismatched id, state, or resolved-map target.</summary>
     [Fact]
     public void V2CapabilityAdmissionFailsClosedForInvalidEvidence()
@@ -204,33 +226,43 @@ public sealed partial class CompiledCompositionTests
             Binding("NT-SYNTHETIC", "map", "capability-fact", capability));
     }
 
-    private static CompiledCapabilityAdmission AliasedCapabilityAdmission()
+    private static CompiledCapabilityAdmission AliasedCapabilityAdmission(
+        string requiredCapabilityId = "ab-code",
+        string capabilityReason = "source reason",
+        IReadOnlyList<string>? capabilityEvidenceRefs = null,
+        string targetFactId = "target-fact",
+        string sourceMemberId = "source-member",
+        string sourceMapId = "source-map",
+        string sourceFactId = "source-fact",
+        IReadOnlyList<string>? modeIds = null,
+        string aliasReason = "target inherits source",
+        IReadOnlyList<string>? aliasEvidenceRefs = null)
     {
-        var target = new FirmwareMapFactKey("NT-SYNTHETIC", "map", FirmwareFactKind.Capability, "target-fact");
-        var source = new FirmwareMapFactKey("source-member", "source-map", FirmwareFactKind.Capability, "source-fact");
+        var target = new FirmwareMapFactKey("NT-SYNTHETIC", "map", FirmwareFactKind.Capability, targetFactId);
+        var source = new FirmwareMapFactKey(sourceMemberId, sourceMapId, FirmwareFactKind.Capability, sourceFactId);
         var applicability = new FirmwareFactApplicability(
-            ["standard"],
+            modeIds ?? ["standard"],
             TopologyRequirement.NoTopologyConstraint(),
             4);
         var capability = new FirmwareCapabilityFact(
-            "source-fact",
-            "ab-code",
+            sourceFactId,
+            requiredCapabilityId,
             FirmwareCapabilityState.ConfirmedPresent,
-            "source reason",
-            ["source-capability-evidence"]);
+            capabilityReason,
+            capabilityEvidenceRefs ?? ["source-capability-evidence"]);
         var alias = new FirmwareFactAliasHop(
             "capability-alias",
             target,
             source,
             applicability,
-            "target inherits source",
-            ["alias-evidence"]);
+            aliasReason,
+            aliasEvidenceRefs ?? ["alias-evidence"]);
         return new CompiledCapabilityAdmission(
-            "ab-code",
+            requiredCapabilityId,
             new FirmwareMapFactBinding<FirmwareCapabilityFact>(
                 target,
                 source,
-                "source-fact",
+                sourceFactId,
                 capability,
                 applicability,
                 new FirmwareFactProvenance(target, source, [alias], capability.EvidenceRefs)));
