@@ -5,27 +5,30 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
-/// <summary>Golden migration evidence for the NT51919/NT51929/NT51932 canonical V2 Standard Merge family.</summary>
+/// <summary>Golden migration evidence for canonical V2 Standard Merge families.</summary>
 public sealed class Nt51929FamilyV2StandardMergeGoldenTests
 {
-    private const string BundleContentHash = "01b84018c975ee4c7c52b36d594e2919a346294b713e060c496e597237ae3de3";
-
     /// <summary>Verifies every family member retains legacy plan geometry and the owner-approved reference bytes.</summary>
     [Theory]
-    [InlineData("NT51919", "nt51919-standard-merge-gen-flash-alias", "51929", "nt51919-standard-merge-gen-flash-alias.bin", true)]
-    [InlineData("NT51929", "nt51929-standard-merge-gen-flash", "51929", "nt51929-standard-merge-gen-flash.bin", false)]
-    [InlineData("NT51932", "nt51932-standard-merge-gen-flash", "51932", "nt51932-standard-merge-gen-flash.bin", false)]
+    [InlineData("nt51929-standard-merge", "01b84018c975ee4c7c52b36d594e2919a346294b713e060c496e597237ae3de3", "NT51919", "nt51919-standard-merge-gen-flash-alias", "51929", "nt51919-standard-merge-gen-flash-alias.bin", 0x6000, true)]
+    [InlineData("nt51929-standard-merge", "01b84018c975ee4c7c52b36d594e2919a346294b713e060c496e597237ae3de3", "NT51929", "nt51929-standard-merge-gen-flash", "51929", "nt51929-standard-merge-gen-flash.bin", 0x6000, false)]
+    [InlineData("nt51929-standard-merge", "01b84018c975ee4c7c52b36d594e2919a346294b713e060c496e597237ae3de3", "NT51932", "nt51932-standard-merge-gen-flash", "51932", "nt51932-standard-merge-gen-flash.bin", 0x6000, false)]
+    [InlineData("nt51923-standard-merge", "6c1d0336b4c2e4df61a47258937b75c598e06daa189f50d1b5457381434df7ec", "NT51923", "nt51923-standard-merge-gen-flash", "51923", "nt51923-standard-merge-gen-flash.bin", 0x40000, false)]
+    [InlineData("nt51923-standard-merge", "6c1d0336b4c2e4df61a47258937b75c598e06daa189f50d1b5457381434df7ec", "NT51926", "nt51926-standard-merge-gen-flash", "51926", "nt51926-standard-merge-gen-flash.bin", 0x40000, false)]
     public async Task TrustedV2BundleMatchesLegacyPlanAndOwnerApprovedGoldenBytes(
+        string bundleDirectory,
+        string bundleContentHash,
         string icId,
         string profileId,
         string referenceIc,
         string expectedOutputFileName,
+        int expectedDpSourceLength,
         bool expectsRegionSetAlias)
     {
         string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        string bundleRoot = Path.Combine(repositoryRoot, "profiles", "built-in", "nt51929-standard-merge");
+        string bundleRoot = Path.Combine(repositoryRoot, "profiles", "built-in", bundleDirectory);
         CompiledComposition v2 = V2StandardMergeGoldenTestSupport.CompileV2(
-            V2StandardMergeGoldenTestSupport.LoadCatalog(bundleRoot, BundleContentHash),
+            V2StandardMergeGoldenTestSupport.LoadCatalog(bundleRoot, bundleContentHash),
             profileId,
             "0.5.0",
             icId);
@@ -36,7 +39,7 @@ public sealed class Nt51929FamilyV2StandardMergeGoldenTests
         V2StandardMergeGoldenTestSupport.AssertPlanGeometryAndOperationParity(
             V2StandardMergeGoldenTestSupport.CompileLegacy(icId).Plan,
             v2.Plan);
-        AssertNormalDpExtractionContract(v2.Plan);
+        AssertNormalDpExtractionContract(v2.Plan, expectedDpSourceLength);
         AssertRegionSetProvenance(v2, expectsRegionSetAlias);
 
         System.Text.Json.JsonElement goldenCase = V2StandardMergeGoldenTestSupport.ReadGoldenCase(referenceIc);
@@ -65,10 +68,10 @@ public sealed class Nt51929FamilyV2StandardMergeGoldenTests
         Assert.Equal(provenance.EffectiveKey, provenance.DirectSourceKey);
     }
 
-    private static void AssertNormalDpExtractionContract(CompositionPlan plan)
+    private static void AssertNormalDpExtractionContract(CompositionPlan plan, int expectedSourceLength)
     {
         AddressSpace dpInput = plan.AddressSpaces.Single(space => space.AddressSpaceId == "dp-input");
-        Assert.Equal(0x6000, dpInput.Length);
+        Assert.Equal(expectedSourceLength, dpInput.Length);
         Assert.Equal(InputOversizePolicy.ExtractDeclaredRange, dpInput.InputOversizePolicy);
         Assert.Empty(dpInput.AllowedInputLengths);
         Assert.Equal([0x40000], dpInput.ExpectedInputLengths);
