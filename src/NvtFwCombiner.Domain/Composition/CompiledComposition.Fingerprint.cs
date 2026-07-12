@@ -132,6 +132,10 @@ public sealed partial class CompiledComposition
             AppendEnum(builder, $"{prefix}.input-oversize-policy", addressSpace.InputOversizePolicy);
             AppendIntegerList(builder, $"{prefix}.allowed-input-length", addressSpace.AllowedInputLengths);
             AppendIntegerList(builder, $"{prefix}.expected-input-length", addressSpace.ExpectedInputLengths);
+            if (addressSpace.UnexpectedInputLengthIssueCode is { } unexpectedInputLengthIssueCode)
+            {
+                AppendField(builder, $"{prefix}.unexpected-input-length-issue-code", unexpectedInputLengthIssueCode);
+            }
         }
 
         AppendInteger(builder, "plan.operation.count", plan.OrderedOperations.Count);

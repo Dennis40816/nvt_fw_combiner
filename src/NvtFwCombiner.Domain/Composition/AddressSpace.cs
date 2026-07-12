@@ -14,7 +14,8 @@ public sealed class AddressSpace
         byte? inputPaddingByte = null,
         InputOversizePolicy inputOversizePolicy = InputOversizePolicy.Reject,
         IReadOnlyList<long>? allowedInputLengths = null,
-        IReadOnlyList<long>? expectedInputLengths = null)
+        IReadOnlyList<long>? expectedInputLengths = null,
+        string? unexpectedInputLengthIssueCode = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(length);
@@ -25,11 +26,25 @@ public sealed class AddressSpace
 
         _allowedInputLengths = NormalizeAllowedInputLengths(allowedInputLengths, length);
         _expectedInputLengths = NormalizeExpectedInputLengths(expectedInputLengths, length);
+        if (unexpectedInputLengthIssueCode is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(unexpectedInputLengthIssueCode);
+            if (mutability != AddressSpaceMutability.Immutable ||
+                inputOversizePolicy != InputOversizePolicy.ExtractDeclaredRange ||
+                _expectedInputLengths.Length == 0)
+            {
+                throw new ArgumentException(
+                    "An unexpected-length warning code requires declared-range extraction with expected input lengths.",
+                    nameof(unexpectedInputLengthIssueCode));
+            }
+        }
+
         AddressSpaceId = addressSpaceId;
         Length = length;
         Mutability = mutability;
         InputPaddingByte = inputPaddingByte;
         InputOversizePolicy = inputOversizePolicy;
+        UnexpectedInputLengthIssueCode = unexpectedInputLengthIssueCode;
     }
 
     /// <summary>Stable identifier used by operations and reports.</summary>
@@ -52,6 +67,9 @@ public sealed class AddressSpace
 
     /// <summary>Known source artifact lengths that remain non-blocking expectations for diagnostics and traceability.</summary>
     public IReadOnlyList<long> ExpectedInputLengths => _expectedInputLengths;
+
+    /// <summary>Optional profile-owned warning code emitted when a declared-range extraction input has an unexpected outer length.</summary>
+    public string? UnexpectedInputLengthIssueCode { get; }
 
     /// <summary>Returns true when <paramref name="range"/> is fully inside this address space.</summary>
     public bool Contains(ByteRange range)

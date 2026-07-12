@@ -250,13 +250,7 @@ internal static partial class V2CompositionPlanCompiler
                 continue;
             }
 
-            spaces.Add(
-                input.SpaceId,
-                new AddressSpace(
-                    input.SpaceId,
-                    length,
-                    AddressSpaceMutability.Immutable,
-                    allowedInputLengths: [length]));
+            spaces.Add(input.SpaceId, CreateInputAddressSpace(input.SpaceId, length, slot, resolvedMap.CapacityBytes));
         }
 
         MutableCompositionProfileSpace output = AssertOutputSpace(profile);
@@ -264,6 +258,27 @@ internal static partial class V2CompositionPlanCompiler
             output.SpaceId,
             new AddressSpace(output.SpaceId, resolvedMap.CapacityBytes, AddressSpaceMutability.Mutable));
         return spaces;
+    }
+
+    private static AddressSpace CreateInputAddressSpace(
+        string addressSpaceId,
+        long length,
+        CompositionProfileInputSlot slot,
+        long resolvedMapCapacity)
+    {
+        return slot.LengthRule is NormalDpExtractWithWarningLengthRule normalDp
+            ? new AddressSpace(
+                addressSpaceId,
+                length,
+                AddressSpaceMutability.Immutable,
+                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
+                expectedInputLengths: [resolvedMapCapacity],
+                unexpectedInputLengthIssueCode: normalDp.IssueCode)
+            : new AddressSpace(
+                addressSpaceId,
+                length,
+                AddressSpaceMutability.Immutable,
+                allowedInputLengths: [length]);
     }
 
     private static Dictionary<string, ResolvedView> LowerViews(

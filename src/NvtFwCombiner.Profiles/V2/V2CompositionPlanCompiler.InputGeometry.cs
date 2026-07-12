@@ -7,7 +7,7 @@ internal static partial class V2CompositionPlanCompiler
 {
     private static bool IsCurrentInputLengthRuleSupported(CompositionProfileInputSlot slot)
     {
-        return slot.LengthRule is ExactResolvedMapCapacityLengthRule ||
+        return slot.LengthRule is ExactResolvedMapCapacityLengthRule or NormalDpExtractWithWarningLengthRule ||
             (slot.LengthRule is TpMaximum256KLengthRule &&
              slot.ArtifactClass == CompositionProfileArtifactClass.TpFirmware);
     }
@@ -27,6 +27,8 @@ internal static partial class V2CompositionPlanCompiler
                 return true;
             case TpMaximum256KLengthRule:
                 return TryResolveTpSourceSpan(profile, input, resolvedMap, issues, out length);
+            case NormalDpExtractWithWarningLengthRule:
+                return TryResolveNormalDpSourceSpan(profile, input, resolvedMap, issues, out length);
             default:
                 throw new InvalidOperationException("Validated V2 lowering encountered an unsupported input length rule.");
         }
@@ -39,6 +41,50 @@ internal static partial class V2CompositionPlanCompiler
         List<CompositionIssue> issues,
         out long length)
     {
+        if (!TryResolveInputSourceSpan(profile, input, resolvedMap, "TP", "exact plan", issues, out length))
+        {
+            return false;
+        }
+
+        if (length > TpMaximum256KLengthRule.MaximumBytes)
+        {
+            issues.Add(new CompositionIssue(
+                InvalidInputGeometry,
+                $"TP input space '{input.SpaceId}' requires source bytes through 0x{length:X}, exceeding the 256 KiB policy limit.",
+                input.SpaceId));
+            length = 0;
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool TryResolveNormalDpSourceSpan(
+        CompositionProfileDefinition profile,
+        InputArtifactProfileSpace input,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        List<CompositionIssue> issues,
+        out long length)
+    {
+        return TryResolveInputSourceSpan(
+            profile,
+            input,
+            resolvedMap,
+            "Normal DP",
+            "declared extraction",
+            issues,
+            out length);
+    }
+
+    private static bool TryResolveInputSourceSpan(
+        CompositionProfileDefinition profile,
+        InputArtifactProfileSpace input,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        string inputKind,
+        string spanDescription,
+        List<CompositionIssue> issues,
+        out long length)
+    {
         long maximumEndExclusive = 0;
         bool hasView = false;
         foreach (CompositionProfileView view in profile.Views.Where(view =>
@@ -48,7 +94,7 @@ internal static partial class V2CompositionPlanCompiler
             {
                 issues.Add(new CompositionIssue(
                     InvalidInputGeometry,
-                    $"TP input space '{input.SpaceId}' cannot resolve view '{view.ViewId}': {error}",
+                    $"{inputKind} input space '{input.SpaceId}' cannot resolve view '{view.ViewId}': {error}",
                     view.ViewId));
                 length = 0;
                 return false;
@@ -62,17 +108,7 @@ internal static partial class V2CompositionPlanCompiler
         {
             issues.Add(new CompositionIssue(
                 InvalidInputGeometry,
-                $"TP input space '{input.SpaceId}' has no source view from which to derive its exact plan span.",
-                input.SpaceId));
-            length = 0;
-            return false;
-        }
-
-        if (maximumEndExclusive > TpMaximum256KLengthRule.MaximumBytes)
-        {
-            issues.Add(new CompositionIssue(
-                InvalidInputGeometry,
-                $"TP input space '{input.SpaceId}' requires source bytes through 0x{maximumEndExclusive:X}, exceeding the 256 KiB policy limit.",
+                $"{inputKind} input space '{input.SpaceId}' has no source view from which to derive its {spanDescription} span.",
                 input.SpaceId));
             length = 0;
             return false;

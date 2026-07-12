@@ -222,6 +222,59 @@ public sealed partial class CompositionEngineTests
         Assert.Contains("unexpected length 3 bytes", issue.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies a profile-owned extraction warning code replaces only the generic unexpected-length diagnostic.</summary>
+    [Fact]
+    public void DeclaredRangeExtractionUsesConfiguredUnexpectedLengthWarningCode()
+    {
+        CompositionPlan plan = CreateBlankPlan(
+            2,
+            new AddressSpace(
+                "input",
+                2,
+                AddressSpaceMutability.Immutable,
+                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
+                expectedInputLengths: [4],
+                unexpectedInputLengthIssueCode: "DP_SIZE_WARNING"),
+            CompositionOperation.CopyRange(
+                "copy-input",
+                10,
+                "input",
+                new ByteRange(0, 2),
+                "output-image",
+                new ByteRange(0, 2),
+                OverlapPolicy.Reject,
+                "copy declared source range"));
+
+        CompositionExecutionResult result = CompositionEngine.Execute(
+            plan,
+            new CompositionExecutionInput(new Dictionary<string, byte[]> { ["input"] = [0x11, 0x22, 0x33] }));
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal([0x11, 0x22], result.OutputBytes.ToArray());
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("DP_SIZE_WARNING", issue.Code);
+        Assert.Equal(CompositionIssueSeverity.Warning, issue.Severity);
+    }
+
+    /// <summary>Verifies unexpected-length warning codes are restricted to immutable declared-range extraction inputs.</summary>
+    [Fact]
+    public void UnexpectedLengthWarningCodeRequiresImmutableDeclaredRangeExtractionInput()
+    {
+        _ = Assert.Throws<ArgumentException>(() => new AddressSpace(
+            "mutable",
+            2,
+            AddressSpaceMutability.Mutable,
+            inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
+            expectedInputLengths: [4],
+            unexpectedInputLengthIssueCode: "DP_SIZE_WARNING"));
+        _ = Assert.Throws<ArgumentException>(() => new AddressSpace(
+            "rejecting-input",
+            2,
+            AddressSpaceMutability.Immutable,
+            expectedInputLengths: [4],
+            unexpectedInputLengthIssueCode: "DP_SIZE_WARNING"));
+    }
+
     /// <summary>Verifies CtrlRAM replace inputs may truncate oversized source bytes with a run diagnostic.</summary>
     [Fact]
     public void CtrlRamInputWithTruncationPolicyTruncatesBeforeReplaceRange()

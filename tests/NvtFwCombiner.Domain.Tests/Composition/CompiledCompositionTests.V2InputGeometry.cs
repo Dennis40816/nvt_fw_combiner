@@ -80,6 +80,35 @@ public sealed partial class CompiledCompositionTests
             sourceRanges: [new ByteRange(0, oversize)]));
     }
 
+    /// <summary>Verifies Normal DP extraction retains a declared span, map-capacity expectation, warning code, and distinct compilation identity.</summary>
+    [Fact]
+    public void V2PlanArtifactBindsNormalDpExtractionGeometryAndWarningCode()
+    {
+        CompiledComposition baseline = CreateNormalDpComposition("DP_SIZE_WARNING");
+        CompiledComposition changedWarning = CreateNormalDpComposition("DP_LENGTH_WARNING");
+
+        AddressSpace input = Assert.Single(baseline.Plan.AddressSpaces, space => space.AddressSpaceId == "input");
+        Assert.Equal(8, input.Length);
+        Assert.Empty(input.AllowedInputLengths);
+        Assert.Equal([16L], input.ExpectedInputLengths);
+        Assert.Equal(InputOversizePolicy.ExtractDeclaredRange, input.InputOversizePolicy);
+        Assert.Equal("DP_SIZE_WARNING", input.UnexpectedInputLengthIssueCode);
+        Assert.NotEqual(baseline.CompilationFingerprint, changedWarning.CompilationFingerprint);
+    }
+
+    /// <summary>Verifies V2 artifacts reject Normal DP contracts that can bypass extraction or lack a declared source span.</summary>
+    [Fact]
+    public void V2PlanArtifactRejectsInvalidNormalDpExtractionGeometry()
+    {
+        _ = Assert.Throws<ArgumentException>(() => CreateNormalDpComposition(
+            "DP_SIZE_WARNING",
+            inputOversizePolicy: InputOversizePolicy.Reject,
+            includeWarningCodeInAddressSpace: false));
+        _ = Assert.Throws<ArgumentException>(() => CreateNormalDpComposition(
+            "DP_SIZE_WARNING",
+            sourceRanges: []));
+    }
+
     private static CompiledComposition CreateTpComposition(
         long sourceLength,
         long outputCapacity,
@@ -103,6 +132,54 @@ public sealed partial class CompiledCompositionTests
                 "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
                 outputCapacity),
             plan: CreateTpPlan(sourceLength, outputCapacity, allowedInputLengths));
+    }
+
+    private static CompiledComposition CreateNormalDpComposition(
+        string warningCode,
+        IReadOnlyList<ByteRange>? sourceRanges = null,
+        InputOversizePolicy inputOversizePolicy = InputOversizePolicy.ExtractDeclaredRange,
+        bool includeWarningCodeInAddressSpace = true)
+    {
+        const long sourceLength = 8;
+        const long outputCapacity = 16;
+        sourceRanges ??= [new ByteRange(0, sourceLength)];
+        return CreateV2(
+            inputContract: new CompiledInputContract(
+                [new CompiledInputSlotRequirement(
+                    "dp-slot",
+                    "dp",
+                    CompiledInputArtifactClass.DpFirmware,
+                    required: true,
+                    CompiledInputSlotCardinality.ExactlyOne,
+                    [".bin"],
+                    new CompiledNormalDpExtractWithWarningInputLengthRequirement(warningCode),
+                    new CompiledNoInputNormalization())],
+                [new CompiledInputSpaceBinding("input", "dp-slot", CompiledInputInstancePolicy.Singleton)]),
+            regionAccessContract: CreateTpRegionAccessContract(sourceRanges, new ByteRange(0, outputCapacity)),
+            resolvedMap: CreateResolvedMap(
+                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                outputCapacity),
+            plan: new CompositionPlan(
+                ImageInitialization.Blank("output-image", outputCapacity, 0),
+                [
+                    new AddressSpace(
+                        "input",
+                        sourceLength,
+                        AddressSpaceMutability.Immutable,
+                        inputOversizePolicy: inputOversizePolicy,
+                        expectedInputLengths: [outputCapacity],
+                        unexpectedInputLengthIssueCode: includeWarningCodeInAddressSpace ? warningCode : null),
+                    new AddressSpace("output-image", outputCapacity, AddressSpaceMutability.Mutable),
+                ],
+                [CompositionOperation.CopyRange(
+                    "copy-input",
+                    10,
+                    "input",
+                    new ByteRange(0, 1),
+                    "output-image",
+                    new ByteRange(0, 1),
+                    OverlapPolicy.Reject,
+                    "copy one synthetic DP byte")]));
     }
 
     private static CompositionPlan CreateTpPlan(

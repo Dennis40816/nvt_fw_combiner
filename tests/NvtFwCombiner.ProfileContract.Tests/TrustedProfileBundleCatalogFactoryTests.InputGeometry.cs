@@ -85,6 +85,27 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal("profile.v2.plan.invalid-input-geometry", Assert.Single(overflow.Issues).Code);
     }
 
+    /// <summary>Verifies Normal DP extraction lowers into a declared source span with map-capacity expectation and profile warning code.</summary>
+    [Fact]
+    public void BlankOutputLoweringBindsNormalDpExtractionPolicy()
+    {
+        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+            familyHash => ProfileWithNormalDpExtraction(SupportedProfileJson(familyHash))));
+
+        CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
+        AddressSpace input = Assert.Single(composition.Plan.AddressSpaces, space => space.AddressSpaceId == "tp-source");
+        CompiledInputSlotRequirement slot = Assert.Single(composition.V2Details!.InputContract.Slots);
+
+        Assert.Equal(16, input.Length);
+        Assert.Empty(input.AllowedInputLengths);
+        Assert.Equal([16L], input.ExpectedInputLengths);
+        Assert.Equal(InputOversizePolicy.ExtractDeclaredRange, input.InputOversizePolicy);
+        Assert.Equal("DP_SIZE_WARNING", input.UnexpectedInputLengthIssueCode);
+        Assert.Equal(
+            "DP_SIZE_WARNING",
+            Assert.IsType<CompiledNormalDpExtractWithWarningInputLengthRequirement>(slot.LengthRequirement).IssueCode);
+    }
+
     /// <summary>Verifies a TP input slot without a resolved source view fails before any plan artifact is produced.</summary>
     [Fact]
     public void BlankOutputLoweringRejectsTpInputWithoutResolvedSourceView()
@@ -145,6 +166,19 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             index++;
         }
         Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["regionAccessRules"])[0])["access"] = "explicit-range";
+        return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    private static string ProfileWithNormalDpExtraction(string profileJson)
+    {
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(profileJson));
+        JsonObject slot = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["inputSlots"])[0]);
+        slot["artifactClass"] = "dp-firmware";
+        Assert.IsType<JsonObject>(slot["acceptance"])["lengthRule"] = new JsonObject
+        {
+            ["kind"] = "normal-dp-extract-with-warning",
+            ["issueCode"] = "DP_SIZE_WARNING",
+        };
         return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
     }
 

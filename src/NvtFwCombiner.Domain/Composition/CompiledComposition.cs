@@ -183,6 +183,7 @@ public sealed partial class CompiledComposition
         ];
         var declaredAddressSpaceIds = new HashSet<string>(StringComparer.Ordinal);
         var tpInputSpaces = new List<AddressSpace>();
+        var normalDpInputRequirements = new List<(AddressSpace AddressSpace, CompiledNormalDpExtractWithWarningInputLengthRequirement Requirement)>();
         var slots = details.InputContract.Slots.ToDictionary(
             static requirement => requirement.SlotId,
             StringComparer.Ordinal);
@@ -231,9 +232,12 @@ public sealed partial class CompiledComposition
 
                     tpInputSpaces.Add(addressSpace);
                     break;
+                case CompiledNormalDpExtractWithWarningInputLengthRequirement normalDp:
+                    normalDpInputRequirements.Add((addressSpace, normalDp));
+                    break;
                 default:
                     throw new ArgumentException(
-                        "Current V2 plan artifacts support only exact-map-capacity or TP-maximum input requirements.",
+                        "Current V2 plan artifacts support only exact-map-capacity, normal-DP extraction, or TP-maximum input requirements.",
                         nameof(details));
             }
         }
@@ -259,6 +263,15 @@ public sealed partial class CompiledComposition
         foreach (AddressSpace tpInputSpace in tpInputSpaces)
         {
             ValidateTpMaximumInputGeometry(tpInputSpace, details.RegionAccessContract.ResolvedViews);
+        }
+
+        foreach ((AddressSpace addressSpace, CompiledNormalDpExtractWithWarningInputLengthRequirement requirement) in normalDpInputRequirements)
+        {
+            ValidateNormalDpExtractionInputGeometry(
+                addressSpace,
+                requirement,
+                details.Provenance.ResolvedMap.CapacityBytes,
+                details.RegionAccessContract.ResolvedViews);
         }
     }
 
@@ -310,6 +323,35 @@ public sealed partial class CompiledComposition
         {
             throw new ArgumentException(
                 "TP maximum input requirements must bind exactly the maximum end-exclusive span of their resolved source views.",
+                nameof(addressSpace));
+        }
+    }
+
+    private static void ValidateNormalDpExtractionInputGeometry(
+        AddressSpace addressSpace,
+        CompiledNormalDpExtractWithWarningInputLengthRequirement requirement,
+        long resolvedMapCapacity,
+        IReadOnlyList<CompiledResolvedPhysicalView> resolvedViews)
+    {
+        long maximumEndExclusive = 0;
+        bool hasSourceView = false;
+        foreach (CompiledResolvedPhysicalView view in resolvedViews.Where(view =>
+                     StringComparer.Ordinal.Equals(view.AddressSpaceId, addressSpace.AddressSpaceId)))
+        {
+            maximumEndExclusive = Math.Max(maximumEndExclusive, view.Range.EndExclusive);
+            hasSourceView = true;
+        }
+
+        if (!hasSourceView ||
+            addressSpace.Length != maximumEndExclusive ||
+            addressSpace.InputPaddingByte is not null ||
+            addressSpace.InputOversizePolicy != InputOversizePolicy.ExtractDeclaredRange ||
+            addressSpace.AllowedInputLengths.Count != 0 ||
+            !addressSpace.ExpectedInputLengths.SequenceEqual([resolvedMapCapacity]) ||
+            !StringComparer.Ordinal.Equals(addressSpace.UnexpectedInputLengthIssueCode, requirement.IssueCode))
+        {
+            throw new ArgumentException(
+                "Normal DP extraction requirements must bind the declared source span, map-capacity expectation, extraction policy, and warning code.",
                 nameof(addressSpace));
         }
     }

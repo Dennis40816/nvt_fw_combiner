@@ -137,7 +137,7 @@ public static partial class CompositionEngine
                 !addressSpace.ExpectedInputLengths.Contains(bytes.Length))
             {
                 issues.Add(new CompositionIssue(
-                    CompositionIssueCodes.InputAddressSpaceLengthUnexpected,
+                    addressSpace.UnexpectedInputLengthIssueCode ?? CompositionIssueCodes.InputAddressSpaceLengthUnexpected,
                     $"Input bytes for address space '{addressSpace.AddressSpaceId}' have unexpected length {bytes.Length} bytes; expected {FormatAllowedLengths(addressSpace.ExpectedInputLengths)}. Execution uses only the declared source range [0x0, 0x{addressSpace.Length:X}).",
                     addressSpace.AddressSpaceId,
                     CompositionIssueSeverity.Warning));
