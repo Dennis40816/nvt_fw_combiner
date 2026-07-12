@@ -8,7 +8,7 @@ namespace NvtFwCombiner.Domain.Composition;
 public sealed partial class CompiledComposition
 {
     private const string LegacyFingerprintFormat = "nfc.compiled-composition.legacy.v1";
-    private const string V2FingerprintFormat = "nfc.compiled-composition.profile-v2.v2";
+    private const string V2FingerprintFormat = "nfc.compiled-composition.profile-v2.v3";
 
     private static string CalculateCompilationFingerprint(CompiledComposition composition)
     {
@@ -88,6 +88,7 @@ public sealed partial class CompiledComposition
         AppendValidationRequirements(builder, provenance.ValidationRequirements);
         AppendCapabilityAdmissions(builder, provenance.RequiredCapabilities);
         AppendInputContract(builder, details.InputContract);
+        AppendRegionAccessContract(builder, details.RegionAccessContract);
         AppendField(builder, "output.template", output.FileNameTemplate);
         AppendInteger(builder, "output.allow-override", output.AllowOverride ? 1 : 0);
         AppendEnum(builder, "output.invalid-character-policy", output.InvalidCharacterPolicy);

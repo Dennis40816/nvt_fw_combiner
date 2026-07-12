@@ -47,13 +47,20 @@ input acceptance policy; the plan projection must agree with the compiled contra
 
 Every admitted `requiredCapabilityIds` binding is retained in compilation provenance as the exact
 effective/direct `FirmwareMapFactBinding`, including capability value, applicability, alias chain, and
-evidence. The V2 compilation fingerprint format is `nfc.compiled-composition.profile-v2.v2` and binds
+evidence. The V2 compilation fingerprint format is `nfc.compiled-composition.profile-v2.v3` and binds
 these compiled input and capability-admission decisions as well as bundle, map, promotion, validation,
 output, and plan facts.
 
-The first blank-copy lowering subset explicitly rejects any nonempty `regionAccessRules`. Region access
-remains profile-owned authoring policy and cannot be silently dropped or treated as a UI-only restriction;
-it will be lowered only with its complete nested-region and physical-write-constraint semantics.
+The blank-copy lowering subset compiles every `regionAccessRules` declaration with the complete canonical
+physical ancestor chain for every logical view. Region access remains profile-owned authoring policy and
+cannot be silently dropped or treated as a UI-only restriction. A target write is deny-by-default: every
+applicable profile rule and every governing physical write constraint must allow its half-open range.
+`whole` requires exact region equality. `parts` names only direct canonical children of its declared region;
+it does not imply arbitrary descendants. `explicit-range` requires containment and the declared physical
+alignment. `hidden` and `read-only` never authorize a target write. The compiler retains these resolved
+policy and logical view-provenance facts in the V2 compilation fingerprint. The selected map remains the
+sole authority for physical region ranges; compiled views retain only their resolved half-open logical range
+and exact physical region-chain identity so the artifact can verify that provenance.
 
 Every mutable space has exactly one engine-owned `blank` or immutable-slot `clone` initializer.
 `clone.sourceSlotId` cannot reference a mutable space, which removes mutable initializer cycles by

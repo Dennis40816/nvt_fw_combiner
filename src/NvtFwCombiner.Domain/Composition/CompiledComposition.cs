@@ -215,5 +215,16 @@ public sealed partial class CompiledComposition
                 "Every immutable plan address space must belong to exactly one compiled input slot.",
                 nameof(details));
         }
+
+        foreach (CompiledResolvedPhysicalView view in details.RegionAccessContract.ResolvedViews)
+        {
+            if (!addressSpaces.TryGetValue(view.AddressSpaceId, out AddressSpace? addressSpace) ||
+                !addressSpace.Contains(view.Range))
+            {
+                throw new ArgumentException(
+                    "Every resolved physical view must name an existing plan address space and remain within its bounds.",
+                    nameof(details));
+            }
+        }
     }
 }

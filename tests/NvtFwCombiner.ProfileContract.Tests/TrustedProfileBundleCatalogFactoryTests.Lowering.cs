@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.V2;
 using NvtFwCombiner.TestSupport;
 
@@ -60,6 +61,11 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal("tp-source", inputBinding.AddressSpaceId);
         Assert.Equal("tp-input", inputBinding.SlotId);
         Assert.Equal(CompiledInputInstancePolicy.Singleton, inputBinding.InstancePolicy);
+        CompiledRegionAccessRequirement access = Assert.Single(details.RegionAccessContract.Requirements);
+        Assert.Equal("root", access.RegionId);
+        Assert.Equal(CompiledRegionAccessKind.Whole, access.Access);
+        Assert.Equal(FirmwareWriteConstraint.WholeRegion, Assert.Single(access.GoverningRegionChain).WriteConstraint);
+        Assert.Equal(["output-code", "tp-code"], details.RegionAccessContract.ResolvedViews.Select(static view => view.ViewId));
     }
 
     /// <summary>Verifies a region slice ending exactly at its half-open boundary lowers while one byte beyond fails closed.</summary>
@@ -68,11 +74,8 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [InlineData(17, false)]
     public void BlankCopyLoweringChecksMapRegionSliceBounds(int length, bool expectedSuccess)
     {
-        V2CompositionPreparationResult preparation = PrepareSupportedBlankCopy(familyHash => SupportedProfileJson(familyHash)
-            .Replace(
-                "\"kind\": \"map-region\", \"regionId\": \"root\"",
-                $"\"kind\": \"map-region-slice\", \"regionId\": \"root\", \"offset\": 0, \"length\": {length}",
-                StringComparison.Ordinal));
+        V2CompositionPreparationResult preparation = PrepareSupportedBlankCopy(
+            familyHash => ProfileWithSourceSlice(SupportedProfileJson(familyHash), length));
 
         V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(preparation);
 
@@ -130,18 +133,173 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal("profile.v2.plan.unsupported-declaration", Assert.Single(result.Issues).Code);
     }
 
-    /// <summary>Verifies nonempty profile-owned region access cannot disappear from the first lowering subset.</summary>
+    /// <summary>Verifies a read-only profile rule cannot authorize an otherwise writable copy target.</summary>
     [Fact]
-    public void BlankCopyLoweringRejectsRegionAccessPolicyWithoutAnArtifact()
+    public void BlankCopyLoweringRejectsReadOnlyTargetWithoutAnArtifact()
     {
         V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(
-            PrepareSupportedBlankCopy(familyHash => SupportedProfileJson(familyHash, removeRegionAccess: false)));
+            PrepareSupportedBlankCopy(
+                familyHash => SupportedProfileJson(familyHash, access: "read-only"),
+                FamilyJsonWithRootWriteConstraint("whole-region")));
 
         Assert.False(result.IsCompiled);
         Assert.Null(result.CompiledComposition);
         CompositionIssue issue = Assert.Single(result.Issues);
-        Assert.Equal("profile.v2.plan.unsupported-declaration", issue.Code);
-        Assert.Contains("region access rules", issue.Message, StringComparison.Ordinal);
+        Assert.Equal("profile.v2.plan.region-access-denied", issue.Code);
+        Assert.Contains("ReadOnly", issue.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies a physical writable constraint cannot substitute for one missing profile access rule.</summary>
+    [Fact]
+    public void BlankCopyLoweringRejectsTargetWithoutDeclaredAccess()
+    {
+        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(
+            PrepareSupportedBlankCopy(
+                familyHash => SupportedProfileJson(familyHash, access: null),
+                FamilyJsonWithRootWriteConstraint("whole-region")));
+
+        Assert.Null(result.CompiledComposition);
+        Assert.Equal("profile.v2.plan.region-access-denied", Assert.Single(result.Issues).Code);
+    }
+
+    /// <summary>Verifies physical forbidden is non-relaxable even when the profile declares whole access.</summary>
+    [Fact]
+    public void BlankCopyLoweringRejectsWholeAccessOverForbiddenPhysicalRegion()
+    {
+        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(
+            PrepareSupportedBlankCopy(
+                familyHash => SupportedProfileJson(familyHash, access: "whole"),
+                TrustedV2BundleTestDocuments.FamilyJson()));
+
+        Assert.Null(result.CompiledComposition);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("profile.v2.plan.region-access-denied", issue.Code);
+        Assert.Contains("Forbidden", issue.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies a restrictive parent profile rule narrows an otherwise authorizable direct child target.</summary>
+    [Fact]
+    public void BlankCopyLoweringRejectsChildTargetWhenParentRuleIsReadOnly()
+    {
+        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(
+            PrepareSupportedBlankCopy(
+                familyHash => ProfileWithParentAndChildRules(SupportedProfileJson(familyHash), "read-only"),
+                FamilyJsonWithSplitRoot("declared-subregions")));
+
+        Assert.Null(result.CompiledComposition);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("profile.v2.plan.region-access-denied", issue.Code);
+        Assert.Contains("ReadOnly", issue.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies a restrictive physical parent constraint narrows an otherwise allowed direct child target.</summary>
+    [Fact]
+    public void BlankCopyLoweringRejectsChildTargetWhenParentConstraintIsForbidden()
+    {
+        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(
+            PrepareSupportedBlankCopy(
+                familyHash => ProfileWithTargetSlice(
+                    SupportedProfileJson(familyHash, access: "parts"),
+                    0,
+                    8,
+                    "parts",
+                    ["left"]),
+                FamilyJsonWithSplitRoot("forbidden")));
+
+        Assert.Null(result.CompiledComposition);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("profile.v2.plan.region-access-denied", issue.Code);
+        Assert.Contains("Forbidden", issue.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies parts access permits only an explicitly named direct child while physical parent and child constraints intersect.</summary>
+    [Fact]
+    public void BlankCopyLoweringAcceptsDeclaredDirectPart()
+    {
+        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(
+            PrepareSupportedBlankCopy(
+                familyHash => ProfileWithTargetSlice(SupportedProfileJson(familyHash, access: "parts"), 0, 8, "parts", ["left"]),
+                FamilyJsonWithSplitRoot("declared-subregions")));
+
+        CompiledRegionAccessRequirement access = Assert.Single(
+            result.CompiledComposition!.V2Details!.RegionAccessContract.Requirements);
+        Assert.Equal(CompiledRegionAccessKind.Parts, access.Access);
+        Assert.Equal(["left"], access.AllowedSubregionIds);
+        Assert.Equal(["root"], access.GoverningRegionChain.Select(static region => region.RegionId));
+        Assert.Equal(["root", "left"], Assert.Single(
+            result.CompiledComposition.V2Details.RegionAccessContract.ResolvedViews,
+            static view => view.ViewId == "output-code").GoverningRegionChain.Select(static region => region.RegionId));
+    }
+
+    /// <summary>Verifies parts access cannot authorize a sibling or an unknown non-child target declaration.</summary>
+    [Theory]
+    [InlineData("right", "profile.v2.plan.region-access-denied")]
+    [InlineData("unknown", "profile.v2.plan.invalid-region-access")]
+    public void BlankCopyLoweringRejectsNonMatchingPartsDeclaration(string allowedSubregionId, string issueCode)
+    {
+        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(
+            PrepareSupportedBlankCopy(
+                familyHash => ProfileWithTargetSlice(
+                    SupportedProfileJson(familyHash, access: "parts"),
+                    0,
+                    8,
+                    "parts",
+                    [allowedSubregionId]),
+                FamilyJsonWithSplitRoot("declared-subregions")));
+
+        Assert.Null(result.CompiledComposition);
+        Assert.Equal(issueCode, Assert.Single(result.Issues).Code);
+    }
+
+    /// <summary>Verifies whole access requires exact half-open region equality rather than containment.</summary>
+    [Fact]
+    public void BlankCopyLoweringRejectsPartialWholeRegionTarget()
+    {
+        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(
+            PrepareSupportedBlankCopy(
+                familyHash => ProfileWithTargetSlice(SupportedProfileJson(familyHash), 0, 15, "whole"),
+                FamilyJsonWithRootWriteConstraint("whole-region")));
+
+        Assert.Null(result.CompiledComposition);
+        Assert.Equal("profile.v2.plan.region-access-denied", Assert.Single(result.Issues).Code);
+    }
+
+    /// <summary>Verifies explicit-range access observes the canonical physical alignment rather than only containment.</summary>
+    [Theory]
+    [InlineData(4, 4, true)]
+    [InlineData(1, 4, false)]
+    public void BlankCopyLoweringChecksExplicitRangeAlignment(int start, int length, bool expectedSuccess)
+    {
+        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(
+            PrepareSupportedBlankCopy(
+                familyHash => ProfileWithTargetSlice(SupportedProfileJson(familyHash, access: "explicit-range"), start, length, "explicit-range"),
+                FamilyJsonWithRootWriteConstraint("explicit-range", alignment: 4)));
+
+        Assert.Equal(expectedSuccess, result.IsCompiled);
+        if (!expectedSuccess)
+        {
+            Assert.Equal("profile.v2.plan.region-access-denied", Assert.Single(result.Issues).Code);
+        }
+    }
+
+    /// <summary>Verifies source-only access policy remains fingerprint evidence when the byte plan is identical.</summary>
+    [Fact]
+    public void BlankCopyLoweringFingerprintsReadOnlySourceAccess()
+    {
+        V2CompositionPlanCompileResult readOnly = V2CompositionPlanCompiler.Compile(
+            PrepareSupportedBlankCopy(
+                familyHash => ProfileWithSplitSourceAndTarget(SupportedProfileJson(familyHash), "read-only"),
+                FamilyJsonWithSplitRoot("explicit-range")));
+        V2CompositionPlanCompileResult hidden = V2CompositionPlanCompiler.Compile(
+            PrepareSupportedBlankCopy(
+                familyHash => ProfileWithSplitSourceAndTarget(SupportedProfileJson(familyHash), "hidden"),
+                FamilyJsonWithSplitRoot("explicit-range")));
+
+        CompiledRegionAccessRequirement rule = Assert.Single(
+            readOnly.CompiledComposition!.V2Details!.RegionAccessContract.Requirements,
+            static requirement => requirement.RegionId == "left");
+        Assert.Equal(CompiledRegionAccessKind.ReadOnly, rule.Access);
+        Assert.NotEqual(readOnly.CompiledComposition.CompilationFingerprint, hidden.CompiledComposition!.CompilationFingerprint);
     }
 
     /// <summary>Verifies direct confirmed capability evidence is retained as the exact admitted binding.</summary>
@@ -191,7 +349,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Func<string, string>? profileJsonFactory = null,
         string? familyJson = null)
     {
-        familyJson ??= TrustedV2BundleTestDocuments.FamilyJson();
+        familyJson ??= FamilyJsonWithRootWriteConstraint("whole-region");
         string familyHash = Hash(familyJson);
         string profileJson = (profileJsonFactory ?? (hash => SupportedProfileJson(hash)))(familyHash);
         TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson, profileJson);
@@ -204,7 +362,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         return preparation;
     }
 
-    private static string SupportedProfileJson(string familyHash, bool removeRegionAccess = true)
+    private static string SupportedProfileJson(string familyHash, string? access = "whole")
     {
         string profile = TrustedV2BundleTestDocuments.ProfileJson(familyHash)
             .Replace("\"stage\": \"known\"", "\"stage\": \"compilable\"", StringComparison.Ordinal)
@@ -213,22 +371,18 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 "\"lengthRule\": { \"kind\": \"tp-maximum-256k\", \"maximumBytes\": 262144 }",
                 "\"lengthRule\": { \"kind\": \"exact-resolved-map-capacity\" }",
                 StringComparison.Ordinal);
-        return removeRegionAccess
-            ? profile.Replace(
-                """
-                  "regionAccessRules": [
-                    {
-                      "regionId": "root",
-                      "access": "read-only",
-                      "reason": "Synthetic source is immutable."
-                    }
-                  ],
-                """,
-                """
-                  "regionAccessRules": [],
-                """,
-                StringComparison.Ordinal)
-            : profile;
+        JsonObject profileNode = Assert.IsType<JsonObject>(JsonNode.Parse(profile));
+        JsonArray rules = Assert.IsType<JsonArray>(profileNode["regionAccessRules"]);
+        if (access is null)
+        {
+            rules.Clear();
+        }
+        else
+        {
+            Assert.IsType<JsonObject>(rules[0])["access"] = access;
+        }
+
+        return profileNode.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
     }
 
     private static string ProfileRequiringCapability(string profileJson)
@@ -239,9 +393,113 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             StringComparison.Ordinal);
     }
 
+    private static string ProfileWithSourceSlice(string profileJson, int length)
+    {
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(profileJson));
+        JsonObject source = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["views"])[0]);
+        source["selector"] = new JsonObject
+        {
+            ["kind"] = "map-region-slice",
+            ["regionId"] = "root",
+            ["offset"] = 0,
+            ["length"] = length,
+        };
+        return profile.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+    }
+
+    private static string ProfileWithTargetSlice(
+        string profileJson,
+        int start,
+        int length,
+        string access,
+        IReadOnlyList<string>? allowedSubregionIds = null)
+    {
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(profileJson));
+        JsonArray views = Assert.IsType<JsonArray>(profile["views"]);
+        foreach (int index in new[] { 0, 1 })
+        {
+            JsonObject view = Assert.IsType<JsonObject>(views[index]);
+            view["selector"] = index == 0
+                ? new JsonObject
+                {
+                    ["kind"] = "map-region-slice",
+                    ["regionId"] = "root",
+                    ["offset"] = start,
+                    ["length"] = length,
+                }
+                : new JsonObject
+                {
+                    ["kind"] = "space-range",
+                    ["range"] = new JsonObject
+                    {
+                        ["start"] = start,
+                        ["length"] = length,
+                    },
+                };
+        }
+
+        JsonObject rule = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["regionAccessRules"])[0]);
+        rule["access"] = access;
+        if (allowedSubregionIds is null)
+        {
+            _ = rule.Remove("allowedSubregionIds");
+        }
+        else
+        {
+            rule["allowedSubregionIds"] = new JsonArray([.. allowedSubregionIds.Select(static value => (JsonNode?)value)]);
+        }
+
+        return profile.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+    }
+
+    private static string ProfileWithSplitSourceAndTarget(string profileJson, string sourceAccess)
+    {
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(profileJson));
+        JsonArray requiredRegionIds = Assert.IsType<JsonArray>(Assert.IsType<JsonObject>(profile["mapBinding"])["requiredRegionIds"]);
+        requiredRegionIds.Clear();
+        requiredRegionIds.Add("left");
+        requiredRegionIds.Add("right");
+        JsonArray views = Assert.IsType<JsonArray>(profile["views"]);
+        Assert.IsType<JsonObject>(views[0])["selector"] = new JsonObject
+        {
+            ["kind"] = "map-region",
+            ["regionId"] = "left",
+        };
+        Assert.IsType<JsonObject>(views[1])["selector"] = new JsonObject
+        {
+            ["kind"] = "space-range",
+            ["range"] = new JsonObject { ["start"] = 8, ["length"] = 8 },
+        };
+        JsonArray rules = Assert.IsType<JsonArray>(profile["regionAccessRules"]);
+        JsonObject sourceRule = Assert.IsType<JsonObject>(rules[0]);
+        sourceRule["regionId"] = "left";
+        sourceRule["access"] = sourceAccess;
+        rules.Add(new JsonObject
+        {
+            ["regionId"] = "right",
+            ["access"] = "whole",
+            ["reason"] = "Synthetic target is writable as one physical region.",
+        });
+        return profile.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+    }
+
+    private static string ProfileWithParentAndChildRules(string profileJson, string parentAccess)
+    {
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(
+            ProfileWithTargetSlice(profileJson, 0, 8, parentAccess)));
+        Assert.IsType<JsonArray>(Assert.IsType<JsonObject>(profile["mapBinding"])["requiredRegionIds"]).Add("left");
+        Assert.IsType<JsonArray>(profile["regionAccessRules"]).Add(new JsonObject
+        {
+            ["regionId"] = "left",
+            ["access"] = "whole",
+            ["reason"] = "Synthetic child is authorable only as a whole region.",
+        });
+        return profile.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+    }
+
     private static string FamilyJsonWithDirectCapability()
     {
-        JsonObject family = ParseFamily();
+        JsonObject family = ParseFamily(FamilyJsonWithRootWriteConstraint("whole-region"));
         Assert.IsType<JsonArray>(family["capabilities"]).Add(Capability(
             "target-capability",
             "ab-code",
@@ -253,7 +511,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
 
     private static string FamilyJsonWithAliasedCapability()
     {
-        JsonObject family = ParseFamily();
+        JsonObject family = ParseFamily(FamilyJsonWithRootWriteConstraint("whole-region"));
         Assert.IsType<JsonArray>(family["members"]).Add(new JsonObject
         {
             ["memberId"] = "NT00002",
@@ -288,9 +546,49 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         return family.ToJsonString();
     }
 
-    private static JsonObject ParseFamily()
+    private static string FamilyJsonWithRootWriteConstraint(string writeConstraint, int alignment = 1)
     {
-        return Assert.IsType<JsonObject>(JsonNode.Parse(TrustedV2BundleTestDocuments.FamilyJson()));
+        JsonObject family = ParseFamily();
+        JsonObject root = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(
+            Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(family["regionSets"])[0])["regions"])[0]);
+        root["writeConstraint"] = writeConstraint;
+        root["alignment"] = alignment;
+        return family.ToJsonString();
+    }
+
+    private static string FamilyJsonWithSplitRoot(string rootWriteConstraint)
+    {
+        JsonObject family = ParseFamily();
+        JsonArray regions = Assert.IsType<JsonArray>(Assert.IsType<JsonObject>(
+            Assert.IsType<JsonArray>(family["regionSets"])[0])["regions"]);
+        JsonObject root = Assert.IsType<JsonObject>(regions[0]);
+        root["writeConstraint"] = rootWriteConstraint;
+        regions.Add(new JsonObject
+        {
+            ["regionId"] = "left",
+            ["parentRegionId"] = "root",
+            ["owner"] = "system",
+            ["kind"] = "data",
+            ["range"] = new JsonObject { ["start"] = 0, ["length"] = 8 },
+            ["writeConstraint"] = "whole-region",
+            ["alignment"] = 1,
+        });
+        regions.Add(new JsonObject
+        {
+            ["regionId"] = "right",
+            ["parentRegionId"] = "root",
+            ["owner"] = "system",
+            ["kind"] = "data",
+            ["range"] = new JsonObject { ["start"] = 8, ["length"] = 8 },
+            ["writeConstraint"] = "whole-region",
+            ["alignment"] = 1,
+        });
+        return family.ToJsonString();
+    }
+
+    private static JsonObject ParseFamily(string? familyJson = null)
+    {
+        return Assert.IsType<JsonObject>(JsonNode.Parse(familyJson ?? TrustedV2BundleTestDocuments.FamilyJson()));
     }
 
     private static JsonObject Capability(

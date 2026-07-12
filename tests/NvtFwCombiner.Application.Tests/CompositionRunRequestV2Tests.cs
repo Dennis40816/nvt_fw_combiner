@@ -47,7 +47,11 @@ public sealed class CompositionRunRequestV2Tests
             "2.0.0",
             "standard-merge",
             CompositionKind.Merge,
-            new V2CompiledCompositionDetails(provenance, CreateInputContract(), output));
+            new V2CompiledCompositionDetails(
+                provenance,
+                CreateInputContract(),
+                new CompiledRegionAccessContract([], []),
+                output));
         var plan = new CompositionPlan(
             ImageInitialization.Blank("output-image", 4, 0),
             [

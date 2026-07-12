@@ -37,7 +37,7 @@ public sealed partial class CompiledCompositionTests
         Assert.True(composition.CompilationFingerprint.All(character =>
             character is (>= '0' and <= '9') or (>= 'a' and <= 'f')));
         Assert.Equal(
-            "010179533127bbcadd4942b9ce610e23d69449f5845261911bf7a474a7a8aaf0",
+            "421faee6c25be857ee7132bcff99f80a3098566e677e4fd46add97dd184ba9c9",
             composition.CompilationFingerprint);
         Assert.Null(typeof(CompiledComposition).GetMethod("CreateV2", BindingFlags.Static | BindingFlags.Public));
     }
@@ -170,6 +170,61 @@ public sealed partial class CompiledCompositionTests
         Assert.Equal(first.CompilationFingerprint, second.CompilationFingerprint);
     }
 
+    /// <summary>Verifies compiled V2 region access and resolved physical-view provenance bind approval identity.</summary>
+    [Fact]
+    public void V2FingerprintBindsRegionAccessAndPhysicalViewProvenance()
+    {
+        CompiledComposition readOnly = CreateV2(regionAccessContract: CreateRegionAccessContract(
+            CompiledRegionAccessKind.ReadOnly,
+            "Source bytes are inspectable only."));
+        CompiledComposition hidden = CreateV2(regionAccessContract: CreateRegionAccessContract(
+            CompiledRegionAccessKind.Hidden,
+            "Source bytes are inspectable only."));
+        CompiledComposition changedReason = CreateV2(regionAccessContract: CreateRegionAccessContract(
+            CompiledRegionAccessKind.ReadOnly,
+            "Source bytes require a different review rule."));
+
+        CompiledRegionAccessRequirement access = Assert.Single(readOnly.V2Details!.RegionAccessContract.Requirements);
+        Assert.Equal("root", access.RegionId);
+        Assert.Equal(CompiledRegionAccessKind.ReadOnly, access.Access);
+        Assert.Equal(["root"], access.GoverningRegionChain.Select(static region => region.RegionId));
+        Assert.Equal(["input", "output"], readOnly.V2Details.RegionAccessContract.ResolvedViews.Select(static view => view.ViewId));
+        Assert.NotEqual(readOnly.CompilationFingerprint, hidden.CompilationFingerprint);
+        Assert.NotEqual(readOnly.CompilationFingerprint, changedReason.CompilationFingerprint);
+    }
+
+    /// <summary>Verifies a V2 artifact cannot retain region chains or parts that disagree with its selected canonical map.</summary>
+    [Fact]
+    public void V2RegionAccessContractRejectsMapMismatches()
+    {
+        _ = Assert.Throws<ArgumentException>(() => CreateV2(regionAccessContract: CreateRegionAccessContract(
+            CompiledRegionAccessKind.Whole,
+            "Incorrect physical constraint.",
+            writeConstraint: FirmwareWriteConstraint.WholeRegion)));
+        _ = Assert.Throws<ArgumentException>(() => CreateV2(regionAccessContract: CreateRegionAccessContract(
+            CompiledRegionAccessKind.Parts,
+            "Unknown child.",
+            allowedSubregionIds: ["missing-child"])));
+    }
+
+    /// <summary>Verifies resolved-view provenance cannot omit either the canonical root or deepest containing region.</summary>
+    [Fact]
+    public void V2RegionAccessContractRejectsTruncatedPhysicalViewChains()
+    {
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap nestedMap = CreateResolvedNestedMap();
+        CompiledPhysicalRegionConstraint root = new("root", FirmwareWriteConstraint.DeclaredSubregions, 1);
+        CompiledPhysicalRegionConstraint left = new("left", FirmwareWriteConstraint.WholeRegion, 1);
+        CompiledRegionAccessContract leafOnly = new(
+            [],
+            [new CompiledResolvedPhysicalView("input", "input", new ByteRange(0, 2), [left])]);
+        CompiledRegionAccessContract rootOnly = new(
+            [],
+            [new CompiledResolvedPhysicalView("input", "input", new ByteRange(0, 2), [root])]);
+
+        _ = Assert.Throws<ArgumentException>(() => CreateV2(resolvedMap: nestedMap, regionAccessContract: leafOnly));
+        _ = Assert.Throws<ArgumentException>(() => CreateV2(resolvedMap: nestedMap, regionAccessContract: rootOnly));
+    }
+
     /// <summary>Verifies every closed validation requirement shape remains in the v2 compilation fingerprint.</summary>
     [Fact]
     public void V2FingerprintBindsValidationRequirements()
@@ -291,9 +346,11 @@ public sealed partial class CompiledCompositionTests
         IEnumerable<string>? profileEvidenceRefs = null,
         IEnumerable<CompiledValidationRequirement>? validationRequirements = null,
         IEnumerable<CompiledCapabilityAdmission>? requiredCapabilities = null,
-        CompiledInputContract? inputContract = null)
+        CompiledInputContract? inputContract = null,
+        CompiledRegionAccessContract? regionAccessContract = null,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap? resolvedMap = null)
     {
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = CreateResolvedMap(familyContentHash);
+        resolvedMap ??= CreateResolvedMap(familyContentHash);
         var bundle = new ProfileBundleIdentity(
             bundleId,
             bundleVersion,
@@ -313,7 +370,11 @@ public sealed partial class CompiledCompositionTests
             allowOutputOverride,
             outputInvalidCharacterPolicy,
             requiredOutputTokenIds ?? ["original-name"]);
-        var details = new V2CompiledCompositionDetails(provenance, inputContract ?? CreateInputContract(), output);
+        var details = new V2CompiledCompositionDetails(
+            provenance,
+            inputContract ?? CreateInputContract(),
+            regionAccessContract ?? new CompiledRegionAccessContract([], []),
+            output);
         var identity = new V2CompiledCompositionIdentity(
             "profile-v2",
             "2.0.0",
@@ -363,6 +424,29 @@ public sealed partial class CompiledCompositionTests
                 CompiledInputInstancePolicy.Singleton)]);
     }
 
+    private static CompiledRegionAccessContract CreateRegionAccessContract(
+        CompiledRegionAccessKind access,
+        string reason,
+        FirmwareWriteConstraint writeConstraint = FirmwareWriteConstraint.Forbidden,
+        IReadOnlyList<string>? allowedSubregionIds = null)
+    {
+        CompiledPhysicalRegionConstraint[] chain = [new CompiledPhysicalRegionConstraint(
+            "root",
+            writeConstraint,
+            alignment: 1)];
+        return new CompiledRegionAccessContract(
+            [new CompiledRegionAccessRequirement(
+                "root",
+                access,
+                reason,
+                allowedSubregionIds ?? [],
+                chain)],
+            [
+                new CompiledResolvedPhysicalView("input", "input", new ByteRange(0, 4), chain),
+                new CompiledResolvedPhysicalView("output", "output-image", new ByteRange(0, 4), chain),
+            ]);
+    }
+
     private static FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap CreateResolvedMap(
         string familyContentHash)
     {
@@ -392,6 +476,62 @@ public sealed partial class CompiledCompositionTests
             "synthetic-family",
             "1.0.0",
             familyContentHash,
+            [map],
+            []);
+        FirmwareMapResolutionResult result = definition.ResolveMap(new FirmwareMapResolutionInputs(
+            "NT-SYNTHETIC",
+            "standard",
+            4,
+            requestedTopology: null,
+            []));
+
+        return Assert.IsType<FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap>(result.ResolvedMap);
+    }
+
+    private static FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap CreateResolvedNestedMap()
+    {
+        var map = FirmwareImageMap.CreateDirect(
+            "map",
+            "flash",
+            new FirmwareMapApplicability(
+                ["NT-SYNTHETIC"],
+                ["standard"],
+                TopologyRequirement.NoTopologyConstraint(),
+                4),
+            FirmwareImageMapCoveragePolicy.CompleteWithExplicitGaps,
+            [new FirmwareRegionSet(
+                "physical",
+                "flash",
+                [
+                    new FirmwareRegion(
+                        "root",
+                        parentRegionId: null,
+                        FirmwareRegionOwner.System,
+                        FirmwareRegionKind.Image,
+                        new ByteRange(0, 4),
+                        FirmwareWriteConstraint.DeclaredSubregions),
+                    new FirmwareRegion(
+                        "left",
+                        "root",
+                        FirmwareRegionOwner.System,
+                        FirmwareRegionKind.Data,
+                        new ByteRange(0, 2),
+                        FirmwareWriteConstraint.WholeRegion),
+                    new FirmwareRegion(
+                        "right",
+                        "root",
+                        FirmwareRegionOwner.System,
+                        FirmwareRegionKind.Data,
+                        new ByteRange(2, 2),
+                        FirmwareWriteConstraint.WholeRegion),
+                ],
+                ["map-evidence"])],
+            [],
+            ["map-evidence"]);
+        var definition = new FirmwareFamilyResolutionDefinition(
+            "synthetic-family",
+            "1.0.0",
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
             [map],
             []);
         FirmwareMapResolutionResult result = definition.ResolveMap(new FirmwareMapResolutionInputs(

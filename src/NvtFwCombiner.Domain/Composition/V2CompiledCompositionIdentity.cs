@@ -311,13 +311,17 @@ public sealed class V2CompiledCompositionDetails
     internal V2CompiledCompositionDetails(
         V2CompilationProvenance provenance,
         CompiledInputContract inputContract,
+        CompiledRegionAccessContract regionAccessContract,
         CompiledOutputNamingRequirement outputNamingRequirement)
     {
         ArgumentNullException.ThrowIfNull(provenance);
         ArgumentNullException.ThrowIfNull(inputContract);
+        ArgumentNullException.ThrowIfNull(regionAccessContract);
         ArgumentNullException.ThrowIfNull(outputNamingRequirement);
+        ValidateRegionAccessContract(provenance.ResolvedMap.ImageMap, regionAccessContract);
         Provenance = provenance;
         InputContract = inputContract;
+        RegionAccessContract = regionAccessContract;
         OutputNamingRequirement = outputNamingRequirement;
     }
 
@@ -327,8 +331,82 @@ public sealed class V2CompiledCompositionDetails
     /// <summary>Complete immutable profile input slot policy and its immutable plan address-space bindings.</summary>
     public CompiledInputContract InputContract { get; }
 
+    /// <summary>Complete profile access policy plus the canonical physical constraints governing every logical view.</summary>
+    public CompiledRegionAccessContract RegionAccessContract { get; }
+
     /// <summary>Unrendered profile-owned output naming requirement.</summary>
     public CompiledOutputNamingRequirement OutputNamingRequirement { get; }
+
+    private static void ValidateRegionAccessContract(
+        FirmwareImageMap map,
+        CompiledRegionAccessContract contract)
+    {
+        var regionsById = map.Regions.ToDictionary(static region => region.RegionId, StringComparer.Ordinal);
+        foreach (CompiledRegionAccessRequirement requirement in contract.Requirements)
+        {
+            ValidatePhysicalChain(requirement.GoverningRegionChain, regionsById, requirement.RegionId);
+            if (requirement.Access == CompiledRegionAccessKind.Parts &&
+                requirement.AllowedSubregionIds.Any(subregionId =>
+                    !regionsById.TryGetValue(subregionId, out FirmwareRegion? subregion) ||
+                    !StringComparer.Ordinal.Equals(subregion.ParentRegionId, requirement.RegionId)))
+            {
+                throw new ArgumentException(
+                    "Compiled parts access may name only direct children in the selected canonical map.",
+                    nameof(contract));
+            }
+        }
+
+        foreach (CompiledResolvedPhysicalView view in contract.ResolvedViews)
+        {
+            FirmwareRegion terminal = ResolveDeepestContainingRegion(view.Range, regionsById);
+            ValidatePhysicalChain(view.GoverningRegionChain, regionsById, terminal.RegionId);
+        }
+    }
+
+    private static FirmwareRegion ResolveDeepestContainingRegion(
+        ByteRange range,
+        IReadOnlyDictionary<string, FirmwareRegion> regionsById)
+    {
+        return regionsById.Values
+            .Where(region => region.Range.Contains(range))
+            .OrderBy(static region => region.Range.Length)
+            .ThenBy(static region => region.RegionId, StringComparer.Ordinal)
+            .FirstOrDefault() ?? throw new ArgumentException(
+                "Compiled resolved view range does not belong to the selected canonical map.",
+                nameof(range));
+    }
+
+    private static void ValidatePhysicalChain(
+        IReadOnlyList<CompiledPhysicalRegionConstraint> chain,
+        Dictionary<string, FirmwareRegion> regionsById,
+        string? expectedTerminalRegionId)
+    {
+        FirmwareRegion? previous = null;
+        for (int index = 0; index < chain.Count; index++)
+        {
+            CompiledPhysicalRegionConstraint compiledRegion = chain[index];
+            if (!regionsById.TryGetValue(compiledRegion.RegionId, out FirmwareRegion? canonicalRegion) ||
+                canonicalRegion.WriteConstraint != compiledRegion.WriteConstraint ||
+                canonicalRegion.Alignment != compiledRegion.Alignment ||
+                (index == 0 && canonicalRegion.ParentRegionId is not null) ||
+                (previous is not null && !StringComparer.Ordinal.Equals(canonicalRegion.ParentRegionId, previous.RegionId)))
+            {
+                throw new ArgumentException(
+                    "Compiled region access must retain an exact canonical physical ancestor chain.",
+                    nameof(chain));
+            }
+
+            previous = canonicalRegion;
+        }
+
+        if (expectedTerminalRegionId is not null &&
+            (previous is null || !StringComparer.Ordinal.Equals(previous.RegionId, expectedTerminalRegionId)))
+        {
+            throw new ArgumentException(
+                "Compiled region access must terminate at its declared canonical region.",
+                nameof(expectedTerminalRegionId));
+        }
+    }
 }
 
 /// <summary>Immutable profile-bundle-v2 identity used only by the Profiles compiler to mint a compiled artifact.</summary>

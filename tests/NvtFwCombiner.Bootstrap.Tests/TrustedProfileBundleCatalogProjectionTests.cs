@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using NvtFwCombiner.Contracts.Bundles;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.Bundles;
 using NvtFwCombiner.Profiles.V2;
@@ -24,9 +25,19 @@ public sealed class TrustedProfileBundleCatalogProjectionTests
         using var workspace = TempWorkspace.Create("nfc-bootstrap-trusted-catalog");
         byte[] familySchema = ReadSchema("firmware-family-v1.schema.json");
         byte[] profileSchema = ReadSchema("composition-profile-v2.schema.json");
-        byte[] family = Encoding.UTF8.GetBytes(TrustedV2BundleTestDocuments.FamilyJson());
+        string familyJson = TrustedV2BundleTestDocuments.FamilyJson()
+            .Replace("\"writeConstraint\": \"forbidden\"", "\"writeConstraint\": \"whole-region\"", StringComparison.Ordinal);
+        byte[] family = Encoding.UTF8.GetBytes(familyJson);
         string familyHash = Hash(family);
-        byte[] profile = Encoding.UTF8.GetBytes(TrustedV2BundleTestDocuments.ProfileJson(familyHash));
+        string profileJson = TrustedV2BundleTestDocuments.ProfileJson(familyHash)
+            .Replace("\"stage\": \"known\"", "\"stage\": \"compilable\"", StringComparison.Ordinal)
+            .Replace("\"artifactClass\": \"tp-firmware\"", "\"artifactClass\": \"reference-image\"", StringComparison.Ordinal)
+            .Replace(
+                "\"lengthRule\": { \"kind\": \"tp-maximum-256k\", \"maximumBytes\": 262144 }",
+                "\"lengthRule\": { \"kind\": \"exact-resolved-map-capacity\" }",
+                StringComparison.Ordinal)
+            .Replace("\"access\": \"read-only\"", "\"access\": \"whole\"", StringComparison.Ordinal);
+        byte[] profile = Encoding.UTF8.GetBytes(profileJson);
         var entries = new List<ProfileBundleEntryDocument>
         {
             new("family-schema", "schema", "schemas/family.schema.json", FirmwareFamilySchemaId, Hash(familySchema)),
@@ -75,6 +86,12 @@ public sealed class TrustedProfileBundleCatalogProjectionTests
         Assert.Equal(FirmwareMapResolutionStatus.Unique, preparation.MapResolution?.Status);
         Assert.Same(profileEntry.Profile, preparation.Admission?.Profile);
         Assert.Equal("map", preparation.Admission?.ResolvedMap.ImageMap.MapId);
+        V2CompositionPlanCompileResult compilation = V2CompositionPlanCompiler.Compile(preparation);
+        CompiledComposition artifact = Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
+        Assert.True(compilation.IsCompiled);
+        Assert.Empty(compilation.Issues);
+        Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, artifact.Eligibility);
+        Assert.Equal("root", Assert.Single(artifact.V2Details!.RegionAccessContract.Requirements).RegionId);
     }
 
     private static byte[] ReadSchema(string fileName)
