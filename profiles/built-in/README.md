@@ -31,6 +31,12 @@ TP `[0x07000, 0x40000)`. Bootstrap packages the bundle through its content-hash 
 its V2 artifact without a legacy compile fallback. CtrlRAM postbuild remains outside this Standard
 Merge bundle and still requires its independent firmware-owner evidence.
 
+`nt51931-standard-merge` is a canonical V2 data candidate for the standalone NT51931 gen_flash
+Standard Merge profile. Its physical map preserves TP `[0x00000, 0x3C000)`, the explicit forbidden
+gap, and DP `[0x3E000, 0x40000)`. The V2 profile accepts the owner-approved `0x80000` DP container
+while copying only the `0x40000` declared source span. It has direct legacy-plan and golden-byte
+parity, but Bootstrap routing remains a separate firmware-owner-reviewed phase.
+
 `nt51928-standard-merge` is the hash-anchored V2 Standard Merge route for standalone non-NB
 NT51928. Its `0x80000` physical map models TP `[0x00000, 0x35000)`, DP
 `[0x3C000, 0x40000)`, LDC `[0x40000, 0x62000)`, and both forbidden gaps. The third input is a typed
