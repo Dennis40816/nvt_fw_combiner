@@ -123,6 +123,14 @@ public sealed class CompositionProfileV2InputTests
             CompositionProfileArtifactClass.DpFirmware,
             new ExactResolvedMapCapacityLengthRule(),
             new TruncateCtrlRamInputNormalization("CTRLRAM_TRUNCATED", "truncation-evidence")));
+        _ = Assert.Throws<ArgumentException>(() => Slot(
+            CompositionProfileArtifactClass.Auxiliary,
+            new TpMaximum256KLengthRule(),
+            new NoInputNormalization()));
+        _ = Assert.Throws<ArgumentException>(() => Slot(
+            CompositionProfileArtifactClass.CtrlRamReplacement,
+            new TpMaximum256KLengthRule(),
+            new NoInputNormalization()));
     }
 
     /// <summary>Verifies slot cardinality, extensions, and caller collections stay canonical and immutable.</summary>

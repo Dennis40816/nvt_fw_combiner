@@ -66,6 +66,11 @@ The current non-executable blank-output subset lowers only `copy-range`, `fill-r
 checked `transform-scalar` operations with `reject` overlap policy. `replace-range`, clone initialization,
 metadata validation, processor stages, and every runtime authority remain outside this subset and fail closed.
 
+For this subset, an `exact-resolved-map-capacity` input binds an immutable source space at the resolved map
+capacity. A `tp-maximum-256k` input retains its maximum-policy contract while its immutable source space is
+the exact maximum end-exclusive span of its resolved source views; it never pads, truncates, or silently
+accepts bytes outside that plan geometry.
+
 Every mutable space has exactly one engine-owned `blank` or immutable-slot `clone` initializer.
 `clone.sourceSlotId` cannot reference a mutable space, which removes mutable initializer cycles by
 construction. Exactly one space has kind `output-image`; it is the final output, and the `output`
@@ -75,8 +80,9 @@ immutable artifacts only and cannot seed TPA, TPB, or other mutable work buffers
 
 ## Input size policy
 
-Every input declares an `artifactClass` and a closed length policy. `tp-firmware` must use
-`tp-maximum-256k`, whose fixed limit is 262144 bytes and fails when oversized. A normal
+Every input declares an `artifactClass` and a closed length policy. `tp-firmware` and
+`tp-maximum-256k` are an exclusive pair: neither may be declared without the other. Its fixed limit is
+262144 bytes and it fails when oversized. A normal
 `dp-firmware` source whose outer file length is not controlled uses
 `normal-dp-extract-with-warning`: all referenced views must be in bounds, any difference from the
 selected map capacity emits the declared warning, and operations copy only those views. A whole DP

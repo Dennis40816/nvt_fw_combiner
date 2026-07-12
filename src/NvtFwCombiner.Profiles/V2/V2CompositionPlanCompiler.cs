@@ -61,6 +61,7 @@ internal static partial class V2CompositionPlanCompiler
     private const string PreparationNotAdmitted = "profile.v2.plan.preparation-not-admitted";
     private const string UnsupportedDeclaration = "profile.v2.plan.unsupported-declaration";
     private const string InvalidView = "profile.v2.plan.invalid-view";
+    private const string InvalidInputGeometry = "profile.v2.plan.invalid-input-geometry";
     private const string CopyLengthMismatch = "profile.v2.plan.copy-length-mismatch";
     private const string OperationLengthMismatch = "profile.v2.plan.operation-length-mismatch";
     private const string OperationOverlap = "profile.v2.plan.operation-overlap";
@@ -88,7 +89,12 @@ internal static partial class V2CompositionPlanCompiler
             return V2CompositionPlanCompileResult.Failed(issues);
         }
 
-        Dictionary<string, AddressSpace> spaces = LowerAddressSpaces(profile, resolvedMap);
+        Dictionary<string, AddressSpace> spaces = LowerAddressSpaces(profile, resolvedMap, issues);
+        if (issues.Count != 0)
+        {
+            return V2CompositionPlanCompileResult.Failed(issues);
+        }
+
         Dictionary<string, ResolvedView> views = LowerViews(profile, resolvedMap, spaces, issues);
         if (issues.Count != 0)
         {
@@ -184,10 +190,12 @@ internal static partial class V2CompositionPlanCompiler
                 slot is null ||
                 !slot.Required ||
                 slot.Cardinality != CompositionProfileSlotCardinality.ExactlyOne ||
-                slot.LengthRule is not ExactResolvedMapCapacityLengthRule ||
-                slot.Normalization is not NoInputNormalization)
+                slot.Normalization is not NoInputNormalization ||
+                !IsCurrentInputLengthRuleSupported(slot))
             {
-                AddUnsupported(issues, $"input space '{inputSpace.SpaceId}' must bind one required singleton exact-map-capacity unnormalized slot");
+                AddUnsupported(
+                    issues,
+                    $"input space '{inputSpace.SpaceId}' must bind one required singleton exact-map-capacity or tp-maximum-256k unnormalized slot");
             }
         }
 
@@ -209,18 +217,26 @@ internal static partial class V2CompositionPlanCompiler
 
     private static Dictionary<string, AddressSpace> LowerAddressSpaces(
         CompositionProfileDefinition profile,
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap)
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        List<CompositionIssue> issues)
     {
         var spaces = new Dictionary<string, AddressSpace>(StringComparer.Ordinal);
         foreach (InputArtifactProfileSpace input in profile.Spaces.OfType<InputArtifactProfileSpace>())
         {
+            CompositionProfileInputSlot slot = profile.InputSlots.Single(candidate =>
+                StringComparer.Ordinal.Equals(candidate.SlotId, input.SlotId));
+            if (!TryResolveInputSpaceLength(profile, input, slot, resolvedMap, issues, out long length))
+            {
+                continue;
+            }
+
             spaces.Add(
                 input.SpaceId,
                 new AddressSpace(
                     input.SpaceId,
-                    resolvedMap.CapacityBytes,
+                    length,
                     AddressSpaceMutability.Immutable,
-                    allowedInputLengths: [resolvedMap.CapacityBytes]));
+                    allowedInputLengths: [length]));
         }
 
         MutableCompositionProfileSpace output = AssertOutputSpace(profile);
@@ -345,61 +361,18 @@ internal static partial class V2CompositionPlanCompiler
         out ByteRange range,
         out string? error)
     {
-        range = default;
-        error = null;
-        try
+        if (!TryResolveSelectorRange(view, resolvedMap, out range, out error))
         {
-            switch (view.Selector)
-            {
-                case MapRegionViewSelector regionSelector:
-                    FirmwareRegion? region = resolvedMap.ImageMap.Regions.SingleOrDefault(candidate =>
-                        StringComparer.Ordinal.Equals(candidate.RegionId, regionSelector.RegionId));
-                    if (region is null)
-                    {
-                        error = $"View '{view.ViewId}' names unknown map region '{regionSelector.RegionId}'.";
-                        return false;
-                    }
-
-                    range = region.Range;
-                    break;
-                case MapRegionSliceViewSelector sliceSelector:
-                    FirmwareRegion? slicedRegion = resolvedMap.ImageMap.Regions.SingleOrDefault(candidate =>
-                        StringComparer.Ordinal.Equals(candidate.RegionId, sliceSelector.RegionId));
-                    if (slicedRegion is null)
-                    {
-                        error = $"View '{view.ViewId}' names unknown map region '{sliceSelector.RegionId}'.";
-                        return false;
-                    }
-
-                    range = new ByteRange(checked(slicedRegion.Range.Start + sliceSelector.RelativeRange.Start), sliceSelector.RelativeRange.Length);
-                    if (!slicedRegion.Range.Contains(range))
-                    {
-                        error = $"View '{view.ViewId}' escapes map region '{sliceSelector.RegionId}'.";
-                        return false;
-                    }
-
-                    break;
-                case SpaceRangeViewSelector spaceSelector:
-                    range = spaceSelector.Range;
-                    break;
-                default:
-                    error = $"View '{view.ViewId}' uses an unsupported selector.";
-                    return false;
-            }
-
-            if (!space.Contains(range))
-            {
-                error = $"View '{view.ViewId}' escapes address space '{space.AddressSpaceId}'.";
-                return false;
-            }
-
-            return true;
-        }
-        catch (OverflowException)
-        {
-            error = $"View '{view.ViewId}' range overflows its declared bounds.";
             return false;
         }
+
+        if (!space.Contains(range))
+        {
+            error = $"View '{view.ViewId}' escapes address space '{space.AddressSpaceId}'.";
+            return false;
+        }
+
+        return true;
     }
 
     private static bool TryResolveGoverningRegionChain(

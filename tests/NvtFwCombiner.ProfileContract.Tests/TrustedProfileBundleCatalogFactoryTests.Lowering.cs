@@ -347,7 +347,8 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
 
     private static V2CompositionPreparationResult PrepareSupportedBlankCopy(
         Func<string, string>? profileJsonFactory = null,
-        string? familyJson = null)
+        string? familyJson = null,
+        long capacityBytes = 16)
     {
         familyJson ??= FamilyJsonWithRootWriteConstraint("whole-region");
         string familyHash = Hash(familyJson);
@@ -357,7 +358,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             catalog.SelectProfile("profile", "1.0.0").Selection);
         V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(
             catalog,
-            Request(selection));
+            Request(selection, capacityBytes));
         Assert.True(preparation.IsAdmitted);
         return preparation;
     }
@@ -546,13 +547,20 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         return family.ToJsonString();
     }
 
-    private static string FamilyJsonWithRootWriteConstraint(string writeConstraint, int alignment = 1)
+    private static string FamilyJsonWithRootWriteConstraint(
+        string writeConstraint,
+        int alignment = 1,
+        long capacity = 16)
     {
         JsonObject family = ParseFamily();
         JsonObject root = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(
             Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(family["regionSets"])[0])["regions"])[0]);
         root["writeConstraint"] = writeConstraint;
         root["alignment"] = alignment;
+        root["range"] = new JsonObject { ["start"] = 0, ["length"] = capacity };
+        JsonObject map = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(family["imageMaps"])[0]);
+        JsonObject applicability = Assert.IsType<JsonObject>(map["applicability"]);
+        applicability["capacityBytes"] = capacity;
         return family.ToJsonString();
     }
 

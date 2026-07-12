@@ -348,7 +348,8 @@ public sealed partial class CompiledCompositionTests
         IEnumerable<CompiledCapabilityAdmission>? requiredCapabilities = null,
         CompiledInputContract? inputContract = null,
         CompiledRegionAccessContract? regionAccessContract = null,
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap? resolvedMap = null)
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap? resolvedMap = null,
+        CompositionPlan? plan = null)
     {
         resolvedMap ??= CreateResolvedMap(familyContentHash);
         var bundle = new ProfileBundleIdentity(
@@ -381,7 +382,7 @@ public sealed partial class CompiledCompositionTests
             "standard-merge",
             CompositionKind.Merge,
             details);
-        var plan = new CompositionPlan(
+        plan ??= new CompositionPlan(
             ImageInitialization.Blank("output-image", 4, 0),
             [
                 new AddressSpace(
@@ -448,7 +449,8 @@ public sealed partial class CompiledCompositionTests
     }
 
     private static FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap CreateResolvedMap(
-        string familyContentHash)
+        string familyContentHash,
+        long capacity = 4)
     {
         var map = FirmwareImageMap.CreateDirect(
             "map",
@@ -457,7 +459,7 @@ public sealed partial class CompiledCompositionTests
                 ["NT-SYNTHETIC"],
                 ["standard"],
                 TopologyRequirement.NoTopologyConstraint(),
-                4),
+                capacity),
             FirmwareImageMapCoveragePolicy.CompleteWithExplicitGaps,
             [new FirmwareRegionSet(
                 "physical",
@@ -467,7 +469,7 @@ public sealed partial class CompiledCompositionTests
                     parentRegionId: null,
                     FirmwareRegionOwner.System,
                     FirmwareRegionKind.Image,
-                    new ByteRange(0, 4),
+                    new ByteRange(0, capacity),
                     FirmwareWriteConstraint.Forbidden)],
                 ["map-evidence"])],
             [],
@@ -481,7 +483,7 @@ public sealed partial class CompiledCompositionTests
         FirmwareMapResolutionResult result = definition.ResolveMap(new FirmwareMapResolutionInputs(
             "NT-SYNTHETIC",
             "standard",
-            4,
+            capacity,
             requestedTopology: null,
             []));
 

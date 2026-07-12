@@ -235,6 +235,12 @@ internal sealed partial class CompositionProfileInputSlot
             throw new ArgumentException("TP firmware requires the fixed 256 KiB rule without normalization.");
         }
 
+        if (lengthRule.Kind == CompositionProfileLengthRuleKind.TpMaximum256K &&
+            artifactClass != CompositionProfileArtifactClass.TpFirmware)
+        {
+            throw new ArgumentException("The fixed 256 KiB rule is restricted to TP firmware.");
+        }
+
         if (artifactClass == CompositionProfileArtifactClass.DpFirmware &&
             lengthRule.Kind is not CompositionProfileLengthRuleKind.ExactResolvedMapCapacity and
                 not CompositionProfileLengthRuleKind.NormalDpExtractWithWarning)

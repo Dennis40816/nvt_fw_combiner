@@ -118,6 +118,14 @@ public sealed partial class CompiledCompositionTests
             CompiledInputSlotCardinality.ExactlyOne, [".bin"],
             new CompiledExactResolvedMapCapacityInputLengthRequirement(16),
             new CompiledPadShorterInputNormalization(0xFF, "evidence")));
+        _ = Assert.Throws<ArgumentException>(() => new CompiledInputSlotRequirement(
+            "bad-aux-tp", "aux", CompiledInputArtifactClass.Auxiliary, true,
+            CompiledInputSlotCardinality.ExactlyOne, [".bin"],
+            new CompiledTpMaximum256KInputLengthRequirement(), new CompiledNoInputNormalization()));
+        _ = Assert.Throws<ArgumentException>(() => new CompiledInputSlotRequirement(
+            "bad-ctrlram-tp", "ctrlram", CompiledInputArtifactClass.CtrlRamReplacement, true,
+            CompiledInputSlotCardinality.ExactlyOne, [".bin"],
+            new CompiledTpMaximum256KInputLengthRequirement(), new CompiledNoInputNormalization()));
     }
 
     /// <summary>Verifies complete typed input and capability admission policy participates in V2 compilation identity.</summary>

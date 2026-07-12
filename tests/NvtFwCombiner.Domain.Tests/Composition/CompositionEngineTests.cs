@@ -126,6 +126,35 @@ public sealed partial class CompositionEngineTests
         Assert.Contains("actual length is 3 bytes", issue.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies one exact immutable input length rejects shorter and longer artifacts without normalization.</summary>
+    [Theory]
+    [InlineData(3)]
+    [InlineData(5)]
+    public void ExactImmutableInputLengthRejectsNonExactArtifacts(int artifactLength)
+    {
+        CompositionPlan plan = CreateBlankPlan(
+            4,
+            new AddressSpace("input", 4, AddressSpaceMutability.Immutable, allowedInputLengths: [4]),
+            CompositionOperation.CopyRange(
+                "copy-input",
+                10,
+                "input",
+                new ByteRange(0, 4),
+                "output-image",
+                new ByteRange(0, 4),
+                OverlapPolicy.Reject,
+                "copy exact source"));
+        var input = new CompositionExecutionInput(new Dictionary<string, byte[]>
+        {
+            ["input"] = new byte[artifactLength],
+        });
+
+        CompositionExecutionResult result = CompositionEngine.Execute(plan, input);
+
+        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, Assert.Single(result.Issues).Code);
+    }
+
     /// <summary>Verifies longer-than-declared inputs remain rejected even when a padding byte is declared.</summary>
     [Fact]
     public void InputLongerThanDeclaredLengthFailsClosed()

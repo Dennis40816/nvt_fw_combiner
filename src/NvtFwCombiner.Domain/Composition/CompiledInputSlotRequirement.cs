@@ -321,6 +321,12 @@ public sealed class CompiledInputSlotRequirement
             throw new ArgumentException("TP firmware requires the fixed 256 KiB rule without normalization.");
         }
 
+        if (lengthRequirement.Kind == CompiledInputLengthRequirementKind.TpMaximum256K &&
+            artifactClass != CompiledInputArtifactClass.TpFirmware)
+        {
+            throw new ArgumentException("The fixed 256 KiB rule is restricted to TP firmware.");
+        }
+
         if (artifactClass == CompiledInputArtifactClass.DpFirmware &&
             lengthRequirement.Kind is not CompiledInputLengthRequirementKind.ExactResolvedMapCapacity and
                 not CompiledInputLengthRequirementKind.NormalDpExtractWithWarning)

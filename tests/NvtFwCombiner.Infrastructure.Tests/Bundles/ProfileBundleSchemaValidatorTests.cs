@@ -177,6 +177,20 @@ public sealed class ProfileBundleSchemaValidatorTests
             ProfileBundleSchemaValidator.ValidateEntries(collection, 32));
     }
 
+    /// <summary>Verifies the executable V2 schema rejects the TP-only maximum rule on another artifact class.</summary>
+    [Fact]
+    public void ValidateEntriesRejectsTpMaximumRuleForNonTpArtifact()
+    {
+        string profile = TrustedV2BundleTestDocuments.ProfileJson(new string('c', 64)).Replace(
+            "\"artifactClass\": \"tp-firmware\"",
+            "\"artifactClass\": \"auxiliary\"",
+            StringComparison.Ordinal);
+
+        _ = Assert.Throws<InvalidDataException>(() => ProfileBundleSchemaValidator.ValidateEntries(
+            CaptureCompositionProfile(profile),
+            32));
+    }
+
     private static ProfileBundleEntrySnapshotCollection Capture(string schema, string profile)
     {
         using var workspace = TempWorkspace.Create("nfc-bundle-schema-validation");
@@ -242,6 +256,44 @@ public sealed class ProfileBundleSchemaValidatorTests
                         ProfileBundleEntryKind.FirmwareFamily,
                         "families/family.json",
                         familyBytes,
+                        schemaId),
+                ]),
+            new ProfileBundleEntrySnapshotLimits(8, 65536, 131072, 32));
+    }
+
+    private static ProfileBundleEntrySnapshotCollection CaptureCompositionProfile(string profile)
+    {
+        const string schemaId = "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json";
+        using var workspace = TempWorkspace.Create("nfc-composition-profile-v2-schema-validation");
+        byte[] schemaBytes = File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
+            "docs",
+            "contracts",
+            "composition-profile-v2.schema.json"));
+        byte[] profileBytes = Encoding.UTF8.GetBytes(profile);
+        _ = workspace.Write("profile-bundle.json", Encoding.UTF8.GetBytes("{}"));
+        _ = workspace.Write("schemas/composition-profile-v2.schema.json", schemaBytes);
+        _ = workspace.Write("profiles/profile.json", profileBytes);
+
+        return ProfileBundleEntrySnapshotCollection.Capture(
+            workspace.Root,
+            "profile-bundle.json",
+            new ProfileBundleManifest(
+                "bundle",
+                "1.0.0",
+                new string('a', 64),
+                "release-manifest",
+                [
+                    Entry(
+                        "schema",
+                        ProfileBundleEntryKind.Schema,
+                        "schemas/composition-profile-v2.schema.json",
+                        schemaBytes,
+                        schemaId),
+                    Entry(
+                        "profile",
+                        ProfileBundleEntryKind.CompositionProfile,
+                        "profiles/profile.json",
+                        profileBytes,
                         schemaId),
                 ]),
             new ProfileBundleEntrySnapshotLimits(8, 65536, 131072, 32));

@@ -171,6 +171,7 @@ public sealed partial class CompiledComposition
                 .Order(StringComparer.Ordinal),
         ];
         var declaredAddressSpaceIds = new HashSet<string>(StringComparer.Ordinal);
+        var tpInputSpaces = new List<AddressSpace>();
         var slots = details.InputContract.Slots.ToDictionary(
             static requirement => requirement.SlotId,
             StringComparer.Ordinal);
@@ -181,12 +182,9 @@ public sealed partial class CompiledComposition
             if (binding.InstancePolicy != CompiledInputInstancePolicy.Singleton ||
                 !requirement.Required ||
                 requirement.Cardinality != CompiledInputSlotCardinality.ExactlyOne ||
-                requirement.LengthRequirement is not CompiledExactResolvedMapCapacityInputLengthRequirement ||
                 requirement.Normalization is not CompiledNoInputNormalization)
             {
-                throw new ArgumentException(
-                    "Current V2 plan artifacts require singleton required exact-map-capacity inputs without normalization.",
-                    nameof(details));
+                throw new ArgumentException("Current V2 plan artifacts require singleton required unnormalized inputs.", nameof(details));
             }
 
             if (!addressSpaces.TryGetValue(addressSpaceId, out AddressSpace? addressSpace) ||
@@ -198,14 +196,34 @@ public sealed partial class CompiledComposition
                     nameof(details));
             }
 
-            var exact = (CompiledExactResolvedMapCapacityInputLengthRequirement)requirement.LengthRequirement;
-            if (exact.Bytes != details.Provenance.ResolvedMap.CapacityBytes ||
-                addressSpace.Length != exact.Bytes ||
-                !addressSpace.AllowedInputLengths.SequenceEqual([exact.Bytes]))
+            switch (requirement.LengthRequirement)
             {
-                throw new ArgumentException(
-                    "Exact resolved-map-capacity input requirements must agree with their immutable plan spaces.",
-                    nameof(details));
+                case CompiledExactResolvedMapCapacityInputLengthRequirement exact:
+                    if (exact.Bytes != details.Provenance.ResolvedMap.CapacityBytes ||
+                        addressSpace.Length != exact.Bytes ||
+                        !addressSpace.AllowedInputLengths.SequenceEqual([exact.Bytes]))
+                    {
+                        throw new ArgumentException(
+                            "Exact resolved-map-capacity input requirements must agree with their immutable plan spaces.",
+                            nameof(details));
+                    }
+
+                    break;
+                case CompiledTpMaximum256KInputLengthRequirement:
+                    if (addressSpace.Length > CompiledTpMaximum256KInputLengthRequirement.MaximumBytes ||
+                        !addressSpace.AllowedInputLengths.SequenceEqual([addressSpace.Length]))
+                    {
+                        throw new ArgumentException(
+                            "TP maximum input requirements must bind one exact plan source span within the 256 KiB limit.",
+                            nameof(details));
+                    }
+
+                    tpInputSpaces.Add(addressSpace);
+                    break;
+                default:
+                    throw new ArgumentException(
+                        "Current V2 plan artifacts support only exact-map-capacity or TP-maximum input requirements.",
+                        nameof(details));
             }
         }
 
@@ -225,6 +243,35 @@ public sealed partial class CompiledComposition
                     "Every resolved physical view must name an existing plan address space and remain within its bounds.",
                     nameof(details));
             }
+        }
+
+        foreach (AddressSpace tpInputSpace in tpInputSpaces)
+        {
+            ValidateTpMaximumInputGeometry(tpInputSpace, details.RegionAccessContract.ResolvedViews);
+        }
+    }
+
+    private static void ValidateTpMaximumInputGeometry(
+        AddressSpace addressSpace,
+        IReadOnlyList<CompiledResolvedPhysicalView> resolvedViews)
+    {
+        long maximumEndExclusive = 0;
+        bool hasSourceView = false;
+        foreach (CompiledResolvedPhysicalView view in resolvedViews.Where(view =>
+                     StringComparer.Ordinal.Equals(view.AddressSpaceId, addressSpace.AddressSpaceId)))
+        {
+            maximumEndExclusive = Math.Max(maximumEndExclusive, view.Range.EndExclusive);
+            hasSourceView = true;
+        }
+
+        if (!hasSourceView ||
+            maximumEndExclusive > CompiledTpMaximum256KInputLengthRequirement.MaximumBytes ||
+            addressSpace.Length != maximumEndExclusive ||
+            !addressSpace.AllowedInputLengths.SequenceEqual([maximumEndExclusive]))
+        {
+            throw new ArgumentException(
+                "TP maximum input requirements must bind exactly the maximum end-exclusive span of their resolved source views.",
+                nameof(addressSpace));
         }
     }
 }

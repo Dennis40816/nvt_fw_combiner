@@ -168,6 +168,19 @@ public sealed class CompositionProfileV2InputNormalizerTests
         _ = Assert.IsType<ArgumentException>(exception.InnerException, exactMatch: false);
     }
 
+    /// <summary>Verifies the TP-only 256 KiB rule cannot be assigned to another artifact class during normalization.</summary>
+    [Theory]
+    [InlineData("auxiliary")]
+    [InlineData("ctrlram-replacement")]
+    public void InputSlotRejectsTpMaximumRuleForNonTpArtifact(string artifactClass)
+    {
+        CompositionProfileNormalizationException exception = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            CompositionProfileNormalizer.NormalizeInputSlot(Slot(artifactClass, TpMaximum(), None())));
+
+        Assert.Equal("inputSlots[0]", exception.Path);
+        _ = Assert.IsType<ArgumentException>(exception.InnerException, exactMatch: false);
+    }
+
     private static CompositionProfileInputSlot Normalize(
         string artifactClass,
         CompositionProfileLengthRuleDocument lengthRule,

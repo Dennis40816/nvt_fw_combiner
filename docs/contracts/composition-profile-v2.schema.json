@@ -510,6 +510,23 @@
               }
             }
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "acceptance": {
+                "properties": {
+                  "lengthRule": {
+                    "properties": { "kind": { "const": "tp-maximum-256k" } },
+                    "required": ["kind"]
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": { "artifactClass": { "const": "tp-firmware" } }
+          }
         }
       ]
     },
