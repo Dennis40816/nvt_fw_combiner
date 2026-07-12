@@ -39,7 +39,7 @@ The root is inspection/report metadata. It does not replace `TpFlashMapRegionKin
 | `CustomerInfo` | Customer Information | Preserve/protection behavior is unchanged. |
 | `ProjectId` | Project ID | Preserve/protection behavior is unchanged. |
 | `Other` with a header tag/id | TP Flash Header | Header backup rows are inspection metadata, not a new write rule. |
-| `Other` with FW Config tag/id | FW Configuration | Includes the known primary FW Config start anchor and documented backup rows. |
+| `Other` with FW Config tag/id | FW Configuration | Includes the primary FW Config anchor for TP Overview plus documented Backup rows; runtime metadata values come only from the NVT Backup. |
 | `Other` with `fw-information` tag | FW Information | Retains existing protection semantics. |
 | Remaining `Other` | Other documented regions | No access-policy change. |
 

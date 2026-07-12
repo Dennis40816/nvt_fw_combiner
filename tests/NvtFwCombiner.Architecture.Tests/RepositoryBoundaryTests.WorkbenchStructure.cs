@@ -106,7 +106,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("GetExistingStandardMergeDpInputLength", standardMergeRun, StringComparison.Ordinal);
         Assert.Contains("TryCompileStandardMerge", standardMergeRun, StringComparison.Ordinal);
         Assert.Contains("TryReadBaseCommonFwVersion", firmwareMetadata, StringComparison.Ordinal);
-        Assert.Contains("FirmwareConfigMetadataReader.TryRead", firmwareMetadata, StringComparison.Ordinal);
+        Assert.Contains("FirmwareConfigMetadataReader.TryReadBackup", firmwareMetadata, StringComparison.Ordinal);
+        Assert.DoesNotContain("FirmwareConfigMetadataReader.TryRead(", firmwareMetadata, StringComparison.Ordinal);
+        Assert.DoesNotContain("FirmwareConfigMetadataReader.TryReadAtAbsoluteAddress", firmwareMetadata, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryGetFirmwareConfigPrimaryStart", firmwareMetadata, StringComparison.Ordinal);
+        Assert.DoesNotContain("HaveEquivalentFirmwareConfigValues", firmwareMetadata, StringComparison.Ordinal);
         Assert.Contains("GenFlashVersionCatalog.TryReadDpVersion", firmwareMetadata, StringComparison.Ordinal);
         Assert.Contains("DisplayCategory", firmwareMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("PostbuildSetup_", firmwareMetadata, StringComparison.Ordinal);

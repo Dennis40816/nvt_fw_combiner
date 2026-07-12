@@ -67,7 +67,7 @@ public static partial class WorkbenchCompositionService
         try
         {
             byte[] image = File.ReadAllBytes(path);
-            byte? chipNumber = TryReadNvtCopyChipNumber(icId, tpPath);
+            byte? chipNumber = TryReadFirmwareConfigBackupChipNumber(icId, tpPath);
             return GenFlashVersionCatalog.TryReadCmiDpCode(
                 icId,
                 image,
@@ -93,13 +93,13 @@ public static partial class WorkbenchCompositionService
         }
     }
 
-    /// <summary>Reads FWConfig display metadata from a selected firmware image when the IC flash-map defines it.</summary>
+    /// <summary>Reads FWConfig display metadata from the canonical NVT-located Backup in a selected firmware image.</summary>
     public static WorkbenchFirmwareConfigMetadata? TryReadFirmwareConfigMetadata(string icId, string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        if (!TryReadConsistentFirmwareConfigMetadata(icId, path, out FirmwareConfigMetadata metadata))
+        if (!TryReadFirmwareConfigBackupMetadata(icId, path, out FirmwareConfigMetadata metadata))
         {
             return null;
         }
@@ -131,16 +131,15 @@ public static partial class WorkbenchCompositionService
     }
 
     /// <summary>
-    /// Returns an auto-applicable IC-number selection only when the NVT-copy FWConfig is unique,
-    /// agrees with the selected IC flash-map location, and its chip number resolves to one
-    /// approved postbuild branch token.
+    /// Returns an auto-applicable IC-number selection only when the canonical NVT Backup is unique
+    /// and its chip number resolves to one approved postbuild branch token.
     /// </summary>
     public static WorkbenchFirmwareContextSuggestion? TryReadFirmwareContextSuggestion(string icId, string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        return TryReadConsistentFirmwareConfigMetadata(icId, path, out FirmwareConfigMetadata metadata) &&
+        return TryReadFirmwareConfigBackupMetadata(icId, path, out FirmwareConfigMetadata metadata) &&
             metadata.ChipNumber != 0 &&
             TryResolveNumberTokenForFirmwareChipNumber(icId, metadata.ChipNumber, out string? numberToken)
             ? new WorkbenchFirmwareContextSuggestion(
@@ -158,7 +157,7 @@ public static partial class WorkbenchCompositionService
         out string? commonFwVersion)
     {
         commonFwVersion = null;
-        if (!TryReadConsistentFirmwareConfigMetadata(icId, basePath, out FirmwareConfigMetadata metadata) ||
+        if (!TryReadFirmwareConfigBackupMetadata(icId, basePath, out FirmwareConfigMetadata metadata) ||
             !metadata.IsFirmwareVersionBarValid)
         {
             return false;
@@ -176,7 +175,7 @@ public static partial class WorkbenchCompositionService
         ArgumentNullException.ThrowIfNull(baseSnapshot);
 
         commonFwVersion = null;
-        if (!TryReadConsistentFirmwareConfigMetadata(icId, baseSnapshot.AsSpan(), out FirmwareConfigMetadata metadata) ||
+        if (!TryReadFirmwareConfigBackupMetadata(icId, baseSnapshot.AsSpan(), out FirmwareConfigMetadata metadata) ||
             !metadata.IsFirmwareVersionBarValid)
         {
             return false;
@@ -236,21 +235,21 @@ public static partial class WorkbenchCompositionService
         return false;
     }
 
-    private static byte? TryReadNvtCopyChipNumber(string icId, string? tpPath)
+    private static byte? TryReadFirmwareConfigBackupChipNumber(string icId, string? tpPath)
     {
         return !string.IsNullOrWhiteSpace(tpPath) &&
-            TryReadConsistentFirmwareConfigMetadata(icId, tpPath, out FirmwareConfigMetadata metadata)
+            TryReadFirmwareConfigBackupMetadata(icId, tpPath, out FirmwareConfigMetadata metadata)
                 ? metadata.ChipNumber
                 : null;
     }
 
-    private static bool TryReadConsistentFirmwareConfigMetadata(
+    private static bool TryReadFirmwareConfigBackupMetadata(
         string icId,
         string path,
         out FirmwareConfigMetadata metadata)
     {
         metadata = default;
-        if (!IcMetadataFacade.TryGetFirmwareConfigStart(icId, out _) ||
+        if (!IcMetadataFacade.TryFind(icId, out _) ||
             !File.Exists(path))
         {
             return false;
@@ -259,7 +258,7 @@ public static partial class WorkbenchCompositionService
         try
         {
             byte[] image = File.ReadAllBytes(path);
-            return TryReadConsistentFirmwareConfigMetadata(icId, image, out metadata);
+            return TryReadFirmwareConfigBackupMetadata(icId, image, out metadata);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         {
@@ -267,40 +266,20 @@ public static partial class WorkbenchCompositionService
         }
     }
 
-    private static bool TryReadConsistentFirmwareConfigMetadata(
+    private static bool TryReadFirmwareConfigBackupMetadata(
         string icId,
         ReadOnlySpan<byte> image,
         out FirmwareConfigMetadata metadata)
     {
         metadata = default;
-        if (!IcMetadataFacade.TryGetFirmwareConfigStart(icId, out long firmwareConfigStart) ||
-            !FirmwareConfigMetadataReader.TryRead(image, firmwareConfigStart, out FirmwareConfigMetadata primary) ||
-            !FirmwareConfigMetadataReader.TryReadNvtCopy(image, out FirmwareConfigMetadata nvtCopy) ||
-            !HaveEquivalentFirmwareConfigValues(primary, nvtCopy))
+        if (!IcMetadataFacade.TryFind(icId, out _) ||
+            !FirmwareConfigMetadataReader.TryReadBackup(image, out FirmwareConfigMetadata backup))
         {
             return false;
         }
 
-        // Preserve the flash-map address as the public traceability location. The NVT copy
-        // is the verified source of the displayed values, not a second canonical map row.
-        metadata = nvtCopy with { FirmwareConfigStart = firmwareConfigStart };
+        metadata = backup;
         return true;
-    }
-
-    private static bool HaveEquivalentFirmwareConfigValues(
-        FirmwareConfigMetadata primary,
-        FirmwareConfigMetadata nvtCopy)
-    {
-        return primary.FirmwareVersion == nvtCopy.FirmwareVersion &&
-            primary.FirmwareVersionBar == nvtCopy.FirmwareVersionBar &&
-            primary.IsFirmwareVersionBarValid == nvtCopy.IsFirmwareVersionBarValid &&
-            primary.FirmwareSubVersion == nvtCopy.FirmwareSubVersion &&
-            primary.ChipNumber == nvtCopy.ChipNumber &&
-            primary.CommonFwMajorVersion == nvtCopy.CommonFwMajorVersion &&
-            primary.CommonFwMinorVersion == nvtCopy.CommonFwMinorVersion &&
-            primary.CommonFwAdditionalVersion == nvtCopy.CommonFwAdditionalVersion &&
-            primary.ProjectId == nvtCopy.ProjectId &&
-            primary.Hardware == nvtCopy.Hardware;
     }
 
     private static bool TryResolvePostbuildProfileForDisplay(

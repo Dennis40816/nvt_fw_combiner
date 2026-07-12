@@ -46,7 +46,7 @@ public sealed class FirmwareConfigMetadataReaderTests
         Assert.Equal(0x07C, FirmwareConfigLayout.RequiredLength);
     }
 
-    /// <summary>Reads Common FW, FW/bar, and PID facts from owner-approved standard-merge golden outputs.</summary>
+    /// <summary>Reads Common FW, FW/bar, and PID facts from the canonical Backup in owner-approved golden outputs.</summary>
     [Theory]
     [MemberData(nameof(GoldenFirmwareConfigCases))]
     public void GoldenFlashImagesExposeExpectedFirmwareFacts(
@@ -68,11 +68,9 @@ public sealed class FirmwareConfigMetadataReaderTests
             "expected",
             relativePath));
 
-        Assert.True(TpFlashMapCatalog.TryGetFirmwareConfigStart($"NT{ic}", out long firmwareConfigStart));
-        Assert.True(FirmwareConfigMetadataReader.TryRead(
-            image,
-            firmwareConfigStart,
-            out FirmwareConfigMetadata metadata));
+        Assert.True(
+            FirmwareConfigMetadataReader.TryReadBackup(image, out FirmwareConfigMetadata metadata),
+            $"NT{ic} golden image must expose one valid NVT FWConfig Backup.");
 
         Assert.Equal(commonFwVersion, metadata.CommonFwVersion);
         Assert.Equal(firmwareVersion, metadata.FirmwareVersion);
@@ -113,7 +111,7 @@ public sealed class FirmwareConfigMetadataReaderTests
         WriteGipTable(image, FirmwareConfigLayout.GipAfterLeftOffset, afterLeft);
         WriteGipTable(image, FirmwareConfigLayout.GipAfterRightOffset, afterRight);
 
-        Assert.True(FirmwareConfigMetadataReader.TryRead(image, 0, out FirmwareConfigMetadata metadata));
+        Assert.True(FirmwareConfigMetadataReader.TryReadAtAbsoluteAddress(image, 0, out FirmwareConfigMetadata metadata));
 
         FirmwareConfigHardwareMetadata hardware = metadata.Hardware;
         Assert.Equal(0x11, hardware.FreeRunMode);
@@ -135,10 +133,10 @@ public sealed class FirmwareConfigMetadataReaderTests
         Assert.Equal(afterRight, hardware.GipAfterRight);
     }
 
-    /// <summary>Confirms every current IC golden copies all exposed FWConfig fields to the NVT T-minus-FFF block.</summary>
+    /// <summary>Confirms every current IC golden copies all exposed FWConfig fields to the NVT T-minus-FFF Backup block.</summary>
     [Theory]
     [MemberData(nameof(GoldenFirmwareConfigCopyCases))]
-    public void GoldenFlashHardwareInfoMatchesNvtCopy(string ic, string relativePath)
+    public void GoldenFlashHardwareInfoMatchesNvtBackup(string ic, string relativePath)
     {
         string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         byte[] image = File.ReadAllBytes(Path.Combine(
@@ -149,40 +147,68 @@ public sealed class FirmwareConfigMetadataReaderTests
             "expected",
             relativePath));
 
-        Assert.True(TpFlashMapCatalog.TryGetFirmwareConfigStart($"NT{ic}", out long firmwareConfigStart));
-        Assert.True(FirmwareConfigMetadataReader.TryRead(image, firmwareConfigStart, out FirmwareConfigMetadata primary));
-        Assert.True(FirmwareConfigMetadataReader.TryReadNvtCopy(image, out FirmwareConfigMetadata copy));
+        Assert.True(TpFlashMapCatalog.TryGetFirmwareConfigPrimaryStart($"NT{ic}", out long firmwareConfigStart));
+        Assert.True(FirmwareConfigMetadataReader.TryReadAtAbsoluteAddress(image, firmwareConfigStart, out FirmwareConfigMetadata primary));
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(image, out FirmwareConfigMetadata backup));
         int nvtTerminal = Assert.Single(FindNvtEndFlagTerminals(image));
-        Assert.Equal(nvtTerminal - 0xFFF, copy.FirmwareConfigStart);
+        Assert.Equal(nvtTerminal - 0xFFF, backup.FirmwareConfigStart);
 
-        Assert.Equal(primary.FirmwareVersion, copy.FirmwareVersion);
-        Assert.Equal(primary.FirmwareVersionBar, copy.FirmwareVersionBar);
-        Assert.Equal(primary.IsFirmwareVersionBarValid, copy.IsFirmwareVersionBarValid);
-        Assert.Equal(primary.FirmwareSubVersion, copy.FirmwareSubVersion);
-        Assert.Equal(primary.ChipNumber, copy.ChipNumber);
-        Assert.Equal(primary.CommonFwVersion, copy.CommonFwVersion);
-        Assert.Equal(primary.ProjectId, copy.ProjectId);
-        Assert.Equal(primary.Hardware, copy.Hardware);
+        Assert.Equal(primary.FirmwareVersion, backup.FirmwareVersion);
+        Assert.Equal(primary.FirmwareVersionBar, backup.FirmwareVersionBar);
+        Assert.Equal(primary.IsFirmwareVersionBarValid, backup.IsFirmwareVersionBarValid);
+        Assert.Equal(primary.FirmwareSubVersion, backup.FirmwareSubVersion);
+        Assert.Equal(primary.ChipNumber, backup.ChipNumber);
+        Assert.Equal(primary.CommonFwVersion, backup.CommonFwVersion);
+        Assert.Equal(primary.ProjectId, backup.ProjectId);
+        Assert.Equal(primary.Hardware, backup.Hardware);
     }
 
-    /// <summary>Rejects missing or ambiguous NVT end flags rather than guessing a FWConfig copy.</summary>
+    /// <summary>Rejects missing, ambiguous, or out-of-range NVT Backup markers rather than guessing a FWConfig source.</summary>
     [Fact]
-    public void NvtCopyReaderRejectsMissingOrAmbiguousEndFlag()
+    public void NvtBackupReaderRejectsMissingAmbiguousOrOutOfRangeMarkers()
     {
-        Assert.False(FirmwareConfigMetadataReader.TryReadNvtCopy(new byte[0x1000], out _));
+        Assert.False(FirmwareConfigMetadataReader.TryReadBackup(new byte[0x1000], out _));
 
         byte[] ambiguous = new byte[0x2000];
         WriteEndFlag(ambiguous, 0x0FFC);
         WriteEndFlag(ambiguous, 0x1FFC);
 
-        Assert.False(FirmwareConfigMetadataReader.TryReadNvtCopy(ambiguous, out _));
+        Assert.False(FirmwareConfigMetadataReader.TryReadBackup(ambiguous, out _));
+
+        byte[] validAndEarly = new byte[0x2000];
+        WriteEndFlag(validAndEarly, 0);
+        WriteEndFlag(validAndEarly, 0x0FFC);
+
+        Assert.False(FirmwareConfigMetadataReader.TryReadBackup(validAndEarly, out _));
+
+        byte[] earlyOnly = new byte[0x1000];
+        WriteEndFlag(earlyOnly, 0);
+
+        Assert.False(FirmwareConfigMetadataReader.TryReadBackup(earlyOnly, out _));
+    }
+
+    /// <summary>Locates the Backup at the earliest valid start and marker-at-EOF boundaries.</summary>
+    [Fact]
+    public void NvtBackupReaderUsesTerminalMinusFffAtMarkerBoundaries()
+    {
+        byte[] firstMarker = new byte[0x1078];
+        WriteEndFlag(firstMarker, 0x0FFC);
+
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(firstMarker, out FirmwareConfigMetadata first));
+        Assert.Equal(0, first.FirmwareConfigStart);
+
+        byte[] lastMarker = new byte[0x2000];
+        WriteEndFlag(lastMarker, lastMarker.Length - NvtEndFlagBytes.Length);
+
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(lastMarker, out FirmwareConfigMetadata last));
+        Assert.Equal(0x1000, last.FirmwareConfigStart);
     }
 
     /// <summary>NT51926 golden evidence identifies the owner-confirmed 1.4.1 Common FW codebase.</summary>
     [Fact]
     public void Nt51926GoldenReadsAsCommonFw141()
     {
-        FirmwareConfigMetadata metadata = ReadGoldenMetadata("51926", "51926/flash.bin");
+        FirmwareConfigMetadata metadata = ReadGoldenMetadata("51926/flash.bin");
 
         Assert.Equal("1.4.1", metadata.CommonFwVersion);
     }
@@ -223,7 +249,7 @@ public sealed class FirmwareConfigMetadataReaderTests
         return data;
     }
 
-    private static FirmwareConfigMetadata ReadGoldenMetadata(string ic, string relativePath)
+    private static FirmwareConfigMetadata ReadGoldenMetadata(string relativePath)
     {
         string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         byte[] image = File.ReadAllBytes(Path.Combine(
@@ -234,11 +260,7 @@ public sealed class FirmwareConfigMetadataReaderTests
             "expected",
             relativePath));
 
-        Assert.True(TpFlashMapCatalog.TryGetFirmwareConfigStart($"NT{ic}", out long firmwareConfigStart));
-        Assert.True(FirmwareConfigMetadataReader.TryRead(
-            image,
-            firmwareConfigStart,
-            out FirmwareConfigMetadata metadata));
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(image, out FirmwareConfigMetadata metadata));
 
         return metadata;
     }

@@ -93,6 +93,12 @@ A family/map owns physical facts only: capacity, address spaces, region hierarch
 ranges, semantic owner/kind, explicit reserved or unmapped gaps, metadata locators, evidence, and
 non-relaxable safety lower bounds. Newly modeled physical rows are read-only by default.
 
+For FWConfig facts, the product owner decision of 2026-07-12 fixes the canonical source as the
+unique NVT Backup at terminal `T - 0xFFF`. In a `firmware-family-v1` marker-relative locator this
+is marker `00 4E 56 54`, `unique` selection, and result offset `-0xFFC` from marker start. A
+flash-map primary address is TP Overview/evidence only and cannot be a metadata fallback or runtime
+prerequisite. Compatibility readers enforce the same rule until V2 metadata lowering is executable.
+
 Resolution separates:
 
 - `TopologyRequirement`: none, single, cascade, or exact count;

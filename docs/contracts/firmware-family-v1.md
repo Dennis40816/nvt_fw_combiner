@@ -36,6 +36,12 @@ matches, the wrong count, an out-of-range result, or a failed assertion rejects 
 Matching examines every byte start where the complete marker fits, including overlapping matches.
 A terminal expected count cannot exceed `searchLength - markerLength + 1`.
 
+For a concrete FWConfig structure, profile authoring uses the canonical NVT Backup form: marker bytes
+`00 4E 56 54`, `unique` selection, and result offset `-0xFFC` from marker start, which is equivalent to
+terminal `T - 0xFFF`. The containing region is read-only locator evidence only; it never grants a write
+or Replace range. The generic family schema does not infer FWConfig semantics from a structure-id string,
+and V2 metadata lowering remains non-executable until field/assertion evidence is complete.
+
 Every metadata structure declares one stable `artifactBindingId`; it matches the `artifactId` in
 runtime map-resolution inputs and is never a path or filename. Structure ids are ordinally unique
 across a family, and field ids are ordinally unique within a structure. Every metadata predicate

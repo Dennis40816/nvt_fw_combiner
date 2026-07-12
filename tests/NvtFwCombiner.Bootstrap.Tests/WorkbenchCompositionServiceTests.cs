@@ -94,16 +94,17 @@ public sealed class WorkbenchCompositionServiceTests
             GoldenPath("expected/51926/flash.bin"));
 
         Assert.NotNull(metadata);
-        Assert.True(TpFlashMapCatalog.TryGetFirmwareConfigStart("NT51926", out long firmwareConfigStart));
-        Assert.Equal(firmwareConfigStart, metadata.FirmwareConfigStart);
+        byte[] image = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(image, out FirmwareConfigMetadata backup));
+        Assert.Equal(backup.FirmwareConfigStart, metadata.FirmwareConfigBackupStart);
         Assert.Equal("1.4.1", metadata.CommonFwVersion);
         Assert.Equal(0x02, metadata.ChipNumber);
         Assert.Equal("51926_1.4.1", metadata.PostbuildCategory);
     }
 
-    /// <summary>Uses a unique, matching NVT FWConfig copy to map the verified chip number to a planner token.</summary>
+    /// <summary>Uses a unique NVT FWConfig Backup to map the verified chip number to a planner token.</summary>
     [Fact]
-    public void FirmwareContextSuggestionUsesVerifiedNvtCopyAndApprovedBranch()
+    public void FirmwareContextSuggestionUsesVerifiedNvtBackupAndApprovedBranch()
     {
         WorkbenchFirmwareContextSuggestion? suggestion = WorkbenchCompositionService.TryReadFirmwareContextSuggestion(
             "NT51926",
@@ -116,21 +117,24 @@ public sealed class WorkbenchCompositionServiceTests
         Assert.Equal("1.4.1", suggestion.CommonFwVersion);
     }
 
-    /// <summary>Rejects automatic IC-number selection when the primary and unique NVT-copy FWConfigs disagree.</summary>
+    /// <summary>Uses canonical Backup facts when the TP Overview primary cross-check differs.</summary>
     [Fact]
-    public void FirmwareContextSuggestionRejectsPrimaryAndNvtCopyMismatch()
+    public void FirmwareContextSuggestionKeepsBackupAuthorityWhenPrimaryDiffers()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-fwconfig-mismatch");
         byte[] bytes = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
-        Assert.True(TpFlashMapCatalog.TryGetFirmwareConfigStart("NT51926", out long firmwareConfigStart));
-        bytes[checked((int)firmwareConfigStart + FirmwareConfigLayout.FirmwareSubVersionOffset)] ^= 0x01;
+        Assert.True(TpFlashMapCatalog.TryGetFirmwareConfigPrimaryStart("NT51926", out long firmwareConfigStart));
+        bytes[checked((int)firmwareConfigStart + FirmwareConfigLayout.ChipNumberOffset)] = 0x01;
         string path = workspace.Write("fwconfig-mismatch.bin", bytes);
 
         WorkbenchFirmwareContextSuggestion? suggestion = WorkbenchCompositionService.TryReadFirmwareContextSuggestion(
             "NT51926",
             path);
 
-        Assert.Null(suggestion);
+        Assert.NotNull(suggestion);
+        Assert.Equal((byte)0x02, suggestion.ChipNumber);
+        Assert.Equal("cascade", suggestion.NumberToken);
+        Assert.Equal("1.4.1", suggestion.CommonFwVersion);
     }
 
     /// <summary>Uses the selected TP NVT FWConfig ChipNumber to resolve NT51950's 1IC CMI location.</summary>
@@ -292,8 +296,8 @@ public sealed class WorkbenchCompositionServiceTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-invalid-fwbar");
         byte[] baseBytes = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
-        Assert.True(TpFlashMapCatalog.TryGetFirmwareConfigStart("NT51926", out long firmwareConfigStart));
-        baseBytes[checked((int)firmwareConfigStart + FirmwareConfigLayout.FirmwareVersionBarOffset)] ^= 0x01;
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(baseBytes, out FirmwareConfigMetadata backup));
+        baseBytes[checked((int)backup.FirmwareConfigStart + FirmwareConfigLayout.FirmwareVersionBarOffset)] ^= 0x01;
 
         string basePath = workspace.Write("base-invalid-fwbar.bin", baseBytes);
         string replacementPath = workspace.Write("normal.bin", baseBytes[0x22800..0x25400]);

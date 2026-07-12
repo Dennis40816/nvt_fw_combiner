@@ -59,19 +59,6 @@ internal static class IcMetadataFacade
             : [];
     }
 
-    /// <summary>Gets the TP Overview FWConfig start for a selectable IC.</summary>
-    public static bool TryGetFirmwareConfigStart(string icId, out long firmwareConfigStart)
-    {
-        if (TryFind(icId, out IcMetadata? metadata) && metadata is not null)
-        {
-            firmwareConfigStart = metadata.FirmwareConfigStart;
-            return true;
-        }
-
-        firmwareConfigStart = 0;
-        return false;
-    }
-
     /// <summary>Returns true when the IC uses the profile-owned DP Perspective container policy.</summary>
     public static bool IsDpPerspectiveIc(string icId)
     {
@@ -138,7 +125,7 @@ internal static class IcMetadataFacade
                 support.CtrlRamPostbuildSourceIcId,
                 support.Notes,
                 flashMap!.OverviewSource,
-                flashMap.FirmwareConfigStart,
+                flashMap.FirmwareConfigPrimaryStart,
                 Array.AsReadOnly(TpFlashMapCatalog.GetNumberChoices(support.IcId).ToArray()),
                 Array.AsReadOnly(TpFlashMapCatalog.GetNumberSelectionChoices(support.IcId).ToArray()),
                 Array.AsReadOnly(postbuildProfiles
@@ -169,7 +156,7 @@ internal sealed record IcMetadata(
     string? CtrlRamPostbuildSourceIcId,
     string? Notes,
     string TpOverviewSource,
-    long FirmwareConfigStart,
+    long FirmwareConfigPrimaryStart,
     IReadOnlyList<string> NumberChoices,
     IReadOnlyList<IcNumberChoice> NumberSelectionChoices,
     IReadOnlyList<string> PostbuildCategories,

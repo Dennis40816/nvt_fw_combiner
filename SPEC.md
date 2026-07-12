@@ -252,7 +252,7 @@ Change risk class：
 - TPA copy：source `0x07000..0x40000` 到 target `0x07000..0x40000`。
 - TPB relocation patch：`0x7164`、`0x7168`、`0x716C` little-endian u32 加 `0x40000`。
 - TPB copy：source `0x07000..0x40000` 到 target `0x47000..0x80000`。
-- version parsing：DP A/B offset `0x67/0x68`；TP FW version by last `NVT` + `T address - 0xFFF`。
+- version parsing：DP A/B offset `0x67/0x68`；reference TP FW version parsing used the last `NVT` + `T address - 0xFFF`.
 - output naming：`{PROJECT_NAME}_Flashcode_A_{dpA}{tpA}_B_{dpB}{tpB}_{yyyyMMdd}.bin`。
 
 ### 4.1 必須 profile 化的 facts
@@ -268,6 +268,10 @@ Change risk class：
 | CRC/header rewrite | `run-processor` + closed legacy-combiner stage and allowed views |
 | output naming | `output` + metadata bindings/version extractors |
 | expected compare policy | `validations[]` |
+
+The reference's "last `NVT`" behavior is legacy evidence only. The canonical FWConfig Backup rule for
+all executable profiles is exactly one complete `00 4E 56 54` marker, with the Backup start at its
+terminal `T - 0xFFF`; zero or multiple markers fail closed.
 
 ### 4.2 Legacy combiner.exe CRC/Header path
 

@@ -179,8 +179,9 @@ its executable compatibility population exists. If an external v1 consumer or fa
 identified, this assumption must be revisited and the required schema change versioned.
 
 `FirmwareConfigLayout` and `FirmwareConfigMetadataReader` remain compatibility evidence. The generic
-path must reproduce every reviewed `byte`, `sbyte`, `ushort`, and `uint` value plus ADR 0012's
-primary/NVT-copy equality behavior before those classes cease to be an authority. Approximate prose
+absolute-address inspection path must reproduce every reviewed `byte`, `sbyte`, `ushort`, and `uint`
+value. ADR 0012's primary/Backup equality is golden evidence only; runtime facts always come from the
+unique NVT Backup. Approximate prose
 such as "through 0x78" never creates a field; every promoted declaration has exact offset, width,
 structure length, provenance, and review.
 
@@ -198,6 +199,6 @@ permanent FWConfig-specific branch is not an acceptable replacement.
 - Overlapping field/slice and overlapping-assertion conjunction tests.
 - Decoder tests proving assertion-first atomicity and no partial facts on any failure.
 - Compatibility parity for all currently exposed FWConfig values, FW/FW-bar validity, and
-  primary/NVT-copy comparisons.
+  primary/Backup golden comparisons.
 - Architecture tests preventing decoding in UI/CLI/Bootstrap and preventing a second executor.
 - Architecture/contract review and product-owner approval before changing this ADR to Accepted.

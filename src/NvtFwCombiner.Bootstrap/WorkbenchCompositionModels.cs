@@ -26,9 +26,9 @@ public sealed record WorkbenchProfileSummary(
     bool CompileSucceeded,
     IReadOnlyList<string> IssueCodes);
 
-/// <summary>Firmware facts read from a flash image FWConfig block.</summary>
+/// <summary>Firmware facts read from the canonical NVT-located FWConfig Backup block.</summary>
 public sealed record WorkbenchFirmwareConfigMetadata(
-    long FirmwareConfigStart,
+    long FirmwareConfigBackupStart,
     string CommonFwVersion,
     byte FirmwareVersion,
     byte FirmwareVersionBar,
@@ -40,8 +40,8 @@ public sealed record WorkbenchFirmwareConfigMetadata(
     FirmwareConfigHardwareMetadata Hardware);
 
 /// <summary>
-/// A verified NVT-copy FWConfig suggestion for the shared workbench IC-number selection.
-/// It exists only when the selected flash-map primary and exactly one NVT copy agree.
+/// A verified NVT Backup FWConfig suggestion for the shared workbench IC-number selection.
+/// It exists only when the selected image has exactly one valid NVT Backup location.
 /// </summary>
 public sealed record WorkbenchFirmwareContextSuggestion(
     string IcId,

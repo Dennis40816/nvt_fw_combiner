@@ -31,7 +31,7 @@ public static partial class UiCompositionRunner
         return facts;
     }
 
-    /// <summary>Gets the verified NVT-copy FWConfig context suggestion for a selected TP/base BIN.</summary>
+    /// <summary>Gets the verified NVT Backup FWConfig context suggestion for a selected TP/base BIN.</summary>
     public static WorkbenchFirmwareContextSuggestion? TryGetFirmwareContextSuggestion(string icId, string path)
     {
         return WorkbenchCompositionService.TryReadFirmwareContextSuggestion(icId, path);
