@@ -19,9 +19,22 @@ public static partial class WorkbenchCompositionService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
 
-        long capacity = StandardMergeProfilesByIc.TryGetValue(icId, out CompositionProfileDefinition? profile)
-            ? profile.Initialization.Capacity
-            : GetGeneralMergeCatalogFallbackCapacity(icId);
+        WorkbenchProfileSummary? standardMergeProfile = FindStandardMergeProfileSummaryByIc(icId);
+        if (standardMergeProfile is null)
+        {
+            return BootstrapRangeText.FormatHex(GetGeneralMergeCatalogFallbackCapacity(icId));
+        }
+
+        if (!TryCompileStandardMerge(
+                icId,
+                dpInputLength: null,
+                out CompiledComposition? composition,
+                out IReadOnlyList<CompositionIssue> issues))
+        {
+            throw new InvalidOperationException(FormatIssues(issues));
+        }
+
+        long capacity = composition.Plan.OutputInitialization.Capacity;
         return BootstrapRangeText.FormatHex(capacity);
     }
 

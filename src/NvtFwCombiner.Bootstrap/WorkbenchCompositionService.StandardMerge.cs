@@ -45,12 +45,12 @@ public static partial class WorkbenchCompositionService
         out WorkbenchStandardMergeDpInputLengthPolicy policy)
     {
         policy = default!;
-        if (!StandardMergeProfilesByIc.TryGetValue(icId, out CompositionProfileDefinition? profile))
+        if (!TryCompileStandardMerge(icId, dpInputLength: null, out CompiledComposition? composition, out _))
         {
             return false;
         }
 
-        AddressSpace? dpInput = profile.AddressSpaces.SingleOrDefault(space =>
+        AddressSpace? dpInput = composition.Plan.AddressSpaces.SingleOrDefault(space =>
             string.Equals(space.AddressSpaceId, CompositionAddressSpaceIds.DpInput, StringComparison.Ordinal));
         if (dpInput is null ||
             dpInput.InputOversizePolicy != InputOversizePolicy.ExtractDeclaredRange ||
