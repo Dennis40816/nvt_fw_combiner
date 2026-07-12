@@ -12,6 +12,20 @@ public sealed record WorkbenchSettingsSnapshot(
     string ToolBindingIds,
     string ToolManifestPath);
 
+/// <summary>One stable workbench IC-number choice projected from compatibility catalogs.</summary>
+public sealed record WorkbenchIcNumberChoice(string Token, string DisplayLabel);
+
+/// <summary>One compiled built-in profile summary exposed without its legacy profile model.</summary>
+public sealed record WorkbenchProfileSummary(
+    string ProfileId,
+    string IcId,
+    CompositionKind CompositionKind,
+    IReadOnlyList<string> RequiredInputAddressSpaceIds,
+    string DefaultOutputFileName,
+    CompiledIcNumberPolicy? IcNumberPolicy,
+    bool CompileSucceeded,
+    IReadOnlyList<string> IssueCodes);
+
 /// <summary>Firmware facts read from a flash image FWConfig block.</summary>
 public sealed record WorkbenchFirmwareConfigMetadata(
     long FirmwareConfigStart,

@@ -1,5 +1,5 @@
 using System.Globalization;
-using NvtFwCombiner.Profiles;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -23,35 +23,57 @@ public static partial class CliApplication
         }
 
         await output.WriteLineAsync("Built-in standard merge profiles:").ConfigureAwait(false);
-        foreach (CompositionProfileDefinition profile in BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles
-                     .OrderBy(profile => profile.IcId, StringComparer.Ordinal))
+        foreach (WorkbenchProfileSummary profile in WorkbenchCompositionService.GetStandardMergeProfileSummaries())
         {
-            ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
-            string inputs = compile.IsSuccess
-                ? string.Join(", ", compile.CompiledComposition!.Plan.RequiredInputAddressSpaceIds)
+            string inputs = profile.CompileSucceeded
+                ? string.Join(", ", profile.RequiredInputAddressSpaceIds)
                 : "compile-error";
+            string issues = FormatProfileIssues(profile);
             await output.WriteLineAsync(
                     string.Create(
                         CultureInfo.InvariantCulture,
-                        $"{profile.ProfileId}  ic={profile.IcId}  inputs={inputs}  default-output={profile.DefaultOutputFileName}"))
+                        $"{profile.ProfileId}  ic={profile.IcId}  inputs={inputs}  default-output={profile.DefaultOutputFileName}{issues}"))
                 .ConfigureAwait(false);
         }
 
         await output.WriteLineAsync("Built-in replace profiles:").ConfigureAwait(false);
-        foreach (CompositionProfileDefinition profile in BuiltInReplaceProfiles.All
-                     .OrderBy(profile => profile.ProfileId, StringComparer.Ordinal))
+        foreach (WorkbenchProfileSummary profile in WorkbenchCompositionService.GetReplaceProfileSummaries())
         {
-            ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
-            string inputs = compile.IsSuccess
-                ? string.Join(", ", compile.CompiledComposition!.Plan.RequiredInputAddressSpaceIds)
+            string inputs = profile.CompileSucceeded
+                ? string.Join(", ", profile.RequiredInputAddressSpaceIds)
                 : "compile-error";
+            string icNumberPolicy = FormatIcNumberPolicy(profile);
+            string issues = FormatProfileIssues(profile);
             await output.WriteLineAsync(
                     string.Create(
                         CultureInfo.InvariantCulture,
-                        $"{profile.ProfileId}  ic={profile.IcId}  inputs={inputs}  ic-num={profile.IcNumberInputMode?.ToString() ?? "none"}  default-output={profile.DefaultOutputFileName}"))
+                        $"{profile.ProfileId}  ic={profile.IcId}  inputs={inputs}  ic-num={icNumberPolicy}  default-output={profile.DefaultOutputFileName}{issues}"))
                 .ConfigureAwait(false);
         }
 
         return Success;
+    }
+
+    private static string FormatIcNumberPolicy(WorkbenchProfileSummary profile)
+    {
+        return profile.IcNumberPolicy switch
+        {
+            CompiledIcNumberPolicy.NotApplicable => "none",
+            CompiledIcNumberPolicy.SingleSelector => nameof(CompiledIcNumberPolicy.SingleSelector),
+            CompiledIcNumberPolicy.CascadeSelector => nameof(CompiledIcNumberPolicy.CascadeSelector),
+            CompiledIcNumberPolicy.NumericSelector => nameof(CompiledIcNumberPolicy.NumericSelector),
+            null => "compile-error",
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(profile),
+                profile.IcNumberPolicy,
+                "Unknown compiled IC-number policy."),
+        };
+    }
+
+    private static string FormatProfileIssues(WorkbenchProfileSummary profile)
+    {
+        return profile.CompileSucceeded
+            ? string.Empty
+            : $"  issues={string.Join(',', profile.IssueCodes)}";
     }
 }

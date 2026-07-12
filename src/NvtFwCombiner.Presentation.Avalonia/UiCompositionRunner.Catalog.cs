@@ -27,9 +27,11 @@ public static partial class UiCompositionRunner
     /// <summary>Gets grouped IC-number display choices while preserving planner tokens.</summary>
     public static IReadOnlyList<IcNumberChoiceViewModel> GetNumberSelectionChoices(string icId)
     {
+        IReadOnlyList<WorkbenchIcNumberChoice> workbenchChoices =
+            WorkbenchCompositionService.GetNumberSelectionChoices(icId);
         IReadOnlyList<IcNumberChoiceViewModel> choices =
         [
-            .. WorkbenchCompositionService.GetNumberSelectionChoices(icId)
+            .. workbenchChoices
                 .Select(choice => new IcNumberChoiceViewModel(choice.Token, choice.DisplayLabel)),
         ];
 

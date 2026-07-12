@@ -1,10 +1,22 @@
-using NvtFwCombiner.Application.FlashMaps;
+using System.Collections.ObjectModel;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
+    private static ReadOnlyCollection<WorkbenchProfileSummary> StandardMergeProfileSummaries { get; } =
+        Array.AsReadOnly(BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles
+            .OrderBy(static profile => profile.IcId, StringComparer.Ordinal)
+            .Select(CreateProfileSummary)
+            .ToArray());
+
+    private static ReadOnlyCollection<WorkbenchProfileSummary> ReplaceProfileSummaries { get; } =
+        Array.AsReadOnly(BuiltInReplaceProfiles.All
+            .OrderBy(static profile => profile.ProfileId, StringComparer.Ordinal)
+            .Select(CreateProfileSummary)
+            .ToArray());
+
     /// <summary>Gets selectable IC ids from the IC support catalog.</summary>
     public static IReadOnlyList<string> GetSupportedIcIds()
     {
@@ -24,9 +36,23 @@ public static partial class WorkbenchCompositionService
     }
 
     /// <summary>Gets concise grouped IC-number choices for workbench selection controls.</summary>
-    public static IReadOnlyList<IcNumberChoice> GetNumberSelectionChoices(string icId)
+    public static IReadOnlyList<WorkbenchIcNumberChoice> GetNumberSelectionChoices(string icId)
     {
-        return IcMetadataFacade.GetNumberSelectionChoices(icId);
+        return Array.AsReadOnly(IcMetadataFacade.GetNumberSelectionChoices(icId)
+            .Select(static choice => new WorkbenchIcNumberChoice(choice.Token, choice.DisplayLabel))
+            .ToArray());
+    }
+
+    /// <summary>Gets compiled Standard Merge profile summaries in stable CLI/display order.</summary>
+    public static IReadOnlyList<WorkbenchProfileSummary> GetStandardMergeProfileSummaries()
+    {
+        return StandardMergeProfileSummaries;
+    }
+
+    /// <summary>Gets compiled Replace profile summaries in stable CLI/display order.</summary>
+    public static IReadOnlyList<WorkbenchProfileSummary> GetReplaceProfileSummaries()
+    {
+        return ReplaceProfileSummaries;
     }
 
     /// <summary>Returns true when the IC uses the DP Perspective family policy.</summary>
@@ -56,11 +82,36 @@ public static partial class WorkbenchCompositionService
         ];
 
         return new WorkbenchSettingsSnapshot(
-            BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles.Count,
-            BuiltInReplaceProfiles.All.Count,
+            StandardMergeProfileSummaries.Count,
+            ReplaceProfileSummaries.Count,
             IcMetadataFacade.All.Count,
             IcMetadataFacade.All.Count(metadata => metadata.HasPostbuild),
             string.Join(", ", toolBindingIds),
             "external-tools/legacy-combiner/1.13.0/manifest.json");
+    }
+
+    internal static WorkbenchProfileSummary CreateProfileSummary(CompositionProfileDefinition profile)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
+        return compile.CompiledComposition is not { } composition
+            ? new WorkbenchProfileSummary(
+                profile.ProfileId,
+                profile.IcId,
+                profile.CompositionKind,
+                [],
+                profile.DefaultOutputFileName,
+                null,
+                CompileSucceeded: false,
+                Array.AsReadOnly(compile.Issues.Select(static issue => issue.Code).ToArray()))
+            : new WorkbenchProfileSummary(
+                composition.ProfileId,
+                composition.IcId,
+                composition.CompositionKind,
+                Array.AsReadOnly(composition.Plan.RequiredInputAddressSpaceIds.ToArray()),
+                composition.DefaultOutputFileName,
+                composition.IcNumberPolicy,
+                CompileSucceeded: true,
+                []);
     }
 }

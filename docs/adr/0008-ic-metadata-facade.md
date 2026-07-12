@@ -26,7 +26,9 @@ Keep canonical facts in their existing owned categories:
 
 `TpFlashMapCatalog` remains the source that declares whether an IC has a primary FWConfig location. `FirmwareConfigMetadataReader` owns the generic backup-copy locator used for display metadata: it finds one unambiguous `00 4E 56 54` NVT end flag and reads the copy at terminal `T - 0xFFF`. Missing or ambiguous markers fail closed. This locator is evidence-backed by the owner-approved Standard Merge output fixtures and does not replace flash-map, TP-header, or postbuild range ownership.
 
-`NvtFwCombiner.Bootstrap.IcMetadataFacade` is the sole read-only integration surface for UI/CLI/Settings catalog queries. It projects metadata and delegates selection to the canonical owners; it must not copy ranges, header facts, version offsets, processors, or postbuild command data.
+During the ADR 0015 migration, `NvtFwCombiner.Bootstrap.IcMetadataFacade` is an internal compatibility adapter that joins the old catalogs. It delegates selection to the canonical owners and must not copy ranges, header facts, version offsets, processors, or postbuild command data.
+
+`WorkbenchCompositionService` is the public read-only integration surface for UI/CLI/Settings catalog queries. It exposes stable workbench DTOs rather than the compatibility facade or legacy profile types. Executable profile summary facts, including required inputs and IC-number policy, come from `CompiledComposition`; a failed compatibility compile remains visible through stable issue codes.
 
 The report viewer remains snapshot-based: a historical report is interpreted from recorded report JSON, not reclassified using the current metadata facade.
 
@@ -36,11 +38,12 @@ The report viewer remains snapshot-based: a historical report is interpreted fro
 - UI badges and shell readiness use the same IC support projection instead of a parallel list.
 - A missing flash-map row for a selectable IC fails facade construction and is caught by convergence tests.
 - Firmware semantics remain outside Bootstrap; the facade is a composition boundary only.
+- UI and CLI do not depend on legacy catalog joins or `CompositionProfileDefinition`.
 - The workbench may read FW/Common FW/PID/ChipNumber display facts from the validated NVT copy, while flash-map rows remain the primary per-IC validation evidence and the public metadata address remains the flash-map primary start.
 
 ## Verification
 
 - Facade tests compare each projected IC row with its canonical onboarding, flash-map, postbuild, number-choice, and DP Perspective sources.
 - FWConfig tests verify every current golden output has one NVT end flag and a matching `T - 0xFFF` copy; NT51926 is specifically locked to end flag `0x3BFFF` and copy `0x3B000`.
-- Architecture tests ensure the workbench catalog facade uses `IcMetadataFacade` rather than rebuilding catalog joins.
+- Architecture tests ensure `WorkbenchCompositionService` uses the internal `IcMetadataFacade` rather than rebuilding catalog joins, and UI/CLI consume only the workbench projections.
 - Existing report tests retain JSON-only rendering behavior.

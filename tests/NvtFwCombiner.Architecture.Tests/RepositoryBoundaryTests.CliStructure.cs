@@ -149,6 +149,12 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private static bool TryParseOptions", options, StringComparison.Ordinal);
         Assert.Contains("private sealed record ParsedOptions", options, StringComparison.Ordinal);
         Assert.Contains("private static async Task<int> RunProfilesAsync", profiles, StringComparison.Ordinal);
+        Assert.Contains("GetStandardMergeProfileSummaries", profiles, StringComparison.Ordinal);
+        Assert.Contains("GetReplaceProfileSummaries", profiles, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileDefinition", profiles, StringComparison.Ordinal);
+        Assert.DoesNotContain("BuiltInStandardMergeProfiles", profiles, StringComparison.Ordinal);
+        Assert.DoesNotContain("BuiltInReplaceProfiles", profiles, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileCompiler", profiles, StringComparison.Ordinal);
         Assert.Contains("private static async Task PrintRunResultAsync", result, StringComparison.Ordinal);
         Assert.Contains("private static async Task<int> RunStandardMergeAsync", standardMerge, StringComparison.Ordinal);
         Assert.Contains("private static async Task WriteUsageAsync", usage, StringComparison.Ordinal);

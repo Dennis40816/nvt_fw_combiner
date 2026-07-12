@@ -71,7 +71,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("IcSupportCatalog.IcIds", catalog, StringComparison.Ordinal);
         Assert.DoesNotContain("TpFlashMapCatalog.IcIds", catalog, StringComparison.Ordinal);
         Assert.DoesNotContain("LegacyCombinerPostbuildCatalog.All", catalog, StringComparison.Ordinal);
-        Assert.Contains("public static class IcMetadataFacade", icMetadata, StringComparison.Ordinal);
+        Assert.Contains("internal static class IcMetadataFacade", icMetadata, StringComparison.Ordinal);
+        Assert.DoesNotContain("public static class IcMetadataFacade", icMetadata, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchIcNumberChoice", catalog, StringComparison.Ordinal);
+        Assert.Contains("CreateProfileSummary", catalog, StringComparison.Ordinal);
+        Assert.Contains("composition.Plan.RequiredInputAddressSpaceIds", catalog, StringComparison.Ordinal);
         Assert.Contains("TpHeaderCatalog.All", icMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("ToRunProfile", common, StringComparison.Ordinal);
         Assert.Contains("CompositionRunRequest request = new(", runner, StringComparison.Ordinal);
