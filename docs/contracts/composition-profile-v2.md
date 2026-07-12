@@ -90,10 +90,13 @@ Every input declares an `artifactClass` and a closed length policy. `tp-firmware
 262144 bytes and it fails when oversized. A normal
 `dp-firmware` source whose outer file length is not controlled uses
 `normal-dp-extract-with-warning`: all referenced views must be in bounds, any difference from the
-selected map capacity emits the declared warning, and operations copy only those views. A whole DP
-flow such as the NT51950/NT51951 full-copy path uses `exact-resolved-map-capacity` and fails on
-mismatch. `exact-bytes` and `bounded` remain available only for artifact classes whose owner policy
-does not require one of those firmware-specific rules.
+declared expected outer-container lengths emits the declared warning, and operations copy only those
+views. The optional `expectedInputLengths` list has one to eight positive, strictly ascending entries;
+when omitted, the compiler materializes the selected map capacity as the sole expectation. Every
+declared expectation must cover the greatest end-exclusive source view. A whole DP flow such as the
+NT51950/NT51951 full-copy path uses `exact-resolved-map-capacity` and fails on mismatch.
+`exact-bytes` and `bounded` remain available only for artifact classes whose owner policy does not
+require one of those firmware-specific rules.
 
 `pad-shorter` and `truncate-ctrlram` require evidence and mutate only a transient input buffer.
 Padding is DP-only, `dp-replace` only, and forbidden when any processor/integrity stage exists.

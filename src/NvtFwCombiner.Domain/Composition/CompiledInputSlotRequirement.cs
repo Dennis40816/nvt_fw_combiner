@@ -129,16 +129,55 @@ public sealed record CompiledBoundedInputLengthRequirement : CompiledInputLength
 /// <summary>Extracts declared Normal DP content and records a warning for a nonmatching container length.</summary>
 public sealed record CompiledNormalDpExtractWithWarningInputLengthRequirement : CompiledInputLengthRequirement
 {
+    private readonly long[] _expectedInputLengths;
+
     /// <summary>Creates one fixed Normal-DP extraction requirement.</summary>
-    public CompiledNormalDpExtractWithWarningInputLengthRequirement(string issueCode)
+    public CompiledNormalDpExtractWithWarningInputLengthRequirement(
+        string issueCode,
+        IReadOnlyList<long> expectedInputLengths)
         : base(CompiledInputLengthRequirementKind.NormalDpExtractWithWarning)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(issueCode);
+        ArgumentNullException.ThrowIfNull(expectedInputLengths);
         IssueCode = issueCode;
+        _expectedInputLengths = SnapshotExpectedInputLengths(expectedInputLengths);
+        ExpectedInputLengths = Array.AsReadOnly(_expectedInputLengths);
     }
 
     /// <summary>Stable warning issue code emitted for an outer-container size mismatch.</summary>
     public string IssueCode { get; }
+
+    /// <summary>Expected outer-container lengths that avoid the warning while preserving declared-range extraction.</summary>
+    public IReadOnlyList<long> ExpectedInputLengths { get; }
+
+    private static long[] SnapshotExpectedInputLengths(IReadOnlyList<long> expectedInputLengths)
+    {
+        if (expectedInputLengths.Count is 0 or
+            > InputLengthPolicyLimits.MaximumExpectedInputLengths)
+        {
+            throw new ArgumentException(
+                $"Expected input lengths must contain between 1 and {InputLengthPolicyLimits.MaximumExpectedInputLengths} values.",
+                nameof(expectedInputLengths));
+        }
+
+        long[] snapshot = new long[expectedInputLengths.Count];
+        long previous = 0;
+        for (int index = 0; index < expectedInputLengths.Count; index++)
+        {
+            long value = expectedInputLengths[index];
+            if (value <= 0 || (index > 0 && value <= previous))
+            {
+                throw new ArgumentException(
+                    "Expected input lengths must be positive and strictly ascending.",
+                    nameof(expectedInputLengths));
+            }
+
+            snapshot[index] = value;
+            previous = value;
+        }
+
+        return snapshot;
+    }
 }
 
 /// <summary>Rejects TP firmware larger than the owner-approved 256 KiB limit.</summary>

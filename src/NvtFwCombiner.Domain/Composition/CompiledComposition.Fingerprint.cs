@@ -8,7 +8,7 @@ namespace NvtFwCombiner.Domain.Composition;
 public sealed partial class CompiledComposition
 {
     private const string LegacyFingerprintFormat = "nfc.compiled-composition.legacy.v1";
-    private const string V2FingerprintFormat = "nfc.compiled-composition.profile-v2.v3";
+    private const string V2FingerprintFormat = "nfc.compiled-composition.profile-v2.v4";
 
     private static string CalculateCompilationFingerprint(CompiledComposition composition)
     {
@@ -363,6 +363,7 @@ public sealed partial class CompiledComposition
                 break;
             case CompiledNormalDpExtractWithWarningInputLengthRequirement normalDp:
                 AppendField(builder, $"{prefix}.issue-code", normalDp.IssueCode);
+                AppendIntegerList(builder, $"{prefix}.expected-input-length", normalDp.ExpectedInputLengths);
                 break;
             case CompiledTpMaximum256KInputLengthRequirement:
                 AppendInteger(builder, $"{prefix}.maximum-bytes", CompiledTpMaximum256KInputLengthRequirement.MaximumBytes);

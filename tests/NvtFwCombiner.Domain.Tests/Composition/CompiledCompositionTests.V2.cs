@@ -37,7 +37,7 @@ public sealed partial class CompiledCompositionTests
         Assert.True(composition.CompilationFingerprint.All(character =>
             character is (>= '0' and <= '9') or (>= 'a' and <= 'f')));
         Assert.Equal(
-            "421faee6c25be857ee7132bcff99f80a3098566e677e4fd46add97dd184ba9c9",
+            "ee235c1e3ccf25000c8205dc66e1a43f221dd0f7a896729cba195f89b9b7d04e",
             composition.CompilationFingerprint);
         Assert.Null(typeof(CompiledComposition).GetMethod("CreateV2", BindingFlags.Static | BindingFlags.Public));
     }

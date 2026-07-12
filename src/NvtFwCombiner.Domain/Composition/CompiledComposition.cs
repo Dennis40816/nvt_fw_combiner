@@ -270,7 +270,6 @@ public sealed partial class CompiledComposition
             ValidateNormalDpExtractionInputGeometry(
                 addressSpace,
                 requirement,
-                details.Provenance.ResolvedMap.CapacityBytes,
                 details.RegionAccessContract.ResolvedViews);
         }
     }
@@ -330,7 +329,6 @@ public sealed partial class CompiledComposition
     private static void ValidateNormalDpExtractionInputGeometry(
         AddressSpace addressSpace,
         CompiledNormalDpExtractWithWarningInputLengthRequirement requirement,
-        long resolvedMapCapacity,
         IReadOnlyList<CompiledResolvedPhysicalView> resolvedViews)
     {
         long maximumEndExclusive = 0;
@@ -347,11 +345,12 @@ public sealed partial class CompiledComposition
             addressSpace.InputPaddingByte is not null ||
             addressSpace.InputOversizePolicy != InputOversizePolicy.ExtractDeclaredRange ||
             addressSpace.AllowedInputLengths.Count != 0 ||
-            !addressSpace.ExpectedInputLengths.SequenceEqual([resolvedMapCapacity]) ||
+            !addressSpace.ExpectedInputLengths.SequenceEqual(requirement.ExpectedInputLengths) ||
+            requirement.ExpectedInputLengths.Any(length => length < maximumEndExclusive) ||
             !StringComparer.Ordinal.Equals(addressSpace.UnexpectedInputLengthIssueCode, requirement.IssueCode))
         {
             throw new ArgumentException(
-                "Normal DP extraction requirements must bind the declared source span, map-capacity expectation, extraction policy, and warning code.",
+                "Normal DP extraction requirements must bind the declared source span, expected container lengths, extraction policy, and warning code.",
                 nameof(addressSpace));
         }
     }

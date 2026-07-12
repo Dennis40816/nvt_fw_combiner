@@ -106,6 +106,27 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             Assert.IsType<CompiledNormalDpExtractWithWarningInputLengthRequirement>(slot.LengthRequirement).IssueCode);
     }
 
+    /// <summary>Verifies a Normal-DP profile can declare known outer containers without changing its source span.</summary>
+    [Fact]
+    public void BlankOutputLoweringBindsDeclaredNormalDpOuterContainerLengths()
+    {
+        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+            familyHash => ProfileWithNormalDpExtraction(
+                SupportedProfileJson(familyHash),
+                [0x80000, 0x200000])));
+
+        CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
+        AddressSpace input = Assert.Single(composition.Plan.AddressSpaces, space => space.AddressSpaceId == "tp-source");
+        CompiledInputSlotRequirement slot = Assert.Single(composition.V2Details!.InputContract.Slots);
+
+        Assert.Equal(16, input.Length);
+        Assert.Equal([0x80000L, 0x200000L], input.ExpectedInputLengths);
+        Assert.Equal(
+            [0x80000L, 0x200000L],
+            Assert.IsType<CompiledNormalDpExtractWithWarningInputLengthRequirement>(slot.LengthRequirement)
+                .ExpectedInputLengths);
+    }
+
     /// <summary>Verifies a TP input slot without a resolved source view fails before any plan artifact is produced.</summary>
     [Fact]
     public void BlankOutputLoweringRejectsTpInputWithoutResolvedSourceView()
@@ -169,7 +190,9 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
     }
 
-    private static string ProfileWithNormalDpExtraction(string profileJson)
+    private static string ProfileWithNormalDpExtraction(
+        string profileJson,
+        IReadOnlyList<long>? expectedInputLengths = null)
     {
         JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(profileJson));
         JsonObject slot = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["inputSlots"])[0]);
@@ -179,6 +202,12 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             ["kind"] = "normal-dp-extract-with-warning",
             ["issueCode"] = "DP_SIZE_WARNING",
         };
+        if (expectedInputLengths is not null)
+        {
+            JsonObject lengthRule = Assert.IsType<JsonObject>(Assert.IsType<JsonObject>(slot["acceptance"])["lengthRule"]);
+            lengthRule["expectedInputLengths"] = new JsonArray(
+                expectedInputLengths.Select(static value => JsonValue.Create(value)).ToArray());
+        }
         return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
     }
 

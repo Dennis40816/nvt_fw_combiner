@@ -1,4 +1,5 @@
 using NvtFwCombiner.Profiles.V2;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
@@ -13,6 +14,9 @@ public sealed class CompositionProfileV2InputTests
         var map = new ExactResolvedMapCapacityLengthRule();
         var bounded = new BoundedLengthRule(4, 32);
         var normalDp = new NormalDpExtractWithWarningLengthRule("DP_SIZE_WARNING");
+        var normalDpWithContainers = new NormalDpExtractWithWarningLengthRule(
+            "DP_SIZE_WARNING",
+            [0x80000, 0x200000]);
         var tp = new TpMaximum256KLengthRule();
 
         Assert.Equal(16, exact.Bytes);
@@ -20,6 +24,8 @@ public sealed class CompositionProfileV2InputTests
         Assert.Equal(4, bounded.MinimumBytes);
         Assert.Equal(32, bounded.MaximumBytes);
         Assert.Equal("DP_SIZE_WARNING", normalDp.IssueCode);
+        Assert.Empty(normalDp.ExpectedInputLengths);
+        Assert.Equal([0x80000L, 0x200000L], normalDpWithContainers.ExpectedInputLengths);
         Assert.Equal(262144, TpMaximum256KLengthRule.MaximumBytes);
         Assert.Equal(CompositionProfileLengthRuleKind.TpMaximum256K, tp.Kind);
     }
@@ -32,6 +38,13 @@ public sealed class CompositionProfileV2InputTests
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new BoundedLengthRule(0, 4));
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new BoundedLengthRule(8, 4));
         _ = Assert.Throws<ArgumentException>(() => new NormalDpExtractWithWarningLengthRule("dp-warning"));
+        _ = Assert.Throws<ArgumentException>(() => new NormalDpExtractWithWarningLengthRule("DP_SIZE_WARNING", []));
+        _ = Assert.Throws<ArgumentException>(() => new NormalDpExtractWithWarningLengthRule("DP_SIZE_WARNING", [0]));
+        _ = Assert.Throws<ArgumentException>(() => new NormalDpExtractWithWarningLengthRule("DP_SIZE_WARNING", [8, 8]));
+        _ = Assert.Throws<ArgumentException>(() => new NormalDpExtractWithWarningLengthRule("DP_SIZE_WARNING", [9, 8]));
+        _ = Assert.Throws<ArgumentException>(() => new NormalDpExtractWithWarningLengthRule(
+            "DP_SIZE_WARNING",
+            [.. Enumerable.Range(1, InputLengthPolicyLimits.MaximumExpectedInputLengths + 1).Select(static value => (long)value)]));
     }
 
     /// <summary>Verifies evidenced normalization values retain exact byte and issue policy.</summary>

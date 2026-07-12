@@ -168,6 +168,40 @@ public sealed class CompositionProfileV2InputNormalizerTests
         _ = Assert.IsType<ArgumentException>(exception.InnerException, exactMatch: false);
     }
 
+    /// <summary>Verifies a Normal-DP warning rule retains its declared outer-container expectations.</summary>
+    [Fact]
+    public void NormalDpWarningRetainsDeclaredOuterContainerLengths()
+    {
+        CompositionProfileInputSlot slot = Normalize(
+            "dp-firmware",
+            new CompositionProfileLengthRuleDocument(
+                "normal-dp-extract-with-warning",
+                IssueCode: "DP_SIZE_WARNING",
+                ExpectedInputLengths: [Number("524288"), Number("2097152")]),
+            None());
+
+        NormalDpExtractWithWarningLengthRule rule = Assert.IsType<NormalDpExtractWithWarningLengthRule>(
+            slot.LengthRule);
+        Assert.Equal([0x80000L, 0x200000L], rule.ExpectedInputLengths);
+    }
+
+    /// <summary>Verifies Normal-DP outer-container lengths fail closed when their declaration is not canonical.</summary>
+    [Fact]
+    public void NormalDpWarningRejectsUnsortedOuterContainerLengths()
+    {
+        CompositionProfileNormalizationException exception = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            Normalize(
+                "dp-firmware",
+                new CompositionProfileLengthRuleDocument(
+                    "normal-dp-extract-with-warning",
+                    IssueCode: "DP_SIZE_WARNING",
+                    ExpectedInputLengths: [Number("2097152"), Number("524288")]),
+                None()));
+
+        Assert.Equal("inputSlots[0].acceptance.lengthRule", exception.Path);
+        _ = Assert.IsType<ArgumentException>(exception.InnerException, exactMatch: false);
+    }
+
     /// <summary>Verifies the TP-only 256 KiB rule cannot be assigned to another artifact class during normalization.</summary>
     [Theory]
     [InlineData("auxiliary")]

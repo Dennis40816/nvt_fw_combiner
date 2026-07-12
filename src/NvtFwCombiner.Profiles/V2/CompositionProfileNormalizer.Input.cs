@@ -1,4 +1,5 @@
 using NvtFwCombiner.Contracts.Profiles;
+using System.Text.Json;
 
 namespace NvtFwCombiner.Profiles.V2;
 
@@ -81,7 +82,8 @@ internal static partial class CompositionProfileNormalizer
             "normal-dp-extract-with-warning" => Wrap(path, () =>
                 new NormalDpExtractWithWarningLengthRule(document.IssueCode ?? throw Error(
                     $"{path}.issueCode",
-                    "Warning issue code is missing."))),
+                    "Warning issue code is missing."),
+                    NormalizeExpectedInputLengths(document.ExpectedInputLengths, $"{path}.expectedInputLengths"))),
             "tp-maximum-256k" => NormalizeTpMaximum(document, path),
             _ => throw Error($"{path}.kind", "Unknown input length rule."),
         };
@@ -101,6 +103,24 @@ internal static partial class CompositionProfileNormalizer
             : throw Error(
                 $"{path}.maximumBytes",
                 $"TP maximum must be {TpMaximum256KLengthRule.MaximumBytes} bytes.");
+    }
+
+    private static long[]? NormalizeExpectedInputLengths(
+        IReadOnlyList<JsonElement>? documents,
+        string path)
+    {
+        if (documents is null)
+        {
+            return null;
+        }
+
+        long[] values = new long[documents.Count];
+        for (int index = 0; index < documents.Count; index++)
+        {
+            values[index] = ReadInt64(documents[index], 1, long.MaxValue, $"{path}[{index}]");
+        }
+
+        return values;
     }
 
     private static CompositionProfileInputNormalization NormalizeInputNormalization(

@@ -272,7 +272,7 @@ internal static partial class V2CompositionPlanCompiler
                 length,
                 AddressSpaceMutability.Immutable,
                 inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
-                expectedInputLengths: [resolvedMapCapacity],
+                expectedInputLengths: ResolveNormalDpExpectedInputLengths(normalDp, resolvedMapCapacity),
                 unexpectedInputLengthIssueCode: normalDp.IssueCode)
             : new AddressSpace(
                 addressSpaceId,

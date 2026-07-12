@@ -222,6 +222,42 @@ public sealed partial class CompositionEngineTests
         Assert.Contains("unexpected length 3 bytes", issue.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies declared-range extraction accepts an expected outer container and rejects a source shorter than its declared span.</summary>
+    [Fact]
+    public void DeclaredRangeExtractionAcceptsExpectedContainerAndRejectsTooShortInput()
+    {
+        CompositionPlan plan = CreateBlankPlan(
+            2,
+            new AddressSpace(
+                "input",
+                2,
+                AddressSpaceMutability.Immutable,
+                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
+                expectedInputLengths: [4]),
+            CompositionOperation.CopyRange(
+                "copy-input",
+                10,
+                "input",
+                new ByteRange(0, 2),
+                "output-image",
+                new ByteRange(0, 2),
+                OverlapPolicy.Reject,
+                "copy declared source range"));
+
+        CompositionExecutionResult expected = CompositionEngine.Execute(
+            plan,
+            new CompositionExecutionInput(new Dictionary<string, byte[]> { ["input"] = [0x11, 0x22, 0x33, 0x44] }));
+        CompositionExecutionResult tooShort = CompositionEngine.Execute(
+            plan,
+            new CompositionExecutionInput(new Dictionary<string, byte[]> { ["input"] = [0x11] }));
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, expected.Status);
+        Assert.Equal([0x11, 0x22], expected.OutputBytes.ToArray());
+        Assert.Empty(expected.Issues);
+        Assert.Equal(CompositionExecutionStatus.Failed, tooShort.Status);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, Assert.Single(tooShort.Issues).Code);
+    }
+
     /// <summary>Verifies a profile-owned extraction warning code replaces only the generic unexpected-length diagnostic.</summary>
     [Fact]
     public void DeclaredRangeExtractionUsesConfiguredUnexpectedLengthWarningCode()

@@ -80,12 +80,15 @@ public sealed partial class CompiledCompositionTests
             sourceRanges: [new ByteRange(0, oversize)]));
     }
 
-    /// <summary>Verifies Normal DP extraction retains a declared span, map-capacity expectation, warning code, and distinct compilation identity.</summary>
+    /// <summary>Verifies Normal DP extraction retains its declared span, expected containers, warning code, and distinct compilation identity.</summary>
     [Fact]
     public void V2PlanArtifactBindsNormalDpExtractionGeometryAndWarningCode()
     {
         CompiledComposition baseline = CreateNormalDpComposition("DP_SIZE_WARNING");
         CompiledComposition changedWarning = CreateNormalDpComposition("DP_LENGTH_WARNING");
+        CompiledComposition changedContainers = CreateNormalDpComposition(
+            "DP_SIZE_WARNING",
+            expectedInputLengths: [0x20, 0x40]);
 
         AddressSpace input = Assert.Single(baseline.Plan.AddressSpaces, space => space.AddressSpaceId == "input");
         Assert.Equal(8, input.Length);
@@ -94,6 +97,7 @@ public sealed partial class CompiledCompositionTests
         Assert.Equal(InputOversizePolicy.ExtractDeclaredRange, input.InputOversizePolicy);
         Assert.Equal("DP_SIZE_WARNING", input.UnexpectedInputLengthIssueCode);
         Assert.NotEqual(baseline.CompilationFingerprint, changedWarning.CompilationFingerprint);
+        Assert.NotEqual(baseline.CompilationFingerprint, changedContainers.CompilationFingerprint);
     }
 
     /// <summary>Verifies V2 artifacts reject Normal DP contracts that can bypass extraction or lack a declared source span.</summary>
@@ -107,6 +111,13 @@ public sealed partial class CompiledCompositionTests
         _ = Assert.Throws<ArgumentException>(() => CreateNormalDpComposition(
             "DP_SIZE_WARNING",
             sourceRanges: []));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => CreateNormalDpComposition(
+            "DP_SIZE_WARNING",
+            expectedInputLengths: [4]));
+        _ = Assert.Throws<ArgumentException>(() => CreateNormalDpComposition(
+            "DP_SIZE_WARNING",
+            expectedInputLengths: [16],
+            addressSpaceExpectedInputLengths: [32]));
     }
 
     private static CompiledComposition CreateTpComposition(
@@ -138,11 +149,15 @@ public sealed partial class CompiledCompositionTests
         string warningCode,
         IReadOnlyList<ByteRange>? sourceRanges = null,
         InputOversizePolicy inputOversizePolicy = InputOversizePolicy.ExtractDeclaredRange,
-        bool includeWarningCodeInAddressSpace = true)
+        bool includeWarningCodeInAddressSpace = true,
+        IReadOnlyList<long>? expectedInputLengths = null,
+        IReadOnlyList<long>? addressSpaceExpectedInputLengths = null)
     {
         const long sourceLength = 8;
         const long outputCapacity = 16;
         sourceRanges ??= [new ByteRange(0, sourceLength)];
+        IReadOnlyList<long> expected = expectedInputLengths ?? [outputCapacity];
+        IReadOnlyList<long> addressSpaceExpected = addressSpaceExpectedInputLengths ?? expected;
         return CreateV2(
             inputContract: new CompiledInputContract(
                 [new CompiledInputSlotRequirement(
@@ -152,7 +167,7 @@ public sealed partial class CompiledCompositionTests
                     required: true,
                     CompiledInputSlotCardinality.ExactlyOne,
                     [".bin"],
-                    new CompiledNormalDpExtractWithWarningInputLengthRequirement(warningCode),
+                    new CompiledNormalDpExtractWithWarningInputLengthRequirement(warningCode, expected),
                     new CompiledNoInputNormalization())],
                 [new CompiledInputSpaceBinding("input", "dp-slot", CompiledInputInstancePolicy.Singleton)]),
             regionAccessContract: CreateTpRegionAccessContract(sourceRanges, new ByteRange(0, outputCapacity)),
@@ -167,7 +182,7 @@ public sealed partial class CompiledCompositionTests
                         sourceLength,
                         AddressSpaceMutability.Immutable,
                         inputOversizePolicy: inputOversizePolicy,
-                        expectedInputLengths: [outputCapacity],
+                        expectedInputLengths: addressSpaceExpected,
                         unexpectedInputLengthIssueCode: includeWarningCodeInAddressSpace ? warningCode : null),
                     new AddressSpace("output-image", outputCapacity, AddressSpaceMutability.Mutable),
                 ],

@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Json.Schema;
 using NvtFwCombiner.Infrastructure.Bundles;
 using NvtFwCombiner.TestSupport;
@@ -189,6 +190,61 @@ public sealed class ProfileBundleSchemaValidatorTests
         _ = Assert.Throws<InvalidDataException>(() => ProfileBundleSchemaValidator.ValidateEntries(
             CaptureCompositionProfile(profile),
             32));
+    }
+
+    /// <summary>Verifies the executable V2 schema bounds optional Normal-DP outer-container expectations.</summary>
+    [Theory]
+    [InlineData("valid")]
+    [InlineData("empty")]
+    [InlineData("zero")]
+    [InlineData("too-many")]
+    public void ValidateEntriesEnforcesNormalDpExpectedContainerLengths(string mutation)
+    {
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(
+            TrustedV2BundleTestDocuments.ProfileJson(new string('c', 64))));
+        JsonObject slot = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["inputSlots"])[0]);
+        slot["artifactClass"] = "dp-firmware";
+        JsonObject acceptance = Assert.IsType<JsonObject>(slot["acceptance"]);
+        var lengthRule = new JsonObject
+        {
+            ["kind"] = "normal-dp-extract-with-warning",
+            ["issueCode"] = "DP_SIZE_WARNING",
+        };
+        var lengths = new JsonArray();
+        switch (mutation)
+        {
+            case "valid":
+                lengths.Add(0x80000);
+                lengths.Add(0x200000);
+                break;
+            case "empty":
+                break;
+            case "zero":
+                lengths.Add(0);
+                break;
+            case "too-many":
+                for (int value = 1; value <= 9; value++)
+                {
+                    lengths.Add(value);
+                }
+
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(mutation), mutation, "Unknown schema mutation.");
+        }
+
+        lengthRule["expectedInputLengths"] = lengths;
+        acceptance["lengthRule"] = lengthRule;
+
+        ProfileBundleEntrySnapshotCollection collection = CaptureCompositionProfile(profile.ToJsonString());
+        if (mutation == "valid")
+        {
+            ProfileBundleSchemaValidator.ValidateEntries(collection, 32);
+            return;
+        }
+
+        _ = Assert.Throws<InvalidDataException>(() =>
+            ProfileBundleSchemaValidator.ValidateEntries(collection, 32));
     }
 
     private static ProfileBundleEntrySnapshotCollection Capture(string schema, string profile)

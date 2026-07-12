@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Profiles.V2;
 
@@ -91,13 +92,56 @@ internal sealed record BoundedLengthRule : CompositionProfileLengthRule
 /// <summary>Extracts declared Normal DP views and warns when the outer file length differs.</summary>
 internal sealed record NormalDpExtractWithWarningLengthRule : CompositionProfileLengthRule
 {
-    internal NormalDpExtractWithWarningLengthRule(string issueCode)
+    private readonly long[] _expectedInputLengths;
+
+    internal NormalDpExtractWithWarningLengthRule(
+        string issueCode,
+        IReadOnlyList<long>? expectedInputLengths = null)
         : base(CompositionProfileLengthRuleKind.NormalDpExtractWithWarning)
     {
         IssueCode = CompositionProfileValueRules.RequireIssueCode(issueCode, nameof(issueCode));
+        _expectedInputLengths = NormalizeExpectedInputLengths(expectedInputLengths);
+        ExpectedInputLengths = Array.AsReadOnly(_expectedInputLengths);
     }
 
     internal string IssueCode { get; }
+
+    /// <summary>Optional outer-container lengths that suppress the profile-owned extraction warning.</summary>
+    internal IReadOnlyList<long> ExpectedInputLengths { get; }
+
+    private static long[] NormalizeExpectedInputLengths(IReadOnlyList<long>? expectedInputLengths)
+    {
+        if (expectedInputLengths is null)
+        {
+            return [];
+        }
+
+        if (expectedInputLengths.Count is 0 or
+            > InputLengthPolicyLimits.MaximumExpectedInputLengths)
+        {
+            throw new ArgumentException(
+                $"Expected input lengths must contain between 1 and {InputLengthPolicyLimits.MaximumExpectedInputLengths} values.",
+                nameof(expectedInputLengths));
+        }
+
+        long[] normalized = new long[expectedInputLengths.Count];
+        long previous = 0;
+        for (int index = 0; index < expectedInputLengths.Count; index++)
+        {
+            long value = expectedInputLengths[index];
+            if (value <= 0 || (index > 0 && value <= previous))
+            {
+                throw new ArgumentException(
+                    "Expected input lengths must be positive and strictly ascending.",
+                    nameof(expectedInputLengths));
+            }
+
+            normalized[index] = value;
+            previous = value;
+        }
+
+        return normalized;
+    }
 }
 
 /// <summary>Rejects TP firmware larger than the fixed 256 KiB owner limit.</summary>

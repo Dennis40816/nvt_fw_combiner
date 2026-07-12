@@ -76,6 +76,15 @@ internal static partial class V2CompositionPlanCompiler
             out length);
     }
 
+    private static IReadOnlyList<long> ResolveNormalDpExpectedInputLengths(
+        NormalDpExtractWithWarningLengthRule rule,
+        long resolvedMapCapacity)
+    {
+        return rule.ExpectedInputLengths.Count == 0
+            ? [resolvedMapCapacity]
+            : rule.ExpectedInputLengths;
+    }
+
     private static bool TryResolveInputSourceSpan(
         CompositionProfileDefinition profile,
         InputArtifactProfileSpace input,

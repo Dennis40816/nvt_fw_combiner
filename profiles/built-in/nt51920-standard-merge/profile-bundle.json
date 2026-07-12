@@ -3,7 +3,7 @@
   "bundleId": "nt51920-standard-merge-pilot",
   "bundleVersion": "0.9.1-v2-pilot.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "2acde361b0537210c4707f2a77a112d659ac885254ef863df2a2d75baa12ff53",
+  "contentHash": "596fa2f4b8a8043d1892b07f9c4b5bb1cd749b7c7fe20ed194a176c5293c399a",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -11,7 +11,7 @@
       "kind": "schema",
       "path": "schemas/composition-profile-v2.schema.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "8562d76f9572c846bf5c0c4876893109490257afc59e4a2cb8a6b9133ed381f6"
+      "contentHash": "1352e046f1be70ebffa251e4ccda159d04a169a367da786258c82e2ef53b9673"
     },
     {
       "entryId": "firmware-family-v1-schema",
