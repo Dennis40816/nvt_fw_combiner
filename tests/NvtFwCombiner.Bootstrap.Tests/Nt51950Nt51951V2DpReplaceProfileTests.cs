@@ -7,17 +7,17 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
-/// <summary>Migration evidence for NT51950/NT51951 V2 DP Replace candidate plans.</summary>
-public sealed class Nt51950Nt51951V2DpReplaceCandidateTests
+/// <summary>Migration evidence for the supported NT51950/NT51951 V2 DP Replace plans.</summary>
+public sealed class Nt51950Nt51951V2DpReplaceProfileTests
 {
     private const string BundleDirectory = "nt51950-nt51951-standard-merge";
-    private const string BundleContentHash = "589df358f2ef368a80198d66dff277bed71097169bc5fa1f841135b94c140c0f";
+    private const string BundleContentHash = "f36d750a4081ef95c23194227cc3aa2a05c711c3519640e2c8cc0d056cb921b0";
     private const int TpOverlayStart = 0x0A000;
     private const int TpOverlayLength = 0x2D000;
     private const int CustomerInfoStart = 0x37000;
     private const int CustomerInfoLength = 0x1000;
 
-    /// <summary>Verifies every declared IC/capacity candidate retains legacy plan and engine byte semantics with short-DP padding.</summary>
+    /// <summary>Verifies every declared IC/capacity profile retains legacy plan and engine byte semantics with short-DP padding.</summary>
     [Theory]
     [InlineData("NT51950", 0x40000)]
     [InlineData("NT51950", 0x80000)]
@@ -25,12 +25,16 @@ public sealed class Nt51950Nt51951V2DpReplaceCandidateTests
     [InlineData("NT51951", 0x40000)]
     [InlineData("NT51951", 0x80000)]
     [InlineData("NT51951", 0x100000)]
-    public void CandidatePlanMatchesLegacyDpReplaceAcrossDeclaredCapacities(string icId, int capacity)
+    public void SupportedProfilePlanMatchesLegacyDpReplaceAcrossDeclaredCapacities(string icId, int capacity)
     {
-        CompiledComposition candidate = CompileCandidate(icId, capacity);
+        CompiledComposition candidate = CompileSupportedProfile(icId, capacity);
         CompiledComposition legacy = CompileLegacy(icId, capacity);
 
-        Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, candidate.Eligibility);
+        Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, candidate.Eligibility);
+        _ = Assert.IsType<ProfileBundleV2CompilationAuthority>(candidate.Authority);
+        V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(candidate.V2Details);
+        Assert.Equal(CompiledProfilePromotionStage.Supported, details.Provenance.Promotion.Stage);
+        Assert.Empty(details.Provenance.Promotion.Blockers);
         Assert.Equal(CompiledIcNumberPolicy.SingleSelector, candidate.IcNumberPolicy);
         Assert.Equal($"nt{icId[2..]}-dp-replace.bin", candidate.DefaultOutputFileName);
         AssertMapProtection(candidate);
@@ -65,12 +69,12 @@ public sealed class Nt51950Nt51951V2DpReplaceCandidateTests
     [Theory]
     [InlineData("NT51950", "51950")]
     [InlineData("NT51951", "51951")]
-    public void CandidatePlanSelfReplacementMatchesAvailableOwnerBaseControl(string icId, string goldenIc)
+    public void SupportedProfileSelfReplacementMatchesAvailableOwnerBaseControl(string icId, string goldenIc)
     {
         JsonElement goldenCase = V2StandardMergeGoldenTestSupport.ReadGoldenCase(goldenIc);
         byte[] reference = V2StandardMergeGoldenTestSupport.ReadManifestFile(goldenCase.GetProperty("expectedOutput"));
         byte[] replacement = V2StandardMergeGoldenTestSupport.ReadInputs(goldenCase.GetProperty("inputs"))["dp-input"];
-        CompiledComposition candidate = CompileCandidate(icId, checked((int)reference.LongLength));
+        CompiledComposition candidate = CompileSupportedProfile(icId, checked((int)reference.LongLength));
 
         CompositionExecutionResult execution = CompositionEngine.Execute(
             candidate.Plan,
@@ -84,7 +88,29 @@ public sealed class Nt51950Nt51951V2DpReplaceCandidateTests
         Assert.Equal(reference, execution.OutputBytes.ToArray());
     }
 
-    private static CompiledComposition CompileCandidate(string icId, int capacity)
+    /// <summary>Locks the supported profile evidence reference to the public frozen-legacy parity record.</summary>
+    [Theory]
+    [InlineData("NT51950", 0x40000)]
+    [InlineData("NT51951", 0x80000)]
+    public void SupportedProfileReferencesFrozenLegacyParityEvidence(string icId, int capacity)
+    {
+        using var document = JsonDocument.Parse(File.ReadAllText(RepositoryPaths.FromRepositoryRoot(
+            "testdata",
+            "public-synthetic",
+            "dp-replace",
+            "nt51950-nt51951-dp-replace-oracle-v1.json")));
+        string evidenceId = document.RootElement
+            .GetProperty("frozenLegacyParity")
+            .GetProperty("evidenceId")
+            .GetString()!;
+        CompiledComposition composition = CompileSupportedProfile(icId, capacity);
+        V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
+
+        Assert.Equal("dp-replace-frozen-legacy-parity-v1", evidenceId);
+        Assert.Contains(evidenceId, details.Provenance.ProfileEvidenceRefs);
+    }
+
+    private static CompiledComposition CompileSupportedProfile(string icId, int capacity)
     {
         string bundleRoot = Path.Combine(
             RepositoryPaths.FindRepositoryRoot(),

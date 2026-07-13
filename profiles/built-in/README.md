@@ -54,3 +54,9 @@ NT51928. Its `0x80000` physical map models TP `[0x00000, 0x35000)`, DP
 `auxiliary` LDC slot with exact map capacity, not a special execution path. Bootstrap packages this
 bundle by its content-hash anchor and selects its V2 artifact without a legacy compile fallback.
 Firmware-owner review is still required before support promotion; NT51928 NB remains unmodeled.
+
+`nt51950-nt51951-standard-merge` also carries the supported DP Perspective Replace profiles for
+NT51950 and NT51951. They clone an exact base, replace the padded full DP container, restore only
+TP `[0x0A000, 0x37000)`, and leave customer information from DP/padding. The owner-approved frozen
+legacy hashes in the public synthetic oracle require exact parity because `knownDeviations` is empty.
+The profiles remain at `0.6.0`: promotion changes V2 runtime eligibility, not byte semantics.

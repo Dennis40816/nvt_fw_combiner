@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51950-nt51951-standard-merge",
-  "bundleVersion": "0.9.1-v2.3",
+  "bundleVersion": "0.9.1-v2.4",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "589df358f2ef368a80198d66dff277bed71097169bc5fa1f841135b94c140c0f",
+  "contentHash": "f36d750a4081ef95c23194227cc3aa2a05c711c3519640e2c8cc0d056cb921b0",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -32,7 +32,7 @@
       "kind": "composition-profile",
       "path": "profiles/nt51950-dp-replace.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "14303f27f88a8decd396d7f32ebed8787b5e14933f36d7819794286fedd51335"
+      "contentHash": "5f49d5bf434717d301c1474c7e18267ccf2a5579b2e06fe0903b17876b6394d5"
     },
     {
       "entryId": "nt51950-standard-merge-profile",
@@ -46,7 +46,7 @@
       "kind": "composition-profile",
       "path": "profiles/nt51951-dp-replace.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "216a4f465e8f85941cf84f18774b5126a25667a53c11edfc4690400c40a27c35"
+      "contentHash": "7138de80c1ae5c9bd7ae07eb715381258a9071bdd5263b374b0005ec66890cd1"
     },
     {
       "entryId": "nt51951-standard-merge-profile",

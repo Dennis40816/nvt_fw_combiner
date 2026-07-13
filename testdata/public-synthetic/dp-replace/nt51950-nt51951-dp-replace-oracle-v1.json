@@ -5,6 +5,13 @@
     "date": "2026-07-13",
     "decision": "NT51950/NT51951 DP Replace restores only the base TP range; customer information follows the replacement DP image."
   },
+  "frozenLegacyParity": {
+    "evidenceId": "dp-replace-frozen-legacy-parity-v1",
+    "date": "2026-07-13",
+    "baseline": "Pre-V2-runtime NT51950/NT51951 DP Replace legacy workflow outputs.",
+    "decision": "Owner approves frozen legacy output hashes as the V2 migration parity baseline.",
+    "knownDeviations": []
+  },
   "generator": {
     "algorithm": "affine-byte-v1",
     "formula": "byte(salt + (37 * offset))",

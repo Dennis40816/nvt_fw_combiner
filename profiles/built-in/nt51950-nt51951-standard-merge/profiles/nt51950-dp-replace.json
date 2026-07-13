@@ -3,21 +3,8 @@
   "profileId": "nt51950-dp-replace-dp-perspective",
   "profileVersion": "0.6.0",
   "promotion": {
-    "stage": "executable-candidate",
-    "blockers": [
-      {
-        "blockerId": "dp-replace-owner-golden-parity",
-        "kind": "golden",
-        "reason": "The V2 plan must match the deterministic DP Replace oracle and independent owner/reference outputs for every released NT51950/NT51951 case before runtime promotion.",
-        "evidenceRefs": ["dp-replace-synthetic-oracle-v1", "dp-replace-owner-handoff-pending"]
-      },
-      {
-        "blockerId": "dp-replace-firmware-owner-review",
-        "kind": "human-review",
-        "reason": "Firmware owner must approve the DP-owned customer-info policy and independent owner/reference output parity before runtime promotion.",
-        "evidenceRefs": ["dp-perspective-51950-51951-owner-map", "dp-replace-customer-info-follows-dp-owner-decision", "dp-replace-owner-handoff-pending"]
-      }
-    ]
+    "stage": "supported",
+    "blockers": []
   },
   "compositionKind": "replace",
   "icNumberInputMode": "single-selector",
@@ -166,6 +153,6 @@
     "legacy-v2-dp-perspective-parity-matrix",
     "dp-replace-customer-info-follows-dp-owner-decision",
     "dp-replace-synthetic-oracle-v1",
-    "dp-replace-owner-handoff-pending"
+    "dp-replace-frozen-legacy-parity-v1"
   ]
 }

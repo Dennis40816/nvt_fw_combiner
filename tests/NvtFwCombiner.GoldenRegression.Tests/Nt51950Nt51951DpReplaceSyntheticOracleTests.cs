@@ -25,6 +25,8 @@ public sealed class Nt51950Nt51951DpReplaceSyntheticOracleTests
         JsonElement root = document.RootElement;
         Assert.Equal("public-synthetic", root.GetProperty("classification").GetString());
         Assert.Equal("replacement-dp", root.GetProperty("expectedRule").GetProperty("customerInfoSource").GetString());
+        Assert.Equal("dp-replace-frozen-legacy-parity-v1", root.GetProperty("frozenLegacyParity").GetProperty("evidenceId").GetString());
+        Assert.Empty(root.GetProperty("frozenLegacyParity").GetProperty("knownDeviations").EnumerateArray());
         int defaultReplacementLength = root.GetProperty("generator").GetProperty("replacementLengthBytes").GetInt32();
 
         foreach (JsonElement testCase in root.GetProperty("cases").EnumerateArray())
