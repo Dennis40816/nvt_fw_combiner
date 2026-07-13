@@ -6,6 +6,22 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 Post-`0.9.0` development targets UAT feedback, firmware-owner evidence closure, and `1.0.0` release readiness.
 
+## [0.9.2] - 2026-07-13
+
+### Added
+
+- Content-addressed source-schema inventory and deterministic materialization for every built-in V2 profile bundle.
+- A closed allowlist for built-in bundle materialization, plus the 0.9.x completion roadmap and retirement gates for later workflow convergence.
+
+### Changed
+
+- Standard Merge runtime loading uses only the materialized V2 bundle registrations; duplicate per-bundle schema snapshots and the legacy runtime fallback were removed.
+- The trusted bundle loader boundary, normal Merge/Replace byte behavior, promotion state, and AB Code behavior remain unchanged.
+
+### Notes
+
+- This is a local-verification milestone tag for profile-bundle consolidation, not a GitHub package release or product-support promotion.
+
 ## [0.9.1] - 2026-07-13
 
 ### Added

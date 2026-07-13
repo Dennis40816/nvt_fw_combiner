@@ -1,8 +1,12 @@
 # Repository Verification Report
 
-Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.1 firmware-model-v2 migration milestone. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
+Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.2 profile-bundle consolidation milestone. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
 
-Specification package version: `0.9.1`
+Specification package version: `0.9.2`
+
+## 0.9.2 consolidation evidence
+
+The 0.9.2 integration branch materializes each built-in V2 profile bundle from the content-addressed schema source inventory and removes the Standard Merge legacy runtime fallback. It retains the trusted loader boundary and all existing firmware behavior. On 2026-07-13, `python scripts/verify.py --all` passed with zero build warnings and errors: Python worker 28, Domain 335, Application 219, ProfileContract 347, Architecture 69, GoldenRegression 9, Bootstrap 192, Infrastructure 138 passed with 2 Unix-only skips, and UI Smoke 106. This local-verification milestone does not publish a package, promote IC support, or authorize AB Code behavior.
 
 ## 0.9.1 migration evidence
 
