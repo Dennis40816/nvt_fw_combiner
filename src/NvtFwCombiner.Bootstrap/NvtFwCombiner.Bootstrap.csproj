@@ -13,36 +13,20 @@
     <BuiltInProfileMaterializedRoot>$(BaseIntermediateOutputPath)$(Configuration)\$(TargetFramework)\materialized-profiles\built-in</BuiltInProfileMaterializedRoot>
   </PropertyGroup>
   <ItemGroup>
-    <BuiltInProfileBundle Include="nt51920-standard-merge">
-      <SourceRoot>$(BuiltInProfileSourceRoot)\nt51920-standard-merge</SourceRoot>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51923-standard-merge">
-      <SourceRoot>$(BuiltInProfileSourceRoot)\nt51923-standard-merge</SourceRoot>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51927-standard-merge">
-      <SourceRoot>$(BuiltInProfileSourceRoot)\nt51927-standard-merge</SourceRoot>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51928-standard-merge">
-      <SourceRoot>$(BuiltInProfileSourceRoot)\nt51928-standard-merge</SourceRoot>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51929-standard-merge">
-      <SourceRoot>$(BuiltInProfileSourceRoot)\nt51929-standard-merge</SourceRoot>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51930-standard-merge">
-      <SourceRoot>$(BuiltInProfileSourceRoot)\nt51930-standard-merge</SourceRoot>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51931-standard-merge">
-      <SourceRoot>$(BuiltInProfileSourceRoot)\nt51931-standard-merge</SourceRoot>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51950-nt51951-standard-merge">
-      <SourceRoot>$(BuiltInProfileSourceRoot)\nt51950-nt51951-standard-merge</SourceRoot>
-    </BuiltInProfileBundle>
+    <BuiltInProfileBundle Include="nt51920-standard-merge" />
+    <BuiltInProfileBundle Include="nt51923-standard-merge" />
+    <BuiltInProfileBundle Include="nt51927-standard-merge" />
+    <BuiltInProfileBundle Include="nt51928-standard-merge" />
+    <BuiltInProfileBundle Include="nt51929-standard-merge" />
+    <BuiltInProfileBundle Include="nt51930-standard-merge" />
+    <BuiltInProfileBundle Include="nt51931-standard-merge" />
+    <BuiltInProfileBundle Include="nt51950-nt51951-standard-merge" />
   </ItemGroup>
   <Target Name="MaterializeBuiltInProfileBundles" BeforeTargets="AssignTargetPaths">
     <RemoveDir Directories="$(BuiltInProfileMaterializedRoot)" />
     <ItemGroup>
-      <_BuiltInProfileSource Include="%(BuiltInProfileBundle.SourceRoot)\**\*"
-        Exclude="%(BuiltInProfileBundle.SourceRoot)\schemas\**\*">
+      <_BuiltInProfileSource Include="$(BuiltInProfileSourceRoot)\%(BuiltInProfileBundle.Identity)\**\*"
+        Exclude="$(BuiltInProfileSourceRoot)\%(BuiltInProfileBundle.Identity)\schemas\**\*">
         <BundleDirectory>%(BuiltInProfileBundle.Identity)</BundleDirectory>
       </_BuiltInProfileSource>
       <_BuiltInProfileFamilySchema Include="@(BuiltInProfileBundle)">
