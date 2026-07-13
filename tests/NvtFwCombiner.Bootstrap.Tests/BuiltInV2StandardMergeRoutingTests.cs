@@ -86,6 +86,35 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         Assert.Equal(dpInputLength, artifact.Plan.OutputInitialization.Capacity);
     }
 
+    /// <summary>Verifies the pilot deployment receives local schemas from the content-addressed source inventory.</summary>
+    [Theory]
+    [InlineData(
+        "firmware-family-v1.schema.json",
+        "0dd353296e02e448dcc653028fd3b3ce6ad7fdd8e11a1ce11a465b46f0b471d7")]
+    [InlineData(
+        "composition-profile-v2.schema.json",
+        "bda7556479250774441fad88a921cfe4e45c1e51204985ff58af9717c13f9fe2")]
+    public void Nt51920DeploymentUsesContentAddressedSchemaSource(string fileName, string contentHash)
+    {
+        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
+        string sourcePath = Path.Combine(
+            repositoryRoot,
+            "profiles",
+            "schema-source",
+            "sha256",
+            contentHash,
+            fileName);
+        string deployedPath = Path.Combine(
+            AppContext.BaseDirectory,
+            "profiles",
+            "built-in",
+            "nt51920-standard-merge",
+            "schemas",
+            fileName);
+
+        Assert.Equal(File.ReadAllBytes(sourcePath), File.ReadAllBytes(deployedPath));
+    }
+
     /// <summary>Verifies the second bundle reaches the shared engine with original input trace names.</summary>
     [Fact]
     public async Task Nt51929WorkbenchPreviewUsesTrustedV2InputBindings()

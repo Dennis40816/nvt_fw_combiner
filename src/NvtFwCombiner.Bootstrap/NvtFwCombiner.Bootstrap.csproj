@@ -7,12 +7,12 @@
     <ProjectReference Include="..\NvtFwCombiner.Infrastructure\NvtFwCombiner.Infrastructure.csproj" />
     <ProjectReference Include="..\NvtFwCombiner.Profiles\NvtFwCombiner.Profiles.csproj" />
   </ItemGroup>
+  <PropertyGroup>
+    <BuiltInProfileSourceRoot>$(MSBuildProjectDirectory)\..\..\profiles\built-in</BuiltInProfileSourceRoot>
+    <ProfileSchemaSourceRoot>$(MSBuildProjectDirectory)\..\..\profiles\schema-source\sha256</ProfileSchemaSourceRoot>
+    <BuiltInProfileMaterializedRoot>$(BaseIntermediateOutputPath)$(Configuration)\$(TargetFramework)\materialized-profiles\built-in</BuiltInProfileMaterializedRoot>
+  </PropertyGroup>
   <ItemGroup>
-    <Content Include="..\..\profiles\built-in\nt51920-standard-merge\**\*">
-      <Link>profiles\built-in\nt51920-standard-merge\%(RecursiveDir)%(Filename)%(Extension)</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
     <Content Include="..\..\profiles\built-in\nt51929-standard-merge\**\*">
       <Link>profiles\built-in\nt51929-standard-merge\%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -49,4 +49,28 @@
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
   </ItemGroup>
+  <Target Name="MaterializeNt51920BuiltInProfileBundle" BeforeTargets="AssignTargetPaths">
+    <RemoveDir Directories="$(BuiltInProfileMaterializedRoot)\nt51920-standard-merge" />
+    <ItemGroup>
+      <_Nt51920ProfileSource Include="$(BuiltInProfileSourceRoot)\nt51920-standard-merge\**\*"
+        Exclude="$(BuiltInProfileSourceRoot)\nt51920-standard-merge\schemas\**\*" />
+    </ItemGroup>
+    <Copy
+      SourceFiles="@(_Nt51920ProfileSource)"
+      DestinationFiles="@(_Nt51920ProfileSource->'$(BuiltInProfileMaterializedRoot)\nt51920-standard-merge\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy
+      SourceFiles="$(ProfileSchemaSourceRoot)\0dd353296e02e448dcc653028fd3b3ce6ad7fdd8e11a1ce11a465b46f0b471d7\firmware-family-v1.schema.json"
+      DestinationFiles="$(BuiltInProfileMaterializedRoot)\nt51920-standard-merge\schemas\firmware-family-v1.schema.json" />
+    <Copy
+      SourceFiles="$(ProfileSchemaSourceRoot)\bda7556479250774441fad88a921cfe4e45c1e51204985ff58af9717c13f9fe2\composition-profile-v2.schema.json"
+      DestinationFiles="$(BuiltInProfileMaterializedRoot)\nt51920-standard-merge\schemas\composition-profile-v2.schema.json" />
+    <ItemGroup>
+      <_Nt51920MaterializedFiles Include="$(BuiltInProfileMaterializedRoot)\nt51920-standard-merge\**\*" />
+      <Content Include="@(_Nt51920MaterializedFiles)">
+        <Link>profiles\built-in\nt51920-standard-merge\%(_Nt51920MaterializedFiles.RecursiveDir)%(_Nt51920MaterializedFiles.Filename)%(_Nt51920MaterializedFiles.Extension)</Link>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </Content>
+    </ItemGroup>
+  </Target>
 </Project>
