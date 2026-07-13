@@ -62,12 +62,24 @@ public sealed class CompositionProfileV2RootNormalizerTests
         Assert.Equal(expectedMode, definition.IcNumberInputMode);
     }
 
-    /// <summary>Verifies root closed tokens fail before section or graph assembly.</summary>
+    /// <summary>Verifies the normalizer admits each pinned profile schema version before section assembly.</summary>
+    [Theory]
+    [InlineData("2.0")]
+    [InlineData("2.1")]
+    public void RootNormalizerAcceptsPinnedSchemaVersions(string schemaVersion)
+    {
+        CompositionProfileDefinition definition = CompositionProfileNormalizer.Normalize(
+            ValidMerge() with { SchemaVersion = schemaVersion });
+
+        Assert.Equal("synthetic-merge", definition.ProfileId);
+    }
+
+    /// <summary>Verifies unsupported root schema and composition tokens fail before section or graph assembly.</summary>
     [Fact]
-    public void RootNormalizerRejectsSchemaAndCompositionKindWithPaths()
+    public void RootNormalizerRejectsUnsupportedSchemaAndCompositionKindWithPaths()
     {
         CompositionProfileNormalizationException schema = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.Normalize(ValidMerge() with { SchemaVersion = "2.1" }));
+            CompositionProfileNormalizer.Normalize(ValidMerge() with { SchemaVersion = "2.2" }));
         CompositionProfileNormalizationException kind = Assert.Throws<CompositionProfileNormalizationException>(() =>
             CompositionProfileNormalizer.Normalize(ValidMerge() with { CompositionKind = "future" }));
 

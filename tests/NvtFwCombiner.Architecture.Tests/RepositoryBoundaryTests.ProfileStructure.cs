@@ -90,7 +90,10 @@ public sealed partial class RepositoryBoundaryTests
     {
         string project = ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj");
         var document = XDocument.Parse(project);
-        XElement[] bundles = [.. document.Descendants("BuiltInProfileBundle")];
+        XElement[] bundles = [
+            .. document.Descendants("BuiltInProfileBundle")
+                .Where(static bundle => bundle.Attribute("Include") is not null),
+        ];
         string[] expectedBundleIds =
         [
             "nt51920-standard-merge",
@@ -122,6 +125,19 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("$(BuiltInProfileSourceRoot)\\%(BuiltInProfileBundle.Identity)\\**\\*", project, StringComparison.Ordinal);
         Assert.Contains(
             "Exclude=\"$(BuiltInProfileSourceRoot)\\%(BuiltInProfileBundle.Identity)\\schemas\\**\\*\"",
+            project,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "<DefaultCompositionProfileSchemaHash>1af166d37379329cc7a298ea24637a665b183f286e5a2323d4ed014e893dc9f0</DefaultCompositionProfileSchemaHash>",
+            project,
+            StringComparison.Ordinal);
+        Assert.Equal(
+            "$(DefaultCompositionProfileSchemaHash)",
+            Assert.Single(document.Descendants("ItemDefinitionGroup")
+                .Descendants("BuiltInProfileBundle"))
+                .Element("CompositionProfileSchemaHash")?.Value);
+        Assert.Contains(
+            "$(ProfileSchemaSourceRoot)\\%(BuiltInProfileBundle.CompositionProfileSchemaHash)\\composition-profile-v2.schema.json",
             project,
             StringComparison.Ordinal);
         Assert.DoesNotContain("<SourceRoot>", project, StringComparison.Ordinal);

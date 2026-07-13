@@ -258,6 +258,71 @@ public sealed class ProfileBundleSchemaValidatorTests
             32));
     }
 
+    /// <summary>Verifies schema 2.1 admits only complete closed legacy Combiner artifact bindings.</summary>
+    [Theory]
+    [InlineData("valid", true)]
+    [InlineData("missing-artifacts", false)]
+    [InlineData("malformed-artifact", false)]
+    [InlineData("unknown-property", false)]
+    public void ValidateEntriesEnforcesLegacyProcessorArtifactBindingsInV21(string mutation, bool expectedValid)
+    {
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(
+            TrustedV2BundleTestDocuments.ProfileJson(new string('c', 64))));
+        profile["schemaVersion"] = "2.1";
+        var stage = new JsonObject
+        {
+            ["processorStageId"] = "legacy-postbuild",
+            ["kind"] = "legacy-combiner-v1",
+            ["toolBindingId"] = "combiner-1-13",
+            ["invocationProfileId"] = "synthetic-profile",
+            ["targetSpaceId"] = "output",
+            ["authority"] = "transform",
+            ["purpose"] = "relocation",
+            ["integrityDisposition"] = "none",
+            ["allowedReadViewIds"] = new JsonArray("output-code"),
+            ["allowedWriteViewIds"] = new JsonArray("output-code"),
+            ["stagedSourceBindings"] = new JsonArray(),
+            ["stagedArtifactBindings"] = new JsonArray(new JsonObject
+            {
+                ["artifactId"] = "a-bank",
+                ["sourceViewId"] = "output-code",
+            }),
+            ["evidenceRef"] = "processor-evidence",
+            ["failurePolicy"] = "fail-closed",
+        };
+        switch (mutation)
+        {
+            case "valid":
+                break;
+            case "missing-artifacts":
+                _ = stage.Remove("stagedArtifactBindings");
+                break;
+            case "malformed-artifact":
+                stage["stagedArtifactBindings"] = new JsonArray(new JsonObject
+                {
+                    ["artifactId"] = "a-bank",
+                });
+                break;
+            case "unknown-property":
+                stage["unexpected"] = true;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(mutation), mutation, "Unknown schema mutation.");
+        }
+
+        Assert.IsType<JsonArray>(profile["processorStages"]).Add(stage);
+        ProfileBundleEntrySnapshotCollection collection = CaptureCompositionProfile(
+            profile.ToJsonString(),
+            "composition-profile-v2.1.schema.json");
+        if (expectedValid)
+        {
+            ProfileBundleSchemaValidator.ValidateEntries(collection, 32);
+            return;
+        }
+
+        _ = Assert.Throws<InvalidDataException>(() => ProfileBundleSchemaValidator.ValidateEntries(collection, 32));
+    }
+
     /// <summary>Verifies IC-number selector authority is absent for Merge and explicit for Replace profiles.</summary>
     [Theory]
     [InlineData("merge-with-selector", false)]
@@ -430,17 +495,20 @@ public sealed class ProfileBundleSchemaValidatorTests
             new ProfileBundleEntrySnapshotLimits(8, 65536, 131072, 32));
     }
 
-    private static ProfileBundleEntrySnapshotCollection CaptureCompositionProfile(string profile)
+    private static ProfileBundleEntrySnapshotCollection CaptureCompositionProfile(
+        string profile,
+        string schemaFileName = "composition-profile-v2.schema.json")
     {
         const string schemaId = "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json";
         using var workspace = TempWorkspace.Create("nfc-composition-profile-v2-schema-validation");
         byte[] schemaBytes = File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
             "docs",
             "contracts",
-            "composition-profile-v2.schema.json"));
+            schemaFileName));
         byte[] profileBytes = Encoding.UTF8.GetBytes(profile);
         _ = workspace.Write("profile-bundle.json", Encoding.UTF8.GetBytes("{}"));
-        _ = workspace.Write("schemas/composition-profile-v2.schema.json", schemaBytes);
+        string schemaPath = $"schemas/{schemaFileName}";
+        _ = workspace.Write(schemaPath, schemaBytes);
         _ = workspace.Write("profiles/profile.json", profileBytes);
 
         return ProfileBundleEntrySnapshotCollection.Capture(
@@ -455,7 +523,7 @@ public sealed class ProfileBundleSchemaValidatorTests
                     Entry(
                         "schema",
                         ProfileBundleEntryKind.Schema,
-                        "schemas/composition-profile-v2.schema.json",
+                        schemaPath,
                         schemaBytes,
                         schemaId),
                     Entry(

@@ -11,7 +11,13 @@
     <BuiltInProfileSourceRoot>$(MSBuildProjectDirectory)\..\..\profiles\built-in</BuiltInProfileSourceRoot>
     <ProfileSchemaSourceRoot>$(MSBuildProjectDirectory)\..\..\profiles\schema-source\sha256</ProfileSchemaSourceRoot>
     <BuiltInProfileMaterializedRoot>$(BaseIntermediateOutputPath)$(Configuration)\$(TargetFramework)\materialized-profiles\built-in</BuiltInProfileMaterializedRoot>
+    <DefaultCompositionProfileSchemaHash>1af166d37379329cc7a298ea24637a665b183f286e5a2323d4ed014e893dc9f0</DefaultCompositionProfileSchemaHash>
   </PropertyGroup>
+  <ItemDefinitionGroup>
+    <BuiltInProfileBundle>
+      <CompositionProfileSchemaHash>$(DefaultCompositionProfileSchemaHash)</CompositionProfileSchemaHash>
+    </BuiltInProfileBundle>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <BuiltInProfileBundle Include="nt51920-standard-merge" />
     <BuiltInProfileBundle Include="nt51923-standard-merge" />
@@ -35,7 +41,7 @@
         <DestinationFile>$(BuiltInProfileMaterializedRoot)\%(Identity)\schemas\firmware-family-v1.schema.json</DestinationFile>
       </_BuiltInProfileFamilySchema>
       <_BuiltInProfileCompositionSchema Include="@(BuiltInProfileBundle)">
-        <SourceFile>$(ProfileSchemaSourceRoot)\1af166d37379329cc7a298ea24637a665b183f286e5a2323d4ed014e893dc9f0\composition-profile-v2.schema.json</SourceFile>
+        <SourceFile>$(ProfileSchemaSourceRoot)\%(BuiltInProfileBundle.CompositionProfileSchemaHash)\composition-profile-v2.schema.json</SourceFile>
         <DestinationFile>$(BuiltInProfileMaterializedRoot)\%(Identity)\schemas\composition-profile-v2.schema.json</DestinationFile>
       </_BuiltInProfileCompositionSchema>
     </ItemGroup>

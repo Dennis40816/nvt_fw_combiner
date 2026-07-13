@@ -1,8 +1,9 @@
-# Composition Profile Contract 2.0
+# Composition Profile Contract 2.0 and 2.1
 
-The executable schema is [`composition-profile-v2.schema.json`](composition-profile-v2.schema.json).
-It is the only declarative workflow policy compiled for Normal, AB, General, Merge, Replace, saved
-rules, and future Register work.
+The executable schemas are [`composition-profile-v2.schema.json`](composition-profile-v2.schema.json)
+and [`composition-profile-v2.1.schema.json`](composition-profile-v2.1.schema.json). A trusted bundle
+selects one exact schema snapshot through its manifest content hash. They are the only declarative
+workflow policy compiled for Normal, AB, General, Merge, Replace, saved rules, and future Register work.
 
 ## Boundary
 
@@ -103,11 +104,11 @@ views must use `space-range`; operations may use it as an intermediate source or
 creating a region-access rule. Only map-backed views are retained in physical access provenance and
 are subject to map write constraints. A work buffer can never be selected as final output.
 
-The normalized C# model reserves `stagedArtifactBindings` for the next owner-approved profile schema
-revision. The pinned 2.0 schema intentionally forbids that property, so no existing trusted bundle
-can opt into it by accident. The future revision will map each profile view to one named, immutable
-artifact created only inside the processor staging directory; its selected tool manifest must consume
-every declared artifact and cannot refer to an undeclared artifact.
+The pinned 2.0 schema intentionally forbids `stagedArtifactBindings`, so no existing trusted bundle
+can opt into it by accident. The 2.1 schema permits the property only on a `legacy-combiner-v1` stage
+and requires one or more bindings. Each maps one profile view to one named immutable artifact created
+only inside the processor staging directory. The selected Combiner command plan must consume every
+declared artifact, cannot refer to an undeclared artifact, and the adapter rejects any artifact mutation.
 
 ## Input size policy
 
