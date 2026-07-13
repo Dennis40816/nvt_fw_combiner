@@ -128,7 +128,8 @@ public static partial class UiCompositionRunner
         IReadOnlyDictionary<string, string> slotPaths,
         bool build,
         CancellationToken cancellationToken,
-        string? outputPath = null)
+        string? outputPath = null,
+        WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit = null)
     {
         return WorkbenchCompositionService.RunReplaceAsync(
             icId,
@@ -137,7 +138,8 @@ public static partial class UiCompositionRunner
             slotPaths,
             build,
             cancellationToken,
-            outputPath);
+            outputPath,
+            ctrlRamFirmwareVersionEdit);
     }
 
     /// <summary>Runs Replace preview or build with workbench-authored General Replace mappings.</summary>
@@ -149,7 +151,8 @@ public static partial class UiCompositionRunner
         IReadOnlyList<WorkbenchGeneralReplaceMappingInput> generalReplaceMappings,
         bool build,
         CancellationToken cancellationToken,
-        string? outputPath = null)
+        string? outputPath = null,
+        WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit = null)
     {
         return WorkbenchCompositionService.RunReplaceAsync(
             icId,
@@ -159,7 +162,8 @@ public static partial class UiCompositionRunner
             generalReplaceMappings,
             build,
             cancellationToken,
-            outputPath);
+            outputPath,
+            ctrlRamFirmwareVersionEdit);
     }
 
 }

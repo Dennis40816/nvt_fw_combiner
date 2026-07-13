@@ -1,0 +1,83 @@
+<UserControl
+    x:Class="NvtFwCombiner.Presentation.Avalonia.Views.CtrlRamFirmwareVersionModal"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    x:DataType="vm:MainWindowViewModel"
+    Background="#660F172A">
+  <Border
+      Classes="modalSurface"
+      Width="560"
+      Padding="22"
+      HorizontalAlignment="Center"
+      VerticalAlignment="Center"
+      BorderBrush="#2563EB">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="18">
+      <StackPanel Spacing="6">
+        <TextBlock Classes="modalTitle" Text="{Binding Text.CtrlRamFirmwareVersionTitle}" />
+        <TextBlock Classes="mutedText" Text="{Binding Text.CtrlRamFirmwareVersionDetail}" TextWrapping="Wrap" />
+      </StackPanel>
+
+      <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="8">
+        <ToggleButton
+            Classes="segment"
+            Command="{Binding SelectCtrlRamFirmwareVersionPreserveCommand}"
+            Content="{Binding Text.CtrlRamFirmwareVersionKeepLabel}"
+            IsChecked="{Binding IsCtrlRamFirmwareVersionPreserveSelected, Mode=OneWay}"
+            ToolTip.Tip="{Binding Text.CtrlRamFirmwareVersionKeepLabel}" />
+        <ToggleButton
+            Grid.Column="1"
+            Classes="segment"
+            Command="{Binding SelectCtrlRamFirmwareVersionEditCommand}"
+            Content="{Binding Text.CtrlRamFirmwareVersionEditLabel}"
+            IsChecked="{Binding IsCtrlRamFirmwareVersionEditSelected, Mode=OneWay}"
+            IsEnabled="{Binding CanEditCtrlRamFirmwareVersion}"
+            ToolTip.Tip="{Binding Text.CtrlRamFirmwareVersionEditLabel}" />
+      </Grid>
+
+      <StackPanel Grid.Row="2" Spacing="10">
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+          <TextBlock Classes="fieldLabel" Text="{Binding Text.CtrlRamFirmwareVersionCurrentLabel}" />
+          <TextBlock Grid.Column="1" Classes="technicalValue" Text="{Binding CtrlRamFirmwareVersionCurrentValue}" />
+        </Grid>
+        <TextBlock Classes="supportingText" Text="{Binding CtrlRamFirmwareVersionMetadataDetail}" TextWrapping="Wrap" />
+        <Grid
+            ColumnDefinitions="*,*"
+            ColumnSpacing="12"
+            IsVisible="{Binding IsCtrlRamFirmwareVersionEditSelected}">
+          <StackPanel Spacing="5">
+            <TextBlock Classes="fieldLabel" Text="{Binding Text.CtrlRamFirmwareVersionByteLabel}" />
+            <TextBox
+                Classes="hexByteInput"
+                AutomationProperties.Name="{Binding Text.CtrlRamFirmwareVersionByteLabel}"
+                Text="{Binding CtrlRamFirmwareVersionText, Mode=TwoWay}" />
+          </StackPanel>
+          <StackPanel Grid.Column="1" Spacing="5">
+            <TextBlock Classes="fieldLabel" Text="{Binding Text.CtrlRamFirmwareSubVersionByteLabel}" />
+            <TextBox
+                Classes="hexByteInput"
+                AutomationProperties.Name="{Binding Text.CtrlRamFirmwareSubVersionByteLabel}"
+                Text="{Binding CtrlRamFirmwareSubVersionText, Mode=TwoWay}" />
+          </StackPanel>
+        </Grid>
+        <TextBlock
+            Classes="warningText"
+            IsVisible="{Binding HasCtrlRamFirmwareVersionValidation}"
+            Text="{Binding CtrlRamFirmwareVersionValidationDetail}"
+            TextWrapping="Wrap" />
+      </StackPanel>
+
+      <StackPanel Grid.Row="3" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+        <Button
+            Classes="secondary"
+            Command="{Binding CloseCtrlRamFirmwareVersionCommand}"
+            Content="{Binding Text.CloseLabel}" />
+        <Button
+            Classes="primary"
+            Click="ConfirmCtrlRamFirmwareVersionBuildButton_OnClick"
+            Content="{Binding Text.CtrlRamFirmwareVersionChooseOutputLabel}"
+            IsEnabled="{Binding CanConfirmCtrlRamFirmwareVersion}" />
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>

@@ -193,6 +193,28 @@ public sealed class XamlControlStyleContractTests
         Assert.Contains("Command=\"{Binding CancelInsertBytesCommand}\"", insertModal, StringComparison.Ordinal);
     }
 
+    /// <summary>Keeps CtrlRAM version confirmation in a typed UI contract without firmware layout details.</summary>
+    [Fact]
+    public void CtrlRamBuildFirmwareVersionModalUsesTypedPreserveOrEditChoice()
+    {
+        string shell = ReadPresentationFile("MainWindow.axaml");
+        string modal = ReadPresentationFile("Views/CtrlRamFirmwareVersionModal.axaml");
+        string styles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
+
+        Assert.Contains("<views:CtrlRamFirmwareVersionModal", shell, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsCtrlRamFirmwareVersionModalOpen}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("SelectCtrlRamFirmwareVersionPreserveCommand", modal, StringComparison.Ordinal);
+        Assert.Contains("SelectCtrlRamFirmwareVersionEditCommand", modal, StringComparison.Ordinal);
+        Assert.Contains("TryCreateCtrlRamFirmwareVersionEdit", ReadPresentationFile("Views/CtrlRamFirmwareVersionModal.axaml.cs"), StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding Text.CtrlRamFirmwareVersionByteLabel}\"", modal, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding Text.CtrlRamFirmwareSubVersionByteLabel}\"", modal, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"TextBox.hexByteInput\"", styles, StringComparison.Ordinal);
+        Assert.Contains("behaviors:HexTextInputBehavior.Mode\" Value=\"ByteSequence\"", styles, StringComparison.Ordinal);
+        Assert.DoesNotContain("FirmwareConfigLayout", modal, StringComparison.Ordinal);
+        Assert.DoesNotContain("Combiner.exe", modal, StringComparison.Ordinal);
+        Assert.DoesNotContain("0x", modal, StringComparison.Ordinal);
+    }
+
     /// <summary>Keeps each byte value centered on the calculated 16-column viewport geometry.</summary>
     [Fact]
     public void HexEditorByteCellsCenterTheirContentUnderTheHeader()

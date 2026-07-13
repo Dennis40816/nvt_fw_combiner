@@ -279,6 +279,8 @@
 
     <views:ReplaceSelectionModal Grid.RowSpan="4" IsVisible="{Binding IsReplaceSelectionModalOpen}" />
 
+    <views:CtrlRamFirmwareVersionModal Grid.RowSpan="4" IsVisible="{Binding IsCtrlRamFirmwareVersionModalOpen}" />
+
     <views:WorkflowContextSetupModal Grid.RowSpan="4" IsVisible="{Binding IsWorkflowContextModalOpen}" />
 
     <views:FirmwareIcMismatchModal Grid.RowSpan="4" IsVisible="{Binding IsFirmwareIcMismatchModalOpen}" />

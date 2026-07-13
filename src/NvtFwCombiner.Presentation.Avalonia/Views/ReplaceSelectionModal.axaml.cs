@@ -20,6 +20,11 @@ public sealed partial class ReplaceSelectionModal : UserControl
             return;
         }
 
+        if (viewModel.TryOpenCtrlRamFirmwareVersionModal())
+        {
+            return;
+        }
+
         var topLevel = TopLevel.GetTopLevel(this);
         if (topLevel is null)
         {

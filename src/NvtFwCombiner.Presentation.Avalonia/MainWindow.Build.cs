@@ -30,6 +30,11 @@ public sealed partial class MainWindow
             return;
         }
 
+        if (viewModel.TryOpenCtrlRamFirmwareVersionModal())
+        {
+            return;
+        }
+
         string? outputPath = await FirmwareFilePickerDialogs.PickReplacedFirmwareOutputPathAsync(
             StorageProvider,
             viewModel.ReplaceOutputFileName);
