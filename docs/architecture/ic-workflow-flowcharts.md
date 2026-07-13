@@ -39,8 +39,8 @@ The architecture test `IcWorkflowFlowchartReferenceCoversBuiltInIcLists` checks 
 | NT51930 | `SM-FLASHMAP-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51930`: current cascade maps to `<=13 IC`. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | V2 Standard Merge preserves the `merge_bin.7z` golden bytes; firmware-owner review remains required before release support. |
 | NT51931 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51930`: NT51930-based mode. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | V2 Standard Merge preserves legacy golden bytes; firmware-owner review remains required before release support. |
 | NT51932 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51932`: direct postbuild reference. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | V2 Standard Merge preserves legacy golden bytes; firmware-owner review remains required before release support. Deferred AB must start from full DP container then profile-declared overlays. |
-| NT51950 | `SM-950-951-DP-PERSPECTIVE-V2`: packaged canonical V2 maps select the exact submitted DP capacity; owner `0x40000` DP golden passes. | `R-DP-950-951`: the workbench UI/CLI routes the supported V2 profile and selects its exact base capacity. | `R-CTRLRAM-51950`: direct postbuild reference. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Owner-approved frozen legacy output hashes cover all capacities and the `0x40000` base self-replacement control with no known deviations. This migration evidence is not a hardware golden. Deferred AB shares only the full-DP-first order, not normal-merge ranges or integrity rules. |
-| NT51951 | `SM-950-951-DP-PERSPECTIVE-V2`: packaged canonical V2 maps select the exact submitted DP capacity; owner `0x80000` DP golden passes. | `R-DP-950-951`: the workbench UI/CLI routes the supported V2 profile and selects its exact base capacity. | `R-CTRLRAM-51950`: follows NT51950. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Owner-approved frozen legacy output hashes cover all capacities and the `0x80000` base self-replacement control with no known deviations. This migration evidence is not a hardware golden. |
+| NT51950 | `SM-950-951-DP-PERSPECTIVE-V2`: packaged canonical V2 maps select the exact submitted DP capacity; owner `0x40000` DP golden passes. | `R-DP-950-951`: the workbench UI/CLI routes the supported V2 profile and selects its exact base capacity. | `R-CTRLRAM-51950`: direct postbuild reference. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Public deterministic expected hashes plus owner-approved direct V2/legacy comparison cover all capacities with no known deviations. This migration evidence is not a hardware golden or product support claim. Deferred AB shares only the full-DP-first order, not normal-merge ranges or integrity rules. |
+| NT51951 | `SM-950-951-DP-PERSPECTIVE-V2`: packaged canonical V2 maps select the exact submitted DP capacity; owner `0x80000` DP golden passes. | `R-DP-950-951`: the workbench UI/CLI routes the supported V2 profile and selects its exact base capacity. | `R-CTRLRAM-51950`: follows NT51950. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Public deterministic expected hashes plus owner-approved direct V2/legacy comparison cover all capacities with no known deviations. This migration evidence is not a hardware golden or product support claim. |
 
 ## Deferred AB Initializer Policy
 
@@ -149,7 +149,7 @@ flowchart TD
 
 ### R-DP-950-951
 
-Used by NT51950 and NT51951 as the target DP Perspective policy. The V2 profiles are supported by owner-approved frozen legacy full-byte parity with no known deviations; the workbench routing cutover remains a separate step. This migration evidence is not an independent hardware golden.
+Used by NT51950 and NT51951 as the target DP Perspective policy. The V2 profiles are runtime-admitted by owner-approved direct V2/legacy full-byte comparison and public synthetic expected hashes with no known deviations; the workbench routing cutover remains a separate step. This migration evidence is not an independent hardware golden or a product support claim.
 
 ```mermaid
 flowchart TD
@@ -161,7 +161,7 @@ flowchart TD
     F --> G["Pad replacement DP to the selected reference length and replace the full DP container"]
     G --> H["Restore original TP range 0x0A000-0x36FFF (len 0x2D000) from reference firmware"]
     H --> I["Keep customer info 0x37000-0x37FFF (len 0x1000) from replacement DP"]
-    I --> J["Write the V2 workbench artifact and record deterministic oracle plus frozen legacy full-byte parity"]
+    I --> J["Write the V2 workbench artifact and record deterministic hashes plus direct legacy comparison"]
 ```
 
 ## CtrlRAM Replace flowcharts

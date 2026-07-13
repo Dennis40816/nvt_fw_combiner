@@ -80,7 +80,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
         _ = Assert.IsType<ProfileBundleV2CompilationAuthority>(artifact.Authority);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(artifact.V2Details);
-        Assert.Equal("f36d750a4081ef95c23194227cc3aa2a05c711c3519640e2c8cc0d056cb921b0", details.Provenance.Bundle.ContentHash);
+        Assert.Equal("25a3005877d7ac29efa9197e43133f9d10265c7ab002aa9f7a82eb873e1bd129", details.Provenance.Bundle.ContentHash);
         Assert.Equal(profileId, artifact.ProfileId);
         Assert.Equal(icId, artifact.IcId);
         Assert.Equal(dpInputLength, artifact.Plan.OutputInitialization.Capacity);

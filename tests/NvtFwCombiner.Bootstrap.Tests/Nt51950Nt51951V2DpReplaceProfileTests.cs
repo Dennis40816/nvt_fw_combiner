@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
@@ -11,21 +12,22 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class Nt51950Nt51951V2DpReplaceProfileTests
 {
     private const string BundleDirectory = "nt51950-nt51951-standard-merge";
-    private const string BundleContentHash = "f36d750a4081ef95c23194227cc3aa2a05c711c3519640e2c8cc0d056cb921b0";
+    private const string BundleContentHash = "25a3005877d7ac29efa9197e43133f9d10265c7ab002aa9f7a82eb873e1bd129";
     private const int TpOverlayStart = 0x0A000;
     private const int TpOverlayLength = 0x2D000;
     private const int CustomerInfoStart = 0x37000;
     private const int CustomerInfoLength = 0x1000;
 
-    /// <summary>Verifies every declared IC/capacity profile retains legacy plan and engine byte semantics with short-DP padding.</summary>
+    /// <summary>Verifies every public synthetic case retains legacy plan and engine byte semantics with static expected hashes.</summary>
     [Theory]
-    [InlineData("NT51950", 0x40000)]
-    [InlineData("NT51950", 0x80000)]
-    [InlineData("NT51950", 0x100000)]
-    [InlineData("NT51951", 0x40000)]
-    [InlineData("NT51951", 0x80000)]
-    [InlineData("NT51951", 0x100000)]
-    public void SupportedProfilePlanMatchesLegacyDpReplaceAcrossDeclaredCapacities(string icId, int capacity)
+    [MemberData(nameof(PublicSyntheticCases))]
+    public void SupportedProfilePlanMatchesLegacyDpReplaceAcrossDeclaredCapacities(
+        string icId,
+        int capacity,
+        int replacementLength,
+        byte baseSalt,
+        byte replacementSalt,
+        string expectedSha256)
     {
         CompiledComposition candidate = CompileSupportedProfile(icId, capacity);
         CompiledComposition legacy = CompileLegacy(icId, capacity);
@@ -40,8 +42,8 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
         AssertMapProtection(candidate);
         AssertPlanParity(legacy.Plan, candidate.Plan);
 
-        byte[] reference = CreatePattern(capacity, 0x39);
-        byte[] replacement = CreatePattern(capacity - 0x1000, 0xA7);
+        byte[] reference = CreatePattern(capacity, baseSalt);
+        byte[] replacement = CreatePattern(replacementLength, replacementSalt);
         CompositionExecutionResult candidateExecution = CompositionEngine.Execute(
             candidate.Plan,
             new CompositionExecutionInput(new Dictionary<string, byte[]>(StringComparer.Ordinal)
@@ -60,9 +62,15 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
         Assert.Equal(CompositionExecutionStatus.Succeeded, candidateExecution.Status);
         Assert.Equal(CompositionExecutionStatus.Succeeded, legacyExecution.Status);
         byte[] candidateOutput = candidateExecution.OutputBytes.ToArray();
-        Assert.Equal(legacyExecution.OutputBytes.ToArray(), candidateOutput);
+        byte[] legacyOutput = legacyExecution.OutputBytes.ToArray();
+        Assert.Equal(expectedSha256, Sha256Hex(legacyOutput));
+        Assert.Equal(legacyOutput, candidateOutput);
+        Assert.Equal(expectedSha256, Sha256Hex(candidateOutput));
         AssertRangeEquals(reference, TpOverlayStart, candidateOutput, TpOverlayStart, TpOverlayLength);
-        AssertRangeEquals(replacement, CustomerInfoStart, candidateOutput, CustomerInfoStart, CustomerInfoLength);
+        Assert.Equal(ReplacementOrPadding(replacement, CustomerInfoStart), candidateOutput[CustomerInfoStart]);
+        Assert.Equal(
+            ReplacementOrPadding(replacement, CustomerInfoStart + CustomerInfoLength - 1),
+            candidateOutput[CustomerInfoStart + CustomerInfoLength - 1]);
     }
 
     /// <summary>Uses the two available owner DP Perspective outputs as self-replacement controls without claiming direct replacement-golden parity.</summary>
@@ -88,7 +96,7 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
         Assert.Equal(reference, execution.OutputBytes.ToArray());
     }
 
-    /// <summary>Locks the supported profile evidence reference to the public frozen-legacy parity record.</summary>
+    /// <summary>Locks the supported profile evidence reference to the owner-approved public legacy comparison record.</summary>
     [Theory]
     [InlineData("NT51950", 0x40000)]
     [InlineData("NT51951", 0x80000)]
@@ -100,13 +108,13 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
             "dp-replace",
             "nt51950-nt51951-dp-replace-oracle-v1.json")));
         string evidenceId = document.RootElement
-            .GetProperty("frozenLegacyParity")
+            .GetProperty("ownerApprovedLegacyComparison")
             .GetProperty("evidenceId")
             .GetString()!;
         CompiledComposition composition = CompileSupportedProfile(icId, capacity);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
 
-        Assert.Equal("dp-replace-frozen-legacy-parity-v1", evidenceId);
+        Assert.Equal("dp-replace-owner-approved-legacy-comparison-v1", evidenceId);
         Assert.Contains(evidenceId, details.Provenance.ProfileEvidenceRefs);
     }
 
@@ -120,7 +128,7 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
         V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
             V2StandardMergeGoldenTestSupport.LoadCatalog(bundleRoot, BundleContentHash),
             $"nt{icId[2..]}-dp-replace-dp-perspective",
-            "0.6.0",
+            "0.6.1",
             icId,
             ExperienceIds.DpReplace,
             capacity);
@@ -199,6 +207,44 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
         }
 
         return bytes;
+    }
+
+    /// <summary>Loads the static public synthetic cases that constrain both legacy and V2 execution.</summary>
+    public static TheoryData<string, int, int, byte, byte, string> PublicSyntheticCases()
+    {
+        var cases = new TheoryData<string, int, int, byte, byte, string>();
+        using var document = JsonDocument.Parse(File.ReadAllText(RepositoryPaths.FromRepositoryRoot(
+            "testdata",
+            "public-synthetic",
+            "dp-replace",
+            "nt51950-nt51951-dp-replace-oracle-v1.json")));
+        JsonElement root = document.RootElement;
+        int defaultReplacementLength = root.GetProperty("generator").GetProperty("replacementLengthBytes").GetInt32();
+
+        foreach (JsonElement testCase in root.GetProperty("cases").EnumerateArray())
+        {
+            cases.Add(
+                testCase.GetProperty("icId").GetString()!,
+                testCase.GetProperty("capacityBytes").GetInt32(),
+                testCase.TryGetProperty("replacementLengthBytes", out JsonElement replacementLength)
+                    ? replacementLength.GetInt32()
+                    : defaultReplacementLength,
+                testCase.GetProperty("baseSalt").GetByte(),
+                testCase.GetProperty("replacementSalt").GetByte(),
+                testCase.GetProperty("expectedSha256").GetString()!);
+        }
+
+        return cases;
+    }
+
+    private static string Sha256Hex(ReadOnlySpan<byte> bytes)
+    {
+        return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+    }
+
+    private static byte ReplacementOrPadding(byte[] replacement, int offset)
+    {
+        return offset < replacement.Length ? replacement[offset] : (byte)0;
     }
 
     private static void AssertRangeEquals(byte[] expected, int expectedStart, byte[] actual, int actualStart, int length)

@@ -57,6 +57,8 @@ Firmware-owner review is still required before support promotion; NT51928 NB rem
 
 `nt51950-nt51951-standard-merge` also carries the supported DP Perspective Replace profiles for
 NT51950 and NT51951. They clone an exact base, replace the padded full DP container, restore only
-TP `[0x0A000, 0x37000)`, and leave customer information from DP/padding. The owner-approved frozen
-legacy hashes in the public synthetic oracle require exact parity because `knownDeviations` is empty.
-The profiles remain at `0.6.0`: promotion changes V2 runtime eligibility, not byte semantics.
+TP `[0x0A000, 0x37000)`, and leave customer information from DP/padding. The owner-approved direct
+V2/legacy comparison and public synthetic expected hashes require exact parity because
+`knownDeviations` is empty. `supported` admits this closed V2 runtime path only; it is not a product
+support claim. The profiles advance to `0.6.1` for this evidence correction and do not change byte
+semantics.

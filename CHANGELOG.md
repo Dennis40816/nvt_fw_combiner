@@ -10,7 +10,7 @@ Post-`0.9.0` development targets UAT feedback, firmware-owner evidence closure, 
 
 ### Added
 
-- Trusted profile-bundle loading, canonical firmware-family/map resolution, and V2 profile compilation into the single `CompiledComposition` runtime boundary.
+- Trusted source profile-bundle loading, canonical firmware-family/map resolution, and V2 profile compilation into the single `CompiledComposition` runtime boundary.
 - V2 runtime routing for the existing golden-backed Standard Merge paths and NT51950/NT51951 DP Replace capacity variants, while retaining legacy comparison evidence.
 
 ### Changed
@@ -21,7 +21,7 @@ Post-`0.9.0` development targets UAT feedback, firmware-owner evidence closure, 
 
 ### Notes
 
-- This migration preserves existing promotion gates and does not claim new IC support, CtrlRAM parity, or AB Code behavior.
+- This migration preserves product-support gates and does not claim new IC support, CtrlRAM parity, AB Code behavior, or packaged-install trust closure.
 
 ## [0.9.0] - 2026-07-11
 

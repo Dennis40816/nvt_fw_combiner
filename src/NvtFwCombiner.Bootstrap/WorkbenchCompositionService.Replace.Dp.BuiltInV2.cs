@@ -79,12 +79,12 @@ public static partial class WorkbenchCompositionService
                 ["NT51950"] = new(
                     "NT51950",
                     "nt51950-dp-replace-dp-perspective",
-                    "0.6.0",
+                    "0.6.1",
                     s_nt51950Nt51951V2Bundle),
                 ["NT51951"] = new(
                     "NT51951",
                     "nt51951-dp-replace-dp-perspective",
-                    "0.6.0",
+                    "0.6.1",
                     s_nt51950Nt51951V2Bundle),
             });
     }

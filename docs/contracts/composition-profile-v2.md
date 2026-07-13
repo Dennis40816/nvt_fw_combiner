@@ -50,6 +50,8 @@ Replace subset when promotion is exactly `supported`, blockers are empty, each i
 one immutable singleton space, and the output template is token-free with the `reject`
 invalid-character policy.
 `executable-candidate` is not runtime authority.
+`supported` is profile-level V2 runtime admission, not a global IC or product-support claim; the
+support matrix and its firmware-owner release gate remain separate authority.
 Its `CompiledInputContract` retains each slot's id, role, artifact class, required/cardinality policy,
 accepted extensions, typed length rule, typed normalization rule, and every immutable plan-space binding
 including instance policy. The artifact does not treat `AddressSpace` geometry as a second source of
@@ -164,5 +166,10 @@ known -> map-resolvable -> inspectable -> authorable
 ```
 
 Evidence manifests supply facts and blocker evidence but never set this stage. Migration preserves
-the prior stage and blockers. `supported` requires no blockers plus all compiler, processor, golden,
-human-review, and release gates; schema migration cannot promote a profile automatically.
+the prior stage and blockers. `supported` requires no blockers plus all applicable compiler,
+processor, regression, human-review, and release gates; schema migration cannot promote a profile
+automatically. For a previously executable legacy workflow, an owner may approve a versioned public
+synthetic oracle and direct V2/legacy output comparison as the regression/release evidence for V2
+runtime admission. That narrow migration decision must record its deterministic input generator,
+static expected hashes, known deviations, and boundary cases. It is not hardware golden evidence and
+does not change the product support matrix.

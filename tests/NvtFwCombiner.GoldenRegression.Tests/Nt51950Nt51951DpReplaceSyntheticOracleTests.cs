@@ -15,7 +15,7 @@ public sealed class Nt51950Nt51951DpReplaceSyntheticOracleTests
 
     /// <summary>Runs every public deterministic DP Replace oracle through the production V2 workbench workflow.</summary>
     [Fact]
-    public async Task ReplaceWorkflowMatchesAllSixDeterministicOracleHashes()
+    public async Task ReplaceWorkflowMatchesAllDeterministicOracleHashes()
     {
         using var document = JsonDocument.Parse(File.ReadAllText(RepositoryPaths.FromRepositoryRoot(
             "testdata",
@@ -25,8 +25,10 @@ public sealed class Nt51950Nt51951DpReplaceSyntheticOracleTests
         JsonElement root = document.RootElement;
         Assert.Equal("public-synthetic", root.GetProperty("classification").GetString());
         Assert.Equal("replacement-dp", root.GetProperty("expectedRule").GetProperty("customerInfoSource").GetString());
-        Assert.Equal("dp-replace-frozen-legacy-parity-v1", root.GetProperty("frozenLegacyParity").GetProperty("evidenceId").GetString());
-        Assert.Empty(root.GetProperty("frozenLegacyParity").GetProperty("knownDeviations").EnumerateArray());
+        Assert.Equal(
+            "dp-replace-owner-approved-legacy-comparison-v1",
+            root.GetProperty("ownerApprovedLegacyComparison").GetProperty("evidenceId").GetString());
+        Assert.Empty(root.GetProperty("ownerApprovedLegacyComparison").GetProperty("knownDeviations").EnumerateArray());
         int defaultReplacementLength = root.GetProperty("generator").GetProperty("replacementLengthBytes").GetInt32();
 
         foreach (JsonElement testCase in root.GetProperty("cases").EnumerateArray())

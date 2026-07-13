@@ -35,7 +35,7 @@ public static partial class WorkbenchCompositionService
         "961224d53b236e851039d65765654674ff65ba75a7cedc7ee9e5d6c9a6165bb5");
     private static readonly BuiltInV2Bundle s_nt51950Nt51951V2Bundle = new(
         "profiles\\built-in\\nt51950-nt51951-standard-merge",
-        "f36d750a4081ef95c23194227cc3aa2a05c711c3519640e2c8cc0d056cb921b0");
+        "25a3005877d7ac29efa9197e43133f9d10265c7ab002aa9f7a82eb873e1bd129");
     private static readonly ReadOnlyCollection<BuiltInV2StandardMergeRegistration> s_builtInV2StandardMergeRegistrations =
         Array.AsReadOnly(
         [

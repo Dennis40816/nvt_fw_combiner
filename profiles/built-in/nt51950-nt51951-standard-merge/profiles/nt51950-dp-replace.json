@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.0",
   "profileId": "nt51950-dp-replace-dp-perspective",
-  "profileVersion": "0.6.0",
+  "profileVersion": "0.6.1",
   "promotion": {
     "stage": "supported",
     "blockers": []
@@ -153,6 +153,6 @@
     "legacy-v2-dp-perspective-parity-matrix",
     "dp-replace-customer-info-follows-dp-owner-decision",
     "dp-replace-synthetic-oracle-v1",
-    "dp-replace-frozen-legacy-parity-v1"
+    "dp-replace-owner-approved-legacy-comparison-v1"
   ]
 }
