@@ -30,8 +30,13 @@ public sealed class BuiltInV2StandardMergeRoutingTests
     {
         ArgumentNullException.ThrowIfNull(expectedInputAddressSpaceIds);
         ArgumentNullException.ThrowIfNull(expectedArtifactClasses);
-        AssertDeployedBundleMatchesRepository(bundleDirectory);
-
+        string deployedManifestPath = Path.Combine(
+            AppContext.BaseDirectory,
+            "profiles",
+            "built-in",
+            bundleDirectory,
+            "profile-bundle.json");
+        Assert.True(File.Exists(deployedManifestPath), $"Deployed bundle manifest is missing: {deployedManifestPath}");
         bool compiled = WorkbenchCompositionService.TryCompileStandardMerge(
             icId,
             dpInputLength: null,
@@ -66,8 +71,6 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         string profileId,
         long dpInputLength)
     {
-        AssertDeployedBundleMatchesRepository("nt51950-nt51951-standard-merge");
-
         bool compiled = WorkbenchCompositionService.TryCompileStandardMerge(
             icId,
             dpInputLength,
@@ -84,6 +87,55 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         Assert.Equal(profileId, artifact.ProfileId);
         Assert.Equal(icId, artifact.IcId);
         Assert.Equal(dpInputLength, artifact.Plan.OutputInitialization.Capacity);
+    }
+
+    /// <summary>Verifies every deployed bundle is materialized from its manifest-pinned source entries.</summary>
+    [Fact]
+    public void EveryBuiltInDeploymentMaterializesManifestPinnedEntries()
+    {
+        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
+        string builtInRoot = Path.Combine(repositoryRoot, "profiles", "built-in");
+        foreach (string sourceBundleRoot in Directory.GetDirectories(builtInRoot).Order(StringComparer.Ordinal))
+        {
+            string sourceManifestPath = Path.Combine(sourceBundleRoot, "profile-bundle.json");
+            string bundleDirectory = Path.GetFileName(sourceBundleRoot);
+            string deployedRoot = Path.Combine(AppContext.BaseDirectory, "profiles", "built-in", bundleDirectory);
+            string deployedManifestPath = Path.Combine(deployedRoot, "profile-bundle.json");
+            Assert.Equal(File.ReadAllBytes(sourceManifestPath), File.ReadAllBytes(deployedManifestPath));
+
+            using var manifest = JsonDocument.Parse(File.ReadAllText(sourceManifestPath));
+            Assert.False(
+                Directory.Exists(Path.Combine(sourceBundleRoot, "schemas")),
+                $"Source bundle must not be used as a runtime root: {sourceBundleRoot}");
+            JsonElement[] entries = [.. manifest.RootElement.GetProperty("entries").EnumerateArray()];
+            Assert.Contains(
+                entries,
+                static entry => StringComparer.Ordinal.Equals(entry.GetProperty("kind").GetString(), "schema"));
+
+            foreach (JsonElement entry in entries)
+            {
+                string relativePath = entry.GetProperty("path").GetString()!;
+                string contentHash = entry.GetProperty("contentHash").GetString()!;
+                string sourcePath = StringComparer.Ordinal.Equals(entry.GetProperty("kind").GetString(), "schema")
+                    ? Path.Combine(
+                        repositoryRoot,
+                        "profiles",
+                        "schema-source",
+                        "sha256",
+                        contentHash,
+                        Path.GetFileName(relativePath))
+                    : Path.Combine(sourceBundleRoot, relativePath);
+                string deployedPath = Path.Combine(deployedRoot, relativePath);
+
+                Assert.True(File.Exists(sourcePath), $"Materialization source is missing: {sourcePath}");
+                Assert.True(File.Exists(deployedPath), $"Deployed bundle entry is missing: {deployedPath}");
+                Assert.Equal(File.ReadAllBytes(sourcePath), File.ReadAllBytes(deployedPath));
+            }
+
+            V2StandardMergeGoldenTestSupport.AssertSourceCatalogIsRejected(
+                bundleDirectory,
+                manifest.RootElement.GetProperty("contentHash").GetString()!);
+        }
     }
 
     /// <summary>Verifies the second bundle reaches the shared engine with original input trace names.</summary>
@@ -120,24 +172,4 @@ public sealed class BuiltInV2StandardMergeRoutingTests
                 .Order(StringComparer.Ordinal));
     }
 
-    private static void AssertDeployedBundleMatchesRepository(string bundleDirectory)
-    {
-        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        string sourceRoot = Path.Combine(repositoryRoot, "profiles", "built-in", bundleDirectory);
-        string deployedRoot = Path.Combine(AppContext.BaseDirectory, "profiles", "built-in", bundleDirectory);
-        string[] sourcePaths = [.. Directory.GetFiles(sourceRoot, "*", SearchOption.AllDirectories)
-            .Select(path => Path.GetRelativePath(sourceRoot, path))
-            .Order(StringComparer.Ordinal)];
-        string[] deployedPaths = [.. Directory.GetFiles(deployedRoot, "*", SearchOption.AllDirectories)
-            .Select(path => Path.GetRelativePath(deployedRoot, path))
-            .Order(StringComparer.Ordinal)];
-
-        Assert.Equal(sourcePaths, deployedPaths);
-        foreach (string relativePath in sourcePaths)
-        {
-            Assert.Equal(
-                File.ReadAllBytes(Path.Combine(sourceRoot, relativePath)),
-                File.ReadAllBytes(Path.Combine(deployedRoot, relativePath)));
-        }
-    }
 }

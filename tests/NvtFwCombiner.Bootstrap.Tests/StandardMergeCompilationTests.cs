@@ -50,12 +50,31 @@ public sealed class StandardMergeCompilationTests
         Assert.Equal(baseline.RequiredInputAddressSpaceIds, composition.Plan.RequiredInputAddressSpaceIds);
     }
 
-    /// <summary>An unsupported DP Perspective length returns a stable issue without an artifact.</summary>
-    [Fact]
-    public void UnsupportedDpPerspectiveLengthDoesNotCompile()
+    /// <summary>DP Perspective profiles wait for a selected DP length instead of selecting a maximum container.</summary>
+    [Theory]
+    [InlineData("NT51950")]
+    [InlineData("NT51951")]
+    public void DpPerspectiveProfileWithoutInputLengthRemainsPending(string icId)
     {
         bool succeeded = WorkbenchCompositionService.TryCompileStandardMerge(
-            "NT51950",
+            icId,
+            dpInputLength: null,
+            out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues);
+
+        Assert.False(succeeded);
+        Assert.Null(composition);
+        Assert.Empty(issues);
+    }
+
+    /// <summary>An unsupported DP Perspective length returns a stable issue without an artifact.</summary>
+    [Theory]
+    [InlineData("NT51950")]
+    [InlineData("NT51951")]
+    public void UnsupportedDpPerspectiveLengthDoesNotCompile(string icId)
+    {
+        bool succeeded = WorkbenchCompositionService.TryCompileStandardMerge(
+            icId,
             0x40001,
             out CompiledComposition? composition,
             out IReadOnlyList<CompositionIssue> issues);

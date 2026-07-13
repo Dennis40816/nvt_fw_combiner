@@ -58,12 +58,14 @@ public sealed partial class ShellViewModelTests
     }
 
     /// <summary>Verifies Merge coverage rows expose final ownership without report-level operation text.</summary>
-    [Fact]
-    public void MergeCoverageUsesCompactFinalOwnershipText()
+    [Theory]
+    [InlineData("NT51950")]
+    [InlineData("NT51951")]
+    public void DpPerspectiveMergeCoverageWaitsForSelectedDpLength(string icId)
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.SelectedIc = "NT51950";
+        viewModel.SelectedIc = icId;
 
         MemoryMapRowViewModel initialRow = Assert.Single(
             viewModel.MergeMemoryRows,

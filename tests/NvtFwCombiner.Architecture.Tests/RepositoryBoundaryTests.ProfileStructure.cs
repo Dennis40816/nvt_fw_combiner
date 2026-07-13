@@ -1,3 +1,5 @@
+using System.Xml.Linq;
+
 namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
@@ -80,6 +82,49 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("DpPerspectiveStandardMergeProfiles", dpPerspective, StringComparison.Ordinal);
         Assert.Contains("CreateDpPerspectiveProfileForInputLength", dpPerspective, StringComparison.Ordinal);
         Assert.DoesNotContain("StandardMergeRegion", dpPerspective, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies built-in bundle materialization remains an explicit identity allowlist, never source discovery.</summary>
+    [Fact]
+    public void BuiltInBundleMaterializationUsesExplicitIdentityAllowlist()
+    {
+        string project = ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj");
+        var document = XDocument.Parse(project);
+        XElement[] bundles = [.. document.Descendants("BuiltInProfileBundle")];
+        string[] expectedBundleIds =
+        [
+            "nt51920-standard-merge",
+            "nt51923-standard-merge",
+            "nt51927-standard-merge",
+            "nt51928-standard-merge",
+            "nt51929-standard-merge",
+            "nt51930-standard-merge",
+            "nt51931-standard-merge",
+            "nt51950-nt51951-standard-merge",
+        ];
+
+        Assert.Equal(
+            expectedBundleIds,
+            bundles.Select(bundle => bundle.Attribute("Include")?.Value));
+        foreach (XElement bundle in bundles)
+        {
+            XAttribute include = Assert.Single(bundle.Attributes());
+
+            Assert.Equal("Include", include.Name.LocalName);
+            Assert.Empty(bundle.Elements());
+            Assert.DoesNotContain("*", include.Value, StringComparison.Ordinal);
+            Assert.DoesNotContain("$(", include.Value, StringComparison.Ordinal);
+            Assert.DoesNotContain("@(", include.Value, StringComparison.Ordinal);
+            Assert.DoesNotContain("%(", include.Value, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("$(BuiltInProfileSourceRoot)\\%(BuiltInProfileBundle.Identity)\\**\\*", project, StringComparison.Ordinal);
+        Assert.Contains(
+            "Exclude=\"$(BuiltInProfileSourceRoot)\\%(BuiltInProfileBundle.Identity)\\schemas\\**\\*\"",
+            project,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("<SourceRoot>", project, StringComparison.Ordinal);
+        Assert.DoesNotContain("**\\profile-bundle.json", project, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies DP Perspective operation and region ids stay owned by the DP Perspective catalog.</summary>

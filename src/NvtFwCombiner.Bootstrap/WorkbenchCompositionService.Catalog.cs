@@ -123,9 +123,6 @@ public static partial class WorkbenchCompositionService
     {
         WorkbenchProfileSummary[] summaries =
         [
-            .. BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles
-                .Where(static profile => !IsBuiltInV2StandardMerge(profile.IcId))
-                .Select(CreateProfileSummary),
             .. BuiltInV2StandardMergeRegistrations.Select(static registration => registration.CreateProfileSummary()),
         ];
         return Array.AsReadOnly(

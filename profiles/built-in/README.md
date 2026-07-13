@@ -2,6 +2,12 @@
 
 Built-in IC profiles are added one mode per reviewed change with evidence and golden regression.
 
+`profiles/built-in` is an authoring source tree, not a runtime bundle root. It contains the
+manifest, family, and composition sources but no local schema copies. The Bootstrap build injects
+the manifest-pinned schema bytes from `profiles/schema-source/sha256` into a closed materialized
+root before tests, publish, or runtime loading; source trees must never be passed directly to the
+trusted loader.
+
 `nt51920-standard-merge` is the first canonical V2 migration bundle. Its family/profile ranges,
 operation order, output name, and owner-approved golden bytes are locked against the legacy
 `nt51920-standard-merge-gen-flash` profile. Bootstrap now loads the packaged bundle through its

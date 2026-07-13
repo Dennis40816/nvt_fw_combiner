@@ -1,6 +1,5 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -13,10 +12,8 @@ public sealed class Nt51920V2StandardMergeGoldenTests
     [Fact]
     public async Task TrustedV2BundleMatchesLegacyPlanAndOwnerApprovedGoldenBytes()
     {
-        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        string bundleRoot = Path.Combine(repositoryRoot, "profiles", "built-in", "nt51920-standard-merge");
         CompiledComposition v2 = V2StandardMergeGoldenTestSupport.CompileV2(
-            V2StandardMergeGoldenTestSupport.LoadCatalog(bundleRoot, BundleContentHash),
+            V2StandardMergeGoldenTestSupport.LoadDeployedCatalog("nt51920-standard-merge", BundleContentHash),
             "nt51920-standard-merge-gen-flash",
             "0.5.0",
             "NT51920");
