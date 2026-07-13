@@ -20,6 +20,7 @@ internal sealed partial class CompositionProfileDefinition
         Dictionary<string, CompositionProfileProcessorStage> processors =
             _processorStages.ToDictionary(static processor => processor.ProcessorStageId, StringComparer.Ordinal);
 
+        ValidateIcNumberInputMode();
         ValidateOutputSpace();
         ValidateInputPolicy();
         ValidateSpaces(slots);
@@ -30,6 +31,19 @@ internal sealed partial class CompositionProfileDefinition
         ValidateProcessors(views, spaces);
         ValidateValidations(views, metadataBindings);
         ValidateOutputNaming();
+    }
+
+    private void ValidateIcNumberInputMode()
+    {
+        if (CompositionKind == CompositionKind.Merge && IcNumberInputMode is not null)
+        {
+            throw new ArgumentException("Merge profiles cannot declare an IC-number input mode.");
+        }
+
+        if (CompositionKind == CompositionKind.Replace && IcNumberInputMode is null)
+        {
+            throw new ArgumentException("Replace profiles require an IC-number input mode.");
+        }
     }
 
     private void ValidateOutputSpace()

@@ -8,6 +8,7 @@ internal sealed record CompositionProfileV2DefinitionParts(
     string ProfileVersion,
     CompositionProfilePromotion Promotion,
     CompositionKind CompositionKind,
+    IcNumberInputMode? IcNumberInputMode,
     CompositionProfileExperience Experience,
     CompositionProfileMapBinding MapBinding,
     IReadOnlyList<CompositionProfileInputSlot> InputSlots,
@@ -32,6 +33,7 @@ internal static class CompositionProfileV2DefinitionTestData
             "1.0.0",
             new CompositionProfilePromotion(CompositionProfilePromotionStage.Known, []),
             CompositionKind.Merge,
+            null,
             Experience(ExperienceIds.StandardMerge),
             MapBinding(),
             [TpSlot()],
@@ -87,6 +89,7 @@ internal static class CompositionProfileV2DefinitionTestData
         {
             ProfileId = "synthetic-replace",
             CompositionKind = CompositionKind.Replace,
+            IcNumberInputMode = IcNumberInputMode.SingleSelector,
             Experience = Experience(ExperienceIds.DpReplace),
             InputSlots = [.. merge.InputSlots, reference],
             Spaces =
@@ -115,6 +118,7 @@ internal static class CompositionProfileV2DefinitionTestData
             parts.ProfileVersion,
             parts.Promotion,
             parts.CompositionKind,
+            parts.IcNumberInputMode,
             parts.Experience,
             parts.MapBinding,
             parts.InputSlots,

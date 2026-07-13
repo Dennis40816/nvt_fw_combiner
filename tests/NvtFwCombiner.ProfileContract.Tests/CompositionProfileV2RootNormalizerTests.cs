@@ -18,6 +18,7 @@ public sealed class CompositionProfileV2RootNormalizerTests
 
         Assert.Equal("synthetic-merge", definition.ProfileId);
         Assert.Equal(CompositionKind.Merge, definition.CompositionKind);
+        Assert.Null(definition.IcNumberInputMode);
         Assert.Equal(CompositionProfilePromotionStage.Known, definition.Promotion.Stage);
         Assert.Equal(ExperienceIds.StandardMerge, definition.Experience.ExperienceId);
         Assert.Equal("standard-map", Assert.Single(definition.MapBinding.MapIds));
@@ -40,9 +41,25 @@ public sealed class CompositionProfileV2RootNormalizerTests
             static space => space.Kind == CompositionProfileSpaceKind.OutputImage);
 
         Assert.Equal(CompositionKind.Replace, definition.CompositionKind);
+        Assert.Equal(IcNumberInputMode.SingleSelector, definition.IcNumberInputMode);
         Assert.Equal(ExperienceIds.DpReplace, definition.Experience.ExperienceId);
         Assert.Equal(2, definition.InputSlots.Count);
         Assert.Equal("reference-input", Assert.IsType<CloneProfileInitializer>(output.Initializer).SourceSlotId);
+    }
+
+    /// <summary>Verifies every closed Replace selector token retains its exact profile-owned mode.</summary>
+    [Theory]
+    [InlineData("single-selector", IcNumberInputMode.SingleSelector)]
+    [InlineData("cascade-selector", IcNumberInputMode.CascadeSelector)]
+    [InlineData("numeric-selector", IcNumberInputMode.NumericSelector)]
+    public void RootNormalizerMapsEveryReplaceIcNumberInputMode(
+        string token,
+        IcNumberInputMode expectedMode)
+    {
+        CompositionProfileDefinition definition = CompositionProfileNormalizer.Normalize(
+            ValidReplace() with { IcNumberInputMode = token });
+
+        Assert.Equal(expectedMode, definition.IcNumberInputMode);
     }
 
     /// <summary>Verifies root closed tokens fail before section or graph assembly.</summary>
@@ -56,6 +73,22 @@ public sealed class CompositionProfileV2RootNormalizerTests
 
         Assert.Equal("schemaVersion", schema.Path);
         Assert.Equal("compositionKind", kind.Path);
+    }
+
+    /// <summary>Verifies IC-number selector authority is explicit for Replace and absent for Merge.</summary>
+    [Fact]
+    public void RootNormalizerEnforcesCompositionOwnedIcNumberInputMode()
+    {
+        CompositionProfileNormalizationException unknown = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            CompositionProfileNormalizer.Normalize(ValidMerge() with { IcNumberInputMode = "future" }));
+        CompositionProfileNormalizationException merge = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            CompositionProfileNormalizer.Normalize(ValidMerge() with { IcNumberInputMode = "single-selector" }));
+        CompositionProfileNormalizationException replace = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            CompositionProfileNormalizer.Normalize(ValidReplace() with { IcNumberInputMode = null }));
+
+        Assert.Equal("icNumberInputMode", unknown.Path);
+        Assert.Equal("$", merge.Path);
+        Assert.Equal("$", replace.Path);
     }
 
     /// <summary>Verifies missing top-level objects and arrays retain their field paths.</summary>
@@ -120,6 +153,7 @@ public sealed class CompositionProfileV2RootNormalizerTests
             "1.0.0",
             new CompositionProfilePromotionDocument("known", []),
             "merge",
+            null,
             Experience(ExperienceIds.StandardMerge),
             MapBinding(),
             [TpInput()],
@@ -174,6 +208,7 @@ public sealed class CompositionProfileV2RootNormalizerTests
         {
             ProfileId = "synthetic-replace",
             CompositionKind = "replace",
+            IcNumberInputMode = "single-selector",
             Experience = Experience(ExperienceIds.DpReplace),
             InputSlots = [.. merge.InputSlots, reference],
             Spaces =

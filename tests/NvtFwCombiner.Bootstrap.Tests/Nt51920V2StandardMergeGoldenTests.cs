@@ -7,7 +7,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Golden migration evidence for the first canonical V2 Standard Merge bundle.</summary>
 public sealed class Nt51920V2StandardMergeGoldenTests
 {
-    private const string BundleContentHash = "596fa2f4b8a8043d1892b07f9c4b5bb1cd749b7c7fe20ed194a176c5293c399a";
+    private const string BundleContentHash = "c58c9b68678bd314fa82c5563602001b6fa55d7176142c07067ef08f1b8d720a";
 
     /// <summary>Verifies the trusted NT51920 V2 bundle preserves the legacy plan and owner-approved output bytes.</summary>
     [Fact]

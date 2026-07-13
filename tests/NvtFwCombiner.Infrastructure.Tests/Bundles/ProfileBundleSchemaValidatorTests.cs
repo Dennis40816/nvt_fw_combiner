@@ -192,6 +192,53 @@ public sealed class ProfileBundleSchemaValidatorTests
             32));
     }
 
+    /// <summary>Verifies IC-number selector authority is absent for Merge and explicit for Replace profiles.</summary>
+    [Theory]
+    [InlineData("merge-with-selector", false)]
+    [InlineData("replace-without-selector", false)]
+    [InlineData("replace-with-selector", true)]
+    public void ValidateEntriesEnforcesCompositionIcNumberInputMode(string mutation, bool expectedValid)
+    {
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(
+            TrustedV2BundleTestDocuments.ProfileJson(new string('c', 64))));
+        JsonObject output = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["spaces"])[1]);
+        switch (mutation)
+        {
+            case "merge-with-selector":
+                profile["icNumberInputMode"] = "single-selector";
+                break;
+            case "replace-without-selector":
+                profile["compositionKind"] = "replace";
+                output["initializer"] = new JsonObject
+                {
+                    ["kind"] = "clone",
+                    ["sourceSlotId"] = "tp-input",
+                };
+                break;
+            case "replace-with-selector":
+                profile["compositionKind"] = "replace";
+                profile["icNumberInputMode"] = "single-selector";
+                output["initializer"] = new JsonObject
+                {
+                    ["kind"] = "clone",
+                    ["sourceSlotId"] = "tp-input",
+                };
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(mutation), mutation, "Unknown profile mutation.");
+        }
+
+        ProfileBundleEntrySnapshotCollection collection = CaptureCompositionProfile(profile.ToJsonString());
+        if (expectedValid)
+        {
+            ProfileBundleSchemaValidator.ValidateEntries(collection, 32);
+            return;
+        }
+
+        _ = Assert.Throws<InvalidDataException>(() =>
+            ProfileBundleSchemaValidator.ValidateEntries(collection, 32));
+    }
+
     /// <summary>Verifies the executable V2 schema bounds optional Normal-DP outer-container expectations.</summary>
     [Theory]
     [InlineData("valid")]

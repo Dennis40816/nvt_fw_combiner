@@ -29,6 +29,9 @@
     "profileVersion": { "$ref": "#/$defs/semver" },
     "promotion": { "$ref": "#/$defs/promotion" },
     "compositionKind": { "enum": ["merge", "replace"] },
+    "icNumberInputMode": {
+      "enum": ["single-selector", "cascade-selector", "numeric-selector"]
+    },
     "experience": { "$ref": "#/$defs/experience" },
     "mapBinding": { "$ref": "#/$defs/mapBinding" },
     "inputSlots": {
@@ -88,6 +91,7 @@
         "required": ["compositionKind"]
       },
       "then": {
+        "not": { "required": ["icNumberInputMode"] },
         "properties": {
           "spaces": {
             "contains": {
@@ -110,7 +114,11 @@
         "required": ["compositionKind"]
       },
       "then": {
+        "required": ["icNumberInputMode"],
         "properties": {
+          "icNumberInputMode": {
+            "enum": ["single-selector", "cascade-selector", "numeric-selector"]
+          },
           "spaces": {
             "contains": {
               "properties": {

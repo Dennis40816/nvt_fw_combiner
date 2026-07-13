@@ -20,6 +20,7 @@ internal sealed partial class CompositionProfileDefinition
         string profileVersion,
         CompositionProfilePromotion promotion,
         CompositionKind compositionKind,
+        IcNumberInputMode? icNumberInputMode,
         CompositionProfileExperience experience,
         CompositionProfileMapBinding mapBinding,
         IEnumerable<CompositionProfileInputSlot> inputSlots,
@@ -41,6 +42,14 @@ internal sealed partial class CompositionProfileDefinition
         if (!Enum.IsDefined(compositionKind))
         {
             throw new ArgumentOutOfRangeException(nameof(compositionKind), compositionKind, "Unknown composition kind.");
+        }
+
+        if (icNumberInputMode is { } declaredIcNumberInputMode && !Enum.IsDefined(declaredIcNumberInputMode))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(icNumberInputMode),
+                declaredIcNumberInputMode,
+                "Unknown IC-number input mode.");
         }
 
         ArgumentNullException.ThrowIfNull(experience);
@@ -105,6 +114,7 @@ internal sealed partial class CompositionProfileDefinition
 
         Promotion = promotion;
         CompositionKind = compositionKind;
+        IcNumberInputMode = icNumberInputMode;
         Experience = experience;
         MapBinding = mapBinding;
         InputSlots = Array.AsReadOnly(_inputSlots);
@@ -128,6 +138,9 @@ internal sealed partial class CompositionProfileDefinition
     internal CompositionProfilePromotion Promotion { get; }
 
     internal CompositionKind CompositionKind { get; }
+
+    /// <summary>Replace-only profile authority for the caller's IC-number selection.</summary>
+    internal IcNumberInputMode? IcNumberInputMode { get; }
 
     internal CompositionProfileExperience Experience { get; }
 

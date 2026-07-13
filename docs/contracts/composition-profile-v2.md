@@ -34,12 +34,16 @@ resource ceiling.
 - input, work-buffer, and final-output address spaces;
 - logical views over map regions or profile-owned source/work ranges;
 - metadata bindings, region authoring access, validations, and promotion state;
+- the Replace-only IC-number selector policy;
 - one ordered operation list and closed processor stages; and
 - output naming.
 
 ## Compiled Plan Boundary
 
-When a profile is admitted to one resolved map, lowering produces one V2 plan artifact. The
+When a profile is admitted to one resolved map, lowering produces one V2 plan artifact. `Merge`
+profiles omit `icNumberInputMode`; `Replace` profiles must declare exactly one of
+`single-selector`, `cascade-selector`, or `numeric-selector`. This is profile execution authority,
+not an experience, UI, or member-id inference. The
 `V2PlanCompiled` eligibility remains non-executable. The separate `V2RuntimeExecutable` eligibility
 is minted only by the Profiles compiler for the closed blank-output Merge subset when promotion is
 exactly `supported`, blockers are empty, each input slot has exactly one immutable singleton space,

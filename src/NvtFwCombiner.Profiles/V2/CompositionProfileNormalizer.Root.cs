@@ -16,6 +16,9 @@ internal static partial class CompositionProfileNormalizer
         CompositionKind compositionKind = NormalizeCompositionKind(
             document.CompositionKind,
             "compositionKind");
+        IcNumberInputMode? icNumberInputMode = NormalizeIcNumberInputMode(
+            document.IcNumberInputMode,
+            "icNumberInputMode");
         CompositionProfilePromotion promotion = NormalizePromotion(
             RequireObject(document.Promotion, "promotion"),
             "promotion");
@@ -67,6 +70,7 @@ internal static partial class CompositionProfileNormalizer
             document.ProfileVersion,
             promotion,
             compositionKind,
+            icNumberInputMode,
             experience,
             mapBinding,
             inputSlots,
@@ -88,6 +92,18 @@ internal static partial class CompositionProfileNormalizer
             "merge" => CompositionKind.Merge,
             "replace" => CompositionKind.Replace,
             _ => throw Error(path, "Unknown composition kind."),
+        };
+    }
+
+    private static IcNumberInputMode? NormalizeIcNumberInputMode(string? value, string path)
+    {
+        return value switch
+        {
+            null => null,
+            "single-selector" => IcNumberInputMode.SingleSelector,
+            "cascade-selector" => IcNumberInputMode.CascadeSelector,
+            "numeric-selector" => IcNumberInputMode.NumericSelector,
+            _ => throw Error(path, "Unknown IC-number input mode."),
         };
     }
 

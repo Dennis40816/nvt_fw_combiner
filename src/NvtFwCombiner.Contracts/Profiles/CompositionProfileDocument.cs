@@ -7,6 +7,7 @@ public sealed record CompositionProfileDocument(
     string ProfileVersion,
     CompositionProfilePromotionDocument Promotion,
     string CompositionKind,
+    string? IcNumberInputMode,
     CompositionProfileExperienceDocument Experience,
     CompositionProfileMapBindingDocument MapBinding,
     IReadOnlyList<CompositionProfileInputSlotDocument> InputSlots,
