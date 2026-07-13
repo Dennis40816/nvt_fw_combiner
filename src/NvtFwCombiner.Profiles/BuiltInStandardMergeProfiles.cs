@@ -1,9 +1,9 @@
 namespace NvtFwCombiner.Profiles;
 
-/// <summary>Built-in standard merge profiles used as executable contract evidence.</summary>
+/// <summary>Legacy Standard Merge profiles retained as executable plan and golden parity evidence.</summary>
 public static partial class BuiltInStandardMergeProfiles
 {
-    /// <summary>All executable built-in standard merge profiles exposed by CLI/UI.</summary>
+    /// <summary>All executable legacy Standard Merge profiles used by migration parity tests, never runtime routing.</summary>
     public static IReadOnlyList<CompositionProfileDefinition> ExecutableStandardMergeProfiles =>
     [
         .. GenFlashStandardMergeProfiles,

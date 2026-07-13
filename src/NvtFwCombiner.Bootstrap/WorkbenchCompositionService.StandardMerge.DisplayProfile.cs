@@ -33,8 +33,7 @@ public static partial class WorkbenchCompositionService
     private static bool IsStandardMergeDpLengthPending(string icId, long? dpInputLength)
     {
         return dpInputLength is null &&
-            (IsBuiltInV2StandardMergeMapCapacityPending(icId) ||
-             (!IsBuiltInV2StandardMerge(icId) && IcMetadataFacade.IsDpPerspectiveIc(icId)));
+            IsBuiltInV2StandardMergeMapCapacityPending(icId);
     }
 
     private static string FormatStandardMergeInitializationRangeLabel(

@@ -114,11 +114,6 @@ public static partial class WorkbenchCompositionService
     private static IReadOnlyList<BuiltInV2StandardMergeRegistration> BuiltInV2StandardMergeRegistrations =>
         s_builtInV2StandardMergeRegistrations;
 
-    private static bool IsBuiltInV2StandardMerge(string icId)
-    {
-        return s_builtInV2StandardMergeByIc.ContainsKey(icId);
-    }
-
     private static bool TryGetBuiltInV2StandardMergeCompilation(
         string icId,
         long? dpInputLength,
@@ -140,6 +135,11 @@ public static partial class WorkbenchCompositionService
     {
         return s_builtInV2StandardMergeByIc.TryGetValue(icId, out BuiltInV2StandardMergeRegistration? registration) &&
             registration.HasMultipleMapCapacities;
+    }
+
+    private static string FormatStandardMergeSupportedDpLengths()
+    {
+        return DpPerspectiveCatalog.FormatSupportedLengths();
     }
 
     private static bool TryGetBuiltInV2StandardMergeAuthoringDefaultCapacity(

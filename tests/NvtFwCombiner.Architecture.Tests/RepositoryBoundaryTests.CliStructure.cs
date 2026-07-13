@@ -206,8 +206,11 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Contains("out CompiledComposition? composition", resolver, StringComparison.Ordinal);
         Assert.Contains("SequenceEqual", cli, StringComparison.Ordinal);
-        Assert.Contains("CreateDpPerspectiveProfileForInputLength", resolver, StringComparison.Ordinal);
-        Assert.Contains("CompositionProfileCompiler.Compile", resolver, StringComparison.Ordinal);
+        Assert.Contains("TryGetBuiltInV2StandardMergeCompilation", resolver, StringComparison.Ordinal);
+        Assert.DoesNotContain("CreateDpPerspectiveProfileForInputLength", resolver, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileCompiler.Compile", resolver, StringComparison.Ordinal);
+        Assert.DoesNotContain("BuiltInStandardMergeProfiles", resolver, StringComparison.Ordinal);
+        Assert.DoesNotContain("NvtFwCombiner.Profiles", resolver, StringComparison.Ordinal);
         Assert.DoesNotContain("new CompositionPlan", resolver, StringComparison.Ordinal);
         Assert.DoesNotContain("new CompositionOperation", resolver, StringComparison.Ordinal);
         Assert.DoesNotContain("RunCompiledCompositionAsync", resolver, StringComparison.Ordinal);

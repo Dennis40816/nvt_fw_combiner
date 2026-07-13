@@ -87,7 +87,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("CompositionRunRequest request = new(", runner, StringComparison.Ordinal);
         Assert.DoesNotContain("CompiledCompositionRunAdapter", runner, StringComparison.Ordinal);
         Assert.Contains("private static string FormatIssues", common, StringComparison.Ordinal);
-        Assert.Contains("StandardMergeProfilesByIc", standardMergeCompilation, StringComparison.Ordinal);
+        Assert.DoesNotContain("StandardMergeProfilesByIc", standardMergeCompilation, StringComparison.Ordinal);
+        Assert.DoesNotContain("BuiltInStandardMergeProfiles", standardMergeCompilation, StringComparison.Ordinal);
+        Assert.DoesNotContain("BuiltInStandardMergeProfiles", catalog, StringComparison.Ordinal);
         Assert.Contains("TryGetBuiltInV2StandardMergeCompilation", standardMergeCompilation, StringComparison.Ordinal);
         Assert.DoesNotContain("Nt51920V2", standardMergeCompilation, StringComparison.Ordinal);
         Assert.DoesNotContain("StandardMergeProfilesByIc", standardMerge, StringComparison.Ordinal);
