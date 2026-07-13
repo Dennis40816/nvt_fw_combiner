@@ -15,6 +15,8 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 - `v0.7.5` — patch milestone for bilingual English/Traditional Chinese UI resources and functional Settings state. It does not expand firmware support scope or private golden parity claims.
 - `v0.8.0` — milestone for report readability, Home workflow discoverability, General Merge shortcut exposure, report-history spacing, and repository structure cleanup. It does not claim `v1.0.0` full support-matrix sign-off or complete private golden parity.
 - `v0.9.0` — stable Util Tools raw-BIN Hex Editor milestone: one source read into memory, direct byte and range edits, overwrite/fill/insert/delete, ASCII search, structural diff navigation, undo/redo, and confirmed Save As-only output. It has no IC, profile, Flash Map, CRC, postbuild, General Replace, or report behavior and makes no firmware-validity claim.
+- `v0.9.1` — firmware-model-v2 migration milestone: trusted profile bundles, canonical family/map selection, compiled-composition runtime admission, and Normal/Standard Merge routing retain existing byte evidence. It does not promote IC support without firmware-owner review.
+- `v0.9.2` — profile-bundle consolidation milestone: content-addressed schema source inventory and deterministic closed-root materialization reduce repeated schema snapshots without changing loader trust boundaries or firmware behavior.
 
 ## Branch and merge policy
 
@@ -26,6 +28,8 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 - `0.7.5` is the patch train for bilingual UI resources and Settings functionality on top of `0.7.4`.
 - `0.8.0` is the tagged post-`0.7.5` milestone for repository structure consolidation, report readability, workflow discoverability, and remaining release evidence closure.
 - `0.9.0` is the integration branch for the standalone raw-BIN Hex Editor milestone and subsequent UAT fixes after the reviewed stable tag.
+- `0.9.1` is the integration branch for the firmware-model-v2 migration after `0.9.0`.
+- `0.9.2` follows the reviewed `0.9.1` tag and is limited to trust-preserving profile-bundle consolidation before AB Code work resumes.
 - `main` is the stable branch.
 - Progress to `main` must happen through reviewed merge/PR, not direct unreviewed development pushes.
 - Agent/Codex work should stay on the active milestone branch until review gates pass.
@@ -48,6 +52,8 @@ Current execution priority: normal Merge and normal Replace for DP Replace and C
 | `0.8.0-dev.N` | Structure, catalog ownership, packaging/security | IC onboarding catalogs, large-file containment, release packaging, tool manifests, smoke tests. |
 | `v0.9.0` | Stable raw-BIN utility milestone | Standalone bounded Hex Editor, internal sign-off, and release packaging. |
 | `0.9.x` | UAT stabilization | Corrective UX and reliability patches without expanding firmware support claims. |
+| `v0.9.1` | Firmware-model-v2 migration | Canonical V2 profile/family/map compilation and runtime routing retain existing Normal/Replace parity; owner promotion gates remain explicit. |
+| `v0.9.2` | Profile-bundle consolidation | Content-addressed schema source inventory materializes the same closed runtime roots; no firmware semantics or AB behavior changes. |
 | `v1.0.0` | stable | Signed-off support matrix. |
 
 ## First-sample `v1.0.0` release gate
