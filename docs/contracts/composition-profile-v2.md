@@ -111,9 +111,11 @@ every declared artifact and cannot refer to an undeclared artifact.
 
 ## Input size policy
 
-Every input declares an `artifactClass` and a closed length policy. `tp-firmware` and
-`tp-maximum-256k` are an exclusive pair: neither may be declared without the other. Its fixed limit is
-262144 bytes and it fails when oversized. A normal
+Every input declares an `artifactClass` and a closed length policy. `tp-firmware` uses either
+`tp-maximum-256k` or `exact-bytes` no greater than 262144 bytes, always without normalization.
+`tp-maximum-256k` extracts the exact declared source span from a TP artifact within the fixed owner
+limit; `exact-bytes` requires one exact TP artifact length and permits a same-capacity engine-owned
+work buffer to clone it. A normal
 `dp-firmware` source whose outer file length is not controlled uses
 `normal-dp-extract-with-warning`: all referenced views must be in bounds, any difference from the
 declared expected outer-container lengths emits the declared warning, and operations copy only those
@@ -121,8 +123,9 @@ views. The optional `expectedInputLengths` list has one to eight positive, stric
 when omitted, the compiler materializes the selected map capacity as the sole expectation. Every
 declared expectation must cover the greatest end-exclusive source view. A whole DP flow such as the
 NT51950/NT51951 full-copy path uses `exact-resolved-map-capacity` and fails on mismatch.
-`exact-bytes` and `bounded` remain available only for artifact classes whose owner policy does not
-require one of those firmware-specific rules.
+`bounded` remains available only for artifact classes whose owner policy does not require one of
+those firmware-specific rules. `exact-bytes` is otherwise available only for artifact classes whose
+owner policy permits it.
 
 `pad-shorter` and `truncate-ctrlram` require evidence and mutate only a transient input buffer.
 Padding is DP-only, `dp-replace` only, and forbidden when any processor/integrity stage exists.

@@ -74,6 +74,54 @@ public sealed partial class CompiledCompositionTests
         _ = Assert.Throws<ArgumentException>(() => CreateV2(inputContract: contract));
     }
 
+    /// <summary>Verifies exact TP inputs cannot weaken their immutable four-byte plan geometry.</summary>
+    [Fact]
+    public void V2PlanArtifactRejectsRelaxedExactTpInputGeometry()
+    {
+        var contract = new CompiledInputContract(
+            [new CompiledInputSlotRequirement(
+                "tp-slot",
+                "tp",
+                CompiledInputArtifactClass.TpFirmware,
+                required: true,
+                CompiledInputSlotCardinality.ExactlyOne,
+                [".bin"],
+                new CompiledExactBytesInputLengthRequirement(4),
+                new CompiledNoInputNormalization())],
+            [new CompiledInputSpaceBinding("input", "tp-slot", CompiledInputInstancePolicy.Singleton)]);
+
+        AddressSpace[] relaxedInputs =
+        [
+            new AddressSpace(
+                "input",
+                4,
+                AddressSpaceMutability.Immutable,
+                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange),
+            new AddressSpace(
+                "input",
+                4,
+                AddressSpaceMutability.Immutable,
+                inputPaddingByte: 0),
+            new AddressSpace(
+                "input",
+                4,
+                AddressSpaceMutability.Immutable,
+                allowedInputLengths: [4]),
+            new AddressSpace(
+                "input",
+                4,
+                AddressSpaceMutability.Immutable,
+                expectedInputLengths: [4]),
+        ];
+
+        foreach (AddressSpace input in relaxedInputs)
+        {
+            _ = Assert.Throws<ArgumentException>(() => CreateV2(
+                inputContract: contract,
+                plan: ExactTpPlan(input)));
+        }
+    }
+
     /// <summary>Verifies every closed input length and normalization shape retains its typed payload.</summary>
     [Fact]
     public void V2InputSlotRequirementsRetainClosedLengthAndNormalizationPayloads()
@@ -90,6 +138,10 @@ public sealed partial class CompiledCompositionTests
         CompiledInputSlotRequirement tp = new(
             "tp", "tp", CompiledInputArtifactClass.TpFirmware, true, CompiledInputSlotCardinality.ExactlyOne,
             [".bin"], new CompiledTpMaximum256KInputLengthRequirement(), new CompiledNoInputNormalization());
+        CompiledInputSlotRequirement exactTp = new(
+            "tp-exact", "tp", CompiledInputArtifactClass.TpFirmware, true, CompiledInputSlotCardinality.ExactlyOne,
+            [".bin"], new CompiledExactBytesInputLengthRequirement(CompiledTpMaximum256KInputLengthRequirement.MaximumBytes),
+            new CompiledNoInputNormalization());
         CompiledInputSlotRequirement padded = new(
             "dp-padded", "dp", CompiledInputArtifactClass.DpFirmware, true, CompiledInputSlotCardinality.ExactlyOne,
             [".bin"], new CompiledExactResolvedMapCapacityInputLengthRequirement(16),
@@ -108,6 +160,9 @@ public sealed partial class CompiledCompositionTests
         Assert.Equal("DP_SIZE", normalDpLength.IssueCode);
         Assert.Equal([12L, 16L], normalDpLength.ExpectedInputLengths);
         _ = Assert.IsType<CompiledTpMaximum256KInputLengthRequirement>(tp.LengthRequirement);
+        Assert.Equal(
+            CompiledTpMaximum256KInputLengthRequirement.MaximumBytes,
+            Assert.IsType<CompiledExactBytesInputLengthRequirement>(exactTp.LengthRequirement).Bytes);
         Assert.Equal(262144, CompiledTpMaximum256KInputLengthRequirement.MaximumBytes);
         Assert.Equal((byte)0xFF, Assert.IsType<CompiledPadShorterInputNormalization>(padded.Normalization).FillByte);
         Assert.Equal(
@@ -115,7 +170,8 @@ public sealed partial class CompiledCompositionTests
             Assert.IsType<CompiledTruncateCtrlRamInputNormalization>(truncated.Normalization).WarningIssueCode);
         _ = Assert.Throws<ArgumentException>(() => new CompiledInputSlotRequirement(
             "bad-tp", "tp", CompiledInputArtifactClass.TpFirmware, true, CompiledInputSlotCardinality.ExactlyOne,
-            [".bin"], new CompiledExactBytesInputLengthRequirement(16), new CompiledNoInputNormalization()));
+            [".bin"], new CompiledExactBytesInputLengthRequirement(
+                CompiledTpMaximum256KInputLengthRequirement.MaximumBytes + 1), new CompiledNoInputNormalization()));
         _ = Assert.Throws<ArgumentException>(() => new CompiledInputSlotRequirement(
             "bad-pad", "reference", CompiledInputArtifactClass.ReferenceImage, true,
             CompiledInputSlotCardinality.ExactlyOne, [".bin"],
@@ -134,6 +190,25 @@ public sealed partial class CompiledCompositionTests
             "bad-ctrlram-tp", "ctrlram", CompiledInputArtifactClass.CtrlRamReplacement, true,
             CompiledInputSlotCardinality.ExactlyOne, [".bin"],
             new CompiledTpMaximum256KInputLengthRequirement(), new CompiledNoInputNormalization()));
+    }
+
+    private static CompositionPlan ExactTpPlan(AddressSpace input)
+    {
+        return new CompositionPlan(
+            ImageInitialization.Blank("output-image", 4, 0),
+            [
+                input,
+                new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable),
+            ],
+            [CompositionOperation.CopyRange(
+                "copy-input",
+                10,
+                "input",
+                new ByteRange(0, 4),
+                "output-image",
+                new ByteRange(0, 4),
+                OverlapPolicy.Reject,
+                "copy exact TP input")]);
     }
 
     /// <summary>Verifies complete typed input and capability admission policy participates in V2 compilation identity.</summary>

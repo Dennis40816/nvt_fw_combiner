@@ -14,28 +14,28 @@ public static partial class WorkbenchCompositionService
 
     private static readonly BuiltInV2Bundle s_nt51920V2Bundle = new(
         "profiles\\built-in\\nt51920-standard-merge",
-        "c58c9b68678bd314fa82c5563602001b6fa55d7176142c07067ef08f1b8d720a");
+        "3bb76d56656642af553ff012a619ca8fc38fb7cdabf8ac674e5433998357f9f2");
     private static readonly BuiltInV2Bundle s_nt51929FamilyV2Bundle = new(
         "profiles\\built-in\\nt51929-standard-merge",
-        "eb30675d297323914fb0e587165ecd124ee2f89a10fa9a7e55a19309b8784de8");
+        "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09");
     private static readonly BuiltInV2Bundle s_nt51923FamilyV2Bundle = new(
         "profiles\\built-in\\nt51923-standard-merge",
-        "56bc8a3d68b0015461bc903fa1a17fdb172715b61e1fa879506ddcc3a71c9038");
+        "6bac75eb386ff08c3fa6970e54b3c1dca35722ddaeaf52b67068a127c4e85a96");
     private static readonly BuiltInV2Bundle s_nt51930V2Bundle = new(
         "profiles\\built-in\\nt51930-standard-merge",
-        "3803b473fd0f133d33c66299199f6202a72e1c83eb8c9e6e910f191d1fadd00d");
+        "b9ca3d66d8674d080b4e0c8563110dfd305b3df18746f5164e7ed45514e0714e");
     private static readonly BuiltInV2Bundle s_nt51931V2Bundle = new(
         "profiles\\built-in\\nt51931-standard-merge",
-        "94c36258a6d981a5fa7133811d38bae175b1ff82b67a2df3abcaf090e03ec0d4");
+        "a7b3534afce6d2fe107363e41554668a71832f203168c81fa09e9f98a1a5815f");
     private static readonly BuiltInV2Bundle s_nt51927V2Bundle = new(
         "profiles\\built-in\\nt51927-standard-merge",
-        "67a314a3763b81e348960bafb5e743e5fc1df553d8590544a6d8d52706038afe");
+        "751f44c7dd790a826e9ab17747b933542c691125bdee8b975c9c764e4f2ef4b1");
     private static readonly BuiltInV2Bundle s_nt51928V2Bundle = new(
         "profiles\\built-in\\nt51928-standard-merge",
-        "961224d53b236e851039d65765654674ff65ba75a7cedc7ee9e5d6c9a6165bb5");
+        "27de29151abd1305a8ebf6ba25118acbf59392efd362d362699310a5564ad5af");
     private static readonly BuiltInV2Bundle s_nt51950Nt51951V2Bundle = new(
         "profiles\\built-in\\nt51950-nt51951-standard-merge",
-        "25a3005877d7ac29efa9197e43133f9d10265c7ab002aa9f7a82eb873e1bd129");
+        "65987f6b1e41feaca92e7b258bca282df9ae133f90db6877ba6b97c04d91f0f4");
     private static readonly ReadOnlyCollection<BuiltInV2StandardMergeRegistration> s_builtInV2StandardMergeRegistrations =
         Array.AsReadOnly(
         [

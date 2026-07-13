@@ -354,10 +354,11 @@ public sealed class CompiledInputSlotRequirement
         CompiledInputNormalization normalization)
     {
         if (artifactClass == CompiledInputArtifactClass.TpFirmware &&
-            (lengthRequirement.Kind != CompiledInputLengthRequirementKind.TpMaximum256K ||
+            (!IsApprovedTpLengthRequirement(lengthRequirement) ||
              normalization.Kind != CompiledInputNormalizationKind.None))
         {
-            throw new ArgumentException("TP firmware requires the fixed 256 KiB rule without normalization.");
+            throw new ArgumentException(
+                "TP firmware requires an unnormalized maximum-256-KiB or exact-within-256-KiB length rule.");
         }
 
         if (lengthRequirement.Kind == CompiledInputLengthRequirementKind.TpMaximum256K &&
@@ -404,6 +405,15 @@ public sealed class CompiledInputSlotRequirement
         {
             throw new ArgumentException("Normal DP extraction warnings cannot normalize input bytes.");
         }
+    }
+
+    private static bool IsApprovedTpLengthRequirement(CompiledInputLengthRequirement lengthRequirement)
+    {
+        return lengthRequirement is CompiledTpMaximum256KInputLengthRequirement or
+            CompiledExactBytesInputLengthRequirement
+        {
+            Bytes: <= CompiledTpMaximum256KInputLengthRequirement.MaximumBytes,
+        };
     }
 
 }

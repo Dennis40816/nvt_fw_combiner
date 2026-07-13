@@ -9,16 +9,16 @@ public sealed class CanonicalV2StandardMergeGoldenTests
 {
     /// <summary>Verifies every family member retains legacy plan geometry and the owner-approved reference bytes.</summary>
     [Theory]
-    [InlineData("nt51929-standard-merge", "eb30675d297323914fb0e587165ecd124ee2f89a10fa9a7e55a19309b8784de8", "NT51919", "nt51919-standard-merge-gen-flash-alias", "51929", "nt51919-standard-merge-gen-flash-alias.bin", 0x6000, 0x40000, true)]
-    [InlineData("nt51929-standard-merge", "eb30675d297323914fb0e587165ecd124ee2f89a10fa9a7e55a19309b8784de8", "NT51929", "nt51929-standard-merge-gen-flash", "51929", "nt51929-standard-merge-gen-flash.bin", 0x6000, 0x40000, false)]
-    [InlineData("nt51929-standard-merge", "eb30675d297323914fb0e587165ecd124ee2f89a10fa9a7e55a19309b8784de8", "NT51932", "nt51932-standard-merge-gen-flash", "51932", "nt51932-standard-merge-gen-flash.bin", 0x6000, 0x40000, false)]
-    [InlineData("nt51923-standard-merge", "56bc8a3d68b0015461bc903fa1a17fdb172715b61e1fa879506ddcc3a71c9038", "NT51923", "nt51923-standard-merge-gen-flash", "51923", "nt51923-standard-merge-gen-flash.bin", 0x40000, 0x40000, false)]
-    [InlineData("nt51923-standard-merge", "56bc8a3d68b0015461bc903fa1a17fdb172715b61e1fa879506ddcc3a71c9038", "NT51926", "nt51926-standard-merge-gen-flash", "51926", "nt51926-standard-merge-gen-flash.bin", 0x40000, 0x40000, false)]
-    [InlineData("nt51930-standard-merge", "3803b473fd0f133d33c66299199f6202a72e1c83eb8c9e6e910f191d1fadd00d", "NT51930", "nt51930-standard-merge-flashmap", "51930", "nt51930-standard-merge-flashmap.bin", 0x6000, 0x40000, false)]
-    [InlineData("nt51931-standard-merge", "94c36258a6d981a5fa7133811d38bae175b1ff82b67a2df3abcaf090e03ec0d4", "NT51931", "nt51931-standard-merge-gen-flash", "51931", "nt51931-standard-merge-gen-flash.bin", 0x40000, 0x80000, false)]
-    [InlineData("nt51927-standard-merge", "67a314a3763b81e348960bafb5e743e5fc1df553d8590544a6d8d52706038afe", "NT51917", "nt51917-standard-merge-gen-flash-alias", "51927", "nt51917-standard-merge-gen-flash-alias.bin", 0x40000, 0x200000, true)]
-    [InlineData("nt51927-standard-merge", "67a314a3763b81e348960bafb5e743e5fc1df553d8590544a6d8d52706038afe", "NT51927", "nt51927-standard-merge-gen-flash", "51927", "nt51927-standard-merge-gen-flash.bin", 0x40000, 0x200000, false)]
-    [InlineData("nt51928-standard-merge", "961224d53b236e851039d65765654674ff65ba75a7cedc7ee9e5d6c9a6165bb5", "NT51928", "nt51928-standard-merge-gen-flash", "51928", "nt51928-standard-merge-gen-flash.bin", 0x40000, 0x80000, false)]
+    [InlineData("nt51929-standard-merge", "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09", "NT51919", "nt51919-standard-merge-gen-flash-alias", "51929", "nt51919-standard-merge-gen-flash-alias.bin", 0x6000, 0x40000, true)]
+    [InlineData("nt51929-standard-merge", "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09", "NT51929", "nt51929-standard-merge-gen-flash", "51929", "nt51929-standard-merge-gen-flash.bin", 0x6000, 0x40000, false)]
+    [InlineData("nt51929-standard-merge", "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09", "NT51932", "nt51932-standard-merge-gen-flash", "51932", "nt51932-standard-merge-gen-flash.bin", 0x6000, 0x40000, false)]
+    [InlineData("nt51923-standard-merge", "6bac75eb386ff08c3fa6970e54b3c1dca35722ddaeaf52b67068a127c4e85a96", "NT51923", "nt51923-standard-merge-gen-flash", "51923", "nt51923-standard-merge-gen-flash.bin", 0x40000, 0x40000, false)]
+    [InlineData("nt51923-standard-merge", "6bac75eb386ff08c3fa6970e54b3c1dca35722ddaeaf52b67068a127c4e85a96", "NT51926", "nt51926-standard-merge-gen-flash", "51926", "nt51926-standard-merge-gen-flash.bin", 0x40000, 0x40000, false)]
+    [InlineData("nt51930-standard-merge", "b9ca3d66d8674d080b4e0c8563110dfd305b3df18746f5164e7ed45514e0714e", "NT51930", "nt51930-standard-merge-flashmap", "51930", "nt51930-standard-merge-flashmap.bin", 0x6000, 0x40000, false)]
+    [InlineData("nt51931-standard-merge", "a7b3534afce6d2fe107363e41554668a71832f203168c81fa09e9f98a1a5815f", "NT51931", "nt51931-standard-merge-gen-flash", "51931", "nt51931-standard-merge-gen-flash.bin", 0x40000, 0x80000, false)]
+    [InlineData("nt51927-standard-merge", "751f44c7dd790a826e9ab17747b933542c691125bdee8b975c9c764e4f2ef4b1", "NT51917", "nt51917-standard-merge-gen-flash-alias", "51927", "nt51917-standard-merge-gen-flash-alias.bin", 0x40000, 0x200000, true)]
+    [InlineData("nt51927-standard-merge", "751f44c7dd790a826e9ab17747b933542c691125bdee8b975c9c764e4f2ef4b1", "NT51927", "nt51927-standard-merge-gen-flash", "51927", "nt51927-standard-merge-gen-flash.bin", 0x40000, 0x200000, false)]
+    [InlineData("nt51928-standard-merge", "27de29151abd1305a8ebf6ba25118acbf59392efd362d362699310a5564ad5af", "NT51928", "nt51928-standard-merge-gen-flash", "51928", "nt51928-standard-merge-gen-flash.bin", 0x40000, 0x80000, false)]
     public async Task TrustedV2BundleMatchesLegacyPlanAndOwnerApprovedGoldenBytes(
         string bundleDirectory,
         string bundleContentHash,

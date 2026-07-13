@@ -211,6 +211,9 @@ public sealed partial class CompiledComposition
 
             switch (requirement.LengthRequirement)
             {
+                case CompiledExactBytesInputLengthRequirement exact:
+                    ValidateExactBytesInputGeometry(requirement, exact, addressSpace);
+                    break;
                 case CompiledExactResolvedMapCapacityInputLengthRequirement exact:
                     ValidateExactResolvedMapCapacityInputGeometry(
                         plan,
@@ -239,7 +242,7 @@ public sealed partial class CompiledComposition
                     break;
                 default:
                     throw new ArgumentException(
-                        "Current V2 plan artifacts support only exact-map-capacity, normal-DP extraction, or TP-maximum input requirements.",
+                        "Current V2 plan artifacts support only exact-map-capacity, normal-DP extraction, TP-maximum, or exact TP input requirements.",
                         nameof(details));
             }
         }
@@ -273,6 +276,26 @@ public sealed partial class CompiledComposition
                 addressSpace,
                 requirement,
                 details.RegionAccessContract.ResolvedViews);
+        }
+    }
+
+    private static void ValidateExactBytesInputGeometry(
+        CompiledInputSlotRequirement requirement,
+        CompiledExactBytesInputLengthRequirement exact,
+        AddressSpace addressSpace)
+    {
+        if (requirement.ArtifactClass != CompiledInputArtifactClass.TpFirmware ||
+            requirement.Normalization is not CompiledNoInputNormalization ||
+            exact.Bytes > CompiledTpMaximum256KInputLengthRequirement.MaximumBytes ||
+            addressSpace.Length != exact.Bytes ||
+            addressSpace.InputPaddingByte is not null ||
+            addressSpace.InputOversizePolicy != InputOversizePolicy.Reject ||
+            addressSpace.AllowedInputLengths.Count != 0 ||
+            addressSpace.ExpectedInputLengths.Count != 0)
+        {
+            throw new ArgumentException(
+                "Exact TP input requirements must be unnormalized, within 256 KiB, and match an exact immutable plan space.",
+                nameof(requirement));
         }
     }
 

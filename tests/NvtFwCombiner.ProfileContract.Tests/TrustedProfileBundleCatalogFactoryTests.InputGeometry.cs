@@ -87,6 +87,43 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal("profile.v2.plan.invalid-input-geometry", Assert.Single(overflow.Issues).Code);
     }
 
+    /// <summary>Verifies an exact TP source can clone a same-capacity engine-owned work buffer without extraction or padding.</summary>
+    [Fact]
+    public void BlankOutputLoweringClonesWorkBufferFromExactTpInput()
+    {
+        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+            familyHash => ProfileWithWorkBuffer(
+                ProfileWithExactTpInput(SupportedProfileJson(familyHash), 16),
+                cloneSourceSlotId: "tp-input")));
+
+        CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
+        AddressSpace input = Assert.Single(composition.Plan.AddressSpaces, space => space.AddressSpaceId == "tp-source");
+        ImageInitialization scratch = Assert.Single(
+            composition.Plan.Initializations,
+            static initialization => initialization.TargetSpaceId == "scratch");
+        CompiledInputSlotRequirement slot = Assert.Single(composition.V2Details!.InputContract.Slots);
+
+        Assert.Equal(16, input.Length);
+        Assert.Null(input.InputPaddingByte);
+        Assert.Equal(InputOversizePolicy.Reject, input.InputOversizePolicy);
+        Assert.Empty(input.AllowedInputLengths);
+        Assert.Empty(input.ExpectedInputLengths);
+        Assert.Equal(ImageInitializationKind.Reference, scratch.Kind);
+        Assert.Equal("tp-source", scratch.ReferenceSpaceId);
+        Assert.Equal(16, Assert.IsType<CompiledExactBytesInputLengthRequirement>(slot.LengthRequirement).Bytes);
+    }
+
+    /// <summary>Verifies generic exact-byte inputs remain declarative until their artifact class gains a lowering rule.</summary>
+    [Fact]
+    public void BlankOutputLoweringDefersNonTpExactInput()
+    {
+        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+            familyHash => ProfileWithAuxiliaryExactInput(SupportedProfileJson(familyHash))));
+
+        Assert.Null(result.CompiledComposition);
+        Assert.Equal("profile.v2.plan.unsupported-declaration", Assert.Single(result.Issues).Code);
+    }
+
     /// <summary>Verifies Normal DP extraction lowers into a declared source span with map-capacity expectation and profile warning code.</summary>
     [Fact]
     public void BlankOutputLoweringBindsNormalDpExtractionPolicy()
@@ -189,6 +226,32 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             index++;
         }
         Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["regionAccessRules"])[0])["access"] = "explicit-range";
+        return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    private static string ProfileWithExactTpInput(string profileJson, long bytes)
+    {
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(profileJson));
+        JsonObject slot = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["inputSlots"])[0]);
+        slot["artifactClass"] = "tp-firmware";
+        Assert.IsType<JsonObject>(slot["acceptance"])["lengthRule"] = new JsonObject
+        {
+            ["kind"] = "exact-bytes",
+            ["bytes"] = bytes,
+        };
+        return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    private static string ProfileWithAuxiliaryExactInput(string profileJson)
+    {
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(profileJson));
+        JsonObject slot = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["inputSlots"])[0]);
+        slot["artifactClass"] = "auxiliary";
+        Assert.IsType<JsonObject>(slot["acceptance"])["lengthRule"] = new JsonObject
+        {
+            ["kind"] = "exact-bytes",
+            ["bytes"] = 16,
+        };
         return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
     }
 

@@ -3,7 +3,7 @@
   "bundleId": "nt51927-standard-merge-family",
   "bundleVersion": "0.9.1-v2-candidate.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "67a314a3763b81e348960bafb5e743e5fc1df553d8590544a6d8d52706038afe",
+  "contentHash": "751f44c7dd790a826e9ab17747b933542c691125bdee8b975c9c764e4f2ef4b1",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -11,7 +11,7 @@
       "kind": "schema",
       "path": "schemas/composition-profile-v2.schema.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "bda7556479250774441fad88a921cfe4e45c1e51204985ff58af9717c13f9fe2"
+      "contentHash": "1af166d37379329cc7a298ea24637a665b183f286e5a2323d4ed014e893dc9f0"
     },
     {
       "entryId": "firmware-family-v1-schema",

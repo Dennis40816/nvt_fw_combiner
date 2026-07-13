@@ -8,8 +8,9 @@ internal static partial class V2CompositionPlanCompiler
     private static bool IsCurrentInputLengthRuleSupported(CompositionProfileInputSlot slot)
     {
         return slot.LengthRule is ExactResolvedMapCapacityLengthRule or NormalDpExtractWithWarningLengthRule ||
-            (slot.LengthRule is TpMaximum256KLengthRule &&
-             slot.ArtifactClass == CompositionProfileArtifactClass.TpFirmware);
+            (slot.ArtifactClass == CompositionProfileArtifactClass.TpFirmware &&
+             (slot.LengthRule is TpMaximum256KLengthRule ||
+              slot.LengthRule is ExactBytesLengthRule { Bytes: <= TpMaximum256KLengthRule.MaximumBytes }));
     }
 
     private static bool TryResolveInputSpaceLength(
@@ -22,6 +23,9 @@ internal static partial class V2CompositionPlanCompiler
     {
         switch (slot.LengthRule)
         {
+            case ExactBytesLengthRule exact:
+                length = exact.Bytes;
+                return true;
             case ExactResolvedMapCapacityLengthRule:
                 length = resolvedMap.CapacityBytes;
                 return true;

@@ -34,7 +34,7 @@
         <DestinationFile>$(BuiltInProfileMaterializedRoot)\%(Identity)\schemas\firmware-family-v1.schema.json</DestinationFile>
       </_BuiltInProfileFamilySchema>
       <_BuiltInProfileCompositionSchema Include="@(BuiltInProfileBundle)">
-        <SourceFile>$(ProfileSchemaSourceRoot)\bda7556479250774441fad88a921cfe4e45c1e51204985ff58af9717c13f9fe2\composition-profile-v2.schema.json</SourceFile>
+        <SourceFile>$(ProfileSchemaSourceRoot)\1af166d37379329cc7a298ea24637a665b183f286e5a2323d4ed014e893dc9f0\composition-profile-v2.schema.json</SourceFile>
         <DestinationFile>$(BuiltInProfileMaterializedRoot)\%(Identity)\schemas\composition-profile-v2.schema.json</DestinationFile>
       </_BuiltInProfileCompositionSchema>
     </ItemGroup>

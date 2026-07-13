@@ -219,7 +219,7 @@ internal static partial class V2CompositionPlanCompiler
             {
                 AddUnsupported(
                     issues,
-                    $"input space '{inputSpace.SpaceId}' must bind one required singleton exact-map-capacity, normal-DP, or tp-maximum-256k slot with approved normalization");
+                    $"input space '{inputSpace.SpaceId}' must bind one required singleton exact-map-capacity, normal-DP, tp-maximum-256k, or exact TP slot with approved normalization");
             }
         }
 
@@ -359,6 +359,10 @@ internal static partial class V2CompositionPlanCompiler
                 length,
                 AddressSpaceMutability.Immutable,
                 inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange),
+            ExactBytesLengthRule => new AddressSpace(
+                addressSpaceId,
+                length,
+                AddressSpaceMutability.Immutable),
             ExactResolvedMapCapacityLengthRule when slot.Normalization is PadShorterInputNormalization padded => new AddressSpace(
                 addressSpaceId,
                 length,

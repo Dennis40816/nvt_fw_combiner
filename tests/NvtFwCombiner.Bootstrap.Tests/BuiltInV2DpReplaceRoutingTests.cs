@@ -29,7 +29,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
         _ = Assert.IsType<ProfileBundleV2CompilationAuthority>(artifact.Authority);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(artifact.V2Details);
-        Assert.Equal("25a3005877d7ac29efa9197e43133f9d10265c7ab002aa9f7a82eb873e1bd129", details.Provenance.Bundle.ContentHash);
+        Assert.Equal("65987f6b1e41feaca92e7b258bca282df9ae133f90db6877ba6b97c04d91f0f4", details.Provenance.Bundle.ContentHash);
         Assert.Equal($"nt{icId[2..]}-dp-replace-dp-perspective", artifact.ProfileId);
         Assert.Equal(baseCapacity, artifact.Plan.OutputInitialization.Capacity);
     }

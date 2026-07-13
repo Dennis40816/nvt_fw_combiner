@@ -76,6 +76,10 @@ public sealed class CompositionProfileV2InputTests
             CompositionProfileArtifactClass.TpFirmware,
             new TpMaximum256KLengthRule(),
             new NoInputNormalization());
+        CompositionProfileInputSlot exactTp = Slot(
+            CompositionProfileArtifactClass.TpFirmware,
+            new ExactBytesLengthRule(TpMaximum256KLengthRule.MaximumBytes),
+            new NoInputNormalization());
         CompositionProfileInputSlot normalDp = Slot(
             CompositionProfileArtifactClass.DpFirmware,
             new NormalDpExtractWithWarningLengthRule("DP_SIZE_WARNING"),
@@ -100,6 +104,7 @@ public sealed class CompositionProfileV2InputTests
             cardinality: CompositionProfileSlotCardinality.OneOrMore);
 
         Assert.Equal(CompositionProfileArtifactClass.TpFirmware, tp.ArtifactClass);
+        Assert.Equal(TpMaximum256KLengthRule.MaximumBytes, Assert.IsType<ExactBytesLengthRule>(exactTp.LengthRule).Bytes);
         Assert.Equal(CompositionProfileLengthRuleKind.NormalDpExtractWithWarning, normalDp.LengthRule.Kind);
         Assert.Equal(CompositionProfileInputNormalizationKind.PadShorter, paddedDp.Normalization.Kind);
         Assert.Equal(CompositionProfileArtifactClass.ReferenceImage, reference.ArtifactClass);
@@ -115,6 +120,10 @@ public sealed class CompositionProfileV2InputTests
         _ = Assert.Throws<ArgumentException>(() => Slot(
             CompositionProfileArtifactClass.TpFirmware,
             new ExactResolvedMapCapacityLengthRule(),
+            new NoInputNormalization()));
+        _ = Assert.Throws<ArgumentException>(() => Slot(
+            CompositionProfileArtifactClass.TpFirmware,
+            new ExactBytesLengthRule(TpMaximum256KLengthRule.MaximumBytes + 1),
             new NoInputNormalization()));
         _ = Assert.Throws<ArgumentException>(() => Slot(
             CompositionProfileArtifactClass.DpFirmware,

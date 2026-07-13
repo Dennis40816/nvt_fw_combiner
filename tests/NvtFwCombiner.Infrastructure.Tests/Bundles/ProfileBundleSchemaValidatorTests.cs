@@ -192,6 +192,43 @@ public sealed class ProfileBundleSchemaValidatorTests
             32));
     }
 
+    /// <summary>Verifies the executable V2 schema permits only unnormalized exact TP input lengths through 256 KiB.</summary>
+    [Theory]
+    [InlineData("within-limit", true)]
+    [InlineData("above-limit", false)]
+    [InlineData("normalized", false)]
+    public void ValidateEntriesEnforcesExactTpInputGeometry(string mutation, bool expectedValid)
+    {
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(
+            TrustedV2BundleTestDocuments.ProfileJson(new string('c', 64))));
+        JsonObject slot = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["inputSlots"])[0]);
+        JsonObject acceptance = Assert.IsType<JsonObject>(slot["acceptance"]);
+        acceptance["lengthRule"] = new JsonObject
+        {
+            ["kind"] = "exact-bytes",
+            ["bytes"] = mutation == "above-limit" ? 262145 : 262144,
+        };
+        if (mutation == "normalized")
+        {
+            acceptance["normalization"] = new JsonObject
+            {
+                ["kind"] = "pad-shorter",
+                ["fillByte"] = 255,
+                ["evidenceRef"] = "synthetic-padding",
+            };
+        }
+
+        ProfileBundleEntrySnapshotCollection collection = CaptureCompositionProfile(profile.ToJsonString());
+        if (expectedValid)
+        {
+            ProfileBundleSchemaValidator.ValidateEntries(collection, 32);
+            return;
+        }
+
+        _ = Assert.Throws<InvalidDataException>(() =>
+            ProfileBundleSchemaValidator.ValidateEntries(collection, 32));
+    }
+
     /// <summary>Verifies the pinned 2.0 schema rejects the deferred named-artifact extension.</summary>
     [Fact]
     public void ValidateEntriesRejectsDeferredProcessorArtifactBindingsInV20()

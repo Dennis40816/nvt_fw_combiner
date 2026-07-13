@@ -273,10 +273,11 @@ internal sealed partial class CompositionProfileInputSlot
         CompositionProfileInputNormalization normalization)
     {
         if (artifactClass == CompositionProfileArtifactClass.TpFirmware &&
-            (lengthRule.Kind != CompositionProfileLengthRuleKind.TpMaximum256K ||
+            (!IsApprovedTpLengthRule(lengthRule) ||
              normalization.Kind != CompositionProfileInputNormalizationKind.None))
         {
-            throw new ArgumentException("TP firmware requires the fixed 256 KiB rule without normalization.");
+            throw new ArgumentException(
+                "TP firmware requires an unnormalized maximum-256-KiB or exact-within-256-KiB length rule.");
         }
 
         if (lengthRule.Kind == CompositionProfileLengthRuleKind.TpMaximum256K &&
@@ -317,6 +318,12 @@ internal sealed partial class CompositionProfileInputSlot
         {
             throw new ArgumentException("Normal DP extraction warnings cannot normalize input bytes.");
         }
+    }
+
+    private static bool IsApprovedTpLengthRule(CompositionProfileLengthRule lengthRule)
+    {
+        return lengthRule is TpMaximum256KLengthRule or
+            ExactBytesLengthRule { Bytes: <= TpMaximum256KLengthRule.MaximumBytes };
     }
 
     private static string[] SnapshotExtensions(IEnumerable<string> acceptedExtensions)

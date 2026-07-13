@@ -162,7 +162,7 @@ public sealed class CompositionProfileV2InputNormalizerTests
     {
         CompositionProfileNormalizationException exception = Assert.Throws<CompositionProfileNormalizationException>(() =>
             CompositionProfileNormalizer.NormalizeInputSlot(
-                Slot("tp-firmware", ExactBytes("16"), None())));
+                Slot("tp-firmware", ExactBytes("16"), PadShorter("255"))));
 
         Assert.Equal("inputSlots[0]", exception.Path);
         _ = Assert.IsType<ArgumentException>(exception.InnerException, exactMatch: false);
@@ -183,6 +183,24 @@ public sealed class CompositionProfileV2InputNormalizerTests
         NormalDpExtractWithWarningLengthRule rule = Assert.IsType<NormalDpExtractWithWarningLengthRule>(
             slot.LengthRule);
         Assert.Equal([0x80000L, 0x200000L], rule.ExpectedInputLengths);
+    }
+
+    /// <summary>Verifies an exact TP source is admitted only within the fixed 256 KiB owner limit.</summary>
+    [Fact]
+    public void ExactTpInputRetainsExactGeometryWithinTheOwnerLimit()
+    {
+        CompositionProfileInputSlot exact = Normalize(
+            "tp-firmware",
+            ExactBytes("262144"),
+            None());
+        CompositionProfileNormalizationException oversized = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            Normalize(
+                "tp-firmware",
+                ExactBytes("262145"),
+                None()));
+
+        Assert.Equal(262144, Assert.IsType<ExactBytesLengthRule>(exact.LengthRule).Bytes);
+        Assert.Equal("inputSlots[0]", oversized.Path);
     }
 
     /// <summary>Verifies Normal-DP outer-container lengths fail closed when their declaration is not canonical.</summary>
