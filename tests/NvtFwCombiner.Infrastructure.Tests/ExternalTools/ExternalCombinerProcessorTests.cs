@@ -183,6 +183,134 @@ public sealed class ExternalCombinerProcessorTests
         Assert.Equal("external-tool.process.timeout", issue.Code);
     }
 
+    /// <summary>Verifies named artifacts are host-staged, expanded without path input, and imported only through the declared output.</summary>
+    [Fact]
+    public async Task TransformMaterializesNamedArtifactsAndPreservesTheirBytes()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        FakeProcessRunner runner = new(startInfo =>
+        {
+            string aBankPath = Path.Combine(startInfo.WorkingDirectory, "artifact-a-bank.bin");
+            string bBankPath = Path.Combine(startInfo.WorkingDirectory, "artifact-b-bank.bin");
+            Assert.Contains(aBankPath, startInfo.Arguments);
+            Assert.Contains(bBankPath, startInfo.Arguments);
+            Assert.Equal([0xA1, 0xA2], File.ReadAllBytes(aBankPath));
+            Assert.Equal([0xB1, 0xB2], File.ReadAllBytes(bBankPath));
+            File.WriteAllBytes(Path.Combine(startInfo.WorkingDirectory, "output.bin"), [0, 7, 0, 0]);
+            return new ExternalProcessResult(0, false, string.Empty, string.Empty);
+        });
+        ExternalCombinerProcessor processor = workspace.CreateProcessor(
+            sha256,
+            runner,
+            [
+                "--a", "{staging.artifact.a-bank}",
+                "--b", "{staging.artifact.b-bank}",
+                "--output", "{staging.outputBin}",
+            ]);
+        ExternalProcessorRequest request = new(
+            "run-artifacts",
+            "processor-v1",
+            "legacy-combiner-1.10",
+            new byte[] { 0, 0, 0, 0 },
+            [new ByteRange(1, 1)],
+            stagedArtifacts:
+            [
+                new ExternalProcessorStagedArtifact("a-bank", new byte[] { 0xA1, 0xA2 }),
+                new ExternalProcessorStagedArtifact("b-bank", new byte[] { 0xB1, 0xB2 }),
+            ]);
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal([0, 7, 0, 0], result.OutputBytes.ToArray());
+    }
+
+    /// <summary>Verifies the host rejects a Combiner that changes a named source artifact.</summary>
+    [Fact]
+    public async Task TransformRejectsModifiedNamedArtifact()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        FakeProcessRunner runner = new(startInfo =>
+        {
+            File.WriteAllBytes(Path.Combine(startInfo.WorkingDirectory, "artifact-a-bank.bin"), [0xFF, 0xFF]);
+            File.WriteAllBytes(Path.Combine(startInfo.WorkingDirectory, "output.bin"), [0, 7, 0, 0]);
+            return new ExternalProcessResult(0, false, string.Empty, string.Empty);
+        });
+        ExternalCombinerProcessor processor = workspace.CreateProcessor(
+            sha256,
+            runner,
+            ["--a", "{staging.artifact.a-bank}", "--output", "{staging.outputBin}"]);
+        ExternalProcessorRequest request = new(
+            "run-modified-artifact",
+            "processor-v1",
+            "legacy-combiner-1.10",
+            new byte[] { 0, 0, 0, 0 },
+            [new ByteRange(1, 1)],
+            stagedArtifacts: [new ExternalProcessorStagedArtifact("a-bank", new byte[] { 0xA1, 0xA2 })]);
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("external-tool.staged-artifact.modified", issue.Code);
+    }
+
+    /// <summary>Verifies a manifest cannot execute when it references an artifact absent from the compiled request.</summary>
+    [Fact]
+    public async Task TransformRejectsUnknownNamedArtifactTokenBeforeProcessStart()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        FakeProcessRunner runner = new(_ => throw new InvalidOperationException("runner should not run"));
+        ExternalCombinerProcessor processor = workspace.CreateProcessor(
+            sha256,
+            runner,
+            ["--a", "{staging.artifact.a-bank}", "--output", "{staging.outputBin}"]);
+        ExternalProcessorRequest request = new(
+            "run-missing-artifact",
+            "processor-v1",
+            "legacy-combiner-1.10",
+            new byte[] { 0, 0, 0, 0 },
+            [new ByteRange(1, 1)],
+            stagedArtifacts: [new ExternalProcessorStagedArtifact("b-bank", new byte[] { 0xB1, 0xB2 })]);
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("external-tool.staged-artifact.unknown", issue.Code);
+        Assert.Equal(0, runner.RunCount);
+    }
+
+    /// <summary>Verifies every compiled artifact must be consumed by the selected manifest before process launch.</summary>
+    [Fact]
+    public async Task TransformRejectsUnusedNamedArtifactTokenBeforeProcessStart()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        FakeProcessRunner runner = new(_ => throw new InvalidOperationException("runner should not run"));
+        ExternalCombinerProcessor processor = workspace.CreateProcessor(
+            sha256,
+            runner,
+            ["--input", "{staging.workBin}", "--output", "{staging.outputBin}"]);
+        ExternalProcessorRequest request = new(
+            "run-unused-artifact",
+            "processor-v1",
+            "legacy-combiner-1.10",
+            new byte[] { 0, 0, 0, 0 },
+            [new ByteRange(1, 1)],
+            stagedArtifacts: [new ExternalProcessorStagedArtifact("a-bank", new byte[] { 0xA1, 0xA2 })]);
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("external-tool.staged-artifact.unused", issue.Code);
+        Assert.Equal(0, runner.RunCount);
+    }
+
     private static ExternalProcessorRequest Request(IReadOnlyList<ByteRange>? allowedWrites = null)
     {
         return new ExternalProcessorRequest(
@@ -250,9 +378,12 @@ public sealed class ExternalCombinerProcessorTests
             return Sha256(executablePath);
         }
 
-        internal ExternalCombinerProcessor CreateProcessor(string executableSha256, IExternalProcessRunner runner)
+        internal ExternalCombinerProcessor CreateProcessor(
+            string executableSha256,
+            IExternalProcessRunner runner,
+            IReadOnlyList<string>? argumentTemplate = null)
         {
-            ExternalCombinerToolRegistry registry = new([Manifest(executableSha256)]);
+            ExternalCombinerToolRegistry registry = new([Manifest(executableSha256, argumentTemplate)]);
             return new ExternalCombinerProcessor(registry, ToolRoot, StagingRoot, runner);
         }
 
@@ -261,7 +392,9 @@ public sealed class ExternalCombinerProcessorTests
             _workspace.Dispose();
         }
 
-        private static ExternalCombinerToolManifest Manifest(string executableSha256)
+        private static ExternalCombinerToolManifest Manifest(
+            string executableSha256,
+            IReadOnlyList<string>? argumentTemplate = null)
         {
             return new ExternalCombinerToolManifest(
                 "1.0",
@@ -274,7 +407,7 @@ public sealed class ExternalCombinerProcessorTests
                 executableSha256,
                 "legacy-combiner-inout-v1",
                 "input-output-file",
-                ["--input", "{staging.workBin}", "--output", "{staging.outputBin}"],
+                argumentTemplate ?? ["--input", "{staging.workBin}", "--output", "{staging.outputBin}"],
                 "staging-directory",
                 5,
                 []);

@@ -148,6 +148,23 @@ public sealed partial class CompositionPlan
                     $"Operation '{operation.OperationId}' staged source firmware range is outside the staged target range.");
             }
         }
+
+        foreach (ExternalProcessorStagedArtifactBinding binding in invocation.StagedArtifactBindings)
+        {
+            if (!_addressSpacesById.TryGetValue(binding.SourceSpaceId, out AddressSpace? sourceSpace))
+            {
+                throw new ArgumentException(
+                    $"Operation '{operation.OperationId}' staged artifact reads undeclared address space '{binding.SourceSpaceId}'.",
+                    nameof(operation));
+            }
+
+            if (!sourceSpace.Contains(binding.SourceRange))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(operation),
+                    $"Operation '{operation.OperationId}' staged artifact range is outside address space '{binding.SourceSpaceId}'.");
+            }
+        }
     }
 
     private void ValidateSourceRange(CompositionOperation operation)
@@ -245,6 +262,10 @@ public sealed partial class CompositionPlan
         return (reader.Kind == CompositionOperationKind.RunExternalProcessor &&
                 string.Equals(reader.TargetSpaceId, writer.TargetSpaceId, StringComparison.Ordinal) &&
                 reader.ExternalProcessorInvocation!.AllowedReadRanges.Any(range => range.Overlaps(writer.TargetRange))) ||
+            (reader.Kind == CompositionOperationKind.RunExternalProcessor &&
+             reader.ExternalProcessorInvocation!.StagedArtifactBindings.Any(binding =>
+                 string.Equals(binding.SourceSpaceId, writer.TargetSpaceId, StringComparison.Ordinal) &&
+                 binding.SourceRange.Overlaps(writer.TargetRange))) ||
             (reader.SourceSpaceId is not null &&
              reader.SourceRange is not null &&
              string.Equals(reader.SourceSpaceId, writer.TargetSpaceId, StringComparison.Ordinal) &&

@@ -46,8 +46,9 @@ Only these tokens are allowed in `argumentTemplate`:
 - `{staging.workBin}`
 - `{staging.outputBin}`
 - `{staging.runDir}`
+- `{staging.artifact.<artifact-id>}` where `<artifact-id>` is a lower-case, hyphen-separated identifier declared by the compiled plan.
 
-The host expands tokens after creating the staging directory. Profiles and users do not provide filesystem paths.
+The host expands tokens after creating the staging directory. Named artifacts are written to host-chosen plain filenames, must be referenced by the manifest exactly once or more, and are checked unchanged after the process exits. Profiles and users do not provide filesystem paths.
 
 ## Security rules
 

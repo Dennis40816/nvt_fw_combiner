@@ -15,11 +15,12 @@ public sealed partial class CompositionEngineTests
         CompositionExecutionResult result = await CompositionEngine.ExecuteAsync(
             plan,
             EmptyInput(),
-            (operation, inputBytes, stagedSources, _) =>
+            (operation, inputBytes, stagedSources, stagedArtifacts, _) =>
             {
                 Assert.Equal("run-crc", operation.OperationId);
                 Assert.Equal([0xFF, 0xFF, 0xFF, 0xFF], inputBytes.ToArray());
                 Assert.Empty(stagedSources);
+                Assert.Empty(stagedArtifacts);
                 byte[] output = inputBytes.ToArray();
                 output[2] = 0x44;
                 return ValueTask.FromResult(CompositionExternalProcessorResult.Success(output));
@@ -75,9 +76,10 @@ public sealed partial class CompositionEngineTests
         CompositionExecutionResult result = await CompositionEngine.ExecuteAsync(
             plan,
             input,
-            (_, inputBytes, stagedSources, _) =>
+            (_, inputBytes, stagedSources, stagedArtifacts, _) =>
             {
                 Assert.Equal([0x10, 0x20, 0x30, 0x40], inputBytes.ToArray());
+                Assert.Empty(stagedArtifacts);
                 ExternalProcessorStagedSource stagedSource = Assert.Single(stagedSources);
                 Assert.Equal(new ByteRange(1, 2), stagedSource.FirmwareRange);
                 Assert.Equal([0xAA, 0xBB], stagedSource.Bytes.ToArray());
@@ -133,7 +135,7 @@ public sealed partial class CompositionEngineTests
         CompositionExecutionResult result = await CompositionEngine.ExecuteAsync(
             plan,
             input,
-            (_, _, _, _) => ValueTask.FromResult(CompositionExternalProcessorResult.Failed([
+            (_, _, _, _, _) => ValueTask.FromResult(CompositionExternalProcessorResult.Failed([
                 new CompositionIssue("external-tool.process.failed", "processor failed", "run-crc"),
             ])),
             CancellationToken.None);
@@ -193,6 +195,80 @@ public sealed partial class CompositionEngineTests
                 invocation,
                 OverlapPolicy.Reject,
                 "run approved fake processor")));
+    }
+
+    /// <summary>Verifies an external processor receives snapshots of initialized mutable work buffers as named artifacts.</summary>
+    [Fact]
+    public async Task ExternalProcessorReceivesNamedSnapshotsOfMutableWorkBuffers()
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+            new("a-work", 2, AddressSpaceMutability.Mutable),
+            new("b-work", 2, AddressSpaceMutability.Mutable),
+        ];
+        var plan = new CompositionPlan(
+            [
+                ImageInitialization.Blank("a-work", 2, 0),
+                ImageInitialization.Blank("b-work", 2, 0),
+                ImageInitialization.Blank("output-image", 4, 0),
+            ],
+            "output-image",
+            addressSpaces,
+            [
+                CompositionOperation.FillRange(
+                    "fill-a",
+                    10,
+                    "a-work",
+                    new ByteRange(0, 2),
+                    0xA1,
+                    OverlapPolicy.Reject,
+                    "stage A work buffer"),
+                CompositionOperation.FillRange(
+                    "fill-b",
+                    20,
+                    "b-work",
+                    new ByteRange(0, 2),
+                    0xB2,
+                    OverlapPolicy.Reject,
+                    "stage B work buffer"),
+                CompositionOperation.RunExternalProcessor(
+                    "combine-banks",
+                    30,
+                    "output-image",
+                    new ByteRange(0, 4),
+                    new ExternalProcessorInvocation(
+                        "combiner-v1",
+                        "legacy-combiner-1.13.0",
+                        [new ByteRange(0, 4)],
+                        [new ByteRange(0, 4)],
+                        stagedArtifactBindings:
+                        [
+                            new ExternalProcessorStagedArtifactBinding("a-bank", "a-work", new ByteRange(0, 2)),
+                            new ExternalProcessorStagedArtifactBinding("b-bank", "b-work", new ByteRange(0, 2)),
+                        ]),
+                    OverlapPolicy.Reject,
+                    "combine staged banks"),
+            ]);
+
+        CompositionExecutionResult result = await CompositionEngine.ExecuteAsync(
+            plan,
+            EmptyInput(),
+            (_, inputBytes, stagedSources, stagedArtifacts, _) =>
+            {
+                Assert.Empty(stagedSources);
+                Assert.Equal(
+                    ["a-bank", "b-bank"],
+                    stagedArtifacts.Select(static artifact => artifact.ArtifactId));
+                Assert.Equal([0xA1, 0xA1], stagedArtifacts[0].Bytes.ToArray());
+                Assert.Equal([0xB2, 0xB2], stagedArtifacts[1].Bytes.ToArray());
+                Assert.Equal([0, 0, 0, 0], inputBytes.ToArray());
+                return ValueTask.FromResult(CompositionExternalProcessorResult.Success(new byte[] { 0xA1, 0xA1, 0xB2, 0xB2 }));
+            },
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal([0xA1, 0xA1, 0xB2, 0xB2], result.OutputBytes.ToArray());
     }
 
     private static CompositionOperation CreateExternalOperation()

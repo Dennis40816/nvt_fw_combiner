@@ -39,6 +39,122 @@ public sealed partial class CompositionPlanTests
             ]));
     }
 
+    /// <summary>Verifies named staging artifacts may read initialized work buffers but must stay in declared space bounds.</summary>
+    [Fact]
+    public void ExternalProcessorArtifactBindingAllowsMutableWorkBufferAndRejectsOutOfBoundsRange()
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+            new("a-work", 2, AddressSpaceMutability.Mutable),
+        ];
+
+        var validPlan = new CompositionPlan(
+            [
+                ImageInitialization.Blank("a-work", 2, 0),
+                ImageInitialization.Blank("output-image", 4, 0),
+            ],
+            "output-image",
+            addressSpaces,
+            [
+                CompositionOperation.RunExternalProcessor(
+                    "combine",
+                    10,
+                    "output-image",
+                    new ByteRange(0, 4),
+                    new ExternalProcessorInvocation(
+                        "processor-v1",
+                        "tool-v1",
+                        [new ByteRange(0, 4)],
+                        [new ByteRange(0, 4)],
+                        stagedArtifactBindings:
+                        [new ExternalProcessorStagedArtifactBinding("a-bank", "a-work", new ByteRange(0, 2))]),
+                    OverlapPolicy.Reject,
+                    "combine work buffer"),
+            ]);
+
+        _ = Assert.Single(validPlan.OrderedOperations[0].ExternalProcessorInvocation!.StagedArtifactBindings);
+
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new CompositionPlan(
+            [
+                ImageInitialization.Blank("a-work", 2, 0),
+                ImageInitialization.Blank("output-image", 4, 0),
+            ],
+            "output-image",
+            addressSpaces,
+            [
+                CompositionOperation.RunExternalProcessor(
+                    "combine-invalid",
+                    10,
+                    "output-image",
+                    new ByteRange(0, 4),
+                    new ExternalProcessorInvocation(
+                        "processor-v1",
+                        "tool-v1",
+                        [new ByteRange(0, 4)],
+                        [new ByteRange(0, 4)],
+                        stagedArtifactBindings:
+                        [new ExternalProcessorStagedArtifactBinding("a-bank", "a-work", new ByteRange(1, 2))]),
+                    OverlapPolicy.Reject,
+                    "combine work buffer"),
+            ]));
+    }
+
+    /// <summary>Verifies artifact snapshots cannot race a same-sequence write to their mutable source buffer.</summary>
+    [Fact]
+    public void ExternalProcessorArtifactBindingRejectsSameSequenceMutableWriteDependency()
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+            new("a-work", 2, AddressSpaceMutability.Mutable),
+        ];
+
+        _ = Assert.Throws<ArgumentException>(() => new CompositionPlan(
+            [
+                ImageInitialization.Blank("a-work", 2, 0),
+                ImageInitialization.Blank("output-image", 4, 0),
+            ],
+            "output-image",
+            addressSpaces,
+            [
+                CompositionOperation.FillRange(
+                    "prepare-a-bank",
+                    10,
+                    "a-work",
+                    new ByteRange(0, 2),
+                    0xA1,
+                    OverlapPolicy.Reject,
+                    "prepare A bank"),
+                CompositionOperation.RunExternalProcessor(
+                    "combine",
+                    10,
+                    "output-image",
+                    new ByteRange(0, 4),
+                    new ExternalProcessorInvocation(
+                        "processor-v1",
+                        "tool-v1",
+                        [new ByteRange(0, 4)],
+                        [new ByteRange(0, 4)],
+                        stagedArtifactBindings:
+                        [new ExternalProcessorStagedArtifactBinding("a-bank", "a-work", new ByteRange(0, 2))]),
+                    OverlapPolicy.Reject,
+                    "combine work buffer"),
+            ]));
+    }
+
+    /// <summary>Verifies malformed artifact-binding collections fail with a contract exception before sorting.</summary>
+    [Fact]
+    public void ExternalProcessorArtifactBindingRejectsNullEntry()
+    {
+        _ = Assert.Throws<ArgumentException>(() => new ExternalProcessorInvocation(
+            "processor-v1",
+            "tool-v1",
+            [new ByteRange(0, 1)],
+            [new ByteRange(0, 1)],
+            stagedArtifactBindings: [null!]));
+    }
+
     /// <summary>Verifies CtrlRAM replace plans may combine truncation with external CRC/header processors.</summary>
     [Fact]
     public void ExternalProcessorAllowsInputTruncationForCtrlRamReplace()

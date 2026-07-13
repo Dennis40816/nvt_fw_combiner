@@ -7,6 +7,7 @@ public sealed class ExternalProcessorInvocation
     private readonly ByteRange[] _allowedWriteRanges;
     private readonly ExternalProcessorWriteRangeSection[] _allowedWriteRangeSections;
     private readonly ExternalProcessorStagedSourceBinding[] _stagedSourceBindings;
+    private readonly ExternalProcessorStagedArtifactBinding[] _stagedArtifactBindings;
 
     /// <summary>Creates an external processor invocation declaration.</summary>
     public ExternalProcessorInvocation(
@@ -15,7 +16,8 @@ public sealed class ExternalProcessorInvocation
         IEnumerable<ByteRange> allowedReadRanges,
         IEnumerable<ByteRange> allowedWriteRanges,
         IEnumerable<ExternalProcessorStagedSourceBinding>? stagedSourceBindings = null,
-        IEnumerable<ExternalProcessorWriteRangeSection>? allowedWriteRangeSections = null)
+        IEnumerable<ExternalProcessorWriteRangeSection>? allowedWriteRangeSections = null,
+        IEnumerable<ExternalProcessorStagedArtifactBinding>? stagedArtifactBindings = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(processorId);
         ArgumentException.ThrowIfNullOrWhiteSpace(toolBindingId);
@@ -36,6 +38,7 @@ public sealed class ExternalProcessorInvocation
                 .ThenBy(binding => binding.FirmwareRange.Length)
                 .ThenBy(binding => binding.SourceSpaceId, StringComparer.Ordinal),
         ];
+        ExternalProcessorStagedArtifactBinding[] artifactBindings = [.. stagedArtifactBindings ?? []];
         if (_allowedReadRanges.Length == 0)
         {
             throw new ArgumentException("External processor allowed read ranges must not be empty.", nameof(allowedReadRanges));
@@ -55,6 +58,17 @@ public sealed class ExternalProcessorInvocation
                     nameof(allowedWriteRangeSections));
             }
         }
+
+        if (artifactBindings.Any(static binding => binding is null) ||
+            artifactBindings.Select(static binding => binding.ArtifactId).Distinct(StringComparer.Ordinal).Count() !=
+            artifactBindings.Length)
+        {
+            throw new ArgumentException(
+                "External processor staged artifact bindings must be non-null with unique artifact ids.",
+                nameof(stagedArtifactBindings));
+        }
+
+        _stagedArtifactBindings = [.. artifactBindings.OrderBy(binding => binding.ArtifactId, StringComparer.Ordinal)];
 
         ProcessorId = processorId;
         ToolBindingId = toolBindingId;
@@ -77,6 +91,9 @@ public sealed class ExternalProcessorInvocation
 
     /// <summary>Additional source bytes the processor may stage without the host first writing them into the target image.</summary>
     public IReadOnlyList<ExternalProcessorStagedSourceBinding> StagedSourceBindings => _stagedSourceBindings;
+
+    /// <summary>Named source snapshots the host materializes as immutable tool input artifacts.</summary>
+    public IReadOnlyList<ExternalProcessorStagedArtifactBinding> StagedArtifactBindings => _stagedArtifactBindings;
 }
 
 /// <summary>Diagnostic section attached to a declared external-processor write range.</summary>

@@ -63,12 +63,27 @@ public sealed partial class ExternalCombinerProcessor : IExternalProcessor
             string workBin = Path.Combine(runDirectory, WorkFileName);
             string outputBin = Path.Combine(runDirectory, OutputFileName);
             await File.WriteAllBytesAsync(workBin, request.InputBytes.ToArray(), cancellationToken).ConfigureAwait(false);
+            IReadOnlyDictionary<string, string> stagedArtifactPaths = await MaterializeStagedArtifactsAsync(
+                request,
+                runDirectory,
+                cancellationToken).ConfigureAwait(false);
 
-            IReadOnlyList<string> arguments = ExpandArguments(manifest!.ArgumentTemplate, workBin, outputBin, runDirectory);
+            if (!TryExpandArguments(
+                    manifest!.ArgumentTemplate,
+                    workBin,
+                    outputBin,
+                    runDirectory,
+                    stagedArtifactPaths,
+                    request.StagedArtifacts,
+                    out IReadOnlyList<string>? arguments,
+                    out CompositionIssue? argumentIssue))
+            {
+                return ExternalProcessorResult.Failed([argumentIssue!]);
+            }
             var startInfo = new ExternalProcessStartInfo(
                 executablePath!,
                 runDirectory,
-                arguments,
+                arguments!,
                 TimeSpan.FromSeconds(manifest.TimeoutSeconds));
             ExternalProcessResult processResult = await _processRunner.RunAsync(startInfo, cancellationToken).ConfigureAwait(false);
             IReadOnlyList<ExternalProcessInvocation> executedCommands = [startInfo.ToExecutedCommand()];
@@ -85,10 +100,22 @@ public sealed partial class ExternalCombinerProcessor : IExternalProcessor
                     executedCommands);
             }
 
-            CompositionIssue? unexpectedFileIssue = FindUnexpectedStagingFileIssue(runDirectory, manifest);
+            CompositionIssue? unexpectedFileIssue = FindUnexpectedStagingFileIssue(
+                runDirectory,
+                manifest,
+                stagedArtifactPaths.Values);
             if (unexpectedFileIssue is not null)
             {
                 return ExternalProcessorResult.Failed([unexpectedFileIssue], executedCommands);
+            }
+
+            CompositionIssue? artifactMutationIssue = await VerifyStagedArtifactsUnchangedAsync(
+                request.StagedArtifacts,
+                stagedArtifactPaths,
+                cancellationToken).ConfigureAwait(false);
+            if (artifactMutationIssue is not null)
+            {
+                return ExternalProcessorResult.Failed([artifactMutationIssue], executedCommands);
             }
 
             string transformedPath = string.Equals(manifest.InputMode, "input-output-file", StringComparison.Ordinal)

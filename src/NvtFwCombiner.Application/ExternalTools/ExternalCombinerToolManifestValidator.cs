@@ -5,8 +5,6 @@ namespace NvtFwCombiner.Application.ExternalTools;
 /// <summary>Validates external combiner manifests before they can be registered for runtime use.</summary>
 public sealed class ExternalCombinerToolManifestValidator
 {
-    private static readonly string[] AllowedTokens = ["{staging.workBin}", "{staging.outputBin}", "{staging.runDir}"];
-
     /// <summary>Returns deterministic validation errors. An empty list means the manifest is acceptable.</summary>
     public static IReadOnlyList<string> Validate(ExternalCombinerToolManifest manifest)
     {
@@ -121,7 +119,7 @@ public sealed class ExternalCombinerToolManifestValidator
                 }
 
                 string token = argument[openIndex..(closeIndex + 1)];
-                if (!AllowedTokens.Contains(token, StringComparer.Ordinal))
+                if (!ExternalCombinerStagingTokens.IsSupported(token))
                 {
                     errors.Add($"Argument '{argument}' contains unsupported token '{token}'.");
                 }

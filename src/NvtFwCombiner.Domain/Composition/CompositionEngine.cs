@@ -44,6 +44,7 @@ public static partial class CompositionEngine
                         operation,
                         targetBuffer,
                         normalizedInputs.InputBytes,
+                        mutableBuffers,
                         externalProcessor,
                         cancellationToken)
                     .ConfigureAwait(false);
