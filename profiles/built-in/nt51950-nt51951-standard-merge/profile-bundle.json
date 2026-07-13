@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51950-nt51951-standard-merge",
-  "bundleVersion": "0.9.1-v2.1",
+  "bundleVersion": "0.9.1-v2.2",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "0b3cd775803456681e84b5a9c47e3dcfaf0dc523c769ed1a9acfe964f3ee2020",
+  "contentHash": "a51258be9024c8366821bee9610f7c7326bce9e9ea046747da7361c72a75c76b",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -25,21 +25,35 @@
       "kind": "firmware-family",
       "path": "families/nt51950-nt51951-dp-perspective.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "49da76eb1ea67af59d6d66ce4a0162d84c4977f4c0ee30e34edd029dc7668467"
+      "contentHash": "0bd613266308f512e87a07f62727d8ba9bdb4f73dde0c7adc001ab17f119d60f"
+    },
+    {
+      "entryId": "nt51950-dp-replace-profile",
+      "kind": "composition-profile",
+      "path": "profiles/nt51950-dp-replace.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "4a78dda85068d791237903e2c9eae49f168074bca8d9b6dcff06492d10577133"
     },
     {
       "entryId": "nt51950-standard-merge-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51950-standard-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "04bcba48afb557dd813d518d6c13c41c200d34211d894269b165c41bc82cb3b9"
+      "contentHash": "05dc39b02830b02a9b9731780d482eec96324ed5f921588ecbd37faa771c6974"
+    },
+    {
+      "entryId": "nt51951-dp-replace-profile",
+      "kind": "composition-profile",
+      "path": "profiles/nt51951-dp-replace.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "af6f2463cc45669ea957062a0b1bd1c64e9d385174d1bd2b086f0b1c29da29c0"
     },
     {
       "entryId": "nt51951-standard-merge-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51951-standard-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "496c080f1b447088c10bf3f6f3a1e8d700bb881c76a3e1b00955240988a0cde1"
+      "contentHash": "fcd171b8745d0b822c928763703951aaf24c62e8d4cd9a26bdee1b1945ae9578"
     }
   ]
 }

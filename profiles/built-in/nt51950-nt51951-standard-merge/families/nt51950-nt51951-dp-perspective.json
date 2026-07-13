@@ -44,7 +44,7 @@
           "owner": "customer",
           "kind": "data",
           "range": { "start": 225280, "length": 4096 },
-          "writeConstraint": "forbidden",
+          "writeConstraint": "explicit-range",
           "alignment": 1
         },
         {
@@ -95,7 +95,7 @@
           "owner": "customer",
           "kind": "data",
           "range": { "start": 225280, "length": 4096 },
-          "writeConstraint": "forbidden",
+          "writeConstraint": "explicit-range",
           "alignment": 1
         },
         {
@@ -146,7 +146,7 @@
           "owner": "customer",
           "kind": "data",
           "range": { "start": 225280, "length": 4096 },
-          "writeConstraint": "forbidden",
+          "writeConstraint": "explicit-range",
           "alignment": 1
         },
         {
@@ -169,7 +169,7 @@
       "addressSpaceId": "flash",
       "applicability": {
         "memberIds": ["NT51950"],
-        "modeIds": ["standard-merge"],
+        "modeIds": ["standard-merge", "dp-replace"],
         "topologyRequirement": { "kind": "none" },
         "capacityBytes": 262144
       },
@@ -183,7 +183,7 @@
       "addressSpaceId": "flash",
       "applicability": {
         "memberIds": ["NT51950"],
-        "modeIds": ["standard-merge"],
+        "modeIds": ["standard-merge", "dp-replace"],
         "topologyRequirement": { "kind": "none" },
         "capacityBytes": 524288
       },
@@ -197,7 +197,7 @@
       "addressSpaceId": "flash",
       "applicability": {
         "memberIds": ["NT51950"],
-        "modeIds": ["standard-merge"],
+        "modeIds": ["standard-merge", "dp-replace"],
         "topologyRequirement": { "kind": "none" },
         "capacityBytes": 1048576
       },
@@ -211,7 +211,7 @@
       "addressSpaceId": "flash",
       "applicability": {
         "memberIds": ["NT51951"],
-        "modeIds": ["standard-merge"],
+        "modeIds": ["standard-merge", "dp-replace"],
         "topologyRequirement": { "kind": "none" },
         "capacityBytes": 262144
       },
@@ -225,7 +225,7 @@
       "addressSpaceId": "flash",
       "applicability": {
         "memberIds": ["NT51951"],
-        "modeIds": ["standard-merge"],
+        "modeIds": ["standard-merge", "dp-replace"],
         "topologyRequirement": { "kind": "none" },
         "capacityBytes": 524288
       },
@@ -239,7 +239,7 @@
       "addressSpaceId": "flash",
       "applicability": {
         "memberIds": ["NT51951"],
-        "modeIds": ["standard-merge"],
+        "modeIds": ["standard-merge", "dp-replace"],
         "topologyRequirement": { "kind": "none" },
         "capacityBytes": 1048576
       },

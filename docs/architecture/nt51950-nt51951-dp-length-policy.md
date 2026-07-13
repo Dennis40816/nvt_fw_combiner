@@ -39,6 +39,12 @@ Its default output capacity for these ICs is the largest declared V2 map
 That default must not be interpreted as silently selecting a `0x100000`
 Standard Merge map.
 
+The same physical maps also bind `dp-replace`. Customer information is an
+`explicit-range` physical region because DP Replace restores that exact base
+range after replacing the full container. Profile region access remains
+deny-by-default: Standard Merge declares no customer-information write, while
+the DP Replace candidate explicitly authorizes only the whole preserved range.
+
 ## Simplest DP Replace Rule
 
 Clone the base firmware as the Replace reference image, replace the DP container at the selected base length, then restore the original TP and customer-information ranges from the base firmware.
@@ -60,3 +66,6 @@ This implements DP Replace without requiring CRC recalculation and without enume
 - DP Replace tests showing approved base-length enforcement, shorter replacement padding to the selected base length, and larger replacement rejection.
 - DP Replace test proving the TP and customer-information ranges are preserved byte-for-byte after profile/model wiring.
 - A map confirmation test that locks TP overlay to `0x0A000-0x36FFF (len 0x2D000)` and preserves customer info at `0x37000-0x37FFF (len 0x1000)`.
+- Direct owner `base.bin`, `dp.bin`, and `expected.bin` triples for all six
+  NT51950/NT51951 and `0x40000`/`0x80000`/`0x100000` DP Replace cases, plus
+  firmware-owner review before the V2 candidate is promoted or routed.

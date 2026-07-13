@@ -1,0 +1,194 @@
+{
+  "schemaVersion": "2.0",
+  "profileId": "nt51951-dp-replace-dp-perspective",
+  "profileVersion": "0.5.0",
+  "promotion": {
+    "stage": "executable-candidate",
+    "blockers": [
+      {
+        "blockerId": "dp-replace-owner-golden-parity",
+        "kind": "golden",
+        "reason": "All six NT51950/NT51951 base, replacement, and expected-output owner golden cases must match this V2 plan before runtime promotion.",
+        "evidenceRefs": ["dp-replace-owner-handoff-pending"]
+      },
+      {
+        "blockerId": "dp-replace-firmware-owner-review",
+        "kind": "human-review",
+        "reason": "Firmware owner must approve the shared map write authority and DP Replace parity evidence before runtime promotion.",
+        "evidenceRefs": ["dp-perspective-51950-51951-owner-map"]
+      }
+    ]
+  },
+  "compositionKind": "replace",
+  "icNumberInputMode": "single-selector",
+  "experience": {
+    "experienceId": "dp-replace",
+    "audience": "dp",
+    "layoutPolicy": "constrained",
+    "inputPolicy": "fixed",
+    "topologyAuthoring": "hidden",
+    "displayNameKey": "profile.nt51951.dp-replace.dp-perspective"
+  },
+  "mapBinding": {
+    "familyId": "nt51950-nt51951-dp-perspective",
+    "familyVersion": "1.0.0",
+    "familyContentHash": "0bd613266308f512e87a07f62727d8ba9bdb4f73dde0c7adc001ab17f119d60f",
+    "mapIds": [
+      "nt51951-standard-merge-256k",
+      "nt51951-standard-merge-512k",
+      "nt51951-standard-merge-1024k"
+    ],
+    "requiredRegionIds": [
+      "dp-container",
+      "tp-overlay",
+      "customer-info"
+    ],
+    "requiredMetadataStructureIds": [],
+    "requiredCapabilityIds": []
+  },
+  "inputSlots": [
+    {
+      "slotId": "reference-base",
+      "role": "reference",
+      "artifactClass": "reference-image",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [".bin"],
+      "acceptance": {
+        "lengthRule": { "kind": "exact-resolved-map-capacity" },
+        "normalization": { "kind": "none" }
+      }
+    },
+    {
+      "slotId": "dp-replacement",
+      "role": "dp",
+      "artifactClass": "dp-firmware",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [".bin"],
+      "acceptance": {
+        "lengthRule": { "kind": "exact-resolved-map-capacity" },
+        "normalization": {
+          "kind": "pad-shorter",
+          "fillByte": 0,
+          "evidenceRef": "dp-replace-owner-handoff-pending"
+        }
+      }
+    }
+  ],
+  "spaces": [
+    {
+      "spaceId": "reference-base",
+      "kind": "input-artifact",
+      "slotId": "reference-base",
+      "instancePolicy": "singleton"
+    },
+    {
+      "spaceId": "dp-replacement",
+      "kind": "input-artifact",
+      "slotId": "dp-replacement",
+      "instancePolicy": "singleton"
+    },
+    {
+      "spaceId": "output-image",
+      "kind": "output-image",
+      "capacity": { "kind": "resolved-map" },
+      "initializer": {
+        "kind": "clone",
+        "sourceSlotId": "reference-base"
+      }
+    }
+  ],
+  "views": [
+    {
+      "viewId": "dp-container-source",
+      "spaceId": "dp-replacement",
+      "selector": { "kind": "map-region", "regionId": "dp-container" }
+    },
+    {
+      "viewId": "dp-container-output",
+      "spaceId": "output-image",
+      "selector": { "kind": "map-region", "regionId": "dp-container" }
+    },
+    {
+      "viewId": "tp-overlay-reference",
+      "spaceId": "reference-base",
+      "selector": { "kind": "map-region", "regionId": "tp-overlay" }
+    },
+    {
+      "viewId": "tp-overlay-output",
+      "spaceId": "output-image",
+      "selector": { "kind": "map-region", "regionId": "tp-overlay" }
+    },
+    {
+      "viewId": "customer-info-reference",
+      "spaceId": "reference-base",
+      "selector": { "kind": "map-region", "regionId": "customer-info" }
+    },
+    {
+      "viewId": "customer-info-output",
+      "spaceId": "output-image",
+      "selector": { "kind": "map-region", "regionId": "customer-info" }
+    }
+  ],
+  "metadataBindings": [],
+  "regionAccessRules": [
+    {
+      "regionId": "dp-container",
+      "access": "explicit-range",
+      "reason": "Replace the full selected DP Perspective container before restoring profile-declared base ranges."
+    },
+    {
+      "regionId": "tp-overlay",
+      "access": "whole",
+      "reason": "Restore the exact original TP overlay range from the cloned base image."
+    },
+    {
+      "regionId": "customer-info",
+      "access": "whole",
+      "reason": "Restore the exact original customer-information range from the cloned base image."
+    }
+  ],
+  "operations": [
+    {
+      "operationId": "replace-dp-container",
+      "sequence": 100,
+      "overlapPolicy": "reject",
+      "reason": "Replace the selected NT51951 full DP Perspective container using the selected base length.",
+      "kind": "replace-range",
+      "sourceViewId": "dp-container-source",
+      "targetViewId": "dp-container-output"
+    },
+    {
+      "operationId": "restore-base-tp",
+      "sequence": 200,
+      "overlapPolicy": "replace-existing",
+      "reason": "Restore original TP firmware from the cloned base image after DP replacement.",
+      "kind": "copy-range",
+      "sourceViewId": "tp-overlay-reference",
+      "targetViewId": "tp-overlay-output"
+    },
+    {
+      "operationId": "restore-base-customer-info",
+      "sequence": 210,
+      "overlapPolicy": "replace-existing",
+      "reason": "Restore original customer information from the cloned base image after DP replacement.",
+      "kind": "copy-range",
+      "sourceViewId": "customer-info-reference",
+      "targetViewId": "customer-info-output"
+    }
+  ],
+  "validations": [],
+  "processorStages": [],
+  "output": {
+    "fileNameTemplate": "nt51951-dp-replace.bin",
+    "allowOverride": true,
+    "invalidCharacterPolicy": "reject",
+    "requiredTokenIds": []
+  },
+  "evidenceRefs": [
+    "dp-perspective-51950-51951-owner-map",
+    "legacy-v2-dp-perspective-parity-matrix",
+    "dp-replace-owner-handoff-pending"
+  ]
+}

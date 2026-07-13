@@ -7,4 +7,4 @@ Requested files:
 - `expected.bin`
 - optional `notes.txt`
 
-Expected policy to verify: transiently pad DP to `0x100000`, replace full DP container, then restore base TP `0x0A000-0x36FFF`.
+Expected policy to verify: transiently pad DP to the selected `0x40000` base length, replace the full DP container, then restore base TP `0x0A000-0x36FFF` and customer info `0x37000-0x37FFF`.
