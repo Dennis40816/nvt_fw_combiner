@@ -24,6 +24,19 @@
 - [ ] `NT51951` with DP size `0x80000`: provide `base.bin`, `dp.bin`, and `expected.bin`.
 - [ ] `NT51951` with DP size `0x100000`: provide `base.bin`, `dp.bin`, and `expected.bin`.
 
+## AB Merge
+
+- [ ] `NT51919`: provide direct AB inputs/output and an owner-approved fact-scoped alias/parity decision; a Normal or whole-map alias is not enough.
+- [ ] `NT51929`: provide product AB input/output and firmware-owner review in addition to the existing candidate/reference evidence.
+- [ ] `NT51932`: provide product AB input/output and firmware-owner review in addition to the existing candidate evidence.
+- [ ] `NT51950`: provide AB inputs/output, exact `Combiner.exe` identity, full command trace, and the exact `map.txt` sidecar used by the golden.
+- [ ] `NT51951`: provide AB inputs/output, exact `Combiner.exe` identity, full command trace, and the exact `map.txt` sidecar used by the golden.
+
+For every AB case, retain original source filenames and record their SHA-256,
+source archive/ticket, output filename, and firmware-owner approval. AB header
+CRC is performed only by the owner-approved Combiner stage; C# does not
+calculate or write it.
+
 ## CtrlRAM Replace
 
 - [ ] At least one `NT51927` single/2-chip/3-chip real postbuild case.

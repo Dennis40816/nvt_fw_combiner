@@ -25,6 +25,14 @@ The script copies files into an ignored `intake/<run-id>/` folder, computes SHA-
 
 Use `--mode standard-merge`, `--mode dp-replace`, `--mode ctrlram-replace`, `--mode general-replace`, or `--mode reference-only`. The script does not make C# changes and does not make a support claim.
 
+## AB Code evidence
+
+AB Code is evidence-gated separately from the existing intake command. The
+current command must not infer an AB profile, memory map, Combiner binding, or
+header rule from a drop folder. Use `ab-merge/<ic>/` to retain the exact
+owner-provided payloads and provenance for the five `v0.9.3` targets. The
+tracked `CASE.md` files state the required evidence; payloads remain ignored.
+
 Prepare these files when available:
 
 - flash-map workbook/export;
@@ -54,3 +62,8 @@ High-priority folders:
 - `ctrlram-replace/nt51927/`
 - `ctrlram-replace/nt51950/`
 - `ctrlram-replace/nt51951/`
+- `ab-merge/nt51919/`
+- `ab-merge/nt51929/`
+- `ab-merge/nt51932/`
+- `ab-merge/nt51950/`
+- `ab-merge/nt51951/`
