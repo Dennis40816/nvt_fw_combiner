@@ -82,6 +82,27 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("NT51928", bootstrapSource, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies supported DP Replace reaches the shared engine from the trusted V2 bundle, not legacy profiles.</summary>
+    [Fact]
+    public void BootstrapRoutesSupportedDpReplaceThroughTrustedV2Artifacts()
+    {
+        string replaceDp = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.cs");
+        string v2Resolution = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.BuiltInV2.cs");
+        string replaceCli = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.DpWorkbench.cs");
+        string bundle = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs");
+
+        Assert.Contains("TryCompileDpPerspectiveDpReplace", replaceDp, StringComparison.Ordinal);
+        Assert.Contains("CompiledCompositionInputBindingFactory.Create", replaceDp, StringComparison.Ordinal);
+        Assert.DoesNotContain("BuiltInReplaceProfiles", replaceDp, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileCompiler", replaceDp, StringComparison.Ordinal);
+        Assert.Contains("TryResolveDpPerspectiveDpReplaceSelector", replaceCli, StringComparison.Ordinal);
+        Assert.DoesNotContain("BuiltInReplaceProfiles", replaceCli, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileDefinition", replaceCli, StringComparison.Ordinal);
+        Assert.Contains("IcWorkflowIds.DpReplace", v2Resolution, StringComparison.Ordinal);
+        Assert.Contains("s_nt51950Nt51951V2Bundle", v2Resolution, StringComparison.Ordinal);
+        Assert.Contains("ProfileBundleLoader.Load", bundle, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies workbench Replace mode ids stay centralized for UI and CLI adapters.</summary>
     [Fact]
     public void BootstrapOwnsWorkbenchReplaceModeIds()

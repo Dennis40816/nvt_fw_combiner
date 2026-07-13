@@ -1,5 +1,6 @@
 using System.Globalization;
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
 
@@ -26,16 +27,53 @@ public static partial class WorkbenchCompositionService
             return failure!;
         }
 
-        CompositionProfileDefinition profile = BuiltInReplaceProfiles.CreateDpPerspectiveDpReplaceProfile(
-            icId,
-            context!.Capacity);
-        ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
-        return !compile.IsSuccess
-            ? throw new InvalidOperationException(FormatIssues(compile.Issues))
-            : await RunCompiledCompositionAsync(
+        if (!TryCompileDpPerspectiveDpReplace(
+                icId,
+                context!.Capacity,
+                out CompiledComposition? compiledComposition,
+                out IReadOnlyList<CompositionIssue> issues))
+        {
+            return CreatePlanningRunResult(
+                icId,
+                number,
+                WorkbenchReplaceModes.Dp,
+                slotPaths,
+                build,
+                WorkbenchIssueCodes.ReplaceDpProfilePending,
+                $"No supported V2 DP Replace profile is registered for {icId}.",
+                context.Capacity);
+        }
+
+        if (compiledComposition is null)
+        {
+            CompositionIssue issue = issues.Count > 0
+                ? issues[0]
+                : new CompositionIssue(
+                    BuiltInV2CompilationFailed,
+                    $"The built-in V2 DP Replace profile for {icId} did not produce an executable composition.");
+            return CreatePlanningRunResult(
+                icId,
+                number,
+                WorkbenchReplaceModes.Dp,
+                slotPaths,
+                build,
+                issue.Code,
+                issue.Message,
+                context.Capacity);
+        }
+
+        InputArtifactBinding[] bindings =
+        [
+            CompiledCompositionInputBindingFactory.Create(
+                compiledComposition,
+                CompositionAddressSpaceIds.ReferenceBase,
+                context.BasePath),
+            CreateDpReplacementBinding(compiledComposition, context.SlotPaths),
+        ];
+        return await RunCompiledCompositionAsync(
             DpReplaceRunIdPrefix,
-            compile.CompiledComposition!,
-            context.Bindings,
+            compiledComposition,
+            bindings,
             context.BasePath,
             build,
             outputPath,
@@ -43,6 +81,18 @@ public static partial class WorkbenchCompositionService
             icNumberSelection: context.Selection,
             overwrite: true,
             cancellationToken).ConfigureAwait(false);
+    }
+
+    private static InputArtifactBinding CreateDpReplacementBinding(
+        CompiledComposition compiledComposition,
+        IReadOnlyDictionary<string, string> slotPaths)
+    {
+        return slotPaths.TryGetValue(WorkbenchSlotIds.ReplaceDp, out string? path) && !string.IsNullOrWhiteSpace(path)
+            ? CompiledCompositionInputBindingFactory.Create(
+                compiledComposition,
+                CompositionAddressSpaceIds.DpReplacement,
+                Path.GetFullPath(path))
+            : throw new InvalidOperationException($"Input slot '{WorkbenchSlotIds.ReplaceDp}' is required.");
     }
 
     private static IReadOnlyList<WorkbenchMemoryMapRow> CreateDpReplaceRows(

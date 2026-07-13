@@ -1,5 +1,4 @@
 using NvtFwCombiner.Application.Composition;
-using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -44,30 +43,11 @@ public static partial class WorkbenchCompositionService
         }
 
         long baseLength = new FileInfo(fullBasePath).Length;
-        if (!IsSupportedDpPerspectiveBaseLength(baseLength))
-        {
-            failure = CreatePlanningRunResult(
-                icId,
-                number,
-                WorkbenchReplaceModes.Dp,
-                slotPaths,
-                build,
-                CompositionIssueCodes.InputAddressSpaceLengthMismatch,
-                $"{icId} DP Replace base flash BIN length must be one of {FormatSupportedDpPerspectiveBaseLengths()} (actual {FormatHexLength(baseLength)}).",
-                baseLength);
-            return false;
-        }
-
-        InputArtifactBinding[] bindings =
-        [
-            new(CompositionAddressSpaceIds.ReferenceBase, WorkbenchSlotIds.ReplaceBase, fullBasePath),
-            CreateBinding(CompositionAddressSpaceIds.DpReplacement, WorkbenchSlotIds.ReplaceDp, slotPaths),
-        ];
         context = new DpPerspectiveDpReplaceRunContext(
             ToIcNumberSelection(number),
             fullBasePath,
             baseLength,
-            bindings);
+            slotPaths);
         return true;
     }
 
@@ -75,5 +55,5 @@ public static partial class WorkbenchCompositionService
         IcNumberSelection Selection,
         string BasePath,
         long Capacity,
-        IReadOnlyList<InputArtifactBinding> Bindings);
+        IReadOnlyDictionary<string, string> SlotPaths);
 }

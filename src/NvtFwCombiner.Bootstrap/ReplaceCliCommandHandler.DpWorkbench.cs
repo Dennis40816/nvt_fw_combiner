@@ -86,22 +86,7 @@ internal static partial class ReplaceCliCommandHandler
         string selector,
         [NotNullWhen(true)] out string? icId)
     {
-        string normalized = selector.Trim();
-        foreach (CompositionProfileDefinition profile in BuiltInReplaceProfiles.All.Where(profile =>
-                     profile.ExperienceId == IcWorkflowIds.DpReplace &&
-                     BuiltInReplaceProfiles.IsDpPerspectiveDpReplaceIc(profile.IcId)))
-        {
-            if (string.Equals(profile.ProfileId, normalized, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(profile.IcId, normalized, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(CliCompositionRunSupport.GetIcNumber(profile.IcId), normalized, StringComparison.OrdinalIgnoreCase))
-            {
-                icId = profile.IcId;
-                return true;
-            }
-        }
-
-        icId = null;
-        return false;
+        return WorkbenchCompositionService.TryResolveDpPerspectiveDpReplaceSelector(selector, out icId);
     }
 
     private static bool RejectUnusedDpWorkbenchOptions(ParsedOptions options, TextWriter error)

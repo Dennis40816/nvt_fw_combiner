@@ -13,7 +13,7 @@ public sealed class Nt51950Nt51951DpReplaceSyntheticOracleTests
     private const int CustomerInfoStart = 0x37000;
     private const int CustomerInfoLength = 0x1000;
 
-    /// <summary>Runs every public deterministic DP Replace oracle through the production workbench workflow.</summary>
+    /// <summary>Runs every public deterministic DP Replace oracle through the production V2 workbench workflow.</summary>
     [Fact]
     public async Task ReplaceWorkflowMatchesAllSixDeterministicOracleHashes()
     {
@@ -71,6 +71,13 @@ public sealed class Nt51950Nt51951DpReplaceSyntheticOracleTests
             Assert.Equal(expectedBytes, actualBytes);
             Assert.Equal(expectedHash, result.OutputSha256);
             Assert.Equal(expectedHash, Sha256Hex(actualBytes));
+            using var report = JsonDocument.Parse(result.ReportJson);
+            Assert.Equal(
+                ["base.bin", "replacement-dp.bin"],
+                report.RootElement.GetProperty("Inputs")
+                    .EnumerateArray()
+                    .Select(static input => input.GetProperty("OriginalFileName").GetString())
+                    .Order(StringComparer.Ordinal));
         }
     }
 
