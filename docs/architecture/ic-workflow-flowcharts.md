@@ -160,8 +160,8 @@ flowchart TD
     D -- "yes" --> F["Clone exact reference into output work image"]
     F --> G["Pad replacement DP to the selected reference length and replace the full DP container"]
     G --> H["Restore original TP range 0x0A000-0x36FFF (len 0x2D000) from reference firmware"]
-    H --> I["Restore customer info 0x37000-0x37FFF (len 0x1000) from reference firmware"]
-    I --> J["Write workbench artifact; keep support claim gated by golden evidence"]
+    H --> I["Keep customer info 0x37000-0x37FFF (len 0x1000) from replacement DP"]
+    I --> J["Write workbench artifact; validate deterministic oracle evidence while retaining independent owner-output promotion gate"]
 ```
 
 ## CtrlRAM Replace flowcharts

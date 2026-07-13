@@ -65,12 +65,6 @@ public static partial class WorkbenchCompositionService
                     "Restore",
                     "Base TP",
                     $"Copy original TP FW at {FormatDisplayRange(DpPerspectiveCatalog.TpOverlayRange)} from the base firmware after DP replacement."),
-                new WorkbenchMemoryMapRow(
-                    FormatDisplayRange(DpPerspectiveCatalog.CustomerInfoPreserveRange),
-                    "DP replacement",
-                    "Restore",
-                    "Base customer info",
-                    $"Copy customer information at {FormatDisplayRange(DpPerspectiveCatalog.CustomerInfoPreserveRange)} from the base firmware after DP replacement."),
             ]
             :
         [
@@ -93,7 +87,7 @@ public static partial class WorkbenchCompositionService
                 WorkbenchSlotIds.ReplaceDp,
                 "DP replacement BIN",
                 IsDpPerspectiveIc(icId)
-                    ? $"Replacement DP is padded to the selected base BIN length ({FormatSupportedDpPerspectiveBaseLengths()}); original TP range is restored from base."
+                    ? $"Replacement DP is padded to the selected base BIN length ({FormatSupportedDpPerspectiveBaseLengths()}); only the original TP range is restored from base."
                     : "Replacement DP payload. Build stays gated until this IC has approved DP Replace mapping evidence.",
                 false,
                 CompositionAddressSpaceIds.DpReplacement,

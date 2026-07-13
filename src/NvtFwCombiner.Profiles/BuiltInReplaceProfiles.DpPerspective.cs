@@ -19,9 +19,6 @@ public static partial class BuiltInReplaceProfiles
     /// <summary>TP range restored from the base firmware after DP Perspective replacement.</summary>
     public static ByteRange DpPerspectiveTpRestoreRange => DpPerspectiveCatalog.TpOverlayRange;
 
-    /// <summary>Customer information range preserved from the base firmware after DP Perspective replacement.</summary>
-    public static ByteRange DpPerspectiveCustomerInfoPreserveRange => DpPerspectiveCatalog.CustomerInfoPreserveRange;
-
     /// <summary>Returns true for ICs that use the DP Perspective Replace policy.</summary>
     public static bool IsDpPerspectiveDpReplaceIc(string icId)
     {
@@ -60,7 +57,7 @@ public static partial class BuiltInReplaceProfiles
         string normalizedProfileIc = normalizedIc.ToLowerInvariant();
         return new CompositionProfileDefinition(
             $"{normalizedProfileIc}-dp-replace-dp-perspective",
-            "0.5.0",
+            "0.6.0",
             normalizedIc,
             IcWorkflowIds.DpReplace,
             CompositionKind.Replace,
@@ -96,15 +93,6 @@ public static partial class BuiltInReplaceProfiles
                     DpPerspectiveCatalog.TpOverlayRange,
                     OverlapPolicy.ReplaceExisting,
                     $"Restore original TP FW at {DpPerspectiveCatalog.FormatRange(DpPerspectiveCatalog.TpOverlayRange)} from the base firmware after DP replacement."),
-                CompositionOperation.CopyRange(
-                    DpPerspectiveCatalog.RestoreBaseCustomerInfoOperationId,
-                    DpPerspectiveCatalog.RestoreBaseCustomerInfoSequence,
-                    CompositionAddressSpaceIds.ReferenceBase,
-                    DpPerspectiveCatalog.CustomerInfoPreserveRange,
-                    CompositionAddressSpaceIds.OutputImage,
-                    DpPerspectiveCatalog.CustomerInfoPreserveRange,
-                    OverlapPolicy.ReplaceExisting,
-                    $"Restore customer information at {DpPerspectiveCatalog.FormatRange(DpPerspectiveCatalog.CustomerInfoPreserveRange)} from the base firmware after DP replacement."),
             ],
             [
                 new ProfileRegion(
@@ -113,13 +101,13 @@ public static partial class BuiltInReplaceProfiles
                     dpContainerRange,
                     RegionAtomicity.Partitioned,
                     RegionWritePolicy.DeclaredParts,
-                    classificationTags: ["dp", "tp-restore", "customer-info-preserve"]),
+                    classificationTags: ["dp", "tp-restore"]),
             ],
             [
                 new RegionAccessRule(
                     DpPerspectiveCatalog.ContainerRegionId,
                     RegionAccessKind.Parts,
-                    $"{DpPerspectiveCatalog.FormatSupportedIcIds()} DP Replace first copies replacement DP, then restores the original TP and customer-info ranges."),
+                    $"{DpPerspectiveCatalog.FormatSupportedIcIds()} DP Replace first copies replacement DP, then restores the original TP range."),
             ],
             IcNumberInputMode.SingleSelector);
     }

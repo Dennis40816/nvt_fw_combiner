@@ -47,7 +47,6 @@ public static partial class WorkbenchCompositionService
 
             var fullContainer = new ByteRange(0, capacity);
             ByteRange tpRestoreRange = DpPerspectiveCatalog.TpOverlayRange;
-            ByteRange customerInfoPreserveRange = DpPerspectiveCatalog.CustomerInfoPreserveRange;
             return
             [
                 new OperationRunSummary(
@@ -80,21 +79,6 @@ public static partial class WorkbenchCompositionService
                     [],
                     [],
                     "Restore original TP FW from the base firmware."),
-                new OperationRunSummary(
-                    DpPerspectiveCatalog.RestoreBaseCustomerInfoOperationId,
-                    DpPerspectiveCatalog.RestoreBaseCustomerInfoSequence,
-                    CompositionOperationKind.CopyRange,
-                    status,
-                    CompositionAddressSpaceIds.ReferenceBase,
-                    customerInfoPreserveRange,
-                    CompositionAddressSpaceIds.OutputImage,
-                    customerInfoPreserveRange,
-                    OverlapPolicy.ReplaceExisting,
-                    null,
-                    null,
-                    [],
-                    [],
-                    "Restore customer information from the base firmware."),
             ];
         }
 

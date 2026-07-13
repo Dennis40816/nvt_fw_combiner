@@ -61,15 +61,11 @@ public sealed class BuiltInReplaceProfilesTests
             [
                 DpPerspectiveCatalog.ReplaceDpContainerOperationId,
                 DpPerspectiveCatalog.RestoreBaseTpOperationId,
-                DpPerspectiveCatalog.RestoreBaseCustomerInfoOperationId,
             ],
             operations.Select(operation => operation.OperationId));
         Assert.Equal(new ByteRange(0, DpPerspectiveCatalog.MaxContainerLength), operations[0].TargetRange);
         Assert.Equal(DpPerspectiveCatalog.TpOverlayRange, operations[1].TargetRange);
-        Assert.Equal(DpPerspectiveCatalog.CustomerInfoPreserveRange, operations[2].TargetRange);
-        Assert.Contains(profile.Regions, region =>
-            region.RegionId == DpPerspectiveCatalog.ContainerRegionId &&
-            region.ClassificationTags.Contains("customer-info-preserve", StringComparer.Ordinal));
+        Assert.DoesNotContain(operations, operation => operation.TargetRange == DpPerspectiveCatalog.CustomerInfoRange);
     }
 
     /// <summary>Verifies the DP Perspective workbench profile uses the selected base length without duplicating profile semantics.</summary>
@@ -97,12 +93,13 @@ public sealed class BuiltInReplaceProfilesTests
             [
                 DpPerspectiveCatalog.ReplaceDpContainerOperationId,
                 DpPerspectiveCatalog.RestoreBaseTpOperationId,
-                DpPerspectiveCatalog.RestoreBaseCustomerInfoOperationId,
             ],
             result.CompiledComposition!.Plan.OrderedOperations.Select(operation => operation.OperationId));
         Assert.Equal(new ByteRange(0, capacity), result.CompiledComposition!.Plan.OrderedOperations[0].TargetRange);
         Assert.Equal(BuiltInReplaceProfiles.DpPerspectiveTpRestoreRange, result.CompiledComposition!.Plan.OrderedOperations[1].TargetRange);
-        Assert.Equal(BuiltInReplaceProfiles.DpPerspectiveCustomerInfoPreserveRange, result.CompiledComposition!.Plan.OrderedOperations[2].TargetRange);
+        Assert.DoesNotContain(
+            result.CompiledComposition!.Plan.OrderedOperations,
+            operation => operation.TargetRange == DpPerspectiveCatalog.CustomerInfoRange);
     }
 
     /// <summary>Verifies fixed CtrlRAM Replace compiles with oversized-input truncation policy.</summary>

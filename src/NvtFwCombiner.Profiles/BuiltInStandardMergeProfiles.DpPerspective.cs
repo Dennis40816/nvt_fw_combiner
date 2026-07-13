@@ -78,7 +78,7 @@ public static partial class BuiltInStandardMergeProfiles
                     CompositionAddressSpaceIds.OutputImage,
                     tpOverlay,
                     OverlapPolicy.ReplaceExisting,
-                    $"Overlay TP FW {DpPerspectiveCatalog.FormatRange(DpPerspectiveCatalog.TpOverlayRange)} and leave customer information {DpPerspectiveCatalog.FormatRange(DpPerspectiveCatalog.CustomerInfoPreserveRange)} from DP."),
+                    $"Overlay TP FW {DpPerspectiveCatalog.FormatRange(DpPerspectiveCatalog.TpOverlayRange)} and leave customer information {DpPerspectiveCatalog.FormatRange(DpPerspectiveCatalog.CustomerInfoRange)} from DP."),
             ],
             [
                 new ProfileRegion(

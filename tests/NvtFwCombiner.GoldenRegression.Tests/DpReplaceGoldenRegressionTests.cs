@@ -13,7 +13,6 @@ public sealed class DpReplaceGoldenRegressionTests
     [
         DpPerspectiveCatalog.ReplaceDpContainerOperationId,
         DpPerspectiveCatalog.RestoreBaseTpOperationId,
-        DpPerspectiveCatalog.RestoreBaseCustomerInfoOperationId,
     ];
 
     /// <summary>Verifies 950/951 DP Replace self-replacement preserves owner-approved golden flash bytes.</summary>

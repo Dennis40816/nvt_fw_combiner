@@ -71,7 +71,6 @@ public static partial class WorkbenchCompositionService
 
             long selectedCapacity = selectedBaseLength;
             ByteRange tpRestoreRange = DpPerspectiveCatalog.TpOverlayRange;
-            ByteRange customerInfoPreserveRange = DpPerspectiveCatalog.CustomerInfoPreserveRange;
             CoverageSegment[] dpSegments =
             [
                 new CoverageSegment(
@@ -94,14 +93,6 @@ public static partial class WorkbenchCompositionService
                 dpSegments,
                 new CoverageSegment(
                     tpRestoreRange,
-                    "Base flash",
-                    "Final bytes remain from the original base firmware.",
-                    "#CBD5E1",
-                    false));
-            dpSegments = ApplyCoverageWrite(
-                dpSegments,
-                new CoverageSegment(
-                    customerInfoPreserveRange,
                     "Base flash",
                     "Final bytes remain from the original base firmware.",
                     "#CBD5E1",

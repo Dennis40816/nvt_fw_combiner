@@ -35,7 +35,7 @@ public static partial class WorkbenchCompositionService
     public static string GetStandardMergePolicySummary(string icId)
     {
         return IcMetadataFacade.IsDpPerspectiveIc(icId)
-            ? $"TP paste range: {FormatDisplayRange(DpPerspectiveCatalog.TpOverlayRange)}; {FormatDisplayRange(DpPerspectiveCatalog.CustomerInfoPreserveRange)} is preserved customer information."
+            ? $"TP paste range: {FormatDisplayRange(DpPerspectiveCatalog.TpOverlayRange)}; {FormatDisplayRange(DpPerspectiveCatalog.CustomerInfoRange)} remains from the DP image."
             : "Address ranges come from the built-in Standard Merge profile.";
     }
 

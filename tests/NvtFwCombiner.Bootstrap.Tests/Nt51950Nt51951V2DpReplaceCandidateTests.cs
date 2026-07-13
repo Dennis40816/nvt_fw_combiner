@@ -7,11 +7,11 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
-/// <summary>Migration evidence for the non-runnable NT51950/NT51951 V2 DP Replace candidates.</summary>
+/// <summary>Migration evidence for NT51950/NT51951 V2 DP Replace candidate plans.</summary>
 public sealed class Nt51950Nt51951V2DpReplaceCandidateTests
 {
     private const string BundleDirectory = "nt51950-nt51951-standard-merge";
-    private const string BundleContentHash = "a51258be9024c8366821bee9610f7c7326bce9e9ea046747da7361c72a75c76b";
+    private const string BundleContentHash = "589df358f2ef368a80198d66dff277bed71097169bc5fa1f841135b94c140c0f";
     private const int TpOverlayStart = 0x0A000;
     private const int TpOverlayLength = 0x2D000;
     private const int CustomerInfoStart = 0x37000;
@@ -37,7 +37,7 @@ public sealed class Nt51950Nt51951V2DpReplaceCandidateTests
         AssertPlanParity(legacy.Plan, candidate.Plan);
 
         byte[] reference = CreatePattern(capacity, 0x39);
-        byte[] replacement = CreatePattern(capacity / 2, 0xA7);
+        byte[] replacement = CreatePattern(capacity - 0x1000, 0xA7);
         CompositionExecutionResult candidateExecution = CompositionEngine.Execute(
             candidate.Plan,
             new CompositionExecutionInput(new Dictionary<string, byte[]>(StringComparer.Ordinal)
@@ -58,7 +58,7 @@ public sealed class Nt51950Nt51951V2DpReplaceCandidateTests
         byte[] candidateOutput = candidateExecution.OutputBytes.ToArray();
         Assert.Equal(legacyExecution.OutputBytes.ToArray(), candidateOutput);
         AssertRangeEquals(reference, TpOverlayStart, candidateOutput, TpOverlayStart, TpOverlayLength);
-        AssertRangeEquals(reference, CustomerInfoStart, candidateOutput, CustomerInfoStart, CustomerInfoLength);
+        AssertRangeEquals(replacement, CustomerInfoStart, candidateOutput, CustomerInfoStart, CustomerInfoLength);
     }
 
     /// <summary>Uses the two available owner DP Perspective outputs as self-replacement controls without claiming direct replacement-golden parity.</summary>
@@ -94,7 +94,7 @@ public sealed class Nt51950Nt51951V2DpReplaceCandidateTests
         V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
             V2StandardMergeGoldenTestSupport.LoadCatalog(bundleRoot, BundleContentHash),
             $"nt{icId[2..]}-dp-replace-dp-perspective",
-            "0.5.0",
+            "0.6.0",
             icId,
             ExperienceIds.DpReplace,
             capacity);

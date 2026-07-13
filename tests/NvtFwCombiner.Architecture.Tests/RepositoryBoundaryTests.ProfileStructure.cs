@@ -96,20 +96,14 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public const string OverlayTpOperationId = \"overlay-tp\";", catalog, StringComparison.Ordinal);
         Assert.Contains("public const string ReplaceDpContainerOperationId = \"replace-dp-container\";", catalog, StringComparison.Ordinal);
         Assert.Contains("public const string RestoreBaseTpOperationId = \"restore-base-tp\";", catalog, StringComparison.Ordinal);
-        Assert.Contains(
-            "public const string RestoreBaseCustomerInfoOperationId = \"restore-base-customer-info\";",
-            catalog,
-            StringComparison.Ordinal);
         Assert.Contains("DpPerspectiveCatalog.ContainerRegionId", standardMerge, StringComparison.Ordinal);
         Assert.Contains("DpPerspectiveCatalog.CopyDpContainerOperationId", standardMerge, StringComparison.Ordinal);
         Assert.Contains("DpPerspectiveCatalog.OverlayTpOperationId", standardMerge, StringComparison.Ordinal);
         Assert.Contains("DpPerspectiveCatalog.ContainerRegionId", replace, StringComparison.Ordinal);
         Assert.Contains("DpPerspectiveCatalog.ReplaceDpContainerOperationId", replace, StringComparison.Ordinal);
         Assert.Contains("DpPerspectiveCatalog.RestoreBaseTpOperationId", replace, StringComparison.Ordinal);
-        Assert.Contains("DpPerspectiveCatalog.RestoreBaseCustomerInfoOperationId", replace, StringComparison.Ordinal);
         Assert.Contains("DpPerspectiveCatalog.ReplaceDpContainerOperationId", planning, StringComparison.Ordinal);
         Assert.Contains("DpPerspectiveCatalog.RestoreBaseTpOperationId", planning, StringComparison.Ordinal);
-        Assert.Contains("DpPerspectiveCatalog.RestoreBaseCustomerInfoOperationId", planning, StringComparison.Ordinal);
 
         foreach (string literal in new[]
         {
@@ -118,7 +112,6 @@ public sealed partial class RepositoryBoundaryTests
             "\"overlay-tp\"",
             "\"replace-dp-container\"",
             "\"restore-base-tp\"",
-            "\"restore-base-customer-info\"",
         })
         {
             Assert.DoesNotContain(literal, standardMerge, StringComparison.Ordinal);

@@ -1,21 +1,21 @@
 {
   "schemaVersion": "2.0",
   "profileId": "nt51950-dp-replace-dp-perspective",
-  "profileVersion": "0.5.0",
+  "profileVersion": "0.6.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
       {
         "blockerId": "dp-replace-owner-golden-parity",
         "kind": "golden",
-        "reason": "All six NT51950/NT51951 base, replacement, and expected-output owner golden cases must match this V2 plan before runtime promotion.",
-        "evidenceRefs": ["dp-replace-owner-handoff-pending"]
+        "reason": "The V2 plan must match the deterministic DP Replace oracle and independent owner/reference outputs for every released NT51950/NT51951 case before runtime promotion.",
+        "evidenceRefs": ["dp-replace-synthetic-oracle-v1", "dp-replace-owner-handoff-pending"]
       },
       {
         "blockerId": "dp-replace-firmware-owner-review",
         "kind": "human-review",
-        "reason": "Firmware owner must approve the shared map write authority and DP Replace parity evidence before runtime promotion.",
-        "evidenceRefs": ["dp-perspective-51950-51951-owner-map"]
+        "reason": "Firmware owner must approve the DP-owned customer-info policy and independent owner/reference output parity before runtime promotion.",
+        "evidenceRefs": ["dp-perspective-51950-51951-owner-map", "dp-replace-customer-info-follows-dp-owner-decision", "dp-replace-owner-handoff-pending"]
       }
     ]
   },
@@ -40,8 +40,7 @@
     ],
     "requiredRegionIds": [
       "dp-container",
-      "tp-overlay",
-      "customer-info"
+      "tp-overlay"
     ],
     "requiredMetadataStructureIds": [],
     "requiredCapabilityIds": []
@@ -71,7 +70,7 @@
         "normalization": {
           "kind": "pad-shorter",
           "fillByte": 0,
-          "evidenceRef": "dp-replace-owner-handoff-pending"
+          "evidenceRef": "dp-replace-synthetic-oracle-v1"
         }
       }
     }
@@ -119,16 +118,6 @@
       "viewId": "tp-overlay-output",
       "spaceId": "output-image",
       "selector": { "kind": "map-region", "regionId": "tp-overlay" }
-    },
-    {
-      "viewId": "customer-info-reference",
-      "spaceId": "reference-base",
-      "selector": { "kind": "map-region", "regionId": "customer-info" }
-    },
-    {
-      "viewId": "customer-info-output",
-      "spaceId": "output-image",
-      "selector": { "kind": "map-region", "regionId": "customer-info" }
     }
   ],
   "metadataBindings": [],
@@ -136,17 +125,12 @@
     {
       "regionId": "dp-container",
       "access": "explicit-range",
-      "reason": "Replace the full selected DP Perspective container before restoring profile-declared base ranges."
+      "reason": "Replace the full selected DP Perspective container before restoring the original TP range."
     },
     {
       "regionId": "tp-overlay",
       "access": "whole",
       "reason": "Restore the exact original TP overlay range from the cloned base image."
-    },
-    {
-      "regionId": "customer-info",
-      "access": "whole",
-      "reason": "Restore the exact original customer-information range from the cloned base image."
     }
   ],
   "operations": [
@@ -167,15 +151,6 @@
       "kind": "copy-range",
       "sourceViewId": "tp-overlay-reference",
       "targetViewId": "tp-overlay-output"
-    },
-    {
-      "operationId": "restore-base-customer-info",
-      "sequence": 210,
-      "overlapPolicy": "replace-existing",
-      "reason": "Restore original customer information from the cloned base image after DP replacement.",
-      "kind": "copy-range",
-      "sourceViewId": "customer-info-reference",
-      "targetViewId": "customer-info-output"
     }
   ],
   "validations": [],
@@ -189,6 +164,8 @@
   "evidenceRefs": [
     "dp-perspective-51950-51951-owner-map",
     "legacy-v2-dp-perspective-parity-matrix",
+    "dp-replace-customer-info-follows-dp-owner-decision",
+    "dp-replace-synthetic-oracle-v1",
     "dp-replace-owner-handoff-pending"
   ]
 }

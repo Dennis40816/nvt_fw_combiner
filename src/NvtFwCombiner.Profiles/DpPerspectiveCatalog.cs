@@ -43,12 +43,6 @@ public static class DpPerspectiveCatalog
     /// <summary>DP Replace operation order for restoring the original TP FW range from the base image.</summary>
     public const int RestoreBaseTpSequence = 200;
 
-    /// <summary>DP Replace operation id that restores customer information from the base image.</summary>
-    public const string RestoreBaseCustomerInfoOperationId = "restore-base-customer-info";
-
-    /// <summary>DP Replace operation order for restoring customer information from the base image.</summary>
-    public const int RestoreBaseCustomerInfoSequence = 210;
-
     /// <summary>Supported exact DP/base lengths for DP Perspective workflows.</summary>
     public static IReadOnlyList<long> SupportedContainerLengths { get; } =
     [
@@ -63,8 +57,8 @@ public static class DpPerspectiveCatalog
     /// <summary>TP input length required to cover the overlay range.</summary>
     public static long TpInputLength => TpOverlayRange.EndExclusive;
 
-    /// <summary>Customer information range preserved from the base/DP container.</summary>
-    public static ByteRange CustomerInfoPreserveRange { get; } = new(0x37000, 0x1000);
+    /// <summary>Customer-information range. DP Replace retains replacement-DP bytes in this range.</summary>
+    public static ByteRange CustomerInfoRange { get; } = new(0x37000, 0x1000);
 
     /// <summary>Returns true when an IC uses the DP Perspective policy.</summary>
     public static bool IsSupportedIc(string icId)
