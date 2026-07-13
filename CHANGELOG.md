@@ -6,6 +6,23 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 Post-`0.9.0` development targets UAT feedback, firmware-owner evidence closure, and `1.0.0` release readiness.
 
+## [0.9.1] - 2026-07-13
+
+### Added
+
+- Trusted profile-bundle loading, canonical firmware-family/map resolution, and V2 profile compilation into the single `CompiledComposition` runtime boundary.
+- V2 runtime routing for the existing golden-backed Standard Merge paths and NT51950/NT51951 DP Replace capacity variants, while retaining legacy comparison evidence.
+
+### Changed
+
+- Composition execution now owns mutable work-buffer initialization and accepts one compiled artifact rather than independently supplied profile and plan data.
+- Standard Merge and DP Replace display projections derive executable facts from compiled V2 plans; NT51950/NT51951 DP Replace preserves customer information with the DP container.
+- Runtime FWConfig metadata is read exclusively from the unambiguous NVT Backup at terminal `T - 0xFFF`; primary flash-map addresses remain inspection and evidence facts only.
+
+### Notes
+
+- This migration preserves existing promotion gates and does not claim new IC support, CtrlRAM parity, or AB Code behavior.
+
 ## [0.9.0] - 2026-07-11
 
 ### Added

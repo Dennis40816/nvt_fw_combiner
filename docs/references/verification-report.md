@@ -1,8 +1,12 @@
 # Repository Verification Report
 
-Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
+Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.1 firmware-model-v2 migration milestone. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
 
-Specification package version: `0.9.0`
+Specification package version: `0.9.1`
+
+## 0.9.1 migration evidence
+
+The 0.9.1 release branch retains legacy and golden comparison evidence while routing the covered Normal/Standard Merge and NT51950/NT51951 DP Replace paths through the V2 family/map/profile compiler boundary. On 2026-07-13, `python scripts/verify.py --all` passed with zero build warnings and errors: Python worker 28, Domain 335, Application 219, ProfileContract 347, Architecture 68, GoldenRegression 9, Bootstrap 186, Infrastructure 138 passed with 2 Unix-only skips, and UI Smoke 105. This milestone does not promote IC support or AB Code behavior.
 
 ## Bootstrap assertions
 
