@@ -19,6 +19,8 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 - `v0.9.2` — profile-bundle consolidation milestone: content-addressed schema source inventory and deterministic closed-root materialization reduce repeated schema snapshots without changing loader trust boundaries or firmware behavior.
 - `v0.9.3` — AB Code and CtrlRAM version-edit milestone: owner-approved AB Code profiles and golden evidence may extend the shared composition engine for the approved IC subset; CtrlRAM Build may offer an explicit TP FW major/sub-version edit choice. Neither feature promotes support without its normal firmware-owner evidence.
 - `v0.9.4` — automated IC intake milestone: a deterministic, manifest-driven intake interface may produce candidate bundles and validation reports from declared evidence. It must not infer firmware behavior or automatically promote an IC/mode.
+- `v0.9.5` — V2 workflow convergence milestone: one reviewed workflow family at a time may retire an exactly replaced legacy profile/catalog only after direct V2 runtime and golden evidence prove parity.
+- `v0.9.6` — support and release consolidation milestone: retire completed compatibility projections, reconcile the support matrix, and close package/release evidence without expanding firmware behavior.
 
 ## Branch and merge policy
 
@@ -34,9 +36,17 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 - `0.9.2` starts from the owner-approved locally verified `v0.9.1` tag and is limited to trust-preserving profile-bundle consolidation before AB Code work resumes. PR #93 still retains the remote CI and Codex-review closure for the later `main` integration.
 - `0.9.3` follows the reviewed `0.9.2` tag and contains the separately evidence-gated AB Code and CtrlRAM version-edit work.
 - `0.9.4` follows the reviewed `0.9.3` tag and may automate declared IC-evidence intake only through the standardized 0.9.2 bundle contract.
+- `0.9.5` follows the reviewed `0.9.4` tag and performs staged V2 workflow convergence using the [Legacy Retirement Matrix](legacy-retirement-matrix.md); it does not treat a legacy name as evidence that code is removable.
+- `0.9.6` follows the reviewed `0.9.5` tag and closes only release/support evidence and compatibility items whose matrix gates are complete.
 - `main` is the stable branch.
 - Progress to `main` must happen through reviewed merge/PR, not direct unreviewed development pushes.
 - Agent/Codex work should stay on the active milestone branch until review gates pass.
+
+### Temporary local integration exception
+
+Until `2026-08-01 00:00` Asia/Taipei, the owner permits a feature PR to merge into its exact version integration branch when remote Actions fail before allocating executable steps or logs, provided that the exact feature head has passed `python scripts/verify.py --all`, `git diff --check`, and an independent review with no P0/P1 findings. The PR must record the unavailable remote job evidence and the local verifier result.
+
+This exception does not permit direct `main` merges, automatic tags, support promotion, release publishing, or bypassing required R3 firmware-owner/golden evidence. Those gates remain explicit.
 
 ## Milestone scope
 
@@ -60,6 +70,8 @@ Current execution priority: normal Merge and normal Replace for DP Replace and C
 | `v0.9.2` | Profile-bundle consolidation | Content-addressed schema source inventory materializes the same closed runtime roots; no firmware semantics or AB behavior changes. |
 | `v0.9.3` | AB Code and CtrlRAM version edit | Evidence-gated AB composition profiles plus an explicit pre-Build TP FW major/sub-version edit choice for CtrlRAM Replace. |
 | `v0.9.4` | Automated IC intake | Manifest-driven candidate-bundle and validation-report generation; no inferred firmware rules or automatic support promotion. |
+| `v0.9.5` | V2 workflow convergence | Retire only legacy definitions with an exact V2 runtime replacement, direct tests, and golden/evidence closure recorded in the retirement matrix. |
+| `v0.9.6` | Support/release consolidation | Remove completed compatibility projections and close support/package evidence without adding firmware behavior. |
 | `v1.0.0` | stable | Signed-off support matrix. |
 
 ## First-sample `v1.0.0` release gate
@@ -96,7 +108,12 @@ v0.7.5          bilingual UI resources and Settings functionality
 v0.8.0          report readability, workflow discoverability, structure cleanup
 v0.8.x          stabilization, catalog ownership, packaging/security
 v0.9.0          stable raw-BIN Hex Editor utility milestone
-v0.9.x          UAT stabilization patches
+v0.9.1          firmware-model-v2 foundation
+v0.9.2          profile-bundle consolidation
+v0.9.3          AB Code and CtrlRAM version edit
+v0.9.4          automated IC intake candidate workflow
+v0.9.5          V2 workflow convergence and legacy retirement
+v0.9.6          support/release consolidation
 v1.0.0          stable
 ```
 
