@@ -12,9 +12,32 @@ Owner update 2026-06-30:
 | --- | --- | --- | --- | --- | --- |
 | NT51929 | uploaded AB combiner | None | Address relocation only; no CRC configured | offsets `0x7164/0x7168/0x716C` | Evidence confirmed |
 | NT51932 | uploaded/reference AB combiner | None | Address relocation only; no CRC configured | offsets `0x7164/0x7168/0x716C` | Evidence confirmed |
-| NT51950 | uploaded AB combiner | Verify existing CRC | Relocate, recalculate, write CRC | CRC-32/MPEG-2, read `[0xA100,0xA130)`, write `[0xA130,0xA134)`; exact legacy combiner version/tool binding still required | Evidence confirmed; tool binding pending |
+| NT51950 | uploaded AB combiner | Verify existing CRC | Relocate, recalculate, write CRC | Reference result uses CRC-32/MPEG-2 over `[0xA100,0xA130)` and writes little-endian `u32` at `[0xA130,0xA134)`. A private Combiner 1.13.0 audit has exact output parity; see the dated evidence below. | Evidence confirmed; profile and firmware-owner promotion pending |
 | NT51951 | uploaded AB combiner config | Verify existing CRC | Relocate, recalculate, write CRC | same algorithm/ranges; relocation differs; exact legacy combiner version/tool binding still required | Needs golden output and tool binding |
 | Other Standard-reference ICs | `gen_flash_bin_v2` | Unknown | Unknown/not applicable | no integrity rule established by current evidence | Must inventory |
+
+## 2026-07-14 NT51950 AB private Combiner audit
+
+The owner-supplied private NT51950 AB sample is not committed. Its staged
+reference output SHA-256 is
+`4A292CD9615C58079B8994AF8060AF92562EAA92A55BC24BACC5EC5234E23B30`.
+The same hash was produced by legacy `Combiner.exe` 1.13.0
+(`ED6B58289CC780F73D36B831F5424CEF44AD93187BA7518D36DF6A77AD0C76BF`)
+using `NT51950BASED_NORMAL_MODE` with its `CRC8` selector.
+
+`CRC8` is the legacy command selector, not a claim that the AB header result
+is an eight-bit CRC. The resulting TPB header stores the same CRC-32/MPEG-2
+value as the reference output after relocation. The verified staged mutation
+ranges are `0x4A102`, `0x4A112`, and `[0x4A130,0x4A134)`; the last range is
+the little-endian header CRC word. The future V2 AB profile must declare those
+writes and must use the external Combiner transform. C# must not recalculate
+or write the header CRC.
+
+This is direct NT51950 evidence only. It does not establish the NT51951
+topology, its `0x80000` TPB relocation, or an NT51951 Combiner binding. The
+isolated reproduction environment additionally requires the legacy tool's
+`map.txt`; that environment input must be captured with the eventual
+owner-approved AB golden before the production profile is promoted.
 
 ## Replace processing evidence
 
