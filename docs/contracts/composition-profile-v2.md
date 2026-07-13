@@ -81,7 +81,10 @@ operations with `reject` overlap policy. The DP Replace subset lowers one or mor
 range. `replace-range` is not a Merge
 operation; a Replace `copy-range` from DP or a rejected replacement copy fails closed. Clone initialization
 is permitted only for this exact, unnormalized `reference-image` DP Replace base. Metadata validation,
-processor stages, and every other runtime authority remain outside this subset and fail closed.
+CRC-worker stages, and every other unrecognized runtime authority remain outside this subset and fail closed.
+The reserved future-schema `legacy-combiner-v1` stage lowers through the existing external-processor port
+only with profile-declared read/write ranges, staged sources, and named artifact bindings; it never grants
+C# checksum or header calculation authority.
 
 For this subset, an `exact-resolved-map-capacity` input binds an immutable source space at the resolved map
 capacity. A `tp-maximum-256k` input retains its maximum-policy contract while its immutable source space is

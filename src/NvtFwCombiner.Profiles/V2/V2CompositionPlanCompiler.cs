@@ -107,7 +107,7 @@ internal static partial class V2CompositionPlanCompiler
             return V2CompositionPlanCompileResult.Failed(issues);
         }
 
-        CompositionOperation[] operations = LowerOperations(profile, views, regionAccess, issues);
+        CompositionOperation[] operations = LowerOperations(profile, spaces, views, regionAccess, issues);
         ValidateOperationOverlaps(operations, issues);
         if (issues.Count != 0)
         {
@@ -191,11 +191,9 @@ internal static partial class V2CompositionPlanCompiler
             AddUnsupported(issues, "supported profiles require a token-free reject output template until token rendering is lowered");
         }
 
-        if (profile.MetadataBindings.Count != 0 ||
-            profile.Validations.Count != 0 ||
-            profile.ProcessorStages.Count != 0)
+        if (profile.MetadataBindings.Count != 0 || profile.Validations.Count != 0)
         {
-            AddUnsupported(issues, "metadata bindings, validations, and processor stages are not lowered in this slice");
+            AddUnsupported(issues, "metadata bindings and validations are not lowered in this slice");
         }
 
         MutableCompositionProfileSpace output = AssertOutputSpace(profile);
@@ -247,6 +245,7 @@ internal static partial class V2CompositionPlanCompiler
             bool isDpReplaceRange = operation is CopyOrReplaceProfileOperation replace &&
                 replace.Kind == CompositionProfileOperationKind.ReplaceRange &&
                 IsDpFirmwareInputSource(profile, replace);
+            bool isProcessorRun = operation is RunProcessorProfileOperation;
             bool isReferenceRestore = operation is CopyOrReplaceProfileOperation copy &&
                 copy.Kind == CompositionProfileOperationKind.CopyRange &&
                 copy.OverlapPolicy == OverlapPolicy.ReplaceExisting &&
@@ -255,11 +254,12 @@ internal static partial class V2CompositionPlanCompiler
                     profile.Views.Single(view => StringComparer.Ordinal.Equals(view.ViewId,
                         copy.SourceViewId)).SpaceId);
             bool isSupportedOperation = profile.CompositionKind == CompositionKind.Merge
-                ? isCopyRange || operation is FillRangeProfileOperation or PatchScalarProfileOperation or TransformScalarProfileOperation
+                ? isCopyRange || operation is FillRangeProfileOperation or PatchScalarProfileOperation or TransformScalarProfileOperation ||
+                  isProcessorRun
                 : isDpReplaceRange || isReferenceRestore;
             bool hasSupportedOverlapPolicy = profile.CompositionKind == CompositionKind.Merge
                 ? operation.OverlapPolicy == OverlapPolicy.Reject ||
-                  (isCopyRange && operation.OverlapPolicy == OverlapPolicy.ReplaceExisting)
+                  ((isCopyRange || isProcessorRun) && operation.OverlapPolicy == OverlapPolicy.ReplaceExisting)
                 : (isDpReplaceRange && operation.OverlapPolicy == OverlapPolicy.Reject) || isReferenceRestore;
             if (!isSupportedOperation || !hasSupportedOverlapPolicy)
             {

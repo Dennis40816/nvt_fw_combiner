@@ -6,6 +6,7 @@ internal static partial class V2CompositionPlanCompiler
 {
     private static CompositionOperation[] LowerOperations(
         CompositionProfileDefinition profile,
+        IReadOnlyDictionary<string, AddressSpace> spaces,
         IReadOnlyDictionary<string, ResolvedView> views,
         LoweredRegionAccess regionAccess,
         List<CompositionIssue> issues)
@@ -32,6 +33,17 @@ internal static partial class V2CompositionPlanCompiler
                 case TransformScalarProfileOperation transform:
                     LowerTransformOperation(transform, sequence, views, regionAccess, operations, issues);
                     break;
+                case RunProcessorProfileOperation processor:
+                    LowerProcessorOperation(
+                        profile,
+                        processor,
+                        sequence,
+                        spaces,
+                        views,
+                        regionAccess,
+                        operations,
+                        issues);
+                    break;
                 default:
                     throw new InvalidOperationException("Validated V2 lowering encountered an unsupported operation shape.");
             }
@@ -47,12 +59,11 @@ internal static partial class V2CompositionPlanCompiler
         var priorWrites = new List<CompositionOperation>();
         foreach (CompositionOperation operation in operations.OrderBy(static operation => operation.Sequence).ThenBy(static operation => operation.OperationId, StringComparer.Ordinal))
         {
-            CompositionOperation[] overlaps =
-            [
-                .. priorWrites.Where(candidate =>
+            ByteRange[] writeRanges = GetDeclaredWriteRanges(operation);
+            CompositionOperation[] overlaps = [.. priorWrites.Where(candidate =>
                 StringComparer.Ordinal.Equals(candidate.TargetSpaceId, operation.TargetSpaceId) &&
-                candidate.TargetRange.Overlaps(operation.TargetRange)),
-            ];
+                GetDeclaredWriteRanges(candidate).Any(candidateRange =>
+                    writeRanges.Any(writeRange => candidateRange.Overlaps(writeRange))))];
             if (overlaps.Length == 0)
             {
                 if (operation.OverlapPolicy == OverlapPolicy.ReplaceExisting)
@@ -73,8 +84,9 @@ internal static partial class V2CompositionPlanCompiler
                     operation.OperationId));
                 return;
             }
-            else if (operation.Kind != CompositionOperationKind.CopyRange ||
-                     !overlaps.Any(candidate => candidate.TargetRange.Contains(operation.TargetRange)))
+            else if (operation.Kind is not (CompositionOperationKind.CopyRange or CompositionOperationKind.RunExternalProcessor) ||
+                     !writeRanges.All(writeRange => overlaps.Any(candidate =>
+                         GetDeclaredWriteRanges(candidate).Any(candidateRange => candidateRange.Contains(writeRange)))))
             {
                 issues.Add(new CompositionIssue(
                     OperationOverlap,
@@ -85,6 +97,13 @@ internal static partial class V2CompositionPlanCompiler
 
             priorWrites.Add(operation);
         }
+    }
+
+    private static ByteRange[] GetDeclaredWriteRanges(CompositionOperation operation)
+    {
+        return operation.Kind == CompositionOperationKind.RunExternalProcessor
+            ? [.. operation.ExternalProcessorInvocation!.AllowedWriteRanges]
+            : [operation.TargetRange];
     }
 
     private static void LowerCopyOrReplaceOperation(
@@ -281,6 +300,91 @@ internal static partial class V2CompositionPlanCompiler
             target.Range,
             transform,
             OverlapPolicy.Reject,
+            operation.Reason));
+    }
+
+    private static void LowerProcessorOperation(
+        CompositionProfileDefinition profile,
+        RunProcessorProfileOperation operation,
+        int sequence,
+        IReadOnlyDictionary<string, AddressSpace> spaces,
+        IReadOnlyDictionary<string, ResolvedView> views,
+        LoweredRegionAccess regionAccess,
+        List<CompositionOperation> operations,
+        List<CompositionIssue> issues)
+    {
+        CompositionProfileProcessorStage stage = profile.ProcessorStages.Single(candidate =>
+            StringComparer.Ordinal.Equals(candidate.ProcessorStageId, operation.ProcessorStageId));
+        if (stage is not LegacyCombinerProfileProcessorStage legacy)
+        {
+            AddUnsupported(
+                issues,
+                $"processor stage '{operation.ProcessorStageId}' is not an approved legacy-combiner transform",
+                operation.OperationId);
+            return;
+        }
+
+        AddressSpace targetSpace = spaces[legacy.TargetSpaceId];
+        foreach (string writeViewId in legacy.AllowedWriteViewIds)
+        {
+            if (!TryAuthorizeTargetWrite(
+                    operation.OperationId,
+                    writeViewId,
+                    views[writeViewId],
+                    regionAccess,
+                    issues))
+            {
+                return;
+            }
+        }
+
+        var stagedSources = new List<ExternalProcessorStagedSourceBinding>();
+        foreach (CompositionProfileStagedSourceBinding binding in legacy.StagedSourceBindings)
+        {
+            ResolvedView source = views[binding.SourceViewId];
+            ResolvedView target = views[binding.TargetViewId];
+            if (spaces[source.SpaceId].Mutability != AddressSpaceMutability.Immutable)
+            {
+                AddUnsupported(
+                    issues,
+                    $"processor stage '{operation.ProcessorStageId}' staged source '{binding.SourceViewId}' must be immutable",
+                    operation.OperationId);
+                return;
+            }
+
+            if (source.Range.Length != target.Range.Length)
+            {
+                AddOperationLengthMismatch(
+                    operation.OperationId,
+                    $"processor staged source '{binding.SourceViewId}' and target '{binding.TargetViewId}' have different lengths",
+                    issues);
+                return;
+            }
+
+            stagedSources.Add(new ExternalProcessorStagedSourceBinding(source.SpaceId, source.Range, target.Range));
+        }
+
+        ExternalProcessorStagedArtifactBinding[] stagedArtifacts = [.. legacy.StagedArtifactBindings.Select(binding =>
+        {
+            ResolvedView source = views[binding.SourceViewId];
+            return new ExternalProcessorStagedArtifactBinding(binding.ArtifactId, source.SpaceId, source.Range);
+        })];
+        ByteRange[] allowedReadRanges = [.. legacy.AllowedReadViewIds.Select(viewId => views[viewId].Range)];
+        ByteRange[] allowedWriteRanges = [.. legacy.AllowedWriteViewIds.Select(viewId => views[viewId].Range)];
+        var invocation = new ExternalProcessorInvocation(
+            legacy.InvocationProfileId,
+            legacy.ToolBindingId,
+            allowedReadRanges,
+            allowedWriteRanges,
+            stagedSources,
+            stagedArtifactBindings: stagedArtifacts);
+        operations.Add(CompositionOperation.RunExternalProcessor(
+            operation.OperationId,
+            sequence,
+            targetSpace.AddressSpaceId,
+            new ByteRange(0, targetSpace.Length),
+            invocation,
+            operation.OverlapPolicy,
             operation.Reason));
     }
 
