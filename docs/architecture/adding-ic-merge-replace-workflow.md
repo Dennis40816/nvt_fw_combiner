@@ -54,6 +54,16 @@ The script stages files under `testdata/golden/owner-handoff/<mode>/<ic>/.../int
 
 This intake step does not promote support, does not edit C# code, and does not copy private BIN/tool payloads into tracked golden or external-tool locations. Promotion still requires the normal reviewed changes listed below.
 
+## Future Automated Intake Rule
+
+The planned 0.9.4 intake interface must use this declared-evidence model rather
+than scan a user's workstation or infer firmware rules from arbitrary BINs. It
+may generate only a candidate bundle, a materialized closed-root preview, a
+validation report, and a missing-evidence checklist. It must not determine
+ranges, CRC/header behavior, aliases, FW Config layouts, support exposure, or
+promotion. Only a human-reviewed commit may turn a candidate into a trusted
+runtime bundle.
+
 The owner drop folder should contain as many of these as apply:
 
 - flash-map workbook/export and flash header reference;
