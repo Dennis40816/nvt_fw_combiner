@@ -202,6 +202,6 @@ public sealed class CompiledRegionAccessContract
     /// <summary>Complete profile-owned access rules resolved against canonical physical constraints.</summary>
     public IReadOnlyList<CompiledRegionAccessRequirement> Requirements { get; }
 
-    /// <summary>All profile logical views and their governing physical region chains.</summary>
+    /// <summary>All map-backed profile logical views and their governing physical region chains.</summary>
     public IReadOnlyList<CompiledResolvedPhysicalView> ResolvedViews { get; }
 }

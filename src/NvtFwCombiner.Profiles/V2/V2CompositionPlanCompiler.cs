@@ -402,6 +402,23 @@ internal static partial class V2CompositionPlanCompiler
                 continue;
             }
 
+            CompositionProfileSpace profileSpace = profile.Spaces.Single(candidate =>
+                StringComparer.Ordinal.Equals(candidate.SpaceId, view.SpaceId));
+            if (profileSpace.Kind == CompositionProfileSpaceKind.WorkBuffer)
+            {
+                if (view.Selector is not SpaceRangeViewSelector)
+                {
+                    issues.Add(new CompositionIssue(
+                        InvalidView,
+                        $"Work-buffer view '{view.ViewId}' must use a space-range selector.",
+                        view.ViewId));
+                    continue;
+                }
+
+                views.Add(view.ViewId, new ResolvedView(view.SpaceId, range, []));
+                continue;
+            }
+
             if (!TryResolveGoverningRegionChain(range, regionsById, out FirmwareRegion[] governingRegionChain))
             {
                 issues.Add(new CompositionIssue(
@@ -475,6 +492,7 @@ internal static partial class V2CompositionPlanCompiler
 
         CompiledResolvedPhysicalView[] resolvedViews = [.. views
             .OrderBy(static entry => entry.Key, StringComparer.Ordinal)
+            .Where(static entry => entry.Value.GoverningRegionChain.Count != 0)
             .Select(static entry => new CompiledResolvedPhysicalView(
                 entry.Key,
                 entry.Value.SpaceId,
@@ -544,6 +562,11 @@ internal static partial class V2CompositionPlanCompiler
         LoweredRegionAccess regionAccess,
         List<CompositionIssue> issues)
     {
+        if (target.GoverningRegionChain.Count == 0)
+        {
+            return true;
+        }
+
         ResolvedRegionAccessRule[] applicableRules = [.. regionAccess.Rules.Values
             .Where(rule => rule.Region.Range.Contains(target.Range))
             .OrderBy(rule => rule.Region.Range.Length)

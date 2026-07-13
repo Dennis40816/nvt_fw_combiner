@@ -95,6 +95,11 @@ naming object cannot select another space. The compiler rejects a missing slot, 
 capacity, duplicate initializer, or unresolved graph reference before plan creation. Callers bind
 immutable artifacts only and cannot seed TPA, TPB, or other mutable work buffers.
 
+A `work-buffer` is a virtual engine-owned address space, not a physical firmware map region. Its
+views must use `space-range`; operations may use it as an intermediate source or target without
+creating a region-access rule. Only map-backed views are retained in physical access provenance and
+are subject to map write constraints. A work buffer can never be selected as final output.
+
 ## Input size policy
 
 Every input declares an `artifactClass` and a closed length policy. `tp-firmware` and
