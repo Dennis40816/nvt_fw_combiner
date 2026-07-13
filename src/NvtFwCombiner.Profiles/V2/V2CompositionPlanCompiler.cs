@@ -115,8 +115,15 @@ internal static partial class V2CompositionPlanCompiler
         }
 
         MutableCompositionProfileSpace output = AssertOutputSpace(profile);
+        ImageInitialization[] initializations = LowerInitializations(profile, spaces, issues);
+        if (issues.Count != 0)
+        {
+            return V2CompositionPlanCompileResult.Failed(issues);
+        }
+
         var plan = new CompositionPlan(
-            LowerOutputInitialization(profile, output, resolvedMap.CapacityBytes),
+            initializations,
+            output.SpaceId,
             spaces.Values,
             operations);
         var promotion = new CompiledProfilePromotion(
@@ -191,16 +198,12 @@ internal static partial class V2CompositionPlanCompiler
             AddUnsupported(issues, "metadata bindings, validations, and processor stages are not lowered in this slice");
         }
 
-        MutableCompositionProfileSpace[] mutableSpaces = [.. profile.Spaces.OfType<MutableCompositionProfileSpace>()];
-        if (mutableSpaces.Length != 1 || mutableSpaces[0].Kind != CompositionProfileSpaceKind.OutputImage)
-        {
-            AddUnsupported(issues, "exactly one output-image mutable space is required and work buffers are unsupported");
-        }
-        else if (mutableSpaces[0].Capacity is not ResolvedMapProfileCapacity ||
-                 (profile.CompositionKind == CompositionKind.Merge &&
-                  mutableSpaces[0].Initializer is not BlankProfileInitializer) ||
-                 (profile.CompositionKind == CompositionKind.Replace &&
-                  mutableSpaces[0].Initializer is not CloneProfileInitializer))
+        MutableCompositionProfileSpace output = AssertOutputSpace(profile);
+        if (output.Capacity is not ResolvedMapProfileCapacity ||
+            (profile.CompositionKind == CompositionKind.Merge &&
+             output.Initializer is not BlankProfileInitializer) ||
+            (profile.CompositionKind == CompositionKind.Replace &&
+             output.Initializer is not CloneProfileInitializer))
         {
             AddUnsupported(issues, "the output image must use resolved-map blank initialization for Merge or reference clone initialization for Replace");
         }
@@ -288,30 +291,21 @@ internal static partial class V2CompositionPlanCompiler
                 length,
                 slot,
                 resolvedMap.CapacityBytes,
-                profile.CompositionKind));
+                profile.CompositionKind,
+                IsCloneSourceSlot(profile, input.SlotId)));
         }
 
-        MutableCompositionProfileSpace output = AssertOutputSpace(profile);
-        spaces.Add(
-            output.SpaceId,
-            new AddressSpace(output.SpaceId, resolvedMap.CapacityBytes, AddressSpaceMutability.Mutable));
-        return spaces;
-    }
-
-    private static ImageInitialization LowerOutputInitialization(
-        CompositionProfileDefinition profile,
-        MutableCompositionProfileSpace output,
-        long capacity)
-    {
-        return output.Initializer switch
+        foreach (MutableCompositionProfileSpace mutableSpace in profile.Spaces.OfType<MutableCompositionProfileSpace>())
         {
-            BlankProfileInitializer blank => ImageInitialization.Blank(output.SpaceId, capacity, blank.FillByte),
-            CloneProfileInitializer clone => ImageInitialization.Reference(
-                output.SpaceId,
-                ResolveCloneReferenceSourceSpaceId(profile, clone),
-                capacity),
-            _ => throw new InvalidOperationException("Validated V2 lowering encountered an unsupported output initializer."),
-        };
+            spaces.Add(
+                mutableSpace.SpaceId,
+                new AddressSpace(
+                    mutableSpace.SpaceId,
+                    ResolveMutableSpaceCapacity(mutableSpace, resolvedMap.CapacityBytes),
+                    AddressSpaceMutability.Mutable));
+        }
+
+        return spaces;
     }
 
     private static string ResolveCloneReferenceSourceSpaceId(
@@ -348,7 +342,8 @@ internal static partial class V2CompositionPlanCompiler
         long length,
         CompositionProfileInputSlot slot,
         long resolvedMapCapacity,
-        CompositionKind compositionKind)
+        CompositionKind compositionKind,
+        bool isCloneSource)
     {
         return slot.LengthRule switch
         {
@@ -369,8 +364,9 @@ internal static partial class V2CompositionPlanCompiler
                 length,
                 AddressSpaceMutability.Immutable,
                 inputPaddingByte: padded.FillByte),
-            ExactResolvedMapCapacityLengthRule when compositionKind == CompositionKind.Replace &&
-                                                   slot.ArtifactClass == CompositionProfileArtifactClass.ReferenceImage => new AddressSpace(
+            ExactResolvedMapCapacityLengthRule when isCloneSource ||
+                                                   (compositionKind == CompositionKind.Replace &&
+                                                    slot.ArtifactClass == CompositionProfileArtifactClass.ReferenceImage) => new AddressSpace(
                 addressSpaceId,
                 length,
                 AddressSpaceMutability.Immutable),

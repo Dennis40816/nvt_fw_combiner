@@ -268,12 +268,46 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             familyHash => ProfileWithCloneOutputInitializer(SupportedProfileJson(familyHash))));
     }
 
-    /// <summary>Verifies an additional mutable work buffer remains outside the non-executable blank-output subset.</summary>
+    /// <summary>Verifies declared blank and clone work buffers lower as engine-owned initializers beside the final output.</summary>
     [Fact]
-    public void BlankOutputLoweringRejectsWorkBufferWithoutAnArtifact()
+    public void BlankOutputLoweringIncludesWorkBufferInitializers()
+    {
+        V2CompositionPlanCompileResult blank = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+            familyHash => ProfileWithWorkBuffer(SupportedProfileJson(familyHash))));
+        V2CompositionPlanCompileResult fixedCapacity = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+            familyHash => ProfileWithWorkBuffer(SupportedProfileJson(familyHash), fixedCapacityBytes: 8)));
+        V2CompositionPlanCompileResult clone = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+            familyHash => ProfileWithWorkBuffer(SupportedProfileJson(familyHash), cloneSourceSlotId: "tp-input")));
+
+        Assert.Equal(
+            ["output", "scratch"],
+            blank.CompiledComposition!.Plan.Initializations.Select(static initialization => initialization.TargetSpaceId));
+        ImageInitialization blankScratch = Assert.Single(
+            blank.CompiledComposition.Plan.Initializations,
+            static initialization => initialization.TargetSpaceId == "scratch");
+        Assert.Equal(ImageInitializationKind.Blank, blankScratch.Kind);
+        Assert.Equal((byte)0, blankScratch.FillByte);
+        Assert.Equal(
+            8,
+            Assert.Single(
+                fixedCapacity.CompiledComposition!.Plan.AddressSpaces,
+                static space => space.AddressSpaceId == "scratch").Length);
+
+        ImageInitialization clonedScratch = Assert.Single(
+            clone.CompiledComposition!.Plan.Initializations,
+            static initialization => initialization.TargetSpaceId == "scratch");
+        Assert.Equal(ImageInitializationKind.Reference, clonedScratch.Kind);
+        Assert.Equal("tp-source", clonedScratch.ReferenceSpaceId);
+    }
+
+    /// <summary>Verifies clone work buffers reject extracted input geometry before plan construction.</summary>
+    [Fact]
+    public void BlankOutputLoweringRejectsWorkBufferCloneFromExtractedInput()
     {
         V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
-            familyHash => ProfileWithWorkBuffer(SupportedProfileJson(familyHash))));
+            familyHash => ProfileWithWorkBuffer(
+                ProfileWithTpMaximumInput(SupportedProfileJson(familyHash), new ByteRange(0, 16)),
+                cloneSourceSlotId: "tp-input")));
 
         Assert.Null(result.CompiledComposition);
         Assert.Equal("profile.v2.plan.unsupported-declaration", Assert.Single(result.Issues).Code);
@@ -485,7 +519,10 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
     }
 
-    private static string ProfileWithWorkBuffer(string profileJson)
+    private static string ProfileWithWorkBuffer(
+        string profileJson,
+        string? cloneSourceSlotId = null,
+        int? fixedCapacityBytes = null)
     {
         JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(profileJson));
         JsonArray spaces = Assert.IsType<JsonArray>(profile["spaces"]);
@@ -493,12 +530,20 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         {
             ["spaceId"] = "scratch",
             ["kind"] = "work-buffer",
-            ["capacity"] = new JsonObject { ["kind"] = "resolved-map" },
-            ["initializer"] = new JsonObject
-            {
-                ["kind"] = "blank",
-                ["fillByte"] = 0,
-            },
+            ["capacity"] = fixedCapacityBytes is null
+                ? new JsonObject { ["kind"] = "resolved-map" }
+                : new JsonObject { ["kind"] = "fixed", ["bytes"] = fixedCapacityBytes },
+            ["initializer"] = cloneSourceSlotId is null
+                ? new JsonObject
+                {
+                    ["kind"] = "blank",
+                    ["fillByte"] = 0,
+                }
+                : new JsonObject
+                {
+                    ["kind"] = "clone",
+                    ["sourceSlotId"] = cloneSourceSlotId,
+                },
         });
         return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
     }

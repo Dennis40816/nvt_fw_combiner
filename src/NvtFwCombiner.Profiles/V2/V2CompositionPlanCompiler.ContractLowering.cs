@@ -7,7 +7,8 @@ internal static partial class V2CompositionPlanCompiler
 {
     private static MutableCompositionProfileSpace AssertOutputSpace(CompositionProfileDefinition profile)
     {
-        return profile.Spaces.OfType<MutableCompositionProfileSpace>().Single();
+        return profile.Spaces.OfType<MutableCompositionProfileSpace>().Single(space =>
+            space.Kind == CompositionProfileSpaceKind.OutputImage);
     }
 
     private static CompiledInputSlotRequirement MapInputSlot(
