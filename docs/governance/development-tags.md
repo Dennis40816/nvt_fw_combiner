@@ -22,6 +22,10 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 - `v0.9.5` — V2 workflow convergence milestone: one reviewed workflow family at a time may retire an exactly replaced legacy profile/catalog only after direct V2 runtime and golden evidence prove parity.
 - `v0.9.6` — support and release consolidation milestone: retire completed compatibility projections, reconcile the support matrix, and close package/release evidence without expanding firmware behavior.
 
+The active closure goal, completed-milestone audit, and the exact scope fence
+for `v0.9.3` through `v0.9.6` are maintained in
+[`0.9.x Completion Roadmap`](../architecture/0.9.x-completion-roadmap.md).
+
 ## Branch and merge policy
 
 - `0.1.0` is the dev0 contract branch.
@@ -33,8 +37,8 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 - `0.8.0` is the tagged post-`0.7.5` milestone for repository structure consolidation, report readability, workflow discoverability, and remaining release evidence closure.
 - `0.9.0` is the integration branch for the standalone raw-BIN Hex Editor milestone and subsequent UAT fixes after the reviewed stable tag.
 - `0.9.1` is the integration branch for the firmware-model-v2 migration after `0.9.0`.
-- `0.9.2` starts from the owner-approved locally verified `v0.9.1` tag and is limited to trust-preserving profile-bundle consolidation before AB Code work resumes. PR #93 still retains the remote CI and Codex-review closure for the later `main` integration.
-- `0.9.3` follows the reviewed `0.9.2` tag and contains the separately evidence-gated AB Code and CtrlRAM version-edit work.
+- `0.9.2` starts from the owner-approved locally verified `v0.9.1` tag and is limited to trust-preserving profile-bundle consolidation before AB Code work resumes. PR #94 records the temporary local-verification integration; remote CI and Codex review remain required before any later `main` integration.
+- `0.9.3` follows the reviewed `v0.9.2` tag and contains the separately evidence-gated AB Code and CtrlRAM version-edit work. The `0.9.2` release metadata and tag must exist before AB commits begin.
 - `0.9.4` follows the reviewed `0.9.3` tag and may automate declared IC-evidence intake only through the standardized 0.9.2 bundle contract.
 - `0.9.5` follows the reviewed `0.9.4` tag and performs staged V2 workflow convergence using the [Legacy Retirement Matrix](legacy-retirement-matrix.md); it does not treat a legacy name as evidence that code is removable.
 - `0.9.6` follows the reviewed `0.9.5` tag and closes only release/support evidence and compatibility items whose matrix gates are complete.
