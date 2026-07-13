@@ -1,7 +1,6 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
-using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -31,10 +30,8 @@ public sealed class CanonicalV2StandardMergeGoldenTests
         int expectedDpInputLength,
         bool expectsRegionSetAlias)
     {
-        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        string bundleRoot = Path.Combine(repositoryRoot, "profiles", "built-in", bundleDirectory);
         CompiledComposition v2 = V2StandardMergeGoldenTestSupport.CompileV2(
-            V2StandardMergeGoldenTestSupport.LoadCatalog(bundleRoot, bundleContentHash),
+            V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(bundleDirectory, bundleContentHash),
             profileId,
             "0.5.0",
             icId);

@@ -1,6 +1,5 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -24,15 +23,13 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
         string goldenIc,
         string expectedOutputFileName)
     {
-        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        string bundleRoot = Path.Combine(repositoryRoot, "profiles", "built-in", BundleDirectory);
         System.Text.Json.JsonElement goldenCase = V2StandardMergeGoldenTestSupport.ReadGoldenCase(goldenIc);
         Dictionary<string, byte[]> inputs = V2StandardMergeGoldenTestSupport.ReadInputs(goldenCase.GetProperty("inputs"));
         byte[] expectedOutput = V2StandardMergeGoldenTestSupport.ReadManifestFile(goldenCase.GetProperty("expectedOutput"));
         long capacity = inputs["dp-input"].LongLength;
 
         CompiledComposition v2 = V2StandardMergeGoldenTestSupport.CompileV2(
-            V2StandardMergeGoldenTestSupport.LoadCatalog(bundleRoot, BundleContentHash),
+            V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
             profileId,
             "0.5.1",
             icId,
@@ -59,8 +56,6 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
         string icId,
         int capacity)
     {
-        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        string bundleRoot = Path.Combine(repositoryRoot, "profiles", "built-in", BundleDirectory);
         string profileId = $"nt{icId[2..]}-standard-merge-dp-perspective";
         var inputs = new Dictionary<string, byte[]>(StringComparer.Ordinal)
         {
@@ -68,7 +63,7 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
             ["tp-input"] = CreatePattern(CustomerInfoStart, 0xC7),
         };
         CompiledComposition v2 = V2StandardMergeGoldenTestSupport.CompileV2(
-            V2StandardMergeGoldenTestSupport.LoadCatalog(bundleRoot, BundleContentHash),
+            V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
             profileId,
             "0.5.1",
             icId,
@@ -91,8 +86,6 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
     [Fact]
     public async Task TrustedV2BundleExtractsDeclaredTpOverlayFromInputWithin256KiBMaximum()
     {
-        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        string bundleRoot = Path.Combine(repositoryRoot, "profiles", "built-in", BundleDirectory);
         byte[] dp = CreatePattern(0x40000, 0x31);
         byte[] tp = CreatePattern(0x3C000, 0xC7);
         var inputs = new Dictionary<string, byte[]>(StringComparer.Ordinal)
@@ -101,7 +94,7 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
             ["tp-input"] = tp,
         };
         CompiledComposition v2 = V2StandardMergeGoldenTestSupport.CompileV2(
-            V2StandardMergeGoldenTestSupport.LoadCatalog(bundleRoot, BundleContentHash),
+            V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
             "nt51950-standard-merge-dp-perspective",
             "0.5.1",
             "NT51950",

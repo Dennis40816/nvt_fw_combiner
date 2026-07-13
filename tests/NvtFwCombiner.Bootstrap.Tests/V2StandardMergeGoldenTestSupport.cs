@@ -15,14 +15,36 @@ internal static class V2StandardMergeGoldenTestSupport
     private static readonly DateTimeOffset StartedAtUtc = new(2026, 7, 12, 0, 0, 0, TimeSpan.Zero);
     private static readonly DateTimeOffset CompletedAtUtc = new(2026, 7, 12, 0, 0, 1, TimeSpan.Zero);
 
-    internal static TrustedProfileBundleCatalog LoadCatalog(string bundleRoot, string bundleContentHash)
+    internal static TrustedProfileBundleCatalog LoadDeployedCatalog(string bundleDirectory, string bundleContentHash)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(bundleRoot);
+        ArgumentException.ThrowIfNullOrWhiteSpace(bundleDirectory);
         ArgumentException.ThrowIfNullOrWhiteSpace(bundleContentHash);
+        string bundleRoot = Path.Combine(AppContext.BaseDirectory, "profiles", "built-in", bundleDirectory);
+        return LoadCatalogRoot(bundleRoot, bundleContentHash);
+    }
+
+    internal static void AssertSourceCatalogIsRejected(string bundleDirectory, string bundleContentHash)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(bundleDirectory);
+        ArgumentException.ThrowIfNullOrWhiteSpace(bundleContentHash);
+        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
+        string bundleRoot = Path.Combine(repositoryRoot, "profiles", "built-in", bundleDirectory);
+        FileNotFoundException exception = Assert.Throws<FileNotFoundException>(() => LoadBundle(bundleRoot, bundleContentHash));
+        Assert.Contains("schemas/", exception.Message, StringComparison.Ordinal);
+    }
+
+    private static TrustedProfileBundleCatalog LoadCatalogRoot(string bundleRoot, string bundleContentHash)
+    {
         string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         AssertSchemaSnapshotMatchesContract(repositoryRoot, bundleRoot, "firmware-family-v1.schema.json");
         AssertSchemaSnapshotMatchesContract(repositoryRoot, bundleRoot, "composition-profile-v2.schema.json");
-        TrustedProfileBundle bundle = ProfileBundleLoader.Load(
+        TrustedProfileBundle bundle = LoadBundle(bundleRoot, bundleContentHash);
+        return TrustedProfileBundleCatalogProjection.Create(bundle.CreateDocumentProjection());
+    }
+
+    private static TrustedProfileBundle LoadBundle(string bundleRoot, string bundleContentHash)
+    {
+        return ProfileBundleLoader.Load(
             bundleRoot,
             "profile-bundle.json",
             new ProfileBundleTrustAnchor(bundleContentHash, "built-in-profile-bundle-v2"),
@@ -30,7 +52,6 @@ internal static class V2StandardMergeGoldenTestSupport
                 maximumManifestBytes: 16384,
                 maximumJsonDepth: 32,
                 new ProfileBundleEntrySnapshotLimits(8, 131072, 262144, 8)));
-        return TrustedProfileBundleCatalogProjection.Create(bundle.CreateDocumentProjection());
     }
 
     internal static CompiledComposition CompileV2(

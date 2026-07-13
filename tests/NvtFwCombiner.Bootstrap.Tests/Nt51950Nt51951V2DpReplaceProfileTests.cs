@@ -120,13 +120,8 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
 
     private static CompiledComposition CompileSupportedProfile(string icId, int capacity)
     {
-        string bundleRoot = Path.Combine(
-            RepositoryPaths.FindRepositoryRoot(),
-            "profiles",
-            "built-in",
-            BundleDirectory);
         V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
-            V2StandardMergeGoldenTestSupport.LoadCatalog(bundleRoot, BundleContentHash),
+            V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
             $"nt{icId[2..]}-dp-replace-dp-perspective",
             "0.6.1",
             icId,
