@@ -304,6 +304,9 @@ public sealed class CompositionProfileDocumentUnionTests
                     "stagedSourceBindings": [
                       { "sourceViewId": "tp-source", "targetViewId": "staged-tp" }
                     ],
+                    "stagedArtifactBindings": [
+                      { "artifactId": "a-bank", "sourceViewId": "dp-source" }
+                    ],
                     "evidenceRef": "combiner-evidence",
                     "failurePolicy": "fail-closed"
                   }
@@ -315,6 +318,7 @@ public sealed class CompositionProfileDocumentUnionTests
         Assert.Equal("combiner-1-13", processors[1].ToolBindingId);
         Assert.Null(processors[1].CalculationSetId);
         Assert.Equal("tp-source", Assert.Single(processors[1].StagedSourceBindings!).SourceViewId);
+        Assert.Equal("a-bank", Assert.Single(processors[1].StagedArtifactBindings!).ArtifactId);
 
         using JsonDocument processorJson = SerializeToDocument(processors);
         AssertPropertyNames(
@@ -326,7 +330,7 @@ public sealed class CompositionProfileDocumentUnionTests
             processorJson.RootElement[1],
             "allowedReadViewIds", "allowedWriteViewIds", "authority", "evidenceRef", "failurePolicy",
             "integrityDisposition", "invocationProfileId", "kind", "processorStageId", "purpose",
-            "stagedSourceBindings", "targetSpaceId", "toolBindingId");
+            "stagedArtifactBindings", "stagedSourceBindings", "targetSpaceId", "toolBindingId");
     }
 
     private static T Deserialize<T>(string json)

@@ -39,6 +39,11 @@ public sealed class CompositionProfileV2ProcessorTests
             new("tp-source", "staged-tp"),
             new("dp-source", "staged-dp"),
         };
+        var artifactBindings = new List<CompositionProfileStagedArtifactBinding>
+        {
+            new("b-bank", "tp-source"),
+            new("a-bank", "dp-source"),
+        };
         var stage = new LegacyCombinerProfileProcessorStage(
             "legacy-postbuild",
             "combiner-1-13",
@@ -49,14 +54,17 @@ public sealed class CompositionProfileV2ProcessorTests
             reads,
             writes,
             bindings,
+            artifactBindings,
             "combiner-evidence");
         reads.Clear();
         writes.Clear();
         bindings.Clear();
+        artifactBindings.Clear();
 
         Assert.Equal(CompositionProfileProcessorAuthority.Transform, stage.Authority);
         Assert.Equal(["crc", "header"], stage.AllowedWriteViewIds);
         Assert.Equal(["dp-source", "tp-source"], stage.StagedSourceBindings.Select(static item => item.SourceViewId));
+        Assert.Equal(["a-bank", "b-bank"], stage.StagedArtifactBindings.Select(static item => item.ArtifactId));
         Assert.Equal("combiner-1-13", stage.ToolBindingId);
         Assert.Equal("combiner-evidence", stage.EvidenceRef);
         Assert.Equal(CompositionProfileProcessorFailurePolicy.FailClosed, CompositionProfileProcessorStage.FailurePolicy);
@@ -102,6 +110,14 @@ public sealed class CompositionProfileV2ProcessorTests
             CompositionProfileProcessorPurpose.Relocation,
             CompositionProfileIntegrityDisposition.None,
             bindings: [duplicate, duplicate]));
+        _ = Assert.Throws<ArgumentException>(() => Legacy(
+            CompositionProfileProcessorPurpose.Relocation,
+            CompositionProfileIntegrityDisposition.None,
+            artifactBindings:
+            [
+                new CompositionProfileStagedArtifactBinding("bank", "source-a"),
+                new CompositionProfileStagedArtifactBinding("bank", "source-b"),
+            ]));
         _ = Assert.Throws<ArgumentException>(() => new CrcWorkerProfileProcessorStage(
             "crc-check",
             "1.0",
@@ -142,7 +158,8 @@ public sealed class CompositionProfileV2ProcessorTests
         CompositionProfileProcessorPurpose purpose,
         CompositionProfileIntegrityDisposition integrityDisposition,
         IEnumerable<string>? writes = null,
-        IEnumerable<CompositionProfileStagedSourceBinding>? bindings = null)
+        IEnumerable<CompositionProfileStagedSourceBinding>? bindings = null,
+        IEnumerable<CompositionProfileStagedArtifactBinding>? artifactBindings = null)
     {
         return new LegacyCombinerProfileProcessorStage(
             "legacy-postbuild",
@@ -154,6 +171,7 @@ public sealed class CompositionProfileV2ProcessorTests
             ["output-image"],
             writes ?? ["header"],
             bindings ?? [],
+            artifactBindings ?? [],
             "combiner-evidence");
     }
 }

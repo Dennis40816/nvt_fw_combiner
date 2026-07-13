@@ -84,6 +84,20 @@ internal static partial class CompositionProfileNormalizer
                 binding.TargetViewId));
         }
 
+        IReadOnlyList<CompositionProfileStagedArtifactBindingDocument> artifactBindingDocuments =
+            document.StagedArtifactBindings ?? [];
+        var artifactBindings = new CompositionProfileStagedArtifactBinding[artifactBindingDocuments.Count];
+        for (int index = 0; index < artifactBindingDocuments.Count; index++)
+        {
+            CompositionProfileStagedArtifactBindingDocument binding = artifactBindingDocuments[index] ?? throw Error(
+                $"{path}.stagedArtifactBindings[{index}]",
+                "Staged artifact binding cannot be null.");
+            string bindingPath = $"{path}.stagedArtifactBindings[{index}]";
+            artifactBindings[index] = Wrap(bindingPath, () => new CompositionProfileStagedArtifactBinding(
+                binding.ArtifactId,
+                binding.SourceViewId));
+        }
+
         return Wrap(path, () => new LegacyCombinerProfileProcessorStage(
             document.ProcessorStageId,
             RequireText(document.ToolBindingId, $"{path}.toolBindingId", "Tool binding is missing."),
@@ -99,6 +113,7 @@ internal static partial class CompositionProfileNormalizer
             RequireList(document.AllowedReadViewIds, $"{path}.allowedReadViewIds"),
             RequireList(document.AllowedWriteViewIds, $"{path}.allowedWriteViewIds"),
             bindings,
+            artifactBindings,
             RequireText(document.EvidenceRef, $"{path}.evidenceRef", "Processor evidence is missing.")));
     }
 

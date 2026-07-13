@@ -151,6 +151,7 @@ public sealed class CompositionProfileV2DefinitionGraphTests
             ["source-view"],
             ["target-view"],
             [],
+            [],
             "combiner-evidence");
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             parts with { Operations = [parts.Operations[0], run], ProcessorStages = [wrongAuthority] }));
@@ -164,6 +165,7 @@ public sealed class CompositionProfileV2DefinitionGraphTests
             CompositionProfileIntegrityDisposition.None,
             ["source-view"],
             ["source-view"],
+            [],
             [],
             "combiner-evidence");
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
@@ -212,6 +214,7 @@ public sealed class CompositionProfileV2DefinitionGraphTests
             CompositionProfileIntegrityDisposition.None,
             ["target-view"],
             ["target-view"],
+            [],
             [],
             "combiner-evidence");
     }

@@ -100,6 +100,12 @@ views must use `space-range`; operations may use it as an intermediate source or
 creating a region-access rule. Only map-backed views are retained in physical access provenance and
 are subject to map write constraints. A work buffer can never be selected as final output.
 
+The normalized C# model reserves `stagedArtifactBindings` for the next owner-approved profile schema
+revision. The pinned 2.0 schema intentionally forbids that property, so no existing trusted bundle
+can opt into it by accident. The future revision will map each profile view to one named, immutable
+artifact created only inside the processor staging directory; its selected tool manifest must consume
+every declared artifact and cannot refer to an undeclared artifact.
+
 ## Input size policy
 
 Every input declares an `artifactClass` and a closed length policy. `tp-firmware` and

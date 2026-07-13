@@ -7,6 +7,11 @@ public sealed record CompositionProfileStagedSourceBindingDocument(
     string SourceViewId,
     string TargetViewId);
 
+/// <summary>DTO for one named immutable artifact staged from a profile view for a processor.</summary>
+public sealed record CompositionProfileStagedArtifactBindingDocument(
+    string ArtifactId,
+    string SourceViewId);
+
 /// <summary>DTO for one closed CRC-worker or legacy-combiner processor stage.</summary>
 public sealed record CompositionProfileProcessorStageDocument(
     string ProcessorStageId,
@@ -29,7 +34,9 @@ public sealed record CompositionProfileProcessorStageDocument(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     IReadOnlyList<CompositionProfileStagedSourceBindingDocument>? StagedSourceBindings = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    string? EvidenceRef = null);
+    string? EvidenceRef = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<CompositionProfileStagedArtifactBindingDocument>? StagedArtifactBindings = null);
 
 /// <summary>DTO for profile-controlled output naming policy.</summary>
 public sealed record CompositionProfileOutputDocument(

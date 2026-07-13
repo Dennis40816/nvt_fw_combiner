@@ -258,6 +258,11 @@ internal sealed partial class CompositionProfileDefinition
                     views,
                     "Staged target view");
             }
+
+            foreach (CompositionProfileStagedArtifactBinding binding in legacy.StagedArtifactBindings)
+            {
+                _ = RequireReference(views, binding.SourceViewId, "Staged artifact source references an unknown view.");
+            }
         }
     }
 

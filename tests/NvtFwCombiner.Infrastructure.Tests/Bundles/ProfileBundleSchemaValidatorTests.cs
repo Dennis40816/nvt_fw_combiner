@@ -192,6 +192,35 @@ public sealed class ProfileBundleSchemaValidatorTests
             32));
     }
 
+    /// <summary>Verifies the pinned 2.0 schema rejects the deferred named-artifact extension.</summary>
+    [Fact]
+    public void ValidateEntriesRejectsDeferredProcessorArtifactBindingsInV20()
+    {
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(
+            TrustedV2BundleTestDocuments.ProfileJson(new string('c', 64))));
+        Assert.IsType<JsonArray>(profile["processorStages"]).Add(new JsonObject
+        {
+            ["processorStageId"] = "legacy-postbuild",
+            ["kind"] = "legacy-combiner-v1",
+            ["toolBindingId"] = "combiner-1-13",
+            ["invocationProfileId"] = "synthetic-profile",
+            ["targetSpaceId"] = "output",
+            ["authority"] = "transform",
+            ["purpose"] = "relocation",
+            ["integrityDisposition"] = "none",
+            ["allowedReadViewIds"] = new JsonArray("output-code"),
+            ["allowedWriteViewIds"] = new JsonArray("output-code"),
+            ["stagedSourceBindings"] = new JsonArray(),
+            ["stagedArtifactBindings"] = new JsonArray(),
+            ["evidenceRef"] = "processor-evidence",
+            ["failurePolicy"] = "fail-closed",
+        });
+
+        _ = Assert.Throws<InvalidDataException>(() => ProfileBundleSchemaValidator.ValidateEntries(
+            CaptureCompositionProfile(profile.ToJsonString()),
+            32));
+    }
+
     /// <summary>Verifies IC-number selector authority is absent for Merge and explicit for Replace profiles.</summary>
     [Theory]
     [InlineData("merge-with-selector", false)]

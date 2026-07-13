@@ -35,6 +35,11 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
                 [
                     new CompositionProfileStagedSourceBindingDocument("tp-source", "staged-tp"),
                     new CompositionProfileStagedSourceBindingDocument("dp-source", "staged-dp"),
+                ],
+                artifactBindings:
+                [
+                    new CompositionProfileStagedArtifactBindingDocument("b-bank", "tp-source"),
+                    new CompositionProfileStagedArtifactBindingDocument("a-bank", "dp-source"),
                 ])));
 
         Assert.Equal(CompositionProfileProcessorKind.LegacyCombinerV1, stage.Kind);
@@ -43,6 +48,7 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
         Assert.Equal(CompositionProfileIntegrityDisposition.RecalculateAndWrite, stage.IntegrityDisposition);
         Assert.Equal(["header", "integrity"], stage.AllowedWriteViewIds);
         Assert.Equal(["dp-source", "tp-source"], stage.StagedSourceBindings.Select(static item => item.SourceViewId));
+        Assert.Equal(["a-bank", "b-bank"], stage.StagedArtifactBindings.Select(static item => item.ArtifactId));
         Assert.Equal("combiner-1-13", stage.ToolBindingId);
         Assert.Equal("combiner-evidence", stage.EvidenceRef);
     }
@@ -173,6 +179,7 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
         string integrity,
         string authority = "transform",
         IReadOnlyList<CompositionProfileStagedSourceBindingDocument>? bindings = default,
+        IReadOnlyList<CompositionProfileStagedArtifactBindingDocument>? artifactBindings = default,
         string? toolBindingId = "combiner-1-13",
         string? evidenceRef = "combiner-evidence")
     {
@@ -189,6 +196,7 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
             ToolBindingId: toolBindingId,
             InvocationProfileId: "profile",
             StagedSourceBindings: bindings ?? [],
-            EvidenceRef: evidenceRef);
+            EvidenceRef: evidenceRef,
+            StagedArtifactBindings: artifactBindings);
     }
 }

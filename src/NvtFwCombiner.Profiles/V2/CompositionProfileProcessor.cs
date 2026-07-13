@@ -145,10 +145,25 @@ internal sealed record CompositionProfileStagedSourceBinding
     internal string TargetViewId { get; }
 }
 
+/// <summary>One named processor artifact sourced from an immutable or engine-owned profile view.</summary>
+internal sealed record CompositionProfileStagedArtifactBinding
+{
+    internal CompositionProfileStagedArtifactBinding(string artifactId, string sourceViewId)
+    {
+        ArtifactId = CompositionProfileValueRules.RequireId(artifactId, nameof(artifactId));
+        SourceViewId = CompositionProfileValueRules.RequireId(sourceViewId, nameof(sourceViewId));
+    }
+
+    internal string ArtifactId { get; }
+
+    internal string SourceViewId { get; }
+}
+
 /// <summary>Approved legacy combiner transform stage over a host-created staging copy.</summary>
 internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfileProcessorStage
 {
     private readonly CompositionProfileStagedSourceBinding[] _stagedSourceBindings;
+    private readonly CompositionProfileStagedArtifactBinding[] _stagedArtifactBindings;
 
     internal LegacyCombinerProfileProcessorStage(
         string processorStageId,
@@ -160,6 +175,7 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
         IEnumerable<string> allowedReadViewIds,
         IEnumerable<string> allowedWriteViewIds,
         IEnumerable<CompositionProfileStagedSourceBinding> stagedSourceBindings,
+        IEnumerable<CompositionProfileStagedArtifactBinding> stagedArtifactBindings,
         string evidenceRef)
         : base(
             processorStageId,
@@ -200,10 +216,23 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
         }
 
         Array.Sort(_stagedSourceBindings, CompareBindings);
+        ArgumentNullException.ThrowIfNull(stagedArtifactBindings);
+        _stagedArtifactBindings = [.. stagedArtifactBindings];
+        if (_stagedArtifactBindings.Any(static binding => binding is null) ||
+            _stagedArtifactBindings.Select(static binding => binding.ArtifactId).Distinct(StringComparer.Ordinal).Count() !=
+            _stagedArtifactBindings.Length)
+        {
+            throw new ArgumentException(
+                "Staged artifact bindings must be non-null with unique artifact ids.",
+                nameof(stagedArtifactBindings));
+        }
+
+        Array.Sort(_stagedArtifactBindings, CompareArtifactBindings);
         EvidenceRef = CompositionProfileValueRules.RequireId(evidenceRef, nameof(evidenceRef));
         Purpose = purpose;
         IntegrityDisposition = integrityDisposition;
         StagedSourceBindings = Array.AsReadOnly(_stagedSourceBindings);
+        StagedArtifactBindings = Array.AsReadOnly(_stagedArtifactBindings);
     }
 
     internal string ToolBindingId { get; }
@@ -218,6 +247,8 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
     internal override CompositionProfileIntegrityDisposition IntegrityDisposition { get; }
 
     internal IReadOnlyList<CompositionProfileStagedSourceBinding> StagedSourceBindings { get; }
+
+    internal IReadOnlyList<CompositionProfileStagedArtifactBinding> StagedArtifactBindings { get; }
 
     internal string EvidenceRef { get; }
 
@@ -259,6 +290,13 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
         return sourceComparison != 0
             ? sourceComparison
             : StringComparer.Ordinal.Compare(left.TargetViewId, right.TargetViewId);
+    }
+
+    private static int CompareArtifactBindings(
+        CompositionProfileStagedArtifactBinding left,
+        CompositionProfileStagedArtifactBinding right)
+    {
+        return StringComparer.Ordinal.Compare(left.ArtifactId, right.ArtifactId);
     }
 }
 
