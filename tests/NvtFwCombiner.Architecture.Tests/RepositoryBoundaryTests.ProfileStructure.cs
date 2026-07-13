@@ -98,6 +98,7 @@ public sealed partial class RepositoryBoundaryTests
             "nt51927-standard-merge",
             "nt51928-standard-merge",
             "nt51929-standard-merge",
+            "nt51919-nt51929-nt51932-ab-merge",
             "nt51930-standard-merge",
             "nt51931-standard-merge",
             "nt51950-nt51951-standard-merge",

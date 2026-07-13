@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.0",
+  "bundleId": "nt51919-nt51929-nt51932-ab-merge-family",
+  "bundleVersion": "0.9.3-ab-candidate.1",
+  "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
+  "contentHash": "b5035b9c4afa8691adb98632b4ce9a1088d74d04948ea1f20690aade889445fb",
+  "trustAnchorBindingId": "built-in-profile-bundle-v2",
+  "entries": [
+    {
+      "entryId": "composition-profile-v2-schema",
+      "kind": "schema",
+      "path": "schemas/composition-profile-v2.schema.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "1af166d37379329cc7a298ea24637a665b183f286e5a2323d4ed014e893dc9f0"
+    },
+    {
+      "entryId": "firmware-family-v1-schema",
+      "kind": "schema",
+      "path": "schemas/firmware-family-v1.schema.json",
+      "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
+      "contentHash": "0dd353296e02e448dcc653028fd3b3ce6ad7fdd8e11a1ce11a465b46f0b471d7"
+    },
+    {
+      "entryId": "nt51919-ab-merge-profile",
+      "kind": "composition-profile",
+      "path": "profiles/nt51919-ab-merge.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "4eef6384d12afb3d8f5a5dc2949aa12387b00a318c18de3b59101a2401232028"
+    },
+    {
+      "entryId": "nt51919-nt51929-nt51932-ab-merge-family",
+      "kind": "firmware-family",
+      "path": "families/nt51919-nt51929-nt51932-ab-merge.json",
+      "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
+      "contentHash": "f3004851cc55845b9917c3230595cbb700d92b4f28272a26bf5ee6b11d5fa1eb"
+    },
+    {
+      "entryId": "nt51929-ab-merge-profile",
+      "kind": "composition-profile",
+      "path": "profiles/nt51929-ab-merge.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "bcda1835125e90e432eae72288145c8066b6f0849fece7c60bdc6da2d940c07f"
+    },
+    {
+      "entryId": "nt51932-ab-merge-profile",
+      "kind": "composition-profile",
+      "path": "profiles/nt51932-ab-merge.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "b13f774b53b2878b1f0ec682b8dd38cfa00c3e6c6a4ee3918fd1d717d1ba0b82"
+    }
+  ]
+}

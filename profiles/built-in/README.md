@@ -24,6 +24,13 @@ its content-hash anchor and selects its V2 artifacts for all three ICs without a
 fallback. Runtime migration remains subject to the firmware-owner review recorded in the support
 matrix.
 
+`nt51919-nt51929-nt51932-ab-merge` is a separately packaged V2 executable-candidate bundle. It
+keeps AB evidence isolated from Standard Merge routing: the fixed `0x80000` DP AB container is
+copied first, TPA is overlaid at `[0x07000, 0x40000)`, and a cloned TPB is relocated at
+`0x7164/0x7168/0x716C` before its overlay at `[0x47000, 0x80000)`. NT51919 is a map-bound alias
+of NT51929. The bundle is materialized for trusted-loader/profile tests only; it has no UI/CLI
+routing and remains blocked on owner review and product-golden evidence.
+
 `nt51923-standard-merge` is a canonical V2 candidate family for NT51923 and NT51926. Its shared
 physical map preserves TP `[0x00000, 0x3C000)`, the explicit forbidden gap, and DP
 `[0x3E000, 0x40000)`. Both profiles have trusted-bundle, legacy-plan, Normal DP extraction, and

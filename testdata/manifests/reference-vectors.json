@@ -18,6 +18,30 @@
       "expectedHex": "0x0376E6E7"
     }
   ],
+  "candidateProfileEvidence": [
+    {
+      "id": "nt51919-nt51929-nt51932-ab-merge-v2-candidate",
+      "bundleId": "nt51919-nt51929-nt51932-ab-merge-family",
+      "bundleVersion": "0.9.3-ab-candidate.1",
+      "profileIds": [
+        "nt51919-ab-merge-alias",
+        "nt51929-ab-merge",
+        "nt51932-ab-merge"
+      ],
+      "fixedOutputCapacityBytes": 524288,
+      "sourceReferenceCaseId": "nt51929-ab-uploaded-sample",
+      "localCandidateParity": {
+        "profileId": "nt51929-ab-merge",
+        "expectedOutputSha256": "2cc711e019d3cc8b9ea2fc5f168fd4427b66679ae168a2572856d1a306fd57f4"
+      },
+      "tpbRelocation": {
+        "offsets": [29028, 29032, 29036],
+        "addend": 262144,
+        "byteOrder": "little-endian-u32"
+      },
+      "runtimePromotion": "blocked-on-product-golden-and-firmware-owner-review"
+    }
+  ],
   "privateReferenceCases": [
     {
       "id": "nt51929-ab-uploaded-sample",

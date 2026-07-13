@@ -10,8 +10,8 @@ Owner update 2026-06-30:
 
 | IC | Mode/evidence | TPA policy | TPB policy | Current processor facts | Status |
 | --- | --- | --- | --- | --- | --- |
-| NT51929 | uploaded AB combiner | None | Address relocation only; no CRC configured | offsets `0x7164/0x7168/0x716C` | Evidence confirmed |
-| NT51932 | uploaded/reference AB combiner | None | Address relocation only; no CRC configured | offsets `0x7164/0x7168/0x716C` | Evidence confirmed |
+| NT51929 | uploaded AB combiner | None | Address relocation only; no CRC configured | fixed-`0x80000` V2 candidate relocates little-endian `u32` offsets `0x7164/0x7168/0x716C` by `+0x40000` in a cloned TPB buffer | Local full-byte candidate/reference parity confirmed (`2cc711...fd57f4`); product golden/owner promotion pending |
+| NT51932 | uploaded/reference AB combiner | None | Address relocation only; no CRC configured | fixed-`0x80000` V2 candidate relocates little-endian `u32` offsets `0x7164/0x7168/0x716C` by `+0x40000` in a cloned TPB buffer | Candidate profile evidence confirmed; independent product golden/owner promotion pending |
 | NT51950 | uploaded AB combiner | Verify existing CRC | Relocate, recalculate, write CRC | Reference result uses CRC-32/MPEG-2 over `[0xA100,0xA130)` and writes little-endian `u32` at `[0xA130,0xA134)`. A private Combiner 1.13.0 audit has exact output parity; see the dated evidence below. | Evidence confirmed; profile and firmware-owner promotion pending |
 | NT51951 | uploaded AB combiner config | Verify existing CRC | Relocate, recalculate, write CRC | same algorithm/ranges; relocation differs; exact legacy combiner version/tool binding still required | Needs golden output and tool binding |
 | Other Standard-reference ICs | `gen_flash_bin_v2` | Unknown | Unknown/not applicable | no integrity rule established by current evidence | Must inventory |
