@@ -373,6 +373,50 @@ public sealed class WorkbenchCompositionServiceTests
             operationIds);
     }
 
+    /// <summary>
+    /// Verifies the CtrlRAM Build preserve choice leaves FW version fields unpatched while still running the
+    /// approved legacy Combiner postbuild. The final values are read from the canonical NVT Backup only.
+    /// </summary>
+    [Fact]
+    public async Task CtrlRamReplaceBuildPreservesFirmwareVersionThroughBackup()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-fw-version-preserve");
+        byte[] baseBytes = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(baseBytes, out FirmwareConfigMetadata sourceBackup));
+        string basePath = workspace.Write("base.bin", baseBytes);
+        string replacementPath = workspace.Write("normal.bin", baseBytes[0x22800..0x25400]);
+        string outputPath = workspace.PathFor("preserved.bin");
+        Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
+        {
+            ["replace-base"] = basePath,
+            ["replace-ctrlram-normal"] = replacementPath,
+        };
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51926",
+            "single",
+            "CtrlRAM",
+            slotPaths,
+            build: true,
+            TestContext.Current.CancellationToken,
+            outputPath);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        byte[] outputBytes = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(outputBytes, out FirmwareConfigMetadata outputBackup));
+        Assert.Equal(sourceBackup.FirmwareVersion, outputBackup.FirmwareVersion);
+        Assert.Equal(sourceBackup.FirmwareVersionBar, outputBackup.FirmwareVersionBar);
+        Assert.Equal(sourceBackup.FirmwareSubVersion, outputBackup.FirmwareSubVersion);
+        Assert.True(outputBackup.IsFirmwareVersionBarValid);
+
+        using var document = JsonDocument.Parse(result.ReportJson);
+        string[] operationIds = [
+            .. document.RootElement.GetProperty("Operations").EnumerateArray()
+                .Select(operation => operation.GetProperty("OperationId").GetString() ?? string.Empty),
+        ];
+        Assert.Equal(["postbuild-singlechip"], operationIds);
+    }
+
     /// <summary>Verifies TP FW version editing is rejected for a CtrlRAM preview before any firmware processing starts.</summary>
     [Fact]
     public async Task CtrlRamReplacePreviewRejectsFirmwareVersionEdit()
