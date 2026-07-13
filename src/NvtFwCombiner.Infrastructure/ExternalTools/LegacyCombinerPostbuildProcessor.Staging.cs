@@ -48,30 +48,64 @@ public sealed partial class LegacyCombinerPostbuildProcessor
     private static CompositionIssue? MaterializeStagedBlockFiles(
         IReadOnlyList<LegacyCombinerBlockArgument> blocks,
         byte[] firmwareBytes,
+        IReadOnlyList<ExternalProcessorStagedArtifact> stagedArtifacts,
         string binDirectory)
     {
+        if (!TryCreateArtifactIndex(stagedArtifacts, out Dictionary<string, ExternalProcessorStagedArtifact>? artifactsById, out CompositionIssue? artifactIndexIssue))
+        {
+            return artifactIndexIssue;
+        }
+
         Dictionary<string, byte[]> files = new(StringComparer.OrdinalIgnoreCase);
         Dictionary<string, bool[]> written = new(StringComparer.OrdinalIgnoreCase);
         foreach (LegacyCombinerBlockArgument block in blocks
-            .Where(block => block.SourceKind == LegacyCombinerBlockSourceKind.StagedFile)
+            .Where(block => block.SourceKind is LegacyCombinerBlockSourceKind.StagedFile or
+                LegacyCombinerBlockSourceKind.StagedArtifact)
             .OrderBy(block => block.SourceFileName, StringComparer.Ordinal)
             .ThenBy(block => block.SourceOffset)
             .ThenBy(block => block.FirmwareRange.Start))
         {
-            if (block.FirmwareRange.EndExclusive > firmwareBytes.LongLength)
+            ReadOnlySpan<byte> sourceBytes;
+            if (block.SourceKind == LegacyCombinerBlockSourceKind.StagedArtifact)
             {
-                return new CompositionIssue(
-                    "legacy-combiner.staging.range-outside-input",
-                    $"Postbuild block '{block.BlockId}' reads outside the staged firmware image.",
-                    block.BlockId);
+                if (!artifactsById!.TryGetValue(block.StagedArtifactId!, out ExternalProcessorStagedArtifact? artifact))
+                {
+                    return new CompositionIssue(
+                        "external-tool.staged-artifact.unknown",
+                        $"Postbuild block '{block.BlockId}' requires staged artifact '{block.StagedArtifactId}'.",
+                        block.BlockId);
+                }
+
+                if (checked(block.SourceOffset + block.FirmwareRange.Length) > artifact.Bytes.Length)
+                {
+                    return new CompositionIssue(
+                        "external-tool.staged-artifact.range-outside-artifact",
+                        $"Postbuild block '{block.BlockId}' reads outside staged artifact '{block.StagedArtifactId}'.",
+                        block.BlockId);
+                }
+
+                sourceBytes = artifact.Bytes.Span.Slice(
+                    checked((int)block.SourceOffset),
+                    checked((int)block.FirmwareRange.Length));
+            }
+            else
+            {
+                if (block.FirmwareRange.EndExclusive > firmwareBytes.LongLength)
+                {
+                    return new CompositionIssue(
+                        "legacy-combiner.staging.range-outside-input",
+                        $"Postbuild block '{block.BlockId}' reads outside the staged firmware image.",
+                        block.BlockId);
+                }
+
+                sourceBytes = firmwareBytes.AsSpan(
+                    (int)block.FirmwareRange.Start,
+                    (int)block.FirmwareRange.Length);
             }
 
             long requiredLength = checked(block.SourceOffset + block.FirmwareRange.Length);
             byte[] fileBytes = GetOrGrow(files, block.SourceFileName, requiredLength);
             bool[] writtenBytes = GetOrGrow(written, block.SourceFileName, requiredLength);
-            ReadOnlySpan<byte> sourceBytes = firmwareBytes.AsSpan(
-                (int)block.FirmwareRange.Start,
-                (int)block.FirmwareRange.Length);
             int targetStart = checked((int)block.SourceOffset);
             for (int index = 0; index < sourceBytes.Length; index++)
             {
@@ -95,6 +129,104 @@ public sealed partial class LegacyCombinerPostbuildProcessor
         }
 
         return null;
+    }
+
+    private static CompositionIssue? ValidateStagedArtifacts(
+        LegacyCombinerPostbuildCommandPlan commandPlan,
+        IReadOnlyList<ExternalProcessorStagedArtifact> stagedArtifacts)
+    {
+        if (!TryCreateArtifactIndex(stagedArtifacts, out Dictionary<string, ExternalProcessorStagedArtifact>? artifactsById, out CompositionIssue? artifactIndexIssue))
+        {
+            return artifactIndexIssue;
+        }
+
+        HashSet<string> requestedArtifactIds = [
+            .. commandPlan.Commands
+                .SelectMany(command => command.Blocks)
+                .Where(block => block.SourceKind == LegacyCombinerBlockSourceKind.StagedArtifact)
+                .Select(block => block.StagedArtifactId!),
+        ];
+        foreach (string artifactId in requestedArtifactIds)
+        {
+            if (!artifactsById!.ContainsKey(artifactId))
+            {
+                return new CompositionIssue(
+                    "external-tool.staged-artifact.unknown",
+                    $"Selected postbuild command requires staged artifact '{artifactId}'.");
+            }
+        }
+
+        ExternalProcessorStagedArtifact? unusedArtifact = stagedArtifacts.FirstOrDefault(
+            artifact => !requestedArtifactIds.Contains(artifact.ArtifactId));
+        return unusedArtifact is null
+            ? null
+            : new CompositionIssue(
+                "external-tool.staged-artifact.unused",
+                $"Staged artifact '{unusedArtifact.ArtifactId}' is not consumed by the selected postbuild command plan.");
+    }
+
+    private static async ValueTask<CompositionIssue?> VerifyStagedArtifactsUnchangedAsync(
+        IReadOnlyList<LegacyCombinerBlockArgument> blocks,
+        IReadOnlyList<ExternalProcessorStagedArtifact> stagedArtifacts,
+        string binDirectory,
+        CancellationToken cancellationToken)
+    {
+        foreach (LegacyCombinerBlockArgument block in blocks
+            .Where(block => block.SourceKind == LegacyCombinerBlockSourceKind.StagedArtifact)
+            .DistinctBy(block => block.StagedArtifactId, StringComparer.Ordinal))
+        {
+            ExternalProcessorStagedArtifact? artifact = stagedArtifacts.FirstOrDefault(
+                candidate => string.Equals(candidate.ArtifactId, block.StagedArtifactId, StringComparison.Ordinal));
+            if (artifact is null)
+            {
+                return new CompositionIssue(
+                    "external-tool.staged-artifact.unknown",
+                    $"Postbuild block '{block.BlockId}' requires staged artifact '{block.StagedArtifactId}'.",
+                    block.BlockId);
+            }
+
+            string artifactPath = Path.Combine(binDirectory, block.SourceFileName);
+            if (!File.Exists(artifactPath))
+            {
+                return new CompositionIssue(
+                    "external-tool.staged-artifact.modified",
+                    $"External processor removed staged artifact file '{block.SourceFileName}'.",
+                    block.BlockId);
+            }
+
+            byte[] stagedBytes = await File.ReadAllBytesAsync(artifactPath, cancellationToken).ConfigureAwait(false);
+            if (!stagedBytes.AsSpan().SequenceEqual(artifact.Bytes.Span))
+            {
+                return new CompositionIssue(
+                    "external-tool.staged-artifact.modified",
+                    $"External processor modified immutable staged artifact '{block.StagedArtifactId}'.",
+                    block.BlockId);
+            }
+        }
+
+        return null;
+    }
+
+    private static bool TryCreateArtifactIndex(
+        IReadOnlyList<ExternalProcessorStagedArtifact> stagedArtifacts,
+        out Dictionary<string, ExternalProcessorStagedArtifact>? artifactsById,
+        out CompositionIssue? issue)
+    {
+        artifactsById = new Dictionary<string, ExternalProcessorStagedArtifact>(StringComparer.Ordinal);
+        foreach (ExternalProcessorStagedArtifact artifact in stagedArtifacts)
+        {
+            if (!artifactsById.TryAdd(artifact.ArtifactId, artifact))
+            {
+                issue = new CompositionIssue(
+                    "external-tool.staged-artifact.duplicate",
+                    $"Staged artifact '{artifact.ArtifactId}' is supplied more than once.");
+                artifactsById = null;
+                return false;
+            }
+        }
+
+        issue = null;
+        return true;
     }
 
     private static void ResetDirectory(string directory)

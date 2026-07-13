@@ -11,11 +11,17 @@ public sealed class LegacyCombinerBlockArgument
         LegacyCombinerBlockSourceKind sourceKind,
         string sourceFileName,
         long sourceOffset,
-        ByteRange firmwareRange)
+        ByteRange firmwareRange,
+        string? stagedArtifactId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(blockId);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceFileName);
         ArgumentOutOfRangeException.ThrowIfNegative(sourceOffset);
+        if (!Enum.IsDefined(sourceKind))
+        {
+            throw new ArgumentOutOfRangeException(nameof(sourceKind), sourceKind, "Unknown block source kind.");
+        }
+
         if (sourceFileName.IndexOfAny(['/', '\\', ':']) >= 0 ||
             sourceFileName is "." or ".." ||
             Path.GetFileName(sourceFileName) != sourceFileName)
@@ -23,11 +29,25 @@ public sealed class LegacyCombinerBlockArgument
             throw new ArgumentException("Source file name must be a plain file name.", nameof(sourceFileName));
         }
 
+        if (sourceKind == LegacyCombinerBlockSourceKind.StagedArtifact)
+        {
+            ExternalProcessorStagedArtifact.ValidateArtifactId(
+                stagedArtifactId ?? string.Empty,
+                nameof(stagedArtifactId));
+        }
+        else if (stagedArtifactId is not null)
+        {
+            throw new ArgumentException(
+                "Only staged-artifact blocks can declare a staged artifact id.",
+                nameof(stagedArtifactId));
+        }
+
         BlockId = blockId;
         SourceKind = sourceKind;
         SourceFileName = sourceFileName;
         SourceOffset = sourceOffset;
         FirmwareRange = firmwareRange;
+        StagedArtifactId = stagedArtifactId;
     }
 
     /// <summary>Stable block id used in diagnostics.</summary>
@@ -36,8 +56,11 @@ public sealed class LegacyCombinerBlockArgument
     /// <summary>Source kind selected by the postbuild command.</summary>
     public LegacyCombinerBlockSourceKind SourceKind { get; }
 
-    /// <summary>Plain source file name when <see cref="SourceKind" /> is <see cref="LegacyCombinerBlockSourceKind.StagedFile" />.</summary>
+    /// <summary>Plain source file name under the staged BIN directory when this block does not read the firmware image.</summary>
     public string SourceFileName { get; }
+
+    /// <summary>Required immutable engine artifact id when <see cref="SourceKind" /> is staged-artifact.</summary>
+    public string? StagedArtifactId { get; }
 
     /// <summary>Source offset passed to Combiner.exe.</summary>
     public long SourceOffset { get; }

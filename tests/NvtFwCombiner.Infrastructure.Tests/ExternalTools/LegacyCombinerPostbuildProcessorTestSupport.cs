@@ -82,6 +82,79 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             "test staged replacement pasteback profile");
     }
 
+    private static LegacyCombinerPostbuildProfile CreateArtifactSourceProfile()
+    {
+        var command = new LegacyCombinerPostbuildCommand(
+            "artifact-source",
+            LegacyCombinerCommandFamily.NtBasedNormalMode,
+            "NTTESTBASED_NORMAL_MODE",
+            "CRC8",
+            [
+                new LegacyCombinerBlockArgument(
+                    "a-bank",
+                    LegacyCombinerBlockSourceKind.StagedArtifact,
+                    "ABank.bin",
+                    0,
+                    new ByteRange(0, 4),
+                    "a-bank"),
+                new LegacyCombinerBlockArgument(
+                    "b-bank",
+                    LegacyCombinerBlockSourceKind.StagedArtifact,
+                    "BBank.bin",
+                    0,
+                    new ByteRange(4, 4),
+                    "b-bank"),
+            ]);
+        return new LegacyCombinerPostbuildProfile(
+            "nfc.test.artifact-source-v1",
+            "NTTEST",
+            "legacy-combiner-1.13.0",
+            "test_fw.bin",
+            [command],
+            [command],
+            "test immutable staged artifact profile");
+    }
+
+    private static LegacyCombinerPostbuildProfile CreateArtifactSourceThenCrcProfile()
+    {
+        var first = new LegacyCombinerPostbuildCommand(
+            "artifact-source-first",
+            LegacyCombinerCommandFamily.NtBasedNormalMode,
+            "NTTESTBASED_NORMAL_MODE",
+            "CRC8",
+            [
+                new LegacyCombinerBlockArgument(
+                    "a-bank-first",
+                    LegacyCombinerBlockSourceKind.StagedArtifact,
+                    "ABank.bin",
+                    0,
+                    new ByteRange(0, 4),
+                    "a-bank"),
+            ]);
+        var second = new LegacyCombinerPostbuildCommand(
+            "artifact-source-second",
+            LegacyCombinerCommandFamily.NtBasedNormalMode,
+            "NTTESTBASED_NORMAL_MODE",
+            "CRC8",
+            [
+                new LegacyCombinerBlockArgument(
+                    "b-bank-second",
+                    LegacyCombinerBlockSourceKind.StagedArtifact,
+                    "BBank.bin",
+                    0,
+                    new ByteRange(4, 4),
+                    "b-bank"),
+            ]);
+        return new LegacyCombinerPostbuildProfile(
+            "nfc.test.artifact-source-then-crc-v1",
+            "NTTEST",
+            "legacy-combiner-1.13.0",
+            "test_fw.bin",
+            [first, second],
+            [first, second],
+            "test deferred immutable staged artifact profile");
+    }
+
     private static LegacyCombinerPostbuildProfile CreateCopyThenRestoreProfile()
     {
         var copyCommand = new LegacyCombinerPostbuildCommand(

@@ -106,6 +106,192 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         Assert.Equal(new ByteRange(1, 2), Assert.Single(result.ChangedRanges));
     }
 
+    /// <summary>Verifies Combiner BIN blocks can consume engine-created immutable artifacts without pre-pasting them into output.</summary>
+    [Fact]
+    public async Task TransformStagesImmutableArtifactsWithoutPrePaste()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        byte[] firmware = [0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80];
+        LegacyCombinerPostbuildProfile profile = CreateArtifactSourceProfile();
+        FakeProcessRunner runner = new(startInfo =>
+        {
+            string firmwarePath = startInfo.Arguments[2];
+            Assert.Equal(firmware, File.ReadAllBytes(firmwarePath));
+            Assert.Equal([0xA1, 0xA2, 0xA3, 0xA4], File.ReadAllBytes(
+                Path.Combine(startInfo.WorkingDirectory, "BIN", "ABank.bin")));
+            Assert.Equal([0xB1, 0xB2, 0xB3, 0xB4], File.ReadAllBytes(
+                Path.Combine(startInfo.WorkingDirectory, "BIN", "BBank.bin")));
+
+            byte[] output = File.ReadAllBytes(firmwarePath);
+            output[6] = 0xEE;
+            File.WriteAllBytes(firmwarePath, output);
+            return new ExternalProcessResult(0, false, string.Empty, string.Empty);
+        });
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
+        ExternalProcessorRequest request = new(
+            "run-staged-artifacts",
+            profile.ProcessorId,
+            "legacy-combiner-1.13.0",
+            firmware,
+            [new ByteRange(6, 1)],
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
+            stagedArtifacts:
+            [
+                new ExternalProcessorStagedArtifact("a-bank", new byte[] { 0xA1, 0xA2, 0xA3, 0xA4 }),
+                new ExternalProcessorStagedArtifact("b-bank", new byte[] { 0xB1, 0xB2, 0xB3, 0xB4 }),
+            ]);
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => issue.Message)));
+        Assert.Equal((byte)0xEE, result.OutputBytes.Span[6]);
+        Assert.Equal(new ByteRange(6, 1), Assert.Single(result.ChangedRanges));
+    }
+
+    /// <summary>Verifies a selected Combiner block cannot refer to an artifact absent from the engine request.</summary>
+    [Fact]
+    public async Task TransformRejectsMissingStagedArtifactBeforeProcessLaunch()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        LegacyCombinerPostbuildProfile profile = CreateArtifactSourceProfile();
+        FakeProcessRunner runner = new(_ => throw new InvalidOperationException("Process should not run."));
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
+        ExternalProcessorRequest request = new(
+            "run-missing-staged-artifact",
+            profile.ProcessorId,
+            "legacy-combiner-1.13.0",
+            new byte[8],
+            [],
+            stagedArtifacts: [new ExternalProcessorStagedArtifact("b-bank", new byte[] { 0xB1, 0xB2, 0xB3, 0xB4 })]);
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("external-tool.staged-artifact.unknown", Assert.Single(result.Issues).Code);
+        Assert.Equal(0, runner.RunCount);
+    }
+
+    /// <summary>Verifies every engine-created artifact must be consumed by the selected command plan.</summary>
+    [Fact]
+    public async Task TransformRejectsUnusedStagedArtifactBeforeProcessLaunch()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        LegacyCombinerPostbuildProfile profile = CreateArtifactSourceProfile();
+        FakeProcessRunner runner = new(_ => throw new InvalidOperationException("Process should not run."));
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
+        ExternalProcessorRequest request = new(
+            "run-unused-staged-artifact",
+            profile.ProcessorId,
+            "legacy-combiner-1.13.0",
+            new byte[8],
+            [],
+            stagedArtifacts:
+            [
+                new ExternalProcessorStagedArtifact("a-bank", new byte[] { 0xA1, 0xA2, 0xA3, 0xA4 }),
+                new ExternalProcessorStagedArtifact("b-bank", new byte[] { 0xB1, 0xB2, 0xB3, 0xB4 }),
+                new ExternalProcessorStagedArtifact("unused-bank", new byte[] { 0xC1, 0xC2, 0xC3, 0xC4 }),
+            ]);
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("external-tool.staged-artifact.unused", Assert.Single(result.Issues).Code);
+        Assert.Equal(0, runner.RunCount);
+    }
+
+    /// <summary>Verifies artifact source ranges are bounded by the immutable engine-created artifact.</summary>
+    [Fact]
+    public async Task TransformRejectsStagedArtifactRangeOutsideArtifactBeforeProcessLaunch()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        LegacyCombinerPostbuildProfile profile = CreateArtifactSourceProfile();
+        FakeProcessRunner runner = new(_ => throw new InvalidOperationException("Process should not run."));
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
+        ExternalProcessorRequest request = new(
+            "run-staged-artifact-range",
+            profile.ProcessorId,
+            "legacy-combiner-1.13.0",
+            new byte[8],
+            [],
+            stagedArtifacts:
+            [
+                new ExternalProcessorStagedArtifact("a-bank", new byte[] { 0xA1, 0xA2, 0xA3 }),
+                new ExternalProcessorStagedArtifact("b-bank", new byte[] { 0xB1, 0xB2, 0xB3, 0xB4 }),
+            ]);
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("external-tool.staged-artifact.range-outside-artifact", Assert.Single(result.Issues).Code);
+        Assert.Equal(0, runner.RunCount);
+    }
+
+    /// <summary>Verifies Combiner cannot mutate an engine-created immutable artifact in the staging directory.</summary>
+    [Fact]
+    public async Task TransformRejectsModifiedStagedArtifact()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        LegacyCombinerPostbuildProfile profile = CreateArtifactSourceProfile();
+        FakeProcessRunner runner = new(startInfo =>
+        {
+            string artifactPath = Path.Combine(startInfo.WorkingDirectory, "BIN", "ABank.bin");
+            byte[] artifact = File.ReadAllBytes(artifactPath);
+            artifact[0] ^= 0xFF;
+            File.WriteAllBytes(artifactPath, artifact);
+            return new ExternalProcessResult(0, false, string.Empty, string.Empty);
+        });
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
+        ExternalProcessorRequest request = new(
+            "run-modified-staged-artifact",
+            profile.ProcessorId,
+            "legacy-combiner-1.13.0",
+            new byte[8],
+            [],
+            stagedArtifacts:
+            [
+                new ExternalProcessorStagedArtifact("a-bank", new byte[] { 0xA1, 0xA2, 0xA3, 0xA4 }),
+                new ExternalProcessorStagedArtifact("b-bank", new byte[] { 0xB1, 0xB2, 0xB3, 0xB4 }),
+            ]);
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("external-tool.staged-artifact.modified", Assert.Single(result.Issues).Code);
+        Assert.Equal(1, runner.RunCount);
+    }
+
+    /// <summary>Verifies an artifact consumed by a later command is validated across the whole selected command plan.</summary>
+    [Fact]
+    public async Task TransformAllowsArtifactsConsumedByLaterCommand()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        LegacyCombinerPostbuildProfile profile = CreateArtifactSourceThenCrcProfile();
+        FakeProcessRunner runner = new(_ => new ExternalProcessResult(0, false, string.Empty, string.Empty));
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
+        ExternalProcessorRequest request = new(
+            "run-later-staged-artifact",
+            profile.ProcessorId,
+            "legacy-combiner-1.13.0",
+            new byte[8],
+            [],
+            stagedArtifacts:
+            [
+                new ExternalProcessorStagedArtifact("a-bank", new byte[] { 0xA1, 0xA2, 0xA3, 0xA4 }),
+                new ExternalProcessorStagedArtifact("b-bank", new byte[] { 0xB1, 0xB2, 0xB3, 0xB4 }),
+            ]);
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => issue.Message)));
+        Assert.Equal(2, runner.RunCount);
+    }
+
     /// <summary>Verifies NT51923 cascade stages split DiffDLM.bin source offsets from the work image.</summary>
     [Fact]
     public async Task TransformStagesSplitDiffDlmFileForNt51923Cascade()
