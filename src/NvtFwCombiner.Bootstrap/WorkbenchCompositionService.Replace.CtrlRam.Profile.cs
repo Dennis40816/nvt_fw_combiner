@@ -16,7 +16,8 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<TpFlashMapRegion> selectedRegions,
         LegacyCombinerPostbuildProfile postbuildProfile,
         LegacyCombinerPostbuildCommandPlan commandPlan,
-        IReadOnlyList<LegacyCombinerPostbuildWriteRange> postbuildWriteRangeSections)
+        IReadOnlyList<LegacyCombinerPostbuildWriteRange> postbuildWriteRangeSections,
+        FirmwareConfigVersionWritePlan? firmwareVersionWritePlan)
     {
         string normalizedIc = icId.ToLowerInvariant();
         ByteRange[] postbuildWriteRanges = [.. postbuildWriteRangeSections.Select(section => section.Range)];
@@ -84,6 +85,38 @@ public static partial class WorkbenchCompositionService
                 classificationTags: ["postbuild", section.SectionId]));
         }
 
+        if (firmwareVersionWritePlan is not null)
+        {
+            AddFirmwareVersionWriteRegion(
+                profileRegions,
+                accessRules,
+                "firmware-version-source",
+                firmwareVersionWritePlan.FirmwareVersionAndBarRange,
+                "TP FW version and complement source for the legacy Combiner Backup propagation.");
+            AddFirmwareVersionWriteRegion(
+                profileRegions,
+                accessRules,
+                "firmware-sub-version-source",
+                firmwareVersionWritePlan.FirmwareSubVersionRange,
+                "TP FW sub-version source for the legacy Combiner Backup propagation.");
+            operations.Add(CompositionOperation.PatchScalar(
+                "patch-fw-version-and-bar",
+                10,
+                CompositionAddressSpaceIds.OutputImage,
+                firmwareVersionWritePlan.FirmwareVersionAndBarRange,
+                firmwareVersionWritePlan.FirmwareVersionAndBarBytes.ToArray(),
+                OverlapPolicy.ReplaceExisting,
+                "Apply the user-confirmed TP FW version before the approved legacy Combiner postbuild sequence."));
+            operations.Add(CompositionOperation.PatchScalar(
+                "patch-fw-sub-version",
+                20,
+                CompositionAddressSpaceIds.OutputImage,
+                firmwareVersionWritePlan.FirmwareSubVersionRange,
+                firmwareVersionWritePlan.FirmwareSubVersionBytes.ToArray(),
+                OverlapPolicy.ReplaceExisting,
+                "Apply the user-confirmed TP FW sub-version before the approved legacy Combiner postbuild sequence."));
+        }
+
         operations.Add(CompositionOperation.RunExternalProcessor(
             $"postbuild-{commandPlan.Branch.ToString().ToLowerInvariant()}",
             sequence,
@@ -114,5 +147,22 @@ public static partial class WorkbenchCompositionService
             profileRegions,
             accessRules,
             selection.Mode);
+    }
+
+    private static void AddFirmwareVersionWriteRegion(
+        List<ProfileRegion> profileRegions,
+        List<RegionAccessRule> accessRules,
+        string regionId,
+        ByteRange range,
+        string reason)
+    {
+        profileRegions.Add(new ProfileRegion(
+            regionId,
+            CompositionAddressSpaceIds.OutputImage,
+            range,
+            RegionAtomicity.Whole,
+            RegionWritePolicy.WholeOnly,
+            classificationTags: ["firmware-config", "firmware-version"]));
+        accessRules.Add(new RegionAccessRule(regionId, RegionAccessKind.Whole, reason));
     }
 }

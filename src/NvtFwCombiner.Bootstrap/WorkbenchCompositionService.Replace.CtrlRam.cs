@@ -13,9 +13,14 @@ public static partial class WorkbenchCompositionService
         IReadOnlyDictionary<string, string> slotPaths,
         bool build,
         string? outputPath,
+        WorkbenchCtrlRamFirmwareVersionEdit? firmwareVersionEdit,
         CancellationToken cancellationToken)
     {
-        CtrlRamReplaceRunContext context = CreateCtrlRamReplaceRunContext(icId, number, slotPaths);
+        CtrlRamReplaceRunContext context = CreateCtrlRamReplaceRunContext(
+            icId,
+            number,
+            slotPaths,
+            firmwareVersionEdit);
 
         if (!context.CanRun)
         {
@@ -74,7 +79,8 @@ public static partial class WorkbenchCompositionService
             context.SelectedRegions,
             context.PostbuildProfile!,
             context.CommandPlan!,
-            postbuildWriteRangeSections);
+            postbuildWriteRangeSections,
+            context.FirmwareVersionWritePlan);
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         if (!compile.IsSuccess)
         {

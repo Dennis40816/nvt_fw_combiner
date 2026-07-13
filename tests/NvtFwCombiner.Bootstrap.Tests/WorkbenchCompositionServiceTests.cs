@@ -322,6 +322,74 @@ public sealed class WorkbenchCompositionServiceTests
             issue => issue.GetProperty("Code").GetString() == ReplaceCtrlRamPostbuildCategoryUnknown);
     }
 
+    /// <summary>
+    /// Verifies CtrlRAM Build patches the Combiner-declared FWConfig source before postbuild and receives the same
+    /// version fields back through the canonical NVT Backup copy.
+    /// </summary>
+    [Fact]
+    public async Task CtrlRamReplaceBuildPropagatesConfirmedFirmwareVersionThroughBackup()
+    {
+        const int Nt51926FirmwareConfigSourceStart = 0x22000;
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-fw-version-edit");
+        byte[] baseBytes = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
+        string basePath = workspace.Write("base.bin", baseBytes);
+        string replacementPath = workspace.Write("normal.bin", baseBytes[0x22800..0x25400]);
+        string outputPath = workspace.PathFor("edited.bin");
+        Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
+        {
+            ["replace-base"] = basePath,
+            ["replace-ctrlram-normal"] = replacementPath,
+        };
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51926",
+            "single",
+            "CtrlRAM",
+            slotPaths,
+            build: true,
+            TestContext.Current.CancellationToken,
+            outputPath,
+            ctrlRamFirmwareVersionEdit: new WorkbenchCtrlRamFirmwareVersionEdit(0x27, 0x04));
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
+        byte[] outputBytes = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
+        Assert.Equal(0x27, outputBytes[Nt51926FirmwareConfigSourceStart + FirmwareConfigLayout.FirmwareVersionOffset]);
+        Assert.Equal(0xD8, outputBytes[Nt51926FirmwareConfigSourceStart + FirmwareConfigLayout.FirmwareVersionBarOffset]);
+        Assert.Equal(0x04, outputBytes[Nt51926FirmwareConfigSourceStart + FirmwareConfigLayout.FirmwareSubVersionOffset]);
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(outputBytes, out FirmwareConfigMetadata backup));
+        Assert.Equal(0x27, backup.FirmwareVersion);
+        Assert.Equal(0xD8, backup.FirmwareVersionBar);
+        Assert.True(backup.IsFirmwareVersionBarValid);
+        Assert.Equal(0x04, backup.FirmwareSubVersion);
+
+        using var document = JsonDocument.Parse(result.ReportJson);
+        string[] operationIds = [
+            .. document.RootElement.GetProperty("Operations").EnumerateArray()
+                .Select(operation => operation.GetProperty("OperationId").GetString() ?? string.Empty),
+        ];
+        Assert.Equal(
+            ["patch-fw-version-and-bar", "patch-fw-sub-version", "postbuild-singlechip"],
+            operationIds);
+    }
+
+    /// <summary>Verifies TP FW version editing is rejected for a CtrlRAM preview before any firmware processing starts.</summary>
+    [Fact]
+    public async Task CtrlRamReplacePreviewRejectsFirmwareVersionEdit()
+    {
+        ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            WorkbenchCompositionService.RunReplaceAsync(
+                "NT51926",
+                "single",
+                "CtrlRAM",
+                new Dictionary<string, string>(StringComparer.Ordinal),
+                build: false,
+                TestContext.Current.CancellationToken,
+                ctrlRamFirmwareVersionEdit: new WorkbenchCtrlRamFirmwareVersionEdit(0x27, 0x04)).AsTask());
+
+        Assert.Contains("CtrlRAM Replace Build", exception.Message, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies gated Replace reports can summarize missing inputs without throwing.</summary>
     [Fact]
     public async Task GeneralReplacePlanningReportIncludesMissingInputSummary()

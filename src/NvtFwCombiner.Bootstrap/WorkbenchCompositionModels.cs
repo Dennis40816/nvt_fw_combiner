@@ -39,6 +39,9 @@ public sealed record WorkbenchFirmwareConfigMetadata(
     string? PostbuildCategory,
     FirmwareConfigHardwareMetadata Hardware);
 
+/// <summary>Build-only TP FW version override requested for a CtrlRAM Replace output.</summary>
+public sealed record WorkbenchCtrlRamFirmwareVersionEdit(byte FirmwareVersion, byte FirmwareSubVersion);
+
 /// <summary>
 /// A verified NVT Backup FWConfig suggestion for the shared workbench IC-number selection.
 /// It exists only when the selected image has exactly one valid NVT Backup location.

@@ -11,12 +11,14 @@ public static partial class WorkbenchCompositionService
     private static CtrlRamReplaceRunContext CreateCtrlRamReplaceRunContext(
         string icId,
         string number,
-        IReadOnlyDictionary<string, string> slotPaths)
+        IReadOnlyDictionary<string, string> slotPaths,
+        WorkbenchCtrlRamFirmwareVersionEdit? firmwareVersionEdit)
     {
         IcNumberSelection selection = ToIcNumberSelection(number);
         List<CompositionIssue> validationIssues = [];
         LegacyCombinerPostbuildProfile? postbuildProfile = null;
         LegacyCombinerPostbuildCommandPlan? commandPlan = null;
+        FirmwareConfigVersionWritePlan? firmwareVersionWritePlan = null;
         IReadOnlyList<TpFlashMapRegion> regions = [];
 
         (string? basePath, long baseLength) = ResolveCtrlRamBaseInput(slotPaths, validationIssues);
@@ -95,12 +97,34 @@ public static partial class WorkbenchCompositionService
             }
         }
 
+        if (firmwareVersionEdit is not null && basePath is not null && commandPlan is not null &&
+            TryReadFirmwareConfigBackupMetadata(icId, basePath, out FirmwareConfigMetadata backupMetadata) &&
+            !TryCreateCtrlRamFirmwareVersionWritePlan(
+                backupMetadata,
+                commandPlan,
+                firmwareVersionEdit,
+                baseLength,
+                out firmwareVersionWritePlan,
+                out CompositionIssue? firmwareVersionIssue))
+        {
+            validationIssues.Add(firmwareVersionIssue!);
+        }
+        else if (firmwareVersionEdit is not null && basePath is not null && commandPlan is not null &&
+                 firmwareVersionWritePlan is null)
+        {
+            validationIssues.Add(new CompositionIssue(
+                WorkbenchIssueCodes.ReplaceCtrlRamFirmwareVersionSourceInvalid,
+                "TP FW version editing requires readable metadata from the canonical NVT Backup.",
+                WorkbenchSlotIds.ReplaceBase));
+        }
+
         return new CtrlRamReplaceRunContext(
             selection,
             basePath,
             baseLength,
             postbuildProfile,
             commandPlan,
+            firmwareVersionWritePlan,
             regions,
             selectedRegions,
             validationIssues);
@@ -173,6 +197,7 @@ public static partial class WorkbenchCompositionService
         long BaseLength,
         LegacyCombinerPostbuildProfile? PostbuildProfile,
         LegacyCombinerPostbuildCommandPlan? CommandPlan,
+        FirmwareConfigVersionWritePlan? FirmwareVersionWritePlan,
         IReadOnlyList<TpFlashMapRegion> Regions,
         IReadOnlyList<TpFlashMapRegion> SelectedRegions,
         IReadOnlyList<CompositionIssue> ValidationIssues)

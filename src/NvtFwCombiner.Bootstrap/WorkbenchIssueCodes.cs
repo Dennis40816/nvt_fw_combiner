@@ -78,6 +78,12 @@ public static class WorkbenchIssueCodes
     /// <summary>CtrlRAM Replace postbuild planner did not expose an approved write range.</summary>
     public const string ReplaceCtrlRamPostbuildWriteRangeMissing = "replace.ctrlram.postbuild-write-range-missing";
 
+    /// <summary>CtrlRAM Replace cannot edit TP FW version because the canonical NVT Backup has invalid version metadata.</summary>
+    public const string ReplaceCtrlRamFirmwareVersionSourceInvalid = "replace.ctrlram.fw-version-source-invalid";
+
+    /// <summary>CtrlRAM Replace has no unambiguous approved Combiner path from a source FWConfig to the canonical Backup.</summary>
+    public const string ReplaceCtrlRamFirmwareVersionPropagationUnavailable = "replace.ctrlram.fw-version-propagation-unavailable";
+
     /// <summary>General Replace IC-number selection is unsupported by the selected postbuild profile.</summary>
     public const string ReplaceGeneralIcNumberUnsupported = "replace.general.ic-number-unsupported";
 
