@@ -88,6 +88,9 @@ public sealed partial class RepositoryBoundaryTests
     {
         string replaceDp = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.cs");
         string v2Resolution = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.BuiltInV2.cs");
+        string v2Display = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.V2Display.cs");
+        string replaceDisplay = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Display.cs");
+        string replaceCoverage = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Coverage.cs");
         string replaceCli = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.DpWorkbench.cs");
         string bundle = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs");
 
@@ -100,6 +103,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("CompositionProfileDefinition", replaceCli, StringComparison.Ordinal);
         Assert.Contains("IcWorkflowIds.DpReplace", v2Resolution, StringComparison.Ordinal);
         Assert.Contains("s_nt51950Nt51951V2Bundle", v2Resolution, StringComparison.Ordinal);
+        Assert.Contains("TryResolveDpPerspectiveDpReplaceDisplay", v2Resolution, StringComparison.Ordinal);
+        Assert.DoesNotContain("DpPerspectiveCatalog", v2Display, StringComparison.Ordinal);
+        Assert.Contains("TryCreateV2DpReplaceMemoryMapRows", replaceDisplay, StringComparison.Ordinal);
+        Assert.Contains("TryGetV2DpReplaceMemoryRangeLabel", replaceDisplay, StringComparison.Ordinal);
+        Assert.Contains("TryCreateV2DpReplaceCoverageSegments", replaceCoverage, StringComparison.Ordinal);
         Assert.Contains("ProfileBundleLoader.Load", bundle, StringComparison.Ordinal);
     }
 

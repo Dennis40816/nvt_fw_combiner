@@ -28,6 +28,30 @@ public static partial class WorkbenchCompositionService
         return true;
     }
 
+    /// <summary>Resolves the V2 DP Replace facts needed by the workbench display without consulting legacy maps.</summary>
+    internal static bool TryResolveDpPerspectiveDpReplaceDisplay(
+        string icId,
+        long? baseCapacity,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out DpPerspectiveDpReplaceDisplay? display)
+    {
+        if (!s_builtInV2DpReplaceByIc.Value.TryGetValue(icId, out BuiltInV2DpReplaceRegistration? registration))
+        {
+            display = null;
+            return false;
+        }
+
+        IReadOnlyList<long> capacities = registration.GetMapCapacities(out IReadOnlyList<CompositionIssue> capacityIssues);
+        if (capacityIssues.Count != 0 || baseCapacity is null)
+        {
+            display = new DpPerspectiveDpReplaceDisplay(baseCapacity, capacities, Composition: null, capacityIssues);
+            return true;
+        }
+
+        registration.TryCompile(baseCapacity.Value, out CompiledComposition? composition, out IReadOnlyList<CompositionIssue> issues);
+        display = new DpPerspectiveDpReplaceDisplay(baseCapacity, capacities, composition, issues);
+        return true;
+    }
+
     /// <summary>Resolves a DP Replace CLI selector from the supported V2 profile registrations.</summary>
     internal static bool TryResolveDpPerspectiveDpReplaceSelector(
         string selector,
@@ -98,17 +122,22 @@ public static partial class WorkbenchCompositionService
                 string.Equals(CliCompositionRunSupport.GetIcNumber(IcId), selector, StringComparison.OrdinalIgnoreCase);
         }
 
-        internal void TryCompile(
-            long baseCapacity,
-            out CompiledComposition? composition,
-            out IReadOnlyList<CompositionIssue> issues)
+        internal IReadOnlyList<long> GetMapCapacities(out IReadOnlyList<CompositionIssue> issues)
         {
-            IReadOnlyList<long> capacities = Bundle.GetMapCapacities(
+            return Bundle.GetMapCapacities(
                 ProfileId,
                 ProfileVersion,
                 IcId,
                 IcWorkflowIds.DpReplace,
                 out issues);
+        }
+
+        internal void TryCompile(
+            long baseCapacity,
+            out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues)
+        {
+            IReadOnlyList<long> capacities = GetMapCapacities(out issues);
             if (issues.Count != 0)
             {
                 composition = null;

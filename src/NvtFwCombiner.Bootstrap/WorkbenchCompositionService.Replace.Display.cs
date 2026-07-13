@@ -29,6 +29,12 @@ public static partial class WorkbenchCompositionService
         long? dpBaseLength = null,
         string? ctrlRamBasePath = null)
     {
+        if (replaceMode == WorkbenchReplaceModes.Dp &&
+            TryCreateV2DpReplaceMemoryMapRows(icId, dpBaseLength, out IReadOnlyList<WorkbenchMemoryMapRow> v2Rows))
+        {
+            return v2Rows;
+        }
+
         IcNumberSelection selection = ToIcNumberSelection(number);
         LegacyCombinerPostbuildProfile? postbuildProfile = replaceMode == WorkbenchReplaceModes.CtrlRam &&
             TryResolvePostbuildProfileForDisplay(icId, ctrlRamBasePath, out LegacyCombinerPostbuildProfile? profile)
@@ -88,6 +94,12 @@ public static partial class WorkbenchCompositionService
         long? dpBaseLength = null,
         string? ctrlRamBasePath = null)
     {
+        if (replaceMode == WorkbenchReplaceModes.Dp &&
+            TryGetV2DpReplaceMemoryRangeLabel(icId, dpBaseLength, out string v2RangeLabel))
+        {
+            return v2RangeLabel;
+        }
+
         if (replaceMode == WorkbenchReplaceModes.Dp && IsDpPerspectiveIc(icId))
         {
             return dpBaseLength is long value

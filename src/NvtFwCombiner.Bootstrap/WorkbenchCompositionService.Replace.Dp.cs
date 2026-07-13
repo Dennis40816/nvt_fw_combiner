@@ -136,7 +136,9 @@ public static partial class WorkbenchCompositionService
             new(
                 WorkbenchSlotIds.ReplaceDp,
                 "DP replacement BIN",
-                IsDpPerspectiveIc(icId)
+                TryGetV2DpReplaceInputDescription(icId, out string v2Description)
+                    ? v2Description
+                    : IsDpPerspectiveIc(icId)
                     ? $"Replacement DP is padded to the selected base BIN length ({FormatSupportedDpPerspectiveBaseLengths()}); only the original TP range is restored from base."
                     : "Replacement DP payload. Build stays gated until this IC has approved DP Replace mapping evidence.",
                 false,

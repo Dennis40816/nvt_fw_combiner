@@ -84,6 +84,80 @@ public sealed class BuiltInV2DpReplaceRoutingTests
                 .Order(StringComparer.Ordinal));
     }
 
+    /// <summary>Verifies selected DP Replace display ranges are projections of the executable V2 plan.</summary>
+    [Theory]
+    [InlineData("NT51950", 0x80000)]
+    [InlineData("NT51951", 0x40000)]
+    public void DpReplaceDisplayProjectsSelectedV2Plan(string icId, int baseCapacity)
+    {
+        _ = WorkbenchCompositionService.TryCompileDpPerspectiveDpReplace(
+            icId,
+            baseCapacity,
+            out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues);
+
+        Assert.Empty(issues);
+        CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
+        CompositionOperation replacement = Assert.Single(
+            artifact.Plan.OrderedOperations,
+            operation => string.Equals(operation.SourceSpaceId, CompositionAddressSpaceIds.DpReplacement, StringComparison.Ordinal));
+        CompositionOperation restore = Assert.Single(
+            artifact.Plan.OrderedOperations,
+            operation => string.Equals(operation.SourceSpaceId, CompositionAddressSpaceIds.ReferenceBase, StringComparison.Ordinal));
+
+        IReadOnlyList<WorkbenchMemoryMapRow> rows = WorkbenchCompositionService.GetReplaceMemoryMapRows(
+            icId,
+            "single",
+            WorkbenchReplaceModes.Dp,
+            baseCapacity);
+        IReadOnlyList<WorkbenchMemoryCoverageSegment> coverage = WorkbenchCompositionService.GetReplaceCoverageSegments(
+            icId,
+            "single",
+            WorkbenchReplaceModes.Dp,
+            baseCapacity);
+
+        WorkbenchMemoryMapRow replacementRow = Assert.Single(rows, row => row.ActionLabel == "Replace");
+        Assert.Equal(FormatRange(replacement.TargetRange), replacementRow.RangeLabel);
+        Assert.Equal("Base flash", replacementRow.BeforeSource);
+        Assert.Equal("DP replacement", replacementRow.AfterSource);
+        WorkbenchMemoryMapRow restoreRow = Assert.Single(rows, row => row.ActionLabel == "Restore");
+        Assert.Equal(FormatRange(restore.TargetRange), restoreRow.RangeLabel);
+        Assert.Equal("DP replacement", restoreRow.BeforeSource);
+        Assert.Equal("Base TP", restoreRow.AfterSource);
+        Assert.Equal(
+            FormatRange(new ByteRange(0, artifact.Plan.OutputInitialization.Capacity)),
+            WorkbenchCompositionService.GetReplaceMemoryRangeLabel(icId, "single", WorkbenchReplaceModes.Dp, baseCapacity));
+        Assert.Contains(coverage, segment =>
+            segment.SourceLabel == "Base flash" && segment.RangeLabel == FormatRange(restore.TargetRange));
+        Assert.Contains(coverage, segment => segment.SourceLabel == "Changed DP BIN");
+    }
+
+    /// <summary>Verifies pending DP Replace display uses V2 map capacities without selecting an arbitrary output range.</summary>
+    [Theory]
+    [InlineData("NT51950")]
+    [InlineData("NT51951")]
+    public void DpReplaceDisplayPendingBaseUsesV2MapCapacities(string icId)
+    {
+        IReadOnlyList<WorkbenchMemoryMapRow> rows = WorkbenchCompositionService.GetReplaceMemoryMapRows(
+            icId,
+            "single",
+            WorkbenchReplaceModes.Dp);
+        IReadOnlyList<WorkbenchMemoryCoverageSegment> coverage = WorkbenchCompositionService.GetReplaceCoverageSegments(
+            icId,
+            "single",
+            WorkbenchReplaceModes.Dp);
+
+        WorkbenchMemoryMapRow row = Assert.Single(rows);
+        Assert.Equal("Base BIN length: 0x40000 / 0x80000 / 0x100000", row.RangeLabel);
+        Assert.Equal("Select", row.ActionLabel);
+        WorkbenchMemoryCoverageSegment segment = Assert.Single(coverage);
+        Assert.Equal("Base length pending", segment.RangeLabel);
+        Assert.Contains("0x40000 / 0x80000 / 0x100000", segment.Detail, StringComparison.Ordinal);
+        Assert.Equal(
+            "Base BIN length: 0x40000 / 0x80000 / 0x100000",
+            WorkbenchCompositionService.GetReplaceMemoryRangeLabel(icId, "single", WorkbenchReplaceModes.Dp));
+    }
+
     private static byte[] CreatePattern(int length, byte salt)
     {
         byte[] bytes = new byte[length];
@@ -93,5 +167,10 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         }
 
         return bytes;
+    }
+
+    private static string FormatRange(ByteRange range)
+    {
+        return FormattableString.Invariant($"0x{range.Start:X5}-0x{range.EndExclusive - 1:X5} (len 0x{range.Length:X})");
     }
 }

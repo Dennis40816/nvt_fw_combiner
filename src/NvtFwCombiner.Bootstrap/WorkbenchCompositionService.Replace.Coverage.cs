@@ -16,6 +16,12 @@ public static partial class WorkbenchCompositionService
         long? dpBaseLength = null,
         string? ctrlRamBasePath = null)
     {
+        if (replaceMode == WorkbenchReplaceModes.Dp &&
+            TryCreateV2DpReplaceCoverageSegments(icId, dpBaseLength, out IReadOnlyList<WorkbenchMemoryCoverageSegment> v2Segments))
+        {
+            return v2Segments;
+        }
+
         IcNumberSelection selection = ToIcNumberSelection(number);
         LegacyCombinerPostbuildProfile? postbuildProfile = replaceMode == WorkbenchReplaceModes.CtrlRam &&
             TryResolvePostbuildProfileForDisplay(icId, ctrlRamBasePath, out LegacyCombinerPostbuildProfile? profile)
