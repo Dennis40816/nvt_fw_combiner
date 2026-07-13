@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Xml.Linq;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
@@ -89,17 +90,34 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         Assert.Equal(dpInputLength, artifact.Plan.OutputInitialization.Capacity);
     }
 
-    /// <summary>Verifies every deployed bundle is materialized from its manifest-pinned source entries.</summary>
+    /// <summary>Verifies every production-materialized bundle is sourced from its manifest-pinned entries.</summary>
     [Fact]
-    public void EveryBuiltInDeploymentMaterializesManifestPinnedEntries()
+    public void EveryProductionDeploymentMaterializesManifestPinnedEntries()
     {
         string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string builtInRoot = Path.Combine(repositoryRoot, "profiles", "built-in");
-        foreach (string sourceBundleRoot in Directory.GetDirectories(builtInRoot).Order(StringComparer.Ordinal))
+        string deployedBuiltInRoot = Path.Combine(AppContext.BaseDirectory, "profiles", "built-in");
+        string projectFile = RepositoryPaths.FromRepositoryRoot(
+            "src",
+            "NvtFwCombiner.Bootstrap",
+            "NvtFwCombiner.Bootstrap.csproj");
+        string[] bundleDirectories =
+        [
+            .. XDocument.Load(projectFile)
+                .Descendants("BuiltInProfileBundle")
+                .Select(static bundle => bundle.Attribute("Include")?.Value)
+                .Where(static bundleDirectory => !string.IsNullOrWhiteSpace(bundleDirectory))
+                .Cast<string>()
+                .Order(StringComparer.Ordinal),
+        ];
+        Assert.NotEmpty(bundleDirectories);
+
+        foreach (string bundleDirectory in bundleDirectories)
         {
+            string sourceBundleRoot = Path.Combine(builtInRoot, bundleDirectory);
+            Assert.True(Directory.Exists(sourceBundleRoot), $"Production bundle has no repository source: {bundleDirectory}");
+            string deployedRoot = Path.Combine(deployedBuiltInRoot, bundleDirectory);
             string sourceManifestPath = Path.Combine(sourceBundleRoot, "profile-bundle.json");
-            string bundleDirectory = Path.GetFileName(sourceBundleRoot);
-            string deployedRoot = Path.Combine(AppContext.BaseDirectory, "profiles", "built-in", bundleDirectory);
             string deployedManifestPath = Path.Combine(deployedRoot, "profile-bundle.json");
             Assert.Equal(File.ReadAllBytes(sourceManifestPath), File.ReadAllBytes(deployedManifestPath));
 

@@ -1,7 +1,8 @@
-# Composition Profile Contract 2.0 and 2.1
+# Composition Profile Contract 2.0, 2.1, and 2.2
 
 The executable schemas are [`composition-profile-v2.schema.json`](composition-profile-v2.schema.json)
-and [`composition-profile-v2.1.schema.json`](composition-profile-v2.1.schema.json). A trusted bundle
+[`composition-profile-v2.1.schema.json`](composition-profile-v2.1.schema.json), and
+[`composition-profile-v2.2.schema.json`](composition-profile-v2.2.schema.json). A trusted bundle
 selects one exact schema snapshot through its manifest content hash. They are the only declarative
 workflow policy compiled for Normal, AB, General, Merge, Replace, saved rules, and future Register work.
 
@@ -109,6 +110,11 @@ can opt into it by accident. The 2.1 schema permits the property only on a `lega
 and requires one or more bindings. Each maps one profile view to one named immutable artifact created
 only inside the processor staging directory. The selected Combiner command plan must consume every
 declared artifact, cannot refer to an undeclared artifact, and the adapter rejects any artifact mutation.
+The 2.2 schema keeps that closed artifact-binding contract and adds the exact external-tool-manifest
+binding identifier grammar only for `legacy-combiner-v1.toolBindingId`, permitting a version suffix such
+as `legacy-combiner-1.13.0`. Every profile, view, stage, artifact, and invocation-profile identifier remains
+a canonical lowercase hyphenated id. Schema 2.0 and 2.1 retain the canonical identifier grammar for this
+field when normalized directly.
 
 ## Input size policy
 

@@ -53,6 +53,20 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
         Assert.Equal("combiner-evidence", stage.EvidenceRef);
     }
 
+    /// <summary>Verifies direct 2.0 normalization does not gain the schema-2.2 tool binding grammar.</summary>
+    [Fact]
+    public void ProcessorRejectsVersionedToolBindingOutsideLegacySchemaGrammar()
+    {
+        CompositionProfileNormalizationException exception = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            CompositionProfileNormalizer.NormalizeProcessorStage(Legacy(
+                "relocation",
+                "none",
+                toolBindingId: "legacy-combiner-1.13.0")));
+
+        Assert.Equal("processorStages[0]", exception.Path);
+        _ = Assert.IsType<ArgumentException>(exception.InnerException, exactMatch: false);
+    }
+
     /// <summary>Verifies every legacy purpose maps using an allowed integrity disposition.</summary>
     [Fact]
     public void ProcessorMapsEveryLegacyPurpose()

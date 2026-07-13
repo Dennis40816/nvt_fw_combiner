@@ -8,6 +8,14 @@ internal static partial class CompositionProfileNormalizer
         CompositionProfileProcessorStageDocument document,
         string path = "processorStages[0]")
     {
+        return NormalizeProcessorStage(document, "2.0", path);
+    }
+
+    private static CompositionProfileProcessorStage NormalizeProcessorStage(
+        CompositionProfileProcessorStageDocument document,
+        string schemaVersion,
+        string path)
+    {
         ArgumentNullException.ThrowIfNull(document);
         RequireConstant(
             document.FailurePolicy,
@@ -17,7 +25,7 @@ internal static partial class CompositionProfileNormalizer
         return document.Kind switch
         {
             "crc-worker-v1" => NormalizeCrcWorker(document, path),
-            "legacy-combiner-v1" => NormalizeLegacyCombiner(document, path),
+            "legacy-combiner-v1" => NormalizeLegacyCombiner(document, schemaVersion, path),
             _ => throw Error($"{path}.kind", "Unknown processor stage kind."),
         };
     }
@@ -62,6 +70,7 @@ internal static partial class CompositionProfileNormalizer
 
     private static LegacyCombinerProfileProcessorStage NormalizeLegacyCombiner(
         CompositionProfileProcessorStageDocument document,
+        string schemaVersion,
         string path)
     {
         RequireConstant(
@@ -100,7 +109,10 @@ internal static partial class CompositionProfileNormalizer
 
         return Wrap(path, () => new LegacyCombinerProfileProcessorStage(
             document.ProcessorStageId,
-            RequireText(document.ToolBindingId, $"{path}.toolBindingId", "Tool binding is missing."),
+            CompositionProfileValueRules.RequireToolBindingIdForSchemaVersion(
+                schemaVersion,
+                RequireText(document.ToolBindingId, $"{path}.toolBindingId", "Tool binding is missing."),
+                nameof(document.ToolBindingId)),
             RequireText(
                 document.InvocationProfileId,
                 $"{path}.invocationProfileId",

@@ -11,6 +11,7 @@
     <BuiltInProfileSourceRoot>$(MSBuildProjectDirectory)\..\..\profiles\built-in</BuiltInProfileSourceRoot>
     <ProfileSchemaSourceRoot>$(MSBuildProjectDirectory)\..\..\profiles\schema-source\sha256</ProfileSchemaSourceRoot>
     <BuiltInProfileMaterializedRoot>$(BaseIntermediateOutputPath)$(Configuration)\$(TargetFramework)\materialized-profiles\built-in</BuiltInProfileMaterializedRoot>
+    <BuiltInProfilePublishedRoot>$(OutDir)profiles\built-in</BuiltInProfilePublishedRoot>
     <DefaultCompositionProfileSchemaHash>1af166d37379329cc7a298ea24637a665b183f286e5a2323d4ed014e893dc9f0</DefaultCompositionProfileSchemaHash>
   </PropertyGroup>
   <ItemDefinitionGroup>
@@ -30,7 +31,7 @@
     <BuiltInProfileBundle Include="nt51950-nt51951-standard-merge" />
   </ItemGroup>
   <Target Name="MaterializeBuiltInProfileBundles" BeforeTargets="AssignTargetPaths">
-    <RemoveDir Directories="$(BuiltInProfileMaterializedRoot)" />
+    <RemoveDir Directories="$(BuiltInProfileMaterializedRoot);$(BuiltInProfilePublishedRoot)" />
     <ItemGroup>
       <_BuiltInProfileSource Include="$(BuiltInProfileSourceRoot)\%(BuiltInProfileBundle.Identity)\**\*"
         Exclude="$(BuiltInProfileSourceRoot)\%(BuiltInProfileBundle.Identity)\schemas\**\*">

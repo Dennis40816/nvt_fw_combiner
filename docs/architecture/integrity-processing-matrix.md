@@ -12,7 +12,7 @@ Owner update 2026-06-30:
 | --- | --- | --- | --- | --- | --- |
 | NT51929 | uploaded AB combiner | None | Address relocation only; no CRC configured | fixed-`0x80000` V2 candidate relocates little-endian `u32` offsets `0x7164/0x7168/0x716C` by `+0x40000` in a cloned TPB buffer | Local full-byte candidate/reference parity confirmed (`2cc711...fd57f4`); product golden/owner promotion pending |
 | NT51932 | uploaded/reference AB combiner | None | Address relocation only; no CRC configured | fixed-`0x80000` V2 candidate relocates little-endian `u32` offsets `0x7164/0x7168/0x716C` by `+0x40000` in a cloned TPB buffer | Candidate profile evidence confirmed; independent product golden/owner promotion pending |
-| NT51950 | uploaded AB combiner | Verify existing CRC | Relocate, recalculate, write CRC | Reference result uses CRC-32/MPEG-2 over `[0xA100,0xA130)` and writes little-endian `u32` at `[0xA130,0xA134)`. A private Combiner 1.13.0 audit has exact output parity; see the dated evidence below. | Evidence confirmed; profile and firmware-owner promotion pending |
+| NT51950 | uploaded AB combiner | Verify existing CRC | Relocate, recalculate, write CRC | Reference result uses CRC-32/MPEG-2 over `[0xA100,0xA130)` and writes little-endian `u32` at `[0xA130,0xA134)`. The captured reference needs an exact Combiner `map.txt` sidecar that has not been supplied; see the dated evidence below. | Compilable staging candidate only; map sidecar, golden, and firmware-owner promotion pending |
 | NT51951 | uploaded AB combiner config | Verify existing CRC | Relocate, recalculate, write CRC | same algorithm/ranges; relocation differs; exact legacy combiner version/tool binding still required | Needs golden output and tool binding |
 | Other Standard-reference ICs | `gen_flash_bin_v2` | Unknown | Unknown/not applicable | no integrity rule established by current evidence | Must inventory |
 
@@ -21,22 +21,27 @@ Owner update 2026-06-30:
 The owner-supplied private NT51950 AB sample is not committed. Its staged
 reference output SHA-256 is
 `4A292CD9615C58079B8994AF8060AF92562EAA92A55BC24BACC5EC5234E23B30`.
-The same hash was produced by legacy `Combiner.exe` 1.13.0
-(`ED6B58289CC780F73D36B831F5424CEF44AD93187BA7518D36DF6A77AD0C76BF`)
-using `NT51950BASED_NORMAL_MODE` with its `CRC8` selector.
+The direct Combiner invocation is `NT51950BASED_NORMAL_MODE` with its `CRC8`
+selector. `CRC8` is a legacy command selector, not a claim that the AB header
+result is an eight-bit CRC. The observed reference output differs from the raw
+staged TPB image at `0x4A102`, `0x4A112`, `0x4A122`, and
+`[0x4A130,0x4A134)`; the last range is the little-endian header CRC word. The
+profile declares the complete little-endian `u32` fields `[0x4A100,0x4A104)`,
+`[0x4A110,0x4A114)`, and `[0x4A120,0x4A124)` because a valid `+0x40000`
+relocation can carry into any byte of each field.
 
-`CRC8` is the legacy command selector, not a claim that the AB header result
-is an eight-bit CRC. The resulting TPB header stores the same CRC-32/MPEG-2
-value as the reference output after relocation. The verified staged mutation
-ranges are `0x4A102`, `0x4A112`, and `[0x4A130,0x4A134)`; the last range is
-the little-endian header CRC word. The future V2 AB profile must declare those
-writes and must use the external Combiner transform. C# must not recalculate
-or write the header CRC.
+The previous parity claim is withdrawn: invoking the committed Combiner 1.13.0
+(`ED6B58289CC780F73D36B831F5424CEF44AD93187BA7518D36DF6A77AD0C76BF`) with
+the available DP/TP inputs and an empty `map.txt` exits successfully but leaves
+the image unchanged (`8D8B841AA27C754956827E7B9320F2FB3CC5FE200D3DFF324703E496CA4B3F6E`).
+The exact map sidecar and a reproducible tool trace are therefore required before
+the profile can advance beyond `compilable`. C# must not recalculate or write the
+AB header CRC.
 
 This is direct NT51950 evidence only. It does not establish the NT51951
 topology, its `0x80000` TPB relocation, or an NT51951 Combiner binding. The
-isolated reproduction environment additionally requires the legacy tool's
-`map.txt`; that environment input must be captured with the eventual
+isolated reproduction environment requires the legacy tool's exact `map.txt`;
+that sidecar and its source/provenance must be captured with the eventual
 owner-approved AB golden before the production profile is promoted.
 
 ## Replace processing evidence

@@ -9,9 +9,10 @@ internal static partial class CompositionProfileNormalizer
     {
         ArgumentNullException.ThrowIfNull(document);
         if (!StringComparer.Ordinal.Equals(document.SchemaVersion, "2.0") &&
-            !StringComparer.Ordinal.Equals(document.SchemaVersion, "2.1"))
+            !StringComparer.Ordinal.Equals(document.SchemaVersion, "2.1") &&
+            !StringComparer.Ordinal.Equals(document.SchemaVersion, "2.2"))
         {
-            throw Error("schemaVersion", "Expected composition-profile schema version '2.0' or '2.1'.");
+            throw Error("schemaVersion", "Expected composition-profile schema version '2.0', '2.1', or '2.2'.");
         }
 
         CompositionKind compositionKind = NormalizeCompositionKind(
@@ -60,7 +61,7 @@ internal static partial class CompositionProfileNormalizer
         CompositionProfileProcessorStage[] processorStages = NormalizeList(
             document.ProcessorStages,
             "processorStages",
-            NormalizeProcessorStage);
+            (stage, path) => NormalizeProcessorStage(stage, document.SchemaVersion, path));
         CompositionProfileOutput output = NormalizeOutput(
             RequireObject(document.Output, "output"),
             "output");

@@ -66,6 +66,7 @@ public sealed class CompositionProfileV2RootNormalizerTests
     [Theory]
     [InlineData("2.0")]
     [InlineData("2.1")]
+    [InlineData("2.2")]
     public void RootNormalizerAcceptsPinnedSchemaVersions(string schemaVersion)
     {
         CompositionProfileDefinition definition = CompositionProfileNormalizer.Normalize(
@@ -79,7 +80,7 @@ public sealed class CompositionProfileV2RootNormalizerTests
     public void RootNormalizerRejectsUnsupportedSchemaAndCompositionKindWithPaths()
     {
         CompositionProfileNormalizationException schema = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.Normalize(ValidMerge() with { SchemaVersion = "2.2" }));
+            CompositionProfileNormalizer.Normalize(ValidMerge() with { SchemaVersion = "2.3" }));
         CompositionProfileNormalizationException kind = Assert.Throws<CompositionProfileNormalizationException>(() =>
             CompositionProfileNormalizer.Normalize(ValidMerge() with { CompositionKind = "future" }));
 

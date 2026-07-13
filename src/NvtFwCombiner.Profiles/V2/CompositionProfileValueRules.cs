@@ -13,6 +13,27 @@ internal static partial class CompositionProfileValueRules
             : value;
     }
 
+    internal static string RequireExternalToolBindingId(string value, string parameterName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value, parameterName);
+        return !ExternalToolBindingIdPattern().IsMatch(value)
+            ? throw new ArgumentException("External tool binding identifier is not in the external-tool manifest form.", parameterName)
+            : value;
+    }
+
+    internal static string RequireToolBindingIdForSchemaVersion(
+        string schemaVersion,
+        string value,
+        string parameterName)
+    {
+        return schemaVersion switch
+        {
+            "2.0" or "2.1" => RequireId(value, parameterName),
+            "2.2" => RequireExternalToolBindingId(value, parameterName),
+            _ => throw new ArgumentOutOfRangeException(nameof(schemaVersion), schemaVersion, "Unsupported profile schema version."),
+        };
+    }
+
     internal static string RequireSemanticVersion(string value, string parameterName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(value, parameterName);
@@ -79,6 +100,11 @@ internal static partial class CompositionProfileValueRules
 
     [GeneratedRegex("^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$", RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
     private static partial Regex CanonicalIdPattern();
+
+    [GeneratedRegex(
+        "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:-[0-9]+(?:\\.[0-9]+)*(?:[-+][0-9A-Za-z.-]+)?)?$",
+        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
+    private static partial Regex ExternalToolBindingIdPattern();
 
     [GeneratedRegex(
         "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$",

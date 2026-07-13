@@ -323,6 +323,36 @@ public sealed class ProfileBundleSchemaValidatorTests
         _ = Assert.Throws<InvalidDataException>(() => ProfileBundleSchemaValidator.ValidateEntries(collection, 32));
     }
 
+    /// <summary>Verifies schema 2.2 alone admits the published dot-versioned Combiner tool binding id.</summary>
+    [Fact]
+    public void ValidateEntriesAcceptsPublishedCombinerToolBindingInV22()
+    {
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(
+            TrustedV2BundleTestDocuments.ProfileJson(new string('c', 64))));
+        profile["schemaVersion"] = "2.2";
+        Assert.IsType<JsonArray>(profile["processorStages"]).Add(
+            LegacyCombinerStage("legacy-combiner-1.13.0"));
+
+        ProfileBundleSchemaValidator.ValidateEntries(
+            CaptureCompositionProfile(profile.ToJsonString(), "composition-profile-v2.2.schema.json"),
+            32);
+    }
+
+    /// <summary>Verifies schema 2.2 rejects a binding id that the external-tool manifest cannot represent.</summary>
+    [Fact]
+    public void ValidateEntriesRejectsCombinerToolBindingOutsideManifestGrammarInV22()
+    {
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(
+            TrustedV2BundleTestDocuments.ProfileJson(new string('c', 64))));
+        profile["schemaVersion"] = "2.2";
+        Assert.IsType<JsonArray>(profile["processorStages"]).Add(
+            LegacyCombinerStage("legacy.combiner-1.13.0"));
+
+        _ = Assert.Throws<InvalidDataException>(() => ProfileBundleSchemaValidator.ValidateEntries(
+            CaptureCompositionProfile(profile.ToJsonString(), "composition-profile-v2.2.schema.json"),
+            32));
+    }
+
     /// <summary>Verifies IC-number selector authority is absent for Merge and explicit for Replace profiles.</summary>
     [Theory]
     [InlineData("merge-with-selector", false)]
@@ -534,6 +564,31 @@ public sealed class ProfileBundleSchemaValidatorTests
                         schemaId),
                 ]),
             new ProfileBundleEntrySnapshotLimits(8, 65536, 131072, 32));
+    }
+
+    private static JsonObject LegacyCombinerStage(string toolBindingId)
+    {
+        return new JsonObject
+        {
+            ["processorStageId"] = "legacy-postbuild",
+            ["kind"] = "legacy-combiner-v1",
+            ["toolBindingId"] = toolBindingId,
+            ["invocationProfileId"] = "synthetic-profile",
+            ["targetSpaceId"] = "output",
+            ["authority"] = "transform",
+            ["purpose"] = "relocation",
+            ["integrityDisposition"] = "none",
+            ["allowedReadViewIds"] = new JsonArray("output-code"),
+            ["allowedWriteViewIds"] = new JsonArray("output-code"),
+            ["stagedSourceBindings"] = new JsonArray(),
+            ["stagedArtifactBindings"] = new JsonArray(new JsonObject
+            {
+                ["artifactId"] = "a-bank",
+                ["sourceViewId"] = "output-code",
+            }),
+            ["evidenceRef"] = "processor-evidence",
+            ["failurePolicy"] = "fail-closed",
+        };
     }
 
     private static ProfileBundleEntry Entry(

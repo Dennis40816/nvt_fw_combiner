@@ -184,7 +184,9 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
             allowedReadViewIds,
             RequireWrites(allowedWriteViewIds))
     {
-        ToolBindingId = CompositionProfileValueRules.RequireId(toolBindingId, nameof(toolBindingId));
+        ToolBindingId = CompositionProfileValueRules.RequireExternalToolBindingId(
+            toolBindingId,
+            nameof(toolBindingId));
         InvocationProfileId = CompositionProfileValueRules.RequireId(
             invocationProfileId,
             nameof(invocationProfileId));

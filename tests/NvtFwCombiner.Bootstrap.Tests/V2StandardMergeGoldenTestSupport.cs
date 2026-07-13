@@ -36,8 +36,7 @@ internal static class V2StandardMergeGoldenTestSupport
     private static TrustedProfileBundleCatalog LoadCatalogRoot(string bundleRoot, string bundleContentHash)
     {
         string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        AssertSchemaSnapshotMatchesContract(repositoryRoot, bundleRoot, "firmware-family-v1.schema.json");
-        AssertSchemaSnapshotMatchesContract(repositoryRoot, bundleRoot, "composition-profile-v2.schema.json");
+        AssertSchemaSnapshotsMatchManifest(repositoryRoot, bundleRoot);
         TrustedProfileBundle bundle = LoadBundle(bundleRoot, bundleContentHash);
         return TrustedProfileBundleCatalogProjection.Create(bundle.CreateDocumentProjection());
     }
@@ -181,14 +180,24 @@ internal static class V2StandardMergeGoldenTestSupport
         "golden",
         "standard-merge-gen-flash");
 
-    private static void AssertSchemaSnapshotMatchesContract(
-        string repositoryRoot,
-        string bundleRoot,
-        string schemaFileName)
+    private static void AssertSchemaSnapshotsMatchManifest(string repositoryRoot, string bundleRoot)
     {
-        Assert.Equal(
-            File.ReadAllBytes(Path.Combine(repositoryRoot, "docs", "contracts", schemaFileName)),
-            File.ReadAllBytes(Path.Combine(bundleRoot, "schemas", schemaFileName)));
+        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(bundleRoot, "profile-bundle.json")));
+        foreach (JsonElement entry in manifest.RootElement.GetProperty("entries").EnumerateArray().Where(static entry =>
+                     StringComparer.Ordinal.Equals(entry.GetProperty("kind").GetString(), "schema")))
+        {
+            string schemaFileName = Path.GetFileName(entry.GetProperty("path").GetString()!);
+            string contentHash = entry.GetProperty("contentHash").GetString()!;
+            Assert.Equal(
+                File.ReadAllBytes(Path.Combine(
+                    repositoryRoot,
+                    "profiles",
+                    "schema-source",
+                    "sha256",
+                    contentHash,
+                    schemaFileName)),
+                File.ReadAllBytes(Path.Combine(bundleRoot, "schemas", schemaFileName)));
+        }
     }
 
     private static string Hash(ReadOnlySpan<byte> bytes)

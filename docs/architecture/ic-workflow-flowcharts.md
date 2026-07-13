@@ -44,7 +44,7 @@ The architecture test `IcWorkflowFlowchartReferenceCoversBuiltInIcLists` checks 
 
 ## Deferred AB Initializer Policy
 
-NT51919, NT51929, and NT51932 now have executable-candidate V2 profiles with a fixed `0x80000` AB map. They first copy the submitted full DP container, overlay TPA, relocate cloned TPB `u32` values at `0x7164/0x7168/0x716C` by `+0x40000`, then overlay TPB. The profiles are intentionally not routed through Bootstrap, UI, CLI, or Application runtime. NT51950/NT51951 remain unimplemented candidates: their normal Merge ranges, accepted sizes, integrity behavior, and IC-count handling cannot be reused. Every IC still needs owner-approved AB input/output, declared processor/integrity behavior where applicable, and firmware-owner review before promotion.
+NT51919, NT51929, and NT51932 now have executable-candidate V2 profiles with a fixed `0x80000` AB map. They first copy the submitted full DP container, overlay TPA, relocate cloned TPB `u32` values at `0x7164/0x7168/0x716C` by `+0x40000`, then overlay TPB. The profiles are intentionally not routed through Bootstrap, UI, CLI, or Application runtime. NT51950 has a separate repository-only fixed-`0x80000` compilable profile which stages raw full A/B banks for its external Combiner; it is blocked on an exact owner-provided `map.txt` sidecar and does not use C# relocation or CRC. NT51951 remains unimplemented: its normal Merge ranges, accepted sizes, integrity behavior, and IC-count handling cannot be reused. Every IC still needs owner-approved AB input/output, declared processor/integrity behavior where applicable, and firmware-owner review before promotion.
 
 ## Standard Merge flowcharts
 
