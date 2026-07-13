@@ -45,9 +45,10 @@ profiles omit `icNumberInputMode`; `Replace` profiles must declare exactly one o
 `single-selector`, `cascade-selector`, or `numeric-selector`. This is profile execution authority,
 not an experience, UI, or member-id inference. The
 `V2PlanCompiled` eligibility remains non-executable. The separate `V2RuntimeExecutable` eligibility
-is minted only by the Profiles compiler for the closed blank-output Merge subset when promotion is
-exactly `supported`, blockers are empty, each input slot has exactly one immutable singleton space,
-and the output template is token-free with the `reject` invalid-character policy.
+is minted only by the Profiles compiler for the closed blank-output Merge or reference-clone DP
+Replace subset when promotion is exactly `supported`, blockers are empty, each input slot has exactly
+one immutable singleton space, and the output template is token-free with the `reject`
+invalid-character policy.
 `executable-candidate` is not runtime authority.
 Its `CompiledInputContract` retains each slot's id, role, artifact class, required/cardinality policy,
 accepted extensions, typed length rule, typed normalization rule, and every immutable plan-space binding
@@ -60,7 +61,7 @@ evidence. The V2 compilation fingerprint format is `nfc.compiled-composition.pro
 these compiled input and capability-admission decisions as well as bundle, map, promotion, validation,
 output, and plan facts.
 
-The blank-output lowering subset compiles every `regionAccessRules` declaration with the complete canonical
+The current runtime lowering subset compiles every `regionAccessRules` declaration with the complete canonical
 physical ancestor chain for every logical view. Region access remains profile-owned authoring policy and
 cannot be silently dropped or treated as a UI-only restriction. A target write is deny-by-default: every
 applicable profile rule and every governing physical write constraint must allow its half-open range.
@@ -71,9 +72,14 @@ policy and logical view-provenance facts in the V2 compilation fingerprint. The 
 sole authority for physical region ranges; compiled views retain only their resolved half-open logical range
 and exact physical region-chain identity so the artifact can verify that provenance.
 
-The current blank-output subset lowers only `copy-range`, `fill-range`, `patch-scalar`, and
-checked `transform-scalar` operations with `reject` overlap policy. `replace-range`, clone initialization,
-metadata validation, processor stages, and every runtime authority remain outside this subset and fail closed.
+The Merge subset lowers `copy-range`, `fill-range`, `patch-scalar`, and checked `transform-scalar`
+operations with `reject` overlap policy. The DP Replace subset lowers one or more rejected
+`replace-range` operations from declared DP inputs and only fully-covered `replace-existing`
+`copy-range` operations sourced from the exact cloned reference image at the identical resolved half-open
+range. `replace-range` is not a Merge
+operation; a Replace `copy-range` from DP or a rejected replacement copy fails closed. Clone initialization
+is permitted only for this exact, unnormalized `reference-image` DP Replace base. Metadata validation,
+processor stages, and every other runtime authority remain outside this subset and fail closed.
 
 For this subset, an `exact-resolved-map-capacity` input binds an immutable source space at the resolved map
 capacity. A `tp-maximum-256k` input retains its maximum-policy contract while its immutable source space is

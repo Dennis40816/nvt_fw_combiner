@@ -122,6 +122,11 @@ public sealed partial class CompiledCompositionTests
             new CompiledExactResolvedMapCapacityInputLengthRequirement(16),
             new CompiledPadShorterInputNormalization(0xFF, "evidence")));
         _ = Assert.Throws<ArgumentException>(() => new CompiledInputSlotRequirement(
+            "bad-pad-length", "dp", CompiledInputArtifactClass.DpFirmware, true,
+            CompiledInputSlotCardinality.ExactlyOne, [".bin"],
+            new CompiledNormalDpExtractWithWarningInputLengthRequirement("DP_SIZE", [16]),
+            new CompiledPadShorterInputNormalization(0xFF, "evidence")));
+        _ = Assert.Throws<ArgumentException>(() => new CompiledInputSlotRequirement(
             "bad-aux-tp", "aux", CompiledInputArtifactClass.Auxiliary, true,
             CompiledInputSlotCardinality.ExactlyOne, [".bin"],
             new CompiledTpMaximum256KInputLengthRequirement(), new CompiledNoInputNormalization()));

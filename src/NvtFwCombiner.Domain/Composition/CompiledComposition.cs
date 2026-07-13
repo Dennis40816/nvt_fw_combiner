@@ -46,7 +46,7 @@ public sealed partial class CompiledComposition
 
         ValidateIcNumberPolicy(identity.CompositionKind, icNumberPolicy);
         ValidateDefaultOutputFileName(identity.Details.OutputNamingRequirement.FileNameTemplate);
-        ValidateV2InputRequirements(plan, identity.Details);
+        ValidateV2InputRequirements(plan, identity.CompositionKind, identity.Details);
         ValidateV2Eligibility(identity.Details, eligibility);
 
         Plan = plan;
@@ -169,6 +169,7 @@ public sealed partial class CompiledComposition
 
     private static void ValidateV2InputRequirements(
         CompositionPlan plan,
+        CompositionKind compositionKind,
         V2CompiledCompositionDetails details)
     {
         var addressSpaces = plan.AddressSpaces.ToDictionary(
@@ -194,9 +195,9 @@ public sealed partial class CompiledComposition
             if (binding.InstancePolicy != CompiledInputInstancePolicy.Singleton ||
                 !requirement.Required ||
                 requirement.Cardinality != CompiledInputSlotCardinality.ExactlyOne ||
-                requirement.Normalization is not CompiledNoInputNormalization)
+                requirement.Normalization is not (CompiledNoInputNormalization or CompiledPadShorterInputNormalization))
             {
-                throw new ArgumentException("Current V2 plan artifacts require singleton required unnormalized inputs.", nameof(details));
+                throw new ArgumentException("Current V2 plan artifacts require singleton required inputs with no normalization or DP short-input padding.", nameof(details));
             }
 
             if (!addressSpaces.TryGetValue(addressSpaceId, out AddressSpace? addressSpace) ||
@@ -211,14 +212,13 @@ public sealed partial class CompiledComposition
             switch (requirement.LengthRequirement)
             {
                 case CompiledExactResolvedMapCapacityInputLengthRequirement exact:
-                    if (exact.Bytes != details.Provenance.ResolvedMap.CapacityBytes ||
-                        addressSpace.Length != exact.Bytes ||
-                        !addressSpace.AllowedInputLengths.SequenceEqual([exact.Bytes]))
-                    {
-                        throw new ArgumentException(
-                            "Exact resolved-map-capacity input requirements must agree with their immutable plan spaces.",
-                            nameof(details));
-                    }
+                    ValidateExactResolvedMapCapacityInputGeometry(
+                        plan,
+                        compositionKind,
+                        details,
+                        requirement,
+                        exact,
+                        addressSpace);
 
                     break;
                 case CompiledTpMaximum256KInputLengthRequirement:
@@ -274,6 +274,54 @@ public sealed partial class CompiledComposition
                 requirement,
                 details.RegionAccessContract.ResolvedViews);
         }
+    }
+
+    private static void ValidateExactResolvedMapCapacityInputGeometry(
+        CompositionPlan plan,
+        CompositionKind compositionKind,
+        V2CompiledCompositionDetails details,
+        CompiledInputSlotRequirement requirement,
+        CompiledExactResolvedMapCapacityInputLengthRequirement exact,
+        AddressSpace addressSpace)
+    {
+        if (exact.Bytes != details.Provenance.ResolvedMap.CapacityBytes ||
+            addressSpace.Length != exact.Bytes)
+        {
+            throw new ArgumentException(
+                "Exact resolved-map-capacity input requirements must agree with their immutable plan spaces.",
+                nameof(details));
+        }
+
+        if (requirement.Normalization is CompiledNoInputNormalization)
+        {
+            if (addressSpace.InputPaddingByte is not null ||
+                addressSpace.InputOversizePolicy != InputOversizePolicy.Reject ||
+                addressSpace.ExpectedInputLengths.Count != 0 ||
+                (addressSpace.AllowedInputLengths.Count != 0 &&
+                 !addressSpace.AllowedInputLengths.SequenceEqual([exact.Bytes])))
+            {
+                throw new ArgumentException(
+                    "Unnormalized exact-map inputs must reject oversize bytes and accept only exact capacity when an alternate length is declared.",
+                    nameof(details));
+            }
+
+            return;
+        }
+
+        if (requirement.Normalization is CompiledPadShorterInputNormalization padded &&
+            compositionKind == CompositionKind.Replace &&
+            plan.OutputInitialization.Kind == ImageInitializationKind.Reference &&
+            addressSpace.InputPaddingByte == padded.FillByte &&
+            addressSpace.InputOversizePolicy == InputOversizePolicy.Reject &&
+            addressSpace.AllowedInputLengths.Count == 0 &&
+            addressSpace.ExpectedInputLengths.Count == 0)
+        {
+            return;
+        }
+
+        throw new ArgumentException(
+            "DP short-input padding requires a Replace output cloned from its exact-capacity reference and a padded immutable source with no alternate lengths.",
+            nameof(details));
     }
 
     private static void ValidateV2Eligibility(

@@ -121,6 +121,36 @@ public sealed partial class CompiledCompositionTests
             addressSpaceExpectedInputLengths: [32]));
     }
 
+    /// <summary>Verifies a V2 Replace artifact can use an exact reference clone and one declared padded DP source.</summary>
+    [Fact]
+    public void V2ReplaceArtifactBindsReferenceCloneAndExactDpPadding()
+    {
+        CompiledComposition composition = CreateDpReplaceComposition();
+
+        Assert.Equal(CompositionKind.Replace, composition.CompositionKind);
+        Assert.Equal(CompiledIcNumberPolicy.SingleSelector, composition.IcNumberPolicy);
+        Assert.Equal(ImageInitializationKind.Reference, composition.Plan.OutputInitialization.Kind);
+        Assert.Equal("reference-source", composition.Plan.OutputInitialization.ReferenceSpaceId);
+        AddressSpace reference = Assert.Single(
+            composition.Plan.AddressSpaces,
+            static space => space.AddressSpaceId == "reference-source");
+        AddressSpace dp = Assert.Single(
+            composition.Plan.AddressSpaces,
+            static space => space.AddressSpaceId == "dp-source");
+        Assert.Empty(reference.AllowedInputLengths);
+        Assert.Null(reference.InputPaddingByte);
+        Assert.Empty(dp.AllowedInputLengths);
+        Assert.Equal((byte)0, dp.InputPaddingByte);
+        Assert.Equal(CompositionOperationKind.ReplaceRange, Assert.Single(composition.Plan.OrderedOperations).Kind);
+    }
+
+    /// <summary>Verifies DP short-input padding cannot produce a Replace artifact unless the output clones its immutable reference.</summary>
+    [Fact]
+    public void V2ReplaceArtifactRejectsPaddedDpWithoutReferenceClone()
+    {
+        _ = Assert.Throws<ArgumentException>(() => CreateDpReplaceComposition(referenceClone: false));
+    }
+
     private static CompiledComposition CreateTpComposition(
         long sourceLength,
         long outputCapacity,
@@ -196,6 +226,102 @@ public sealed partial class CompiledCompositionTests
                     new ByteRange(0, 1),
                     OverlapPolicy.Reject,
                     "copy one synthetic DP byte")]));
+    }
+
+    private static CompiledComposition CreateDpReplaceComposition(bool referenceClone = true)
+    {
+        const long capacity = 16;
+        var contract = new CompiledInputContract(
+            [
+                new CompiledInputSlotRequirement(
+                    "reference-slot",
+                    "reference",
+                    CompiledInputArtifactClass.ReferenceImage,
+                    required: true,
+                    CompiledInputSlotCardinality.ExactlyOne,
+                    [".bin"],
+                    new CompiledExactResolvedMapCapacityInputLengthRequirement(capacity),
+                    new CompiledNoInputNormalization()),
+                new CompiledInputSlotRequirement(
+                    "dp-slot",
+                    "dp",
+                    CompiledInputArtifactClass.DpFirmware,
+                    required: true,
+                    CompiledInputSlotCardinality.ExactlyOne,
+                    [".bin"],
+                    new CompiledExactResolvedMapCapacityInputLengthRequirement(capacity),
+                    new CompiledPadShorterInputNormalization(0, "synthetic-dp-padding")),
+            ],
+            [
+                new CompiledInputSpaceBinding(
+                    "reference-source",
+                    "reference-slot",
+                    CompiledInputInstancePolicy.Singleton),
+                new CompiledInputSpaceBinding(
+                    "dp-source",
+                    "dp-slot",
+                    CompiledInputInstancePolicy.Singleton),
+            ]);
+        var plan = new CompositionPlan(
+            referenceClone
+                ? ImageInitialization.Reference("output-image", "reference-source", capacity)
+                : ImageInitialization.Blank("output-image", capacity, 0),
+            [
+                new AddressSpace("reference-source", capacity, AddressSpaceMutability.Immutable),
+                new AddressSpace(
+                    "dp-source",
+                    capacity,
+                    AddressSpaceMutability.Immutable,
+                    inputPaddingByte: 0),
+                new AddressSpace("output-image", capacity, AddressSpaceMutability.Mutable),
+            ],
+            [CompositionOperation.ReplaceRange(
+                "replace-dp-prefix",
+                10,
+                "dp-source",
+                new ByteRange(0, 4),
+                "output-image",
+                new ByteRange(0, 4),
+                OverlapPolicy.Reject,
+                "replace synthetic DP bytes")]);
+        CompiledPhysicalRegionConstraint[] chain =
+        [
+            new CompiledPhysicalRegionConstraint(
+                "root",
+                FirmwareWriteConstraint.Forbidden,
+                alignment: 1),
+        ];
+        var regionAccess = new CompiledRegionAccessContract(
+            [],
+            [
+                new CompiledResolvedPhysicalView(
+                    "reference-view",
+                    "reference-source",
+                    new ByteRange(0, capacity),
+                    chain),
+                new CompiledResolvedPhysicalView(
+                    "dp-view",
+                    "dp-source",
+                    new ByteRange(0, 4),
+                    chain),
+                new CompiledResolvedPhysicalView(
+                    "output-view",
+                    "output-image",
+                    new ByteRange(0, capacity),
+                    chain),
+            ]);
+        return CreateV2(
+            inputContract: contract,
+            regionAccessContract: regionAccess,
+            resolvedMap: CreateResolvedMap(
+                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                capacity,
+                "dp-replace"),
+            plan: plan,
+            compositionKind: CompositionKind.Replace,
+            modeId: "dp-replace",
+            experienceId: "dp-replace",
+            icNumberPolicy: CompiledIcNumberPolicy.SingleSelector);
     }
 
     private static CompositionPlan CreateTpPlan(

@@ -42,6 +42,29 @@ public sealed class CompositionRunRequestV2Tests
         Assert.Equal("input.bin", Assert.Single(request.ArtifactBindings.Values).OriginalFileName);
     }
 
+    /// <summary>Verifies V2 Replace artifacts enforce their compiled IC-number selector at the shared Application boundary.</summary>
+    [Fact]
+    public void RequestAcceptsV2ReplaceRuntimeArtifactWithMatchingIcNumberSelection()
+    {
+        CompiledComposition composition = CreateV2RuntimeExecutable(
+            compositionKind: CompositionKind.Replace,
+            icNumberPolicy: CompiledIcNumberPolicy.SingleSelector);
+
+        var request = new CompositionRunRequest(
+            "v2-replace-runtime",
+            composition,
+            [CreateBinding()],
+            "v2-output.bin",
+            icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+
+        Assert.Equal(CompiledIcNumberPolicy.SingleSelector, request.CompiledComposition.IcNumberPolicy);
+        _ = Assert.Throws<ArgumentException>(() => new CompositionRunRequest(
+            "v2-replace-without-selector",
+            composition,
+            [CreateBinding()],
+            "v2-output.bin"));
+    }
+
     /// <summary>Verifies a token-free V2 artifact can allow a safe plain-file-name output override.</summary>
     [Fact]
     public void RuntimeArtifactAllowsStaticOutputOverridePolicy()
@@ -201,6 +224,53 @@ public sealed class CompositionRunRequestV2Tests
         Assert.False(writer.WasCalled);
     }
 
+    /// <summary>Verifies V2 Replace uses the shared Application engine to clone the exact reference, pad DP input, and preserve Preview-to-Build output parity.</summary>
+    [Fact]
+    public async Task V2ReplaceRuntimeRunsCloneAndDpPaddingThroughPreviewAndBuild()
+    {
+        CompiledComposition composition = CreateV2ReplaceRuntimeExecutable();
+        var writer = new RecordingOutputWriter();
+        var service = new CompositionRunService(
+            new FakeArtifactReader(new Dictionary<string, byte[]>
+            {
+                ["reference-artifact"] = [0xCC, 0xCC, 0xCC, 0xCC],
+                ["dp-artifact"] = [0xA0, 0xB0],
+            }),
+            new FakeClock([FirstTimestamp, SecondTimestamp, ThirdTimestamp, FourthTimestamp]),
+            writer);
+        var request = new CompositionRunRequest(
+            "v2-replace-run",
+            composition,
+            [
+                new InputArtifactBinding(
+                    "reference-source",
+                    "reference",
+                    "reference-artifact",
+                    "base.bin",
+                    CompiledInputArtifactClass.ReferenceImage),
+                new InputArtifactBinding(
+                    "dp-source",
+                    "dp",
+                    "dp-artifact",
+                    "dp.bin",
+                    CompiledInputArtifactClass.DpFirmware),
+            ],
+            "v2-output.bin",
+            icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+
+        CompositionRunResult preview = await service.PreviewAsync(request, CancellationToken.None);
+        CompositionRunResult build = await service.BuildAsync(
+            request.WithApprovedPreviewToken(Assert.IsType<string>(preview.PreviewToken)),
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, preview.Status);
+        Assert.Equal(CompositionExecutionStatus.Succeeded, build.Status);
+        Assert.Equal([0xA0, 0xB0, 0x00, 0x00], preview.OutputBytes.ToArray());
+        Assert.Equal(preview.OutputBytes.ToArray(), build.OutputBytes.ToArray());
+        Assert.Equal(CompositionOperationKind.ReplaceRange, Assert.Single(preview.Report.Mutations).Kind);
+        Assert.True(writer.WasCalled);
+    }
+
     private static InputArtifactBinding CreateBinding(string originalFileName = "input.bin")
     {
         return new InputArtifactBinding(
@@ -230,14 +300,83 @@ public sealed class CompositionRunRequestV2Tests
             runtimeExecutable: false);
     }
 
-    private static CompiledComposition CreateV2RuntimeExecutable(bool allowOutputOverride = false)
+    private static CompiledComposition CreateV2RuntimeExecutable(
+        bool allowOutputOverride = false,
+        CompositionKind compositionKind = CompositionKind.Merge,
+        CompiledIcNumberPolicy icNumberPolicy = CompiledIcNumberPolicy.NotApplicable)
     {
         return CreateV2Artifact(
             new CompiledProfilePromotion(CompiledProfilePromotionStage.Supported, []),
             "v2-output.bin",
             [],
             runtimeExecutable: true,
-            allowOutputOverride: allowOutputOverride);
+            allowOutputOverride: allowOutputOverride,
+            compositionKind: compositionKind,
+            icNumberPolicy: icNumberPolicy);
+    }
+
+    private static CompiledComposition CreateV2ReplaceRuntimeExecutable()
+    {
+        return CreateV2Artifact(
+            new CompiledProfilePromotion(CompiledProfilePromotionStage.Supported, []),
+            "v2-output.bin",
+            [],
+            runtimeExecutable: true,
+            compositionKind: CompositionKind.Replace,
+            icNumberPolicy: CompiledIcNumberPolicy.SingleSelector,
+            modeId: "dp-replace",
+            experienceId: "dp-replace",
+            inputContract: new CompiledInputContract(
+                [
+                    new CompiledInputSlotRequirement(
+                        "reference-slot",
+                        "reference",
+                        CompiledInputArtifactClass.ReferenceImage,
+                        required: true,
+                        CompiledInputSlotCardinality.ExactlyOne,
+                        [".bin"],
+                        new CompiledExactResolvedMapCapacityInputLengthRequirement(4),
+                        new CompiledNoInputNormalization()),
+                    new CompiledInputSlotRequirement(
+                        "dp-slot",
+                        "dp",
+                        CompiledInputArtifactClass.DpFirmware,
+                        required: true,
+                        CompiledInputSlotCardinality.ExactlyOne,
+                        [".bin"],
+                        new CompiledExactResolvedMapCapacityInputLengthRequirement(4),
+                        new CompiledPadShorterInputNormalization(0, "synthetic-dp-padding")),
+                ],
+                [
+                    new CompiledInputSpaceBinding(
+                        "reference-source",
+                        "reference-slot",
+                        CompiledInputInstancePolicy.Singleton),
+                    new CompiledInputSpaceBinding(
+                        "dp-source",
+                        "dp-slot",
+                        CompiledInputInstancePolicy.Singleton),
+                ]),
+            plan: new CompositionPlan(
+                ImageInitialization.Reference("output-image", "reference-source", 4),
+                [
+                    new AddressSpace("reference-source", 4, AddressSpaceMutability.Immutable),
+                    new AddressSpace(
+                        "dp-source",
+                        4,
+                        AddressSpaceMutability.Immutable,
+                        inputPaddingByte: 0),
+                    new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable),
+                ],
+                [CompositionOperation.ReplaceRange(
+                    "replace-dp",
+                    10,
+                    "dp-source",
+                    new ByteRange(0, 4),
+                    "output-image",
+                    new ByteRange(0, 4),
+                    OverlapPolicy.Reject,
+                    "replace synthetic DP bytes")]));
     }
 
     private static CompiledComposition CreateV2Artifact(
@@ -245,9 +384,15 @@ public sealed class CompositionRunRequestV2Tests
         string outputTemplate,
         IReadOnlyList<string> requiredTokenIds,
         bool runtimeExecutable,
-        bool allowOutputOverride = false)
+        bool allowOutputOverride = false,
+        CompositionKind compositionKind = CompositionKind.Merge,
+        CompiledIcNumberPolicy icNumberPolicy = CompiledIcNumberPolicy.NotApplicable,
+        string modeId = "standard",
+        string experienceId = "standard-merge",
+        CompiledInputContract? inputContract = null,
+        CompositionPlan? plan = null)
     {
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = CreateResolvedMap();
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = CreateResolvedMap(modeId);
         var provenance = new V2CompilationProvenance(
             new ProfileBundleIdentity(
                 "bundle-v2",
@@ -270,14 +415,14 @@ public sealed class CompositionRunRequestV2Tests
         var identity = new V2CompiledCompositionIdentity(
             "profile-v2",
             "2.0.0",
-            "standard-merge",
-            CompositionKind.Merge,
+            experienceId,
+            compositionKind,
             new V2CompiledCompositionDetails(
                 provenance,
-                CreateInputContract(),
+                inputContract ?? CreateInputContract(),
                 new CompiledRegionAccessContract([], []),
                 output));
-        var plan = new CompositionPlan(
+        plan ??= new CompositionPlan(
             ImageInitialization.Blank("output-image", 4, 0),
             [
                 new AddressSpace("input", 4, AddressSpaceMutability.Immutable, allowedInputLengths: [4]),
@@ -296,11 +441,11 @@ public sealed class CompositionRunRequestV2Tests
             ? CompiledComposition.CreateV2RuntimeExecutable(
                 plan,
                 identity,
-                CompiledIcNumberPolicy.NotApplicable)
+                icNumberPolicy)
             : CompiledComposition.CreateV2(
                 plan,
                 identity,
-                CompiledIcNumberPolicy.NotApplicable);
+                icNumberPolicy);
     }
 
     private static CompiledInputContract CreateInputContract()
@@ -321,14 +466,14 @@ public sealed class CompositionRunRequestV2Tests
                 CompiledInputInstancePolicy.Singleton)]);
     }
 
-    private static FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap CreateResolvedMap()
+    private static FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap CreateResolvedMap(string modeId = "standard")
     {
         var map = FirmwareImageMap.CreateDirect(
             "map",
             "flash",
             new FirmwareMapApplicability(
                 ["NT-SYNTHETIC"],
-                ["standard"],
+                [modeId],
                 TopologyRequirement.NoTopologyConstraint(),
                 4),
             FirmwareImageMapCoveragePolicy.CompleteWithExplicitGaps,
@@ -353,7 +498,7 @@ public sealed class CompositionRunRequestV2Tests
             []);
         FirmwareMapResolutionResult result = definition.ResolveMap(new FirmwareMapResolutionInputs(
             "NT-SYNTHETIC",
-            "standard",
+            modeId,
             4,
             requestedTopology: null,
             []));

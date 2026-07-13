@@ -21,7 +21,7 @@ internal static partial class V2CompositionPlanCompiler
             switch (operation)
             {
                 case CopyOrReplaceProfileOperation copy:
-                    LowerCopyOperation(copy, sequence, views, regionAccess, operations, issues);
+                    LowerCopyOrReplaceOperation(profile, copy, sequence, views, regionAccess, operations, issues);
                     break;
                 case FillRangeProfileOperation fill:
                     LowerFillOperation(fill, sequence, views, regionAccess, operations, issues);
@@ -87,7 +87,8 @@ internal static partial class V2CompositionPlanCompiler
         }
     }
 
-    private static void LowerCopyOperation(
+    private static void LowerCopyOrReplaceOperation(
+        CompositionProfileDefinition profile,
         CopyOrReplaceProfileOperation operation,
         int sequence,
         IReadOnlyDictionary<string, ResolvedView> views,
@@ -116,20 +117,52 @@ internal static partial class V2CompositionPlanCompiler
             return;
         }
 
+        if (profile.CompositionKind == CompositionKind.Replace &&
+            operation.Kind == CompositionProfileOperationKind.CopyRange &&
+            operation.OverlapPolicy == OverlapPolicy.ReplaceExisting &&
+            source.Range != target.Range)
+        {
+            AddUnsupported(
+                issues,
+                $"reference restore operation '{operation.OperationId}' must use one identical resolved source and target range.",
+                operation.OperationId);
+            return;
+        }
+
         if (!TryAuthorizeTargetWrite(operation.OperationId, operation.TargetViewId, target, regionAccess, issues))
         {
             return;
         }
 
-        operations.Add(CompositionOperation.CopyRange(
-            operation.OperationId,
-            sequence,
-            source.SpaceId,
-            source.Range,
-            target.SpaceId,
-            target.Range,
-            operation.OverlapPolicy,
-            operation.Reason));
+        operations.Add(operation.Kind switch
+        {
+            CompositionProfileOperationKind.CopyRange => CompositionOperation.CopyRange(
+                operation.OperationId,
+                sequence,
+                source.SpaceId,
+                source.Range,
+                target.SpaceId,
+                target.Range,
+                operation.OverlapPolicy,
+                operation.Reason),
+            CompositionProfileOperationKind.ReplaceRange => CompositionOperation.ReplaceRange(
+                operation.OperationId,
+                sequence,
+                source.SpaceId,
+                source.Range,
+                target.SpaceId,
+                target.Range,
+                operation.OverlapPolicy,
+                operation.Reason),
+            CompositionProfileOperationKind.FillRange or
+            CompositionProfileOperationKind.PatchScalar or
+            CompositionProfileOperationKind.TransformScalar or
+            CompositionProfileOperationKind.RunProcessor => throw new ArgumentOutOfRangeException(
+                nameof(operation),
+                operation.Kind,
+                "Copy-like lowering requires a copy-range or replace-range operation."),
+            _ => throw new InvalidOperationException("Validated V2 lowering encountered an unsupported copy-like operation."),
+        });
     }
 
     private static void LowerFillOperation(

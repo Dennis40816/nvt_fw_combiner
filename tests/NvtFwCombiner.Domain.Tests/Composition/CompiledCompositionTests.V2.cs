@@ -381,9 +381,13 @@ public sealed partial class CompiledCompositionTests
         CompiledRegionAccessContract? regionAccessContract = null,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap? resolvedMap = null,
         CompositionPlan? plan = null,
-        bool runtimeExecutable = false)
+        bool runtimeExecutable = false,
+        string modeId = "standard",
+        string experienceId = "standard-merge",
+        CompositionKind compositionKind = CompositionKind.Merge,
+        CompiledIcNumberPolicy icNumberPolicy = CompiledIcNumberPolicy.NotApplicable)
     {
-        resolvedMap ??= CreateResolvedMap(familyContentHash);
+        resolvedMap ??= CreateResolvedMap(familyContentHash, modeId: modeId);
         var bundle = new ProfileBundleIdentity(
             bundleId,
             bundleVersion,
@@ -411,8 +415,8 @@ public sealed partial class CompiledCompositionTests
         var identity = new V2CompiledCompositionIdentity(
             "profile-v2",
             "2.0.0",
-            "standard-merge",
-            CompositionKind.Merge,
+            experienceId,
+            compositionKind,
             details);
         plan ??= new CompositionPlan(
             ImageInitialization.Blank("output-image", 4, 0),
@@ -437,11 +441,11 @@ public sealed partial class CompiledCompositionTests
             ? CompiledComposition.CreateV2RuntimeExecutable(
                 plan,
                 identity,
-                CompiledIcNumberPolicy.NotApplicable)
+                icNumberPolicy)
             : CompiledComposition.CreateV2(
                 plan,
                 identity,
-                CompiledIcNumberPolicy.NotApplicable);
+                icNumberPolicy);
     }
 
     private static CompiledInputContract CreateInputContract()
@@ -487,14 +491,15 @@ public sealed partial class CompiledCompositionTests
 
     private static FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap CreateResolvedMap(
         string familyContentHash,
-        long capacity = 4)
+        long capacity = 4,
+        string modeId = "standard")
     {
         var map = FirmwareImageMap.CreateDirect(
             "map",
             "flash",
             new FirmwareMapApplicability(
                 ["NT-SYNTHETIC"],
-                ["standard"],
+                [modeId],
                 TopologyRequirement.NoTopologyConstraint(),
                 capacity),
             FirmwareImageMapCoveragePolicy.CompleteWithExplicitGaps,
@@ -519,7 +524,7 @@ public sealed partial class CompiledCompositionTests
             []);
         FirmwareMapResolutionResult result = definition.ResolveMap(new FirmwareMapResolutionInputs(
             "NT-SYNTHETIC",
-            "standard",
+            modeId,
             capacity,
             requestedTopology: null,
             []));

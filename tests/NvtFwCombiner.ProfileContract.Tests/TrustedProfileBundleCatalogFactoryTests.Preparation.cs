@@ -284,13 +284,14 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
 
     private static V2CompositionPreparationRequest Request(
         TrustedProfileBundleCatalog.ProfileSelection selection,
-        long capacityBytes = 16)
+        long capacityBytes = 16,
+        string modeId = "standard")
     {
         return new V2CompositionPreparationRequest(
             selection,
             new FirmwareMapResolutionInputs(
                 "NT00001",
-                "standard",
+                modeId,
                 capacityBytes,
                 requestedTopology: null,
                 []));

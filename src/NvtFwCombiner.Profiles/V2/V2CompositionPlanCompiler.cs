@@ -55,7 +55,7 @@ internal sealed class V2CompositionPlanCompileResult
     }
 }
 
-/// <summary>Profiles-owned lowering slice for admitted blank-output V2 Merge declarations.</summary>
+/// <summary>Profiles-owned lowering slice for admitted V2 Merge and reference-clone Replace declarations.</summary>
 internal static partial class V2CompositionPlanCompiler
 {
     private const string PreparationNotAdmitted = "profile.v2.plan.preparation-not-admitted";
@@ -70,7 +70,7 @@ internal static partial class V2CompositionPlanCompiler
     private const string InvalidRegionAccess = "profile.v2.plan.invalid-region-access";
     private const string RegionAccessDenied = "profile.v2.plan.region-access-denied";
 
-    /// <summary>Lowers the closed blank-output V2 operation subset and grants runtime eligibility only for supported token-free profiles.</summary>
+    /// <summary>Lowers the closed V2 operation subset and grants runtime eligibility only for supported token-free profiles.</summary>
     internal static V2CompositionPlanCompileResult Compile(V2CompositionPreparationResult preparation)
     {
         ArgumentNullException.ThrowIfNull(preparation);
@@ -116,7 +116,7 @@ internal static partial class V2CompositionPlanCompiler
 
         MutableCompositionProfileSpace output = AssertOutputSpace(profile);
         var plan = new CompositionPlan(
-            ImageInitialization.Blank(output.SpaceId, resolvedMap.CapacityBytes, ((BlankProfileInitializer)output.Initializer).FillByte),
+            LowerOutputInitialization(profile, output, resolvedMap.CapacityBytes),
             spaces.Values,
             operations);
         var promotion = new CompiledProfilePromotion(
@@ -146,23 +146,30 @@ internal static partial class V2CompositionPlanCompiler
             profile.Experience.ExperienceId,
             profile.CompositionKind,
             new V2CompiledCompositionDetails(provenance, inputContract, regionAccess.Contract, outputNaming));
+        CompiledIcNumberPolicy icNumberPolicy = CompiledIcNumberPolicies.From(profile.IcNumberInputMode);
         CompiledComposition artifact = profile.Promotion.Stage == CompositionProfilePromotionStage.Supported
             ? CompiledComposition.CreateV2RuntimeExecutable(
                 plan,
                 identity,
-                CompiledIcNumberPolicy.NotApplicable)
+                icNumberPolicy)
             : CompiledComposition.CreateV2(
                 plan,
                 identity,
-                CompiledIcNumberPolicy.NotApplicable);
+                icNumberPolicy);
         return V2CompositionPlanCompileResult.Succeeded(artifact);
     }
 
     private static void ValidateSupportedProfile(CompositionProfileDefinition profile, List<CompositionIssue> issues)
     {
-        if (profile.CompositionKind != CompositionKind.Merge)
+        if (profile.CompositionKind is not (CompositionKind.Merge or CompositionKind.Replace))
         {
-            AddUnsupported(issues, "composition kind must be Merge");
+            AddUnsupported(issues, "composition kind must be Merge or Replace");
+        }
+
+        if (profile.CompositionKind == CompositionKind.Replace &&
+            !StringComparer.Ordinal.Equals(profile.Experience.ExperienceId, ExperienceIds.DpReplace))
+        {
+            AddUnsupported(issues, "Replace runtime lowering currently supports only the dp-replace experience");
         }
 
         if (profile.Promotion.Stage < CompositionProfilePromotionStage.Compilable)
@@ -190,9 +197,12 @@ internal static partial class V2CompositionPlanCompiler
             AddUnsupported(issues, "exactly one output-image mutable space is required and work buffers are unsupported");
         }
         else if (mutableSpaces[0].Capacity is not ResolvedMapProfileCapacity ||
-                 mutableSpaces[0].Initializer is not BlankProfileInitializer)
+                 (profile.CompositionKind == CompositionKind.Merge &&
+                  mutableSpaces[0].Initializer is not BlankProfileInitializer) ||
+                 (profile.CompositionKind == CompositionKind.Replace &&
+                  mutableSpaces[0].Initializer is not CloneProfileInitializer))
         {
-            AddUnsupported(issues, "the output image must use resolved-map blank initialization");
+            AddUnsupported(issues, "the output image must use resolved-map blank initialization for Merge or reference clone initialization for Replace");
         }
 
         foreach (InputArtifactProfileSpace inputSpace in profile.Spaces.OfType<InputArtifactProfileSpace>())
@@ -203,21 +213,27 @@ internal static partial class V2CompositionPlanCompiler
                 slot is null ||
                 !slot.Required ||
                 slot.Cardinality != CompositionProfileSlotCardinality.ExactlyOne ||
-                slot.Normalization is not NoInputNormalization ||
+                slot.Normalization is not (NoInputNormalization or PadShorterInputNormalization) ||
                 !IsCurrentInputLengthRuleSupported(slot))
             {
                 AddUnsupported(
                     issues,
-                    $"input space '{inputSpace.SpaceId}' must bind one required singleton exact-map-capacity or tp-maximum-256k unnormalized slot");
+                    $"input space '{inputSpace.SpaceId}' must bind one required singleton exact-map-capacity, normal-DP, or tp-maximum-256k slot with approved normalization");
             }
         }
 
-        if (profile.Spaces.OfType<InputArtifactProfileSpace>()
-            .GroupBy(static space => space.SlotId, StringComparer.Ordinal)
-            .Any(static group => group.Count() != 1))
+        InputArtifactProfileSpace[] inputSpaces = [.. profile.Spaces.OfType<InputArtifactProfileSpace>()];
+        if (profile.InputSlots.Any(slot => inputSpaces.Count(space =>
+                StringComparer.Ordinal.Equals(space.SlotId, slot.SlotId)) != 1))
         {
             AddUnsupported(issues, "current runtime lowering requires exactly one immutable address space per input slot");
         }
+
+        string? replaceReferenceSourceSpaceId = profile.CompositionKind == CompositionKind.Replace
+            ? AssertOutputSpace(profile).Initializer is CloneProfileInitializer clone
+                ? ResolveCloneReferenceSourceSpaceId(profile, clone)
+                : null
+            : null;
 
         foreach (CompositionProfileOperation operation in profile.Operations)
         {
@@ -225,15 +241,28 @@ internal static partial class V2CompositionPlanCompiler
             {
                 Kind: CompositionProfileOperationKind.CopyRange,
             };
-            bool isSupportedOperation = isCopyRange ||
-                operation is FillRangeProfileOperation or PatchScalarProfileOperation or TransformScalarProfileOperation;
-            bool hasSupportedOverlapPolicy = operation.OverlapPolicy == OverlapPolicy.Reject ||
-                (isCopyRange && operation.OverlapPolicy == OverlapPolicy.ReplaceExisting);
+            bool isDpReplaceRange = operation is CopyOrReplaceProfileOperation replace &&
+                replace.Kind == CompositionProfileOperationKind.ReplaceRange &&
+                IsDpFirmwareInputSource(profile, replace);
+            bool isReferenceRestore = operation is CopyOrReplaceProfileOperation copy &&
+                copy.Kind == CompositionProfileOperationKind.CopyRange &&
+                copy.OverlapPolicy == OverlapPolicy.ReplaceExisting &&
+                StringComparer.Ordinal.Equals(
+                    replaceReferenceSourceSpaceId,
+                    profile.Views.Single(view => StringComparer.Ordinal.Equals(view.ViewId,
+                        copy.SourceViewId)).SpaceId);
+            bool isSupportedOperation = profile.CompositionKind == CompositionKind.Merge
+                ? isCopyRange || operation is FillRangeProfileOperation or PatchScalarProfileOperation or TransformScalarProfileOperation
+                : isDpReplaceRange || isReferenceRestore;
+            bool hasSupportedOverlapPolicy = profile.CompositionKind == CompositionKind.Merge
+                ? operation.OverlapPolicy == OverlapPolicy.Reject ||
+                  (isCopyRange && operation.OverlapPolicy == OverlapPolicy.ReplaceExisting)
+                : (isDpReplaceRange && operation.OverlapPolicy == OverlapPolicy.Reject) || isReferenceRestore;
             if (!isSupportedOperation || !hasSupportedOverlapPolicy)
             {
                 AddUnsupported(
                     issues,
-                    $"operation '{operation.OperationId}' is outside the CopyRange/FillRange/PatchScalar/TransformScalar subset with Reject or fully-covered CopyRange ReplaceExisting overlap",
+                    $"operation '{operation.OperationId}' is outside the Merge copy/fill/patch/transform or DP Replace replace-range plus reference-restoring copy-range subset",
                     operation.OperationId);
             }
         }
@@ -254,7 +283,12 @@ internal static partial class V2CompositionPlanCompiler
                 continue;
             }
 
-            spaces.Add(input.SpaceId, CreateInputAddressSpace(input.SpaceId, length, slot, resolvedMap.CapacityBytes));
+            spaces.Add(input.SpaceId, CreateInputAddressSpace(
+                input.SpaceId,
+                length,
+                slot,
+                resolvedMap.CapacityBytes,
+                profile.CompositionKind));
         }
 
         MutableCompositionProfileSpace output = AssertOutputSpace(profile);
@@ -264,11 +298,57 @@ internal static partial class V2CompositionPlanCompiler
         return spaces;
     }
 
+    private static ImageInitialization LowerOutputInitialization(
+        CompositionProfileDefinition profile,
+        MutableCompositionProfileSpace output,
+        long capacity)
+    {
+        return output.Initializer switch
+        {
+            BlankProfileInitializer blank => ImageInitialization.Blank(output.SpaceId, capacity, blank.FillByte),
+            CloneProfileInitializer clone => ImageInitialization.Reference(
+                output.SpaceId,
+                ResolveCloneReferenceSourceSpaceId(profile, clone),
+                capacity),
+            _ => throw new InvalidOperationException("Validated V2 lowering encountered an unsupported output initializer."),
+        };
+    }
+
+    private static string ResolveCloneReferenceSourceSpaceId(
+        CompositionProfileDefinition profile,
+        CloneProfileInitializer clone)
+    {
+        InputArtifactProfileSpace inputSpace = profile.Spaces.OfType<InputArtifactProfileSpace>().Single(space =>
+            StringComparer.Ordinal.Equals(space.SlotId, clone.SourceSlotId));
+        CompositionProfileInputSlot slot = profile.InputSlots.Single(candidate =>
+            StringComparer.Ordinal.Equals(candidate.SlotId, clone.SourceSlotId));
+        return slot.ArtifactClass == CompositionProfileArtifactClass.ReferenceImage &&
+            slot.LengthRule is ExactResolvedMapCapacityLengthRule &&
+            slot.Normalization is NoInputNormalization
+            ? inputSpace.SpaceId
+            : throw new InvalidOperationException(
+                "Validated Replace lowering requires its clone source to be one exact unnormalized reference-image input.");
+    }
+
+    private static bool IsDpFirmwareInputSource(
+        CompositionProfileDefinition profile,
+        CopyOrReplaceProfileOperation operation)
+    {
+        string sourceSpaceId = profile.Views.Single(view =>
+            StringComparer.Ordinal.Equals(view.ViewId, operation.SourceViewId)).SpaceId;
+        InputArtifactProfileSpace? sourceSpace = profile.Spaces.OfType<InputArtifactProfileSpace>().SingleOrDefault(space =>
+            StringComparer.Ordinal.Equals(space.SpaceId, sourceSpaceId));
+        return sourceSpace is not null &&
+            profile.InputSlots.Single(slot => StringComparer.Ordinal.Equals(slot.SlotId, sourceSpace.SlotId)).ArtifactClass ==
+                CompositionProfileArtifactClass.DpFirmware;
+    }
+
     private static AddressSpace CreateInputAddressSpace(
         string addressSpaceId,
         long length,
         CompositionProfileInputSlot slot,
-        long resolvedMapCapacity)
+        long resolvedMapCapacity,
+        CompositionKind compositionKind)
     {
         return slot.LengthRule switch
         {
@@ -284,6 +364,16 @@ internal static partial class V2CompositionPlanCompiler
                 length,
                 AddressSpaceMutability.Immutable,
                 inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange),
+            ExactResolvedMapCapacityLengthRule when slot.Normalization is PadShorterInputNormalization padded => new AddressSpace(
+                addressSpaceId,
+                length,
+                AddressSpaceMutability.Immutable,
+                inputPaddingByte: padded.FillByte),
+            ExactResolvedMapCapacityLengthRule when compositionKind == CompositionKind.Replace &&
+                                                   slot.ArtifactClass == CompositionProfileArtifactClass.ReferenceImage => new AddressSpace(
+                addressSpaceId,
+                length,
+                AddressSpaceMutability.Immutable),
             _ => new AddressSpace(
                 addressSpaceId,
                 length,

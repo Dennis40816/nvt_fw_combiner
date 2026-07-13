@@ -386,6 +386,12 @@ public sealed class CompiledInputSlotRequirement
             throw new ArgumentException("Short-input padding is restricted to DP firmware.");
         }
 
+        if (normalization.Kind == CompiledInputNormalizationKind.PadShorter &&
+            lengthRequirement.Kind != CompiledInputLengthRequirementKind.ExactResolvedMapCapacity)
+        {
+            throw new ArgumentException("Short-input padding requires exact resolved-map capacity.");
+        }
+
         if (normalization.Kind == CompiledInputNormalizationKind.TruncateCtrlRam &&
             artifactClass != CompiledInputArtifactClass.CtrlRamReplacement)
         {
