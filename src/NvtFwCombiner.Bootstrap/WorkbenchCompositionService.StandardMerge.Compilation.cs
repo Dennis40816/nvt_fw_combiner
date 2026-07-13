@@ -22,7 +22,7 @@ public static partial class WorkbenchCompositionService
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         composition = null;
         issues = [];
-        if (TryGetBuiltInV2StandardMergeCompilation(icId, out composition, out issues))
+        if (TryGetBuiltInV2StandardMergeCompilation(icId, dpInputLength, out composition, out issues))
         {
             return composition is not null;
         }

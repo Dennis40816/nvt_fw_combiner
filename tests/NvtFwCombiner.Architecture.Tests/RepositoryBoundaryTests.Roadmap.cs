@@ -35,7 +35,7 @@ public sealed partial class RepositoryBoundaryTests
         {
             string[] row = FindMarkdownTableRow("docs/architecture/supported-ic-matrix.md", ic).Cells;
 
-            Assert.Contains("normal merge requested", row[1], StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("canonical V2 DP Perspective Standard Merge route", row[1], StringComparison.Ordinal);
             Assert.Contains("DP Perspective", row[1], StringComparison.OrdinalIgnoreCase);
             Assert.Contains("DP and CtrlRAM priority", row[3], StringComparison.Ordinal);
             Assert.Contains("DP", row[4], StringComparison.Ordinal);

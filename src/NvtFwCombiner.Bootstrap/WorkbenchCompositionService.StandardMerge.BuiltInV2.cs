@@ -33,6 +33,9 @@ public static partial class WorkbenchCompositionService
     private static readonly BuiltInV2StandardMergeBundle s_nt51928V2Bundle = new(
         "profiles\\built-in\\nt51928-standard-merge",
         "4c0574d52d78bcdca8461fb0660d58f781221a27bfa93e541edf076a5432574d");
+    private static readonly BuiltInV2StandardMergeBundle s_nt51950Nt51951V2Bundle = new(
+        "profiles\\built-in\\nt51950-nt51951-standard-merge",
+        "9ec898ad0688f85e5ecf2381ac50091272e60f4c8a79be27087f585bd0097d52");
     private static readonly ReadOnlyCollection<BuiltInV2StandardMergeRegistration> s_builtInV2StandardMergeRegistrations =
         Array.AsReadOnly(
         [
@@ -91,6 +94,16 @@ public static partial class WorkbenchCompositionService
                 "nt51932-standard-merge-gen-flash",
                 "0.5.0",
                 s_nt51929FamilyV2Bundle),
+            new BuiltInV2StandardMergeRegistration(
+                "NT51950",
+                "nt51950-standard-merge-dp-perspective",
+                "0.5.1",
+                s_nt51950Nt51951V2Bundle),
+            new BuiltInV2StandardMergeRegistration(
+                "NT51951",
+                "nt51951-standard-merge-dp-perspective",
+                "0.5.1",
+                s_nt51950Nt51951V2Bundle),
         ]);
     private static readonly ReadOnlyDictionary<string, BuiltInV2StandardMergeRegistration> s_builtInV2StandardMergeByIc =
         new(
@@ -108,6 +121,7 @@ public static partial class WorkbenchCompositionService
 
     private static bool TryGetBuiltInV2StandardMergeCompilation(
         string icId,
+        long? dpInputLength,
         out CompiledComposition? composition,
         out IReadOnlyList<CompositionIssue> issues)
     {
@@ -118,10 +132,29 @@ public static partial class WorkbenchCompositionService
             return false;
         }
 
-        V2CompositionPlanCompileResult compilation = registration.Compilation;
-        composition = compilation.CompiledComposition;
-        issues = compilation.Issues;
+        registration.TryCompile(dpInputLength, out composition, out issues);
         return true;
+    }
+
+    private static bool IsBuiltInV2StandardMergeMapCapacityPending(string icId)
+    {
+        return s_builtInV2StandardMergeByIc.TryGetValue(icId, out BuiltInV2StandardMergeRegistration? registration) &&
+            registration.HasMultipleMapCapacities;
+    }
+
+    private static bool TryGetBuiltInV2StandardMergeAuthoringDefaultCapacity(
+        string icId,
+        out long capacity,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        if (!s_builtInV2StandardMergeByIc.TryGetValue(icId, out BuiltInV2StandardMergeRegistration? registration))
+        {
+            capacity = 0;
+            issues = [];
+            return false;
+        }
+
+        return registration.TryGetAuthoringDefaultCapacity(out capacity, out issues);
     }
 
     private sealed class BuiltInV2StandardMergeBundle
@@ -143,6 +176,15 @@ public static partial class WorkbenchCompositionService
 
         internal V2CompositionPlanCompileResult Compile(string profileId, string profileVersion, string icId)
         {
+            return Compile(profileId, profileVersion, icId, requestedMapCapacity: null);
+        }
+
+        internal V2CompositionPlanCompileResult Compile(
+            string profileId,
+            string profileVersion,
+            string icId,
+            long? requestedMapCapacity)
+        {
             try
             {
                 return TrustedV2CompositionCompiler.Compile(
@@ -150,7 +192,8 @@ public static partial class WorkbenchCompositionService
                     profileId,
                     profileVersion,
                     icId,
-                    IcWorkflowIds.StandardMerge);
+                    IcWorkflowIds.StandardMerge,
+                    requestedMapCapacity);
             }
             catch (Exception exception) when (exception is IOException or
                                              UnauthorizedAccessException or
@@ -163,6 +206,39 @@ public static partial class WorkbenchCompositionService
                     BuiltInV2BundleLoadFailed,
                     $"The built-in V2 bundle '{RelativeRoot}' could not be loaded: {exception.Message}");
                 return V2CompositionPlanCompileResult.Failed([issue]);
+            }
+        }
+
+        internal IReadOnlyList<long> GetMapCapacities(
+            string profileId,
+            string profileVersion,
+            string icId,
+            out IReadOnlyList<CompositionIssue> issues)
+        {
+            try
+            {
+                return TrustedV2CompositionCompiler.GetMapCapacities(
+                    _catalog.Value,
+                    profileId,
+                    profileVersion,
+                    icId,
+                    IcWorkflowIds.StandardMerge,
+                    out issues);
+            }
+            catch (Exception exception) when (exception is IOException or
+                                             UnauthorizedAccessException or
+                                             InvalidDataException or
+                                             ProfileBundleManifestNormalizationException or
+                                             CompositionProfileNormalizationException or
+                                             TrustedProfileBundleCatalogException)
+            {
+                issues =
+                [
+                    new CompositionIssue(
+                        BuiltInV2BundleLoadFailed,
+                        $"The built-in V2 bundle '{RelativeRoot}' could not be loaded: {exception.Message}"),
+                ];
+                return [];
             }
         }
 
@@ -183,7 +259,7 @@ public static partial class WorkbenchCompositionService
 
     private sealed class BuiltInV2StandardMergeRegistration
     {
-        private readonly Lazy<V2CompositionPlanCompileResult> _compilation;
+        private readonly Lazy<V2CompositionPlanCompileResult> _summaryCompilation;
 
         internal BuiltInV2StandardMergeRegistration(
             string icId,
@@ -199,8 +275,7 @@ public static partial class WorkbenchCompositionService
             ProfileId = profileId;
             ProfileVersion = profileVersion;
             Bundle = bundle;
-            _compilation = new Lazy<V2CompositionPlanCompileResult>(
-                LoadCompilation);
+            _summaryCompilation = new Lazy<V2CompositionPlanCompileResult>(LoadSummaryCompilation);
         }
 
         internal string IcId { get; }
@@ -211,24 +286,139 @@ public static partial class WorkbenchCompositionService
 
         internal BuiltInV2StandardMergeBundle Bundle { get; }
 
-        internal V2CompositionPlanCompileResult Compilation => _compilation.Value;
-
-        private V2CompositionPlanCompileResult LoadCompilation()
+        internal bool HasMultipleMapCapacities
         {
-            V2CompositionPlanCompileResult compilation = Bundle.Compile(ProfileId, ProfileVersion, IcId);
-            return compilation.CompiledComposition is { Eligibility: CompiledCompositionEligibility.V2RuntimeExecutable }
-                ? compilation
-                : compilation.Issues.Count == 0
+            get
+            {
+                IReadOnlyList<long> capacities = GetMapCapacities(out IReadOnlyList<CompositionIssue> issues);
+                return issues.Count == 0 && capacities.Count > 1;
+            }
+        }
+
+        internal void TryCompile(
+            long? dpInputLength,
+            out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues)
+        {
+            IReadOnlyList<long> capacities = GetMapCapacities(out issues);
+            if (issues.Count != 0)
+            {
+                composition = null;
+                return;
+            }
+
+            long? requestedMapCapacity = null;
+            if (capacities.Count > 1)
+            {
+                if (dpInputLength is null)
+                {
+                    composition = null;
+                    issues = [];
+                    return;
+                }
+
+                if (!capacities.Contains(dpInputLength.Value))
+                {
+                    composition = null;
+                    issues =
+                    [
+                        new CompositionIssue(
+                            WorkbenchIssueCodes.StandardMergeDpLengthUnsupported,
+                            $"Selected DP BIN length 0x{dpInputLength.Value:X} is unsupported; {IcId} Standard Merge accepts DP input lengths {FormatCapacities(capacities)}."),
+                    ];
+                    return;
+                }
+
+                requestedMapCapacity = dpInputLength.Value;
+            }
+
+            V2CompositionPlanCompileResult compilation = Bundle.Compile(
+                ProfileId,
+                ProfileVersion,
+                IcId,
+                requestedMapCapacity);
+            composition = compilation.CompiledComposition;
+            issues = compilation.Issues;
+            if (composition is { Eligibility: CompiledCompositionEligibility.V2RuntimeExecutable })
+            {
+                return;
+            }
+
+            composition = null;
+            if (issues.Count == 0)
+            {
+                issues =
+                [
+                    new CompositionIssue(
+                        BuiltInV2CompilationFailed,
+                        $"The built-in V2 profile for {IcId} did not produce an executable composition."),
+                ];
+            }
+        }
+
+        internal bool TryGetAuthoringDefaultCapacity(
+            out long capacity,
+            out IReadOnlyList<CompositionIssue> issues)
+        {
+            IReadOnlyList<long> capacities = GetMapCapacities(out issues);
+            if (issues.Count != 0 || capacities.Count <= 1)
+            {
+                capacity = 0;
+                return false;
+            }
+
+            capacity = capacities[^1];
+            return true;
+        }
+
+        private V2CompositionPlanCompileResult LoadSummaryCompilation()
+        {
+            IReadOnlyList<long> capacities = GetMapCapacities(out IReadOnlyList<CompositionIssue> issues);
+            if (issues.Count != 0)
+            {
+                return V2CompositionPlanCompileResult.Failed(issues);
+            }
+
+            V2CompositionPlanCompileResult[] compilations =
+            [
+                .. capacities.Select(capacity => Bundle.Compile(
+                    ProfileId,
+                    ProfileVersion,
+                    IcId,
+                    capacities.Count > 1 ? capacity : null)),
+            ];
+            V2CompositionPlanCompileResult? failure = compilations.FirstOrDefault(compilation =>
+                compilation.CompiledComposition is not { Eligibility: CompiledCompositionEligibility.V2RuntimeExecutable });
+            if (failure is not null)
+            {
+                return failure.Issues.Count == 0
+                    ? V2CompositionPlanCompileResult.Failed(
+                        [new CompositionIssue(
+                            BuiltInV2CompilationFailed,
+                            $"The built-in V2 profile for {IcId} did not produce an executable composition.")])
+                    : V2CompositionPlanCompileResult.Failed(failure.Issues);
+            }
+
+            CompiledComposition first = compilations[0].CompiledComposition!;
+            return compilations.Skip(1).Any(compilation =>
+                    compilation.CompiledComposition is not { } candidate ||
+                    candidate.ProfileId != first.ProfileId ||
+                    candidate.CompositionKind != first.CompositionKind ||
+                    candidate.DefaultOutputFileName != first.DefaultOutputFileName ||
+                    !candidate.Plan.RequiredInputAddressSpaceIds.SequenceEqual(
+                        first.Plan.RequiredInputAddressSpaceIds,
+                        StringComparer.Ordinal))
                 ? V2CompositionPlanCompileResult.Failed(
                     [new CompositionIssue(
                         BuiltInV2CompilationFailed,
-                        $"The built-in V2 profile for {IcId} did not produce an executable composition.")])
-                : V2CompositionPlanCompileResult.Failed(compilation.Issues);
+                        $"The capacity variants for built-in V2 profile {IcId} do not share one stable workbench summary.")])
+                : compilations[0];
         }
 
         internal WorkbenchProfileSummary CreateProfileSummary()
         {
-            return Compilation.CompiledComposition is { } composition
+            V2CompositionPlanCompileResult compilation = _summaryCompilation.Value;
+            return compilation.CompiledComposition is { } composition
                 ? WorkbenchCompositionService.CreateProfileSummary(composition)
                 : new WorkbenchProfileSummary(
                     ProfileId,
@@ -238,7 +428,17 @@ public static partial class WorkbenchCompositionService
                     StandardMergeFallbackOutputFileName,
                     null,
                     CompileSucceeded: false,
-                    Array.AsReadOnly(Compilation.Issues.Select(static issue => issue.Code).ToArray()));
+                    Array.AsReadOnly(compilation.Issues.Select(static issue => issue.Code).ToArray()));
+        }
+
+        private IReadOnlyList<long> GetMapCapacities(out IReadOnlyList<CompositionIssue> issues)
+        {
+            return Bundle.GetMapCapacities(ProfileId, ProfileVersion, IcId, out issues);
+        }
+
+        private static string FormatCapacities(IEnumerable<long> capacities)
+        {
+            return string.Join(" / ", capacities.Select(static capacity => $"0x{capacity:X}"));
         }
     }
 }

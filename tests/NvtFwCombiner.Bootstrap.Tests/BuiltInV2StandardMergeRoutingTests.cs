@@ -57,6 +57,35 @@ public sealed class BuiltInV2StandardMergeRoutingTests
                 .Select(static slot => slot.ArtifactClass.ToString()));
     }
 
+    /// <summary>Verifies DP Perspective routing selects the trusted map that exactly matches the supplied DP container length.</summary>
+    [Theory]
+    [InlineData("NT51950", "nt51950-standard-merge-dp-perspective", 0x40000)]
+    [InlineData("NT51951", "nt51951-standard-merge-dp-perspective", 0x80000)]
+    public void DpPerspectiveStandardMergeUsesCapacitySelectedTrustedV2Artifact(
+        string icId,
+        string profileId,
+        long dpInputLength)
+    {
+        AssertDeployedBundleMatchesRepository("nt51950-nt51951-standard-merge");
+
+        bool compiled = WorkbenchCompositionService.TryCompileStandardMerge(
+            icId,
+            dpInputLength,
+            out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues);
+
+        Assert.True(compiled, string.Join(Environment.NewLine, issues.Select(static issue => issue.Message)));
+        Assert.Empty(issues);
+        CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
+        Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
+        _ = Assert.IsType<ProfileBundleV2CompilationAuthority>(artifact.Authority);
+        V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(artifact.V2Details);
+        Assert.Equal("9ec898ad0688f85e5ecf2381ac50091272e60f4c8a79be27087f585bd0097d52", details.Provenance.Bundle.ContentHash);
+        Assert.Equal(profileId, artifact.ProfileId);
+        Assert.Equal(icId, artifact.IcId);
+        Assert.Equal(dpInputLength, artifact.Plan.OutputInitialization.Capacity);
+    }
+
     /// <summary>Verifies the second bundle reaches the shared engine with original input trace names.</summary>
     [Fact]
     public async Task Nt51929WorkbenchPreviewUsesTrustedV2InputBindings()

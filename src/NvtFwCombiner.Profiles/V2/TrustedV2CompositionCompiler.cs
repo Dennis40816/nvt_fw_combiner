@@ -21,45 +21,17 @@ internal static class TrustedV2CompositionCompiler
         string modeId,
         long? requestedMapCapacity = null)
     {
-        ArgumentNullException.ThrowIfNull(catalog);
-        ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(profileVersion);
-        ArgumentException.ThrowIfNullOrWhiteSpace(memberId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(modeId);
-
-        TrustedProfileBundleCatalog.ProfileSelectionResult selectionResult = catalog.SelectProfile(
-            profileId,
-            profileVersion);
-        if (selectionResult.Selection is not { } selection ||
-            !catalog.TryResolveSelection(selection, out TrustedCompositionProfileCatalogEntry? profileEntry))
+        if (!TryResolveMapCandidates(
+                catalog,
+                profileId,
+                profileVersion,
+                memberId,
+                modeId,
+                out TrustedProfileBundleCatalog.ProfileSelection? selection,
+                out FirmwareImageMap[] mapCandidates,
+                out IReadOnlyList<CompositionIssue> resolutionIssues))
         {
-            return Failed(
-                selectionResult.Issues,
-                SelectionUnresolved,
-                "The selected trusted V2 profile could not be resolved from its catalog.");
-        }
-
-        if (!StringComparer.Ordinal.Equals(profileEntry.Profile.Experience.ExperienceId, modeId))
-        {
-            return Failed(
-                [],
-                ProfileExperienceMismatch,
-                "The requested mode does not match the selected trusted V2 profile experience.");
-        }
-
-        FirmwareImageMap[] mapCandidates =
-        [
-            .. profileEntry.Family.Family.ImageMaps.Where(map =>
-                profileEntry.Profile.MapBinding.MapIds.Contains(map.MapId, StringComparer.Ordinal) &&
-                map.Applicability.MemberIds.Contains(memberId, StringComparer.Ordinal) &&
-                map.Applicability.ModeIds.Contains(modeId, StringComparer.Ordinal)),
-        ];
-        if (mapCandidates.Length == 0)
-        {
-            return Failed(
-                [],
-                MapSelectionInvalid,
-                "The selected trusted V2 profile does not identify a canonical image map for the requested member and mode.");
+            return V2CompositionPlanCompileResult.Failed(resolutionIssues);
         }
 
         if (requestedMapCapacity is { } capacity)
@@ -90,7 +62,7 @@ internal static class TrustedV2CompositionCompiler
         V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(
             catalog,
             new V2CompositionPreparationRequest(
-                selection,
+                selection!,
                 new FirmwareMapResolutionInputs(
                     memberId,
                     modeId,
@@ -103,6 +75,104 @@ internal static class TrustedV2CompositionCompiler
                 preparation.Issues,
                 PreparationNotAdmitted,
                 "The selected trusted V2 profile was not admitted to its canonical image map.");
+    }
+
+    /// <summary>Returns the trusted profile's eligible canonical map capacities without selecting one.</summary>
+    internal static IReadOnlyList<long> GetMapCapacities(
+        TrustedProfileBundleCatalog catalog,
+        string profileId,
+        string profileVersion,
+        string memberId,
+        string modeId,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        if (!TryResolveMapCandidates(
+                catalog,
+                profileId,
+                profileVersion,
+                memberId,
+                modeId,
+                out _,
+                out FirmwareImageMap[] mapCandidates,
+                out issues))
+        {
+            return [];
+        }
+
+        issues = [];
+        return Array.AsReadOnly(
+        [
+            .. mapCandidates
+                .Select(static map => map.CapacityBytes)
+                .Distinct()
+                .Order(),
+        ]);
+    }
+
+    private static bool TryResolveMapCandidates(
+        TrustedProfileBundleCatalog catalog,
+        string profileId,
+        string profileVersion,
+        string memberId,
+        string modeId,
+        out TrustedProfileBundleCatalog.ProfileSelection? selection,
+        out FirmwareImageMap[] mapCandidates,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(profileVersion);
+        ArgumentException.ThrowIfNullOrWhiteSpace(memberId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(modeId);
+
+        selection = null;
+        mapCandidates = [];
+        issues = [];
+        TrustedProfileBundleCatalog.ProfileSelectionResult selectionResult = catalog.SelectProfile(
+            profileId,
+            profileVersion);
+        if (selectionResult.Selection is not { } selected ||
+            !catalog.TryResolveSelection(selected, out TrustedCompositionProfileCatalogEntry? profileEntry))
+        {
+            issues = selectionResult.Issues.Count == 0
+                ? [new CompositionIssue(
+                    SelectionUnresolved,
+                    "The selected trusted V2 profile could not be resolved from its catalog.")]
+                : [.. selectionResult.Issues];
+            return false;
+        }
+
+        if (!StringComparer.Ordinal.Equals(profileEntry.Profile.Experience.ExperienceId, modeId))
+        {
+            issues =
+            [
+                new CompositionIssue(
+                    ProfileExperienceMismatch,
+                    "The requested mode does not match the selected trusted V2 profile experience."),
+            ];
+            return false;
+        }
+
+        mapCandidates =
+        [
+            .. profileEntry.Family.Family.ImageMaps.Where(map =>
+                profileEntry.Profile.MapBinding.MapIds.Contains(map.MapId, StringComparer.Ordinal) &&
+                map.Applicability.MemberIds.Contains(memberId, StringComparer.Ordinal) &&
+                map.Applicability.ModeIds.Contains(modeId, StringComparer.Ordinal)),
+        ];
+        if (mapCandidates.Length == 0)
+        {
+            issues =
+            [
+                new CompositionIssue(
+                    MapSelectionInvalid,
+                    "The selected trusted V2 profile does not identify a canonical image map for the requested member and mode."),
+            ];
+            return false;
+        }
+
+        selection = selected;
+        return true;
     }
 
     private static V2CompositionPlanCompileResult Failed(

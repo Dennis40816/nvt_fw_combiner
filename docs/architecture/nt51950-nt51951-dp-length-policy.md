@@ -23,6 +23,22 @@ Use the DP input as the base image, then overlay TP.
 
 This avoids tying merge correctness to every DP sub-block name in the spreadsheet while preserving the selected DP container length.
 
+## Canonical V2 Map Selection
+
+NT51950 and NT51951 Standard Merge are compiled from the hash-anchored
+`nt51950-nt51951-standard-merge` V2 bundle. The family declares one exact
+canonical map for each permitted DP capacity. Runtime derives the available
+capacities from those maps and selects exactly the map whose capacity equals
+the submitted DP BIN length; it does not keep a second 950/951 length table in
+UI or CLI code. A missing DP BIN length leaves Standard Merge pending, and an
+unlisted length is rejected with the stable Standard Merge DP-length issue.
+
+General Merge is an authoring workflow, not a Standard Merge map selection.
+Its default output capacity for these ICs is the largest declared V2 map
+(`0x100000`) only until an author supplies an explicit General Merge mapping.
+That default must not be interpreted as silently selecting a `0x100000`
+Standard Merge map.
+
 ## Simplest DP Replace Rule
 
 Clone the base firmware as the Replace reference image, replace the DP container at the selected base length, then restore the original TP and customer-information ranges from the base firmware.
@@ -38,7 +54,8 @@ This implements DP Replace without requiring CRC recalculation and without enume
 
 ## Required Tests Before 1.0 Support Claim
 
-- Merge golden for at least one 950 and one 951 DP Perspective case.
+- V2 Merge golden for the recorded NT51950 `0x40000` and NT51951 `0x80000` owner DP Perspective cases.
+- Legacy/V2 byte parity for all six IC/capacity combinations; this is migration evidence, not a replacement for an additional direct owner golden if a remaining capacity is released.
 - Standard Merge tests showing only `0x40000`, `0x80000`, and `0x100000` DP inputs are accepted and accepted outputs keep the selected DP input length.
 - DP Replace tests showing approved base-length enforcement, shorter replacement padding to the selected base length, and larger replacement rejection.
 - DP Replace test proving the TP and customer-information ranges are preserved byte-for-byte after profile/model wiring.

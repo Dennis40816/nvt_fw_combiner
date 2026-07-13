@@ -30,9 +30,23 @@ public static partial class WorkbenchCompositionService
         }
 
         bool lengthPending = IsStandardMergeDpLengthPending(icId, dpInputLength);
+        if (lengthPending)
+        {
+            return
+            [
+                new WorkbenchMemoryCoverageSegment(
+                    "Selected DP BIN length pending",
+                    "DP length pending",
+                    $"Select a DP BIN before final ownership is drawn. Supported DP lengths are {FormatStandardMergeSupportedDpLengths()}.",
+                    "#CBD5E1",
+                    280,
+                    false),
+            ];
+        }
+
         if (!TryCompileStandardMerge(
                 icId,
-                lengthPending ? null : dpInputLength,
+                dpInputLength,
                 out CompiledComposition? composition,
                 out IReadOnlyList<CompositionIssue> issues))
         {
@@ -48,20 +62,6 @@ public static partial class WorkbenchCompositionService
                     unsupportedLength ? "Invalid DP length" : "Invalid profile",
                     FormatIssues(issues),
                     "#F97316",
-                    280,
-                    false),
-            ];
-        }
-
-        if (lengthPending)
-        {
-            return
-            [
-                new WorkbenchMemoryCoverageSegment(
-                    "Selected DP BIN length pending",
-                    "DP length pending",
-                    $"Select a DP BIN before final ownership is drawn. Supported DP lengths are {FormatStandardMergeSupportedDpLengths()}.",
-                    "#CBD5E1",
                     280,
                     false),
             ];

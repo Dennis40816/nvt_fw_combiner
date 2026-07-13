@@ -37,24 +37,28 @@ internal static class V2StandardMergeGoldenTestSupport
         TrustedProfileBundleCatalog catalog,
         string profileId,
         string profileVersion,
-        string icId)
+        string icId,
+        long? requestedMapCapacity = null)
     {
         V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
             catalog,
             profileId,
             profileVersion,
             icId,
-            ExperienceIds.StandardMerge);
+            ExperienceIds.StandardMerge,
+            requestedMapCapacity);
         Assert.True(compilation.IsCompiled, FormatIssues(compilation.Issues));
         CompiledComposition composition = Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, composition.Eligibility);
         return composition;
     }
 
-    internal static CompiledComposition CompileLegacy(string icId)
+    internal static CompiledComposition CompileLegacy(string icId, long? dpInputLength = null)
     {
-        Profiles.CompositionProfileDefinition legacyProfile = BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles
-            .Single(profile => StringComparer.Ordinal.Equals(profile.IcId, icId));
+        Profiles.CompositionProfileDefinition legacyProfile = dpInputLength is { } length
+            ? BuiltInStandardMergeProfiles.CreateDpPerspectiveProfileForInputLength(icId, length)
+            : BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles
+                .Single(profile => StringComparer.Ordinal.Equals(profile.IcId, icId));
         ProfileCompileResult legacyCompilation = CompositionProfileCompiler.Compile(legacyProfile, []);
         Assert.True(legacyCompilation.IsSuccess, FormatIssues(legacyCompilation.Issues));
         return Assert.IsType<CompiledComposition>(legacyCompilation.CompiledComposition);

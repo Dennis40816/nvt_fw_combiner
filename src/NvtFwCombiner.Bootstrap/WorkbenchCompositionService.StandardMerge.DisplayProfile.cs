@@ -19,20 +19,22 @@ public static partial class WorkbenchCompositionService
         }
 
         bool lengthPending = IsStandardMergeDpLengthPending(icId, dpInputLength);
-        return !TryCompileStandardMerge(
+        return lengthPending
+            ? "Selected DP BIN length pending"
+            : !TryCompileStandardMerge(
                 icId,
-                lengthPending ? null : dpInputLength,
+                dpInputLength,
                 out CompiledComposition? composition,
                 out IReadOnlyList<CompositionIssue> issues)
             ? FormatIssues(issues)
-            : lengthPending
-            ? "Selected DP BIN length pending"
             : FormatFullRange(composition.Plan.OutputInitialization.Capacity);
     }
 
     private static bool IsStandardMergeDpLengthPending(string icId, long? dpInputLength)
     {
-        return dpInputLength is null && IcMetadataFacade.IsDpPerspectiveIc(icId);
+        return dpInputLength is null &&
+            (IsBuiltInV2StandardMergeMapCapacityPending(icId) ||
+             (!IsBuiltInV2StandardMerge(icId) && IcMetadataFacade.IsDpPerspectiveIc(icId)));
     }
 
     private static string FormatStandardMergeInitializationRangeLabel(

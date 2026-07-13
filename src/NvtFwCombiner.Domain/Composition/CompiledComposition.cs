@@ -223,10 +223,12 @@ public sealed partial class CompiledComposition
                     break;
                 case CompiledTpMaximum256KInputLengthRequirement:
                     if (addressSpace.Length > CompiledTpMaximum256KInputLengthRequirement.MaximumBytes ||
-                        !addressSpace.AllowedInputLengths.SequenceEqual([addressSpace.Length]))
+                        addressSpace.InputPaddingByte is not null ||
+                        addressSpace.InputOversizePolicy != InputOversizePolicy.ExtractDeclaredRange ||
+                        addressSpace.AllowedInputLengths.Count != 0)
                     {
                         throw new ArgumentException(
-                            "TP maximum input requirements must bind one exact plan source span within the 256 KiB limit.",
+                            "TP maximum input requirements must extract their declared source span from any input within the 256 KiB limit.",
                             nameof(details));
                     }
 
@@ -318,10 +320,12 @@ public sealed partial class CompiledComposition
         if (!hasSourceView ||
             maximumEndExclusive > CompiledTpMaximum256KInputLengthRequirement.MaximumBytes ||
             addressSpace.Length != maximumEndExclusive ||
-            !addressSpace.AllowedInputLengths.SequenceEqual([maximumEndExclusive]))
+            addressSpace.InputPaddingByte is not null ||
+            addressSpace.InputOversizePolicy != InputOversizePolicy.ExtractDeclaredRange ||
+            addressSpace.AllowedInputLengths.Count != 0)
         {
             throw new ArgumentException(
-                "TP maximum input requirements must bind exactly the maximum end-exclusive span of their resolved source views.",
+                "TP maximum input requirements must extract the maximum resolved source span while accepting inputs through the 256 KiB limit.",
                 nameof(addressSpace));
         }
     }

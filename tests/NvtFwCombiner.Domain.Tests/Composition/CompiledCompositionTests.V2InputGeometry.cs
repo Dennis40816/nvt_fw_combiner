@@ -51,7 +51,8 @@ public sealed partial class CompiledCompositionTests
 
         AddressSpace input = Assert.Single(discontiguousSpan.Plan.AddressSpaces, space => space.AddressSpaceId == "input");
         Assert.Equal(28, input.Length);
-        Assert.Equal([28L], input.AllowedInputLengths);
+        Assert.Empty(input.AllowedInputLengths);
+        Assert.Equal(InputOversizePolicy.ExtractDeclaredRange, input.InputOversizePolicy);
         Assert.NotEqual(shortSpan.CompilationFingerprint, discontiguousSpan.CompilationFingerprint);
     }
 
@@ -209,7 +210,8 @@ public sealed partial class CompiledCompositionTests
                     "input",
                     sourceLength,
                     AddressSpaceMutability.Immutable,
-                    allowedInputLengths: allowedInputLengths ?? [sourceLength]),
+                    inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
+                    allowedInputLengths: allowedInputLengths),
                 new AddressSpace("output-image", outputCapacity, AddressSpaceMutability.Mutable),
             ],
             [CompositionOperation.CopyRange(

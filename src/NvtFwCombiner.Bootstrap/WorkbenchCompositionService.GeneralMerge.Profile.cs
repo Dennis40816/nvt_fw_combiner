@@ -25,6 +25,19 @@ public static partial class WorkbenchCompositionService
             return BootstrapRangeText.FormatHex(GetGeneralMergeCatalogFallbackCapacity(icId));
         }
 
+        if (TryGetBuiltInV2StandardMergeAuthoringDefaultCapacity(
+                icId,
+                out long capacitySelectionDefault,
+                out IReadOnlyList<CompositionIssue> capacityIssues))
+        {
+            return BootstrapRangeText.FormatHex(capacitySelectionDefault);
+        }
+
+        if (capacityIssues.Count != 0)
+        {
+            throw new InvalidOperationException(FormatIssues(capacityIssues));
+        }
+
         if (!TryCompileStandardMerge(
                 icId,
                 dpInputLength: null,

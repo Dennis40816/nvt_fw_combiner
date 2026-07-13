@@ -270,19 +270,26 @@ internal static partial class V2CompositionPlanCompiler
         CompositionProfileInputSlot slot,
         long resolvedMapCapacity)
     {
-        return slot.LengthRule is NormalDpExtractWithWarningLengthRule normalDp
-            ? new AddressSpace(
+        return slot.LengthRule switch
+        {
+            NormalDpExtractWithWarningLengthRule normalDp => new AddressSpace(
                 addressSpaceId,
                 length,
                 AddressSpaceMutability.Immutable,
                 inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
                 expectedInputLengths: ResolveNormalDpExpectedInputLengths(normalDp, resolvedMapCapacity),
-                unexpectedInputLengthIssueCode: normalDp.IssueCode)
-            : new AddressSpace(
+                unexpectedInputLengthIssueCode: normalDp.IssueCode),
+            TpMaximum256KLengthRule => new AddressSpace(
                 addressSpaceId,
                 length,
                 AddressSpaceMutability.Immutable,
-                allowedInputLengths: [length]);
+                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange),
+            _ => new AddressSpace(
+                addressSpaceId,
+                length,
+                AddressSpaceMutability.Immutable,
+                allowedInputLengths: [length]),
+        };
     }
 
     private static Dictionary<string, ResolvedView> LowerViews(

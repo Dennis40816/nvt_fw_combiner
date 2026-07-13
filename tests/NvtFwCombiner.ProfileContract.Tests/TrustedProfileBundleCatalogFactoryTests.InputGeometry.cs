@@ -7,7 +7,7 @@ namespace NvtFwCombiner.ProfileContract.Tests;
 
 public sealed partial class TrustedProfileBundleCatalogFactoryTests
 {
-    /// <summary>Verifies one TP slot retains its 256 KiB policy while its immutable plan space is the exact referenced source span.</summary>
+    /// <summary>Verifies one TP slot retains its 256 KiB policy while its immutable plan space extracts the exact referenced source span.</summary>
     [Fact]
     public void BlankOutputLoweringDerivesTpInputSpaceFromReferencedSourceSpan()
     {
@@ -18,7 +18,8 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
         AddressSpace input = Assert.Single(composition.Plan.AddressSpaces, space => space.AddressSpaceId == "tp-source");
         Assert.Equal(12, input.Length);
-        Assert.Equal([12L], input.AllowedInputLengths);
+        Assert.Empty(input.AllowedInputLengths);
+        Assert.Equal(InputOversizePolicy.ExtractDeclaredRange, input.InputOversizePolicy);
         CompiledInputSlotRequirement slot = Assert.Single(composition.V2Details!.InputContract.Slots);
         Assert.Equal(CompiledInputArtifactClass.TpFirmware, slot.ArtifactClass);
         _ = Assert.IsType<CompiledTpMaximum256KInputLengthRequirement>(slot.LengthRequirement);
@@ -42,7 +43,8 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
         AddressSpace input = Assert.Single(composition.Plan.AddressSpaces, space => space.AddressSpaceId == "tp-source");
         Assert.Equal(28, input.Length);
-        Assert.Equal([28L], input.AllowedInputLengths);
+        Assert.Empty(input.AllowedInputLengths);
+        Assert.Equal(InputOversizePolicy.ExtractDeclaredRange, input.InputOversizePolicy);
     }
 
     /// <summary>Verifies the real TP-overlay shape accepts a 192 KiB source inside a 256 KiB output map.</summary>

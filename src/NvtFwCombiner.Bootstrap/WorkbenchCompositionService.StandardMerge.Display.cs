@@ -27,9 +27,22 @@ public static partial class WorkbenchCompositionService
         }
 
         bool lengthPending = IsStandardMergeDpLengthPending(icId, dpInputLength);
+        if (lengthPending)
+        {
+            return
+            [
+                new WorkbenchMemoryMapRow(
+                    "Selected DP BIN length pending",
+                    "No output",
+                    "Initialize",
+                    "Blank output 0x00",
+                    FormatStandardMergeInitializationDetail(icId, lengthPending: true)),
+            ];
+        }
+
         if (!TryCompileStandardMerge(
                 icId,
-                lengthPending ? null : dpInputLength,
+                dpInputLength,
                 out CompiledComposition? composition,
                 out IReadOnlyList<CompositionIssue> issues))
         {
@@ -55,11 +68,6 @@ public static partial class WorkbenchCompositionService
                 initializedState,
                 FormatStandardMergeInitializationDetail(icId, lengthPending)),
         ];
-        if (lengthPending)
-        {
-            return rows;
-        }
-
         foreach (CompositionOperation operation in composition.Plan.OrderedOperations)
         {
             string afterSource = operation.SourceSpaceId is null

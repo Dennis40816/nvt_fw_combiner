@@ -29,7 +29,37 @@ public sealed partial class CompositionRunService
                 .ConfigureAwait(false);
         }
 
+        ValidateV2InputLengthRequirements(request, inputBytes, issues);
         return new BoundInputs(inputBytes, inputSummaries, issues);
+    }
+
+    private static void ValidateV2InputLengthRequirements(
+        CompositionRunRequest request,
+        Dictionary<string, byte[]> inputBytes,
+        List<CompositionIssue> issues)
+    {
+        if (request.CompiledComposition.V2Details is not { } details)
+        {
+            return;
+        }
+
+        var slots = details.InputContract.Slots.ToDictionary(
+            static slot => slot.SlotId,
+            StringComparer.Ordinal);
+        foreach (CompiledInputSpaceBinding binding in details.InputContract.SpaceBindings)
+        {
+            if (slots[binding.SlotId].LengthRequirement is not CompiledTpMaximum256KInputLengthRequirement ||
+                !inputBytes.TryGetValue(binding.AddressSpaceId, out byte[]? bytes) ||
+                bytes.LongLength <= CompiledTpMaximum256KInputLengthRequirement.MaximumBytes)
+            {
+                continue;
+            }
+
+            issues.Add(new CompositionIssue(
+                CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+                $"Input bytes for address space '{binding.AddressSpaceId}' exceed the 256 KiB maximum (actual {bytes.LongLength} bytes, maximum {CompiledTpMaximum256KInputLengthRequirement.MaximumBytes} bytes).",
+                binding.AddressSpaceId));
+        }
     }
 
     private static List<CompositionIssue> ValidateArtifactBindings(CompositionRunRequest request)
