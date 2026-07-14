@@ -34,6 +34,9 @@ public static partial class WorkbenchCompositionService
     private static readonly BuiltInV2Bundle s_nt51931GeneralMergeLogicalCandidateV2Bundle = new(
         "profiles\\built-in\\nt51931-general-merge-logical-candidate",
         "ce3b18aede5c884b074b6f9253d45a255e82a2147ec76bd300e7548d6fdc52fe");
+    private static readonly BuiltInV2Bundle s_nt51950Nt51951GeneralMergeLogicalCandidateV2Bundle = new(
+        "profiles\\built-in\\nt51950-nt51951-general-merge-logical-candidate",
+        "1da78f9a6d8aae1e7fbbda0f5977272b5c9902194ab102f2232586edd77eb121");
     private static readonly ReadOnlyDictionary<string, GeneralMergeV2CandidateRegistration> s_generalMergeV2Candidates = new(
         new Dictionary<string, GeneralMergeV2CandidateRegistration>(StringComparer.Ordinal)
         {
@@ -92,6 +95,16 @@ public static partial class WorkbenchCompositionService
                 "nt51929-nt51932",
                 "nt51932-general-merge-logical-candidate",
                 s_nt51919Nt51929Nt51932GeneralMergeLogicalCandidateV2Bundle),
+            ["NT51950"] = new(
+                "NT51950",
+                "nt51950-nt51951-dp-perspective",
+                "nt51950-general-merge-logical-candidate",
+                s_nt51950Nt51951GeneralMergeLogicalCandidateV2Bundle),
+            ["NT51951"] = new(
+                "NT51951",
+                "nt51950-nt51951-dp-perspective",
+                "nt51951-general-merge-logical-candidate",
+                s_nt51950Nt51951GeneralMergeLogicalCandidateV2Bundle),
         });
 
     /// <summary>Runs an explicitly admitted logical-output V2 parity candidate without changing the default General Merge route.</summary>

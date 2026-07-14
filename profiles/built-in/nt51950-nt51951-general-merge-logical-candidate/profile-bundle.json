@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "1.0",
+  "bundleId": "nt51950-nt51951-general-merge-logical-candidate",
+  "bundleVersion": "0.9.5-candidate.1",
+  "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
+  "contentHash": "1da78f9a6d8aae1e7fbbda0f5977272b5c9902194ab102f2232586edd77eb121",
+  "trustAnchorBindingId": "built-in-profile-bundle-v2",
+  "entries": [
+    {
+      "entryId": "composition-profile-v2-schema",
+      "kind": "schema",
+      "path": "schemas/composition-profile-v2.schema.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "ab3bed384c5d78590ad6a87ee23c12f23a1ea4a1bdc6001273f254b6e5f3547f"
+    },
+    {
+      "entryId": "firmware-family-v1-schema",
+      "kind": "schema",
+      "path": "schemas/firmware-family-v1.schema.json",
+      "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
+      "contentHash": "0dd353296e02e448dcc653028fd3b3ce6ad7fdd8e11a1ce11a465b46f0b471d7"
+    },
+    {
+      "entryId": "nt51950-nt51951-dp-perspective-family",
+      "kind": "firmware-family",
+      "path": "families/nt51950-nt51951-dp-perspective.json",
+      "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
+      "contentHash": "0bd613266308f512e87a07f62727d8ba9bdb4f73dde0c7adc001ab17f119d60f"
+    },
+    {
+      "entryId": "nt51950-general-merge-logical-candidate-profile",
+      "kind": "composition-profile",
+      "path": "profiles/nt51950-general-merge-logical-candidate.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "f34c80c7c64793051975116e965991a33fc77242d6359d9d4ac577abaa856116"
+    },
+    {
+      "entryId": "nt51951-general-merge-logical-candidate-profile",
+      "kind": "composition-profile",
+      "path": "profiles/nt51951-general-merge-logical-candidate.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "dda9e0ea68d084a7a547dc9e73829c6cefba1ee40f23c19e646ca891f76b0174"
+    }
+  ]
+}
