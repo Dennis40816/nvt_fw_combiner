@@ -73,12 +73,10 @@ internal static class V2StandardMergeGoldenTestSupport
         return composition;
     }
 
-    internal static CompiledComposition CompileLegacy(string icId, long? dpInputLength = null)
+    internal static CompiledComposition CompileLegacy(string icId)
     {
-        Profiles.CompositionProfileDefinition legacyProfile = dpInputLength is { } length
-            ? BuiltInStandardMergeProfiles.CreateDpPerspectiveProfileForInputLength(icId, length)
-            : BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles
-                .Single(profile => StringComparer.Ordinal.Equals(profile.IcId, icId));
+        Profiles.CompositionProfileDefinition legacyProfile = BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles
+            .Single(profile => StringComparer.Ordinal.Equals(profile.IcId, icId));
         ProfileCompileResult legacyCompilation = CompositionProfileCompiler.Compile(legacyProfile, []);
         Assert.True(legacyCompilation.IsSuccess, FormatIssues(legacyCompilation.Issues));
         return Assert.IsType<CompiledComposition>(legacyCompilation.CompiledComposition);

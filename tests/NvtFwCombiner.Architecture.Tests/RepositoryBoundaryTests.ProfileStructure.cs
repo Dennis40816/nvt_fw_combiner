@@ -59,7 +59,6 @@ public sealed partial class RepositoryBoundaryTests
         string root = ReadText("src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles.cs");
         string genFlash = ReadText("src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles.GenFlash.cs");
         string synthetic = ReadText("src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles.Synthetic.cs");
-        string dpPerspective = ReadText("src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles.DpPerspective.cs");
 
         Assert.Contains("public static partial class BuiltInStandardMergeProfiles", root, StringComparison.Ordinal);
         Assert.Contains("public static IReadOnlyList<CompositionProfileDefinition> ExecutableStandardMergeProfiles", root, StringComparison.Ordinal);
@@ -67,6 +66,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("CreateGenFlashProfile", root, StringComparison.Ordinal);
         Assert.DoesNotContain("StandardMergeRegion", root, StringComparison.Ordinal);
         Assert.DoesNotContain("DpPerspectiveCatalog", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("DpPerspectiveStandardMergeProfiles", root, StringComparison.Ordinal);
         Assert.Contains("GenFlashStandardMergeProfiles", genFlash, StringComparison.Ordinal);
         Assert.Contains("OwnerConfirmedAliasStandardMergeProfiles", genFlash, StringComparison.Ordinal);
         Assert.Contains("FlashMapStandardMergeProfiles", genFlash, StringComparison.Ordinal);
@@ -74,9 +74,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("DpPerspectiveCatalog", genFlash, StringComparison.Ordinal);
         Assert.Contains("SyntheticStandardMerge", synthetic, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateGenFlashProfile", synthetic, StringComparison.Ordinal);
-        Assert.Contains("DpPerspectiveStandardMergeProfiles", dpPerspective, StringComparison.Ordinal);
-        Assert.Contains("CreateDpPerspectiveProfileForInputLength", dpPerspective, StringComparison.Ordinal);
-        Assert.DoesNotContain("StandardMergeRegion", dpPerspective, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "BuiltInStandardMergeProfiles.DpPerspective.cs")));
     }
 
     /// <summary>Verifies built-in bundle materialization remains an explicit identity allowlist, never source discovery.</summary>
@@ -139,35 +141,30 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("**\\profile-bundle.json", project, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies DP Perspective operation and region ids stay owned by the DP Perspective catalog.</summary>
+    /// <summary>Verifies V2 DP Perspective profiles own Merge operations while C# retains only Replace planning policy.</summary>
     [Fact]
-    public void DpPerspectiveOperationIdsStayCatalogOwned()
+    public void DpPerspectiveV2MergeAndReplacePlanningStaySeparated()
     {
         string catalog = ReadText("src/NvtFwCombiner.Profiles/DpPerspectiveCatalog.cs");
-        string standardMerge = ReadText("src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles.DpPerspective.cs");
+        string standardMerge = ReadText(
+            "profiles/built-in/nt51950-nt51951-standard-merge/profiles/nt51950-standard-merge.json");
         string planning = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Planning.cs");
 
-        Assert.Contains("public const string ContainerRegionId = \"dp-perspective-container\";", catalog, StringComparison.Ordinal);
-        Assert.Contains("public const string CopyDpContainerOperationId = \"copy-dp-container\";", catalog, StringComparison.Ordinal);
-        Assert.Contains("public const string OverlayTpOperationId = \"overlay-tp\";", catalog, StringComparison.Ordinal);
         Assert.Contains("public const string ReplaceDpContainerOperationId = \"replace-dp-container\";", catalog, StringComparison.Ordinal);
         Assert.Contains("public const string RestoreBaseTpOperationId = \"restore-base-tp\";", catalog, StringComparison.Ordinal);
-        Assert.Contains("DpPerspectiveCatalog.ContainerRegionId", standardMerge, StringComparison.Ordinal);
-        Assert.Contains("DpPerspectiveCatalog.CopyDpContainerOperationId", standardMerge, StringComparison.Ordinal);
-        Assert.Contains("DpPerspectiveCatalog.OverlayTpOperationId", standardMerge, StringComparison.Ordinal);
+        Assert.Contains("\"operationId\": \"copy-dp-container\"", standardMerge, StringComparison.Ordinal);
+        Assert.Contains("\"operationId\": \"overlay-tp\"", standardMerge, StringComparison.Ordinal);
         Assert.Contains("DpPerspectiveCatalog.ReplaceDpContainerOperationId", planning, StringComparison.Ordinal);
         Assert.Contains("DpPerspectiveCatalog.RestoreBaseTpOperationId", planning, StringComparison.Ordinal);
 
         foreach (string literal in new[]
         {
-            "\"dp-perspective-container\"",
             "\"copy-dp-container\"",
             "\"overlay-tp\"",
             "\"replace-dp-container\"",
             "\"restore-base-tp\"",
         })
         {
-            Assert.DoesNotContain(literal, standardMerge, StringComparison.Ordinal);
             Assert.DoesNotContain(literal, planning, StringComparison.Ordinal);
         }
     }

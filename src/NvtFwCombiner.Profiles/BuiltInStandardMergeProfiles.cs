@@ -9,7 +9,6 @@ public static partial class BuiltInStandardMergeProfiles
         .. GenFlashStandardMergeProfiles,
         .. OwnerConfirmedAliasStandardMergeProfiles,
         .. FlashMapStandardMergeProfiles,
-        .. DpPerspectiveStandardMergeProfiles,
     ];
 
     /// <summary>All built-in standard merge profiles, including synthetic and reference-derived cases.</summary>

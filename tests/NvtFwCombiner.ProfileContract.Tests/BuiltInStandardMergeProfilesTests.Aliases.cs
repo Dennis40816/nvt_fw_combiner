@@ -45,9 +45,9 @@ public sealed partial class BuiltInStandardMergeProfilesTests
                 operation.TargetRange)));
     }
 
-    /// <summary>Verifies the executable Standard Merge catalog exposes only profiles with current release evidence gates.</summary>
+    /// <summary>Verifies the remaining legacy Standard Merge evidence list exposes its owner-confirmed aliases.</summary>
     [Fact]
-    public void ExecutableStandardMergeProfilesIncludeOwnerConfirmedAliases()
+    public void LegacyStandardMergeProfilesIncludeOwnerConfirmedAliases()
     {
         string[] expectedIcIds =
         [
@@ -62,8 +62,6 @@ public sealed partial class BuiltInStandardMergeProfilesTests
             "NT51930",
             "NT51931",
             "NT51932",
-            "NT51950",
-            "NT51951",
         ];
 
         Assert.Equal(

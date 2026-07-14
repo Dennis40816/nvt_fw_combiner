@@ -49,25 +49,34 @@ public sealed class WorkbenchCatalogProjectionTests
         Assert.Equal(originalNumberChoice, WorkbenchCompositionService.GetNumberChoices("NT51950")[0]);
     }
 
-    /// <summary>Profile summaries retain synthetic legacy profiles and deployed V2 DP Replace facts.</summary>
+    /// <summary>Profile summaries project V2 Standard Merge and DP Replace facts without legacy profile exposure.</summary>
     [Fact]
     public void ProfileSummariesProjectCompiledArtifactsWithoutLegacyTypes()
     {
-        CompositionProfileDefinition[] standardProfiles =
-        [
-            .. BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles
-                .OrderBy(static profile => profile.IcId, StringComparer.Ordinal),
-        ];
         CompositionProfileDefinition[] legacyReplaceProfiles =
         [
             .. BuiltInReplaceProfiles.All
                 .OrderBy(static profile => profile.ProfileId, StringComparer.Ordinal),
         ];
+        WorkbenchProfileSummary[] standardSummaries = [.. WorkbenchCompositionService.GetStandardMergeProfileSummaries()];
         WorkbenchProfileSummary[] replaceSummaries = [.. WorkbenchCompositionService.GetReplaceProfileSummaries()];
 
-        AssertProfileSummaries(
-            standardProfiles,
-            WorkbenchCompositionService.GetStandardMergeProfileSummaries());
+        Assert.Equal(IcSupportCatalog.IcIds, standardSummaries.Select(static summary => summary.IcId));
+        Assert.All(standardSummaries, static summary =>
+        {
+            Assert.True(summary.CompileSucceeded);
+            Assert.Equal(CompositionKind.Merge, summary.CompositionKind);
+            Assert.NotEmpty(summary.RequiredInputAddressSpaceIds);
+            Assert.Equal(CompiledIcNumberPolicy.NotApplicable, summary.IcNumberPolicy);
+        });
+        Assert.Equal(
+            [
+                "nt51950-standard-merge-dp-perspective",
+                "nt51951-standard-merge-dp-perspective",
+            ],
+            standardSummaries
+                .Where(static summary => summary.IcId is "NT51950" or "NT51951")
+                .Select(static summary => summary.ProfileId));
         AssertProfileSummaries(
             legacyReplaceProfiles,
             [.. replaceSummaries.Where(static summary => summary.IcId == "NT-SYNTHETIC")]);
@@ -93,7 +102,7 @@ public sealed class WorkbenchCatalogProjectionTests
             });
 
         WorkbenchSettingsSnapshot settings = WorkbenchCompositionService.GetSettingsSnapshot();
-        Assert.Equal(standardProfiles.Length, settings.StandardMergeProfileCount);
+        Assert.Equal(standardSummaries.Length, settings.StandardMergeProfileCount);
         Assert.Equal(replaceSummaries.Length, settings.ReplaceProfileCount);
         Assert.Equal(13, settings.FlashMapIcCount);
     }

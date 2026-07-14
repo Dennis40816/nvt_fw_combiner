@@ -3,7 +3,7 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Profiles;
 
-/// <summary>Owner-approved NT51950/NT51951 DP Perspective policy shared by Merge and Replace.</summary>
+/// <summary>Owner-approved NT51950/NT51951 DP Perspective policy shared by V2 Merge and Replace.</summary>
 public static class DpPerspectiveCatalog
 {
     /// <summary>Owner-approved IC ids that use the DP Perspective policy.</summary>
@@ -12,24 +12,6 @@ public static class DpPerspectiveCatalog
         "NT51950",
         "NT51951",
     ];
-
-    /// <summary>Maximum DP Perspective container length currently approved for NT51950/NT51951.</summary>
-    public const long MaxContainerLength = 0x100000;
-
-    /// <summary>Region id for the full DP Perspective output container.</summary>
-    public const string ContainerRegionId = "dp-perspective-container";
-
-    /// <summary>Standard Merge operation id that copies the selected DP Perspective container.</summary>
-    public const string CopyDpContainerOperationId = "copy-dp-container";
-
-    /// <summary>Standard Merge operation order for copying the selected DP Perspective container.</summary>
-    public const int CopyDpContainerSequence = 100;
-
-    /// <summary>Standard Merge operation id that overlays TP FW into the DP Perspective container.</summary>
-    public const string OverlayTpOperationId = "overlay-tp";
-
-    /// <summary>Standard Merge operation order for overlaying TP FW into the DP Perspective container.</summary>
-    public const int OverlayTpSequence = 200;
 
     /// <summary>DP Replace operation id that replaces the selected DP Perspective container.</summary>
     public const string ReplaceDpContainerOperationId = "replace-dp-container";
@@ -48,14 +30,11 @@ public static class DpPerspectiveCatalog
     [
         0x40000,
         0x80000,
-        MaxContainerLength,
+        0x100000,
     ];
 
     /// <summary>TP overlay/restore range. Customer information starts after this range.</summary>
     public static ByteRange TpOverlayRange { get; } = ByteRange.FromStartEndExclusive(0x0A000, 0x37000);
-
-    /// <summary>TP input length required to cover the overlay range.</summary>
-    public static long TpInputLength => TpOverlayRange.EndExclusive;
 
     /// <summary>Customer-information range. DP Replace retains replacement-DP bytes in this range.</summary>
     public static ByteRange CustomerInfoRange { get; } = new(0x37000, 0x1000);

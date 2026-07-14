@@ -114,7 +114,7 @@ flowchart TD
 
 ### SM-950-951-DP-PERSPECTIVE
 
-Used by NT51950 and NT51951. This flow is an executable built-in Standard Merge profile with owner golden output for current `0x40000` and `0x80000` DP Perspective cases.
+Used by NT51950 and NT51951. This flow is implemented by packaged V2 Standard Merge profiles with owner golden output for current `0x40000` and `0x80000` DP Perspective cases.
 
 ```mermaid
 flowchart TD
