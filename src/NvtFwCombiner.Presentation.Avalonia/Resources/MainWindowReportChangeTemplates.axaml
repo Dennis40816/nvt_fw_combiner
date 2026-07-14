@@ -18,7 +18,7 @@
           FontSize="16"
           FontFamily="Cascadia Mono, Consolas"
           FontWeight="SemiBold"
-          Foreground="#0F172A"
+          Foreground="{DynamicResource NfcTextStrongBrush}"
           Text="{Binding Count}" />
       <Label Grid.Column="2" Classes="reportBadge" Content="{Binding Status}" />
     </Grid>
@@ -40,7 +40,7 @@
     <Expander.Header>
       <Border Classes="reportInputGroupHeader">
         <Grid ColumnDefinitions="4,*,Auto" ColumnSpacing="10">
-          <Border Background="#2563EB" CornerRadius="2" />
+          <Border Background="{DynamicResource NfcAccentBrush}" CornerRadius="2" />
           <StackPanel Grid.Column="1" Spacing="2">
             <TextBlock Classes="panelTitle" Text="{Binding Title}" TextWrapping="Wrap" />
             <TextBlock Classes="captionText" Text="{Binding Detail}" TextWrapping="Wrap" IsVisible="{Binding HasDetail}" />
@@ -62,13 +62,13 @@
 </DataTemplate>
 
 <DataTemplate x:Key="ReportOutputDifferenceRowTemplate" DataType="vm:ReportLineViewModel">
-  <Border Padding="0,8" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+  <Border Padding="0,8" BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="0,1,0,0">
     <Expander IsExpanded="False">
       <Expander.Header>
         <Grid Margin="0,2" ColumnDefinitions="*,Auto" ColumnSpacing="12">
           <StackPanel Spacing="3">
             <TextBlock Classes="panelTitle" Text="{Binding Title}" TextWrapping="Wrap" />
-            <TextBlock FontSize="11" Foreground="#475569" Text="{Binding Reason}" TextWrapping="Wrap" IsVisible="{Binding HasReason}" />
+            <TextBlock FontSize="11" Foreground="{DynamicResource NfcTextSecondaryBrush}" Text="{Binding Reason}" TextWrapping="Wrap" IsVisible="{Binding HasReason}" />
             <StackPanel Orientation="Horizontal" Spacing="8">
               <TextBlock Classes="technicalCaption" Text="{Binding Range}" TextWrapping="Wrap" IsVisible="{Binding HasRange}" />
               <TextBlock Classes="tableHeader" Text="{Binding ChangedSummary}" TextWrapping="Wrap" IsVisible="{Binding HasChangedSummary}" />
@@ -86,7 +86,7 @@
           </ItemsControl>
         </Grid>
       </Expander.Header>
-      <Border Margin="0,8,0,2" Padding="12,10" Background="#F8FAFC" BorderBrush="#D7E2F1" BorderThickness="1" CornerRadius="6">
+      <Border Margin="0,8,0,2" Padding="12,10" Background="{DynamicResource NfcSurfaceSubtleBrush}" BorderBrush="{DynamicResource NfcInfoBorderBrush}" BorderThickness="1" CornerRadius="6">
         <StackPanel Spacing="10">
           <Grid ColumnDefinitions="*,*" ColumnSpacing="10" IsVisible="{Binding HasBeforeAfter}">
             <StackPanel Spacing="4">
@@ -94,7 +94,7 @@
               <TextBlock Classes="technicalValue" Text="{Binding BeforeValue}" TextWrapping="Wrap" />
             </StackPanel>
             <StackPanel Grid.Column="1" Spacing="4">
-              <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#166534" Text="{Binding AfterLabel}" TextWrapping="Wrap" />
+              <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource NfcSuccessTextBrush}" Text="{Binding AfterLabel}" TextWrapping="Wrap" />
               <TextBlock Classes="technicalValue" Text="{Binding AfterValue}" TextWrapping="Wrap" />
             </StackPanel>
           </Grid>

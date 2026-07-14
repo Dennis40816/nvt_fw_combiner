@@ -17,11 +17,11 @@
             Width="14"
             Height="14"
             Data="M5,3 L13,3 L13,11 L5,11 Z M3,5 L3,13 L11,13 L11,11"
-            Stroke="#334155"
+            Stroke="{DynamicResource NfcTextBrush}"
             StrokeJoin="Round"
             StrokeThickness="1.5" />
       </Button>
-      <TextBlock Grid.Row="1" Classes="technicalCompactDetail" Foreground="#0F172A" Text="{Binding Text, ElementName=Root}" TextWrapping="Wrap" />
+      <TextBlock Grid.Row="1" Classes="technicalCompactDetail" Foreground="{DynamicResource NfcTextStrongBrush}" Text="{Binding Text, ElementName=Root}" TextWrapping="Wrap" />
     </Grid>
   </Border>
 </UserControl>

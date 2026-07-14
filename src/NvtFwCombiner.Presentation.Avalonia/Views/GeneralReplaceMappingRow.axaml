@@ -23,7 +23,7 @@
           HorizontalAlignment="Center"
           VerticalAlignment="Center"
           FontSize="12"
-          Foreground="#64748B"
+          Foreground="{DynamicResource NfcTextMutedBrush}"
           Text="-" />
       <TextBox
           Classes="addressInput"

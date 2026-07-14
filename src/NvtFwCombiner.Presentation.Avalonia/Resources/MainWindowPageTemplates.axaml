@@ -15,16 +15,16 @@
           <TextBlock
               FontSize="12"
               FontWeight="SemiBold"
-              Foreground="#2563EB"
+              Foreground="{DynamicResource NfcAccentBrush}"
               Text="{Binding Text.WorkflowKicker}" />
           <TextBlock
               FontSize="25"
               FontWeight="SemiBold"
-              Foreground="#0F172A"
+              Foreground="{DynamicResource NfcTextStrongBrush}"
               Text="{Binding ReplacePreview.Title}" />
           <TextBlock
               FontSize="13"
-              Foreground="#64748B"
+              Foreground="{DynamicResource NfcTextMutedBrush}"
               Text="{Binding ReplacePreview.Subtitle}"
               TextWrapping="Wrap" />
         </StackPanel>
@@ -77,16 +77,16 @@
           <TextBlock
               FontSize="12"
               FontWeight="SemiBold"
-              Foreground="#2563EB"
+              Foreground="{DynamicResource NfcAccentBrush}"
               Text="{Binding Text.WorkflowKicker}" />
           <TextBlock
               FontSize="25"
               FontWeight="SemiBold"
-              Foreground="#0F172A"
+              Foreground="{DynamicResource NfcTextStrongBrush}"
               Text="{Binding MergePreview.Title}" />
           <TextBlock
               FontSize="13"
-              Foreground="#64748B"
+              Foreground="{DynamicResource NfcTextMutedBrush}"
               Text="{Binding MergePreview.Subtitle}"
               TextWrapping="Wrap" />
         </StackPanel>
@@ -120,11 +120,11 @@
               Grid.Row="2"
               Classes="command"
               IsEnabled="False">
-            <Border Classes="workflowCard" Background="#F8FAFC" BorderBrush="#E2E8F0">
+            <Border Classes="workflowCard" Background="{DynamicResource NfcSurfaceSubtleBrush}" BorderBrush="{DynamicResource NfcBorderMutedBrush}">
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                <TextBlock FontWeight="SemiBold" Foreground="#94A3B8" Text="AB Code" />
-                <Border Grid.Column="1" Padding="10,4" Background="#F1F5F9" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="999">
-                  <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#94A3B8" Text="{Binding Text.PendingLabel}" />
+                <TextBlock FontWeight="SemiBold" Foreground="{DynamicResource NfcTextDisabledBrush}" Text="AB Code" />
+                <Border Grid.Column="1" Padding="10,4" Background="{DynamicResource NfcSelectionSurfaceBrush}" BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="1" CornerRadius="999">
+                  <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource NfcTextDisabledBrush}" Text="{Binding Text.PendingLabel}" />
                 </Border>
               </Grid>
             </Border>
@@ -139,16 +139,16 @@
           <TextBlock
               FontSize="12"
               FontWeight="SemiBold"
-              Foreground="#0F766E"
+              Foreground="{DynamicResource NfcInfoTextBrush}"
               Text="{Binding Text.UtilToolsLabel}" />
           <TextBlock
               FontSize="25"
               FontWeight="SemiBold"
-              Foreground="#0F172A"
+              Foreground="{DynamicResource NfcTextStrongBrush}"
               Text="{Binding Text.UtilToolsHomeTitle}" />
           <TextBlock
               FontSize="13"
-              Foreground="#64748B"
+              Foreground="{DynamicResource NfcTextMutedBrush}"
               Text="{Binding Text.UtilToolsHomeDetail}"
               TextTrimming="CharacterEllipsis" />
         </StackPanel>
@@ -178,16 +178,16 @@
       <TextBlock
           FontSize="11"
           FontWeight="SemiBold"
-          Foreground="#0F766E"
+          Foreground="{DynamicResource NfcInfoTextBrush}"
           Text="{Binding HexEditorWorkspace.Text.UtilToolsLabel}" />
       <TextBlock
           FontSize="24"
           FontWeight="SemiBold"
-          Foreground="#0F172A"
+          Foreground="{DynamicResource NfcTextStrongBrush}"
           Text="{Binding HexEditorWorkspace.Text.HexEditorTitle}" />
       <TextBlock
           FontSize="13"
-          Foreground="#64748B"
+          Foreground="{DynamicResource NfcTextMutedBrush}"
           Text="{Binding HexEditorWorkspace.Text.HexEditorDetail}"
           TextWrapping="Wrap" />
     </StackPanel>
@@ -310,7 +310,7 @@
         <ItemsControl ItemsSource="{Binding SettingsReadinessRows}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:SettingSummaryViewModel">
-              <Border Padding="0,0,0,10" BorderBrush="#EEF2F7" BorderThickness="0,0,0,1" Margin="0,0,0,8">
+              <Border Padding="0,0,0,10" BorderBrush="{DynamicResource NfcDividerBrush}" BorderThickness="0,0,0,1" Margin="0,0,0,8">
                 <StackPanel Spacing="3">
                   <Grid ColumnDefinitions="*,Auto">
                     <TextBlock Classes="panelTitle" Text="{Binding Title}" />

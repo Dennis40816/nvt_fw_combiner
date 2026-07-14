@@ -24,7 +24,7 @@
     <Expander.Header>
       <Border Classes="reportInputGroupHeader">
         <Grid ColumnDefinitions="4,*,Auto" ColumnSpacing="10">
-          <Border Background="#2563EB" CornerRadius="2" />
+          <Border Background="{DynamicResource NfcAccentBrush}" CornerRadius="2" />
           <StackPanel Grid.Column="1" Spacing="2">
             <TextBlock Classes="panelTitle" Text="{Binding Title}" TextWrapping="Wrap" />
             <TextBlock Classes="captionText" Text="{Binding Detail}" TextWrapping="Wrap" />

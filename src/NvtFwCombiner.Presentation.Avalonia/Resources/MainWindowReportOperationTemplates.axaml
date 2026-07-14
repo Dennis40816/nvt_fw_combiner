@@ -10,10 +10,10 @@
       <Border
           Width="2"
           HorizontalAlignment="Center"
-          Background="#BFDBFE"
+          Background="{DynamicResource NfcAccentBorderLightBrush}"
           IsVisible="{Binding HasConnector}" />
-      <Border Width="32" Height="32" Margin="0,4,0,0" HorizontalAlignment="Center" VerticalAlignment="Top" Background="#EFF6FF" BorderBrush="#93C5FD" BorderThickness="1" CornerRadius="999">
-        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Foreground="#1D4ED8" Text="{Binding Number}" />
+      <Border Width="32" Height="32" Margin="0,4,0,0" HorizontalAlignment="Center" VerticalAlignment="Top" Background="{DynamicResource NfcAccentSurfaceSubtleBrush}" BorderBrush="{DynamicResource NfcAccentBorderBrush}" BorderThickness="1" CornerRadius="999">
+        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource NfcAccentStrongBrush}" Text="{Binding Number}" />
       </Border>
     </Grid>
     <Expander Grid.Column="1" Margin="0,3,0,18" IsExpanded="False">
@@ -68,15 +68,15 @@
 <DataTemplate x:Key="ReportStepOperationTemplate" DataType="vm:ReportLineViewModel">
   <Grid ColumnDefinitions="34,*">
     <Grid>
-      <Border Width="2" HorizontalAlignment="Center" Background="#CBD5E1" />
+      <Border Width="2" HorizontalAlignment="Center" Background="{DynamicResource NfcBorderBrush}" />
       <Border
           Width="13"
           Height="13"
           Margin="0,11,0,0"
           HorizontalAlignment="Center"
           VerticalAlignment="Top"
-          Background="#64748B"
-          BorderBrush="#F8FAFC"
+          Background="{DynamicResource NfcTextMutedBrush}"
+          BorderBrush="{DynamicResource NfcSurfaceSubtleBrush}"
           BorderThickness="2"
           CornerRadius="999" />
     </Grid>

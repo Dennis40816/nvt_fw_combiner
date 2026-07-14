@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
     x:DataType="vm:MainWindowViewModel"
-    Background="#990F172A">
+    Background="{DynamicResource NfcReportModalScrimBrush}">
   <Border
       Classes="surface"
       MaxWidth="1500"

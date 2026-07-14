@@ -99,8 +99,11 @@ public sealed class XamlControlStyleContractTests
             "NfcBorderBrush",
             "NfcTextStrongBrush",
             "NfcAccentBrush",
+            "NfcInfoTextBrush",
             "NfcWarningAccentBrush",
+            "NfcWarningTextSubtleBrush",
             "NfcModalScrimBrush",
+            "NfcReportModalScrimBrush",
         })
         {
             Assert.Contains($"x:Key=\"{token}\"", tokens, StringComparison.Ordinal);
@@ -125,6 +128,30 @@ public sealed class XamlControlStyleContractTests
             string content = ReadPresentationFile(modal);
             Assert.Contains("{DynamicResource NfcModalScrimBrush}", content, StringComparison.Ordinal);
             Assert.DoesNotContain("#660F172A", content, StringComparison.Ordinal);
+        }
+
+        foreach (string template in new[]
+        {
+            "Resources/MainWindowPageTemplates.axaml",
+            "Resources/MainWindowReportAuditTemplates.axaml",
+            "Resources/MainWindowReportChangeTemplates.axaml",
+            "Resources/MainWindowReportHistoryTemplates.axaml",
+            "Resources/MainWindowReportInputTemplates.axaml",
+            "Resources/MainWindowReportOperationTemplates.axaml",
+            "Resources/MainWindowReportPanels.axaml",
+            "Resources/MainWindowReportTemplates.axaml",
+            "Resources/MainWindowSharedTemplates.axaml",
+            "Resources/MainWindowShellPanels.axaml",
+            "Views/FirmwareSlotCard.axaml",
+            "Views/GeneralReplaceMappingRow.axaml",
+            "Views/HexEditorPanel.axaml",
+            "Views/ReportCodeBlockView.axaml",
+            "Views/ReportModal.axaml",
+        })
+        {
+            string content = ReadPresentationFile(template);
+            Assert.Contains("{DynamicResource Nfc", content, StringComparison.Ordinal);
+            Assert.DoesNotContain("#", content, StringComparison.Ordinal);
         }
     }
 
