@@ -202,6 +202,30 @@ nonblank lines, for a one-line total increase. The icon path, accessible
 tooltip, and every enum-to-class mapping are covered by UI smoke and XAML
 style-contract tests.
 
+### Memory coverage changed-state ownership
+
+The tenth implementation phase retains `Fill` and `FillBrush` as data-bound
+coverage evidence. Only the generic Replace coverage changed/kept badge and
+outline move from `MemoryCoverageSegmentViewModel` into XAML selectors driven
+by the existing `IsChanged` value. The plain Merge coverage templates do not
+receive the changed-state classes.
+
+`UiBrush.AccentTrackSurface` preserves the existing changed badge surface and
+also replaces the exact report-triage accent track value. The coverage marker
+uses an accent outline only when changed; kept coverage has zero border
+thickness, as before.
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| C# presentation color literals | 30 | 23 |
+| Direct hex color literals in Avalonia XAML | 78 | 78 |
+| `UiBrush.*` dynamic-resource references | 395 | 403 |
+| Shared semantic palette resources | 54 | 55 |
+
+The ViewModel loses 16 nonblank lines while the template and shared styles add
+16 nonblank XAML lines. This preserves total source size and removes a second
+presentation ownership point without treating the data-bound fill as a token.
+
 ## Code-Size Audit
 
 The code-size audit uses Git-tracked files under `src/` only. It excludes
@@ -210,9 +234,9 @@ decision. The `a9ae568f` baseline and the current recorded phase state measure:
 
 | Scope | Baseline nonblank lines | Current nonblank lines | Delta |
 | --- | ---: | ---: | ---: |
-| Production C# | 53,753 | 53,629 | -124 |
-| Avalonia C# | 12,881 | 12,757 | -124 |
-| Avalonia XAML | 3,961 | 4,103 | +142 |
+| Production C# | 53,753 | 53,613 | -140 |
+| Avalonia C# | 12,881 | 12,741 | -140 |
+| Avalonia XAML | 3,961 | 4,119 | +158 |
 | Total tracked production source | 57,714 | 57,732 | +18 |
 
 The XAML increase is the explicit shared palette declarations and their

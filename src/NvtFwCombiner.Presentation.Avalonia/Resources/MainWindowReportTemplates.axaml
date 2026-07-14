@@ -67,7 +67,7 @@
 <DataTemplate x:Key="ReportTriageRowTemplate" DataType="vm:ReportLineViewModel">
   <Grid ColumnDefinitions="26,*" ColumnSpacing="10" Margin="0,0,0,10">
     <Grid>
-      <Border Width="2" HorizontalAlignment="Center" Background="#DBEAFE" />
+      <Border Width="2" HorizontalAlignment="Center" Background="{DynamicResource UiBrush.AccentTrackSurface}" />
       <Border
           Width="18"
           Height="18"

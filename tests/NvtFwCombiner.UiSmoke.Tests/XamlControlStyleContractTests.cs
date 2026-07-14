@@ -72,6 +72,7 @@ public sealed partial class XamlControlStyleContractTests
             ["UiBrush.SubtleSurface"] = "#F8FAFC",
             ["UiBrush.AccentSurface"] = "#EFF6FF",
             ["UiBrush.AccentSelectedSurface"] = "#EAF3FF",
+            ["UiBrush.AccentTrackSurface"] = "#DBEAFE",
             ["UiBrush.NavigationSelectedSurface"] = "#F1F5F9",
             ["UiBrush.SlotFactSurface"] = "#EEF6FF",
             ["UiBrush.WarningSurface"] = "#FFF7ED",
@@ -126,7 +127,7 @@ public sealed partial class XamlControlStyleContractTests
         Dictionary<string, string[]> directPalettePropertyValues = new(StringComparer.Ordinal)
         {
             ["Foreground"] = ["#FFFFFF", "#0F172A", "#334155", "#475569", "#64748B", "#94A3B8", "#0F766E", "#2563EB", "#1D4ED8", "#9A3412", "#7C2D12", "#B45309", "#B91C1C", "#166534", "#15803D", "#4338CA", "#6D28D9", "#92400E"],
-            ["Background"] = ["#FFFFFF", "#F8FAFC", "#EFF6FF", "#EAF3FF", "#EEF2FF", "#F5F3FF", "#FFFBEB", "#FFF7ED", "#FFF7F7", "#F0FDF4", "#E2E8F0", "#BFDBFE", "#CBD5E1", "#2563EB", "#16A34A", "#660F172A", "#990F172A"],
+            ["Background"] = ["#FFFFFF", "#F8FAFC", "#EFF6FF", "#EAF3FF", "#DBEAFE", "#EEF2FF", "#F5F3FF", "#FFFBEB", "#FFF7ED", "#FFF7F7", "#F0FDF4", "#E2E8F0", "#BFDBFE", "#CBD5E1", "#2563EB", "#16A34A", "#660F172A", "#990F172A"],
             ["BorderBrush"] = ["#CBD5E1", "#E2E8F0", "#EEF2F7", "#93C5FD", "#60A5FA", "#BFDBFE", "#C7D2FE", "#DDD6FE", "#FDE68A", "#FED7AA", "#FECACA", "#BBF7D0", "#2563EB"],
             ["Stroke"] = ["#334155", "#475569", "#2563EB", "#1D4ED8", "#15803D", "#4338CA", "#6D28D9", "#92400E"],
         };
@@ -545,6 +546,10 @@ public sealed partial class XamlControlStyleContractTests
             "Label.slotBadge.firmwareSlotRequirement",
             "Label.slotBadge.firmwareSlotRequirement.hasFile",
             "Label.slotBadge.firmwareSlotRequirement.optional",
+            "Label.countBadge.coverageChangeBadge",
+            "Label.countBadge.coverageChangeBadge.changed",
+            "Border.memoryCoverageMarker",
+            "Border.memoryCoverageMarker.changed",
         })
         {
             Assert.Contains($"Selector=\"{selector}\"", styles, StringComparison.Ordinal);
@@ -586,6 +591,20 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("SlotIconBackgroundBrush", slotCard, StringComparison.Ordinal);
         Assert.DoesNotContain("SlotIconBorderBrush", slotCard, StringComparison.Ordinal);
         Assert.DoesNotContain("SlotIconForegroundBrush", slotCard, StringComparison.Ordinal);
+
+        Assert.Contains("Classes=\"memoryCoverageMarker\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"countBadge coverageChangeBadge\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("Classes.changed=\"{Binding IsChanged}\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("ChangeBadgeBackgroundBrush", sharedTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("ChangeBadgeBorderBrush", sharedTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("ChangeBadgeForegroundBrush", sharedTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("OutlineBrush", sharedTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("OutlineThickness", sharedTemplates, StringComparison.Ordinal);
+
+        string coverageViewModel = ReadPresentationFile("ViewModels/MemoryCoverageSegmentViewModel.cs");
+        Assert.Contains("public IBrush FillBrush", coverageViewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("ChangeBadgeBackgroundBrush", coverageViewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("OutlineBrush", coverageViewModel, StringComparison.Ordinal);
 
         string[] legacyPropertyBundles =
         [

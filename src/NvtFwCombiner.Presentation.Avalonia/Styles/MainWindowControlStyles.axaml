@@ -7,6 +7,7 @@
     <SolidColorBrush x:Key="UiBrush.SubtleSurface" Color="#F8FAFC" />
     <SolidColorBrush x:Key="UiBrush.AccentSurface" Color="#EFF6FF" />
     <SolidColorBrush x:Key="UiBrush.AccentSelectedSurface" Color="#EAF3FF" />
+    <SolidColorBrush x:Key="UiBrush.AccentTrackSurface" Color="#DBEAFE" />
     <SolidColorBrush x:Key="UiBrush.NavigationSelectedSurface" Color="#F1F5F9" />
     <SolidColorBrush x:Key="UiBrush.SlotFactSurface" Color="#EEF6FF" />
     <SolidColorBrush x:Key="UiBrush.WarningSurface" Color="#FFF7ED" />
@@ -490,6 +491,23 @@
     <Setter Property="Background" Value="{DynamicResource UiBrush.WarningSurface}" />
     <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.WarningSoftBorder}" />
     <Setter Property="Foreground" Value="#C2410C" />
+  </Style>
+  <Style Selector="Label.countBadge.coverageChangeBadge">
+    <Setter Property="Background" Value="{DynamicResource UiBrush.SubtleSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.Border}" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.TextSubtle}" />
+  </Style>
+  <Style Selector="Label.countBadge.coverageChangeBadge.changed">
+    <Setter Property="Background" Value="{DynamicResource UiBrush.AccentTrackSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.AccentSoftBorder}" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.AccentStrong}" />
+  </Style>
+  <Style Selector="Border.memoryCoverageMarker">
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="Border.memoryCoverageMarker.changed">
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.AccentStrong}" />
+    <Setter Property="BorderThickness" Value="1" />
   </Style>
   <Style Selector="TextBlock.hexInspectorSection">
     <Setter Property="FontSize" Value="11" />

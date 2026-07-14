@@ -1,4 +1,3 @@
-using Avalonia;
 using Avalonia.Media;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -32,11 +31,6 @@ public sealed class MemoryCoverageSegmentViewModel
         BarWidth = barWidth;
         IsChanged = isChanged;
         ChangeLabel = isChanged ? "Changed" : "Kept";
-        ChangeBadgeBackgroundBrush = Brush.Parse(isChanged ? "#DBEAFE" : "#F8FAFC");
-        ChangeBadgeBorderBrush = Brush.Parse(isChanged ? "#BFDBFE" : "#CBD5E1");
-        ChangeBadgeForegroundBrush = Brush.Parse(isChanged ? "#1D4ED8" : "#475569");
-        OutlineBrush = isChanged ? Brush.Parse("#1D4ED8") : Brushes.Transparent;
-        OutlineThickness = new Thickness(isChanged ? 1 : 0);
     }
 
     /// <summary>Address range in half-open hex notation.</summary>
@@ -68,21 +62,6 @@ public sealed class MemoryCoverageSegmentViewModel
 
     /// <summary>Compact changed/kept label for the legend.</summary>
     public string ChangeLabel { get; }
-
-    /// <summary>Badge background for changed/kept state.</summary>
-    public IBrush ChangeBadgeBackgroundBrush { get; }
-
-    /// <summary>Badge border for changed/kept state.</summary>
-    public IBrush ChangeBadgeBorderBrush { get; }
-
-    /// <summary>Badge text brush for changed/kept state.</summary>
-    public IBrush ChangeBadgeForegroundBrush { get; }
-
-    /// <summary>Outline brush used to call out changed coverage segments.</summary>
-    public IBrush OutlineBrush { get; }
-
-    /// <summary>Outline thickness used to call out changed coverage segments.</summary>
-    public Thickness OutlineThickness { get; }
 
     private static string CreateCompactDetail(string sourceLabel, bool isChanged)
     {
