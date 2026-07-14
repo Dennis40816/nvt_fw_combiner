@@ -20,8 +20,8 @@
     <Setter Property="Padding" Value="12,9" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="10" />
-    <Setter Property="Background" Value="#F8FAFC" />
-    <Setter Property="BorderBrush" Value="#D7E1ED" />
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderSoftBrush}" />
     <Setter Property="BoxShadow" Value="0 0 0 0 Transparent" />
     <Setter Property="Transitions">
       <Transitions>
@@ -31,21 +31,21 @@
     </Setter>
   </Style>
   <Style Selector="Button.command:pointerover Border.workflowCard">
-    <Setter Property="Background" Value="#FFFFFF" />
-    <Setter Property="BorderBrush" Value="#60A5FA" />
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
     <Setter Property="BoxShadow" Value="0 6 14 0 #143B821A" />
   </Style>
   <Style Selector="Button.command:pressed Border.workflowCard">
-    <Setter Property="Background" Value="#EAF3FF" />
-    <Setter Property="BorderBrush" Value="#2563EB" />
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
     <Setter Property="BoxShadow" Value="0 1 4 0 #143B8214" />
   </Style>
   <Style Selector="Border.workflowOpenPill">
     <Setter Property="Padding" Value="10,4" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="999" />
-    <Setter Property="Background" Value="#EAF3FF" />
-    <Setter Property="BorderBrush" Value="#BFDBFE" />
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
     <Setter Property="Transitions">
       <Transitions>
         <BrushTransition Property="Background" Duration="0:0:0.12" />
@@ -54,7 +54,7 @@
     </Setter>
   </Style>
   <Style Selector="Border.workflowOpenPill TextBlock">
-    <Setter Property="Foreground" Value="#1D4ED8" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
   <Style Selector="TextBlock.hexGridHeader">
     <Setter Property="MinHeight" Value="25" />
@@ -64,31 +64,31 @@
     <Setter Property="TextAlignment" Value="Center" />
     <Setter Property="FontSize" Value="13" />
     <Setter Property="FontWeight" Value="Bold" />
-    <Setter Property="Foreground" Value="#334155" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
   </Style>
   <Style Selector="TextBlock.hexGridHeader.selected">
-    <Setter Property="Background" Value="#BFDBFE" />
-    <Setter Property="Foreground" Value="#1D4ED8" />
+    <Setter Property="Background" Value="{DynamicResource NfcAccentBorderLightBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
   <Style Selector="Button.command:pointerover Border.workflowOpenPill">
-    <Setter Property="Background" Value="#2563EB" />
-    <Setter Property="BorderBrush" Value="#2563EB" />
+    <Setter Property="Background" Value="{DynamicResource NfcAccentBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
   </Style>
   <Style Selector="Button.command:pointerover Border.workflowOpenPill TextBlock">
-    <Setter Property="Foreground" Value="#FFFFFF" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcSurfaceBrush}" />
   </Style>
   <Style Selector="Button.command:pressed Border.workflowOpenPill">
-    <Setter Property="Background" Value="#1D4ED8" />
-    <Setter Property="BorderBrush" Value="#1D4ED8" />
+    <Setter Property="Background" Value="{DynamicResource NfcAccentStrongBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
   <Style Selector="Button.command:pressed Border.workflowOpenPill TextBlock">
-    <Setter Property="Foreground" Value="#FFFFFF" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcSurfaceBrush}" />
   </Style>
   <Style Selector="Border.dropZoneOverlay">
     <Setter Property="Opacity" Value="0" />
     <Setter Property="IsHitTestVisible" Value="False" />
-    <Setter Property="Background" Value="#EFF6FF" />
-    <Setter Property="BorderBrush" Value="#2563EB" />
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
     <Setter Property="BorderThickness" Value="2" />
     <Setter Property="CornerRadius" Value="8" />
     <Setter Property="Transitions">

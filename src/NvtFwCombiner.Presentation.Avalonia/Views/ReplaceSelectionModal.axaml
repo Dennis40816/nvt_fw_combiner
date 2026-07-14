@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
     x:DataType="vm:MainWindowViewModel"
-    Background="#660F172A">
+    Background="{DynamicResource NfcModalScrimBrush}">
   <Border
       Classes="modalSurface"
       Width="720"
@@ -29,7 +29,7 @@
 
       <Border Grid.Row="1" Classes="subtlePanel contentPanel">
         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-          <Border Width="8" Height="38" VerticalAlignment="Top" Background="#2563EB" CornerRadius="999" />
+          <Border Width="8" Height="38" VerticalAlignment="Top" Background="{DynamicResource NfcAccentBrush}" CornerRadius="999" />
           <StackPanel Grid.Column="1" Spacing="3">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
               <TextBlock Classes="cardTitle" Text="{Binding ReplaceSelectionCountLabel}" />
@@ -53,7 +53,7 @@
 
           <Border Classes="warningSurface contentPanel" IsVisible="{Binding HasReplaceSelectionMissingRows}">
             <StackPanel Spacing="8">
-              <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#9A3412" Text="{Binding Text.RequiredBeforeBuildTitle}" />
+              <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource NfcWarningTextBrush}" Text="{Binding Text.RequiredBeforeBuildTitle}" />
               <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSelectionMissingRows}">
                 <ItemsControl.ItemTemplate>
                   <StaticResource ResourceKey="ReportMissingRequiredRowTemplate" />

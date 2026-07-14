@@ -11,7 +11,7 @@
     WindowState="Maximized"
     MinWidth="980"
     MinHeight="640"
-    Background="#F4F6FA"
+    Background="{DynamicResource NfcAppBackgroundBrush}"
     FontFamily="fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI"
     Icon="/Assets/AppIcon.ico"
     Title="NVT FW Combiner">
@@ -54,11 +54,11 @@
           <TextBlock
               FontSize="20"
               FontWeight="SemiBold"
-              Foreground="#0F172A"
+              Foreground="{DynamicResource NfcTextStrongBrush}"
               Text="{Binding Text.ProductTitle}" />
           <TextBlock
               FontSize="12"
-              Foreground="#64748B"
+              Foreground="{DynamicResource NfcTextMutedBrush}"
               Text="{Binding ShellVersion}" />
         </StackPanel>
 
@@ -71,25 +71,25 @@
               Classes="nav"
               Command="{Binding ShowHomeCommand}"
               IsChecked="{Binding IsHomeVisible, Mode=OneWay}">
-            <TextBlock Foreground="#334155" Text="{Binding Text.HomeLabel}" />
+            <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{Binding Text.HomeLabel}" />
           </ToggleButton>
           <ToggleButton
               Classes="nav"
               Command="{Binding ShowSettingsCommand}"
               IsChecked="{Binding IsSettingsVisible, Mode=OneWay}">
-            <TextBlock Foreground="#334155" Text="{Binding SettingsPreview.Title}" />
+            <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{Binding SettingsPreview.Title}" />
           </ToggleButton>
           <ToggleButton
               Classes="nav"
               Command="{Binding ShowReplaceCommand}"
               IsChecked="{Binding IsReplaceVisible, Mode=OneWay}">
-            <TextBlock Foreground="#334155" Text="{Binding ReplacePreview.Title}" />
+            <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{Binding ReplacePreview.Title}" />
           </ToggleButton>
           <ToggleButton
               Classes="nav"
               Command="{Binding ShowMergeCommand}"
               IsChecked="{Binding IsMergeVisible, Mode=OneWay}">
-            <TextBlock Foreground="#334155" Text="{Binding MergePreview.Title}" />
+            <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{Binding MergePreview.Title}" />
           </ToggleButton>
         </StackPanel>
 

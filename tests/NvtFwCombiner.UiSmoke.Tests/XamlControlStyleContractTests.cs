@@ -81,6 +81,53 @@ public sealed class XamlControlStyleContractTests
         Assert.Contains("Classes=\"slotBadge\"", slotCard, StringComparison.Ordinal);
     }
 
+    /// <summary>Keeps the shared shell palette in one application-level resource dictionary.</summary>
+    [Fact]
+    public void SharedThemeTokensOwnTheWindowStylesAndModalChrome()
+    {
+        string application = ReadPresentationFile("App.axaml");
+        string tokens = ReadPresentationFile("Styles/ThemeTokens.axaml");
+        string controlStyles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
+        string windowStyles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
+        string buttonStyles = ReadPresentationFile("Styles/MainWindowButtonStyles.axaml");
+        string visualStyles = ReadPresentationFile("Styles/MainWindowVisualStyles.axaml");
+
+        Assert.Contains("Styles/ThemeTokens.axaml", application, StringComparison.Ordinal);
+        foreach (string token in new[]
+        {
+            "NfcSurfaceBrush",
+            "NfcBorderBrush",
+            "NfcTextStrongBrush",
+            "NfcAccentBrush",
+            "NfcWarningAccentBrush",
+            "NfcModalScrimBrush",
+        })
+        {
+            Assert.Contains($"x:Key=\"{token}\"", tokens, StringComparison.Ordinal);
+        }
+
+        foreach (string styles in new[] { controlStyles, windowStyles, buttonStyles, visualStyles })
+        {
+            Assert.Contains("{DynamicResource Nfc", styles, StringComparison.Ordinal);
+            Assert.DoesNotContain("#FFFFFF", styles, StringComparison.Ordinal);
+        }
+
+        foreach (string modal in new[]
+        {
+            "Views/CtrlRamFirmwareVersionModal.axaml",
+            "Views/FirmwareIcMismatchModal.axaml",
+            "Views/HexEditorInsertBytesModal.axaml",
+            "Views/HexEditorSaveModal.axaml",
+            "Views/ReplaceSelectionModal.axaml",
+            "Views/WorkflowContextSetupModal.axaml",
+        })
+        {
+            string content = ReadPresentationFile(modal);
+            Assert.Contains("{DynamicResource NfcModalScrimBrush}", content, StringComparison.Ordinal);
+            Assert.DoesNotContain("#660F172A", content, StringComparison.Ordinal);
+        }
+    }
+
     /// <summary>Ensures Hex Editor uses the shared safe-save and immutable-reference interaction contracts.</summary>
     [Fact]
     public void HexEditorUsesConfirmedSaveAndReadOnlyReferenceRows()
