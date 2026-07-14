@@ -204,7 +204,7 @@ public sealed partial class ShellViewModelTests
 
         using var document = JsonDocument.Parse(viewModel.LoadedReportJson);
         JsonElement root = document.RootElement;
-        Assert.Equal("nt51950-general-merge-workbench", root.GetProperty("ProfileId").GetString());
+        Assert.Equal("nt51950-general-merge-logical-candidate", root.GetProperty("ProfileId").GetString());
         Assert.Equal("general-merge", root.GetProperty("ExperienceId").GetString());
         JsonElement operation = Assert.Single(root.GetProperty("Operations").EnumerateArray());
         Assert.Equal("CopyRange", operation.GetProperty("Kind").GetString());

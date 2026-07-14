@@ -155,6 +155,7 @@ public sealed partial class RepositoryBoundaryTests
         string runner = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Runner.cs");
         string standardMerge = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Run.cs");
         string generalMerge = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.cs");
+        string generalMergeV2 = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.V2.cs");
         string generalMergeReport = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Report.cs");
         string replaceDp = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.cs");
         string replaceCtrlRam = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.cs");
@@ -169,7 +170,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private static string CreateWorkbenchReportRunId", runner, StringComparison.Ordinal);
         Assert.Contains("private static string GetReplaceRunIdPrefix", runner, StringComparison.Ordinal);
         Assert.Contains("StandardMergeRunIdPrefix", standardMerge, StringComparison.Ordinal);
-        Assert.Contains("GeneralMergeRunIdPrefix", generalMerge, StringComparison.Ordinal);
+        Assert.Contains("GeneralMergeRunIdPrefix", generalMergeV2, StringComparison.Ordinal);
         Assert.Contains(
             "CreateWorkbenchReportRunId(GeneralMergeRunIdPrefix, build, timestamp)",
             generalMergeReport,
@@ -185,6 +186,7 @@ public sealed partial class RepositoryBoundaryTests
         {
             standardMerge,
             generalMerge,
+            generalMergeV2,
             generalMergeReport,
             replaceDp,
             replaceCtrlRam,

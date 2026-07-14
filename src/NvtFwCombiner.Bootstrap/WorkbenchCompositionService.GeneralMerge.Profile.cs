@@ -1,18 +1,11 @@
-using System.Reflection;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
     private const byte GeneralMergeFillByte = 0x00;
-
-    private static string GeneralMergeProfileVersion =>
-        typeof(WorkbenchCompositionService).Assembly
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-            .InformationalVersion ?? "0.0.0";
 
     /// <summary>Gets the default General Merge output length text for the selected IC.</summary>
     public static string GetGeneralMergeDefaultOutputLength(string icId)
@@ -59,7 +52,7 @@ public static partial class WorkbenchCompositionService
         return $"{icId.ToLowerInvariant()}-general-merge.bin";
     }
 
-    /// <summary>Gets the profile id used by the General Merge workbench profile for the selected IC.</summary>
+    /// <summary>Gets the legacy profile-id alias retained for persisted General Merge saved-rule compatibility.</summary>
     public static string GetGeneralMergeWorkbenchProfileId(string icId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
@@ -92,38 +85,6 @@ public static partial class WorkbenchCompositionService
 
         issue = null;
         return true;
-    }
-
-    private static CompositionProfileDefinition CreateGeneralMergeProfile(string icId, long capacity)
-    {
-        return new CompositionProfileDefinition(
-            GetGeneralMergeWorkbenchProfileId(icId),
-            GeneralMergeProfileVersion,
-            icId,
-            IcWorkflowIds.GeneralMerge,
-            CompositionKind.Merge,
-            IcWorkflowIds.GeneralMerge,
-            GetGeneralMergeDefaultOutputFileName(icId),
-            ImageInitialization.Blank(CompositionAddressSpaceIds.OutputImage, capacity, GeneralMergeFillByte),
-            [
-                new AddressSpace(CompositionAddressSpaceIds.OutputImage, capacity, AddressSpaceMutability.Mutable),
-            ],
-            [],
-            [
-                new ProfileRegion(
-                    WorkbenchGeneralMergeIds.OutputRegionId,
-                    CompositionAddressSpaceIds.OutputImage,
-                    new ByteRange(0, capacity),
-                    RegionAtomicity.ExplicitMapping,
-                    RegionWritePolicy.GeneralExplicit,
-                    classificationTags: [IcWorkflowIds.GeneralMerge]),
-            ],
-            [
-                new RegionAccessRule(
-                    WorkbenchGeneralMergeIds.OutputRegionId,
-                    RegionAccessKind.ExplicitRange,
-                    "General Merge explicit mapping output."),
-            ]);
     }
 
     private static long GetGeneralMergeCatalogFallbackCapacity(string icId)

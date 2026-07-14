@@ -1,6 +1,4 @@
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -125,7 +123,7 @@ public static partial class WorkbenchCompositionService
         return ToWorkbenchCoverageSegments(segments, capacity);
     }
 
-    /// <summary>Runs General Merge preview or build through the application core.</summary>
+    /// <summary>Runs General Merge preview or build through the admitted logical-output V2 profile.</summary>
     public static async ValueTask<WorkbenchRunResult> RunGeneralMergeAsync(
         string icId,
         string outputLength,
@@ -138,80 +136,14 @@ public static partial class WorkbenchCompositionService
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentNullException.ThrowIfNull(mappingInputs);
 
-        Dictionary<string, string> reportSlotPaths = CreateGeneralMergeReportSlotPaths(mappingInputs);
-        string defaultOutputFileName = GetGeneralMergeDefaultOutputFileName(icId);
-        if (!TryParseGeneralMergeCapacity(outputLength, out long capacity, out CompositionIssue? capacityIssue))
-        {
-            return CreateGeneralMergeReportRunResult(
-                icId,
-                reportSlotPaths,
-                build,
-                [],
-                [capacityIssue!],
-                defaultOutputFileName,
-                succeeded: false);
-        }
-
-        if (mappingInputs.Count == 0)
-        {
-            return CreateGeneralMergeReportRunResult(
-                icId,
-                reportSlotPaths,
-                build,
-                [],
-                [
-                    new CompositionIssue(
-                        WorkbenchIssueCodes.GeneralMergeMappingRequired,
-                        "General Merge requires at least one explicit source-to-target mapping.",
-                        IcWorkflowIds.GeneralMerge),
-                ],
-                defaultOutputFileName,
-                succeeded: false);
-        }
-
-        if (!TryCreateGeneralMergeMappings(
-                mappingInputs,
-                out IReadOnlyList<ExplicitMapping> explicitMappings,
-                out IReadOnlyList<AddressSpace> requestAddressSpaces,
-                out IReadOnlyList<InputArtifactBinding> mappingBindings,
-                out IReadOnlyList<CompositionIssue> mappingIssues))
-        {
-            return CreateGeneralMergeReportRunResult(
-                icId,
-                reportSlotPaths,
-                build,
-                CreateGeneralMergePlanningOperations(explicitMappings),
-                mappingIssues,
-                defaultOutputFileName,
-                succeeded: false);
-        }
-
-        CompositionProfileDefinition profile = CreateGeneralMergeProfile(icId, capacity);
-        ProfileCompileResult compile = CompositionProfileCompiler.Compile(
-            profile,
-            explicitMappings,
-            requestAddressSpaces);
-        WorkbenchRunResult? compileFailure = !compile.IsSuccess
-            ? CreateGeneralMergeReportRunResult(
-                icId,
-                reportSlotPaths,
-                build,
-                CreateGeneralMergePlanningOperations(explicitMappings),
-                compile.Issues,
-                profile.DefaultOutputFileName,
-                succeeded: false)
-            : null;
-        return compileFailure ?? await RunCompiledCompositionAsync(
-            GeneralMergeRunIdPrefix,
-            compile.CompiledComposition!,
-            mappingBindings,
-            mappingBindings[0].ArtifactId,
+        return await RunGeneralMergeV2Async(
+            icId,
+            outputLength,
+            mappingInputs,
             build,
+            cancellationToken,
             outputPath,
-            externalProcessor: null,
-            icNumberSelection: null,
-            overwrite: overwrite,
-            cancellationToken).ConfigureAwait(false);
+            overwrite).ConfigureAwait(false);
     }
 
 }

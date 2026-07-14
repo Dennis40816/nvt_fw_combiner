@@ -1,6 +1,6 @@
 # ADR 0019: V2 General Merge Logical-Output Admission
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-15
 - Owners: Product owner + architecture owner
 - Amends: ADR 0015 and ADR 0018
@@ -63,8 +63,12 @@ existing exact family solely to carry that member identity, but it cannot select
 image map. A dummy logical-only family is forbidden; a cross-family candidate requires each exact
 family binding to be registered explicitly. Logical-output admission must not
 bypass map-backed region access, metadata, processor, or promotion controls. General Merge does not
-fall back to legacy after V2 compile selection: the caller selects one authority deliberately during
-migration. The legacy compatibility path remains until V2 parity and promotion gates pass.
+fall back to legacy after V2 compile selection. On 2026-07-15, the product owner accepted completed
+legacy/V2 byte-parity evidence for every built-in General Merge IC. The default General Merge route
+therefore selects the registered logical-output V2 profile. An invalid registered V2 request fails
+only that General Merge run; it does not alter Standard Merge, Replace, CLI routing, or UI routing
+for any other workflow. Persisted 0.9.2 General Merge saved-rule profile ids remain compatibility
+aliases during the cutover.
 
 ## Consequences
 
@@ -87,5 +91,7 @@ migration. The legacy compatibility path remains until V2 parity and promotion g
    for single/multiple source mappings, repeated sources, blank gaps, adjacent ranges, arbitrary
    capacities, bounds/overflow, duplicate IDs, overlap, missing/extra/swapped bindings, and failed
    output promotion.
-6. Switch the workflow only after reviewed exact-parity evidence and V2 promotion. Delete the
-   dynamic legacy profile construction only in that cutover commit.
+6. Switch the workflow only after reviewed exact-parity evidence and owner acceptance. The
+   logical-output profile remains `executable-candidate`, because it declares no physical firmware
+   support or map authority. Delete the dynamic legacy profile construction only in that cutover
+   commit.

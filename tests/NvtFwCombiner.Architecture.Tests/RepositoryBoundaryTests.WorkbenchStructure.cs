@@ -18,7 +18,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("private static WorkbenchRunResult CreateGeneralMergeReportRunResult", orchestration, StringComparison.Ordinal);
         Assert.Contains("private static bool TryCreateGeneralMergeMappings", mapping, StringComparison.Ordinal);
         Assert.Contains("public sealed record WorkbenchGeneralMergeMappingInput", mapping, StringComparison.Ordinal);
-        Assert.Contains("private static CompositionProfileDefinition CreateGeneralMergeProfile", profile, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileDefinition", profile, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileCompiler", orchestration, StringComparison.Ordinal);
         Assert.Contains("private static WorkbenchRunResult CreateGeneralMergeReportRunResult", report, StringComparison.Ordinal);
     }
 
@@ -33,10 +34,9 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Contains("public const string OutputRegionId = \"general-output\";", ids, StringComparison.Ordinal);
         Assert.Contains("WorkbenchGeneralMergeIds.OutputRegionId", mapping, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchGeneralMergeIds.OutputRegionId", profile, StringComparison.Ordinal);
         Assert.Contains("WorkbenchGeneralMergeIds.OutputRegionId", savedRuleRows, StringComparison.Ordinal);
         Assert.DoesNotContain("\"general-output\"", mapping, StringComparison.Ordinal);
-        Assert.DoesNotContain("\"general-output\"", profile, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchGeneralMergeIds.OutputRegionId", profile, StringComparison.Ordinal);
         Assert.DoesNotContain("\"general-output\"", savedRuleRows, StringComparison.Ordinal);
     }
 
@@ -61,7 +61,7 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Profile.cs");
         string generalMerge = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.cs");
         string generalMergeCandidate = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.V2Candidate.cs");
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.V2.cs");
         string mergeCli = ReadText("src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.cs");
         string mergeUi = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Merge.cs");
         string firmwareMetadata = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.FirmwareMetadata.cs");
@@ -101,12 +101,12 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("StandardMergeProfilesByIc", generalMergeProfile, StringComparison.Ordinal);
         Assert.Contains("TryCompileStandardMerge", standardMerge, StringComparison.Ordinal);
         Assert.Contains("TryCompileStandardMerge", generalMergeProfile, StringComparison.Ordinal);
-        Assert.Contains("RunGeneralMergeV2CandidateAsync", generalMergeCandidate, StringComparison.Ordinal);
+        Assert.Contains("RunGeneralMergeV2Async", generalMergeCandidate, StringComparison.Ordinal);
         Assert.Contains("CompileLogicalOutput", generalMergeCandidate, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileCompiler", generalMergeCandidate, StringComparison.Ordinal);
-        Assert.DoesNotContain("RunGeneralMergeV2CandidateAsync", generalMerge, StringComparison.Ordinal);
-        Assert.DoesNotContain("RunGeneralMergeV2CandidateAsync", mergeCli, StringComparison.Ordinal);
-        Assert.DoesNotContain("RunGeneralMergeV2CandidateAsync", mergeUi, StringComparison.Ordinal);
+        Assert.Contains("RunGeneralMergeV2Async", generalMerge, StringComparison.Ordinal);
+        Assert.DoesNotContain("RunGeneralMergeV2Async", mergeCli, StringComparison.Ordinal);
+        Assert.DoesNotContain("RunGeneralMergeV2Async", mergeUi, StringComparison.Ordinal);
         Assert.Contains("GetStandardMergePolicySummary", standardMerge, StringComparison.Ordinal);
         Assert.DoesNotContain("RunStandardMergeAsync", standardMerge, StringComparison.Ordinal);
         Assert.DoesNotContain("GetStandardMergeMemoryMapRows", standardMerge, StringComparison.Ordinal);

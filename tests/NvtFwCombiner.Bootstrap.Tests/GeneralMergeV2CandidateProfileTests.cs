@@ -4,7 +4,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
-/// <summary>Direct bundle evidence for non-routed logical-output General Merge candidates.</summary>
+/// <summary>Direct bundle evidence for routed logical-output General Merge profiles.</summary>
 public sealed class GeneralMergeV2CandidateProfileTests
 {
     /// <summary>Verifies each candidate binds one exact member of its snapshot family without a physical map claim.</summary>

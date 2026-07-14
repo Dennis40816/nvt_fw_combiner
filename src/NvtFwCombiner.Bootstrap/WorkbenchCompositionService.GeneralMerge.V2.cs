@@ -13,6 +13,8 @@ public static partial class WorkbenchCompositionService
     private const string GeneralMergeV2CandidateMemberNotAdmitted = "general-merge.v2-candidate.member-not-admitted";
     private const string GeneralMergeV2CandidateInputLengthUnsupported = "general-merge.v2-candidate.input-length-unsupported";
     private const string GeneralMergeV2CandidateCompilationUnexpected = "general-merge.v2-candidate.compilation-unexpected";
+    private const string GeneralMergeLegacyPlanInvalid = "profile.plan.invalid";
+    private const string GeneralMergeV2OperationOverlap = "profile.v2.plan.operation-overlap";
     private static readonly BuiltInV2Bundle s_nt51917Nt51927GeneralMergeLogicalCandidateV2Bundle = new(
         "profiles\\built-in\\nt51917-nt51927-general-merge-logical-candidate",
         "1025069140de5ba78296af045dc477cf8164395b68b0ce82a77970eecbe05c0e");
@@ -107,8 +109,8 @@ public static partial class WorkbenchCompositionService
                 s_nt51950Nt51951GeneralMergeLogicalCandidateV2Bundle),
         });
 
-    /// <summary>Runs an explicitly admitted logical-output V2 parity candidate without changing the default General Merge route.</summary>
-    internal static async ValueTask<WorkbenchRunResult> RunGeneralMergeV2CandidateAsync(
+    /// <summary>Runs a registered logical-output V2 General Merge profile through the shared application core.</summary>
+    private static async ValueTask<WorkbenchRunResult> RunGeneralMergeV2Async(
         string icId,
         string outputLength,
         IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappingInputs,
@@ -230,7 +232,7 @@ public static partial class WorkbenchCompositionService
                 reportSlotPaths,
                 build,
                 CreateGeneralMergePlanningOperations(explicitMappings),
-                compile.Issues,
+                NormalizeGeneralMergeV2Issues(compile.Issues),
                 defaultOutputFileName,
                 succeeded: false,
                 registration.ProfileId);
@@ -285,6 +287,18 @@ public static partial class WorkbenchCompositionService
                details.Provenance.Promotion.Stage == CompiledProfilePromotionStage.ExecutableCandidate &&
                StringComparer.Ordinal.Equals(context.FamilyId, registration.FamilyId) &&
                StringComparer.Ordinal.Equals(context.MemberId, registration.IcId);
+    }
+
+    private static CompositionIssue[] NormalizeGeneralMergeV2Issues(
+        IReadOnlyList<CompositionIssue> issues)
+    {
+        return
+        [
+            .. issues.Select(static issue =>
+                StringComparer.Ordinal.Equals(issue.Code, GeneralMergeV2OperationOverlap)
+                    ? new CompositionIssue(GeneralMergeLegacyPlanInvalid, issue.Message, issue.OperationId)
+                    : issue),
+        ];
     }
 
     private static WorkbenchRunResult CreateCandidateReport(

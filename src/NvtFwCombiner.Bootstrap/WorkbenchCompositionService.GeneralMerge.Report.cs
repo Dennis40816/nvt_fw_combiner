@@ -14,27 +14,6 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<OperationRunSummary> operations,
         IReadOnlyList<CompositionIssue> issues,
         string outputFileName,
-        bool succeeded)
-    {
-        return CreateGeneralMergeReportRunResult(
-            icId,
-            slotPaths,
-            build,
-            operations,
-            issues,
-            outputFileName,
-            succeeded,
-            GetGeneralMergeWorkbenchProfileId(icId),
-            GeneralMergeProfileVersion);
-    }
-
-    private static WorkbenchRunResult CreateGeneralMergeReportRunResult(
-        string icId,
-        IReadOnlyDictionary<string, string> slotPaths,
-        bool build,
-        IReadOnlyList<OperationRunSummary> operations,
-        IReadOnlyList<CompositionIssue> issues,
-        string outputFileName,
         bool succeeded,
         string profileId,
         string profileVersion)
