@@ -197,14 +197,7 @@ internal static partial class V2CompositionPlanCompiler
         }
 
         MutableCompositionProfileSpace output = AssertOutputSpace(profile);
-        if (output.Capacity is not ResolvedMapProfileCapacity ||
-            (profile.CompositionKind == CompositionKind.Merge &&
-             output.Initializer is not BlankProfileInitializer) ||
-            (profile.CompositionKind == CompositionKind.Replace &&
-             output.Initializer is not CloneProfileInitializer))
-        {
-            AddUnsupported(issues, "the output image must use resolved-map blank initialization for Merge or reference clone initialization for Replace");
-        }
+        ValidateMapBoundOutputShape(profile, output, issues);
 
         foreach (InputArtifactProfileSpace inputSpace in profile.Spaces.OfType<InputArtifactProfileSpace>())
         {

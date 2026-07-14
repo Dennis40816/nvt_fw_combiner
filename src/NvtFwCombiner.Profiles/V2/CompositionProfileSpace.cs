@@ -20,6 +20,7 @@ internal enum CompositionProfileCapacityKind
 {
     ResolvedMap,
     Fixed,
+    RuntimeRequest,
 }
 
 /// <summary>Base value for one normalized mutable-space capacity.</summary>
@@ -54,6 +55,10 @@ internal sealed record FixedProfileCapacity : CompositionProfileCapacity
 
     internal long Bytes { get; }
 }
+
+/// <summary>Requires one positive capacity supplied by a typed logical-output request at compilation time.</summary>
+internal sealed record RuntimeRequestProfileCapacity()
+    : CompositionProfileCapacity(CompositionProfileCapacityKind.RuntimeRequest);
 
 /// <summary>Closed engine-owned mutable-space initialization kind.</summary>
 internal enum CompositionProfileInitializerKind

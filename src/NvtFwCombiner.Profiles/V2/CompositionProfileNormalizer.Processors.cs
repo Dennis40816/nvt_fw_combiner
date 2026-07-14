@@ -11,7 +11,7 @@ internal static partial class CompositionProfileNormalizer
         return NormalizeProcessorStage(document, "2.0", path);
     }
 
-    private static CompositionProfileProcessorStage NormalizeProcessorStage(
+    internal static CompositionProfileProcessorStage NormalizeProcessorStage(
         CompositionProfileProcessorStageDocument document,
         string schemaVersion,
         string path)

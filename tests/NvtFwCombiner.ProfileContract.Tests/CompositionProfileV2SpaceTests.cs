@@ -12,11 +12,13 @@ public sealed class CompositionProfileV2SpaceTests
     {
         var resolved = new ResolvedMapProfileCapacity();
         var fixedCapacity = new FixedProfileCapacity(4096);
+        var runtimeRequest = new RuntimeRequestProfileCapacity();
         var blank = new BlankProfileInitializer(0xFF);
         var clone = new CloneProfileInitializer("reference-input");
 
         Assert.Equal(CompositionProfileCapacityKind.ResolvedMap, resolved.Kind);
         Assert.Equal(4096, fixedCapacity.Bytes);
+        Assert.Equal(CompositionProfileCapacityKind.RuntimeRequest, runtimeRequest.Kind);
         Assert.Equal(0xFF, blank.FillByte);
         Assert.Equal("reference-input", clone.SourceSlotId);
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new FixedProfileCapacity(0));

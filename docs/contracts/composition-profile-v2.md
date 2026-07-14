@@ -1,8 +1,9 @@
-# Composition Profile Contract 2.0, 2.1, and 2.2
+# Composition Profile Contract 2.0, 2.1, 2.2, and 2.3
 
 The executable schemas are [`composition-profile-v2.schema.json`](composition-profile-v2.schema.json)
 [`composition-profile-v2.1.schema.json`](composition-profile-v2.1.schema.json), and
-[`composition-profile-v2.2.schema.json`](composition-profile-v2.2.schema.json). A trusted bundle
+[`composition-profile-v2.2.schema.json`](composition-profile-v2.2.schema.json), and
+[`composition-profile-v2.3.schema.json`](composition-profile-v2.3.schema.json). A trusted bundle
 selects one exact schema snapshot through its manifest content hash. They are the only declarative
 workflow policy compiled for Normal, AB, General, Merge, Replace, saved rules, and future Register work.
 
@@ -114,7 +115,12 @@ The 2.2 schema keeps that closed artifact-binding contract and adds the exact ex
 binding identifier grammar only for `legacy-combiner-v1.toolBindingId`, permitting a version suffix such
 as `legacy-combiner-1.13.0`. Every profile, view, stage, artifact, and invocation-profile identifier remains
 a canonical lowercase hyphenated id. Schema 2.0 and 2.1 retain the canonical identifier grammar for this
-field when normalized directly.
+field when normalized directly. The 2.3 schema preserves the 2.2 Combiner binding grammar and adds
+`runtime-request` capacity only to an `output-image`; `work-buffer` capacity remains `resolved-map` or
+`fixed`. This token is reserved for the General Merge logical-output route in
+[ADR 0019](../adr/0019-general-merge-logical-output-v2.md). Current map-bound lowering rejects it with a
+stable unsupported-declaration issue, so 2.0 through 2.2 and all resolved-map runtime semantics remain
+unchanged until that separate route is implemented and promoted.
 
 ## Input size policy
 

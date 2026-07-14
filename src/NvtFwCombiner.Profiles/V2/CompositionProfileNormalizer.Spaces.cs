@@ -8,6 +8,7 @@ internal static partial class CompositionProfileNormalizer
 {
     internal static CompositionProfileSpace NormalizeSpace(
         CompositionProfileSpaceDocument document,
+        string schemaVersion = "2.0",
         string path = "spaces[0]")
     {
         ArgumentNullException.ThrowIfNull(document);
@@ -24,10 +25,12 @@ internal static partial class CompositionProfileNormalizer
             "work-buffer" => NormalizeMutableSpace(
                 document,
                 CompositionProfileSpaceKind.WorkBuffer,
+                schemaVersion,
                 path),
             CompositionProfileWireTokens.OutputImageSpaceKind => NormalizeMutableSpace(
                 document,
                 CompositionProfileSpaceKind.OutputImage,
+                schemaVersion,
                 path),
             _ => throw Error($"{path}.kind", "Unknown profile space kind."),
         };
@@ -50,6 +53,7 @@ internal static partial class CompositionProfileNormalizer
     private static MutableCompositionProfileSpace NormalizeMutableSpace(
         CompositionProfileSpaceDocument document,
         CompositionProfileSpaceKind kind,
+        string schemaVersion,
         string path)
     {
         CompositionProfileCapacityDocument capacity = document.Capacity ?? throw Error(
@@ -61,7 +65,7 @@ internal static partial class CompositionProfileNormalizer
         return Wrap(path, () => new MutableCompositionProfileSpace(
             document.SpaceId,
             kind,
-            NormalizeCapacity(capacity, $"{path}.capacity"),
+            NormalizeCapacity(capacity, kind, schemaVersion, $"{path}.capacity"),
             NormalizeInitializer(initializer, $"{path}.initializer")));
     }
 
@@ -77,6 +81,8 @@ internal static partial class CompositionProfileNormalizer
 
     private static CompositionProfileCapacity NormalizeCapacity(
         CompositionProfileCapacityDocument document,
+        CompositionProfileSpaceKind spaceKind,
+        string schemaVersion,
         string path)
     {
         return document.Kind switch
@@ -87,6 +93,15 @@ internal static partial class CompositionProfileNormalizer
                 1,
                 long.MaxValue,
                 $"{path}.bytes"))),
+            "runtime-request" when StringComparer.Ordinal.Equals(schemaVersion, "2.3") &&
+                                   spaceKind == CompositionProfileSpaceKind.OutputImage =>
+                new RuntimeRequestProfileCapacity(),
+            "runtime-request" when StringComparer.Ordinal.Equals(schemaVersion, "2.3") => throw Error(
+                $"{path}.kind",
+                "The runtime-request capacity kind is valid only for an output-image space."),
+            "runtime-request" => throw Error(
+                $"{path}.kind",
+                "The runtime-request capacity kind requires composition-profile schema version '2.3'."),
             _ => throw Error($"{path}.kind", "Unknown profile capacity kind."),
         };
     }

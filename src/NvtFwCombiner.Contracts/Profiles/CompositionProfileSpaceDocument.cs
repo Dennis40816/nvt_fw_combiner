@@ -6,7 +6,7 @@ namespace NvtFwCombiner.Contracts.Profiles;
 /// <summary>DTO for one checked range relative to a named profile space.</summary>
 public sealed record CompositionProfileRelativeRangeDocument(JsonElement Start, JsonElement Length);
 
-/// <summary>DTO for one resolved-map or fixed space-capacity shape.</summary>
+/// <summary>DTO for one resolved-map, fixed, or runtime-request space-capacity shape.</summary>
 public sealed record CompositionProfileCapacityDocument(
     string Kind,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

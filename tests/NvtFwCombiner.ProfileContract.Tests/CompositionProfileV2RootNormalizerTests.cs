@@ -67,6 +67,7 @@ public sealed class CompositionProfileV2RootNormalizerTests
     [InlineData("2.0")]
     [InlineData("2.1")]
     [InlineData("2.2")]
+    [InlineData("2.3")]
     public void RootNormalizerAcceptsPinnedSchemaVersions(string schemaVersion)
     {
         CompositionProfileDefinition definition = CompositionProfileNormalizer.Normalize(
@@ -75,12 +76,29 @@ public sealed class CompositionProfileV2RootNormalizerTests
         Assert.Equal("synthetic-merge", definition.ProfileId);
     }
 
+    /// <summary>Verifies schema 2.3 retains the 2.2 versioned Combiner binding grammar through full graph assembly.</summary>
+    [Fact]
+    public void RootNormalizerBuildsV23ProfileWithPublishedCombinerBinding()
+    {
+        CompositionProfileDocument valid = ValidMerge();
+        CompositionProfileDefinition definition = CompositionProfileNormalizer.Normalize(valid with
+        {
+            SchemaVersion = "2.3",
+            Operations = [CopyOperation("copy-range"), RunProcessorOperation()],
+            ProcessorStages = [LegacyCombinerStage()],
+        });
+
+        LegacyCombinerProfileProcessorStage stage = Assert.IsType<LegacyCombinerProfileProcessorStage>(
+            Assert.Single(definition.ProcessorStages));
+        Assert.Equal("legacy-combiner-1.13.0", stage.ToolBindingId);
+    }
+
     /// <summary>Verifies unsupported root schema and composition tokens fail before section or graph assembly.</summary>
     [Fact]
     public void RootNormalizerRejectsUnsupportedSchemaAndCompositionKindWithPaths()
     {
         CompositionProfileNormalizationException schema = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.Normalize(ValidMerge() with { SchemaVersion = "2.3" }));
+            CompositionProfileNormalizer.Normalize(ValidMerge() with { SchemaVersion = "2.4" }));
         CompositionProfileNormalizationException kind = Assert.Throws<CompositionProfileNormalizationException>(() =>
             CompositionProfileNormalizer.Normalize(ValidMerge() with { CompositionKind = "future" }));
 
@@ -310,6 +328,36 @@ public sealed class CompositionProfileV2RootNormalizerTests
             kind,
             SourceViewId: "source-view",
             TargetViewId: "target-view");
+    }
+
+    private static CompositionProfileOperationDocument RunProcessorOperation()
+    {
+        return new CompositionProfileOperationDocument(
+            "run-combiner",
+            Number("1"),
+            "reject",
+            "Run the staged Combiner.",
+            "run-processor",
+            ProcessorStageId: "legacy-postbuild");
+    }
+
+    private static CompositionProfileProcessorStageDocument LegacyCombinerStage()
+    {
+        return new CompositionProfileProcessorStageDocument(
+            "legacy-postbuild",
+            "legacy-combiner-v1",
+            "output",
+            "transform",
+            "relocation",
+            "none",
+            ["target-view"],
+            ["target-view"],
+            "fail-closed",
+            ToolBindingId: "legacy-combiner-1.13.0",
+            InvocationProfileId: "synthetic-profile",
+            StagedSourceBindings: [],
+            EvidenceRef: "processor-evidence",
+            StagedArtifactBindings: []);
     }
 
     private static JsonElement Number(string value)

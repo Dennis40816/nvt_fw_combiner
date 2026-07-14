@@ -10,9 +10,10 @@ internal static partial class CompositionProfileNormalizer
         ArgumentNullException.ThrowIfNull(document);
         if (!StringComparer.Ordinal.Equals(document.SchemaVersion, "2.0") &&
             !StringComparer.Ordinal.Equals(document.SchemaVersion, "2.1") &&
-            !StringComparer.Ordinal.Equals(document.SchemaVersion, "2.2"))
+            !StringComparer.Ordinal.Equals(document.SchemaVersion, "2.2") &&
+            !StringComparer.Ordinal.Equals(document.SchemaVersion, "2.3"))
         {
-            throw Error("schemaVersion", "Expected composition-profile schema version '2.0', '2.1', or '2.2'.");
+            throw Error("schemaVersion", "Expected composition-profile schema version '2.0', '2.1', '2.2', or '2.3'.");
         }
 
         CompositionKind compositionKind = NormalizeCompositionKind(
@@ -37,7 +38,7 @@ internal static partial class CompositionProfileNormalizer
         CompositionProfileSpace[] spaces = NormalizeList(
             document.Spaces,
             "spaces",
-            NormalizeSpace);
+            (space, path) => NormalizeSpace(space, document.SchemaVersion, path));
         CompositionProfileView[] views = NormalizeList(
             document.Views,
             "views",

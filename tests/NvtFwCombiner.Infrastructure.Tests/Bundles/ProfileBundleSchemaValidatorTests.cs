@@ -9,7 +9,7 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.Infrastructure.Tests.Bundles;
 
 /// <summary>Tests offline Draft 2020-12 validation for closed bundle snapshots.</summary>
-public sealed class ProfileBundleSchemaValidatorTests
+public sealed partial class ProfileBundleSchemaValidatorTests
 {
     private const string SchemaId =
         "https://example.invalid/nfc/schemas/synthetic-profile.schema.json";

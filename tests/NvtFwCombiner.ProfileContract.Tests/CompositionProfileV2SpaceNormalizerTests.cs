@@ -48,6 +48,49 @@ public sealed class CompositionProfileV2SpaceNormalizerTests
         Assert.Equal("reference-input", Assert.IsType<CloneProfileInitializer>(output.Initializer).SourceSlotId);
     }
 
+    /// <summary>Verifies logical-output capacity is version-gated rather than accepted by older declarations.</summary>
+    [Theory]
+    [InlineData("2.0")]
+    [InlineData("2.1")]
+    [InlineData("2.2")]
+    public void SpaceRejectsRuntimeRequestCapacityBeforeV23(string schemaVersion)
+    {
+        var document = new CompositionProfileSpaceDocument(
+            "output",
+            "output-image",
+            Capacity: new CompositionProfileCapacityDocument("runtime-request"),
+            Initializer: new CompositionProfileInitializerDocument("blank", Number("0")));
+
+        CompositionProfileNormalizationException rejected = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            CompositionProfileNormalizer.NormalizeSpace(document, schemaVersion));
+
+        Assert.Equal("spaces[0].capacity.kind", rejected.Path);
+    }
+
+    /// <summary>Verifies logical-output capacity is admitted only on an output image in schema 2.3.</summary>
+    [Fact]
+    public void SpaceMapsRuntimeRequestCapacityOnlyForV23OutputImage()
+    {
+        var output = new CompositionProfileSpaceDocument(
+            "output",
+            "output-image",
+            Capacity: new CompositionProfileCapacityDocument("runtime-request"),
+            Initializer: new CompositionProfileInitializerDocument("blank", Number("0")));
+        var workBuffer = new CompositionProfileSpaceDocument(
+            "work",
+            "work-buffer",
+            Capacity: new CompositionProfileCapacityDocument("runtime-request"),
+            Initializer: new CompositionProfileInitializerDocument("blank", Number("0")));
+
+        MutableCompositionProfileSpace normalized = Assert.IsType<MutableCompositionProfileSpace>(
+            CompositionProfileNormalizer.NormalizeSpace(output, "2.3"));
+        CompositionProfileNormalizationException rejected = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            CompositionProfileNormalizer.NormalizeSpace(workBuffer, "2.3"));
+
+        _ = Assert.IsType<RuntimeRequestProfileCapacity>(normalized.Capacity);
+        Assert.Equal("spaces[0].capacity.kind", rejected.Path);
+    }
+
     /// <summary>Verifies unknown and incomplete space unions fail at exact source paths.</summary>
     [Fact]
     public void SpaceRejectsUnknownAndMissingUnionMembersWithPaths()
