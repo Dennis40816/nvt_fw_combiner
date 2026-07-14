@@ -91,6 +91,21 @@ class CandidateIntakeCliTests(unittest.TestCase):
             self.assertNotIn("sourcePath", evidence["sourceArtifacts"][0])
             self.assertEqual("not-performed", report["runtimeRegistration"])
             self.assertEqual("not-performed", report["supportPromotion"])
+            self.assertEqual(
+                [
+                    {
+                        "factId": "nt51951-map-pending",
+                        "factKind": "range",
+                        "disposition": "unresolved",
+                        "promotionImpact": "blocks-map-resolution",
+                    }
+                ],
+                report["promotionBlockers"],
+            )
+            self.assertIn(
+                "`nt51951-map-pending`",
+                (output / "NEXT_STEPS.md").read_text(encoding="utf-8"),
+            )
             serialized_output = "\n".join(
                 [
                     (output / "evidence-manifest.json").read_text(encoding="utf-8"),
@@ -378,6 +393,12 @@ class CandidateIntakeCliTests(unittest.TestCase):
 
             self.assertEqual(0, result.returncode, result.stderr)
             self.assertEqual("candidate", json.loads((output / "evidence-manifest.json").read_text(encoding="utf-8"))["status"])
+            report = json.loads((output / "intake-report.json").read_text(encoding="utf-8"))
+            self.assertEqual([], report["promotionBlockers"])
+            self.assertIn(
+                "No promotion blocker was declared. Candidate status still grants no runtime authority.",
+                (output / "NEXT_STEPS.md").read_text(encoding="utf-8"),
+            )
 
     def test_rejects_output_directory_below_source_root(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:

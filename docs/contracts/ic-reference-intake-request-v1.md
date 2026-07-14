@@ -25,7 +25,9 @@ On success, the destination contains the source snapshots plus:
 
 - `evidence-manifest.json`: a `firmware-evidence-manifest-v1` document with
   `status = candidate` and deterministic intake provenance;
-- `intake-report.json`: request scope and staged relative paths; and
+- `intake-report.json`: request scope, staged relative paths, and an ordered
+  `promotionBlockers` projection of only the request-declared facts whose
+  disposition remains `unresolved` or whose `promotionImpact` is not `none`; and
 - `NEXT_STEPS.md`: human review and promotion gates.
 
 The output evidence manifest deliberately does not contain local source paths
@@ -33,6 +35,8 @@ or a runtime bundle reference. Every free-text value copied to candidate output
 rejects local-path syntax; `sourceRef` is intake-only and is not emitted.
 Promotion requires a separate reviewed commit through the trusted
 profile-bundle materialization path.
+The blocker projection never infers missing firmware facts: an empty list still
+has candidate-only status and grants no runtime authority.
 
 ## Request rules
 

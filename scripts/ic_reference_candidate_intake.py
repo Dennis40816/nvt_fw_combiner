@@ -593,6 +593,16 @@ def build_candidate_intake_report(
         "supportPromotion": "not-performed",
         "rangeInference": "not-performed",
         "schemaAllowlistChange": "not-performed",
+        "promotionBlockers": [
+            {
+                "factId": fact["factId"],
+                "factKind": fact["factKind"],
+                "disposition": fact["disposition"],
+                "promotionImpact": fact["promotionImpact"],
+            }
+            for fact in request["facts"]
+            if fact["disposition"] == "unresolved" or fact["promotionImpact"] != "none"
+        ],
         "artifacts": [
             {
                 "artifactId": artifact["artifactId"],
@@ -614,13 +624,31 @@ def write_candidate_next_steps(path: Path, report: dict[str, Any]) -> None:
         f"- Owner: `{report['owner']}`",
         "- Status: candidate only; runtime registration and support promotion were not performed.",
         "",
-        "## Required Review",
+        "## Declared Promotion Blockers",
         "",
-        "- Verify each source hash, fact citation, disposition, and promotion blocker.",
-        "- Resolve no range, alias, metadata, integrity, or processor fact by inference.",
-        "- Materialize a trusted profile bundle only in a separate reviewed change.",
-        "- Add runtime registration, profile promotion, and golden evidence only after their normal gates pass.",
     ]
+    blockers = report["promotionBlockers"]
+    if blockers:
+        lines.extend(
+            f"- `{blocker['factId']}`: `{blocker['factKind']}` is `{blocker['disposition']}`; "
+            f"`{blocker['promotionImpact']}`."
+            for blocker in blockers
+        )
+    else:
+        lines.append(
+            "- No promotion blocker was declared. Candidate status still grants no runtime authority."
+        )
+    lines.extend(
+        [
+            "",
+            "## Required Review",
+            "",
+            "- Verify each source hash, fact citation, disposition, and promotion blocker.",
+            "- Resolve no range, alias, metadata, integrity, or processor fact by inference.",
+            "- Materialize a trusted profile bundle only in a separate reviewed change.",
+            "- Add runtime registration, profile promotion, and golden evidence only after their normal gates pass.",
+        ]
+    )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
