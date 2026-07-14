@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 using static NvtFwCombiner.Bootstrap.WorkbenchIssueCodes;
 
@@ -222,6 +223,60 @@ public sealed class GeneralMergeCliCommandTests
         JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
         Assert.Equal("profile.plan.invalid", issue.GetProperty("Code").GetString());
         Assert.Contains("overlaps earlier operation", issue.GetProperty("Message").GetString(), StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies a rejected V2 General Merge request does not disable unrelated Standard Merge or Replace workflows.</summary>
+    [Fact]
+    public async Task GeneralMergeV2RejectionDoesNotDisableUnrelatedWorkflows()
+    {
+        using var workspace = TempWorkspace.Create();
+        string source = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13]);
+
+        WorkbenchRunResult rejected = await WorkbenchCompositionService.RunGeneralMergeAsync(
+            "NT51950",
+            "0x10",
+            [
+                new WorkbenchGeneralMergeMappingInput("general-merge-map-1", source, "0x0", "0x4", "0x3"),
+                new WorkbenchGeneralMergeMappingInput("general-merge-map-2", source, "0x1", "0x5", "0x2"),
+            ],
+            build: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(rejected.Succeeded);
+
+        string dp = workspace.Write("standard-dp.bin", new byte[0x40000]);
+        string tp = workspace.Write("standard-tp.bin", new byte[0x30000]);
+        WorkbenchRunResult standardMerge = await WorkbenchCompositionService.RunStandardMergeAsync(
+            "NT51920",
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                [CompositionAddressSpaceIds.DpInput] = dp,
+                [CompositionAddressSpaceIds.TpInput] = tp,
+            },
+            build: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.True(standardMerge.Succeeded);
+
+        string baseImage = workspace.Write("replace-base.bin", [0, 0, 0, 0, 0, 0, 0, 0]);
+        string ctrlRam = workspace.Write("ctrlram.bin", [0xAA, 0xBB, 0xCC, 0xDD]);
+        CliRunResult replace = await RunCliAsync([
+            "ctrlram-replace",
+            "preview",
+            "--profile",
+            "synthetic-ctrlram-replace",
+            "--ic-family",
+            "NT51",
+            "--ic-num",
+            "932",
+            "--base",
+            baseImage,
+            "--ctrlram",
+            ctrlRam,
+        ]);
+
+        Assert.Equal(0, replace.ExitCode);
+        Assert.Contains("Status: Succeeded", replace.Output, StringComparison.Ordinal);
     }
 
     /// <summary>Locks the reviewed legacy General Merge bytes through the default V2 route for every built-in IC.</summary>
