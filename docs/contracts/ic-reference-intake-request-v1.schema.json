@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/nfc/schemas/ic-reference-intake-request-v1.schema.json",
+  "title": "NVT FW Combiner IC Reference Intake Request 1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "requestId",
+    "manifestId",
+    "manifestVersion",
+    "requestedAtUtc",
+    "owner",
+    "workflow",
+    "candidateScope",
+    "sourceArtifacts",
+    "facts",
+    "reviews"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "requestId": { "$ref": "#/$defs/id" },
+    "manifestId": { "$ref": "#/$defs/id" },
+    "manifestVersion": { "$ref": "#/$defs/semver" },
+    "requestedAtUtc": { "$ref": "#/$defs/utcDateTime" },
+    "owner": { "type": "string", "minLength": 1 },
+    "sourceRef": { "type": "string", "minLength": 1 },
+    "workflow": {
+      "enum": [
+        "reference-only",
+        "standard-merge",
+        "dp-replace",
+        "ctrlram-replace",
+        "general-replace"
+      ]
+    },
+    "case": { "$ref": "#/$defs/id" },
+    "candidateScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["memberIds", "modeIds", "capacityBytes", "topologyChoices"],
+      "properties": {
+        "memberIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^NT[0-9A-Z-]+$" }
+        },
+        "modeIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "capacityBytes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "integer", "minimum": 1 }
+        },
+        "topologyChoices": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "exclusions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "sourceArtifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/sourceArtifactRequest" }
+    },
+    "facts": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "firmware-evidence-manifest-v1.schema.json#/$defs/fact" }
+    },
+    "reviews": {
+      "type": "array",
+      "items": { "$ref": "firmware-evidence-manifest-v1.schema.json#/$defs/review" }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "utcDateTime": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "sourcePath": {
+      "type": "string",
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9~$][A-Za-z0-9._ ~$-]*(?:/[A-Za-z0-9~$][A-Za-z0-9._ ~$-]*)*$"
+    },
+    "sourceArtifactRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifactId",
+        "sourceKind",
+        "logicalName",
+        "sourcePath",
+        "contentHash",
+        "sizeBytes"
+      ],
+      "properties": {
+        "artifactId": { "$ref": "#/$defs/id" },
+        "sourceKind": {
+          "enum": ["workbook", "source-code", "firmware", "document", "issue-export", "owner-record"]
+        },
+        "logicalName": { "type": "string", "minLength": 1 },
+        "sourcePath": { "$ref": "#/$defs/sourcePath" },
+        "contentHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "sizeBytes": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}

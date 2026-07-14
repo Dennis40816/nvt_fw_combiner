@@ -1,4 +1,4 @@
-"""Stage owner-provided IC reference evidence into the golden handoff area."""
+"""Stage owner-provided IC reference evidence into a reviewed handoff area."""
 
 from __future__ import annotations
 
@@ -13,16 +13,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from ic_reference_candidate_intake import WORKFLOWS, stage_manifest_request
+
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT_ROOT = ROOT / "testdata" / "golden" / "owner-handoff"
-
-WORKFLOWS = (
-    "reference-only",
-    "standard-merge",
-    "dp-replace",
-    "ctrlram-replace",
-    "general-replace",
-)
 
 SKIP_DIRECTORY_NAMES = {
     ".git",
@@ -152,13 +146,21 @@ ROLE_HINTS = (
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source", required=True, type=Path, help="Folder containing owner-provided files.")
-    parser.add_argument("--ic", required=True, help="IC id, for example NT51950 or 51950.")
-    parser.add_argument("--mode", choices=WORKFLOWS, default="reference-only")
+    input_source = parser.add_mutually_exclusive_group(required=True)
+    input_source.add_argument("--source", type=Path, help="Folder containing owner-provided files.")
+    input_source.add_argument(
+        "--request",
+        type=Path,
+        help="Manifest-driven candidate intake request; requires --source-root and --output-dir.",
+    )
+    parser.add_argument("--source-root", type=Path, help="Root containing files declared by --request.")
+    parser.add_argument("--output-dir", type=Path, help="New, caller-selected candidate staging directory.")
+    parser.add_argument("--ic", help="IC id, for example NT51950 or 51950.")
+    parser.add_argument("--mode", choices=WORKFLOWS)
     parser.add_argument("--case", help="Optional case name, for example single, cascade, or dp-0x40000.")
-    parser.add_argument("--owner", default="owner", help="Owner/provenance label recorded in the manifest.")
-    parser.add_argument("--source-ref", default="", help="Free-form source note, archive name, ticket, or transfer id.")
-    parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
+    parser.add_argument("--owner", help="Owner/provenance label recorded in the manifest.")
+    parser.add_argument("--source-ref", help="Free-form source note, archive name, ticket, or transfer id.")
+    parser.add_argument("--output-root", type=Path)
     parser.add_argument("--run-id", help="Deterministic run id. Defaults to current UTC timestamp.")
     parser.add_argument("--dry-run", action="store_true", help="Print the manifest without copying files.")
     return parser.parse_args()
@@ -506,11 +508,20 @@ def validate_output_location(output_dir: Path, dry_run: bool) -> None:
 def main() -> int:
     args = parse_args()
     try:
+        if args.request is not None:
+            return stage_manifest_request(args)
+        if args.source is None:
+            raise ValueError("--source is required when --request is not used")
+        if args.source_root is not None or args.output_dir is not None:
+            raise ValueError("--source-root and --output-dir are available only with --request")
+        if args.ic is None:
+            raise ValueError("--ic is required when --source is used")
         source_dir = resolve_existing_directory(args.source)
         ic, ic_slug = normalize_ic(args.ic)
+        mode = args.mode or "reference-only"
         run_id = args.run_id or now_run_id()
-        output_root = args.output_root.expanduser().resolve()
-        output_dir = build_output_dir(output_root, args.mode, ic_slug, args.case, run_id)
+        output_root = (args.output_root or DEFAULT_OUTPUT_ROOT).expanduser().resolve()
+        output_dir = build_output_dir(output_root, mode, ic_slug, args.case, run_id)
         validate_output_location(output_dir, args.dry_run)
 
         files = iter_source_files(source_dir)
@@ -519,10 +530,10 @@ def main() -> int:
             source_dir=source_dir,
             output_dir=output_dir,
             ic=ic,
-            mode=args.mode,
+            mode=mode,
             case=args.case,
-            owner=args.owner,
-            source_ref=args.source_ref,
+            owner=args.owner or "owner",
+            source_ref=args.source_ref or "",
             run_id=run_id,
             artifacts=artifacts,
         )

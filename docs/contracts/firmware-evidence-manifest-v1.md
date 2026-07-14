@@ -22,7 +22,8 @@ identified by logical name, exact byte size, and SHA-256. A repository path is o
 point outside the repository. Private files remain in the owner's evidence store; the manifest keeps
 only provenance, hashes, and precise locations such as workbook sheet/cell or source line.
 
-Offline workbook intake may add `intakeProvenance` only to candidate output. The intake tool writes
-to a caller-selected empty staging directory, opens Office files read-only, does not execute macros,
+Offline workbook intake may add `intakeProvenance` only to candidate output. The standard declared
+input is [`ic-reference-intake-request-v1`](ic-reference-intake-request-v1.md). The intake tool
+writes to a caller-selected empty staging directory, reads source files only, does not execute macros,
 and cannot edit approved contracts, profiles, bundles, or evidence. Candidate output has no runtime
 authority until reviewed and committed as an approved manifest in a trusted bundle.

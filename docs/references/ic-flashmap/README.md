@@ -21,7 +21,9 @@ These files are evidence only. Production code must not execute anything from th
 For future IC evidence drops, first run:
 
 ```text
-python scripts/intake_ic_reference.py --source <owner-drop-folder> --ic <NTxxxxx> --mode <workflow>
+python scripts/intake_ic_reference.py --request request.json --source-root <owner-drop-folder> --output-dir <new-empty-staging-path>
 ```
 
-Promote only reviewed, non-payload reference documents from the generated handoff manifest into this directory, then update `SOURCE_MANIFEST.json` with source path, size, SHA-256, and approval/provenance notes.
+Use the declared request contract at
+[`docs/contracts/ic-reference-intake-request-v1.md`](../../contracts/ic-reference-intake-request-v1.md).
+Promote only reviewed, non-payload reference documents from the candidate evidence manifest into this directory, then update `SOURCE_MANIFEST.json` with source path, size, SHA-256, and approval/provenance notes.
