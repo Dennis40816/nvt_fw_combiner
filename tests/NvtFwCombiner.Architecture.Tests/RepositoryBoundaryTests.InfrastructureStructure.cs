@@ -35,10 +35,14 @@ public sealed partial class RepositoryBoundaryTests
     {
         string materializer = ReadText(
             "src/NvtFwCombiner.Infrastructure/Bundles/CandidateEvidenceIntakeMaterializer.cs");
+        string cli = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.CandidateIntake.cs");
 
         Assert.Contains("\"runtimeAuthority\"] = \"none\"", materializer, StringComparison.Ordinal);
         Assert.DoesNotContain("ProfileBundleLoader", materializer, StringComparison.Ordinal);
         Assert.DoesNotContain("CompiledComposition", materializer, StringComparison.Ordinal);
         Assert.DoesNotContain("NvtFwCombiner.Application", materializer, StringComparison.Ordinal);
+        Assert.DoesNotContain("NvtFwCombiner.Application", cli, StringComparison.Ordinal);
+        Assert.DoesNotContain("NvtFwCombiner.Profiles", cli, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchCompositionService", cli, StringComparison.Ordinal);
     }
 }

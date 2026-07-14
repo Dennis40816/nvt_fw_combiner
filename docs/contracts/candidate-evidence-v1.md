@@ -84,8 +84,14 @@ points, non-regular files, network roots, case collisions, source/output
 containment, and destination overwrite. Local source paths are retained only
 in the intake request and never appear in the source bundle, root, or report.
 
-The future C# use case validates this schema through the pinned local
-`Json.Schema` authority, validates cross-document identifiers/hashes and the
-complete inventory, then uses shared closed-root Infrastructure primitives. It
-does not interpret BIN bytes, execute workbook code, resolve a map, compile a
-profile, register an IC, invoke a processor, or call `ProfileBundleLoader`.
+Use the C# command to materialize a candidate evidence set:
+
+```text
+nvt_fw_combiner candidate-intake stage --request <request.json> --source-root <owner-drop-folder> --output-dir <new-absent-path>
+```
+
+The command validates this schema through the pinned local `Json.Schema`
+authority, validates cross-document identifiers/hashes and the complete
+inventory, then uses shared closed-root Infrastructure primitives. It does not
+interpret BIN bytes, execute workbook code, resolve a map, compile a profile,
+register an IC, invoke a processor, or call `ProfileBundleLoader`.

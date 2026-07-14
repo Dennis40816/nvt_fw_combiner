@@ -47,6 +47,7 @@ public static partial class CliApplication
             return args[0] switch
             {
                 "profiles" => await RunProfilesAsync(args[1..], output, error).ConfigureAwait(false),
+                "candidate-intake" => await RunCandidateIntakeAsync(args[1..], output, error).ConfigureAwait(false),
                 IcWorkflowIds.StandardMerge => await RunStandardMergeAsync(args[1..], output, error, cancellationToken)
                     .ConfigureAwait(false),
                 IcWorkflowIds.GeneralMerge => await MergeCliCommandHandler.RunAsync(

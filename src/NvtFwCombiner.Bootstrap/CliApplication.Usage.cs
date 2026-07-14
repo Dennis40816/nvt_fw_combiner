@@ -7,6 +7,7 @@ public static partial class CliApplication
         await output.WriteLineAsync("Usage:").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner [--version|version|doctor]").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner profiles list").ConfigureAwait(false);
+        await output.WriteLineAsync("  nvt_fw_combiner candidate-intake stage --request <path> --source-root <path> --output-dir <absent-path>").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner standard-merge preview --profile <id|ic> --dp <path> --tp <path> [--ld <path>] [--output <path>] [--report <path>]").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner standard-merge build --profile <id|ic> --dp <path> --tp <path> [--ld <path>] [--output <path>] [--report <path>] [--overwrite]").ConfigureAwait(false);
         await output.WriteLineAsync("  nvt_fw_combiner general-merge preview --profile <ic> --size <length> --mapping <source-start+target-start+length=path> [--mapping ...] [--report <path>]").ConfigureAwait(false);
@@ -24,6 +25,11 @@ public static partial class CliApplication
     private static async Task WriteProfilesUsageAsync(TextWriter output)
     {
         await output.WriteLineAsync("Usage: nvt_fw_combiner profiles list").ConfigureAwait(false);
+    }
+
+    private static async Task WriteCandidateIntakeUsageAsync(TextWriter output)
+    {
+        await output.WriteLineAsync("Usage: nvt_fw_combiner candidate-intake stage --request <path> --source-root <path> --output-dir <absent-path>").ConfigureAwait(false);
     }
 
     private static async Task WriteStandardMergeUsageAsync(TextWriter output)
