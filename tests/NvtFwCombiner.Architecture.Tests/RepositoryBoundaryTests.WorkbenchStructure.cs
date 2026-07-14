@@ -143,6 +143,32 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("FirmwareConfigMetadataReader.TryRead", replacePostbuild, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies no production runtime path can bypass the canonical NVT Backup FWConfig reader.</summary>
+    [Fact]
+    public void ProductionFirmwareConfigConsumersUseOnlyCanonicalBackupReader()
+    {
+        string sourceRoot = Path.Combine(Root.FullName, "src");
+        string canonicalReaderPath = Path.Combine(
+            sourceRoot,
+            "NvtFwCombiner.Application",
+            "FlashMaps",
+            "FirmwareConfigMetadataReader.cs");
+        string productionSources = string.Join(
+            Environment.NewLine,
+            Directory.GetFiles(sourceRoot, "*.cs", SearchOption.AllDirectories)
+                .Where(path => !string.Equals(path, canonicalReaderPath, StringComparison.OrdinalIgnoreCase))
+                .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+                .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+                .Order(StringComparer.Ordinal)
+                .Select(File.ReadAllText));
+
+        Assert.DoesNotContain(
+            "FirmwareConfigMetadataReader.TryReadAtAbsoluteAddress",
+            productionSources,
+            StringComparison.Ordinal);
+        Assert.Contains("FirmwareConfigMetadataReader.TryReadBackup", productionSources, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies the raw Hex Editor stays independent from firmware composition policy and UI file I/O.</summary>
     [Fact]
     public void HexEditorUsesRawBinaryFacadeWithoutUiFirmwareIo()
