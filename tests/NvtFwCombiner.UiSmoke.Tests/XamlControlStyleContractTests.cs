@@ -1,5 +1,9 @@
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Avalonia;
+using Avalonia.Media;
+using Avalonia.Styling;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.Behaviors;
 using NvtFwCombiner.Presentation.Avalonia.Views;
 using NvtFwCombiner.TestSupport;
@@ -7,8 +11,14 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 /// <summary>Regression coverage for shared Avalonia visual-control contracts.</summary>
-public sealed class XamlControlStyleContractTests
+public sealed partial class XamlControlStyleContractTests
 {
+    private static readonly Regex ThemeTokenDefinitionPattern = ThemeTokenDefinitionRegex();
+
+    private static readonly Regex DynamicThemeReferencePattern = DynamicThemeReferenceRegex();
+
+    private static readonly Regex ColorLiteralPattern = ColorLiteralRegex();
+
     /// <summary>Keeps every technical hexadecimal field on one canonical display format.</summary>
     [Fact]
     public void HexInputBehaviorNormalizesAddressesBytesAndExcelPaste()
@@ -81,57 +91,43 @@ public sealed class XamlControlStyleContractTests
         Assert.Contains("Classes=\"slotBadge\"", slotCard, StringComparison.Ordinal);
     }
 
-    /// <summary>Keeps the shared shell palette in one application-level resource dictionary.</summary>
+    /// <summary>Keeps the shared shell palette defined once and resolves every migrated resource reference.</summary>
     [Fact]
-    public void SharedThemeTokensOwnTheWindowStylesAndModalChrome()
+    public void SharedThemeTokensHaveUniqueDefinitionsAndOwnMigratedViews()
     {
         string application = ReadPresentationFile("App.axaml");
         string tokens = ReadPresentationFile("Styles/ThemeTokens.axaml");
-        string controlStyles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
-        string windowStyles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
-        string buttonStyles = ReadPresentationFile("Styles/MainWindowButtonStyles.axaml");
-        string visualStyles = ReadPresentationFile("Styles/MainWindowVisualStyles.axaml");
+        Match[] definitions = ReadThemeTokenDefinitions();
+        var definedKeys = definitions
+            .Select(static definition => definition.Groups["key"].Value)
+            .ToHashSet(StringComparer.Ordinal);
+        var definedColors = definitions
+            .Select(static definition => definition.Groups["color"].Value)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        Assert.Contains("Styles/ThemeTokens.axaml", application, StringComparison.Ordinal);
-        foreach (string token in new[]
-        {
-            "NfcSurfaceBrush",
-            "NfcBorderBrush",
-            "NfcTextStrongBrush",
-            "NfcAccentBrush",
-            "NfcInfoTextBrush",
-            "NfcWarningAccentBrush",
-            "NfcWarningTextSubtleBrush",
-            "NfcModalScrimBrush",
-            "NfcReportModalScrimBrush",
-        })
-        {
-            Assert.Contains($"x:Key=\"{token}\"", tokens, StringComparison.Ordinal);
-        }
+        Assert.Contains("<Application.Resources>", application, StringComparison.Ordinal);
+        Assert.Contains(
+            "<ResourceInclude Source=\"avares://NvtFwCombiner.Presentation.Avalonia/Styles/ThemeTokens.axaml\" />",
+            application,
+            StringComparison.Ordinal);
+        Assert.NotEmpty(definitions);
+        Assert.Equal(definitions.Length, tokens.Split("<SolidColorBrush", StringSplitOptions.None).Length - 1);
+        Assert.Equal(definitions.Length, definedKeys.Count);
+        Assert.Equal(definitions.Length, definedColors.Count);
 
-        foreach (string styles in new[] { controlStyles, windowStyles, buttonStyles, visualStyles })
-        {
-            Assert.Contains("{DynamicResource Nfc", styles, StringComparison.Ordinal);
-            Assert.DoesNotContain("#FFFFFF", styles, StringComparison.Ordinal);
-        }
-
-        foreach (string modal in new[]
-        {
+        string[] migratedPaths =
+        [
+            "MainWindow.axaml",
+            "Styles/MainWindowControlStyles.axaml",
+            "Styles/MainWindowStyles.axaml",
+            "Styles/MainWindowButtonStyles.axaml",
+            "Styles/MainWindowVisualStyles.axaml",
             "Views/CtrlRamFirmwareVersionModal.axaml",
             "Views/FirmwareIcMismatchModal.axaml",
             "Views/HexEditorInsertBytesModal.axaml",
             "Views/HexEditorSaveModal.axaml",
             "Views/ReplaceSelectionModal.axaml",
             "Views/WorkflowContextSetupModal.axaml",
-        })
-        {
-            string content = ReadPresentationFile(modal);
-            Assert.Contains("{DynamicResource NfcModalScrimBrush}", content, StringComparison.Ordinal);
-            Assert.DoesNotContain("#660F172A", content, StringComparison.Ordinal);
-        }
-
-        foreach (string template in new[]
-        {
             "Resources/MainWindowPageTemplates.axaml",
             "Resources/MainWindowReportAuditTemplates.axaml",
             "Resources/MainWindowReportChangeTemplates.axaml",
@@ -147,11 +143,53 @@ public sealed class XamlControlStyleContractTests
             "Views/HexEditorPanel.axaml",
             "Views/ReportCodeBlockView.axaml",
             "Views/ReportModal.axaml",
-        })
+        ];
+
+        foreach (string path in migratedPaths)
         {
-            string content = ReadPresentationFile(template);
-            Assert.Contains("{DynamicResource Nfc", content, StringComparison.Ordinal);
-            Assert.DoesNotContain("#", content, StringComparison.Ordinal);
+            string content = ReadPresentationFile(path);
+            Match[] references = [.. DynamicThemeReferencePattern.Matches(content).Cast<Match>()];
+            string[] colorLiterals = [.. ColorLiteralPattern.Matches(content).Select(static literal => literal.Value)];
+
+            Assert.NotEmpty(references);
+            Assert.Empty(references
+                .Select(static reference => reference.Groups["key"].Value)
+                .Except(definedKeys, StringComparer.Ordinal));
+
+            if (string.Equals(path, "Styles/MainWindowVisualStyles.axaml", StringComparison.Ordinal))
+            {
+                Assert.Equal(["#143B821A", "#143B8214"], colorLiterals);
+            }
+            else
+            {
+                Assert.Empty(colorLiterals);
+            }
+        }
+
+        var referencedKeys = ReadPresentationXamlFiles()
+            .SelectMany(content => DynamicThemeReferencePattern.Matches(content)
+                .Cast<Match>()
+                .Select(static reference => reference.Groups["key"].Value))
+            .ToHashSet(StringComparer.Ordinal);
+
+        Assert.Empty(referencedKeys.Except(definedKeys, StringComparer.Ordinal));
+        Assert.Empty(definedKeys.Except(referencedKeys, StringComparer.Ordinal));
+    }
+
+    /// <summary>Loads the application resource tree and resolves every shared color token as a brush.</summary>
+    [Fact]
+    public void ThemeTokensResolveFromTheApplicationResourceTree()
+    {
+        var app = new App();
+        app.Initialize();
+
+        foreach (string key in ReadThemeTokenDefinitions()
+                     .Select(static definition => definition.Groups["key"].Value))
+        {
+            Assert.True(
+                app.TryGetResource(key, ThemeVariant.Default, out object? resource),
+                $"Theme token '{key}' was not available from Application.Resources.");
+            _ = Assert.IsType<SolidColorBrush>(resource);
         }
     }
 
@@ -500,4 +538,18 @@ public sealed class XamlControlStyleContractTests
         return Directory.EnumerateFiles(presentationRoot, "*.axaml", SearchOption.AllDirectories)
             .Select(File.ReadAllText);
     }
+
+    private static Match[] ReadThemeTokenDefinitions()
+    {
+        return [.. ThemeTokenDefinitionPattern.Matches(ReadPresentationFile("Styles/ThemeTokens.axaml")).Cast<Match>()];
+    }
+
+    [GeneratedRegex("<SolidColorBrush\\s+x:Key=\"(?<key>Nfc[A-Za-z]+)\"\\s+Color=\"(?<color>#[0-9A-Fa-f]{6,8})\"\\s*/>", RegexOptions.CultureInvariant)]
+    private static partial Regex ThemeTokenDefinitionRegex();
+
+    [GeneratedRegex("\\{DynamicResource\\s+(?<key>Nfc[A-Za-z]+)\\}", RegexOptions.CultureInvariant)]
+    private static partial Regex DynamicThemeReferenceRegex();
+
+    [GeneratedRegex("#[0-9A-Fa-f]{3,8}", RegexOptions.CultureInvariant)]
+    private static partial Regex ColorLiteralRegex();
 }

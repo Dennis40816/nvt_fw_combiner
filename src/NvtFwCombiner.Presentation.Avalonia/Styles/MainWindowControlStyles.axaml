@@ -474,6 +474,6 @@
   </Style>
   <Style Selector="TextBox.hexCellEditor.invalid">
     <Setter Property="Background" Value="{DynamicResource NfcCriticalSurfaceBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcCriticalBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcCriticalBorderBrush}" />
   </Style>
 </Styles>

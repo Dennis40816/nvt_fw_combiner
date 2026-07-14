@@ -11,7 +11,7 @@
       Padding="20"
       HorizontalAlignment="Center"
       VerticalAlignment="Center"
-      BorderBrush="{DynamicResource NfcUtilityAccentBrush}">
+      BorderBrush="{DynamicResource NfcHexEditorAccentBrush}">
     <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="16">
       <StackPanel Spacing="5">
         <TextBlock Classes="modalTitle" Text="{Binding InsertBytesPromptTitle}" />

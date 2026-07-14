@@ -51,8 +51,8 @@
   <SolidColorBrush x:Key="NfcDangerBorderStrongBrush" Color="#FDA4AF" />
   <SolidColorBrush x:Key="NfcDangerTextStrongBrush" Color="#BE123C" />
   <SolidColorBrush x:Key="NfcCriticalSurfaceBrush" Color="#FEF2F2" />
-  <SolidColorBrush x:Key="NfcCriticalBrush" Color="#DC2626" />
+  <SolidColorBrush x:Key="NfcCriticalBorderBrush" Color="#DC2626" />
   <SolidColorBrush x:Key="NfcModalScrimBrush" Color="#660F172A" />
   <SolidColorBrush x:Key="NfcReportModalScrimBrush" Color="#990F172A" />
-  <SolidColorBrush x:Key="NfcUtilityAccentBrush" Color="#6366F1" />
+  <SolidColorBrush x:Key="NfcHexEditorAccentBrush" Color="#6366F1" />
 </ResourceDictionary>
