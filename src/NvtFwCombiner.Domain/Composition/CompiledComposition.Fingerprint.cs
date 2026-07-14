@@ -48,6 +48,18 @@ public sealed partial class CompiledComposition
     {
         V2CompiledCompositionDetails details = composition.V2Details ?? throw new InvalidOperationException(
             "Profile-bundle-v2 artifacts require paired v2 details.");
+        return details.Provenance.Context switch
+        {
+            ResolvedMapV2CompilationContext => CalculateMapBoundV2CompilationFingerprint(composition),
+            LogicalOutputV2CompilationContext logical => CalculateLogicalOutputV2CompilationFingerprint(composition, logical),
+            _ => throw new InvalidOperationException("Unknown profile-bundle-v2 compilation context."),
+        };
+    }
+
+    private static string CalculateMapBoundV2CompilationFingerprint(CompiledComposition composition)
+    {
+        V2CompiledCompositionDetails details = composition.V2Details ?? throw new InvalidOperationException(
+            "Profile-bundle-v2 artifacts require paired v2 details.");
         V2CompilationProvenance provenance = details.Provenance;
         CompiledOutputNamingRequirement output = details.OutputNamingRequirement;
         var builder = new StringBuilder();

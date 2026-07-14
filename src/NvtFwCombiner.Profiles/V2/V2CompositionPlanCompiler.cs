@@ -132,7 +132,7 @@ internal static partial class V2CompositionPlanCompiler
         var provenance = new V2CompilationProvenance(
             preparation.Selection.BundleIdentity,
             preparation.Selection.ProfileEntryIdentity,
-            resolvedMap,
+            new ResolvedMapV2CompilationContext(resolvedMap),
             promotion,
             profile.EvidenceRefs,
             [],

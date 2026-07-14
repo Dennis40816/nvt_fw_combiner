@@ -24,6 +24,13 @@ internal sealed partial class CompositionProfileDefinition
         ValidateOutputSpace();
         ValidateInputPolicy();
         ValidateSpaces(slots);
+        if (CompilationContext.Kind == CompositionProfileCompilationContextKind.LogicalOutput)
+        {
+            ValidateLogicalOutputShape();
+            ValidateOutputNaming();
+            return;
+        }
+
         ValidateViews(spaces);
         ValidateMetadataBindings(spaces);
         ValidateRegionAccess();
@@ -31,6 +38,59 @@ internal sealed partial class CompositionProfileDefinition
         ValidateProcessors(views, spaces);
         ValidateValidations(views, metadataBindings);
         ValidateOutputNaming();
+    }
+
+    private void ValidateLogicalOutputShape()
+    {
+        if (CompositionKind != CompositionKind.Merge ||
+            !StringComparer.Ordinal.Equals(Experience.ExperienceId, ExperienceIds.GeneralMerge) ||
+            Experience.LayoutPolicy != LayoutPolicy.UserDefined ||
+            Experience.InputPolicy != InputPolicy.Extensible ||
+            _metadataBindings.Length != 0 ||
+            _regionAccessRules.Length != 0 ||
+            _operations.Length != 0 ||
+            _validations.Length != 0 ||
+            _processorStages.Length != 0 ||
+            _views.Length != 0)
+        {
+            throw new ArgumentException(
+                "Logical-output profiles are restricted to the General Merge declarative shape without physical-map declarations.");
+        }
+
+        InputArtifactProfileSpace[] inputSpaces = [.. _spaces.OfType<InputArtifactProfileSpace>()];
+        MutableCompositionProfileSpace output = _spaces.OfType<MutableCompositionProfileSpace>().Single(space =>
+            space.Kind == CompositionProfileSpaceKind.OutputImage);
+        if (_inputSlots.Length != 1 ||
+            inputSpaces.Length != 1 ||
+            inputSpaces[0].InstancePolicy != CompositionProfileInstancePolicy.PerBinding ||
+            output.Capacity is not RuntimeRequestProfileCapacity ||
+            output.Initializer is not BlankProfileInitializer { FillByte: 0 } ||
+            _spaces.Length != 2)
+        {
+            throw new ArgumentException(
+                "Logical-output profiles require one per-binding input template and one zero-filled runtime-request output.");
+        }
+
+        CompositionProfileInputSlot slot = _inputSlots[0];
+        if (!slot.Required ||
+            slot.Cardinality != CompositionProfileSlotCardinality.OneOrMore ||
+            slot.ArtifactClass != CompositionProfileArtifactClass.Auxiliary ||
+            slot.Normalization is not NoInputNormalization ||
+            slot.LengthRule is not BoundedLengthRule
+            {
+                MinimumBytes: 1,
+                MaximumBytes: int.MaxValue,
+            } ||
+            !StringComparer.Ordinal.Equals(inputSpaces[0].SlotId, slot.SlotId))
+        {
+            throw new ArgumentException(
+                "Logical-output profiles require one unnormalized auxiliary one-or-more input slot bounded to the in-memory composition limit.");
+        }
+
+        if (Promotion.Stage >= CompositionProfilePromotionStage.Supported)
+        {
+            throw new ArgumentException("Logical-output profiles cannot be marked supported before runtime per-binding admission exists.");
+        }
     }
 
     private void ValidateIcNumberInputMode()

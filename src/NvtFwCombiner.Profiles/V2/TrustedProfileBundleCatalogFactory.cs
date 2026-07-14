@@ -150,7 +150,10 @@ internal static class TrustedProfileBundleCatalogFactory
             TrustedCompositionProfileJsonSource source = ordered[index];
             CompositionProfileDefinition profile = DeserializeAndNormalizeProfile(source);
             TrustedFirmwareFamilyCatalogEntry family = FindBoundFamily(profile, families, source.Identity);
-            ValidateDeclaredMaps(profile, family, source.Identity);
+            if (profile.CompilationContext.Kind == CompositionProfileCompilationContextKind.ResolvedMap)
+            {
+                ValidateDeclaredMaps(profile, family, source.Identity);
+            }
             profiles[index] = new TrustedCompositionProfileCatalogEntry(source.Identity, profile, family);
         }
 
@@ -227,7 +230,7 @@ internal static class TrustedProfileBundleCatalogFactory
         IReadOnlyList<TrustedFirmwareFamilyCatalogEntry> families,
         TrustedProfileBundleCatalogEntryIdentity profileIdentity)
     {
-        CompositionProfileMapBinding binding = profile.MapBinding;
+        CompositionProfileCompilationContext binding = profile.CompilationContext;
         TrustedFirmwareFamilyCatalogEntry[] matches =
         [
             .. families.Where(candidate =>

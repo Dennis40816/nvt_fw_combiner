@@ -142,7 +142,7 @@ public sealed class CompositionProfileDocumentTests
         Assert.Equal("golden", Assert.Single(profile.Promotion.Blockers).Kind);
         Assert.Equal("merge", profile.CompositionKind);
         Assert.Equal("display-merge", profile.Experience.ExperienceId);
-        Assert.Equal("standard-map", Assert.Single(profile.MapBinding.MapIds));
+        Assert.Equal("standard-map", Assert.Single(profile.MapBinding!.MapIds));
         Assert.Equal("tp-maximum-256k", Assert.Single(profile.InputSlots).Acceptance.LengthRule.Kind);
         Assert.Equal(262144, profile.InputSlots[0].Acceptance.LengthRule.MaximumBytes?.GetInt32());
         Assert.Equal("input-artifact", profile.Spaces[0].Kind);

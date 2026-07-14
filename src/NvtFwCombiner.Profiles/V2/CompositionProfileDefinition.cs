@@ -33,6 +33,45 @@ internal sealed partial class CompositionProfileDefinition
         IEnumerable<CompositionProfileProcessorStage> processorStages,
         CompositionProfileOutput output,
         IEnumerable<string> evidenceRefs)
+        : this(
+            profileId,
+            profileVersion,
+            promotion,
+            compositionKind,
+            icNumberInputMode,
+            experience,
+            new ResolvedMapProfileCompilationContext(mapBinding),
+            inputSlots,
+            spaces,
+            views,
+            metadataBindings,
+            regionAccessRules,
+            operations,
+            validations,
+            processorStages,
+            output,
+            evidenceRefs)
+    {
+    }
+
+    internal CompositionProfileDefinition(
+        string profileId,
+        string profileVersion,
+        CompositionProfilePromotion promotion,
+        CompositionKind compositionKind,
+        IcNumberInputMode? icNumberInputMode,
+        CompositionProfileExperience experience,
+        CompositionProfileCompilationContext compilationContext,
+        IEnumerable<CompositionProfileInputSlot> inputSlots,
+        IEnumerable<CompositionProfileSpace> spaces,
+        IEnumerable<CompositionProfileView> views,
+        IEnumerable<CompositionProfileMetadataBinding> metadataBindings,
+        IEnumerable<CompositionProfileRegionAccess> regionAccessRules,
+        IEnumerable<CompositionProfileOperation> operations,
+        IEnumerable<CompositionProfileValidation> validations,
+        IEnumerable<CompositionProfileProcessorStage> processorStages,
+        CompositionProfileOutput output,
+        IEnumerable<string> evidenceRefs)
     {
         ProfileId = CompositionProfileValueRules.RequireId(profileId, nameof(profileId));
         ProfileVersion = CompositionProfileValueRules.RequireSemanticVersion(
@@ -53,7 +92,7 @@ internal sealed partial class CompositionProfileDefinition
         }
 
         ArgumentNullException.ThrowIfNull(experience);
-        ArgumentNullException.ThrowIfNull(mapBinding);
+        ArgumentNullException.ThrowIfNull(compilationContext);
         ArgumentNullException.ThrowIfNull(output);
 
         _inputSlots = SnapshotUnique(
@@ -71,11 +110,12 @@ internal sealed partial class CompositionProfileDefinition
             throw new ArgumentException("Profiles require at least two address spaces.", nameof(spaces));
         }
 
+        bool isLogicalOutput = compilationContext.Kind == CompositionProfileCompilationContextKind.LogicalOutput;
         _views = SnapshotUnique(
             views,
             static view => view.ViewId,
             nameof(views),
-            requireValue: true);
+            requireValue: !isLogicalOutput);
         _metadataBindings = SnapshotUnique(
             metadataBindings,
             static binding => binding.BindingId,
@@ -90,7 +130,7 @@ internal sealed partial class CompositionProfileDefinition
             operations,
             static operation => operation.OperationId,
             nameof(operations),
-            requireValue: true);
+            requireValue: !isLogicalOutput);
         if (_operations.Select(static operation => operation.Sequence).Distinct().Count() != _operations.Length)
         {
             throw new ArgumentException("Operation sequences must be unique.", nameof(operations));
@@ -116,7 +156,7 @@ internal sealed partial class CompositionProfileDefinition
         CompositionKind = compositionKind;
         IcNumberInputMode = icNumberInputMode;
         Experience = experience;
-        MapBinding = mapBinding;
+        CompilationContext = compilationContext;
         InputSlots = Array.AsReadOnly(_inputSlots);
         Spaces = Array.AsReadOnly(_spaces);
         Views = Array.AsReadOnly(_views);
@@ -144,7 +184,16 @@ internal sealed partial class CompositionProfileDefinition
 
     internal CompositionProfileExperience Experience { get; }
 
-    internal CompositionProfileMapBinding MapBinding { get; }
+    internal CompositionProfileCompilationContext CompilationContext { get; }
+
+    /// <summary>Exact map binding for map-bound profiles only.</summary>
+    internal CompositionProfileMapBinding MapBinding => CompilationContext is ResolvedMapProfileCompilationContext mapBound
+        ? mapBound.MapBinding
+        : throw new InvalidOperationException("Logical-output profiles do not declare a physical map binding.");
+
+    /// <summary>Logical-output binding for General Merge profiles only.</summary>
+    internal LogicalOutputProfileCompilationContext LogicalOutputBinding => CompilationContext as LogicalOutputProfileCompilationContext
+        ?? throw new InvalidOperationException("This profile is not admitted through the logical-output context.");
 
     internal IReadOnlyList<CompositionProfileInputSlot> InputSlots { get; }
 

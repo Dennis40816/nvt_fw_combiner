@@ -19,6 +19,8 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Profiles/V2/V2CompositionPreparationService.cs");
         string v2Compiler = ReadText(
             "src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.cs");
+        string logicalV2Compiler = ReadText(
+            "src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.LogicalOutput.cs");
         string compileResult = ReadText(
             "src/NvtFwCombiner.Profiles/ProfileCompileResult.cs");
         string profileSources = ReadProfileSources();
@@ -79,7 +81,7 @@ public sealed partial class RepositoryBoundaryTests
             "CompositionPlanProvenance.cs")));
         Assert.Contains("CompiledComposition.CreateLegacy(", compiler, StringComparison.Ordinal);
         Assert.Equal(1, CountOccurrences(profileSources, "CompiledComposition.CreateLegacy("));
-        Assert.Equal(1, CountOccurrences(profileSources, "CompiledComposition.CreateV2("));
+        Assert.Equal(2, CountOccurrences(profileSources, "CompiledComposition.CreateV2("));
         Assert.Equal(1, CountOccurrences(profileSources, "CompiledComposition.CreateV2RuntimeExecutable("));
         Assert.Contains("profile.Family.Family.ResolveMap", preparation, StringComparison.Ordinal);
         Assert.Contains("CompositionProfileMapAdmissionValidator.Validate", preparation, StringComparison.Ordinal);
@@ -89,6 +91,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("CompiledComposition.CreateV2", v2Compiler, StringComparison.Ordinal);
         Assert.Contains("CompiledComposition.CreateV2RuntimeExecutable", v2Compiler, StringComparison.Ordinal);
         Assert.DoesNotContain("NvtFwCombiner.Application", v2Compiler, StringComparison.Ordinal);
+        Assert.Contains("CompiledComposition.CreateV2", logicalV2Compiler, StringComparison.Ordinal);
+        Assert.DoesNotContain("CreateV2RuntimeExecutable", logicalV2Compiler, StringComparison.Ordinal);
+        Assert.DoesNotContain("NvtFwCombiner.Application", logicalV2Compiler, StringComparison.Ordinal);
         Assert.Contains("CompiledComposition compiledComposition", request, StringComparison.Ordinal);
         Assert.Contains(
             "CompiledCompositionEligibility.LegacyRuntimeExecutable",

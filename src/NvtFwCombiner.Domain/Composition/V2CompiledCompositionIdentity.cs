@@ -211,6 +211,7 @@ public sealed class V2CompilationProvenance
     private readonly CompiledValidationRequirement[] _validationRequirements;
     private readonly CompiledCapabilityAdmission[] _requiredCapabilities;
 
+    /// <summary>Creates map-bound provenance through the closed resolved-map context.</summary>
     internal V2CompilationProvenance(
         ProfileBundleIdentity bundle,
         ProfileBundleEntryIdentity profileEntry,
@@ -219,10 +220,29 @@ public sealed class V2CompilationProvenance
         IEnumerable<string> profileEvidenceRefs,
         IEnumerable<CompiledValidationRequirement> validationRequirements,
         IEnumerable<CompiledCapabilityAdmission> requiredCapabilities)
+        : this(
+            bundle,
+            profileEntry,
+            new ResolvedMapV2CompilationContext(resolvedMap),
+            promotion,
+            profileEvidenceRefs,
+            validationRequirements,
+            requiredCapabilities)
+    {
+    }
+
+    internal V2CompilationProvenance(
+        ProfileBundleIdentity bundle,
+        ProfileBundleEntryIdentity profileEntry,
+        V2CompilationContext context,
+        CompiledProfilePromotion promotion,
+        IEnumerable<string> profileEvidenceRefs,
+        IEnumerable<CompiledValidationRequirement> validationRequirements,
+        IEnumerable<CompiledCapabilityAdmission> requiredCapabilities)
     {
         ArgumentNullException.ThrowIfNull(bundle);
         ArgumentNullException.ThrowIfNull(profileEntry);
-        ArgumentNullException.ThrowIfNull(resolvedMap);
+        ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(promotion);
         _profileEvidenceRefs = CompiledProfilePromotionBlocker.SnapshotIds(
             profileEvidenceRefs,
@@ -264,9 +284,10 @@ public sealed class V2CompilationProvenance
         foreach (CompiledCapabilityAdmission capability in _requiredCapabilities)
         {
             FirmwareMapFactBinding<FirmwareCapabilityFact> binding = capability.Binding;
-            if (!StringComparer.Ordinal.Equals(binding.EffectiveKey.MemberId, resolvedMap.MemberId) ||
-                !StringComparer.Ordinal.Equals(binding.EffectiveKey.MapId, resolvedMap.ImageMap.MapId) ||
-                binding.Applicability.Evaluate(resolvedMap) != FirmwareApplicabilityResult.Match)
+            if (context is not ResolvedMapV2CompilationContext mapContext ||
+                !StringComparer.Ordinal.Equals(binding.EffectiveKey.MemberId, mapContext.ResolvedMap.MemberId) ||
+                !StringComparer.Ordinal.Equals(binding.EffectiveKey.MapId, mapContext.ResolvedMap.ImageMap.MapId) ||
+                binding.Applicability.Evaluate(mapContext.ResolvedMap) != FirmwareApplicabilityResult.Match)
             {
                 throw new ArgumentException(
                     "Required capability admissions must apply to the compiled resolved map.",
@@ -274,9 +295,17 @@ public sealed class V2CompilationProvenance
             }
         }
 
+        if (context.Kind == V2CompilationContextKind.LogicalOutput &&
+            (_validationRequirements.Length != 0 || _requiredCapabilities.Length != 0))
+        {
+            throw new ArgumentException(
+                "Logical-output provenance cannot claim physical validation or capability admissions.",
+                nameof(context));
+        }
+
         Bundle = bundle;
         ProfileEntry = profileEntry;
-        ResolvedMap = resolvedMap;
+        Context = context;
         Promotion = promotion;
         ProfileEvidenceRefs = Array.AsReadOnly(_profileEvidenceRefs);
         ValidationRequirements = Array.AsReadOnly(_validationRequirements);
@@ -289,8 +318,13 @@ public sealed class V2CompilationProvenance
     /// <summary>Exact allowlisted composition-profile entry identity.</summary>
     public ProfileBundleEntryIdentity ProfileEntry { get; }
 
-    /// <summary>Resolver-owned physical map, metadata outcomes, and physical provenance.</summary>
-    public FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap ResolvedMap { get; }
+    /// <summary>Closed physical-map or logical-output context established by the Profiles compiler.</summary>
+    public V2CompilationContext Context { get; }
+
+    /// <summary>Resolver-owned physical map for map-bound artifacts only.</summary>
+    public FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap ResolvedMap => Context is ResolvedMapV2CompilationContext mapContext
+        ? mapContext.ResolvedMap
+        : throw new InvalidOperationException("Logical-output provenance does not contain a resolved firmware image map.");
 
     /// <summary>Profile-owned promotion stage and blockers.</summary>
     public CompiledProfilePromotion Promotion { get; }
@@ -318,7 +352,16 @@ public sealed class V2CompiledCompositionDetails
         ArgumentNullException.ThrowIfNull(inputContract);
         ArgumentNullException.ThrowIfNull(regionAccessContract);
         ArgumentNullException.ThrowIfNull(outputNamingRequirement);
-        ValidateRegionAccessContract(provenance.ResolvedMap.ImageMap, regionAccessContract);
+        if (provenance.Context is ResolvedMapV2CompilationContext mapContext)
+        {
+            ValidateRegionAccessContract(mapContext.ResolvedMap.ImageMap, regionAccessContract);
+        }
+        else if (regionAccessContract.Requirements.Count != 0 || regionAccessContract.ResolvedViews.Count != 0)
+        {
+            throw new ArgumentException(
+                "Logical-output V2 details cannot retain physical region access.",
+                nameof(regionAccessContract));
+        }
         Provenance = provenance;
         InputContract = inputContract;
         RegionAccessContract = regionAccessContract;

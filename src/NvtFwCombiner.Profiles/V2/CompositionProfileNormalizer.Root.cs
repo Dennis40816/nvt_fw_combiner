@@ -11,9 +11,10 @@ internal static partial class CompositionProfileNormalizer
         if (!StringComparer.Ordinal.Equals(document.SchemaVersion, "2.0") &&
             !StringComparer.Ordinal.Equals(document.SchemaVersion, "2.1") &&
             !StringComparer.Ordinal.Equals(document.SchemaVersion, "2.2") &&
-            !StringComparer.Ordinal.Equals(document.SchemaVersion, "2.3"))
+            !StringComparer.Ordinal.Equals(document.SchemaVersion, "2.3") &&
+            !StringComparer.Ordinal.Equals(document.SchemaVersion, "2.4"))
         {
-            throw Error("schemaVersion", "Expected composition-profile schema version '2.0', '2.1', '2.2', or '2.3'.");
+            throw Error("schemaVersion", "Expected composition-profile schema version '2.0', '2.1', '2.2', '2.3', or '2.4'.");
         }
 
         CompositionKind compositionKind = NormalizeCompositionKind(
@@ -28,9 +29,7 @@ internal static partial class CompositionProfileNormalizer
         CompositionProfileExperience experience = NormalizeExperience(
             RequireObject(document.Experience, "experience"),
             "experience");
-        CompositionProfileMapBinding mapBinding = NormalizeMapBinding(
-            RequireObject(document.MapBinding, "mapBinding"),
-            "mapBinding");
+        CompositionProfileCompilationContext compilationContext = NormalizeCompilationContext(document);
         CompositionProfileInputSlot[] inputSlots = NormalizeList(
             document.InputSlots,
             "inputSlots",
@@ -75,7 +74,7 @@ internal static partial class CompositionProfileNormalizer
             compositionKind,
             icNumberInputMode,
             experience,
-            mapBinding,
+            compilationContext,
             inputSlots,
             spaces,
             views,

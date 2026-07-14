@@ -9,7 +9,7 @@ public sealed record CompositionProfileDocument(
     string CompositionKind,
     string? IcNumberInputMode,
     CompositionProfileExperienceDocument Experience,
-    CompositionProfileMapBindingDocument MapBinding,
+    CompositionProfileMapBindingDocument? MapBinding,
     IReadOnlyList<CompositionProfileInputSlotDocument> InputSlots,
     IReadOnlyList<CompositionProfileSpaceDocument> Spaces,
     IReadOnlyList<CompositionProfileViewDocument> Views,
@@ -19,7 +19,9 @@ public sealed record CompositionProfileDocument(
     IReadOnlyList<CompositionProfileValidationDocument> Validations,
     IReadOnlyList<CompositionProfileProcessorStageDocument> ProcessorStages,
     CompositionProfileOutputDocument Output,
-    IReadOnlyList<string> EvidenceRefs);
+    IReadOnlyList<string> EvidenceRefs,
+    CompositionProfileCompilationContextDocument? CompilationContext = null,
+    CompositionProfileLogicalOutputBindingDocument? LogicalOutputBinding = null);
 
 /// <summary>DTO for profile promotion state and its explicit blockers.</summary>
 public sealed record CompositionProfilePromotionDocument(
@@ -51,3 +53,13 @@ public sealed record CompositionProfileMapBindingDocument(
     IReadOnlyList<string> RequiredRegionIds,
     IReadOnlyList<string> RequiredMetadataStructureIds,
     IReadOnlyList<string> RequiredCapabilityIds);
+
+/// <summary>DTO discriminator for a map-bound or logical-output profile compilation context.</summary>
+public sealed record CompositionProfileCompilationContextDocument(string Kind);
+
+/// <summary>DTO for the exact trusted family and member allowlist of a logical-output profile.</summary>
+public sealed record CompositionProfileLogicalOutputBindingDocument(
+    string FamilyId,
+    string FamilyVersion,
+    string FamilyContentHash,
+    IReadOnlyList<string> MemberIds);

@@ -29,7 +29,7 @@ internal static partial class CompositionProfileValueRules
         return schemaVersion switch
         {
             "2.0" or "2.1" => RequireId(value, parameterName),
-            "2.2" or "2.3" => RequireExternalToolBindingId(value, parameterName),
+            "2.2" or "2.3" or "2.4" => RequireExternalToolBindingId(value, parameterName),
             _ => throw new ArgumentOutOfRangeException(nameof(schemaVersion), schemaVersion, "Unsupported profile schema version."),
         };
     }

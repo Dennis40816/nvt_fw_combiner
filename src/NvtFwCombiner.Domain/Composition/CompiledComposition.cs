@@ -52,8 +52,8 @@ public sealed partial class CompiledComposition
         Plan = plan;
         ProfileId = identity.ProfileId;
         ProfileVersion = identity.ProfileVersion;
-        IcId = identity.Details.Provenance.ResolvedMap.MemberId;
-        ModeId = identity.Details.Provenance.ResolvedMap.ModeId;
+        IcId = identity.Details.Provenance.Context.MemberId;
+        ModeId = identity.Details.Provenance.Context.ModeId;
         ExperienceId = identity.ExperienceId;
         CompositionKind = identity.CompositionKind;
         DefaultOutputFileName = identity.Details.OutputNamingRequirement.FileNameTemplate;
@@ -172,6 +172,12 @@ public sealed partial class CompiledComposition
         CompositionKind compositionKind,
         V2CompiledCompositionDetails details)
     {
+        if (details.Provenance.Context is LogicalOutputV2CompilationContext)
+        {
+            ValidateLogicalOutputInputRequirements(plan, compositionKind, details);
+            return;
+        }
+
         var addressSpaces = plan.AddressSpaces.ToDictionary(
             static space => space.AddressSpaceId,
             StringComparer.Ordinal);
@@ -276,6 +282,87 @@ public sealed partial class CompiledComposition
                 addressSpace,
                 requirement,
                 details.RegionAccessContract.ResolvedViews);
+        }
+    }
+
+    private static void ValidateLogicalOutputInputRequirements(
+        CompositionPlan plan,
+        CompositionKind compositionKind,
+        V2CompiledCompositionDetails details)
+    {
+        if (compositionKind != CompositionKind.Merge ||
+            plan.OutputInitialization.Kind != ImageInitializationKind.Blank ||
+            plan.OutputInitialization.FillByte != 0 ||
+            details.RegionAccessContract.Requirements.Count != 0 ||
+            details.RegionAccessContract.ResolvedViews.Count != 0)
+        {
+            throw new ArgumentException(
+                "Logical-output V2 artifacts require a zero-filled Merge output with no physical region access.",
+                nameof(details));
+        }
+
+        if (details.InputContract.Slots.Count != 1 || details.InputContract.SpaceBindings.Count == 0)
+        {
+            throw new ArgumentException(
+                "Logical-output V2 artifacts require one slot bound to one or more concrete immutable spaces.",
+                nameof(details));
+        }
+
+        CompiledInputSlotRequirement slot = details.InputContract.Slots[0];
+        if (!slot.Required ||
+            slot.ArtifactClass != CompiledInputArtifactClass.Auxiliary ||
+            slot.Cardinality != CompiledInputSlotCardinality.OneOrMore ||
+            slot.Normalization is not CompiledNoInputNormalization ||
+            slot.LengthRequirement is not CompiledBoundedInputLengthRequirement
+            {
+                MinimumBytes: 1,
+                MaximumBytes: int.MaxValue,
+            })
+        {
+            throw new ArgumentException(
+                "Logical-output V2 artifacts require one unnormalized auxiliary one-or-more slot bounded to Int32.MaxValue.",
+                nameof(details));
+        }
+
+        var addressSpaces = plan.AddressSpaces.ToDictionary(
+            static space => space.AddressSpaceId,
+            StringComparer.Ordinal);
+        string[] immutableAddressSpaceIds =
+        [
+            .. plan.AddressSpaces
+                .Where(static space => space.Mutability == AddressSpaceMutability.Immutable)
+                .Select(static space => space.AddressSpaceId)
+                .Order(StringComparer.Ordinal),
+        ];
+        string[] bindingAddressSpaceIds =
+        [
+            .. details.InputContract.SpaceBindings
+                .Select(static binding => binding.AddressSpaceId)
+                .Order(StringComparer.Ordinal),
+        ];
+        if (!immutableAddressSpaceIds.SequenceEqual(bindingAddressSpaceIds, StringComparer.Ordinal))
+        {
+            throw new ArgumentException(
+                "Logical-output V2 artifacts must bind every immutable plan space exactly once.",
+                nameof(details));
+        }
+
+        foreach (CompiledInputSpaceBinding binding in details.InputContract.SpaceBindings)
+        {
+            if (!StringComparer.Ordinal.Equals(binding.SlotId, slot.SlotId) ||
+                binding.InstancePolicy != CompiledInputInstancePolicy.PerBinding ||
+                !addressSpaces.TryGetValue(binding.AddressSpaceId, out AddressSpace? addressSpace) ||
+                addressSpace.Mutability != AddressSpaceMutability.Immutable ||
+                addressSpace.Length is < 1 or > int.MaxValue ||
+                addressSpace.InputPaddingByte is not null ||
+                addressSpace.InputOversizePolicy != InputOversizePolicy.Reject ||
+                addressSpace.AllowedInputLengths.Count != 0 ||
+                addressSpace.ExpectedInputLengths.Count != 0)
+            {
+                throw new ArgumentException(
+                    "Logical-output V2 bindings must be one-to-one unnormalized immutable in-memory input spaces.",
+                    nameof(details));
+            }
         }
     }
 

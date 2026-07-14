@@ -13,6 +13,47 @@ internal static class TrustedV2CompositionCompiler
     private const string MapCapacityUnavailable = "profile.v2.compile.map-capacity-unavailable";
     private const string PreparationNotAdmitted = "profile.v2.compile.preparation-not-admitted";
 
+    /// <summary>Compiles one trusted logical-output General Merge request without resolving a physical image map.</summary>
+    internal static V2CompositionPlanCompileResult CompileLogicalOutput(
+        TrustedProfileBundleCatalog catalog,
+        string profileId,
+        string profileVersion,
+        string memberId,
+        V2LogicalOutputCompileRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        ArgumentNullException.ThrowIfNull(request);
+        if (string.IsNullOrWhiteSpace(profileId) ||
+            string.IsNullOrWhiteSpace(profileVersion) ||
+            string.IsNullOrWhiteSpace(memberId))
+        {
+            return Failed(
+                [],
+                "profile.v2.logical.selection-invalid",
+                "Logical-output compilation requires profile identity and member selections.");
+        }
+
+        TrustedProfileBundleCatalog.ProfileSelectionResult selectionResult = catalog.SelectProfile(profileId, profileVersion);
+        if (selectionResult.Selection is not { } selection)
+        {
+            return Failed(
+                selectionResult.Issues,
+                "profile.v2.logical.selection-unresolved",
+                "The selected trusted logical-output profile could not be resolved from its catalog.");
+        }
+
+        V2LogicalOutputPreparationResult preparation = V2LogicalOutputPreparationService.Prepare(
+            catalog,
+            selection,
+            memberId);
+        return preparation.IsAdmitted
+            ? V2CompositionPlanCompiler.CompileLogicalOutput(preparation, request)
+            : Failed(
+                preparation.Issues,
+                "profile.v2.logical.preparation-not-admitted",
+                "The selected trusted V2 profile was not admitted for logical-output lowering.");
+    }
+
     internal static V2CompositionPlanCompileResult Compile(
         TrustedProfileBundleCatalog catalog,
         string profileId,
