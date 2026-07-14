@@ -42,6 +42,55 @@ require the evidence listed for their milestone.
 | Product golden | Byte-level behavior claim for one IC/mode/topology/capacity | Exact input set, expected output, hashes, original names, tool trace where applicable, and explained differences. |
 | Supported/released workflow | UI/CLI exposure or release support claim | Product golden, processor/integrity evidence, support-matrix decision, firmware-owner review, and all applicable release gates. |
 
+## Confirmed Missing Inputs (2026-07-14)
+
+This is the current delivery list, rather than a hypothetical future checklist.
+It is based on the checked-in handoff directories and tool inventory on this
+date. A checked-in `CASE.md` or `.keep` file reserves a location; it is not
+firmware evidence. Preserve the original filenames in `provenance.json` even
+when using the normalized local names below.
+
+| Milestone | Current state | Data to provide now | Not needed now |
+| --- | --- | --- | --- |
+| v0.8.x | Tagged baseline; no known evidence blocker. | Only for a UAT or package defect: the failing artifact/log record listed below. | Production firmware BINs for routine package verification. |
+| v0.9.1 / v0.9.2 | Tagged, support-neutral migration baselines. | Only a new/disputed capacity, alias, workflow, or metadata case selected for release support. | A duplicate golden merely to re-verify the existing tag. |
+| v0.9.3 AB | All five `testdata/golden/owner-handoff/ab-merge/nt519xx/inputs/` directories currently contain only `CASE.md` and `.keep`. | The complete AB packages in the next table, including source inputs and expected outputs. | A C# CRC implementation. Header CRC must remain a declared Combiner mutation. |
+| v0.9.3 CtrlRAM version edit | Handoff directories contain templates/placeholders only; no Preserve/Edit expected-pair evidence is present. | One Preserve/Edit package per release-selected IC, IC-number branch, and postbuild category. | A separate case for Preview: Preview is not allowed to edit FW version. |
+| v0.9.4 candidate intake | Candidate tooling can proceed without firmware payload. | A source workbook/export/package only when a real candidate IC is to be reviewed. | A product golden or support sign-off. |
+| v0.9.5 legacy retirement | No retirement row is yet closed. | One complete V2 parity package for the specific matrix row selected for removal. | Evidence for every legacy row at once. |
+| v0.9.6 release/support | Not yet a release-evidence phase. | The release/support package only when a release scope is chosen. | Signing private keys, passwords, tokens, or private certificates. |
+
+### v0.9.3 AB Delivery Matrix
+
+Supply one package for every selected capacity/topology branch. Do not reuse an
+NT51950 result for NT51951 or rely on a filename-only "same IC" assertion.
+
+| Target | Required private files | Additional owner decision/evidence |
+| --- | --- | --- |
+| NT51919 | `dp-ab.bin`, `tpa.bin`, `tpb.bin`, `expected.bin`, `provenance.json` | Fact-scoped alias/parity decision identifying the effective map, capacity/topology, and direct member output hash. |
+| NT51929 | `dp-ab.bin`, `tpa.bin`, `tpb.bin`, `expected.bin`, `provenance.json` | Direct case metadata, including the effective map and capacity/topology. |
+| NT51932 | `dp-ab.bin`, `tpa.bin`, `tpb.bin`, `expected.bin`, `provenance.json` | Direct case metadata; any reuse of NT51929 facts needs the fact-scoped parity decision. |
+| NT51950 | `dp-ab.bin`, `tpa.bin`, `tpb.bin`, `expected.bin`, `provenance.json`, exact `map.txt`, `combiner-command.txt`, `combiner-tool.json` | Chip-count branch, declared stage read/write ranges, Combiner trace, tool SHA-256, timeout/platform, and final output filename. |
+| NT51951 | `dp-ab.bin`, `tpa.bin`, `tpb.bin`, `expected.bin`, `provenance.json`, exact `map.txt`, `combiner-command.txt`, `combiner-tool.json` | Its own relocation/header, trace, tool binding, and output evidence. NT51950 evidence is not a substitute. |
+
+The repository currently contains `Combiner.exe` and its manifest for version
+`1.13.0`, but no AB-specific `map.txt` sidecar or replayable 950/951 AB command
+trace. Supply those per target, not as an inferred shared default.
+
+### v0.9.3 CtrlRAM Preserve/Edit Delivery Matrix
+
+Use the identical base and replacement inputs for the two outputs so that the
+only intentional branch is the user-selected TP FW major/sub-version edit.
+
+| Item | Required private files or values |
+| --- | --- |
+| Base and replacement inputs | `base.bin` plus one replacement BIN for every selected CtrlRAM region/group. |
+| Preserve branch | `expected-preserve.bin`, final output SHA-256, and expected output filename. |
+| Edit branch | `expected-edit.bin`, requested TP FW major/sub-version, final output SHA-256, and expected output filename. |
+| Combiner evidence | `combiner-command.txt`, `combiner-tool.json`, exact staged-file names, tool hash/version, command order, `map.txt` where required, and declared read/write/diff ranges. |
+| FWConfig evidence | Source and final unique NVT Backup observations: terminal marker, `T - 0xFFF` base, original and edited major/sub-version bytes, plus the applicable `FirmwareConfigLayout` revision. |
+| Approval | IC, IC-number mode/value, Common FW/postbuild category, owner, ticket/archive, and approval date. |
+
 ## v0.8.x: Packaging, Security, and UAT
 
 `v0.8.0` is already tagged. These inputs are only needed for a corrective
