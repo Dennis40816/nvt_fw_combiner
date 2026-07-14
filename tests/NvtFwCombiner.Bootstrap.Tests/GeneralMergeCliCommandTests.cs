@@ -234,6 +234,7 @@ public sealed class GeneralMergeCliCommandTests
     [InlineData("NT51923", "nt51923-general-merge-logical-candidate")]
     [InlineData("NT51926", "nt51926-general-merge-logical-candidate")]
     [InlineData("NT51927", "nt51927-general-merge-logical-candidate")]
+    [InlineData("NT51928", "nt51928-general-merge-logical-candidate")]
     public async Task GeneralMergeV2CandidateMatchesLegacyBytesWithoutChangingDefaultRoute(
         string icId,
         string candidateProfileId)

@@ -50,6 +50,14 @@ public sealed class GeneralMergeV2CandidateProfileTests
         "NT51926",
         "nt51926-general-merge-logical-candidate")]
     [InlineData(
+        "nt51928-general-merge-logical-candidate",
+        "9cdfbe52fcf58071ab7ea9648844dc3d0dd5363e6b41db02454709bf921512a6",
+        "nt51928-standard-merge",
+        "nt51928.json",
+        "nt51928",
+        "NT51928",
+        "nt51928-general-merge-logical-candidate")]
+    [InlineData(
         "nt51919-nt51929-nt51932-general-merge-logical-candidate",
         "fabc02474120adb7659d9e069b9c60395cad4620282afdf8ff9e9b915acc4283",
         "nt51929-standard-merge",

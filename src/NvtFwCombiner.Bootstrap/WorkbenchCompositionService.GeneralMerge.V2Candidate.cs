@@ -25,6 +25,9 @@ public static partial class WorkbenchCompositionService
     private static readonly BuiltInV2Bundle s_nt51923Nt51926GeneralMergeLogicalCandidateV2Bundle = new(
         "profiles\\built-in\\nt51923-nt51926-general-merge-logical-candidate",
         "26f12851f81d55bb88a0a0e18ab4f10f451747369e797efbc69fdbf05cdf5a96");
+    private static readonly BuiltInV2Bundle s_nt51928GeneralMergeLogicalCandidateV2Bundle = new(
+        "profiles\\built-in\\nt51928-general-merge-logical-candidate",
+        "9cdfbe52fcf58071ab7ea9648844dc3d0dd5363e6b41db02454709bf921512a6");
     private static readonly ReadOnlyDictionary<string, GeneralMergeV2CandidateRegistration> s_generalMergeV2Candidates = new(
         new Dictionary<string, GeneralMergeV2CandidateRegistration>(StringComparer.Ordinal)
         {
@@ -58,6 +61,11 @@ public static partial class WorkbenchCompositionService
                 "nt51927",
                 "nt51927-general-merge-logical-candidate",
                 s_nt51917Nt51927GeneralMergeLogicalCandidateV2Bundle),
+            ["NT51928"] = new(
+                "NT51928",
+                "nt51928",
+                "nt51928-general-merge-logical-candidate",
+                s_nt51928GeneralMergeLogicalCandidateV2Bundle),
             ["NT51929"] = new(
                 "NT51929",
                 "nt51929-nt51932",

@@ -102,6 +102,7 @@ public sealed partial class RepositoryBoundaryTests
             "nt51917-nt51927-general-merge-logical-candidate",
             "nt51919-nt51929-nt51932-general-merge-logical-candidate",
             "nt51923-nt51926-general-merge-logical-candidate",
+            "nt51928-general-merge-logical-candidate",
             "nt51923-standard-merge",
             "nt51927-standard-merge",
             "nt51928-standard-merge",
@@ -117,6 +118,7 @@ public sealed partial class RepositoryBoundaryTests
             "nt51917-nt51927-general-merge-logical-candidate",
             "nt51919-nt51929-nt51932-general-merge-logical-candidate",
             "nt51923-nt51926-general-merge-logical-candidate",
+            "nt51928-general-merge-logical-candidate",
         ];
 
         Assert.Equal(
