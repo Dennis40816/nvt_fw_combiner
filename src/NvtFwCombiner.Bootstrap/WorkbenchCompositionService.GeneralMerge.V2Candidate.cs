@@ -13,38 +13,36 @@ public static partial class WorkbenchCompositionService
     private const string GeneralMergeV2CandidateMemberNotAdmitted = "general-merge.v2-candidate.member-not-admitted";
     private const string GeneralMergeV2CandidateInputLengthUnsupported = "general-merge.v2-candidate.input-length-unsupported";
     private const string GeneralMergeV2CandidateCompilationUnexpected = "general-merge.v2-candidate.compilation-unexpected";
-    private static readonly BuiltInV2Bundle s_nt51920GeneralMergeLogicalCandidateV2Bundle = new(
-        "profiles\\built-in\\nt51920-general-merge-logical-candidate",
-        "d2f87973576f54b80439f30ef1790f47df2994a6811673f0ceb8ecd5cacdbdc7");
+    private static readonly BuiltInV2Bundle s_nt51917Nt51927GeneralMergeLogicalCandidateV2Bundle = new(
+        "profiles\\built-in\\nt51917-nt51927-general-merge-logical-candidate",
+        "1025069140de5ba78296af045dc477cf8164395b68b0ce82a77970eecbe05c0e");
     private static readonly BuiltInV2Bundle s_nt51919Nt51929Nt51932GeneralMergeLogicalCandidateV2Bundle = new(
         "profiles\\built-in\\nt51919-nt51929-nt51932-general-merge-logical-candidate",
         "fabc02474120adb7659d9e069b9c60395cad4620282afdf8ff9e9b915acc4283");
+    private static readonly BuiltInV2Bundle s_nt51920GeneralMergeLogicalCandidateV2Bundle = new(
+        "profiles\\built-in\\nt51920-general-merge-logical-candidate",
+        "d2f87973576f54b80439f30ef1790f47df2994a6811673f0ceb8ecd5cacdbdc7");
     private static readonly BuiltInV2Bundle s_nt51923Nt51926GeneralMergeLogicalCandidateV2Bundle = new(
         "profiles\\built-in\\nt51923-nt51926-general-merge-logical-candidate",
         "26f12851f81d55bb88a0a0e18ab4f10f451747369e797efbc69fdbf05cdf5a96");
     private static readonly ReadOnlyDictionary<string, GeneralMergeV2CandidateRegistration> s_generalMergeV2Candidates = new(
         new Dictionary<string, GeneralMergeV2CandidateRegistration>(StringComparer.Ordinal)
         {
-            ["NT51920"] = new(
-                "NT51920",
-                "nt51920",
-                "nt51920-general-merge-logical-candidate",
-                s_nt51920GeneralMergeLogicalCandidateV2Bundle),
+            ["NT51917"] = new(
+                "NT51917",
+                "nt51927",
+                "nt51917-general-merge-logical-candidate",
+                s_nt51917Nt51927GeneralMergeLogicalCandidateV2Bundle),
             ["NT51919"] = new(
                 "NT51919",
                 "nt51929-nt51932",
                 "nt51919-general-merge-logical-candidate",
                 s_nt51919Nt51929Nt51932GeneralMergeLogicalCandidateV2Bundle),
-            ["NT51929"] = new(
-                "NT51929",
-                "nt51929-nt51932",
-                "nt51929-general-merge-logical-candidate",
-                s_nt51919Nt51929Nt51932GeneralMergeLogicalCandidateV2Bundle),
-            ["NT51932"] = new(
-                "NT51932",
-                "nt51929-nt51932",
-                "nt51932-general-merge-logical-candidate",
-                s_nt51919Nt51929Nt51932GeneralMergeLogicalCandidateV2Bundle),
+            ["NT51920"] = new(
+                "NT51920",
+                "nt51920",
+                "nt51920-general-merge-logical-candidate",
+                s_nt51920GeneralMergeLogicalCandidateV2Bundle),
             ["NT51923"] = new(
                 "NT51923",
                 "nt51923-nt51926",
@@ -55,6 +53,21 @@ public static partial class WorkbenchCompositionService
                 "nt51923-nt51926",
                 "nt51926-general-merge-logical-candidate",
                 s_nt51923Nt51926GeneralMergeLogicalCandidateV2Bundle),
+            ["NT51927"] = new(
+                "NT51927",
+                "nt51927",
+                "nt51927-general-merge-logical-candidate",
+                s_nt51917Nt51927GeneralMergeLogicalCandidateV2Bundle),
+            ["NT51929"] = new(
+                "NT51929",
+                "nt51929-nt51932",
+                "nt51929-general-merge-logical-candidate",
+                s_nt51919Nt51929Nt51932GeneralMergeLogicalCandidateV2Bundle),
+            ["NT51932"] = new(
+                "NT51932",
+                "nt51929-nt51932",
+                "nt51932-general-merge-logical-candidate",
+                s_nt51919Nt51929Nt51932GeneralMergeLogicalCandidateV2Bundle),
         });
 
     /// <summary>Runs an explicitly admitted logical-output V2 parity candidate without changing the default General Merge route.</summary>

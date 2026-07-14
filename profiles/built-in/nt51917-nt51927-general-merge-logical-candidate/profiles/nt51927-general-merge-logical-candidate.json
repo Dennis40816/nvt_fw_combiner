@@ -1,0 +1,102 @@
+{
+  "schemaVersion": "2.5",
+  "profileId": "nt51927-general-merge-logical-candidate",
+  "profileVersion": "0.1.0",
+  "promotion": {
+    "stage": "executable-candidate",
+    "blockers": [
+      {
+        "blockerId": "legacy-parity-review",
+        "kind": "golden",
+        "reason": "Direct General Merge legacy parity must be retained before this candidate can replace the default runtime route.",
+        "evidenceRefs": [
+          "general-merge-v2-candidate-parity"
+        ]
+      },
+      {
+        "blockerId": "support-decision",
+        "kind": "human-review",
+        "reason": "This logical-output candidate makes no firmware support or physical-map claim.",
+        "evidenceRefs": [
+          "general-merge-v2-candidate-parity"
+        ]
+      }
+    ]
+  },
+  "compositionKind": "merge",
+  "experience": {
+    "experienceId": "general-merge",
+    "audience": "advanced",
+    "layoutPolicy": "user-defined",
+    "inputPolicy": "extensible",
+    "topologyAuthoring": "hidden",
+    "displayNameKey": "profile.nt51927.general-merge.candidate"
+  },
+  "compilationContext": {
+    "kind": "logical-output"
+  },
+  "logicalOutputBinding": {
+    "familyId": "nt51927",
+    "familyVersion": "1.0.0",
+    "familyContentHash": "4eb967a44906205202e1a6d07418637562a6576dc2943ce7cb2b6b518d064360",
+    "memberIds": [
+      "NT51927"
+    ]
+  },
+  "inputSlots": [
+    {
+      "slotId": "source",
+      "role": "source",
+      "artifactClass": "auxiliary",
+      "required": true,
+      "cardinality": "one-or-more",
+      "acceptedExtensions": [
+        ".bin"
+      ],
+      "acceptance": {
+        "lengthRule": {
+          "kind": "bounded",
+          "minimumBytes": 1,
+          "maximumBytes": 2147483647
+        },
+        "normalization": {
+          "kind": "none"
+        }
+      }
+    }
+  ],
+  "spaces": [
+    {
+      "spaceId": "source-template",
+      "kind": "input-artifact",
+      "slotId": "source",
+      "instancePolicy": "per-binding"
+    },
+    {
+      "spaceId": "output-image",
+      "kind": "output-image",
+      "capacity": {
+        "kind": "runtime-request"
+      },
+      "initializer": {
+        "kind": "blank",
+        "fillByte": 0
+      }
+    }
+  ],
+  "views": [],
+  "metadataBindings": [],
+  "regionAccessRules": [],
+  "operations": [],
+  "validations": [],
+  "processorStages": [],
+  "output": {
+    "fileNameTemplate": "nt51927-general-merge.bin",
+    "allowOverride": true,
+    "invalidCharacterPolicy": "reject",
+    "requiredTokenIds": []
+  },
+  "evidenceRefs": [
+    "general-merge-v2-candidate-parity"
+  ]
+}

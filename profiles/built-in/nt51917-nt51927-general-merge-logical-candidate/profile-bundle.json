@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "1.0",
+  "bundleId": "nt51917-nt51927-general-merge-logical-candidate",
+  "bundleVersion": "0.9.5-candidate.1",
+  "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
+  "contentHash": "1025069140de5ba78296af045dc477cf8164395b68b0ce82a77970eecbe05c0e",
+  "trustAnchorBindingId": "built-in-profile-bundle-v2",
+  "entries": [
+    {
+      "entryId": "composition-profile-v2-schema",
+      "kind": "schema",
+      "path": "schemas/composition-profile-v2.schema.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "ab3bed384c5d78590ad6a87ee23c12f23a1ea4a1bdc6001273f254b6e5f3547f"
+    },
+    {
+      "entryId": "firmware-family-v1-schema",
+      "kind": "schema",
+      "path": "schemas/firmware-family-v1.schema.json",
+      "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
+      "contentHash": "0dd353296e02e448dcc653028fd3b3ce6ad7fdd8e11a1ce11a465b46f0b471d7"
+    },
+    {
+      "entryId": "nt51917-nt51927-family",
+      "kind": "firmware-family",
+      "path": "families/nt51927.json",
+      "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
+      "contentHash": "4eb967a44906205202e1a6d07418637562a6576dc2943ce7cb2b6b518d064360"
+    },
+    {
+      "entryId": "nt51917-general-merge-logical-candidate-profile",
+      "kind": "composition-profile",
+      "path": "profiles/nt51917-general-merge-logical-candidate.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "25ec23436332203f93c9023fc74076927ea27aefd0041d0c6ecc3701c6d71631"
+    },
+    {
+      "entryId": "nt51927-general-merge-logical-candidate-profile",
+      "kind": "composition-profile",
+      "path": "profiles/nt51927-general-merge-logical-candidate.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "7bafffa95b97c54e71cab1c4e51dd93542a38233c6d4789fea1a9e31102567c7"
+    }
+  ]
+}

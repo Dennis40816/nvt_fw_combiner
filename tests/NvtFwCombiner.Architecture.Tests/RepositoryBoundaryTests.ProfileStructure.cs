@@ -99,6 +99,7 @@ public sealed partial class RepositoryBoundaryTests
         [
             "nt51920-standard-merge",
             "nt51920-general-merge-logical-candidate",
+            "nt51917-nt51927-general-merge-logical-candidate",
             "nt51919-nt51929-nt51932-general-merge-logical-candidate",
             "nt51923-nt51926-general-merge-logical-candidate",
             "nt51923-standard-merge",
@@ -113,6 +114,7 @@ public sealed partial class RepositoryBoundaryTests
         string[] logicalOutputCandidateBundleIds =
         [
             "nt51920-general-merge-logical-candidate",
+            "nt51917-nt51927-general-merge-logical-candidate",
             "nt51919-nt51929-nt51932-general-merge-logical-candidate",
             "nt51923-nt51926-general-merge-logical-candidate",
         ];

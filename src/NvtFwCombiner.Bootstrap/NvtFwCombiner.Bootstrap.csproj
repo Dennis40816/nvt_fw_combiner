@@ -24,6 +24,9 @@
     <BuiltInProfileBundle Include="nt51920-general-merge-logical-candidate">
       <CompositionProfileSchemaHash>ab3bed384c5d78590ad6a87ee23c12f23a1ea4a1bdc6001273f254b6e5f3547f</CompositionProfileSchemaHash>
     </BuiltInProfileBundle>
+    <BuiltInProfileBundle Include="nt51917-nt51927-general-merge-logical-candidate">
+      <CompositionProfileSchemaHash>ab3bed384c5d78590ad6a87ee23c12f23a1ea4a1bdc6001273f254b6e5f3547f</CompositionProfileSchemaHash>
+    </BuiltInProfileBundle>
     <BuiltInProfileBundle Include="nt51919-nt51929-nt51932-general-merge-logical-candidate">
       <CompositionProfileSchemaHash>ab3bed384c5d78590ad6a87ee23c12f23a1ea4a1bdc6001273f254b6e5f3547f</CompositionProfileSchemaHash>
     </BuiltInProfileBundle>
