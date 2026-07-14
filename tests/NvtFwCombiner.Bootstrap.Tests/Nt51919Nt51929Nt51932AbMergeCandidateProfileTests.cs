@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Security.Cryptography;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles.V2;
 
@@ -15,6 +16,7 @@ public sealed class Nt51919Nt51929Nt51932AbMergeCandidateProfileTests
     private const int TpbOutputStart = 0x47000;
     private const int TpbScalarOffset = 0x7164;
     private const uint Relocation = 0x40000;
+    private const string ReferenceSyntheticOutputSha256 = "cd54e124b02f2a91a5f43836ab49cc28db811a4a8e1ff407eb98e47437de10ce";
 
     /// <summary>Verifies every known member resolves one fixed 512 KiB AB map without granting runtime support.</summary>
     [Theory]
@@ -103,6 +105,39 @@ public sealed class Nt51919Nt51929Nt51932AbMergeCandidateProfileTests
         Assert.Equal(originalTpB, tpB);
     }
 
+    /// <summary>
+    /// Locks the complete candidate output to the immutable uploaded AB reference over address-sensitive synthetic inputs.
+    /// This is migration evidence only and does not replace an owner product golden.
+    /// </summary>
+    [Theory]
+    [InlineData("NT51919", "nt51919-ab-merge-alias")]
+    [InlineData("NT51929", "nt51929-ab-merge")]
+    [InlineData("NT51932", "nt51932-ab-merge")]
+    public void CandidatePlansMatchReferenceSyntheticOutput(string icId, string profileId)
+    {
+        CompiledComposition composition = CompileCandidate(icId, profileId);
+        byte[] dp = CreatePattern(Capacity, 0x31);
+        byte[] tpA = CreatePattern(0x40000, 0x57);
+        byte[] tpB = CreatePattern(0x40000, 0x83);
+        WriteUInt32(tpB, TpbScalarOffset, 0x00123456);
+        WriteUInt32(tpB, TpbScalarOffset + sizeof(uint), 0x00ABCDEF);
+        WriteUInt32(tpB, TpbScalarOffset + (2 * sizeof(uint)), 0x0000C0DE);
+
+        CompositionExecutionResult result = CompositionEngine.Execute(
+            composition.Plan,
+            new CompositionExecutionInput(new Dictionary<string, byte[]>(StringComparer.Ordinal)
+            {
+                ["dp-ab-input"] = dp,
+                ["tp-a-input"] = tpA,
+                ["tp-b-input"] = tpB,
+            }));
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal(
+            ReferenceSyntheticOutputSha256,
+            Convert.ToHexString(SHA256.HashData(result.OutputBytes.Span)).ToLowerInvariant());
+    }
+
     /// <inheritdoc/>
     private static CompiledComposition CompileCandidate(string icId, string profileId)
     {
@@ -122,7 +157,12 @@ public sealed class Nt51919Nt51929Nt51932AbMergeCandidateProfileTests
         byte[] bytes = new byte[length];
         for (int index = 0; index < bytes.Length; index++)
         {
-            bytes[index] = unchecked((byte)(salt + (index * 37)));
+            int wordOffset = index & ~3;
+            uint word = unchecked(
+                ((uint)wordOffset * 0x9E3779B9U)
+                ^ (salt * 0x01010101U)
+                ^ 0xA5A5A5A5U);
+            bytes[index] = unchecked((byte)(word >> ((index & 3) * 8)));
         }
 
         return bytes;
