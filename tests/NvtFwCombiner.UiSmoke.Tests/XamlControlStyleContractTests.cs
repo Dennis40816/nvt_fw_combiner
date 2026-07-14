@@ -79,6 +79,7 @@ public sealed partial class XamlControlStyleContractTests
             ["UiBrush.AccentSoftSurface"] = "#BFDBFE",
             ["UiBrush.Border"] = "#CBD5E1",
             ["UiBrush.SubtleBorder"] = "#E2E8F0",
+            ["UiBrush.RowDivider"] = "#EEF2F7",
             ["UiBrush.AccentBorder"] = "#93C5FD",
             ["UiBrush.AccentStrongBorder"] = "#60A5FA",
             ["UiBrush.AccentSoftBorder"] = "#BFDBFE",
@@ -104,7 +105,7 @@ public sealed partial class XamlControlStyleContractTests
         {
             ["Foreground"] = ["#FFFFFF", "#0F172A", "#334155", "#64748B", "#475569", "#94A3B8", "#2563EB", "#1D4ED8", "#9A3412", "#B91C1C", "#166534"],
             ["Background"] = ["#FFFFFF", "#F8FAFC", "#EFF6FF", "#EAF3FF", "#FFF7ED", "#FFF7F7", "#F0FDF4", "#E2E8F0", "#BFDBFE", "#2563EB", "#660F172A", "#990F172A"],
-            ["BorderBrush"] = ["#CBD5E1", "#E2E8F0", "#93C5FD", "#60A5FA", "#BFDBFE", "#FED7AA", "#FECACA", "#BBF7D0", "#2563EB"],
+            ["BorderBrush"] = ["#CBD5E1", "#E2E8F0", "#EEF2F7", "#93C5FD", "#60A5FA", "#BFDBFE", "#FED7AA", "#FECACA", "#BBF7D0", "#2563EB"],
             ["Stroke"] = ["#334155", "#475569", "#2563EB", "#1D4ED8"],
         };
         MatchCollection definitions = PaletteBrushDefinitionPattern().Matches(library);

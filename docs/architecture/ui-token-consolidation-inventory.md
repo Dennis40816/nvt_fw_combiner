@@ -84,6 +84,18 @@ firmware outcome color is folded into this treatment.
 | `UiBrush.*` dynamic-resource references | 325 | 335 |
 | Shared semantic palette resources | 28 | 31 |
 
+### Shared row dividers
+
+The fourth implementation phase adds `UiBrush.RowDivider` for the identical
+low-emphasis separators used by list rows, settings rows, and shared content
+panels. It does not merge data-bound or geometric border roles.
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| Direct hex color literals in Avalonia XAML | 78 | 75 |
+| `UiBrush.*` dynamic-resource references | 335 | 339 |
+| Shared semantic palette resources | 31 | 32 |
+
 ## Consolidation Rules
 
 1. `Styles/MainWindowControlStyles.axaml` remains the single shared token and
