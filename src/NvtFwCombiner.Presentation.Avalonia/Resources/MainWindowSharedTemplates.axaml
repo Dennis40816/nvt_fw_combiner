@@ -199,7 +199,7 @@
 </DataTemplate>
 
 <DataTemplate x:Key="ReplaceOutputLayoutPanelTemplate" DataType="vm:MainWindowViewModel">
-  <Border Padding="18,16" Background="{DynamicResource NfcSurfaceBrush}" BorderBrush="{DynamicResource NfcDividerBrush}" BorderThickness="1" CornerRadius="6">
+  <Border Padding="18,16" Background="{DynamicResource NfcSurfaceBrush}" BorderBrush="{DynamicResource NfcDividerBrush}" BorderThickness="1" CornerRadius="{DynamicResource NfcCompactCornerRadius}">
     <StackPanel Spacing="14">
       <StackPanel Spacing="8">
         <StackPanel Spacing="3">
@@ -211,7 +211,7 @@
         </Border>
       </StackPanel>
 
-      <Border Padding="6" Background="{DynamicResource NfcInfoSurfaceBrush}" BorderBrush="Transparent" BorderThickness="0" CornerRadius="6">
+      <Border Padding="6" Background="{DynamicResource NfcInfoSurfaceBrush}" BorderBrush="Transparent" BorderThickness="0" CornerRadius="{DynamicResource NfcCompactCornerRadius}">
         <ItemsControl ItemTemplate="{StaticResource MemoryCoverageSegmentBarTemplate}" ItemsSource="{Binding ReplaceCoverageSegments}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>

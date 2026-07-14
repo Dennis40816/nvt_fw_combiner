@@ -13,7 +13,7 @@
       Background="{Binding SlotBackgroundBrush}"
       BorderBrush="{Binding SlotBorderBrush}"
       BorderThickness="{Binding SlotBorderThickness}"
-      CornerRadius="8"
+      CornerRadius="{DynamicResource NfcSurfaceCornerRadius}"
       DragDrop.AllowDrop="True"
       DragDrop.DragEnter="DropZone_OnDragEnter"
       DragDrop.DragOver="SlotDragOver_OnDragOver"

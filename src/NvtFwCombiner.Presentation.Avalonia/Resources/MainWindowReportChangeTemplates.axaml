@@ -86,7 +86,7 @@
           </ItemsControl>
         </Grid>
       </Expander.Header>
-      <Border Margin="0,8,0,2" Padding="12,10" Background="{DynamicResource NfcSurfaceSubtleBrush}" BorderBrush="{DynamicResource NfcInfoBorderBrush}" BorderThickness="1" CornerRadius="6">
+      <Border Margin="0,8,0,2" Padding="12,10" Background="{DynamicResource NfcSurfaceSubtleBrush}" BorderBrush="{DynamicResource NfcInfoBorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource NfcCompactCornerRadius}">
         <StackPanel Spacing="10">
           <Grid ColumnDefinitions="*,*" ColumnSpacing="10" IsVisible="{Binding HasBeforeAfter}">
             <StackPanel Spacing="4">

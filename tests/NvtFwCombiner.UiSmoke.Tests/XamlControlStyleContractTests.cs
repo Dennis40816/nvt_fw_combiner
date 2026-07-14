@@ -551,6 +551,10 @@ public sealed partial class XamlControlStyleContractTests
 
             Assert.DoesNotContain("CornerRadius=\"999\"", xaml, StringComparison.Ordinal);
             Assert.DoesNotContain("Property=\"CornerRadius\" Value=\"999\"", xaml, StringComparison.Ordinal);
+            Assert.DoesNotContain("CornerRadius=\"8\"", xaml, StringComparison.Ordinal);
+            Assert.DoesNotContain("Property=\"CornerRadius\" Value=\"8\"", xaml, StringComparison.Ordinal);
+            Assert.DoesNotContain("CornerRadius=\"6\"", xaml, StringComparison.Ordinal);
+            Assert.DoesNotContain("Property=\"CornerRadius\" Value=\"6\"", xaml, StringComparison.Ordinal);
         }
     }
 
