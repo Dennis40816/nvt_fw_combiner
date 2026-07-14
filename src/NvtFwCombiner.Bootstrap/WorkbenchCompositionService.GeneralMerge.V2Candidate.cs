@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
@@ -7,14 +8,38 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    private const string GeneralMergeV2CandidateIcId = "NT51920";
-    private const string GeneralMergeV2CandidateProfileId = "nt51920-general-merge-logical-candidate";
     private const string GeneralMergeV2CandidateProfileVersion = "0.1.0";
+    private const string GeneralMergeV2CandidateFallbackProfileId = "general-merge-logical-output-candidate";
     private const string GeneralMergeV2CandidateMemberNotAdmitted = "general-merge.v2-candidate.member-not-admitted";
     private const string GeneralMergeV2CandidateInputLengthUnsupported = "general-merge.v2-candidate.input-length-unsupported";
     private const string GeneralMergeV2CandidateCompilationUnexpected = "general-merge.v2-candidate.compilation-unexpected";
+    private static readonly BuiltInV2Bundle s_nt51920GeneralMergeLogicalCandidateV2Bundle = new(
+        "profiles\\built-in\\nt51920-general-merge-logical-candidate",
+        "d2f87973576f54b80439f30ef1790f47df2994a6811673f0ceb8ecd5cacdbdc7");
+    private static readonly BuiltInV2Bundle s_nt51923Nt51926GeneralMergeLogicalCandidateV2Bundle = new(
+        "profiles\\built-in\\nt51923-nt51926-general-merge-logical-candidate",
+        "26f12851f81d55bb88a0a0e18ab4f10f451747369e797efbc69fdbf05cdf5a96");
+    private static readonly ReadOnlyDictionary<string, GeneralMergeV2CandidateRegistration> s_generalMergeV2Candidates = new(
+        new Dictionary<string, GeneralMergeV2CandidateRegistration>(StringComparer.Ordinal)
+        {
+            ["NT51920"] = new(
+                "NT51920",
+                "nt51920",
+                "nt51920-general-merge-logical-candidate",
+                s_nt51920GeneralMergeLogicalCandidateV2Bundle),
+            ["NT51923"] = new(
+                "NT51923",
+                "nt51923-nt51926",
+                "nt51923-general-merge-logical-candidate",
+                s_nt51923Nt51926GeneralMergeLogicalCandidateV2Bundle),
+            ["NT51926"] = new(
+                "NT51926",
+                "nt51923-nt51926",
+                "nt51926-general-merge-logical-candidate",
+                s_nt51923Nt51926GeneralMergeLogicalCandidateV2Bundle),
+        });
 
-    /// <summary>Runs the explicit NT51920 logical-output V2 parity candidate without changing the default General Merge route.</summary>
+    /// <summary>Runs an explicitly admitted logical-output V2 parity candidate without changing the default General Merge route.</summary>
     internal static async ValueTask<WorkbenchRunResult> RunGeneralMergeV2CandidateAsync(
         string icId,
         string outputLength,
@@ -28,8 +53,8 @@ public static partial class WorkbenchCompositionService
         ArgumentNullException.ThrowIfNull(mappingInputs);
 
         Dictionary<string, string> reportSlotPaths = CreateGeneralMergeReportSlotPaths(mappingInputs);
-        const string defaultOutputFileName = "nt51920-general-merge.bin";
-        if (!StringComparer.Ordinal.Equals(icId, GeneralMergeV2CandidateIcId))
+        string defaultOutputFileName = GetGeneralMergeDefaultOutputFileName(icId);
+        if (!s_generalMergeV2Candidates.TryGetValue(icId, out GeneralMergeV2CandidateRegistration? registration))
         {
             return CreateCandidateReport(
                 icId,
@@ -38,7 +63,7 @@ public static partial class WorkbenchCompositionService
                 [],
                 [new CompositionIssue(
                     GeneralMergeV2CandidateMemberNotAdmitted,
-                    "The General Merge V2 candidate is currently admitted only for NT51920.",
+                    "The General Merge V2 candidate is currently admitted only for explicitly registered members.",
                     icId)],
                 defaultOutputFileName,
                 succeeded: false);
@@ -53,7 +78,8 @@ public static partial class WorkbenchCompositionService
                 [],
                 [capacityIssue!],
                 defaultOutputFileName,
-                succeeded: false);
+                succeeded: false,
+                registration.ProfileId);
         }
 
         if (mappingInputs.Count == 0)
@@ -68,7 +94,8 @@ public static partial class WorkbenchCompositionService
                     "General Merge requires at least one explicit source-to-target mapping.",
                     IcWorkflowIds.GeneralMerge)],
                 defaultOutputFileName,
-                succeeded: false);
+                succeeded: false,
+                registration.ProfileId);
         }
 
         if (!TryCreateGeneralMergeMappings(
@@ -85,7 +112,8 @@ public static partial class WorkbenchCompositionService
                 CreateGeneralMergePlanningOperations(explicitMappings),
                 mappingIssues,
                 defaultOutputFileName,
-                succeeded: false);
+                succeeded: false,
+                registration.ProfileId);
         }
 
         if (requestAddressSpaces.Any(static addressSpace => addressSpace.Length > int.MaxValue))
@@ -100,11 +128,12 @@ public static partial class WorkbenchCompositionService
                     "The General Merge V2 candidate accepts source inputs up to the supported in-memory composition size.",
                     "source")],
                 defaultOutputFileName,
-                succeeded: false);
+                succeeded: false,
+                registration.ProfileId);
         }
 
-        V2CompositionPlanCompileResult compile = s_nt51920GeneralMergeLogicalCandidateV2Bundle.CompileLogicalOutput(
-            GeneralMergeV2CandidateProfileId,
+        V2CompositionPlanCompileResult compile = registration.Bundle.CompileLogicalOutput(
+            registration.ProfileId,
             GeneralMergeV2CandidateProfileVersion,
             icId,
             new V2LogicalOutputCompileRequest(
@@ -135,10 +164,11 @@ public static partial class WorkbenchCompositionService
                 CreateGeneralMergePlanningOperations(explicitMappings),
                 compile.Issues,
                 defaultOutputFileName,
-                succeeded: false);
+                succeeded: false,
+                registration.ProfileId);
         }
 
-        if (!IsExpectedGeneralMergeV2Candidate(composition))
+        if (!IsExpectedGeneralMergeV2Candidate(composition, registration))
         {
             return CreateCandidateReport(
                 icId,
@@ -148,9 +178,10 @@ public static partial class WorkbenchCompositionService
                 [new CompositionIssue(
                     GeneralMergeV2CandidateCompilationUnexpected,
                     "The selected General Merge V2 artifact does not match the candidate admission contract.",
-                    GeneralMergeV2CandidateProfileId)],
+                    registration.ProfileId)],
                 defaultOutputFileName,
-                succeeded: false);
+                succeeded: false,
+                registration.ProfileId);
         }
 
         InputArtifactBinding[] candidateBindings =
@@ -173,21 +204,19 @@ public static partial class WorkbenchCompositionService
             cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
-    private static bool IsExpectedGeneralMergeV2Candidate(CompiledComposition composition)
+    private static bool IsExpectedGeneralMergeV2Candidate(
+        CompiledComposition composition,
+        GeneralMergeV2CandidateRegistration registration)
     {
         return composition.Eligibility == CompiledCompositionEligibility.V2PlanCompiled &&
                composition.Authority is ProfileBundleV2CompilationAuthority &&
-               StringComparer.Ordinal.Equals(composition.ProfileId, GeneralMergeV2CandidateProfileId) &&
+               StringComparer.Ordinal.Equals(composition.ProfileId, registration.ProfileId) &&
                StringComparer.Ordinal.Equals(composition.ProfileVersion, GeneralMergeV2CandidateProfileVersion) &&
-               composition.V2Details is
-               {
-                   Provenance.Context: LogicalOutputV2CompilationContext
-                   {
-                       FamilyId: "nt51920",
-                       MemberId: GeneralMergeV2CandidateIcId,
-                   },
-                   Provenance.Promotion.Stage: CompiledProfilePromotionStage.ExecutableCandidate,
-               };
+               composition.V2Details is { } details &&
+               details.Provenance.Context is LogicalOutputV2CompilationContext context &&
+               details.Provenance.Promotion.Stage == CompiledProfilePromotionStage.ExecutableCandidate &&
+               StringComparer.Ordinal.Equals(context.FamilyId, registration.FamilyId) &&
+               StringComparer.Ordinal.Equals(context.MemberId, registration.IcId);
     }
 
     private static WorkbenchRunResult CreateCandidateReport(
@@ -197,7 +226,8 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<OperationRunSummary> operations,
         IReadOnlyList<CompositionIssue> issues,
         string outputFileName,
-        bool succeeded)
+        bool succeeded,
+        string profileId = GeneralMergeV2CandidateFallbackProfileId)
     {
         return CreateGeneralMergeReportRunResult(
             icId,
@@ -207,7 +237,34 @@ public static partial class WorkbenchCompositionService
             issues,
             outputFileName,
             succeeded,
-            GeneralMergeV2CandidateProfileId,
+            profileId,
             GeneralMergeV2CandidateProfileVersion);
+    }
+
+    private sealed class GeneralMergeV2CandidateRegistration
+    {
+        internal GeneralMergeV2CandidateRegistration(
+            string icId,
+            string familyId,
+            string profileId,
+            BuiltInV2Bundle bundle)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+            ArgumentException.ThrowIfNullOrWhiteSpace(familyId);
+            ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
+            ArgumentNullException.ThrowIfNull(bundle);
+            IcId = icId;
+            FamilyId = familyId;
+            ProfileId = profileId;
+            Bundle = bundle;
+        }
+
+        internal string IcId { get; }
+
+        internal string FamilyId { get; }
+
+        internal string ProfileId { get; }
+
+        internal BuiltInV2Bundle Bundle { get; }
     }
 }

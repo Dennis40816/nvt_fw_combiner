@@ -99,6 +99,7 @@ public sealed partial class RepositoryBoundaryTests
         [
             "nt51920-standard-merge",
             "nt51920-general-merge-logical-candidate",
+            "nt51923-nt51926-general-merge-logical-candidate",
             "nt51923-standard-merge",
             "nt51927-standard-merge",
             "nt51928-standard-merge",
@@ -119,7 +120,10 @@ public sealed partial class RepositoryBoundaryTests
             Assert.Equal("Include", include.Name.LocalName);
             if (StringComparer.Ordinal.Equals(
                     bundle.Attribute("Include")?.Value,
-                    "nt51920-general-merge-logical-candidate"))
+                    "nt51920-general-merge-logical-candidate") ||
+                StringComparer.Ordinal.Equals(
+                    bundle.Attribute("Include")?.Value,
+                    "nt51923-nt51926-general-merge-logical-candidate"))
             {
                 Assert.Equal(
                     "ab3bed384c5d78590ad6a87ee23c12f23a1ea4a1bdc6001273f254b6e5f3547f",

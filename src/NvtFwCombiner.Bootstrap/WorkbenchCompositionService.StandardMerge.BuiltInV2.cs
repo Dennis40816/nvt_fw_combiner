@@ -15,9 +15,6 @@ public static partial class WorkbenchCompositionService
     private static readonly BuiltInV2Bundle s_nt51920V2Bundle = new(
         "profiles\\built-in\\nt51920-standard-merge",
         "3bb76d56656642af553ff012a619ca8fc38fb7cdabf8ac674e5433998357f9f2");
-    private static readonly BuiltInV2Bundle s_nt51920GeneralMergeLogicalCandidateV2Bundle = new(
-        "profiles\\built-in\\nt51920-general-merge-logical-candidate",
-        "d2f87973576f54b80439f30ef1790f47df2994a6811673f0ceb8ecd5cacdbdc7");
     private static readonly BuiltInV2Bundle s_nt51929FamilyV2Bundle = new(
         "profiles\\built-in\\nt51929-standard-merge",
         "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09");
