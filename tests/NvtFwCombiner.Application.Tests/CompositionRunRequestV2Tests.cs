@@ -7,7 +7,7 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.Application.Tests;
 
 /// <summary>Tests the closed Application admission contract for V2 plan and runtime artifacts.</summary>
-public sealed class CompositionRunRequestV2Tests
+public sealed partial class CompositionRunRequestV2Tests
 {
     private static readonly DateTimeOffset FirstTimestamp = new(2026, 7, 12, 0, 0, 0, TimeSpan.Zero);
     private static readonly DateTimeOffset SecondTimestamp = FirstTimestamp.AddSeconds(1);

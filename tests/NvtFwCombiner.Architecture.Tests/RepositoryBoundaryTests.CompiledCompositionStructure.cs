@@ -104,10 +104,14 @@ public sealed partial class RepositoryBoundaryTests
             request,
             StringComparison.Ordinal);
         Assert.Contains("ProfileBundleV2CompilationAuthority", request, StringComparison.Ordinal);
-        Assert.DoesNotContain(
+        Assert.Contains(
             "CompiledCompositionEligibility.V2PlanCompiled",
             request,
             StringComparison.Ordinal);
+        Assert.Contains("LogicalOutputV2CompilationContext", request, StringComparison.Ordinal);
+        Assert.Contains("CompiledProfilePromotionStage.ExecutableCandidate", request, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompiledComposition.CreateV2(", request, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompiledComposition.CreateV2RuntimeExecutable(", request, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionRunProfile", request, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionPlan plan", request, StringComparison.Ordinal);
         Assert.Contains(

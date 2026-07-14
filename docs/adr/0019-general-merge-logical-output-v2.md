@@ -46,10 +46,16 @@ introduced.
 The output capacity must be in `1..Int32.MaxValue`. Source and target ranges are half-open and use
 checked arithmetic. Binding IDs and mapping IDs are unique; mapping sequence is deterministic and
 unambiguous; source and target lengths are equal and positive; every source and target range is in
-bounds; and every target is the final logical output. Application validates that runtime artifacts
-match the concrete compiled binding identities, original filenames, extensions, and exact byte
-lengths before reading them. Preview-to-Build identity includes the compiled bindings, mappings,
-output capacity, and chosen output filename.
+bounds; and every target is the final logical output. Before reading, Application validates that
+runtime artifacts match the concrete compiled binding identities, artifact class, original
+filenames, and extensions. After reading and before execution, it validates each actual byte length
+against the compiled immutable space. Preview-to-Build identity includes the compiled bindings,
+mappings, output capacity, chosen output filename, and the read input hashes.
+
+Application admits this sole `V2PlanCompiled` exception only when the context is logical-output and
+the promotion stage is exactly `executable-candidate`. It does not admit map-bound plan artifacts or
+other promotion stages. This permits controlled candidate parity collection without promoting the
+profile to supported execution.
 
 `runtime-request` capacity is not valid on resolved-map profiles. Logical-output admission must not
 bypass map-backed region access, metadata, processor, or promotion controls. General Merge does not

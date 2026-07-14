@@ -106,6 +106,17 @@ public sealed class CompositionRunRequest
             return;
         }
 
+        if (compiledComposition.Eligibility == CompiledCompositionEligibility.V2PlanCompiled &&
+            compiledComposition.Authority is ProfileBundleV2CompilationAuthority &&
+            compiledComposition.V2Details is
+            {
+                Provenance.Context: LogicalOutputV2CompilationContext,
+                Provenance.Promotion.Stage: CompiledProfilePromotionStage.ExecutableCandidate,
+            })
+        {
+            return;
+        }
+
         throw new ArgumentException(
             "Compiled composition is not executable by the current application runtime.",
             nameof(compiledComposition));
@@ -154,6 +165,7 @@ public sealed class CompositionRunRequest
         var slots = details.InputContract.Slots.ToDictionary(
             static slot => slot.SlotId,
             StringComparer.Ordinal);
+        bool isLogicalOutput = details.Provenance.Context is LogicalOutputV2CompilationContext;
         foreach (CompiledInputSpaceBinding expected in expectedBindings)
         {
             if (!bindings.TryGetValue(expected.AddressSpaceId, out InputArtifactBinding? binding))
@@ -164,18 +176,28 @@ public sealed class CompositionRunRequest
             }
 
             CompiledInputSlotRequirement slot = slots[expected.SlotId];
-            if (expected.InstancePolicy != CompiledInputInstancePolicy.Singleton ||
-                !slot.Required ||
-                slot.Cardinality != CompiledInputSlotCardinality.ExactlyOne ||
-                binding.ArtifactClass != slot.ArtifactClass ||
-                binding.OriginalFileName is null)
+            bool satisfiesInputContract = isLogicalOutput
+                ? expected.InstancePolicy == CompiledInputInstancePolicy.PerBinding &&
+                  slot.Required &&
+                  slot.Cardinality == CompiledInputSlotCardinality.OneOrMore &&
+                  binding.BindingId == expected.AddressSpaceId &&
+                  binding.ArtifactClass == slot.ArtifactClass &&
+                  binding.OriginalFileName is not null
+                : expected.InstancePolicy == CompiledInputInstancePolicy.Singleton &&
+                  slot.Required &&
+                  slot.Cardinality == CompiledInputSlotCardinality.ExactlyOne &&
+                  binding.ArtifactClass == slot.ArtifactClass &&
+                  binding.OriginalFileName is not null;
+            if (!satisfiesInputContract)
             {
                 throw new ArgumentException(
-                    $"V2 runtime binding '{expected.AddressSpaceId}' does not satisfy the compiled singleton slot contract.",
+                    $"V2 runtime binding '{expected.AddressSpaceId}' does not satisfy the compiled input slot contract.",
                     nameof(bindings));
             }
 
-            string extension = Path.GetExtension(binding.OriginalFileName);
+            string originalFileName = binding.OriginalFileName ?? throw new InvalidOperationException(
+                "A contract-matching V2 binding must retain its original file name.");
+            string extension = Path.GetExtension(originalFileName);
             if (!slot.AcceptedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
             {
                 throw new ArgumentException(

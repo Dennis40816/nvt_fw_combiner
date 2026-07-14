@@ -43,6 +43,28 @@ public sealed partial class CompositionRunService
             return;
         }
 
+        if (details.Provenance.Context is LogicalOutputV2CompilationContext)
+        {
+            var addressSpaces = request.CompiledComposition.Plan.AddressSpaces.ToDictionary(
+                static addressSpace => addressSpace.AddressSpaceId,
+                StringComparer.Ordinal);
+            foreach (CompiledInputSpaceBinding binding in details.InputContract.SpaceBindings)
+            {
+                if (!inputBytes.TryGetValue(binding.AddressSpaceId, out byte[]? bytes) ||
+                    bytes.LongLength == addressSpaces[binding.AddressSpaceId].Length)
+                {
+                    continue;
+                }
+
+                issues.Add(new CompositionIssue(
+                    CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+                    $"Input bytes for logical binding '{binding.AddressSpaceId}' must exactly match its compiled length (actual {bytes.LongLength} bytes, expected {addressSpaces[binding.AddressSpaceId].Length} bytes).",
+                    binding.AddressSpaceId));
+            }
+
+            return;
+        }
+
         var slots = details.InputContract.Slots.ToDictionary(
             static slot => slot.SlotId,
             StringComparer.Ordinal);
