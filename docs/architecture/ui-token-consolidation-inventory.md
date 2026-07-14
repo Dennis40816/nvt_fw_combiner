@@ -269,9 +269,17 @@ The Presentation C# audit remains open by design.
 `MemoryCoverageSegmentViewModel` keeps its data-bound `FillBrush` because it
 represents projected coverage evidence, but its changed/kept badge and outline
 can move to XAML state selectors. The Hex Editor stays a custom immediate-mode
-renderer; a later slice may feed its stable brushes through Avalonia styled
-properties while retaining its geometry, hit testing, caches, and transient
-procedural feedback. These areas must not create ViewModel resource keys, a
+renderer; its remaining brush values are not duplicate ViewModel presentation
+state. They participate directly in `FormattedText` caches, pens, geometry,
+hit testing, and transient procedural feedback. This repository has no
+existing brush styled-property/cache-rebuild pattern to extend. Migrating them
+would add many public styled properties and invalidation paths, increasing code
+size and risk without an exact-equivalent deletion.
+
+The Hex renderer is therefore an intentional 0.9.7 exception. A future R2
+visual-parity change may introduce a single styled-property/cache-rebuild
+contract only with direct rendering evidence, interaction coverage, and a
+measured benefit. It must not use resource lookup, a ViewModel resource key, a
 theme service, or firmware-derived token names.
 
 ## Consolidation Rules
@@ -293,6 +301,21 @@ theme service, or firmware-derived token names.
    semantic equality.
 6. Delete a style, setter bundle, or compatibility route only when the retained
    role is exact and UI smoke coverage proves the affected surface unchanged.
+
+## Final Disposition
+
+The completed token phases remove exact duplicate brush ownership from slot
+completion, slot icons, firmware facts, and Replace coverage state. The shared
+palette now has 55 declared roles and 403 dynamic-resource references. The
+production-source total is 57,732 nonblank lines, 18 above the recorded
+baseline; this is not a credible path to the requested approximate 30,000-line
+target. No additional deletion is approved merely to reduce that count.
+
+The only remaining Avalonia C# color literals are the Hex immediate renderer
+exception above. Remaining direct XAML values are retained where they represent
+geometry, data-bound evidence, or a role without an exact shared semantic
+match. Further code-size reduction requires workflow retirement with exact V2
+replacement and regression evidence, not token consolidation.
 
 ## Execution Order
 
