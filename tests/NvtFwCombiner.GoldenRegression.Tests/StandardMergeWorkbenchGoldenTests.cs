@@ -22,6 +22,19 @@ public sealed class StandardMergeWorkbenchGoldenTests
         }
     }
 
+    /// <summary>Verifies the canonical NT51950 V2 map also matches the owner-approved third-party reference fixture.</summary>
+    [Fact]
+    public async Task WorkbenchBuildNt51950MatchesReferenceOnlyGoldenBytes()
+    {
+        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
+        string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-reference", "nt51950");
+        using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
+        JsonElement goldenCase = Assert.Single(manifestDocument.RootElement.GetProperty("cases").EnumerateArray()).Clone();
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-nt51950-reference-golden");
+
+        await VerifyGoldenCaseAsync(goldenRoot, workspace.Root, goldenCase);
+    }
+
     /// <summary>Verifies the workbench command path can build owner-confirmed Standard Merge aliases.</summary>
     [Theory]
     [InlineData("51917", "51927")]

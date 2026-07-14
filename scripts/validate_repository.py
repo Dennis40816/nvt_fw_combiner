@@ -14,6 +14,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
 from urllib.parse import unquote
 
+from golden_fixture_validation import validate_golden_fixtures
 from repository_contract_validation import validate_v2_contract_model
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,10 +28,13 @@ REQUIRED_FILES = {
     "scripts/bootstrap.ps1", "scripts/bootstrap.sh", "scripts/install-dotnet.ps1",
     "scripts/install-dotnet.sh", "scripts/package.ps1", "scripts/polytail_check.py",
     "scripts/publish-github.ps1", "scripts/publish-github.sh", "scripts/validate_repository.py",
+    "scripts/golden_fixture_validation.py",
     "scripts/repository_contract_validation.py",
     "scripts/verify_ctrlram_replace_fixture.py", "scripts/verify.py",
     "external-tools/README.md", "external-tools/legacy-combiner/README.md",
     "external-tools/legacy-combiner/1.13.0/manifest.json",
+    "testdata/golden/ab-merge/manifest.json",
+    "testdata/golden/standard-merge-reference/nt51950/manifest.json",
     "testdata/golden/standard-merge-gen-flash/manifest.json",
     "docs/adr/0003-unified-composition-engine.md",
     "docs/adr/0004-orthogonal-experience-access-policy.md",
@@ -154,6 +158,8 @@ EXPECTED_SKILLS = {
 EXPECTED_REFCODE_SNAPSHOTS = {"gen_flash_bin_v2", "ab_code_combiner"}
 FORBIDDEN_SUFFIXES = {".bin", ".exe", ".dll", ".pdb", ".pfx", ".p12", ".pem", ".key", ".pyc"}
 ALLOWED_GOLDEN_BIN_ROOTS = {
+    PurePosixPath("testdata/golden/ab-merge/fixtures"),
+    PurePosixPath("testdata/golden/standard-merge-reference/nt51950/fixtures"),
     PurePosixPath("testdata/golden/standard-merge-gen-flash"),
     PurePosixPath("testdata/golden/ctrlram-replace/fixtures"),
 }
@@ -381,194 +387,6 @@ def validate_source_manifest(manifest_path: Path, errors: list[str]) -> None:
         relative = candidate.relative_to(manifest_path.parent).as_posix()
         if candidate.suffix.lower() in SNAPSHOT_CODE_SUFFIXES and relative not in listed_paths:
             errors.append(f"unlisted reference source file: {candidate.relative_to(ROOT)}")
-
-
-def validate_golden_fixtures(errors: list[str]) -> None:
-    validate_standard_merge_golden_fixtures(errors)
-    validate_ctrlram_replace_golden_fixtures(errors)
-
-
-def validate_standard_merge_golden_fixtures(errors: list[str]) -> None:
-    manifest_path = ROOT / "testdata/golden/standard-merge-gen-flash/manifest.json"
-    manifest = load_json(manifest_path, errors)
-    if not isinstance(manifest, dict):
-        return
-
-    if manifest.get("payloadClass") != "owner-approved-golden-firmware":
-        errors.append("standard-merge golden manifest must declare owner-approved-golden-firmware payloadClass")
-    if manifest.get("binaryPayloadsIncluded") is not True:
-        errors.append("standard-merge golden manifest must explicitly include binaryPayloadsIncluded=true")
-
-    golden_root = manifest_path.parent
-    declared_bins: set[PurePosixPath] = set()
-    supporting = manifest.get("supportingFiles")
-    if isinstance(supporting, dict):
-        config = supporting.get("test_ic_config")
-        if isinstance(config, dict):
-            validate_golden_manifest_entry(golden_root, config, errors, require_bin=False, label="standard-merge")
-
-    cases = manifest.get("cases")
-    if not isinstance(cases, list) or not cases:
-        errors.append("standard-merge golden manifest must contain cases")
-        return
-
-    for index, item in enumerate(cases):
-        if not isinstance(item, dict):
-            errors.append(f"invalid standard-merge golden case[{index}]")
-            continue
-        inputs = item.get("inputs")
-        if not isinstance(inputs, dict):
-            errors.append(f"standard-merge golden case[{index}] has no inputs")
-        else:
-            for entry in inputs.values():
-                if isinstance(entry, dict):
-                    relative = validate_golden_manifest_entry(golden_root, entry, errors, require_bin=True, label="standard-merge")
-                    if relative is not None:
-                        declared_bins.add(relative)
-        expected = item.get("expectedOutput")
-        if isinstance(expected, dict):
-            relative = validate_golden_manifest_entry(golden_root, expected, errors, require_bin=True, label="standard-merge")
-            if relative is not None:
-                declared_bins.add(relative)
-        else:
-            errors.append(f"standard-merge golden case[{index}] has no expectedOutput")
-
-    actual_bins = {
-        PurePosixPath(path.relative_to(golden_root).as_posix())
-        for path in golden_root.rglob("*.bin")
-        if path.is_file()
-    }
-    if actual_bins != declared_bins:
-        errors.append(
-            "standard-merge golden BIN manifest drift: "
-            f"expected={sorted(path.as_posix() for path in declared_bins)} "
-            f"actual={sorted(path.as_posix() for path in actual_bins)}"
-        )
-
-
-def validate_ctrlram_replace_golden_fixtures(errors: list[str]) -> None:
-    manifest_path = ROOT / "testdata/golden/ctrlram-replace/manifest.json"
-    from verify_ctrlram_replace_fixture import verify_fixture_manifest
-    try:
-        verify_fixture_manifest(manifest_path)
-    except (OSError, ValueError, json.JSONDecodeError) as exc:
-        errors.append(f"ctrlram-replace golden manifest contract invalid: {exc}")
-    manifest = load_json(manifest_path, errors)
-    if not isinstance(manifest, dict):
-        return
-
-    if manifest.get("payloadClass") != "owner-approved-golden-firmware":
-        errors.append("ctrlram-replace golden manifest must declare owner-approved-golden-firmware payloadClass")
-    if manifest.get("binaryPayloadsIncluded") is not True:
-        errors.append("ctrlram-replace golden manifest must explicitly include binaryPayloadsIncluded=true")
-
-    golden_root = manifest_path.parent
-    declared_bins: set[PurePosixPath] = set()
-    cases = manifest.get("cases")
-    if not isinstance(cases, list) or not cases:
-        errors.append("ctrlram-replace golden manifest must contain cases")
-        return
-
-    for index, item in enumerate(cases):
-        if not isinstance(item, dict):
-            errors.append(f"invalid ctrlram-replace golden case[{index}]")
-            continue
-
-        base = item.get("base")
-        if isinstance(base, dict):
-            relative = validate_golden_manifest_entry(golden_root, base, errors, require_bin=True, label="ctrlram-replace")
-            if relative is not None:
-                declared_bins.add(relative)
-        else:
-            errors.append(f"ctrlram-replace golden case[{index}] has no base")
-
-        replacement_inputs = item.get("replacementInputs")
-        if not isinstance(replacement_inputs, list) or not replacement_inputs:
-            errors.append(f"ctrlram-replace golden case[{index}] has no replacementInputs")
-            continue
-
-        for replacement_index, replacement in enumerate(replacement_inputs):
-            if not isinstance(replacement, dict):
-                errors.append(f"invalid ctrlram-replace golden case[{index}].replacementInputs[{replacement_index}]")
-                continue
-            file_entry = replacement.get("file")
-            if isinstance(file_entry, dict):
-                relative = validate_golden_manifest_entry(
-                    golden_root,
-                    file_entry,
-                    errors,
-                    require_bin=True,
-                    label="ctrlram-replace",
-                )
-                if relative is not None:
-                    declared_bins.add(relative)
-            else:
-                errors.append(
-                    f"ctrlram-replace golden case[{index}].replacementInputs[{replacement_index}] has no file"
-                )
-
-        expected = item.get("expectedOutput")
-        if isinstance(expected, dict):
-            relative = validate_golden_manifest_entry(
-                golden_root,
-                expected,
-                errors,
-                require_bin=True,
-                label="ctrlram-replace",
-            )
-            if relative is not None:
-                declared_bins.add(relative)
-
-    actual_bins = {
-        PurePosixPath(path.relative_to(golden_root).as_posix())
-        for path in golden_root.rglob("*.bin")
-        if path.is_file()
-    }
-    if actual_bins != declared_bins:
-        errors.append(
-            "ctrlram-replace golden BIN manifest drift: "
-            f"expected={sorted(path.as_posix() for path in declared_bins)} "
-            f"actual={sorted(path.as_posix() for path in actual_bins)}"
-        )
-
-
-def validate_golden_manifest_entry(
-    golden_root: Path,
-    entry: dict[str, Any],
-    errors: list[str],
-    *,
-    require_bin: bool,
-    label: str,
-) -> PurePosixPath | None:
-    relative_text = entry.get("path")
-    expected_size = entry.get("size")
-    expected_hash = entry.get("sha256")
-    if not isinstance(relative_text, str) or not isinstance(expected_size, int) or not isinstance(expected_hash, str):
-        errors.append(f"invalid {label} golden manifest file entry")
-        return None
-
-    relative = PurePosixPath(relative_text)
-    if relative.is_absolute() or ".." in relative.parts:
-        errors.append(f"unsafe {label} golden manifest path: {relative_text}")
-        return None
-    if require_bin and relative.suffix.lower() != ".bin":
-        errors.append(f"{label} golden payload is not a BIN file: {relative_text}")
-        return None
-
-    candidate = (golden_root / Path(*relative.parts)).resolve()
-    try:
-        candidate.relative_to(golden_root.resolve())
-    except ValueError:
-        errors.append(f"{label} golden manifest path escapes fixture root: {relative_text}")
-        return None
-    if not candidate.is_file():
-        errors.append(f"{label} golden manifest file missing: {candidate.relative_to(ROOT)}")
-        return relative
-    if candidate.stat().st_size != expected_size:
-        errors.append(f"{label} golden size drift: {candidate.relative_to(ROOT)}")
-    if sha256(candidate) != expected_hash.lower():
-        errors.append(f"{label} golden hash drift: {candidate.relative_to(ROOT)}")
-    return relative
 
 
 def validate_refcode(errors: list[str]) -> None:

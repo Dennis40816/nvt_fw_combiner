@@ -54,7 +54,7 @@ when using the normalized local names below.
 | --- | --- | --- | --- |
 | v0.8.x | Tagged baseline; no known evidence blocker. | Only for a UAT or package defect: the failing artifact/log record listed below. | Production firmware BINs for routine package verification. |
 | v0.9.1 / v0.9.2 | Tagged, support-neutral migration baselines. | Only a new/disputed capacity, alias, workflow, or metadata case selected for release support. | A duplicate golden merely to re-verify the existing tag. |
-| v0.9.3 AB | All five `testdata/golden/owner-handoff/ab-merge/nt519xx/inputs/` directories currently contain only `CASE.md` and `.keep`. | The complete AB packages in the next table, including source inputs and expected outputs. | A C# CRC implementation. Header CRC must remain a declared Combiner mutation. |
+| v0.9.3 AB | `testdata/golden/ab-merge/manifest.json` tracks one direct NT51929 case and two NT51950 cases with owner-approved fixture storage. | NT51919, NT51932, and NT51951 packages; plus NT51950 Combiner sidecar/trace evidence in the next table. | A C# CRC implementation. Header CRC must remain a declared Combiner mutation. |
 | v0.9.3 CtrlRAM version edit | Handoff directories contain templates/placeholders only; no Preserve/Edit expected-pair evidence is present. | One Preserve/Edit package per release-selected IC, IC-number branch, and postbuild category. | A separate case for Preview: Preview is not allowed to edit FW version. |
 | v0.9.4 candidate intake | Candidate tooling can proceed without firmware payload. | A source workbook/export/package only when a real candidate IC is to be reviewed. | A product golden or support sign-off. |
 | v0.9.5 legacy retirement | No retirement row is yet closed. | One complete V2 parity package for the specific matrix row selected for removal. | Evidence for every legacy row at once. |
@@ -68,9 +68,9 @@ NT51950 result for NT51951 or rely on a filename-only "same IC" assertion.
 | Target | Required private files | Additional owner decision/evidence |
 | --- | --- | --- |
 | NT51919 | `dp-ab.bin`, `tpa.bin`, `tpb.bin`, `expected.bin`, `provenance.json` | Fact-scoped alias/parity decision identifying the effective map, capacity/topology, and direct member output hash. |
-| NT51929 | `dp-ab.bin`, `tpa.bin`, `tpb.bin`, `expected.bin`, `provenance.json` | Direct case metadata, including the effective map and capacity/topology. |
+| NT51929 | The tracked 512 KiB fixture has a DP AB input, one TP FW reused as TPA/TPB, and an expected output. | Direct case metadata, including the effective map/capacity/topology, and firmware-owner review before runtime exposure. |
 | NT51932 | `dp-ab.bin`, `tpa.bin`, `tpb.bin`, `expected.bin`, `provenance.json` | Direct case metadata; any reuse of NT51929 facts needs the fact-scoped parity decision. |
-| NT51950 | `dp-ab.bin`, `tpa.bin`, `tpb.bin`, `expected.bin`, `provenance.json`, exact `map.txt`, `combiner-command.txt`, `combiner-tool.json` | Chip-count branch, declared stage read/write ranges, Combiner trace, tool SHA-256, timeout/platform, and final output filename. |
+| NT51950 | Two tracked 512 KiB fixture cases reuse one TP FW as TPA/TPB and include expected outputs. | Exact `map.txt`, `combiner-command.txt`, `combiner-tool.json`, chip-count branch, declared stage read/write ranges, Combiner trace, tool SHA-256, timeout/platform, and final output filename. |
 | NT51951 | `dp-ab.bin`, `tpa.bin`, `tpb.bin`, `expected.bin`, `provenance.json`, exact `map.txt`, `combiner-command.txt`, `combiner-tool.json` | Its own relocation/header, trace, tool binding, and output evidence. NT51950 evidence is not a substitute. |
 
 The repository currently contains `Combiner.exe` and its manifest for version
@@ -136,8 +136,8 @@ materialization/validation report. This never promotes firmware support.
 
 ### AB Merge: Every Target
 
-For each of `NT51919`, `NT51929`, `NT51932`, `NT51950`, and `NT51951`, provide
-an exact AB case under `testdata/golden/owner-handoff/ab-merge/<ic>/inputs/`:
+For an AB target not already represented by an owner-approved fixture manifest,
+provide an exact case under `testdata/golden/owner-handoff/ab-merge/<ic>/inputs/`:
 
 ```text
 dp-ab.bin
@@ -150,12 +150,15 @@ provenance.json
 `provenance.json` must retain original filenames, SHA-256, lengths, source
 archive/ticket, output filename, capacity/topology, owner, and approval date.
 The submitted DP_AB container owns customer information unless an owner-approved
-case explicitly proves a narrower rule.
+case explicitly proves a narrower rule. The 2026-07-14 owner-approved fixture
+manifest provides this information for one NT51929 case and two NT51950 cases;
+it does not replace the unresolved processor evidence or member-specific gates
+listed below.
 
 | AB group | Additional required evidence |
 | --- | --- |
-| NT51919 / NT51929 / NT51932 | An owner-approved fact-scoped AB alias/parity matrix. It must identify each effective member/map/capacity and provide direct output hashes for every reused member. A shared source payload is acceptable only when the matrix and member-specific expected results prove parity. |
-| NT51950 | Exact `Combiner.exe` identity, version, SHA-256, adapter/platform/timeout, full invocation trace, exact `map.txt`, declared read/write ranges, and expected output. The Combiner, not C#, owns AB header CRC mutation. |
+| NT51919 / NT51929 / NT51932 | An owner-approved fact-scoped AB alias/parity matrix. It must identify each effective member/map/capacity and provide direct output hashes for every reused member. The tracked NT51929 fixture proves its own fixed 512 KiB bytes only; it does not prove NT51919/NT51932. |
+| NT51950 | Exact `Combiner.exe` identity, version, SHA-256, adapter/platform/timeout, full invocation trace, exact `map.txt`, and declared read/write ranges. The two tracked expected outputs prove reference parity, but not the declared legacy-Combiner stage. The Combiner, not C#, owns AB header CRC mutation. |
 | NT51951 | The same tool/map/trace/output package as NT51950, independently. Do not copy NT51950's map or result merely because the flows appear similar. Its relocation/header facts must be proven by its own case. |
 
 The existing 256 KiB NT51929 `initial code` / `TPFW` / `FlashCode` archive is a

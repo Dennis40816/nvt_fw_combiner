@@ -1,0 +1,51 @@
+{
+  "manifestVersion": "1.0",
+  "payloadClass": "owner-approved-golden-firmware",
+  "binaryPayloadsIncluded": true,
+  "source": {
+    "transfer": "HackMD CJK14 note 1",
+    "noteId": "5CEhhS2_SvuwlbslV8ip9Q",
+    "archiveOriginalFilename": "ab_code_golden.7z",
+    "archiveSha256": "cb7cdc563d2ba9400774bf73b0a64dea71e285d16f88f54e47c44e6fe581b9c9",
+    "referenceScript": {
+      "path": "togo/51950_merge_code_reference/2M_4M/950_Merge.py",
+      "sha256": "4733dd0a50f6bdf1fe26b1edfe5cd86a3866ce0dffab9dead338182ae174c06d"
+    },
+    "sourceClassification": "owner-approved-golden-firmware",
+    "approval": "Repository owner explicitly requested tracking the supplied NT51950 Standard Merge reference fixture in Git on 2026-07-14. It is a parity reference only and does not authorize changes to the canonical map."
+  },
+  "cases": [
+    {
+      "caseId": "nt51950-standard-merge-reference-512k-20260427",
+      "ic": "51950",
+      "profileId": "nt51950-standard-merge-dp-perspective",
+      "variant": "third-party-reference-only",
+      "ownerApproval": "Repository owner explicitly requested tracking this fixture in Git on 2026-07-14.",
+      "inputs": {
+        "dp-input": {
+          "path": "fixtures/20260714/NT51950TT_Initial Code_BOE_2880x1620_D80_GOP_4MUX_20260427_pd on_line time 16B_VBK 24H_1_muxw 47_V M VGHO_M ORD_MM off_gamma_temp_1_26P32.bin",
+          "originalFileName": "NT51950TT_Initial Code_BOE_2880x1620_D80_GOP_4MUX_20260427_pd on_line time 16B_VBK 24H_1_muxw 47_V M VGHO_M ORD_MM off_gamma_temp_1_26P32.bin",
+          "size": 524288,
+          "sha256": "355e06ace774d88c9435d715ae75c2659b8198c163a4b88ae78fd3c74f73a82a"
+        },
+        "tp-input": {
+          "path": "fixtures/20260714/nt51950_fw_T81.bin",
+          "originalFileName": "nt51950_fw_T81.bin",
+          "size": 225280,
+          "sha256": "3e64b8a02ee89c03a94c509551aa2f5f938fa9b0df2f460a29ccb6b62ebdde6d"
+        }
+      },
+      "expectedOutput": {
+        "path": "fixtures/20260714/NT51950TT_FW.bin",
+        "originalFileName": "NT51950TT_FW.bin",
+        "size": 524288,
+        "sha256": "3e69116e0aa3e5254887360165fb521598dc6ab67ed36fe44faae487c8dd76f6"
+      },
+      "referenceOverlay": {
+        "start": 40960,
+        "endExclusive": 225280
+      },
+      "verification": "The reference script and canonical V2 workbench both produce the exact expected output. The canonical V2 range remains authoritative."
+    }
+  ]
+}
