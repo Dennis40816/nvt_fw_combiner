@@ -157,6 +157,35 @@ public sealed class CompositionProfileDocumentTests
         Assert.Equal("{original-name}_merged.bin", profile.Output.FileNameTemplate);
     }
 
+    /// <summary>Verifies schema 2.4 additions retain the original public transport constructor ABI.</summary>
+    [Fact]
+    public void TransportDocumentRetainsOriginalConstructorSignature()
+    {
+        Type[] originalParameters =
+        [
+            typeof(string),
+            typeof(string),
+            typeof(string),
+            typeof(CompositionProfilePromotionDocument),
+            typeof(string),
+            typeof(string),
+            typeof(CompositionProfileExperienceDocument),
+            typeof(CompositionProfileMapBindingDocument),
+            typeof(IReadOnlyList<CompositionProfileInputSlotDocument>),
+            typeof(IReadOnlyList<CompositionProfileSpaceDocument>),
+            typeof(IReadOnlyList<CompositionProfileViewDocument>),
+            typeof(IReadOnlyList<CompositionProfileMetadataBindingDocument>),
+            typeof(IReadOnlyList<CompositionProfileRegionAccessRuleDocument>),
+            typeof(IReadOnlyList<CompositionProfileOperationDocument>),
+            typeof(IReadOnlyList<CompositionProfileValidationDocument>),
+            typeof(IReadOnlyList<CompositionProfileProcessorStageDocument>),
+            typeof(CompositionProfileOutputDocument),
+            typeof(IReadOnlyList<string>),
+        ];
+
+        Assert.NotNull(typeof(CompositionProfileDocument).GetConstructor(originalParameters));
+    }
+
     /// <summary>Verifies schema integers beyond Int64 stay lossless until semantic normalization.</summary>
     [Fact]
     public void NumericTransportPreservesIntegerBeyondInt64()

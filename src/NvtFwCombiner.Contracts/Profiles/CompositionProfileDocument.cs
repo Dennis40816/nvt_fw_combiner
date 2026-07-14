@@ -1,6 +1,9 @@
+using System.Text.Json.Serialization;
+
 namespace NvtFwCombiner.Contracts.Profiles;
 
 /// <summary>DTO for one schema-validated <c>composition-profile-v2</c> document.</summary>
+[method: JsonConstructor]
 public sealed record CompositionProfileDocument(
     string SchemaVersion,
     string ProfileId,
@@ -21,7 +24,52 @@ public sealed record CompositionProfileDocument(
     CompositionProfileOutputDocument Output,
     IReadOnlyList<string> EvidenceRefs,
     CompositionProfileCompilationContextDocument? CompilationContext = null,
-    CompositionProfileLogicalOutputBindingDocument? LogicalOutputBinding = null);
+    CompositionProfileLogicalOutputBindingDocument? LogicalOutputBinding = null)
+{
+    /// <summary>Preserves the original public transport constructor for previously compiled consumers.</summary>
+    public CompositionProfileDocument(
+        string SchemaVersion,
+        string ProfileId,
+        string ProfileVersion,
+        CompositionProfilePromotionDocument Promotion,
+        string CompositionKind,
+        string? IcNumberInputMode,
+        CompositionProfileExperienceDocument Experience,
+        CompositionProfileMapBindingDocument MapBinding,
+        IReadOnlyList<CompositionProfileInputSlotDocument> InputSlots,
+        IReadOnlyList<CompositionProfileSpaceDocument> Spaces,
+        IReadOnlyList<CompositionProfileViewDocument> Views,
+        IReadOnlyList<CompositionProfileMetadataBindingDocument> MetadataBindings,
+        IReadOnlyList<CompositionProfileRegionAccessRuleDocument> RegionAccessRules,
+        IReadOnlyList<CompositionProfileOperationDocument> Operations,
+        IReadOnlyList<CompositionProfileValidationDocument> Validations,
+        IReadOnlyList<CompositionProfileProcessorStageDocument> ProcessorStages,
+        CompositionProfileOutputDocument Output,
+        IReadOnlyList<string> EvidenceRefs)
+        : this(
+            SchemaVersion,
+            ProfileId,
+            ProfileVersion,
+            Promotion,
+            CompositionKind,
+            IcNumberInputMode,
+            Experience,
+            MapBinding,
+            InputSlots,
+            Spaces,
+            Views,
+            MetadataBindings,
+            RegionAccessRules,
+            Operations,
+            Validations,
+            ProcessorStages,
+            Output,
+            EvidenceRefs,
+            CompilationContext: null,
+            LogicalOutputBinding: null)
+    {
+    }
+}
 
 /// <summary>DTO for profile promotion state and its explicit blockers.</summary>
 public sealed record CompositionProfilePromotionDocument(

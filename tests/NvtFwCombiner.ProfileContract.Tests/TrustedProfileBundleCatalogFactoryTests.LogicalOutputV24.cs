@@ -112,6 +112,42 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Contains(overlapping.Issues, issue => issue.Code == "profile.v2.plan.operation-overlap");
     }
 
+    /// <summary>Verifies a malformed input/output address-space collision stays within that logical compile request.</summary>
+    [Fact]
+    public void LogicalOutputLoweringRejectsOutputSpaceBindingCollisionWithoutAffectingLaterRequests()
+    {
+        TrustedProfileBundleCatalog catalog = CreateLogicalOutputCatalog();
+        V2CompositionPlanCompileResult rejected = TrustedV2CompositionCompiler.CompileLogicalOutput(
+            catalog,
+            "logical-general-merge",
+            "1.0.0",
+            "member",
+            new V2LogicalOutputCompileRequest(
+                6,
+                [new V2LogicalOutputInputBinding(CompositionAddressSpaceIds.OutputImage, "source", 4)],
+                [new ExplicitMapping(
+                    "copy-source",
+                    10,
+                    ExplicitMappingOperationKind.CopyRange,
+                    CompositionAddressSpaceIds.OutputImage,
+                    new ByteRange(0, 2),
+                    CompositionAddressSpaceIds.OutputImage,
+                    new ByteRange(1, 2),
+                    OverlapPolicy.Reject,
+                    alignment: 1,
+                    reason: "test logical mapping")]));
+        V2CompositionPlanCompileResult valid = TrustedV2CompositionCompiler.CompileLogicalOutput(
+            catalog,
+            "logical-general-merge",
+            "1.0.0",
+            "member",
+            LogicalRequest(outputCapacity: 6));
+
+        Assert.False(rejected.IsCompiled);
+        Assert.Contains(rejected.Issues, issue => issue.Code == "profile.v2.logical.binding-invalid");
+        Assert.True(valid.IsCompiled);
+    }
+
     /// <summary>Verifies concrete logical request facts participate in the atomic compilation fingerprint.</summary>
     [Fact]
     public void LogicalOutputCompilationFingerprintIncludesRequestedCapacity()

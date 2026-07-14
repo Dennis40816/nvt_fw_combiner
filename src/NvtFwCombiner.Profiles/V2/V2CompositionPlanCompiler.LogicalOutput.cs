@@ -189,6 +189,7 @@ internal static partial class V2CompositionPlanCompiler
                 string.IsNullOrWhiteSpace(binding.BindingId) ||
                 !StringComparer.Ordinal.Equals(binding.SlotId, inputSlot.SlotId) ||
                 binding.ExactLengthBytes <= 0 ||
+                StringComparer.Ordinal.Equals(binding.BindingId, outputSpaceId) ||
                 !bindings.TryAdd(binding.BindingId, binding))
             {
                 issues.Add(new CompositionIssue(
