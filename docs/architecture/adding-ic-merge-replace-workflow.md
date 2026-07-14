@@ -64,6 +64,13 @@ ranges, CRC/header behavior, aliases, FW Config layouts, support exposure, or
 promotion. Only a human-reviewed commit may turn a candidate into a trusted
 runtime bundle.
 
+Use `python scripts/create_candidate_ic_intake.py --help` for the concrete
+manifest-directed candidate interface. It binds only owner-selected files below
+one source root and writes candidate-only JSON records to an existing empty
+staging directory. It is deliberately separate from `intake_ic_reference.py`:
+the latter is an owner-folder handoff classifier, while candidate intake never
+scans a folder and cannot alter runtime registration or existing workflows.
+
 The owner drop folder should contain as many of these as apply:
 
 - flash-map workbook/export and flash header reference;
