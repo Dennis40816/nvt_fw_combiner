@@ -28,4 +28,17 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("GetLowerSha256", toolResolution, StringComparison.Ordinal);
         Assert.Contains("SHA256.HashData", toolResolution, StringComparison.Ordinal);
     }
+
+    /// <summary>Verifies candidate intake remains an evidence-only Infrastructure path, not a runtime loader.</summary>
+    [Fact]
+    public void CandidateEvidenceMaterializerCannotAdmitRuntimeComposition()
+    {
+        string materializer = ReadText(
+            "src/NvtFwCombiner.Infrastructure/Bundles/CandidateEvidenceIntakeMaterializer.cs");
+
+        Assert.Contains("\"runtimeAuthority\"] = \"none\"", materializer, StringComparison.Ordinal);
+        Assert.DoesNotContain("ProfileBundleLoader", materializer, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompiledComposition", materializer, StringComparison.Ordinal);
+        Assert.DoesNotContain("NvtFwCombiner.Application", materializer, StringComparison.Ordinal);
+    }
 }
