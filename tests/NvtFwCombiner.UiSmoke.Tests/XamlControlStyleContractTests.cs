@@ -72,6 +72,7 @@ public sealed partial class XamlControlStyleContractTests
             ["UiBrush.SubtleSurface"] = "#F8FAFC",
             ["UiBrush.AccentSurface"] = "#EFF6FF",
             ["UiBrush.AccentSelectedSurface"] = "#EAF3FF",
+            ["UiBrush.NavigationSelectedSurface"] = "#F1F5F9",
             ["UiBrush.WarningSurface"] = "#FFF7ED",
             ["UiBrush.DangerSurface"] = "#FFF7F7",
             ["UiBrush.SuccessSurface"] = "#F0FDF4",
@@ -101,12 +102,13 @@ public sealed partial class XamlControlStyleContractTests
             ["UiBrush.TextDanger"] = "#B91C1C",
             ["UiBrush.TextSuccess"] = "#166534",
             ["UiBrush.SuccessIndicator"] = "#16A34A",
+            ["UiBrush.UtilityAccent"] = "#0F766E",
             ["UiBrush.ModalOverlay"] = "#660F172A",
             ["UiBrush.StrongModalOverlay"] = "#990F172A",
         };
         Dictionary<string, string[]> directPalettePropertyValues = new(StringComparer.Ordinal)
         {
-            ["Foreground"] = ["#FFFFFF", "#0F172A", "#334155", "#64748B", "#475569", "#94A3B8", "#2563EB", "#1D4ED8", "#9A3412", "#7C2D12", "#B45309", "#B91C1C", "#166534"],
+            ["Foreground"] = ["#FFFFFF", "#0F172A", "#334155", "#475569", "#64748B", "#94A3B8", "#0F766E", "#2563EB", "#1D4ED8", "#9A3412", "#7C2D12", "#B45309", "#B91C1C", "#166534"],
             ["Background"] = ["#FFFFFF", "#F8FAFC", "#EFF6FF", "#EAF3FF", "#FFF7ED", "#FFF7F7", "#F0FDF4", "#E2E8F0", "#BFDBFE", "#CBD5E1", "#2563EB", "#16A34A", "#660F172A", "#990F172A"],
             ["BorderBrush"] = ["#CBD5E1", "#E2E8F0", "#EEF2F7", "#93C5FD", "#60A5FA", "#BFDBFE", "#FED7AA", "#FECACA", "#BBF7D0", "#2563EB"],
             ["Stroke"] = ["#334155", "#475569", "#2563EB", "#1D4ED8"],
@@ -140,6 +142,8 @@ public sealed partial class XamlControlStyleContractTests
             ["Resources/MainWindowReportTemplates.axaml"] = ["UiBrush.WarningDetail", "UiBrush.WarningMeta"],
             ["Resources/MainWindowShellPanels.axaml"] = ["UiBrush.SuccessIndicator"],
             ["Views/FirmwareIcMismatchModal.axaml"] = ["UiBrush.WarningMeta"],
+            ["Styles/MainWindowStyles.axaml"] = ["UiBrush.NavigationSelectedSurface"],
+            ["Resources/MainWindowPageTemplates.axaml"] = ["UiBrush.UtilityAccent"],
         };
 
         foreach ((string path, string[] keys) in expectedRoleReferences)
@@ -150,6 +154,17 @@ public sealed partial class XamlControlStyleContractTests
                 Assert.Contains($"{{DynamicResource {key}}}", xaml, StringComparison.Ordinal);
             }
         }
+
+        Assert.Equal(
+            2,
+            ReadPresentationFile("Styles/MainWindowStyles.axaml")
+                .Split("{DynamicResource UiBrush.NavigationSelectedSurface}", StringSplitOptions.None)
+                .Length - 1);
+        Assert.Equal(
+            2,
+            ReadPresentationFile("Resources/MainWindowPageTemplates.axaml")
+                .Split("{DynamicResource UiBrush.UtilityAccent}", StringSplitOptions.None)
+                .Length - 1);
 
         foreach (string path in new[]
                  {

@@ -7,6 +7,7 @@
     <SolidColorBrush x:Key="UiBrush.SubtleSurface" Color="#F8FAFC" />
     <SolidColorBrush x:Key="UiBrush.AccentSurface" Color="#EFF6FF" />
     <SolidColorBrush x:Key="UiBrush.AccentSelectedSurface" Color="#EAF3FF" />
+    <SolidColorBrush x:Key="UiBrush.NavigationSelectedSurface" Color="#F1F5F9" />
     <SolidColorBrush x:Key="UiBrush.WarningSurface" Color="#FFF7ED" />
     <SolidColorBrush x:Key="UiBrush.DangerSurface" Color="#FFF7F7" />
     <SolidColorBrush x:Key="UiBrush.SuccessSurface" Color="#F0FDF4" />
@@ -36,6 +37,7 @@
     <SolidColorBrush x:Key="UiBrush.TextDanger" Color="#B91C1C" />
     <SolidColorBrush x:Key="UiBrush.TextSuccess" Color="#166534" />
     <SolidColorBrush x:Key="UiBrush.SuccessIndicator" Color="#16A34A" />
+    <SolidColorBrush x:Key="UiBrush.UtilityAccent" Color="#0F766E" />
     <SolidColorBrush x:Key="UiBrush.ModalOverlay" Color="#660F172A" />
     <SolidColorBrush x:Key="UiBrush.StrongModalOverlay" Color="#990F172A" />
   </Styles.Resources>

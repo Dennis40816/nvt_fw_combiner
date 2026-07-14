@@ -111,6 +111,21 @@ change text, bindings, visibility, automation names, or warning severity.
 | `UiBrush.*` dynamic-resource references | 339 | 349 |
 | Shared semantic palette resources | 32 | 35 |
 
+### Navigation and utility identity
+
+The sixth implementation phase promotes the checked top-level navigation
+surface and Util Tools identity text. `UiBrush.NavigationSelectedSurface`
+applies only to the checked navigation control and its content presenter.
+`UiBrush.UtilityAccent` applies only to recurring Util Tools labels. The
+disabled AB pending capsule intentionally remains a direct one-off value even
+though it currently shares the navigation surface color.
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| Direct hex color literals in Avalonia XAML | 68 | 66 |
+| `UiBrush.*` dynamic-resource references | 349 | 353 |
+| Shared semantic palette resources | 35 | 37 |
+
 ## Code-Size Audit
 
 The code-size audit uses Git-tracked files under `src/` only. It excludes
@@ -121,8 +136,8 @@ decision. The `a9ae568f` baseline and the current recorded phase state measure:
 | --- | ---: | ---: | ---: |
 | Production C# | 53,753 | 53,753 | 0 |
 | Avalonia C# | 12,881 | 12,881 | 0 |
-| Avalonia XAML | 3,961 | 4,001 | +40 |
-| Total tracked production source | 57,714 | 57,754 | +40 |
+| Avalonia XAML | 3,961 | 4,003 | +42 |
+| Total tracked production source | 57,714 | 57,756 | +42 |
 
 The XAML increase is the explicit shared palette declarations and their
 references. It removed direct palette debt without adding C# wrappers, a
@@ -144,9 +159,9 @@ also contains visually similar but role-distinct controls; merging them merely
 because their current setters resemble each other would weaken accessibility
 and visual-state contracts.
 
-The next exact-value candidates remain limited to existing visual roles.
-Navigation selection and the disabled AB pending badge retain distinct roles
-even though both currently use `#F1F5F9`.
+No remaining repeated direct value outside the shared palette has an approved
+semantic match. The disabled AB pending badge remains an intentional one-off
+even though it currently uses `#F1F5F9`.
 
 ## Consolidation Rules
 
