@@ -38,6 +38,7 @@ public sealed class ProfileBundleInventoryVerifierTests
                 8));
 
         Assert.Contains("unlisted file", exception.Message, StringComparison.Ordinal);
+        Assert.Equal("Bundle inventory contains unlisted file 'profiles/unlisted.json'.", exception.Message);
     }
 
     /// <summary>Verifies every listed entry and the manifest file must exist.</summary>

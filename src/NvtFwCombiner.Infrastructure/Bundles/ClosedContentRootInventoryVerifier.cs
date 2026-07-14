@@ -24,7 +24,7 @@ internal static class ClosedContentRootInventoryVerifier
             if (!expectedPaths.Add(listedPath))
             {
                 throw new InvalidDataException(
-                    $"Closed-root manifest path '{manifestPath}' collides with a listed entry path.");
+                    $"Bundle manifest path '{manifestPath}' collides with a listed entry path.");
             }
         }
 
@@ -33,7 +33,7 @@ internal static class ClosedContentRootInventoryVerifier
         {
             if (!expectedByCaseInsensitive.TryAdd(expectedPath, expectedPath))
             {
-                throw new InvalidDataException($"Closed-root expected paths case-collide at '{expectedPath}'.");
+                throw new InvalidDataException($"Bundle expected paths case-collide at '{expectedPath}'.");
             }
         }
 
@@ -49,7 +49,7 @@ internal static class ClosedContentRootInventoryVerifier
                 if ((child.Attributes & FileAttributes.ReparsePoint) != 0)
                 {
                     throw new UnauthorizedAccessException(
-                        $"Closed-root inventory contains reparse point '{child.FullName}'.");
+                        $"Bundle inventory contains reparse point '{child.FullName}'.");
                 }
 
                 if ((child.Attributes & FileAttributes.Directory) != 0)
@@ -58,7 +58,7 @@ internal static class ClosedContentRootInventoryVerifier
                     if (discoveredDirectoryCount > maximumDirectoryCount)
                     {
                         throw new InvalidDataException(
-                            $"Closed-root directory count exceeds the {maximumDirectoryCount}-directory limit.");
+                            $"Bundle directory count exceeds the {maximumDirectoryCount}-directory limit.");
                     }
 
                     pendingDirectories.Push((DirectoryInfo)child);
@@ -70,7 +70,7 @@ internal static class ClosedContentRootInventoryVerifier
                 if (!actualCaseInsensitivePaths.Add(relativePath))
                 {
                     throw new InvalidDataException(
-                        $"Closed-root inventory contains case-colliding path '{relativePath}'.");
+                        $"Bundle inventory contains case-colliding path '{relativePath}'.");
                 }
 
                 if (!expectedPaths.Contains(relativePath))
@@ -78,10 +78,10 @@ internal static class ClosedContentRootInventoryVerifier
                     if (expectedByCaseInsensitive.TryGetValue(relativePath, out string? expectedPath))
                     {
                         throw new InvalidDataException(
-                            $"Closed-root file path '{relativePath}' does not match manifest case '{expectedPath}'.");
+                            $"Bundle file path '{relativePath}' does not match manifest case '{expectedPath}'.");
                     }
 
-                    throw new InvalidDataException($"Closed-root inventory contains unlisted file '{relativePath}'.");
+                    throw new InvalidDataException($"Bundle inventory contains unlisted file '{relativePath}'.");
                 }
 
                 _ = actualPaths.Add(relativePath);
@@ -91,7 +91,7 @@ internal static class ClosedContentRootInventoryVerifier
         string? missingPath = expectedPaths.FirstOrDefault(path => !actualPaths.Contains(path));
         if (missingPath is not null)
         {
-            throw new FileNotFoundException($"Closed-root inventory is missing listed file '{missingPath}'.");
+            throw new FileNotFoundException($"Bundle inventory is missing listed file '{missingPath}'.");
         }
     }
 }
