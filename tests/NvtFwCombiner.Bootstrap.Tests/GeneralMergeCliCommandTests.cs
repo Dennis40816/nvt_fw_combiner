@@ -227,6 +227,9 @@ public sealed class GeneralMergeCliCommandTests
     /// <summary>Verifies each explicitly admitted V2 candidate preserves legacy bytes without changing the default General Merge route.</summary>
     [Theory]
     [InlineData("NT51920", "nt51920-general-merge-logical-candidate")]
+    [InlineData("NT51919", "nt51919-general-merge-logical-candidate")]
+    [InlineData("NT51929", "nt51929-general-merge-logical-candidate")]
+    [InlineData("NT51932", "nt51932-general-merge-logical-candidate")]
     [InlineData("NT51923", "nt51923-general-merge-logical-candidate")]
     [InlineData("NT51926", "nt51926-general-merge-logical-candidate")]
     public async Task GeneralMergeV2CandidateMatchesLegacyBytesWithoutChangingDefaultRoute(

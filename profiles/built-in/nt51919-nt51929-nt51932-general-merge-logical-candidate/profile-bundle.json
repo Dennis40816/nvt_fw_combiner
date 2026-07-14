@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.0",
+  "bundleId": "nt51919-nt51929-nt51932-general-merge-logical-candidate",
+  "bundleVersion": "0.9.5-candidate.1",
+  "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
+  "contentHash": "fabc02474120adb7659d9e069b9c60395cad4620282afdf8ff9e9b915acc4283",
+  "trustAnchorBindingId": "built-in-profile-bundle-v2",
+  "entries": [
+    {
+      "entryId": "composition-profile-v2-schema",
+      "kind": "schema",
+      "path": "schemas/composition-profile-v2.schema.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "ab3bed384c5d78590ad6a87ee23c12f23a1ea4a1bdc6001273f254b6e5f3547f"
+    },
+    {
+      "entryId": "firmware-family-v1-schema",
+      "kind": "schema",
+      "path": "schemas/firmware-family-v1.schema.json",
+      "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
+      "contentHash": "0dd353296e02e448dcc653028fd3b3ce6ad7fdd8e11a1ce11a465b46f0b471d7"
+    },
+    {
+      "entryId": "nt51919-nt51929-nt51932-family",
+      "kind": "firmware-family",
+      "path": "families/nt51929-nt51932.json",
+      "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
+      "contentHash": "c23385d5ad956016dbf356ede9355205611bad636fe2ddea44f5f654634e80ce"
+    },
+    {
+      "entryId": "nt51919-general-merge-logical-candidate-profile",
+      "kind": "composition-profile",
+      "path": "profiles/nt51919-general-merge-logical-candidate.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "9e08aab75fb6f00be9fc435bad5ea3503e67d1149ddbee7f7496fc718f2497c3"
+    },
+    {
+      "entryId": "nt51929-general-merge-logical-candidate-profile",
+      "kind": "composition-profile",
+      "path": "profiles/nt51929-general-merge-logical-candidate.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "6b2a9d74c63db91629829d682298a9b81194ca80a715351669ee87cec7f5f58e"
+    },
+    {
+      "entryId": "nt51932-general-merge-logical-candidate-profile",
+      "kind": "composition-profile",
+      "path": "profiles/nt51932-general-merge-logical-candidate.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "d49b297b0a07893c040644c8a17ccc09a90bd86f3981eeae0184ef991341b634"
+    }
+  ]
+}

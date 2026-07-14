@@ -16,6 +16,9 @@ public static partial class WorkbenchCompositionService
     private static readonly BuiltInV2Bundle s_nt51920GeneralMergeLogicalCandidateV2Bundle = new(
         "profiles\\built-in\\nt51920-general-merge-logical-candidate",
         "d2f87973576f54b80439f30ef1790f47df2994a6811673f0ceb8ecd5cacdbdc7");
+    private static readonly BuiltInV2Bundle s_nt51919Nt51929Nt51932GeneralMergeLogicalCandidateV2Bundle = new(
+        "profiles\\built-in\\nt51919-nt51929-nt51932-general-merge-logical-candidate",
+        "fabc02474120adb7659d9e069b9c60395cad4620282afdf8ff9e9b915acc4283");
     private static readonly BuiltInV2Bundle s_nt51923Nt51926GeneralMergeLogicalCandidateV2Bundle = new(
         "profiles\\built-in\\nt51923-nt51926-general-merge-logical-candidate",
         "26f12851f81d55bb88a0a0e18ab4f10f451747369e797efbc69fdbf05cdf5a96");
@@ -27,6 +30,21 @@ public static partial class WorkbenchCompositionService
                 "nt51920",
                 "nt51920-general-merge-logical-candidate",
                 s_nt51920GeneralMergeLogicalCandidateV2Bundle),
+            ["NT51919"] = new(
+                "NT51919",
+                "nt51929-nt51932",
+                "nt51919-general-merge-logical-candidate",
+                s_nt51919Nt51929Nt51932GeneralMergeLogicalCandidateV2Bundle),
+            ["NT51929"] = new(
+                "NT51929",
+                "nt51929-nt51932",
+                "nt51929-general-merge-logical-candidate",
+                s_nt51919Nt51929Nt51932GeneralMergeLogicalCandidateV2Bundle),
+            ["NT51932"] = new(
+                "NT51932",
+                "nt51929-nt51932",
+                "nt51932-general-merge-logical-candidate",
+                s_nt51919Nt51929Nt51932GeneralMergeLogicalCandidateV2Bundle),
             ["NT51923"] = new(
                 "NT51923",
                 "nt51923-nt51926",

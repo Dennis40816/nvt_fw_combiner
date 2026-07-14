@@ -99,6 +99,7 @@ public sealed partial class RepositoryBoundaryTests
         [
             "nt51920-standard-merge",
             "nt51920-general-merge-logical-candidate",
+            "nt51919-nt51929-nt51932-general-merge-logical-candidate",
             "nt51923-nt51926-general-merge-logical-candidate",
             "nt51923-standard-merge",
             "nt51927-standard-merge",
@@ -109,6 +110,12 @@ public sealed partial class RepositoryBoundaryTests
             "nt51931-standard-merge",
             "nt51950-nt51951-standard-merge",
         ];
+        string[] logicalOutputCandidateBundleIds =
+        [
+            "nt51920-general-merge-logical-candidate",
+            "nt51919-nt51929-nt51932-general-merge-logical-candidate",
+            "nt51923-nt51926-general-merge-logical-candidate",
+        ];
 
         Assert.Equal(
             expectedBundleIds,
@@ -118,12 +125,9 @@ public sealed partial class RepositoryBoundaryTests
             XAttribute include = Assert.Single(bundle.Attributes());
 
             Assert.Equal("Include", include.Name.LocalName);
-            if (StringComparer.Ordinal.Equals(
+            if (logicalOutputCandidateBundleIds.Contains(
                     bundle.Attribute("Include")?.Value,
-                    "nt51920-general-merge-logical-candidate") ||
-                StringComparer.Ordinal.Equals(
-                    bundle.Attribute("Include")?.Value,
-                    "nt51923-nt51926-general-merge-logical-candidate"))
+                    StringComparer.Ordinal))
             {
                 Assert.Equal(
                     "ab3bed384c5d78590ad6a87ee23c12f23a1ea4a1bdc6001273f254b6e5f3547f",
