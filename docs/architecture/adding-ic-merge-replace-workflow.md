@@ -36,25 +36,7 @@ Collect these items before adding a production IC profile:
 | External tool identity | any processor stage | Exact version string, manifest id, executable hash, timeout, and argv shape. |
 | Golden fixtures or private golden manifest | promotion | Include input sizes/hashes, expected output hash, source provenance, and owner approval. |
 
-## Owner reference intake
-
-When the owner supplies a mixed folder of IC evidence, run the intake script before changing profiles or C# code:
-
-```text
-python scripts/intake_ic_reference.py --source <owner-drop-folder> --ic NT51950 --mode ctrlram-replace --case single --owner <owner-or-team> --source-ref <archive-or-ticket>
-```
-
-Use `--mode standard-merge`, `--mode dp-replace`, `--mode ctrlram-replace`, `--mode general-replace`, or `--mode reference-only`. Use `--case` for branch-specific evidence such as `single`, `cascade`, `2chip`, `3chip`, or `dp-0x40000`.
-
-The script stages files under `testdata/golden/owner-handoff/<mode>/<ic>/.../intake/<run-id>/` and writes:
-
-- `handoff_manifest.json` with file sizes, SHA-256 hashes, category guesses, payload role hints, and proposed tracked destinations.
-- `NEXT_STEPS.md` with missing document families and promotion checklist.
-- `AI_PROMPT.md` with a constrained follow-up prompt for turning the evidence into a reviewed implementation change.
-
-This intake step does not promote support, does not edit C# code, and does not copy private BIN/tool payloads into tracked golden or external-tool locations. Promotion still requires the normal reviewed changes listed below.
-
-## Future Automated Intake Rule
+## Candidate evidence intake
 
 The 0.9.4 candidate interface uses the declared-evidence
 [`ic-reference-intake-request-v1`](../contracts/ic-reference-intake-request-v1.md)
@@ -69,8 +51,17 @@ It may generate only source snapshots, a candidate evidence manifest, a
 validation report, and a missing-evidence checklist. It must not determine
 ranges, CRC/header behavior, aliases, FW Config layouts, support exposure, or
 promotion. Only a human-reviewed commit may turn a candidate into a trusted
-runtime bundle. The older `--source` folder scan remains an owner-handoff
-convenience command, not the standard candidate input path.
+runtime bundle. The command rejects the retired `--source` folder scan and
+every legacy categorization option; all source files, hashes, and candidate
+facts must be declared before staging begins.
+
+The caller-selected destination contains source snapshots plus:
+
+- `evidence-manifest.json`, with `status = candidate` and no runtime bundle reference;
+- `intake-report.json`, including declared unresolved promotion blockers; and
+- `NEXT_STEPS.md`, listing human review and promotion gates.
+
+This intake step does not edit C# code, register a profile, copy private payloads into this repository, or make a support claim. Promotion still requires the normal reviewed changes listed below.
 
 The owner drop folder should contain as many of these as apply:
 

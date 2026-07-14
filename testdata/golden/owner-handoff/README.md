@@ -11,19 +11,22 @@ Rules:
 
 ## Automated intake
 
-For a new IC or mode, the lowest-friction path is to put all owner-provided evidence in one temporary folder, then run:
+For a new IC or mode, declare every owner-provided artifact, hash, and
+candidate fact in an intake request, then run:
 
 ```text
-python scripts/intake_ic_reference.py --source <owner-drop-folder> --ic NT51950 --mode ctrlram-replace --case single --owner <owner-or-team> --source-ref <archive-or-ticket>
+python scripts/intake_ic_reference.py --request request.json --source-root <owner-drop-folder> --output-dir <new-empty-staging-path>
 ```
 
-The script copies files into an ignored `intake/<run-id>/` folder, computes SHA-256 hashes, classifies common evidence names, and generates:
+The command validates and snapshots only request-declared files, then writes:
 
-- `handoff_manifest.json`
+- `evidence-manifest.json`
+- `intake-report.json`
 - `NEXT_STEPS.md`
-- `AI_PROMPT.md`
 
-Use `--mode standard-merge`, `--mode dp-replace`, `--mode ctrlram-replace`, `--mode general-replace`, or `--mode reference-only`. The script does not make C# changes and does not make a support claim.
+The retired `--source` folder scan and its filename-based classification are
+rejected. Candidate output is caller-selected and remains outside this
+repository; the command does not make C# changes or a support claim.
 
 ## AB Code evidence
 

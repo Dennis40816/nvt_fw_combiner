@@ -19,7 +19,8 @@ The command rejects an absolute path, `..` path segment, duplicate id/path,
 lock file, symbolic link/reparse point, changed size/hash, existing output,
 or an output directory within this repository. It reads source files only and
 never opens an Office workbook, executes a macro, runs a tool, or mutates a
-source file.
+source file. The retired `--source` folder-scan interface is rejected: every
+source artifact must be declared by this request before the command runs.
 
 On success, the destination contains the source snapshots plus:
 

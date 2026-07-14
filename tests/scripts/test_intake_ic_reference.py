@@ -171,7 +171,7 @@ class CandidateIntakeCliTests(unittest.TestCase):
             self.assertNotIn(str(output), result.stderr)
             self.assertEqual([], list(output.iterdir()))
 
-    def test_rejects_legacy_output_root_option_for_manifest_request(self) -> None:
+    def test_rejects_legacy_folder_scan_options_for_manifest_request(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             workspace = Path(temporary_directory)
             source_root = workspace / "source"
@@ -189,7 +189,8 @@ class CandidateIntakeCliTests(unittest.TestCase):
             )
 
             self.assertNotEqual(0, result.returncode)
-            self.assertIn("does not accept legacy", result.stderr)
+            self.assertIn("only accepts a manifest request", result.stderr)
+            self.assertNotIn(str(workspace), result.stderr)
             self.assertFalse(output.exists())
 
     def test_rejects_office_lock_file(self) -> None:
@@ -527,14 +528,23 @@ class CandidateIntakeCliTests(unittest.TestCase):
         self.assertNotIn("Traceback", stderr.getvalue())
         self.assertNotIn("private-request.json", stderr.getvalue())
 
-    def test_legacy_folder_scan_still_dry_runs(self) -> None:
+    def test_rejects_legacy_folder_scan_without_scanning(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             source_root = Path(temporary_directory) / "source"
             source_root.mkdir()
-            (source_root / "flashmap.txt").write_bytes(b"reference")
+            source = source_root / "flashmap.txt"
+            source.write_bytes(b"reference")
 
             result = subprocess.run(
-                [sys.executable, str(SCRIPT), "--source", str(source_root), "--ic", "NT51951", "--dry-run"],
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--source",
+                    str(source_root),
+                    "--ic",
+                    "NT51951",
+                    "--dry-run",
+                ],
                 cwd=ROOT,
                 check=False,
                 capture_output=True,
@@ -542,8 +552,11 @@ class CandidateIntakeCliTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            self.assertEqual(0, result.returncode, result.stderr)
-            self.assertIn('"manifestKind": "ic-reference-handoff"', result.stdout)
+            self.assertNotEqual(0, result.returncode)
+            self.assertEqual("", result.stdout)
+            self.assertIn("only accepts a manifest request", result.stderr)
+            self.assertNotIn(str(source_root), result.stderr)
+            self.assertEqual(b"reference", source.read_bytes())
 
     def run_request(
         self,
