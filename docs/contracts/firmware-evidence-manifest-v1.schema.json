@@ -203,7 +203,47 @@
           "items": { "$ref": "#/$defs/citation" }
         },
         "rationale": { "type": "string", "minLength": 1 }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "factKind": { "const": "range" }
+            },
+            "required": ["factKind"]
+          },
+          "then": {
+            "oneOf": [
+              {
+                "properties": {
+                  "value": {
+                    "type": "object",
+                    "properties": {
+                      "kind": { "const": "range" }
+                    },
+                    "required": ["kind"]
+                  }
+                },
+                "required": ["value"]
+              },
+              {
+                "properties": {
+                  "value": {
+                    "type": "object",
+                    "properties": {
+                      "kind": { "const": "statement" }
+                    },
+                    "required": ["kind"]
+                  },
+                  "disposition": { "const": "unresolved" },
+                  "promotionImpact": { "const": "blocks-map-resolution" }
+                },
+                "required": ["value", "disposition", "promotionImpact"]
+              }
+            ]
+          }
+        }
+      ]
     },
     "review": {
       "type": "object",

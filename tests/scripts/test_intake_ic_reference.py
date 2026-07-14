@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import argparse
+import contextlib
 import hashlib
+import io
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -16,6 +21,7 @@ SCRIPT = ROOT / "scripts" / "intake_ic_reference.py"
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import ic_reference_candidate_intake as candidate_intake
+import intake_ic_reference as intake_cli
 
 
 class CandidateIntakeCliTests(unittest.TestCase):
@@ -147,6 +153,7 @@ class CandidateIntakeCliTests(unittest.TestCase):
 
             self.assertNotEqual(0, result.returncode)
             self.assertIn("already exists", result.stderr)
+            self.assertNotIn(str(output), result.stderr)
             self.assertEqual([], list(output.iterdir()))
 
     def test_rejects_legacy_output_root_option_for_manifest_request(self) -> None:
@@ -224,6 +231,280 @@ class CandidateIntakeCliTests(unittest.TestCase):
             self.assertNotEqual(0, result.returncode)
             self.assertIn("must not contain local paths", result.stderr)
             self.assertFalse(output.exists())
+
+    def test_rejects_non_rfc3339_utc_timestamp(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            workspace = Path(temporary_directory)
+            source_root = workspace / "source"
+            source_root.mkdir()
+            source = source_root / "flashmap.txt"
+            source.write_bytes(b"candidate evidence\n")
+            request_path = self.write_request(workspace, source, "flashmap.txt")
+            request = json.loads(request_path.read_text(encoding="utf-8"))
+            request["requestedAtUtc"] = "2026-07-14 00:00:00Z"
+            request_path.write_text(json.dumps(request), encoding="utf-8")
+            output = workspace / "candidate"
+
+            result = self.run_request(request_path, source_root, output)
+
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn("RFC 3339 UTC", result.stderr)
+            self.assertFalse(output.exists())
+
+    def test_redacts_request_path_from_candidate_errors(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            workspace = Path(temporary_directory)
+            source_root = workspace / "source"
+            source_root.mkdir()
+            request = workspace / "private-request.json"
+            output = workspace / "candidate"
+
+            result = self.run_request(request, source_root, output)
+
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn("cannot read intake request", result.stderr)
+            self.assertNotIn(str(request), result.stderr)
+            self.assertFalse(output.exists())
+
+    def test_redacts_unknown_or_duplicate_request_keys(self) -> None:
+        for private_key in (r"C:\private\firmware\map.xlsx", "/private/firmware/map.xlsx"):
+            with self.subTest(kind="unknown", private_key=private_key):
+                with tempfile.TemporaryDirectory() as temporary_directory:
+                    workspace = Path(temporary_directory)
+                    source_root = workspace / "source"
+                    source_root.mkdir()
+                    source = source_root / "flashmap.txt"
+                    source.write_bytes(b"candidate evidence\n")
+                    request_path = self.write_request(workspace, source, "flashmap.txt")
+                    request = json.loads(request_path.read_text(encoding="utf-8"))
+                    request[private_key] = None
+                    request_path.write_text(json.dumps(request), encoding="utf-8")
+                    output = workspace / "candidate"
+
+                    result = self.run_request(request_path, source_root, output)
+
+                    self.assertNotEqual(0, result.returncode)
+                    self.assertIn("contains unknown field(s)", result.stderr)
+                    self.assertNotIn(private_key, result.stderr)
+                    self.assertFalse(output.exists())
+
+            with self.subTest(kind="duplicate", private_key=private_key):
+                with tempfile.TemporaryDirectory() as temporary_directory:
+                    workspace = Path(temporary_directory)
+                    source_root = workspace / "source"
+                    source_root.mkdir()
+                    source = source_root / "flashmap.txt"
+                    source.write_bytes(b"candidate evidence\n")
+                    request_path = self.write_request(workspace, source, "flashmap.txt")
+                    request_text = request_path.read_text(encoding="utf-8")
+                    encoded_key = json.dumps(private_key)
+                    request_path.write_text(
+                        f"{{{encoded_key}: null, {encoded_key}: null, {request_text[1:]}",
+                        encoding="utf-8",
+                    )
+                    output = workspace / "candidate"
+
+                    result = self.run_request(request_path, source_root, output)
+
+                    self.assertNotEqual(0, result.returncode)
+                    self.assertIn("duplicate JSON key", result.stderr)
+                    self.assertNotIn(private_key, result.stderr)
+                    self.assertFalse(output.exists())
+
+    def test_rejects_accepted_textual_range_claim(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            workspace = Path(temporary_directory)
+            source_root = workspace / "source"
+            source_root.mkdir()
+            source = source_root / "flashmap.txt"
+            source.write_bytes(b"candidate evidence\n")
+            request_path = self.write_request(workspace, source, "flashmap.txt")
+            request = json.loads(request_path.read_text(encoding="utf-8"))
+            request["facts"][0]["disposition"] = "accepted"
+            request["facts"][0]["promotionImpact"] = "none"
+            request_path.write_text(json.dumps(request), encoding="utf-8")
+            output = workspace / "candidate"
+
+            result = self.run_request(request_path, source_root, output)
+
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn("requires a typed range", result.stderr)
+            self.assertFalse(output.exists())
+
+    def test_rejects_unresolved_scalar_or_reference_range_claim(self) -> None:
+        for value in (
+            {"kind": "scalar", "value": 123},
+            {"kind": "reference", "targetId": "unresolved-range-source"},
+        ):
+            with self.subTest(value=value):
+                with tempfile.TemporaryDirectory() as temporary_directory:
+                    workspace = Path(temporary_directory)
+                    source_root = workspace / "source"
+                    source_root.mkdir()
+                    source = source_root / "flashmap.txt"
+                    source.write_bytes(b"candidate evidence\n")
+                    request_path = self.write_request(workspace, source, "flashmap.txt")
+                    request = json.loads(request_path.read_text(encoding="utf-8"))
+                    request["facts"][0]["value"] = value
+                    request_path.write_text(json.dumps(request), encoding="utf-8")
+                    output = workspace / "candidate"
+
+                    result = self.run_request(request_path, source_root, output)
+
+                    self.assertNotEqual(0, result.returncode)
+                    self.assertIn("requires a typed range", result.stderr)
+                    self.assertFalse(output.exists())
+
+    def test_accepts_typed_range_fact_without_promotion(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            workspace = Path(temporary_directory)
+            source_root = workspace / "source"
+            source_root.mkdir()
+            source = source_root / "flashmap.txt"
+            source.write_bytes(b"candidate evidence\n")
+            request_path = self.write_request(workspace, source, "flashmap.txt")
+            request = json.loads(request_path.read_text(encoding="utf-8"))
+            request["facts"][0]["value"] = {
+                "kind": "range",
+                "addressSpaceId": "flash",
+                "range": {"start": 0, "length": 1},
+            }
+            request["facts"][0]["disposition"] = "accepted"
+            request["facts"][0]["promotionImpact"] = "none"
+            request_path.write_text(json.dumps(request), encoding="utf-8")
+            output = workspace / "candidate"
+
+            result = self.run_request(request_path, source_root, output)
+
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual("candidate", json.loads((output / "evidence-manifest.json").read_text(encoding="utf-8"))["status"])
+
+    def test_rejects_output_directory_below_source_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            workspace = Path(temporary_directory)
+            source_root = workspace / "source"
+            source_root.mkdir()
+            source = source_root / "flashmap.txt"
+            source.write_bytes(b"candidate evidence\n")
+            request = self.write_request(workspace, source, "flashmap.txt")
+            output = source_root / "candidate"
+
+            result = self.run_request(request, source_root, output)
+
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn("must not be inside the source root", result.stderr)
+            self.assertFalse(output.exists())
+
+    def test_rejects_output_directory_containing_source_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            workspace = Path(temporary_directory)
+            source_root = workspace / "source"
+            source_root.mkdir()
+            source = source_root / "flashmap.txt"
+            source.write_bytes(b"candidate evidence\n")
+            request = self.write_request(workspace, source, "flashmap.txt")
+
+            result = self.run_request(request, source_root, workspace)
+
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn("candidate output directory already exists", result.stderr)
+            self.assertNotIn(str(workspace), result.stderr)
+            self.assertEqual(b"candidate evidence\n", source.read_bytes())
+
+    def test_rejects_source_replaced_by_symlink_after_initial_validation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            workspace = Path(temporary_directory)
+            source_root = workspace / "source"
+            source_root.mkdir()
+            source = source_root / "flashmap.txt"
+            source.write_bytes(b"candidate evidence\n")
+            request_path = self.write_request(workspace, source, "flashmap.txt")
+            request = json.loads(request_path.read_text(encoding="utf-8"))
+            _, artifacts = candidate_intake.validate_candidate_request(request, source_root)
+
+            source.unlink()
+            replacement = workspace / "external-copy.txt"
+            replacement.write_bytes(b"candidate evidence\n")
+            try:
+                source.symlink_to(replacement)
+            except OSError as exc:
+                self.skipTest(f"symbolic links unavailable for reparse-point test: {exc}")
+
+            staging_root = workspace / "staging"
+            with self.assertRaisesRegex(ValueError, "escapes --source-root|symbolic link or reparse point"):
+                candidate_intake.copy_declared_artifact(artifacts[0], staging_root)
+            self.assertFalse(staging_root.exists())
+
+    def test_reports_staging_cleanup_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            workspace = Path(temporary_directory)
+            source_root = workspace / "source"
+            source_root.mkdir()
+            source = source_root / "flashmap.txt"
+            source.write_bytes(b"candidate evidence\n")
+            request = self.write_request(workspace, source, "flashmap.txt")
+            output = workspace / "candidate"
+            args = argparse.Namespace(
+                request=request,
+                source_root=source_root,
+                output_dir=output,
+                dry_run=False,
+                ic=None,
+                mode=None,
+                case=None,
+                owner=None,
+                source_ref=None,
+                output_root=None,
+                run_id=None,
+            )
+
+            with (
+                mock.patch.object(candidate_intake, "write_json", side_effect=OSError("injected write failure")),
+                mock.patch.object(candidate_intake.shutil, "rmtree", side_effect=OSError("injected cleanup failure")),
+                self.assertRaisesRegex(
+                    candidate_intake.CandidateIntakeError,
+                    "cleanup failed; residual directory name is \\.candidate-",
+                ),
+            ):
+                candidate_intake.stage_manifest_request(args)
+
+            for residual in workspace.glob(".candidate-*"):
+                shutil.rmtree(residual)
+
+    def test_candidate_staging_boundary_redacts_filesystem_error(self) -> None:
+        private_path = Path("C:/private/candidate-evidence.bin")
+        args = argparse.Namespace()
+        with mock.patch.object(
+            candidate_intake,
+            "stage_manifest_request_core",
+            side_effect=OSError(str(private_path)),
+        ):
+            with self.assertRaises(candidate_intake.CandidateIntakeError) as raised:
+                candidate_intake.stage_manifest_request(args)
+
+        self.assertEqual("candidate evidence staging failed", str(raised.exception))
+        self.assertNotIn(str(private_path), str(raised.exception))
+
+    def test_candidate_cli_reports_controlled_cleanup_error_without_traceback(self) -> None:
+        error = candidate_intake.CandidateIntakeError(
+            "candidate staging cleanup failed; residual directory name is .candidate-private"
+        )
+        stderr = io.StringIO()
+        with (
+            mock.patch.object(
+                sys,
+                "argv",
+                ["intake_ic_reference.py", "--request", "private-request.json"],
+            ),
+            mock.patch.object(intake_cli, "stage_manifest_request", side_effect=error),
+            contextlib.redirect_stderr(stderr),
+        ):
+            exit_code = intake_cli.main()
+
+        self.assertEqual(1, exit_code)
+        self.assertIn("residual directory name is .candidate-private", stderr.getvalue())
+        self.assertNotIn("Traceback", stderr.getvalue())
+        self.assertNotIn("private-request.json", stderr.getvalue())
 
     def test_legacy_folder_scan_still_dry_runs(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:

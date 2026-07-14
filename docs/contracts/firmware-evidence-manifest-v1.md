@@ -11,6 +11,10 @@ promotion-relevant blocker evidence without placing private firmware payloads in
 unresolved. `facts[].promotionImpact` records the consequence of uncertainty. It does not promote a
 map or profile. Reviews accept or reject facts only.
 
+A `factKind = range` is either a typed half-open `{ addressSpaceId, range: { start, length } }`
+value, or a `statement` only when it is explicitly `unresolved` and
+`blocks-map-resolution`. Scalar and reference placeholders cannot stand in for a range fact.
+
 An approved fact still cannot grant workflow execution. Family capability rows are technical facts;
 only a matching composition profile owns promotion stage and blocker references. The compiler
 derives eligibility from that profile plus resolved evidence.

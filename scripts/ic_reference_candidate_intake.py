@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import stat
@@ -25,6 +26,7 @@ SEMVER_PATTERN = re.compile(
     r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$"
 )
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
+UTC_TIMESTAMP_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$")
 LOCAL_PATH_PATTERN = re.compile(
     r"(?:[A-Za-z]:[\\/]|\\\\|(?<![A-Za-z0-9])/(?:[A-Za-z0-9._~$-]+(?:/|$))|"
     r"(?<![A-Za-z0-9._-])\.\.?[\\/])"
@@ -58,6 +60,10 @@ WORKFLOWS = (
 )
 
 
+class CandidateIntakeError(ValueError):
+    """Raised for a candidate-intake failure that is safe to display to the caller."""
+
+
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -74,7 +80,7 @@ def reject_duplicate_object_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
-            raise ValueError(f"duplicate JSON key: {key}")
+            raise ValueError("duplicate JSON key")
         result[key] = value
     return result
 
@@ -83,7 +89,7 @@ def load_request(path: Path) -> dict[str, Any]:
     try:
         document = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=reject_duplicate_object_keys)
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise ValueError(f"cannot read intake request {path}: {exc}") from exc
+        raise ValueError("cannot read intake request") from exc
     if not isinstance(document, dict):
         raise ValueError("intake request root must be an object")
     return document
@@ -100,7 +106,7 @@ def require_exact_keys(
     if missing:
         raise ValueError(f"{label} is missing required field(s): {', '.join(sorted(missing))}")
     if unknown:
-        raise ValueError(f"{label} contains unknown field(s): {', '.join(sorted(unknown))}")
+        raise ValueError(f"{label} contains unknown field(s)")
 
 
 def require_string(value: Any, label: str) -> str:
@@ -125,8 +131,8 @@ def require_id(value: Any, label: str) -> str:
 
 def require_utc_timestamp(value: Any, label: str) -> str:
     timestamp = require_string(value, label)
-    if not timestamp.endswith("Z"):
-        raise ValueError(f"{label} must be a UTC timestamp ending in Z")
+    if UTC_TIMESTAMP_PATTERN.fullmatch(timestamp) is None:
+        raise ValueError(f"{label} must be an RFC 3339 UTC timestamp ending in Z")
     try:
         datetime.fromisoformat(timestamp.removesuffix("Z") + "+00:00")
     except ValueError as exc:
@@ -261,7 +267,8 @@ def validate_request_source_artifacts(value: Any, source_root: Path) -> list[dic
                 "artifactId": artifact_id,
                 "sourceKind": source_kind,
                 "logicalName": logical_name,
-                "sourcePath": source_path,
+                "sourceRoot": source_root,
+                "sourceRelativePath": relative_path,
                 "contentHash": declared_hash,
                 "sizeBytes": declared_size,
             }
@@ -292,13 +299,24 @@ def validate_facts(value: Any, artifact_ids: set[str], scope: dict[str, Any]) ->
         fact_kind = require_string(fact["factKind"], f"{label}.factKind")
         if fact_kind not in FACT_KINDS:
             raise ValueError(f"{label}.factKind is not recognized")
-        validate_fact_value(fact["value"], label)
+        value_kind = validate_fact_value(fact["value"], label)
         disposition = require_string(fact["disposition"], f"{label}.disposition")
         if disposition not in FACT_DISPOSITIONS:
             raise ValueError(f"{label}.disposition is not recognized")
         promotion_impact = require_string(fact["promotionImpact"], f"{label}.promotionImpact")
         if promotion_impact not in PROMOTION_IMPACTS:
             raise ValueError(f"{label}.promotionImpact is not recognized")
+        if fact_kind == "range" and not (
+            value_kind == "range"
+            or (
+                value_kind == "statement"
+                and disposition == "unresolved"
+                and promotion_impact == "blocks-map-resolution"
+            )
+        ):
+            raise ValueError(
+                f"{label} requires a typed range unless it is an unresolved map-blocking statement"
+            )
         validate_fact_citations(fact["citations"], label, artifact_ids)
         if "rationale" in fact:
             require_output_text(fact["rationale"], f"{label}.rationale")
@@ -323,7 +341,7 @@ def validate_fact_subject(value: Any, label: str, scope: dict[str, Any]) -> None
         require_id(value["profileId"], f"{label}.subject.profileId")
 
 
-def validate_fact_value(value: Any, label: str) -> None:
+def validate_fact_value(value: Any, label: str) -> str:
     if not isinstance(value, dict):
         raise ValueError(f"{label}.value must be an object")
     kind = require_string(value.get("kind"), f"{label}.value.kind")
@@ -337,7 +355,7 @@ def validate_fact_value(value: Any, label: str) -> None:
         if isinstance(byte_range["start"], bool) or not isinstance(byte_range["start"], int) or byte_range["start"] < 0:
             raise ValueError(f"{label}.value.range.start must be a non-negative integer")
         require_positive_int(byte_range["length"], f"{label}.value.range.length")
-        return
+        return kind
     if kind == "scalar":
         require_exact_keys(value, {"kind", "value"}, set(), f"{label}.value")
         scalar = value["value"]
@@ -345,15 +363,15 @@ def validate_fact_value(value: Any, label: str) -> None:
             raise ValueError(f"{label}.value.value must be a boolean, integer, or non-empty string")
         if isinstance(scalar, str):
             require_output_text(scalar, f"{label}.value.value")
-        return
+        return kind
     if kind == "reference":
         require_exact_keys(value, {"kind", "targetId"}, set(), f"{label}.value")
         require_id(value["targetId"], f"{label}.value.targetId")
-        return
+        return kind
     if kind == "statement":
         require_exact_keys(value, {"kind", "text"}, set(), f"{label}.value")
         require_output_text(value["text"], f"{label}.value.text")
-        return
+        return kind
     raise ValueError(f"{label}.value.kind is not recognized")
 
 
@@ -450,7 +468,7 @@ def is_reparse_point(path: Path) -> bool:
     try:
         attributes = getattr(path.lstat(), "st_file_attributes", 0)
     except OSError as exc:
-        raise ValueError(f"cannot inspect path {path}: {exc}") from exc
+        raise CandidateIntakeError("cannot inspect candidate intake path") from exc
     reparse_attribute = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x0400)
     return path.is_symlink() or bool(attributes & reparse_attribute)
 
@@ -459,7 +477,7 @@ def reject_reparse_path(path: Path, label: str) -> None:
     current = path
     while True:
         if is_reparse_point(current):
-            raise ValueError(f"{label} contains a symbolic link or reparse point: {current}")
+            raise ValueError(f"{label} contains a symbolic link or reparse point")
         if current.parent == current:
             return
         current = current.parent
@@ -470,7 +488,7 @@ def resolve_candidate_source_root(path: Path | None) -> Path:
         raise ValueError("--source-root is required with --request")
     source_root = path.expanduser()
     if not source_root.is_dir():
-        raise FileNotFoundError(f"source root does not exist: {path}")
+        raise FileNotFoundError("source root does not exist")
     reject_reparse_path(source_root, "source root")
     return source_root.resolve()
 
@@ -503,10 +521,10 @@ def resolve_candidate_output_dir(path: Path | None) -> Path:
         raise ValueError("--output-dir is required with --request")
     output_dir = path.expanduser()
     if output_dir.exists():
-        raise FileExistsError(f"candidate output directory already exists: {output_dir}")
+        raise CandidateIntakeError("candidate output directory already exists")
     parent = output_dir.parent
     if not parent.is_dir():
-        raise FileNotFoundError(f"candidate output parent does not exist: {parent}")
+        raise FileNotFoundError("candidate output parent does not exist")
     reject_reparse_path(parent, "candidate output parent")
     resolved = parent.resolve() / output_dir.name
     try:
@@ -514,6 +532,21 @@ def resolve_candidate_output_dir(path: Path | None) -> Path:
     except ValueError:
         return resolved
     raise ValueError("candidate output directory must be outside this repository")
+
+
+def reject_source_output_overlap(source_root: Path, output_dir: Path) -> None:
+    try:
+        output_dir.relative_to(source_root)
+    except ValueError:
+        pass
+    else:
+        raise ValueError("candidate output directory must not be inside the source root")
+
+    try:
+        source_root.relative_to(output_dir)
+    except ValueError:
+        return
+    raise ValueError("candidate output directory must not contain the source root")
 
 
 def build_candidate_evidence_manifest(
@@ -592,18 +625,41 @@ def write_candidate_next_steps(path: Path, report: dict[str, Any]) -> None:
 
 
 def copy_declared_artifact(artifact: dict[str, Any], staging_root: Path) -> None:
-    source_path = artifact["sourcePath"]
     expected = (artifact["sizeBytes"], artifact["contentHash"])
-    if snapshot_identity(source_path) != expected:
-        raise ValueError(f"declared source changed before copy: {artifact['artifactId']}")
+    source_path = resolve_declared_source_path(artifact["sourceRoot"], artifact["sourceRelativePath"])
     destination = staging_root / "artifacts" / artifact["artifactId"] / artifact["logicalName"]
     destination.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(source_path, destination)
-    if snapshot_identity(destination) != expected or snapshot_identity(source_path) != expected:
+    digest = hashlib.sha256()
+    copied_size = 0
+    with source_path.open("rb") as source, destination.open("xb") as target:
+        initial_stat = os.fstat(source.fileno())
+        if not stat.S_ISREG(initial_stat.st_mode):
+            raise ValueError(f"declared source is no longer a regular file: {artifact['artifactId']}")
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            copied_size += len(chunk)
+            digest.update(chunk)
+            target.write(chunk)
+        final_stat = os.fstat(source.fileno())
+        if (
+            initial_stat.st_dev != final_stat.st_dev
+            or initial_stat.st_ino != final_stat.st_ino
+            or initial_stat.st_size != final_stat.st_size
+        ):
+            raise ValueError(f"declared source handle changed during copy: {artifact['artifactId']}")
+    if (copied_size, digest.hexdigest()) != expected:
         raise ValueError(f"declared source changed during copy: {artifact['artifactId']}")
 
 
 def stage_manifest_request(args: argparse.Namespace) -> int:
+    try:
+        return stage_manifest_request_core(args)
+    except CandidateIntakeError:
+        raise
+    except OSError as exc:
+        raise CandidateIntakeError("candidate evidence staging failed") from exc
+
+
+def stage_manifest_request_core(args: argparse.Namespace) -> int:
     if args.source_root is None or args.output_dir is None:
         raise ValueError("--request requires both --source-root and --output-dir")
     if any(
@@ -615,6 +671,7 @@ def stage_manifest_request(args: argparse.Namespace) -> int:
         )
     source_root = resolve_candidate_source_root(args.source_root)
     output_dir = resolve_candidate_output_dir(args.output_dir)
+    reject_source_output_overlap(source_root, output_dir)
     request = load_request(args.request)
     scope, artifacts = validate_candidate_request(request, source_root)
     evidence_manifest = build_candidate_evidence_manifest(request, artifacts)
@@ -631,10 +688,15 @@ def stage_manifest_request(args: argparse.Namespace) -> int:
         write_json(temporary_root / "intake-report.json", report)
         write_candidate_next_steps(temporary_root / "NEXT_STEPS.md", report)
         if output_dir.exists():
-            raise FileExistsError(f"candidate output directory already exists: {output_dir}")
+            raise FileExistsError("candidate output directory already exists")
         temporary_root.rename(output_dir)
     except Exception:
-        shutil.rmtree(temporary_root, ignore_errors=True)
+        try:
+            shutil.rmtree(temporary_root)
+        except OSError as cleanup_error:
+            raise CandidateIntakeError(
+                f"candidate staging cleanup failed; residual directory name is {temporary_root.name}"
+            ) from cleanup_error
         raise
 
     print(f"Staged {len(artifacts)} declared artifact(s).")

@@ -44,8 +44,13 @@ profile-bundle materialization path.
 - exact `contentHash` and `sizeBytes`.
 
 `logicalName` must equal the basename of `sourcePath`, preserving the original
-filename. The tool validates the supplied file before and after copying; a
-changed source fails without promoting a partial destination.
+filename. Before staging, the tool verifies the declared size and SHA-256. It
+then re-resolves the source path and checks reparse points immediately before
+opening it. Each artifact is copied from that one opened handle while its
+SHA-256 and length are checked; a changed source fails without promoting a
+partial destination. Candidate intake requires a destination outside both this
+repository and the declared source root: the destination must neither be inside
+the source root nor contain it.
 
 `candidateScope` records the owner-selected members, modes, capacities, and
 topology choices. It only bounds the proposed evidence. It does not create an
