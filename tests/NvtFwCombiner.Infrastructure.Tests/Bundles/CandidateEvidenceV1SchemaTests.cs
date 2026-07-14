@@ -238,7 +238,7 @@ public sealed class CandidateEvidenceV1SchemaTests
         return ProfileBundleSchemaValidator.ParseSchema(path, SchemaId, document.RootElement);
     }
 
-    private static JsonObject CreateDocument(string documentKind)
+    internal static JsonObject CreateDocument(string documentKind)
     {
         return documentKind switch
         {
