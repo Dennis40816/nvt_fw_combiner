@@ -71,7 +71,7 @@ parity is questioned.
 | Area | Owner data needed for a new or disputed case |
 | --- | --- |
 | Standard Merge | DP input, TP input, expected flash output, exact output filename, source/output SHA-256, selected capacity, and owner approval. |
-| NT51950/NT51951 Standard Merge | One direct DP/TP/expected case for every additional capacity selected for release; state whether customer info remains from DP. Do not derive capacity behavior from a differently sized sample. |
+| NT51950/NT51951 Standard Merge | One direct DP/TP/expected case for every additional capacity selected for release; state whether customer info remains from DP. Do not derive capacity behavior from a differently sized sample. The tracked direct cases cover NT51950 `0x40000` and NT51951 `0x80000`; to retire the legacy Standard Merge oracle, provide owner-approved cases for NT51950 `0x80000`/`0x100000` and NT51951 `0x40000`/`0x100000`. |
 | NT51950/NT51951 DP Replace | Base flash, DP replacement input, expected output, selected capacity, TP/customer ownership decision, and full-byte legacy/V2 comparison record. |
 | Alias or IC-count fact | Source IC/map, target IC/map, exact fact kind/id, applicable topology/capacity, direct parity input/output hashes, and owner approval. |
 | Firmware metadata | Firmware sample or approved observation plus NVT Backup location evidence. Runtime FW Config is always terminal `T - 0xFFF`; a primary flash-map address is evidence only. |
