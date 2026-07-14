@@ -586,8 +586,12 @@ internal static class CandidateEvidenceIntakeMaterializer
     {
         foreach (string segment in path.Split('/'))
         {
-            string baseName = segment.Split('.')[0];
-            if (segment.EndsWith(' ') || segment.EndsWith('.') || IsWindowsReservedDeviceName(baseName))
+            if (segment.StartsWith("~$", StringComparison.Ordinal) ||
+                segment.EndsWith(".lock", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidDataException("Candidate path declares an Office or tool lock file.");
+            }
+            if (segment.EndsWith(' ') || segment.EndsWith('.') || IsWindowsReservedDeviceName(segment.Split('.')[0]))
             {
                 throw new InvalidDataException("Candidate path contains a Windows alias-ambiguous segment.");
             }

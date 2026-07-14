@@ -6,10 +6,15 @@ It defines a deterministic, offline request for staging owner-provided IC
 evidence. It is not a runtime profile bundle and cannot register an IC, select
 a map, expose a workflow, or promote support.
 
+> **Retired historical contract.** The Python implementation that accepted
+> this document was retired in 0.9.4. Existing v1 request/output records remain
+> non-promotable historical evidence only. New intake uses
+> [`candidate-evidence-v1`](candidate-evidence-v1.md) through
+> `nvt_fw_combiner candidate-intake stage`.
+
 ## Input and output
 
-Run the intake command with a request, a source root containing the declared
-files, and a destination path that does not already exist:
+No current command accepts this request format. The former Python command was:
 
 ```text
 python scripts/intake_ic_reference.py --request request.json --source-root <owner-drop-folder> --output-dir <empty-staging-path>

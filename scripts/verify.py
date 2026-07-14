@@ -16,7 +16,6 @@ SOLUTION = ROOT / "NvtFwCombiner.slnx"
 CTRL_RAM_REPLACE_FIXTURE_VERIFIER = ROOT / "scripts" / "verify_ctrlram_replace_fixture.py"
 CTRL_RAM_SENTINEL_CREATOR = ROOT / "scripts" / "create_ctrlram_universal_sentinel.py"
 IDLE_BUILD_WORKER_STOPPER = ROOT / "scripts" / "stop-idle-build-workers.ps1"
-SCRIPT_TESTS_DIRECTORY = ROOT / "tests" / "scripts"
 
 
 def run(
@@ -62,7 +61,6 @@ def verify_structure() -> None:
     run([sys.executable, "scripts/validate_repository.py"])
     run([sys.executable, "scripts/polytail_check.py"])
     run([sys.executable, str(CTRL_RAM_SENTINEL_CREATOR), "--dry-run"])
-    run([sys.executable, "-m", "unittest", "discover", "-s", str(SCRIPT_TESTS_DIRECTORY), "-p", "test_*.py"])
 
 
 def require_python_modules(names: tuple[str, ...]) -> None:

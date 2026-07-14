@@ -44,5 +44,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("NvtFwCombiner.Application", cli, StringComparison.Ordinal);
         Assert.DoesNotContain("NvtFwCombiner.Profiles", cli, StringComparison.Ordinal);
         Assert.DoesNotContain("WorkbenchCompositionService", cli, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(Root.FullName, "scripts", "intake_ic_reference.py")));
+        Assert.False(File.Exists(Path.Combine(Root.FullName, "scripts", "ic_reference_candidate_intake.py")));
     }
 }

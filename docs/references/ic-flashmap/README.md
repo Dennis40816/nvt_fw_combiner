@@ -21,9 +21,9 @@ These files are evidence only. Production code must not execute anything from th
 For future IC evidence drops, first run:
 
 ```text
-python scripts/intake_ic_reference.py --request request.json --source-root <owner-drop-folder> --output-dir <new-empty-staging-path>
+nvt_fw_combiner candidate-intake stage --request request.json --source-root <owner-drop-folder> --output-dir <new-absent-staging-path>
 ```
 
 Use the declared request contract at
-[`docs/contracts/ic-reference-intake-request-v1.md`](../../contracts/ic-reference-intake-request-v1.md).
+[`docs/contracts/candidate-evidence-v1.md`](../../contracts/candidate-evidence-v1.md).
 Promote only reviewed, non-payload reference documents from the candidate evidence manifest into this directory, then update `SOURCE_MANIFEST.json` with source path, size, SHA-256, and approval/provenance notes.

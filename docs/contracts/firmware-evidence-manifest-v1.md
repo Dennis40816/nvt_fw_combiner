@@ -5,6 +5,12 @@ The executable schema is
 It records immutable source artifacts, independently reviewable firmware facts, and
 promotion-relevant blocker evidence without placing private firmware payloads in Git.
 
+> **Retired historical contract.** This manifest was emitted by the retired
+> Python candidate intake implementation. It remains only to interpret prior
+> non-promotable evidence. New candidate materialization uses
+> [`candidate-evidence-v1`](candidate-evidence-v1.md) and never emits this
+> manifest shape.
+
 ## Fact and promotion separation
 
 `facts[].disposition` answers whether one assertion was observed, accepted, rejected, or remains
@@ -26,8 +32,10 @@ identified by logical name, exact byte size, and SHA-256. A repository path is o
 point outside the repository. Private files remain in the owner's evidence store; the manifest keeps
 only provenance, hashes, and precise locations such as workbook sheet/cell or source line.
 
-Offline workbook intake may add `intakeProvenance` only to candidate output. The standard declared
-input is [`ic-reference-intake-request-v1`](ic-reference-intake-request-v1.md). The intake tool
-writes to a caller-selected empty staging directory, reads source files only, does not execute macros,
-and cannot edit approved contracts, profiles, bundles, or evidence. Candidate output has no runtime
-authority until reviewed and committed as an approved manifest in a trusted bundle.
+The former offline intake used
+[`ic-reference-intake-request-v1`](ic-reference-intake-request-v1.md). The
+active C# command uses `candidate-evidence-v1`, writes a caller-selected absent
+candidate root, reads source files only, does not execute macros, and cannot
+edit approved contracts, profiles, bundles, or evidence. Candidate output has
+no runtime authority until separately reviewed and committed as an approved
+manifest in a trusted bundle.

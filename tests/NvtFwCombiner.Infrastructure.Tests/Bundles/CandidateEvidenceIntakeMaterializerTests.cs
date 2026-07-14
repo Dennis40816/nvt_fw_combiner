@@ -160,6 +160,32 @@ public sealed class CandidateEvidenceIntakeMaterializerTests
         Assert.False(Directory.Exists(outputDirectory));
     }
 
+    /// <summary>Rejects Office and tool lock files before copying a candidate artifact.</summary>
+    [Theory]
+    [InlineData("~$Owner Record.xlsx")]
+    [InlineData("owner-record.lock")]
+    public void MaterializeRejectsLockFileWithoutPublishing(string fileName)
+    {
+        using var workspace = TempWorkspace.Create("nfc-candidate-materializer");
+        byte[] sourceBytes = "owner evidence\n"u8.ToArray();
+        string sourceRoot = workspace.PathFor("source");
+        _ = Directory.CreateDirectory(sourceRoot);
+        File.WriteAllBytes(Path.Combine(sourceRoot, fileName), sourceBytes);
+        string requestPath = workspace.Write("request.json", CreateRequest(fileName, sourceBytes));
+        string outputDirectory = workspace.PathFor("candidate-set");
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            CandidateEvidenceIntakeMaterializer.Materialize(
+                new CandidateEvidenceMaterializationRequest(
+                    requestPath,
+                    sourceRoot,
+                    outputDirectory,
+                    DateTimeOffset.UnixEpoch)));
+
+        Assert.Contains("lock file", exception.Message, StringComparison.Ordinal);
+        Assert.False(Directory.Exists(outputDirectory));
+    }
+
     private static byte[] CreateRequest(string fileName, byte[] sourceBytes)
     {
         return Encoding.UTF8.GetBytes(RequestNode(fileName, sourceBytes).ToJsonString());

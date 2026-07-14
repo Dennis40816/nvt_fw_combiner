@@ -52,9 +52,6 @@ def validate_v2_contract_model(
     """Validate locked cross-schema rules that JSON meta-schema checks cannot express."""
     family = load_json(root / "docs/contracts/firmware-family-v1.schema.json", errors)
     bundle = load_json(root / "docs/contracts/profile-bundle-v1.schema.json", errors)
-    evidence = load_json(
-        root / "docs/contracts/firmware-evidence-manifest-v1.schema.json", errors
-    )
     profile = load_json(root / "docs/contracts/composition-profile-v2.schema.json", errors)
     saved_rule = load_json(
         root / "docs/contracts/saved-composition-rule-v2.schema.json", errors
@@ -63,8 +60,6 @@ def validate_v2_contract_model(
         _validate_firmware_family(family, errors)
     if isinstance(bundle, dict):
         _validate_profile_bundle(bundle, errors)
-    if isinstance(evidence, dict):
-        _validate_evidence_manifest(evidence, errors)
     if isinstance(profile, dict):
         _validate_composition_profile(profile, errors)
     if isinstance(saved_rule, dict):
@@ -480,19 +475,6 @@ def _validate_profile_bundle(bundle: dict[str, Any], errors: list[str]) -> None:
                 errors.append(f"profile-bundle entry path permits traversal shape: {unsafe_path}")
     if len(entry.get("allOf", [])) != 5:
         errors.append("profile-bundle entry kind must select its canonical directory")
-
-
-def _validate_evidence_manifest(evidence: dict[str, Any], errors: list[str]) -> None:
-    required = set(evidence.get("required", []))
-    for key in {"sourceArtifacts", "facts", "reviews"} - required:
-        errors.append(f"firmware-evidence schema does not require canonical field: {key}")
-    if "promotionAssessments" in evidence.get("properties", {}):
-        errors.append("firmware-evidence schema must not own profile promotion state")
-
-    source = evidence.get("$defs", {}).get("sourceArtifact", {})
-    path_pattern = source.get("properties", {}).get("repositoryPath", {}).get("pattern")
-    if isinstance(path_pattern, str) and re.fullmatch(path_pattern, "docs/../private.bin"):
-        errors.append("firmware-evidence repository path permits traversal")
 
 
 def _validate_composition_profile(profile: dict[str, Any], errors: list[str]) -> None:

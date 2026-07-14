@@ -2,9 +2,11 @@
 
 The executable schema is
 [`candidate-evidence-v1.schema.json`](candidate-evidence-v1.schema.json). It
-is a candidate-only, offline contract introduced by proposed ADR 0019. It does
-not replace `ic-reference-intake-request-v1` or
-`firmware-evidence-manifest-v1`, and it never admits runtime execution.
+is the active candidate-only, offline contract introduced by proposed ADR
+0019. It supersedes `ic-reference-intake-request-v1` and
+`firmware-evidence-manifest-v1`; those formats remain only as historical,
+non-promotable evidence records and are not accepted by the C# candidate CLI.
+It never admits runtime execution.
 
 ## Documents and authority
 

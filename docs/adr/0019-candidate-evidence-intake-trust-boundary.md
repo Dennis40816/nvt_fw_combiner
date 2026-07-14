@@ -72,9 +72,9 @@ One C# candidate-intake use case owns Draft 2020-12 validation through the
 repository's pinned `Json.Schema` dependency. The replacement schemas must use
 only local fragment references. Semantic validation is limited to rules JSON
 Schema cannot represent, such as cross-document IDs, content hashes, filesystem
-identity, and output inventory. The current Python command is retired when the
-C# command is available; it must not retain a second schema validator or a
-candidate materializer.
+identity, and output inventory. `candidate-intake stage` is the only candidate
+CLI; the prior Python command, validator, and materializer are retired and must
+not retain a second schema authority.
 
 ### Candidate source bundle and closed root
 

@@ -39,12 +39,12 @@ Collect these items before adding a production IC profile:
 ## Candidate evidence intake
 
 The 0.9.4 candidate interface uses the declared-evidence
-[`ic-reference-intake-request-v1`](../contracts/ic-reference-intake-request-v1.md)
-contract rather than scan a user's workstation or infer firmware rules from
-arbitrary BINs:
+[`candidate-evidence-v1`](../contracts/candidate-evidence-v1.md) contract
+rather than scan a user's workstation or infer firmware rules from arbitrary
+BINs:
 
 ```text
-python scripts/intake_ic_reference.py --request request.json --source-root <owner-drop-folder> --output-dir <new-empty-staging-path>
+nvt_fw_combiner candidate-intake stage --request request.json --source-root <owner-drop-folder> --output-dir <new-absent-staging-path>
 ```
 
 It may generate only source snapshots, a candidate evidence manifest, a
@@ -55,13 +55,17 @@ runtime bundle. The command rejects the retired `--source` folder scan and
 every legacy categorization option; all source files, hashes, and candidate
 facts must be declared before staging begins.
 
-The caller-selected destination contains source snapshots plus:
+The caller-selected destination contains a closed `candidate-root/` plus:
 
-- `evidence-manifest.json`, with `status = candidate` and no runtime bundle reference;
-- `intake-report.json`, including declared unresolved promotion blockers; and
-- `NEXT_STEPS.md`, listing human review and promotion gates.
+- `candidate-root-manifest.json`, with `runtimeAuthority = none` and the
+  complete source/schema/artifact/checklist inventory;
+- `candidate-validation-report.json`, a sidecar binding the root content hash
+  and raw root-manifest SHA-256; and
+- `evidence/NEXT_STEPS.md`, listing human review and promotion gates.
 
-This intake step does not edit C# code, register a profile, copy private payloads into this repository, or make a support claim. Promotion still requires the normal reviewed changes listed below.
+This intake step does not edit C# code, register a profile, copy private payloads into this repository, or make a support claim. The retired
+`ic-reference-intake-request-v1` format is historical evidence only. Promotion
+still requires the normal reviewed changes listed below.
 
 The owner drop folder should contain as many of these as apply:
 
