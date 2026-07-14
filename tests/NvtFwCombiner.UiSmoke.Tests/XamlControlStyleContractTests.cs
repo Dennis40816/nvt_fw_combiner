@@ -17,6 +17,8 @@ public sealed partial class XamlControlStyleContractTests
 
     private static readonly Regex ThemeShadowTokenDefinitionPattern = ThemeShadowTokenDefinitionRegex();
 
+    private static readonly Regex ThemeCornerRadiusTokenDefinitionPattern = ThemeCornerRadiusTokenDefinitionRegex();
+
     private static readonly Regex DynamicThemeReferencePattern = DynamicThemeReferenceRegex();
 
     private static readonly Regex ColorLiteralPattern = ColorLiteralRegex();
@@ -101,8 +103,10 @@ public sealed partial class XamlControlStyleContractTests
         string tokens = ReadPresentationFile("Styles/ThemeTokens.axaml");
         Match[] colorDefinitions = ReadThemeTokenDefinitions();
         Match[] shadowDefinitions = ReadThemeShadowTokenDefinitions();
+        Match[] cornerRadiusDefinitions = ReadThemeCornerRadiusTokenDefinitions();
         var definedKeys = colorDefinitions
             .Concat(shadowDefinitions)
+            .Concat(cornerRadiusDefinitions)
             .Select(static definition => definition.Groups["key"].Value)
             .ToHashSet(StringComparer.Ordinal);
         var definedColors = colorDefinitions
@@ -116,9 +120,13 @@ public sealed partial class XamlControlStyleContractTests
             StringComparison.Ordinal);
         Assert.NotEmpty(colorDefinitions);
         Assert.NotEmpty(shadowDefinitions);
+        Assert.NotEmpty(cornerRadiusDefinitions);
         Assert.Equal(colorDefinitions.Length, tokens.Split("<SolidColorBrush", StringSplitOptions.None).Length - 1);
         Assert.Equal(shadowDefinitions.Length, tokens.Split("<BoxShadows", StringSplitOptions.None).Length - 1);
-        Assert.Equal(colorDefinitions.Length + shadowDefinitions.Length, definedKeys.Count);
+        Assert.Equal(cornerRadiusDefinitions.Length, tokens.Split("<CornerRadius", StringSplitOptions.None).Length - 1);
+        Assert.Equal(
+            colorDefinitions.Length + shadowDefinitions.Length + cornerRadiusDefinitions.Length,
+            definedKeys.Count);
         Assert.Equal(colorDefinitions.Length, definedColors.Count);
 
         string[] migratedPaths =
@@ -198,6 +206,15 @@ public sealed partial class XamlControlStyleContractTests
                 app.TryGetResource(key, ThemeVariant.Default, out object? resource),
                 $"Theme token '{key}' was not available from Application.Resources.");
             _ = Assert.IsType<BoxShadows>(resource);
+        }
+
+        foreach (string key in ReadThemeCornerRadiusTokenDefinitions()
+                     .Select(static definition => definition.Groups["key"].Value))
+        {
+            Assert.True(
+                app.TryGetResource(key, ThemeVariant.Default, out object? resource),
+                $"Theme token '{key}' was not available from Application.Resources.");
+            _ = Assert.IsType<CornerRadius>(resource);
         }
     }
 
@@ -531,6 +548,9 @@ public sealed partial class XamlControlStyleContractTests
             {
                 Assert.DoesNotContain(bundle, xaml, StringComparison.Ordinal);
             }
+
+            Assert.DoesNotContain("CornerRadius=\"999\"", xaml, StringComparison.Ordinal);
+            Assert.DoesNotContain("Property=\"CornerRadius\" Value=\"999\"", xaml, StringComparison.Ordinal);
         }
     }
 
@@ -557,11 +577,21 @@ public sealed partial class XamlControlStyleContractTests
         return [.. ThemeShadowTokenDefinitionPattern.Matches(ReadPresentationFile("Styles/ThemeTokens.axaml")).Cast<Match>()];
     }
 
+    private static Match[] ReadThemeCornerRadiusTokenDefinitions()
+    {
+        return [.. ThemeCornerRadiusTokenDefinitionPattern
+            .Matches(ReadPresentationFile("Styles/ThemeTokens.axaml"))
+            .Cast<Match>()];
+    }
+
     [GeneratedRegex("<SolidColorBrush\\s+x:Key=\"(?<key>Nfc[A-Za-z]+)\"\\s+Color=\"(?<color>#[0-9A-Fa-f]{6,8})\"\\s*/>", RegexOptions.CultureInvariant)]
     private static partial Regex ThemeTokenDefinitionRegex();
 
     [GeneratedRegex("<BoxShadows\\s+x:Key=\"(?<key>Nfc[A-Za-z]+)\">[^<]+</BoxShadows>", RegexOptions.CultureInvariant)]
     private static partial Regex ThemeShadowTokenDefinitionRegex();
+
+    [GeneratedRegex("<CornerRadius\\s+x:Key=\"(?<key>Nfc[A-Za-z]+)\">[^<]+</CornerRadius>", RegexOptions.CultureInvariant)]
+    private static partial Regex ThemeCornerRadiusTokenDefinitionRegex();
 
     [GeneratedRegex("\\{DynamicResource\\s+(?<key>Nfc[A-Za-z]+)\\}", RegexOptions.CultureInvariant)]
     private static partial Regex DynamicThemeReferenceRegex();

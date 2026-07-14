@@ -12,7 +12,7 @@
   <Style Selector="Button.secondary /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="Button.secondary:disabled">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
@@ -22,7 +22,7 @@
   <Style Selector="Button.secondary:disabled /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="Button.danger">
     <Setter Property="MinHeight" Value="34" />
@@ -37,7 +37,7 @@
   <Style Selector="Button.danger /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcDangerSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcDangerBorderBrush}" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="Button.danger:disabled">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
@@ -47,7 +47,7 @@
   <Style Selector="Button.danger:disabled /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="Button.command">
     <Setter Property="MinHeight" Value="42" />
@@ -90,7 +90,7 @@
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="Button.iconButton TextBlock">
     <Setter Property="HorizontalAlignment" Value="Center" />
@@ -110,7 +110,7 @@
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="Button.dangerIcon">
     <Setter Property="Background" Value="{DynamicResource NfcDangerSurfaceBrush}" />
@@ -121,7 +121,7 @@
     <Setter Property="Background" Value="{DynamicResource NfcDangerSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcDangerBorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="Button.breadcrumb">
     <Setter Property="MinHeight" Value="34" />
@@ -149,7 +149,7 @@
   <Style Selector="Button.primary /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcAccentBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="Button.primary:disabled">
     <Setter Property="Background" Value="{DynamicResource NfcBorderMutedBrush}" />
@@ -159,7 +159,7 @@
   <Style Selector="Button.primary:disabled /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcBorderMutedBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="Button.action">
     <Setter Property="MinHeight" Value="34" />
@@ -175,7 +175,7 @@
   <Style Selector="Button.action /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="Button.action:disabled">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
@@ -185,7 +185,7 @@
   <Style Selector="Button.action:disabled /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="Button.browseAction">
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
@@ -196,7 +196,7 @@
   <Style Selector="Button.browseAction /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderBrush}" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="Button.browseAction:disabled">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
@@ -206,7 +206,7 @@
   <Style Selector="Button.browseAction:disabled /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="Button.toolbarAction">
     <Setter Property="MinHeight" Value="36" />
@@ -225,7 +225,7 @@
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="Button.toolbarAction:disabled">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
@@ -236,7 +236,7 @@
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="Button.reportAction">
     <Setter Property="MinHeight" Value="42" />
@@ -254,7 +254,7 @@
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="Button.reportAction:disabled">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
@@ -265,7 +265,7 @@
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="Button.summaryChip">
     <Setter Property="MinHeight" Value="30" />
@@ -280,7 +280,7 @@
   <Style Selector="Button.summaryChip /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="Button.segmentDisabled">
     <Setter Property="MinHeight" Value="44" />
@@ -297,6 +297,6 @@
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
 </Styles>

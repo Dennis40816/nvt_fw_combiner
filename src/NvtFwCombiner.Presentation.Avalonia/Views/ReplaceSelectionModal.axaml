@@ -29,7 +29,7 @@
 
       <Border Grid.Row="1" Classes="subtlePanel contentPanel">
         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-          <Border Width="8" Height="38" VerticalAlignment="Top" Background="{DynamicResource NfcAccentBrush}" CornerRadius="999" />
+          <Border Width="8" Height="38" VerticalAlignment="Top" Background="{DynamicResource NfcAccentBrush}" CornerRadius="{DynamicResource NfcPillCornerRadius}" />
           <StackPanel Grid.Column="1" Spacing="3">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
               <TextBlock Classes="cardTitle" Text="{Binding ReplaceSelectionCountLabel}" />

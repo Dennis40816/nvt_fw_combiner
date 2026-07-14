@@ -107,7 +107,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("<views:HexEditorPanel", pageTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("HexEditorPanel", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("<Setter Property=\"MinHeight\" Value=\"44\" />", shellStyles, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"CornerRadius\" Value=\"999\" />", shellStyles, StringComparison.Ordinal);
+        Assert.Contains(
+            "<Setter Property=\"CornerRadius\" Value=\"{DynamicResource NfcPillCornerRadius}\" />",
+            shellStyles,
+            StringComparison.Ordinal);
         Assert.Contains("ColumnDefinitions=\"1.15*,430\"", shell, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.OutputLayoutTitle}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("IsEnabled=\"False\"", pageTemplates, StringComparison.Ordinal);

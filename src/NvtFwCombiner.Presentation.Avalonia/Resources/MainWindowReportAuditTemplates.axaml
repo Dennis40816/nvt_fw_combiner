@@ -159,7 +159,7 @@
             <StackPanel Margin="0,12,0,0" Spacing="12">
               <Border Classes="successInset" Padding="16" IsVisible="{Binding LoadedReport.HasNoIssues}">
                 <Grid ColumnDefinitions="34,*" ColumnSpacing="12">
-                  <Border Width="26" Height="26" Background="{DynamicResource NfcSuccessAccentBrush}" CornerRadius="999">
+                  <Border Width="26" Height="26" Background="{DynamicResource NfcSuccessAccentBrush}" CornerRadius="{DynamicResource NfcPillCornerRadius}">
                     <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource NfcSurfaceBrush}" Text="✓" />
                   </Border>
                   <StackPanel Grid.Column="1" Spacing="2">

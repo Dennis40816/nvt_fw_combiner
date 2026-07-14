@@ -43,7 +43,7 @@
   <Style Selector="Border.workflowOpenPill">
     <Setter Property="Padding" Value="10,4" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
     <Setter Property="Transitions">

@@ -76,7 +76,7 @@
           Background="{DynamicResource NfcAccentSurfaceSubtleBrush}"
           BorderBrush="{DynamicResource NfcAccentBorderBrush}"
           BorderThickness="1"
-          CornerRadius="999" />
+          CornerRadius="{DynamicResource NfcPillCornerRadius}" />
     </Grid>
     <StackPanel Grid.Column="1" Spacing="2">
       <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource NfcInfoTextStrongBrush}" Text="{Binding Title}" TextWrapping="Wrap" />

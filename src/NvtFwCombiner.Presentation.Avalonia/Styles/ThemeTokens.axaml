@@ -52,6 +52,7 @@
   <SolidColorBrush x:Key="NfcDangerTextStrongBrush" Color="#BE123C" />
   <SolidColorBrush x:Key="NfcCriticalSurfaceBrush" Color="#FEF2F2" />
   <SolidColorBrush x:Key="NfcCriticalBorderBrush" Color="#DC2626" />
+  <CornerRadius x:Key="NfcPillCornerRadius">999</CornerRadius>
   <BoxShadows x:Key="NfcWorkflowCardHoverShadow">0 6 14 0 #143B821A</BoxShadows>
   <BoxShadows x:Key="NfcWorkflowCardPressedShadow">0 1 4 0 #143B8214</BoxShadows>
   <SolidColorBrush x:Key="NfcModalScrimBrush" Color="#660F172A" />

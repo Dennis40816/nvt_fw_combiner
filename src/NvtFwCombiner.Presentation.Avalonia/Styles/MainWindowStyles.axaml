@@ -68,7 +68,7 @@
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="ToggleButton.segment TextBlock">
     <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
@@ -83,7 +83,7 @@
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="ToggleButton.segment:checked TextBlock">
     <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />

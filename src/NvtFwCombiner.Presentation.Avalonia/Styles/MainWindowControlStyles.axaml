@@ -73,7 +73,7 @@
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
   </Style>
   <Style Selector="Border.fileDropZone">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
@@ -301,7 +301,7 @@
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
     <Setter Property="FontSize" Value="10" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
@@ -332,7 +332,7 @@
     <Setter Property="VerticalContentAlignment" Value="Center" />
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
     <Setter Property="FontSize" Value="11" />
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
@@ -345,7 +345,7 @@
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
     <Setter Property="FontSize" Value="10" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
@@ -383,7 +383,7 @@
     <Setter Property="Background" Value="{DynamicResource NfcCautionSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcCautionBorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcCautionTextBrush}" />
     <Setter Property="FontSize" Value="11" />
     <Setter Property="FontWeight" Value="SemiBold" />

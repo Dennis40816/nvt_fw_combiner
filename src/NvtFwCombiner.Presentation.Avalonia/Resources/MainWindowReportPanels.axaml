@@ -74,9 +74,9 @@
       <Expander.Header>
         <Grid Margin="16,12" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
           <Grid Width="32" Height="32" AutomationProperties.Name="{Binding LoadedReport.OutcomeAccessibilityLabel}">
-            <Border Background="{DynamicResource NfcSuccessAccentBrush}" CornerRadius="999" IsVisible="{Binding LoadedReport.IsClean}" />
-            <Border Background="{DynamicResource NfcWarningAccentStrongBrush}" CornerRadius="999" IsVisible="{Binding LoadedReport.HasWarningsWithoutBlockingIssues}" />
-            <Border Background="{DynamicResource NfcWarningAccentCriticalBrush}" CornerRadius="999" IsVisible="{Binding LoadedReport.HasPrimaryIssue}" />
+            <Border Background="{DynamicResource NfcSuccessAccentBrush}" CornerRadius="{DynamicResource NfcPillCornerRadius}" IsVisible="{Binding LoadedReport.IsClean}" />
+            <Border Background="{DynamicResource NfcWarningAccentStrongBrush}" CornerRadius="{DynamicResource NfcPillCornerRadius}" IsVisible="{Binding LoadedReport.HasWarningsWithoutBlockingIssues}" />
+            <Border Background="{DynamicResource NfcWarningAccentCriticalBrush}" CornerRadius="{DynamicResource NfcPillCornerRadius}" IsVisible="{Binding LoadedReport.HasPrimaryIssue}" />
             <TextBlock
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"

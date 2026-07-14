@@ -123,7 +123,7 @@
             <Border Classes="workflowCard" Background="{DynamicResource NfcSurfaceSubtleBrush}" BorderBrush="{DynamicResource NfcBorderMutedBrush}">
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
                 <TextBlock FontWeight="SemiBold" Foreground="{DynamicResource NfcTextDisabledBrush}" Text="AB Code" />
-                <Border Grid.Column="1" Padding="10,4" Background="{DynamicResource NfcSelectionSurfaceBrush}" BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="1" CornerRadius="999">
+                <Border Grid.Column="1" Padding="10,4" Background="{DynamicResource NfcSelectionSurfaceBrush}" BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="1" CornerRadius="{DynamicResource NfcPillCornerRadius}">
                   <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource NfcTextDisabledBrush}" Text="{Binding Text.PendingLabel}" />
                 </Border>
               </Grid>
