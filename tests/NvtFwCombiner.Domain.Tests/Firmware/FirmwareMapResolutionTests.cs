@@ -316,6 +316,26 @@ public sealed class FirmwareMapResolutionTests
             result.PendingRequirements);
     }
 
+    /// <summary>Verifies a pending candidate outside the selected member does not block an existing unique map.</summary>
+    [Fact]
+    public void ResolveMapIgnoresPendingCandidateOutsideRequestedMember()
+    {
+        FirmwareMetadataSet metadata = MetadataSet(Config("config", "candidate-tp-firmware"));
+        FirmwareImageMap matching = Map("matching", []);
+        FirmwareImageMap unrelatedPending = Map(
+            "unrelated-pending",
+            [metadata],
+            memberId: "NT00002");
+
+        FirmwareMapResolutionResult result = Definition(
+            [matching, unrelatedPending],
+            [metadata]).ResolveMap(Inputs([]));
+
+        Assert.Equal(FirmwareMapResolutionStatus.Unique, result.Status);
+        Assert.Empty(result.PendingRequirements);
+        Assert.Equal("matching", Assert.IsType<ResolvedFirmwareImageMap>(result.ResolvedMap).ImageMap.MapId);
+    }
+
     /// <summary>Verifies pending requirements aggregate across viable candidates without duplicate artifact rows.</summary>
     [Fact]
     public void ResolveMapDeduplicatesPendingRequirementsAcrossCandidates()
