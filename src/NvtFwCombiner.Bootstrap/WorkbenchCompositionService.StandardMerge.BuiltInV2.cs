@@ -429,7 +429,7 @@ public static partial class WorkbenchCompositionService
                     IcId,
                     CompositionKind.Merge,
                     [],
-                    StandardMergeFallbackOutputFileName,
+                    ProfileSummaryFallbackOutputFileName,
                     null,
                     CompileSucceeded: false,
                     Array.AsReadOnly(compilation.Issues.Select(static issue => issue.Code).ToArray()));

@@ -28,7 +28,7 @@ public static partial class WorkbenchCompositionService
     public static string GetStandardMergeDefaultOutputFileName(string icId)
     {
         return FindStandardMergeProfileSummaryByIc(icId)?.DefaultOutputFileName ??
-            StandardMergeFallbackOutputFileName;
+            ProfileSummaryFallbackOutputFileName;
     }
 
     /// <summary>Gets a compact, catalog-backed policy summary for the selected Standard Merge IC.</summary>

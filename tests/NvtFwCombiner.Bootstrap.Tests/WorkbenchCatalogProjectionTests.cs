@@ -49,7 +49,7 @@ public sealed class WorkbenchCatalogProjectionTests
         Assert.Equal(originalNumberChoice, WorkbenchCompositionService.GetNumberChoices("NT51950")[0]);
     }
 
-    /// <summary>Profile summaries retain source order while executable facts come from the compiled artifact.</summary>
+    /// <summary>Profile summaries retain synthetic legacy profiles and deployed V2 DP Replace facts.</summary>
     [Fact]
     public void ProfileSummariesProjectCompiledArtifactsWithoutLegacyTypes()
     {
@@ -58,22 +58,43 @@ public sealed class WorkbenchCatalogProjectionTests
             .. BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles
                 .OrderBy(static profile => profile.IcId, StringComparer.Ordinal),
         ];
-        CompositionProfileDefinition[] replaceProfiles =
+        CompositionProfileDefinition[] legacyReplaceProfiles =
         [
             .. BuiltInReplaceProfiles.All
                 .OrderBy(static profile => profile.ProfileId, StringComparer.Ordinal),
         ];
+        WorkbenchProfileSummary[] replaceSummaries = [.. WorkbenchCompositionService.GetReplaceProfileSummaries()];
 
         AssertProfileSummaries(
             standardProfiles,
             WorkbenchCompositionService.GetStandardMergeProfileSummaries());
         AssertProfileSummaries(
-            replaceProfiles,
-            WorkbenchCompositionService.GetReplaceProfileSummaries());
+            legacyReplaceProfiles,
+            [.. replaceSummaries.Where(static summary => summary.IcId == "NT-SYNTHETIC")]);
+        Assert.Equal(
+            [
+                "nt51950-dp-replace-dp-perspective",
+                "nt51951-dp-replace-dp-perspective",
+                "synthetic-ctrlram-replace",
+                "synthetic-dp-replace",
+                "synthetic-general-replace",
+            ],
+            replaceSummaries.Select(static summary => summary.ProfileId));
+        Assert.All(
+            replaceSummaries.Where(static summary => summary.IcId is "NT51950" or "NT51951"),
+            static summary =>
+            {
+                Assert.True(summary.CompileSucceeded);
+                Assert.Equal(CompositionKind.Replace, summary.CompositionKind);
+                Assert.Equal(
+                    ["dp-replacement", "reference-base"],
+                    summary.RequiredInputAddressSpaceIds.Order(StringComparer.Ordinal));
+                Assert.Equal(CompiledIcNumberPolicy.SingleSelector, summary.IcNumberPolicy);
+            });
 
         WorkbenchSettingsSnapshot settings = WorkbenchCompositionService.GetSettingsSnapshot();
         Assert.Equal(standardProfiles.Length, settings.StandardMergeProfileCount);
-        Assert.Equal(replaceProfiles.Length, settings.ReplaceProfileCount);
+        Assert.Equal(replaceSummaries.Length, settings.ReplaceProfileCount);
         Assert.Equal(13, settings.FlashMapIcCount);
     }
 

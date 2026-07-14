@@ -28,41 +28,27 @@ public sealed class DpPerspectiveCatalogTests
         Assert.Equal(200, DpPerspectiveCatalog.RestoreBaseTpSequence);
 
         Assert.Equal(
-            DpPerspectiveCatalog.SupportedContainerLengths,
-            BuiltInReplaceProfiles.DpPerspectiveSupportedDpBaseLengths);
-        Assert.Equal(
             DpPerspectiveCatalog.SupportedIcIds,
             BuiltInStandardMergeProfiles.DpPerspectiveStandardMergeProfiles.Select(profile => profile.IcId));
-        Assert.Equal(
-            DpPerspectiveCatalog.SupportedIcIds,
-            BuiltInReplaceProfiles.DpPerspectiveDpReplaceProfiles.Select(profile => profile.IcId));
     }
 
-    /// <summary>TP is the only base-restored range in DP Replace; customer-info remains part of the replacement DP image.</summary>
+    /// <summary>Standard Merge shares the catalog-owned TP overlay range.</summary>
     [Theory]
     [InlineData("NT51950", 0x40000)]
     [InlineData("NT51951", 0x80000)]
-    public void ProfilesUseSharedDpPerspectiveRanges(string icId, long length)
+    public void StandardMergeUsesSharedDpPerspectiveRanges(string icId, long length)
     {
         CompositionProfileDefinition merge = BuiltInStandardMergeProfiles.CreateDpPerspectiveProfileForInputLength(icId, length);
-        CompositionProfileDefinition replace = BuiltInReplaceProfiles.CreateDpPerspectiveDpReplaceProfile(icId, length);
 
         ProfileCompileResult mergeCompile = CompositionProfileCompiler.Compile(merge, []);
-        ProfileCompileResult replaceCompile = CompositionProfileCompiler.Compile(replace, []);
 
         Assert.True(mergeCompile.IsSuccess, FormatIssues(mergeCompile.Issues));
-        Assert.True(replaceCompile.IsSuccess, FormatIssues(replaceCompile.Issues));
         Assert.Contains(merge.AddressSpaces, space =>
             space.AddressSpaceId == "tp-input" &&
             space.Length == DpPerspectiveCatalog.TpInputLength);
         Assert.Contains(mergeCompile.CompiledComposition!.Plan.OrderedOperations, operation =>
             operation.OperationId == DpPerspectiveCatalog.OverlayTpOperationId &&
             operation.TargetRange == DpPerspectiveCatalog.TpOverlayRange);
-        Assert.Contains(replaceCompile.CompiledComposition!.Plan.OrderedOperations, operation =>
-            operation.OperationId == DpPerspectiveCatalog.RestoreBaseTpOperationId &&
-            operation.TargetRange == DpPerspectiveCatalog.TpOverlayRange);
-        Assert.DoesNotContain(replaceCompile.CompiledComposition!.Plan.OrderedOperations, operation =>
-            operation.TargetRange == DpPerspectiveCatalog.CustomerInfoRange);
     }
 
     /// <summary>Only the owner-approved 950/951 IC ids normalize as DP Perspective ICs.</summary>

@@ -91,6 +91,8 @@ public static partial class WorkbenchCompositionService
 
     private sealed class BuiltInV2DpReplaceRegistration
     {
+        private readonly Lazy<WorkbenchProfileSummary> _summary;
+
         internal BuiltInV2DpReplaceRegistration(
             string icId,
             string profileId,
@@ -105,6 +107,7 @@ public static partial class WorkbenchCompositionService
             ProfileId = profileId;
             ProfileVersion = profileVersion;
             Bundle = bundle;
+            _summary = new Lazy<WorkbenchProfileSummary>(CreateProfileSummaryCore);
         }
 
         internal string IcId { get; }
@@ -120,6 +123,11 @@ public static partial class WorkbenchCompositionService
             return string.Equals(ProfileId, selector, StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(IcId, selector, StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(CliCompositionRunSupport.GetIcNumber(IcId), selector, StringComparison.OrdinalIgnoreCase);
+        }
+
+        internal WorkbenchProfileSummary CreateProfileSummary()
+        {
+            return _summary.Value;
         }
 
         internal IReadOnlyList<long> GetMapCapacities(out IReadOnlyList<CompositionIssue> issues)
@@ -179,6 +187,33 @@ public static partial class WorkbenchCompositionService
                         $"The built-in V2 DP Replace profile for {IcId} did not produce an executable composition."),
                 ];
             }
+        }
+
+        private WorkbenchProfileSummary CreateProfileSummaryCore()
+        {
+            IReadOnlyList<long> capacities = GetMapCapacities(out IReadOnlyList<CompositionIssue> capacityIssues);
+            if (capacityIssues.Count == 0 && capacities.Count != 0)
+            {
+                TryCompile(capacities[0], out CompiledComposition? composition, out IReadOnlyList<CompositionIssue> issues);
+                return composition is not null
+                    ? WorkbenchCompositionService.CreateProfileSummary(composition)
+                    : CreateFailedProfileSummary(issues);
+            }
+
+            return CreateFailedProfileSummary(capacityIssues);
+        }
+
+        private WorkbenchProfileSummary CreateFailedProfileSummary(IReadOnlyList<CompositionIssue> issues)
+        {
+            return new WorkbenchProfileSummary(
+                ProfileId,
+                IcId,
+                CompositionKind.Replace,
+                [],
+                ProfileSummaryFallbackOutputFileName,
+                null,
+                CompileSucceeded: false,
+                Array.AsReadOnly(issues.Select(static issue => issue.Code).ToArray()));
         }
     }
 }
