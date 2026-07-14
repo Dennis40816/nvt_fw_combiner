@@ -61,9 +61,9 @@ This implements DP Replace without requiring CRC recalculation and without enume
 ## Required Tests Before 1.0 Support Claim
 
 - V2 Merge golden for the recorded NT51950 `0x40000` and NT51951 `0x80000` owner DP Perspective cases.
-- Deterministic six-case public oracle hashes for NT51950/NT51951 and all declared capacities, plus customer-padding boundary cases and legacy/V2 plan parity.
+- Deterministic six-case public oracle hashes for NT51950/NT51951 and all declared capacities, plus customer-padding boundary cases and direct V2 plan-contract assertions.
 - Standard Merge tests showing only `0x40000`, `0x80000`, and `0x100000` DP inputs are accepted and accepted outputs keep the selected DP input length.
 - DP Replace tests showing approved base-length enforcement, shorter replacement padding to the selected base length, and larger replacement rejection.
 - DP Replace test proving the TP range is restored byte-for-byte from base while customer information follows replacement DP.
 - A map confirmation test that locks TP overlay to `0x0A000-0x36FFF (len 0x2D000)` and keeps customer info at `0x37000-0x37FFF (len 0x1000)` outside that overlay.
-- Firmware-owner decisions recorded on 2026-07-13: direct comparison to the pre-V2 legacy workflow plus the committed public synthetic expected hashes is accepted for V2 runtime admission; DP Replace customer information follows replacement DP. `knownDeviations` is empty, so parity remains full-byte exact; a future deviation requires a separate R3 record with a declared half-open range, reason, evidence, and approver. This is migration evidence, not independent hardware validation or a product support claim.
+- Firmware-owner decisions recorded on 2026-07-13: the archived comparison to the pre-V2 workflow plus the committed public synthetic expected hashes is accepted for V2 runtime admission; DP Replace customer information follows replacement DP. `knownDeviations` is empty, so the direct V2 result must remain full-byte exact against the frozen hashes; a future deviation requires a separate R3 record with a declared half-open range, reason, evidence, and approver. This is migration evidence, not independent hardware validation or a product support claim.

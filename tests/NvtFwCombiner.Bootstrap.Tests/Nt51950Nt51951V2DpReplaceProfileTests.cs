@@ -18,10 +18,10 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
     private const int CustomerInfoStart = 0x37000;
     private const int CustomerInfoLength = 0x1000;
 
-    /// <summary>Verifies every public synthetic case retains legacy plan and engine byte semantics with static expected hashes.</summary>
+    /// <summary>Verifies every public synthetic case satisfies the direct V2 plan contract and static expected hashes.</summary>
     [Theory]
     [MemberData(nameof(PublicSyntheticCases))]
-    public void SupportedProfilePlanMatchesLegacyDpReplaceAcrossDeclaredCapacities(
+    public void SupportedProfileMatchesDirectV2DpReplaceContractAcrossDeclaredCapacities(
         string icId,
         int capacity,
         int replacementLength,
@@ -30,8 +30,6 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
         string expectedSha256)
     {
         CompiledComposition candidate = CompileSupportedProfile(icId, capacity);
-        CompiledComposition legacy = CompileLegacy(icId, capacity);
-
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, candidate.Eligibility);
         _ = Assert.IsType<ProfileBundleV2CompilationAuthority>(candidate.Authority);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(candidate.V2Details);
@@ -40,7 +38,7 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
         Assert.Equal(CompiledIcNumberPolicy.SingleSelector, candidate.IcNumberPolicy);
         Assert.Equal($"nt{icId[2..]}-dp-replace.bin", candidate.DefaultOutputFileName);
         AssertMapProtection(candidate);
-        AssertPlanParity(legacy.Plan, candidate.Plan);
+        AssertPlanContract(candidate.Plan, capacity);
 
         byte[] reference = CreatePattern(capacity, baseSalt);
         byte[] replacement = CreatePattern(replacementLength, replacementSalt);
@@ -51,20 +49,8 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
                 [CompositionAddressSpaceIds.ReferenceBase] = reference,
                 [CompositionAddressSpaceIds.DpReplacement] = replacement,
             }));
-        CompositionExecutionResult legacyExecution = CompositionEngine.Execute(
-            legacy.Plan,
-            new CompositionExecutionInput(new Dictionary<string, byte[]>(StringComparer.Ordinal)
-            {
-                [CompositionAddressSpaceIds.ReferenceBase] = reference,
-                [CompositionAddressSpaceIds.DpReplacement] = replacement,
-            }));
-
         Assert.Equal(CompositionExecutionStatus.Succeeded, candidateExecution.Status);
-        Assert.Equal(CompositionExecutionStatus.Succeeded, legacyExecution.Status);
         byte[] candidateOutput = candidateExecution.OutputBytes.ToArray();
-        byte[] legacyOutput = legacyExecution.OutputBytes.ToArray();
-        Assert.Equal(expectedSha256, Sha256Hex(legacyOutput));
-        Assert.Equal(legacyOutput, candidateOutput);
         Assert.Equal(expectedSha256, Sha256Hex(candidateOutput));
         AssertRangeEquals(reference, TpOverlayStart, candidateOutput, TpOverlayStart, TpOverlayLength);
         Assert.Equal(ReplacementOrPadding(replacement, CustomerInfoStart), candidateOutput[CustomerInfoStart]);
@@ -96,11 +82,11 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
         Assert.Equal(reference, execution.OutputBytes.ToArray());
     }
 
-    /// <summary>Locks the supported profile evidence reference to the owner-approved public legacy comparison record.</summary>
+    /// <summary>Locks the supported profile evidence reference to the archived owner-approved legacy comparison record.</summary>
     [Theory]
     [InlineData("NT51950", 0x40000)]
     [InlineData("NT51951", 0x80000)]
-    public void SupportedProfileReferencesFrozenLegacyParityEvidence(string icId, int capacity)
+    public void SupportedProfileReferencesArchivedLegacyComparisonEvidence(string icId, int capacity)
     {
         using var document = JsonDocument.Parse(File.ReadAllText(RepositoryPaths.FromRepositoryRoot(
             "testdata",
@@ -132,51 +118,48 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
         return Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
     }
 
-    private static CompiledComposition CompileLegacy(string icId, int capacity)
+    private static void AssertPlanContract(CompositionPlan plan, int capacity)
     {
-        ProfileCompileResult compilation = CompositionProfileCompiler.Compile(
-            BuiltInReplaceProfiles.CreateDpPerspectiveDpReplaceProfile(icId, capacity),
-            []);
+        Assert.Equal(CompositionAddressSpaceIds.OutputImage, plan.OutputSpaceId);
+        Assert.Equal(ImageInitializationKind.Reference, plan.OutputInitialization.Kind);
+        Assert.Equal(CompositionAddressSpaceIds.ReferenceBase, plan.OutputInitialization.ReferenceSpaceId);
+        Assert.Equal(capacity, plan.OutputInitialization.Capacity);
 
-        Assert.True(compilation.IsSuccess, FormatIssues(compilation.Issues));
-        return Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
-    }
+        AddressSpace reference = Assert.Single(plan.AddressSpaces, space => space.AddressSpaceId == CompositionAddressSpaceIds.ReferenceBase);
+        Assert.Equal(capacity, reference.Length);
+        Assert.Equal(AddressSpaceMutability.Immutable, reference.Mutability);
+        AddressSpace replacement = Assert.Single(plan.AddressSpaces, space => space.AddressSpaceId == CompositionAddressSpaceIds.DpReplacement);
+        Assert.Equal(capacity, replacement.Length);
+        Assert.Equal(AddressSpaceMutability.Immutable, replacement.Mutability);
+        Assert.Equal((byte)0x00, replacement.InputPaddingByte);
+        Assert.Empty(replacement.AllowedInputLengths);
+        Assert.Equal(InputOversizePolicy.Reject, replacement.InputOversizePolicy);
+        AddressSpace output = Assert.Single(plan.AddressSpaces, space => space.AddressSpaceId == CompositionAddressSpaceIds.OutputImage);
+        Assert.Equal(capacity, output.Length);
+        Assert.Equal(AddressSpaceMutability.Mutable, output.Mutability);
 
-    private static void AssertPlanParity(CompositionPlan legacy, CompositionPlan candidate)
-    {
-        Assert.Equal(legacy.OutputSpaceId, candidate.OutputSpaceId);
-        Assert.Equal(legacy.OutputInitialization.Kind, candidate.OutputInitialization.Kind);
-        Assert.Equal(legacy.OutputInitialization.ReferenceSpaceId, candidate.OutputInitialization.ReferenceSpaceId);
-        Assert.Equal(legacy.OutputInitialization.Capacity, candidate.OutputInitialization.Capacity);
-
-        AddressSpace[] legacySpaces = [.. legacy.AddressSpaces.OrderBy(static space => space.AddressSpaceId)];
-        AddressSpace[] candidateSpaces = [.. candidate.AddressSpaces.OrderBy(static space => space.AddressSpaceId)];
-        Assert.Equal(legacySpaces.Length, candidateSpaces.Length);
-        foreach ((AddressSpace legacySpace, AddressSpace candidateSpace) in legacySpaces.Zip(candidateSpaces))
-        {
-            Assert.Equal(legacySpace.AddressSpaceId, candidateSpace.AddressSpaceId);
-            Assert.Equal(legacySpace.Length, candidateSpace.Length);
-            Assert.Equal(legacySpace.Mutability, candidateSpace.Mutability);
-            Assert.Equal(legacySpace.InputPaddingByte, candidateSpace.InputPaddingByte);
-            Assert.Equal(legacySpace.InputOversizePolicy, candidateSpace.InputOversizePolicy);
-            Assert.Equal(legacySpace.AllowedInputLengths, candidateSpace.AllowedInputLengths);
-            Assert.Equal(legacySpace.ExpectedInputLengths, candidateSpace.ExpectedInputLengths);
-        }
-
-        Assert.Equal(legacy.OrderedOperations.Count, candidate.OrderedOperations.Count);
-        for (int index = 0; index < legacy.OrderedOperations.Count; index++)
-        {
-            CompositionOperation legacyOperation = legacy.OrderedOperations[index];
-            CompositionOperation candidateOperation = candidate.OrderedOperations[index];
-            Assert.Equal(legacyOperation.OperationId, candidateOperation.OperationId);
-            Assert.Equal(legacyOperation.Sequence, candidateOperation.Sequence);
-            Assert.Equal(legacyOperation.Kind, candidateOperation.Kind);
-            Assert.Equal(legacyOperation.SourceSpaceId, candidateOperation.SourceSpaceId);
-            Assert.Equal(legacyOperation.SourceRange, candidateOperation.SourceRange);
-            Assert.Equal(legacyOperation.TargetSpaceId, candidateOperation.TargetSpaceId);
-            Assert.Equal(legacyOperation.TargetRange, candidateOperation.TargetRange);
-            Assert.Equal(legacyOperation.OverlapPolicy, candidateOperation.OverlapPolicy);
-        }
+        CompositionOperation[] operations = [.. plan.OrderedOperations];
+        Assert.Equal(
+            [
+                DpPerspectiveCatalog.ReplaceDpContainerOperationId,
+                DpPerspectiveCatalog.RestoreBaseTpOperationId,
+            ],
+            operations.Select(static operation => operation.OperationId));
+        Assert.Equal(CompositionOperationKind.ReplaceRange, operations[0].Kind);
+        Assert.Equal(DpPerspectiveCatalog.ReplaceDpContainerSequence, operations[0].Sequence);
+        Assert.Equal(CompositionAddressSpaceIds.DpReplacement, operations[0].SourceSpaceId);
+        Assert.Equal(new ByteRange(0, capacity), operations[0].SourceRange);
+        Assert.Equal(CompositionAddressSpaceIds.OutputImage, operations[0].TargetSpaceId);
+        Assert.Equal(new ByteRange(0, capacity), operations[0].TargetRange);
+        Assert.Equal(OverlapPolicy.Reject, operations[0].OverlapPolicy);
+        Assert.Equal(CompositionOperationKind.CopyRange, operations[1].Kind);
+        Assert.Equal(DpPerspectiveCatalog.RestoreBaseTpSequence, operations[1].Sequence);
+        Assert.Equal(CompositionAddressSpaceIds.ReferenceBase, operations[1].SourceSpaceId);
+        Assert.Equal(DpPerspectiveCatalog.TpOverlayRange, operations[1].SourceRange);
+        Assert.Equal(CompositionAddressSpaceIds.OutputImage, operations[1].TargetSpaceId);
+        Assert.Equal(DpPerspectiveCatalog.TpOverlayRange, operations[1].TargetRange);
+        Assert.Equal(OverlapPolicy.ReplaceExisting, operations[1].OverlapPolicy);
+        Assert.DoesNotContain(operations, operation => operation.TargetRange == DpPerspectiveCatalog.CustomerInfoRange);
     }
 
     private static void AssertMapProtection(CompiledComposition candidate)
@@ -204,7 +187,7 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
         return bytes;
     }
 
-    /// <summary>Loads the static public synthetic cases that constrain both legacy and V2 execution.</summary>
+    /// <summary>Loads the static public synthetic cases generated from the archived legacy comparison matrix.</summary>
     public static TheoryData<string, int, int, byte, byte, string> PublicSyntheticCases()
     {
         var cases = new TheoryData<string, int, int, byte, byte, string>();

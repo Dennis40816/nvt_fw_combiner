@@ -91,6 +91,8 @@ public static partial class WorkbenchCompositionService
 
     private sealed class BuiltInV2DpReplaceRegistration
     {
+        private readonly Lazy<V2CompositionPlanCompileResult> _summaryCompilation;
+
         internal BuiltInV2DpReplaceRegistration(
             string icId,
             string profileId,
@@ -105,6 +107,7 @@ public static partial class WorkbenchCompositionService
             ProfileId = profileId;
             ProfileVersion = profileVersion;
             Bundle = bundle;
+            _summaryCompilation = new(CompileSummary);
         }
 
         internal string IcId { get; }
@@ -179,6 +182,76 @@ public static partial class WorkbenchCompositionService
                         $"The built-in V2 DP Replace profile for {IcId} did not produce an executable composition."),
                 ];
             }
+        }
+
+        internal WorkbenchProfileSummary CreateProfileSummary()
+        {
+            V2CompositionPlanCompileResult compilation = _summaryCompilation.Value;
+            return compilation.CompiledComposition is { } composition
+                ? WorkbenchCompositionService.CreateProfileSummary(composition)
+                : new WorkbenchProfileSummary(
+                    ProfileId,
+                    IcId,
+                    CompositionKind.Replace,
+                    [],
+                    $"nt{IcId[2..].ToLowerInvariant()}-dp-replace.bin",
+                    CompiledIcNumberPolicy.SingleSelector,
+                    CompileSucceeded: false,
+                    Array.AsReadOnly(compilation.Issues.Select(static issue => issue.Code).ToArray()));
+        }
+
+        private V2CompositionPlanCompileResult CompileSummary()
+        {
+            IReadOnlyList<long> capacities = GetMapCapacities(out IReadOnlyList<CompositionIssue> capacityIssues);
+            if (capacityIssues.Count != 0)
+            {
+                return V2CompositionPlanCompileResult.Failed(capacityIssues);
+            }
+
+            if (capacities.Count == 0)
+            {
+                return V2CompositionPlanCompileResult.Failed(
+                    [new CompositionIssue(
+                        BuiltInV2CompilationFailed,
+                        $"The built-in V2 DP Replace profile for {IcId} has no declared base capacities.")]);
+            }
+
+            V2CompositionPlanCompileResult[] compilations =
+            [
+                .. capacities.Select(capacity => Bundle.Compile(
+                    ProfileId,
+                    ProfileVersion,
+                    IcId,
+                    IcWorkflowIds.DpReplace,
+                    capacity)),
+            ];
+            V2CompositionPlanCompileResult? failure = compilations.FirstOrDefault(compilation =>
+                compilation.CompiledComposition is not { Eligibility: CompiledCompositionEligibility.V2RuntimeExecutable });
+            if (failure is not null)
+            {
+                return failure.Issues.Count == 0
+                    ? V2CompositionPlanCompileResult.Failed(
+                        [new CompositionIssue(
+                            BuiltInV2CompilationFailed,
+                            $"The built-in V2 DP Replace profile for {IcId} did not produce an executable composition.")])
+                    : V2CompositionPlanCompileResult.Failed(failure.Issues);
+            }
+
+            CompiledComposition first = compilations[0].CompiledComposition!;
+            return compilations.Skip(1).Any(compilation =>
+                    compilation.CompiledComposition is not { } candidate ||
+                    candidate.ProfileId != first.ProfileId ||
+                    candidate.CompositionKind != first.CompositionKind ||
+                    candidate.DefaultOutputFileName != first.DefaultOutputFileName ||
+                    candidate.IcNumberPolicy != first.IcNumberPolicy ||
+                    !candidate.Plan.RequiredInputAddressSpaceIds.SequenceEqual(
+                        first.Plan.RequiredInputAddressSpaceIds,
+                        StringComparer.Ordinal))
+                ? V2CompositionPlanCompileResult.Failed(
+                    [new CompositionIssue(
+                        BuiltInV2CompilationFailed,
+                        $"The capacity variants for built-in V2 DP Replace profile {IcId} do not share one stable workbench summary.")])
+                : compilations[0];
         }
     }
 }

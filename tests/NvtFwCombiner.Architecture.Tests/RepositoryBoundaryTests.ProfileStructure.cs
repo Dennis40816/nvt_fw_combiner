@@ -4,26 +4,28 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
-    /// <summary>Verifies built-in Replace profiles keep synthetic contracts separate from DP Perspective production policy.</summary>
+    /// <summary>Verifies legacy built-in Replace profiles contain only synthetic test contracts.</summary>
     [Fact]
     public void BuiltInReplaceProfileConcernsStaySplit()
     {
         string root = ReadText("src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.cs");
         string synthetic = ReadText("src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.Synthetic.cs");
-        string dpPerspective = ReadText("src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.DpPerspective.cs");
+        string v2Registration = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.BuiltInV2.cs");
 
         Assert.Contains("public static partial class BuiltInReplaceProfiles", root, StringComparison.Ordinal);
         Assert.Contains("public static IReadOnlyList<CompositionProfileDefinition> All", root, StringComparison.Ordinal);
         Assert.DoesNotContain("SyntheticIc", root, StringComparison.Ordinal);
-        Assert.DoesNotContain("CreateDpPerspectiveDpReplaceProfileCore", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("DpPerspective", root, StringComparison.Ordinal);
         Assert.Contains("SyntheticDpReplace", synthetic, StringComparison.Ordinal);
         Assert.Contains("SyntheticCtrlRamReplace", synthetic, StringComparison.Ordinal);
         Assert.Contains("SyntheticGeneralReplace", synthetic, StringComparison.Ordinal);
         Assert.DoesNotContain("DpPerspectiveCatalog", synthetic, StringComparison.Ordinal);
-        Assert.Contains("DpPerspectiveDpReplaceProfiles", dpPerspective, StringComparison.Ordinal);
-        Assert.Contains("CreateDpPerspectiveDpReplaceProfileCore", dpPerspective, StringComparison.Ordinal);
-        Assert.DoesNotContain("Nt51950Family", dpPerspective, StringComparison.Ordinal);
-        Assert.DoesNotContain("SyntheticIc", dpPerspective, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "BuiltInReplaceProfiles.DpPerspective.cs")));
+        Assert.Contains("BuiltInV2DpReplaceRegistration", v2Registration, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies profile compiler shared region helpers stay separate from explicit-mapping policy.</summary>
@@ -148,15 +150,13 @@ public sealed partial class RepositoryBoundaryTests
     public void DpPerspectiveOperationIdsStayCatalogOwned()
     {
         string catalog = ReadText("src/NvtFwCombiner.Profiles/DpPerspectiveCatalog.cs");
-        string replace = ReadText("src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.DpPerspective.cs");
+        string registration = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.BuiltInV2.cs");
         string planning = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Planning.cs");
 
         Assert.Contains("public const string ContainerRegionId = \"dp-perspective-container\";", catalog, StringComparison.Ordinal);
         Assert.Contains("public const string ReplaceDpContainerOperationId = \"replace-dp-container\";", catalog, StringComparison.Ordinal);
         Assert.Contains("public const string RestoreBaseTpOperationId = \"restore-base-tp\";", catalog, StringComparison.Ordinal);
-        Assert.Contains("DpPerspectiveCatalog.ContainerRegionId", replace, StringComparison.Ordinal);
-        Assert.Contains("DpPerspectiveCatalog.ReplaceDpContainerOperationId", replace, StringComparison.Ordinal);
-        Assert.Contains("DpPerspectiveCatalog.RestoreBaseTpOperationId", replace, StringComparison.Ordinal);
+        Assert.DoesNotContain("BuiltInReplaceProfiles", registration, StringComparison.Ordinal);
         Assert.Contains("DpPerspectiveCatalog.ReplaceDpContainerOperationId", planning, StringComparison.Ordinal);
         Assert.Contains("DpPerspectiveCatalog.RestoreBaseTpOperationId", planning, StringComparison.Ordinal);
 
@@ -167,7 +167,7 @@ public sealed partial class RepositoryBoundaryTests
             "\"restore-base-tp\"",
         })
         {
-            Assert.DoesNotContain(literal, replace, StringComparison.Ordinal);
+            Assert.DoesNotContain(literal, registration, StringComparison.Ordinal);
             Assert.DoesNotContain(literal, planning, StringComparison.Ordinal);
         }
     }

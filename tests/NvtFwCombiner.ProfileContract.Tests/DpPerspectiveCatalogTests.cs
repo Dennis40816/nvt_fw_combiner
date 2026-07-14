@@ -1,4 +1,3 @@
-using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
@@ -6,7 +5,7 @@ namespace NvtFwCombiner.ProfileContract.Tests;
 /// <summary>Tests the shared NT51950/NT51951 DP Perspective policy catalog.</summary>
 public sealed class DpPerspectiveCatalogTests
 {
-    /// <summary>Supported lengths are the single authoritative DP Perspective length list for Replace.</summary>
+    /// <summary>Supported lengths are the single authoritative DP Perspective length list for V2 Replace routing.</summary>
     [Fact]
     public void SupportedLengthsAreSharedByReplacePlanningAndProfiles()
     {
@@ -23,30 +22,10 @@ public sealed class DpPerspectiveCatalogTests
         Assert.Equal("restore-base-tp", DpPerspectiveCatalog.RestoreBaseTpOperationId);
         Assert.Equal(200, DpPerspectiveCatalog.RestoreBaseTpSequence);
 
-        Assert.Equal(
-            DpPerspectiveCatalog.SupportedContainerLengths,
-            BuiltInReplaceProfiles.DpPerspectiveSupportedDpBaseLengths);
-        Assert.Equal(
-            DpPerspectiveCatalog.SupportedIcIds,
-            BuiltInReplaceProfiles.DpPerspectiveDpReplaceProfiles.Select(profile => profile.IcId));
-    }
-
-    /// <summary>TP is the only base-restored range in DP Replace; customer-info remains part of the replacement DP image.</summary>
-    [Theory]
-    [InlineData("NT51950", 0x40000)]
-    [InlineData("NT51951", 0x80000)]
-    public void DpReplaceProfilesUseSharedDpPerspectiveRanges(string icId, long length)
-    {
-        CompositionProfileDefinition replace = BuiltInReplaceProfiles.CreateDpPerspectiveDpReplaceProfile(icId, length);
-
-        ProfileCompileResult replaceCompile = CompositionProfileCompiler.Compile(replace, []);
-
-        Assert.True(replaceCompile.IsSuccess, FormatIssues(replaceCompile.Issues));
-        Assert.Contains(replaceCompile.CompiledComposition!.Plan.OrderedOperations, operation =>
-            operation.OperationId == DpPerspectiveCatalog.RestoreBaseTpOperationId &&
-            operation.TargetRange == DpPerspectiveCatalog.TpOverlayRange);
-        Assert.DoesNotContain(replaceCompile.CompiledComposition!.Plan.OrderedOperations, operation =>
-            operation.TargetRange == DpPerspectiveCatalog.CustomerInfoRange);
+        Assert.All(DpPerspectiveCatalog.SupportedContainerLengths, static length =>
+            Assert.True(DpPerspectiveCatalog.IsSupportedContainerLength(length)));
+        Assert.All(DpPerspectiveCatalog.SupportedIcIds, static icId =>
+            Assert.True(DpPerspectiveCatalog.IsSupportedIc(icId)));
     }
 
     /// <summary>Only the owner-approved 950/951 IC ids normalize as DP Perspective ICs.</summary>
@@ -57,10 +36,5 @@ public sealed class DpPerspectiveCatalogTests
     {
         Assert.Equal(expectedIcId, DpPerspectiveCatalog.NormalizeIcId(input));
         Assert.Equal(expectedNumber, DpPerspectiveCatalog.NormalizeIcNumber(input));
-    }
-
-    private static string FormatIssues(IEnumerable<CompositionIssue> issues)
-    {
-        return string.Join(Environment.NewLine, issues.Select(issue => $"{issue.Code}: {issue.Message}"));
     }
 }

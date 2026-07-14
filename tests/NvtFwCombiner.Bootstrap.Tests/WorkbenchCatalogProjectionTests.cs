@@ -49,11 +49,11 @@ public sealed class WorkbenchCatalogProjectionTests
         Assert.Equal(originalNumberChoice, WorkbenchCompositionService.GetNumberChoices("NT51950")[0]);
     }
 
-    /// <summary>Profile summaries retain runtime registration order while executable facts come from compiled artifacts.</summary>
+    /// <summary>Profile summaries retain executable facts after legacy production profiles are retired.</summary>
     [Fact]
     public void ProfileSummariesProjectCompiledArtifactsWithoutLegacyTypes()
     {
-        CompositionProfileDefinition[] replaceProfiles =
+        CompositionProfileDefinition[] syntheticReplaceProfiles =
         [
             .. BuiltInReplaceProfiles.All
                 .OrderBy(static profile => profile.ProfileId, StringComparer.Ordinal),
@@ -62,12 +62,13 @@ public sealed class WorkbenchCatalogProjectionTests
         IReadOnlyList<WorkbenchProfileSummary> standardSummaries = WorkbenchCompositionService.GetStandardMergeProfileSummaries();
         AssertStandardMergeProfileSummaries(standardSummaries);
         AssertProfileSummaries(
-            replaceProfiles,
-            WorkbenchCompositionService.GetReplaceProfileSummaries());
+            syntheticReplaceProfiles,
+            [.. WorkbenchCompositionService.GetReplaceProfileSummaries().Where(static summary => summary.IcId == "NT-SYNTHETIC")]);
+        AssertV2DpReplaceProfileSummaries(WorkbenchCompositionService.GetReplaceProfileSummaries());
 
         WorkbenchSettingsSnapshot settings = WorkbenchCompositionService.GetSettingsSnapshot();
         Assert.Equal(standardSummaries.Count, settings.StandardMergeProfileCount);
-        Assert.Equal(replaceProfiles.Length, settings.ReplaceProfileCount);
+        Assert.Equal(syntheticReplaceProfiles.Length + 2, settings.ReplaceProfileCount);
         Assert.Equal(13, settings.FlashMapIcCount);
     }
 
@@ -153,6 +154,37 @@ public sealed class WorkbenchCatalogProjectionTests
             Assert.Equal(composition.Plan.RequiredInputAddressSpaceIds, summary.RequiredInputAddressSpaceIds);
             Assert.Equal(composition.DefaultOutputFileName, summary.DefaultOutputFileName);
             Assert.Equal(composition.IcNumberPolicy, summary.IcNumberPolicy);
+        }
+    }
+
+    private static void AssertV2DpReplaceProfileSummaries(IReadOnlyList<WorkbenchProfileSummary> summaries)
+    {
+        WorkbenchProfileSummary[] dpReplaceSummaries =
+        [
+            .. summaries.Where(static summary => summary.ProfileId.EndsWith(
+                "-dp-replace-dp-perspective",
+                StringComparison.Ordinal)),
+        ];
+        Assert.Equal(["NT51950", "NT51951"], dpReplaceSummaries.Select(static summary => summary.IcId));
+
+        foreach (WorkbenchProfileSummary summary in dpReplaceSummaries)
+        {
+            Assert.True(
+                WorkbenchCompositionService.TryCompileDpPerspectiveDpReplace(
+                    summary.IcId,
+                    0x40000,
+                    out CompiledComposition? composition,
+                    out IReadOnlyList<CompositionIssue> issues),
+                string.Join(Environment.NewLine, issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+
+            CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
+            Assert.True(summary.CompileSucceeded);
+            Assert.Empty(summary.IssueCodes);
+            Assert.Equal(artifact.ProfileId, summary.ProfileId);
+            Assert.Equal(artifact.CompositionKind, summary.CompositionKind);
+            Assert.Equal(artifact.Plan.RequiredInputAddressSpaceIds, summary.RequiredInputAddressSpaceIds);
+            Assert.Equal(artifact.DefaultOutputFileName, summary.DefaultOutputFileName);
+            Assert.Equal(artifact.IcNumberPolicy, summary.IcNumberPolicy);
         }
     }
 }

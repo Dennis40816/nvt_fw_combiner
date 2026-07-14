@@ -14,11 +14,11 @@ public static partial class WorkbenchCompositionService
     private static ReadOnlyCollection<WorkbenchProfileSummary> StandardMergeProfileSummaries =>
         s_standardMergeProfileSummaries.Value;
 
-    private static ReadOnlyCollection<WorkbenchProfileSummary> ReplaceProfileSummaries { get; } =
-        Array.AsReadOnly(BuiltInReplaceProfiles.All
-            .OrderBy(static profile => profile.ProfileId, StringComparer.Ordinal)
-            .Select(CreateProfileSummary)
-            .ToArray());
+    private static readonly Lazy<ReadOnlyCollection<WorkbenchProfileSummary>> s_replaceProfileSummaries = new(
+        CreateReplaceProfileSummaries);
+
+    private static ReadOnlyCollection<WorkbenchProfileSummary> ReplaceProfileSummaries =>
+        s_replaceProfileSummaries.Value;
 
     /// <summary>Gets selectable IC ids from the IC support catalog.</summary>
     public static IReadOnlyList<string> GetSupportedIcIds()
@@ -128,6 +128,19 @@ public static partial class WorkbenchCompositionService
         return Array.AsReadOnly(
             summaries
                 .OrderBy(static profile => profile.IcId, StringComparer.Ordinal)
+                .ToArray());
+    }
+
+    private static ReadOnlyCollection<WorkbenchProfileSummary> CreateReplaceProfileSummaries()
+    {
+        WorkbenchProfileSummary[] summaries =
+        [
+            .. BuiltInReplaceProfiles.All.Select(CreateProfileSummary),
+            .. s_builtInV2DpReplaceByIc.Value.Values.Select(static registration => registration.CreateProfileSummary()),
+        ];
+        return Array.AsReadOnly(
+            summaries
+                .OrderBy(static profile => profile.ProfileId, StringComparer.Ordinal)
                 .ToArray());
     }
 
