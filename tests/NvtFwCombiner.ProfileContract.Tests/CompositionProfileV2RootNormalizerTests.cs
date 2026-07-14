@@ -98,7 +98,7 @@ public sealed class CompositionProfileV2RootNormalizerTests
     public void RootNormalizerRejectsUnsupportedSchemaAndCompositionKindWithPaths()
     {
         CompositionProfileNormalizationException schema = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.Normalize(ValidMerge() with { SchemaVersion = "2.6" }));
+            CompositionProfileNormalizer.Normalize(ValidMerge() with { SchemaVersion = "2.7" }));
         CompositionProfileNormalizationException kind = Assert.Throws<CompositionProfileNormalizationException>(() =>
             CompositionProfileNormalizer.Normalize(ValidMerge() with { CompositionKind = "future" }));
 

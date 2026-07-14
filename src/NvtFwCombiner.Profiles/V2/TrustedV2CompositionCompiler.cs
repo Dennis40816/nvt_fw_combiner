@@ -54,6 +54,66 @@ internal static class TrustedV2CompositionCompiler
                 "The selected trusted V2 profile was not admitted for logical-output lowering.");
     }
 
+    /// <summary>Compiles one trusted map-bound General Replace request through the shared resolved-map preparation path.</summary>
+    internal static V2CompositionPlanCompileResult CompileRuntimeReferenceReplace(
+        TrustedProfileBundleCatalog catalog,
+        string profileId,
+        string profileVersion,
+        string memberId,
+        V2RuntimeReferenceReplaceCompileRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (request.RequestedMapCapacity <= 0)
+        {
+            return Failed(
+                [],
+                "profile.v2.runtime-reference-replace.map-capacity-invalid",
+                "Runtime reference-replace compilation requires a positive exact map capacity.");
+        }
+
+        if (!TryResolveMapCandidates(
+                catalog,
+                profileId,
+                profileVersion,
+                memberId,
+                ExperienceIds.GeneralReplace,
+                out TrustedProfileBundleCatalog.ProfileSelection? selection,
+                out FirmwareImageMap[] mapCandidates,
+                out IReadOnlyList<CompositionIssue> resolutionIssues))
+        {
+            return V2CompositionPlanCompileResult.Failed(resolutionIssues);
+        }
+
+        mapCandidates =
+        [
+            .. mapCandidates.Where(map => map.CapacityBytes == request.RequestedMapCapacity),
+        ];
+        if (mapCandidates.Length != 1)
+        {
+            return Failed(
+                [],
+                MapSelectionInvalid,
+                "The selected trusted V2 profile must identify exactly one canonical image map for the requested runtime reference-replace capacity.");
+        }
+
+        V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(
+            catalog,
+            new V2CompositionPreparationRequest(
+                selection!,
+                new FirmwareMapResolutionInputs(
+                    memberId,
+                    ExperienceIds.GeneralReplace,
+                    mapCandidates[0].CapacityBytes,
+                    requestedTopology: null,
+                    [])));
+        return preparation.IsAdmitted
+            ? V2CompositionPlanCompiler.CompileRuntimeReferenceReplace(preparation, request)
+            : Failed(
+                preparation.Issues,
+                PreparationNotAdmitted,
+                "The selected trusted V2 profile was not admitted to its canonical image map.");
+    }
+
     internal static V2CompositionPlanCompileResult Compile(
         TrustedProfileBundleCatalog catalog,
         string profileId,

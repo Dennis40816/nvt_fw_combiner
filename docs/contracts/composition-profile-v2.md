@@ -1,11 +1,12 @@
-# Composition Profile Contract 2.0, 2.1, 2.2, 2.3, 2.4, and 2.5
+# Composition Profile Contract 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, and 2.6
 
 The executable schemas are [`composition-profile-v2.schema.json`](composition-profile-v2.schema.json)
 [`composition-profile-v2.1.schema.json`](composition-profile-v2.1.schema.json), and
 [`composition-profile-v2.2.schema.json`](composition-profile-v2.2.schema.json), and
 [`composition-profile-v2.3.schema.json`](composition-profile-v2.3.schema.json), and
 [`composition-profile-v2.4.schema.json`](composition-profile-v2.4.schema.json), and
-[`composition-profile-v2.5.schema.json`](composition-profile-v2.5.schema.json). A trusted bundle
+[`composition-profile-v2.5.schema.json`](composition-profile-v2.5.schema.json), and
+[`composition-profile-v2.6.schema.json`](composition-profile-v2.6.schema.json). A trusted bundle
 selects one exact schema snapshot through its manifest content hash. They are the only declarative
 workflow policy compiled for Normal, AB, General, Merge, Replace, saved rules, and future Register work.
 
@@ -134,6 +135,14 @@ Schema 2.5 keeps the 2.4 logical-output shape, but its `logicalOutputBinding.mem
 firmware IC IDs such as `NT51920`. Each declared logical member must be an exact member of the
 bound family snapshot; generic lowercase IDs cannot represent firmware-family membership. Existing
 2.4 schema snapshots remain immutable and retain their original identifier grammar.
+
+Schema 2.6 adds the map-bound `runtime-reference-replace` context from
+[ADR 0020](../adr/0020-v2-runtime-reference-replace.md). It is restricted to declarative General
+Replace: one exact singleton reference image, one unnormalized per-binding auxiliary source, a
+runtime-capacity output cloned from the reference, declared physical region access, and no static
+views, metadata, operations, validations, or processors. The typed runtime request supplies only
+concrete binding lengths and explicit mappings. This context remains candidate-only until its runtime
+routing and firmware evidence gates are closed.
 
 ## Input size policy
 

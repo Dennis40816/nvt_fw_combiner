@@ -152,13 +152,17 @@ internal static class TrustedProfileBundleCatalogFactory
             TrustedCompositionProfileJsonSource source = ordered[index];
             CompositionProfileDefinition profile = DeserializeAndNormalizeProfile(source);
             TrustedFirmwareFamilyCatalogEntry family = FindBoundFamily(profile, families, source.Identity);
-            if (profile.CompilationContext.Kind == CompositionProfileCompilationContextKind.ResolvedMap)
+            switch (profile.CompilationContext.Kind)
             {
-                ValidateDeclaredMaps(profile, family, source.Identity);
-            }
-            else
-            {
-                ValidateLogicalMembers(profile, family, source.Identity);
+                case CompositionProfileCompilationContextKind.ResolvedMap:
+                case CompositionProfileCompilationContextKind.RuntimeReferenceReplace:
+                    ValidateDeclaredMaps(profile, family, source.Identity);
+                    break;
+                case CompositionProfileCompilationContextKind.LogicalOutput:
+                    ValidateLogicalMembers(profile, family, source.Identity);
+                    break;
+                default:
+                    throw new InvalidOperationException("Unknown composition-profile compilation context.");
             }
             profiles[index] = new TrustedCompositionProfileCatalogEntry(source.Identity, profile, family);
         }

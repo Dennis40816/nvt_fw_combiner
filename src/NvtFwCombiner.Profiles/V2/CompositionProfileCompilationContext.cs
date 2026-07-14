@@ -5,6 +5,7 @@ internal enum CompositionProfileCompilationContextKind
 {
     ResolvedMap,
     LogicalOutput,
+    RuntimeReferenceReplace,
 }
 
 /// <summary>Common exact trusted-family identity retained by every V2 profile context.</summary>
@@ -89,4 +90,25 @@ internal sealed class LogicalOutputProfileCompilationContext : CompositionProfil
     }
 
     internal IReadOnlyList<string> MemberIds { get; }
+}
+
+/// <summary>Map-bound V2 declaration lowered from typed reference-clone mappings at compile time.</summary>
+internal sealed class RuntimeReferenceReplaceProfileCompilationContext : CompositionProfileCompilationContext
+{
+    internal RuntimeReferenceReplaceProfileCompilationContext(CompositionProfileMapBinding mapBinding)
+        : base(
+            CompositionProfileCompilationContextKind.RuntimeReferenceReplace,
+            RequireBinding(mapBinding).FamilyId,
+            mapBinding.FamilyVersion,
+            mapBinding.FamilyContentHash)
+    {
+        MapBinding = mapBinding;
+    }
+
+    internal CompositionProfileMapBinding MapBinding { get; }
+
+    private static CompositionProfileMapBinding RequireBinding(CompositionProfileMapBinding mapBinding)
+    {
+        return mapBinding ?? throw new ArgumentNullException(nameof(mapBinding));
+    }
 }

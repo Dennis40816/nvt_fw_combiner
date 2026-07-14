@@ -31,6 +31,14 @@ internal sealed partial class CompositionProfileDefinition
             return;
         }
 
+        if (CompilationContext.Kind == CompositionProfileCompilationContextKind.RuntimeReferenceReplace)
+        {
+            ValidateRuntimeReferenceReplaceShape();
+            ValidateRegionAccess();
+            ValidateOutputNaming();
+            return;
+        }
+
         ValidateViews(spaces);
         ValidateMetadataBindings(spaces);
         ValidateRegionAccess();
@@ -90,6 +98,72 @@ internal sealed partial class CompositionProfileDefinition
         if (Promotion.Stage >= CompositionProfilePromotionStage.Supported)
         {
             throw new ArgumentException("Logical-output profiles cannot be marked supported before runtime per-binding admission exists.");
+        }
+    }
+
+    private void ValidateRuntimeReferenceReplaceShape()
+    {
+        if (CompositionKind != CompositionKind.Replace ||
+            !StringComparer.Ordinal.Equals(Experience.ExperienceId, ExperienceIds.GeneralReplace) ||
+            Experience.LayoutPolicy != LayoutPolicy.UserDefined ||
+            Experience.InputPolicy != InputPolicy.Extensible ||
+            _views.Length != 0 ||
+            _metadataBindings.Length != 0 ||
+            _operations.Length != 0 ||
+            _validations.Length != 0 ||
+            _processorStages.Length != 0 ||
+            _regionAccessRules.Length == 0)
+        {
+            throw new ArgumentException(
+                "Runtime reference-replace profiles require the closed General Replace shape with declared physical region access only.");
+        }
+
+        MutableCompositionProfileSpace output = _spaces.OfType<MutableCompositionProfileSpace>().Single(space =>
+            space.Kind == CompositionProfileSpaceKind.OutputImage);
+        InputArtifactProfileSpace[] inputs = [.. _spaces.OfType<InputArtifactProfileSpace>()];
+        if (_inputSlots.Length != 2 || inputs.Length != 2 || _spaces.Length != 3 ||
+            output.Capacity is not RuntimeRequestProfileCapacity ||
+            output.Initializer is not CloneProfileInitializer clone)
+        {
+            throw new ArgumentException(
+                "Runtime reference-replace profiles require two immutable inputs and one runtime-capacity output cloned from the reference slot.");
+        }
+
+        CompositionProfileInputSlot? reference = _inputSlots.SingleOrDefault(slot =>
+            StringComparer.Ordinal.Equals(slot.SlotId, clone.SourceSlotId));
+        CompositionProfileInputSlot? source = _inputSlots.SingleOrDefault(slot =>
+            !StringComparer.Ordinal.Equals(slot.SlotId, clone.SourceSlotId));
+        InputArtifactProfileSpace? referenceSpace = inputs.SingleOrDefault(space =>
+            StringComparer.Ordinal.Equals(space.SlotId, clone.SourceSlotId));
+        InputArtifactProfileSpace? sourceSpace = inputs.SingleOrDefault(space =>
+            !StringComparer.Ordinal.Equals(space.SlotId, clone.SourceSlotId));
+        if (reference is not
+            {
+                Required: true,
+                ArtifactClass: CompositionProfileArtifactClass.ReferenceImage,
+                Cardinality: CompositionProfileSlotCardinality.ExactlyOne,
+                LengthRule: ExactResolvedMapCapacityLengthRule,
+                Normalization: NoInputNormalization,
+            } ||
+            source is not
+            {
+                Required: true,
+                ArtifactClass: CompositionProfileArtifactClass.Auxiliary,
+                Cardinality: CompositionProfileSlotCardinality.OneOrMore,
+                LengthRule: BoundedLengthRule { MinimumBytes: 1, MaximumBytes: int.MaxValue },
+                Normalization: NoInputNormalization,
+            } ||
+            referenceSpace is not { InstancePolicy: CompositionProfileInstancePolicy.Singleton } ||
+            sourceSpace is not { InstancePolicy: CompositionProfileInstancePolicy.PerBinding })
+        {
+            throw new ArgumentException(
+                "Runtime reference-replace profiles require one exact singleton reference and one unnormalized per-binding auxiliary source.");
+        }
+
+        if (Promotion.Stage >= CompositionProfilePromotionStage.Supported)
+        {
+            throw new ArgumentException(
+                "Runtime reference-replace profiles cannot be marked supported before runtime request routing and owner evidence are complete.");
         }
     }
 

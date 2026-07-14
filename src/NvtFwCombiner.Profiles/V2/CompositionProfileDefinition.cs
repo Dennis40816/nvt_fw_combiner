@@ -110,12 +110,14 @@ internal sealed partial class CompositionProfileDefinition
             throw new ArgumentException("Profiles require at least two address spaces.", nameof(spaces));
         }
 
-        bool isLogicalOutput = compilationContext.Kind == CompositionProfileCompilationContextKind.LogicalOutput;
+        bool isRuntimeLowered = compilationContext.Kind is
+            CompositionProfileCompilationContextKind.LogicalOutput or
+            CompositionProfileCompilationContextKind.RuntimeReferenceReplace;
         _views = SnapshotUnique(
             views,
             static view => view.ViewId,
             nameof(views),
-            requireValue: !isLogicalOutput);
+            requireValue: !isRuntimeLowered);
         _metadataBindings = SnapshotUnique(
             metadataBindings,
             static binding => binding.BindingId,
@@ -130,7 +132,7 @@ internal sealed partial class CompositionProfileDefinition
             operations,
             static operation => operation.OperationId,
             nameof(operations),
-            requireValue: !isLogicalOutput);
+            requireValue: !isRuntimeLowered);
         if (_operations.Select(static operation => operation.Sequence).Distinct().Count() != _operations.Length)
         {
             throw new ArgumentException("Operation sequences must be unique.", nameof(operations));
@@ -187,9 +189,12 @@ internal sealed partial class CompositionProfileDefinition
     internal CompositionProfileCompilationContext CompilationContext { get; }
 
     /// <summary>Exact map binding for map-bound profiles only.</summary>
-    internal CompositionProfileMapBinding MapBinding => CompilationContext is ResolvedMapProfileCompilationContext mapBound
-        ? mapBound.MapBinding
-        : throw new InvalidOperationException("Logical-output profiles do not declare a physical map binding.");
+    internal CompositionProfileMapBinding MapBinding => CompilationContext switch
+    {
+        ResolvedMapProfileCompilationContext mapBound => mapBound.MapBinding,
+        RuntimeReferenceReplaceProfileCompilationContext runtimeReferenceReplace => runtimeReferenceReplace.MapBinding,
+        _ => throw new InvalidOperationException("Logical-output profiles do not declare a physical map binding."),
+    };
 
     /// <summary>Logical-output binding for General Merge profiles only.</summary>
     internal LogicalOutputProfileCompilationContext LogicalOutputBinding => CompilationContext as LogicalOutputProfileCompilationContext
