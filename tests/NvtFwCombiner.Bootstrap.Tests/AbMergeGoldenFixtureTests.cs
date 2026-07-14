@@ -44,6 +44,112 @@ public sealed class AbMergeGoldenFixtureTests
         Assert.Equal(trackedFiles, manifestPaths.Order(StringComparer.Ordinal));
     }
 
+    /// <summary>Keeps candidate-only AB evidence and shared input provenance from being silently weakened.</summary>
+    [Fact]
+    public void ManifestRetainsCandidateEvidenceGatesAndSharedInputIdentity()
+    {
+        using JsonDocument manifest = OpenManifest();
+        JsonElement[] goldenCases = [.. manifest.RootElement.GetProperty("cases").EnumerateArray()];
+        var expectedVerificationKinds = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["nt51929-ab-512k-20260611"] = "direct-v2-exact",
+            ["nt51950-ab-512k-boe-20260616"] = "v2-pre-combiner-exact-outside-declared-writes",
+            ["nt51950-ab-512k-hiway-20260616"] = "v2-pre-combiner-exact-outside-declared-writes",
+        };
+        var expectedSupportStatuses = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["nt51929-ab-512k-20260611"] = "candidate-only; firmware-owner review and the NT51919/NT51932 member evidence remain separate gates.",
+            ["nt51950-ab-512k-boe-20260616"] = "candidate-only; C# does not calculate header CRC and product execution remains blocked until the declared Combiner evidence is supplied.",
+            ["nt51950-ab-512k-hiway-20260616"] = "candidate-only; C# does not calculate header CRC and product execution remains blocked until the declared Combiner evidence is supplied.",
+        };
+        var expectedSharedInputs = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["nt51929-ab-512k-20260611:tp-b-input"] = "nt51929-ab-512k-20260611:tp-a-input",
+            ["nt51950-ab-512k-boe-20260616:tp-b-input"] = "nt51950-ab-512k-boe-20260616:tp-a-input",
+            ["nt51950-ab-512k-hiway-20260616:tp-a-input"] = "nt51950-ab-512k-boe-20260616:tp-a-input",
+            ["nt51950-ab-512k-hiway-20260616:tp-b-input"] = "nt51950-ab-512k-hiway-20260616:tp-a-input",
+        };
+        var inputsByReference = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        var sharedInputsByReference = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        foreach (JsonElement goldenCase in goldenCases)
+        {
+            string caseId = goldenCase.GetProperty("caseId").GetString()!;
+            Assert.Equal("owner-approved-golden-firmware", goldenCase.GetProperty("sourceClassification").GetString());
+            Assert.Equal(expectedSupportStatuses[caseId], goldenCase.GetProperty("supportStatus").GetString());
+
+            foreach (JsonProperty input in goldenCase.GetProperty("inputs").EnumerateObject())
+            {
+                Assert.True(
+                    inputsByReference.TryAdd($"{caseId}:{input.Name}", input.Value),
+                    $"AB fixture input '{caseId}:{input.Name}' is declared more than once.");
+
+                if (input.Value.TryGetProperty("sharedWith", out JsonElement sharedWith))
+                {
+                    Assert.True(
+                        sharedInputsByReference.TryAdd(
+                            $"{caseId}:{input.Name}",
+                            NormalizeSharedInputReference(caseId, sharedWith.GetString()!)),
+                        $"AB fixture input '{caseId}:{input.Name}' declares shared provenance more than once.");
+                }
+            }
+        }
+
+        Assert.Equal(
+            expectedVerificationKinds.Keys.Order(StringComparer.Ordinal),
+            goldenCases.Select(static goldenCase => goldenCase.GetProperty("caseId").GetString()).Order(StringComparer.Ordinal));
+        Assert.Equal(
+            expectedSupportStatuses.Keys.Order(StringComparer.Ordinal),
+            goldenCases.Select(static goldenCase => goldenCase.GetProperty("caseId").GetString()).Order(StringComparer.Ordinal));
+        Assert.Equal(
+            expectedSharedInputs.Keys.Order(StringComparer.Ordinal),
+            sharedInputsByReference.Keys.Order(StringComparer.Ordinal));
+
+        foreach (JsonElement goldenCase in goldenCases)
+        {
+            string caseId = goldenCase.GetProperty("caseId").GetString()!;
+            foreach (JsonProperty input in goldenCase.GetProperty("inputs").EnumerateObject())
+            {
+                string inputReference = $"{caseId}:{input.Name}";
+                if (!sharedInputsByReference.TryGetValue(inputReference, out string? sharedReference))
+                {
+                    continue;
+                }
+
+                Assert.Equal(expectedSharedInputs[inputReference], sharedReference);
+                Assert.True(
+                    inputsByReference.TryGetValue(sharedReference, out JsonElement sharedInput),
+                    $"AB fixture input '{caseId}:{input.Name}' references missing shared input '{sharedReference}'.");
+                AssertSameArtifactIdentity(sharedInput, input.Value);
+            }
+
+            string verificationKind = goldenCase.GetProperty("verification").GetProperty("kind").GetString()!;
+            Assert.Equal(expectedVerificationKinds[caseId], verificationKind);
+            switch (verificationKind)
+            {
+                case "direct-v2-exact":
+                    Assert.False(goldenCase.TryGetProperty("missingProcessorEvidence", out _));
+                    Assert.False(goldenCase.GetProperty("verification").TryGetProperty("requiredCombinerWriteRanges", out _));
+                    break;
+                case "v2-pre-combiner-exact-outside-declared-writes":
+                    Assert.Equal(
+                        ["0x4A100-0x4A104", "0x4A110-0x4A114", "0x4A120-0x4A124", "0x4A130-0x4A134"],
+                        goldenCase.GetProperty("verification").GetProperty("requiredCombinerWriteRanges")
+                            .EnumerateArray()
+                            .Select(static range => range.GetString()));
+                    Assert.Equal(
+                        ["exact map.txt", "replayable Combiner command trace", "Combiner tool manifest for this case"],
+                        goldenCase.GetProperty("missingProcessorEvidence")
+                            .EnumerateArray()
+                            .Select(static evidence => evidence.GetString()));
+                    break;
+                default:
+                    Assert.Fail($"AB fixture '{caseId}' declares unsupported verification kind '{verificationKind}'.");
+                    break;
+            }
+        }
+    }
+
     /// <summary>Verifies the NT51929 candidate plan reproduces the complete owner-approved AB output without a processor stage.</summary>
     [Fact]
     public void Nt51929CandidatePlanMatchesOwnerApprovedGoldenBytes()
@@ -171,6 +277,32 @@ public sealed class AbMergeGoldenFixtureTests
 
         Assert.False(string.IsNullOrWhiteSpace(manifestFile.GetProperty("originalFileName").GetString()));
         _ = ReadManifestFile(manifestFile);
+    }
+
+    private static string NormalizeSharedInputReference(string caseId, string sharedWith)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(caseId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sharedWith);
+
+        int separator = sharedWith.IndexOf(':');
+        if (separator < 0)
+        {
+            return $"{caseId}:{sharedWith}";
+        }
+
+        Assert.Equal(separator, sharedWith.LastIndexOf(':'));
+        Assert.InRange(separator, 1, sharedWith.Length - 2);
+        return sharedWith;
+    }
+
+    private static void AssertSameArtifactIdentity(JsonElement expected, JsonElement actual)
+    {
+        foreach (string propertyName in new[] { "path", "originalFileName", "size", "sha256" })
+        {
+            Assert.Equal(
+                expected.GetProperty(propertyName).GetRawText(),
+                actual.GetProperty(propertyName).GetRawText());
+        }
     }
 
     private static string Hash(ReadOnlySpan<byte> bytes)

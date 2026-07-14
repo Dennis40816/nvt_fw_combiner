@@ -12,14 +12,15 @@ Owner update 2026-06-30:
 | --- | --- | --- | --- | --- | --- |
 | NT51929 | uploaded AB combiner | None | Address relocation only; no CRC configured | fixed-`0x80000` V2 candidate relocates little-endian `u32` offsets `0x7164/0x7168/0x716C` by `+0x40000` in a cloned TPB buffer | Local full-byte candidate/reference parity confirmed (`2cc711...fd57f4`); product golden/owner promotion pending |
 | NT51932 | uploaded/reference AB combiner | None | Address relocation only; no CRC configured | fixed-`0x80000` V2 candidate relocates little-endian `u32` offsets `0x7164/0x7168/0x716C` by `+0x40000` in a cloned TPB buffer | Candidate profile evidence confirmed; independent product golden/owner promotion pending |
-| NT51950 | uploaded AB combiner | Verify existing CRC | Relocate, recalculate, write CRC | Reference result uses CRC-32/MPEG-2 over `[0xA100,0xA130)` and writes little-endian `u32` at `[0xA130,0xA134)`. The captured reference needs an exact Combiner `map.txt` sidecar that has not been supplied; see the dated evidence below. | Compilable staging candidate only; map sidecar, golden, and firmware-owner promotion pending |
+| NT51950 | uploaded AB combiner | Verify existing CRC | Relocate, recalculate, write CRC | Reference result uses CRC-32/MPEG-2 over `[0xA100,0xA130)` and writes little-endian `u32` at `[0xA130,0xA134)`. The captured reference needs an exact Combiner `map.txt` sidecar that has not been supplied; see the dated evidence below. | Compilable staging candidate only; two owner-approved 512 KiB expected-output fixtures are tracked, but the map sidecar, replayable tool trace, case-specific tool binding, and firmware-owner promotion remain pending |
 | NT51951 | uploaded AB combiner config | Verify existing CRC | Relocate, recalculate, write CRC | same algorithm/ranges; relocation differs; exact legacy combiner version/tool binding still required | Needs golden output and tool binding |
 | Other Standard-reference ICs | `gen_flash_bin_v2` | Unknown | Unknown/not applicable | no integrity rule established by current evidence | Must inventory |
 
 ## 2026-07-14 NT51950 AB private Combiner audit
 
-The owner-supplied private NT51950 AB sample is not committed. Its staged
-reference output SHA-256 is
+Two owner-approved NT51950 512 KiB input/output fixture cases are tracked in
+`testdata/golden/ab-merge/manifest.json`. The audited Hiway staged reference
+output SHA-256 is
 `4A292CD9615C58079B8994AF8060AF92562EAA92A55BC24BACC5EC5234E23B30`.
 The direct Combiner invocation is `NT51950BASED_NORMAL_MODE` with its `CRC8`
 selector. `CRC8` is a legacy command selector, not a claim that the AB header
