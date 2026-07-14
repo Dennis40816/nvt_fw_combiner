@@ -4,24 +4,24 @@
     <Setter Property="Padding" Value="14,10" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
-    <Setter Property="Background" Value="#FFFFFF" />
-    <Setter Property="BorderBrush" Value="#CBD5E1" />
-    <Setter Property="Foreground" Value="#334155" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.Surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.Border}" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.TextSecondary}" />
     <Setter Property="FontSize" Value="13" />
   </Style>
   <Style Selector="Button.secondary /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="#FFFFFF" />
-    <Setter Property="BorderBrush" Value="#CBD5E1" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.Surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.Border}" />
     <Setter Property="CornerRadius" Value="999" />
   </Style>
   <Style Selector="Button.secondary:disabled">
-    <Setter Property="Background" Value="#F8FAFC" />
-    <Setter Property="BorderBrush" Value="#E2E8F0" />
-    <Setter Property="Foreground" Value="#94A3B8" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.SubtleSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.SubtleBorder}" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.TextDisabled}" />
   </Style>
   <Style Selector="Button.secondary:disabled /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="#F8FAFC" />
-    <Setter Property="BorderBrush" Value="#E2E8F0" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.SubtleSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.SubtleBorder}" />
     <Setter Property="CornerRadius" Value="999" />
   </Style>
   <Style Selector="Button.danger">
@@ -40,13 +40,13 @@
     <Setter Property="CornerRadius" Value="999" />
   </Style>
   <Style Selector="Button.danger:disabled">
-    <Setter Property="Background" Value="#F8FAFC" />
-    <Setter Property="BorderBrush" Value="#E2E8F0" />
-    <Setter Property="Foreground" Value="#CBD5E1" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.SubtleSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.SubtleBorder}" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.TextDisabledMuted}" />
   </Style>
   <Style Selector="Button.danger:disabled /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="#F8FAFC" />
-    <Setter Property="BorderBrush" Value="#E2E8F0" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.SubtleSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.SubtleBorder}" />
     <Setter Property="CornerRadius" Value="999" />
   </Style>
   <Style Selector="Button.command">
@@ -57,7 +57,7 @@
     <Setter Property="VerticalContentAlignment" Value="Center" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
-    <Setter Property="Foreground" Value="#0F172A" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.TextPrimary}" />
     <Setter Property="FontSize" Value="13" />
     <Setter Property="Cursor" Value="Hand" />
   </Style>
@@ -68,7 +68,7 @@
   <Style Selector="Button.command:disabled">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
-    <Setter Property="Foreground" Value="#94A3B8" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.TextDisabled}" />
   </Style>
   <Style Selector="Button.command:disabled /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="Transparent" />
@@ -80,15 +80,15 @@
     <Setter Property="Padding" Value="0" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
-    <Setter Property="Background" Value="#FFFFFF" />
-    <Setter Property="BorderBrush" Value="#CBD5E1" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.Surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.Border}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="Foreground" Value="#334155" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.TextSecondary}" />
     <Setter Property="FontSize" Value="18" />
   </Style>
   <Style Selector="Button.iconButton /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="#FFFFFF" />
-    <Setter Property="BorderBrush" Value="#CBD5E1" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.Surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.Border}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="999" />
   </Style>
@@ -102,13 +102,13 @@
     <Setter Property="MinWidth" Value="28" />
   </Style>
   <Style Selector="Button.iconButton:disabled">
-    <Setter Property="Background" Value="#F8FAFC" />
-    <Setter Property="BorderBrush" Value="#E2E8F0" />
-    <Setter Property="Foreground" Value="#CBD5E1" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.SubtleSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.SubtleBorder}" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.TextDisabledMuted}" />
   </Style>
   <Style Selector="Button.iconButton:disabled /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="#F8FAFC" />
-    <Setter Property="BorderBrush" Value="#E2E8F0" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.SubtleSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.SubtleBorder}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="999" />
   </Style>
@@ -130,7 +130,7 @@
     <Setter Property="VerticalContentAlignment" Value="Center" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
-    <Setter Property="Foreground" Value="#334155" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.TextSecondary}" />
     <Setter Property="FontSize" Value="13" />
   </Style>
   <Style Selector="Button.breadcrumb /template/ ContentPresenter#PART_ContentPresenter">
@@ -140,25 +140,25 @@
   <Style Selector="Button.primary">
     <Setter Property="MinHeight" Value="38" />
     <Setter Property="Padding" Value="15,9" />
-    <Setter Property="Background" Value="#2563EB" />
-    <Setter Property="BorderBrush" Value="#2563EB" />
-    <Setter Property="Foreground" Value="#FFFFFF" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.Accent}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.Accent}" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.TextOnAccent}" />
     <Setter Property="FontSize" Value="13" />
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
   <Style Selector="Button.primary /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="#2563EB" />
-    <Setter Property="BorderBrush" Value="#2563EB" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.Accent}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.Accent}" />
     <Setter Property="CornerRadius" Value="999" />
   </Style>
   <Style Selector="Button.primary:disabled">
-    <Setter Property="Background" Value="#E2E8F0" />
-    <Setter Property="BorderBrush" Value="#CBD5E1" />
-    <Setter Property="Foreground" Value="#94A3B8" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.DisabledSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.Border}" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.TextDisabled}" />
   </Style>
   <Style Selector="Button.primary:disabled /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="#E2E8F0" />
-    <Setter Property="BorderBrush" Value="#CBD5E1" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.DisabledSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.Border}" />
     <Setter Property="CornerRadius" Value="999" />
   </Style>
   <Style Selector="Button.action">
@@ -167,45 +167,45 @@
     <Setter Property="Padding" Value="13,8" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
-    <Setter Property="Background" Value="#FFFFFF" />
-    <Setter Property="BorderBrush" Value="#CBD5E1" />
-    <Setter Property="Foreground" Value="#334155" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.Surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.Border}" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.TextSecondary}" />
     <Setter Property="FontSize" Value="13" />
   </Style>
   <Style Selector="Button.action /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="#FFFFFF" />
-    <Setter Property="BorderBrush" Value="#CBD5E1" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.Surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.Border}" />
     <Setter Property="CornerRadius" Value="999" />
   </Style>
   <Style Selector="Button.action:disabled">
-    <Setter Property="Background" Value="#F8FAFC" />
-    <Setter Property="BorderBrush" Value="#E2E8F0" />
-    <Setter Property="Foreground" Value="#94A3B8" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.SubtleSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.SubtleBorder}" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.TextDisabled}" />
   </Style>
   <Style Selector="Button.action:disabled /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="#F8FAFC" />
-    <Setter Property="BorderBrush" Value="#E2E8F0" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.SubtleSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.SubtleBorder}" />
     <Setter Property="CornerRadius" Value="999" />
   </Style>
   <Style Selector="Button.browseAction">
-    <Setter Property="Background" Value="#EFF6FF" />
-    <Setter Property="BorderBrush" Value="#93C5FD" />
-    <Setter Property="Foreground" Value="#1D4ED8" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.AccentSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.AccentBorder}" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.AccentStrong}" />
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
   <Style Selector="Button.browseAction /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="#EFF6FF" />
-    <Setter Property="BorderBrush" Value="#93C5FD" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.AccentSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.AccentBorder}" />
     <Setter Property="CornerRadius" Value="999" />
   </Style>
   <Style Selector="Button.browseAction:disabled">
-    <Setter Property="Background" Value="#F8FAFC" />
-    <Setter Property="BorderBrush" Value="#E2E8F0" />
-    <Setter Property="Foreground" Value="#94A3B8" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.SubtleSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.SubtleBorder}" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.TextDisabled}" />
   </Style>
   <Style Selector="Button.browseAction:disabled /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="#F8FAFC" />
-    <Setter Property="BorderBrush" Value="#E2E8F0" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.SubtleSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.SubtleBorder}" />
     <Setter Property="CornerRadius" Value="999" />
   </Style>
   <Style Selector="Button.toolbarAction">
@@ -214,27 +214,27 @@
     <Setter Property="Padding" Value="13,8" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
-    <Setter Property="Background" Value="#FFFFFF" />
-    <Setter Property="BorderBrush" Value="#CBD5E1" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.Surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.Border}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="Foreground" Value="#334155" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.TextSecondary}" />
     <Setter Property="FontSize" Value="12" />
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
   <Style Selector="Button.toolbarAction /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="#FFFFFF" />
-    <Setter Property="BorderBrush" Value="#CBD5E1" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.Surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.Border}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="999" />
   </Style>
   <Style Selector="Button.toolbarAction:disabled">
-    <Setter Property="Background" Value="#F8FAFC" />
-    <Setter Property="BorderBrush" Value="#E2E8F0" />
-    <Setter Property="Foreground" Value="#94A3B8" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.SubtleSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.SubtleBorder}" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.TextDisabled}" />
   </Style>
   <Style Selector="Button.toolbarAction:disabled /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="#F8FAFC" />
-    <Setter Property="BorderBrush" Value="#E2E8F0" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.SubtleSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.SubtleBorder}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="999" />
   </Style>
@@ -244,26 +244,26 @@
     <Setter Property="Padding" Value="13,7" />
     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
-    <Setter Property="Background" Value="#EFF6FF" />
-    <Setter Property="BorderBrush" Value="#93C5FD" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.AccentSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.AccentBorder}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="Foreground" Value="#1D4ED8" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.AccentStrong}" />
     <Setter Property="FontSize" Value="12" />
   </Style>
   <Style Selector="Button.reportAction /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="#EFF6FF" />
-    <Setter Property="BorderBrush" Value="#93C5FD" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.AccentSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.AccentBorder}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="999" />
   </Style>
   <Style Selector="Button.reportAction:disabled">
-    <Setter Property="Background" Value="#F8FAFC" />
-    <Setter Property="BorderBrush" Value="#E2E8F0" />
-    <Setter Property="Foreground" Value="#94A3B8" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.SubtleSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.SubtleBorder}" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.TextDisabled}" />
   </Style>
   <Style Selector="Button.reportAction:disabled /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="#F8FAFC" />
-    <Setter Property="BorderBrush" Value="#E2E8F0" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.SubtleSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.SubtleBorder}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="999" />
   </Style>
@@ -272,14 +272,14 @@
     <Setter Property="Padding" Value="10,5" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
-    <Setter Property="Background" Value="#F8FAFC" />
-    <Setter Property="BorderBrush" Value="#CBD5E1" />
-    <Setter Property="Foreground" Value="#334155" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.SubtleSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.Border}" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.TextSecondary}" />
     <Setter Property="FontSize" Value="12" />
   </Style>
   <Style Selector="Button.summaryChip /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="#F8FAFC" />
-    <Setter Property="BorderBrush" Value="#CBD5E1" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.SubtleSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.Border}" />
     <Setter Property="CornerRadius" Value="999" />
   </Style>
   <Style Selector="Button.segmentDisabled">
@@ -287,15 +287,15 @@
     <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="Padding" Value="18,10" />
-    <Setter Property="Background" Value="#F8FAFC" />
-    <Setter Property="BorderBrush" Value="#E2E8F0" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.SubtleSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.SubtleBorder}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="Foreground" Value="#94A3B8" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.TextDisabled}" />
     <Setter Property="FontSize" Value="13" />
   </Style>
   <Style Selector="Button.segmentDisabled /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="#F8FAFC" />
-    <Setter Property="BorderBrush" Value="#E2E8F0" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.SubtleSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.SubtleBorder}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="999" />
   </Style>

@@ -19,7 +19,7 @@ The initial literal scan over Avalonia `.axaml` files found:
 
 | Literal family | Occurrences | Interpretation |
 | --- | ---: | --- |
-| Hex colors | 450 | Candidate palette consolidation only; geometry, data-bound colors, and one-off visual evidence are not automatic token candidates. |
+| Hex colors | 382 | Candidate palette consolidation only; geometry, data-bound colors, and one-off visual evidence are not automatic token candidates. |
 | Layout and typography attributes | 285 | Candidate shared-role review only; compact, technical, and accessibility-specific roles remain distinct when their behavior differs. |
 | Existing resource references | 39 | The existing shared style library is the only token hierarchy to extend. |
 
@@ -28,8 +28,29 @@ The most frequently repeated colors are `#F8FAFC`, `#CBD5E1`, `#E2E8F0`,
 The most frequent inline text sizes are `12`, `13`, and `11`; the most frequent
 corner radii are `999`, `6`, and `8`.
 
-These counts are an inventory, not an acceptance target. Replacing every
-literal with a token would create false equivalence and can increase code size.
+Hex color counts use `#[0-9A-Fa-f]{3,8}(?![0-9A-Fa-f])` over the tracked
+Avalonia XAML files. These counts are an inventory, not an acceptance target.
+Replacing every literal with a token would create false equivalence and can
+increase code size.
+
+## Phase Records
+
+### Shared semantic palette foundation
+
+The first implementation phase adds 26 role-based `UiBrush.*` resources to
+`Styles/MainWindowControlStyles.axaml` and migrates only existing shared style
+roles in the canonical control, button, and visual libraries. It does not
+change templates, layout values, localization, accessibility roles, or firmware
+behavior.
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| Direct hex color literals in Avalonia XAML | 382 | 200 |
+| `UiBrush.*` dynamic-resource references | 0 | 208 |
+
+The remaining direct literals are intentionally deferred until a later phase
+can establish whether they are one-off visual evidence, a distinct semantic
+state, or an exact shared-role duplicate.
 
 ## Consolidation Rules
 

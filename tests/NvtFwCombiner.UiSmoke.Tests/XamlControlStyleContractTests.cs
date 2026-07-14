@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.Behaviors;
 using NvtFwCombiner.Presentation.Avalonia.Views;
@@ -7,7 +8,7 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 /// <summary>Regression coverage for shared Avalonia visual-control contracts.</summary>
-public sealed class XamlControlStyleContractTests
+public sealed partial class XamlControlStyleContractTests
 {
     /// <summary>Keeps every technical hexadecimal field on one canonical display format.</summary>
     [Fact]
@@ -58,6 +59,75 @@ public sealed class XamlControlStyleContractTests
         Assert.Contains("Styles/MainWindowControlStyles.axaml", application, StringComparison.Ordinal);
         Assert.Contains("<Label", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes=\"slotBadge\"", slotCard, StringComparison.Ordinal);
+    }
+
+    /// <summary>Ensures shared visual roles consume the one canonical semantic palette.</summary>
+    [Fact]
+    public void SharedControlStylesExposeAndUseTheSemanticBrushPalette()
+    {
+        string library = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
+        Dictionary<string, string> expectedPalette = new(StringComparer.Ordinal)
+        {
+            ["UiBrush.Surface"] = "#FFFFFF",
+            ["UiBrush.SubtleSurface"] = "#F8FAFC",
+            ["UiBrush.AccentSurface"] = "#EFF6FF",
+            ["UiBrush.AccentSelectedSurface"] = "#EAF3FF",
+            ["UiBrush.WarningSurface"] = "#FFF7ED",
+            ["UiBrush.SuccessSurface"] = "#F0FDF4",
+            ["UiBrush.DisabledSurface"] = "#E2E8F0",
+            ["UiBrush.AccentSoftSurface"] = "#BFDBFE",
+            ["UiBrush.Border"] = "#CBD5E1",
+            ["UiBrush.SubtleBorder"] = "#E2E8F0",
+            ["UiBrush.AccentBorder"] = "#93C5FD",
+            ["UiBrush.AccentStrongBorder"] = "#60A5FA",
+            ["UiBrush.AccentSoftBorder"] = "#BFDBFE",
+            ["UiBrush.WarningBorder"] = "#FED7AA",
+            ["UiBrush.SuccessBorder"] = "#BBF7D0",
+            ["UiBrush.TextPrimary"] = "#0F172A",
+            ["UiBrush.TextSecondary"] = "#334155",
+            ["UiBrush.TextMuted"] = "#64748B",
+            ["UiBrush.TextSubtle"] = "#475569",
+            ["UiBrush.TextDisabled"] = "#94A3B8",
+            ["UiBrush.TextDisabledMuted"] = "#CBD5E1",
+            ["UiBrush.TextOnAccent"] = "#FFFFFF",
+            ["UiBrush.Accent"] = "#2563EB",
+            ["UiBrush.AccentStrong"] = "#1D4ED8",
+            ["UiBrush.TextWarning"] = "#9A3412",
+            ["UiBrush.TextSuccess"] = "#166534",
+        };
+        MatchCollection definitions = PaletteBrushDefinitionPattern().Matches(library);
+        var declaredPalette = definitions
+            .Select(match => KeyValuePair.Create(match.Groups["key"].Value, match.Groups["color"].Value))
+            .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+
+        Assert.Equal(expectedPalette.Count, definitions.Count);
+        Assert.Equal(expectedPalette.Count, declaredPalette.Count);
+
+        foreach ((string key, string color) in expectedPalette)
+        {
+            Assert.Equal(color, declaredPalette[key]);
+        }
+
+        foreach (string path in new[]
+                 {
+                     "Styles/MainWindowControlStyles.axaml",
+                     "Styles/MainWindowButtonStyles.axaml",
+                     "Styles/MainWindowVisualStyles.axaml",
+                 })
+        {
+            string styles = ReadPresentationFile(path);
+            MatchCollection references = PaletteBrushReferencePattern().Matches(styles);
+
+            Assert.NotEmpty(references);
+            Assert.DoesNotContain(expectedPalette.Values, color => styles.Contains($"Value=\"{color}\"", StringComparison.OrdinalIgnoreCase));
+            Assert.Empty(BackgroundUsesBorderBrushPattern().Matches(styles));
+            Assert.Empty(ForegroundUsesSurfaceOrBorderBrushPattern().Matches(styles));
+
+            foreach (Match reference in references)
+            {
+                Assert.Contains(reference.Groups["key"].Value, declaredPalette.Keys);
+            }
+        }
     }
 
     /// <summary>Ensures Hex Editor uses the shared safe-save and immutable-reference interaction contracts.</summary>
@@ -405,4 +475,16 @@ public sealed class XamlControlStyleContractTests
         return Directory.EnumerateFiles(presentationRoot, "*.axaml", SearchOption.AllDirectories)
             .Select(File.ReadAllText);
     }
+
+    [GeneratedRegex("<SolidColorBrush x:Key=\"(?<key>UiBrush\\.[^\"]+)\" Color=\"(?<color>#[0-9A-Fa-f]{6})\" />")]
+    private static partial Regex PaletteBrushDefinitionPattern();
+
+    [GeneratedRegex("\\{DynamicResource (?<key>UiBrush\\.[^}]+)\\}")]
+    private static partial Regex PaletteBrushReferencePattern();
+
+    [GeneratedRegex("<Setter Property=\"Background\" Value=\"\\{DynamicResource UiBrush\\.[^\"]*Border\\}\" />")]
+    private static partial Regex BackgroundUsesBorderBrushPattern();
+
+    [GeneratedRegex("<Setter Property=\"Foreground\" Value=\"\\{DynamicResource UiBrush\\.(?:[^\"]*Surface|[^\"]*Border)\\}\" />")]
+    private static partial Regex ForegroundUsesSurfaceOrBorderBrushPattern();
 }
