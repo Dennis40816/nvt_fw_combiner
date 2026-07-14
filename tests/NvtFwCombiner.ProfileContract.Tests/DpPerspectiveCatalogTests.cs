@@ -6,9 +6,9 @@ namespace NvtFwCombiner.ProfileContract.Tests;
 /// <summary>Tests the shared NT51950/NT51951 DP Perspective policy catalog.</summary>
 public sealed class DpPerspectiveCatalogTests
 {
-    /// <summary>Supported lengths are the single authoritative DP Perspective length list.</summary>
+    /// <summary>Supported lengths are the single authoritative DP Perspective length list for Replace.</summary>
     [Fact]
-    public void SupportedLengthsAreSharedByMergeAndReplace()
+    public void SupportedLengthsAreSharedByReplacePlanningAndProfiles()
     {
         Assert.Equal([0x40000, 0x80000, 0x100000], DpPerspectiveCatalog.SupportedContainerLengths);
         Assert.Equal(0x100000, DpPerspectiveCatalog.MaxContainerLength);
@@ -18,10 +18,6 @@ public sealed class DpPerspectiveCatalogTests
         Assert.Equal("0x0A000-0x36FFF (len 0x2D000)", DpPerspectiveCatalog.FormatRange(DpPerspectiveCatalog.TpOverlayRange));
         Assert.Equal("0x37000-0x37FFF (len 0x1000)", DpPerspectiveCatalog.FormatRange(DpPerspectiveCatalog.CustomerInfoRange));
         Assert.Equal("dp-perspective-container", DpPerspectiveCatalog.ContainerRegionId);
-        Assert.Equal("copy-dp-container", DpPerspectiveCatalog.CopyDpContainerOperationId);
-        Assert.Equal(100, DpPerspectiveCatalog.CopyDpContainerSequence);
-        Assert.Equal("overlay-tp", DpPerspectiveCatalog.OverlayTpOperationId);
-        Assert.Equal(200, DpPerspectiveCatalog.OverlayTpSequence);
         Assert.Equal("replace-dp-container", DpPerspectiveCatalog.ReplaceDpContainerOperationId);
         Assert.Equal(100, DpPerspectiveCatalog.ReplaceDpContainerSequence);
         Assert.Equal("restore-base-tp", DpPerspectiveCatalog.RestoreBaseTpOperationId);
@@ -32,9 +28,6 @@ public sealed class DpPerspectiveCatalogTests
             BuiltInReplaceProfiles.DpPerspectiveSupportedDpBaseLengths);
         Assert.Equal(
             DpPerspectiveCatalog.SupportedIcIds,
-            BuiltInStandardMergeProfiles.DpPerspectiveStandardMergeProfiles.Select(profile => profile.IcId));
-        Assert.Equal(
-            DpPerspectiveCatalog.SupportedIcIds,
             BuiltInReplaceProfiles.DpPerspectiveDpReplaceProfiles.Select(profile => profile.IcId));
     }
 
@@ -42,22 +35,13 @@ public sealed class DpPerspectiveCatalogTests
     [Theory]
     [InlineData("NT51950", 0x40000)]
     [InlineData("NT51951", 0x80000)]
-    public void ProfilesUseSharedDpPerspectiveRanges(string icId, long length)
+    public void DpReplaceProfilesUseSharedDpPerspectiveRanges(string icId, long length)
     {
-        CompositionProfileDefinition merge = BuiltInStandardMergeProfiles.CreateDpPerspectiveProfileForInputLength(icId, length);
         CompositionProfileDefinition replace = BuiltInReplaceProfiles.CreateDpPerspectiveDpReplaceProfile(icId, length);
 
-        ProfileCompileResult mergeCompile = CompositionProfileCompiler.Compile(merge, []);
         ProfileCompileResult replaceCompile = CompositionProfileCompiler.Compile(replace, []);
 
-        Assert.True(mergeCompile.IsSuccess, FormatIssues(mergeCompile.Issues));
         Assert.True(replaceCompile.IsSuccess, FormatIssues(replaceCompile.Issues));
-        Assert.Contains(merge.AddressSpaces, space =>
-            space.AddressSpaceId == "tp-input" &&
-            space.Length == DpPerspectiveCatalog.TpInputLength);
-        Assert.Contains(mergeCompile.CompiledComposition!.Plan.OrderedOperations, operation =>
-            operation.OperationId == DpPerspectiveCatalog.OverlayTpOperationId &&
-            operation.TargetRange == DpPerspectiveCatalog.TpOverlayRange);
         Assert.Contains(replaceCompile.CompiledComposition!.Plan.OrderedOperations, operation =>
             operation.OperationId == DpPerspectiveCatalog.RestoreBaseTpOperationId &&
             operation.TargetRange == DpPerspectiveCatalog.TpOverlayRange);

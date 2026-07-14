@@ -19,18 +19,6 @@ public static class DpPerspectiveCatalog
     /// <summary>Region id for the full DP Perspective output container.</summary>
     public const string ContainerRegionId = "dp-perspective-container";
 
-    /// <summary>Standard Merge operation id that copies the selected DP Perspective container.</summary>
-    public const string CopyDpContainerOperationId = "copy-dp-container";
-
-    /// <summary>Standard Merge operation order for copying the selected DP Perspective container.</summary>
-    public const int CopyDpContainerSequence = 100;
-
-    /// <summary>Standard Merge operation id that overlays TP FW into the DP Perspective container.</summary>
-    public const string OverlayTpOperationId = "overlay-tp";
-
-    /// <summary>Standard Merge operation order for overlaying TP FW into the DP Perspective container.</summary>
-    public const int OverlayTpSequence = 200;
-
     /// <summary>DP Replace operation id that replaces the selected DP Perspective container.</summary>
     public const string ReplaceDpContainerOperationId = "replace-dp-container";
 
@@ -53,9 +41,6 @@ public static class DpPerspectiveCatalog
 
     /// <summary>TP overlay/restore range. Customer information starts after this range.</summary>
     public static ByteRange TpOverlayRange { get; } = ByteRange.FromStartEndExclusive(0x0A000, 0x37000);
-
-    /// <summary>TP input length required to cover the overlay range.</summary>
-    public static long TpInputLength => TpOverlayRange.EndExclusive;
 
     /// <summary>Customer-information range. DP Replace retains replacement-DP bytes in this range.</summary>
     public static ByteRange CustomerInfoRange { get; } = new(0x37000, 0x1000);

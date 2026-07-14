@@ -49,30 +49,24 @@ public sealed class WorkbenchCatalogProjectionTests
         Assert.Equal(originalNumberChoice, WorkbenchCompositionService.GetNumberChoices("NT51950")[0]);
     }
 
-    /// <summary>Profile summaries retain source order while executable facts come from the compiled artifact.</summary>
+    /// <summary>Profile summaries retain runtime registration order while executable facts come from compiled artifacts.</summary>
     [Fact]
     public void ProfileSummariesProjectCompiledArtifactsWithoutLegacyTypes()
     {
-        CompositionProfileDefinition[] standardProfiles =
-        [
-            .. BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles
-                .OrderBy(static profile => profile.IcId, StringComparer.Ordinal),
-        ];
         CompositionProfileDefinition[] replaceProfiles =
         [
             .. BuiltInReplaceProfiles.All
                 .OrderBy(static profile => profile.ProfileId, StringComparer.Ordinal),
         ];
 
-        AssertProfileSummaries(
-            standardProfiles,
-            WorkbenchCompositionService.GetStandardMergeProfileSummaries());
+        IReadOnlyList<WorkbenchProfileSummary> standardSummaries = WorkbenchCompositionService.GetStandardMergeProfileSummaries();
+        AssertStandardMergeProfileSummaries(standardSummaries);
         AssertProfileSummaries(
             replaceProfiles,
             WorkbenchCompositionService.GetReplaceProfileSummaries());
 
         WorkbenchSettingsSnapshot settings = WorkbenchCompositionService.GetSettingsSnapshot();
-        Assert.Equal(standardProfiles.Length, settings.StandardMergeProfileCount);
+        Assert.Equal(standardSummaries.Count, settings.StandardMergeProfileCount);
         Assert.Equal(replaceProfiles.Length, settings.ReplaceProfileCount);
         Assert.Equal(13, settings.FlashMapIcCount);
     }
@@ -81,7 +75,7 @@ public sealed class WorkbenchCatalogProjectionTests
     [Fact]
     public void ProfileSummaryRetainsCompileFailureDiagnostics()
     {
-        CompositionProfileDefinition source = BuiltInStandardMergeProfiles.SyntheticStandardMerge;
+        CompositionProfileDefinition source = SyntheticCompositionProfiles.CreateStandardMerge();
         var invalid = new CompositionProfileDefinition(
             source.ProfileId,
             source.ProfileVersion,
@@ -125,6 +119,36 @@ public sealed class WorkbenchCatalogProjectionTests
             Assert.Empty(summary.IssueCodes);
             Assert.Equal(composition.ProfileId, summary.ProfileId);
             Assert.Equal(composition.IcId, summary.IcId);
+            Assert.Equal(composition.CompositionKind, summary.CompositionKind);
+            Assert.Equal(composition.Plan.RequiredInputAddressSpaceIds, summary.RequiredInputAddressSpaceIds);
+            Assert.Equal(composition.DefaultOutputFileName, summary.DefaultOutputFileName);
+            Assert.Equal(composition.IcNumberPolicy, summary.IcNumberPolicy);
+        }
+    }
+
+    private static void AssertStandardMergeProfileSummaries(IReadOnlyList<WorkbenchProfileSummary> summaries)
+    {
+        Assert.Equal(
+            [
+                "NT51917", "NT51919", "NT51920", "NT51923", "NT51926", "NT51927", "NT51928",
+                "NT51929", "NT51930", "NT51931", "NT51932", "NT51950", "NT51951",
+            ],
+            summaries.Select(static summary => summary.IcId).Order(StringComparer.Ordinal));
+
+        foreach (WorkbenchProfileSummary summary in summaries)
+        {
+            long? dpLength = summary.IcId is "NT51950" or "NT51951" ? 0x40000 : null;
+            Assert.True(
+                WorkbenchCompositionService.TryCompileStandardMerge(
+                    summary.IcId,
+                    dpLength,
+                    out CompiledComposition? composition,
+                    out IReadOnlyList<CompositionIssue> issues),
+                string.Join(Environment.NewLine, issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+
+            Assert.True(summary.CompileSucceeded);
+            Assert.Empty(summary.IssueCodes);
+            Assert.Equal(composition.ProfileId, summary.ProfileId);
             Assert.Equal(composition.CompositionKind, summary.CompositionKind);
             Assert.Equal(composition.Plan.RequiredInputAddressSpaceIds, summary.RequiredInputAddressSpaceIds);
             Assert.Equal(composition.DefaultOutputFileName, summary.DefaultOutputFileName);

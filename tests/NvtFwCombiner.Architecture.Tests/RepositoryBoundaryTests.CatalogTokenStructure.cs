@@ -79,7 +79,6 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public const string DynamicCtrlRamReplacementPrefix = \"replace-ctrlram-\"", addressSpaceIds, StringComparison.Ordinal);
         Assert.Contains("CompositionAddressSpaceIds.OutputImage", profileSources, StringComparison.Ordinal);
         Assert.Contains("CompositionAddressSpaceIds.DpInput", profileSources, StringComparison.Ordinal);
-        Assert.Contains("CompositionAddressSpaceIds.TpInput", profileSources, StringComparison.Ordinal);
         Assert.Contains("CompositionAddressSpaceIds.DpReplacement", profileSources, StringComparison.Ordinal);
         Assert.Contains("CompositionAddressSpaceIds.CtrlRamReplacement", profileSources, StringComparison.Ordinal);
         Assert.Contains("public const string DpInput = CompositionAddressSpaceIds.DpInput;", workbenchAddressSpaceIds, StringComparison.Ordinal);

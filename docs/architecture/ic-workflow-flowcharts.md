@@ -8,7 +8,7 @@ This document is an index for the current Merge and Replace flows by IC. It is n
 
 Update this document in the same change when any of these sources change:
 
-- `src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles*.cs`; the root file owns exposure order only, and focused partials own evidence-family profile rows.
+- `src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs`; this is the explicit production Standard Merge registration list.
 - `src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles*.cs`; the root file owns exposure order only, and focused partials own synthetic or production policy rows.
 - `src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.cs`
 - `docs/architecture/nt51950-nt51951-dp-length-policy.md`

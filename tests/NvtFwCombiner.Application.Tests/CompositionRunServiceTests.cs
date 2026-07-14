@@ -122,7 +122,7 @@ public sealed partial class CompositionRunServiceTests
     [Fact]
     public async Task MissingStandardMergeBindingFailsClosed()
     {
-        CompositionProfileDefinition profile = BuiltInStandardMergeProfiles.SyntheticStandardMerge;
+        CompositionProfileDefinition profile = SyntheticCompositionProfiles.CreateStandardMerge();
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         var reader = new FakeArtifactReader(new Dictionary<string, byte[]>
         {

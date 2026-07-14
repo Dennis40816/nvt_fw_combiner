@@ -32,7 +32,7 @@ Firmware-affecting UI data must come from production catalogs or application ser
 
 ```text
 TpFlashMapCatalog
-BuiltInStandardMergeProfiles
+WorkbenchCompositionService
 LegacyCombinerPostbuildCatalog
 ```
 

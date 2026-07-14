@@ -121,7 +121,7 @@ Do not add IC-specific byte behavior to:
 Minimum tests:
 
 - the focused trusted-V2 bundle/routing tests matching the changed profile family
-- the focused `BuiltInStandardMergeProfilesTests.*.cs` legacy-plan parity tests; retain them until the retirement matrix closes the family
+- direct V2 plan contract tests plus `tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeWorkbenchGoldenTests.cs`; no C# profile oracle remains after the retirement matrix closes the family
 - `tests/NvtFwCombiner.ProfileContract.Tests/IcSupportCatalogTests.cs` when support exposure or alias facts change
 - `tests/NvtFwCombiner.ProfileContract.Tests/DpPerspectiveCatalogTests.cs` or the matching family-policy test when shared family policy changes
 - `tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeWorkbenchGoldenTests.cs`, which exercises the deployed V2 workbench runtime against every approved Standard Merge fixture

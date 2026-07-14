@@ -2,13 +2,13 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Profiles;
 
-public static partial class BuiltInStandardMergeProfiles
+/// <summary>Small, non-production composition definitions shared by compiler and runner tests.</summary>
+public static class SyntheticCompositionProfiles
 {
-    /// <summary>
-    /// Synthetic standard merge profile that copies DP and TP inputs into non-overlapping output ranges.
-    /// </summary>
-    public static CompositionProfileDefinition SyntheticStandardMerge =>
-        new(
+    /// <summary>Creates a fixed Standard Merge profile with two non-overlapping input copies.</summary>
+    public static CompositionProfileDefinition CreateStandardMerge()
+    {
+        return new CompositionProfileDefinition(
             "synthetic-standard-merge",
             "0.3.0",
             "NT-SYNTHETIC",
@@ -42,4 +42,5 @@ public static partial class BuiltInStandardMergeProfiles
                     OverlapPolicy.Reject,
                     "Copy synthetic TP input into the output TP range."),
             ]);
+    }
 }

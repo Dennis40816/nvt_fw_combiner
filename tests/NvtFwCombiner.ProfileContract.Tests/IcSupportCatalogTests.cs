@@ -78,20 +78,30 @@ public sealed class IcSupportCatalogTests
         Assert.True(entry.SupportsWorkflow(IcWorkflowIds.GeneralReplace));
     }
 
-    /// <summary>Every executable Standard Merge IC has an onboarding entry.</summary>
+    /// <summary>Every production Standard Merge registration has an onboarding entry.</summary>
     [Fact]
-    public void StandardMergeProfilesAreCoveredByIcSupportCatalog()
+    public void StandardMergeCatalogContainsEveryRegisteredIc()
     {
         string[] supportedIcIds = [.. IcSupportCatalog.IcIds.Order(StringComparer.Ordinal)];
-        string[] standardMergeIcIds =
+        string[] expectedStandardMergeIcIds =
         [
-            .. BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles
-                .Select(profile => profile.IcId)
-                .Order(StringComparer.Ordinal),
+            "NT51917",
+            "NT51919",
+            "NT51920",
+            "NT51923",
+            "NT51926",
+            "NT51927",
+            "NT51928",
+            "NT51929",
+            "NT51930",
+            "NT51931",
+            "NT51932",
+            "NT51950",
+            "NT51951",
         ];
 
-        Assert.Equal(standardMergeIcIds, supportedIcIds);
-        Assert.All(standardMergeIcIds, icId =>
+        Assert.Equal(expectedStandardMergeIcIds, supportedIcIds);
+        Assert.All(expectedStandardMergeIcIds, icId =>
             Assert.True(IcSupportCatalog.SupportsWorkflow(icId, IcWorkflowIds.StandardMerge), icId));
     }
 
@@ -134,10 +144,11 @@ public sealed class IcSupportCatalogTests
     public void AliasFactsPointToSupportedIcRows()
     {
         HashSet<string> supportedIcIds = [.. IcSupportCatalog.IcIds];
-        HashSet<string> standardMergeProfileIcIds =
+        HashSet<string> standardMergeIcIds =
         [
-            .. BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles
-                .Select(profile => profile.IcId),
+            .. IcSupportCatalog.All
+                .Where(entry => entry.SupportsWorkflow(IcWorkflowIds.StandardMerge))
+                .Select(entry => entry.IcId),
         ];
 
         foreach (IcSupportEntry entry in IcSupportCatalog.All)
@@ -145,7 +156,7 @@ public sealed class IcSupportCatalogTests
             if (entry.StandardMergeSourceIcId is not null)
             {
                 Assert.Contains(entry.StandardMergeSourceIcId, supportedIcIds);
-                Assert.Contains(entry.StandardMergeSourceIcId, standardMergeProfileIcIds);
+                Assert.Contains(entry.StandardMergeSourceIcId, standardMergeIcIds);
                 Assert.NotEqual(entry.IcId, entry.StandardMergeSourceIcId);
             }
 

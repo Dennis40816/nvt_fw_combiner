@@ -1,5 +1,4 @@
 using NvtFwCombiner.Application.FlashMaps;
-using NvtFwCombiner.Profiles;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Application.Tests.FlashMaps;
@@ -14,6 +13,9 @@ public sealed class GenFlashVersionCatalogTests
         Assert.NotEmpty(GenFlashVersionCatalog.AllDpVersionRules);
 
         string[] ruleIds = [.. GenFlashVersionCatalog.AllDpVersionRules.Select(rule => rule.IcId)];
+        Assert.Equal(
+            ["51917", "51919", "51920", "51923", "51926", "51927", "51928", "51929", "51931", "51932"],
+            ruleIds);
         Assert.Equal(ruleIds.Length, ruleIds.Distinct(StringComparer.Ordinal).Count());
 
         foreach (GenFlashDpVersionRule rule in GenFlashVersionCatalog.AllDpVersionRules)
@@ -24,39 +26,6 @@ public sealed class GenFlashVersionCatalogTests
             Assert.True(rule.OutputSubAbsoluteAddress < rule.OutputDpEndExclusive);
             Assert.True(GenFlashVersionCatalog.TryGetDpVersionRule($"NT{rule.IcId}", out GenFlashDpVersionRule resolved));
             Assert.Same(rule, resolved);
-        }
-    }
-
-    /// <summary>Guards gen_flash DP version rules against drift from executable Standard Merge DP regions.</summary>
-    [Fact]
-    public void DpVersionRulesMatchStandardMergeDpRegions()
-    {
-        var profilesByIc = BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles
-            .ToDictionary(profile => profile.IcId, StringComparer.Ordinal);
-
-        foreach (GenFlashDpVersionRule rule in GenFlashVersionCatalog.AllDpVersionRules)
-        {
-            string icId = $"NT{rule.IcId}";
-            Assert.True(profilesByIc.TryGetValue(icId, out CompositionProfileDefinition? profile), icId);
-
-            ProfileRegion dpRegion = Assert.Single(profile.Regions, region => region.RegionId == "dp-region");
-            Assert.Equal(rule.OutputDpStart, dpRegion.Range.Start);
-            Assert.Equal(rule.OutputDpEndExclusive, dpRegion.Range.EndExclusive);
-            Assert.True(rule.OutputMainAbsoluteAddress >= dpRegion.Range.Start, icId);
-            Assert.True(rule.OutputSubAbsoluteAddress < dpRegion.Range.EndExclusive, icId);
-        }
-    }
-
-    /// <summary>Prevents gen_flash Standard Merge onboarding from omitting the output-name DP version rule.</summary>
-    [Fact]
-    public void GenFlashStandardMergeProfilesHaveDpVersionRules()
-    {
-        foreach (CompositionProfileDefinition profile in BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles
-                     .Where(profile => profile.ProfileId.Contains("gen-flash", StringComparison.Ordinal)))
-        {
-            Assert.True(
-                GenFlashVersionCatalog.TryGetDpVersionRule(profile.IcId, out _),
-                $"Missing gen_flash DP version rule for Standard Merge profile {profile.ProfileId} ({profile.IcId}).");
         }
     }
 

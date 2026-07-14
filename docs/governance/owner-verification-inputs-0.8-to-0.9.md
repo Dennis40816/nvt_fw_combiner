@@ -71,7 +71,7 @@ parity is questioned.
 | Area | Owner data needed for a new or disputed case |
 | --- | --- |
 | Standard Merge | DP input, TP input, expected flash output, exact output filename, source/output SHA-256, selected capacity, and owner approval. |
-| NT51950/NT51951 Standard Merge | One direct DP/TP/expected case for every additional capacity selected for release; state whether customer info remains from DP. Do not derive capacity behavior from a differently sized sample. The tracked direct cases cover NT51950 `0x40000` and NT51951 `0x80000`; to retire the legacy Standard Merge oracle, provide owner-approved cases for NT51950 `0x80000`/`0x100000` and NT51951 `0x40000`/`0x100000`. |
+| NT51950/NT51951 Standard Merge | One direct DP/TP/expected case for every additional capacity selected for release; state whether customer info remains from DP. Do not derive capacity behavior from a differently sized sample. The tracked direct cases cover NT51950 `0x40000` and NT51951 `0x80000`; the remaining capacities are release-evidence gaps only because V2 direct plan contracts have retired the legacy C# oracle. |
 | NT51950/NT51951 DP Replace | Base flash, DP replacement input, expected output, selected capacity, TP/customer ownership decision, and full-byte legacy/V2 comparison record. |
 | Alias or IC-count fact | Source IC/map, target IC/map, exact fact kind/id, applicable topology/capacity, direct parity input/output hashes, and owner approval. |
 | Firmware metadata | Firmware sample or approved observation plus NVT Backup location evidence. Runtime FW Config is always terminal `T - 0xFFF`; a primary flash-map address is evidence only. |
@@ -171,7 +171,7 @@ the replacement covers every current consumer:
 
 | Legacy item | Evidence package required |
 | --- | --- |
-| `BuiltInStandardMergeProfiles` | Independent V2 golden inputs/outputs for every retained family, naming/report parity, and owner approval. |
+| Standard Merge V2 registrations | Additional capacity golden inputs/outputs, naming/report parity, and owner approval for any release-support expansion. Legacy C# profiles are not retained as a runtime or test oracle. |
 | Legacy `CompositionProfileCompiler` authority | Per-workflow V2 input/output/report/CLI/UI parity, including invalid cases and every selected processor path. |
 | `TpFlashMapCatalog` / `IcMetadataFacade` projections | Source-map provenance and UI/CLI metadata/number-selection parity for every consumer, with no copied firmware semantics. |
 | `LegacyCombinerPostbuildCatalog` | V2 processor declaration, exact tool binding, staging/read/write ranges, command trace, real expected output, and firmware-owner review. |

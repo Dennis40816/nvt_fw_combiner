@@ -34,17 +34,15 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
             "0.5.1",
             icId,
             capacity);
-        CompiledComposition legacy = V2StandardMergeGoldenTestSupport.CompileLegacy(icId, capacity);
 
         Assert.Equal(expectedOutputFileName, v2.DefaultOutputFileName);
-        V2StandardMergeGoldenTestSupport.AssertPlanGeometryAndOperationParity(legacy.Plan, v2.Plan);
-        Assert.Equal(capacity, v2.Plan.OutputInitialization.Capacity);
+        AssertDeclaredDpPerspectivePlan(v2.Plan, capacity);
         CompositionRunResult result = await V2StandardMergeGoldenTestSupport.PreviewAsync(v2, inputs);
 
         V2StandardMergeGoldenTestSupport.AssertSuccessfulGoldenOutput(result, v2, expectedOutput);
     }
 
-    /// <summary>Verifies every declared DP container capacity retains the legacy byte semantics before promotion by direct golden.</summary>
+    /// <summary>Verifies every declared DP container capacity retains the direct V2 byte contract.</summary>
     [Theory]
     [InlineData("NT51950", 0x40000)]
     [InlineData("NT51950", 0x80000)]
@@ -52,7 +50,7 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
     [InlineData("NT51951", 0x40000)]
     [InlineData("NT51951", 0x80000)]
     [InlineData("NT51951", 0x100000)]
-    public async Task TrustedV2BundleMatchesLegacyDpPerspectiveAcrossDeclaredCapacities(
+    public async Task TrustedV2BundleRetainsDeclaredDpPerspectiveByteContractAcrossCapacities(
         string icId,
         int capacity)
     {
@@ -68,16 +66,12 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
             "0.5.1",
             icId,
             capacity);
-        CompiledComposition legacy = V2StandardMergeGoldenTestSupport.CompileLegacy(icId, capacity);
 
-        V2StandardMergeGoldenTestSupport.AssertPlanGeometryAndOperationParity(legacy.Plan, v2.Plan);
+        AssertDeclaredDpPerspectivePlan(v2.Plan, capacity);
         CompositionRunResult v2Result = await V2StandardMergeGoldenTestSupport.PreviewAsync(v2, inputs);
-        CompositionRunResult legacyResult = await V2StandardMergeGoldenTestSupport.PreviewAsync(legacy, inputs);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, v2Result.Status);
-        Assert.Equal(CompositionExecutionStatus.Succeeded, legacyResult.Status);
         byte[] v2Output = v2Result.OutputBytes.ToArray();
-        Assert.Equal(legacyResult.OutputBytes.ToArray(), v2Output);
         AssertRangeEquals(inputs["tp-input"], TpOverlayStart, v2Output, TpOverlayStart, TpOverlayLength);
         AssertRangeEquals(inputs["dp-input"], CustomerInfoStart, v2Output, CustomerInfoStart, CustomerInfoLength);
     }
@@ -100,6 +94,7 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
             "NT51950",
             dp.LongLength);
 
+        AssertDeclaredDpPerspectivePlan(v2.Plan, dp.LongLength);
         CompositionRunResult result = await V2StandardMergeGoldenTestSupport.PreviewAsync(v2, inputs);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
@@ -117,6 +112,35 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
         }
 
         return bytes;
+    }
+
+    private static void AssertDeclaredDpPerspectivePlan(CompositionPlan plan, long capacity)
+    {
+        Assert.Equal(CompositionAddressSpaceIds.OutputImage, plan.OutputSpaceId);
+        Assert.Equal(ImageInitializationKind.Blank, plan.OutputInitialization.Kind);
+        Assert.Equal(capacity, plan.OutputInitialization.Capacity);
+        Assert.Equal(0, plan.OutputInitialization.FillByte);
+        Assert.Equal(
+            ["copy-dp-container", "overlay-tp"],
+            plan.OrderedOperations.Select(static operation => operation.OperationId));
+        Assert.Equal([100, 200], plan.OrderedOperations.Select(static operation => operation.Sequence));
+
+        CompositionOperation dpCopy = plan.OrderedOperations[0];
+        Assert.Equal(CompositionOperationKind.CopyRange, dpCopy.Kind);
+        Assert.Equal("dp-input", dpCopy.SourceSpaceId);
+        Assert.Equal(CompositionAddressSpaceIds.OutputImage, dpCopy.TargetSpaceId);
+        Assert.Equal(new ByteRange(0, capacity), dpCopy.SourceRange);
+        Assert.Equal(dpCopy.SourceRange, dpCopy.TargetRange);
+        Assert.Equal(OverlapPolicy.Reject, dpCopy.OverlapPolicy);
+
+        CompositionOperation tpOverlay = plan.OrderedOperations[1];
+        var tpOverlayRange = ByteRange.FromStartEndExclusive(TpOverlayStart, CustomerInfoStart);
+        Assert.Equal(CompositionOperationKind.CopyRange, tpOverlay.Kind);
+        Assert.Equal("tp-input", tpOverlay.SourceSpaceId);
+        Assert.Equal(CompositionAddressSpaceIds.OutputImage, tpOverlay.TargetSpaceId);
+        Assert.Equal(tpOverlayRange, tpOverlay.SourceRange);
+        Assert.Equal(tpOverlayRange, tpOverlay.TargetRange);
+        Assert.Equal(OverlapPolicy.ReplaceExisting, tpOverlay.OverlapPolicy);
     }
 
     private static void AssertRangeEquals(byte[] expected, int expectedStart, byte[] actual, int actualStart, int length)

@@ -3,7 +3,6 @@ using System.Text.Json;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Bundles;
-using NvtFwCombiner.Profiles;
 using NvtFwCombiner.Profiles.V2;
 using NvtFwCombiner.TestSupport;
 
@@ -73,17 +72,6 @@ internal static class V2StandardMergeGoldenTestSupport
         return composition;
     }
 
-    internal static CompiledComposition CompileLegacy(string icId, long? dpInputLength = null)
-    {
-        Profiles.CompositionProfileDefinition legacyProfile = dpInputLength is { } length
-            ? BuiltInStandardMergeProfiles.CreateDpPerspectiveProfileForInputLength(icId, length)
-            : BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles
-                .Single(profile => StringComparer.Ordinal.Equals(profile.IcId, icId));
-        ProfileCompileResult legacyCompilation = CompositionProfileCompiler.Compile(legacyProfile, []);
-        Assert.True(legacyCompilation.IsSuccess, FormatIssues(legacyCompilation.Issues));
-        return Assert.IsType<CompiledComposition>(legacyCompilation.CompiledComposition);
-    }
-
     internal static JsonElement ReadGoldenCase(string referenceIc)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(referenceIc);
@@ -130,36 +118,6 @@ internal static class V2StandardMergeGoldenTestSupport
             bindings,
             compiledComposition.DefaultOutputFileName);
         return await service.PreviewAsync(request, CancellationToken.None).ConfigureAwait(false);
-    }
-
-    internal static void AssertPlanGeometryAndOperationParity(CompositionPlan legacy, CompositionPlan v2)
-    {
-        Assert.Equal(legacy.OutputSpaceId, v2.OutputSpaceId);
-        Assert.Equal(legacy.OutputInitialization.Capacity, v2.OutputInitialization.Capacity);
-        Assert.Equal(legacy.OutputInitialization.FillByte, v2.OutputInitialization.FillByte);
-        AddressSpace[] legacySpaces = [.. legacy.AddressSpaces.OrderBy(static space => space.AddressSpaceId)];
-        AddressSpace[] v2Spaces = [.. v2.AddressSpaces.OrderBy(static space => space.AddressSpaceId)];
-        Assert.Equal(legacySpaces.Length, v2Spaces.Length);
-        foreach ((AddressSpace legacySpace, AddressSpace v2Space) in legacySpaces.Zip(v2Spaces))
-        {
-            Assert.Equal(legacySpace.AddressSpaceId, v2Space.AddressSpaceId);
-            Assert.Equal(legacySpace.Length, v2Space.Length);
-            Assert.Equal(legacySpace.Mutability, v2Space.Mutability);
-        }
-        Assert.Equal(legacy.OrderedOperations.Count, v2.OrderedOperations.Count);
-        for (int index = 0; index < legacy.OrderedOperations.Count; index++)
-        {
-            CompositionOperation legacyOperation = legacy.OrderedOperations[index];
-            CompositionOperation v2Operation = v2.OrderedOperations[index];
-            Assert.Equal(legacyOperation.OperationId, v2Operation.OperationId);
-            Assert.Equal(legacyOperation.Sequence, v2Operation.Sequence);
-            Assert.Equal(legacyOperation.Kind, v2Operation.Kind);
-            Assert.Equal(legacyOperation.SourceSpaceId, v2Operation.SourceSpaceId);
-            Assert.Equal(legacyOperation.SourceRange, v2Operation.SourceRange);
-            Assert.Equal(legacyOperation.TargetSpaceId, v2Operation.TargetSpaceId);
-            Assert.Equal(legacyOperation.TargetRange, v2Operation.TargetRange);
-            Assert.Equal(legacyOperation.OverlapPolicy, v2Operation.OverlapPolicy);
-        }
     }
 
     internal static void AssertSuccessfulGoldenOutput(
