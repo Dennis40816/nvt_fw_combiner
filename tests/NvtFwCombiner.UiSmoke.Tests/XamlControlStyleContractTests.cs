@@ -78,6 +78,9 @@ public sealed partial class XamlControlStyleContractTests
             ["UiBrush.DangerSurface"] = "#FFF7F7",
             ["UiBrush.ErrorSurface"] = "#FEF2F2",
             ["UiBrush.SuccessSurface"] = "#F0FDF4",
+            ["UiBrush.ReferenceInputSurface"] = "#EEF2FF",
+            ["UiBrush.ControllerInputSurface"] = "#F5F3FF",
+            ["UiBrush.CautionSurface"] = "#FFFBEB",
             ["UiBrush.RequiredSelectedBadgeSurface"] = "#DCFCE7",
             ["UiBrush.RequiredMissingBadgeSurface"] = "#FEE2E2",
             ["UiBrush.DisabledSurface"] = "#E2E8F0",
@@ -94,6 +97,9 @@ public sealed partial class XamlControlStyleContractTests
             ["UiBrush.SuccessBorder"] = "#BBF7D0",
             ["UiBrush.RequiredMissingBorder"] = "#FCA5A5",
             ["UiBrush.RequiredSelectedBorder"] = "#86EFAC",
+            ["UiBrush.ReferenceInputBorder"] = "#C7D2FE",
+            ["UiBrush.ControllerInputBorder"] = "#DDD6FE",
+            ["UiBrush.CautionBorder"] = "#FDE68A",
             ["UiBrush.TextPrimary"] = "#0F172A",
             ["UiBrush.TextSecondary"] = "#334155",
             ["UiBrush.TextMuted"] = "#64748B",
@@ -107,7 +113,10 @@ public sealed partial class XamlControlStyleContractTests
             ["UiBrush.WarningDetail"] = "#7C2D12",
             ["UiBrush.WarningMeta"] = "#B45309",
             ["UiBrush.TextDanger"] = "#B91C1C",
-            ["UiBrush.RequiredSelectedText"] = "#15803D",
+            ["UiBrush.SuccessStrong"] = "#15803D",
+            ["UiBrush.ReferenceInputForeground"] = "#4338CA",
+            ["UiBrush.ControllerInputForeground"] = "#6D28D9",
+            ["UiBrush.CautionText"] = "#92400E",
             ["UiBrush.TextSuccess"] = "#166534",
             ["UiBrush.SuccessIndicator"] = "#16A34A",
             ["UiBrush.UtilityAccent"] = "#0F766E",
@@ -116,10 +125,10 @@ public sealed partial class XamlControlStyleContractTests
         };
         Dictionary<string, string[]> directPalettePropertyValues = new(StringComparer.Ordinal)
         {
-            ["Foreground"] = ["#FFFFFF", "#0F172A", "#334155", "#475569", "#64748B", "#94A3B8", "#0F766E", "#2563EB", "#1D4ED8", "#9A3412", "#7C2D12", "#B45309", "#B91C1C", "#166534"],
-            ["Background"] = ["#FFFFFF", "#F8FAFC", "#EFF6FF", "#EAF3FF", "#FFF7ED", "#FFF7F7", "#F0FDF4", "#E2E8F0", "#BFDBFE", "#CBD5E1", "#2563EB", "#16A34A", "#660F172A", "#990F172A"],
-            ["BorderBrush"] = ["#CBD5E1", "#E2E8F0", "#EEF2F7", "#93C5FD", "#60A5FA", "#BFDBFE", "#FED7AA", "#FECACA", "#BBF7D0", "#2563EB"],
-            ["Stroke"] = ["#334155", "#475569", "#2563EB", "#1D4ED8"],
+            ["Foreground"] = ["#FFFFFF", "#0F172A", "#334155", "#475569", "#64748B", "#94A3B8", "#0F766E", "#2563EB", "#1D4ED8", "#9A3412", "#7C2D12", "#B45309", "#B91C1C", "#166534", "#15803D", "#4338CA", "#6D28D9", "#92400E"],
+            ["Background"] = ["#FFFFFF", "#F8FAFC", "#EFF6FF", "#EAF3FF", "#EEF2FF", "#F5F3FF", "#FFFBEB", "#FFF7ED", "#FFF7F7", "#F0FDF4", "#E2E8F0", "#BFDBFE", "#CBD5E1", "#2563EB", "#16A34A", "#660F172A", "#990F172A"],
+            ["BorderBrush"] = ["#CBD5E1", "#E2E8F0", "#EEF2F7", "#93C5FD", "#60A5FA", "#BFDBFE", "#C7D2FE", "#DDD6FE", "#FDE68A", "#FED7AA", "#FECACA", "#BBF7D0", "#2563EB"],
+            ["Stroke"] = ["#334155", "#475569", "#2563EB", "#1D4ED8", "#15803D", "#4338CA", "#6D28D9", "#92400E"],
         };
         MatchCollection definitions = PaletteBrushDefinitionPattern().Matches(library);
         var declaredPalette = definitions
@@ -146,7 +155,7 @@ public sealed partial class XamlControlStyleContractTests
         {
             ["Resources/MainWindowReportOperationTemplates.axaml"] = ["UiBrush.Border"],
             ["Resources/MainWindowReportAuditTemplates.axaml"] = ["UiBrush.SuccessIndicator"],
-            ["Resources/MainWindowReportPanels.axaml"] = ["UiBrush.SuccessIndicator"],
+            ["Resources/MainWindowReportPanels.axaml"] = ["UiBrush.SuccessIndicator", "UiBrush.CautionText"],
             ["Resources/MainWindowReportTemplates.axaml"] = ["UiBrush.WarningDetail", "UiBrush.WarningMeta"],
             ["Resources/MainWindowShellPanels.axaml"] = ["UiBrush.SuccessIndicator"],
             ["Views/FirmwareIcMismatchModal.axaml"] = ["UiBrush.WarningMeta"],
@@ -515,6 +524,16 @@ public sealed partial class XamlControlStyleContractTests
             "Border.fileDropZone.firmwareSlot",
             "Border.fileDropZone.firmwareSlot.hasFile",
             "Border.fileDropZone.firmwareSlot.optional",
+            "Border.slotTypeIcon.bin",
+            "Border.slotTypeIcon.bin Path",
+            "Border.slotTypeIcon.base",
+            "Border.slotTypeIcon.base Path",
+            "Border.slotTypeIcon.dp",
+            "Border.slotTypeIcon.dp Path",
+            "Border.slotTypeIcon.tp",
+            "Border.slotTypeIcon.tp Path",
+            "Border.slotTypeIcon.ctrlRam",
+            "Border.slotTypeIcon.ctrlRam Path",
             "Border.firmwareSlotFact",
             "Border.firmwareSlotFact.warning",
             "TextBlock.panelTitle",
@@ -554,9 +573,19 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Classes.hasFile=\"{Binding HasFile}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes.optional=\"{Binding IsOptional}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes=\"slotBadge firmwareSlotRequirement\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("xmlns:converters=\"clr-namespace:Avalonia.Data.Converters;assembly=Avalonia.Base\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Converter={x:Static converters:ObjectConverters.Equal}", slotCard, StringComparison.Ordinal);
+        Assert.Contains("ConverterParameter={x:Static vm:FirmwareSlotKind.Base}", slotCard, StringComparison.Ordinal);
+        Assert.Contains("ConverterParameter={x:Static vm:FirmwareSlotKind.Unknown}", slotCard, StringComparison.Ordinal);
+        Assert.Contains("ConverterParameter={x:Static vm:FirmwareSlotKind.Dp}", slotCard, StringComparison.Ordinal);
+        Assert.Contains("ConverterParameter={x:Static vm:FirmwareSlotKind.Tp}", slotCard, StringComparison.Ordinal);
+        Assert.Contains("ConverterParameter={x:Static vm:FirmwareSlotKind.CtrlRam}", slotCard, StringComparison.Ordinal);
         Assert.DoesNotContain("SlotBackgroundBrush", slotCard, StringComparison.Ordinal);
         Assert.DoesNotContain("SlotBorderBrush", slotCard, StringComparison.Ordinal);
         Assert.DoesNotContain("RequirementBadgeForegroundBrush", slotCard, StringComparison.Ordinal);
+        Assert.DoesNotContain("SlotIconBackgroundBrush", slotCard, StringComparison.Ordinal);
+        Assert.DoesNotContain("SlotIconBorderBrush", slotCard, StringComparison.Ordinal);
+        Assert.DoesNotContain("SlotIconForegroundBrush", slotCard, StringComparison.Ordinal);
 
         string[] legacyPropertyBundles =
         [

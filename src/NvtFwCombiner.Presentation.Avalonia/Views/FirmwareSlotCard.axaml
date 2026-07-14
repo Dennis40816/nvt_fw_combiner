@@ -2,6 +2,7 @@
     x:Class="NvtFwCombiner.Presentation.Avalonia.Views.FirmwareSlotCard"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="clr-namespace:Avalonia.Data.Converters;assembly=Avalonia.Base"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
     x:Name="Root"
     x:DataType="vm:FirmwareSlotViewModel">
@@ -26,12 +27,14 @@
           <StackPanel Orientation="Horizontal" Spacing="8">
             <Border
                 Classes="slotTypeIcon"
-                Background="{Binding SlotIconBackgroundBrush}"
-                BorderBrush="{Binding SlotIconBorderBrush}"
+                Classes.base="{Binding SlotKind, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:FirmwareSlotKind.Base}}"
+                Classes.bin="{Binding SlotKind, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:FirmwareSlotKind.Unknown}}"
+                Classes.ctrlRam="{Binding SlotKind, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:FirmwareSlotKind.CtrlRam}}"
+                Classes.dp="{Binding SlotKind, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:FirmwareSlotKind.Dp}}"
+                Classes.tp="{Binding SlotKind, Converter={x:Static converters:ObjectConverters.Equal}, ConverterParameter={x:Static vm:FirmwareSlotKind.Tp}}"
                 ToolTip.Tip="{Binding SlotIconTooltip}">
               <Path
-                  Data="{Binding SlotIconPathData}"
-                  Stroke="{Binding SlotIconForegroundBrush}" />
+                  Data="{Binding SlotIconPathData}" />
             </Border>
             <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource UiBrush.TextPrimary}" Text="{Binding Title}" />
             <Label

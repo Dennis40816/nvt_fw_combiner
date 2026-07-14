@@ -158,7 +158,8 @@ presentation-only completion states; they do not encode firmware policy.
 
 `UiBrush.ErrorSurface` replaces the exact existing error surface used by both
 the missing-required slot and the invalid Hex editor cell. The remaining new
-brushes describe the distinct required-input border, badge, and text roles.
+brushes describe the distinct required-input border and badge roles. The
+selected required text uses the shared success-emphasis role.
 
 | Metric | Before | After |
 | --- | ---: | ---: |
@@ -173,6 +174,34 @@ library adds 34 nonblank XAML lines. UI smoke coverage keeps the required and
 optional slot semantics, while the XAML style contract keeps the selector
 binding and resource ownership explicit.
 
+### Firmware slot icon ownership
+
+The ninth implementation phase leaves `SlotKind`, the icon vector path, and
+the accessible tooltip in `FirmwareSlotViewModel`. It removes only the icon
+brush properties. `FirmwareSlotCard` uses Avalonia's built-in equality
+converter to expose the existing enum as `bin`, `base`, `dp`, `tp`, and
+`ctrlRam` classes. The shared style library owns each existing icon variant.
+`Unknown` remains the generic BIN treatment.
+
+The green emphasis shared by the selected-required badge and TP icon is named
+`UiBrush.SuccessStrong`. The generic BIN icon, report preview state, and Hex
+changed-block navigator reuse the exact existing caution surface/text roles.
+This expands visual ownership only; it does not introduce a converter class,
+new ViewModel state, or firmware policy.
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| C# presentation color literals | 45 | 30 |
+| Direct hex color literals in Avalonia XAML | 72 | 78 |
+| `UiBrush.*` dynamic-resource references | 377 | 395 |
+| Shared semantic palette resources | 45 | 54 |
+
+The ViewModel loses 50 physical lines and the affected production C# total
+falls by 46 nonblank lines. The canonical XAML styles and bindings add 47
+nonblank lines, for a one-line total increase. The icon path, accessible
+tooltip, and every enum-to-class mapping are covered by UI smoke and XAML
+style-contract tests.
+
 ## Code-Size Audit
 
 The code-size audit uses Git-tracked files under `src/` only. It excludes
@@ -181,10 +210,10 @@ decision. The `a9ae568f` baseline and the current recorded phase state measure:
 
 | Scope | Baseline nonblank lines | Current nonblank lines | Delta |
 | --- | ---: | ---: | ---: |
-| Production C# | 53,753 | 53,675 | -78 |
-| Avalonia C# | 12,881 | 12,803 | -78 |
-| Avalonia XAML | 3,961 | 4,056 | +95 |
-| Total tracked production source | 57,714 | 57,731 | +17 |
+| Production C# | 53,753 | 53,629 | -124 |
+| Avalonia C# | 12,881 | 12,757 | -124 |
+| Avalonia XAML | 3,961 | 4,103 | +142 |
+| Total tracked production source | 57,714 | 57,732 | +18 |
 
 The XAML increase is the explicit shared palette declarations and their
 references. The firmware-fact and slot-completion slices removed ViewModel
@@ -212,15 +241,14 @@ No remaining repeated template/style XAML value outside the shared palette has
 an approved semantic match. The disabled AB pending badge remains an
 intentional one-off even though it currently uses `#F1F5F9`.
 
-The Presentation C# audit remains open by design. `FirmwareSlotViewModel`
-slot-kind colors are the next pure UI-state candidate class-based migration.
+The Presentation C# audit remains open by design.
 `MemoryCoverageSegmentViewModel` keeps its data-bound `FillBrush` because it
 represents projected coverage evidence, but its changed/kept badge and outline
 can move to XAML state selectors. The Hex Editor stays a custom immediate-mode
 renderer; a later slice may feed its stable brushes through Avalonia styled
 properties while retaining its geometry, hit testing, caches, and transient
-procedural feedback. These three areas must not create ViewModel resource keys,
-a theme service, or firmware-derived token names.
+procedural feedback. These areas must not create ViewModel resource keys, a
+theme service, or firmware-derived token names.
 
 ## Consolidation Rules
 

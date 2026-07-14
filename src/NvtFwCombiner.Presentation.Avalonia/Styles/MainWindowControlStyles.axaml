@@ -13,6 +13,9 @@
     <SolidColorBrush x:Key="UiBrush.DangerSurface" Color="#FFF7F7" />
     <SolidColorBrush x:Key="UiBrush.ErrorSurface" Color="#FEF2F2" />
     <SolidColorBrush x:Key="UiBrush.SuccessSurface" Color="#F0FDF4" />
+    <SolidColorBrush x:Key="UiBrush.ReferenceInputSurface" Color="#EEF2FF" />
+    <SolidColorBrush x:Key="UiBrush.ControllerInputSurface" Color="#F5F3FF" />
+    <SolidColorBrush x:Key="UiBrush.CautionSurface" Color="#FFFBEB" />
     <SolidColorBrush x:Key="UiBrush.RequiredSelectedBadgeSurface" Color="#DCFCE7" />
     <SolidColorBrush x:Key="UiBrush.RequiredMissingBadgeSurface" Color="#FEE2E2" />
     <SolidColorBrush x:Key="UiBrush.DisabledSurface" Color="#E2E8F0" />
@@ -29,6 +32,9 @@
     <SolidColorBrush x:Key="UiBrush.SuccessBorder" Color="#BBF7D0" />
     <SolidColorBrush x:Key="UiBrush.RequiredMissingBorder" Color="#FCA5A5" />
     <SolidColorBrush x:Key="UiBrush.RequiredSelectedBorder" Color="#86EFAC" />
+    <SolidColorBrush x:Key="UiBrush.ReferenceInputBorder" Color="#C7D2FE" />
+    <SolidColorBrush x:Key="UiBrush.ControllerInputBorder" Color="#DDD6FE" />
+    <SolidColorBrush x:Key="UiBrush.CautionBorder" Color="#FDE68A" />
     <SolidColorBrush x:Key="UiBrush.TextPrimary" Color="#0F172A" />
     <SolidColorBrush x:Key="UiBrush.TextSecondary" Color="#334155" />
     <SolidColorBrush x:Key="UiBrush.TextMuted" Color="#64748B" />
@@ -42,7 +48,10 @@
     <SolidColorBrush x:Key="UiBrush.WarningDetail" Color="#7C2D12" />
     <SolidColorBrush x:Key="UiBrush.WarningMeta" Color="#B45309" />
     <SolidColorBrush x:Key="UiBrush.TextDanger" Color="#B91C1C" />
-    <SolidColorBrush x:Key="UiBrush.RequiredSelectedText" Color="#15803D" />
+    <SolidColorBrush x:Key="UiBrush.SuccessStrong" Color="#15803D" />
+    <SolidColorBrush x:Key="UiBrush.ReferenceInputForeground" Color="#4338CA" />
+    <SolidColorBrush x:Key="UiBrush.ControllerInputForeground" Color="#6D28D9" />
+    <SolidColorBrush x:Key="UiBrush.CautionText" Color="#92400E" />
     <SolidColorBrush x:Key="UiBrush.TextSuccess" Color="#166534" />
     <SolidColorBrush x:Key="UiBrush.SuccessIndicator" Color="#16A34A" />
     <SolidColorBrush x:Key="UiBrush.UtilityAccent" Color="#0F766E" />
@@ -396,6 +405,41 @@
     <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.Border}" />
     <Setter Property="BorderThickness" Value="1" />
   </Style>
+  <Style Selector="Border.slotTypeIcon.bin">
+    <Setter Property="Background" Value="{DynamicResource UiBrush.CautionSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.CautionBorder}" />
+  </Style>
+  <Style Selector="Border.slotTypeIcon.bin Path">
+    <Setter Property="Stroke" Value="{DynamicResource UiBrush.CautionText}" />
+  </Style>
+  <Style Selector="Border.slotTypeIcon.base">
+    <Setter Property="Background" Value="{DynamicResource UiBrush.ReferenceInputSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.ReferenceInputBorder}" />
+  </Style>
+  <Style Selector="Border.slotTypeIcon.base Path">
+    <Setter Property="Stroke" Value="{DynamicResource UiBrush.ReferenceInputForeground}" />
+  </Style>
+  <Style Selector="Border.slotTypeIcon.dp">
+    <Setter Property="Background" Value="{DynamicResource UiBrush.AccentSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.AccentSoftBorder}" />
+  </Style>
+  <Style Selector="Border.slotTypeIcon.dp Path">
+    <Setter Property="Stroke" Value="{DynamicResource UiBrush.AccentStrong}" />
+  </Style>
+  <Style Selector="Border.slotTypeIcon.tp">
+    <Setter Property="Background" Value="{DynamicResource UiBrush.SuccessSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.SuccessBorder}" />
+  </Style>
+  <Style Selector="Border.slotTypeIcon.tp Path">
+    <Setter Property="Stroke" Value="{DynamicResource UiBrush.SuccessStrong}" />
+  </Style>
+  <Style Selector="Border.slotTypeIcon.ctrlRam">
+    <Setter Property="Background" Value="{DynamicResource UiBrush.ControllerInputSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.ControllerInputBorder}" />
+  </Style>
+  <Style Selector="Border.slotTypeIcon.ctrlRam Path">
+    <Setter Property="Stroke" Value="{DynamicResource UiBrush.ControllerInputForeground}" />
+  </Style>
   <Style Selector="Label.slotBadge.firmwareSlotRequirement">
     <Setter Property="Background" Value="{DynamicResource UiBrush.RequiredMissingBadgeSurface}" />
     <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.DangerBorder}" />
@@ -404,7 +448,7 @@
   <Style Selector="Label.slotBadge.firmwareSlotRequirement.hasFile">
     <Setter Property="Background" Value="{DynamicResource UiBrush.RequiredSelectedBadgeSurface}" />
     <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.SuccessBorder}" />
-    <Setter Property="Foreground" Value="{DynamicResource UiBrush.RequiredSelectedText}" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.SuccessStrong}" />
   </Style>
   <Style Selector="Label.slotBadge.firmwareSlotRequirement.optional">
     <Setter Property="Background" Value="{DynamicResource UiBrush.AccentSelectedSurface}" />
@@ -472,11 +516,11 @@
     <Setter Property="Padding" Value="0" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
-    <Setter Property="Background" Value="#FFFBEB" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.CautionSurface}" />
     <Setter Property="BorderBrush" Value="#FCD34D" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="999" />
-    <Setter Property="Foreground" Value="#92400E" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.CautionText}" />
     <Setter Property="FontSize" Value="11" />
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>

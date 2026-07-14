@@ -127,7 +127,7 @@
               <TextBlock Grid.Row="1" Grid.Column="1" Classes="technicalDetail" Text="{Binding LoadedReport.OutputSizeLabel}" TextWrapping="Wrap" />
               <TextBlock Grid.Row="2" Classes="tableHeader" Text="{Binding Text.StateLabel}" />
               <TextBlock Grid.Row="2" Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource UiBrush.TextSuccess}" Text="{Binding LoadedReport.OutputCommitmentLabel}" TextWrapping="Wrap" IsVisible="{Binding LoadedReport.IsOutputCommitted}" />
-              <TextBlock Grid.Row="2" Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#92400E" Text="{Binding LoadedReport.OutputCommitmentLabel}" TextWrapping="Wrap" IsVisible="{Binding LoadedReport.IsOutputPreview}" />
+              <TextBlock Grid.Row="2" Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource UiBrush.CautionText}" Text="{Binding LoadedReport.OutputCommitmentLabel}" TextWrapping="Wrap" IsVisible="{Binding LoadedReport.IsOutputPreview}" />
               <TextBlock Grid.Row="2" Grid.Column="1" Classes="sectionLabel" Text="{Binding LoadedReport.OutputCommitmentLabel}" TextWrapping="Wrap" IsVisible="{Binding LoadedReport.IsOutputStateUnknown}" />
             </Grid>
             <TextBlock Classes="captionText" Text="{Binding LoadedReport.OutputArtifactPath}" TextWrapping="Wrap" IsVisible="{Binding LoadedReport.HasOutputArtifactPath}" />
