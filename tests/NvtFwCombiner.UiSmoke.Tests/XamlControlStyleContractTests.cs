@@ -73,6 +73,7 @@ public sealed partial class XamlControlStyleContractTests
             ["UiBrush.AccentSurface"] = "#EFF6FF",
             ["UiBrush.AccentSelectedSurface"] = "#EAF3FF",
             ["UiBrush.NavigationSelectedSurface"] = "#F1F5F9",
+            ["UiBrush.SlotFactSurface"] = "#EEF6FF",
             ["UiBrush.WarningSurface"] = "#FFF7ED",
             ["UiBrush.DangerSurface"] = "#FFF7F7",
             ["UiBrush.SuccessSurface"] = "#F0FDF4",
@@ -85,6 +86,7 @@ public sealed partial class XamlControlStyleContractTests
             ["UiBrush.AccentStrongBorder"] = "#60A5FA",
             ["UiBrush.AccentSoftBorder"] = "#BFDBFE",
             ["UiBrush.WarningBorder"] = "#FED7AA",
+            ["UiBrush.WarningSoftBorder"] = "#FDBA74",
             ["UiBrush.DangerBorder"] = "#FECACA",
             ["UiBrush.SuccessBorder"] = "#BBF7D0",
             ["UiBrush.TextPrimary"] = "#0F172A",
@@ -504,14 +506,36 @@ public sealed partial class XamlControlStyleContractTests
             "Border.contentPanel",
             "Border.listRow",
             "Border.settingRow",
+            "Border.firmwareSlotFact",
+            "Border.firmwareSlotFact.warning",
             "TextBlock.panelTitle",
             "TextBlock.supportingText",
             "TextBlock.infoText",
             "TextBlock.technicalValue",
+            "TextBlock.firmwareSlotFactLabel",
+            "TextBlock.firmwareSlotFactValue",
         })
         {
             Assert.Contains($"Selector=\"{selector}\"", styles, StringComparison.Ordinal);
         }
+
+        string sharedTemplates = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
+        int factTemplateStart = sharedTemplates.IndexOf(
+            "<DataTemplate x:Key=\"FirmwareSlotFactTemplate\"",
+            StringComparison.Ordinal);
+        string factTemplate = sharedTemplates[factTemplateStart..];
+        factTemplate = factTemplate[..factTemplate.IndexOf("</DataTemplate>", StringComparison.Ordinal)];
+
+        Assert.Contains("Classes=\"firmwareSlotFact\"", factTemplate, StringComparison.Ordinal);
+        Assert.Contains("Classes.warning=\"{Binding IsWarning}\"", factTemplate, StringComparison.Ordinal);
+        Assert.DoesNotContain("BackgroundBrush", factTemplate, StringComparison.Ordinal);
+        Assert.DoesNotContain("BorderBrush=\"{Binding BorderBrush}\"", factTemplate, StringComparison.Ordinal);
+        Assert.DoesNotContain("LabelForegroundBrush", factTemplate, StringComparison.Ordinal);
+        Assert.DoesNotContain("ValueForegroundBrush", factTemplate, StringComparison.Ordinal);
+
+        string factViewModel = ReadPresentationFile("ViewModels/FirmwareSlotFactViewModel.cs");
+        Assert.DoesNotContain("Avalonia.Media", factViewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("Brush.Parse", factViewModel, StringComparison.Ordinal);
 
         string[] legacyPropertyBundles =
         [

@@ -8,6 +8,7 @@
     <SolidColorBrush x:Key="UiBrush.AccentSurface" Color="#EFF6FF" />
     <SolidColorBrush x:Key="UiBrush.AccentSelectedSurface" Color="#EAF3FF" />
     <SolidColorBrush x:Key="UiBrush.NavigationSelectedSurface" Color="#F1F5F9" />
+    <SolidColorBrush x:Key="UiBrush.SlotFactSurface" Color="#EEF6FF" />
     <SolidColorBrush x:Key="UiBrush.WarningSurface" Color="#FFF7ED" />
     <SolidColorBrush x:Key="UiBrush.DangerSurface" Color="#FFF7F7" />
     <SolidColorBrush x:Key="UiBrush.SuccessSurface" Color="#F0FDF4" />
@@ -20,6 +21,7 @@
     <SolidColorBrush x:Key="UiBrush.AccentStrongBorder" Color="#60A5FA" />
     <SolidColorBrush x:Key="UiBrush.AccentSoftBorder" Color="#BFDBFE" />
     <SolidColorBrush x:Key="UiBrush.WarningBorder" Color="#FED7AA" />
+    <SolidColorBrush x:Key="UiBrush.WarningSoftBorder" Color="#FDBA74" />
     <SolidColorBrush x:Key="UiBrush.DangerBorder" Color="#FECACA" />
     <SolidColorBrush x:Key="UiBrush.SuccessBorder" Color="#BBF7D0" />
     <SolidColorBrush x:Key="UiBrush.TextPrimary" Color="#0F172A" />
@@ -373,6 +375,23 @@
     <Setter Property="FontSize" Value="11" />
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
+  <Style Selector="Border.firmwareSlotFact">
+    <Setter Property="Background" Value="{DynamicResource UiBrush.SlotFactSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.AccentSoftBorder}" />
+  </Style>
+  <Style Selector="Border.firmwareSlotFact.warning">
+    <Setter Property="Background" Value="{DynamicResource UiBrush.WarningSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.WarningSoftBorder}" />
+  </Style>
+  <Style Selector="TextBlock.firmwareSlotFactLabel">
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.TextSubtle}" />
+  </Style>
+  <Style Selector="TextBlock.firmwareSlotFactValue">
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.TextPrimary}" />
+  </Style>
+  <Style Selector="Border.firmwareSlotFact.warning TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.TextWarning}" />
+  </Style>
   <Style Selector="Label.countBadge">
     <Setter Property="MinHeight" Value="22" />
     <Setter Property="Padding" Value="8,2" />
@@ -389,7 +408,7 @@
   </Style>
   <Style Selector="Label.countBadge.changed">
     <Setter Property="Background" Value="{DynamicResource UiBrush.WarningSurface}" />
-    <Setter Property="BorderBrush" Value="#FDBA74" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.WarningSoftBorder}" />
     <Setter Property="Foreground" Value="#C2410C" />
   </Style>
   <Style Selector="TextBlock.hexInspectorSection">

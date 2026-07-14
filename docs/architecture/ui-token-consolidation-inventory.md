@@ -126,6 +126,26 @@ though it currently shares the navigation surface color.
 | `UiBrush.*` dynamic-resource references | 349 | 353 |
 | Shared semantic palette resources | 35 | 37 |
 
+### Firmware fact presentation ownership
+
+The seventh implementation phase retires the eight color literals and four
+`IBrush` presentation properties from `FirmwareSlotFactViewModel`. The record
+now exposes only `Label`, `Value`, and `IsWarning`; `Border.firmwareSlotFact`
+and its warning selector own the exact normal and warning presentation in the
+shared style library. The existing fact text, binding values, and warning state
+remain unchanged.
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| C# presentation color literals | 68 | 60 |
+| Direct hex color literals in Avalonia XAML | 66 | 67 |
+| `UiBrush.*` dynamic-resource references | 353 | 361 |
+| Shared semantic palette resources | 37 | 39 |
+
+The XAML literal count increases by one because the two exact resources are
+declared in the canonical library while one pre-existing changed-badge border
+is replaced. This is an ownership migration, not a literal-count reduction.
+
 ## Code-Size Audit
 
 The code-size audit uses Git-tracked files under `src/` only. It excludes
@@ -134,19 +154,21 @@ decision. The `a9ae568f` baseline and the current recorded phase state measure:
 
 | Scope | Baseline nonblank lines | Current nonblank lines | Delta |
 | --- | ---: | ---: | ---: |
-| Production C# | 53,753 | 53,753 | 0 |
-| Avalonia C# | 12,881 | 12,881 | 0 |
-| Avalonia XAML | 3,961 | 4,003 | +42 |
+| Production C# | 53,753 | 53,734 | -19 |
+| Avalonia C# | 12,881 | 12,862 | -19 |
+| Avalonia XAML | 3,961 | 4,022 | +61 |
 | Total tracked production source | 57,714 | 57,756 | +42 |
 
 The XAML increase is the explicit shared palette declarations and their
-references. It removed direct palette debt without adding C# wrappers, a
-second token system, or new firmware behavior. The repository architecture
-test rejects source, test, and documentation files over 700 lines; the largest
-tracked production source file is currently 632 lines.
+references. The firmware-fact slice moved 19 presentation-only C# lines into
+19 shared XAML lines, preserving the total while removing a second visual
+ownership point. No phase adds a C# wrapper, second token system, or firmware
+behavior. The repository architecture test rejects source, test, and
+documentation files over 700 lines; the largest tracked production source file
+is currently 632 lines.
 
 The requested approximate 30,000-line target would require removing about
-27,751 tracked production lines, or 48 percent of the current source. UI token
+27,756 tracked production lines, or 48 percent of the current source. UI token
 cleanup cannot honestly produce that reduction. It must not be attempted by
 deleting tests, golden evidence, manifests, or still-live legacy paths. Any
 future reduction of that scale needs a separately approved workflow-retirement
@@ -159,9 +181,20 @@ also contains visually similar but role-distinct controls; merging them merely
 because their current setters resemble each other would weaken accessibility
 and visual-state contracts.
 
-No remaining repeated direct value outside the shared palette has an approved
-semantic match. The disabled AB pending badge remains an intentional one-off
-even though it currently uses `#F1F5F9`.
+No remaining repeated template/style XAML value outside the shared palette has
+an approved semantic match. The disabled AB pending badge remains an
+intentional one-off even though it currently uses `#F1F5F9`.
+
+The Presentation C# audit remains open by design. `FirmwareSlotViewModel`
+slot-completion and slot-kind colors are pure UI state and are the next
+candidate class-based migration. `MemoryCoverageSegmentViewModel` keeps its
+data-bound `FillBrush` because it represents projected coverage evidence, but
+its changed/kept badge and outline can move to XAML state selectors. The Hex
+Editor stays a custom immediate-mode renderer; a later slice may feed its
+stable brushes through Avalonia styled properties while retaining its geometry,
+hit testing, caches, and transient procedural feedback. These three areas must
+not create ViewModel resource keys, a theme service, or firmware-derived token
+names.
 
 ## Consolidation Rules
 
