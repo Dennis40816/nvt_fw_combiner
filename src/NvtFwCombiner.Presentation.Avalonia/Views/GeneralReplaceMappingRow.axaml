@@ -6,12 +6,9 @@
     x:Name="Root"
     x:DataType="vm:GeneralReplaceMappingViewModel">
   <Border
+      Classes="subtleSurface"
       Margin="0,0,0,8"
-      Padding="7"
-      Background="#F8FAFC"
-      BorderBrush="#CBD5E1"
-      BorderThickness="1"
-      CornerRadius="8">
+      Padding="7">
     <Grid ColumnDefinitions="34,128,22,128,*,82,40" ColumnSpacing="8">
       <Border Classes="mappingIndex">
         <TextBlock Classes="mappingIndex" Text="{Binding Index}" />
@@ -38,10 +35,6 @@
           Grid.Column="4"
           MinHeight="32"
           Padding="0"
-          Background="#FFFFFF"
-          BorderBrush="#CBD5E1"
-          BorderThickness="1"
-          CornerRadius="8"
           DragDrop.AllowDrop="True"
           DragDrop.DragEnter="DropZone_OnDragEnter"
           DragDrop.DragOver="DropZone_OnDragOver"
