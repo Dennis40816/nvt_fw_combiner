@@ -21,6 +21,7 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 - `v0.9.4` — automated IC intake milestone: a deterministic, manifest-driven intake interface may produce candidate bundles and validation reports from declared evidence. It must not infer firmware behavior or automatically promote an IC/mode.
 - `v0.9.5` — V2 workflow convergence milestone: one reviewed workflow family at a time may retire an exactly replaced legacy profile/catalog only after direct V2 runtime and golden evidence prove parity.
 - `v0.9.6` — support and release consolidation milestone: retire completed compatibility projections, reconcile the support matrix, and close package/release evidence without expanding firmware behavior.
+- `v0.9.7` — UI token consolidation and code-size discipline milestone: unify exactly equivalent visual, text, and spacing tokens; remove only proven duplicate UI or compatibility code while retaining UI behavior, accessibility, tests, and firmware boundaries.
 
 The active closure goal, completed-milestone audit, and the exact scope fence
 for `v0.9.3` through `v0.9.6` are maintained in
@@ -42,6 +43,7 @@ for `v0.9.3` through `v0.9.6` are maintained in
 - `0.9.4` follows the reviewed `0.9.3` tag for integration and release, and may automate declared IC-evidence intake only through the standardized 0.9.2 bundle contract.
 - `0.9.5` follows the reviewed `0.9.4` tag and performs staged V2 workflow convergence using the [Legacy Retirement Matrix](legacy-retirement-matrix.md); it does not treat a legacy name as evidence that code is removable.
 - `0.9.6` follows the reviewed `0.9.5` tag and closes only release/support evidence and compatibility items whose matrix gates are complete.
+- `0.9.7` follows the reviewed `0.9.6` tag and consolidates UI tokens and exactly replaced duplication. It does not introduce firmware behavior, relax release evidence, or use line-count reduction as a reason to remove required tests or compatibility paths.
 
 Pre-tag `0.9.x` feature development is permitted for candidate-only work under
 the [roadmap policy](../architecture/0.9.x-completion-roadmap.md#pre-tag-candidate-development-policy).
@@ -80,6 +82,7 @@ Current execution priority: normal Merge and normal Replace for DP Replace and C
 | `v0.9.4` | Automated IC intake | Manifest-driven candidate-bundle and validation-report generation; no inferred firmware rules or automatic support promotion. |
 | `v0.9.5` | V2 workflow convergence | Retire only legacy definitions with an exact V2 runtime replacement, direct tests, and golden/evidence closure recorded in the retirement matrix. |
 | `v0.9.6` | Support/release consolidation | Remove completed compatibility projections and close support/package evidence without adding firmware behavior. |
+| `v0.9.7` | UI token consolidation and code-size discipline | Consolidate exact-equivalent UI tokens, remove only proven duplicate UI/compatibility code, and retain behavioral/accessibility coverage without adding firmware behavior. |
 | `v1.0.0` | stable | Signed-off support matrix. |
 
 ## First-sample `v1.0.0` release gate
@@ -122,6 +125,7 @@ v0.9.3          AB Code and CtrlRAM version edit
 v0.9.4          automated IC intake candidate workflow
 v0.9.5          V2 workflow convergence and legacy retirement
 v0.9.6          support/release consolidation
+v0.9.7          UI token consolidation and code-size discipline
 v1.0.0          stable
 ```
 
