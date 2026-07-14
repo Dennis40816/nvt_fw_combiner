@@ -7,10 +7,11 @@ internal static partial class CompositionProfileNormalizer
     private static CompositionProfileCompilationContext NormalizeCompilationContext(
         CompositionProfileDocument document)
     {
-        if (!StringComparer.Ordinal.Equals(document.SchemaVersion, "2.4"))
+        if (!StringComparer.Ordinal.Equals(document.SchemaVersion, "2.4") &&
+            !StringComparer.Ordinal.Equals(document.SchemaVersion, "2.5"))
         {
             return document.CompilationContext is not null || document.LogicalOutputBinding is not null
-                ? throw Error("compilationContext", "Compilation contexts require composition-profile schema version '2.4'.")
+                ? throw Error("compilationContext", "Compilation contexts require composition-profile schema version '2.4' or '2.5'.")
                 : new ResolvedMapProfileCompilationContext(NormalizeMapBinding(
                     RequireObject(document.MapBinding, "mapBinding"),
                     "mapBinding"));
@@ -24,6 +25,7 @@ internal static partial class CompositionProfileNormalizer
             "resolved-map" when document.LogicalOutputBinding is null => new ResolvedMapProfileCompilationContext(
                 NormalizeMapBinding(RequireObject(document.MapBinding, "mapBinding"), "mapBinding")),
             "logical-output" when document.MapBinding is null => NormalizeLogicalOutputContext(
+                document.SchemaVersion,
                 RequireObject(document.LogicalOutputBinding, "logicalOutputBinding")),
             "resolved-map" => throw Error("logicalOutputBinding", "Resolved-map profiles cannot declare logical-output binding."),
             "logical-output" => throw Error("mapBinding", "Logical-output profiles cannot declare map binding."),
@@ -32,9 +34,11 @@ internal static partial class CompositionProfileNormalizer
     }
 
     private static LogicalOutputProfileCompilationContext NormalizeLogicalOutputContext(
+        string schemaVersion,
         CompositionProfileLogicalOutputBindingDocument document)
     {
         return Wrap("logicalOutputBinding", () => new LogicalOutputProfileCompilationContext(
+            schemaVersion,
             document.FamilyId,
             document.FamilyVersion,
             document.FamilyContentHash,

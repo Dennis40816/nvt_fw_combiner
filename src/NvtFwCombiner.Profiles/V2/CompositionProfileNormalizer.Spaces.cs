@@ -94,16 +94,18 @@ internal static partial class CompositionProfileNormalizer
                 long.MaxValue,
                 $"{path}.bytes"))),
             "runtime-request" when (StringComparer.Ordinal.Equals(schemaVersion, "2.3") ||
-                                     StringComparer.Ordinal.Equals(schemaVersion, "2.4")) &&
+                                     StringComparer.Ordinal.Equals(schemaVersion, "2.4") ||
+                                     StringComparer.Ordinal.Equals(schemaVersion, "2.5")) &&
                                    spaceKind == CompositionProfileSpaceKind.OutputImage =>
                 new RuntimeRequestProfileCapacity(),
             "runtime-request" when StringComparer.Ordinal.Equals(schemaVersion, "2.3") ||
-                                   StringComparer.Ordinal.Equals(schemaVersion, "2.4") => throw Error(
+                                   StringComparer.Ordinal.Equals(schemaVersion, "2.4") ||
+                                   StringComparer.Ordinal.Equals(schemaVersion, "2.5") => throw Error(
                 $"{path}.kind",
                 "The runtime-request capacity kind is valid only for an output-image space."),
             "runtime-request" => throw Error(
                 $"{path}.kind",
-                "The runtime-request capacity kind requires composition-profile schema version '2.3' or '2.4'."),
+                "The runtime-request capacity kind requires composition-profile schema version '2.3', '2.4', or '2.5'."),
             _ => throw Error($"{path}.kind", "Unknown profile capacity kind."),
         };
     }

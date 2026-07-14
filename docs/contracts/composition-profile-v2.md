@@ -1,10 +1,11 @@
-# Composition Profile Contract 2.0, 2.1, 2.2, 2.3, and 2.4
+# Composition Profile Contract 2.0, 2.1, 2.2, 2.3, 2.4, and 2.5
 
 The executable schemas are [`composition-profile-v2.schema.json`](composition-profile-v2.schema.json)
 [`composition-profile-v2.1.schema.json`](composition-profile-v2.1.schema.json), and
 [`composition-profile-v2.2.schema.json`](composition-profile-v2.2.schema.json), and
 [`composition-profile-v2.3.schema.json`](composition-profile-v2.3.schema.json), and
-[`composition-profile-v2.4.schema.json`](composition-profile-v2.4.schema.json). A trusted bundle
+[`composition-profile-v2.4.schema.json`](composition-profile-v2.4.schema.json), and
+[`composition-profile-v2.5.schema.json`](composition-profile-v2.5.schema.json). A trusted bundle
 selects one exact schema snapshot through its manifest content hash. They are the only declarative
 workflow policy compiled for Normal, AB, General, Merge, Replace, saved rules, and future Register work.
 
@@ -128,6 +129,11 @@ exact `mapBinding`; `logical-output` declarations bind an exact family and membe
 claiming a physical image map. Logical output is restricted to declarative General Merge: one
 per-binding auxiliary input template, one zero-filled runtime-request output, and no physical views,
 regions, metadata, validations, processors, or profile-owned byte operations.
+
+Schema 2.5 keeps the 2.4 logical-output shape, but its `logicalOutputBinding.memberIds` use canonical
+firmware IC IDs such as `NT51920`. Each declared logical member must be an exact member of the
+bound family snapshot; generic lowercase IDs cannot represent firmware-family membership. Existing
+2.4 schema snapshots remain immutable and retain their original identifier grammar.
 
 ## Input size policy
 

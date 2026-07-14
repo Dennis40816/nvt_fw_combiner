@@ -57,7 +57,11 @@ the promotion stage is exactly `executable-candidate`. It does not admit map-bou
 other promotion stages. This permits controlled candidate parity collection without promoting the
 profile to supported execution.
 
-`runtime-request` capacity is not valid on resolved-map profiles. Logical-output admission must not
+`runtime-request` capacity is not valid on resolved-map profiles. Logical-output `memberIds` must be
+canonical `NT...` identities present in the bound exact family snapshot. A candidate may snapshot an
+existing exact family solely to carry that member identity, but it cannot select or claim a physical
+image map. A dummy logical-only family is forbidden; a cross-family candidate requires each exact
+family binding to be registered explicitly. Logical-output admission must not
 bypass map-backed region access, metadata, processor, or promotion controls. General Merge does not
 fall back to legacy after V2 compile selection: the caller selects one authority deliberately during
 migration. The legacy compatibility path remains until V2 parity and promotion gates pass.

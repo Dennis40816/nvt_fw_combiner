@@ -46,6 +46,7 @@ internal static class TrustedProfileBundleCatalogFactory
     private const string ProfileFamilyMissing = "profile-bundle.catalog.profile-family-missing";
     private const string ProfileFamilyAmbiguous = "profile-bundle.catalog.profile-family-ambiguous";
     private const string ProfileMapMissing = "profile-bundle.catalog.profile-map-missing";
+    private const string LogicalProfileMemberMissing = "profile-bundle.catalog.logical-member-missing";
 
     /// <summary>Normalizes one complete trusted source atomically without map resolution or plan compilation.</summary>
     internal static TrustedProfileBundleCatalog Create(TrustedProfileBundleCatalogSource source)
@@ -101,7 +102,8 @@ internal static class TrustedProfileBundleCatalogFactory
             {
                 families[index] = new TrustedFirmwareFamilyCatalogEntry(
                     source.Identity,
-                    FirmwareFamilyResolutionNormalizer.Normalize(document, source.Identity.ContentHash));
+                    FirmwareFamilyResolutionNormalizer.Normalize(document, source.Identity.ContentHash),
+                    document.Members.Select(static member => member.MemberId));
             }
             catch (FirmwareFamilyNormalizationException exception)
             {
@@ -153,6 +155,10 @@ internal static class TrustedProfileBundleCatalogFactory
             if (profile.CompilationContext.Kind == CompositionProfileCompilationContextKind.ResolvedMap)
             {
                 ValidateDeclaredMaps(profile, family, source.Identity);
+            }
+            else
+            {
+                ValidateLogicalMembers(profile, family, source.Identity);
             }
             profiles[index] = new TrustedCompositionProfileCatalogEntry(source.Identity, profile, family);
         }
@@ -265,6 +271,23 @@ internal static class TrustedProfileBundleCatalogFactory
                 throw Error(
                     ProfileMapMissing,
                     $"Profile '{profile.ProfileId}' names unknown map '{mapId}' in its exact trusted family.",
+                    profileIdentity);
+            }
+        }
+    }
+
+    private static void ValidateLogicalMembers(
+        CompositionProfileDefinition profile,
+        TrustedFirmwareFamilyCatalogEntry family,
+        TrustedProfileBundleCatalogEntryIdentity profileIdentity)
+    {
+        foreach (string memberId in profile.LogicalOutputBinding.MemberIds)
+        {
+            if (!family.MemberIds.Contains(memberId, StringComparer.Ordinal))
+            {
+                throw Error(
+                    LogicalProfileMemberMissing,
+                    $"Logical-output profile '{profile.ProfileId}' names member '{memberId}' outside its exact trusted family.",
                     profileIdentity);
             }
         }

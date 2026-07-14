@@ -8,6 +8,8 @@ namespace NvtFwCombiner.ProfileContract.Tests;
 
 public sealed partial class TrustedProfileBundleCatalogFactoryTests
 {
+    private const string LogicalTestMemberId = "NT00001";
+
     /// <summary>Verifies logical General Merge lowers through the existing plan and engine without a physical map claim.</summary>
     [Fact]
     public void LogicalOutputLoweringCompilesAndExecutesThroughTheSharedEngine()
@@ -17,7 +19,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             catalog,
             "logical-general-merge",
             "1.0.0",
-            "member",
+            LogicalTestMemberId,
             LogicalRequest(outputCapacity: 6));
 
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
@@ -46,12 +48,30 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             CreateLogicalOutputCatalog(),
             "logical-general-merge",
             "1.0.0",
-            "other-member",
+            "NT00002",
             LogicalRequest(outputCapacity: 6));
 
         Assert.False(result.IsCompiled);
         Assert.Null(result.CompiledComposition);
         Assert.Equal("profile.v2.logical.member-not-admitted", Assert.Single(result.Issues).Code);
+    }
+
+    /// <summary>Verifies a logical profile cannot name a member outside its exact trusted family identity.</summary>
+    [Fact]
+    public void LogicalOutputCatalogRejectsMemberOutsideItsExactFamily()
+    {
+        string familyJson = TrustedV2BundleTestDocuments.FamilyJson();
+        string familyHash = Hash(familyJson);
+        string profileJson = LogicalOutputProfileJson(familyHash, "NT00002");
+        using var profileDocument = JsonDocument.Parse(profileJson);
+
+        TrustedProfileBundleCatalogException exception = Assert.Throws<TrustedProfileBundleCatalogException>(() =>
+            TrustedProfileBundleCatalogFactory.Create(Source(
+                [Family("family-entry", familyHash, TrustedV2BundleTestDocuments.Family())],
+                [Profile("logical-profile-entry", Hash(profileJson), profileDocument.RootElement.Clone())])));
+
+        Assert.Equal("profile-bundle.catalog.logical-member-missing", exception.Code);
+        Assert.Equal("logical-profile-entry", exception.EntryId);
     }
 
     /// <summary>Verifies logical request capacity and concrete mapping bounds remain compiler-checked before plan creation.</summary>
@@ -62,7 +82,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             CreateLogicalOutputCatalog(),
             "logical-general-merge",
             "1.0.0",
-            "member",
+            LogicalTestMemberId,
             new V2LogicalOutputCompileRequest(
                 outputCapacity: 0,
                 [new V2LogicalOutputInputBinding("source-a", "source", 4)],
@@ -93,7 +113,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             catalog,
             "logical-general-merge",
             "1.0.0",
-            "member",
+            LogicalTestMemberId,
             new V2LogicalOutputCompileRequest(
                 6,
                 [new V2LogicalOutputInputBinding("source-a", "source", 4)],
@@ -102,7 +122,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             catalog,
             "logical-general-merge",
             "1.0.0",
-            "member",
+            LogicalTestMemberId,
             new V2LogicalOutputCompileRequest(
                 6,
                 [new V2LogicalOutputInputBinding("source-a", "source", 4)],
@@ -121,7 +141,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             catalog,
             "logical-general-merge",
             "1.0.0",
-            "member",
+            LogicalTestMemberId,
             new V2LogicalOutputCompileRequest(
                 6,
                 [new V2LogicalOutputInputBinding(CompositionAddressSpaceIds.OutputImage, "source", 4)],
@@ -140,7 +160,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             catalog,
             "logical-general-merge",
             "1.0.0",
-            "member",
+            LogicalTestMemberId,
             LogicalRequest(outputCapacity: 6));
 
         Assert.False(rejected.IsCompiled);
@@ -158,14 +178,14 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 catalog,
                 "logical-general-merge",
                 "1.0.0",
-                "member",
+            LogicalTestMemberId,
                 LogicalRequest(outputCapacity: 6)).CompiledComposition);
         CompiledComposition seven = Assert.IsType<CompiledComposition>(
             TrustedV2CompositionCompiler.CompileLogicalOutput(
                 catalog,
                 "logical-general-merge",
                 "1.0.0",
-                "member",
+            LogicalTestMemberId,
                 LogicalRequest(outputCapacity: 7)).CompiledComposition);
 
         Assert.NotEqual(six.CompilationFingerprint, seven.CompilationFingerprint);
@@ -215,11 +235,11 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             reason: "test logical mapping");
     }
 
-    private static string LogicalOutputProfileJson(string familyHash)
+    private static string LogicalOutputProfileJson(string familyHash, string memberId = LogicalTestMemberId)
     {
         var profile = new JsonObject
         {
-            ["schemaVersion"] = "2.4",
+            ["schemaVersion"] = "2.5",
             ["profileId"] = "logical-general-merge",
             ["profileVersion"] = "1.0.0",
             ["promotion"] = new JsonObject
@@ -243,7 +263,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 ["familyId"] = "family",
                 ["familyVersion"] = "1.0.0",
                 ["familyContentHash"] = familyHash,
-                ["memberIds"] = new JsonArray("member"),
+                ["memberIds"] = new JsonArray(memberId),
             },
             ["inputSlots"] = new JsonArray
             {

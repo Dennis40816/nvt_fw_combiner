@@ -8,17 +8,31 @@ internal sealed class TrustedFirmwareFamilyCatalogEntry
 {
     internal TrustedFirmwareFamilyCatalogEntry(
         TrustedProfileBundleCatalogEntryIdentity identity,
-        FirmwareFamilyResolutionDefinition family)
+        FirmwareFamilyResolutionDefinition family,
+        IEnumerable<string> memberIds)
     {
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentNullException.ThrowIfNull(family);
+        ArgumentNullException.ThrowIfNull(memberIds);
+        string[] members = [.. memberIds];
+        if (members.Length == 0 ||
+            members.Any(string.IsNullOrWhiteSpace) ||
+            members.Distinct(StringComparer.Ordinal).Count() != members.Length)
+        {
+            throw new ArgumentException("Trusted family members must be nonempty and unique.", nameof(memberIds));
+        }
+
         Identity = identity;
         Family = family;
+        MemberIds = Array.AsReadOnly(members);
     }
 
     internal TrustedProfileBundleCatalogEntryIdentity Identity { get; }
 
     internal FirmwareFamilyResolutionDefinition Family { get; }
+
+    /// <summary>Exact declared family members retained for non-map logical-profile admission.</summary>
+    internal IReadOnlyList<string> MemberIds { get; }
 }
 
 /// <summary>One immutable normalized profile and the exact normalized family it binds.</summary>

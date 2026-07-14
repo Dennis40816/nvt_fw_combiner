@@ -224,6 +224,74 @@ public sealed class GeneralMergeCliCommandTests
         Assert.Contains("overlaps earlier operation", issue.GetProperty("Message").GetString(), StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies the explicit V2 candidate preserves the legacy bytes without changing the default General Merge route.</summary>
+    [Fact]
+    public async Task GeneralMergeV2CandidateMatchesLegacyBytesWithoutChangingDefaultRoute()
+    {
+        using var workspace = TempWorkspace.Create();
+        string firstSource = workspace.Write("first.bin", [0x10, 0x11, 0x12, 0x13]);
+        string secondSource = workspace.Write("second.bin", [0x20, 0x21, 0x22]);
+        WorkbenchGeneralMergeMappingInput[] mappings =
+        [
+            new("general-merge-map-1", firstSource, "0x1", "0x0", "0x3"),
+            new("general-merge-map-2", secondSource, "0x0", "0x6", "0x2"),
+            new("general-merge-map-3", firstSource, "0x0", "0x8", "0x1"),
+        ];
+        string legacyOutput = workspace.PathFor("legacy.bin");
+        string candidateOutput = workspace.PathFor("candidate.bin");
+
+        WorkbenchRunResult legacy = await WorkbenchCompositionService.RunGeneralMergeAsync(
+            "NT51920",
+            "0x10",
+            mappings,
+            build: true,
+            TestContext.Current.CancellationToken,
+            legacyOutput);
+        WorkbenchRunResult candidate = await WorkbenchCompositionService.RunGeneralMergeV2CandidateAsync(
+            "NT51920",
+            "0x10",
+            mappings,
+            build: true,
+            TestContext.Current.CancellationToken,
+            candidateOutput);
+
+        Assert.True(legacy.Succeeded);
+        Assert.True(candidate.Succeeded);
+        Assert.Equal("nt51920-general-merge-workbench", legacy.ProfileId);
+        Assert.Equal("nt51920-general-merge-logical-candidate", candidate.ProfileId);
+        Assert.Equal(
+            await File.ReadAllBytesAsync(legacyOutput, TestContext.Current.CancellationToken),
+            await File.ReadAllBytesAsync(candidateOutput, TestContext.Current.CancellationToken));
+
+        using var candidateReport = JsonDocument.Parse(candidate.ReportJson);
+        JsonElement root = candidateReport.RootElement;
+        Assert.Equal("nt51920-general-merge-logical-candidate", root.GetProperty("ProfileId").GetString());
+        Assert.Equal("general-merge", root.GetProperty("ExperienceId").GetString());
+        Assert.Equal("Merge", root.GetProperty("CompositionKind").GetString());
+        Assert.Equal(3, root.GetProperty("Operations").GetArrayLength());
+    }
+
+    /// <summary>Verifies the V2 candidate rejects an unadmitted member rather than falling back to legacy General Merge.</summary>
+    [Fact]
+    public async Task GeneralMergeV2CandidateRejectsUnadmittedMemberWithoutLegacyFallback()
+    {
+        using var workspace = TempWorkspace.Create();
+        string source = workspace.Write("source.bin", [0x10]);
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralMergeV2CandidateAsync(
+            "NT51950",
+            "0x10",
+            [new WorkbenchGeneralMergeMappingInput("general-merge-map-1", source, "0x0", "0x0", "0x1")],
+            build: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("nt51920-general-merge-logical-candidate", result.ProfileId);
+        using var report = JsonDocument.Parse(result.ReportJson);
+        JsonElement issue = Assert.Single(report.RootElement.GetProperty("Issues").EnumerateArray());
+        Assert.Equal("general-merge.v2-candidate.member-not-admitted", issue.GetProperty("Code").GetString());
+    }
+
     private static Task<CliRunResult> RunCliAsync(string[] args)
     {
         return CliTestHarness.RunAsync(args, TestContext.Current.CancellationToken);

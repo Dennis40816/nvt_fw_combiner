@@ -98,6 +98,7 @@ public sealed partial class RepositoryBoundaryTests
         string[] expectedBundleIds =
         [
             "nt51920-standard-merge",
+            "nt51920-general-merge-logical-candidate",
             "nt51923-standard-merge",
             "nt51927-standard-merge",
             "nt51928-standard-merge",
@@ -116,7 +117,18 @@ public sealed partial class RepositoryBoundaryTests
             XAttribute include = Assert.Single(bundle.Attributes());
 
             Assert.Equal("Include", include.Name.LocalName);
-            Assert.Empty(bundle.Elements());
+            if (StringComparer.Ordinal.Equals(
+                    bundle.Attribute("Include")?.Value,
+                    "nt51920-general-merge-logical-candidate"))
+            {
+                Assert.Equal(
+                    "ab3bed384c5d78590ad6a87ee23c12f23a1ea4a1bdc6001273f254b6e5f3547f",
+                    Assert.Single(bundle.Elements("CompositionProfileSchemaHash")).Value);
+            }
+            else
+            {
+                Assert.Empty(bundle.Elements());
+            }
             Assert.DoesNotContain("*", include.Value, StringComparison.Ordinal);
             Assert.DoesNotContain("$(", include.Value, StringComparison.Ordinal);
             Assert.DoesNotContain("@(", include.Value, StringComparison.Ordinal);

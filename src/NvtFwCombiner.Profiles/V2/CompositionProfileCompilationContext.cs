@@ -70,6 +70,7 @@ internal sealed class LogicalOutputProfileCompilationContext : CompositionProfil
     private readonly string[] _memberIds;
 
     internal LogicalOutputProfileCompilationContext(
+        string schemaVersion,
         string familyId,
         string familyVersion,
         string familyContentHash,
@@ -80,7 +81,10 @@ internal sealed class LogicalOutputProfileCompilationContext : CompositionProfil
             familyVersion,
             familyContentHash)
     {
-        _memberIds = CompositionProfileValueRules.SnapshotIds(memberIds, nameof(memberIds), requireValue: true);
+        _memberIds = CompositionProfileValueRules.SnapshotLogicalMemberIds(
+            schemaVersion,
+            memberIds,
+            nameof(memberIds));
         MemberIds = Array.AsReadOnly(_memberIds);
     }
 
