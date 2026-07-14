@@ -29,12 +29,9 @@
 
 <DataTemplate x:Key="MemoryCoverageTooltipTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
   <Border
+      Classes="surface"
       MaxWidth="360"
-      Padding="10"
-      Background="#FFFFFF"
-      BorderBrush="#CBD5E1"
-      BorderThickness="1"
-      CornerRadius="8">
+      Padding="10">
     <StackPanel Spacing="8">
       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
         <Border

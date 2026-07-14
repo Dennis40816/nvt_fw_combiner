@@ -44,6 +44,8 @@ public sealed class XamlControlStyleContractTests
         string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
         string merge = ReadPresentationFile("Views/GeneralMergeMappingRow.axaml");
         string replace = ReadPresentationFile("Views/GeneralReplaceMappingRow.axaml");
+        string sharedTemplates = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
+        string reportHistoryTemplates = ReadPresentationFile("Resources/MainWindowReportHistoryTemplates.axaml");
 
         Assert.Contains("Selector=\"Border.fileDropZone\"", styles, StringComparison.Ordinal);
         foreach (string row in new[] { merge, replace })
@@ -52,6 +54,8 @@ public sealed class XamlControlStyleContractTests
             Assert.Contains("Classes=\"fileDropZone\"", row, StringComparison.Ordinal);
             Assert.DoesNotContain("Background=\"#F8FAFC\"", row, StringComparison.Ordinal);
         }
+        Assert.Contains("Classes=\"surface\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"compactSurface\"", reportHistoryTemplates, StringComparison.Ordinal);
     }
 
     /// <summary>Ensures the Report raw payload uses the shared read-only text control.</summary>
