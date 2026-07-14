@@ -47,6 +47,55 @@ public sealed partial class CompositionRunServiceTests
             "external.bin");
     }
 
+    private static CompositionRunRequest CreateFirmwareConfigBackupValidationRequest()
+    {
+        const int outputLength = 0x1100;
+        AddressSpace[] addressSpaces =
+        [
+            new("output-image", outputLength, AddressSpaceMutability.Mutable),
+        ];
+        var plan = new CompositionPlan(
+            ImageInitialization.Blank("output-image", outputLength, 0),
+            addressSpaces,
+            [
+                CompositionOperation.RunExternalProcessor(
+                    "run-postbuild",
+                    10,
+                    "output-image",
+                    new ByteRange(0, outputLength),
+                    new ExternalProcessorInvocation(
+                        "processor-v1",
+                        "tool-v1",
+                        [new ByteRange(0, outputLength)],
+                        [new ByteRange(0, outputLength)]),
+                    OverlapPolicy.ReplaceExisting,
+                    "run synthetic postbuild before final output validation"),
+            ]);
+        CompiledValidationRequirement validation = CompiledValidationRequirements.FirmwareConfigBackupVersion(
+            "verify-nvt-fwconfig-backup-version",
+            "replace.ctrlram.fw-version-output-invalid",
+            "replace.ctrlram.fw-version-output-mismatch",
+            0x27,
+            0x04);
+        return new CompositionRunRequest(
+            "run-fwconfig-final-output-validation",
+            CreateCompiledComposition(
+                plan,
+                new LegacyCompiledCompositionIdentity(
+                    "fwconfig-final-output-profile",
+                    "1.0.0",
+                    "NT-SYNTHETIC",
+                    "external",
+                    "ctrlram-replace",
+                    CompositionKind.Replace),
+                "fwconfig-final-output.bin",
+                CompiledIcNumberPolicy.SingleSelector,
+                [validation]),
+            [],
+            "fwconfig-final-output.bin",
+            icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+    }
+
     private static CompositionRunRequest CreateStagedSourceExternalProcessorRequest(
         ByteRange? firmwareRange = null,
         string stagedSourceSpaceId = "ctrlram-input",

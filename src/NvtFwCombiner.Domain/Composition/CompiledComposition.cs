@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+
 namespace NvtFwCombiner.Domain.Composition;
 
 /// <summary>Atomic compiler output containing one executable plan and its run identity.</summary>
@@ -7,10 +9,12 @@ public sealed partial class CompiledComposition
         CompositionPlan plan,
         LegacyCompiledCompositionIdentity identity,
         string defaultOutputFileName,
-        CompiledIcNumberPolicy icNumberPolicy)
+        CompiledIcNumberPolicy icNumberPolicy,
+        IEnumerable<CompiledValidationRequirement> validationRequirements)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(identity);
+        ArgumentNullException.ThrowIfNull(validationRequirements);
         ValidateIcNumberPolicy(identity.CompositionKind, icNumberPolicy);
         ValidateDefaultOutputFileName(defaultOutputFileName);
 
@@ -26,6 +30,7 @@ public sealed partial class CompiledComposition
         Eligibility = CompiledCompositionEligibility.LegacyRuntimeExecutable;
         Authority = new LegacyProfileCompilationAuthority();
         V2Details = null;
+        ValidationRequirements = SnapshotValidationRequirements(validationRequirements);
         CompilationFingerprint = CalculateCompilationFingerprint(this);
     }
 
@@ -61,6 +66,7 @@ public sealed partial class CompiledComposition
         Eligibility = eligibility;
         Authority = new ProfileBundleV2CompilationAuthority();
         V2Details = identity.Details;
+        ValidationRequirements = identity.Details.Provenance.ValidationRequirements;
         CompilationFingerprint = CalculateCompilationFingerprint(this);
     }
 
@@ -100,17 +106,21 @@ public sealed partial class CompiledComposition
     /// <summary>Paired profile-bundle-v2 provenance and output requirements; null only for legacy artifacts.</summary>
     public V2CompiledCompositionDetails? V2Details { get; }
 
+    /// <summary>Closed validation requirements bound into this immutable compiled artifact.</summary>
+    public IReadOnlyList<CompiledValidationRequirement> ValidationRequirements { get; }
+
     /// <summary>Canonical lowercase SHA-256 over the complete compiled policy and plan.</summary>
     public string CompilationFingerprint { get; }
 
-    /// <summary>Creates an artifact from the existing typed profile compiler without bundle or map claims.</summary>
+    /// <summary>Creates a legacy artifact with profile-declared validation requirements.</summary>
     internal static CompiledComposition CreateLegacy(
         CompositionPlan plan,
         LegacyCompiledCompositionIdentity identity,
         string defaultOutputFileName,
-        CompiledIcNumberPolicy icNumberPolicy)
+        CompiledIcNumberPolicy icNumberPolicy,
+        IEnumerable<CompiledValidationRequirement> validationRequirements)
     {
-        return new CompiledComposition(plan, identity, defaultOutputFileName, icNumberPolicy);
+        return new CompiledComposition(plan, identity, defaultOutputFileName, icNumberPolicy, validationRequirements);
     }
 
     /// <summary>Creates a complete but non-executable profile-bundle-v2 plan artifact.</summary>
@@ -165,6 +175,29 @@ public sealed partial class CompiledComposition
                 "Default output file name must be a plain filename without path or control syntax.",
                 nameof(defaultOutputFileName));
         }
+    }
+
+    private static ReadOnlyCollection<CompiledValidationRequirement> SnapshotValidationRequirements(
+        IEnumerable<CompiledValidationRequirement> validationRequirements)
+    {
+        CompiledValidationRequirement[] snapshot = [.. validationRequirements];
+        if (snapshot.Any(static requirement => requirement is null) ||
+            snapshot.Select(static requirement => requirement.RuleId)
+                .Distinct(StringComparer.Ordinal).Count() != snapshot.Length)
+        {
+            throw new ArgumentException(
+                "Validation requirements must be non-null with ordinally unique rule ids.",
+                nameof(validationRequirements));
+        }
+
+        Array.Sort(snapshot, static (left, right) =>
+        {
+            int stage = left.Stage.CompareTo(right.Stage);
+            return stage != 0
+                ? stage
+                : StringComparer.Ordinal.Compare(left.RuleId, right.RuleId);
+        });
+        return Array.AsReadOnly(snapshot);
     }
 
     private static void ValidateV2InputRequirements(
@@ -366,11 +399,12 @@ public sealed partial class CompiledComposition
 
         if (details.Provenance.Promotion.Stage != CompiledProfilePromotionStage.Supported ||
             details.Provenance.Promotion.Blockers.Count != 0 ||
+            details.Provenance.ValidationRequirements.Count != 0 ||
             details.OutputNamingRequirement.RequiredTokenIds.Count != 0 ||
             details.OutputNamingRequirement.InvalidCharacterPolicy != CompiledOutputInvalidCharacterPolicy.Reject)
         {
             throw new ArgumentException(
-                "V2 runtime execution requires a supported, unblocked profile with a token-free reject output template.",
+                "V2 runtime execution requires a supported, unblocked validation-free profile with a token-free reject output template.",
                 nameof(details));
         }
     }

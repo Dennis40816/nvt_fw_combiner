@@ -39,6 +39,10 @@ public sealed partial class RepositoryBoundaryTests
             project,
             StringComparison.Ordinal);
         Assert.Contains(
+            "<InternalsVisibleTo Include=\"NvtFwCombiner.ProfileContract.Tests\" />",
+            project,
+            StringComparison.Ordinal);
+        Assert.Contains(
             "<InternalsVisibleTo Include=\"NvtFwCombiner.Domain.Tests\" />",
             project,
             StringComparison.Ordinal);

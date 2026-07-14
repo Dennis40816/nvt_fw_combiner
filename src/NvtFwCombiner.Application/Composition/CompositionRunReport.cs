@@ -22,7 +22,8 @@ public sealed class CompositionRunReport
         IReadOnlyList<CompositionIssue> issues,
         OutputArtifactSummary output,
         IReadOnlyList<OutputDifferenceSummary>? outputDifferences = null,
-        string? compilationFingerprint = null)
+        string? compilationFingerprint = null,
+        IReadOnlyList<ValidationRunSummary>? validations = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
@@ -58,6 +59,7 @@ public sealed class CompositionRunReport
         Output = output;
         OutputDifferences = outputDifferences is null ? [] : [.. outputDifferences];
         CompilationFingerprint = compilationFingerprint;
+        Validations = Array.AsReadOnly(validations is null ? Array.Empty<ValidationRunSummary>() : [.. validations]);
     }
 
     /// <summary>Stable run id.</summary>
@@ -107,4 +109,7 @@ public sealed class CompositionRunReport
 
     /// <summary>Compiled artifact fingerprint that binds V2 bundle, profile, map, and execution facts when available.</summary>
     public string? CompilationFingerprint { get; }
+
+    /// <summary>Compiled validation outcomes retained independently from engine operation execution.</summary>
+    public IReadOnlyList<ValidationRunSummary> Validations { get; }
 }

@@ -80,6 +80,20 @@ public sealed partial class CompiledCompositionTests
             requiredOutputTokenIds: [],
             runtimeExecutable: true));
         _ = Assert.Throws<ArgumentException>(() => CreateV2(runtimeExecutable: true));
+        _ = Assert.Throws<ArgumentException>(() => CreateV2(
+            promotion: new CompiledProfilePromotion(CompiledProfilePromotionStage.Supported, []),
+            outputTemplate: "runtime.bin",
+            outputInvalidCharacterPolicy: CompiledOutputInvalidCharacterPolicy.Reject,
+            requiredOutputTokenIds: [],
+            validationRequirements:
+            [new CompiledViewByteAssertionValidation(
+                "v2-runtime-validation",
+                CompiledValidationStage.FinalOutput,
+                CompiledValidationSeverity.Error,
+                "v2.validation.unsupported",
+                "output-image",
+                new CompiledValidationBytes([0x00]))],
+            runtimeExecutable: true));
     }
 
     /// <summary>Verifies profile-bundle and output requirement values cannot be forged with malformed or ambiguous identities.</summary>

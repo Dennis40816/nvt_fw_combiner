@@ -19,7 +19,8 @@ public sealed class CompositionProfileDefinition
         IReadOnlyList<CompositionOperation> operations,
         IReadOnlyList<ProfileRegion>? regions = null,
         IReadOnlyList<RegionAccessRule>? regionAccessRules = null,
-        IcNumberInputMode? icNumberInputMode = null)
+        IcNumberInputMode? icNumberInputMode = null,
+        IReadOnlyList<CompiledValidationRequirement>? validationRequirements = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
         ArgumentException.ThrowIfNullOrWhiteSpace(profileVersion);
@@ -44,6 +45,9 @@ public sealed class CompositionProfileDefinition
         Regions = regions ?? [];
         RegionAccessRules = regionAccessRules ?? [];
         IcNumberInputMode = icNumberInputMode;
+        ValidationRequirements = validationRequirements is null
+            ? []
+            : Array.AsReadOnly([.. validationRequirements]);
     }
 
     /// <summary>Stable profile id.</summary>
@@ -84,6 +88,9 @@ public sealed class CompositionProfileDefinition
 
     /// <summary>Profile-declared IC number input mode used by Replace UI/request binding.</summary>
     public IcNumberInputMode? IcNumberInputMode { get; }
+
+    /// <summary>Closed final or staged validation requirements bound into the compiled artifact.</summary>
+    public IReadOnlyList<CompiledValidationRequirement> ValidationRequirements { get; }
 }
 
 /// <summary>Canonical profile memory region used by compiler policy checks.</summary>

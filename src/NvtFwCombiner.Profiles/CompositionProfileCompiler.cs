@@ -23,6 +23,7 @@ public static partial class CompositionProfileCompiler
         requestAddressSpaces ??= [];
 
         List<CompositionIssue> issues = ValidateProfileHeader(profile, explicitMappings, requestAddressSpaces);
+        issues.AddRange(ValidateRuntimeValidationRequirements(profile.ValidationRequirements));
         issues.AddRange(ValidateProfileOperations(profile));
         issues.AddRange(ValidateExplicitMappings(profile, explicitMappings));
         if (issues.Count > 0)
@@ -52,7 +53,8 @@ public static partial class CompositionProfileCompiler
                 plan,
                 identity,
                 profile.DefaultOutputFileName,
-                CompiledIcNumberPolicies.From(profile.IcNumberInputMode));
+                CompiledIcNumberPolicies.From(profile.IcNumberInputMode),
+                profile.ValidationRequirements);
             return ProfileCompileResult.Succeeded(compiledComposition);
         }
         catch (ArgumentException exception)

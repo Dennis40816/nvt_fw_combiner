@@ -41,6 +41,8 @@ public enum CompiledValidationKind
     RejectMetadataBytePattern,
     /// <inheritdoc/>
     ViewByteAssertion,
+    /// <inheritdoc/>
+    FirmwareConfigBackupVersion,
 }
 
 /// <summary>One metadata field reached through a profile metadata binding.</summary>
@@ -371,4 +373,60 @@ public sealed record CompiledViewByteAssertionValidation : CompiledValidationReq
 
     /// <summary>Optional partial mask.</summary>
     public CompiledValidationBytes? Mask { get; }
+}
+
+/// <summary>Factory methods for closed compiled validation requirements used by legacy profile compilation.</summary>
+internal static class CompiledValidationRequirements
+{
+    /// <summary>Requires the final output canonical FWConfig Backup to contain the expected TP FW version values.</summary>
+    public static CompiledFirmwareConfigBackupVersionValidation FirmwareConfigBackupVersion(
+        string ruleId,
+        string invalidIssueCode,
+        string mismatchIssueCode,
+        byte firmwareVersion,
+        byte firmwareSubVersion)
+    {
+        return new CompiledFirmwareConfigBackupVersionValidation(
+            ruleId,
+            invalidIssueCode,
+            mismatchIssueCode,
+            firmwareVersion,
+            firmwareSubVersion);
+    }
+}
+
+/// <summary>
+/// Requires the canonical NVT FWConfig Backup in final output to retain a valid FW/bar pair and the
+/// user-confirmed TP FW version values.
+/// </summary>
+public sealed record CompiledFirmwareConfigBackupVersionValidation : CompiledValidationRequirement
+{
+    internal CompiledFirmwareConfigBackupVersionValidation(
+        string ruleId,
+        string invalidIssueCode,
+        string mismatchIssueCode,
+        byte firmwareVersion,
+        byte firmwareSubVersion)
+        : base(
+            ruleId,
+            CompiledValidationStage.FinalOutput,
+            CompiledValidationSeverity.Error,
+            mismatchIssueCode,
+            CompiledValidationKind.FirmwareConfigBackupVersion)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(invalidIssueCode);
+
+        InvalidIssueCode = invalidIssueCode;
+        FirmwareVersion = firmwareVersion;
+        FirmwareSubVersion = firmwareSubVersion;
+    }
+
+    /// <summary>Stable issue code emitted when the final output Backup is missing or has an invalid FW/bar pair.</summary>
+    public string InvalidIssueCode { get; }
+
+    /// <summary>User-confirmed TP FW version expected in the final output Backup.</summary>
+    public byte FirmwareVersion { get; }
+
+    /// <summary>User-confirmed TP FW sub-version expected in the final output Backup.</summary>
+    public byte FirmwareSubVersion { get; }
 }

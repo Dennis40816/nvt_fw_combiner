@@ -7,7 +7,8 @@ namespace NvtFwCombiner.Application.Tests;
 
 public sealed partial class CompositionRunServiceTests
 {
-    private static CompositionRunService CreateService(out FakeOutputWriter writer)
+    private static CompositionRunService CreateService(
+        out FakeOutputWriter writer)
     {
         var reader = new FakeArtifactReader(new Dictionary<string, byte[]>
         {
@@ -18,7 +19,8 @@ public sealed partial class CompositionRunServiceTests
         return new CompositionRunService(
             reader,
             new FakeClock([FirstTimestamp, SecondTimestamp, ThirdTimestamp, FourthTimestamp]),
-            writer);
+            writer,
+            externalProcessor: null);
     }
 
     private static IReadOnlyList<InputArtifactBinding> DefaultBindings()
@@ -34,9 +36,15 @@ public sealed partial class CompositionRunServiceTests
         CompositionPlan plan,
         LegacyCompiledCompositionIdentity identity,
         string defaultOutputFileName,
-        CompiledIcNumberPolicy icNumberPolicy = CompiledIcNumberPolicy.NotApplicable)
+        CompiledIcNumberPolicy icNumberPolicy = CompiledIcNumberPolicy.NotApplicable,
+        IReadOnlyList<CompiledValidationRequirement>? validationRequirements = null)
     {
-        return CompiledComposition.CreateLegacy(plan, identity, defaultOutputFileName, icNumberPolicy);
+        return CompiledComposition.CreateLegacy(
+            plan,
+            identity,
+            defaultOutputFileName,
+            icNumberPolicy,
+            validationRequirements ?? []);
     }
 
     private sealed class FakeOutputWriter : ICompositionOutputWriter

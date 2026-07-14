@@ -15,6 +15,8 @@ public sealed partial class CompositionRunService
         DateTimeOffset startedAtUtc,
         DateTimeOffset completedAtUtc,
         bool committed,
+        IReadOnlyList<CompositionIssue>? additionalIssues = null,
+        IReadOnlyList<ValidationRunSummary>? validations = null,
         Dictionary<string, IReadOnlyList<ExternalProcessInvocation>>? executedCommandsByOperationId = null)
     {
         OperationRunSummary[] operations = [
@@ -50,6 +52,7 @@ public sealed partial class CompositionRunService
         ];
         CompositionIssue[] issues = [
             .. execution.Issues,
+            .. additionalIssues ?? [],
             .. CreateOutputDifferenceIssues(outputDifferences),
         ];
 
@@ -69,7 +72,8 @@ public sealed partial class CompositionRunService
             issues,
             output,
             outputDifferences,
-            request.CompiledComposition.CompilationFingerprint);
+            request.CompiledComposition.CompilationFingerprint,
+            validations);
     }
 
     private static MutationRunSummary ToMutationSummary(MutationRecord mutation)

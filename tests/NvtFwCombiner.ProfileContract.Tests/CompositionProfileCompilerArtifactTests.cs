@@ -73,6 +73,31 @@ public sealed class CompositionProfileCompilerArtifactTests
             "profile.ic-number-mode.unknown");
     }
 
+    /// <summary>Verifies legacy compilation rejects typed validation rules without a matching runtime evaluator.</summary>
+    [Fact]
+    public void CompileRejectsRuntimeUnsupportedValidationRequirement()
+    {
+        var unsupported = new CompiledViewByteAssertionValidation(
+            "unsupported-runtime-validation",
+            CompiledValidationStage.FinalOutput,
+            CompiledValidationSeverity.Error,
+            "validation.unsupported",
+            "output-image",
+            new CompiledValidationBytes([0x00]));
+        CompositionProfileDefinition profile = CloneProfile(
+            BuiltInStandardMergeProfiles.SyntheticStandardMerge,
+            inputMode: null,
+            validationRequirements: [unsupported]);
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
+
+        Assert.False(result.IsSuccess);
+        Assert.Null(result.CompiledComposition);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("profile.validation.runtime-unsupported", issue.Code);
+        Assert.Equal("unsupported-runtime-validation", issue.OperationId);
+    }
+
     /// <summary>Verifies recompilation is stable while identity or default output changes alter the fingerprint.</summary>
     [Fact]
     public void CompileFingerprintBindsLegacyProfileIdentityAndOutputPolicy()
@@ -96,7 +121,8 @@ public sealed class CompositionProfileCompilerArtifactTests
         CompositionProfileDefinition source,
         IcNumberInputMode? inputMode,
         string? profileId = null,
-        string? defaultOutputFileName = null)
+        string? defaultOutputFileName = null,
+        IReadOnlyList<CompiledValidationRequirement>? validationRequirements = null)
     {
         return new CompositionProfileDefinition(
             profileId ?? source.ProfileId,
@@ -111,7 +137,8 @@ public sealed class CompositionProfileCompilerArtifactTests
             source.Operations,
             source.Regions,
             source.RegionAccessRules,
-            inputMode);
+            inputMode,
+            validationRequirements ?? source.ValidationRequirements);
     }
 
     private static void AssertFailure(ProfileCompileResult result, string issueCode)

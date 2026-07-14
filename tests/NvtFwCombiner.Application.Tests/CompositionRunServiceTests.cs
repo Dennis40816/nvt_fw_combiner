@@ -339,6 +339,86 @@ public sealed partial class CompositionRunServiceTests
         Assert.Contains("IC number selection", exception.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies only final-output validations with a current runtime evaluator can enter a run request.</summary>
+    [Fact]
+    public void RunRequestRejectsUnsupportedCompiledValidation()
+    {
+        var plan = new CompositionPlan(
+            ImageInitialization.Blank("output-image", 1, 0),
+            [new AddressSpace("output-image", 1, AddressSpaceMutability.Mutable)],
+            []);
+        var unsupported = new CompiledViewByteAssertionValidation(
+            "unsupported-final-output-validation",
+            CompiledValidationStage.FinalOutput,
+            CompiledValidationSeverity.Error,
+            "validation.unsupported",
+            "output-image",
+            new CompiledValidationBytes([0x00]));
+        CompiledComposition composition = CreateCompiledComposition(
+            plan,
+            new LegacyCompiledCompositionIdentity(
+                "unsupported-validation-profile",
+                "1.0.0",
+                "NT-SYNTHETIC",
+                "validation",
+                "standard-merge",
+                CompositionKind.Merge),
+            "output.bin",
+            validationRequirements: [unsupported]);
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => new CompositionRunRequest(
+            "unsupported-validation-run",
+            composition,
+            [],
+            "output.bin"));
+
+        Assert.Contains("not executable", exception.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies the workbench report snapshots validation outcomes as a read-only audit record.</summary>
+    [Fact]
+    public void RunReportSnapshotsValidationOutcomes()
+    {
+        var input = new List<ValidationRunSummary>
+        {
+            new(
+                "validation-a",
+                CompiledValidationStage.FinalOutput,
+                ValidationRunStatus.Passed,
+                CompiledValidationSeverity.Error,
+                "validation.a"),
+        };
+        var report = new CompositionRunReport(
+            "validation-run",
+            "validation-profile",
+            "1.0.0",
+            "NT-SYNTHETIC",
+            "standard",
+            "standard-merge",
+            CompositionKind.Merge,
+            FirstTimestamp,
+            SecondTimestamp,
+            [],
+            [],
+            [],
+            [],
+            new OutputArtifactSummary("output.bin", 0, new string('0', 64), committed: false),
+            validations: input);
+        input[0] = new ValidationRunSummary(
+            "changed-validation",
+            CompiledValidationStage.FinalOutput,
+            ValidationRunStatus.Failed,
+            CompiledValidationSeverity.Error,
+            "validation.changed");
+
+        Assert.Equal("validation-a", Assert.Single(report.Validations).RuleId);
+        IList<ValidationRunSummary> exposed = Assert.IsType<IList<ValidationRunSummary>>(
+            report.Validations,
+            exactMatch: false);
+        Assert.True(exposed.IsReadOnly);
+        _ = Assert.Throws<NotSupportedException>(() => exposed[0] = input[0]);
+    }
+
     /// <summary>Verifies output overrides are validated before a writer can see them.</summary>
     [Fact]
     public void RunRequestRejectsOutputFileNameWithPathSyntax()

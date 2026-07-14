@@ -23,6 +23,7 @@ public sealed class CompositionRunRequest
         Dictionary<string, InputArtifactBinding> copiedBindings = CopyBindings(artifactBindings);
         ValidateOutputFileName(outputFileName);
         ValidateExecutableComposition(compiledComposition);
+        ValidateRuntimeValidationRequirements(compiledComposition);
         ValidateIcNumberSelection(compiledComposition, icNumberSelection);
         ValidateV2RuntimeRequest(compiledComposition, copiedBindings, outputFileName);
 
@@ -182,6 +183,24 @@ public sealed class CompositionRunRequest
                     $"V2 runtime binding '{expected.AddressSpaceId}' has an unaccepted original file extension.",
                     nameof(bindings));
             }
+        }
+    }
+
+    private static void ValidateRuntimeValidationRequirements(CompiledComposition compiledComposition)
+    {
+        foreach (CompiledValidationRequirement requirement in compiledComposition.ValidationRequirements)
+        {
+            if (compiledComposition.Authority is LegacyProfileCompilationAuthority &&
+                requirement is CompiledFirmwareConfigBackupVersionValidation &&
+                requirement.Stage == CompiledValidationStage.FinalOutput &&
+                requirement.Severity == CompiledValidationSeverity.Error)
+            {
+                continue;
+            }
+
+            throw new ArgumentException(
+                $"Compiled validation rule '{requirement.RuleId}' is not executable by the current application runtime.",
+                nameof(compiledComposition));
         }
     }
 

@@ -29,6 +29,7 @@ public static partial class WorkbenchCompositionService
         List<CompositionOperation> operations = [];
         List<ProfileRegion> profileRegions = [];
         List<RegionAccessRule> accessRules = [];
+        List<CompiledValidationRequirement> validationRequirements = [];
 
         foreach (TpFlashMapRegion region in ctrlRamRegions.OrderBy(region => region.Range.Start))
         {
@@ -115,6 +116,9 @@ public static partial class WorkbenchCompositionService
                 firmwareVersionWritePlan.FirmwareSubVersionBytes.ToArray(),
                 OverlapPolicy.ReplaceExisting,
                 "Apply the user-confirmed TP FW sub-version before the approved legacy Combiner postbuild sequence."));
+            validationRequirements.Add(LegacyProfileValidationRequirements.FirmwareConfigBackupVersion(
+                firmwareVersionWritePlan.FirmwareVersion,
+                firmwareVersionWritePlan.FirmwareSubVersion));
         }
 
         operations.Add(CompositionOperation.RunExternalProcessor(
@@ -146,7 +150,8 @@ public static partial class WorkbenchCompositionService
             operations,
             profileRegions,
             accessRules,
-            selection.Mode);
+            selection.Mode,
+            validationRequirements);
     }
 
     private static void AddFirmwareVersionWriteRegion(

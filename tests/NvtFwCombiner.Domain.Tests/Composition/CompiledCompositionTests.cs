@@ -12,7 +12,7 @@ public sealed partial class CompiledCompositionTests
     {
         CompiledComposition composition = CreateMerge();
         Assert.Equal(
-            "d4b9967d8da7cb3b15d38e26f2fcd0311afbd2245f9499ca3ff87b83dc9b12fc",
+            "669860799db585ab3d2064debf4b0a64d2192c1a2a972e431f1d23c09e305bb5",
             composition.CompilationFingerprint);
 
         Assert.Equal("profile-a", composition.ProfileId);
@@ -51,12 +51,14 @@ public sealed partial class CompiledCompositionTests
             null!,
             identity,
             "output.bin",
-            CompiledIcNumberPolicy.NotApplicable));
+            CompiledIcNumberPolicy.NotApplicable,
+            []));
         _ = Assert.Throws<ArgumentNullException>(() => CompiledComposition.CreateLegacy(
             plan,
             null!,
             "output.bin",
-            CompiledIcNumberPolicy.NotApplicable));
+            CompiledIcNumberPolicy.NotApplicable,
+            []));
     }
 
     /// <summary>Verifies every legacy identity field is mandatory at the Domain minting boundary.</summary>
@@ -106,17 +108,20 @@ public sealed partial class CompiledCompositionTests
             mergePlan,
             CreateMergeIdentity(),
             "output.bin",
-            CompiledIcNumberPolicy.SingleSelector));
+            CompiledIcNumberPolicy.SingleSelector,
+            []));
         _ = Assert.Throws<ArgumentException>(() => CompiledComposition.CreateLegacy(
             replacePlan,
             CreateReplaceIdentity(),
             "output.bin",
-            CompiledIcNumberPolicy.NotApplicable));
+            CompiledIcNumberPolicy.NotApplicable,
+            []));
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => CompiledComposition.CreateLegacy(
             replacePlan,
             CreateReplaceIdentity(),
             "output.bin",
-            (CompiledIcNumberPolicy)int.MaxValue));
+            (CompiledIcNumberPolicy)int.MaxValue,
+            []));
 
     }
 
@@ -181,6 +186,36 @@ public sealed partial class CompiledCompositionTests
         Assert.NotEqual(
             CreateReplace(CompiledIcNumberPolicy.SingleSelector).CompilationFingerprint,
             CreateReplace(CompiledIcNumberPolicy.CascadeSelector).CompilationFingerprint);
+    }
+
+    /// <summary>Verifies legacy final-output validation requirements are immutable compiled policy and fingerprinted.</summary>
+    [Fact]
+    public void FingerprintBindsLegacyFinalOutputValidationRequirement()
+    {
+        CompiledValidationRequirement baselineRequirement =
+            CompiledValidationRequirements.FirmwareConfigBackupVersion(
+                "verify-nvt-fwconfig-backup-version",
+                "replace.ctrlram.fw-version-output-invalid",
+                "replace.ctrlram.fw-version-output-mismatch",
+                0x27,
+                0x04);
+        CompiledValidationRequirement changedRequirement =
+            CompiledValidationRequirements.FirmwareConfigBackupVersion(
+                "verify-nvt-fwconfig-backup-version",
+                "replace.ctrlram.fw-version-output-invalid",
+                "replace.ctrlram.fw-version-output-mismatch",
+                0x28,
+                0x04);
+        CompiledComposition baseline = CreateMerge(validationRequirements: [baselineRequirement]);
+        CompiledComposition changed = CreateMerge(validationRequirements: [changedRequirement]);
+
+        CompiledFirmwareConfigBackupVersionValidation requirement = Assert.IsType<
+            CompiledFirmwareConfigBackupVersionValidation>(Assert.Single(baseline.ValidationRequirements));
+        Assert.Equal(CompiledValidationStage.FinalOutput, requirement.Stage);
+        Assert.Equal(CompiledValidationSeverity.Error, requirement.Severity);
+        Assert.Equal(0x27, requirement.FirmwareVersion);
+        Assert.Equal(0x04, requirement.FirmwareSubVersion);
+        Assert.NotEqual(baseline.CompilationFingerprint, changed.CompilationFingerprint);
     }
 
     /// <summary>Verifies initializer, output selection, input policy, and operation semantics affect the fingerprint.</summary>
@@ -262,7 +297,8 @@ public sealed partial class CompiledCompositionTests
         OperationProvenance? copyProvenance = null,
         int copySequence = 10,
         int fillSequence = 20,
-        bool reverseDeclarations = false)
+        bool reverseDeclarations = false,
+        IReadOnlyList<CompiledValidationRequirement>? validationRequirements = null)
     {
         var input = new AddressSpace(
             "input",
@@ -308,7 +344,8 @@ public sealed partial class CompiledCompositionTests
             plan,
             identity,
             defaultOutputFileName,
-            CompiledIcNumberPolicy.NotApplicable);
+            CompiledIcNumberPolicy.NotApplicable,
+            validationRequirements ?? []);
     }
 
     private static CompiledComposition CreateReplace(CompiledIcNumberPolicy policy)
@@ -321,7 +358,7 @@ public sealed partial class CompiledCompositionTests
                 new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable),
             ],
             []);
-        return CompiledComposition.CreateLegacy(plan, identity, "replace.bin", policy);
+        return CompiledComposition.CreateLegacy(plan, identity, "replace.bin", policy, []);
     }
 
     private static CompiledComposition CreateMultiOutput(string outputSpaceId)
@@ -342,7 +379,8 @@ public sealed partial class CompiledCompositionTests
             plan,
             identity,
             "output.bin",
-            CompiledIcNumberPolicy.NotApplicable);
+            CompiledIcNumberPolicy.NotApplicable,
+            []);
     }
 
     private static CompiledComposition CreatePatchComposition(
@@ -374,7 +412,8 @@ public sealed partial class CompiledCompositionTests
             plan,
             identity,
             "patch.bin",
-            CompiledIcNumberPolicy.NotApplicable);
+            CompiledIcNumberPolicy.NotApplicable,
+            []);
     }
 
     private static CompiledComposition CreateProcessorComposition(
@@ -431,7 +470,8 @@ public sealed partial class CompiledCompositionTests
             plan,
             identity,
             "processor.bin",
-            CompiledIcNumberPolicy.NotApplicable);
+            CompiledIcNumberPolicy.NotApplicable,
+            []);
     }
 
     private static LegacyCompiledCompositionIdentity CreateMergeIdentity()

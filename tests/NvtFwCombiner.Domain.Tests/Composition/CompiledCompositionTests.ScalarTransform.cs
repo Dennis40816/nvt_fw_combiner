@@ -11,7 +11,7 @@ public sealed partial class CompiledCompositionTests
         CompiledComposition composition = CreateExternalProcessorComposition();
 
         Assert.Equal(
-            "89f14cd1f39f9f45a5ceb7769971d568cac2b54554f7a054487c233597af30d2",
+            "73c0d059c0385d1f9c25e65e09889f7afc14d605c998e4ff5665f007534627e4",
             composition.CompilationFingerprint);
     }
 
@@ -79,7 +79,8 @@ public sealed partial class CompiledCompositionTests
             plan,
             CreateMergeIdentity(),
             "output.bin",
-            CompiledIcNumberPolicy.NotApplicable);
+            CompiledIcNumberPolicy.NotApplicable,
+            []);
     }
 
     private static CompiledComposition CreateExternalProcessorComposition()
@@ -103,6 +104,7 @@ public sealed partial class CompiledCompositionTests
             plan,
             CreateMergeIdentity(),
             "output.bin",
-            CompiledIcNumberPolicy.NotApplicable);
+            CompiledIcNumberPolicy.NotApplicable,
+            []);
     }
 }
