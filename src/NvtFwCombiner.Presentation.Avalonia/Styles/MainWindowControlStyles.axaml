@@ -29,6 +29,8 @@
     <SolidColorBrush x:Key="UiBrush.AccentStrong" Color="#1D4ED8" />
     <SolidColorBrush x:Key="UiBrush.TextWarning" Color="#9A3412" />
     <SolidColorBrush x:Key="UiBrush.TextSuccess" Color="#166534" />
+    <SolidColorBrush x:Key="UiBrush.ModalOverlay" Color="#660F172A" />
+    <SolidColorBrush x:Key="UiBrush.StrongModalOverlay" Color="#990F172A" />
   </Styles.Resources>
 
   <!-- Semantic visual roles shared by pages, report templates, and modal views. -->

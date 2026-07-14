@@ -15,16 +15,16 @@
           <TextBlock
               FontSize="12"
               FontWeight="SemiBold"
-              Foreground="#2563EB"
+              Foreground="{DynamicResource UiBrush.Accent}"
               Text="{Binding Text.WorkflowKicker}" />
           <TextBlock
               FontSize="25"
               FontWeight="SemiBold"
-              Foreground="#0F172A"
+              Foreground="{DynamicResource UiBrush.TextPrimary}"
               Text="{Binding ReplacePreview.Title}" />
           <TextBlock
               FontSize="13"
-              Foreground="#64748B"
+              Foreground="{DynamicResource UiBrush.TextMuted}"
               Text="{Binding ReplacePreview.Subtitle}"
               TextWrapping="Wrap" />
         </StackPanel>
@@ -77,16 +77,16 @@
           <TextBlock
               FontSize="12"
               FontWeight="SemiBold"
-              Foreground="#2563EB"
+              Foreground="{DynamicResource UiBrush.Accent}"
               Text="{Binding Text.WorkflowKicker}" />
           <TextBlock
               FontSize="25"
               FontWeight="SemiBold"
-              Foreground="#0F172A"
+              Foreground="{DynamicResource UiBrush.TextPrimary}"
               Text="{Binding MergePreview.Title}" />
           <TextBlock
               FontSize="13"
-              Foreground="#64748B"
+              Foreground="{DynamicResource UiBrush.TextMuted}"
               Text="{Binding MergePreview.Subtitle}"
               TextWrapping="Wrap" />
         </StackPanel>
@@ -120,11 +120,11 @@
               Grid.Row="2"
               Classes="command"
               IsEnabled="False">
-            <Border Classes="workflowCard" Background="#F8FAFC" BorderBrush="#E2E8F0">
+            <Border Classes="workflowCard" Background="{DynamicResource UiBrush.SubtleSurface}" BorderBrush="{DynamicResource UiBrush.SubtleBorder}">
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                <TextBlock FontWeight="SemiBold" Foreground="#94A3B8" Text="AB Code" />
-                <Border Grid.Column="1" Padding="10,4" Background="#F1F5F9" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="999">
-                  <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#94A3B8" Text="{Binding Text.PendingLabel}" />
+                <TextBlock FontWeight="SemiBold" Foreground="{DynamicResource UiBrush.TextDisabled}" Text="AB Code" />
+                <Border Grid.Column="1" Padding="10,4" Background="#F1F5F9" BorderBrush="{DynamicResource UiBrush.SubtleBorder}" BorderThickness="1" CornerRadius="999">
+                  <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource UiBrush.TextDisabled}" Text="{Binding Text.PendingLabel}" />
                 </Border>
               </Grid>
             </Border>
@@ -144,11 +144,11 @@
           <TextBlock
               FontSize="25"
               FontWeight="SemiBold"
-              Foreground="#0F172A"
+              Foreground="{DynamicResource UiBrush.TextPrimary}"
               Text="{Binding Text.UtilToolsHomeTitle}" />
           <TextBlock
               FontSize="13"
-              Foreground="#64748B"
+              Foreground="{DynamicResource UiBrush.TextMuted}"
               Text="{Binding Text.UtilToolsHomeDetail}"
               TextTrimming="CharacterEllipsis" />
         </StackPanel>
@@ -183,11 +183,11 @@
       <TextBlock
           FontSize="24"
           FontWeight="SemiBold"
-          Foreground="#0F172A"
+          Foreground="{DynamicResource UiBrush.TextPrimary}"
           Text="{Binding HexEditorWorkspace.Text.HexEditorTitle}" />
       <TextBlock
           FontSize="13"
-          Foreground="#64748B"
+          Foreground="{DynamicResource UiBrush.TextMuted}"
           Text="{Binding HexEditorWorkspace.Text.HexEditorDetail}"
           TextWrapping="Wrap" />
     </StackPanel>

@@ -80,7 +80,7 @@
               <Expander IsExpanded="False" IsVisible="{Binding LoadedReport.HasMutations}">
                 <Expander.Header>
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                    <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#475569" Text="{Binding Text.ChangedRangesTitle}" />
+                    <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource UiBrush.TextSubtle}" Text="{Binding Text.ChangedRangesTitle}" />
                     <Label Grid.Column="1" Classes="reportBadge" Content="{Binding LoadedReport.MutationCount}" />
                   </Grid>
                 </Expander.Header>
@@ -160,11 +160,11 @@
               <Border Classes="successInset" Padding="16" IsVisible="{Binding LoadedReport.HasNoIssues}">
                 <Grid ColumnDefinitions="34,*" ColumnSpacing="12">
                   <Border Width="26" Height="26" Background="#16A34A" CornerRadius="999">
-                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="#FFFFFF" Text="✓" />
+                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource UiBrush.TextOnAccent}" Text="✓" />
                   </Border>
                   <StackPanel Grid.Column="1" Spacing="2">
                     <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#14532D" Text="{Binding Text.NoActionRequiredTitle}" />
-                    <TextBlock FontSize="12" Foreground="#166534" Text="{Binding Text.EmptyIssuesMessage}" TextWrapping="Wrap" />
+                    <TextBlock FontSize="12" Foreground="{DynamicResource UiBrush.TextSuccess}" Text="{Binding Text.EmptyIssuesMessage}" TextWrapping="Wrap" />
                   </StackPanel>
                 </Grid>
               </Border>

@@ -25,8 +25,8 @@
           <DataTemplate x:DataType="vm:ShellNavigationEntryViewModel">
             <Button Classes="breadcrumb" Command="{Binding NavigateCommand}">
               <Grid VerticalAlignment="Center" ColumnDefinitions="Auto,Auto" ColumnSpacing="12">
-                <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="#334155" Text="{Binding Label}" />
-                <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="13" Foreground="#94A3B8" IsVisible="{Binding IsChevronVisible}" Text=">" />
+                <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource UiBrush.TextSecondary}" Text="{Binding Label}" />
+                <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="13" Foreground="{DynamicResource UiBrush.TextDisabled}" IsVisible="{Binding IsChevronVisible}" Text=">" />
               </Grid>
             </Button>
           </DataTemplate>
@@ -125,7 +125,7 @@
       VerticalAlignment="Top"
       >
     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-      <TextBlock VerticalAlignment="Center" FontSize="16" Foreground="#2563EB" Text="▤" />
+      <TextBlock VerticalAlignment="Center" FontSize="16" Foreground="{DynamicResource UiBrush.Accent}" Text="▤" />
       <StackPanel Grid.Column="1" Spacing="1">
         <TextBlock Classes="bodyStrongText" Text="{Binding ShellToastTitle}" />
         <TextBlock Classes="detailText" Text="{Binding ReportToastText}" TextWrapping="Wrap" />

@@ -94,6 +94,15 @@ public sealed partial class XamlControlStyleContractTests
             ["UiBrush.AccentStrong"] = "#1D4ED8",
             ["UiBrush.TextWarning"] = "#9A3412",
             ["UiBrush.TextSuccess"] = "#166534",
+            ["UiBrush.ModalOverlay"] = "#660F172A",
+            ["UiBrush.StrongModalOverlay"] = "#990F172A",
+        };
+        Dictionary<string, string[]> directPalettePropertyValues = new(StringComparer.Ordinal)
+        {
+            ["Foreground"] = ["#FFFFFF", "#0F172A", "#334155", "#64748B", "#475569", "#94A3B8", "#2563EB", "#1D4ED8", "#9A3412", "#166534"],
+            ["Background"] = ["#FFFFFF", "#F8FAFC", "#EFF6FF", "#EAF3FF", "#FFF7ED", "#F0FDF4", "#E2E8F0", "#BFDBFE", "#2563EB", "#660F172A", "#990F172A"],
+            ["BorderBrush"] = ["#CBD5E1", "#E2E8F0", "#93C5FD", "#60A5FA", "#BFDBFE", "#FED7AA", "#BBF7D0", "#2563EB"],
+            ["Stroke"] = ["#334155", "#475569", "#2563EB", "#1D4ED8"],
         };
         MatchCollection definitions = PaletteBrushDefinitionPattern().Matches(library);
         var declaredPalette = definitions
@@ -106,6 +115,14 @@ public sealed partial class XamlControlStyleContractTests
         foreach ((string key, string color) in expectedPalette)
         {
             Assert.Equal(color, declaredPalette[key]);
+        }
+
+        foreach (string xaml in ReadPresentationXamlFiles())
+        {
+            foreach (Match reference in PaletteBrushReferencePattern().Matches(xaml))
+            {
+                Assert.Contains(reference.Groups["key"].Value, declaredPalette.Keys);
+            }
         }
 
         foreach (string path in new[]
@@ -122,10 +139,20 @@ public sealed partial class XamlControlStyleContractTests
             Assert.DoesNotContain(expectedPalette.Values, color => styles.Contains($"Value=\"{color}\"", StringComparison.OrdinalIgnoreCase));
             Assert.Empty(BackgroundUsesBorderBrushPattern().Matches(styles));
             Assert.Empty(ForegroundUsesSurfaceOrBorderBrushPattern().Matches(styles));
+        }
 
-            foreach (Match reference in references)
+        foreach (string xaml in ReadPresentationXamlFiles())
+        {
+            if (xaml == library)
             {
-                Assert.Contains(reference.Groups["key"].Value, declaredPalette.Keys);
+                continue;
+            }
+
+            foreach ((string property, string[] colors) in directPalettePropertyValues)
+            {
+                Assert.DoesNotContain(colors, color =>
+                    xaml.Contains($"{property}=\"{color}\"", StringComparison.OrdinalIgnoreCase) ||
+                    xaml.Contains($"Property=\"{property}\" Value=\"{color}\"", StringComparison.OrdinalIgnoreCase));
             }
         }
     }
@@ -476,7 +503,7 @@ public sealed partial class XamlControlStyleContractTests
             .Select(File.ReadAllText);
     }
 
-    [GeneratedRegex("<SolidColorBrush x:Key=\"(?<key>UiBrush\\.[^\"]+)\" Color=\"(?<color>#[0-9A-Fa-f]{6})\" />")]
+    [GeneratedRegex("<SolidColorBrush x:Key=\"(?<key>UiBrush\\.[^\"]+)\" Color=\"(?<color>#[0-9A-Fa-f]{6,8})\" />")]
     private static partial Regex PaletteBrushDefinitionPattern();
 
     [GeneratedRegex("\\{DynamicResource (?<key>UiBrush\\.[^}]+)\\}")]

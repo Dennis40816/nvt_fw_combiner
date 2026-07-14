@@ -54,11 +54,11 @@
           <TextBlock
               FontSize="20"
               FontWeight="SemiBold"
-              Foreground="#0F172A"
+              Foreground="{DynamicResource UiBrush.TextPrimary}"
               Text="{Binding Text.ProductTitle}" />
           <TextBlock
               FontSize="12"
-              Foreground="#64748B"
+              Foreground="{DynamicResource UiBrush.TextMuted}"
               Text="{Binding ShellVersion}" />
         </StackPanel>
 
@@ -71,25 +71,25 @@
               Classes="nav"
               Command="{Binding ShowHomeCommand}"
               IsChecked="{Binding IsHomeVisible, Mode=OneWay}">
-            <TextBlock Foreground="#334155" Text="{Binding Text.HomeLabel}" />
+            <TextBlock Foreground="{DynamicResource UiBrush.TextSecondary}" Text="{Binding Text.HomeLabel}" />
           </ToggleButton>
           <ToggleButton
               Classes="nav"
               Command="{Binding ShowSettingsCommand}"
               IsChecked="{Binding IsSettingsVisible, Mode=OneWay}">
-            <TextBlock Foreground="#334155" Text="{Binding SettingsPreview.Title}" />
+            <TextBlock Foreground="{DynamicResource UiBrush.TextSecondary}" Text="{Binding SettingsPreview.Title}" />
           </ToggleButton>
           <ToggleButton
               Classes="nav"
               Command="{Binding ShowReplaceCommand}"
               IsChecked="{Binding IsReplaceVisible, Mode=OneWay}">
-            <TextBlock Foreground="#334155" Text="{Binding ReplacePreview.Title}" />
+            <TextBlock Foreground="{DynamicResource UiBrush.TextSecondary}" Text="{Binding ReplacePreview.Title}" />
           </ToggleButton>
           <ToggleButton
               Classes="nav"
               Command="{Binding ShowMergeCommand}"
               IsChecked="{Binding IsMergeVisible, Mode=OneWay}">
-            <TextBlock Foreground="#334155" Text="{Binding MergePreview.Title}" />
+            <TextBlock Foreground="{DynamicResource UiBrush.TextSecondary}" Text="{Binding MergePreview.Title}" />
           </ToggleButton>
         </StackPanel>
 

@@ -52,6 +52,25 @@ The remaining direct literals are intentionally deferred until a later phase
 can establish whether they are one-off visual evidence, a distinct semantic
 state, or an exact shared-role duplicate.
 
+### Template palette-reference migration
+
+The second implementation phase reuses the established semantic palette in
+shell, report, mapping, slot, modal, and Hex Editor templates. It adds only
+`UiBrush.ModalOverlay` and `UiBrush.StrongModalOverlay`, because those overlay
+opacities recur across modal surfaces. It does not turn timeline geometry,
+mapping-grid evidence, or one-off status colors into generic tokens.
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| Direct hex color literals in Avalonia XAML | 200 | 85 |
+| `UiBrush.*` dynamic-resource references | 208 | 325 |
+| Shared semantic palette resources | 26 | 28 |
+
+The XAML style-contract test now rejects direct values for every palette
+property-role pair migrated in this phase. It deliberately permits direct
+values for geometry and roles that do not yet have an exact shared semantic
+token.
+
 ## Consolidation Rules
 
 1. `Styles/MainWindowControlStyles.axaml` remains the single shared token and

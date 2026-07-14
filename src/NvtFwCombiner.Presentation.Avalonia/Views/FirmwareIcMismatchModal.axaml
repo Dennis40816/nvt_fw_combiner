@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
     x:DataType="vm:MainWindowViewModel"
-    Background="#660F172A">
+    Background="{DynamicResource UiBrush.ModalOverlay}">
   <Border
       Classes="modalSurface"
       Width="540"
@@ -22,7 +22,7 @@
         <TextBlock Classes="fieldLabel" Text="{Binding Text.FileLabel}" />
         <TextBlock Grid.Column="1" Classes="monoText bodyText" Text="{Binding FirmwareIcMismatchFileName}" TextWrapping="Wrap" />
         <TextBlock Grid.Row="1" Classes="fieldLabel" Text="{Binding Text.FirmwareIcMismatchCurrentLabel}" />
-        <TextBlock Grid.Row="1" Grid.Column="1" Classes="monoText" FontSize="13" FontWeight="SemiBold" Foreground="#334155" Text="{Binding FirmwareIcMismatchCurrentIc}" />
+        <TextBlock Grid.Row="1" Grid.Column="1" Classes="monoText" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource UiBrush.TextSecondary}" Text="{Binding FirmwareIcMismatchCurrentIc}" />
         <TextBlock Grid.Row="2" Classes="fieldLabel" Text="{Binding Text.FirmwareIcMismatchDetectedLabel}" />
         <TextBlock Grid.Row="2" Grid.Column="1" FontFamily="Cascadia Mono, Consolas" FontSize="13" FontWeight="SemiBold" Foreground="#B45309" Text="{Binding FirmwareIcMismatchDetectedIc}" />
       </Grid>

@@ -8,8 +8,8 @@
   <Border
       Margin="0,0,0,8"
       Padding="7"
-      Background="#F8FAFC"
-      BorderBrush="#CBD5E1"
+      Background="{DynamicResource UiBrush.SubtleSurface}"
+      BorderBrush="{DynamicResource UiBrush.Border}"
       BorderThickness="1"
       CornerRadius="8">
     <Grid ColumnDefinitions="34,118,118,108,*,82,40" ColumnSpacing="8">
@@ -36,8 +36,8 @@
           Grid.Column="4"
           MinHeight="32"
           Padding="0"
-          Background="#FFFFFF"
-          BorderBrush="#CBD5E1"
+          Background="{DynamicResource UiBrush.Surface}"
+          BorderBrush="{DynamicResource UiBrush.Border}"
           BorderThickness="1"
           CornerRadius="8"
           DragDrop.AllowDrop="True"

@@ -31,8 +31,8 @@
   <Border
       MaxWidth="360"
       Padding="10"
-      Background="#FFFFFF"
-      BorderBrush="#CBD5E1"
+      Background="{DynamicResource UiBrush.Surface}"
+      BorderBrush="{DynamicResource UiBrush.Border}"
       BorderThickness="1"
       CornerRadius="8">
     <StackPanel Spacing="8">
@@ -50,7 +50,7 @@
             VerticalAlignment="Center"
             FontSize="12"
             FontWeight="SemiBold"
-            Foreground="#0F172A"
+            Foreground="{DynamicResource UiBrush.TextPrimary}"
             Text="{Binding SourceLabel}"
             TextWrapping="Wrap" />
         <Label
@@ -72,7 +72,7 @@
             Grid.Row="1"
             Grid.Column="1"
             FontSize="11"
-            Foreground="#334155"
+            Foreground="{DynamicResource UiBrush.TextSecondary}"
             Text="{Binding CompactDetail}"
             TextWrapping="Wrap" />
 
@@ -186,7 +186,7 @@
         <TextBlock Classes="microInfoText" Text="{Binding ActionLabel}" TextWrapping="Wrap" />
       </StackPanel>
       <TextBlock Grid.Column="1" Classes="technicalValue" Text="{Binding RangeLabel}" TextWrapping="Wrap" />
-      <TextBlock Grid.Row="1" Grid.Column="1" FontSize="11" FontWeight="SemiBold" Foreground="#475569" Text="{Binding FlowLabel}" TextWrapping="Wrap" />
+      <TextBlock Grid.Row="1" Grid.Column="1" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource UiBrush.TextSubtle}" Text="{Binding FlowLabel}" TextWrapping="Wrap" />
     </Grid>
   </Border>
 </DataTemplate>
@@ -196,13 +196,13 @@
     <Grid ColumnDefinitions="62,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="3">
       <TextBlock Classes="microInfoText" Text="{Binding ActionLabel}" TextWrapping="Wrap" />
       <TextBlock Grid.Column="1" Classes="technicalValue" Text="{Binding RangeLabel}" TextWrapping="Wrap" />
-      <TextBlock Grid.Row="1" Grid.Column="1" FontSize="11" FontWeight="SemiBold" Foreground="#475569" Text="{Binding FlowLabel}" TextWrapping="Wrap" />
+      <TextBlock Grid.Row="1" Grid.Column="1" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource UiBrush.TextSubtle}" Text="{Binding FlowLabel}" TextWrapping="Wrap" />
     </Grid>
   </Border>
 </DataTemplate>
 
 <DataTemplate x:Key="ReplaceOutputLayoutPanelTemplate" DataType="vm:MainWindowViewModel">
-  <Border Padding="18,16" Background="#FFFFFF" BorderBrush="#EEF2F7" BorderThickness="1" CornerRadius="6">
+  <Border Padding="18,16" Background="{DynamicResource UiBrush.Surface}" BorderBrush="#EEF2F7" BorderThickness="1" CornerRadius="6">
     <StackPanel Spacing="14">
       <StackPanel Spacing="8">
         <StackPanel Spacing="3">

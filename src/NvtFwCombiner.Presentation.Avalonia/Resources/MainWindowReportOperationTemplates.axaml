@@ -10,10 +10,10 @@
       <Border
           Width="2"
           HorizontalAlignment="Center"
-          Background="#BFDBFE"
+          Background="{DynamicResource UiBrush.AccentSoftSurface}"
           IsVisible="{Binding HasConnector}" />
-      <Border Width="32" Height="32" Margin="0,4,0,0" HorizontalAlignment="Center" VerticalAlignment="Top" Background="#EFF6FF" BorderBrush="#93C5FD" BorderThickness="1" CornerRadius="999">
-        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Foreground="#1D4ED8" Text="{Binding Number}" />
+      <Border Width="32" Height="32" Margin="0,4,0,0" HorizontalAlignment="Center" VerticalAlignment="Top" Background="{DynamicResource UiBrush.AccentSurface}" BorderBrush="{DynamicResource UiBrush.AccentBorder}" BorderThickness="1" CornerRadius="999">
+        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource UiBrush.AccentStrong}" Text="{Binding Number}" />
       </Border>
     </Grid>
     <Expander Grid.Column="1" Margin="0,3,0,18" IsExpanded="False">

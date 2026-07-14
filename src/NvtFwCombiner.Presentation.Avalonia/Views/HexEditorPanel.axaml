@@ -11,7 +11,7 @@
     <Style Selector="Button.hexGoToAddress Path">
       <Setter Property="Width" Value="16" />
       <Setter Property="Height" Value="16" />
-      <Setter Property="Stroke" Value="#1D4ED8" />
+      <Setter Property="Stroke" Value="{DynamicResource UiBrush.AccentStrong}" />
       <Setter Property="StrokeThickness" Value="1.8" />
       <Setter Property="StrokeLineCap" Value="Round" />
       <Setter Property="StrokeJoin" Value="Round" />
@@ -21,7 +21,7 @@
     <Style Selector="Button.hexAsciiSearch Path">
       <Setter Property="Width" Value="16" />
       <Setter Property="Height" Value="16" />
-      <Setter Property="Stroke" Value="#2563EB" />
+      <Setter Property="Stroke" Value="{DynamicResource UiBrush.Accent}" />
       <Setter Property="StrokeThickness" Value="1.8" />
       <Setter Property="StrokeLineCap" Value="Round" />
       <Setter Property="StrokeJoin" Value="Round" />
@@ -147,7 +147,7 @@
       </Grid>
 
       <Grid MaxWidth="1720" ColumnDefinitions="*,336" ColumnSpacing="12">
-        <Border Grid.Column="0" Padding="8" Background="#F8FAFC" BorderBrush="#94A3B8" BorderThickness="1" CornerRadius="6">
+        <Border Grid.Column="0" Padding="8" Background="{DynamicResource UiBrush.SubtleSurface}" BorderBrush="#94A3B8" BorderThickness="1" CornerRadius="6">
           <Grid RowDefinitions="Auto,*" RowSpacing="4">
             <Grid Margin="0,0,20,0" ColumnDefinitions="112,*,144" ColumnSpacing="4">
               <TextBlock
@@ -227,7 +227,7 @@
 
         <Border Grid.Column="1" Classes="compactSurface" VerticalAlignment="Stretch" Padding="0">
           <Grid RowDefinitions="Auto,Auto,*">
-            <Border Padding="14,12" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+            <Border Padding="14,12" BorderBrush="{DynamicResource UiBrush.SubtleBorder}" BorderThickness="0,0,0,1">
               <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
                 <TextBlock VerticalAlignment="Center" Classes="panelTitle" Text="{Binding Text.HexEditorChangeTitle}" />
                 <Button
@@ -344,7 +344,7 @@
               </Grid>
             </StackPanel>
 
-            <Border Grid.Row="2" Padding="14,12" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,1,0,1">
+            <Border Grid.Row="2" Padding="14,12" Background="{DynamicResource UiBrush.SubtleSurface}" BorderBrush="{DynamicResource UiBrush.SubtleBorder}" BorderThickness="0,1,0,1">
               <Grid RowDefinitions="Auto,*" RowSpacing="8">
                 <Grid ColumnDefinitions="*,Auto">
                   <TextBlock VerticalAlignment="Center" Classes="hexInspectorSection" Text="{Binding Text.HexEditorChangedBlocksLabel}" />
