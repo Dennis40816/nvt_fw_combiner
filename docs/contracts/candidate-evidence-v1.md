@@ -63,7 +63,9 @@ together through the no-replace publication operation.
 `sourceBundleEntryId` and `contractSchemaEntryId` must each resolve to one
 manifest entry during semantic validation. Entry kinds are structurally tied to
 `schemas/`, `source/`, `artifacts/`, and `evidence/` paths. Report files are
-not root entries.
+not root entries. Artifact paths preserve the declared original logical filename,
+including safe uppercase letters and spaces; path separators, drive syntax, and
+current or parent path segments remain forbidden.
 
 ## Limits and privacy
 

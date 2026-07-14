@@ -175,6 +175,28 @@ public sealed class CandidateEvidenceV1SchemaTests
         Assert.False(IsValid(document));
     }
 
+    /// <summary>Preserves a safe original artifact filename in the closed candidate root.</summary>
+    [Fact]
+    public void CandidateEvidenceSchemaAcceptsSafeOriginalArtifactFileName()
+    {
+        JsonObject document = CreateDocument("candidate-root-manifest");
+        JsonObject entry = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(document["entries"])[2]);
+        entry["path"] = "artifacts/owner-record/Owner Record.xlsx";
+
+        Assert.True(IsValid(document));
+    }
+
+    /// <summary>Rejects a current-directory segment in a materialized-root path.</summary>
+    [Fact]
+    public void CandidateEvidenceSchemaRejectsCurrentSegmentInRootManifestEntry()
+    {
+        JsonObject document = CreateDocument("candidate-root-manifest");
+        JsonObject entry = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(document["entries"])[0]);
+        entry["path"] = "schemas/./candidate-evidence-v1.schema.json";
+
+        Assert.False(IsValid(document));
+    }
+
     /// <summary>Rejects a root entry whose declared kind does not own its directory.</summary>
     [Fact]
     public void CandidateEvidenceSchemaRejectsRootEntryKindPathMismatch()
