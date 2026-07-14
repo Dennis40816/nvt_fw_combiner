@@ -525,6 +525,7 @@ public sealed partial class XamlControlStyleContractTests
             "Border.listRow",
             "Border.settingRow",
             "TextBlock.panelTitle",
+            "TextBlock.compactTitle",
             "TextBlock.supportingText",
             "TextBlock.infoText",
             "TextBlock.technicalValue",
@@ -555,6 +556,7 @@ public sealed partial class XamlControlStyleContractTests
             Assert.DoesNotContain("Property=\"CornerRadius\" Value=\"8\"", xaml, StringComparison.Ordinal);
             Assert.DoesNotContain("CornerRadius=\"6\"", xaml, StringComparison.Ordinal);
             Assert.DoesNotContain("Property=\"CornerRadius\" Value=\"6\"", xaml, StringComparison.Ordinal);
+            Assert.DoesNotContain("compactStrongText", xaml, StringComparison.Ordinal);
         }
     }
 

@@ -19,7 +19,7 @@
   <Border Padding="0,7" BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="0,1,0,0">
     <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="3">
       <TextBlock Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.KindLabel}" />
-      <TextBlock Grid.Column="1" Classes="compactStrongText" Text="{Binding Kind}" TextWrapping="Wrap" />
+      <TextBlock Grid.Column="1" Classes="compactTitle" Text="{Binding Kind}" TextWrapping="Wrap" />
       <TextBlock Grid.Row="1" Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.AddressSpaceLabel}" />
       <TextBlock Grid.Row="1" Grid.Column="1" Classes="technicalCompactDetail" Text="{Binding AddressSpace}" TextWrapping="Wrap" />
       <TextBlock Grid.Row="2" Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.RangeLabel}" />

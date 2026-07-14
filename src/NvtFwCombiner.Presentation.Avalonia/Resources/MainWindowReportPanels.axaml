@@ -112,7 +112,7 @@
       <Grid Margin="16,0,16,16" RowDefinitions="Auto,Auto" RowSpacing="14">
         <StackPanel Spacing="3">
           <TextBlock Classes="bodyText" Text="{Binding LoadedReport.OutcomeDetail}" TextWrapping="Wrap" />
-          <TextBlock Classes="compactStrongText" Text="{Binding LoadedReport.NextStepTitle}" TextWrapping="Wrap" />
+          <TextBlock Classes="compactTitle" Text="{Binding LoadedReport.NextStepTitle}" TextWrapping="Wrap" />
           <TextBlock Classes="captionText" Text="{Binding LoadedReport.NextStepDetail}" TextWrapping="Wrap" />
         </StackPanel>
 

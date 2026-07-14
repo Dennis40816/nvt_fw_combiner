@@ -189,11 +189,6 @@
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
   </Style>
-  <Style Selector="TextBlock.compactStrongText">
-    <Setter Property="FontSize" Value="11" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
-  </Style>
   <Style Selector="TextBlock.tableHeader">
     <Setter Property="FontSize" Value="10" />
     <Setter Property="FontWeight" Value="SemiBold" />
