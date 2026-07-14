@@ -7,7 +7,6 @@ internal static partial class V2CompositionPlanCompiler
 {
     private const string RuntimeReferencePreparationNotAdmitted = "profile.v2.runtime-reference-replace.preparation-not-admitted";
     private const string RuntimeReferenceProfileShapeInvalid = "profile.v2.runtime-reference-replace.profile-shape-invalid";
-    private const string RuntimeReferenceCapacityInvalid = "profile.v2.runtime-reference-replace.map-capacity-invalid";
     private const string RuntimeReferenceBindingInvalid = "profile.v2.runtime-reference-replace.binding-invalid";
     private const string RuntimeReferenceMappingInvalid = "profile.v2.runtime-reference-replace.mapping-invalid";
     private const string RuntimeReferenceSourceOutOfBounds = "profile.v2.runtime-reference-replace.source-out-of-bounds";
@@ -102,7 +101,7 @@ internal static partial class V2CompositionPlanCompiler
         var provenance = new V2CompilationProvenance(
             preparation.Selection.BundleIdentity,
             preparation.Selection.ProfileEntryIdentity,
-            new ResolvedMapV2CompilationContext(resolvedMap),
+            new RuntimeReferenceReplaceV2CompilationContext(resolvedMap),
             promotion,
             profile.EvidenceRefs,
             [],
@@ -147,6 +146,28 @@ internal static partial class V2CompositionPlanCompiler
             profile.Operations.Count == 0 &&
             profile.Validations.Count == 0 &&
             profile.ProcessorStages.Count == 0;
+    }
+
+    internal static bool TryGetRuntimeReferenceReplaceReferenceSlotId(
+        CompositionProfileDefinition profile,
+        out string referenceSlotId)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        referenceSlotId = string.Empty;
+        if (!IsRuntimeReferenceReplaceProfile(profile))
+        {
+            return false;
+        }
+
+        try
+        {
+            referenceSlotId = AssertRuntimeReferenceReplaceProfileShape(profile).ReferenceSlot.SlotId;
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
     }
 
     private static RuntimeReferenceReplaceProfileShape AssertRuntimeReferenceReplaceProfileShape(
@@ -194,14 +215,6 @@ internal static partial class V2CompositionPlanCompiler
         LoweredRegionAccess regionAccess,
         List<CompositionIssue> issues)
     {
-        if (request.RequestedMapCapacity != resolvedMap.CapacityBytes)
-        {
-            issues.Add(new CompositionIssue(
-                RuntimeReferenceCapacityInvalid,
-                "Runtime reference-replace capacity must equal the uniquely resolved canonical map capacity.",
-                shape.Output.SpaceId));
-        }
-
         var bindings = new Dictionary<string, V2RuntimeReferenceReplaceInputBinding>(StringComparer.Ordinal);
         int referenceCount = 0;
         int sourceCount = 0;

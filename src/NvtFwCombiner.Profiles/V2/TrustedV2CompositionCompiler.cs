@@ -63,14 +63,6 @@ internal static class TrustedV2CompositionCompiler
         V2RuntimeReferenceReplaceCompileRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (request.RequestedMapCapacity <= 0)
-        {
-            return Failed(
-                [],
-                "profile.v2.runtime-reference-replace.map-capacity-invalid",
-                "Runtime reference-replace compilation requires a positive exact map capacity.");
-        }
-
         if (!TryResolveMapCandidates(
                 catalog,
                 profileId,
@@ -84,9 +76,34 @@ internal static class TrustedV2CompositionCompiler
             return V2CompositionPlanCompileResult.Failed(resolutionIssues);
         }
 
+        if (!catalog.TryResolveSelection(selection!, out TrustedCompositionProfileCatalogEntry? profileEntry) ||
+            !V2CompositionPlanCompiler.TryGetRuntimeReferenceReplaceReferenceSlotId(
+                profileEntry.Profile,
+                out string referenceSlotId))
+        {
+            return Failed(
+                [],
+                "profile.v2.runtime-reference-replace.profile-shape-invalid",
+                "Runtime reference-replace compilation requires the closed reference-image profile shape.");
+        }
+
+        V2RuntimeReferenceReplaceInputBinding[] referenceBindings =
+        [
+            .. request.Bindings.Where(binding =>
+                binding is not null &&
+                StringComparer.Ordinal.Equals(binding.SlotId, referenceSlotId)),
+        ];
+        if (referenceBindings.Length != 1 || referenceBindings[0].ExactLengthBytes <= 0)
+        {
+            return Failed(
+                [],
+                "profile.v2.runtime-reference-replace.reference-length-invalid",
+                "Runtime reference-replace compilation requires exactly one positive-length reference-image binding to select its canonical map.");
+        }
+
         mapCandidates =
         [
-            .. mapCandidates.Where(map => map.CapacityBytes == request.RequestedMapCapacity),
+            .. mapCandidates.Where(map => map.CapacityBytes == referenceBindings[0].ExactLengthBytes),
         ];
         if (mapCandidates.Length != 1)
         {

@@ -52,10 +52,11 @@ filenames, and extensions. After reading and before execution, it validates each
 against the compiled immutable space. Preview-to-Build identity includes the compiled bindings,
 mappings, output capacity, chosen output filename, and the read input hashes.
 
-Application admits this sole `V2PlanCompiled` exception only when the context is logical-output and
-the promotion stage is exactly `executable-candidate`. It does not admit map-bound plan artifacts or
-other promotion stages. This permits controlled candidate parity collection without promoting the
-profile to supported execution.
+Application admits this `V2PlanCompiled` exception only when the context is logical-output and the
+promotion stage is exactly `executable-candidate`. The only other closed candidate exception is ADR
+0020's explicit runtime-reference-replace context; generic map-bound plan artifacts and other
+promotion stages remain rejected. This permits controlled candidate parity collection without
+promoting the profile to supported execution.
 
 `runtime-request` capacity is not valid on resolved-map profiles. Logical-output `memberIds` must be
 canonical `NT...` identities present in the bound exact family snapshot. A candidate may snapshot an

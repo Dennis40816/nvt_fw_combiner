@@ -284,7 +284,7 @@ public sealed class V2CompilationProvenance
         foreach (CompiledCapabilityAdmission capability in _requiredCapabilities)
         {
             FirmwareMapFactBinding<FirmwareCapabilityFact> binding = capability.Binding;
-            if (context is not ResolvedMapV2CompilationContext mapContext ||
+            if (context is not MapBoundV2CompilationContext mapContext ||
                 !StringComparer.Ordinal.Equals(binding.EffectiveKey.MemberId, mapContext.ResolvedMap.MemberId) ||
                 !StringComparer.Ordinal.Equals(binding.EffectiveKey.MapId, mapContext.ResolvedMap.ImageMap.MapId) ||
                 binding.Applicability.Evaluate(mapContext.ResolvedMap) != FirmwareApplicabilityResult.Match)
@@ -322,7 +322,7 @@ public sealed class V2CompilationProvenance
     public V2CompilationContext Context { get; }
 
     /// <summary>Resolver-owned physical map for map-bound artifacts only.</summary>
-    public FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap ResolvedMap => Context is ResolvedMapV2CompilationContext mapContext
+    public FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap ResolvedMap => Context is MapBoundV2CompilationContext mapContext
         ? mapContext.ResolvedMap
         : throw new InvalidOperationException("Logical-output provenance does not contain a resolved firmware image map.");
 
@@ -352,7 +352,7 @@ public sealed class V2CompiledCompositionDetails
         ArgumentNullException.ThrowIfNull(inputContract);
         ArgumentNullException.ThrowIfNull(regionAccessContract);
         ArgumentNullException.ThrowIfNull(outputNamingRequirement);
-        if (provenance.Context is ResolvedMapV2CompilationContext mapContext)
+        if (provenance.Context is MapBoundV2CompilationContext mapContext)
         {
             ValidateRegionAccessContract(mapContext.ResolvedMap.ImageMap, regionAccessContract);
         }

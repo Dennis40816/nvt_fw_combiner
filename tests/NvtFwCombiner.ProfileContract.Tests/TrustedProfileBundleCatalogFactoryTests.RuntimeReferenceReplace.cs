@@ -24,7 +24,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
         Assert.True(result.IsCompiled);
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
-        _ = Assert.IsType<ResolvedMapV2CompilationContext>(composition.V2Details!.Provenance.Context);
+        _ = Assert.IsType<RuntimeReferenceReplaceV2CompilationContext>(composition.V2Details!.Provenance.Context);
         Assert.Equal(ImageInitializationKind.Reference, composition.Plan.OutputInitialization.Kind);
         Assert.Equal("base", composition.Plan.OutputInitialization.ReferenceSpaceId);
         Assert.Equal("output-image", composition.Plan.OutputSpaceId);
@@ -55,6 +55,25 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
 
         Assert.False(result.IsCompiled);
         Assert.Contains(result.Issues, issue => issue.Code == "profile.v2.plan.region-access-denied");
+    }
+
+    /// <summary>Verifies only the exact reference-image binding can select a runtime reference-replace map capacity.</summary>
+    [Fact]
+    public void RuntimeReferenceReplaceLoweringRejectsMissingReferenceLengthBeforeMapSelection()
+    {
+        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
+            CreateRuntimeReferenceReplaceCatalog(),
+            "runtime-general-replace",
+            "1.0.0",
+            LogicalTestMemberId,
+            new V2RuntimeReferenceReplaceCompileRequest(
+                [new V2RuntimeReferenceReplaceInputBinding("source-a", "source", 16)],
+                [RuntimeReferenceReplaceMapping("replace-source", 10, new ByteRange(2, 2), new ByteRange(8, 2))]));
+
+        Assert.False(result.IsCompiled);
+        Assert.Contains(
+            result.Issues,
+            issue => issue.Code == "profile.v2.runtime-reference-replace.reference-length-invalid");
     }
 
     /// <summary>Verifies a source range that escapes its concrete binding rejects only that request.</summary>
@@ -118,7 +137,6 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         params ExplicitMapping[] mappings)
     {
         return new V2RuntimeReferenceReplaceCompileRequest(
-            16,
             [
                 new V2RuntimeReferenceReplaceInputBinding("base", "reference", 16),
                 new V2RuntimeReferenceReplaceInputBinding("source-a", "source", 4),

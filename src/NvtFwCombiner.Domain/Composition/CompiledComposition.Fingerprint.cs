@@ -50,13 +50,16 @@ public sealed partial class CompiledComposition
             "Profile-bundle-v2 artifacts require paired v2 details.");
         return details.Provenance.Context switch
         {
-            ResolvedMapV2CompilationContext => CalculateMapBoundV2CompilationFingerprint(composition),
+            RuntimeReferenceReplaceV2CompilationContext runtimeReference => CalculateMapBoundV2CompilationFingerprint(composition, runtimeReference),
+            ResolvedMapV2CompilationContext resolvedMap => CalculateMapBoundV2CompilationFingerprint(composition, resolvedMap),
             LogicalOutputV2CompilationContext logical => CalculateLogicalOutputV2CompilationFingerprint(composition, logical),
             _ => throw new InvalidOperationException("Unknown profile-bundle-v2 compilation context."),
         };
     }
 
-    private static string CalculateMapBoundV2CompilationFingerprint(CompiledComposition composition)
+    private static string CalculateMapBoundV2CompilationFingerprint(
+        CompiledComposition composition,
+        MapBoundV2CompilationContext context)
     {
         V2CompiledCompositionDetails details = composition.V2Details ?? throw new InvalidOperationException(
             "Profile-bundle-v2 artifacts require paired v2 details.");
@@ -75,6 +78,10 @@ public sealed partial class CompiledComposition
         AppendField(builder, "profile.mode", composition.ModeId);
         AppendField(builder, "profile.experience", composition.ExperienceId);
         AppendEnum(builder, "profile.composition-kind", composition.CompositionKind);
+        if (context.Kind == V2CompilationContextKind.RuntimeReferenceReplace)
+        {
+            AppendEnum(builder, "compilation-context", context.Kind);
+        }
         AppendEnum(builder, "run-policy.ic-number", composition.IcNumberPolicy);
         AppendEnum(builder, "eligibility", composition.Eligibility);
         AppendField(builder, "bundle.id", provenance.Bundle.BundleId);

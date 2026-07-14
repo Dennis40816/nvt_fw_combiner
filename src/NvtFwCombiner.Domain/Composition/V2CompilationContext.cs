@@ -9,6 +9,8 @@ public enum V2CompilationContextKind
     ResolvedMap,
     /// <inheritdoc/>
     LogicalOutput,
+    /// <inheritdoc/>
+    RuntimeReferenceReplace,
 }
 
 /// <summary>Exact family and member context used to establish a profile-bundle-v2 artifact.</summary>
@@ -69,12 +71,15 @@ public abstract class V2CompilationContext
     public string ModeId { get; }
 }
 
-/// <summary>Context backed by one uniquely resolved canonical firmware image map.</summary>
-public sealed class ResolvedMapV2CompilationContext : V2CompilationContext
+/// <summary>Common context backed by one uniquely resolved canonical firmware image map.</summary>
+public abstract class MapBoundV2CompilationContext : V2CompilationContext
 {
-    internal ResolvedMapV2CompilationContext(FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap)
+    /// <summary>Creates one checked map-bound context with a closed purpose discriminator.</summary>
+    protected MapBoundV2CompilationContext(
+        V2CompilationContextKind kind,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap)
         : base(
-            V2CompilationContextKind.ResolvedMap,
+            kind,
             RequireMap(resolvedMap).FamilyId,
             resolvedMap.FamilyVersion,
             resolvedMap.FamilyContentHash,
@@ -91,6 +96,25 @@ public sealed class ResolvedMapV2CompilationContext : V2CompilationContext
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap)
     {
         return resolvedMap ?? throw new ArgumentNullException(nameof(resolvedMap));
+    }
+}
+
+/// <summary>Context backed by one uniquely resolved canonical firmware image map.</summary>
+public sealed class ResolvedMapV2CompilationContext : MapBoundV2CompilationContext
+{
+    internal ResolvedMapV2CompilationContext(FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap)
+        : base(V2CompilationContextKind.ResolvedMap, resolvedMap)
+    {
+    }
+}
+
+/// <summary>Context for the closed map-bound runtime reference-replace candidate shape.</summary>
+public sealed class RuntimeReferenceReplaceV2CompilationContext : MapBoundV2CompilationContext
+{
+    internal RuntimeReferenceReplaceV2CompilationContext(
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap)
+        : base(V2CompilationContextKind.RuntimeReferenceReplace, resolvedMap)
+    {
     }
 }
 

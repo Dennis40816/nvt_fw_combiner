@@ -40,7 +40,9 @@ The declaration must contain exactly:
   physical write constraints.
 
 A typed request supplies only concrete immutable source binding identities,
-exact source lengths, and ordered explicit `ReplaceRange` mappings. It has no
+exact source lengths, and ordered explicit `ReplaceRange` mappings. The exact
+singleton `reference-image` length uniquely selects the canonical map capacity;
+the request has no independent map-capacity override. It has no
 host paths, source bytes, commands, process arguments, decoded firmware facts,
 or caller-supplied mutable buffers. The compiler materializes those bindings,
 checks every source and target range, derives the target's canonical region
@@ -52,6 +54,12 @@ Reference-replace rejection is local to the selected compile/run request. It
 does not alter Standard Merge, DP Replace, CtrlRAM Replace, General Merge, UI
 catalog availability, or CLI routing. There is no legacy fallback after a
 profile has been selected for this V2 route.
+
+Application admits only the explicit `RuntimeReferenceReplaceV2CompilationContext`
+with promotion stage `executable-candidate`, a reference singleton, and one-or-more
+auxiliary per-binding sources. A generic resolved-map artifact cannot obtain this
+admission from its input shape. This candidate admission is not a production route,
+UI catalog change, or support promotion.
 
 ## Non-goals
 

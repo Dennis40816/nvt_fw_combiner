@@ -29,21 +29,16 @@ internal sealed class V2RuntimeReferenceReplaceCompileRequest
     private readonly ExplicitMapping[] _mappings;
 
     internal V2RuntimeReferenceReplaceCompileRequest(
-        long requestedMapCapacity,
         IEnumerable<V2RuntimeReferenceReplaceInputBinding> bindings,
         IEnumerable<ExplicitMapping> mappings)
     {
         ArgumentNullException.ThrowIfNull(bindings);
         ArgumentNullException.ThrowIfNull(mappings);
-        RequestedMapCapacity = requestedMapCapacity;
         _bindings = [.. bindings];
         _mappings = [.. mappings];
         Bindings = Array.AsReadOnly(_bindings);
         Mappings = Array.AsReadOnly(_mappings);
     }
-
-    /// <summary>Exact physical image-map capacity selected for the reference image and output clone.</summary>
-    internal long RequestedMapCapacity { get; }
 
     /// <summary>Concrete immutable inputs with no host paths, source bytes, or process authority.</summary>
     internal IReadOnlyList<V2RuntimeReferenceReplaceInputBinding> Bindings { get; }

@@ -466,7 +466,9 @@ public sealed partial class CompositionRunRequestV2Tests
                 CompiledInputInstancePolicy.Singleton)]);
     }
 
-    private static FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap CreateResolvedMap(string modeId = "standard")
+    private static FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap CreateResolvedMap(
+        string modeId = "standard",
+        FirmwareWriteConstraint rootWriteConstraint = FirmwareWriteConstraint.Forbidden)
     {
         var map = FirmwareImageMap.CreateDirect(
             "map",
@@ -486,7 +488,7 @@ public sealed partial class CompositionRunRequestV2Tests
                     FirmwareRegionOwner.System,
                     FirmwareRegionKind.Image,
                     new ByteRange(0, 4),
-                    FirmwareWriteConstraint.Forbidden)],
+                    rootWriteConstraint)],
                 ["map-evidence"])],
             [],
             ["map-evidence"]);

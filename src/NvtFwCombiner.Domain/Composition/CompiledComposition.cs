@@ -178,11 +178,18 @@ public sealed partial class CompiledComposition
             return;
         }
 
-        if (details.InputContract.SpaceBindings.Any(static binding =>
-                binding.InstancePolicy == CompiledInputInstancePolicy.PerBinding))
+        if (details.Provenance.Context is RuntimeReferenceReplaceV2CompilationContext)
         {
             ValidateRuntimeReferenceReplaceInputRequirements(plan, compositionKind, details);
             return;
+        }
+
+        if (details.InputContract.SpaceBindings.Any(static binding =>
+                binding.InstancePolicy == CompiledInputInstancePolicy.PerBinding))
+        {
+            throw new ArgumentException(
+                "Per-binding V2 inputs require the explicit runtime-reference-replace compilation context.",
+                nameof(details));
         }
 
         var addressSpaces = plan.AddressSpaces.ToDictionary(
@@ -298,7 +305,7 @@ public sealed partial class CompiledComposition
         V2CompiledCompositionDetails details)
     {
         if (compositionKind != CompositionKind.Replace ||
-            details.Provenance.Context is not ResolvedMapV2CompilationContext ||
+            details.Provenance.Context is not RuntimeReferenceReplaceV2CompilationContext ||
             plan.OutputInitialization.Kind != ImageInitializationKind.Reference ||
             plan.OutputInitialization.ReferenceSpaceId is null ||
             details.RegionAccessContract.Requirements.Count == 0 ||

@@ -108,11 +108,8 @@ public sealed class CompositionRunRequest
 
         if (compiledComposition.Eligibility == CompiledCompositionEligibility.V2PlanCompiled &&
             compiledComposition.Authority is ProfileBundleV2CompilationAuthority &&
-            compiledComposition.V2Details is
-            {
-                Provenance.Context: LogicalOutputV2CompilationContext,
-                Provenance.Promotion.Stage: CompiledProfilePromotionStage.ExecutableCandidate,
-            })
+            compiledComposition.V2Details is { Provenance.Promotion.Stage: CompiledProfilePromotionStage.ExecutableCandidate } details &&
+            details.Provenance.Context is LogicalOutputV2CompilationContext or RuntimeReferenceReplaceV2CompilationContext)
         {
             return;
         }
@@ -166,6 +163,7 @@ public sealed class CompositionRunRequest
             static slot => slot.SlotId,
             StringComparer.Ordinal);
         bool isLogicalOutput = details.Provenance.Context is LogicalOutputV2CompilationContext;
+        bool isRuntimeReferenceReplace = details.Provenance.Context is RuntimeReferenceReplaceV2CompilationContext;
         foreach (CompiledInputSpaceBinding expected in expectedBindings)
         {
             if (!bindings.TryGetValue(expected.AddressSpaceId, out InputArtifactBinding? binding))
@@ -183,7 +181,19 @@ public sealed class CompositionRunRequest
                   binding.BindingId == expected.AddressSpaceId &&
                   binding.ArtifactClass == slot.ArtifactClass &&
                   binding.OriginalFileName is not null
-                : expected.InstancePolicy == CompiledInputInstancePolicy.Singleton &&
+                : isRuntimeReferenceReplace
+                    ? ((expected.InstancePolicy == CompiledInputInstancePolicy.Singleton &&
+                        slot.Required &&
+                        slot.Cardinality == CompiledInputSlotCardinality.ExactlyOne &&
+                        slot.ArtifactClass == CompiledInputArtifactClass.ReferenceImage) ||
+                       (expected.InstancePolicy == CompiledInputInstancePolicy.PerBinding &&
+                        slot.Required &&
+                        slot.Cardinality == CompiledInputSlotCardinality.OneOrMore &&
+                        slot.ArtifactClass == CompiledInputArtifactClass.Auxiliary)) &&
+                      binding.BindingId == expected.AddressSpaceId &&
+                      binding.ArtifactClass == slot.ArtifactClass &&
+                      binding.OriginalFileName is not null
+                    : expected.InstancePolicy == CompiledInputInstancePolicy.Singleton &&
                   slot.Required &&
                   slot.Cardinality == CompiledInputSlotCardinality.ExactlyOne &&
                   binding.ArtifactClass == slot.ArtifactClass &&
