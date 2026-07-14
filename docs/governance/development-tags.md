@@ -39,9 +39,13 @@ for `v0.9.3` through `v0.9.6` are maintained in
 - `0.9.1` is the integration branch for the firmware-model-v2 migration after `0.9.0`.
 - `0.9.2` starts from the owner-approved locally verified `v0.9.1` tag and is limited to trust-preserving profile-bundle consolidation before AB Code work resumes. PR #94 records the temporary local-verification integration; remote CI and Codex review remain required before any later `main` integration.
 - `0.9.3` follows the reviewed `v0.9.2` tag and contains the separately evidence-gated AB Code and CtrlRAM version-edit work. The `0.9.2` release metadata and tag must exist before AB commits begin.
-- `0.9.4` follows the reviewed `0.9.3` tag and may automate declared IC-evidence intake only through the standardized 0.9.2 bundle contract.
+- `0.9.4` follows the reviewed `0.9.3` tag for integration and release, and may automate declared IC-evidence intake only through the standardized 0.9.2 bundle contract.
 - `0.9.5` follows the reviewed `0.9.4` tag and performs staged V2 workflow convergence using the [Legacy Retirement Matrix](legacy-retirement-matrix.md); it does not treat a legacy name as evidence that code is removable.
 - `0.9.6` follows the reviewed `0.9.5` tag and closes only release/support evidence and compatibility items whose matrix gates are complete.
+
+Pre-tag `0.9.x` feature development is permitted for candidate-only work under
+the [roadmap policy](../architecture/0.9.x-completion-roadmap.md#pre-tag-candidate-development-policy).
+It never waives evidence, support-promotion, integration, or release-tag gates.
 - `main` is the stable branch.
 - Progress to `main` must happen through reviewed merge/PR, not direct unreviewed development pushes.
 - Agent/Codex work should stay on the active milestone branch until review gates pass.
