@@ -39,8 +39,7 @@ public static partial class CliApplication
             new CandidateEvidenceMaterializationRequest(
                 requestPath,
                 sourceRoot,
-                outputDirectory,
-                DateTimeOffset.UtcNow));
+                outputDirectory));
 
         await output.WriteLineAsync("Candidate evidence staged.").ConfigureAwait(false);
         await output.WriteLineAsync($"Candidate root: {result.CandidateRootDirectory}").ConfigureAwait(false);

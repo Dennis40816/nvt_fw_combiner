@@ -38,7 +38,10 @@ The source bundle records `requestContentHash` as SHA-256 over the exact strict
 UTF-8 request snapshot, without a byte-order mark, using
 `sha256-raw-utf8-v1`. It preserves the owner, request identity/version/time,
 facts, and missing-evidence state so the root remains bound to one exact owner
-request.
+request. `intakeProvenance.generatedAtUtc` is the request's declared
+`requestedAtUtc`; the materializer does not serialize host-clock time, so the
+same request and source snapshots produce byte-identical candidate roots and
+reports.
 
 `candidate-root-manifest.contentHash` uses
 `sha256-rfc8785-candidate-entry-array-v1`: SHA-256 over an RFC 8785 UTF-8

@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -50,7 +49,7 @@ internal static class CandidateEvidenceIntakeMaterializer
             string candidateRoot = Path.Combine(temporarySet, CandidateRootDirectoryName);
             _ = Directory.CreateDirectory(candidateRoot);
 
-            JsonObject sourceBundle = CreateSourceBundle(intakeRequest, requestSnapshot.Sha256, sourceArtifacts, request.GeneratedAtUtc);
+            JsonObject sourceBundle = CreateSourceBundle(intakeRequest, requestSnapshot.Sha256, sourceArtifacts);
             CandidateEvidenceRootEntry[] entries = WriteCandidateRoot(candidateRoot, sourceBundle, sourceArtifacts);
             JsonObject rootManifest = CreateRootManifest(intakeRequest, entries);
             CandidateEvidenceFileSnapshot rootManifestSnapshot = WriteJson(
@@ -275,8 +274,7 @@ internal static class CandidateEvidenceIntakeMaterializer
     private static JsonObject CreateSourceBundle(
         JsonObject intakeRequest,
         string requestHash,
-        IReadOnlyList<CandidateEvidenceSourceArtifact> sourceArtifacts,
-        DateTimeOffset generatedAtUtc)
+        IReadOnlyList<CandidateEvidenceSourceArtifact> sourceArtifacts)
     {
         var sourceArtifactNodes = new JsonArray();
         foreach (CandidateEvidenceSourceArtifact artifact in sourceArtifacts)
@@ -312,7 +310,7 @@ internal static class CandidateEvidenceIntakeMaterializer
             {
                 ["toolId"] = "nvt-fw-combiner",
                 ["toolVersion"] = "0.9.4",
-                ["generatedAtUtc"] = ToUtcString(generatedAtUtc),
+                ["generatedAtUtc"] = StringValue(intakeRequest, "requestedAtUtc"),
                 ["candidateOnly"] = true,
             },
             ["runtimeAuthority"] = "none",
@@ -610,11 +608,6 @@ internal static class CandidateEvidenceIntakeMaterializer
                 value[3] is >= '1' and <= '9');
     }
 
-    private static string ToUtcString(DateTimeOffset value)
-    {
-        return value.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
-    }
-
     private static JsonObject ObjectValue(JsonNode? node, string label)
     {
         return node as JsonObject ?? throw new InvalidDataException($"Candidate {label} must be an object.");
@@ -647,8 +640,7 @@ internal static class CandidateEvidenceIntakeMaterializer
 internal sealed record CandidateEvidenceMaterializationRequest(
     string RequestPath,
     string SourceRoot,
-    string OutputDirectory,
-    DateTimeOffset GeneratedAtUtc);
+    string OutputDirectory);
 
 /// <summary>Identifies a published candidate root and its sidecar validation report.</summary>
 internal sealed record CandidateEvidenceMaterializationResult(

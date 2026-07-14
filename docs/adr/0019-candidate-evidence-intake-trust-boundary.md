@@ -104,6 +104,10 @@ every validation result, and candidate-only status. It does not expose local
 source paths or `sourceRef` values. A failed report remains in private staging
 diagnostics and cannot publish a candidate root.
 
+The materializer never serializes a host-clock value. Its provenance timestamp
+is the request's declared `requestedAtUtc`, so identical declared source
+snapshots produce byte-identical roots and reports.
+
 ### Filesystem and resource policy
 
 The C# intake adapter accepts only local request, source, and output roots. It

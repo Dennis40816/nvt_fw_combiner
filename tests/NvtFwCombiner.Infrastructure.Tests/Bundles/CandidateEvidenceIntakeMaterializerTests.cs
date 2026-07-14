@@ -27,8 +27,7 @@ public sealed class CandidateEvidenceIntakeMaterializerTests
             new CandidateEvidenceMaterializationRequest(
                 requestPath,
                 sourceRoot,
-                outputDirectory,
-                new DateTimeOffset(2026, 7, 14, 0, 0, 0, TimeSpan.Zero)));
+                outputDirectory));
 
         Assert.Equal(Path.Combine(outputDirectory, "candidate-root"), result.CandidateRootDirectory);
         Assert.Equal(Path.Combine(outputDirectory, "candidate-validation-report.json"), result.ValidationReportPath);
@@ -77,8 +76,7 @@ public sealed class CandidateEvidenceIntakeMaterializerTests
             new CandidateEvidenceMaterializationRequest(
                 requestPath,
                 sourceRoot,
-                outputDirectory,
-                DateTimeOffset.UnixEpoch)));
+                outputDirectory)));
 
         Assert.False(Directory.Exists(outputDirectory));
         Assert.Empty(Directory.EnumerateDirectories(workspace.Root, ".candidate-set-*"));
@@ -105,8 +103,7 @@ public sealed class CandidateEvidenceIntakeMaterializerTests
                 new CandidateEvidenceMaterializationRequest(
                     requestPath,
                     sourceRoot,
-                    outputDirectory,
-                    DateTimeOffset.UnixEpoch)));
+                    outputDirectory)));
 
         Assert.Contains("undeclared artifact", exception.Message, StringComparison.Ordinal);
         Assert.False(Directory.Exists(outputDirectory));
@@ -131,8 +128,7 @@ public sealed class CandidateEvidenceIntakeMaterializerTests
             new CandidateEvidenceMaterializationRequest(
                 requestPath,
                 sourceRoot,
-                outputDirectory,
-                DateTimeOffset.UnixEpoch)));
+                outputDirectory)));
 
         Assert.Equal("preserve", File.ReadAllText(sentinelPath));
         Assert.False(Directory.Exists(Path.Combine(outputDirectory, "candidate-root")));
@@ -154,8 +150,7 @@ public sealed class CandidateEvidenceIntakeMaterializerTests
             new CandidateEvidenceMaterializationRequest(
                 requestPath,
                 sourceRoot,
-                outputDirectory,
-                DateTimeOffset.UnixEpoch)));
+                outputDirectory)));
 
         Assert.False(Directory.Exists(outputDirectory));
     }
@@ -179,11 +174,45 @@ public sealed class CandidateEvidenceIntakeMaterializerTests
                 new CandidateEvidenceMaterializationRequest(
                     requestPath,
                     sourceRoot,
-                    outputDirectory,
-                    DateTimeOffset.UnixEpoch)));
+                    outputDirectory)));
 
         Assert.Contains("lock file", exception.Message, StringComparison.Ordinal);
         Assert.False(Directory.Exists(outputDirectory));
+    }
+
+    /// <summary>Publishes identical candidate bytes for the same declared request and source snapshot.</summary>
+    [Fact]
+    public void MaterializeIsDeterministicForTheSameDeclaredEvidence()
+    {
+        using var workspace = TempWorkspace.Create("nfc-candidate-materializer");
+        byte[] sourceBytes = "owner evidence\n"u8.ToArray();
+        string sourceRoot = workspace.PathFor("source");
+        _ = Directory.CreateDirectory(sourceRoot);
+        File.WriteAllBytes(Path.Combine(sourceRoot, "owner-record.txt"), sourceBytes);
+        string requestPath = workspace.Write("request.json", CreateRequest("owner-record.txt", sourceBytes));
+        string firstOutput = workspace.PathFor("candidate-set-first");
+        string secondOutput = workspace.PathFor("candidate-set-second");
+
+        CandidateEvidenceMaterializationResult first = CandidateEvidenceIntakeMaterializer.Materialize(
+            new CandidateEvidenceMaterializationRequest(requestPath, sourceRoot, firstOutput));
+        CandidateEvidenceMaterializationResult second = CandidateEvidenceIntakeMaterializer.Materialize(
+            new CandidateEvidenceMaterializationRequest(requestPath, sourceRoot, secondOutput));
+
+        Assert.Equal(first.RootContentHash, second.RootContentHash);
+        foreach (string relativePath in new[]
+        {
+            "candidate-validation-report.json",
+            "candidate-root/candidate-root-manifest.json",
+            "candidate-root/schemas/candidate-evidence-v1.schema.json",
+            "candidate-root/source/candidate-source-bundle.json",
+            "candidate-root/artifacts/owner-record/owner-record.txt",
+            "candidate-root/evidence/NEXT_STEPS.md",
+        })
+        {
+            Assert.Equal(
+                File.ReadAllBytes(Path.Combine(firstOutput, relativePath)),
+                File.ReadAllBytes(Path.Combine(secondOutput, relativePath)));
+        }
     }
 
     private static byte[] CreateRequest(string fileName, byte[] sourceBytes)
