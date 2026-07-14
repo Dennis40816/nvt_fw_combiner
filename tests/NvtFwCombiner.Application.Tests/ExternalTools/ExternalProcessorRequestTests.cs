@@ -11,6 +11,10 @@ public sealed class ExternalProcessorRequestTests
     [InlineData(".")]
     [InlineData("..")]
     [InlineData("../escape")]
+    [InlineData(@"..\escape")]
+    [InlineData(@"C:\escape")]
+    [InlineData(@"\escape")]
+    [InlineData("run:child")]
     public void ConstructorRejectsTraversalLikeRunIds(string runId)
     {
         _ = Assert.Throws<ArgumentException>(() =>
