@@ -7,7 +7,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Infrastructure.Tests.Bundles;
 
-/// <summary>Tests closed filesystem inventory verification for profile bundles.</summary>
+/// <summary>Tests the profile-bundle projection of the closed content-root inventory verifier.</summary>
 public sealed class ProfileBundleInventoryVerifierTests
 {
     /// <summary>Verifies the manifest file and every listed entry form one closed inventory.</summary>
@@ -149,6 +149,27 @@ public sealed class ProfileBundleInventoryVerifierTests
             "profile-bundle.json",
             manifest,
             8));
+    }
+
+    /// <summary>Verifies the same closed-root primitive accepts candidate-shaped non-runtime content.</summary>
+    [Fact]
+    public void VerifyClosedInventoryAcceptsCandidateShapedFiles()
+    {
+        using var workspace = TempWorkspace.Create("nfc-candidate-inventory");
+        _ = workspace.Write("candidate-bundle.json", Encoding.UTF8.GetBytes("{}"));
+        _ = workspace.Write("schemas/candidate-evidence.schema.json", Encoding.UTF8.GetBytes("{}"));
+        _ = workspace.Write("evidence/evidence-manifest.json", Encoding.UTF8.GetBytes("{}"));
+        _ = workspace.Write("reports/intake-report.json", Encoding.UTF8.GetBytes("{}"));
+
+        ClosedContentRootInventoryVerifier.VerifyClosedInventory(
+            workspace.Root,
+            "candidate-bundle.json",
+            [
+                "schemas/candidate-evidence.schema.json",
+                "evidence/evidence-manifest.json",
+                "reports/intake-report.json",
+            ],
+            8);
     }
 
     private const string SchemaId =
