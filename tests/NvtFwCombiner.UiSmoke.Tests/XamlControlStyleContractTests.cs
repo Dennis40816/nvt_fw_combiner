@@ -96,15 +96,18 @@ public sealed partial class XamlControlStyleContractTests
             ["UiBrush.Accent"] = "#2563EB",
             ["UiBrush.AccentStrong"] = "#1D4ED8",
             ["UiBrush.TextWarning"] = "#9A3412",
+            ["UiBrush.WarningDetail"] = "#7C2D12",
+            ["UiBrush.WarningMeta"] = "#B45309",
             ["UiBrush.TextDanger"] = "#B91C1C",
             ["UiBrush.TextSuccess"] = "#166534",
+            ["UiBrush.SuccessIndicator"] = "#16A34A",
             ["UiBrush.ModalOverlay"] = "#660F172A",
             ["UiBrush.StrongModalOverlay"] = "#990F172A",
         };
         Dictionary<string, string[]> directPalettePropertyValues = new(StringComparer.Ordinal)
         {
-            ["Foreground"] = ["#FFFFFF", "#0F172A", "#334155", "#64748B", "#475569", "#94A3B8", "#2563EB", "#1D4ED8", "#9A3412", "#B91C1C", "#166534"],
-            ["Background"] = ["#FFFFFF", "#F8FAFC", "#EFF6FF", "#EAF3FF", "#FFF7ED", "#FFF7F7", "#F0FDF4", "#E2E8F0", "#BFDBFE", "#2563EB", "#660F172A", "#990F172A"],
+            ["Foreground"] = ["#FFFFFF", "#0F172A", "#334155", "#64748B", "#475569", "#94A3B8", "#2563EB", "#1D4ED8", "#9A3412", "#7C2D12", "#B45309", "#B91C1C", "#166534"],
+            ["Background"] = ["#FFFFFF", "#F8FAFC", "#EFF6FF", "#EAF3FF", "#FFF7ED", "#FFF7F7", "#F0FDF4", "#E2E8F0", "#BFDBFE", "#CBD5E1", "#2563EB", "#16A34A", "#660F172A", "#990F172A"],
             ["BorderBrush"] = ["#CBD5E1", "#E2E8F0", "#EEF2F7", "#93C5FD", "#60A5FA", "#BFDBFE", "#FED7AA", "#FECACA", "#BBF7D0", "#2563EB"],
             ["Stroke"] = ["#334155", "#475569", "#2563EB", "#1D4ED8"],
         };
@@ -126,6 +129,25 @@ public sealed partial class XamlControlStyleContractTests
             foreach (Match reference in PaletteBrushReferencePattern().Matches(xaml))
             {
                 Assert.Contains(reference.Groups["key"].Value, declaredPalette.Keys);
+            }
+        }
+
+        Dictionary<string, string[]> expectedRoleReferences = new(StringComparer.Ordinal)
+        {
+            ["Resources/MainWindowReportOperationTemplates.axaml"] = ["UiBrush.Border"],
+            ["Resources/MainWindowReportAuditTemplates.axaml"] = ["UiBrush.SuccessIndicator"],
+            ["Resources/MainWindowReportPanels.axaml"] = ["UiBrush.SuccessIndicator"],
+            ["Resources/MainWindowReportTemplates.axaml"] = ["UiBrush.WarningDetail", "UiBrush.WarningMeta"],
+            ["Resources/MainWindowShellPanels.axaml"] = ["UiBrush.SuccessIndicator"],
+            ["Views/FirmwareIcMismatchModal.axaml"] = ["UiBrush.WarningMeta"],
+        };
+
+        foreach ((string path, string[] keys) in expectedRoleReferences)
+        {
+            string xaml = ReadPresentationFile(path);
+            foreach (string key in keys)
+            {
+                Assert.Contains($"{{DynamicResource {key}}}", xaml, StringComparison.Ordinal);
             }
         }
 

@@ -42,9 +42,9 @@
 
 <DataTemplate x:Key="ReportMissingRequiredRowTemplate" DataType="vm:ReportLineViewModel">
   <StackPanel Margin="0,0,0,8" Spacing="2">
-    <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#7C2D12" Text="{Binding Title}" TextWrapping="Wrap" />
-    <TextBlock FontSize="12" Foreground="#7C2D12" Text="{Binding Detail}" TextWrapping="Wrap" />
-    <TextBlock FontSize="11" Foreground="#B45309" Text="{Binding Meta}" TextWrapping="Wrap" />
+    <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource UiBrush.WarningDetail}" Text="{Binding Title}" TextWrapping="Wrap" />
+    <TextBlock FontSize="12" Foreground="{DynamicResource UiBrush.WarningDetail}" Text="{Binding Detail}" TextWrapping="Wrap" />
+    <TextBlock FontSize="11" Foreground="{DynamicResource UiBrush.WarningMeta}" Text="{Binding Meta}" TextWrapping="Wrap" />
   </StackPanel>
 </DataTemplate>
 
@@ -90,8 +90,8 @@
   <Border Padding="10,8" Background="{DynamicResource UiBrush.WarningSurface}" BorderBrush="{DynamicResource UiBrush.WarningBorder}" BorderThickness="1" CornerRadius="6" Margin="0,8,0,0">
     <StackPanel Spacing="2">
       <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource UiBrush.TextWarning}" Text="{Binding Title}" TextWrapping="Wrap" />
-      <TextBlock FontSize="12" Foreground="#7C2D12" Text="{Binding Detail}" TextWrapping="Wrap" />
-      <TextBlock FontSize="11" Foreground="#B45309" Text="{Binding Meta}" TextWrapping="Wrap" />
+      <TextBlock FontSize="12" Foreground="{DynamicResource UiBrush.WarningDetail}" Text="{Binding Detail}" TextWrapping="Wrap" />
+      <TextBlock FontSize="11" Foreground="{DynamicResource UiBrush.WarningMeta}" Text="{Binding Meta}" TextWrapping="Wrap" />
     </StackPanel>
   </Border>
 </DataTemplate>

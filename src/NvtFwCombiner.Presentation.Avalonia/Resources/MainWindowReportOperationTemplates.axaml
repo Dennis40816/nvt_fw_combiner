@@ -68,7 +68,7 @@
 <DataTemplate x:Key="ReportStepOperationTemplate" DataType="vm:ReportLineViewModel">
   <Grid ColumnDefinitions="34,*">
     <Grid>
-      <Border Width="2" HorizontalAlignment="Center" Background="#CBD5E1" />
+      <Border Width="2" HorizontalAlignment="Center" Background="{DynamicResource UiBrush.Border}" />
       <Border
           Width="13"
           Height="13"

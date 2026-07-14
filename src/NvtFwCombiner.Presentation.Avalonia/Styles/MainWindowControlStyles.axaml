@@ -31,8 +31,11 @@
     <SolidColorBrush x:Key="UiBrush.Accent" Color="#2563EB" />
     <SolidColorBrush x:Key="UiBrush.AccentStrong" Color="#1D4ED8" />
     <SolidColorBrush x:Key="UiBrush.TextWarning" Color="#9A3412" />
+    <SolidColorBrush x:Key="UiBrush.WarningDetail" Color="#7C2D12" />
+    <SolidColorBrush x:Key="UiBrush.WarningMeta" Color="#B45309" />
     <SolidColorBrush x:Key="UiBrush.TextDanger" Color="#B91C1C" />
     <SolidColorBrush x:Key="UiBrush.TextSuccess" Color="#166534" />
+    <SolidColorBrush x:Key="UiBrush.SuccessIndicator" Color="#16A34A" />
     <SolidColorBrush x:Key="UiBrush.ModalOverlay" Color="#660F172A" />
     <SolidColorBrush x:Key="UiBrush.StrongModalOverlay" Color="#990F172A" />
   </Styles.Resources>

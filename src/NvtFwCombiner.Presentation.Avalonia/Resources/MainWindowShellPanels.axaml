@@ -101,7 +101,7 @@
           <Border
               Width="8"
               Height="8"
-              Background="#16A34A"
+              Background="{DynamicResource UiBrush.SuccessIndicator}"
               CornerRadius="999" />
           <TextBlock
               VerticalAlignment="Center"

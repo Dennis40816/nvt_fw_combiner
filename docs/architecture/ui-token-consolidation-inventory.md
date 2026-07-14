@@ -96,18 +96,33 @@ panels. It does not merge data-bound or geometric border roles.
 | `UiBrush.*` dynamic-resource references | 335 | 339 |
 | Shared semantic palette resources | 31 | 32 |
 
+### Outcome indicators and report warning text
+
+The fifth implementation phase promotes only exact visual roles: the report
+timeline reuses `UiBrush.Border`; three positive-status indicators use
+`UiBrush.SuccessIndicator`; and the recurring report warning detail and
+warning meta text use `UiBrush.WarningDetail` and `UiBrush.WarningMeta`.
+The firmware IC mismatch modal shares the warning-meta role. It does not
+change text, bindings, visibility, automation names, or warning severity.
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| Direct hex color literals in Avalonia XAML | 75 | 68 |
+| `UiBrush.*` dynamic-resource references | 339 | 349 |
+| Shared semantic palette resources | 32 | 35 |
+
 ## Code-Size Audit
 
 The code-size audit uses Git-tracked files under `src/` only. It excludes
 generated `bin` and `obj` content so an SDK build cannot distort a source-size
-decision. The `a9ae568f` baseline and the current `6b2ce308` state measure:
+decision. The `a9ae568f` baseline and the current recorded phase state measure:
 
 | Scope | Baseline nonblank lines | Current nonblank lines | Delta |
 | --- | ---: | ---: | ---: |
 | Production C# | 53,753 | 53,753 | 0 |
 | Avalonia C# | 12,881 | 12,881 | 0 |
-| Avalonia XAML | 3,961 | 3,998 | +37 |
-| Total tracked production source | 57,714 | 57,751 | +37 |
+| Avalonia XAML | 3,961 | 4,001 | +40 |
+| Total tracked production source | 57,714 | 57,754 | +40 |
 
 The XAML increase is the explicit shared palette declarations and their
 references. It removed direct palette debt without adding C# wrappers, a
@@ -129,12 +144,9 @@ also contains visually similar but role-distinct controls; merging them merely
 because their current setters resemble each other would weaken accessibility
 and visual-state contracts.
 
-The next exact-value candidates are limited to existing visual roles: the
-report operation timeline may use `UiBrush.Border`; the three success outcome
-indicators share one indicator role; and the report warning-detail and
-warning-meta text roles each recur three times. Navigation selection and the
-disabled AB pending badge retain distinct roles even though both currently use
-`#F1F5F9`.
+The next exact-value candidates remain limited to existing visual roles.
+Navigation selection and the disabled AB pending badge retain distinct roles
+even though both currently use `#F1F5F9`.
 
 ## Consolidation Rules
 
