@@ -127,7 +127,7 @@ Minimum tests:
 - the focused `BuiltInStandardMergeProfilesTests.*.cs` parity oracle tests; do not remove legacy-plan or golden comparisons while migrating the family
 - `tests/NvtFwCombiner.ProfileContract.Tests/IcSupportCatalogTests.cs` when support exposure or alias facts change
 - `tests/NvtFwCombiner.ProfileContract.Tests/DpPerspectiveCatalogTests.cs` or the matching family-policy test when shared family policy changes
-- `tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeGenFlashGoldenTests.cs`
+- `tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeWorkbenchGoldenTests.cs`, which exercises the production V2 workbench build path against every manifest golden and owner-confirmed alias.
 - CLI/UI smoke tests only when the new IC changes surfaced selector behavior or output naming.
 
 ## DP Replace steps
