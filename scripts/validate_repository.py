@@ -14,6 +14,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
 from urllib.parse import unquote
 
+from ab_merge_fixture_validation import validate_ab_merge_golden_fixtures
 from repository_contract_validation import validate_v2_contract_model
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -147,13 +148,12 @@ EXPECTED_SKILLS = {
     "ui-experience-change",
     "composition-experience-change",
     "dotnet-bootstrap",
-    "release-readiness",
-    "polytail",
+    "release-readiness", "polytail",
 }
-
 EXPECTED_REFCODE_SNAPSHOTS = {"gen_flash_bin_v2", "ab_code_combiner"}
 FORBIDDEN_SUFFIXES = {".bin", ".exe", ".dll", ".pdb", ".pfx", ".p12", ".pem", ".key", ".pyc"}
 ALLOWED_GOLDEN_BIN_ROOTS = {
+    PurePosixPath("testdata/golden/ab-merge"),
     PurePosixPath("testdata/golden/standard-merge-gen-flash"),
     PurePosixPath("testdata/golden/ctrlram-replace/fixtures"),
 }
@@ -384,6 +384,7 @@ def validate_source_manifest(manifest_path: Path, errors: list[str]) -> None:
 
 
 def validate_golden_fixtures(errors: list[str]) -> None:
+    validate_ab_merge_golden_fixtures(ROOT, load_json, validate_golden_manifest_entry, errors)
     validate_standard_merge_golden_fixtures(errors)
     validate_ctrlram_replace_golden_fixtures(errors)
 

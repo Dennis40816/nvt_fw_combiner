@@ -103,6 +103,13 @@ archive/ticket, output filename, capacity/topology, owner, and approval date.
 The submitted DP_AB container owns customer information unless an owner-approved
 case explicitly proves a narrower rule.
 
+Tracked commit-approved fixtures currently cover NT51929 (`nt51929-ab-t05-d06`)
+and NT51950 (`nt51950-ab-boe-d82t80` and `nt51950-ab-hiway-d82t80`) in
+[`testdata/golden/ab-merge/manifest.json`](../../testdata/golden/ab-merge/manifest.json).
+They establish only the named V2/reference parity facts. They do not grant
+runtime support or replace the remaining map, command-trace, alias, or
+firmware-owner review requirements below.
+
 | AB group | Additional required evidence |
 | --- | --- |
 | NT51919 / NT51929 / NT51932 | An owner-approved fact-scoped AB alias/parity matrix. It must identify each effective member/map/capacity and provide direct output hashes for every reused member. A shared source payload is acceptable only when the matrix and member-specific expected results prove parity. |

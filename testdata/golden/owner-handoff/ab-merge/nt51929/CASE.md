@@ -1,13 +1,16 @@
 # NT51929 AB Merge Handoff
 
-This folder accepts private R3 evidence only. Existing candidate/reference
-parity does not replace a product golden or firmware-owner review.
+The tracked `nt51929-ab-t05-d06` fixture in
+`testdata/golden/ab-merge/manifest.json` now records the supplied DP_AB, TPA,
+TPB, and expected output with full V2/reference parity. It remains an
+executable candidate: firmware-owner review and any required member-specific
+alias decision are still needed before runtime exposure.
 
 The existing 256 KiB `initial code` / `TPFW` / `FlashCode` Combiner archive is
 a Normal case, not AB evidence. Do not substitute it for the required AB
 container and both TP bank inputs.
 
-Provide these files under `inputs/`:
+For an additional or topology-specific case, provide these files under `inputs/`:
 
 - `dp-ab.bin`, `tpa.bin`, `tpb.bin`, and `expected.bin`; and
 - `provenance.json` listing each original filename, SHA-256, source
