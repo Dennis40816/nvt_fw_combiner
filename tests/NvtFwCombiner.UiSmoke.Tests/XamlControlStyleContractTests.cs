@@ -73,6 +73,7 @@ public sealed partial class XamlControlStyleContractTests
             ["UiBrush.AccentSurface"] = "#EFF6FF",
             ["UiBrush.AccentSelectedSurface"] = "#EAF3FF",
             ["UiBrush.WarningSurface"] = "#FFF7ED",
+            ["UiBrush.DangerSurface"] = "#FFF7F7",
             ["UiBrush.SuccessSurface"] = "#F0FDF4",
             ["UiBrush.DisabledSurface"] = "#E2E8F0",
             ["UiBrush.AccentSoftSurface"] = "#BFDBFE",
@@ -82,6 +83,7 @@ public sealed partial class XamlControlStyleContractTests
             ["UiBrush.AccentStrongBorder"] = "#60A5FA",
             ["UiBrush.AccentSoftBorder"] = "#BFDBFE",
             ["UiBrush.WarningBorder"] = "#FED7AA",
+            ["UiBrush.DangerBorder"] = "#FECACA",
             ["UiBrush.SuccessBorder"] = "#BBF7D0",
             ["UiBrush.TextPrimary"] = "#0F172A",
             ["UiBrush.TextSecondary"] = "#334155",
@@ -93,15 +95,16 @@ public sealed partial class XamlControlStyleContractTests
             ["UiBrush.Accent"] = "#2563EB",
             ["UiBrush.AccentStrong"] = "#1D4ED8",
             ["UiBrush.TextWarning"] = "#9A3412",
+            ["UiBrush.TextDanger"] = "#B91C1C",
             ["UiBrush.TextSuccess"] = "#166534",
             ["UiBrush.ModalOverlay"] = "#660F172A",
             ["UiBrush.StrongModalOverlay"] = "#990F172A",
         };
         Dictionary<string, string[]> directPalettePropertyValues = new(StringComparer.Ordinal)
         {
-            ["Foreground"] = ["#FFFFFF", "#0F172A", "#334155", "#64748B", "#475569", "#94A3B8", "#2563EB", "#1D4ED8", "#9A3412", "#166534"],
-            ["Background"] = ["#FFFFFF", "#F8FAFC", "#EFF6FF", "#EAF3FF", "#FFF7ED", "#F0FDF4", "#E2E8F0", "#BFDBFE", "#2563EB", "#660F172A", "#990F172A"],
-            ["BorderBrush"] = ["#CBD5E1", "#E2E8F0", "#93C5FD", "#60A5FA", "#BFDBFE", "#FED7AA", "#BBF7D0", "#2563EB"],
+            ["Foreground"] = ["#FFFFFF", "#0F172A", "#334155", "#64748B", "#475569", "#94A3B8", "#2563EB", "#1D4ED8", "#9A3412", "#B91C1C", "#166534"],
+            ["Background"] = ["#FFFFFF", "#F8FAFC", "#EFF6FF", "#EAF3FF", "#FFF7ED", "#FFF7F7", "#F0FDF4", "#E2E8F0", "#BFDBFE", "#2563EB", "#660F172A", "#990F172A"],
+            ["BorderBrush"] = ["#CBD5E1", "#E2E8F0", "#93C5FD", "#60A5FA", "#BFDBFE", "#FED7AA", "#FECACA", "#BBF7D0", "#2563EB"],
             ["Stroke"] = ["#334155", "#475569", "#2563EB", "#1D4ED8"],
         };
         MatchCollection definitions = PaletteBrushDefinitionPattern().Matches(library);

@@ -29,14 +29,14 @@
     <Setter Property="Padding" Value="14,10" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
-    <Setter Property="Background" Value="#FFF7F7" />
-    <Setter Property="BorderBrush" Value="#FECACA" />
-    <Setter Property="Foreground" Value="#B91C1C" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.DangerSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.DangerBorder}" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.TextDanger}" />
     <Setter Property="FontSize" Value="13" />
   </Style>
   <Style Selector="Button.danger /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="#FFF7F7" />
-    <Setter Property="BorderBrush" Value="#FECACA" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.DangerSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.DangerBorder}" />
     <Setter Property="CornerRadius" Value="999" />
   </Style>
   <Style Selector="Button.danger:disabled">
@@ -113,13 +113,13 @@
     <Setter Property="CornerRadius" Value="999" />
   </Style>
   <Style Selector="Button.dangerIcon">
-    <Setter Property="Background" Value="#FFF7F7" />
-    <Setter Property="BorderBrush" Value="#FECACA" />
-    <Setter Property="Foreground" Value="#B91C1C" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.DangerSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.DangerBorder}" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.TextDanger}" />
   </Style>
   <Style Selector="Button.dangerIcon /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="#FFF7F7" />
-    <Setter Property="BorderBrush" Value="#FECACA" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.DangerSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.DangerBorder}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="999" />
   </Style>

@@ -71,6 +71,19 @@ property-role pair migrated in this phase. It deliberately permits direct
 values for geometry and roles that do not yet have an exact shared semantic
 token.
 
+### Shared danger-button treatment
+
+The third implementation phase adds the three reusable danger-button roles
+`UiBrush.DangerSurface`, `UiBrush.DangerBorder`, and `UiBrush.TextDanger`.
+They are used by both text and icon danger-button templates; no warning or
+firmware outcome color is folded into this treatment.
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| Direct hex color literals in Avalonia XAML | 85 | 78 |
+| `UiBrush.*` dynamic-resource references | 325 | 335 |
+| Shared semantic palette resources | 28 | 31 |
+
 ## Consolidation Rules
 
 1. `Styles/MainWindowControlStyles.axaml` remains the single shared token and
