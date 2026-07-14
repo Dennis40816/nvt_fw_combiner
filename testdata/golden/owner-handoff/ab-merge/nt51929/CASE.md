@@ -3,6 +3,10 @@
 This folder accepts private R3 evidence only. Existing candidate/reference
 parity does not replace a product golden or firmware-owner review.
 
+The existing 256 KiB `initial code` / `TPFW` / `FlashCode` Combiner archive is
+a Normal case, not AB evidence. Do not substitute it for the required AB
+container and both TP bank inputs.
+
 Provide these files under `inputs/`:
 
 - `dp-ab.bin`, `tpa.bin`, `tpb.bin`, and `expected.bin`; and
