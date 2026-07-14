@@ -96,6 +96,46 @@ panels. It does not merge data-bound or geometric border roles.
 | `UiBrush.*` dynamic-resource references | 335 | 339 |
 | Shared semantic palette resources | 31 | 32 |
 
+## Code-Size Audit
+
+The code-size audit uses Git-tracked files under `src/` only. It excludes
+generated `bin` and `obj` content so an SDK build cannot distort a source-size
+decision. The `a9ae568f` baseline and the current `6b2ce308` state measure:
+
+| Scope | Baseline nonblank lines | Current nonblank lines | Delta |
+| --- | ---: | ---: | ---: |
+| Production C# | 53,753 | 53,753 | 0 |
+| Avalonia C# | 12,881 | 12,881 | 0 |
+| Avalonia XAML | 3,961 | 3,998 | +37 |
+| Total tracked production source | 57,714 | 57,751 | +37 |
+
+The XAML increase is the explicit shared palette declarations and their
+references. It removed direct palette debt without adding C# wrappers, a
+second token system, or new firmware behavior. The repository architecture
+test rejects source, test, and documentation files over 700 lines; the largest
+tracked production source file is currently 632 lines.
+
+The requested approximate 30,000-line target would require removing about
+27,751 tracked production lines, or 48 percent of the current source. UI token
+cleanup cannot honestly produce that reduction. It must not be attempted by
+deleting tests, golden evidence, manifests, or still-live legacy paths. Any
+future reduction of that scale needs a separately approved workflow-retirement
+decision with exact V2 replacement and regression evidence.
+
+No current large file is an approved deletion candidate. The V2 compiler,
+composition fingerprint, firmware-map models, and Hex Editor files each own
+distinct execution or interaction responsibilities. The shared style library
+also contains visually similar but role-distinct controls; merging them merely
+because their current setters resemble each other would weaken accessibility
+and visual-state contracts.
+
+The next exact-value candidates are limited to existing visual roles: the
+report operation timeline may use `UiBrush.Border`; the three success outcome
+indicators share one indicator role; and the report warning-detail and
+warning-meta text roles each recur three times. Navigation selection and the
+disabled AB pending badge retain distinct roles even though both currently use
+`#F1F5F9`.
+
 ## Consolidation Rules
 
 1. `Styles/MainWindowControlStyles.axaml` remains the single shared token and
