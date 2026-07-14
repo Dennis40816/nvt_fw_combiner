@@ -146,6 +146,33 @@ The XAML literal count increases by one because the two exact resources are
 declared in the canonical library while one pre-existing changed-badge border
 is replaced. This is an ownership migration, not a literal-count reduction.
 
+### Firmware slot completion-state ownership
+
+The eighth implementation phase removes the completion-state brush API and
+color literals from `FirmwareSlotViewModel`. `FirmwareSlotCard` now exposes
+only its existing `HasFile` and `IsOptional` values as XAML classes. The
+shared style library owns the missing-required, selected-required, and
+optional visual variants. The optional selectors follow the selected selectors
+so an optional slot remains neutral after a file is selected. These are
+presentation-only completion states; they do not encode firmware policy.
+
+`UiBrush.ErrorSurface` replaces the exact existing error surface used by both
+the missing-required slot and the invalid Hex editor cell. The remaining new
+brushes describe the distinct required-input border, badge, and text roles.
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| C# presentation color literals | 60 | 45 |
+| Direct hex color literals in Avalonia XAML | 67 | 72 |
+| `UiBrush.*` dynamic-resource references | 361 | 377 |
+| Shared semantic palette resources | 39 | 45 |
+
+This is a net source reduction despite the explicit style declarations: the
+removed ViewModel state partial contained 55 lines, while the canonical style
+library adds 34 nonblank XAML lines. UI smoke coverage keeps the required and
+optional slot semantics, while the XAML style contract keeps the selector
+binding and resource ownership explicit.
+
 ## Code-Size Audit
 
 The code-size audit uses Git-tracked files under `src/` only. It excludes
@@ -154,16 +181,16 @@ decision. The `a9ae568f` baseline and the current recorded phase state measure:
 
 | Scope | Baseline nonblank lines | Current nonblank lines | Delta |
 | --- | ---: | ---: | ---: |
-| Production C# | 53,753 | 53,734 | -19 |
-| Avalonia C# | 12,881 | 12,862 | -19 |
-| Avalonia XAML | 3,961 | 4,022 | +61 |
-| Total tracked production source | 57,714 | 57,756 | +42 |
+| Production C# | 53,753 | 53,675 | -78 |
+| Avalonia C# | 12,881 | 12,803 | -78 |
+| Avalonia XAML | 3,961 | 4,056 | +95 |
+| Total tracked production source | 57,714 | 57,731 | +17 |
 
 The XAML increase is the explicit shared palette declarations and their
-references. The firmware-fact slice moved 19 presentation-only C# lines into
-19 shared XAML lines, preserving the total while removing a second visual
-ownership point. No phase adds a C# wrapper, second token system, or firmware
-behavior. The repository architecture test rejects source, test, and
+references. The firmware-fact and slot-completion slices removed ViewModel
+presentation state while moving the visual roles into the single shared style
+library. No phase adds a C# wrapper, second token system, or firmware behavior.
+The repository architecture test rejects source, test, and
 documentation files over 700 lines; the largest tracked production source file
 is currently 632 lines.
 
@@ -186,15 +213,14 @@ an approved semantic match. The disabled AB pending badge remains an
 intentional one-off even though it currently uses `#F1F5F9`.
 
 The Presentation C# audit remains open by design. `FirmwareSlotViewModel`
-slot-completion and slot-kind colors are pure UI state and are the next
-candidate class-based migration. `MemoryCoverageSegmentViewModel` keeps its
-data-bound `FillBrush` because it represents projected coverage evidence, but
-its changed/kept badge and outline can move to XAML state selectors. The Hex
-Editor stays a custom immediate-mode renderer; a later slice may feed its
-stable brushes through Avalonia styled properties while retaining its geometry,
-hit testing, caches, and transient procedural feedback. These three areas must
-not create ViewModel resource keys, a theme service, or firmware-derived token
-names.
+slot-kind colors are the next pure UI-state candidate class-based migration.
+`MemoryCoverageSegmentViewModel` keeps its data-bound `FillBrush` because it
+represents projected coverage evidence, but its changed/kept badge and outline
+can move to XAML state selectors. The Hex Editor stays a custom immediate-mode
+renderer; a later slice may feed its stable brushes through Avalonia styled
+properties while retaining its geometry, hit testing, caches, and transient
+procedural feedback. These three areas must not create ViewModel resource keys,
+a theme service, or firmware-derived token names.
 
 ## Consolidation Rules
 

@@ -11,7 +11,10 @@
     <SolidColorBrush x:Key="UiBrush.SlotFactSurface" Color="#EEF6FF" />
     <SolidColorBrush x:Key="UiBrush.WarningSurface" Color="#FFF7ED" />
     <SolidColorBrush x:Key="UiBrush.DangerSurface" Color="#FFF7F7" />
+    <SolidColorBrush x:Key="UiBrush.ErrorSurface" Color="#FEF2F2" />
     <SolidColorBrush x:Key="UiBrush.SuccessSurface" Color="#F0FDF4" />
+    <SolidColorBrush x:Key="UiBrush.RequiredSelectedBadgeSurface" Color="#DCFCE7" />
+    <SolidColorBrush x:Key="UiBrush.RequiredMissingBadgeSurface" Color="#FEE2E2" />
     <SolidColorBrush x:Key="UiBrush.DisabledSurface" Color="#E2E8F0" />
     <SolidColorBrush x:Key="UiBrush.AccentSoftSurface" Color="#BFDBFE" />
     <SolidColorBrush x:Key="UiBrush.Border" Color="#CBD5E1" />
@@ -24,6 +27,8 @@
     <SolidColorBrush x:Key="UiBrush.WarningSoftBorder" Color="#FDBA74" />
     <SolidColorBrush x:Key="UiBrush.DangerBorder" Color="#FECACA" />
     <SolidColorBrush x:Key="UiBrush.SuccessBorder" Color="#BBF7D0" />
+    <SolidColorBrush x:Key="UiBrush.RequiredMissingBorder" Color="#FCA5A5" />
+    <SolidColorBrush x:Key="UiBrush.RequiredSelectedBorder" Color="#86EFAC" />
     <SolidColorBrush x:Key="UiBrush.TextPrimary" Color="#0F172A" />
     <SolidColorBrush x:Key="UiBrush.TextSecondary" Color="#334155" />
     <SolidColorBrush x:Key="UiBrush.TextMuted" Color="#64748B" />
@@ -37,6 +42,7 @@
     <SolidColorBrush x:Key="UiBrush.WarningDetail" Color="#7C2D12" />
     <SolidColorBrush x:Key="UiBrush.WarningMeta" Color="#B45309" />
     <SolidColorBrush x:Key="UiBrush.TextDanger" Color="#B91C1C" />
+    <SolidColorBrush x:Key="UiBrush.RequiredSelectedText" Color="#15803D" />
     <SolidColorBrush x:Key="UiBrush.TextSuccess" Color="#166534" />
     <SolidColorBrush x:Key="UiBrush.SuccessIndicator" Color="#16A34A" />
     <SolidColorBrush x:Key="UiBrush.UtilityAccent" Color="#0F766E" />
@@ -375,6 +381,36 @@
     <Setter Property="FontSize" Value="11" />
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
+  <Style Selector="Border.fileDropZone.firmwareSlot">
+    <Setter Property="Background" Value="{DynamicResource UiBrush.ErrorSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.RequiredMissingBorder}" />
+    <Setter Property="BorderThickness" Value="1.5" />
+  </Style>
+  <Style Selector="Border.fileDropZone.firmwareSlot.hasFile">
+    <Setter Property="Background" Value="{DynamicResource UiBrush.SuccessSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.RequiredSelectedBorder}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <Style Selector="Border.fileDropZone.firmwareSlot.optional">
+    <Setter Property="Background" Value="{DynamicResource UiBrush.SubtleSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <Style Selector="Label.slotBadge.firmwareSlotRequirement">
+    <Setter Property="Background" Value="{DynamicResource UiBrush.RequiredMissingBadgeSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.DangerBorder}" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.TextDanger}" />
+  </Style>
+  <Style Selector="Label.slotBadge.firmwareSlotRequirement.hasFile">
+    <Setter Property="Background" Value="{DynamicResource UiBrush.RequiredSelectedBadgeSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.SuccessBorder}" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.RequiredSelectedText}" />
+  </Style>
+  <Style Selector="Label.slotBadge.firmwareSlotRequirement.optional">
+    <Setter Property="Background" Value="{DynamicResource UiBrush.AccentSelectedSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.AccentSoftBorder}" />
+    <Setter Property="Foreground" Value="{DynamicResource UiBrush.AccentStrong}" />
+  </Style>
   <Style Selector="Border.firmwareSlotFact">
     <Setter Property="Background" Value="{DynamicResource UiBrush.SlotFactSurface}" />
     <Setter Property="BorderBrush" Value="{DynamicResource UiBrush.AccentSoftBorder}" />
@@ -529,7 +565,7 @@
     <Setter Property="CornerRadius" Value="3" />
   </Style>
   <Style Selector="TextBox.hexCellEditor.invalid">
-    <Setter Property="Background" Value="#FEF2F2" />
+    <Setter Property="Background" Value="{DynamicResource UiBrush.ErrorSurface}" />
     <Setter Property="BorderBrush" Value="#DC2626" />
   </Style>
 </Styles>

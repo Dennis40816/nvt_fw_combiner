@@ -6,13 +6,12 @@
     x:Name="Root"
     x:DataType="vm:FirmwareSlotViewModel">
   <Border
-      Classes="fileDropZone"
+      Classes="fileDropZone firmwareSlot"
+      Classes.hasFile="{Binding HasFile}"
+      Classes.optional="{Binding IsOptional}"
       HorizontalAlignment="Stretch"
       Margin="0,0,0,10"
       Padding="0"
-      Background="{Binding SlotBackgroundBrush}"
-      BorderBrush="{Binding SlotBorderBrush}"
-      BorderThickness="{Binding SlotBorderThickness}"
       CornerRadius="8"
       DragDrop.AllowDrop="True"
       DragDrop.DragEnter="DropZone_OnDragEnter"
@@ -36,10 +35,9 @@
             </Border>
             <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource UiBrush.TextPrimary}" Text="{Binding Title}" />
             <Label
-                Classes="slotBadge"
-                Background="{Binding RequirementBadgeBackgroundBrush}"
-                BorderBrush="{Binding RequirementBadgeBorderBrush}"
-                Foreground="{Binding RequirementBadgeForegroundBrush}"
+                Classes="slotBadge firmwareSlotRequirement"
+                Classes.hasFile="{Binding HasFile}"
+                Classes.optional="{Binding IsOptional}"
                 Content="{Binding RequirementLabel}" />
           </StackPanel>
           <TextBlock Classes="mutedText" Text="{Binding Description}" TextWrapping="Wrap" />

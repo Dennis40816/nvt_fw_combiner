@@ -58,7 +58,7 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.Contains("Styles/MainWindowControlStyles.axaml", application, StringComparison.Ordinal);
         Assert.Contains("<Label", slotCard, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"slotBadge\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"slotBadge firmwareSlotRequirement\"", slotCard, StringComparison.Ordinal);
     }
 
     /// <summary>Ensures shared visual roles consume the one canonical semantic palette.</summary>
@@ -76,7 +76,10 @@ public sealed partial class XamlControlStyleContractTests
             ["UiBrush.SlotFactSurface"] = "#EEF6FF",
             ["UiBrush.WarningSurface"] = "#FFF7ED",
             ["UiBrush.DangerSurface"] = "#FFF7F7",
+            ["UiBrush.ErrorSurface"] = "#FEF2F2",
             ["UiBrush.SuccessSurface"] = "#F0FDF4",
+            ["UiBrush.RequiredSelectedBadgeSurface"] = "#DCFCE7",
+            ["UiBrush.RequiredMissingBadgeSurface"] = "#FEE2E2",
             ["UiBrush.DisabledSurface"] = "#E2E8F0",
             ["UiBrush.AccentSoftSurface"] = "#BFDBFE",
             ["UiBrush.Border"] = "#CBD5E1",
@@ -89,6 +92,8 @@ public sealed partial class XamlControlStyleContractTests
             ["UiBrush.WarningSoftBorder"] = "#FDBA74",
             ["UiBrush.DangerBorder"] = "#FECACA",
             ["UiBrush.SuccessBorder"] = "#BBF7D0",
+            ["UiBrush.RequiredMissingBorder"] = "#FCA5A5",
+            ["UiBrush.RequiredSelectedBorder"] = "#86EFAC",
             ["UiBrush.TextPrimary"] = "#0F172A",
             ["UiBrush.TextSecondary"] = "#334155",
             ["UiBrush.TextMuted"] = "#64748B",
@@ -102,6 +107,7 @@ public sealed partial class XamlControlStyleContractTests
             ["UiBrush.WarningDetail"] = "#7C2D12",
             ["UiBrush.WarningMeta"] = "#B45309",
             ["UiBrush.TextDanger"] = "#B91C1C",
+            ["UiBrush.RequiredSelectedText"] = "#15803D",
             ["UiBrush.TextSuccess"] = "#166534",
             ["UiBrush.SuccessIndicator"] = "#16A34A",
             ["UiBrush.UtilityAccent"] = "#0F766E",
@@ -506,6 +512,9 @@ public sealed partial class XamlControlStyleContractTests
             "Border.contentPanel",
             "Border.listRow",
             "Border.settingRow",
+            "Border.fileDropZone.firmwareSlot",
+            "Border.fileDropZone.firmwareSlot.hasFile",
+            "Border.fileDropZone.firmwareSlot.optional",
             "Border.firmwareSlotFact",
             "Border.firmwareSlotFact.warning",
             "TextBlock.panelTitle",
@@ -514,6 +523,9 @@ public sealed partial class XamlControlStyleContractTests
             "TextBlock.technicalValue",
             "TextBlock.firmwareSlotFactLabel",
             "TextBlock.firmwareSlotFactValue",
+            "Label.slotBadge.firmwareSlotRequirement",
+            "Label.slotBadge.firmwareSlotRequirement.hasFile",
+            "Label.slotBadge.firmwareSlotRequirement.optional",
         })
         {
             Assert.Contains($"Selector=\"{selector}\"", styles, StringComparison.Ordinal);
@@ -536,6 +548,15 @@ public sealed partial class XamlControlStyleContractTests
         string factViewModel = ReadPresentationFile("ViewModels/FirmwareSlotFactViewModel.cs");
         Assert.DoesNotContain("Avalonia.Media", factViewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("Brush.Parse", factViewModel, StringComparison.Ordinal);
+
+        string slotCard = ReadPresentationFile("Views/FirmwareSlotCard.axaml");
+        Assert.Contains("Classes=\"fileDropZone firmwareSlot\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Classes.hasFile=\"{Binding HasFile}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Classes.optional=\"{Binding IsOptional}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"slotBadge firmwareSlotRequirement\"", slotCard, StringComparison.Ordinal);
+        Assert.DoesNotContain("SlotBackgroundBrush", slotCard, StringComparison.Ordinal);
+        Assert.DoesNotContain("SlotBorderBrush", slotCard, StringComparison.Ordinal);
+        Assert.DoesNotContain("RequirementBadgeForegroundBrush", slotCard, StringComparison.Ordinal);
 
         string[] legacyPropertyBundles =
         [
