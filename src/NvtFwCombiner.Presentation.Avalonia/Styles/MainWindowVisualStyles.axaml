@@ -33,12 +33,12 @@
   <Style Selector="Button.command:pointerover Border.workflowCard">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
-    <Setter Property="BoxShadow" Value="0 6 14 0 #143B821A" />
+    <Setter Property="BoxShadow" Value="{DynamicResource NfcWorkflowCardHoverShadow}" />
   </Style>
   <Style Selector="Button.command:pressed Border.workflowCard">
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
-    <Setter Property="BoxShadow" Value="0 1 4 0 #143B8214" />
+    <Setter Property="BoxShadow" Value="{DynamicResource NfcWorkflowCardPressedShadow}" />
   </Style>
   <Style Selector="Border.workflowOpenPill">
     <Setter Property="Padding" Value="10,4" />

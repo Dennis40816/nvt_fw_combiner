@@ -15,6 +15,8 @@ public sealed partial class XamlControlStyleContractTests
 {
     private static readonly Regex ThemeTokenDefinitionPattern = ThemeTokenDefinitionRegex();
 
+    private static readonly Regex ThemeShadowTokenDefinitionPattern = ThemeShadowTokenDefinitionRegex();
+
     private static readonly Regex DynamicThemeReferencePattern = DynamicThemeReferenceRegex();
 
     private static readonly Regex ColorLiteralPattern = ColorLiteralRegex();
@@ -91,17 +93,19 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Classes=\"slotBadge\"", slotCard, StringComparison.Ordinal);
     }
 
-    /// <summary>Keeps the shared shell palette defined once and resolves every migrated resource reference.</summary>
+    /// <summary>Keeps shared shell visual tokens defined once and resolves every migrated resource reference.</summary>
     [Fact]
     public void SharedThemeTokensHaveUniqueDefinitionsAndOwnMigratedViews()
     {
         string application = ReadPresentationFile("App.axaml");
         string tokens = ReadPresentationFile("Styles/ThemeTokens.axaml");
-        Match[] definitions = ReadThemeTokenDefinitions();
-        var definedKeys = definitions
+        Match[] colorDefinitions = ReadThemeTokenDefinitions();
+        Match[] shadowDefinitions = ReadThemeShadowTokenDefinitions();
+        var definedKeys = colorDefinitions
+            .Concat(shadowDefinitions)
             .Select(static definition => definition.Groups["key"].Value)
             .ToHashSet(StringComparer.Ordinal);
-        var definedColors = definitions
+        var definedColors = colorDefinitions
             .Select(static definition => definition.Groups["color"].Value)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
@@ -110,10 +114,12 @@ public sealed partial class XamlControlStyleContractTests
             "<ResourceInclude Source=\"avares://NvtFwCombiner.Presentation.Avalonia/Styles/ThemeTokens.axaml\" />",
             application,
             StringComparison.Ordinal);
-        Assert.NotEmpty(definitions);
-        Assert.Equal(definitions.Length, tokens.Split("<SolidColorBrush", StringSplitOptions.None).Length - 1);
-        Assert.Equal(definitions.Length, definedKeys.Count);
-        Assert.Equal(definitions.Length, definedColors.Count);
+        Assert.NotEmpty(colorDefinitions);
+        Assert.NotEmpty(shadowDefinitions);
+        Assert.Equal(colorDefinitions.Length, tokens.Split("<SolidColorBrush", StringSplitOptions.None).Length - 1);
+        Assert.Equal(shadowDefinitions.Length, tokens.Split("<BoxShadows", StringSplitOptions.None).Length - 1);
+        Assert.Equal(colorDefinitions.Length + shadowDefinitions.Length, definedKeys.Count);
+        Assert.Equal(colorDefinitions.Length, definedColors.Count);
 
         string[] migratedPaths =
         [
@@ -156,14 +162,7 @@ public sealed partial class XamlControlStyleContractTests
                 .Select(static reference => reference.Groups["key"].Value)
                 .Except(definedKeys, StringComparer.Ordinal));
 
-            if (string.Equals(path, "Styles/MainWindowVisualStyles.axaml", StringComparison.Ordinal))
-            {
-                Assert.Equal(["#143B821A", "#143B8214"], colorLiterals);
-            }
-            else
-            {
-                Assert.Empty(colorLiterals);
-            }
+            Assert.Empty(colorLiterals);
         }
 
         var referencedKeys = ReadPresentationXamlFiles()
@@ -176,7 +175,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Empty(definedKeys.Except(referencedKeys, StringComparer.Ordinal));
     }
 
-    /// <summary>Loads the application resource tree and resolves every shared color token as a brush.</summary>
+    /// <summary>Loads the application resource tree and resolves every shared visual token.</summary>
     [Fact]
     public void ThemeTokensResolveFromTheApplicationResourceTree()
     {
@@ -190,6 +189,15 @@ public sealed partial class XamlControlStyleContractTests
                 app.TryGetResource(key, ThemeVariant.Default, out object? resource),
                 $"Theme token '{key}' was not available from Application.Resources.");
             _ = Assert.IsType<SolidColorBrush>(resource);
+        }
+
+        foreach (string key in ReadThemeShadowTokenDefinitions()
+                     .Select(static definition => definition.Groups["key"].Value))
+        {
+            Assert.True(
+                app.TryGetResource(key, ThemeVariant.Default, out object? resource),
+                $"Theme token '{key}' was not available from Application.Resources.");
+            _ = Assert.IsType<BoxShadows>(resource);
         }
     }
 
@@ -544,8 +552,16 @@ public sealed partial class XamlControlStyleContractTests
         return [.. ThemeTokenDefinitionPattern.Matches(ReadPresentationFile("Styles/ThemeTokens.axaml")).Cast<Match>()];
     }
 
+    private static Match[] ReadThemeShadowTokenDefinitions()
+    {
+        return [.. ThemeShadowTokenDefinitionPattern.Matches(ReadPresentationFile("Styles/ThemeTokens.axaml")).Cast<Match>()];
+    }
+
     [GeneratedRegex("<SolidColorBrush\\s+x:Key=\"(?<key>Nfc[A-Za-z]+)\"\\s+Color=\"(?<color>#[0-9A-Fa-f]{6,8})\"\\s*/>", RegexOptions.CultureInvariant)]
     private static partial Regex ThemeTokenDefinitionRegex();
+
+    [GeneratedRegex("<BoxShadows\\s+x:Key=\"(?<key>Nfc[A-Za-z]+)\">[^<]+</BoxShadows>", RegexOptions.CultureInvariant)]
+    private static partial Regex ThemeShadowTokenDefinitionRegex();
 
     [GeneratedRegex("\\{DynamicResource\\s+(?<key>Nfc[A-Za-z]+)\\}", RegexOptions.CultureInvariant)]
     private static partial Regex DynamicThemeReferenceRegex();
