@@ -81,10 +81,13 @@ candidate materializer.
 The intake use case produces a versioned `candidate-evidence-bundle` source
 declaration and materializes a caller-selected, initially absent candidate root.
 The root contains a complete candidate manifest, local immutable schema
-snapshots, the request-derived evidence manifest, declared artifact snapshots,
-the machine-readable validation report, and the generated checklist. The
-candidate manifest is the complete allowlist for that root and hashes every
-listed file.
+snapshots, the request-derived source bundle, declared artifact snapshots, and
+the generated checklist. The candidate manifest is the complete allowlist for
+that root and hashes every listed file. The validation report is a sidecar under
+the same host-owned parent staging directory, not a root entry: it records both
+the root entry-array hash and the raw root-manifest hash without creating a
+report/manifest hash cycle. The root and a passed sidecar report publish through
+one no-replace parent operation.
 
 Candidate roots do not use `profile-bundle-v1`, do not receive a release trust
 anchor, and are never passed to `ProfileBundleLoader`. Instead, Infrastructure
@@ -95,9 +98,11 @@ same boundary. Candidate-specific validation may prove only candidate structure
 and evidence declarations; it cannot normalize a family, resolve a map, compile
 a profile, or construct `CompiledComposition`.
 
-The report records root-manifest hash, validated entry count, ordered declared
-missing evidence, every validation result, and candidate-only status. It does
-not expose local source paths or `sourceRef` values.
+The report records exact request-snapshot hash, root entry-array hash, raw
+root-manifest hash, validated entry count, ordered declared missing evidence,
+every validation result, and candidate-only status. It does not expose local
+source paths or `sourceRef` values. A failed report remains in private staging
+diagnostics and cannot publish a candidate root.
 
 ### Filesystem and resource policy
 
@@ -115,7 +120,10 @@ OS-backed no-replace operation; a destination-creation race fails without
 modifying a caller-owned source or an existing destination.
 
 Exact numeric limits are named contract constants with tests; they are not
-firmware facts and do not alter composition behavior.
+firmware facts and do not alter composition behavior. The contract publishes a
+16 MiB per-artifact/entry/capacity limit, 64 MiB aggregate source limit,
+256 KiB per JSON document, JSON depth 64, 128 source artifacts, 512 root
+entries, and 64 root directories.
 
 ## Consequences
 
@@ -168,7 +176,8 @@ firmware facts and do not alter composition behavior.
   oversized, and bounded-count files.
 - Windows and Unix tests for network-root rejection, opened-handle replacement,
   no-follow behavior, and no-replace publication races where supported.
-- Deterministic identical-request root hash and report-order tests.
+- Known-answer canonical root-entry hash vectors, deterministic identical-request
+  root/report order tests, and explicit report-outside-root cycle tests.
 - Architecture tests proving candidate intake cannot add allowlist entries,
   runtime registration, profile promotion, a second profile loader, or another
   composition executor.

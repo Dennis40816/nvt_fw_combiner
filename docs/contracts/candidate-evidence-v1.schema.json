@@ -1,0 +1,325 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/nfc/schemas/candidate-evidence-v1.schema.json",
+  "title": "NVT FW Combiner Candidate Evidence 1.0",
+  "oneOf": [
+    { "$ref": "#/$defs/intakeRequest" },
+    { "$ref": "#/$defs/sourceBundle" },
+    { "$ref": "#/$defs/rootManifest" },
+    { "$ref": "#/$defs/validationReport" }
+  ],
+  "$defs": {
+    "id": { "type": "string", "minLength": 1, "maxLength": 96, "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "semver": { "type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$" },
+    "utc": { "type": "string", "format": "date-time", "pattern": "Z$" },
+    "safeText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "pattern": "^(?!.*(?:[A-Za-z]:[\\\\/]|\\\\\\\\|(?:^|\\s)/))(?!.*\\\\).+$"
+    },
+    "logicalName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "pattern": "^(?!\\.{1,2}$)(?!.*[ .]$)(?!.*[\\\\/:])[^\\\\/:]+$"
+    },
+    "sourcePath": {
+      "type": "string",
+      "maxLength": 240,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9~$][A-Za-z0-9._ ~$-]*(?:/[A-Za-z0-9~$][A-Za-z0-9._ ~$-]*)*$"
+    },
+    "rootPath": {
+      "type": "string",
+      "maxLength": 240,
+      "pattern": "^(?:schemas|source|artifacts|evidence)/(?:[a-z0-9][a-z0-9._-]*/)*[a-z0-9][a-z0-9._-]*$"
+    },
+    "byteCount": { "type": "integer", "minimum": 1, "maximum": 16777216 },
+    "byteRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "length"],
+      "properties": {
+        "start": { "type": "integer", "minimum": 0, "maximum": 16777215 },
+        "length": { "$ref": "#/$defs/byteCount" }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["memberIds", "modeIds", "capacityBytes", "topologyChoices"],
+      "properties": {
+        "memberIds": { "type": "array", "minItems": 1, "maxItems": 32, "uniqueItems": true, "items": { "type": "string", "maxLength": 32, "pattern": "^NT[0-9A-Z-]+$" } },
+        "modeIds": { "type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
+        "capacityBytes": { "type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true, "items": { "$ref": "#/$defs/byteCount" } },
+        "topologyChoices": { "type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true, "items": { "$ref": "#/$defs/id" } }
+      }
+    },
+    "sourceArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifactId", "sourceKind", "logicalName", "contentHash", "sizeBytes"],
+      "properties": {
+        "artifactId": { "$ref": "#/$defs/id" },
+        "sourceKind": { "enum": ["workbook", "source-code", "firmware", "document", "issue-export", "owner-record"] },
+        "logicalName": { "$ref": "#/$defs/logicalName" },
+        "sourcePath": { "$ref": "#/$defs/sourcePath" },
+        "contentHash": { "$ref": "#/$defs/sha256" },
+        "sizeBytes": { "$ref": "#/$defs/byteCount" }
+      }
+    },
+    "sourceArtifactSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifactId", "sourceKind", "logicalName", "contentHash", "sizeBytes"],
+      "properties": {
+        "artifactId": { "$ref": "#/$defs/id" },
+        "sourceKind": { "enum": ["workbook", "source-code", "firmware", "document", "issue-export", "owner-record"] },
+        "logicalName": { "$ref": "#/$defs/logicalName" },
+        "contentHash": { "$ref": "#/$defs/sha256" },
+        "sizeBytes": { "$ref": "#/$defs/byteCount" }
+      }
+    },
+    "citation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifactId", "location"],
+      "properties": {
+        "artifactId": { "$ref": "#/$defs/id" },
+        "location": { "$ref": "#/$defs/safeText" }
+      }
+    },
+    "factValue": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "addressSpaceId", "range"],
+          "properties": {
+            "kind": { "const": "range" },
+            "addressSpaceId": { "$ref": "#/$defs/id" },
+            "range": { "$ref": "#/$defs/byteRange" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": { "const": "scalar" },
+            "value": {
+              "oneOf": [
+                { "type": "boolean" },
+                { "type": "integer" },
+                { "$ref": "#/$defs/safeText" }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "targetId"],
+          "properties": {
+            "kind": { "const": "reference" },
+            "targetId": { "$ref": "#/$defs/id" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "text"],
+          "properties": {
+            "kind": { "const": "statement" },
+            "text": { "$ref": "#/$defs/safeText" }
+          }
+        }
+      ]
+    },
+    "fact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["factId", "factKind", "value", "disposition", "promotionImpact", "citations"],
+      "properties": {
+        "factId": { "$ref": "#/$defs/id" },
+        "factKind": { "enum": ["range", "locator", "metadata-layout", "topology", "capability", "alias", "processor", "integrity", "output-naming", "golden"] },
+        "value": { "$ref": "#/$defs/factValue" },
+        "disposition": { "enum": ["observed", "accepted", "rejected", "unresolved"] },
+        "promotionImpact": { "enum": ["none", "blocks-map-resolution", "blocks-execution", "blocks-support"] },
+        "citations": { "type": "array", "minItems": 1, "maxItems": 64, "uniqueItems": true, "items": { "$ref": "#/$defs/citation" } },
+        "rationale": { "$ref": "#/$defs/safeText" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "factKind": { "const": "range" } }, "required": ["factKind"] },
+          "then": {
+            "oneOf": [
+              {
+                "properties": { "value": { "type": "object", "properties": { "kind": { "const": "range" } }, "required": ["kind"] } },
+                "required": ["value"]
+              },
+              {
+                "properties": {
+                  "value": { "type": "object", "properties": { "kind": { "const": "statement" } }, "required": ["kind"] },
+                  "disposition": { "const": "unresolved" },
+                  "promotionImpact": { "const": "blocks-map-resolution" }
+                },
+                "required": ["value", "disposition", "promotionImpact"]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "missingEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gapId", "evidenceKind", "statement", "promotionImpact"],
+      "properties": {
+        "gapId": { "$ref": "#/$defs/id" },
+        "evidenceKind": { "enum": ["flash-map", "header", "fwconfig-layout", "topology", "combiner-binding", "command-trace", "read-write-range", "golden", "owner-review"] },
+        "statement": { "$ref": "#/$defs/safeText" },
+        "promotionImpact": { "enum": ["blocks-map-resolution", "blocks-execution", "blocks-support"] }
+      }
+    },
+    "missingEvidenceSet": {
+      "type": "object",
+      "required": ["missingEvidenceDisposition", "missingEvidence"],
+      "properties": {
+        "missingEvidenceDisposition": { "enum": ["listed", "owner-declared-none"] },
+        "missingEvidence": { "type": "array", "maxItems": 128, "uniqueItems": true, "items": { "$ref": "#/$defs/missingEvidence" } }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "missingEvidenceDisposition": { "const": "listed" } }, "required": ["missingEvidenceDisposition"] },
+          "then": { "properties": { "missingEvidence": { "minItems": 1 } }, "required": ["missingEvidence"] },
+          "else": { "properties": { "missingEvidence": { "maxItems": 0 } }, "required": ["missingEvidence"] }
+        }
+      ]
+    },
+    "intakeProvenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["toolId", "toolVersion", "generatedAtUtc", "candidateOnly"],
+      "properties": {
+        "toolId": { "$ref": "#/$defs/id" },
+        "toolVersion": { "$ref": "#/$defs/semver" },
+        "generatedAtUtc": { "$ref": "#/$defs/utc" },
+        "candidateOnly": { "const": true }
+      }
+    },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entryId", "kind", "path", "contentHash", "sizeBytes"],
+      "properties": {
+        "entryId": { "$ref": "#/$defs/id" },
+        "kind": { "enum": ["schema", "source-bundle", "artifact", "checklist"] },
+        "path": { "$ref": "#/$defs/rootPath" },
+        "contentHash": { "$ref": "#/$defs/sha256" },
+        "sizeBytes": { "$ref": "#/$defs/byteCount" }
+      },
+      "allOf": [
+        { "if": { "properties": { "kind": { "const": "schema" } }, "required": ["kind"] }, "then": { "properties": { "path": { "pattern": "^schemas/" } } } },
+        { "if": { "properties": { "kind": { "const": "source-bundle" } }, "required": ["kind"] }, "then": { "properties": { "path": { "pattern": "^source/" } } } },
+        { "if": { "properties": { "kind": { "const": "artifact" } }, "required": ["kind"] }, "then": { "properties": { "path": { "pattern": "^artifacts/" } } } },
+        { "if": { "properties": { "kind": { "const": "checklist" } }, "required": ["kind"] }, "then": { "properties": { "path": { "pattern": "^evidence/" } } } }
+      ]
+    },
+    "validationCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["checkId", "outcome", "summary"],
+      "properties": {
+        "checkId": { "$ref": "#/$defs/id" },
+        "outcome": { "enum": ["passed", "failed", "skipped"] },
+        "summary": { "$ref": "#/$defs/safeText" }
+      }
+    },
+    "intakeRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "documentKind", "requestId", "manifestId", "manifestVersion", "requestedAtUtc", "owner", "scope", "sourceArtifacts", "facts", "missingEvidenceDisposition", "missingEvidence"],
+      "properties": {
+        "schemaVersion": { "const": "1.0" },
+        "documentKind": { "const": "intake-request" },
+        "requestId": { "$ref": "#/$defs/id" },
+        "manifestId": { "$ref": "#/$defs/id" },
+        "manifestVersion": { "$ref": "#/$defs/semver" },
+        "requestedAtUtc": { "$ref": "#/$defs/utc" },
+        "owner": { "$ref": "#/$defs/safeText" },
+        "scope": { "$ref": "#/$defs/scope" },
+        "sourceArtifacts": { "type": "array", "minItems": 1, "maxItems": 128, "uniqueItems": true, "items": { "allOf": [{ "$ref": "#/$defs/sourceArtifact" }, { "required": ["sourcePath"] }] } },
+        "facts": { "type": "array", "maxItems": 512, "uniqueItems": true, "items": { "$ref": "#/$defs/fact" } },
+        "missingEvidenceDisposition": { "enum": ["listed", "owner-declared-none"] },
+        "missingEvidence": { "type": "array", "maxItems": 128, "uniqueItems": true, "items": { "$ref": "#/$defs/missingEvidence" } }
+      },
+      "allOf": [{ "$ref": "#/$defs/missingEvidenceSet" }]
+    },
+    "sourceBundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "documentKind", "bundleId", "requestId", "requestContentHashAlgorithm", "requestContentHash", "manifestId", "manifestVersion", "requestedAtUtc", "owner", "scope", "sourceArtifacts", "facts", "missingEvidenceDisposition", "missingEvidence", "intakeProvenance", "runtimeAuthority"],
+      "properties": {
+        "schemaVersion": { "const": "1.0" },
+        "documentKind": { "const": "candidate-source-bundle" },
+        "bundleId": { "$ref": "#/$defs/id" },
+        "requestId": { "$ref": "#/$defs/id" },
+        "requestContentHashAlgorithm": { "const": "sha256-raw-utf8-v1" },
+        "requestContentHash": { "$ref": "#/$defs/sha256" },
+        "manifestId": { "$ref": "#/$defs/id" },
+        "manifestVersion": { "$ref": "#/$defs/semver" },
+        "requestedAtUtc": { "$ref": "#/$defs/utc" },
+        "owner": { "$ref": "#/$defs/safeText" },
+        "scope": { "$ref": "#/$defs/scope" },
+        "sourceArtifacts": { "type": "array", "minItems": 1, "maxItems": 128, "uniqueItems": true, "items": { "$ref": "#/$defs/sourceArtifactSnapshot" } },
+        "facts": { "type": "array", "maxItems": 512, "uniqueItems": true, "items": { "$ref": "#/$defs/fact" } },
+        "missingEvidenceDisposition": { "enum": ["listed", "owner-declared-none"] },
+        "missingEvidence": { "type": "array", "maxItems": 128, "uniqueItems": true, "items": { "$ref": "#/$defs/missingEvidence" } },
+        "intakeProvenance": { "$ref": "#/$defs/intakeProvenance" },
+        "runtimeAuthority": { "const": "none" }
+      },
+      "allOf": [{ "$ref": "#/$defs/missingEvidenceSet" }]
+    },
+    "rootManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "documentKind", "rootId", "sourceBundleEntryId", "contractSchemaEntryId", "hashAlgorithm", "contentHash", "entries", "runtimeAuthority"],
+      "properties": {
+        "schemaVersion": { "const": "1.0" },
+        "documentKind": { "const": "candidate-root-manifest" },
+        "rootId": { "$ref": "#/$defs/id" },
+        "sourceBundleEntryId": { "$ref": "#/$defs/id" },
+        "contractSchemaEntryId": { "$ref": "#/$defs/id" },
+        "hashAlgorithm": { "const": "sha256-rfc8785-candidate-entry-array-v1" },
+        "contentHash": { "$ref": "#/$defs/sha256" },
+        "entries": { "type": "array", "minItems": 3, "maxItems": 512, "uniqueItems": true, "items": { "$ref": "#/$defs/entry" } },
+        "runtimeAuthority": { "const": "none" }
+      }
+    },
+    "validationReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "documentKind", "reportId", "rootId", "requestContentHashAlgorithm", "requestContentHash", "rootContentHash", "rootManifestHashAlgorithm", "rootManifestSha256", "validatedEntryIds", "checks", "validationOutcome", "missingEvidenceDisposition", "missingEvidence", "runtimeAuthority"],
+      "properties": {
+        "schemaVersion": { "const": "1.0" },
+        "documentKind": { "const": "candidate-validation-report" },
+        "reportId": { "$ref": "#/$defs/id" },
+        "rootId": { "$ref": "#/$defs/id" },
+        "requestContentHashAlgorithm": { "const": "sha256-raw-utf8-v1" },
+        "requestContentHash": { "$ref": "#/$defs/sha256" },
+        "rootContentHash": { "$ref": "#/$defs/sha256" },
+        "rootManifestHashAlgorithm": { "const": "sha256-raw-utf8-v1" },
+        "rootManifestSha256": { "$ref": "#/$defs/sha256" },
+        "validatedEntryIds": { "type": "array", "minItems": 3, "maxItems": 512, "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
+        "checks": { "type": "array", "minItems": 1, "maxItems": 256, "uniqueItems": true, "items": { "$ref": "#/$defs/validationCheck" } },
+        "validationOutcome": { "enum": ["passed", "failed"] },
+        "missingEvidenceDisposition": { "enum": ["listed", "owner-declared-none"] },
+        "missingEvidence": { "type": "array", "maxItems": 128, "uniqueItems": true, "items": { "$ref": "#/$defs/missingEvidence" } },
+        "runtimeAuthority": { "const": "none" }
+      },
+      "allOf": [{ "$ref": "#/$defs/missingEvidenceSet" }]
+    }
+  }
+}
