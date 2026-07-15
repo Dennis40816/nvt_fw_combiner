@@ -26,12 +26,9 @@ internal static class AbMergeCandidateTestSupport
         {
             string relativePath = entry.GetProperty("path").GetString()!;
             string sourcePath = StringComparer.Ordinal.Equals(entry.GetProperty("kind").GetString(), "schema")
-                ? RepositoryPaths.FromRepositoryRoot(
-                    "profiles",
-                    "schema-source",
-                    "sha256",
-                    entry.GetProperty("contentHash").GetString()!,
-                    Path.GetFileName(relativePath))
+                ? V2StandardMergeGoldenTestSupport.ResolveContractSchemaPath(
+                    relativePath,
+                    entry.GetProperty("contentHash").GetString()!)
                 : Path.Combine(sourceRoot, relativePath);
             _ = workspace.Write(relativePath, File.ReadAllBytes(sourcePath));
         }

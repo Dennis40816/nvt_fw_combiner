@@ -7,7 +7,7 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 public sealed partial class WorkflowContextSetupViewModel : ObservableObject
 {
     /// <summary>Gets available IC identifiers.</summary>
-    public IReadOnlyList<string> IcChoices { get; } = UiCompositionRunner.GetSupportedIcIds();
+    public IReadOnlyList<string> IcChoices { get; } = WorkbenchCompositionService.GetSupportedIcIds();
 
     /// <summary>Gets whether this workflow requires an IC-count choice.</summary>
     [ObservableProperty]
@@ -15,12 +15,12 @@ public sealed partial class WorkflowContextSetupViewModel : ObservableObject
 
     /// <summary>Gets or sets the draft IC identifier.</summary>
     [ObservableProperty]
-    public partial string SelectedIc { get; set; } = UiCompositionRunner.GetDefaultIcId();
+    public partial string SelectedIc { get; set; } = WorkbenchCompositionService.GetDefaultIcId();
 
     /// <summary>Gets selectable grouped IC-count choices for the draft IC.</summary>
     [ObservableProperty]
     public partial IReadOnlyList<IcNumberChoiceViewModel> NumberChoices { get; set; } =
-        UiCompositionRunner.GetNumberSelectionChoices(UiCompositionRunner.GetDefaultIcId());
+        UiCompositionRunner.GetNumberSelectionChoices(WorkbenchCompositionService.GetDefaultIcId());
 
     /// <summary>Gets or sets the planner token selected by the grouped choice.</summary>
     [ObservableProperty]

@@ -34,8 +34,7 @@ internal static class V2StandardMergeGoldenTestSupport
 
     private static TrustedProfileBundleCatalog LoadCatalogRoot(string bundleRoot, string bundleContentHash)
     {
-        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        AssertSchemaSnapshotsMatchManifest(repositoryRoot, bundleRoot);
+        AssertSchemaSnapshotsMatchManifest(bundleRoot);
         TrustedProfileBundle bundle = LoadBundle(bundleRoot, bundleContentHash);
         return TrustedProfileBundleCatalogProjection.Create(bundle.CreateDocumentProjection());
     }
@@ -138,7 +137,7 @@ internal static class V2StandardMergeGoldenTestSupport
         "golden",
         "standard-merge-gen-flash");
 
-    private static void AssertSchemaSnapshotsMatchManifest(string repositoryRoot, string bundleRoot)
+    private static void AssertSchemaSnapshotsMatchManifest(string bundleRoot)
     {
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(bundleRoot, "profile-bundle.json")));
         foreach (JsonElement entry in manifest.RootElement.GetProperty("entries").EnumerateArray().Where(static entry =>
@@ -147,15 +146,22 @@ internal static class V2StandardMergeGoldenTestSupport
             string schemaFileName = Path.GetFileName(entry.GetProperty("path").GetString()!);
             string contentHash = entry.GetProperty("contentHash").GetString()!;
             Assert.Equal(
-                File.ReadAllBytes(Path.Combine(
-                    repositoryRoot,
-                    "profiles",
-                    "schema-source",
-                    "sha256",
-                    contentHash,
-                    schemaFileName)),
+                File.ReadAllBytes(ResolveContractSchemaPath(schemaFileName, contentHash)),
                 File.ReadAllBytes(Path.Combine(bundleRoot, "schemas", schemaFileName)));
         }
+    }
+
+    internal static string ResolveContractSchemaPath(string schemaPath, string contentHash)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(schemaPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(contentHash);
+        string contractRoot = RepositoryPaths.FromRepositoryRoot("docs", "contracts");
+        string[] matches =
+        [
+            .. Directory.EnumerateFiles(contractRoot, "*.schema.json", SearchOption.TopDirectoryOnly)
+                .Where(path => StringComparer.Ordinal.Equals(Hash(File.ReadAllBytes(path)), contentHash)),
+        ];
+        return Assert.Single(matches);
     }
 
     private static string Hash(ReadOnlySpan<byte> bytes)

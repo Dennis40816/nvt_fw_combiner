@@ -15,10 +15,10 @@ from typing import Any, Iterable
 from urllib.parse import unquote
 
 from ab_merge_fixture_validation import validate_ab_merge_golden_fixtures
+from code_size_policy import validate_code_size_policy
 from repository_contract_validation import validate_v2_contract_model
 
 ROOT = Path(__file__).resolve().parents[1]
-
 REQUIRED_FILES = {
     "README.md", "LICENSE", "AGENTS.md", "SPEC.md", "CHANGELOG.md", "VERSION",
     "global.json", "Directory.Build.props", "Directory.Build.targets", "Directory.Packages.props",
@@ -28,10 +28,9 @@ REQUIRED_FILES = {
     "scripts/bootstrap.ps1", "scripts/bootstrap.sh", "scripts/install-dotnet.ps1",
     "scripts/install-dotnet.sh", "scripts/package.ps1", "scripts/polytail_check.py",
     "scripts/publish-github.ps1", "scripts/publish-github.sh", "scripts/validate_repository.py",
-    "scripts/repository_contract_validation.py",
-    "scripts/verify_ctrlram_replace_fixture.py", "scripts/verify.py",
-    "external-tools/README.md", "external-tools/legacy-combiner/README.md",
-    "external-tools/legacy-combiner/1.13.0/manifest.json",
+    "scripts/code_size_policy.py", "scripts/repository_contract_validation.py",
+    "scripts/verify_ctrlram_replace_fixture.py", "scripts/verify.py", "external-tools/README.md",
+    "external-tools/legacy-combiner/README.md", "external-tools/legacy-combiner/1.13.0/manifest.json",
     "testdata/golden/standard-merge-gen-flash/manifest.json",
     "docs/adr/0003-unified-composition-engine.md",
     "docs/adr/0004-orthogonal-experience-access-policy.md",
@@ -782,6 +781,7 @@ def validate() -> list[str]:
     validate_workflows(errors)
     validate_packaging_policy(files, errors)
     validate_agent_files(errors)
+    validate_code_size_policy(ROOT, errors)
     return sorted(set(errors))
 
 

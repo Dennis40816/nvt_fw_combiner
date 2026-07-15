@@ -84,7 +84,7 @@ public sealed partial class MainWindowViewModel
 
     private void RefreshSettingsState()
     {
-        WorkbenchSettingsSnapshot snapshot = UiCompositionRunner.GetSettingsSnapshot();
+        WorkbenchSettingsSnapshot snapshot = WorkbenchCompositionService.GetSettingsSnapshot();
 
         ReplaceSettingsRows(
             SettingsProfileRows,

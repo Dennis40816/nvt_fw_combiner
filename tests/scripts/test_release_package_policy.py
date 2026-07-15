@@ -23,6 +23,7 @@ APPROVED_EXTERNAL_TOOL_PATHS = (
     "external-tools/legacy-combiner/1.13.0/manifest.json",
 )
 POWERSHELL = shutil.which("pwsh") or shutil.which("powershell")
+MAXIMUM_PACKAGE_BYTES = 58_076_715
 
 
 class ReleasePackagePolicyTests(unittest.TestCase):
@@ -108,6 +109,30 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             )
             self.assertLess(package_index, smoke_index, workflow_path)
             self.assertLess(smoke_index, distribution_index, workflow_path)
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_release_smoke_rejects_package_above_owner_approved_budget(self) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="nvt-release-size-policy-test-"
+        ) as temporary_directory:
+            package_path = Path(temporary_directory) / "oversized.zip"
+            with package_path.open("wb") as package:
+                package.truncate(MAXIMUM_PACKAGE_BYTES + 1)
+
+            result = self.run_powershell(
+                SMOKE_SCRIPT,
+                "-PackagePath",
+                str(package_path),
+                "-SkipUiLaunch",
+            )
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "exceeds the owner-approved maximum 58076715 bytes",
+            result.stdout + result.stderr,
+        )
 
     @unittest.skipUnless(
         POWERSHELL, "PowerShell is required for Windows release-policy tests"

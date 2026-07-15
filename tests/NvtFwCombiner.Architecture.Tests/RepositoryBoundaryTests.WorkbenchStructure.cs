@@ -99,7 +99,6 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("Nt51920V2", standardMergeCompilation, StringComparison.Ordinal);
         Assert.DoesNotContain("StandardMergeProfilesByIc", standardMerge, StringComparison.Ordinal);
         Assert.DoesNotContain("StandardMergeProfilesByIc", generalMergeProfile, StringComparison.Ordinal);
-        Assert.Contains("TryCompileStandardMerge", standardMerge, StringComparison.Ordinal);
         Assert.Contains("TryCompileStandardMerge", generalMergeProfile, StringComparison.Ordinal);
         Assert.Contains("RunGeneralMergeV2Async", generalMergeCandidate, StringComparison.Ordinal);
         Assert.Contains("CompileLogicalOutput", generalMergeCandidate, StringComparison.Ordinal);
@@ -154,6 +153,39 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("FirmwareConfigMetadataReader.TryRead", replacePostbuild, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies every routed V2 workflow shares one immutable directory/hash bundle registry.</summary>
+    [Fact]
+    public void BuiltInV2BundlePinsHaveOneOwner()
+    {
+        string standardMerge = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs");
+        string generalMerge = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.V2.cs");
+        string dpReplace = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.BuiltInV2.cs");
+        string ctrlRamCandidate = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.V2.cs");
+
+        static bool IsSha256Literal(string value)
+        {
+            return value.Length == 64 && value.All(static character => character is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
+        }
+
+        Assert.Equal(17, standardMerge.Split('"').Count(IsSha256Literal));
+        Assert.Equal(13, CountOccurrences(standardMerge, "Bundle(\""));
+        Assert.Equal(13, CountOccurrences(generalMerge, "Bundle(\""));
+        Assert.Equal(2, CountOccurrences(dpReplace, "Bundle(\""));
+        Assert.Equal(1, CountOccurrences(ctrlRamCandidate, "Bundle(\""));
+        Assert.Equal(
+            1,
+            CountOccurrences(
+                standardMerge + generalMerge + dpReplace + ctrlRamCandidate,
+                "new BuiltInV2Bundle("));
+        Assert.DoesNotContain(generalMerge.Split('"'), IsSha256Literal);
+        Assert.DoesNotContain(dpReplace.Split('"'), IsSha256Literal);
+        Assert.DoesNotContain(ctrlRamCandidate.Split('"'), IsSha256Literal);
+    }
+
     /// <summary>Verifies the raw Hex Editor stays independent from firmware composition policy and UI file I/O.</summary>
     [Fact]
     public void HexEditorUsesRawBinaryFacadeWithoutUiFirmwareIo()
@@ -161,7 +193,6 @@ public sealed partial class RepositoryBoundaryTests
         string panel = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/HexEditorPanel.axaml");
         string viewModel = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/HexEditorWorkspaceViewModel.cs");
         string panelCodeBehind = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/HexEditorPanel.axaml.cs");
-        string runner = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.HexEditor.cs");
         string hostSession = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchRawBinaryEditorSession.cs");
         string session = ReadText("src/NvtFwCombiner.Application/HexEditor/RawBinaryEditorSession.cs");
 
@@ -169,7 +200,6 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("InsertZeroBeforeCommand", panelCodeBehind, StringComparison.Ordinal);
         Assert.Contains("DeleteByteCommand", panelCodeBehind, StringComparison.Ordinal);
         Assert.Contains("SetViewportStartRowCommand", panelCodeBehind, StringComparison.Ordinal);
-        Assert.Contains("CreateRawBinaryEditorSession", runner, StringComparison.Ordinal);
         Assert.Contains("RawBinaryEditorOperationResult", hostSession, StringComparison.Ordinal);
         Assert.Contains("RawBinaryEditorViewport", hostSession, StringComparison.Ordinal);
         Assert.DoesNotContain("ToWorkbench", hostSession, StringComparison.Ordinal);
@@ -178,6 +208,8 @@ public sealed partial class RepositoryBoundaryTests
             "src",
             "NvtFwCombiner.Bootstrap",
             "WorkbenchRawBinaryEditorContracts.cs")));
+        Assert.Contains("WorkbenchRawBinaryEditorSession _session = new();", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("UiCompositionRunner", viewModel, StringComparison.Ordinal);
         Assert.Contains("RawBinaryEditorSession", session, StringComparison.Ordinal);
         Assert.DoesNotContain("GeneralReplace", panel, StringComparison.Ordinal);
         Assert.DoesNotContain("GeneralReplace", viewModel, StringComparison.Ordinal);

@@ -15,7 +15,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
 {
     private const int BytesPerRow = 16;
     private const int CurrentViewportRowCount = 12;
-    private readonly WorkbenchRawBinaryEditorSession _session = UiCompositionRunner.CreateRawBinaryEditorSession();
+    private readonly WorkbenchRawBinaryEditorSession _session = new();
     private RawBinaryEditorState _state = new(false, 0, 0, 0, 0, false);
     private HexEditorByteCellViewModel? _activeInlineEdit;
     private HexEditorByteCellViewModel? _selectedCell;

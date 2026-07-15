@@ -1,25 +1,17 @@
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>One completed runtime process invocation rendered from report audit evidence.</summary>
-public sealed class ReportRuntimeCommandViewModel
+public sealed class ReportRuntimeCommandViewModel(
+    string title,
+    string argumentListEvidence,
+    string workingDirectoryDetail)
 {
-    /// <summary>Creates a readable completed process invocation.</summary>
-    public ReportRuntimeCommandViewModel(
-        string title,
-        string argumentListEvidence,
-        string workingDirectoryDetail)
-    {
-        Title = title;
-        ArgumentListEvidence = argumentListEvidence;
-        WorkingDirectoryDetail = workingDirectoryDetail;
-    }
-
     /// <summary>Ordinal invocation label.</summary>
-    public string Title { get; }
+    public string Title { get; } = title;
 
     /// <summary>Executable and expanded argv, with one exact argument value per line.</summary>
-    public string ArgumentListEvidence { get; }
+    public string ArgumentListEvidence { get; } = argumentListEvidence;
 
     /// <summary>Working-directory evidence for the staging invocation.</summary>
-    public string WorkingDirectoryDetail { get; }
+    public string WorkingDirectoryDetail { get; } = workingDirectoryDetail;
 }
