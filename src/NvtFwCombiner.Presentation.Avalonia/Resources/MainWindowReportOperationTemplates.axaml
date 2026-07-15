@@ -5,7 +5,7 @@
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
 
 <DataTemplate x:Key="ReportOperationFlowNodeTemplate" DataType="vm:ReportOperationFlowNodeViewModel">
-  <Grid ColumnDefinitions="44,*" ColumnSpacing="12">
+  <Grid ColumnDefinitions="44,*" ColumnSpacing="{DynamicResource NfcSpace12}">
     <Grid>
       <Border
           Width="2"
@@ -23,7 +23,7 @@
           <Label Grid.Column="1" MinWidth="44" Classes="reportBadge" Content="{Binding Status}" />
         </Grid>
       </Expander.Header>
-      <StackPanel Margin="0,7,0,0" Spacing="4">
+      <StackPanel Margin="0,7,0,0" Spacing="{DynamicResource NfcSpace4}">
         <TextBlock Classes="bodyText" Text="{Binding Detail}" TextWrapping="Wrap" />
         <TextBlock Classes="captionText" Text="{Binding Meta}" TextWrapping="Wrap" IsVisible="{Binding HasMeta}" />
       </StackPanel>
@@ -50,7 +50,7 @@
       <Expander.Header>
         <Grid Margin="10,8" ColumnDefinitions="58,*,Auto" ColumnSpacing="10">
           <Label VerticalAlignment="Center" Classes="reportBadge info" Content="{Binding Number}" />
-          <StackPanel Grid.Column="1" Spacing="2">
+          <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace2}">
             <TextBlock Classes="panelTitle" Text="{Binding Title}" TextWrapping="Wrap" />
             <TextBlock Classes="captionText" Text="{Binding OperationTitle}" TextWrapping="Wrap" />
           </StackPanel>

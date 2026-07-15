@@ -50,7 +50,7 @@
   <Grid RowDefinitions="Auto,Auto,Auto,*">
     <Border Classes="shellBar" Padding="28,12">
       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="28">
-        <StackPanel Spacing="2">
+        <StackPanel Spacing="{DynamicResource NfcSpace2}">
           <TextBlock
               FontSize="20"
               FontWeight="SemiBold"
@@ -66,7 +66,7 @@
             Grid.Column="1"
             VerticalAlignment="Center"
             Orientation="Horizontal"
-            Spacing="4">
+            Spacing="{DynamicResource NfcSpace4}">
           <ToggleButton
               Classes="nav"
               Command="{Binding ShowHomeCommand}"
@@ -97,7 +97,7 @@
             Grid.Column="2"
             VerticalAlignment="Center"
             Orientation="Horizontal"
-            Spacing="8">
+            Spacing="{DynamicResource NfcSpace8}">
           <Button
               Classes="secondary"
               Click="LoadReportJsonButton_OnClick"
@@ -166,16 +166,16 @@
             ColumnDefinitions="1.15*,430"
             ColumnSpacing="18"
             IsVisible="{Binding IsReplaceVisible}">
-          <StackPanel Spacing="16">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-              <StackPanel Spacing="4">
+          <StackPanel Spacing="{DynamicResource NfcSpace16}">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
+              <StackPanel Spacing="{DynamicResource NfcSpace4}">
                 <TextBlock Classes="pageTitle" Text="{Binding ReplacePreview.Title}" />
                 <TextBlock Classes="pageSubtitle" Text="{Binding ReplacePreview.Subtitle}" />
               </StackPanel>
               <Grid
                   Grid.Column="1"
                   ColumnDefinitions="158,Auto,Auto"
-                  ColumnSpacing="12"
+                  ColumnSpacing="{DynamicResource NfcSpace12}"
                   VerticalAlignment="Center">
                 <StackPanel Spacing="3">
                   <TextBlock Classes="fieldLabel" Text="{Binding Text.ModeLabel}" />
@@ -196,7 +196,7 @@
                     </Grid>
                   </Button>
                 </StackPanel>
-                <StackPanel Grid.Column="2" Margin="0,15,0,0" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
+                <StackPanel Grid.Column="2" Margin="0,15,0,0" VerticalAlignment="Center" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
                   <Button
                       Classes="toolbarAction"
                       Click="BuildReplaceButton_OnClick"
@@ -227,13 +227,13 @@
             ColumnDefinitions="1.15*,430"
             ColumnSpacing="18"
             IsVisible="{Binding IsMergeVisible}">
-          <StackPanel Spacing="16">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-              <StackPanel Spacing="4">
+          <StackPanel Spacing="{DynamicResource NfcSpace16}">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
+              <StackPanel Spacing="{DynamicResource NfcSpace4}">
                 <TextBlock Classes="pageTitle" Text="{Binding MergePreview.Title}" />
                 <TextBlock Classes="pageSubtitle" Text="{Binding MergePreview.Subtitle}" />
               </StackPanel>
-              <Grid Grid.Column="1" ColumnDefinitions="170,Auto" ColumnSpacing="12" VerticalAlignment="Center">
+              <Grid Grid.Column="1" ColumnDefinitions="170,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" VerticalAlignment="Center">
                 <StackPanel Spacing="3" ToolTip.Tip="{Binding Text.MergeModeTooltip}">
                   <TextBlock Classes="fieldLabel" Text="{Binding Text.ModeLabel}" />
                   <ComboBox
@@ -241,7 +241,7 @@
                       ItemsSource="{Binding MergeModeChoices}"
                       SelectedItem="{Binding SelectedMergeMode, Mode=TwoWay}" />
                 </StackPanel>
-                <StackPanel Grid.Column="1" Margin="0,15,0,0" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
+                <StackPanel Grid.Column="1" Margin="0,15,0,0" VerticalAlignment="Center" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
                   <Button
                       Classes="toolbarAction"
                       Click="BuildMergeButton_OnClick"

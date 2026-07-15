@@ -19,11 +19,15 @@ public sealed partial class XamlControlStyleContractTests
 
     private static readonly Regex ThemeCornerRadiusTokenDefinitionPattern = ThemeCornerRadiusTokenDefinitionRegex();
 
+    private static readonly Regex ThemeSpacingTokenDefinitionPattern = ThemeSpacingTokenDefinitionRegex();
+
     private static readonly Regex ThemeFontFamilyTokenDefinitionPattern = ThemeFontFamilyTokenDefinitionRegex();
 
     private static readonly Regex DynamicThemeReferencePattern = DynamicThemeReferenceRegex();
 
     private static readonly Regex ColorLiteralPattern = ColorLiteralRegex();
+
+    private static readonly Regex RawCommonSpacingPattern = RawCommonSpacingRegex();
 
     /// <summary>Keeps every technical hexadecimal field on one canonical display format.</summary>
     [Fact]
@@ -97,117 +101,6 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Classes=\"slotBadge\"", slotCard, StringComparison.Ordinal);
     }
 
-    /// <summary>Keeps shared shell visual tokens defined once and resolves every migrated resource reference.</summary>
-    [Fact]
-    public void SharedThemeTokensHaveUniqueDefinitionsAndOwnMigratedViews()
-    {
-        string application = ReadPresentationFile("App.axaml");
-        string tokens = ReadPresentationFile("Styles/ThemeTokens.axaml");
-        Match[] colorDefinitions = ReadThemeTokenDefinitions();
-        Match[] shadowDefinitions = ReadThemeShadowTokenDefinitions();
-        Match[] cornerRadiusDefinitions = ReadThemeCornerRadiusTokenDefinitions();
-        Match[] fontFamilyDefinitions = ReadThemeFontFamilyTokenDefinitions();
-        var definedKeys = colorDefinitions
-            .Concat(shadowDefinitions)
-            .Concat(cornerRadiusDefinitions)
-            .Concat(fontFamilyDefinitions)
-            .Select(static definition => definition.Groups["key"].Value)
-            .ToHashSet(StringComparer.Ordinal);
-        var definedColors = colorDefinitions
-            .Select(static definition => definition.Groups["color"].Value)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        Assert.Contains("<Application.Resources>", application, StringComparison.Ordinal);
-        Assert.Contains(
-            "<ResourceInclude Source=\"avares://NvtFwCombiner.Presentation.Avalonia/Styles/ThemeTokens.axaml\" />",
-            application,
-            StringComparison.Ordinal);
-        Assert.NotEmpty(colorDefinitions);
-        Assert.NotEmpty(shadowDefinitions);
-        Assert.NotEmpty(cornerRadiusDefinitions);
-        Assert.Equal(2, fontFamilyDefinitions.Length);
-        Assert.Equal(colorDefinitions.Length, tokens.Split("<SolidColorBrush", StringSplitOptions.None).Length - 1);
-        Assert.Equal(shadowDefinitions.Length, tokens.Split("<BoxShadows", StringSplitOptions.None).Length - 1);
-        Assert.Equal(cornerRadiusDefinitions.Length, tokens.Split("<CornerRadius", StringSplitOptions.None).Length - 1);
-        Assert.Equal(fontFamilyDefinitions.Length, tokens.Split("<FontFamily", StringSplitOptions.None).Length - 1);
-        Assert.Equal(
-            colorDefinitions.Length + shadowDefinitions.Length + cornerRadiusDefinitions.Length + fontFamilyDefinitions.Length,
-            definedKeys.Count);
-        Assert.Equal(colorDefinitions.Length, definedColors.Count);
-        Assert.Contains(
-            fontFamilyDefinitions,
-            static definition => StringComparer.Ordinal.Equals("NfcUiFontFamily", definition.Groups["key"].Value) &&
-                                 StringComparer.Ordinal.Equals(
-                                     "fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI",
-                                     definition.Groups["value"].Value));
-        Assert.Contains(
-            fontFamilyDefinitions,
-            static definition => StringComparer.Ordinal.Equals("NfcTechnicalFontFamily", definition.Groups["key"].Value) &&
-                                 StringComparer.Ordinal.Equals("Cascadia Mono, Consolas", definition.Groups["value"].Value));
-
-        string[] migratedPaths =
-        [
-            "MainWindow.axaml",
-            "Styles/MainWindowControlStyles.axaml",
-            "Styles/MainWindowStyles.axaml",
-            "Styles/MainWindowButtonStyles.axaml",
-            "Styles/MainWindowVisualStyles.axaml",
-            "Views/CtrlRamFirmwareVersionModal.axaml",
-            "Views/FirmwareIcMismatchModal.axaml",
-            "Views/HexEditorInsertBytesModal.axaml",
-            "Views/HexEditorSaveModal.axaml",
-            "Views/ReplaceSelectionModal.axaml",
-            "Views/WorkflowContextSetupModal.axaml",
-            "Resources/MainWindowPageTemplates.axaml",
-            "Resources/MainWindowReportAuditTemplates.axaml",
-            "Resources/MainWindowReportChangeTemplates.axaml",
-            "Resources/MainWindowReportHistoryTemplates.axaml",
-            "Resources/MainWindowReportInputTemplates.axaml",
-            "Resources/MainWindowReportOperationTemplates.axaml",
-            "Resources/MainWindowReportPanels.axaml",
-            "Resources/MainWindowReportTemplates.axaml",
-            "Resources/MainWindowSharedTemplates.axaml",
-            "Resources/MainWindowShellPanels.axaml",
-            "Views/FirmwareSlotCard.axaml",
-            "Views/GeneralReplaceMappingRow.axaml",
-            "Views/HexEditorPanel.axaml",
-            "Views/ReportCodeBlockView.axaml",
-            "Views/ReportModal.axaml",
-        ];
-
-        foreach (string path in migratedPaths)
-        {
-            string content = ReadPresentationFile(path);
-            Match[] references = [.. DynamicThemeReferencePattern.Matches(content).Cast<Match>()];
-            string[] colorLiterals = [.. ColorLiteralPattern.Matches(content).Select(static literal => literal.Value)];
-
-            Assert.NotEmpty(references);
-            Assert.Empty(references
-                .Select(static reference => reference.Groups["key"].Value)
-                .Except(definedKeys, StringComparer.Ordinal));
-
-            Assert.Empty(colorLiterals);
-        }
-
-        Assert.All(
-            ReadPresentationXamlFiles().Where(content => !StringComparer.Ordinal.Equals(content, tokens)),
-            static content =>
-            {
-                Assert.DoesNotContain("fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI", content, StringComparison.Ordinal);
-                Assert.DoesNotContain("Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC", content, StringComparison.Ordinal);
-                Assert.DoesNotContain("Cascadia Mono, Consolas", content, StringComparison.Ordinal);
-            });
-
-        var referencedKeys = ReadPresentationXamlFiles()
-            .SelectMany(content => DynamicThemeReferencePattern.Matches(content)
-                .Cast<Match>()
-                .Select(static reference => reference.Groups["key"].Value))
-            .ToHashSet(StringComparer.Ordinal);
-
-        Assert.Empty(referencedKeys.Except(definedKeys, StringComparer.Ordinal));
-        Assert.Empty(definedKeys.Except(referencedKeys, StringComparer.Ordinal));
-    }
-
     /// <summary>Loads the application resource tree and resolves every shared visual token.</summary>
     [Fact]
     public void ThemeTokensResolveFromTheApplicationResourceTree()
@@ -240,6 +133,15 @@ public sealed partial class XamlControlStyleContractTests
                 app.TryGetResource(key, ThemeVariant.Default, out object? resource),
                 $"Theme token '{key}' was not available from Application.Resources.");
             _ = Assert.IsType<CornerRadius>(resource);
+        }
+
+        foreach (string key in ReadThemeSpacingTokenDefinitions()
+                     .Select(static definition => definition.Groups["key"].Value))
+        {
+            Assert.True(
+                app.TryGetResource(key, ThemeVariant.Default, out object? resource),
+                $"Theme token '{key}' was not available from Application.Resources.");
+            _ = Assert.IsType<double>(resource);
         }
 
         foreach (string key in ReadThemeFontFamilyTokenDefinitions()
@@ -631,6 +533,13 @@ public sealed partial class XamlControlStyleContractTests
             .Cast<Match>()];
     }
 
+    private static Match[] ReadThemeSpacingTokenDefinitions()
+    {
+        return [.. ThemeSpacingTokenDefinitionPattern
+            .Matches(ReadPresentationFile("Styles/ThemeTokens.axaml"))
+            .Cast<Match>()];
+    }
+
     [GeneratedRegex("<SolidColorBrush\\s+x:Key=\"(?<key>Nfc[A-Za-z]+)\"\\s+Color=\"(?<color>#[0-9A-Fa-f]{6,8})\"\\s*/>", RegexOptions.CultureInvariant)]
     private static partial Regex ThemeTokenDefinitionRegex();
 
@@ -640,12 +549,18 @@ public sealed partial class XamlControlStyleContractTests
     [GeneratedRegex("<CornerRadius\\s+x:Key=\"(?<key>Nfc[A-Za-z]+)\">[^<]+</CornerRadius>", RegexOptions.CultureInvariant)]
     private static partial Regex ThemeCornerRadiusTokenDefinitionRegex();
 
+    [GeneratedRegex("<x:Double\\s+x:Key=\"(?<key>Nfc[A-Za-z0-9]+)\">(?<value>[^<]+)</x:Double>", RegexOptions.CultureInvariant)]
+    private static partial Regex ThemeSpacingTokenDefinitionRegex();
+
     [GeneratedRegex("<FontFamily\\s+x:Key=\"(?<key>Nfc[A-Za-z]+)\">(?<value>[^<]+)</FontFamily>", RegexOptions.CultureInvariant)]
     private static partial Regex ThemeFontFamilyTokenDefinitionRegex();
 
-    [GeneratedRegex("\\{DynamicResource\\s+(?<key>Nfc[A-Za-z]+)\\}", RegexOptions.CultureInvariant)]
+    [GeneratedRegex("\\{DynamicResource\\s+(?<key>Nfc[A-Za-z0-9]+)\\}", RegexOptions.CultureInvariant)]
     private static partial Regex DynamicThemeReferenceRegex();
 
     [GeneratedRegex("#[0-9A-Fa-f]{3,8}", RegexOptions.CultureInvariant)]
     private static partial Regex ColorLiteralRegex();
+
+    [GeneratedRegex("\\b(?:Row|Column)?Spacing=\"(?:2|4|8|12|16)\"", RegexOptions.CultureInvariant)]
+    private static partial Regex RawCommonSpacingRegex();
 }

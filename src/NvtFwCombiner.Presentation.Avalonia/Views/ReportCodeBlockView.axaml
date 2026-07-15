@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     x:Name="Root">
   <Border Classes="compactSubtleSurface" Padding="8,6">
-    <Grid RowDefinitions="Auto,*" RowSpacing="4">
+    <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource NfcSpace4}">
       <Button
           Grid.Row="0"
           Classes="iconButton codeBlockCopy"

@@ -252,6 +252,11 @@ public sealed partial class RepositoryBoundaryTests
             "<FontFamily x:Key=\"NfcUiFontFamily\">fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI</FontFamily>",
             themeTokens,
             StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcSpace2\">2</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcSpace4\">4</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcSpace8\">8</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcSpace12\">12</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcSpace16\">16</x:Double>", themeTokens, StringComparison.Ordinal);
         Assert.DoesNotContain("Classes=\"secondary\" Content=\"{Binding PreviewActionLabel}\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Background=\"#0F172A\" CornerRadius=\"8\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Merge / Replace workspace", shell, StringComparison.Ordinal);

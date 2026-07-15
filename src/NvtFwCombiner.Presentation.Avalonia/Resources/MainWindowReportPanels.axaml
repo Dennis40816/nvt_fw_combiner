@@ -5,12 +5,12 @@
 
 <DataTemplate x:Key="ReportModalHeaderTemplate" DataType="vm:MainWindowViewModel">
   <Border Padding="22,18" BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="0,0,0,1">
-    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
       <StackPanel Spacing="5">
         <TextBlock Classes="modalTitle" Text="{Binding LoadedReport.Title}" TextWrapping="Wrap" />
         <TextBlock Classes="mutedText" Text="{Binding LoadedReport.Subtitle}" TextWrapping="Wrap" />
       </StackPanel>
-      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
         <Button
             Classes="iconButton"
             Command="{Binding CloseReportCommand}"
@@ -28,13 +28,13 @@
       Margin="16,14,16,0"
       Padding="16">
     <Grid RowDefinitions="Auto,Auto,*" RowSpacing="14">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
         <StackPanel Spacing="3">
           <TextBlock Classes="sectionTitle" Text="{Binding Text.ReportHistoryTitle}" />
           <TextBlock Classes="mutedText" Text="{Binding ReportHistorySummary}" />
           <TextBlock Classes="captionText" Text="{Binding ReportHistoryStorageSummary}" />
         </StackPanel>
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
           <Button Classes="secondary" Command="{Binding CloseReportHistoryCommand}" Content="{Binding Text.BackToReportLabel}" />
           <Button
               Classes="danger"
@@ -72,7 +72,7 @@
   <Border Classes="surface" Margin="16,14,16,0" Padding="0">
     <Expander IsExpanded="False">
       <Expander.Header>
-        <Grid Margin="16,12" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
+        <Grid Margin="16,12" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
           <Grid Width="32" Height="32" AutomationProperties.Name="{Binding LoadedReport.OutcomeAccessibilityLabel}">
             <Border Background="{DynamicResource NfcSuccessAccentBrush}" CornerRadius="{DynamicResource NfcPillCornerRadius}" IsVisible="{Binding LoadedReport.IsClean}" />
             <Border Background="{DynamicResource NfcWarningAccentStrongBrush}" CornerRadius="{DynamicResource NfcPillCornerRadius}" IsVisible="{Binding LoadedReport.HasWarningsWithoutBlockingIssues}" />
@@ -118,7 +118,7 @@
 
         <Grid Grid.Row="1" ColumnDefinitions="*,*">
         <Border Padding="16" BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="0,0,1,0">
-          <StackPanel Spacing="8">
+          <StackPanel Spacing="{DynamicResource NfcSpace8}">
             <TextBlock Classes="fieldLabel" Text="{Binding Text.OutputLabel}" />
             <Grid ColumnDefinitions="54,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="7">
               <TextBlock Classes="tableHeader" Text="{Binding Text.FileLabel}" />
@@ -135,7 +135,7 @@
         </Border>
 
         <Border Grid.Column="1" Padding="16">
-          <Grid RowDefinitions="Auto,*" RowSpacing="8">
+          <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource NfcSpace8}">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
               <StackPanel Spacing="3">
                 <TextBlock Classes="fieldLabel" Text="{Binding Text.ChangeReviewTitle}" />
@@ -143,7 +143,7 @@
               </StackPanel>
               <Label Grid.Column="1" Classes="reportBadge large" Content="{Binding LoadedReport.ByteDifferenceMeta}" />
             </Grid>
-            <StackPanel Grid.Row="1" Spacing="8">
+            <StackPanel Grid.Row="1" Spacing="{DynamicResource NfcSpace8}">
               <TextBlock Classes="detailText" Text="{Binding LoadedReport.ByteDifferenceDetail}" TextWrapping="Wrap" />
               <ItemsControl ItemsSource="{Binding LoadedReport.OutputDifferenceSummaryRows}">
                 <ItemsControl.ItemTemplate>

@@ -12,17 +12,17 @@
       HorizontalAlignment="Center"
       VerticalAlignment="Center"
       BorderBrush="{DynamicResource NfcHexEditorAccentBrush}">
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="16">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
       <StackPanel Spacing="5">
         <TextBlock Classes="modalTitle" Text="{Binding InsertBytesPromptTitle}" />
         <TextBlock Classes="mutedText" Text="{Binding Text.HexEditorInsertBytesDetail}" TextWrapping="Wrap" />
       </StackPanel>
 
-      <Grid Grid.Row="1" ColumnDefinitions="110,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="8">
+      <Grid Grid.Row="1" ColumnDefinitions="110,*" RowDefinitions="Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="{DynamicResource NfcSpace8}">
         <TextBlock Classes="fieldLabel" Text="{Binding Text.HexEditorAddressColumnLabel}" />
         <TextBlock Grid.Column="1" Classes="technicalValue" Text="{Binding InsertTargetAddress}" />
         <TextBlock Grid.Row="1" Classes="fieldLabel" Text="{Binding Text.HexEditorInsertByteCountLabel}" />
-        <StackPanel Grid.Row="1" Grid.Column="1" Spacing="4">
+        <StackPanel Grid.Row="1" Grid.Column="1" Spacing="{DynamicResource NfcSpace4}">
           <NumericUpDown
               AutomationProperties.Name="{Binding Text.HexEditorInsertByteCountLabel}"
               Minimum="1"
@@ -38,7 +38,7 @@
         <TextBlock Classes="captionText hexInspectorNotice error" Text="{Binding InsertBytesFeedback}" TextWrapping="Wrap" />
       </Border>
 
-      <StackPanel Grid.Row="3" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+      <StackPanel Grid.Row="3" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
         <Button Classes="secondary" Command="{Binding CancelInsertBytesCommand}" Content="{Binding Text.CloseLabel}" />
         <Button Classes="primary" Command="{Binding ConfirmInsertBytesCommand}" Content="{Binding Text.HexEditorInsertBytesActionLabel}" />
       </StackPanel>

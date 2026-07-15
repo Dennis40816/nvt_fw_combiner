@@ -17,7 +17,7 @@
         <TextBlock Classes="modalTitle" Text="{Binding Text.HexEditorSaveConfirmationTitle}" />
         <TextBlock Classes="mutedText" Text="{Binding Text.HexEditorSaveConfirmationDetail}" TextWrapping="Wrap" />
       </StackPanel>
-      <StackPanel Grid.Row="1" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+      <StackPanel Grid.Row="1" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
         <Button Classes="secondary" Command="{Binding CancelSaveCommand}" Content="{Binding Text.CloseLabel}" />
         <Button Classes="primary" Click="ConfirmHexEditorSaveButton_OnClick" Content="{Binding Text.HexEditorSaveConfirmationActionLabel}" />
       </StackPanel>

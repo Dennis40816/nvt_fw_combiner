@@ -9,7 +9,7 @@
       Classes="subtleSurface"
       Margin="0,0,0,8"
       Padding="7">
-    <Grid ColumnDefinitions="34,118,118,108,*,82,40" ColumnSpacing="8">
+    <Grid ColumnDefinitions="34,118,118,108,*,82,40" ColumnSpacing="{DynamicResource NfcSpace8}">
       <Border Classes="mappingIndex">
         <TextBlock Classes="mappingIndex" Text="{Binding Index}" />
       </Border>
@@ -40,7 +40,7 @@
           DragDrop.Drop="MappingDrop_OnDrop">
         <Grid>
           <Border Classes="dropZoneOverlay" />
-          <StackPanel Margin="10,0" VerticalAlignment="Center" Spacing="2">
+          <StackPanel Margin="10,0" VerticalAlignment="Center" Spacing="{DynamicResource NfcSpace2}">
             <TextBlock Classes="bodyEmphasisText" Text="{Binding DisplayName}" TextWrapping="Wrap" />
             <TextBlock Classes="technicalCaption" IsVisible="{Binding HasFile}" Text="{Binding DisplayDetail}" TextWrapping="Wrap" />
           </StackPanel>

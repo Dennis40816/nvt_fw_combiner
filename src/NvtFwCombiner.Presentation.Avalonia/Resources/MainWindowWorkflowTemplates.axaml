@@ -9,7 +9,7 @@
 </DataTemplate>
 
 <DataTemplate x:Key="ReplaceModeContentTemplate" DataType="vm:MainWindowViewModel">
-  <StackPanel Spacing="16">
+  <StackPanel Spacing="{DynamicResource NfcSpace16}">
     <Border
         Classes="panelSurface roomyPanel"
         IsVisible="{Binding IsNonCtrlRamStructuredReplaceModeSelected}">
@@ -50,36 +50,36 @@
     <Border
         Classes="panelSurface roomyPanel"
         IsVisible="{Binding IsGeneralReplaceModeSelected}">
-      <StackPanel Spacing="16">
-        <Grid ColumnDefinitions="*" ColumnSpacing="16">
+      <StackPanel Spacing="{DynamicResource NfcSpace16}">
+        <Grid ColumnDefinitions="*" ColumnSpacing="{DynamicResource NfcSpace16}">
           <StackPanel Spacing="3">
             <TextBlock Classes="sectionTitle" Text="{Binding Text.GeneralReplaceMappingTitle}" />
             <TextBlock Classes="mutedText" Text="{Binding SelectedReplaceModeDescription}" TextWrapping="Wrap" />
           </StackPanel>
         </Grid>
 
-        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="{DynamicResource NfcSpace8}">
           <Border Classes="subtleSurface" Padding="10">
-            <StackPanel Spacing="2">
+            <StackPanel Spacing="{DynamicResource NfcSpace2}">
               <TextBlock Classes="compactTitle" Text="{Binding Text.GeneralReplaceRuleBaseTitle}" />
               <TextBlock Classes="captionText" Text="{Binding Text.GeneralReplaceRuleBaseDetail}" TextWrapping="Wrap" />
             </StackPanel>
           </Border>
           <Border Grid.Column="1" Classes="subtleSurface" Padding="10">
-            <StackPanel Spacing="2">
+            <StackPanel Spacing="{DynamicResource NfcSpace2}">
               <TextBlock Classes="compactTitle" Text="{Binding Text.GeneralReplaceRuleBoundsTitle}" />
               <TextBlock Classes="captionText" Text="{Binding Text.GeneralReplaceRuleBoundsDetail}" TextWrapping="Wrap" />
             </StackPanel>
           </Border>
           <Border Grid.Column="2" Classes="subtleSurface" Padding="10">
-            <StackPanel Spacing="2">
+            <StackPanel Spacing="{DynamicResource NfcSpace2}">
               <TextBlock Classes="compactTitle" Text="{Binding Text.GeneralReplaceRuleLengthTitle}" />
               <TextBlock Classes="captionText" Text="{Binding Text.GeneralReplaceRuleLengthDetail}" TextWrapping="Wrap" />
             </StackPanel>
           </Border>
         </Grid>
 
-        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,*" ColumnSpacing="14" RowSpacing="8">
+        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,*" ColumnSpacing="14" RowSpacing="{DynamicResource NfcSpace8}">
           <TextBlock Classes="panelTitle" Text="{Binding Text.GeneralReplaceRuleBaseTitle}" />
           <TextBlock Grid.Column="1" Classes="panelTitle" Text="{Binding Text.ValidationTitle}" />
           <ContentControl
@@ -92,16 +92,16 @@
               Grid.Column="1"
               MinHeight="112"
               Padding="12">
-            <StackPanel Spacing="4">
+            <StackPanel Spacing="{DynamicResource NfcSpace4}">
               <TextBlock Classes="readinessText" Text="{Binding ReplaceReadinessStatus}" TextWrapping="Wrap" />
               <TextBlock Classes="captionText" Text="{Binding Text.GeneralReplaceValidationDetail}" TextWrapping="Wrap" />
             </StackPanel>
           </Border>
         </Grid>
 
-        <StackPanel Spacing="12">
+        <StackPanel Spacing="{DynamicResource NfcSpace12}">
           <StackPanel Spacing="10">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
               <StackPanel Spacing="3">
                 <TextBlock Classes="sectionTitle" Text="{Binding Text.ExplicitMappingsTitle}" />
                 <TextBlock Classes="mutedText" Text="{Binding Text.GeneralReplaceMappingsDetail}" TextWrapping="Wrap" />
@@ -113,7 +113,7 @@
                   Command="{Binding AddGeneralReplaceMappingCommand}"
                   Content="{Binding Text.AddRangeLabel}" />
             </Grid>
-            <Grid ColumnDefinitions="34,128,22,128,*,82,40" ColumnSpacing="8">
+            <Grid ColumnDefinitions="34,128,22,128,*,82,40" ColumnSpacing="{DynamicResource NfcSpace8}">
               <TextBlock Grid.Column="0" Classes="tableHeader" Text="#" />
               <TextBlock Grid.Column="1" Classes="tableHeader" Text="{Binding Text.StartLabel}" />
               <TextBlock Grid.Column="3" Classes="tableHeader" Text="{Binding Text.EndLabel}" />
@@ -139,7 +139,7 @@
 </DataTemplate>
 
 <DataTemplate x:Key="MergeModeContentTemplate" DataType="vm:MainWindowViewModel">
-  <StackPanel Spacing="16">
+  <StackPanel Spacing="{DynamicResource NfcSpace16}">
     <Border
         Classes="panelSurface roomyPanel"
         IsVisible="{Binding IsNormalMergeModeSelected}">
@@ -162,13 +162,13 @@
     <Border
         Classes="panelSurface roomyPanel"
         IsVisible="{Binding IsGeneralMergeModeSelected}">
-      <StackPanel Spacing="16">
+      <StackPanel Spacing="{DynamicResource NfcSpace16}">
         <Grid ColumnDefinitions="*,180" ColumnSpacing="14">
           <StackPanel Spacing="3">
             <TextBlock Classes="sectionTitle" Text="{Binding Text.GeneralMergeMappingTitle}" />
             <TextBlock Classes="mutedText" Text="{Binding Text.GeneralMergeMappingDetail}" TextWrapping="Wrap" />
           </StackPanel>
-          <StackPanel Grid.Column="1" Spacing="4">
+          <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace4}">
             <TextBlock Classes="fieldLabel" Text="{Binding Text.OutputLengthLabel}" />
             <TextBox
                 Classes="addressInput"
@@ -178,7 +178,7 @@
         </Grid>
 
         <StackPanel Spacing="10">
-          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
             <StackPanel Spacing="3">
               <TextBlock Classes="sectionTitle" Text="{Binding Text.ExplicitMappingsTitle}" />
               <TextBlock Classes="mutedText" Text="{Binding Text.GeneralMergeMappingsDetail}" TextWrapping="Wrap" />
@@ -191,7 +191,7 @@
                 Content="{Binding Text.AddMappingLabel}" />
           </Grid>
 
-          <Grid Margin="7,0,7,0" ColumnDefinitions="34,118,118,108,*,82,40" ColumnSpacing="8">
+          <Grid Margin="7,0,7,0" ColumnDefinitions="34,118,118,108,*,82,40" ColumnSpacing="{DynamicResource NfcSpace8}">
             <TextBlock Grid.Column="0" Classes="tableHeader" HorizontalAlignment="Center" TextAlignment="Center" Text="#" />
             <TextBlock Grid.Column="1" Classes="tableHeader" HorizontalAlignment="Center" TextAlignment="Center" Text="{Binding Text.SourceStartLabel}" />
             <TextBlock Grid.Column="2" Classes="tableHeader" HorizontalAlignment="Center" TextAlignment="Center" Text="{Binding Text.TargetStartLabel}" />
@@ -219,7 +219,7 @@
     <Border
         Classes="panelSurface roomyPanel"
         IsVisible="{Binding IsAbCodeMergeModeSelected}">
-      <StackPanel Spacing="8">
+      <StackPanel Spacing="{DynamicResource NfcSpace8}">
         <TextBlock Classes="sectionTitle" Text="{Binding Text.AbCodeMergeTitle}" />
         <TextBlock Classes="mutedText" Text="{Binding Text.AbCodeMergeDetail}" TextWrapping="Wrap" />
       </StackPanel>

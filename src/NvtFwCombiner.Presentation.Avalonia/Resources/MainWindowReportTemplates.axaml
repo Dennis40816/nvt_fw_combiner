@@ -32,7 +32,7 @@
 
 <DataTemplate x:Key="ReportSelectionRowTemplate" DataType="vm:ReportLineViewModel">
   <Border Classes="listRow" Padding="0,8">
-    <StackPanel Spacing="2">
+    <StackPanel Spacing="{DynamicResource NfcSpace2}">
       <TextBlock Classes="panelTitle" Text="{Binding Title}" TextWrapping="Wrap" />
       <TextBlock Classes="bodyEmphasisText" Text="{Binding Detail}" TextWrapping="Wrap" />
       <TextBlock Classes="captionText" Text="{Binding Meta}" TextWrapping="Wrap" />
@@ -41,7 +41,7 @@
 </DataTemplate>
 
 <DataTemplate x:Key="ReportMissingRequiredRowTemplate" DataType="vm:ReportLineViewModel">
-  <StackPanel Margin="0,0,0,8" Spacing="2">
+  <StackPanel Margin="0,0,0,8" Spacing="{DynamicResource NfcSpace2}">
     <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource NfcWarningTextSubtleBrush}" Text="{Binding Title}" TextWrapping="Wrap" />
     <TextBlock FontSize="12" Foreground="{DynamicResource NfcWarningTextSubtleBrush}" Text="{Binding Detail}" TextWrapping="Wrap" />
     <TextBlock FontSize="11" Foreground="{DynamicResource NfcWarningTextMutedBrush}" Text="{Binding Meta}" TextWrapping="Wrap" />
@@ -56,7 +56,7 @@
       MinHeight="76"
       Padding="11,8"
       >
-    <StackPanel Spacing="2">
+    <StackPanel Spacing="{DynamicResource NfcSpace2}">
       <TextBlock Classes="fieldLabel" Text="{Binding Title}" />
       <TextBlock Classes="sectionTitle" Text="{Binding Detail}" TextWrapping="Wrap" />
       <TextBlock Classes="captionText" Text="{Binding Meta}" TextWrapping="Wrap" />
@@ -78,7 +78,7 @@
           BorderThickness="1"
           CornerRadius="{DynamicResource NfcPillCornerRadius}" />
     </Grid>
-    <StackPanel Grid.Column="1" Spacing="2">
+    <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace2}">
       <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource NfcInfoTextStrongBrush}" Text="{Binding Title}" TextWrapping="Wrap" />
       <TextBlock Classes="panelTitle" Text="{Binding Detail}" TextWrapping="Wrap" />
       <TextBlock Classes="captionText" Text="{Binding Meta}" TextWrapping="Wrap" />
@@ -88,7 +88,7 @@
 
 <DataTemplate x:Key="ReportIssueRowTemplate" DataType="vm:ReportLineViewModel">
   <Border Padding="10,8" Background="{DynamicResource NfcWarningSurfaceBrush}" BorderBrush="{DynamicResource NfcWarningBorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource NfcCompactCornerRadius}" Margin="0,8,0,0">
-    <StackPanel Spacing="2">
+    <StackPanel Spacing="{DynamicResource NfcSpace2}">
       <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource NfcWarningTextBrush}" Text="{Binding Title}" TextWrapping="Wrap" />
       <TextBlock FontSize="12" Foreground="{DynamicResource NfcWarningTextSubtleBrush}" Text="{Binding Detail}" TextWrapping="Wrap" />
       <TextBlock FontSize="11" Foreground="{DynamicResource NfcWarningTextMutedBrush}" Text="{Binding Meta}" TextWrapping="Wrap" />

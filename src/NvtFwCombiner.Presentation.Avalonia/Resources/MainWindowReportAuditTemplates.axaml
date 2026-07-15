@@ -7,7 +7,7 @@
   <Border MinHeight="0" Classes="surface" Margin="16,14,16,0">
     <Grid RowDefinitions="Auto,*">
       <Grid Margin="16,14,16,8" ColumnDefinitions="*,Auto" ColumnSpacing="10">
-        <StackPanel Spacing="2">
+        <StackPanel Spacing="{DynamicResource NfcSpace2}">
           <TextBlock Classes="panelTitle" Text="{Binding Text.EvidenceTitle}" />
           <TextBlock Classes="captionText" Text="{Binding LoadedReport.AuditSummary}" TextWrapping="Wrap" />
         </StackPanel>
@@ -17,7 +17,7 @@
       <TabControl Grid.Row="1" Margin="12,0,12,12" Classes="reportTabs" FontSize="12">
         <TabItem Header="{Binding Text.ReportTabInputs}">
           <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="0,12,0,0" Spacing="12">
+            <StackPanel Margin="0,12,0,0" Spacing="{DynamicResource NfcSpace12}">
               <Border Classes="compactSurface contentPanel" IsVisible="{Binding LoadedReport.HasInputGroups}">
                 <StackPanel Spacing="10">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
@@ -60,7 +60,7 @@
 
         <TabItem Header="{Binding Text.ReportTabChanges}">
           <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="0,12,0,0" Spacing="12">
+            <StackPanel Margin="0,12,0,0" Spacing="{DynamicResource NfcSpace12}">
               <Border Classes="insetSurface" Padding="14" IsVisible="{Binding LoadedReport.HasNoByteChanges}">
                 <TextBlock Classes="mutedText" Text="{Binding Text.EmptyByteChangesMessage}" TextWrapping="Wrap" />
               </Border>
@@ -96,7 +96,7 @@
 
         <TabItem Header="{Binding Text.ReportTabOperations}">
           <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="0,12,0,0" Spacing="12">
+            <StackPanel Margin="0,12,0,0" Spacing="{DynamicResource NfcSpace12}">
               <Border Classes="insetSurface" Padding="14" IsVisible="{Binding LoadedReport.HasNoOperations}">
                 <TextBlock Classes="mutedText" Text="{Binding Text.EmptyOperationsMessage}" TextWrapping="Wrap" />
               </Border>
@@ -116,7 +116,7 @@
               </Border>
 
               <Border Classes="compactSurface contentPanel" IsVisible="{Binding LoadedReport.HasStepOperations}">
-                <StackPanel Spacing="8">
+                <StackPanel Spacing="{DynamicResource NfcSpace8}">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                     <TextBlock Classes="panelTitle" Text="{Binding Text.DetailLabel}" />
                     <Label Grid.Column="1" Classes="reportBadge" Content="{Binding LoadedReport.StepOperationCount}" />
@@ -134,12 +134,12 @@
 
         <TabItem Header="{Binding Text.ReportTabPostbuild}">
           <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="0,12,0,0" Spacing="12">
+            <StackPanel Margin="0,12,0,0" Spacing="{DynamicResource NfcSpace12}">
               <Border Classes="insetSurface" Padding="14" IsVisible="{Binding LoadedReport.HasNoPostbuildInvocations}">
                 <TextBlock Classes="mutedText" Text="{Binding Text.EmptyPostbuildMessage}" TextWrapping="Wrap" />
               </Border>
 
-              <StackPanel Spacing="8" IsVisible="{Binding LoadedReport.HasPostbuildInvocations}">
+              <StackPanel Spacing="{DynamicResource NfcSpace8}" IsVisible="{Binding LoadedReport.HasPostbuildInvocations}">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                   <TextBlock Classes="panelTitle" Text="{Binding Text.HeaderRefreshTraceTitle}" />
                   <Label Grid.Column="1" Classes="reportBadge info" Content="{Binding LoadedReport.PostbuildInvocationCount}" />
@@ -156,13 +156,13 @@
 
         <TabItem Header="{Binding Text.ReportTabIssues}">
           <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="0,12,0,0" Spacing="12">
+            <StackPanel Margin="0,12,0,0" Spacing="{DynamicResource NfcSpace12}">
               <Border Classes="successInset" Padding="16" IsVisible="{Binding LoadedReport.HasNoIssues}">
-                <Grid ColumnDefinitions="34,*" ColumnSpacing="12">
+                <Grid ColumnDefinitions="34,*" ColumnSpacing="{DynamicResource NfcSpace12}">
                   <Border Width="26" Height="26" Background="{DynamicResource NfcSuccessAccentBrush}" CornerRadius="{DynamicResource NfcPillCornerRadius}">
                     <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource NfcSurfaceBrush}" Text="✓" />
                   </Border>
-                  <StackPanel Grid.Column="1" Spacing="2">
+                  <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace2}">
                     <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource NfcSuccessTextStrongBrush}" Text="{Binding Text.NoActionRequiredTitle}" />
                     <TextBlock FontSize="12" Foreground="{DynamicResource NfcSuccessTextBrush}" Text="{Binding Text.EmptyIssuesMessage}" TextWrapping="Wrap" />
                   </StackPanel>
@@ -189,7 +189,7 @@
         <TabItem Header="{Binding Text.ReportTabRaw}">
           <Grid MinHeight="0" Margin="0,12,0,0" VerticalAlignment="Stretch" RowDefinitions="Auto,*" RowSpacing="10">
             <Border Classes="insetSurface contentPanel">
-              <StackPanel Spacing="2">
+              <StackPanel Spacing="{DynamicResource NfcSpace2}">
                 <TextBlock Classes="panelTitle" Text="{Binding Text.RawReportTitle}" />
                 <TextBlock Classes="mutedText" Text="{Binding Text.RawReportDetail}" TextWrapping="Wrap" />
               </StackPanel>

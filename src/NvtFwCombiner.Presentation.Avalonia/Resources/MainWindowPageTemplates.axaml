@@ -7,7 +7,7 @@
 <DataTemplate x:Key="HomePageTemplate" DataType="vm:MainWindowViewModel">
   <Grid
       ColumnDefinitions="*,*,*"
-      ColumnSpacing="16"
+      ColumnSpacing="{DynamicResource NfcSpace16}"
       VerticalAlignment="Top">
     <Border Classes="homePreviewSurface">
       <Grid RowDefinitions="Auto,Auto">
@@ -28,7 +28,7 @@
               Text="{Binding ReplacePreview.Subtitle}"
               TextWrapping="Wrap" />
         </StackPanel>
-        <Grid Grid.Row="1" Margin="0,18,0,0" RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+        <Grid Grid.Row="1" Margin="0,18,0,0" RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace8}">
           <Button
               Classes="command"
               Command="{Binding BeginDpReplaceFromHomeCommand}">
@@ -90,7 +90,7 @@
               Text="{Binding MergePreview.Subtitle}"
               TextWrapping="Wrap" />
         </StackPanel>
-        <Grid Grid.Row="1" Margin="0,18,0,0" RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+        <Grid Grid.Row="1" Margin="0,18,0,0" RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace8}">
           <Button
               Classes="command"
               Command="{Binding BeginNormalMergeFromHomeCommand}">
@@ -152,7 +152,7 @@
               Text="{Binding Text.UtilToolsHomeDetail}"
               TextTrimming="CharacterEllipsis" />
         </StackPanel>
-        <Grid Grid.Row="1" Margin="0,18,0,0" RowDefinitions="Auto" RowSpacing="8">
+        <Grid Grid.Row="1" Margin="0,18,0,0" RowDefinitions="Auto" RowSpacing="{DynamicResource NfcSpace8}">
           <Button
               Classes="command"
               Command="{Binding ShowHexEditorCommand}"
@@ -173,8 +173,8 @@
 </DataTemplate>
 
 <DataTemplate x:Key="HexEditorPageTemplate" DataType="vm:MainWindowViewModel">
-  <StackPanel Spacing="16">
-    <StackPanel Margin="18,0,18,0" Spacing="4">
+  <StackPanel Spacing="{DynamicResource NfcSpace16}">
+    <StackPanel Margin="18,0,18,0" Spacing="{DynamicResource NfcSpace4}">
       <TextBlock
           FontSize="11"
           FontWeight="SemiBold"
@@ -202,15 +202,15 @@
   <Grid
       ColumnDefinitions="1.6*,360"
       ColumnSpacing="18">
-    <StackPanel Spacing="16">
-      <StackPanel Spacing="4">
+    <StackPanel Spacing="{DynamicResource NfcSpace16}">
+      <StackPanel Spacing="{DynamicResource NfcSpace4}">
         <TextBlock Classes="pageTitle" Text="{Binding SettingsPreview.Title}" />
         <TextBlock Classes="pageSubtitle" Text="{Binding SettingsPreview.Subtitle}" TextWrapping="Wrap" />
       </StackPanel>
-      <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="12">
+      <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="{DynamicResource NfcSpace12}">
         <Border Classes="panelSurface roomyPanel">
-          <StackPanel Spacing="12">
-            <StackPanel Spacing="4">
+          <StackPanel Spacing="{DynamicResource NfcSpace12}">
+            <StackPanel Spacing="{DynamicResource NfcSpace4}">
               <TextBlock Classes="strongText" Text="{Binding Text.SettingsCatalogTitle}" />
               <TextBlock Classes="supportingText" Text="{Binding Text.SettingsCatalogSubtitle}" TextWrapping="Wrap" />
             </StackPanel>
@@ -218,7 +218,7 @@
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:SettingSummaryViewModel">
                   <Border Classes="settingRow" Margin="0,0,0,8">
-                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="2">
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="{DynamicResource NfcSpace2}">
                       <TextBlock Classes="panelTitle" Text="{Binding Title}" />
                       <TextBlock Grid.Column="1" Classes="infoText" Text="{Binding Status}" />
                       <TextBlock Grid.Row="1" Classes="technicalDetail" Text="{Binding Value}" TextWrapping="Wrap" />
@@ -231,8 +231,8 @@
           </StackPanel>
         </Border>
         <Border Grid.Column="1" Classes="panelSurface roomyPanel">
-          <StackPanel Spacing="12">
-            <StackPanel Spacing="4">
+          <StackPanel Spacing="{DynamicResource NfcSpace12}">
+            <StackPanel Spacing="{DynamicResource NfcSpace4}">
               <TextBlock Classes="strongText" Text="{Binding Text.SettingsRuntimeChecksTitle}" />
               <TextBlock Classes="supportingText" Text="{Binding Text.SettingsRuntimeChecksSubtitle}" TextWrapping="Wrap" />
             </StackPanel>
@@ -240,7 +240,7 @@
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:SettingSummaryViewModel">
                   <Border Classes="settingRow" Margin="0,0,0,8">
-                    <StackPanel Spacing="2">
+                    <StackPanel Spacing="{DynamicResource NfcSpace2}">
                       <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Classes="panelTitle" Text="{Binding Title}" />
                         <TextBlock Grid.Column="1" Classes="infoText" Text="{Binding Status}" />
@@ -255,8 +255,8 @@
           </StackPanel>
         </Border>
         <Border Grid.Row="1" Classes="panelSurface roomyPanel">
-          <StackPanel Spacing="12">
-            <StackPanel Spacing="4">
+          <StackPanel Spacing="{DynamicResource NfcSpace12}">
+            <StackPanel Spacing="{DynamicResource NfcSpace4}">
               <TextBlock Classes="strongText" Text="{Binding Text.SettingsDiagnosticsTitle}" />
               <TextBlock Classes="supportingText" Text="{Binding Text.SettingsDiagnosticsSubtitle}" TextWrapping="Wrap" />
             </StackPanel>
@@ -264,7 +264,7 @@
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:SettingSummaryViewModel">
                   <Border Classes="settingRow" Margin="0,0,0,8">
-                    <StackPanel Spacing="2">
+                    <StackPanel Spacing="{DynamicResource NfcSpace2}">
                       <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Classes="panelTitle" Text="{Binding Title}" />
                         <TextBlock Grid.Column="1" Classes="infoText" Text="{Binding Status}" />
@@ -279,12 +279,12 @@
           </StackPanel>
         </Border>
         <Border Grid.Row="1" Grid.Column="1" Classes="panelSurface roomyPanel">
-          <StackPanel Spacing="12">
-            <StackPanel Spacing="4">
+          <StackPanel Spacing="{DynamicResource NfcSpace12}">
+            <StackPanel Spacing="{DynamicResource NfcSpace4}">
               <TextBlock Classes="strongText" Text="{Binding Text.SettingsPreferencesTitle}" />
               <TextBlock Classes="supportingText" Text="{Binding Text.SettingsPreferencesSubtitle}" TextWrapping="Wrap" />
             </StackPanel>
-            <Grid ColumnDefinitions="92,180,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
+            <Grid ColumnDefinitions="92,180,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="10">
               <TextBlock Classes="fieldLabel" VerticalAlignment="Center" Text="{Binding Text.ThemeLabel}" />
               <ComboBox Grid.Column="1" Classes="settingsSelect" ItemsSource="{Binding ThemeChoices}" SelectedItem="{Binding SelectedTheme, Mode=TwoWay}" />
               <TextBlock Grid.Column="2" VerticalAlignment="Center" Classes="captionText" Text="{Binding ThemePreferenceStatus}" TextWrapping="Wrap" />
@@ -303,7 +303,7 @@
     </StackPanel>
 
     <Border Grid.Column="1" Classes="panelSurface roomyPanel">
-      <StackPanel Spacing="12">
+      <StackPanel Spacing="{DynamicResource NfcSpace12}">
         <TextBlock Classes="sectionLabel" Text="{Binding Text.SettingsInspectorKicker}" />
         <TextBlock Classes="modalTitle" Text="{Binding Text.SettingsReadinessTitle}" />
         <TextBlock Classes="supportingText" Text="{Binding SettingsPreview.Status}" TextWrapping="Wrap" />
