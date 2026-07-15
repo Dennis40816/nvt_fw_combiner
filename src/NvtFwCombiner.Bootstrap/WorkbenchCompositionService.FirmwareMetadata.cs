@@ -167,24 +167,6 @@ public static partial class WorkbenchCompositionService
         return true;
     }
 
-    private static bool TryReadBaseCommonFwVersion(
-        string icId,
-        WorkbenchGeneralReplaceBaseSnapshot baseSnapshot,
-        out string? commonFwVersion)
-    {
-        ArgumentNullException.ThrowIfNull(baseSnapshot);
-
-        commonFwVersion = null;
-        if (!TryReadFirmwareConfigBackupMetadata(icId, baseSnapshot.AsSpan(), out FirmwareConfigMetadata metadata) ||
-            !metadata.IsFirmwareVersionBarValid)
-        {
-            return false;
-        }
-
-        commonFwVersion = metadata.CommonFwVersion;
-        return true;
-    }
-
     private static bool TryResolveNumberTokenForFirmwareChipNumber(
         string icId,
         byte chipNumber,

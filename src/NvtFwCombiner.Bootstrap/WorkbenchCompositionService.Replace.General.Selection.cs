@@ -15,21 +15,18 @@ public static partial class WorkbenchCompositionService
     public static IReadOnlyList<WorkbenchGeneralReplaceEditableRange> GetGeneralReplaceEditableRanges(
         string icId,
         string number,
-        string? basePath,
-        WorkbenchGeneralReplaceBaseSnapshot? baseSnapshot = null)
+        string? basePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(number);
 
-        long fileCapacity = 0;
         if (string.IsNullOrWhiteSpace(basePath) ||
-            (baseSnapshot is not null && !baseSnapshot.IsForSourcePath(basePath)) ||
-            (baseSnapshot is null && !TryGetGeneralReplaceBaseCapacity(basePath, out fileCapacity)))
+            !TryGetGeneralReplaceBaseCapacity(basePath, out long fileCapacity))
         {
             return [];
         }
 
-        long capacity = baseSnapshot?.Length ?? fileCapacity;
+        long capacity = fileCapacity;
 
         IcNumberSelection selection;
         try
@@ -41,27 +38,13 @@ public static partial class WorkbenchCompositionService
             return [];
         }
 
-        LegacyCombinerPostbuildProfile? postbuildProfile;
-        if (baseSnapshot is null)
-        {
-            postbuildProfile = TryGetPostbuildProfile(
-                icId,
-                basePath,
-                out LegacyCombinerPostbuildProfile? resolvedPostbuild,
-                out _)
-                    ? resolvedPostbuild
-                    : null;
-        }
-        else
-        {
-            postbuildProfile = TryGetPostbuildProfile(
-                icId,
-                baseSnapshot,
-                out LegacyCombinerPostbuildProfile? resolvedPostbuild,
-                out _)
-                    ? resolvedPostbuild
-                    : null;
-        }
+        LegacyCombinerPostbuildProfile? postbuildProfile = TryGetPostbuildProfile(
+            icId,
+            basePath,
+            out LegacyCombinerPostbuildProfile? resolvedPostbuild,
+            out _)
+                ? resolvedPostbuild
+                : null;
         LegacyCombinerPostbuildCommandPlan? commandPlan = TryCreateGeneralReplacePostbuildPlan(postbuildProfile, selection);
         IReadOnlyList<LegacyCombinerPostbuildWriteRange> writeRangeSections = commandPlan is null
             ? []
