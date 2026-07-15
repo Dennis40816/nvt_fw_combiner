@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -33,42 +32,25 @@ internal static partial class ReplaceCliCommandHandler
             [WorkbenchSlotIds.ReplaceDp] = Path.GetFullPath(dpPath),
         };
 
-        InputArtifactBinding[] bindings = CreateWorkbenchBindings(slotPaths);
-        CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
-            options.Values.GetValueOrDefault("--output"),
-            WorkbenchCompositionService.GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.Dp));
-        string? outputPath = action == "build" ? outputTarget.FullPath : null;
-        if (action == "build")
-        {
-            CliCompositionRunSupport.EnsureOutputDoesNotAliasInputs(outputTarget, bindings);
-            if (!options.Flags.Contains("--overwrite") && File.Exists(outputTarget.FullPath))
-            {
-                await error.WriteLineAsync(
-                        $"error: output file already exists: {outputTarget.FullPath}; pass --overwrite to replace it.")
-                    .ConfigureAwait(false);
-                return SoftwareError;
-            }
-        }
-
-        CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(
-            options.Values.GetValueOrDefault("--report"),
-            bindings,
-            outputTarget,
-            action == "build");
-
-        WorkbenchRunResult result = await WorkbenchCompositionService
-            .RunReplaceAsync(icId, icNumber, WorkbenchReplaceModes.Dp, slotPaths, action == "build", cancellationToken, outputPath)
-            .ConfigureAwait(false);
-        await WriteWorkbenchReportFileIfRequestedAsync(
-                result,
+        return await RunWorkbenchReplaceAsync(
+                action,
+                icId,
+                WorkbenchReplaceModes.Dp,
+                IcWorkflowIds.DpReplace,
                 options,
-                bindings,
-                action == "build" ? outputTarget.FullPath : null,
+                slotPaths,
+                (build, outputPath, token) => WorkbenchCompositionService.RunReplaceAsync(
+                    icId,
+                    icNumber,
+                    WorkbenchReplaceModes.Dp,
+                    slotPaths,
+                    build,
+                    token,
+                    outputPath),
                 output,
+                error,
                 cancellationToken)
             .ConfigureAwait(false);
-        await PrintWorkbenchRunResultAsync(result, icId, IcWorkflowIds.DpReplace, output, error).ConfigureAwait(false);
-        return result.Succeeded ? Success : CompositionFailed;
     }
 
     private static bool TryResolveDpPerspectiveDpReplaceIc(
@@ -77,5 +59,4 @@ internal static partial class ReplaceCliCommandHandler
     {
         return WorkbenchCompositionService.TryResolveDpPerspectiveDpReplaceSelector(selector, out icId);
     }
-
 }

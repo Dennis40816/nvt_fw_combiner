@@ -4,6 +4,36 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class ReplaceCliCommandTests
 {
+    /// <summary>Preserves an existing Replace output unless overwrite is explicit.</summary>
+    [Fact]
+    public async Task DpReplaceBuildRejectsExistingOutputWithoutOverwrite()
+    {
+        using var workspace = TempWorkspace.Create();
+        string reference = workspace.Write("reference.bin", new byte[0x40000]);
+        string dp = workspace.Write("dp.bin", new byte[0x40000]);
+        byte[] existingOutput = [0xA5, 0x5A];
+        string output = workspace.Write("out.bin", existingOutput);
+
+        CliRunResult result = await RunCliAsync([
+            "dp-replace",
+            "build",
+            "--profile",
+            "NT51950",
+            "--ic-num",
+            "single",
+            "--base",
+            reference,
+            "--dp",
+            dp,
+            "--output",
+            output,
+        ]);
+
+        Assert.Equal(70, result.ExitCode);
+        Assert.Contains("output file already exists", result.Error, StringComparison.Ordinal);
+        Assert.Equal(existingOutput, await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken));
+    }
+
     /// <summary>Rejects Replace build outputs that would overwrite an input BIN.</summary>
     [Fact]
     public async Task DpReplaceBuildRejectsOutputPathThatAliasesInput()

@@ -32,6 +32,32 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("synthetic-", usage, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies every Workbench Replace command shares one CLI run lifecycle.</summary>
+    [Fact]
+    public void WorkbenchReplaceCommandsShareRunLifecycle()
+    {
+        string support = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.WorkbenchSupport.cs");
+        string dp = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.DpWorkbench.cs");
+        string ctrlRam = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.CtrlRamWorkbench.cs");
+        string general = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.GeneralWorkbench.cs");
+
+        Assert.Contains("private static async Task<int> RunWorkbenchReplaceAsync", support, StringComparison.Ordinal);
+        Assert.Contains("EnsureOutputDoesNotAliasInputs", support, StringComparison.Ordinal);
+        Assert.Contains("EnsureReportDoesNotAliasProtectedPaths", support, StringComparison.Ordinal);
+        Assert.Contains("WriteWorkbenchReportFileIfRequestedAsync", support, StringComparison.Ordinal);
+        Assert.Contains("PrintWorkbenchRunResultAsync", support, StringComparison.Ordinal);
+        foreach (string workflow in new[] { dp, ctrlRam, general })
+        {
+            Assert.Equal(1, CountOccurrences(workflow, "RunWorkbenchReplaceAsync("));
+            Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", workflow, StringComparison.Ordinal);
+            Assert.DoesNotContain("EnsureOutputDoesNotAliasInputs", workflow, StringComparison.Ordinal);
+            Assert.DoesNotContain("EnsureReportDoesNotAliasProtectedPaths", workflow, StringComparison.Ordinal);
+            Assert.DoesNotContain("output file already exists", workflow, StringComparison.Ordinal);
+            Assert.DoesNotContain("WriteWorkbenchReportFileIfRequestedAsync", workflow, StringComparison.Ordinal);
+            Assert.DoesNotContain("PrintWorkbenchRunResultAsync", workflow, StringComparison.Ordinal);
+        }
+    }
+
     /// <summary>Verifies General Merge CLI dispatch stays split from parsing, mapping adaptation, usage text, and result printing.</summary>
     [Fact]
     public void MergeCliCommandHandlerConcernsStaySplit()

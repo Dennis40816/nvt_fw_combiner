@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -45,51 +44,27 @@ internal static partial class ReplaceCliCommandHandler
             protectedInputPaths[mapping.MappingId] = Path.GetFullPath(mapping.FilePath);
         }
 
-        InputArtifactBinding[] bindings = CreateWorkbenchBindings(protectedInputPaths);
-        CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
-            options.Values.GetValueOrDefault("--output"),
-            WorkbenchCompositionService.GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General));
-        string? outputPath = action == "build" ? outputTarget.FullPath : null;
-        if (action == "build")
-        {
-            CliCompositionRunSupport.EnsureOutputDoesNotAliasInputs(outputTarget, bindings);
-            if (!options.Flags.Contains("--overwrite") && File.Exists(outputTarget.FullPath))
-            {
-                await error.WriteLineAsync(
-                        $"error: output file already exists: {outputTarget.FullPath}; pass --overwrite to replace it.")
-                    .ConfigureAwait(false);
-                return SoftwareError;
-            }
-        }
-
-        CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(
-            options.Values.GetValueOrDefault("--report"),
-            bindings,
-            outputTarget,
-            action == "build");
-
-        WorkbenchRunResult result = await WorkbenchCompositionService
-            .RunReplaceAsync(
+        return await RunWorkbenchReplaceAsync(
+                action,
                 icId,
-                icNumber,
                 WorkbenchReplaceModes.General,
-                slotPaths,
-                mappings,
-                patches,
-                action == "build",
-                cancellationToken,
-                outputPath)
-            .ConfigureAwait(false);
-        await WriteWorkbenchReportFileIfRequestedAsync(
-                result,
+                IcWorkflowIds.GeneralReplace,
                 options,
-                bindings,
-                action == "build" ? outputTarget.FullPath : null,
+                protectedInputPaths,
+                (build, outputPath, token) => WorkbenchCompositionService.RunReplaceAsync(
+                    icId,
+                    icNumber,
+                    WorkbenchReplaceModes.General,
+                    slotPaths,
+                    mappings,
+                    patches,
+                    build,
+                    token,
+                    outputPath),
                 output,
+                error,
                 cancellationToken)
             .ConfigureAwait(false);
-        await PrintWorkbenchRunResultAsync(result, icId, IcWorkflowIds.GeneralReplace, output, error).ConfigureAwait(false);
-        return result.Succeeded ? Success : CompositionFailed;
     }
 
     private static bool TryCreateWorkbenchGeneralAuthoringInputs(
