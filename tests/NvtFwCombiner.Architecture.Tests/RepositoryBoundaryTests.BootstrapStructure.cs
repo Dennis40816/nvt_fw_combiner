@@ -117,7 +117,7 @@ public sealed partial class RepositoryBoundaryTests
             replaceCli), StringComparison.Ordinal);
         Assert.Contains("ProfileBundleLoader.Load", bundle, StringComparison.Ordinal);
         Assert.Contains("Path.Combine(\"profiles\", \"built-in\", bundleDirectory)", bundle, StringComparison.Ordinal);
-        Assert.DoesNotContain("profiles\\\\built-in\\\\", bundle, StringComparison.Ordinal);
+        Assert.DoesNotContain("profiles\\\\built-in\\\\", ReadBootstrapSources(), StringComparison.Ordinal);
     }
 
     /// <summary>Verifies NT51926 CtrlRAM V2 compilation remains an artifact-backed candidate boundary, not a runtime route.</summary>

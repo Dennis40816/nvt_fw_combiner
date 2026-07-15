@@ -16,28 +16,28 @@ public static partial class WorkbenchCompositionService
     private const string GeneralMergeLegacyPlanInvalid = "profile.plan.invalid";
     private const string GeneralMergeV2OperationOverlap = "profile.v2.plan.operation-overlap";
     private static readonly BuiltInV2Bundle s_nt51917Nt51927GeneralMergeLogicalCandidateV2Bundle = new(
-        "profiles\\built-in\\nt51917-nt51927-general-merge-logical-candidate",
+        "nt51917-nt51927-general-merge-logical-candidate",
         "1025069140de5ba78296af045dc477cf8164395b68b0ce82a77970eecbe05c0e");
     private static readonly BuiltInV2Bundle s_nt51919Nt51929Nt51932GeneralMergeLogicalCandidateV2Bundle = new(
-        "profiles\\built-in\\nt51919-nt51929-nt51932-general-merge-logical-candidate",
+        "nt51919-nt51929-nt51932-general-merge-logical-candidate",
         "fabc02474120adb7659d9e069b9c60395cad4620282afdf8ff9e9b915acc4283");
     private static readonly BuiltInV2Bundle s_nt51920GeneralMergeLogicalCandidateV2Bundle = new(
-        "profiles\\built-in\\nt51920-general-merge-logical-candidate",
+        "nt51920-general-merge-logical-candidate",
         "d2f87973576f54b80439f30ef1790f47df2994a6811673f0ceb8ecd5cacdbdc7");
     private static readonly BuiltInV2Bundle s_nt51923Nt51926GeneralMergeLogicalCandidateV2Bundle = new(
-        "profiles\\built-in\\nt51923-nt51926-general-merge-logical-candidate",
+        "nt51923-nt51926-general-merge-logical-candidate",
         "26f12851f81d55bb88a0a0e18ab4f10f451747369e797efbc69fdbf05cdf5a96");
     private static readonly BuiltInV2Bundle s_nt51928GeneralMergeLogicalCandidateV2Bundle = new(
-        "profiles\\built-in\\nt51928-general-merge-logical-candidate",
+        "nt51928-general-merge-logical-candidate",
         "9cdfbe52fcf58071ab7ea9648844dc3d0dd5363e6b41db02454709bf921512a6");
     private static readonly BuiltInV2Bundle s_nt51930GeneralMergeLogicalCandidateV2Bundle = new(
-        "profiles\\built-in\\nt51930-general-merge-logical-candidate",
+        "nt51930-general-merge-logical-candidate",
         "dd94152806731536a7641b06b33ed177cc17e141032b705ed5b89956e3affc39");
     private static readonly BuiltInV2Bundle s_nt51931GeneralMergeLogicalCandidateV2Bundle = new(
-        "profiles\\built-in\\nt51931-general-merge-logical-candidate",
+        "nt51931-general-merge-logical-candidate",
         "ce3b18aede5c884b074b6f9253d45a255e82a2147ec76bd300e7548d6fdc52fe");
     private static readonly BuiltInV2Bundle s_nt51950Nt51951GeneralMergeLogicalCandidateV2Bundle = new(
-        "profiles\\built-in\\nt51950-nt51951-general-merge-logical-candidate",
+        "nt51950-nt51951-general-merge-logical-candidate",
         "1da78f9a6d8aae1e7fbbda0f5977272b5c9902194ab102f2232586edd77eb121");
     private static readonly ReadOnlyDictionary<string, GeneralMergeV2CandidateRegistration> s_generalMergeV2Candidates = new(
         new Dictionary<string, GeneralMergeV2CandidateRegistration>(StringComparer.Ordinal)

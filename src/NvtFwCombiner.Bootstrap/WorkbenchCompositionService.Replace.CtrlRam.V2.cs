@@ -9,7 +9,7 @@ public static partial class WorkbenchCompositionService
     private const int Nt51926CtrlRamCandidateCapacity = 0x40000;
 
     private static readonly BuiltInV2Bundle s_nt51926CtrlRamReplaceCandidateV2Bundle = new(
-        "profiles\\built-in\\nt51926-ctrlram-replace-candidate",
+        "nt51926-ctrlram-replace-candidate",
         "83f22d939a257046a6b7357c98c34b1e953687b28545612d749a16a9323c0736");
 
     /// <summary>

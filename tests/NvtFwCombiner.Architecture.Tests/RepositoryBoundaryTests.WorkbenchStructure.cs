@@ -120,7 +120,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("TryResolveStandardMergeProfileForDisplay", standardMergeDisplayProfile, StringComparison.Ordinal);
         Assert.Contains("TryCompileStandardMerge", standardMergeDisplayProfile, StringComparison.Ordinal);
         Assert.Contains("RunStandardMergeAsync", standardMergeRun, StringComparison.Ordinal);
-        Assert.Contains("GetExistingStandardMergeDpInputLength", standardMergeRun, StringComparison.Ordinal);
+        Assert.Contains("TryGetStandardMergeDpInputLength", standardMergeRun, StringComparison.Ordinal);
         Assert.Contains("TryCompileStandardMerge", standardMergeRun, StringComparison.Ordinal);
         Assert.Contains("ReadOnlyCollection<BuiltInV2StandardMergeRegistration>", standardMergeBuiltInV2, StringComparison.Ordinal);
         Assert.Contains("ProfileBundleLoader.Load", standardMergeBuiltInV2, StringComparison.Ordinal);
