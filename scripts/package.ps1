@@ -88,16 +88,19 @@ $ApprovedExternalToolPackagePaths = @(
     'external-tools/legacy-combiner/1.13.0/manifest.json'
 ) | Sort-Object
 
-function Copy-PackageReferenceFile {
-    param([Parameter(Mandatory = $true)][string]$RelativePath)
+function Copy-PackageFile {
+    param(
+        [Parameter(Mandatory = $true)][string]$RelativePath,
+        [Parameter(Mandatory = $true)][string]$DestinationRoot
+    )
 
     $NormalizedRelativePath = $RelativePath.Replace('/', [IO.Path]::DirectorySeparatorChar)
     $SourcePath = Join-Path $RepoRoot $NormalizedRelativePath
     if (-not (Test-Path -LiteralPath $SourcePath -PathType Leaf)) {
-        throw "Reference file was not found at $SourcePath"
+        throw "Package file was not found at $SourcePath"
     }
 
-    $DestinationPath = Join-Path $ReferenceDestination $NormalizedRelativePath
+    $DestinationPath = Join-Path $DestinationRoot $NormalizedRelativePath
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $DestinationPath) | Out-Null
     Copy-Item -LiteralPath $SourcePath -Destination $DestinationPath
 }
@@ -124,7 +127,7 @@ function Copy-PackageReferenceTree {
         Sort-Object FullName |
         ForEach-Object {
             $RelativePath = [System.IO.Path]::GetRelativePath($RepoRoot, $_.FullName).Replace('\', '/')
-            Copy-PackageReferenceFile -RelativePath $RelativePath
+            Copy-PackageFile -RelativePath $RelativePath -DestinationRoot $ReferenceDestination
         }
 }
 
@@ -248,12 +251,10 @@ if (-not (Test-Path -LiteralPath $BuiltWorker -PathType Leaf)) {
 $WorkerExe = Join-Path $PackageRoot 'Nfc.CrcWorker.exe'
 Copy-Item -LiteralPath $BuiltWorker -Destination $WorkerExe
 
-$ExternalToolsSource = Join-Path $RepoRoot 'external-tools'
 $ExternalToolsDestination = Join-Path $PackageRoot 'external-tools'
-if (-not (Test-Path -LiteralPath $ExternalToolsSource -PathType Container)) {
-    throw "External tools directory was not found at $ExternalToolsSource"
+foreach ($ApprovedExternalToolPackagePath in $ApprovedExternalToolPackagePaths) {
+    Copy-PackageFile -RelativePath $ApprovedExternalToolPackagePath -DestinationRoot $PackageRoot
 }
-Copy-Item -LiteralPath $ExternalToolsSource -Destination $ExternalToolsDestination -Recurse
 
 $ReferenceDestination = Join-Path $PackageRoot 'reference'
 New-Item -ItemType Directory -Force -Path $ReferenceDestination | Out-Null
@@ -283,13 +284,13 @@ $ReferenceFiles = @(
     'docs/architecture/supported-ic-matrix.md'
 )
 foreach ($ReferenceFile in $ReferenceFiles) {
-    Copy-PackageReferenceFile -RelativePath $ReferenceFile
+    Copy-PackageFile -RelativePath $ReferenceFile -DestinationRoot $ReferenceDestination
 }
 
 Copy-PackageReferenceTree -RelativeRoot 'docs/references/ic-flashmap' -AllowedExtensions @('.bat', '.h', '.json', '.md', '.xlsx')
 
 foreach ($GoldenPath in (Get-DeclaredStandardMergeGoldenPaths)) {
-    Copy-PackageReferenceFile -RelativePath $GoldenPath
+    Copy-PackageFile -RelativePath $GoldenPath -DestinationRoot $ReferenceDestination
 }
 Copy-PackageReferenceTree -RelativeRoot 'testdata/golden/ctrlram-replace' -AllowedExtensions @('.json', '.md')
 Copy-PackageReferenceTree -RelativeRoot 'testdata/golden/owner-handoff' -AllowedExtensions @('.json', '.md')
@@ -329,6 +330,14 @@ $SchemaFiles = @(Get-ChildItem -LiteralPath (Join-Path $RepoRoot 'docs/contracts
 $ProfileDigest = Get-TreeDigest -Paths $ProfileFiles
 $SchemaDigest = Get-TreeDigest -Paths $SchemaFiles
 $ExternalToolFiles = @(Get-ChildItem -LiteralPath $ExternalToolsDestination -File -Recurse | ForEach-Object FullName)
+$PackagedExternalToolPaths = @(
+    $ExternalToolFiles |
+        ForEach-Object { [System.IO.Path]::GetRelativePath($PackageRoot, $_).Replace('\', '/') } |
+        Sort-Object
+)
+if (Compare-Object -ReferenceObject $ApprovedExternalToolPackagePaths -DifferenceObject $PackagedExternalToolPaths) {
+    throw 'Release package external-tool files differ from the approved allowlist.'
+}
 $ExternalToolEntries = @(
     $ExternalToolFiles | Sort-Object | ForEach-Object {
         $RelativePath = [System.IO.Path]::GetRelativePath($PackageRoot, $_).Replace('\', '/')
