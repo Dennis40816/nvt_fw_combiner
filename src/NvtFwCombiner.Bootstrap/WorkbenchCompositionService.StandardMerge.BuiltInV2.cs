@@ -138,9 +138,24 @@ public static partial class WorkbenchCompositionService
             registration.HasMultipleMapCapacities;
     }
 
-    private static string FormatStandardMergeSupportedDpLengths()
+    private static bool TryGetBuiltInV2StandardMergeContainerPolicy(
+        string icId,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out V2StandardMergeContainerPolicy? policy)
     {
-        return DpPerspectiveCatalog.FormatSupportedLengths();
+        if (!s_builtInV2StandardMergeByIc.TryGetValue(icId, out BuiltInV2StandardMergeRegistration? registration))
+        {
+            policy = null;
+            return false;
+        }
+
+        return registration.TryGetContainerPolicy(out policy);
+    }
+
+    private static string FormatStandardMergeSupportedDpLengths(string icId)
+    {
+        return TryGetBuiltInV2StandardMergeContainerPolicy(icId, out V2StandardMergeContainerPolicy? policy)
+            ? BuiltInV2Bundle.FormatCapacities(policy.SupportedCapacities)
+            : "unavailable";
     }
 
     private static bool TryGetBuiltInV2StandardMergeAuthoringDefaultCapacity(
@@ -346,6 +361,33 @@ public static partial class WorkbenchCompositionService
             }
         }
 
+        internal bool TryGetContainerPolicy(
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out V2StandardMergeContainerPolicy? policy)
+        {
+            IReadOnlyList<long> capacities = GetMapCapacities(out IReadOnlyList<CompositionIssue> issues);
+            CompiledComposition? composition = _summaryCompilation.Value.CompiledComposition;
+            if (issues.Count != 0 || capacities.Count <= 1 || composition?.V2Details is not { } details)
+            {
+                policy = null;
+                return false;
+            }
+
+            FirmwareImageMap map = details.Provenance.ResolvedMap.ImageMap;
+            FirmwareRegion? tpOverlay = map.Regions.SingleOrDefault(static region => region.RegionId == "tp-overlay");
+            FirmwareRegion? customerInfo = map.Regions.SingleOrDefault(static region => region.RegionId == "customer-info");
+            if (tpOverlay is null || customerInfo is null)
+            {
+                policy = null;
+                return false;
+            }
+
+            policy = new V2StandardMergeContainerPolicy(
+                capacities,
+                tpOverlay.Range,
+                customerInfo.Range);
+            return true;
+        }
+
         internal void TryCompile(
             long? dpInputLength,
             out CompiledComposition? composition,
@@ -460,12 +502,26 @@ public static partial class WorkbenchCompositionService
                     candidate.DefaultOutputFileName != first.DefaultOutputFileName ||
                     !candidate.Plan.RequiredInputAddressSpaceIds.SequenceEqual(
                         first.Plan.RequiredInputAddressSpaceIds,
-                        StringComparer.Ordinal))
+                        StringComparer.Ordinal) ||
+                    !HasSameCanonicalRegionRange(first, candidate, "tp-overlay") ||
+                    !HasSameCanonicalRegionRange(first, candidate, "customer-info"))
                 ? V2CompositionPlanCompileResult.Failed(
                     [new CompositionIssue(
                         BuiltInV2CompilationFailed,
                         $"The capacity variants for built-in V2 profile {IcId} do not share one stable workbench summary.")])
                 : compilations[0];
+        }
+
+        private static bool HasSameCanonicalRegionRange(
+            CompiledComposition first,
+            CompiledComposition candidate,
+            string regionId)
+        {
+            FirmwareRegion? firstRegion = first.V2Details?.Provenance.ResolvedMap.ImageMap.Regions
+                .SingleOrDefault(region => string.Equals(region.RegionId, regionId, StringComparison.Ordinal));
+            FirmwareRegion? candidateRegion = candidate.V2Details?.Provenance.ResolvedMap.ImageMap.Regions
+                .SingleOrDefault(region => string.Equals(region.RegionId, regionId, StringComparison.Ordinal));
+            return firstRegion?.Range == candidateRegion?.Range;
         }
 
         internal WorkbenchProfileSummary CreateProfileSummary()
@@ -496,3 +552,8 @@ public static partial class WorkbenchCompositionService
 
     }
 }
+
+internal sealed record V2StandardMergeContainerPolicy(
+    IReadOnlyList<long> SupportedCapacities,
+    ByteRange TpOverlayRange,
+    ByteRange CustomerInfoRange);

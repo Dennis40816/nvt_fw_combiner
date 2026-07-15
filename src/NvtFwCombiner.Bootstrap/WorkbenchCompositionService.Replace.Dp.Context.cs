@@ -24,7 +24,7 @@ public static partial class WorkbenchCompositionService
                 slotPaths,
                 build,
                 WorkbenchIssueCodes.InputMissing,
-                $"Base flash BIN is required before {FormatDpPerspectiveIcIds()} DP Replace can determine the DP base length.");
+                $"Base flash BIN is required before {FormatBuiltInV2DpReplaceIcIds()} DP Replace can determine the DP base length.");
             return false;
         }
 

@@ -118,8 +118,6 @@ public sealed class IcSupportCatalogTests
         ];
 
         Assert.Equal(["NT51950", "NT51951"], dpReplaceIcIds);
-        Assert.All(dpReplaceIcIds, icId =>
-            Assert.True(DpPerspectiveCatalog.IsSupportedIc(icId), icId));
     }
 
     /// <summary>Alias facts are explicit instead of being hidden in separate profile tables.</summary>

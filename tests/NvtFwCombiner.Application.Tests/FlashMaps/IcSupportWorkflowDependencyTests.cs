@@ -77,9 +77,9 @@ public sealed class IcSupportWorkflowDependencyTests
         }
     }
 
-    /// <summary>DP Replace exposure follows the shared DP Perspective catalog until more DP policies are approved.</summary>
+    /// <summary>DP Replace exposure stays closed to the two members with trusted V2 runtime registrations.</summary>
     [Fact]
-    public void DpReplaceWorkflowMatchesDpPerspectiveCatalog()
+    public void DpReplaceWorkflowRemainsClosedToV2RegisteredMembers()
     {
         string[] dpReplaceIcIds =
         [
@@ -90,7 +90,6 @@ public sealed class IcSupportWorkflowDependencyTests
         ];
 
         Assert.Equal(["NT51950", "NT51951"], dpReplaceIcIds);
-        Assert.All(dpReplaceIcIds, icId => Assert.True(DpPerspectiveCatalog.IsSupportedIc(icId), icId));
     }
 
     /// <summary>Every postbuild branch staged BIN is explainable by the profile-adjusted TP Overview CtrlRAM rows.</summary>

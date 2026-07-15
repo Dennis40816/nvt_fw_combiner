@@ -33,7 +33,6 @@ public sealed class IcMetadataFacadeTests
                     .Distinct(StringComparer.Ordinal)
                     .Order(StringComparer.Ordinal),
                 metadata.PostbuildCategories);
-            Assert.Equal(DpPerspectiveCatalog.IsSupportedIc(support.IcId), metadata.UsesDpPerspective);
             Assert.Equal(
                 support.SupportsWorkflow(IcWorkflowIds.CtrlRamReplace),
                 metadata.HasPostbuild);

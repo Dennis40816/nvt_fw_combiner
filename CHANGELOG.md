@@ -18,6 +18,7 @@ Post-`0.9.7` development targets firmware-owner evidence closure and `1.0.0` rel
 ### Changed
 
 - Retired exactly replaced Standard Merge, DP Replace, and General Merge legacy definitions after their V2 parity gates, while preserving unsupported and owner-review blockers.
+- Retired the duplicate DP Perspective C# fact catalog; NT51950/NT51951 capacities, TP/customer-information ranges, operations, and surfaced IC membership now project from the trusted V2 bundle and compiled plan.
 - Consolidated audited Avalonia slot, firmware-fact, icon, and coverage-state colors into one semantic token owner without moving firmware decisions into Presentation code.
 - Final-output validation failures now block output publication and report precise stable issue codes and validation outcomes.
 

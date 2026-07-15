@@ -54,10 +54,10 @@ public static partial class WorkbenchCompositionService
 
     private static string FormatStandardMergeInitializationDetail(string icId, bool lengthPending)
     {
-        return !IcMetadataFacade.IsDpPerspectiveIc(icId)
+        return !TryGetBuiltInV2StandardMergeContainerPolicy(icId, out V2StandardMergeContainerPolicy? policy)
             ? "Start with the initialized image. Unlisted ranges keep this value until a later operation writes them."
             : lengthPending
-                ? $"Start with the initialized image after selecting a DP BIN. Supported DP lengths are {FormatStandardMergeSupportedDpLengths()}."
+                ? $"Start with the initialized image after selecting a DP BIN. Supported DP lengths are {BuiltInV2Bundle.FormatCapacities(policy.SupportedCapacities)}."
                 : "Start with the initialized image using the selected DP BIN length. Unlisted ranges keep this value until a later operation writes them.";
     }
 }

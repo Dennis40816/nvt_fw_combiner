@@ -37,7 +37,7 @@ public static partial class WorkbenchCompositionService
                 new WorkbenchMemoryCoverageSegment(
                     "Selected DP BIN length pending",
                     "DP length pending",
-                    $"Select a DP BIN before final ownership is drawn. Supported DP lengths are {FormatStandardMergeSupportedDpLengths()}.",
+                    $"Select a DP BIN before final ownership is drawn. Supported DP lengths are {FormatStandardMergeSupportedDpLengths(icId)}.",
                     "#CBD5E1",
                     280,
                     false),

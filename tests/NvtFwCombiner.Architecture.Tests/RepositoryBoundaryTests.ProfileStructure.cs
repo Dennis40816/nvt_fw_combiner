@@ -185,31 +185,24 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("**\\profile-bundle.json", project, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies DP Perspective Replace operation and region ids stay owned by the DP Perspective catalog.</summary>
+    /// <summary>Verifies retired DP Perspective C# facts cannot become a second oracle beside trusted V2 plans.</summary>
     [Fact]
-    public void DpPerspectiveOperationIdsStayCatalogOwned()
+    public void DpPerspectiveFactsStayOwnedByTrustedV2Profiles()
     {
-        string catalog = ReadText("src/NvtFwCombiner.Profiles/DpPerspectiveCatalog.cs");
         string registration = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.BuiltInV2.cs");
+        string display = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.V2Display.cs");
         string planning = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Planning.cs");
 
-        Assert.Contains("public const string ContainerRegionId = \"dp-perspective-container\";", catalog, StringComparison.Ordinal);
-        Assert.Contains("public const string ReplaceDpContainerOperationId = \"replace-dp-container\";", catalog, StringComparison.Ordinal);
-        Assert.Contains("public const string RestoreBaseTpOperationId = \"restore-base-tp\";", catalog, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "DpPerspectiveCatalog.cs")));
         Assert.DoesNotContain("BuiltInReplaceProfiles", registration, StringComparison.Ordinal);
-        Assert.Contains("DpPerspectiveCatalog.ReplaceDpContainerOperationId", planning, StringComparison.Ordinal);
-        Assert.Contains("DpPerspectiveCatalog.RestoreBaseTpOperationId", planning, StringComparison.Ordinal);
-
-        foreach (string literal in new[]
-        {
-            "\"dp-perspective-container\"",
-            "\"replace-dp-container\"",
-            "\"restore-base-tp\"",
-        })
-        {
-            Assert.DoesNotContain(literal, registration, StringComparison.Ordinal);
-            Assert.DoesNotContain(literal, planning, StringComparison.Ordinal);
-        }
+        Assert.Contains("TryResolveDpPerspectiveDpReplaceDisplay", registration, StringComparison.Ordinal);
+        Assert.Contains("composition.Plan.OrderedOperations", display, StringComparison.Ordinal);
+        Assert.Contains("IsBuiltInV2DpReplaceIc", planning, StringComparison.Ordinal);
+        Assert.DoesNotContain("DpPerspectiveCatalog", ReadBootstrapSources(), StringComparison.Ordinal);
     }
 
 }

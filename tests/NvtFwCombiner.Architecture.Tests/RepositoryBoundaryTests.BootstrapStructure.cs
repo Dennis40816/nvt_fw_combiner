@@ -67,15 +67,15 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private static async Task PrintWorkbenchRunResultAsync", report, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies DP Replace IC facts remain catalog-owned instead of hard-coded in Bootstrap.</summary>
+    /// <summary>Verifies DP Replace IC facts come from the trusted V2 registrations instead of a legacy C# catalog.</summary>
     [Fact]
-    public void BootstrapKeepsDpReplaceIcFactsCatalogOwned()
+    public void BootstrapProjectsDpReplaceIcFactsFromV2Registrations()
     {
         string bootstrapSource = string.Concat(
             ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.DpWorkbench.cs"),
             ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.cs"));
 
-        Assert.Contains("DpPerspectiveCatalog.FormatSupportedIcIds()", bootstrapSource, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.FormatBuiltInV2DpReplaceIcIds()", bootstrapSource, StringComparison.Ordinal);
         Assert.DoesNotContain("NT51950/NT51951", bootstrapSource, StringComparison.Ordinal);
         Assert.DoesNotContain("NT51950", bootstrapSource, StringComparison.Ordinal);
         Assert.DoesNotContain("Nt51950", bootstrapSource, StringComparison.Ordinal);
@@ -108,6 +108,13 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("TryCreateV2DpReplaceMemoryMapRows", replaceDisplay, StringComparison.Ordinal);
         Assert.Contains("TryGetV2DpReplaceMemoryRangeLabel", replaceDisplay, StringComparison.Ordinal);
         Assert.Contains("TryCreateV2DpReplaceCoverageSegments", replaceCoverage, StringComparison.Ordinal);
+        Assert.DoesNotContain("DpPerspectiveCatalog", string.Concat(
+            replaceDp,
+            v2Resolution,
+            v2Display,
+            replaceDisplay,
+            replaceCoverage,
+            replaceCli), StringComparison.Ordinal);
         Assert.Contains("ProfileBundleLoader.Load", bundle, StringComparison.Ordinal);
     }
 
