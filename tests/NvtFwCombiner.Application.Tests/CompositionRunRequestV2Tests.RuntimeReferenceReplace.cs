@@ -74,8 +74,12 @@ public sealed partial class CompositionRunRequestV2Tests
     }
 
     /// <summary>Verifies runtime-reference bindings retain their compiler-materialized identities.</summary>
-    [Fact]
-    public void RuntimeReferenceCandidateRejectsMismatchedBindingIdentity()
+    [Theory]
+    [InlineData("other-reference", "source-a")]
+    [InlineData("reference", "other-source")]
+    public void RuntimeReferenceCandidateRejectsMismatchedBindingIdentity(
+        string referenceBindingId,
+        string sourceBindingId)
     {
         _ = Assert.Throws<ArgumentException>(() => new CompositionRunRequest(
             "runtime-reference-mismatched-binding",
@@ -83,13 +87,13 @@ public sealed partial class CompositionRunRequestV2Tests
             [
                 new InputArtifactBinding(
                     "reference",
-                    "other-reference",
+                    referenceBindingId,
                     "reference-artifact",
                     "base.bin",
                     CompiledInputArtifactClass.ReferenceImage),
                 new InputArtifactBinding(
                     "source-a",
-                    "source-a",
+                    sourceBindingId,
                     "source-artifact",
                     "patch.bin",
                     CompiledInputArtifactClass.Auxiliary),
@@ -98,12 +102,27 @@ public sealed partial class CompositionRunRequestV2Tests
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])));
     }
 
+    /// <summary>Verifies only the closed General Replace mode and experience can mint this candidate context.</summary>
+    [Theory]
+    [InlineData("other-replace", ExperienceIds.GeneralReplace)]
+    [InlineData(ExperienceIds.GeneralReplace, "other-replace")]
+    public void RuntimeReferenceContextCannotMintWrongModeOrExperienceCandidate(
+        string modeId,
+        string experienceId)
+    {
+        _ = Assert.Throws<ArgumentException>(() => CreateRuntimeReferenceCandidate(
+            modeId: modeId,
+            experienceId: experienceId));
+    }
+
     private static CompiledComposition CreateRuntimeReferenceCandidate(
         bool useRuntimeContext = true,
-        bool includeAuxiliarySource = true)
+        bool includeAuxiliarySource = true,
+        string modeId = ExperienceIds.GeneralReplace,
+        string experienceId = ExperienceIds.GeneralReplace)
     {
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = CreateResolvedMap(
-            "general-replace",
+            modeId,
             FirmwareWriteConstraint.ExplicitRange);
         CompiledPhysicalRegionConstraint[] chain =
         [
@@ -170,7 +189,7 @@ public sealed partial class CompositionRunRequestV2Tests
         var identity = new V2CompiledCompositionIdentity(
             "runtime-reference-profile",
             "1.0.0",
-            ExperienceIds.GeneralReplace,
+            experienceId,
             CompositionKind.Replace,
             new V2CompiledCompositionDetails(
                 provenance,

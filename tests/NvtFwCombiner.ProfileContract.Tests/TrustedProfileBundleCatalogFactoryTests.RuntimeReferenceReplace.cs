@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.V2;
@@ -30,16 +29,22 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal("output-image", composition.Plan.OutputSpaceId);
         Assert.Equal(CompositionOperationKind.ReplaceRange, Assert.Single(composition.Plan.OrderedOperations).Kind);
 
+        byte[] reference = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+        byte[] source = [0xAA, 0xBB, 0xCC, 0xDD];
+        byte[] originalReference = [.. reference];
+        byte[] originalSource = [.. source];
         CompositionExecutionResult execution = CompositionEngine.Execute(
             composition.Plan,
             new CompositionExecutionInput(new Dictionary<string, byte[]>
             {
-                ["base"] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-                ["source-a"] = [0xAA, 0xBB, 0xCC, 0xDD],
+                ["base"] = reference,
+                ["source-a"] = source,
             }));
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, execution.Status);
         Assert.Equal([0, 1, 2, 3, 4, 5, 6, 7, 0xCC, 0xDD, 10, 11, 12, 13, 14, 15], execution.OutputBytes.ToArray());
+        Assert.Equal(originalReference, reference);
+        Assert.Equal(originalSource, source);
     }
 
     /// <summary>Verifies a denied map-bound target rejects only the selected runtime-reference-replace compilation request.</summary>
@@ -76,6 +81,95 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             issue => issue.Code == "profile.v2.runtime-reference-replace.reference-length-invalid");
     }
 
+    /// <summary>Verifies only the exact singleton reference length selects a canonical map; auxiliary length has no selection authority.</summary>
+    [Fact]
+    public void RuntimeReferenceReplaceLoweringSelectsMapFromReferenceLengthOnly()
+    {
+        TrustedProfileBundleCatalog catalog = CreateRuntimeReferenceReplaceCatalog(
+            mapDefinitions:
+            [
+                new RuntimeReferenceReplaceMapDocument("map-16", 16),
+                new RuntimeReferenceReplaceMapDocument("map-32", 32),
+            ]);
+
+        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
+            catalog,
+            "runtime-general-replace",
+            "1.0.0",
+            LogicalTestMemberId,
+            RuntimeReferenceReplaceRequest(referenceLength: 16, sourceLength: 32));
+
+        CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
+        Assert.True(result.IsCompiled);
+        V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
+        Assert.Equal("map-16", details.Provenance.ResolvedMap.ImageMap.MapId);
+        Assert.Equal(16, composition.Plan.OutputInitialization.Capacity);
+    }
+
+    /// <summary>Verifies absent, ambiguous, or duplicate reference bindings reject only their selected request.</summary>
+    [Fact]
+    public void RuntimeReferenceReplaceLoweringRejectsInvalidReferenceMapSelectionWithoutStateLeakage()
+    {
+        TrustedProfileBundleCatalog catalog = CreateRuntimeReferenceReplaceCatalog(
+            mapDefinitions:
+            [
+                new RuntimeReferenceReplaceMapDocument("map-16", 16),
+                new RuntimeReferenceReplaceMapDocument("map-32", 32),
+            ]);
+        V2CompositionPlanCompileResult unavailable = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
+            catalog,
+            "runtime-general-replace",
+            "1.0.0",
+            LogicalTestMemberId,
+            RuntimeReferenceReplaceRequest(referenceLength: 24));
+        V2CompositionPlanCompileResult duplicateReference = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
+            catalog,
+            "runtime-general-replace",
+            "1.0.0",
+            LogicalTestMemberId,
+            new V2RuntimeReferenceReplaceCompileRequest(
+                [
+                    new V2RuntimeReferenceReplaceInputBinding("base", "reference", 16),
+                    new V2RuntimeReferenceReplaceInputBinding("base-duplicate", "reference", 16),
+                    new V2RuntimeReferenceReplaceInputBinding("source-a", "source", 4),
+                ],
+                [RuntimeReferenceReplaceMapping("replace-source", 10, new ByteRange(2, 2), new ByteRange(8, 2))]));
+        V2CompositionPlanCompileResult valid = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
+            catalog,
+            "runtime-general-replace",
+            "1.0.0",
+            LogicalTestMemberId,
+            RuntimeReferenceReplaceRequest());
+
+        Assert.False(unavailable.IsCompiled);
+        Assert.Contains(unavailable.Issues, issue => issue.Code == "profile.v2.compile.map-selection-invalid");
+        Assert.False(duplicateReference.IsCompiled);
+        Assert.Contains(
+            duplicateReference.Issues,
+            issue => issue.Code == "profile.v2.runtime-reference-replace.reference-length-invalid");
+        Assert.True(valid.IsCompiled);
+    }
+
+    /// <summary>Verifies duplicate canonical maps with the same reference capacity are never selected arbitrarily.</summary>
+    [Fact]
+    public void RuntimeReferenceReplaceLoweringRejectsAmbiguousReferenceCapacity()
+    {
+        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
+            CreateRuntimeReferenceReplaceCatalog(
+                mapDefinitions:
+                [
+                    new RuntimeReferenceReplaceMapDocument("map-a", 16),
+                    new RuntimeReferenceReplaceMapDocument("map-b", 16),
+                ]),
+            "runtime-general-replace",
+            "1.0.0",
+            LogicalTestMemberId,
+            RuntimeReferenceReplaceRequest());
+
+        Assert.False(result.IsCompiled);
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.v2.compile.map-selection-invalid");
+    }
+
     /// <summary>Verifies a source range that escapes its concrete binding rejects only that request.</summary>
     [Fact]
     public void RuntimeReferenceReplaceLoweringRejectsOutOfBoundsSourceWithoutAffectingLaterRequest()
@@ -86,11 +180,13 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             "runtime-general-replace",
             "1.0.0",
             LogicalTestMemberId,
-            RuntimeReferenceReplaceRequest(RuntimeReferenceReplaceMapping(
-                "out-of-bounds-source",
-                10,
-                new ByteRange(3, 2),
-                new ByteRange(8, 2))));
+            RuntimeReferenceReplaceRequest(
+                mappings:
+                [RuntimeReferenceReplaceMapping(
+                    "out-of-bounds-source",
+                    10,
+                    new ByteRange(3, 2),
+                    new ByteRange(8, 2))]));
         V2CompositionPlanCompileResult valid = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
             catalog,
             "runtime-general-replace",
@@ -103,6 +199,29 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.True(valid.IsCompiled);
     }
 
+    /// <summary>Verifies a target range that escapes the selected reference capacity rejects with its stable candidate issue.</summary>
+    [Fact]
+    public void RuntimeReferenceReplaceLoweringRejectsOutOfBoundsTarget()
+    {
+        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
+            CreateRuntimeReferenceReplaceCatalog(),
+            "runtime-general-replace",
+            "1.0.0",
+            LogicalTestMemberId,
+            RuntimeReferenceReplaceRequest(
+                mappings:
+                [RuntimeReferenceReplaceMapping(
+                    "out-of-bounds-target",
+                    10,
+                    new ByteRange(0, 2),
+                    new ByteRange(15, 2))]));
+
+        Assert.False(result.IsCompiled);
+        Assert.Contains(
+            result.Issues,
+            issue => issue.Code == "profile.v2.runtime-reference-replace.target-out-of-bounds");
+    }
+
     /// <summary>Verifies reject-overlap remains enforced for typed runtime mappings.</summary>
     [Fact]
     public void RuntimeReferenceReplaceLoweringRejectsOverlappingTargets()
@@ -113,19 +232,44 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             "1.0.0",
             LogicalTestMemberId,
             RuntimeReferenceReplaceRequest(
-                RuntimeReferenceReplaceMapping("first", 10, new ByteRange(0, 2), new ByteRange(7, 2)),
-                RuntimeReferenceReplaceMapping("second", 11, new ByteRange(2, 2), new ByteRange(8, 2))));
+                mappings:
+                [
+                    RuntimeReferenceReplaceMapping("first", 10, new ByteRange(0, 2), new ByteRange(7, 2)),
+                    RuntimeReferenceReplaceMapping("second", 11, new ByteRange(2, 2), new ByteRange(8, 2)),
+                ]));
 
         Assert.False(result.IsCompiled);
         Assert.Contains(result.Issues, issue => issue.Code == "profile.v2.plan.operation-overlap");
     }
 
     private static TrustedProfileBundleCatalog CreateRuntimeReferenceReplaceCatalog(
-        FirmwareWriteConstraint writeConstraint = FirmwareWriteConstraint.ExplicitRange)
+        FirmwareWriteConstraint writeConstraint = FirmwareWriteConstraint.ExplicitRange,
+        string promotionStage = "compilable",
+        IReadOnlyList<RuntimeReferenceReplaceMapDocument>? mapDefinitions = null)
     {
-        string familyJson = RuntimeReferenceReplaceFamilyJson(writeConstraint);
+        RuntimeReferenceReplaceMapDocument[] maps = mapDefinitions is { Count: > 0 }
+            ? [.. mapDefinitions]
+            : [new RuntimeReferenceReplaceMapDocument("map", 16)];
+        string writeConstraintToken = writeConstraint switch
+        {
+            FirmwareWriteConstraint.ExplicitRange => "explicit-range",
+            FirmwareWriteConstraint.Forbidden => "forbidden",
+            FirmwareWriteConstraint.WholeRegion => throw new ArgumentOutOfRangeException(
+                nameof(writeConstraint),
+                writeConstraint,
+                "Synthetic fixture does not model whole-region write authority."),
+            FirmwareWriteConstraint.DeclaredSubregions => throw new ArgumentOutOfRangeException(
+                nameof(writeConstraint),
+                writeConstraint,
+                "Synthetic fixture does not model declared-subregion write authority."),
+            _ => throw new ArgumentOutOfRangeException(nameof(writeConstraint), writeConstraint, "Synthetic fixture supports only explicit or forbidden write authority."),
+        };
+        string familyJson = RuntimeReferenceReplaceTestDocuments.FamilyJson(maps, writeConstraintToken);
         string familyHash = Hash(familyJson);
-        string profileJson = RuntimeReferenceReplaceProfileJson(familyHash);
+        string profileJson = RuntimeReferenceReplaceTestDocuments.ProfileJson(
+            familyHash,
+            promotionStage,
+            maps.Select(static map => map.MapId));
         using var familyDocument = JsonDocument.Parse(familyJson);
         using var profileDocument = JsonDocument.Parse(profileJson);
         return TrustedProfileBundleCatalogFactory.Create(Source(
@@ -134,12 +278,14 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     }
 
     private static V2RuntimeReferenceReplaceCompileRequest RuntimeReferenceReplaceRequest(
+        long referenceLength = 16,
+        long sourceLength = 4,
         params ExplicitMapping[] mappings)
     {
         return new V2RuntimeReferenceReplaceCompileRequest(
             [
-                new V2RuntimeReferenceReplaceInputBinding("base", "reference", 16),
-                new V2RuntimeReferenceReplaceInputBinding("source-a", "source", 4),
+                new V2RuntimeReferenceReplaceInputBinding("base", "reference", referenceLength),
+                new V2RuntimeReferenceReplaceInputBinding("source-a", "source", sourceLength),
             ],
             mappings.Length == 0
                 ? [RuntimeReferenceReplaceMapping("replace-source", 10, new ByteRange(2, 2), new ByteRange(8, 2))]
@@ -165,150 +311,4 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             reason: "Synthetic runtime General Replace mapping");
     }
 
-    private static string RuntimeReferenceReplaceFamilyJson(FirmwareWriteConstraint writeConstraint)
-    {
-        JsonObject family = JsonNode.Parse(TrustedV2BundleTestDocuments.FamilyJson())!.AsObject();
-        JsonObject map = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(family["imageMaps"])[0]);
-        Assert.IsType<JsonObject>(map["applicability"])["modeIds"] = new JsonArray("general-replace");
-        JsonObject root = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(
-            Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(family["regionSets"])[0])["regions"])[0]);
-        root["writeConstraint"] = writeConstraint switch
-        {
-            FirmwareWriteConstraint.ExplicitRange => "explicit-range",
-            FirmwareWriteConstraint.Forbidden => "forbidden",
-            FirmwareWriteConstraint.WholeRegion => throw new ArgumentOutOfRangeException(
-                nameof(writeConstraint),
-                writeConstraint,
-                "Synthetic fixture does not model whole-region write authority."),
-            FirmwareWriteConstraint.DeclaredSubregions => throw new ArgumentOutOfRangeException(
-                nameof(writeConstraint),
-                writeConstraint,
-                "Synthetic fixture does not model declared-subregion write authority."),
-            _ => throw new ArgumentOutOfRangeException(nameof(writeConstraint), writeConstraint, "Synthetic fixture supports only explicit or forbidden write authority."),
-        };
-        return family.ToJsonString();
-    }
-
-    private static string RuntimeReferenceReplaceProfileJson(string familyHash)
-    {
-        var profile = new JsonObject
-        {
-            ["schemaVersion"] = "2.6",
-            ["profileId"] = "runtime-general-replace",
-            ["profileVersion"] = "1.0.0",
-            ["promotion"] = new JsonObject
-            {
-                ["stage"] = "compilable",
-                ["blockers"] = new JsonArray(),
-            },
-            ["compositionKind"] = "replace",
-            ["icNumberInputMode"] = "single-selector",
-            ["experience"] = new JsonObject
-            {
-                ["experienceId"] = "general-replace",
-                ["audience"] = "advanced",
-                ["layoutPolicy"] = "user-defined",
-                ["inputPolicy"] = "extensible",
-                ["topologyAuthoring"] = "hidden",
-                ["displayNameKey"] = "runtime-general-replace",
-            },
-            ["compilationContext"] = new JsonObject { ["kind"] = "runtime-reference-replace" },
-            ["mapBinding"] = new JsonObject
-            {
-                ["familyId"] = "family",
-                ["familyVersion"] = "1.0.0",
-                ["familyContentHash"] = familyHash,
-                ["mapIds"] = new JsonArray("map"),
-                ["requiredRegionIds"] = new JsonArray("root"),
-                ["requiredMetadataStructureIds"] = new JsonArray(),
-                ["requiredCapabilityIds"] = new JsonArray(),
-            },
-            ["inputSlots"] = new JsonArray
-            {
-                RuntimeReferenceReplaceSlot("reference", "reference-image", "exactly-one", new JsonObject
-                {
-                    ["kind"] = "exact-resolved-map-capacity",
-                }),
-                RuntimeReferenceReplaceSlot("source", "auxiliary", "one-or-more", new JsonObject
-                {
-                    ["kind"] = "bounded",
-                    ["minimumBytes"] = 1,
-                    ["maximumBytes"] = int.MaxValue,
-                }),
-            },
-            ["spaces"] = new JsonArray
-            {
-                new JsonObject
-                {
-                    ["spaceId"] = "reference-image",
-                    ["kind"] = "input-artifact",
-                    ["slotId"] = "reference",
-                    ["instancePolicy"] = "singleton",
-                },
-                new JsonObject
-                {
-                    ["spaceId"] = "source-template",
-                    ["kind"] = "input-artifact",
-                    ["slotId"] = "source",
-                    ["instancePolicy"] = "per-binding",
-                },
-                new JsonObject
-                {
-                    ["spaceId"] = "output-image",
-                    ["kind"] = "output-image",
-                    ["capacity"] = new JsonObject { ["kind"] = "runtime-request" },
-                    ["initializer"] = new JsonObject
-                    {
-                        ["kind"] = "clone",
-                        ["sourceSlotId"] = "reference",
-                    },
-                },
-            },
-            ["views"] = new JsonArray(),
-            ["metadataBindings"] = new JsonArray(),
-            ["regionAccessRules"] = new JsonArray
-            {
-                new JsonObject
-                {
-                    ["regionId"] = "root",
-                    ["access"] = "explicit-range",
-                    ["reason"] = "Synthetic map-bound General Replace target.",
-                },
-            },
-            ["operations"] = new JsonArray(),
-            ["validations"] = new JsonArray(),
-            ["processorStages"] = new JsonArray(),
-            ["output"] = new JsonObject
-            {
-                ["fileNameTemplate"] = "runtime-general-replace.bin",
-                ["allowOverride"] = true,
-                ["invalidCharacterPolicy"] = "reject",
-                ["requiredTokenIds"] = new JsonArray(),
-            },
-            ["evidenceRefs"] = new JsonArray("runtime-reference-replace-contract"),
-        };
-        return profile.ToJsonString();
-    }
-
-    private static JsonObject RuntimeReferenceReplaceSlot(
-        string slotId,
-        string artifactClass,
-        string cardinality,
-        JsonObject lengthRule)
-    {
-        return new JsonObject
-        {
-            ["slotId"] = slotId,
-            ["role"] = slotId,
-            ["artifactClass"] = artifactClass,
-            ["required"] = true,
-            ["cardinality"] = cardinality,
-            ["acceptedExtensions"] = new JsonArray(".bin"),
-            ["acceptance"] = new JsonObject
-            {
-                ["lengthRule"] = lengthRule,
-                ["normalization"] = new JsonObject { ["kind"] = "none" },
-            },
-        };
-    }
 }

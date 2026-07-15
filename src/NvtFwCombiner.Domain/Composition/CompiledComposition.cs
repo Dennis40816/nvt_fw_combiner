@@ -46,7 +46,7 @@ public sealed partial class CompiledComposition
 
         ValidateIcNumberPolicy(identity.CompositionKind, icNumberPolicy);
         ValidateDefaultOutputFileName(identity.Details.OutputNamingRequirement.FileNameTemplate);
-        ValidateV2InputRequirements(plan, identity.CompositionKind, identity.Details);
+        ValidateV2InputRequirements(plan, identity.CompositionKind, identity.ExperienceId, identity.Details);
         ValidateV2Eligibility(identity.Details, eligibility);
 
         Plan = plan;
@@ -170,6 +170,7 @@ public sealed partial class CompiledComposition
     private static void ValidateV2InputRequirements(
         CompositionPlan plan,
         CompositionKind compositionKind,
+        string experienceId,
         V2CompiledCompositionDetails details)
     {
         if (details.Provenance.Context is LogicalOutputV2CompilationContext)
@@ -180,7 +181,7 @@ public sealed partial class CompiledComposition
 
         if (details.Provenance.Context is RuntimeReferenceReplaceV2CompilationContext)
         {
-            ValidateRuntimeReferenceReplaceInputRequirements(plan, compositionKind, details);
+            ValidateRuntimeReferenceReplaceInputRequirements(plan, compositionKind, experienceId, details);
             return;
         }
 
@@ -302,17 +303,20 @@ public sealed partial class CompiledComposition
     private static void ValidateRuntimeReferenceReplaceInputRequirements(
         CompositionPlan plan,
         CompositionKind compositionKind,
+        string experienceId,
         V2CompiledCompositionDetails details)
     {
         if (compositionKind != CompositionKind.Replace ||
-            details.Provenance.Context is not RuntimeReferenceReplaceV2CompilationContext ||
+            details.Provenance.Context is not RuntimeReferenceReplaceV2CompilationContext runtimeContext ||
+            !StringComparer.Ordinal.Equals(runtimeContext.ModeId, ExperienceIds.GeneralReplace) ||
+            !StringComparer.Ordinal.Equals(experienceId, ExperienceIds.GeneralReplace) ||
             plan.OutputInitialization.Kind != ImageInitializationKind.Reference ||
             plan.OutputInitialization.ReferenceSpaceId is null ||
             details.RegionAccessContract.Requirements.Count == 0 ||
             details.RegionAccessContract.ResolvedViews.Count != 0)
         {
             throw new ArgumentException(
-                "Map-bound runtime reference-replace artifacts require a reference-cloned Replace output with declared physical access and no static views.",
+                "Map-bound runtime reference-replace artifacts require the General Replace mode and experience, a reference-cloned Replace output, declared physical access, and no static views.",
                 nameof(details));
         }
 

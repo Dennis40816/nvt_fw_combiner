@@ -1,6 +1,6 @@
 # ADR 0020: V2 Runtime Reference-Replace Admission
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-15
 - Owners: Architecture owner + firmware owner
 - Amends: ADR 0015 and ADR 0019
@@ -26,6 +26,10 @@ engine boundary.
 Add one map-bound `runtime-reference-replace` compilation context. The first
 admitted experience is `general-replace`; CtrlRAM Replace is deferred until
 its Combiner evidence is independently complete.
+
+This acceptance authorizes only request-scoped candidate compilation and
+Application admission. It does not register a built-in route, promote firmware
+support, or retire the existing legacy General Replace path.
 
 The declaration must contain exactly:
 

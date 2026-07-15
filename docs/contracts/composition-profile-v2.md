@@ -143,8 +143,12 @@ Schema 2.6 adds the map-bound `runtime-reference-replace` context from
 Replace: one exact singleton reference image, one unnormalized per-binding auxiliary source, a
 runtime-capacity output cloned from the reference, declared physical region access, and no static
 views, metadata, operations, validations, or processors. The typed runtime request supplies only
-concrete binding lengths and explicit mappings. This context remains candidate-only until its runtime
-routing and firmware evidence gates are closed.
+concrete immutable binding ids, their declared profile slot ids, exact binding lengths, and explicit
+mappings. Only the unique singleton `reference-image` binding selects map capacity; auxiliary bindings
+never select a map, and zero or multiple exact-capacity map candidates reject the request. The request
+has no caller-selected capacity override, and every compiled binding id must match the Application
+binding identity retained in reports and preview approval. This context remains candidate-only until
+its runtime routing and firmware evidence gates are closed.
 
 ## Input size policy
 
