@@ -117,7 +117,7 @@ firmware-owner review requirements below.
 | --- | --- |
 | NT51919 / NT51929 / NT51932 | An owner-approved fact-scoped AB alias/parity matrix. It must identify each effective member/map/capacity and provide direct output hashes for every reused member. A shared source payload is acceptable only when the matrix and member-specific expected results prove parity. |
 | NT51950 | Exact `Combiner.exe` identity, version, SHA-256, adapter/platform/timeout, full invocation trace, declared read/write ranges, and expected output. The source-verified AB command has no `map.txt`; Combiner, not C#, owns AB header CRC mutation. |
-| NT51951 | The same tool/trace/output package as NT51950, independently. Do not copy NT51950's result merely because the flows appear similar. Its `+0x80000` relocation/header facts must be proven by its own case. |
+| NT51951 | The same no-`map.txt` tool/trace/output package as NT51950, independently. Do not copy NT51950's result merely because the flows appear similar. Its `+0x80000` relocation/header facts must be proven by its own case. |
 
 The existing 256 KiB NT51929 `initial code` / `TPFW` / `FlashCode` archive is a
 Normal case, not this AB evidence. Existing V2 candidate profiles and reference
