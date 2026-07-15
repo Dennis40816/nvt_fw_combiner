@@ -397,6 +397,23 @@
     <Setter Property="BorderBrush" Value="{DynamicResource NfcWarningBorderStrongBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcWarningTextStrongBrush}" />
   </Style>
+  <Style Selector="Label.countBadge.coverageChangeBadge">
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
+  </Style>
+  <Style Selector="Label.countBadge.coverageChangeBadge.changed">
+    <Setter Property="Background" Value="{DynamicResource NfcInfoSurfaceStrongBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
+  </Style>
+  <Style Selector="Border.memoryCoverageMarker">
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="Border.memoryCoverageMarker.changed">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
   <Style Selector="TextBlock.hexInspectorSection">
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
     <Setter Property="FontWeight" Value="SemiBold" />

@@ -1,3 +1,5 @@
+using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class XamlControlStyleContractTests
@@ -140,6 +142,70 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("Brush.Parse", viewModel, StringComparison.Ordinal);
     }
 
+    /// <summary>Keeps Replace coverage chrome in shared styles while preserving data-bound fill and plain Merge rendering.</summary>
+    [Fact]
+    public void MemoryCoverageUsesSharedChangedAndKeptVisualStates()
+    {
+        string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
+        string templates = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
+        string tooltip = ExtractDataTemplate(templates, "MemoryCoverageTooltipTemplate");
+        string replaceBar = ExtractDataTemplate(templates, "MemoryCoverageSegmentBarTemplate");
+        string replaceList = ExtractDataTemplate(templates, "MemoryCoverageSegmentListTemplate");
+        string mergeBar = ExtractDataTemplate(templates, "MemoryCoveragePlainSegmentBarTemplate");
+        string mergeList = ExtractDataTemplate(templates, "MemoryCoveragePlainSegmentListTemplate");
+        string viewModel = ReadPresentationFile("ViewModels/MemoryCoverageSegmentViewModel.cs");
+        string keptBadge = ExtractStyle(styles, "Label.countBadge.coverageChangeBadge");
+        string changedBadge = ExtractStyle(styles, "Label.countBadge.coverageChangeBadge.changed");
+        string keptMarker = ExtractStyle(styles, "Border.memoryCoverageMarker");
+        string changedMarker = ExtractStyle(styles, "Border.memoryCoverageMarker.changed");
+
+        Assert.Contains("NfcSurfaceSubtleBrush", keptBadge, StringComparison.Ordinal);
+        Assert.Contains("NfcBorderBrush", keptBadge, StringComparison.Ordinal);
+        Assert.Contains("NfcTextSecondaryBrush", keptBadge, StringComparison.Ordinal);
+        Assert.Contains("NfcInfoSurfaceStrongBrush", changedBadge, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentBorderLightBrush", changedBadge, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentStrongBrush", changedBadge, StringComparison.Ordinal);
+        Assert.Contains("Value=\"0\"", keptMarker, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentStrongBrush", changedMarker, StringComparison.Ordinal);
+        Assert.Contains("Value=\"1\"", changedMarker, StringComparison.Ordinal);
+
+        AssertCoverageClasses(tooltip);
+        AssertCoverageClasses(replaceBar);
+        AssertCoverageClasses(replaceList);
+        Assert.Contains("Classes=\"countBadge coverageChangeBadge\"", tooltip, StringComparison.Ordinal);
+        Assert.Contains("Content=\"{Binding ChangeLabel}\"", tooltip, StringComparison.Ordinal);
+        Assert.DoesNotContain("memoryCoverageMarker", mergeBar, StringComparison.Ordinal);
+        Assert.DoesNotContain("memoryCoverageMarker", mergeList, StringComparison.Ordinal);
+        Assert.Contains("Background=\"{Binding FillBrush}\"", replaceBar, StringComparison.Ordinal);
+        Assert.Contains("Background=\"{Binding FillBrush}\"", mergeBar, StringComparison.Ordinal);
+
+        Assert.Contains("public IBrush FillBrush", viewModel, StringComparison.Ordinal);
+        Assert.Contains("public bool IsChanged", viewModel, StringComparison.Ordinal);
+        Assert.Contains("public string ChangeLabel", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("ChangeBadgeBackgroundBrush", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("ChangeBadgeBorderBrush", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("ChangeBadgeForegroundBrush", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("OutlineBrush", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("OutlineThickness", viewModel, StringComparison.Ordinal);
+    }
+
+    /// <summary>Keeps changed/kept meaning and data-bound fill available after presentation brushes move to XAML.</summary>
+    [Fact]
+    public void MemoryCoverageRetainsStateAndFillData()
+    {
+        MemoryCoverageSegmentViewModel kept = new("0x0000-0x0010", "Base flash", "Kept bytes", "#334155", 20);
+        MemoryCoverageSegmentViewModel changed = new("0x0010-0x0020", "TP input", "Written bytes", "#2563EB", 20, isChanged: true);
+
+        Assert.False(kept.IsChanged);
+        Assert.Equal("Kept", kept.ChangeLabel);
+        Assert.Equal("#334155", kept.Fill);
+        Assert.NotNull(kept.FillBrush);
+        Assert.True(changed.IsChanged);
+        Assert.Equal("Changed", changed.ChangeLabel);
+        Assert.Equal("#2563EB", changed.Fill);
+        Assert.NotNull(changed.FillBrush);
+    }
+
     private static string ExtractDataTemplate(string xaml, string key)
     {
         return ExtractXamlBlock(xaml, $"<DataTemplate x:Key=\"{key}\"", "</DataTemplate>");
@@ -171,5 +237,13 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains(backgroundToken, borderStyle, StringComparison.Ordinal);
         Assert.Contains(borderToken, borderStyle, StringComparison.Ordinal);
         Assert.Contains(foregroundToken, pathStyle, StringComparison.Ordinal);
+    }
+
+    private static void AssertCoverageClasses(string template)
+    {
+        Assert.Contains("Classes=\"memoryCoverageMarker\"", template, StringComparison.Ordinal);
+        Assert.Contains("Classes.changed=\"{Binding IsChanged}\"", template, StringComparison.Ordinal);
+        Assert.DoesNotContain("OutlineBrush", template, StringComparison.Ordinal);
+        Assert.DoesNotContain("OutlineThickness", template, StringComparison.Ordinal);
     }
 }

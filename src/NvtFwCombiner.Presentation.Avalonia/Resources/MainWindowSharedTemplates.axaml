@@ -35,12 +35,12 @@
     <StackPanel Spacing="{DynamicResource NfcSpace8}">
       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
         <Border
+            Classes="memoryCoverageMarker"
+            Classes.changed="{Binding IsChanged}"
             Width="10"
             Height="10"
             VerticalAlignment="Center"
             Background="{Binding FillBrush}"
-            BorderBrush="{Binding OutlineBrush}"
-            BorderThickness="{Binding OutlineThickness}"
             CornerRadius="2" />
         <TextBlock
             Grid.Column="1"
@@ -52,11 +52,9 @@
             TextWrapping="Wrap" />
         <Label
             Grid.Column="2"
-            Classes="countBadge"
+            Classes="countBadge coverageChangeBadge"
+            Classes.changed="{Binding IsChanged}"
             Padding="7,2"
-            Background="{Binding ChangeBadgeBackgroundBrush}"
-            BorderBrush="{Binding ChangeBadgeBorderBrush}"
-            Foreground="{Binding ChangeBadgeForegroundBrush}"
             Content="{Binding ChangeLabel}" />
       </Grid>
 
@@ -88,11 +86,11 @@
 
 <DataTemplate x:Key="MemoryCoverageSegmentBarTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
   <Border
+      Classes="memoryCoverageMarker"
+      Classes.changed="{Binding IsChanged}"
       Width="{Binding BarWidth}"
       Height="22"
-      Background="{Binding FillBrush}"
-      BorderBrush="{Binding OutlineBrush}"
-      BorderThickness="{Binding OutlineThickness}">
+      Background="{Binding FillBrush}">
     <ToolTip.Tip>
       <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" />
     </ToolTip.Tip>
@@ -117,13 +115,13 @@
     </ToolTip.Tip>
     <Grid ColumnDefinitions="12,*" ColumnSpacing="{DynamicResource NfcSpace8}">
       <Border
+          Classes="memoryCoverageMarker"
+          Classes.changed="{Binding IsChanged}"
           Width="10"
           Height="10"
           Margin="0,3,0,0"
           VerticalAlignment="Top"
           Background="{Binding FillBrush}"
-          BorderBrush="{Binding OutlineBrush}"
-          BorderThickness="{Binding OutlineThickness}"
           CornerRadius="2" />
       <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace2}">
         <TextBlock Classes="bodyEmphasisText" Text="{Binding SourceLabel}" TextWrapping="Wrap" />
