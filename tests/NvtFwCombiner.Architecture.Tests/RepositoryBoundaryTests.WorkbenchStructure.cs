@@ -161,14 +161,14 @@ public sealed partial class RepositoryBoundaryTests
         string panel = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/HexEditorPanel.axaml");
         string viewModel = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/HexEditorWorkspaceViewModel.cs");
         string panelCodeBehind = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/HexEditorPanel.axaml.cs");
-        string runner = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.HexEditor.cs");
         string session = ReadText("src/NvtFwCombiner.Application/HexEditor/RawBinaryEditorSession.cs");
 
         Assert.Contains("RequestSaveCommand", panel, StringComparison.Ordinal);
         Assert.Contains("InsertZeroBeforeCommand", panelCodeBehind, StringComparison.Ordinal);
         Assert.Contains("DeleteByteCommand", panelCodeBehind, StringComparison.Ordinal);
         Assert.Contains("SetViewportStartRowCommand", panelCodeBehind, StringComparison.Ordinal);
-        Assert.Contains("CreateRawBinaryEditorSession", runner, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchRawBinaryEditorSession _session = new();", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("UiCompositionRunner", viewModel, StringComparison.Ordinal);
         Assert.Contains("RawBinaryEditorSession", session, StringComparison.Ordinal);
         Assert.DoesNotContain("GeneralReplace", panel, StringComparison.Ordinal);
         Assert.DoesNotContain("GeneralReplace", viewModel, StringComparison.Ordinal);

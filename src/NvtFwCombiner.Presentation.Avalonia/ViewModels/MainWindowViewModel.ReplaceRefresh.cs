@@ -69,7 +69,7 @@ public sealed partial class MainWindowViewModel
 
     private long? GetSelectedMergeDpInputLength()
     {
-        return UiCompositionRunner.IsDpPerspectiveIc(SelectedIc) &&
+        return WorkbenchCompositionService.IsDpPerspectiveIc(SelectedIc) &&
             !string.IsNullOrWhiteSpace(_mergeDpSlot.FilePath) &&
             File.Exists(_mergeDpSlot.FilePath)
                 ? new FileInfo(_mergeDpSlot.FilePath).Length
@@ -79,7 +79,7 @@ public sealed partial class MainWindowViewModel
     private long? GetSelectedReplaceBaseLength()
     {
         return SelectedReplaceMode == DpReplaceMode &&
-            UiCompositionRunner.IsDpPerspectiveIc(SelectedIc) &&
+            WorkbenchCompositionService.IsDpPerspectiveIc(SelectedIc) &&
             !string.IsNullOrWhiteSpace(ReplaceBaseSlot.FilePath) &&
             File.Exists(ReplaceBaseSlot.FilePath)
                 ? new FileInfo(ReplaceBaseSlot.FilePath).Length
@@ -119,7 +119,7 @@ public sealed partial class MainWindowViewModel
 
                 AddRows(
                     $"{SelectedIc} / {SelectedNumber}: DP Replace input policy is active.",
-                    UiCompositionRunner.GetDpReplacePolicySummary(SelectedIc),
+                    WorkbenchCompositionService.GetDpReplacePolicySummary(SelectedIc),
                     "Visible DP Replace slots come from approved profile/catalog evidence.");
                 break;
             case CtrlRamReplaceMode:
