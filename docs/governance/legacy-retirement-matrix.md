@@ -26,7 +26,7 @@ Each row marked `retire` must link or name:
 | Dynamic General Merge C# profile construction | None. Default General Merge, CLI, and UI route through the registered logical-output V2 profiles for all built-in ICs; persisted saved rules retain only a profile-id compatibility alias | Direct legacy/V2 byte parity for every built-in IC; default-route byte/report/UI/saved-rule regression; no physical-map, processor, CRC, or firmware-support claim | `v0.9.5` | retired in `a9a65b49` (`refactor(general-merge): route default workflow through V2`) |
 | `CompositionProfileCompiler` legacy authority | Remaining Replace and General Replace runtime paths | Each applicable profile compiles and executes through trusted V2 authority with equivalent report/output behavior | after per-workflow R2/R3 evidence | retain as runtime dependency |
 | `TpFlashMapCatalog` and `IcMetadataFacade` compatibility projection | CtrlRAM/General Replace planning, UI metadata, number selection, and overview projection | Resolved V2 map/profile facts supply every current caller without copied firmware semantics | after per-workflow evidence | retain as compatibility projection; DP Perspective no longer consumes its duplicate family-fact projection |
-| `LegacyCombinerPostbuildCatalog` | CtrlRAM Replace staged `combiner.exe` postbuild | V2 processor declaration with the same declared staging/read/write ranges, exact tool binding, owner command evidence, and golden output | after R3 owner evidence | retain as processor authority |
+| `LegacyCombinerPostbuildCatalog` | CtrlRAM Replace staged `combiner.exe` postbuild | V2 processor declaration with the same declared staging/read/write ranges, exact tool binding, owner command evidence, and golden output | `v0.9.9`, after R3 owner evidence | migration scope owner-approved 2026-07-15; retain as processor authority until evidence closes. Legacy Combiner 1.13.0 EXE and constrained runner remain approved exceptions |
 
 ## Non-targets
 
@@ -42,6 +42,7 @@ NVT Backup at terminal `T - 0xFFF`, with no primary-address fallback.
   only when genuinely family-wide; do not add per-IC executors or subclasses.
 - Do not add a second executor, compiler, loader, schema hierarchy, or
   adapter layer merely to bridge a migration.
-- Production C# is measured per milestone. The current baseline is about
-  52.4K nonblank lines; 60K is a review threshold, not permission to add
-  unnecessary code.
+- Production C# and XAML are measured by the exact ratchets in
+  [the v0.9.8 code-size policy](v0.9.8-code-size-policy.md). The `v0.9.7`
+  baseline is 60,237 nonblank lines; every verified reduction lowers the
+  ratchet in the same commit.
