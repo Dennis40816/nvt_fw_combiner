@@ -158,7 +158,7 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<string> classificationTags,
         IReadOnlyList<ByteRange> postbuildWriteRanges)
     {
-        List<ByteRange> remainingSegments = SubtractRanges(range, postbuildWriteRanges);
+        IReadOnlyList<ByteRange> remainingSegments = range.Subtract(postbuildWriteRanges);
         bool split = remainingSegments.Count != 1 || remainingSegments[0] != range;
         foreach ((ByteRange segment, int index) in remainingSegments.Select((segment, index) => (segment, index)))
         {
@@ -170,43 +170,6 @@ public static partial class WorkbenchCompositionService
                 writePolicy,
                 classificationTags: classificationTags));
         }
-    }
-
-    private static List<ByteRange> SubtractRanges(
-        ByteRange source,
-        IReadOnlyList<ByteRange> removedRanges)
-    {
-        ByteRange[] overlaps =
-        [
-            .. removedRanges
-                .Select(source.Intersect)
-                .Where(overlap => overlap is not null)
-                .Select(overlap => overlap!.Value),
-        ];
-        if (overlaps.Length == 0)
-        {
-            return [source];
-        }
-
-        SortedSet<long> splitPoints = [source.Start, source.EndExclusive];
-        foreach (ByteRange overlap in overlaps)
-        {
-            _ = splitPoints.Add(overlap.Start);
-            _ = splitPoints.Add(overlap.EndExclusive);
-        }
-
-        long[] points = [.. splitPoints];
-        List<ByteRange> ranges = [];
-        for (int index = 0; index < points.Length - 1; index++)
-        {
-            var segment = ByteRange.FromStartEndExclusive(points[index], points[index + 1]);
-            if (!overlaps.Any(overlap => overlap.Overlaps(segment)))
-            {
-                ranges.Add(segment);
-            }
-        }
-
-        return ranges;
     }
 
     private static IReadOnlyList<ByteRange> NormalizeGeneralPostbuildWriteRanges(

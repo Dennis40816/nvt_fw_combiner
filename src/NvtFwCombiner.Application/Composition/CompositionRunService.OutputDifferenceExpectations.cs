@@ -38,7 +38,7 @@ public sealed partial class CompositionRunService
 
                 foreach (ByteRange allowedWriteRange in invocation.AllowedWriteRanges)
                 {
-                    foreach (ByteRange processorOnlyRange in SubtractRanges(allowedWriteRange, stagedRanges))
+                    foreach (ByteRange processorOnlyRange in allowedWriteRange.Subtract(stagedRanges))
                     {
                         foreach (ByteRange processorSegment in SplitRangeByWriteSectionBoundaries(
                                      processorOnlyRange,
