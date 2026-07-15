@@ -102,7 +102,7 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.Contains("Styles/MainWindowControlStyles.axaml", application, StringComparison.Ordinal);
         Assert.Contains("<Label", slotCard, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"slotBadge\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"slotBadge firmwareSlotRequirement\"", slotCard, StringComparison.Ordinal);
     }
 
     /// <summary>Loads the application resource tree and resolves every shared visual token.</summary>
