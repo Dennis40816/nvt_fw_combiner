@@ -139,6 +139,27 @@ internal static class TrustedV2CompositionCompiler
         string modeId,
         long? requestedMapCapacity = null)
     {
+        return Compile(
+            catalog,
+            profileId,
+            profileVersion,
+            memberId,
+            modeId,
+            requestedMapCapacity,
+            []);
+    }
+
+    /// <summary>Compiles one trusted map-bound profile with immutable artifacts used only for map resolution.</summary>
+    internal static V2CompositionPlanCompileResult Compile(
+        TrustedProfileBundleCatalog catalog,
+        string profileId,
+        string profileVersion,
+        string memberId,
+        string modeId,
+        long? requestedMapCapacity,
+        IReadOnlyList<FirmwareArtifactPayload> resolutionArtifacts)
+    {
+        ArgumentNullException.ThrowIfNull(resolutionArtifacts);
         if (!TryResolveMapCandidates(
                 catalog,
                 profileId,
@@ -186,7 +207,7 @@ internal static class TrustedV2CompositionCompiler
                     modeId,
                     mapCandidates[0].CapacityBytes,
                     requestedTopology: null,
-                    [])));
+                    resolutionArtifacts)));
         return preparation.IsAdmitted
             ? V2CompositionPlanCompiler.Compile(preparation)
             : Failed(

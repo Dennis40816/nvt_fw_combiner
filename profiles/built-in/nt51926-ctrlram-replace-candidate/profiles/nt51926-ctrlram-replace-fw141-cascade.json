@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.7",
   "profileId": "nt51926-ctrlram-replace-fw141-cascade",
-  "profileVersion": "0.1.0",
+  "profileVersion": "0.2.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
@@ -40,8 +40,8 @@
   },
   "mapBinding": {
     "familyId": "nt51926-ctrlram-replace",
-    "familyVersion": "0.1.0",
-    "familyContentHash": "e521a45c907e45a8088c541f063f779d95b8bb723df6cbddc939420418441a58",
+    "familyVersion": "0.2.0",
+    "familyContentHash": "b9ade08ee84f759ae6af3703a420310a648b395a9abfe802d54263674e1c39b0",
     "mapIds": [ "nt51926-ctrlram-fw141-256k" ],
     "requiredRegionIds": [
       "flash-image",
@@ -56,7 +56,9 @@
       "header-crc-3c",
       "header-crc-fc"
     ],
-    "requiredMetadataStructureIds": [],
+    "requiredMetadataStructureIds": [
+      "nt51926-fwconfig-backup-envelope"
+    ],
     "requiredCapabilityIds": []
   },
   "inputSlots": [
@@ -252,6 +254,7 @@
     "requiredTokenIds": []
   },
   "evidenceRefs": [
-    "nt51926-common-fw141-postbuild"
+    "nt51926-common-fw141-postbuild",
+    "nt51926-fwconfig-backup-golden"
   ]
 }

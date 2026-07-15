@@ -1,24 +1,28 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.V2;
-using NvtFwCombiner.TestSupport;
+using static NvtFwCombiner.Bootstrap.Tests.BootstrapTestData;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Compilable, non-routed evidence for the NT51926 Common FW 1.4.1 cascade CtrlRAM postbuild plan.</summary>
 public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
 {
-    private const string BundleDirectory = "nt51926-ctrlram-replace-candidate";
-    private const string BundleContentHash = "f23178af22b06e0997a41033c84813e87881530a61043525852e08bb9baa6a64";
     private const int Capacity = 0x40000;
+    private const int FirmwareConfigBackupStart = 0x3B000;
+    private const int NvtMarkerStart = FirmwareConfigBackupStart + 0xFFC;
+
+    private static ReadOnlySpan<byte> NvtMarker => [0x00, 0x4E, 0x56, 0x54];
 
     /// <summary>Locks V2 staging and write authority to the legacy Common FW 1.4.1 cascade command plan.</summary>
     [Fact]
     public void CandidateProfileCompilesTheLegacyCascadeStagingAndWriteAuthority()
     {
-        using var workspace = TempWorkspace.Create("nfc-nt51926-ctrlram-candidate");
-        CompiledComposition composition = CompileCandidate(workspace);
+        byte[] referenceBase = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
+        Assert.Equal(Capacity, referenceBase.Length);
+        CompiledComposition composition = CompileCandidate(referenceBase);
         ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(
             Assert.Single(composition.Plan.OrderedOperations).ExternalProcessorInvocation);
         LegacyCombinerPostbuildCommandPlan legacyPlan = LegacyCombinerPostbuildPlanner.CreatePlan(
@@ -32,6 +36,17 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         Assert.Equal(
             ["direct-golden-evidence", "firmware-owner-review", "runtime-route"],
             details.Provenance.Promotion.Blockers.Select(static blocker => blocker.BlockerId));
+        FirmwareResolvedMetadataStructure backup = Assert.Single(
+            details.Provenance.ResolvedMap.ResolvedMetadataStructures);
+        Assert.Equal("nt51926-fwconfig-backup-envelope", backup.DecodedStructure.MetadataStructureId);
+        Assert.Equal("reference-base", backup.ArtifactIdentity.ArtifactId);
+        Assert.Equal(FirmwareMetadataLocatorKind.MarkerRelative, backup.LocatorOutcome.LocatorKind);
+        Assert.Equal(new ByteRange(FirmwareConfigBackupStart, 0x1000), backup.LocatorOutcome.ResolvedRange.Range);
+        Assert.Equal(1, backup.LocatorOutcome.MarkerMatchCount);
+        Assert.Equal(NvtMarkerStart, backup.LocatorOutcome.SelectedMarkerStart);
+        Assert.Equal(
+            FirmwareConfigBackupStart,
+            backup.LocatorOutcome.SelectedMarkerStart!.Value + 3 - 0xFFF);
         Assert.Equal(Capacity, composition.Plan.OutputInitialization.Capacity);
         Assert.Equal("nfc.nt51926.ctrlram-postbuild-fw1.4.1", invocation.ProcessorId);
         Assert.Equal("legacy-combiner-1.13.0", invocation.ToolBindingId);
@@ -79,8 +94,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
     [Fact]
     public async Task CandidatePlanTruncatesOnlyCtrlRamInputsBeforeHostStagingAsync()
     {
-        using var workspace = TempWorkspace.Create("nfc-nt51926-ctrlram-candidate");
-        CompiledComposition composition = CompileCandidate(workspace);
+        CompiledComposition composition = CompileCandidate(CreateReferenceImage());
         Dictionary<string, byte[]> inputs = CreateInputs();
         byte[] normal = [.. inputs["normal-ctrlram-input"]];
         inputs["normal-ctrlram-input"] = [.. normal, 0xCC];
@@ -109,30 +123,67 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             CompositionIssueCodes.InputAddressSpaceTruncated));
     }
 
-    private static CompiledComposition CompileCandidate(TempWorkspace workspace)
+    /// <summary>Verifies zero or multiple universal markers reject the candidate before a plan can be minted.</summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(2)]
+    public void CandidateCompilationRejectsMissingOrAmbiguousNvtBackupMarker(int markerCount)
     {
-        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
-            AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash),
-            "nt51926-ctrlram-replace-fw141-cascade",
-            "0.1.0",
-            "NT51926",
-            ExperienceIds.CtrlRamReplace,
-            Capacity);
+        byte[] referenceBase = new byte[Capacity];
+        if (markerCount >= 1)
+        {
+            WriteNvtMarker(referenceBase, NvtMarkerStart);
+        }
+
+        if (markerCount == 2)
+        {
+            WriteNvtMarker(referenceBase, 0x34FFC);
+        }
+
+        V2CompositionPlanCompileResult compilation = CompileCandidateResult(referenceBase);
+
+        Assert.False(compilation.IsCompiled);
+        Assert.Null(compilation.CompiledComposition);
+        Assert.Contains(
+            compilation.Issues,
+            static issue => issue.Code == "profile.v2.compile.preparation-not-admitted");
+    }
+
+    private static CompiledComposition CompileCandidate(byte[] referenceBase)
+    {
+        V2CompositionPlanCompileResult compilation = CompileCandidateResult(referenceBase);
         Assert.True(compilation.IsCompiled, FormatIssues(compilation.Issues));
         return Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
+    }
+
+    private static V2CompositionPlanCompileResult CompileCandidateResult(byte[] referenceBase)
+    {
+        return WorkbenchCompositionService.CompileNt51926CtrlRamReplaceV2Candidate(referenceBase);
     }
 
     private static Dictionary<string, byte[]> CreateInputs()
     {
         return new Dictionary<string, byte[]>(StringComparer.Ordinal)
         {
-            ["reference-base"] = new byte[Capacity],
+            ["reference-base"] = CreateReferenceImage(),
             ["normal-ctrlram-input"] = new byte[0x2C00],
             ["diff-ctrlram-input"] = new byte[0x2800],
             ["mp-ctrlram-input"] = new byte[0x2400],
             ["vn-ctrlram-input"] = new byte[0x1660],
             ["nf-ctrlram-input"] = new byte[0x2DD0],
         };
+    }
+
+    private static byte[] CreateReferenceImage()
+    {
+        byte[] referenceBase = new byte[Capacity];
+        WriteNvtMarker(referenceBase, NvtMarkerStart);
+        return referenceBase;
+    }
+
+    private static void WriteNvtMarker(byte[] target, int start)
+    {
+        NvtMarker.CopyTo(target.AsSpan(start));
     }
 
     private static string FormatIssues(IEnumerable<CompositionIssue> issues)

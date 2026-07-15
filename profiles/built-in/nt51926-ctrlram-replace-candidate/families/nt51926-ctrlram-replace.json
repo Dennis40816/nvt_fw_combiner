@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51926-ctrlram-replace",
-  "familyVersion": "0.1.0",
+  "familyVersion": "0.2.0",
   "members": [
     {
       "memberId": "NT51926",
@@ -226,7 +226,33 @@
       ]
     }
   ],
-  "metadataSets": [],
+  "metadataSets": [
+    {
+      "metadataSetId": "nt51926-fwconfig-backup-locator",
+      "structures": [
+        {
+          "structureId": "nt51926-fwconfig-backup-envelope",
+          "artifactBindingId": "reference-base",
+          "length": 4096,
+          "locator": {
+            "kind": "marker-relative",
+            "searchRange": { "addressSpaceId": "flash", "start": 0, "length": 262144 },
+            "markerHex": "004e5654",
+            "selection": { "kind": "unique" },
+            "resultOffset": -4092,
+            "allowedResultRegionId": "flash-image"
+          },
+          "fields": [],
+          "assertions": [
+            { "offset": 4092, "expectedHex": "004e5654" }
+          ]
+        }
+      ],
+      "evidenceRefs": [
+        "nt51926-fwconfig-backup-golden"
+      ]
+    }
+  ],
   "imageMaps": [
     {
       "mapId": "nt51926-ctrlram-fw141-256k",
@@ -239,14 +265,16 @@
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [ "nt51926-ctrlram-fw141-flash" ],
-      "metadataSetIds": [],
+      "metadataSetIds": [ "nt51926-fwconfig-backup-locator" ],
       "evidenceRefs": [
-        "nt51926-common-fw141-postbuild"
+        "nt51926-common-fw141-postbuild",
+        "nt51926-fwconfig-backup-golden"
       ]
     }
   ],
   "factAliases": [],
   "evidenceRefs": [
-    "nt51926-common-fw141-postbuild"
+    "nt51926-common-fw141-postbuild",
+    "nt51926-fwconfig-backup-golden"
   ]
 }
