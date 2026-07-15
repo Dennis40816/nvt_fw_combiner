@@ -70,13 +70,13 @@ public sealed partial class MainWindowViewModel
     ];
 
     /// <summary>Gets settings card content.</summary>
-    public PlanningCardViewModel SettingsPreview { get; private set; } = CreatePlanningCard(ShellTextResources.For(ShellLanguage.English).SettingsPreview);
+    public PlanningCardText SettingsPreview { get; private set; } = ShellTextResources.For(ShellLanguage.English).SettingsPreview;
 
     /// <summary>Gets merge card content.</summary>
-    public PlanningCardViewModel MergePreview { get; private set; } = CreatePlanningCard(ShellTextResources.For(ShellLanguage.English).MergePreview);
+    public PlanningCardText MergePreview { get; private set; } = ShellTextResources.For(ShellLanguage.English).MergePreview;
 
     /// <summary>Gets replace card content.</summary>
-    public PlanningCardViewModel ReplacePreview { get; private set; } = CreatePlanningCard(ShellTextResources.For(ShellLanguage.English).ReplacePreview);
+    public PlanningCardText ReplacePreview { get; private set; } = ShellTextResources.For(ShellLanguage.English).ReplacePreview;
 
     /// <summary>Gets footer status content.</summary>
     public string FooterStatus { get; private set; } = string.Empty;

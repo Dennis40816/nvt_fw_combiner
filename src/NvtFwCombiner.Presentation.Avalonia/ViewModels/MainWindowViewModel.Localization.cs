@@ -16,9 +16,9 @@ public sealed partial class MainWindowViewModel
         IcLabel = Text.IcLabel;
         NumberLabel = Text.NumberLabel;
         DeviceContextRefreshSummary = Text.DeviceContextStatus;
-        SettingsPreview = CreatePlanningCard(Text.SettingsPreview);
-        MergePreview = CreatePlanningCard(Text.MergePreview);
-        ReplacePreview = CreatePlanningCard(Text.ReplacePreview);
+        SettingsPreview = Text.SettingsPreview;
+        MergePreview = Text.MergePreview;
+        ReplacePreview = Text.ReplacePreview;
         FooterStatus = Text.FooterStatus;
         ApplyFirmwareSlotText();
         ApplyInitialRunResultText();
