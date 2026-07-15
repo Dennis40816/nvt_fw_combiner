@@ -3,7 +3,6 @@ using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Files;
 using NvtFwCombiner.Infrastructure.Time;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -49,37 +48,75 @@ public static partial class CliApplication
             return UsageError;
         }
 
-        if (!TryFindStandardMergeProfile(profileSelector, out CompositionProfileDefinition? selectedProfile))
+        if (!TryFindStandardMergeProfileSummary(profileSelector, out WorkbenchProfileSummary? selectedProfile))
         {
             await error.WriteLineAsync($"error: unknown standard merge profile '{profileSelector}'").ConfigureAwait(false);
             return UsageError;
         }
 
-        ProfileCompileResult compile = CompositionProfileCompiler.Compile(selectedProfile, []);
-        if (!compile.IsSuccess)
+        if (!selectedProfile.CompileSucceeded)
         {
-            await CliCompositionRunSupport.PrintIssuesAsync(error, compile.Issues).ConfigureAwait(false);
+            _ = WorkbenchCompositionService.TryCompileStandardMerge(
+                selectedProfile.IcId,
+                dpInputLength: null,
+                out _,
+                out IReadOnlyList<CompositionIssue> compileIssues);
+            await CliCompositionRunSupport.PrintIssuesAsync(error, compileIssues).ConfigureAwait(false);
             return SoftwareError;
         }
 
-        CompositionPlan plan = compile.Plan!;
-        if (!TryCreateBindings(plan, options, error, out IReadOnlyList<InputArtifactBinding> bindings))
+        if (!TryCreateBindings(
+                selectedProfile.RequiredInputAddressSpaceIds,
+                options,
+                error,
+                out IReadOnlyList<InputArtifactBinding> bindings))
         {
             return UsageError;
         }
 
-        selectedProfile = ResolveStandardMergeProfileForBindings(selectedProfile, bindings);
-        compile = CompositionProfileCompiler.Compile(selectedProfile, []);
-        if (!compile.IsSuccess)
+        string? dpPath = bindings.FirstOrDefault(binding =>
+            string.Equals(binding.AddressSpaceId, CompositionAddressSpaceIds.DpInput, StringComparison.Ordinal))?.ArtifactId;
+        if (!WorkbenchCompositionService.TryGetStandardMergeDpInputLength(
+                selectedProfile.IcId,
+                dpPath,
+                out long? dpInputLength,
+                out CompositionIssue? inputIssue))
         {
-            await CliCompositionRunSupport.PrintIssuesAsync(error, compile.Issues).ConfigureAwait(false);
+            await CliCompositionRunSupport.PrintIssuesAsync(error, [inputIssue]).ConfigureAwait(false);
             return SoftwareError;
         }
 
-        plan = compile.Plan!;
+        if (!WorkbenchCompositionService.TryCompileStandardMerge(
+                selectedProfile.IcId,
+                dpInputLength,
+                out CompiledComposition? compiledComposition,
+                out IReadOnlyList<CompositionIssue> issues))
+        {
+            await CliCompositionRunSupport.PrintIssuesAsync(error, issues).ConfigureAwait(false);
+            return SoftwareError;
+        }
+
+        if (!selectedProfile.RequiredInputAddressSpaceIds.SequenceEqual(
+                compiledComposition.Plan.RequiredInputAddressSpaceIds,
+                StringComparer.Ordinal))
+        {
+            await error.WriteLineAsync(
+                    $"error: Standard Merge profile '{selectedProfile.ProfileId}' changed required input address spaces during DP-length resolution.")
+                .ConfigureAwait(false);
+            return SoftwareError;
+        }
+
+        bindings =
+        [
+            .. bindings.Select(binding => CompiledCompositionInputBindingFactory.Create(
+                compiledComposition,
+                binding.AddressSpaceId,
+                binding.ArtifactId)),
+        ];
+
         CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
             options.Values.GetValueOrDefault("--output"),
-            selectedProfile.DefaultOutputFileName);
+            compiledComposition.DefaultOutputFileName);
         if (action == "build")
         {
             CliCompositionRunSupport.EnsureOutputDoesNotAliasInputs(outputTarget, bindings);
@@ -100,8 +137,7 @@ public static partial class CliApplication
         var service = new CompositionRunService(reader, new SystemClock(), writer, ExternalProcessorFactory.CreateOrNull());
         var request = new CompositionRunRequest(
             CreateRunId(action),
-            CliCompositionRunSupport.ToRunProfile(selectedProfile),
-            plan,
+            compiledComposition,
             bindings,
             outputTarget.FileName);
 
@@ -122,13 +158,13 @@ public static partial class CliApplication
     }
 
     private static bool TryCreateBindings(
-        CompositionPlan plan,
+        IReadOnlyList<string> requiredInputAddressSpaceIds,
         ParsedOptions options,
         TextWriter error,
         out IReadOnlyList<InputArtifactBinding> bindings)
     {
         List<InputArtifactBinding> items = [];
-        HashSet<string> requiredAddressSpaces = [.. plan.RequiredInputAddressSpaceIds, .. plan.RequiredSeededMutableAddressSpaceIds];
+        HashSet<string> requiredAddressSpaces = [.. requiredInputAddressSpaceIds];
         foreach (string addressSpaceId in requiredAddressSpaces.Order(StringComparer.Ordinal))
         {
             if (!InputOptionsByAddressSpace.TryGetValue(addressSpaceId, out string? optionName))
@@ -163,31 +199,13 @@ public static partial class CliApplication
         return true;
     }
 
-    private static CompositionProfileDefinition ResolveStandardMergeProfileForBindings(
-        CompositionProfileDefinition profile,
-        IReadOnlyList<InputArtifactBinding> bindings)
-    {
-        if (!BuiltInStandardMergeProfiles.IsDpPerspectiveStandardMergeProfile(profile))
-        {
-            return profile;
-        }
-
-        InputArtifactBinding? dpBinding = bindings.FirstOrDefault(binding =>
-            string.Equals(binding.AddressSpaceId, CompositionAddressSpaceIds.DpInput, StringComparison.Ordinal));
-        return dpBinding is null || !File.Exists(dpBinding.ArtifactId)
-            ? profile
-            : BuiltInStandardMergeProfiles.CreateDpPerspectiveProfileForInputLength(
-                profile.IcId,
-                new FileInfo(dpBinding.ArtifactId).Length);
-    }
-
-    private static bool TryFindStandardMergeProfile(
+    private static bool TryFindStandardMergeProfileSummary(
         string selector,
         [NotNullWhen(true)]
-        out CompositionProfileDefinition? profile)
+        out WorkbenchProfileSummary? profile)
     {
         string normalized = selector.Trim();
-        profile = BuiltInStandardMergeProfiles.ExecutableStandardMergeProfiles.FirstOrDefault(candidate =>
+        profile = WorkbenchCompositionService.GetStandardMergeProfileSummaries().FirstOrDefault(candidate =>
             string.Equals(candidate.ProfileId, normalized, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(candidate.IcId, normalized, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(CliCompositionRunSupport.GetIcNumber(candidate.IcId), normalized, StringComparison.OrdinalIgnoreCase));

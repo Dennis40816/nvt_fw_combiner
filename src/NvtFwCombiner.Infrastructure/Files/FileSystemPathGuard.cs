@@ -49,6 +49,41 @@ internal static class FileSystemPathGuard
         return fullPath;
     }
 
+    internal static string ResolveExistingManifestFileUnderRoot(
+        string manifestPath,
+        string rootDirectory)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(manifestPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(rootDirectory);
+        if (Path.IsPathFullyQualified(manifestPath) ||
+            manifestPath.IndexOfAny(['\\', ':', '\0']) >= 0)
+        {
+            throw new ArgumentException(
+                "Bundle manifest paths must be relative and use forward slashes.",
+                nameof(manifestPath));
+        }
+
+        string[] segments = manifestPath.Split('/');
+        if (segments.Any(static segment => string.IsNullOrEmpty(segment) || segment is "." or ".."))
+        {
+            throw new ArgumentException(
+                "Bundle manifest paths cannot contain empty, current, or parent segments.",
+                nameof(manifestPath));
+        }
+
+        string root = ResolveExistingRoot(rootDirectory);
+        string fullPath = Path.GetFullPath(Path.Combine([root, .. segments]));
+        EnsureUnderRoot(fullPath, root);
+        if (!File.Exists(fullPath))
+        {
+            throw new FileNotFoundException("Bundle entry file was not found.", fullPath);
+        }
+
+        RejectReparsePoint(fullPath);
+        RegularFileGuard.RequirePath(fullPath);
+        return fullPath;
+    }
+
     internal static string ResolveFileNameUnderRoot(string fileName, string rootDirectory)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);

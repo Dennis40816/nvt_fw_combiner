@@ -10,17 +10,17 @@ public sealed partial class CompositionRunServiceTests
         IReadOnlyList<InputArtifactBinding>? bindings = null,
         string? outputFileName = null)
     {
-        CompositionProfileDefinition profile = BuiltInStandardMergeProfiles.SyntheticStandardMerge;
+        CompositionProfileDefinition profile = SyntheticCompositionProfiles.CreateStandardMerge();
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         return new CompositionRunRequest(
             "run-standard-synthetic",
-            ToRunProfile(profile),
-            compile.Plan!,
+            compile.CompiledComposition!,
             bindings ?? DefaultBindings(),
             outputFileName ?? profile.DefaultOutputFileName);
     }
 
-    private static CompositionRunRequest CreateScratchRequest()
+    private static CompositionRunRequest CreateScratchRequest(
+        IReadOnlyList<InputArtifactBinding>? bindings = null)
     {
         AddressSpace[] addressSpaces =
         [
@@ -28,7 +28,11 @@ public sealed partial class CompositionRunServiceTests
             new("scratch", 4, AddressSpaceMutability.Mutable),
         ];
         var plan = new CompositionPlan(
-            ImageInitialization.Blank("output-image", 4, 0),
+            [
+                ImageInitialization.Blank("output-image", 4, 0),
+                ImageInitialization.Blank("scratch", 4, 3),
+            ],
+            "output-image",
             addressSpaces,
             [
                 CompositionOperation.CopyRange(
@@ -41,18 +45,117 @@ public sealed partial class CompositionRunServiceTests
                     OverlapPolicy.Reject,
                     "copy scratch seed"),
             ]);
-        return new CompositionRunRequest(
-            "run-scratch",
-            new CompositionRunProfile(
+        CompiledComposition compiledComposition = CreateCompiledComposition(
+            plan,
+            new LegacyCompiledCompositionIdentity(
                 "scratch-profile",
                 "1.0.0",
                 "NT-SYNTHETIC",
                 "scratch",
                 "general-merge",
                 CompositionKind.Merge),
-            plan,
-            [new InputArtifactBinding("scratch", "scratch-safe", "scratch-artifact")],
             "scratch.bin");
+        return new CompositionRunRequest(
+            "run-scratch",
+            compiledComposition,
+            bindings ?? [],
+            "scratch.bin");
+    }
+
+    private static CompositionRunRequest CreateInitializerFingerprintRequest(
+        byte scratchFillByte,
+        string outputSpaceId)
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+            new("scratch", 4, AddressSpaceMutability.Mutable),
+        ];
+        var plan = new CompositionPlan(
+            [
+                ImageInitialization.Blank("output-image", 4, 0),
+                ImageInitialization.Blank("scratch", 4, scratchFillByte),
+            ],
+            outputSpaceId,
+            addressSpaces,
+            []);
+        CompiledComposition compiledComposition = CreateCompiledComposition(
+            plan,
+            new LegacyCompiledCompositionIdentity(
+                "initializer-fingerprint-profile",
+                "1.0.0",
+                "NT-SYNTHETIC",
+                "fingerprint",
+                "general-merge",
+                CompositionKind.Merge),
+            "fingerprint.bin");
+        return new CompositionRunRequest(
+            "run-initializer-fingerprint",
+            compiledComposition,
+            [],
+            "fingerprint.bin");
+    }
+
+    private static CompositionRunRequest CreateMultiReferenceReplaceRequest()
+    {
+        AddressSpace[] addressSpaces =
+        [
+            new("output-reference", 4, AddressSpaceMutability.Immutable),
+            new("scratch-reference", 4, AddressSpaceMutability.Immutable),
+            new("output-image", 4, AddressSpaceMutability.Mutable),
+            new("scratch", 4, AddressSpaceMutability.Mutable),
+        ];
+        var plan = new CompositionPlan(
+            [
+                ImageInitialization.Reference("output-image", "output-reference", 4),
+                ImageInitialization.Reference("scratch", "scratch-reference", 4),
+            ],
+            "output-image",
+            addressSpaces,
+            [
+                CompositionOperation.FillRange(
+                    "fill-output",
+                    10,
+                    "output-image",
+                    new ByteRange(1, 1),
+                    0x99,
+                    OverlapPolicy.Reject,
+                    "mutate selected output"),
+                CompositionOperation.FillRange(
+                    "fill-scratch",
+                    20,
+                    "scratch",
+                    new ByteRange(1, 1),
+                    0xEE,
+                    OverlapPolicy.Reject,
+                    "mutate non-output work buffer"),
+            ]);
+        CompiledComposition compiledComposition = CreateCompiledComposition(
+            plan,
+            new LegacyCompiledCompositionIdentity(
+                "multi-reference-replace-profile",
+                "1.0.0",
+                "NT-SYNTHETIC",
+                "multi-reference",
+                "general-replace",
+                CompositionKind.Replace),
+            "multi-reference.bin",
+            CompiledIcNumberPolicy.SingleSelector);
+        return new CompositionRunRequest(
+            "run-multi-reference-replace",
+            compiledComposition,
+            [
+                new InputArtifactBinding(
+                    "output-reference",
+                    "output-reference",
+                    "output-reference-artifact"),
+                new InputArtifactBinding(
+                    "scratch-reference",
+                    "scratch-reference",
+                    "scratch-reference-artifact"),
+            ],
+            "multi-reference.bin",
+            icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
     }
 
     private static CompositionRunRequest CreatePaddedInputRequest(byte? inputPaddingByte, string artifactId)
@@ -62,6 +165,13 @@ public sealed partial class CompositionRunServiceTests
             new("output-image", 4, AddressSpaceMutability.Mutable),
             new("short-input", 4, AddressSpaceMutability.Immutable, inputPaddingByte),
         ];
+        var identity = new LegacyCompiledCompositionIdentity(
+            "padded-input-profile",
+            "1.0.0",
+            "NT-SYNTHETIC",
+            "standard-merge",
+            "standard-merge",
+            CompositionKind.Merge);
         var plan = new CompositionPlan(
             ImageInitialization.Blank("output-image", 4, 0),
             addressSpaces,
@@ -75,25 +185,11 @@ public sealed partial class CompositionRunServiceTests
                     new ByteRange(0, 4),
                     OverlapPolicy.Reject,
                     "copy padded input"),
-            ],
-            new CompositionPlanProvenance(
-                "padded-input-profile",
-                "1.0.0",
-                "NT-SYNTHETIC",
-                "standard-merge",
-                "standard-merge",
-                CompositionKind.Merge));
+            ]);
 
         return new CompositionRunRequest(
             "run-padded-input",
-            new CompositionRunProfile(
-                "padded-input-profile",
-                "1.0.0",
-                "NT-SYNTHETIC",
-                "standard-merge",
-                "standard-merge",
-                CompositionKind.Merge),
-            plan,
+            CreateCompiledComposition(plan, identity, "padded.bin"),
             [new InputArtifactBinding("short-input", "short-safe", artifactId)],
             "padded.bin");
     }
@@ -108,7 +204,7 @@ public sealed partial class CompositionRunServiceTests
             new("ctrlram-input", 2, AddressSpaceMutability.Immutable, inputOversizePolicy: inputOversizePolicy),
             new("output-image", 4, AddressSpaceMutability.Mutable),
         ];
-        var provenance = new CompositionPlanProvenance(
+        var identity = new LegacyCompiledCompositionIdentity(
             "ctrlram-replace-profile",
             "1.0.0",
             "NT-SYNTHETIC",
@@ -128,20 +224,15 @@ public sealed partial class CompositionRunServiceTests
                     new ByteRange(1, 2),
                     OverlapPolicy.Reject,
                     "replace ctrlram"),
-            ],
-            provenance);
+            ]);
 
         return new CompositionRunRequest(
             "run-ctrlram-replace",
-            new CompositionRunProfile(
-                provenance.ProfileId,
-                provenance.ProfileVersion,
-                provenance.IcId,
-                provenance.ModeId,
-                provenance.ExperienceId,
-                provenance.CompositionKind,
-                IcNumberInputMode.SingleSelector),
-            plan,
+            CreateCompiledComposition(
+                plan,
+                identity,
+                "ctrlram.bin",
+                CompiledIcNumberPolicy.SingleSelector),
             [
                 new InputArtifactBinding("reference-base", "reference-safe", "reference-artifact"),
                 new InputArtifactBinding("ctrlram-input", "ctrlram-safe", ctrlRamArtifactId),
@@ -156,8 +247,7 @@ public sealed partial class CompositionRunServiceTests
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         return new CompositionRunRequest(
             "run-dp-replace",
-            ToRunProfile(profile),
-            compile.Plan!,
+            compile.CompiledComposition!,
             CreateDpReplaceBindings(),
             profile.DefaultOutputFileName,
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, [icNumber]));
@@ -165,7 +255,7 @@ public sealed partial class CompositionRunServiceTests
 
     private static CompositionRunRequest CreateNumericReplaceRequest(string icCount)
     {
-        var provenance = new CompositionPlanProvenance(
+        var identity = new LegacyCompiledCompositionIdentity(
             "numeric-replace",
             "1.0.0",
             "NT51927",
@@ -180,21 +270,14 @@ public sealed partial class CompositionRunServiceTests
         var plan = new CompositionPlan(
             ImageInitialization.Reference("output-image", "reference-base", 4),
             addressSpaces,
-            [],
-            provenance);
-        var profile = new CompositionRunProfile(
-            provenance.ProfileId,
-            provenance.ProfileVersion,
-            provenance.IcId,
-            provenance.ModeId,
-            provenance.ExperienceId,
-            provenance.CompositionKind,
-            IcNumberInputMode.NumericSelector);
-
+            []);
         return new CompositionRunRequest(
             "run-numeric-replace",
-            profile,
-            plan,
+            CreateCompiledComposition(
+                plan,
+                identity,
+                "numeric.bin",
+                CompiledIcNumberPolicy.NumericSelector),
             [new InputArtifactBinding("reference-base", "reference-safe", "reference-artifact")],
             "numeric.bin",
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.NumericSelector, [icCount]));
@@ -227,16 +310,19 @@ public sealed partial class CompositionRunServiceTests
                     OverlapPolicy.ReplaceExisting,
                     "final fill"),
             ]);
-        return new CompositionRunRequest(
-            runId,
-            new CompositionRunProfile(
+        CompiledComposition compiledComposition = CreateCompiledComposition(
+            plan,
+            new LegacyCompiledCompositionIdentity(
                 "overwrite-profile",
                 "1.0.0",
                 "NT-SYNTHETIC",
                 "overwrite",
                 "general-merge",
                 CompositionKind.Merge),
-            plan,
+            "overwrite.bin");
+        return new CompositionRunRequest(
+            runId,
+            compiledComposition,
             [],
             "overwrite.bin");
     }

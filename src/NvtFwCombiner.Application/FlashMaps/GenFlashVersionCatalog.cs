@@ -115,7 +115,7 @@ public static class GenFlashVersionCatalog
     }
 
     /// <summary>
-    /// Reads CMI DP Reg16h-18h metadata, using the TP NVT-copy FWConfig chip number when an IC
+    /// Reads CMI DP Reg16h-18h metadata, using the TP NVT Backup FWConfig chip number when an IC
     /// declares different 1IC and cascade locations.
     /// </summary>
     public static bool TryReadCmiDpCode(
@@ -288,7 +288,7 @@ public sealed record CmiDpCodeRule(
     string EvidenceSource,
     long? CascadeRegister16Offset = null)
 {
-    /// <summary>Whether the TP NVT-copy FWConfig ChipNumber is required to select the CMI location.</summary>
+    /// <summary>Whether the TP NVT Backup FWConfig ChipNumber is required to select the CMI location.</summary>
     public bool RequiresFirmwareConfigChipNumber => CascadeRegister16Offset is not null;
 
     /// <summary>Returns whether the payload length has golden evidence for this IC's CMI register location.</summary>

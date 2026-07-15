@@ -17,10 +17,12 @@ public sealed partial class MainWindowViewModel
     public string ReplaceBuildUnavailableReason => ReplaceReadinessStatus;
 
     /// <summary>Builds Replace output to a user-selected path.</summary>
-    public Task BuildReplaceAsync(string outputPath)
+    public Task BuildReplaceAsync(
+        string outputPath,
+        WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
-        return RunReplaceAsync(build: true, outputPath);
+        return RunReplaceAsync(build: true, outputPath, ctrlRamFirmwareVersionEdit);
     }
 
     private bool CanRunReplace()
@@ -39,10 +41,13 @@ public sealed partial class MainWindowViewModel
 
     private async Task RunReplaceAsync(bool build)
     {
-        await RunReplaceAsync(build, outputPath: null);
+        await RunReplaceAsync(build, outputPath: null, ctrlRamFirmwareVersionEdit: null);
     }
 
-    private async Task RunReplaceAsync(bool build, string? outputPath)
+    private async Task RunReplaceAsync(
+        bool build,
+        string? outputPath,
+        WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit)
     {
         CloseReplaceSelectionForRun();
         CancellationTokenSource? cancellationSource = null;
@@ -57,7 +62,8 @@ public sealed partial class MainWindowViewModel
                 CreateGeneralReplaceMappingInputs(),
                 build,
                 cancellationSource.Token,
-                outputPath);
+                outputPath,
+                ctrlRamFirmwareVersionEdit);
             ApplyRunResult(result, build);
             RefreshCommandState();
         }

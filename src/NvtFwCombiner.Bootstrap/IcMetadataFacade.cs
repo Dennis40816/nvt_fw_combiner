@@ -8,7 +8,7 @@ namespace NvtFwCombiner.Bootstrap;
 /// Read-only projection of the canonical IC onboarding, TP flash-map, TP header, and postbuild catalogs.
 /// This type owns no firmware facts; it prevents UI and CLI callers from joining catalog categories themselves.
 /// </summary>
-public static class IcMetadataFacade
+internal static class IcMetadataFacade
 {
     private static IReadOnlyList<IcMetadata> Metadata { get; } = BuildMetadata().AsReadOnly();
     private static readonly Dictionary<string, IcMetadata> MetadataByIc = Metadata
@@ -18,7 +18,8 @@ public static class IcMetadataFacade
     public static IReadOnlyList<IcMetadata> All => Metadata;
 
     /// <summary>All selectable IC identifiers in stable display order.</summary>
-    public static IReadOnlyList<string> IcIds { get; } = [.. Metadata.Select(metadata => metadata.IcId)];
+    public static IReadOnlyList<string> IcIds { get; } =
+        Array.AsReadOnly(Metadata.Select(static metadata => metadata.IcId).ToArray());
 
     /// <summary>Catalog-owned initial IC identifier for workbench surfaces.</summary>
     public static string DefaultIcId => IcSupportCatalog.DefaultIcId;
@@ -31,15 +32,6 @@ public static class IcMetadataFacade
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         return MetadataByIc.TryGetValue(NormalizeIcId(icId), out metadata);
-    }
-
-    /// <summary>Returns whether a selectable IC exposes an approved workbench workflow.</summary>
-    public static bool SupportsWorkflow(string icId, string workflowId)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(workflowId);
-        return TryFind(icId, out IcMetadata? metadata) &&
-            metadata is not null &&
-            metadata.SupportsWorkflow(workflowId);
     }
 
     /// <summary>Gets the profile-declared IC-number choices for a selectable IC.</summary>
@@ -56,27 +48,6 @@ public static class IcMetadataFacade
         return TryFind(icId, out IcMetadata? metadata) && metadata is not null
             ? metadata.NumberSelectionChoices
             : [];
-    }
-
-    /// <summary>Gets the TP Overview FWConfig start for a selectable IC.</summary>
-    public static bool TryGetFirmwareConfigStart(string icId, out long firmwareConfigStart)
-    {
-        if (TryFind(icId, out IcMetadata? metadata) && metadata is not null)
-        {
-            firmwareConfigStart = metadata.FirmwareConfigStart;
-            return true;
-        }
-
-        firmwareConfigStart = 0;
-        return false;
-    }
-
-    /// <summary>Returns true when the IC uses the profile-owned DP Perspective container policy.</summary>
-    public static bool IsDpPerspectiveIc(string icId)
-    {
-        return TryFind(icId, out IcMetadata? metadata) &&
-            metadata is not null &&
-            metadata.UsesDpPerspective;
     }
 
     /// <summary>Gets the approved postbuild category variants for a selectable IC.</summary>
@@ -132,19 +103,19 @@ public static class IcMetadataFacade
                 LegacyCombinerPostbuildCatalog.GetProfiles(support.IcId);
             metadata.Add(new IcMetadata(
                 support.IcId,
-                support.WorkflowIds,
+                Array.AsReadOnly(support.WorkflowIds.ToArray()),
                 support.StandardMergeSourceIcId,
                 support.CtrlRamPostbuildSourceIcId,
                 support.Notes,
                 flashMap!.OverviewSource,
-                flashMap.FirmwareConfigStart,
-                TpFlashMapCatalog.GetNumberChoices(support.IcId),
-                TpFlashMapCatalog.GetNumberSelectionChoices(support.IcId),
-                [.. postbuildProfiles
+                flashMap.FirmwareConfigPrimaryStart,
+                Array.AsReadOnly(TpFlashMapCatalog.GetNumberChoices(support.IcId).ToArray()),
+                Array.AsReadOnly(TpFlashMapCatalog.GetNumberSelectionChoices(support.IcId).ToArray()),
+                Array.AsReadOnly(postbuildProfiles
                     .Select(profile => profile.DisplayCategory)
                     .Distinct(StringComparer.Ordinal)
-                    .Order(StringComparer.Ordinal)],
-                DpPerspectiveCatalog.IsSupportedIc(support.IcId)));
+                    .Order(StringComparer.Ordinal)
+                    .ToArray())));
         }
 
         return metadata;
@@ -160,25 +131,18 @@ public static class IcMetadataFacade
 }
 
 /// <summary>One read-only joined IC metadata row. Firmware semantics remain owned by the source catalogs.</summary>
-public sealed record IcMetadata(
+internal sealed record IcMetadata(
     string IcId,
     IReadOnlyList<string> WorkflowIds,
     string? StandardMergeSourceIcId,
     string? CtrlRamPostbuildSourceIcId,
     string? Notes,
     string TpOverviewSource,
-    long FirmwareConfigStart,
+    long FirmwareConfigPrimaryStart,
     IReadOnlyList<string> NumberChoices,
     IReadOnlyList<IcNumberChoice> NumberSelectionChoices,
-    IReadOnlyList<string> PostbuildCategories,
-    bool UsesDpPerspective)
+    IReadOnlyList<string> PostbuildCategories)
 {
-    /// <summary>Returns true when this IC exposes the selected workflow.</summary>
-    public bool SupportsWorkflow(string workflowId)
-    {
-        return WorkflowIds.Contains(workflowId, StringComparer.Ordinal);
-    }
-
     /// <summary>Returns true when one or more approved postbuild categories are declared.</summary>
     public bool HasPostbuild => PostbuildCategories.Count > 0;
 }

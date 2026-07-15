@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -7,7 +6,7 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellViewModelTests
 {
-    /// <summary>Verifies required slot cards change tone when selected while optional slots keep the neutral tone.</summary>
+    /// <summary>Verifies slot completion retains required and optional semantics for XAML state selectors.</summary>
     [Fact]
     public void FirmwareSlotCompletionToneHighlightsOnlyRequiredInputs()
     {
@@ -19,15 +18,9 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(FirmwareSlotKind.Dp, required.SlotKind);
         Assert.Equal("DP BIN", required.SlotIconTooltip);
         AssertIconGeometry(required);
-        AssertBrush("#EFF6FF", required.SlotIconBackgroundBrush);
-        AssertBrush("#BFDBFE", required.SlotIconBorderBrush);
-        AssertBrush("#1D4ED8", required.SlotIconForegroundBrush);
         Assert.Equal("No BIN selected", required.DisplayName);
         Assert.Equal(string.Empty, required.DisplayDetail);
-        AssertBrush("#FEF2F2", required.SlotBackgroundBrush);
-        AssertBrush("#FCA5A5", required.SlotBorderBrush);
-        Assert.Equal(new Thickness(1.5), required.SlotBorderThickness);
-        AssertBrush("#B91C1C", required.RequirementBadgeForegroundBrush);
+        Assert.Equal("Required", required.RequirementLabel);
 
         required.FilePath = workspace.PathFor("dp.bin").Replace('\\', '/');
 
@@ -35,28 +28,19 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("dp.bin", required.DisplayName);
         Assert.Equal(required.FilePath.Replace('/', '\\'), required.DisplayDetail);
         AssertIconGeometry(required);
-        AssertBrush("#EFF6FF", required.SlotIconBackgroundBrush);
-        AssertBrush("#F0FDF4", required.SlotBackgroundBrush);
-        AssertBrush("#86EFAC", required.SlotBorderBrush);
-        Assert.Equal(new Thickness(1), required.SlotBorderThickness);
-        AssertBrush("#15803D", required.RequirementBadgeForegroundBrush);
+        Assert.Equal("Required", required.RequirementLabel);
 
         FirmwareSlotViewModel optional = new("merge-ld", "LD BIN", "Optional payload", isOptional: true);
 
         Assert.True(optional.IsOptional);
         Assert.Equal(FirmwareSlotKind.Dp, optional.SlotKind);
         AssertIconGeometry(optional);
-        AssertBrush("#F8FAFC", optional.SlotBackgroundBrush);
-        AssertBrush("#CBD5E1", optional.SlotBorderBrush);
-        Assert.Equal(new Thickness(1), optional.SlotBorderThickness);
-        AssertBrush("#1D4ED8", optional.RequirementBadgeForegroundBrush);
+        Assert.Equal("Optional", optional.RequirementLabel);
 
         optional.FilePath = workspace.PathFor("ld.bin");
 
         Assert.True(optional.HasFile);
-        AssertBrush("#F8FAFC", optional.SlotBackgroundBrush);
-        AssertBrush("#CBD5E1", optional.SlotBorderBrush);
-        AssertBrush("#1D4ED8", optional.RequirementBadgeForegroundBrush);
+        Assert.Equal("Optional", optional.RequirementLabel);
     }
 
     /// <summary>Verifies slot type icons distinguish DP, TP, CtrlRAM and base BIN inputs.</summary>
@@ -93,9 +77,6 @@ public sealed partial class ShellViewModelTests
                 Assert.Equal(FirmwareSlotKind.CtrlRam, slot.SlotKind);
                 Assert.Equal("CtrlRAM BIN", slot.SlotIconTooltip);
                 AssertIconGeometry(slot);
-                AssertBrush("#F5F3FF", slot.SlotIconBackgroundBrush);
-                AssertBrush("#DDD6FE", slot.SlotIconBorderBrush);
-                AssertBrush("#6D28D9", slot.SlotIconForegroundBrush);
             });
     }
 

@@ -1,8 +1,37 @@
 # Repository Verification Report
 
-Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
+Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.7 cumulative integration candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
 
-Specification package version: `0.9.0`
+Specification package version: `0.9.7`
+
+## 0.9.7 integration candidate
+
+The 0.9.7 integration branch combines the reviewed 0.9.6 lineage with the
+fact-scoped AB evidence forward-port, compiled final-output validation and the
+non-routed NT51926 CtrlRAM V2 candidate, and the audited semantic UI token
+consolidation. Phase-local AB, Application, Domain, Bootstrap, Architecture,
+and UI smoke tests passed on 2026-07-15.
+
+On 2026-07-15, `python scripts/verify.py --all` passed with zero build warnings
+and errors: 12 repository Python tests, 28 CRC-worker tests at 98.88% coverage,
+Domain 345, Application 244, ProfileContract 362, Architecture 71,
+GoldenRegression 6, Bootstrap 260, Infrastructure 180 with 2 Unix-only skips,
+and UI Smoke 119. Polytail and the post-`v0.9.2` Conventional Commit audit also
+passed; all 98 integration commits present before this evidence-only update had
+clean phase-scoped subjects and no WIP/fixup markers.
+
+This candidate does not promote AB or CtrlRAM runtime support and does not
+replace the remaining firmware-owner, product-golden, signing, protected-CI,
+or clean-machine release evidence. Stable package smoke is performed only from
+the reviewed `main` commit, not from this pre-merge integration branch.
+
+## 0.9.2 consolidation evidence
+
+The 0.9.2 integration branch materializes each built-in V2 profile bundle from the content-addressed schema source inventory and removes the Standard Merge legacy runtime fallback. It retains the trusted loader boundary and all existing firmware behavior. On 2026-07-13, `python scripts/verify.py --all` passed with zero build warnings and errors: Python worker 28, Domain 335, Application 219, ProfileContract 347, Architecture 69, GoldenRegression 9, Bootstrap 192, Infrastructure 138 passed with 2 Unix-only skips, and UI Smoke 106. This local-verification milestone does not publish a package, promote IC support, or authorize AB Code behavior.
+
+## 0.9.1 migration evidence
+
+The 0.9.1 release branch retains the documented legacy comparison and golden evidence while routing the covered Normal/Standard Merge and NT51950/NT51951 DP Replace paths through the V2 family/map/profile compiler boundary. On 2026-07-13, `python scripts/verify.py --all` passed with zero build warnings and errors: Python worker 28, Domain 335, Application 219, ProfileContract 347, Architecture 68, GoldenRegression 9, Bootstrap 188, Infrastructure 138 passed with 2 Unix-only skips, and UI Smoke 105. This source-branch evidence does not establish packaged-install trust, IC product support, or AB Code behavior.
 
 ## Bootstrap assertions
 

@@ -1,0 +1,337 @@
+{
+  "schemaVersion": "2.0",
+  "profileId": "nt51929-ab-merge",
+  "profileVersion": "0.1.0",
+  "promotion": {
+    "stage": "executable-candidate",
+    "blockers": [
+      {
+        "blockerId": "firmware-owner-review",
+        "kind": "human-review",
+        "reason": "Firmware owner must approve the candidate AB relocation profile before runtime exposure.",
+        "evidenceRefs": [
+          "uploaded-ab-combiner-51929"
+        ]
+      },
+      {
+        "blockerId": "production-golden-evidence",
+        "kind": "golden",
+        "reason": "The uploaded private reference output is not an owner-approved product golden.",
+        "evidenceRefs": [
+          "uploaded-ab-combiner-51929"
+        ]
+      }
+    ]
+  },
+  "compositionKind": "merge",
+  "experience": {
+    "experienceId": "ab-merge",
+    "audience": "system",
+    "layoutPolicy": "fixed",
+    "inputPolicy": "fixed",
+    "topologyAuthoring": "hidden",
+    "displayNameKey": "profile.nt51929.ab-merge"
+  },
+  "mapBinding": {
+    "familyId": "nt51919-nt51929-nt51932-ab-merge",
+    "familyVersion": "0.1.0",
+    "familyContentHash": "f3004851cc55845b9917c3230595cbb700d92b4f28272a26bf5ee6b11d5fa1eb",
+    "mapIds": [
+      "nt51929-ab-merge-512k"
+    ],
+    "requiredRegionIds": [
+      "ab-image",
+      "tpa-code",
+      "tpb-code"
+    ],
+    "requiredMetadataStructureIds": [],
+    "requiredCapabilityIds": []
+  },
+  "inputSlots": [
+    {
+      "slotId": "dp-ab-input",
+      "role": "dp-ab",
+      "artifactClass": "dp-firmware",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [
+        ".bin"
+      ],
+      "acceptance": {
+        "lengthRule": {
+          "kind": "exact-resolved-map-capacity"
+        },
+        "normalization": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "slotId": "tp-a-input",
+      "role": "tp-a",
+      "artifactClass": "tp-firmware",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [
+        ".bin"
+      ],
+      "acceptance": {
+        "lengthRule": {
+          "kind": "exact-bytes",
+          "bytes": 262144
+        },
+        "normalization": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "slotId": "tp-b-input",
+      "role": "tp-b",
+      "artifactClass": "tp-firmware",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [
+        ".bin"
+      ],
+      "acceptance": {
+        "lengthRule": {
+          "kind": "exact-bytes",
+          "bytes": 262144
+        },
+        "normalization": {
+          "kind": "none"
+        }
+      }
+    }
+  ],
+  "spaces": [
+    {
+      "spaceId": "dp-ab-input",
+      "kind": "input-artifact",
+      "slotId": "dp-ab-input",
+      "instancePolicy": "singleton"
+    },
+    {
+      "spaceId": "tp-a-input",
+      "kind": "input-artifact",
+      "slotId": "tp-a-input",
+      "instancePolicy": "singleton"
+    },
+    {
+      "spaceId": "tp-b-input",
+      "kind": "input-artifact",
+      "slotId": "tp-b-input",
+      "instancePolicy": "singleton"
+    },
+    {
+      "spaceId": "tp-b-work",
+      "kind": "work-buffer",
+      "capacity": {
+        "kind": "fixed",
+        "bytes": 262144
+      },
+      "initializer": {
+        "kind": "clone",
+        "sourceSlotId": "tp-b-input"
+      }
+    },
+    {
+      "spaceId": "output-image",
+      "kind": "output-image",
+      "capacity": {
+        "kind": "resolved-map"
+      },
+      "initializer": {
+        "kind": "blank",
+        "fillByte": 0
+      }
+    }
+  ],
+  "views": [
+    {
+      "viewId": "dp-ab-source",
+      "spaceId": "dp-ab-input",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "ab-image"
+      }
+    },
+    {
+      "viewId": "dp-ab-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "ab-image"
+      }
+    },
+    {
+      "viewId": "tp-a-source",
+      "spaceId": "tp-a-input",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "tpa-code"
+      }
+    },
+    {
+      "viewId": "tp-a-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "tpa-code"
+      }
+    },
+    {
+      "viewId": "tp-b-ilm",
+      "spaceId": "tp-b-work",
+      "selector": {
+        "kind": "space-range",
+        "range": {
+          "start": 29028,
+          "length": 4
+        }
+      }
+    },
+    {
+      "viewId": "tp-b-dlm",
+      "spaceId": "tp-b-work",
+      "selector": {
+        "kind": "space-range",
+        "range": {
+          "start": 29032,
+          "length": 4
+        }
+      }
+    },
+    {
+      "viewId": "tp-b-diff",
+      "spaceId": "tp-b-work",
+      "selector": {
+        "kind": "space-range",
+        "range": {
+          "start": 29036,
+          "length": 4
+        }
+      }
+    },
+    {
+      "viewId": "tp-b-source",
+      "spaceId": "tp-b-work",
+      "selector": {
+        "kind": "space-range",
+        "range": {
+          "start": 28672,
+          "length": 233472
+        }
+      }
+    },
+    {
+      "viewId": "tp-b-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "tpb-code"
+      }
+    }
+  ],
+  "metadataBindings": [],
+  "regionAccessRules": [
+    {
+      "regionId": "ab-image",
+      "access": "explicit-range",
+      "reason": "Copy the owner-supplied full 512 KiB AB DP container before TP overlays."
+    },
+    {
+      "regionId": "tpa-code",
+      "access": "whole",
+      "reason": "Overlay the exact TPA code range after the DP AB image."
+    },
+    {
+      "regionId": "tpb-code",
+      "access": "whole",
+      "reason": "Overlay the relocated TPB code range after the DP AB image."
+    }
+  ],
+  "operations": [
+    {
+      "operationId": "copy-dp-ab-image",
+      "sequence": 100,
+      "overlapPolicy": "reject",
+      "reason": "Copy the exact 512 KiB DP AB image into the output image.",
+      "kind": "copy-range",
+      "sourceViewId": "dp-ab-source",
+      "targetViewId": "dp-ab-output"
+    },
+    {
+      "operationId": "copy-tpa",
+      "sequence": 200,
+      "overlapPolicy": "replace-existing",
+      "reason": "Overlay TPA after the DP AB image.",
+      "kind": "copy-range",
+      "sourceViewId": "tp-a-source",
+      "targetViewId": "tp-a-output"
+    },
+    {
+      "operationId": "relocate-tpb-ilm",
+      "sequence": 300,
+      "overlapPolicy": "reject",
+      "reason": "Relocate the TPB ILM address by the fixed B-bank offset.",
+      "kind": "transform-scalar",
+      "sourceViewId": "tp-b-ilm",
+      "targetViewId": "tp-b-ilm",
+      "widthBytes": 4,
+      "byteOrder": "little",
+      "valueInterpretation": "unsigned",
+      "addend": 262144,
+      "overflowPolicy": "reject"
+    },
+    {
+      "operationId": "relocate-tpb-dlm",
+      "sequence": 400,
+      "overlapPolicy": "reject",
+      "reason": "Relocate the TPB DLM address by the fixed B-bank offset.",
+      "kind": "transform-scalar",
+      "sourceViewId": "tp-b-dlm",
+      "targetViewId": "tp-b-dlm",
+      "widthBytes": 4,
+      "byteOrder": "little",
+      "valueInterpretation": "unsigned",
+      "addend": 262144,
+      "overflowPolicy": "reject"
+    },
+    {
+      "operationId": "relocate-tpb-diff",
+      "sequence": 500,
+      "overlapPolicy": "reject",
+      "reason": "Relocate the TPB difference address by the fixed B-bank offset.",
+      "kind": "transform-scalar",
+      "sourceViewId": "tp-b-diff",
+      "targetViewId": "tp-b-diff",
+      "widthBytes": 4,
+      "byteOrder": "little",
+      "valueInterpretation": "unsigned",
+      "addend": 262144,
+      "overflowPolicy": "reject"
+    },
+    {
+      "operationId": "copy-tpb",
+      "sequence": 600,
+      "overlapPolicy": "replace-existing",
+      "reason": "Overlay relocated TPB after the DP AB image.",
+      "kind": "copy-range",
+      "sourceViewId": "tp-b-source",
+      "targetViewId": "tp-b-output"
+    }
+  ],
+  "validations": [],
+  "processorStages": [],
+  "output": {
+    "fileNameTemplate": "nt51929-ab-merge.bin",
+    "allowOverride": true,
+    "invalidCharacterPolicy": "reject",
+    "requiredTokenIds": []
+  },
+  "evidenceRefs": [
+    "uploaded-ab-combiner-51929"
+  ]
+}

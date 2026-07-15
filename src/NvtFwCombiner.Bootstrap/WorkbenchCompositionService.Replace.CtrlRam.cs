@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
 
@@ -13,9 +14,35 @@ public static partial class WorkbenchCompositionService
         IReadOnlyDictionary<string, string> slotPaths,
         bool build,
         string? outputPath,
+        WorkbenchCtrlRamFirmwareVersionEdit? firmwareVersionEdit,
         CancellationToken cancellationToken)
     {
-        CtrlRamReplaceRunContext context = CreateCtrlRamReplaceRunContext(icId, number, slotPaths);
+        return await RunCtrlRamReplaceWithProcessorAsync(
+            icId,
+            number,
+            slotPaths,
+            build,
+            outputPath,
+            firmwareVersionEdit,
+            ExternalProcessorFactory.CreateOrNull(),
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    internal static async ValueTask<WorkbenchRunResult> RunCtrlRamReplaceWithProcessorAsync(
+        string icId,
+        string number,
+        IReadOnlyDictionary<string, string> slotPaths,
+        bool build,
+        string? outputPath,
+        WorkbenchCtrlRamFirmwareVersionEdit? firmwareVersionEdit,
+        IExternalProcessor? externalProcessor,
+        CancellationToken cancellationToken)
+    {
+        CtrlRamReplaceRunContext context = CreateCtrlRamReplaceRunContext(
+            icId,
+            number,
+            slotPaths,
+            firmwareVersionEdit);
 
         if (!context.CanRun)
         {
@@ -74,7 +101,8 @@ public static partial class WorkbenchCompositionService
             context.SelectedRegions,
             context.PostbuildProfile!,
             context.CommandPlan!,
-            postbuildWriteRangeSections);
+            postbuildWriteRangeSections,
+            context.FirmwareVersionWritePlan);
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         if (!compile.IsSuccess)
         {
@@ -99,13 +127,12 @@ public static partial class WorkbenchCompositionService
 
         return await RunCompiledCompositionAsync(
             CtrlRamReplaceRunIdPrefix,
-            profile,
-            compile.Plan!,
+            compile.CompiledComposition!,
             bindings,
             context.BasePath!,
             build,
             outputPath,
-            externalProcessor: ExternalProcessorFactory.CreateOrNull(),
+            externalProcessor,
             icNumberSelection: context.Selection,
             overwrite: true,
             cancellationToken).ConfigureAwait(false);

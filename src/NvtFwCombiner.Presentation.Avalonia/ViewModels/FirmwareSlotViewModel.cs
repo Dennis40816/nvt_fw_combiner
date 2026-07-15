@@ -64,23 +64,11 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(HasFile))]
     [NotifyPropertyChangedFor(nameof(DisplayName))]
     [NotifyPropertyChangedFor(nameof(DisplayDetail))]
-    [NotifyPropertyChangedFor(nameof(SlotBackgroundBrush))]
-    [NotifyPropertyChangedFor(nameof(SlotBorderBrush))]
-    [NotifyPropertyChangedFor(nameof(SlotBorderThickness))]
-    [NotifyPropertyChangedFor(nameof(RequirementBadgeBackgroundBrush))]
-    [NotifyPropertyChangedFor(nameof(RequirementBadgeBorderBrush))]
-    [NotifyPropertyChangedFor(nameof(RequirementBadgeForegroundBrush))]
     public partial string? FilePath { get; set; }
 
     /// <summary>True when this input is optional for the active workflow.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(RequirementLabel))]
-    [NotifyPropertyChangedFor(nameof(SlotBackgroundBrush))]
-    [NotifyPropertyChangedFor(nameof(SlotBorderBrush))]
-    [NotifyPropertyChangedFor(nameof(SlotBorderThickness))]
-    [NotifyPropertyChangedFor(nameof(RequirementBadgeBackgroundBrush))]
-    [NotifyPropertyChangedFor(nameof(RequirementBadgeBorderBrush))]
-    [NotifyPropertyChangedFor(nameof(RequirementBadgeForegroundBrush))]
     public partial bool IsOptional { get; set; }
 
     /// <summary>Updates localizable display-only slot text without changing the stable slot id or file state.</summary>

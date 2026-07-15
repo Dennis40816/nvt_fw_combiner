@@ -9,6 +9,7 @@ public sealed class ExternalProcessorRequest
     private readonly byte[] _inputBytes;
     private readonly ByteRange[] _allowedWriteRanges;
     private readonly ExternalProcessorStagedSource[] _stagedSources;
+    private readonly ExternalProcessorStagedArtifact[] _stagedArtifacts;
 
     /// <summary>Creates a transform request over a host-controlled staging copy.</summary>
     public ExternalProcessorRequest(
@@ -18,7 +19,8 @@ public sealed class ExternalProcessorRequest
         ReadOnlyMemory<byte> inputBytes,
         IEnumerable<ByteRange> allowedWriteRanges,
         IcNumberSelection? icNumberSelection = null,
-        IEnumerable<ExternalProcessorStagedSource>? stagedSources = null)
+        IEnumerable<ExternalProcessorStagedSource>? stagedSources = null,
+        IEnumerable<ExternalProcessorStagedArtifact>? stagedArtifacts = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentException.ThrowIfNullOrWhiteSpace(processorId);
@@ -46,6 +48,7 @@ public sealed class ExternalProcessorRequest
                 .OrderBy(source => source.FirmwareRange.Start)
                 .ThenBy(source => source.FirmwareRange.Length),
         ];
+        ExternalProcessorStagedArtifact[] artifacts = [.. stagedArtifacts ?? []];
         foreach (ExternalProcessorStagedSource source in _stagedSources)
         {
             if (source.FirmwareRange.EndExclusive > inputBytes.Length)
@@ -53,6 +56,17 @@ public sealed class ExternalProcessorRequest
                 throw new ArgumentException("External processor staged source range is outside the input image.", nameof(stagedSources));
             }
         }
+
+        if (artifacts.Any(static artifact => artifact is null) ||
+            artifacts.Select(static artifact => artifact.ArtifactId).Distinct(StringComparer.Ordinal).Count() !=
+            artifacts.Length)
+        {
+            throw new ArgumentException(
+                "External processor staged artifacts must be non-null with unique artifact ids.",
+                nameof(stagedArtifacts));
+        }
+
+        _stagedArtifacts = [.. artifacts.OrderBy(artifact => artifact.ArtifactId, StringComparer.Ordinal)];
     }
 
     /// <summary>Stable execution id used to name the private staging directory.</summary>
@@ -72,6 +86,9 @@ public sealed class ExternalProcessorRequest
 
     /// <summary>Optional source bytes staged for the processor without pre-writing them into <see cref="InputBytes"/>.</summary>
     public IReadOnlyList<ExternalProcessorStagedSource> StagedSources => _stagedSources;
+
+    /// <summary>Named immutable artifact bytes staged separately from the target image.</summary>
+    public IReadOnlyList<ExternalProcessorStagedArtifact> StagedArtifacts => _stagedArtifacts;
 
     /// <summary>Optional IC number context used by IC-specific postbuild processors.</summary>
     public IcNumberSelection? IcNumberSelection { get; }

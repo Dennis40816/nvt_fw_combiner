@@ -29,7 +29,7 @@ internal static partial class ReplaceCliCommandHandler
 
         if (!WorkbenchIcNumberTokens.IsSingle(icNumber))
         {
-            error.WriteLine($"error: {DpPerspectiveCatalog.FormatSupportedIcIds()} DP Replace requires --ic-num {WorkbenchIcNumberTokens.SingleChip}");
+            error.WriteLine($"error: {WorkbenchCompositionService.FormatBuiltInV2DpReplaceIcIds()} DP Replace requires --ic-num {WorkbenchIcNumberTokens.SingleChip}");
             return UsageError;
         }
 
@@ -86,22 +86,7 @@ internal static partial class ReplaceCliCommandHandler
         string selector,
         [NotNullWhen(true)] out string? icId)
     {
-        string normalized = selector.Trim();
-        foreach (CompositionProfileDefinition profile in BuiltInReplaceProfiles.All.Where(profile =>
-                     profile.ExperienceId == IcWorkflowIds.DpReplace &&
-                     BuiltInReplaceProfiles.IsDpPerspectiveDpReplaceIc(profile.IcId)))
-        {
-            if (string.Equals(profile.ProfileId, normalized, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(profile.IcId, normalized, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(CliCompositionRunSupport.GetIcNumber(profile.IcId), normalized, StringComparison.OrdinalIgnoreCase))
-            {
-                icId = profile.IcId;
-                return true;
-            }
-        }
-
-        icId = null;
-        return false;
+        return WorkbenchCompositionService.TryResolveDpPerspectiveDpReplaceSelector(selector, out icId);
     }
 
     private static bool RejectUnusedDpWorkbenchOptions(ParsedOptions options, TextWriter error)
@@ -110,7 +95,7 @@ internal static partial class ReplaceCliCommandHandler
         {
             if (options.Values.ContainsKey(optionName) || options.GetValues(optionName).Count > 0)
             {
-                error.WriteLine($"error: option '{optionName}' is not used by {DpPerspectiveCatalog.FormatSupportedIcIds()} DP Replace");
+                error.WriteLine($"error: option '{optionName}' is not used by {WorkbenchCompositionService.FormatBuiltInV2DpReplaceIcIds()} DP Replace");
                 return false;
             }
         }

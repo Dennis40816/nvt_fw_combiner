@@ -55,6 +55,7 @@ Relevant facts:
   - word 3: CRC output.
 - For each DLM descriptor, the combiner writes the CRC to descriptor offset `+ 12`.
 - Header CRC uses the final 16-byte descriptor at `HeaderSize - 0x10`. It reads header size at `HeaderSize - 0x0C`, header start at `HeaderSize - 0x08`, subtracts 4 from the size before calculation, and writes the header CRC at `HeaderSize - 0x04`.
+- The `0x30` FWConfig descriptor therefore has its normal-mode CRC word at `0x3C..0x3F`; an NT51926 Combiner 1.13 staged-build smoke confirms that exact write. It remains an explicit `tp-flash-header-crc` processor range, not a general FWConfig write permission.
 
 Interpretation:
 

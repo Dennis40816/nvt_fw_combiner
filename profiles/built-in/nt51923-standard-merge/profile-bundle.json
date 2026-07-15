@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "1.0",
+  "bundleId": "nt51923-standard-merge-family",
+  "bundleVersion": "0.9.1-v2-candidate.1",
+  "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
+  "contentHash": "6bac75eb386ff08c3fa6970e54b3c1dca35722ddaeaf52b67068a127c4e85a96",
+  "trustAnchorBindingId": "built-in-profile-bundle-v2",
+  "entries": [
+    {
+      "entryId": "composition-profile-v2-schema",
+      "kind": "schema",
+      "path": "schemas/composition-profile-v2.schema.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "1af166d37379329cc7a298ea24637a665b183f286e5a2323d4ed014e893dc9f0"
+    },
+    {
+      "entryId": "firmware-family-v1-schema",
+      "kind": "schema",
+      "path": "schemas/firmware-family-v1.schema.json",
+      "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
+      "contentHash": "0dd353296e02e448dcc653028fd3b3ce6ad7fdd8e11a1ce11a465b46f0b471d7"
+    },
+    {
+      "entryId": "nt51923-nt51926-family",
+      "kind": "firmware-family",
+      "path": "families/nt51923-nt51926.json",
+      "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
+      "contentHash": "52059b7b33b68ad421459c5c79dd7466df2c8f5c57918290bdf9406ff8614a1a"
+    },
+    {
+      "entryId": "nt51923-standard-merge-profile",
+      "kind": "composition-profile",
+      "path": "profiles/nt51923-standard-merge.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "04069cc66e6922dea439f804319c1c5627ccc166b4fbc4d60b9742cf5b901e15"
+    },
+    {
+      "entryId": "nt51926-standard-merge-profile",
+      "kind": "composition-profile",
+      "path": "profiles/nt51926-standard-merge.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "41c143b8f8dfbcb7801f4d6ade0ed0f416f514e7d1ad940d31d1df5efbb1b053"
+    }
+  ]
+}

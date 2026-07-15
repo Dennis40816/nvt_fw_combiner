@@ -29,80 +29,8 @@ public sealed class BuiltInReplaceProfilesTests
         Assert.Equal(IcNumberInputMode.SingleSelector, profile.IcNumberInputMode);
         Assert.Contains(profile.AddressSpaces, space => space.AddressSpaceId == "dp-replacement" && space.InputPaddingByte == 0xFF);
         Assert.Contains(profile.AddressSpaces, space => space.AddressSpaceId == "ld-replacement" && space.InputPaddingByte == 0xFF);
-        Assert.Equal(["replace-dp", "replace-ld"], result.Plan!.OrderedOperations.Select(operation => operation.OperationId));
+        Assert.Equal(["replace-dp", "replace-ld"], result.CompiledComposition!.Plan.OrderedOperations.Select(operation => operation.OperationId));
         Assert.Contains(profile.Regions, region => region.RegionId == "ld" && region.ClassificationTags.Contains("ld", StringComparer.Ordinal));
-    }
-
-    /// <summary>Verifies NT51950/NT51951 DP Replace is catalog-owned instead of workbench-owned.</summary>
-    [Theory]
-    [InlineData("NT51950", "nt51950-dp-replace-dp-perspective")]
-    [InlineData("NT51951", "nt51951-dp-replace-dp-perspective")]
-    public void DpPerspectiveDpReplaceCompilesFromBuiltInCatalog(string icId, string profileId)
-    {
-        CompositionProfileDefinition profile = BuiltInReplaceProfiles.All.Single(item => item.ProfileId == profileId);
-
-        ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
-
-        Assert.True(result.IsSuccess, FormatIssues(result.Issues));
-        Assert.Equal(icId, profile.IcId);
-        Assert.Equal(CompositionKind.Replace, profile.CompositionKind);
-        Assert.Equal("dp-replace", profile.ExperienceId);
-        Assert.Equal(IcNumberInputMode.SingleSelector, profile.IcNumberInputMode);
-        Assert.Contains(profile.AddressSpaces, space =>
-            space.AddressSpaceId == "reference-base" && space.Length == DpPerspectiveCatalog.MaxContainerLength);
-        Assert.Contains(profile.AddressSpaces, space =>
-            space.AddressSpaceId == "dp-replacement" &&
-            space.Length == DpPerspectiveCatalog.MaxContainerLength &&
-            space.InputPaddingByte == 0x00 &&
-            space.AllowedInputLengths.SequenceEqual(DpPerspectiveCatalog.SupportedContainerLengths));
-
-        CompositionOperation[] operations = [.. result.Plan!.OrderedOperations];
-        Assert.Equal(
-            [
-                DpPerspectiveCatalog.ReplaceDpContainerOperationId,
-                DpPerspectiveCatalog.RestoreBaseTpOperationId,
-                DpPerspectiveCatalog.RestoreBaseCustomerInfoOperationId,
-            ],
-            operations.Select(operation => operation.OperationId));
-        Assert.Equal(new ByteRange(0, DpPerspectiveCatalog.MaxContainerLength), operations[0].TargetRange);
-        Assert.Equal(DpPerspectiveCatalog.TpOverlayRange, operations[1].TargetRange);
-        Assert.Equal(DpPerspectiveCatalog.CustomerInfoPreserveRange, operations[2].TargetRange);
-        Assert.Contains(profile.Regions, region =>
-            region.RegionId == DpPerspectiveCatalog.ContainerRegionId &&
-            region.ClassificationTags.Contains("customer-info-preserve", StringComparer.Ordinal));
-    }
-
-    /// <summary>Verifies the DP Perspective workbench profile uses the selected base length without duplicating profile semantics.</summary>
-    [Theory]
-    [InlineData("NT51950", 0x40000)]
-    [InlineData("NT51951", 0x80000)]
-    public void DpPerspectiveDpReplaceCreatesSelectedBaseLengthProfile(string icId, long capacity)
-    {
-        Assert.True(BuiltInReplaceProfiles.IsDpPerspectiveDpReplaceIc(icId));
-        Assert.True(BuiltInReplaceProfiles.IsSupportedDpPerspectiveDpBaseLength(capacity));
-
-        CompositionProfileDefinition profile = BuiltInReplaceProfiles.CreateDpPerspectiveDpReplaceProfile(icId, capacity);
-
-        ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
-
-        Assert.True(result.IsSuccess, FormatIssues(result.Issues));
-        Assert.Contains(profile.AddressSpaces, space =>
-            space.AddressSpaceId == "reference-base" && space.Length == capacity);
-        Assert.Contains(profile.AddressSpaces, space =>
-            space.AddressSpaceId == "dp-replacement" &&
-            space.Length == capacity &&
-            space.InputPaddingByte == 0x00 &&
-            space.AllowedInputLengths.Count == 0);
-        Assert.Equal(
-            [
-                DpPerspectiveCatalog.ReplaceDpContainerOperationId,
-                DpPerspectiveCatalog.RestoreBaseTpOperationId,
-                DpPerspectiveCatalog.RestoreBaseCustomerInfoOperationId,
-            ],
-            result.Plan!.OrderedOperations.Select(operation => operation.OperationId));
-        Assert.Equal(new ByteRange(0, capacity), result.Plan.OrderedOperations[0].TargetRange);
-        Assert.Equal(BuiltInReplaceProfiles.DpPerspectiveTpRestoreRange, result.Plan.OrderedOperations[1].TargetRange);
-        Assert.Equal(BuiltInReplaceProfiles.DpPerspectiveCustomerInfoPreserveRange, result.Plan.OrderedOperations[2].TargetRange);
     }
 
     /// <summary>Verifies fixed CtrlRAM Replace compiles with oversized-input truncation policy.</summary>
@@ -149,7 +77,7 @@ public sealed class BuiltInReplaceProfilesTests
 
         Assert.True(result.IsSuccess, FormatIssues(result.Issues));
         Assert.Equal(IcNumberInputMode.SingleSelector, profile.IcNumberInputMode);
-        CompositionOperation operation = Assert.Single(result.Plan!.OrderedOperations);
+        CompositionOperation operation = Assert.Single(result.CompiledComposition!.Plan.OrderedOperations);
         Assert.Equal(CompositionOperationKind.ReplaceRange, operation.Kind);
     }
 

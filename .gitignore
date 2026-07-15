@@ -26,6 +26,7 @@ build/
 *.bin
 !testdata/golden/standard-merge-gen-flash/**/*.bin
 !testdata/golden/ctrlram-replace/fixtures/**/*.bin
+!testdata/golden/ab-merge/**/*.bin
 *.hex
 *.fw
 

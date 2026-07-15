@@ -1,3 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="NvtFwCombiner.Domain.Tests" />
+    <InternalsVisibleTo Include="NvtFwCombiner.Application.Tests" />
+    <InternalsVisibleTo Include="NvtFwCombiner.ProfileContract.Tests" />
+    <InternalsVisibleTo Include="NvtFwCombiner.Profiles" />
+  </ItemGroup>
+
 </Project>

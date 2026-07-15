@@ -1,31 +1,27 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
 internal static partial class ReplaceCliCommandHandler
 {
     private static bool TryCreateIcNumberSelection(
-        CompositionProfileDefinition profile,
+        CompiledComposition composition,
         ParsedOptions options,
+        string icNumber,
         TextWriter error,
         [NotNullWhen(true)] out IcNumberSelection? selection)
     {
         selection = null;
-        if (profile.IcNumberInputMode is null)
+        if (composition.IcNumberPolicy == CompiledIcNumberPolicy.NotApplicable)
         {
-            error.WriteLine($"error: replace profile '{profile.ProfileId}' does not declare an IC num input mode");
+            error.WriteLine($"error: replace profile '{composition.ProfileId}' does not declare an IC num input mode");
             return false;
         }
 
-        if (!RequireOption(options, "--ic-num", error, out string? icNumber))
-        {
-            return false;
-        }
-
-        if (profile.IcNumberInputMode == IcNumberInputMode.SingleSelector)
+        if (composition.IcNumberPolicy == CompiledIcNumberPolicy.SingleSelector)
         {
             if (options.Values.ContainsKey("--ic-family"))
             {
@@ -37,7 +33,7 @@ internal static partial class ReplaceCliCommandHandler
             return true;
         }
 
-        if (profile.IcNumberInputMode == IcNumberInputMode.NumericSelector)
+        if (composition.IcNumberPolicy == CompiledIcNumberPolicy.NumericSelector)
         {
             if (options.Values.ContainsKey("--ic-family"))
             {
@@ -45,14 +41,28 @@ internal static partial class ReplaceCliCommandHandler
                 return false;
             }
 
-            if (!int.TryParse(icNumber, out int parsedIcNumber) || parsedIcNumber <= 0)
+            if (!int.TryParse(
+                    icNumber,
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out int parsedIcNumber) ||
+                parsedIcNumber <= 0)
             {
                 error.WriteLine("error: numeric --ic-num must be a positive integer");
                 return false;
             }
 
-            selection = WorkbenchIcNumberSelections.Numeric(icNumber);
+            selection = WorkbenchIcNumberSelections.Numeric(
+                parsedIcNumber.ToString(CultureInfo.InvariantCulture));
             return true;
+        }
+
+        if (composition.IcNumberPolicy != CompiledIcNumberPolicy.CascadeSelector)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(composition),
+                composition.IcNumberPolicy,
+                "Unknown compiled IC-number policy.");
         }
 
         if (!RequireOption(options, "--ic-family", error, out string? icFamily))

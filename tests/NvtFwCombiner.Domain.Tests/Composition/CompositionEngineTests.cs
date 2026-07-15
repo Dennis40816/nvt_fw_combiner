@@ -126,6 +126,35 @@ public sealed partial class CompositionEngineTests
         Assert.Contains("actual length is 3 bytes", issue.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies one exact immutable input length rejects shorter and longer artifacts without normalization.</summary>
+    [Theory]
+    [InlineData(3)]
+    [InlineData(5)]
+    public void ExactImmutableInputLengthRejectsNonExactArtifacts(int artifactLength)
+    {
+        CompositionPlan plan = CreateBlankPlan(
+            4,
+            new AddressSpace("input", 4, AddressSpaceMutability.Immutable, allowedInputLengths: [4]),
+            CompositionOperation.CopyRange(
+                "copy-input",
+                10,
+                "input",
+                new ByteRange(0, 4),
+                "output-image",
+                new ByteRange(0, 4),
+                OverlapPolicy.Reject,
+                "copy exact source"));
+        var input = new CompositionExecutionInput(new Dictionary<string, byte[]>
+        {
+            ["input"] = new byte[artifactLength],
+        });
+
+        CompositionExecutionResult result = CompositionEngine.Execute(plan, input);
+
+        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, Assert.Single(result.Issues).Code);
+    }
+
     /// <summary>Verifies longer-than-declared inputs remain rejected even when a padding byte is declared.</summary>
     [Fact]
     public void InputLongerThanDeclaredLengthFailsClosed()
@@ -193,6 +222,95 @@ public sealed partial class CompositionEngineTests
         Assert.Contains("unexpected length 3 bytes", issue.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies declared-range extraction accepts an expected outer container and rejects a source shorter than its declared span.</summary>
+    [Fact]
+    public void DeclaredRangeExtractionAcceptsExpectedContainerAndRejectsTooShortInput()
+    {
+        CompositionPlan plan = CreateBlankPlan(
+            2,
+            new AddressSpace(
+                "input",
+                2,
+                AddressSpaceMutability.Immutable,
+                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
+                expectedInputLengths: [4]),
+            CompositionOperation.CopyRange(
+                "copy-input",
+                10,
+                "input",
+                new ByteRange(0, 2),
+                "output-image",
+                new ByteRange(0, 2),
+                OverlapPolicy.Reject,
+                "copy declared source range"));
+
+        CompositionExecutionResult expected = CompositionEngine.Execute(
+            plan,
+            new CompositionExecutionInput(new Dictionary<string, byte[]> { ["input"] = [0x11, 0x22, 0x33, 0x44] }));
+        CompositionExecutionResult tooShort = CompositionEngine.Execute(
+            plan,
+            new CompositionExecutionInput(new Dictionary<string, byte[]> { ["input"] = [0x11] }));
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, expected.Status);
+        Assert.Equal([0x11, 0x22], expected.OutputBytes.ToArray());
+        Assert.Empty(expected.Issues);
+        Assert.Equal(CompositionExecutionStatus.Failed, tooShort.Status);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, Assert.Single(tooShort.Issues).Code);
+    }
+
+    /// <summary>Verifies a profile-owned extraction warning code replaces only the generic unexpected-length diagnostic.</summary>
+    [Fact]
+    public void DeclaredRangeExtractionUsesConfiguredUnexpectedLengthWarningCode()
+    {
+        CompositionPlan plan = CreateBlankPlan(
+            2,
+            new AddressSpace(
+                "input",
+                2,
+                AddressSpaceMutability.Immutable,
+                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
+                expectedInputLengths: [4],
+                unexpectedInputLengthIssueCode: "DP_SIZE_WARNING"),
+            CompositionOperation.CopyRange(
+                "copy-input",
+                10,
+                "input",
+                new ByteRange(0, 2),
+                "output-image",
+                new ByteRange(0, 2),
+                OverlapPolicy.Reject,
+                "copy declared source range"));
+
+        CompositionExecutionResult result = CompositionEngine.Execute(
+            plan,
+            new CompositionExecutionInput(new Dictionary<string, byte[]> { ["input"] = [0x11, 0x22, 0x33] }));
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal([0x11, 0x22], result.OutputBytes.ToArray());
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("DP_SIZE_WARNING", issue.Code);
+        Assert.Equal(CompositionIssueSeverity.Warning, issue.Severity);
+    }
+
+    /// <summary>Verifies unexpected-length warning codes are restricted to immutable declared-range extraction inputs.</summary>
+    [Fact]
+    public void UnexpectedLengthWarningCodeRequiresImmutableDeclaredRangeExtractionInput()
+    {
+        _ = Assert.Throws<ArgumentException>(() => new AddressSpace(
+            "mutable",
+            2,
+            AddressSpaceMutability.Mutable,
+            inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
+            expectedInputLengths: [4],
+            unexpectedInputLengthIssueCode: "DP_SIZE_WARNING"));
+        _ = Assert.Throws<ArgumentException>(() => new AddressSpace(
+            "rejecting-input",
+            2,
+            AddressSpaceMutability.Immutable,
+            expectedInputLengths: [4],
+            unexpectedInputLengthIssueCode: "DP_SIZE_WARNING"));
+    }
+
     /// <summary>Verifies CtrlRAM replace inputs may truncate oversized source bytes with a run diagnostic.</summary>
     [Fact]
     public void CtrlRamInputWithTruncationPolicyTruncatesBeforeReplaceRange()
@@ -216,8 +334,7 @@ public sealed partial class CompositionEngineTests
                     new ByteRange(1, 2),
                     OverlapPolicy.Reject,
                     "replace ctrlram"),
-            ],
-            CreateCtrlRamReplaceProvenance());
+            ]);
         var input = new CompositionExecutionInput(new Dictionary<string, byte[]>
         {
             ["reference-base"] = [0, 0, 0, 0],
@@ -247,9 +364,9 @@ public sealed partial class CompositionEngineTests
         Assert.Contains("Unsupported issue severity", exception.Message, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies caller-supplied initialized target bytes are ignored before padding normalization.</summary>
+    /// <summary>Verifies caller-supplied output bytes are rejected as unauthorized mutable input.</summary>
     [Fact]
-    public void InitializedTargetInputBytesAreIgnoredBeforePadding()
+    public void CallerSuppliedOutputBytesAreRejected()
     {
         CompositionPlan plan = CreateBlankPlan(3);
         var input = new CompositionExecutionInput(new Dictionary<string, byte[]>
@@ -259,8 +376,9 @@ public sealed partial class CompositionEngineTests
 
         CompositionExecutionResult result = CompositionEngine.Execute(plan, input);
 
-        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0xFF, 0xFF, 0xFF], result.OutputBytes.ToArray());
+        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal(CompositionIssueCodes.InputMutableAddressSpaceNotAllowed, issue.Code);
     }
 
     /// <summary>Verifies padding a source beyond the runtime array limit returns a structured issue.</summary>
@@ -354,9 +472,9 @@ public sealed partial class CompositionEngineTests
         Assert.Empty(result.OutputBytes.ToArray());
     }
 
-    /// <summary>Verifies mutable address spaces outside initialization must be explicitly seeded.</summary>
+    /// <summary>Verifies non-output mutable spaces are initialized by the engine before operations.</summary>
     [Fact]
-    public void MissingMutableTargetSeedFailsClosed()
+    public void BlankWorkBufferIsInitializedBeforeOperations()
     {
         AddressSpace[] addressSpaces =
         [
@@ -364,12 +482,25 @@ public sealed partial class CompositionEngineTests
             new("scratch", 4, AddressSpaceMutability.Mutable),
         ];
         var plan = new CompositionPlan(
-            ImageInitialization.Blank("output-image", 4, 0),
+            [
+                ImageInitialization.Blank("output-image", 4, 0),
+                ImageInitialization.Blank("scratch", 4, 0x5A),
+            ],
+            "output-image",
             addressSpaces,
             [
-                CompositionOperation.FillRange(
-                    "fill-scratch",
+                CompositionOperation.CopyRange(
+                    "copy-scratch",
                     10,
+                    "scratch",
+                    new ByteRange(0, 2),
+                    "output-image",
+                    new ByteRange(0, 2),
+                    OverlapPolicy.Reject,
+                    "copy initialized scratch"),
+                CompositionOperation.FillRange(
+                    "mutate-scratch",
+                    20,
                     "scratch",
                     new ByteRange(0, 2),
                     0x11,
@@ -379,9 +510,9 @@ public sealed partial class CompositionEngineTests
 
         CompositionExecutionResult result = CompositionEngine.Execute(plan, EmptyInput());
 
-        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
-        CompositionIssue issue = Assert.Single(result.Issues);
-        Assert.Equal(CompositionIssueCodes.InputMutableAddressSpaceMissing, issue.Code);
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal([0x5A, 0x5A, 0, 0], result.OutputBytes.ToArray());
+        Assert.Equal(["output-image", "scratch"], result.Mutations.Select(item => item.TargetSpaceId));
     }
 
 }

@@ -1,4 +1,5 @@
 using System.Globalization;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
@@ -26,21 +27,51 @@ public static partial class WorkbenchCompositionService
             return failure!;
         }
 
-        CompositionProfileDefinition profile = BuiltInReplaceProfiles.CreateDpPerspectiveDpReplaceProfile(
-            icId,
-            context!.Capacity);
-        ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
-        if (!compile.IsSuccess)
+        if (!TryCompileDpPerspectiveDpReplace(
+                icId,
+                context!.Capacity,
+                out CompiledComposition? compiledComposition,
+                out IReadOnlyList<CompositionIssue> issues))
         {
-            throw new InvalidOperationException(FormatIssues(compile.Issues));
+            return CreatePlanningRunResult(
+                icId,
+                number,
+                WorkbenchReplaceModes.Dp,
+                slotPaths,
+                build,
+                WorkbenchIssueCodes.ReplaceDpProfilePending,
+                $"No supported V2 DP Replace profile is registered for {icId}.");
         }
 
-        CompositionPlan plan = compile.Plan!;
+        if (compiledComposition is null)
+        {
+            CompositionIssue issue = issues.Count > 0
+                ? issues[0]
+                : new CompositionIssue(
+                    BuiltInV2CompilationFailed,
+                    $"The built-in V2 DP Replace profile for {icId} did not produce an executable composition.");
+            return CreatePlanningRunResult(
+                icId,
+                number,
+                WorkbenchReplaceModes.Dp,
+                slotPaths,
+                build,
+                issue.Code,
+                issue.Message);
+        }
+
+        InputArtifactBinding[] bindings =
+        [
+            CompiledCompositionInputBindingFactory.Create(
+                compiledComposition,
+                CompositionAddressSpaceIds.ReferenceBase,
+                context.BasePath),
+            CreateDpReplacementBinding(compiledComposition, context.SlotPaths),
+        ];
         return await RunCompiledCompositionAsync(
             DpReplaceRunIdPrefix,
-            profile,
-            plan,
-            context.Bindings,
+            compiledComposition,
+            bindings,
             context.BasePath,
             build,
             outputPath,
@@ -50,34 +81,23 @@ public static partial class WorkbenchCompositionService
             cancellationToken).ConfigureAwait(false);
     }
 
+    private static InputArtifactBinding CreateDpReplacementBinding(
+        CompiledComposition compiledComposition,
+        IReadOnlyDictionary<string, string> slotPaths)
+    {
+        return slotPaths.TryGetValue(WorkbenchSlotIds.ReplaceDp, out string? path) && !string.IsNullOrWhiteSpace(path)
+            ? CompiledCompositionInputBindingFactory.Create(
+                compiledComposition,
+                CompositionAddressSpaceIds.DpReplacement,
+                Path.GetFullPath(path))
+            : throw new InvalidOperationException($"Input slot '{WorkbenchSlotIds.ReplaceDp}' is required.");
+    }
+
     private static IReadOnlyList<WorkbenchMemoryMapRow> CreateDpReplaceRows(
         string icId,
-        IReadOnlyList<TpFlashMapRegion> regions,
-        long? dpBaseLength)
+        IReadOnlyList<TpFlashMapRegion> regions)
     {
-        return IsDpPerspectiveIc(icId)
-            ?
-            [
-                new WorkbenchMemoryMapRow(
-                    FormatDpPerspectiveDpReplaceContainerLabel(dpBaseLength),
-                    "Base flash",
-                    "Replace",
-                    "DP replacement",
-                    DescribeDpPerspectiveDpReplaceContainer(dpBaseLength)),
-                new WorkbenchMemoryMapRow(
-                    FormatDisplayRange(DpPerspectiveCatalog.TpOverlayRange),
-                    "DP replacement",
-                    "Restore",
-                    "Base TP",
-                    $"Copy original TP FW at {FormatDisplayRange(DpPerspectiveCatalog.TpOverlayRange)} from the base firmware after DP replacement."),
-                new WorkbenchMemoryMapRow(
-                    FormatDisplayRange(DpPerspectiveCatalog.CustomerInfoPreserveRange),
-                    "DP replacement",
-                    "Restore",
-                    "Base customer info",
-                    $"Copy customer information at {FormatDisplayRange(DpPerspectiveCatalog.CustomerInfoPreserveRange)} from the base firmware after DP replacement."),
-            ]
-            :
+        return
         [
             .. GetDpReplaceRegions(icId, regions)
                 .OrderBy(region => region.Range.Start)
@@ -97,8 +117,8 @@ public static partial class WorkbenchCompositionService
             new(
                 WorkbenchSlotIds.ReplaceDp,
                 "DP replacement BIN",
-                IsDpPerspectiveIc(icId)
-                    ? $"Replacement DP is padded to the selected base BIN length ({FormatSupportedDpPerspectiveBaseLengths()}); original TP range is restored from base."
+                TryGetV2DpReplaceInputDescription(icId, out string v2Description)
+                    ? v2Description
                     : "Replacement DP payload. Build stays gated until this IC has approved DP Replace mapping evidence.",
                 false,
                 CompositionAddressSpaceIds.DpReplacement,
@@ -132,42 +152,9 @@ public static partial class WorkbenchCompositionService
         return !IsLdRegion(region) || DpReplaceAuthoringCatalog.IsAdditionalPayloadRegion(icId, region.RegionId);
     }
 
-    private static bool IsSupportedDpPerspectiveBaseLength(long? length)
-    {
-        return length is long value && DpPerspectiveCatalog.IsSupportedContainerLength(value);
-    }
-
-    private static string FormatSupportedDpPerspectiveBaseLengths()
-    {
-        return DpPerspectiveCatalog.FormatSupportedLengths();
-    }
-
-    private static string FormatDpPerspectiveIcIds()
-    {
-        return DpPerspectiveCatalog.FormatSupportedIcIds();
-    }
-
     private static string FormatHexLength(long length)
     {
         return string.Create(CultureInfo.InvariantCulture, $"0x{length:X}");
-    }
-
-    private static string FormatDpPerspectiveDpReplaceContainerLabel(long? length)
-    {
-        return length is not long value
-            ? $"Base BIN length: {FormatSupportedDpPerspectiveBaseLengths()}"
-            : IsSupportedDpPerspectiveBaseLength(value)
-            ? FormatDisplayRange(new ByteRange(0, value))
-            : $"Unsupported base BIN length {FormatHexLength(value)}";
-    }
-
-    private static string DescribeDpPerspectiveDpReplaceContainer(long? length)
-    {
-        return length is not long value
-            ? $"{FormatDpPerspectiveIcIds()} DP Replace uses the selected base BIN length; supported lengths are {FormatSupportedDpPerspectiveBaseLengths()}."
-            : IsSupportedDpPerspectiveBaseLength(value)
-            ? $"Replacement DP initializes the selected base length {FormatHexLength(value)}; shorter files are padded by profile policy."
-            : $"This base BIN length is not approved for {FormatDpPerspectiveIcIds()} DP Replace; use {FormatSupportedDpPerspectiveBaseLengths()}.";
     }
 
     private static bool IsLdRegion(TpFlashMapRegion region)

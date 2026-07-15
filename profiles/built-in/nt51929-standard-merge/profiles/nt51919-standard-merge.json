@@ -1,0 +1,175 @@
+{
+  "schemaVersion": "2.0",
+  "profileId": "nt51919-standard-merge-gen-flash-alias",
+  "profileVersion": "0.5.0",
+  "promotion": {
+    "stage": "supported",
+    "blockers": []
+  },
+  "compositionKind": "merge",
+  "experience": {
+    "experienceId": "standard-merge",
+    "audience": "system",
+    "layoutPolicy": "fixed",
+    "inputPolicy": "fixed",
+    "topologyAuthoring": "hidden",
+    "displayNameKey": "profile.nt51919.standard-merge"
+  },
+  "mapBinding": {
+    "familyId": "nt51929-nt51932",
+    "familyVersion": "1.0.0",
+    "familyContentHash": "c23385d5ad956016dbf356ede9355205611bad636fe2ddea44f5f654634e80ce",
+    "mapIds": [
+      "nt51919-standard-merge-256k"
+    ],
+    "requiredRegionIds": [
+      "tp-code",
+      "dp-code"
+    ],
+    "requiredMetadataStructureIds": [],
+    "requiredCapabilityIds": []
+  },
+  "inputSlots": [
+    {
+      "slotId": "tp-input",
+      "role": "tp",
+      "artifactClass": "tp-firmware",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [
+        ".bin"
+      ],
+      "acceptance": {
+        "lengthRule": {
+          "kind": "tp-maximum-256k",
+          "maximumBytes": 262144
+        },
+        "normalization": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "slotId": "dp-input",
+      "role": "dp",
+      "artifactClass": "dp-firmware",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [
+        ".bin"
+      ],
+      "acceptance": {
+        "lengthRule": {
+          "kind": "normal-dp-extract-with-warning",
+          "issueCode": "DP_SIZE_WARNING"
+        },
+        "normalization": {
+          "kind": "none"
+        }
+      }
+    }
+  ],
+  "spaces": [
+    {
+      "spaceId": "tp-input",
+      "kind": "input-artifact",
+      "slotId": "tp-input",
+      "instancePolicy": "singleton"
+    },
+    {
+      "spaceId": "dp-input",
+      "kind": "input-artifact",
+      "slotId": "dp-input",
+      "instancePolicy": "singleton"
+    },
+    {
+      "spaceId": "output-image",
+      "kind": "output-image",
+      "capacity": {
+        "kind": "resolved-map"
+      },
+      "initializer": {
+        "kind": "blank",
+        "fillByte": 0
+      }
+    }
+  ],
+  "views": [
+    {
+      "viewId": "tp-source",
+      "spaceId": "tp-input",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "tp-code"
+      }
+    },
+    {
+      "viewId": "dp-source",
+      "spaceId": "dp-input",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "dp-code"
+      }
+    },
+    {
+      "viewId": "tp-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "tp-code"
+      }
+    },
+    {
+      "viewId": "dp-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "dp-code"
+      }
+    }
+  ],
+  "metadataBindings": [],
+  "regionAccessRules": [
+    {
+      "regionId": "tp-code",
+      "access": "whole",
+      "reason": "Owner-confirmed NT51919 alias inherits the NT51929 Standard Merge TP range."
+    },
+    {
+      "regionId": "dp-code",
+      "access": "whole",
+      "reason": "Owner-confirmed NT51919 alias inherits the NT51929 Standard Merge DP range."
+    }
+  ],
+  "operations": [
+    {
+      "operationId": "copy-tp",
+      "sequence": 100,
+      "overlapPolicy": "reject",
+      "reason": "Copy the owner-confirmed NT51919 alias TP range.",
+      "kind": "copy-range",
+      "sourceViewId": "tp-source",
+      "targetViewId": "tp-output"
+    },
+    {
+      "operationId": "copy-dp",
+      "sequence": 200,
+      "overlapPolicy": "reject",
+      "reason": "Copy the owner-confirmed NT51919 alias DP range.",
+      "kind": "copy-range",
+      "sourceViewId": "dp-source",
+      "targetViewId": "dp-output"
+    }
+  ],
+  "validations": [],
+  "processorStages": [],
+  "output": {
+    "fileNameTemplate": "nt51919-standard-merge-gen-flash-alias.bin",
+    "allowOverride": true,
+    "invalidCharacterPolicy": "reject",
+    "requiredTokenIds": []
+  },
+  "evidenceRefs": [
+    "standard-merge-alias-51919-to-51929"
+  ]
+}

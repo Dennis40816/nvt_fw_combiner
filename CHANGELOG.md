@@ -4,7 +4,67 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-Post-`0.9.0` development targets UAT feedback, firmware-owner evidence closure, and `1.0.0` release readiness.
+Post-`0.9.7` development targets firmware-owner evidence closure and `1.0.0` release readiness.
+
+## [0.9.7] - 2026-07-15
+
+### Added
+
+- Evidence-gated AB Merge candidates for NT51919, NT51929, NT51932, NT51950, and NT51951, including direct or fact-scoped applicability records, Python-reference parity, and exact legacy Combiner 1.13.0 command coverage where established.
+- Manifest-driven candidate IC intake, logical-output General Merge compilation, runtime reference-replace compilation, and compiled final-output validation reports.
+- A non-routed NT51926 Common FW 1.4.1 CtrlRAM V2 candidate with canonical NVT FWConfig Backup resolution and closed external-processor write authority.
+- Closed release-package evidence sidecars, external-tool allowlist verification, and deterministic package smoke checks.
+
+### Changed
+
+- Retired exactly replaced Standard Merge, DP Replace, and General Merge legacy definitions after their V2 parity gates, while preserving unsupported and owner-review blockers.
+- Retired the duplicate DP Perspective C# fact catalog; NT51950/NT51951 capacities, TP/customer-information ranges, operations, and surfaced IC membership now project from the trusted V2 bundle and compiled plan.
+- Consolidated audited Avalonia slot, firmware-fact, icon, and coverage-state colors into one semantic token owner without moving firmware decisions into Presentation code.
+- Final-output validation failures now block output publication and report precise stable issue codes and validation outcomes.
+
+### Security
+
+- AB and CtrlRAM candidate profiles remain outside Application runtime admission until their per-IC product golden and firmware-owner gates close.
+- External Combiner processing remains confined to host-created staging artifacts with declared read/write ranges; no user firmware source is mutated in place.
+
+### Notes
+
+- This cumulative integration advances repository and package metadata directly from `0.9.2` to `0.9.7`; no retroactive `0.9.3` through `0.9.6` release tags are created.
+- NT51919 still requires owner approval of its fact-scoped alias, NT51932 and NT51951 still require direct or approved alias/product evidence, and the selected CtrlRAM branches still require real expected outputs and firmware-owner review before runtime promotion.
+- Stable package publication, signing, and support claims remain separate release gates.
+
+## [0.9.2] - 2026-07-13
+
+### Added
+
+- Content-addressed source-schema inventory and deterministic materialization for every built-in V2 profile bundle.
+- A closed allowlist for built-in bundle materialization, plus the 0.9.x completion roadmap and retirement gates for later workflow convergence.
+
+### Changed
+
+- Standard Merge runtime loading uses only the materialized V2 bundle registrations; duplicate per-bundle schema snapshots and the legacy runtime fallback were removed.
+- The trusted bundle loader boundary, normal Merge/Replace byte behavior, promotion state, and AB Code behavior remain unchanged.
+
+### Notes
+
+- This is a local-verification milestone tag for profile-bundle consolidation, not a GitHub package release or product-support promotion.
+
+## [0.9.1] - 2026-07-13
+
+### Added
+
+- Trusted source profile-bundle loading, canonical firmware-family/map resolution, and V2 profile compilation into the single `CompiledComposition` runtime boundary.
+- V2 runtime routing for the existing golden-backed Standard Merge paths and NT51950/NT51951 DP Replace capacity variants, while retaining legacy comparison evidence.
+
+### Changed
+
+- Composition execution now owns mutable work-buffer initialization and accepts one compiled artifact rather than independently supplied profile and plan data.
+- Standard Merge and DP Replace display projections derive executable facts from compiled V2 plans; NT51950/NT51951 DP Replace preserves customer information with the DP container.
+- Runtime FWConfig metadata is read exclusively from the unambiguous NVT Backup at terminal `T - 0xFFF`; primary flash-map addresses remain inspection and evidence facts only.
+
+### Notes
+
+- This migration preserves product-support gates and does not claim new IC support, CtrlRAM parity, AB Code behavior, or packaged-install trust closure.
 
 ## [0.9.0] - 2026-07-11
 

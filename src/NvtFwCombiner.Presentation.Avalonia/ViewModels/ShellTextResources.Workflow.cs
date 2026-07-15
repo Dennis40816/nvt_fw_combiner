@@ -123,6 +123,28 @@ public sealed partial class ShellTextResources
 
     public string CtrlRamInputFilesDetail { get; private init; } = string.Empty;
 
+    public string CtrlRamFirmwareVersionTitle { get; private init; } = string.Empty;
+
+    public string CtrlRamFirmwareVersionDetail { get; private init; } = string.Empty;
+
+    public string CtrlRamFirmwareVersionKeepLabel { get; private init; } = string.Empty;
+
+    public string CtrlRamFirmwareVersionEditLabel { get; private init; } = string.Empty;
+
+    public string CtrlRamFirmwareVersionCurrentLabel { get; private init; } = string.Empty;
+
+    public string CtrlRamFirmwareVersionByteLabel { get; private init; } = string.Empty;
+
+    public string CtrlRamFirmwareSubVersionByteLabel { get; private init; } = string.Empty;
+
+    public string CtrlRamFirmwareVersionSourceDetail { get; private init; } = string.Empty;
+
+    public string CtrlRamFirmwareVersionEditUnavailableDetail { get; private init; } = string.Empty;
+
+    public string CtrlRamFirmwareVersionInvalidByteDetail { get; private init; } = string.Empty;
+
+    public string CtrlRamFirmwareVersionChooseOutputLabel { get; private init; } = string.Empty;
+
     public string AbCodeMergeTitle { get; private init; } = string.Empty;
 
     public string AbCodeMergeDetail { get; private init; } = string.Empty;

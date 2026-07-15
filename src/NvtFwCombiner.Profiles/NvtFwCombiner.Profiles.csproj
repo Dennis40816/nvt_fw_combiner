@@ -3,4 +3,10 @@
     <ProjectReference Include="..\NvtFwCombiner.Domain\NvtFwCombiner.Domain.csproj" />
     <ProjectReference Include="..\NvtFwCombiner.Contracts\NvtFwCombiner.Contracts.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="NvtFwCombiner.ProfileContract.Tests" />
+    <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap" />
+    <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap.Tests" />
+  </ItemGroup>
 </Project>

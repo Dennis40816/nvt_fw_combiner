@@ -23,6 +23,7 @@ public static partial class CompositionProfileCompiler
         requestAddressSpaces ??= [];
 
         List<CompositionIssue> issues = ValidateProfileHeader(profile, explicitMappings, requestAddressSpaces);
+        issues.AddRange(ValidateRuntimeValidationRequirements(profile.ValidationRequirements));
         issues.AddRange(ValidateProfileOperations(profile));
         issues.AddRange(ValidateExplicitMappings(profile, explicitMappings));
         if (issues.Count > 0)
@@ -40,15 +41,21 @@ public static partial class CompositionProfileCompiler
                 .. profile.AddressSpaces,
                 .. requestAddressSpaces,
             ];
-            var provenance = new CompositionPlanProvenance(
+            var identity = new LegacyCompiledCompositionIdentity(
                 profile.ProfileId,
                 profile.ProfileVersion,
                 profile.IcId,
                 profile.ModeId,
                 profile.ExperienceId,
                 profile.CompositionKind);
-            var plan = new CompositionPlan(profile.Initialization, addressSpaces, operations, provenance);
-            return ProfileCompileResult.Succeeded(plan);
+            var plan = new CompositionPlan(profile.Initialization, addressSpaces, operations);
+            var compiledComposition = CompiledComposition.CreateLegacy(
+                plan,
+                identity,
+                profile.DefaultOutputFileName,
+                CompiledIcNumberPolicies.From(profile.IcNumberInputMode),
+                profile.ValidationRequirements);
+            return ProfileCompileResult.Succeeded(compiledComposition);
         }
         catch (ArgumentException exception)
         {
@@ -57,4 +64,5 @@ public static partial class CompositionProfileCompiler
             ]);
         }
     }
+
 }

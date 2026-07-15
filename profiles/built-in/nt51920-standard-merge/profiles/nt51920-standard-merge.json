@@ -1,0 +1,174 @@
+{
+  "schemaVersion": "2.0",
+  "profileId": "nt51920-standard-merge-gen-flash",
+  "profileVersion": "0.5.0",
+  "promotion": {
+    "stage": "supported",
+    "blockers": []
+  },
+  "compositionKind": "merge",
+  "experience": {
+    "experienceId": "standard-merge",
+    "audience": "system",
+    "layoutPolicy": "fixed",
+    "inputPolicy": "fixed",
+    "topologyAuthoring": "hidden",
+    "displayNameKey": "profile.nt51920.standard-merge"
+  },
+  "mapBinding": {
+    "familyId": "nt51920",
+    "familyVersion": "1.0.0",
+    "familyContentHash": "6080fd9325218874a41df3903906a89ba50eb3b446544f1b8ac6bfe673a6f6e4",
+    "mapIds": [
+      "nt51920-standard-merge-256k"
+    ],
+    "requiredRegionIds": [
+      "tp-code",
+      "dp-code"
+    ],
+    "requiredMetadataStructureIds": [],
+    "requiredCapabilityIds": []
+  },
+  "inputSlots": [
+    {
+      "slotId": "tp-input",
+      "role": "tp",
+      "artifactClass": "tp-firmware",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [
+        ".bin"
+      ],
+      "acceptance": {
+        "lengthRule": {
+          "kind": "tp-maximum-256k",
+          "maximumBytes": 262144
+        },
+        "normalization": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "slotId": "dp-input",
+      "role": "dp",
+      "artifactClass": "dp-firmware",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [
+        ".bin"
+      ],
+      "acceptance": {
+        "lengthRule": {
+          "kind": "exact-resolved-map-capacity"
+        },
+        "normalization": {
+          "kind": "none"
+        }
+      }
+    }
+  ],
+  "spaces": [
+    {
+      "spaceId": "tp-input",
+      "kind": "input-artifact",
+      "slotId": "tp-input",
+      "instancePolicy": "singleton"
+    },
+    {
+      "spaceId": "dp-input",
+      "kind": "input-artifact",
+      "slotId": "dp-input",
+      "instancePolicy": "singleton"
+    },
+    {
+      "spaceId": "output-image",
+      "kind": "output-image",
+      "capacity": {
+        "kind": "resolved-map"
+      },
+      "initializer": {
+        "kind": "blank",
+        "fillByte": 0
+      }
+    }
+  ],
+  "views": [
+    {
+      "viewId": "tp-source",
+      "spaceId": "tp-input",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "tp-code"
+      }
+    },
+    {
+      "viewId": "dp-source",
+      "spaceId": "dp-input",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "dp-code"
+      }
+    },
+    {
+      "viewId": "tp-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "tp-code"
+      }
+    },
+    {
+      "viewId": "dp-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "dp-code"
+      }
+    }
+  ],
+  "metadataBindings": [],
+  "regionAccessRules": [
+    {
+      "regionId": "tp-code",
+      "access": "whole",
+      "reason": "Owner-approved gen_flash_bin_v2 NT51920 standard merge TP range."
+    },
+    {
+      "regionId": "dp-code",
+      "access": "whole",
+      "reason": "Owner-approved gen_flash_bin_v2 NT51920 standard merge DP range."
+    }
+  ],
+  "operations": [
+    {
+      "operationId": "copy-tp",
+      "sequence": 100,
+      "overlapPolicy": "reject",
+      "reason": "Copy the reviewed NT51920 TP range.",
+      "kind": "copy-range",
+      "sourceViewId": "tp-source",
+      "targetViewId": "tp-output"
+    },
+    {
+      "operationId": "copy-dp",
+      "sequence": 200,
+      "overlapPolicy": "reject",
+      "reason": "Copy the reviewed NT51920 DP range.",
+      "kind": "copy-range",
+      "sourceViewId": "dp-source",
+      "targetViewId": "dp-output"
+    }
+  ],
+  "validations": [],
+  "processorStages": [],
+  "output": {
+    "fileNameTemplate": "nt51920-standard-merge-gen-flash.bin",
+    "allowOverride": true,
+    "invalidCharacterPolicy": "reject",
+    "requiredTokenIds": []
+  },
+  "evidenceRefs": [
+    "gen-flash-bin-v2-51920-golden"
+  ]
+}

@@ -58,12 +58,14 @@ public sealed partial class ShellViewModelTests
     }
 
     /// <summary>Verifies Merge coverage rows expose final ownership without report-level operation text.</summary>
-    [Fact]
-    public void MergeCoverageUsesCompactFinalOwnershipText()
+    [Theory]
+    [InlineData("NT51950")]
+    [InlineData("NT51951")]
+    public void DpPerspectiveMergeCoverageWaitsForSelectedDpLength(string icId)
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.SelectedIc = "NT51950";
+        viewModel.SelectedIc = icId;
 
         MemoryMapRowViewModel initialRow = Assert.Single(
             viewModel.MergeMemoryRows,
@@ -129,7 +131,7 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(viewModel.ReplaceSlots, slot => slot.Title == "LDC replacement BIN");
     }
 
-    /// <summary>Verifies NT51950 DP Replace output follows the selected base length and restores protected base bytes.</summary>
+    /// <summary>Verifies NT51950 DP Replace restores only TP bytes while customer information follows replacement DP.</summary>
     [Theory]
     [InlineData(0x40000)]
     [InlineData(0x80000)]
@@ -168,12 +170,12 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(replacementBytes[0x9FFF], output[0x9FFF]);
         Assert.Equal(baseBytes[0x0A000], output[0x0A000]);
         Assert.Equal(baseBytes[0x36FFF], output[0x36FFF]);
-        Assert.Equal(baseBytes[0x37000], output[0x37000]);
-        Assert.Equal(baseBytes[0x37FFF], output[0x37FFF]);
+        Assert.Equal(replacementBytes[0x37000], output[0x37000]);
+        Assert.Equal(replacementBytes[0x37FFF], output[0x37FFF]);
         Assert.Equal(0, output[replacementLength]);
         Assert.True(viewModel.HasLoadedReport);
         Assert.Contains(viewModel.LoadedReport.Operations, operation => operation.Title.Contains("restore-base-tp", StringComparison.Ordinal));
-        Assert.Contains(viewModel.LoadedReport.Operations, operation => operation.Title.Contains("restore-base-customer-info", StringComparison.Ordinal));
+        Assert.DoesNotContain(viewModel.LoadedReport.Operations, operation => operation.Title.Contains("restore-base-customer-info", StringComparison.Ordinal));
 
         using var reportDocument = JsonDocument.Parse(viewModel.LoadedReportJson);
         Assert.Equal(baseLength, reportDocument.RootElement.GetProperty("Output").GetProperty("Size").GetInt64());

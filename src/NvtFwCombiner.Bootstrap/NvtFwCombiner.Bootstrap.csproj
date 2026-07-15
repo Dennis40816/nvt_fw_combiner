@@ -1,7 +1,94 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\NvtFwCombiner.Application\NvtFwCombiner.Application.csproj" />
     <ProjectReference Include="..\NvtFwCombiner.Infrastructure\NvtFwCombiner.Infrastructure.csproj" />
     <ProjectReference Include="..\NvtFwCombiner.Profiles\NvtFwCombiner.Profiles.csproj" />
   </ItemGroup>
+  <PropertyGroup>
+    <BuiltInProfileSourceRoot>$(MSBuildProjectDirectory)\..\..\profiles\built-in</BuiltInProfileSourceRoot>
+    <ProfileSchemaSourceRoot>$(MSBuildProjectDirectory)\..\..\profiles\schema-source\sha256</ProfileSchemaSourceRoot>
+    <BuiltInProfileMaterializedRoot>$(BaseIntermediateOutputPath)$(Configuration)\$(TargetFramework)\materialized-profiles\built-in</BuiltInProfileMaterializedRoot>
+    <BuiltInProfilePublishedRoot>$(OutDir)profiles\built-in</BuiltInProfilePublishedRoot>
+    <DefaultCompositionProfileSchemaHash>1af166d37379329cc7a298ea24637a665b183f286e5a2323d4ed014e893dc9f0</DefaultCompositionProfileSchemaHash>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <BuiltInProfileBundle>
+      <CompositionProfileSchemaHash>$(DefaultCompositionProfileSchemaHash)</CompositionProfileSchemaHash>
+    </BuiltInProfileBundle>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <BuiltInProfileBundle Include="nt51920-standard-merge" />
+    <BuiltInProfileBundle Include="nt51920-general-merge-logical-candidate">
+      <CompositionProfileSchemaHash>ab3bed384c5d78590ad6a87ee23c12f23a1ea4a1bdc6001273f254b6e5f3547f</CompositionProfileSchemaHash>
+    </BuiltInProfileBundle>
+    <BuiltInProfileBundle Include="nt51917-nt51927-general-merge-logical-candidate">
+      <CompositionProfileSchemaHash>ab3bed384c5d78590ad6a87ee23c12f23a1ea4a1bdc6001273f254b6e5f3547f</CompositionProfileSchemaHash>
+    </BuiltInProfileBundle>
+    <BuiltInProfileBundle Include="nt51919-nt51929-nt51932-general-merge-logical-candidate">
+      <CompositionProfileSchemaHash>ab3bed384c5d78590ad6a87ee23c12f23a1ea4a1bdc6001273f254b6e5f3547f</CompositionProfileSchemaHash>
+    </BuiltInProfileBundle>
+    <BuiltInProfileBundle Include="nt51923-nt51926-general-merge-logical-candidate">
+      <CompositionProfileSchemaHash>ab3bed384c5d78590ad6a87ee23c12f23a1ea4a1bdc6001273f254b6e5f3547f</CompositionProfileSchemaHash>
+    </BuiltInProfileBundle>
+    <BuiltInProfileBundle Include="nt51928-general-merge-logical-candidate">
+      <CompositionProfileSchemaHash>ab3bed384c5d78590ad6a87ee23c12f23a1ea4a1bdc6001273f254b6e5f3547f</CompositionProfileSchemaHash>
+    </BuiltInProfileBundle>
+    <BuiltInProfileBundle Include="nt51930-general-merge-logical-candidate">
+      <CompositionProfileSchemaHash>ab3bed384c5d78590ad6a87ee23c12f23a1ea4a1bdc6001273f254b6e5f3547f</CompositionProfileSchemaHash>
+    </BuiltInProfileBundle>
+    <BuiltInProfileBundle Include="nt51931-general-merge-logical-candidate">
+      <CompositionProfileSchemaHash>ab3bed384c5d78590ad6a87ee23c12f23a1ea4a1bdc6001273f254b6e5f3547f</CompositionProfileSchemaHash>
+    </BuiltInProfileBundle>
+    <BuiltInProfileBundle Include="nt51950-nt51951-general-merge-logical-candidate">
+      <CompositionProfileSchemaHash>ab3bed384c5d78590ad6a87ee23c12f23a1ea4a1bdc6001273f254b6e5f3547f</CompositionProfileSchemaHash>
+    </BuiltInProfileBundle>
+    <BuiltInProfileBundle Include="nt51926-ctrlram-replace-candidate">
+      <CompositionProfileSchemaHash>61abe3f9eaa9d1821067788d08014868a81f42a01bd1eb75406aabb9c56df8a3</CompositionProfileSchemaHash>
+    </BuiltInProfileBundle>
+    <BuiltInProfileBundle Include="nt51923-standard-merge" />
+    <BuiltInProfileBundle Include="nt51927-standard-merge" />
+    <BuiltInProfileBundle Include="nt51928-standard-merge" />
+    <BuiltInProfileBundle Include="nt51929-standard-merge" />
+    <BuiltInProfileBundle Include="nt51919-nt51929-nt51932-ab-merge" />
+    <BuiltInProfileBundle Include="nt51930-standard-merge" />
+    <BuiltInProfileBundle Include="nt51931-standard-merge" />
+    <BuiltInProfileBundle Include="nt51950-nt51951-standard-merge" />
+  </ItemGroup>
+  <Target Name="MaterializeBuiltInProfileBundles" BeforeTargets="AssignTargetPaths">
+    <RemoveDir Directories="$(BuiltInProfileMaterializedRoot);$(BuiltInProfilePublishedRoot)" />
+    <ItemGroup>
+      <_BuiltInProfileSource Include="$(BuiltInProfileSourceRoot)\%(BuiltInProfileBundle.Identity)\**\*"
+        Exclude="$(BuiltInProfileSourceRoot)\%(BuiltInProfileBundle.Identity)\schemas\**\*">
+        <BundleDirectory>%(BuiltInProfileBundle.Identity)</BundleDirectory>
+      </_BuiltInProfileSource>
+      <_BuiltInProfileFamilySchema Include="@(BuiltInProfileBundle)">
+        <SourceFile>$(ProfileSchemaSourceRoot)\0dd353296e02e448dcc653028fd3b3ce6ad7fdd8e11a1ce11a465b46f0b471d7\firmware-family-v1.schema.json</SourceFile>
+        <DestinationFile>$(BuiltInProfileMaterializedRoot)\%(Identity)\schemas\firmware-family-v1.schema.json</DestinationFile>
+      </_BuiltInProfileFamilySchema>
+      <_BuiltInProfileCompositionSchema Include="@(BuiltInProfileBundle)">
+        <SourceFile>$(ProfileSchemaSourceRoot)\%(BuiltInProfileBundle.CompositionProfileSchemaHash)\composition-profile-v2.schema.json</SourceFile>
+        <DestinationFile>$(BuiltInProfileMaterializedRoot)\%(Identity)\schemas\composition-profile-v2.schema.json</DestinationFile>
+      </_BuiltInProfileCompositionSchema>
+    </ItemGroup>
+    <Copy
+      SourceFiles="@(_BuiltInProfileSource)"
+      DestinationFiles="@(_BuiltInProfileSource->'$(BuiltInProfileMaterializedRoot)\%(BundleDirectory)\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy
+      SourceFiles="@(_BuiltInProfileFamilySchema->'%(SourceFile)')"
+      DestinationFiles="@(_BuiltInProfileFamilySchema->'%(DestinationFile)')" />
+    <Copy
+      SourceFiles="@(_BuiltInProfileCompositionSchema->'%(SourceFile)')"
+      DestinationFiles="@(_BuiltInProfileCompositionSchema->'%(DestinationFile)')" />
+    <ItemGroup>
+      <_BuiltInProfileMaterializedFiles Include="$(BuiltInProfileMaterializedRoot)\**\*" />
+      <Content Include="@(_BuiltInProfileMaterializedFiles)">
+        <Link>profiles\built-in\%(_BuiltInProfileMaterializedFiles.RecursiveDir)%(_BuiltInProfileMaterializedFiles.Filename)%(_BuiltInProfileMaterializedFiles.Extension)</Link>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </Content>
+    </ItemGroup>
+  </Target>
 </Project>

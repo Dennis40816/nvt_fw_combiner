@@ -29,6 +29,12 @@ public static partial class WorkbenchCompositionService
         long? dpBaseLength = null,
         string? ctrlRamBasePath = null)
     {
+        if (replaceMode == WorkbenchReplaceModes.Dp &&
+            TryCreateV2DpReplaceMemoryMapRows(icId, dpBaseLength, out IReadOnlyList<WorkbenchMemoryMapRow> v2Rows))
+        {
+            return v2Rows;
+        }
+
         IcNumberSelection selection = ToIcNumberSelection(number);
         LegacyCombinerPostbuildProfile? postbuildProfile = replaceMode == WorkbenchReplaceModes.CtrlRam &&
             TryResolvePostbuildProfileForDisplay(icId, ctrlRamBasePath, out LegacyCombinerPostbuildProfile? profile)
@@ -50,7 +56,7 @@ public static partial class WorkbenchCompositionService
             ]
             : replaceMode switch
             {
-                WorkbenchReplaceModes.Dp => CreateDpReplaceRows(icId, regions, dpBaseLength),
+                WorkbenchReplaceModes.Dp => CreateDpReplaceRows(icId, regions),
                 WorkbenchReplaceModes.CtrlRam => CreateCtrlRamReplaceRows(
                     TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile)),
                 WorkbenchReplaceModes.General =>
@@ -88,13 +94,10 @@ public static partial class WorkbenchCompositionService
         long? dpBaseLength = null,
         string? ctrlRamBasePath = null)
     {
-        if (replaceMode == WorkbenchReplaceModes.Dp && IsDpPerspectiveIc(icId))
+        if (replaceMode == WorkbenchReplaceModes.Dp &&
+            TryGetV2DpReplaceMemoryRangeLabel(icId, dpBaseLength, out string v2RangeLabel))
         {
-            return dpBaseLength is long value
-                ? IsSupportedDpPerspectiveBaseLength(value)
-                    ? FormatFullRange(value)
-                    : $"Unsupported base BIN length {FormatHexLength(value)}"
-                : $"Base BIN length: {FormatSupportedDpPerspectiveBaseLengths()}";
+            return v2RangeLabel;
         }
 
         IcNumberSelection selection = ToIcNumberSelection(number);

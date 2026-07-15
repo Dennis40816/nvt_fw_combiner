@@ -11,6 +11,7 @@ public sealed partial class RepositoryBoundaryTests
         string buttonStyles = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowButtonStyles.axaml");
         string controlStyles = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowControlStyles.axaml");
         string visualStyles = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowVisualStyles.axaml");
+        string themeTokens = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Styles/ThemeTokens.axaml");
         string sharedTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml");
         string reportTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportTemplates.axaml");
         string reportChangeTemplates = ReadText(
@@ -107,7 +108,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("<views:HexEditorPanel", pageTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("HexEditorPanel", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("<Setter Property=\"MinHeight\" Value=\"44\" />", shellStyles, StringComparison.Ordinal);
-        Assert.Contains("<Setter Property=\"CornerRadius\" Value=\"999\" />", shellStyles, StringComparison.Ordinal);
+        Assert.Contains(
+            "<Setter Property=\"CornerRadius\" Value=\"{DynamicResource NfcPillCornerRadius}\" />",
+            shellStyles,
+            StringComparison.Ordinal);
         Assert.Contains("ColumnDefinitions=\"1.15*,430\"", shell, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.OutputLayoutTitle}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("IsEnabled=\"False\"", pageTemplates, StringComparison.Ordinal);
@@ -243,7 +247,21 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("LoadedReport.PostbuildInvocations", reportAuditTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("LoadedReport.CommandOperations", reportAuditTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("ColumnDefinitions=\"24,*\"", shell, StringComparison.Ordinal);
-        Assert.Contains("FontFamily=\"fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI\"", shell, StringComparison.Ordinal);
+        Assert.Contains("FontFamily=\"{DynamicResource NfcUiFontFamily}\"", shell, StringComparison.Ordinal);
+        Assert.Contains(
+            "<FontFamily x:Key=\"NfcUiFontFamily\">fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI</FontFamily>",
+            themeTokens,
+            StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcSpace2\">2</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcSpace4\">4</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcSpace8\">8</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcSpace12\">12</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcSpace16\">16</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcFontSize10\">10</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcFontSize11\">11</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcFontSize12\">12</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcFontSize13\">13</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcFontSize14\">14</x:Double>", themeTokens, StringComparison.Ordinal);
         Assert.DoesNotContain("Classes=\"secondary\" Content=\"{Binding PreviewActionLabel}\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Background=\"#0F172A\" CornerRadius=\"8\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Merge / Replace workspace", shell, StringComparison.Ordinal);

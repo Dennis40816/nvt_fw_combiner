@@ -49,7 +49,7 @@ public sealed partial class CompositionProfileCompilerTests
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, [mapping]);
 
         Assert.True(result.IsSuccess);
-        CompositionOperation operation = Assert.Single(result.Plan!.OrderedOperations);
+        CompositionOperation operation = Assert.Single(result.CompiledComposition!.Plan.OrderedOperations);
         Assert.Equal(new ByteRange(1, 2), operation.TargetRange);
     }
 

@@ -40,6 +40,7 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
         IReadOnlyList<ByteRange> ranges = LegacyCombinerPostbuildPlanner.GetKnownIntegrityWriteRanges(plan, 0x40000);
 
         Assert.Contains(new ByteRange(0x1C, 4), ranges);
+        Assert.Contains(new ByteRange(0x3C, 4), ranges);
         Assert.Contains(new ByteRange(0xFC, 4), ranges);
     }
 
@@ -171,6 +172,7 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
         Assert.Contains(normalRange, ranges);
         Assert.Contains(new ByteRange(0x32F50, 256), ranges);
         Assert.Contains(new ByteRange(0x1C, 4), ranges);
+        Assert.Contains(new ByteRange(0x3C, 4), ranges);
         Assert.Contains(new ByteRange(0xFC, 4), ranges);
 
         IReadOnlyList<LegacyCombinerPostbuildWriteRange> sections =

@@ -9,6 +9,5 @@ public static partial class BuiltInReplaceProfiles
         SyntheticDpReplace,
         SyntheticCtrlRamReplace,
         SyntheticGeneralReplace,
-        .. DpPerspectiveDpReplaceProfiles,
     ];
 }

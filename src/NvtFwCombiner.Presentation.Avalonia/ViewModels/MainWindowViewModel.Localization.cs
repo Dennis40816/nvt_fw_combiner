@@ -52,6 +52,9 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
         OnPropertyChanged(nameof(MergeBuildActionTip));
         OnPropertyChanged(nameof(ReplaceBuildActionTip));
+        OnPropertyChanged(nameof(CtrlRamFirmwareVersionCurrentValue));
+        OnPropertyChanged(nameof(CtrlRamFirmwareVersionMetadataDetail));
+        OnPropertyChanged(nameof(CtrlRamFirmwareVersionValidationDetail));
         OnPropertyChanged(nameof(ReportActionLabel));
         OnPropertyChanged(nameof(ReportActionStatus));
         RefreshNavigationTrail();

@@ -7,6 +7,7 @@ public sealed class ExternalProcessorInvocation
     private readonly ByteRange[] _allowedWriteRanges;
     private readonly ExternalProcessorWriteRangeSection[] _allowedWriteRangeSections;
     private readonly ExternalProcessorStagedSourceBinding[] _stagedSourceBindings;
+    private readonly ExternalProcessorStagedArtifactBinding[] _stagedArtifactBindings;
 
     /// <summary>Creates an external processor invocation declaration.</summary>
     public ExternalProcessorInvocation(
@@ -15,7 +16,9 @@ public sealed class ExternalProcessorInvocation
         IEnumerable<ByteRange> allowedReadRanges,
         IEnumerable<ByteRange> allowedWriteRanges,
         IEnumerable<ExternalProcessorStagedSourceBinding>? stagedSourceBindings = null,
-        IEnumerable<ExternalProcessorWriteRangeSection>? allowedWriteRangeSections = null)
+        IEnumerable<ExternalProcessorWriteRangeSection>? allowedWriteRangeSections = null,
+        IEnumerable<ExternalProcessorStagedArtifactBinding>? stagedArtifactBindings = null,
+        IEnumerable<ExternalProcessorOutputAssertion>? outputAssertions = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(processorId);
         ArgumentException.ThrowIfNullOrWhiteSpace(toolBindingId);
@@ -36,6 +39,7 @@ public sealed class ExternalProcessorInvocation
                 .ThenBy(binding => binding.FirmwareRange.Length)
                 .ThenBy(binding => binding.SourceSpaceId, StringComparer.Ordinal),
         ];
+        ExternalProcessorStagedArtifactBinding[] artifactBindings = [.. stagedArtifactBindings ?? []];
         if (_allowedReadRanges.Length == 0)
         {
             throw new ArgumentException("External processor allowed read ranges must not be empty.", nameof(allowedReadRanges));
@@ -55,6 +59,41 @@ public sealed class ExternalProcessorInvocation
                     nameof(allowedWriteRangeSections));
             }
         }
+
+        if (artifactBindings.Any(static binding => binding is null) ||
+            artifactBindings.Select(static binding => binding.ArtifactId).Distinct(StringComparer.Ordinal).Count() !=
+            artifactBindings.Length)
+        {
+            throw new ArgumentException(
+                "External processor staged artifact bindings must be non-null with unique artifact ids.",
+                nameof(stagedArtifactBindings));
+        }
+
+        _stagedArtifactBindings = [.. artifactBindings.OrderBy(binding => binding.ArtifactId, StringComparer.Ordinal)];
+        ExternalProcessorOutputAssertion[] assertions = [.. outputAssertions ?? []];
+        if (assertions.Any(static assertion => assertion is null))
+        {
+            throw new ArgumentException(
+                "External processor output assertions must not contain null entries.",
+                nameof(outputAssertions));
+        }
+
+        Array.Sort(assertions, static (left, right) =>
+        {
+            int startComparison = left.Range.Start.CompareTo(right.Range.Start);
+            return startComparison != 0 ? startComparison : left.Range.Length.CompareTo(right.Range.Length);
+        });
+        for (int index = 1; index < assertions.Length; index++)
+        {
+            if (assertions[index - 1].Range.Overlaps(assertions[index].Range))
+            {
+                throw new ArgumentException(
+                    "External processor output assertions must not overlap.",
+                    nameof(outputAssertions));
+            }
+        }
+
+        OutputAssertions = Array.AsReadOnly(assertions);
 
         ProcessorId = processorId;
         ToolBindingId = toolBindingId;
@@ -77,6 +116,12 @@ public sealed class ExternalProcessorInvocation
 
     /// <summary>Additional source bytes the processor may stage without the host first writing them into the target image.</summary>
     public IReadOnlyList<ExternalProcessorStagedSourceBinding> StagedSourceBindings => _stagedSourceBindings;
+
+    /// <summary>Named source snapshots the host materializes as immutable tool input artifacts.</summary>
+    public IReadOnlyList<ExternalProcessorStagedArtifactBinding> StagedArtifactBindings => _stagedArtifactBindings;
+
+    /// <summary>Exact post-transform bytes the host verifies before importing the staged output.</summary>
+    public IReadOnlyList<ExternalProcessorOutputAssertion> OutputAssertions { get; }
 }
 
 /// <summary>Diagnostic section attached to a declared external-processor write range.</summary>

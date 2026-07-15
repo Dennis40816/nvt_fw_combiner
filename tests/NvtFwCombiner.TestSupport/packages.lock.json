@@ -5,8 +5,8 @@
       "nvtfwcombiner.application": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Contracts": "[0.7.0, )",
-          "NvtFwCombiner.Domain": "[0.7.0, )"
+          "NvtFwCombiner.Contracts": "[0.9.2, )",
+          "NvtFwCombiner.Domain": "[0.9.2, )"
         }
       },
       "nvtfwcombiner.contracts": {

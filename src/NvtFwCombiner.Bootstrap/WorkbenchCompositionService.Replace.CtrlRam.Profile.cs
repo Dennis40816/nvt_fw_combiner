@@ -16,10 +16,22 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<TpFlashMapRegion> selectedRegions,
         LegacyCombinerPostbuildProfile postbuildProfile,
         LegacyCombinerPostbuildCommandPlan commandPlan,
-        IReadOnlyList<LegacyCombinerPostbuildWriteRange> postbuildWriteRangeSections)
+        IReadOnlyList<LegacyCombinerPostbuildWriteRange> postbuildWriteRangeSections,
+        FirmwareConfigVersionWritePlan? firmwareVersionWritePlan)
     {
         string normalizedIc = icId.ToLowerInvariant();
         ByteRange[] postbuildWriteRanges = [.. postbuildWriteRangeSections.Select(section => section.Range)];
+        ExternalProcessorOutputAssertion[] postbuildOutputAssertions = firmwareVersionWritePlan is null
+            ? []
+            :
+            [
+                new ExternalProcessorOutputAssertion(
+                    firmwareVersionWritePlan.BackupFirmwareVersionAndBarRange,
+                    firmwareVersionWritePlan.FirmwareVersionAndBarBytes.ToArray()),
+                new ExternalProcessorOutputAssertion(
+                    firmwareVersionWritePlan.BackupFirmwareSubVersionRange,
+                    firmwareVersionWritePlan.FirmwareSubVersionBytes.ToArray()),
+            ];
         List<AddressSpace> addressSpaces =
         [
             new(CompositionAddressSpaceIds.ReferenceBase, capacity, AddressSpaceMutability.Immutable),
@@ -28,6 +40,7 @@ public static partial class WorkbenchCompositionService
         List<CompositionOperation> operations = [];
         List<ProfileRegion> profileRegions = [];
         List<RegionAccessRule> accessRules = [];
+        List<CompiledValidationRequirement> validationRequirements = [];
 
         foreach (TpFlashMapRegion region in ctrlRamRegions.OrderBy(region => region.Range.Start))
         {
@@ -84,6 +97,41 @@ public static partial class WorkbenchCompositionService
                 classificationTags: ["postbuild", section.SectionId]));
         }
 
+        if (firmwareVersionWritePlan is not null)
+        {
+            AddFirmwareVersionWriteRegion(
+                profileRegions,
+                accessRules,
+                "firmware-version-source",
+                firmwareVersionWritePlan.FirmwareVersionAndBarRange,
+                "TP FW version and complement source for the legacy Combiner Backup propagation.");
+            AddFirmwareVersionWriteRegion(
+                profileRegions,
+                accessRules,
+                "firmware-sub-version-source",
+                firmwareVersionWritePlan.FirmwareSubVersionRange,
+                "TP FW sub-version source for the legacy Combiner Backup propagation.");
+            operations.Add(CompositionOperation.PatchScalar(
+                "patch-fw-version-and-bar",
+                10,
+                CompositionAddressSpaceIds.OutputImage,
+                firmwareVersionWritePlan.FirmwareVersionAndBarRange,
+                firmwareVersionWritePlan.FirmwareVersionAndBarBytes.ToArray(),
+                OverlapPolicy.ReplaceExisting,
+                "Apply the user-confirmed TP FW version before the approved legacy Combiner postbuild sequence."));
+            operations.Add(CompositionOperation.PatchScalar(
+                "patch-fw-sub-version",
+                20,
+                CompositionAddressSpaceIds.OutputImage,
+                firmwareVersionWritePlan.FirmwareSubVersionRange,
+                firmwareVersionWritePlan.FirmwareSubVersionBytes.ToArray(),
+                OverlapPolicy.ReplaceExisting,
+                "Apply the user-confirmed TP FW sub-version before the approved legacy Combiner postbuild sequence."));
+            validationRequirements.Add(LegacyProfileValidationRequirements.FirmwareConfigBackupVersion(
+                firmwareVersionWritePlan.FirmwareVersion,
+                firmwareVersionWritePlan.FirmwareSubVersion));
+        }
+
         operations.Add(CompositionOperation.RunExternalProcessor(
             $"postbuild-{commandPlan.Branch.ToString().ToLowerInvariant()}",
             sequence,
@@ -96,7 +144,8 @@ public static partial class WorkbenchCompositionService
                 postbuildWriteRanges,
                 stagedSourceBindings,
                 allowedWriteRangeSections: postbuildWriteRangeSections.Select(section =>
-                    new ExternalProcessorWriteRangeSection(section.SectionId, section.Range, section.SourceRange))),
+                    new ExternalProcessorWriteRangeSection(section.SectionId, section.Range, section.SourceRange)),
+                outputAssertions: postbuildOutputAssertions),
             OverlapPolicy.ReplaceExisting,
             $"Run {commandPlan.Branch} legacy Combiner postbuild and stage selected CtrlRAM BINs for Combiner pasteback. Combiner command: {FormatPostbuildCommandBlock(commandPlan)}."));
 
@@ -113,6 +162,24 @@ public static partial class WorkbenchCompositionService
             operations,
             profileRegions,
             accessRules,
-            selection.Mode);
+            selection.Mode,
+            validationRequirements);
+    }
+
+    private static void AddFirmwareVersionWriteRegion(
+        List<ProfileRegion> profileRegions,
+        List<RegionAccessRule> accessRules,
+        string regionId,
+        ByteRange range,
+        string reason)
+    {
+        profileRegions.Add(new ProfileRegion(
+            regionId,
+            CompositionAddressSpaceIds.OutputImage,
+            range,
+            RegionAtomicity.Whole,
+            RegionWritePolicy.WholeOnly,
+            classificationTags: ["firmware-config", "firmware-version"]));
+        accessRules.Add(new RegionAccessRule(regionId, RegionAccessKind.Whole, reason));
     }
 }

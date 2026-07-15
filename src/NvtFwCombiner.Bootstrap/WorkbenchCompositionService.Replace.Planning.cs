@@ -14,15 +14,14 @@ public static partial class WorkbenchCompositionService
         IReadOnlyDictionary<string, string> slotPaths,
         bool build,
         string issueCode,
-        string issueMessage,
-        long? dpBaseLength = null)
+        string issueMessage)
     {
         return CreateReplaceReportRunResult(
             icId,
             replaceMode,
             slotPaths,
             build,
-            CreateReplacePlanningOperations(icId, number, replaceMode, dpBaseLength),
+            CreateReplacePlanningOperations(icId, number, replaceMode),
             [new CompositionIssue(issueCode, issueMessage, replaceMode.ToLowerInvariant())],
             GetReplaceDefaultOutputFileName(icId, replaceMode),
             succeeded: false);
@@ -31,72 +30,16 @@ public static partial class WorkbenchCompositionService
     private static IReadOnlyList<OperationRunSummary> CreateReplacePlanningOperations(
         string icId,
         string number,
-        string replaceMode,
-        long? dpBaseLength = null)
+        string replaceMode)
     {
+        if (replaceMode == WorkbenchReplaceModes.Dp && IsBuiltInV2DpReplaceIc(icId))
+        {
+            return [];
+        }
+
         IcNumberSelection selection = ToIcNumberSelection(number);
         IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetRegions(icId, selection);
         OperationRunStatus status = OperationRunStatus.Skipped;
-
-        if (replaceMode == WorkbenchReplaceModes.Dp && IsDpPerspectiveIc(icId))
-        {
-            if (dpBaseLength is not long capacity || !IsSupportedDpPerspectiveBaseLength(capacity))
-            {
-                return [];
-            }
-
-            var fullContainer = new ByteRange(0, capacity);
-            ByteRange tpRestoreRange = DpPerspectiveCatalog.TpOverlayRange;
-            ByteRange customerInfoPreserveRange = DpPerspectiveCatalog.CustomerInfoPreserveRange;
-            return
-            [
-                new OperationRunSummary(
-                    DpPerspectiveCatalog.ReplaceDpContainerOperationId,
-                    DpPerspectiveCatalog.ReplaceDpContainerSequence,
-                    CompositionOperationKind.ReplaceRange,
-                    status,
-                    CompositionAddressSpaceIds.DpReplacement,
-                    fullContainer,
-                    CompositionAddressSpaceIds.OutputImage,
-                    fullContainer,
-                    OverlapPolicy.Reject,
-                    null,
-                    null,
-                    [],
-                    [],
-                    "Replace the DP perspective container using the selected base length."),
-                new OperationRunSummary(
-                    DpPerspectiveCatalog.RestoreBaseTpOperationId,
-                    DpPerspectiveCatalog.RestoreBaseTpSequence,
-                    CompositionOperationKind.CopyRange,
-                    status,
-                    CompositionAddressSpaceIds.ReferenceBase,
-                    tpRestoreRange,
-                    CompositionAddressSpaceIds.OutputImage,
-                    tpRestoreRange,
-                    OverlapPolicy.ReplaceExisting,
-                    null,
-                    null,
-                    [],
-                    [],
-                    "Restore original TP FW from the base firmware."),
-                new OperationRunSummary(
-                    DpPerspectiveCatalog.RestoreBaseCustomerInfoOperationId,
-                    DpPerspectiveCatalog.RestoreBaseCustomerInfoSequence,
-                    CompositionOperationKind.CopyRange,
-                    status,
-                    CompositionAddressSpaceIds.ReferenceBase,
-                    customerInfoPreserveRange,
-                    CompositionAddressSpaceIds.OutputImage,
-                    customerInfoPreserveRange,
-                    OverlapPolicy.ReplaceExisting,
-                    null,
-                    null,
-                    [],
-                    [],
-                    "Restore customer information from the base firmware."),
-            ];
-        }
 
         return
         [

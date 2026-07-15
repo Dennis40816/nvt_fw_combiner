@@ -62,6 +62,110 @@ public sealed partial class CompositionRunServiceTests
         Assert.NotNull(result.PreviewToken);
     }
 
+    /// <summary>Verifies Build rechecks the new image and cannot publish when postbuild output drifts after preview.</summary>
+    [Fact]
+    public async Task FirmwareConfigBackupFinalOutputValidationBlocksBuildAfterApprovedPreviewOutputDrift()
+    {
+        const int backupStart = 4;
+        const int markerStart = 0x1000;
+        int invocation = 0;
+        var processor = new FakeExternalProcessor(request =>
+        {
+            byte[] output = request.InputBytes.ToArray();
+            output[markerStart] = 0x00;
+            output[markerStart + 1] = (byte)'N';
+            output[markerStart + 2] = (byte)'V';
+            output[markerStart + 3] = (byte)'T';
+            bool preview = invocation++ == 0;
+            output[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = preview ? (byte)0x27 : (byte)0x26;
+            output[backupStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = preview ? (byte)0xD8 : (byte)0xD9;
+            output[backupStart + FirmwareConfigLayout.FirmwareSubVersionOffset] = 0x04;
+            return ExternalProcessorResult.Success(
+                output,
+                [new ByteRange(0, output.Length)],
+                [
+                    new ExternalProcessInvocation(
+                        "C:\\tools\\Combiner.exe",
+                        "C:\\staging\\run-fwconfig-preview-build-drift",
+                        ["CRC_Enable"]),
+                ]);
+        });
+        var writer = new FakeOutputWriter();
+        var service = new CompositionRunService(
+            new FakeArtifactReader([]),
+            new FakeClock([FirstTimestamp, SecondTimestamp, ThirdTimestamp, FourthTimestamp]),
+            writer,
+            processor);
+        CompositionRunRequest request = CreateFirmwareConfigBackupValidationRequest();
+
+        CompositionRunResult preview = await service.PreviewAsync(request, CancellationToken.None);
+        CompositionRunResult build = await service.BuildAsync(
+            request.WithApprovedPreviewToken(preview.PreviewToken!),
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, preview.Status);
+        Assert.NotNull(preview.PreviewToken);
+        Assert.Equal(CompositionExecutionStatus.Failed, build.Status);
+        Assert.Empty(build.OutputBytes.ToArray());
+        Assert.Null(build.CommittedOutputId);
+        Assert.False(writer.WasCalled);
+        Assert.Equal(0x1100L, build.Report.Output.Size);
+        Assert.Equal("replace.ctrlram.fw-version-output-mismatch", Assert.Single(build.Report.Issues).Code);
+        Assert.Equal(ValidationRunStatus.Failed, Assert.Single(build.Report.Validations).Status);
+        OperationRunSummary operation = Assert.Single(build.Report.Operations);
+        Assert.Equal(OperationRunStatus.Succeeded, operation.Status);
+        _ = Assert.Single(operation.ExecutedCommands);
+        Assert.Equal(2, processor.CallCount);
+    }
+
+    /// <summary>Verifies final-output validation fails closed when the completed image has no canonical NVT marker.</summary>
+    [Fact]
+    public async Task FirmwareConfigBackupFinalOutputValidationRejectsMissingNvtMarker()
+    {
+        var processor = new FakeExternalProcessor(request =>
+            ExternalProcessorResult.Success(request.InputBytes, []));
+        var service = new CompositionRunService(
+            new FakeArtifactReader([]),
+            new FakeClock([FirstTimestamp, SecondTimestamp]),
+            null,
+            processor);
+
+        CompositionRunResult result = await service.PreviewAsync(
+            CreateFirmwareConfigBackupValidationRequest(),
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
+        Assert.Empty(result.OutputBytes.ToArray());
+        Assert.Equal("replace.ctrlram.fw-version-output-invalid", Assert.Single(result.Report.Issues).Code);
+        ValidationRunSummary validation = Assert.Single(result.Report.Validations);
+        Assert.Equal(ValidationRunStatus.Failed, validation.Status);
+        Assert.Equal("replace.ctrlram.fw-version-output-invalid", validation.IssueCode);
+    }
+
+    /// <summary>Verifies final-output validation is skipped when the processor does not produce an image.</summary>
+    [Fact]
+    public async Task FirmwareConfigBackupFinalOutputValidationIsSkippedAfterProcessorFailure()
+    {
+        var processor = new FakeExternalProcessor(_ => ExternalProcessorResult.Failed([
+            new CompositionIssue("external-tool.process.failed", "synthetic Combiner failure", "postbuild"),
+        ]));
+        var service = new CompositionRunService(
+            new FakeArtifactReader([]),
+            new FakeClock([FirstTimestamp, SecondTimestamp]),
+            null,
+            processor);
+
+        CompositionRunResult result = await service.PreviewAsync(
+            CreateFirmwareConfigBackupValidationRequest(),
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
+        Assert.Equal("external-tool.process.failed", Assert.Single(result.Report.Issues).Code);
+        ValidationRunSummary validation = Assert.Single(result.Report.Validations);
+        Assert.Equal(ValidationRunStatus.Skipped, validation.Status);
+        Assert.Equal("replace.ctrlram.fw-version-output-mismatch", validation.IssueCode);
+    }
+
     /// <summary>Verifies external processor requests receive staged source bytes without pre-writing the work image.</summary>
     [Fact]
     public async Task PreviewPassesExternalProcessorStagedSources()
@@ -156,6 +260,34 @@ public sealed partial class CompositionRunServiceTests
         Assert.DoesNotContain(result.Report.Issues, issue => issue.Code == ReportIssueCodes.UnexpectedOutputDifference);
     }
 
+    /// <summary>Verifies Replace differences use only the selected output clone and output-target operations.</summary>
+    [Fact]
+    public async Task ReplaceReportIgnoresNonOutputReferenceInitializerAndMutations()
+    {
+        var service = new CompositionRunService(
+            new FakeArtifactReader(new Dictionary<string, byte[]>
+            {
+                ["output-reference-artifact"] = [0x10, 0x20, 0x30, 0x40],
+                ["scratch-reference-artifact"] = [0xA0, 0xB0, 0xC0, 0xD0],
+            }),
+            new FakeClock([FirstTimestamp, SecondTimestamp]));
+
+        CompositionRunResult result = await service.PreviewAsync(
+            CreateMultiReferenceReplaceRequest(),
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal([0x10, 0x99, 0x30, 0x40], result.OutputBytes.ToArray());
+        Assert.Equal(["output-image", "scratch"], result.Report.Mutations.Select(item => item.TargetSpaceId));
+        OutputDifferenceSummary difference = Assert.Single(result.Report.OutputDifferences);
+        Assert.Equal(new ByteRange(1, 1), difference.Range);
+        Assert.Equal("20", difference.BeforeHexPreview);
+        Assert.Equal("99", difference.AfterHexPreview);
+        Assert.Equal(OutputDifferenceClassifications.DeclaredReplacement, difference.Classification);
+        Assert.Equal("fill-output", difference.Evidence);
+        Assert.DoesNotContain(result.Report.Issues, issue => issue.Code == ReportIssueCodes.UnexpectedOutputDifference);
+    }
+
     /// <summary>Verifies a modeled normal-header range reaches the report as a named field, not just a CRC bucket.</summary>
     [Fact]
     public async Task ReplaceReportNamesNt51926DlmCrcZero()
@@ -205,7 +337,7 @@ public sealed partial class CompositionRunServiceTests
         var copiedFieldRange = new ByteRange(0x1E25C, 1);
         CompositionRunRequest request = CreateNt51927CopiedHeaderSemanticRequest();
         ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(
-            Assert.Single(request.Plan.OrderedOperations).ExternalProcessorInvocation);
+            Assert.Single(request.CompiledComposition.Plan.OrderedOperations).ExternalProcessorInvocation);
         ExternalProcessorWriteRangeSection headerCopySection = Assert.Single(invocation.AllowedWriteRangeSections);
         Assert.Equal(TpHeaderSectionIds.HeaderCopyMaster, headerCopySection.SectionId);
         Assert.Equal(new ByteRange(0x200, 0x190), headerCopySection.SourceRange);

@@ -5,15 +5,15 @@
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
 
 <DataTemplate x:Key="ReportOperationFlowNodeTemplate" DataType="vm:ReportOperationFlowNodeViewModel">
-  <Grid ColumnDefinitions="44,*" ColumnSpacing="12">
+  <Grid ColumnDefinitions="44,*" ColumnSpacing="{DynamicResource NfcSpace12}">
     <Grid>
       <Border
           Width="2"
           HorizontalAlignment="Center"
-          Background="#BFDBFE"
+          Background="{DynamicResource NfcAccentBorderLightBrush}"
           IsVisible="{Binding HasConnector}" />
-      <Border Width="32" Height="32" Margin="0,4,0,0" HorizontalAlignment="Center" VerticalAlignment="Top" Background="#EFF6FF" BorderBrush="#93C5FD" BorderThickness="1" CornerRadius="999">
-        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Foreground="#1D4ED8" Text="{Binding Number}" />
+      <Border Width="32" Height="32" Margin="0,4,0,0" HorizontalAlignment="Center" VerticalAlignment="Top" Background="{DynamicResource NfcAccentSurfaceSubtleBrush}" BorderBrush="{DynamicResource NfcAccentBorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource NfcPillCornerRadius}">
+        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Foreground="{DynamicResource NfcAccentStrongBrush}" Text="{Binding Number}" />
       </Border>
     </Grid>
     <Expander Grid.Column="1" Margin="0,3,0,18" IsExpanded="False">
@@ -23,7 +23,7 @@
           <Label Grid.Column="1" MinWidth="44" Classes="reportBadge" Content="{Binding Status}" />
         </Grid>
       </Expander.Header>
-      <StackPanel Margin="0,7,0,0" Spacing="4">
+      <StackPanel Margin="0,7,0,0" Spacing="{DynamicResource NfcSpace4}">
         <TextBlock Classes="bodyText" Text="{Binding Detail}" TextWrapping="Wrap" />
         <TextBlock Classes="captionText" Text="{Binding Meta}" TextWrapping="Wrap" IsVisible="{Binding HasMeta}" />
       </StackPanel>
@@ -50,7 +50,7 @@
       <Expander.Header>
         <Grid Margin="10,8" ColumnDefinitions="58,*,Auto" ColumnSpacing="10">
           <Label VerticalAlignment="Center" Classes="reportBadge info" Content="{Binding Number}" />
-          <StackPanel Grid.Column="1" Spacing="2">
+          <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace2}">
             <TextBlock Classes="panelTitle" Text="{Binding Title}" TextWrapping="Wrap" />
             <TextBlock Classes="captionText" Text="{Binding OperationTitle}" TextWrapping="Wrap" />
           </StackPanel>
@@ -68,17 +68,17 @@
 <DataTemplate x:Key="ReportStepOperationTemplate" DataType="vm:ReportLineViewModel">
   <Grid ColumnDefinitions="34,*">
     <Grid>
-      <Border Width="2" HorizontalAlignment="Center" Background="#CBD5E1" />
+      <Border Width="2" HorizontalAlignment="Center" Background="{DynamicResource NfcBorderBrush}" />
       <Border
           Width="13"
           Height="13"
           Margin="0,11,0,0"
           HorizontalAlignment="Center"
           VerticalAlignment="Top"
-          Background="#64748B"
-          BorderBrush="#F8FAFC"
+          Background="{DynamicResource NfcTextMutedBrush}"
+          BorderBrush="{DynamicResource NfcSurfaceSubtleBrush}"
           BorderThickness="2"
-          CornerRadius="999" />
+          CornerRadius="{DynamicResource NfcPillCornerRadius}" />
     </Grid>
     <StackPanel Grid.Column="1" Margin="0,6,0,16" Spacing="6">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">

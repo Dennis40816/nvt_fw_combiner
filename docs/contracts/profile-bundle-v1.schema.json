@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/nfc/schemas/profile-bundle-v1.schema.json",
+  "title": "NVT FW Combiner Profile Bundle 1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "bundleId",
+    "bundleVersion",
+    "hashAlgorithm",
+    "contentHash",
+    "trustAnchorBindingId",
+    "entries"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "bundleId": { "$ref": "#/$defs/id" },
+    "bundleVersion": { "$ref": "#/$defs/semver" },
+    "hashAlgorithm": { "const": "sha256-rfc8785-entry-array-v1" },
+    "contentHash": { "$ref": "#/$defs/sha256" },
+    "trustAnchorBindingId": { "$ref": "#/$defs/id" },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/entry" }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entryId", "kind", "path", "schemaId", "contentHash"],
+      "properties": {
+        "entryId": { "$ref": "#/$defs/id" },
+        "kind": {
+          "enum": [
+            "schema",
+            "firmware-family",
+            "composition-profile",
+            "evidence-manifest",
+            "saved-composition-rule"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^(?:schemas|families|profiles|evidence|saved-rules)/(?:[a-z0-9][a-z0-9.-]*/)*[a-z0-9][a-z0-9.-]*\\.json$"
+        },
+        "schemaId": {
+          "type": "string",
+          "pattern": "^https://example\\.invalid/nfc/schemas/[a-z0-9-]+\\.schema\\.json$"
+        },
+        "contentHash": { "$ref": "#/$defs/sha256" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "schema" } }, "required": ["kind"] },
+          "then": { "properties": { "path": { "pattern": "^schemas/" } } }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "const": "firmware-family" } },
+            "required": ["kind"]
+          },
+          "then": { "properties": { "path": { "pattern": "^families/" } } }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "const": "composition-profile" } },
+            "required": ["kind"]
+          },
+          "then": { "properties": { "path": { "pattern": "^profiles/" } } }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "const": "evidence-manifest" } },
+            "required": ["kind"]
+          },
+          "then": { "properties": { "path": { "pattern": "^evidence/" } } }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "const": "saved-composition-rule" } },
+            "required": ["kind"]
+          },
+          "then": { "properties": { "path": { "pattern": "^saved-rules/" } } }
+        }
+      ]
+    }
+  }
+}

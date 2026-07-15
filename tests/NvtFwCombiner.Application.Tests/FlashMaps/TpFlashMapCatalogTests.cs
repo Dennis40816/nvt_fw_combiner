@@ -105,7 +105,7 @@ public sealed class TpFlashMapCatalogTests
         Assert.Contains("preserve", region.Tags);
     }
 
-    /// <summary>FWConfig primary starts are explicit profile facts used for metadata display.</summary>
+    /// <summary>FWConfig primary starts are explicit TP Overview facts retained for evidence cross-checks only.</summary>
     [Theory]
     [InlineData("NT51917", 0x16000)]
     [InlineData("NT51919", 0x1F200)]
@@ -120,12 +120,12 @@ public sealed class TpFlashMapCatalogTests
     [InlineData("NT51932", 0x1F200)]
     [InlineData("NT51950", 0x22200)]
     [InlineData("NT51951", 0x22200)]
-    public void FirmwareConfigStartComesFromFlashMapReference(string icId, long expectedStart)
+    public void FirmwareConfigPrimaryStartComesFromFlashMapReference(string icId, long expectedStart)
     {
         Assert.True(TpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? profile));
-        Assert.True(TpFlashMapCatalog.TryGetFirmwareConfigStart(icId, out long start));
+        Assert.True(TpFlashMapCatalog.TryGetFirmwareConfigPrimaryStart(icId, out long start));
 
-        Assert.Equal(expectedStart, profile!.FirmwareConfigStart);
+        Assert.Equal(expectedStart, profile!.FirmwareConfigPrimaryStart);
         Assert.Equal(expectedStart, start);
     }
 

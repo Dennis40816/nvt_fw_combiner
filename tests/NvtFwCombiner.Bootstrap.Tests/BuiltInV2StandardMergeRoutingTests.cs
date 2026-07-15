@@ -1,0 +1,193 @@
+using System.Text.Json;
+using System.Xml.Linq;
+using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.TestSupport;
+
+namespace NvtFwCombiner.Bootstrap.Tests;
+
+/// <summary>Runtime-routing evidence for hash-anchored built-in V2 Standard Merge bundles.</summary>
+public sealed class BuiltInV2StandardMergeRoutingTests
+{
+    /// <summary>Verifies every registered IC selects one deployed V2 artifact without legacy fallback.</summary>
+    [Theory]
+    [InlineData("NT51917", "nt51917-standard-merge-gen-flash-alias", "nt51927-standard-merge", "751f44c7dd790a826e9ab17747b933542c691125bdee8b975c9c764e4f2ef4b1", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51919", "nt51919-standard-merge-gen-flash-alias", "nt51929-standard-merge", "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51920", "nt51920-standard-merge-gen-flash", "nt51920-standard-merge", "3bb76d56656642af553ff012a619ca8fc38fb7cdabf8ac674e5433998357f9f2", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51923", "nt51923-standard-merge-gen-flash", "nt51923-standard-merge", "6bac75eb386ff08c3fa6970e54b3c1dca35722ddaeaf52b67068a127c4e85a96", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51926", "nt51926-standard-merge-gen-flash", "nt51923-standard-merge", "6bac75eb386ff08c3fa6970e54b3c1dca35722ddaeaf52b67068a127c4e85a96", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51927", "nt51927-standard-merge-gen-flash", "nt51927-standard-merge", "751f44c7dd790a826e9ab17747b933542c691125bdee8b975c9c764e4f2ef4b1", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51928", "nt51928-standard-merge-gen-flash", "nt51928-standard-merge", "27de29151abd1305a8ebf6ba25118acbf59392efd362d362699310a5564ad5af", "dp-input,ld-input,tp-input", "DpFirmware,Auxiliary,TpFirmware")]
+    [InlineData("NT51929", "nt51929-standard-merge-gen-flash", "nt51929-standard-merge", "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51930", "nt51930-standard-merge-flashmap", "nt51930-standard-merge", "b9ca3d66d8674d080b4e0c8563110dfd305b3df18746f5164e7ed45514e0714e", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51931", "nt51931-standard-merge-gen-flash", "nt51931-standard-merge", "a7b3534afce6d2fe107363e41554668a71832f203168c81fa09e9f98a1a5815f", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51932", "nt51932-standard-merge-gen-flash", "nt51929-standard-merge", "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    public void RegisteredStandardMergeUsesDeployedTrustedV2Artifact(
+        string icId,
+        string profileId,
+        string bundleDirectory,
+        string bundleContentHash,
+        string expectedInputAddressSpaceIds,
+        string expectedArtifactClasses)
+    {
+        ArgumentNullException.ThrowIfNull(expectedInputAddressSpaceIds);
+        ArgumentNullException.ThrowIfNull(expectedArtifactClasses);
+        string deployedManifestPath = Path.Combine(
+            AppContext.BaseDirectory,
+            "profiles",
+            "built-in",
+            bundleDirectory,
+            "profile-bundle.json");
+        Assert.True(File.Exists(deployedManifestPath), $"Deployed bundle manifest is missing: {deployedManifestPath}");
+        bool compiled = WorkbenchCompositionService.TryCompileStandardMerge(
+            icId,
+            dpInputLength: null,
+            out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues);
+
+        Assert.True(compiled, string.Join(Environment.NewLine, issues.Select(static issue => issue.Message)));
+        Assert.Empty(issues);
+        CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
+        Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
+        _ = Assert.IsType<ProfileBundleV2CompilationAuthority>(artifact.Authority);
+        V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(artifact.V2Details);
+        Assert.Equal(bundleContentHash, details.Provenance.Bundle.ContentHash);
+        Assert.Equal(profileId, artifact.ProfileId);
+        Assert.Equal(icId, artifact.IcId);
+        Assert.Equal(
+            expectedInputAddressSpaceIds.Split(','),
+            artifact.Plan.RequiredInputAddressSpaceIds.Order(StringComparer.Ordinal));
+        Assert.Equal(
+            expectedArtifactClasses.Split(','),
+            details.InputContract.Slots
+                .OrderBy(static slot => slot.SlotId, StringComparer.Ordinal)
+                .Select(static slot => slot.ArtifactClass.ToString()));
+    }
+
+    /// <summary>Verifies DP Perspective routing selects the trusted map that exactly matches the supplied DP container length.</summary>
+    [Theory]
+    [InlineData("NT51950", "nt51950-standard-merge-dp-perspective", 0x40000)]
+    [InlineData("NT51951", "nt51951-standard-merge-dp-perspective", 0x80000)]
+    public void DpPerspectiveStandardMergeUsesCapacitySelectedTrustedV2Artifact(
+        string icId,
+        string profileId,
+        long dpInputLength)
+    {
+        bool compiled = WorkbenchCompositionService.TryCompileStandardMerge(
+            icId,
+            dpInputLength,
+            out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues);
+
+        Assert.True(compiled, string.Join(Environment.NewLine, issues.Select(static issue => issue.Message)));
+        Assert.Empty(issues);
+        CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
+        Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
+        _ = Assert.IsType<ProfileBundleV2CompilationAuthority>(artifact.Authority);
+        V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(artifact.V2Details);
+        Assert.Equal("65987f6b1e41feaca92e7b258bca282df9ae133f90db6877ba6b97c04d91f0f4", details.Provenance.Bundle.ContentHash);
+        Assert.Equal(profileId, artifact.ProfileId);
+        Assert.Equal(icId, artifact.IcId);
+        Assert.Equal(dpInputLength, artifact.Plan.OutputInitialization.Capacity);
+    }
+
+    /// <summary>Verifies every production-materialized bundle is sourced from its manifest-pinned entries.</summary>
+    [Fact]
+    public void EveryProductionDeploymentMaterializesManifestPinnedEntries()
+    {
+        string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
+        string builtInRoot = Path.Combine(repositoryRoot, "profiles", "built-in");
+        string deployedBuiltInRoot = Path.Combine(AppContext.BaseDirectory, "profiles", "built-in");
+        string projectFile = RepositoryPaths.FromRepositoryRoot(
+            "src",
+            "NvtFwCombiner.Bootstrap",
+            "NvtFwCombiner.Bootstrap.csproj");
+        string[] bundleDirectories =
+        [
+            .. XDocument.Load(projectFile)
+                .Descendants("BuiltInProfileBundle")
+                .Select(static bundle => bundle.Attribute("Include")?.Value)
+                .Where(static bundleDirectory => !string.IsNullOrWhiteSpace(bundleDirectory))
+                .Cast<string>()
+                .Order(StringComparer.Ordinal),
+        ];
+        Assert.NotEmpty(bundleDirectories);
+
+        foreach (string bundleDirectory in bundleDirectories)
+        {
+            string sourceBundleRoot = Path.Combine(builtInRoot, bundleDirectory);
+            Assert.True(Directory.Exists(sourceBundleRoot), $"Production bundle has no repository source: {bundleDirectory}");
+            string deployedRoot = Path.Combine(deployedBuiltInRoot, bundleDirectory);
+            string sourceManifestPath = Path.Combine(sourceBundleRoot, "profile-bundle.json");
+            string deployedManifestPath = Path.Combine(deployedRoot, "profile-bundle.json");
+            Assert.Equal(File.ReadAllBytes(sourceManifestPath), File.ReadAllBytes(deployedManifestPath));
+
+            using var manifest = JsonDocument.Parse(File.ReadAllText(sourceManifestPath));
+            Assert.False(
+                Directory.Exists(Path.Combine(sourceBundleRoot, "schemas")),
+                $"Source bundle must not be used as a runtime root: {sourceBundleRoot}");
+            JsonElement[] entries = [.. manifest.RootElement.GetProperty("entries").EnumerateArray()];
+            Assert.Contains(
+                entries,
+                static entry => StringComparer.Ordinal.Equals(entry.GetProperty("kind").GetString(), "schema"));
+
+            foreach (JsonElement entry in entries)
+            {
+                string relativePath = entry.GetProperty("path").GetString()!;
+                string contentHash = entry.GetProperty("contentHash").GetString()!;
+                string sourcePath = StringComparer.Ordinal.Equals(entry.GetProperty("kind").GetString(), "schema")
+                    ? Path.Combine(
+                        repositoryRoot,
+                        "profiles",
+                        "schema-source",
+                        "sha256",
+                        contentHash,
+                        Path.GetFileName(relativePath))
+                    : Path.Combine(sourceBundleRoot, relativePath);
+                string deployedPath = Path.Combine(deployedRoot, relativePath);
+
+                Assert.True(File.Exists(sourcePath), $"Materialization source is missing: {sourcePath}");
+                Assert.True(File.Exists(deployedPath), $"Deployed bundle entry is missing: {deployedPath}");
+                Assert.Equal(File.ReadAllBytes(sourcePath), File.ReadAllBytes(deployedPath));
+            }
+
+            V2StandardMergeGoldenTestSupport.AssertSourceCatalogIsRejected(
+                bundleDirectory,
+                manifest.RootElement.GetProperty("contentHash").GetString()!);
+        }
+    }
+
+    /// <summary>Verifies the second bundle reaches the shared engine with original input trace names.</summary>
+    [Fact]
+    public async Task Nt51929WorkbenchPreviewUsesTrustedV2InputBindings()
+    {
+        using var workspace = TempWorkspace.Create();
+        byte[] dp = new byte[0x40000];
+        byte[] tp = new byte[0x40000];
+        dp[0] = 0x11;
+        tp[0x7000] = 0x22;
+        string dpPath = workspace.Write("nt51929-dp.bin", dp);
+        string tpPath = workspace.Write("nt51929-tp.bin", tp);
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeAsync(
+            "NT51929",
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["dp-input"] = dpPath,
+                ["tp-input"] = tpPath,
+            },
+            build: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.Equal(0x40000, result.OutputSize);
+        using var report = JsonDocument.Parse(result.ReportJson);
+        Assert.Equal("nt51929-standard-merge-gen-flash", report.RootElement.GetProperty("ProfileId").GetString());
+        Assert.Equal(
+            ["nt51929-dp.bin", "nt51929-tp.bin"],
+            report.RootElement.GetProperty("Inputs")
+                .EnumerateArray()
+                .Select(static input => input.GetProperty("OriginalFileName").GetString())
+                .Order(StringComparer.Ordinal));
+    }
+
+}

@@ -21,7 +21,9 @@ public sealed class CompositionRunReport
         IReadOnlyList<MutationRunSummary> mutations,
         IReadOnlyList<CompositionIssue> issues,
         OutputArtifactSummary output,
-        IReadOnlyList<OutputDifferenceSummary>? outputDifferences = null)
+        IReadOnlyList<OutputDifferenceSummary>? outputDifferences = null,
+        string? compilationFingerprint = null,
+        IReadOnlyList<ValidationRunSummary>? validations = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
@@ -34,6 +36,12 @@ public sealed class CompositionRunReport
         ArgumentNullException.ThrowIfNull(mutations);
         ArgumentNullException.ThrowIfNull(issues);
         ArgumentNullException.ThrowIfNull(output);
+        if (compilationFingerprint is not null &&
+            (compilationFingerprint.Length != 64 || !compilationFingerprint.All(static character =>
+                character is (>= '0' and <= '9') or (>= 'a' and <= 'f'))))
+        {
+            throw new ArgumentException("Compilation fingerprint must be a lowercase SHA-256 value.", nameof(compilationFingerprint));
+        }
 
         RunId = runId;
         ProfileId = profileId;
@@ -50,6 +58,8 @@ public sealed class CompositionRunReport
         Issues = issues;
         Output = output;
         OutputDifferences = outputDifferences is null ? [] : [.. outputDifferences];
+        CompilationFingerprint = compilationFingerprint;
+        Validations = Array.AsReadOnly(validations is null ? Array.Empty<ValidationRunSummary>() : [.. validations]);
     }
 
     /// <summary>Stable run id.</summary>
@@ -96,4 +106,10 @@ public sealed class CompositionRunReport
 
     /// <summary>Replace final-output differences compared with the reference base.</summary>
     public IReadOnlyList<OutputDifferenceSummary> OutputDifferences { get; }
+
+    /// <summary>Compiled artifact fingerprint that binds V2 bundle, profile, map, and execution facts when available.</summary>
+    public string? CompilationFingerprint { get; }
+
+    /// <summary>Compiled validation outcomes retained independently from operation execution.</summary>
+    public IReadOnlyList<ValidationRunSummary> Validations { get; }
 }

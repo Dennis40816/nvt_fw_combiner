@@ -5,29 +5,34 @@ public static partial class CompositionEngine
     private static List<CompositionIssue> ValidateExecutionInputs(CompositionPlan plan, CompositionExecutionInput input)
     {
         List<CompositionIssue> issues = [];
-        foreach (AddressSpace addressSpace in plan.AddressSpaces)
+        foreach (string addressSpaceId in input.AddressSpaceIds)
         {
-            if (addressSpace.Mutability == AddressSpaceMutability.Mutable &&
-                string.Equals(addressSpace.AddressSpaceId, plan.Initialization.TargetSpaceId, StringComparison.Ordinal))
+            if (!plan.TryGetAddressSpace(addressSpaceId, out AddressSpace? suppliedSpace) || suppliedSpace is null)
             {
+                issues.Add(new CompositionIssue(
+                    CompositionIssueCodes.InputAddressSpaceUnknown,
+                    $"Input bytes were supplied for undeclared address space '{addressSpaceId}'.",
+                    addressSpaceId));
                 continue;
             }
 
+            if (suppliedSpace.Mutability == AddressSpaceMutability.Mutable)
+            {
+                issues.Add(new CompositionIssue(
+                    CompositionIssueCodes.InputMutableAddressSpaceNotAllowed,
+                    $"Caller bytes are not allowed for engine-owned mutable address space '{addressSpaceId}'.",
+                    addressSpaceId));
+            }
+        }
+
+        foreach (AddressSpace addressSpace in plan.AddressSpaces.Where(static space =>
+                     space.Mutability == AddressSpaceMutability.Immutable))
+        {
             if (!input.TryGetBytes(addressSpace.AddressSpaceId, out ReadOnlyMemory<byte> bytes))
             {
-                if (addressSpace.Mutability == AddressSpaceMutability.Immutable)
-                {
-                    issues.Add(new CompositionIssue(
-                        CompositionIssueCodes.InputAddressSpaceMissing,
-                        $"Input bytes for address space '{addressSpace.AddressSpaceId}' are missing."));
-                }
-                else if (RequiresMutableSeed(plan, addressSpace))
-                {
-                    issues.Add(new CompositionIssue(
-                        CompositionIssueCodes.InputMutableAddressSpaceMissing,
-                        $"Mutable address space '{addressSpace.AddressSpaceId}' requires seed bytes before execution."));
-                }
-
+                issues.Add(new CompositionIssue(
+                    CompositionIssueCodes.InputAddressSpaceMissing,
+                    $"Input bytes for address space '{addressSpace.AddressSpaceId}' are missing."));
                 continue;
             }
 
@@ -64,11 +69,13 @@ public static partial class CompositionEngine
             }
         }
 
-        if (plan.Initialization.Capacity > int.MaxValue)
+        foreach (ImageInitialization initialization in plan.Initializations.Where(static item =>
+                     item.Capacity > int.MaxValue))
         {
             issues.Add(new CompositionIssue(
                 CompositionIssueCodes.ExecutionCapacityUnsupported,
-                "In-memory composition capacity exceeds the supported runtime array length."));
+                $"Mutable address space '{initialization.TargetSpaceId}' exceeds the supported runtime array length.",
+                initialization.TargetSpaceId));
         }
 
         return issues;
@@ -85,13 +92,9 @@ public static partial class CompositionEngine
     {
         Dictionary<string, byte[]> normalizedInputs = new(StringComparer.Ordinal);
         List<CompositionIssue> issues = [];
-        foreach (AddressSpace addressSpace in plan.AddressSpaces)
+        foreach (AddressSpace addressSpace in plan.AddressSpaces.Where(static space =>
+                     space.Mutability == AddressSpaceMutability.Immutable))
         {
-            if (string.Equals(addressSpace.AddressSpaceId, plan.Initialization.TargetSpaceId, StringComparison.Ordinal))
-            {
-                continue;
-            }
-
             if (!input.TryGetBytes(addressSpace.AddressSpaceId, out ReadOnlyMemory<byte> bytes))
             {
                 continue;
@@ -134,7 +137,7 @@ public static partial class CompositionEngine
                 !addressSpace.ExpectedInputLengths.Contains(bytes.Length))
             {
                 issues.Add(new CompositionIssue(
-                    CompositionIssueCodes.InputAddressSpaceLengthUnexpected,
+                    addressSpace.UnexpectedInputLengthIssueCode ?? CompositionIssueCodes.InputAddressSpaceLengthUnexpected,
                     $"Input bytes for address space '{addressSpace.AddressSpaceId}' have unexpected length {bytes.Length} bytes; expected {FormatAllowedLengths(addressSpace.ExpectedInputLengths)}. Execution uses only the declared source range [0x0, 0x{addressSpace.Length:X}).",
                     addressSpace.AddressSpaceId,
                     CompositionIssueSeverity.Warning));
@@ -146,36 +149,20 @@ public static partial class CompositionEngine
         return new NormalizedExecutionInputs(normalizedInputs, issues);
     }
 
-    private static bool RequiresMutableSeed(CompositionPlan plan, AddressSpace addressSpace)
-    {
-        return plan.OrderedOperations.Any(operation =>
-            string.Equals(operation.TargetSpaceId, addressSpace.AddressSpaceId, StringComparison.Ordinal) ||
-            string.Equals(operation.SourceSpaceId, addressSpace.AddressSpaceId, StringComparison.Ordinal));
-    }
-
     private static Dictionary<string, byte[]> InitializeMutableBuffers(
         CompositionPlan plan,
         Dictionary<string, byte[]> input)
     {
         Dictionary<string, byte[]> mutableBuffers = new(StringComparer.Ordinal);
-        foreach (AddressSpace addressSpace in plan.AddressSpaces.Where(item => item.Mutability == AddressSpaceMutability.Mutable))
+        foreach (ImageInitialization initialization in plan.Initializations)
         {
-            if (string.Equals(addressSpace.AddressSpaceId, plan.Initialization.TargetSpaceId, StringComparison.Ordinal))
-            {
-                mutableBuffers.Add(addressSpace.AddressSpaceId, InitializeOutput(plan.Initialization, input));
-                continue;
-            }
-
-            if (input.TryGetValue(addressSpace.AddressSpaceId, out byte[]? seedBytes))
-            {
-                mutableBuffers.Add(addressSpace.AddressSpaceId, [.. seedBytes]);
-            }
+            mutableBuffers.Add(initialization.TargetSpaceId, InitializeBuffer(initialization, input));
         }
 
         return mutableBuffers;
     }
 
-    private static byte[] InitializeOutput(
+    private static byte[] InitializeBuffer(
         ImageInitialization initialization,
         Dictionary<string, byte[]> input)
     {

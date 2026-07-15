@@ -1,0 +1,175 @@
+{
+  "manifestVersion": "1.0",
+  "payloadClass": "owner-approved-golden-firmware",
+  "binaryPayloadsIncluded": true,
+  "source": {
+    "archive": "ab_code_golden_20260714-125634.7z",
+    "archiveSha256": "cb7cdc563d2ba9400774bf73b0a64dea71e285d16f88f54e47c44e6fe581b9c9",
+    "transfer": "HackMD CJK14 numbered-note transfer",
+    "sourceClassification": "private-owner-approved-golden",
+    "approval": "Repository owner supplied the archive and directed AB golden BIN fixtures to be tracked on 2026-07-14."
+  },
+  "cases": [
+    {
+      "caseId": "nt51929-ab-t05-d06",
+      "ic": "51929",
+      "profileId": "nt51929-ab-merge",
+      "profileVersion": "0.1.0",
+      "mapCapacity": 524288,
+      "inputs": {
+        "dp-ab-input": {
+          "path": "inputs/nt51929/NT51929_initial code_TM149_2344x880_D06_20260610.bin",
+          "originalFileName": "NT51929_initial code_TM149_2344x880_D06_20260610.bin",
+          "sourcePath": "togo/51929_ab_code_golden/NT51929_initial code_TM149_2344x880_D06_20260610.bin",
+          "size": 524288,
+          "sha256": "ba99f6d117b5d620c1b41024ff001a665b4e1260b5e670c5992a6f5c07e39237"
+        },
+        "tp-a-input": {
+          "path": "inputs/nt51929/nt51929_TPFW_T05_20260611.bin",
+          "originalFileName": "nt51929_TPFW_T05_20260611.bin",
+          "sourcePath": "togo/51929_ab_code_golden/nt51929_TPFW_T05_20260611.bin",
+          "size": 262144,
+          "sha256": "7ae10d3642778fa399696d46291f7d237f9f165de0ab2faaa1369f65c2b9ce12"
+        },
+        "tp-b-input": {
+          "path": "inputs/nt51929/nt51929_TPFW_T05_20260611.bin",
+          "originalFileName": "nt51929_TPFW_T05_20260611.bin",
+          "sourcePath": "togo/51929_ab_code_golden/nt51929_TPFW_T05_20260611.bin",
+          "size": 262144,
+          "sha256": "7ae10d3642778fa399696d46291f7d237f9f165de0ab2faaa1369f65c2b9ce12"
+        }
+      },
+      "expectedOutput": {
+        "path": "expected/nt51929/NT51929ZT_Flashcode_TM_TL150UQAS01-00_Stellantis_V28_D06T05_20260611_AB.bin",
+        "originalFileName": "NT51929ZT_Flashcode_TM_TL150UQAS01-00_Stellantis_V28_D06T05_20260611_AB.bin",
+        "sourcePath": "togo/51929_ab_code_golden/NT51929ZT_Flashcode_TM_TL150UQAS01-00_Stellantis_V28_D06T05_20260611_AB.bin",
+        "size": 524288,
+        "sha256": "c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2"
+      },
+      "referenceParity": {
+        "status": "full-byte-match",
+        "snapshot": "refcode/ab_code_combiner",
+        "configuration": "51929",
+        "observedOn": "2026-07-15"
+      },
+      "evidenceApplicability": {
+        "directMemberIds": [
+          "NT51929"
+        ],
+        "factScopedAliasMemberIds": [
+          "NT51919"
+        ],
+        "notEstablishedMemberIds": [
+          "NT51932"
+        ]
+      },
+      "promotion": "executable-candidate only; firmware-owner review remains required"
+    },
+    {
+      "caseId": "nt51950-ab-boe-d82t80",
+      "ic": "51950",
+      "profileId": "nt51950-ab-merge",
+      "profileVersion": "0.1.1",
+      "mapCapacity": 524288,
+      "inputs": {
+        "dp-ab-input": {
+          "path": "inputs/nt51950/NT51950TT_Initial Code_BOE_AS172QD0-B00 2560x1600_BOE only_PD fixed pixelonoff_D82_20260616.bin",
+          "originalFileName": "NT51950TT_Initial Code_BOE_AS172QD0-B00 2560x1600_BOE only_PD fixed pixelonoff_D82_20260616.bin",
+          "sourcePath": "togo/51950_ab_code_golden/NT51950TT_Initial Code_BOE_AS172QD0-B00 2560x1600_BOE only_PD fixed pixelonoff_D82_20260616.bin",
+          "size": 524288,
+          "sha256": "d544717e647e27868086947b8c401b33cf42823857be81d6bd8c9efd57bee408"
+        },
+        "tp-a-input": {
+          "path": "inputs/nt51950/nt51950_fw_T80.bin",
+          "originalFileName": "nt51950_fw_T80.bin",
+          "sourcePath": "togo/51950_ab_code_golden/nt51950_fw_T80.bin",
+          "size": 225280,
+          "sha256": "dcdb291abc92ab8ab41453cdb14f80771cf8eed2095a402d81923fb804281102"
+        },
+        "tp-b-input": {
+          "path": "inputs/nt51950/nt51950_fw_T80.bin",
+          "originalFileName": "nt51950_fw_T80.bin",
+          "sourcePath": "togo/51950_ab_code_golden/nt51950_fw_T80.bin",
+          "size": 225280,
+          "sha256": "dcdb291abc92ab8ab41453cdb14f80771cf8eed2095a402d81923fb804281102"
+        }
+      },
+      "expectedOutput": {
+        "path": "expected/nt51950/NT51950_FlashCode_BOE1720_BOEVX_2560x1660_A_D82T80_B_D82T80_20260616_BOE.bin",
+        "originalFileName": "NT51950_FlashCode_BOE1720_BOEVX_2560x1660_A_D82T80_B_D82T80_20260616_BOE.bin",
+        "sourcePath": "togo/51950_ab_code_golden/NT51950_FlashCode_BOE1720_BOEVX_2560x1660_A_D82T80_B_D82T80_20260616_BOE.bin",
+        "size": 524288,
+        "sha256": "d18db8dc02ab4ff52cb17b4b3b3b90f99047c9d1acd2a5c23627197cf32f8650"
+      },
+      "referenceParity": {
+        "status": "full-byte-match-to-uploaded-python-reference-and-legacy-combiner-1.13.0",
+        "snapshot": "refcode/ab_code_combiner",
+        "configuration": "51950",
+        "observedOn": "2026-07-15"
+      },
+      "evidenceApplicability": {
+        "directMemberIds": [
+          "NT51950"
+        ],
+        "factScopedAliasMemberIds": [],
+        "notEstablishedMemberIds": [
+          "NT51951"
+        ]
+      },
+      "promotion": "executable candidate only; full-byte Python/Combiner parity is tracked, but firmware-owner review remains required before runtime exposure"
+    },
+    {
+      "caseId": "nt51950-ab-hiway-d82t80",
+      "ic": "51950",
+      "profileId": "nt51950-ab-merge",
+      "profileVersion": "0.1.1",
+      "mapCapacity": 524288,
+      "inputs": {
+        "dp-ab-input": {
+          "path": "inputs/nt51950/NT51950TT_Initial Code_BOE_AS172QD0-B00 2560x1600_NiOHiway_D82_20260616.bin",
+          "originalFileName": "NT51950TT_Initial Code_BOE_AS172QD0-B00 2560x1600_NiOHiway_D82_20260616.bin",
+          "sourcePath": "togo/51950_ab_code_golden/NT51950TT_Initial Code_BOE_AS172QD0-B00 2560x1600_NiOHiway_D82_20260616.bin",
+          "size": 524288,
+          "sha256": "afc4ec1ff4195bf73e664c3dea187dd06a4fef9eeb3151ae5b44916b0a8a2b7b"
+        },
+        "tp-a-input": {
+          "path": "inputs/nt51950/nt51950_fw_T80.bin",
+          "originalFileName": "nt51950_fw_T80.bin",
+          "sourcePath": "togo/51950_ab_code_golden/nt51950_fw_T80.bin",
+          "size": 225280,
+          "sha256": "dcdb291abc92ab8ab41453cdb14f80771cf8eed2095a402d81923fb804281102"
+        },
+        "tp-b-input": {
+          "path": "inputs/nt51950/nt51950_fw_T80.bin",
+          "originalFileName": "nt51950_fw_T80.bin",
+          "sourcePath": "togo/51950_ab_code_golden/nt51950_fw_T80.bin",
+          "size": 225280,
+          "sha256": "dcdb291abc92ab8ab41453cdb14f80771cf8eed2095a402d81923fb804281102"
+        }
+      },
+      "expectedOutput": {
+        "path": "expected/nt51950/NT51950_FlashCode_BOE1720_BOEVX_2560x1660_A_D82T80_B_D82T80_20260616_Hiway.bin",
+        "originalFileName": "NT51950_FlashCode_BOE1720_BOEVX_2560x1660_A_D82T80_B_D82T80_20260616_Hiway.bin",
+        "sourcePath": "togo/51950_ab_code_golden/NT51950_FlashCode_BOE1720_BOEVX_2560x1660_A_D82T80_B_D82T80_20260616_Hiway.bin",
+        "size": 524288,
+        "sha256": "4a292cd9615c58079b8994af8060af92562eaa92a55bc24bacc5ec5234e23b30"
+      },
+      "referenceParity": {
+        "status": "full-byte-match-to-uploaded-python-reference-and-legacy-combiner-1.13.0",
+        "snapshot": "refcode/ab_code_combiner",
+        "configuration": "51950",
+        "observedOn": "2026-07-15"
+      },
+      "evidenceApplicability": {
+        "directMemberIds": [
+          "NT51950"
+        ],
+        "factScopedAliasMemberIds": [],
+        "notEstablishedMemberIds": [
+          "NT51951"
+        ]
+      },
+      "promotion": "executable candidate only; full-byte Python/Combiner parity is tracked, but firmware-owner review remains required before runtime exposure"
+    }
+  ]
+}

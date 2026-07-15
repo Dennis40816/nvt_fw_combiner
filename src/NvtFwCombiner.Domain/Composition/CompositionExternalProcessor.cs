@@ -5,4 +5,5 @@ public delegate ValueTask<CompositionExternalProcessorResult> CompositionExterna
     CompositionOperation operation,
     ReadOnlyMemory<byte> inputBytes,
     IReadOnlyList<ExternalProcessorStagedSource> stagedSources,
+    IReadOnlyList<ExternalProcessorStagedArtifact> stagedArtifacts,
     CancellationToken cancellationToken);

@@ -4,15 +4,18 @@ Status: architecture runbook.
 
 This runbook lists the files and review flow for adding one IC to Merge and Replace. It is not a support claim by itself. An IC/mode is releasable only after profile validation, processor diff review, golden regression, and firmware-owner sign-off.
 
-For the active 0.8.0 cleanup target and milestone-level acceptance criteria, see
-[`0.8.0-goal-and-acceptance.md`](0.8.0-goal-and-acceptance.md).
+For 0.9.0 firmware-model-v2 work, canonical physical facts are added to a trusted
+`firmware-family-v1` document and workflow policy to `composition-profile-v2`. The C# catalog rows
+listed below describe the current v1 compatibility implementation only; do not add a second source
+of truth there. Compatibility projections are removed after byte/name/trace parity.
 
 ## Non-negotiable model rules
 
 - Merge starts from a blank output image; Replace clones an immutable reference/base image.
 - UI, CLI, and workbench paths must call the same composition profile/compiler/runner contracts.
 - All ranges are half-open `[start, end)` and name their address space.
-- IC facts live in catalogs/profiles. Do not put firmware semantics in XAML, ViewModels, CLI routing, or one-off scripts.
+- Physical IC facts live in firmware-family documents; workflow semantics live in composition
+  profiles. Do not put them in XAML, ViewModels, CLI routing, Bootstrap joins, or one-off scripts.
 - Experience selects authoring policy only. It must not create a second byte-execution branch.
 - `unknown` integrity behavior is not `none`; it cannot be promoted as supported behavior.
 - External tools may mutate only host-created staging copies, then the host must verify changed bytes against declared write ranges.
@@ -51,6 +54,23 @@ The script stages files under `testdata/golden/owner-handoff/<mode>/<ic>/.../int
 
 This intake step does not promote support, does not edit C# code, and does not copy private BIN/tool payloads into tracked golden or external-tool locations. Promotion still requires the normal reviewed changes listed below.
 
+## Future Automated Intake Rule
+
+The planned 0.9.4 intake interface must use this declared-evidence model rather
+than scan a user's workstation or infer firmware rules from arbitrary BINs. It
+may generate only a candidate bundle, a materialized closed-root preview, a
+validation report, and a missing-evidence checklist. It must not determine
+ranges, CRC/header behavior, aliases, FW Config layouts, support exposure, or
+promotion. Only a human-reviewed commit may turn a candidate into a trusted
+runtime bundle.
+
+Use `python scripts/create_candidate_ic_intake.py --help` for the concrete
+manifest-directed candidate interface. It binds only owner-selected files below
+one source root and writes candidate-only JSON records to an existing empty
+staging directory. It is deliberately separate from `intake_ic_reference.py`:
+the latter is an owner-folder handoff classifier, while candidate intake never
+scans a folder and cannot alter runtime registration or existing workflows.
+
 The owner drop folder should contain as many of these as apply:
 
 - flash-map workbook/export and flash header reference;
@@ -71,13 +91,13 @@ Update only the rows that are relevant to the new IC/mode.
 | Area | File | What changes |
 | --- | --- | --- |
 | IC support / exposure catalog | `src/NvtFwCombiner.Profiles/IcSupportCatalog.cs` | Add the IC id, supported workflow ids, owner-approved alias facts, and short onboarding notes. This is the first C# row to update when introducing a new IC/mode. Workflow ids must come from `IcWorkflowIds.All`; unknown ids fail catalog construction. |
-| Family policy catalog | `src/NvtFwCombiner.Profiles/DpPerspectiveCatalog.cs` or another dedicated catalog | Add shared family policy only when multiple workflows need the same lengths/ranges/rules. Current example: NT51950/NT51951 DP Perspective supported IC ids, supported lengths, and TP/customer-info preservation ranges. Shared family catalogs should also drive generated Standard Merge/Replace profile lists when possible. Do not duplicate these constants in Standard Merge, Replace, UI, or CLI code. |
-| Standard Merge profile | `src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles.GenFlash.cs`, `BuiltInStandardMergeProfiles.DpPerspective.cs`, or another focused partial; root `BuiltInStandardMergeProfiles.cs` exposes stable order only | Add an executable `CompositionProfileDefinition` or owner-confirmed alias in the focused partial that owns the evidence family. Keep operation order, fill byte, address spaces, and output naming in the profile. |
-| Replace profile | `src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.DpPerspective.cs` or another focused partial; root `BuiltInReplaceProfiles.cs` exposes stable order only | Add DP/CtrlRAM/General Replace profile definitions when the IC has real range and access evidence. Synthetic profiles stay contract-only. |
+| V2 family/map/profile facts | `profiles/built-in/<bundle>/{families,maps,profiles}` plus its manifest | Put shared family facts, supported capacities, canonical named ranges, operations, and access rules in the manifest-pinned V2 bundle. Runtime and display projections must consume the resolved map and compiled plan; do not add a companion C# family-fact catalog or duplicate facts in UI/CLI code. |
+| Standard Merge bundle / deployment / runtime registration | `profiles/built-in/<bundle>/{profile-bundle.json,families,profiles}`; `src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj`; `src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs` | Add a manifest-pinned V2 family/profile source bundle. The build materializer injects schemas from `profiles/schema-source/sha256`; do not add source schema snapshots. A reviewed, evidence-backed bundle must add one `<BuiltInProfileBundle Include="<bundle>" />` materialization allowlist entry and then receive the explicit Bootstrap V2 registration. A 0.9.4 candidate has no runtime authority and must add neither production allowlist nor registration; its closed-root preview belongs in caller-selected staging. |
+| Replace profile / V2 deployment | `profiles/built-in/<bundle>/{profile-bundle.json,families,profiles}` plus a focused Bootstrap V2 registration | Add an evidence-backed V2 Replace profile and explicit deployed-bundle registration before routing an IC. Candidate bundles have no runtime authority. `BuiltInReplaceProfiles` contains only synthetic contract fixtures and is never a production V2 fallback. |
 | Profile compiler rules | `src/NvtFwCombiner.Profiles/CompositionProfileCompiler.cs` | Change only for general validation gaps, not to special-case one IC. |
-| TP/DP/CtrlRAM region catalog | `src/NvtFwCombiner.Application/FlashMaps/TpFlashMapCatalog.cs` | Add canonical flash-map rows, IC-number visibility, postbuild file names, and tags such as `tp-ctrlram`, `dp`, `protected`, or customer-info. |
+| TP/DP/CtrlRAM compatibility catalog | `src/NvtFwCombiner.Application/FlashMaps/TpFlashMapCatalog.cs` | Project reviewed family rows during migration only. Canonical CtrlRAM eligibility is physical `owner = tp` plus `kind = ctrlram`; do not add a parallel tag authority. |
 | TP header/write category | `src/NvtFwCombiner.Application/FlashMaps/TpHeaderCatalog.cs` | Add TP header/postbuild write section ids, report labels, overlap priority, and postbuild block-id classification when the IC introduces a new header copy, backup, CRC, or TP window category. Keep this out of planner, UI, and CLI code. |
-| FWConfig metadata reader/catalog | `src/NvtFwCombiner.Application/FlashMaps/FirmwareConfigLayout.cs`, `FirmwareConfigMetadataReader.cs`, and `TpFlashMapCatalog` | Add the IC's primary FWConfig flash start and verify Common FW/FW-bar/PID extraction with golden or owner-approved reference evidence. When exposing NVT-copy metadata, verify exactly one `00 4E 56 54` terminal, record `T - 0xFFF` in `docs/references/nvt-fwconfig-copy-validation.md`, and require every displayed primary/copy field to match. Change offsets only through the reviewed layout catalog. |
+| FWConfig metadata reader/catalog | `src/NvtFwCombiner.Application/FlashMaps/FirmwareConfigLayout.cs`, `FirmwareConfigMetadataReader.cs`, and `TpFlashMapCatalog` | Retain the IC's primary FWConfig flash address only for TP Overview/evidence. Every runtime FWConfig value must come from the unique NVT Backup at terminal `T - 0xFFF`; record it in `docs/references/nvt-fwconfig-copy-validation.md` and cross-check exposed primary/Backup fields in golden tests. Do not add a primary fallback. Change layout offsets only through the reviewed layout catalog. |
 | Output naming metadata | `src/NvtFwCombiner.Application/FlashMaps/GenFlashVersionCatalog.cs` and `src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.FirmwareMetadata.cs` | Add DP main/sub contiguous version-byte rules, CMI register evidence when applicable, and FlashCode naming metadata only from owner-approved evidence. UI passes selected slot roles and paths; it must not decide DP/TP version offsets, CMI branches, metadata priority, or date/name format. |
 | CtrlRAM postbuild catalog | `src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.Profiles.cs` for profile rows; `LegacyCombinerPostbuildCatalog.cs` for lookup/category selection | Add structured command sequences, branch rules, staged-file names, firmware block ranges, evidence source, and `CommonFwVersionRule` metadata when one IC has multiple postbuild categories. Never assemble one shell command string. |
 | External tool manifest | `external-tools/legacy-combiner/.../manifest.json` | Add or update only when a new exact `combiner.exe` binding/version is approved. |
@@ -97,9 +117,9 @@ Do not add IC-specific byte behavior to:
 ## Standard Merge steps
 
 1. Normalize source evidence into output capacity, fill byte, address spaces, and copy ranges.
-2. Add or update a profile in the focused `BuiltInStandardMergeProfiles.*` partial that owns the evidence family; keep the root file limited to stable exposure order.
-3. Compile the profile and confirm blank initialization plus ordered copy operations.
-4. Add invalid input-size tests for every declared input length rule.
+2. Author or update one manifest-pinned V2 source bundle: `profile-bundle.json`, family document, profile document, and evidence references. Source schema snapshots are forbidden; the materializer injects the exact manifest-pinned inventory bytes into the closed runtime root.
+3. After evidence review, add the source bundle to the explicit Bootstrap materialization allowlist, then add the explicit V2 registration and compile the deployed materialized bundle. Production V2 routes have no legacy runtime fallback.
+4. Confirm blank initialization plus ordered copy operations, then add invalid input-size tests for every declared input length rule.
 5. Add or update golden regression:
    - public approved fixtures under `testdata/golden/standard-merge-gen-flash/`, or
    - private golden manifest and documented owner sign-off when firmware cannot be committed.
@@ -107,10 +127,11 @@ Do not add IC-specific byte behavior to:
 
 Minimum tests:
 
-- the focused `tests/NvtFwCombiner.ProfileContract.Tests/BuiltInStandardMergeProfilesTests.*.cs` file matching the changed profile family
+- the focused trusted-V2 bundle/routing tests matching the changed profile family
+- direct V2 plan contract tests plus `tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeWorkbenchGoldenTests.cs`; no C# profile oracle remains after the retirement matrix closes the family
 - `tests/NvtFwCombiner.ProfileContract.Tests/IcSupportCatalogTests.cs` when support exposure or alias facts change
-- `tests/NvtFwCombiner.ProfileContract.Tests/DpPerspectiveCatalogTests.cs` or the matching family-policy test when shared family policy changes
-- `tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeGenFlashGoldenTests.cs`
+- direct trusted-V2 map/plan contract tests for every shared family fact or declared capacity that changes
+- `tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeWorkbenchGoldenTests.cs`, which exercises the deployed V2 workbench runtime against every approved Standard Merge fixture
 - CLI/UI smoke tests only when the new IC changes surfaced selector behavior or output naming.
 
 ## DP Replace steps
@@ -125,9 +146,9 @@ Minimum tests:
 
 Minimum tests:
 
-- the focused `tests/NvtFwCombiner.ProfileContract.Tests/BuiltInReplaceProfilesTests.*.cs` file matching the changed profile family
+- a direct V2 compilation/routing test for the changed Replace profile family
 - `tests/NvtFwCombiner.ProfileContract.Tests/IcSupportCatalogTests.cs` when support exposure changes
-- `tests/NvtFwCombiner.ProfileContract.Tests/DpPerspectiveCatalogTests.cs` or the matching family-policy test when shared family policy changes
+- direct trusted-V2 map/plan contract tests for every shared family fact or declared capacity that changes
 - `tests/NvtFwCombiner.Bootstrap.Tests/ReplaceCliCommandTests.cs` when CLI can build the profile
 - UI smoke tests when the IC changes selector, slot, memory coverage, or report behavior
 - Golden regression or private golden evidence before support promotion

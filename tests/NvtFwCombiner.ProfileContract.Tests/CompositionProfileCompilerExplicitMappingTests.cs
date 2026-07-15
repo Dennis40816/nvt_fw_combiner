@@ -18,7 +18,7 @@ public sealed partial class CompositionProfileCompilerTests
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, [mapping]);
 
         Assert.True(result.IsSuccess);
-        CompositionOperation operation = Assert.Single(result.Plan!.OrderedOperations);
+        CompositionOperation operation = Assert.Single(result.CompiledComposition!.Plan.OrderedOperations);
         Assert.Equal(CompositionOperationKind.CopyRange, operation.Kind);
         Assert.Equal("source", operation.SourceSpaceId);
     }
@@ -53,7 +53,7 @@ public sealed partial class CompositionProfileCompilerTests
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, [mapping]);
 
         Assert.True(result.IsSuccess);
-        CompositionOperation operation = Assert.Single(result.Plan!.OrderedOperations);
+        CompositionOperation operation = Assert.Single(result.CompiledComposition!.Plan.OrderedOperations);
         Assert.Equal(CompositionOperationKind.ReplaceRange, operation.Kind);
     }
 
@@ -93,7 +93,7 @@ public sealed partial class CompositionProfileCompilerTests
             [new AddressSpace("runtime-source", 4, AddressSpaceMutability.Immutable)]);
 
         Assert.True(result.IsSuccess);
-        CompositionOperation operation = Assert.Single(result.Plan!.OrderedOperations);
+        CompositionOperation operation = Assert.Single(result.CompiledComposition!.Plan.OrderedOperations);
         Assert.Equal("runtime-source", operation.SourceSpaceId);
     }
 

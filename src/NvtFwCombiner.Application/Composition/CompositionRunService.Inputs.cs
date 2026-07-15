@@ -10,10 +10,13 @@ public sealed partial class CompositionRunService
     {
         Dictionary<string, byte[]> inputBytes = new(StringComparer.Ordinal);
         List<InputArtifactSummary> inputSummaries = [];
-        List<CompositionIssue> issues = [];
-        HashSet<string> readAddressSpaces = new(StringComparer.Ordinal);
+        List<CompositionIssue> issues = ValidateArtifactBindings(request);
+        if (issues.Count > 0)
+        {
+            return new BoundInputs(inputBytes, inputSummaries, issues);
+        }
 
-        foreach (string addressSpaceId in request.Plan.RequiredInputAddressSpaceIds)
+        foreach (string addressSpaceId in request.CompiledComposition.Plan.RequiredInputAddressSpaceIds)
         {
             await ReadRequiredBindingAsync(
                     request,
@@ -22,46 +25,92 @@ public sealed partial class CompositionRunService
                     inputBytes,
                     inputSummaries,
                     issues,
-                    readAddressSpaces,
                     cancellationToken)
                 .ConfigureAwait(false);
         }
 
-        foreach (string addressSpaceId in request.Plan.RequiredSeededMutableAddressSpaceIds)
+        ValidateV2InputLengthRequirements(request, inputBytes, issues);
+        return new BoundInputs(inputBytes, inputSummaries, issues);
+    }
+
+    private static void ValidateV2InputLengthRequirements(
+        CompositionRunRequest request,
+        Dictionary<string, byte[]> inputBytes,
+        List<CompositionIssue> issues)
+    {
+        if (request.CompiledComposition.V2Details is not { } details)
         {
-            await ReadRequiredBindingAsync(
-                    request,
-                    addressSpaceId,
-                    "input.mutable-binding.missing",
-                    inputBytes,
-                    inputSummaries,
-                    issues,
-                    readAddressSpaces,
-                    cancellationToken)
-                .ConfigureAwait(false);
+            return;
         }
 
-        foreach (InputArtifactBinding binding in request.ArtifactBindings.Values.OrderBy(
-                     binding => binding.AddressSpaceId,
-                     StringComparer.Ordinal))
+        if (details.Provenance.Context is LogicalOutputV2CompilationContext)
         {
-            if (readAddressSpaces.Contains(binding.AddressSpaceId) ||
-                !IsSuppliedMutablePlanSpace(request.Plan, binding.AddressSpaceId))
+            var addressSpaces = request.CompiledComposition.Plan.AddressSpaces.ToDictionary(
+                static addressSpace => addressSpace.AddressSpaceId,
+                StringComparer.Ordinal);
+            foreach (CompiledInputSpaceBinding binding in details.InputContract.SpaceBindings)
+            {
+                if (!inputBytes.TryGetValue(binding.AddressSpaceId, out byte[]? bytes) ||
+                    bytes.LongLength == addressSpaces[binding.AddressSpaceId].Length)
+                {
+                    continue;
+                }
+
+                issues.Add(new CompositionIssue(
+                    CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+                    $"Input bytes for logical binding '{binding.AddressSpaceId}' must exactly match its compiled length (actual {bytes.LongLength} bytes, expected {addressSpaces[binding.AddressSpaceId].Length} bytes).",
+                    binding.AddressSpaceId));
+            }
+
+            return;
+        }
+
+        var slots = details.InputContract.Slots.ToDictionary(
+            static slot => slot.SlotId,
+            StringComparer.Ordinal);
+        foreach (CompiledInputSpaceBinding binding in details.InputContract.SpaceBindings)
+        {
+            if (slots[binding.SlotId].LengthRequirement is not CompiledTpMaximum256KInputLengthRequirement ||
+                !inputBytes.TryGetValue(binding.AddressSpaceId, out byte[]? bytes) ||
+                bytes.LongLength <= CompiledTpMaximum256KInputLengthRequirement.MaximumBytes)
             {
                 continue;
             }
 
-            await TryReadBindingAsync(
-                    binding,
-                    inputBytes,
-                    inputSummaries,
-                    issues,
-                    readAddressSpaces,
-                    cancellationToken)
-                .ConfigureAwait(false);
+            issues.Add(new CompositionIssue(
+                CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+                $"Input bytes for address space '{binding.AddressSpaceId}' exceed the 256 KiB maximum (actual {bytes.LongLength} bytes, maximum {CompiledTpMaximum256KInputLengthRequirement.MaximumBytes} bytes).",
+                binding.AddressSpaceId));
+        }
+    }
+
+    private static List<CompositionIssue> ValidateArtifactBindings(CompositionRunRequest request)
+    {
+        var addressSpaces = request.CompiledComposition.Plan.AddressSpaces.ToDictionary(
+            addressSpace => addressSpace.AddressSpaceId,
+            StringComparer.Ordinal);
+        List<CompositionIssue> issues = [];
+        foreach (InputArtifactBinding binding in request.ArtifactBindings.Values.OrderBy(
+                     binding => binding.AddressSpaceId,
+                     StringComparer.Ordinal))
+        {
+            if (!addressSpaces.TryGetValue(binding.AddressSpaceId, out AddressSpace? addressSpace))
+            {
+                issues.Add(new CompositionIssue(
+                    CompositionIssueCodes.InputAddressSpaceUnknown,
+                    $"Artifact binding '{binding.BindingId}' targets undeclared address space '{binding.AddressSpaceId}'.",
+                    binding.AddressSpaceId));
+            }
+            else if (addressSpace.Mutability == AddressSpaceMutability.Mutable)
+            {
+                issues.Add(new CompositionIssue(
+                    CompositionIssueCodes.InputMutableAddressSpaceNotAllowed,
+                    $"Artifact binding '{binding.BindingId}' targets engine-owned mutable address space '{binding.AddressSpaceId}'.",
+                    binding.AddressSpaceId));
+            }
         }
 
-        return new BoundInputs(inputBytes, inputSummaries, issues);
+        return issues;
     }
 
     private async ValueTask ReadRequiredBindingAsync(
@@ -71,7 +120,6 @@ public sealed partial class CompositionRunService
         Dictionary<string, byte[]> inputBytes,
         List<InputArtifactSummary> inputSummaries,
         List<CompositionIssue> issues,
-        HashSet<string> readAddressSpaces,
         CancellationToken cancellationToken)
     {
         if (!request.ArtifactBindings.TryGetValue(addressSpaceId, out InputArtifactBinding? binding))
@@ -87,7 +135,6 @@ public sealed partial class CompositionRunService
                 inputBytes,
                 inputSummaries,
                 issues,
-                readAddressSpaces,
                 cancellationToken)
             .ConfigureAwait(false);
     }
@@ -97,7 +144,6 @@ public sealed partial class CompositionRunService
         Dictionary<string, byte[]> inputBytes,
         List<InputArtifactSummary> inputSummaries,
         List<CompositionIssue> issues,
-        HashSet<string> readAddressSpaces,
         CancellationToken cancellationToken)
     {
         try
@@ -111,8 +157,8 @@ public sealed partial class CompositionRunService
                 binding.AddressSpaceId,
                 binding.BindingId,
                 buffer.LongLength,
-                ToSha256Hex(buffer)));
-            _ = readAddressSpaces.Add(binding.AddressSpaceId);
+                ToSha256Hex(buffer),
+                binding.OriginalFileName));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -125,14 +171,6 @@ public sealed partial class CompositionRunService
                 $"Unable to read artifact binding '{binding.BindingId}' ({exception.GetType().Name}).",
                 binding.AddressSpaceId));
         }
-    }
-
-    private static bool IsSuppliedMutablePlanSpace(CompositionPlan plan, string addressSpaceId)
-    {
-        return plan.AddressSpaces.Any(addressSpace =>
-            string.Equals(addressSpace.AddressSpaceId, addressSpaceId, StringComparison.Ordinal) &&
-            addressSpace.Mutability == AddressSpaceMutability.Mutable &&
-            !string.Equals(addressSpace.AddressSpaceId, plan.Initialization.TargetSpaceId, StringComparison.Ordinal));
     }
 
     private sealed record BoundInputs(

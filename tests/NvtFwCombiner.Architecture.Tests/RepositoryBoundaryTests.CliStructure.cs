@@ -149,8 +149,70 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private static bool TryParseOptions", options, StringComparison.Ordinal);
         Assert.Contains("private sealed record ParsedOptions", options, StringComparison.Ordinal);
         Assert.Contains("private static async Task<int> RunProfilesAsync", profiles, StringComparison.Ordinal);
+        Assert.Contains("GetStandardMergeProfileSummaries", profiles, StringComparison.Ordinal);
+        Assert.Contains("GetReplaceProfileSummaries", profiles, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileDefinition", profiles, StringComparison.Ordinal);
+        Assert.DoesNotContain("BuiltInStandardMergeProfiles", profiles, StringComparison.Ordinal);
+        Assert.DoesNotContain("BuiltInReplaceProfiles", profiles, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileCompiler", profiles, StringComparison.Ordinal);
         Assert.Contains("private static async Task PrintRunResultAsync", result, StringComparison.Ordinal);
         Assert.Contains("private static async Task<int> RunStandardMergeAsync", standardMerge, StringComparison.Ordinal);
         Assert.Contains("private static async Task WriteUsageAsync", usage, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies built-in Replace CLI selection policy comes only from the compiled artifact.</summary>
+    [Fact]
+    public void ReplaceCliConsumesCompiledIcNumberPolicy()
+    {
+        string handler = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.cs");
+        string icNumbers = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.IcNumbers.cs");
+        int compileIndex = handler.IndexOf("TryCompileProfile", StringComparison.Ordinal);
+        int selectionIndex = handler.IndexOf("TryCreateIcNumberSelection", StringComparison.Ordinal);
+        int compiledArgumentIndex = handler.IndexOf("compiledComposition,", selectionIndex, StringComparison.Ordinal);
+
+        Assert.True(compileIndex >= 0, "Replace CLI must compile the selected profile.");
+        Assert.True(selectionIndex > compileIndex, "Replace CLI must create IC-number selection after compilation.");
+        Assert.True(compiledArgumentIndex > selectionIndex, "Replace CLI must pass the compiled artifact to selection.");
+        Assert.Contains("CompiledComposition composition", icNumbers, StringComparison.Ordinal);
+        Assert.Contains("composition.IcNumberPolicy", icNumbers, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileDefinition", icNumbers, StringComparison.Ordinal);
+        Assert.DoesNotContain("IcNumberInputMode", icNumbers, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies Standard Merge CLI and Workbench Run share one compiled-resolution boundary.</summary>
+    [Fact]
+    public void StandardMergeRuntimeConsumesSharedCompiledResolver()
+    {
+        string cli = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.StandardMerge.cs");
+        string run = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Run.cs");
+        string displayProfile = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.DisplayProfile.cs");
+        string display = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Display.cs");
+        string coverage = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Coverage.cs");
+        string resolver = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Compilation.cs");
+
+        foreach (string runtimeSource in new[] { cli, run, displayProfile, display, coverage })
+        {
+            Assert.Contains("TryCompileStandardMerge", runtimeSource, StringComparison.Ordinal);
+            Assert.DoesNotContain("CompositionProfileDefinition", runtimeSource, StringComparison.Ordinal);
+            Assert.DoesNotContain("CompositionProfileCompiler", runtimeSource, StringComparison.Ordinal);
+            Assert.DoesNotContain("ProfileCompileResult", runtimeSource, StringComparison.Ordinal);
+            Assert.DoesNotContain("BuiltInStandardMergeProfiles", runtimeSource, StringComparison.Ordinal);
+            Assert.DoesNotContain("NvtFwCombiner.Profiles", runtimeSource, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("out CompiledComposition? composition", resolver, StringComparison.Ordinal);
+        Assert.Contains("SequenceEqual", cli, StringComparison.Ordinal);
+        Assert.Contains("TryGetBuiltInV2StandardMergeCompilation", resolver, StringComparison.Ordinal);
+        Assert.DoesNotContain("CreateDpPerspectiveProfileForInputLength", resolver, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileCompiler.Compile", resolver, StringComparison.Ordinal);
+        Assert.DoesNotContain("BuiltInStandardMergeProfiles", resolver, StringComparison.Ordinal);
+        Assert.DoesNotContain("NvtFwCombiner.Profiles", resolver, StringComparison.Ordinal);
+        Assert.DoesNotContain("new CompositionPlan", resolver, StringComparison.Ordinal);
+        Assert.DoesNotContain("new CompositionOperation", resolver, StringComparison.Ordinal);
+        Assert.DoesNotContain("RunCompiledCompositionAsync", resolver, StringComparison.Ordinal);
     }
 }

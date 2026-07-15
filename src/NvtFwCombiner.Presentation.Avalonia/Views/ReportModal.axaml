@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
     x:DataType="vm:MainWindowViewModel"
-    Background="#990F172A">
+    Background="{DynamicResource NfcReportModalScrimBrush}">
   <Border
       Classes="surface"
       MaxWidth="1500"
@@ -35,7 +35,7 @@
           ContentTemplate="{StaticResource ReportAuditDetailsPanelTemplate}"
           IsVisible="{Binding IsReportReviewViewOpen}" />
 
-      <StackPanel Grid.Row="4" Margin="16,14,16,14" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+      <StackPanel Grid.Row="4" Margin="16,14,16,14" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
         <Button
             Classes="secondary"
             Command="{Binding CloseReportCommand}"

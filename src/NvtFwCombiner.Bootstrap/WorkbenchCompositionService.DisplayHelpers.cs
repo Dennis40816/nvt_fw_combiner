@@ -14,6 +14,7 @@ public static partial class WorkbenchCompositionService
             CompositionOperationKind.ReplaceRange => "Replace",
             CompositionOperationKind.FillRange => "Fill",
             CompositionOperationKind.PatchScalar => "Patch",
+            CompositionOperationKind.TransformScalar => "Transform",
             CompositionOperationKind.RunExternalProcessor => "Postbuild",
             _ => kind.ToString(),
         };

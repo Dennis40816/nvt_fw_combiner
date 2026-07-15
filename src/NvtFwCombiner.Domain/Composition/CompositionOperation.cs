@@ -16,6 +16,7 @@ public sealed class CompositionOperation
         OverlapPolicy overlapPolicy,
         byte? fillByte,
         byte[] patchBytes,
+        ScalarTransform? scalarTransform,
         ExternalProcessorInvocation? externalProcessorInvocation,
         string reason,
         OperationProvenance? provenance)
@@ -35,6 +36,7 @@ public sealed class CompositionOperation
         OverlapPolicy = overlapPolicy;
         FillByte = fillByte;
         _patchBytes = [.. patchBytes];
+        ScalarTransform = scalarTransform;
         ExternalProcessorInvocation = externalProcessorInvocation;
         Reason = reason;
         Provenance = provenance ?? OperationProvenance.BuiltInProfile;
@@ -69,6 +71,9 @@ public sealed class CompositionOperation
 
     /// <summary>Patch bytes for patch-scalar operations.</summary>
     public ReadOnlyMemory<byte> PatchBytes => _patchBytes;
+
+    /// <summary>Checked scalar transform declaration for transform-scalar operations.</summary>
+    public ScalarTransform? ScalarTransform { get; }
 
     /// <summary>External processor declaration for run-external-processor operations.</summary>
     public ExternalProcessorInvocation? ExternalProcessorInvocation { get; }
@@ -105,6 +110,7 @@ public sealed class CompositionOperation
             null,
             [],
             null,
+            null,
             reason,
             provenance);
     }
@@ -135,6 +141,7 @@ public sealed class CompositionOperation
             null,
             [],
             null,
+            null,
             reason,
             provenance);
     }
@@ -161,6 +168,7 @@ public sealed class CompositionOperation
             overlapPolicy,
             fillByte,
             [],
+            null,
             null,
             reason,
             provenance);
@@ -194,6 +202,44 @@ public sealed class CompositionOperation
             null,
             [.. patchBytes],
             null,
+            null,
+            reason,
+            provenance);
+    }
+
+    /// <summary>Creates one generic checked scalar transform operation.</summary>
+    public static CompositionOperation TransformScalar(
+        string operationId,
+        int sequence,
+        string sourceSpaceId,
+        ByteRange sourceRange,
+        string targetSpaceId,
+        ByteRange targetRange,
+        ScalarTransform scalarTransform,
+        OverlapPolicy overlapPolicy,
+        string reason,
+        OperationProvenance? provenance = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceSpaceId);
+        ArgumentNullException.ThrowIfNull(scalarTransform);
+        EnsureEqualLength(sourceRange, targetRange, nameof(targetRange));
+        return sourceRange.Length != scalarTransform.WidthBytes
+            ? throw new ArgumentException(
+                "Scalar transform source and target ranges must match the declared scalar width.",
+                nameof(sourceRange))
+            : new CompositionOperation(
+            operationId,
+            sequence,
+            CompositionOperationKind.TransformScalar,
+            sourceSpaceId,
+            sourceRange,
+            targetSpaceId,
+            targetRange,
+            overlapPolicy,
+            null,
+            [],
+            scalarTransform,
+            null,
             reason,
             provenance);
     }
@@ -221,6 +267,7 @@ public sealed class CompositionOperation
             overlapPolicy,
             null,
             [],
+            null,
             invocation,
             reason,
             provenance);

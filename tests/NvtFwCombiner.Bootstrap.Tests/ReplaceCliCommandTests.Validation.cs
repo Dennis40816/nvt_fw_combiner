@@ -97,6 +97,41 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Contains("--ic-num is required", result.Error, StringComparison.Ordinal);
     }
 
+    /// <summary>General Replace reports the shared IC-number requirement before request mapping fields.</summary>
+    [Fact]
+    public async Task GeneralReplaceRejectsMissingIcNumberBeforeMappingOptions()
+    {
+        CliRunResult result = await RunCliAsync([
+            "general-replace",
+            "preview",
+            "--profile",
+            "synthetic-general-replace",
+        ]);
+
+        Assert.Equal(64, result.ExitCode);
+        Assert.Contains("--ic-num is required", result.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("--input is required", result.Error, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies a compiled single-selector profile rejects the cascade-only family option.</summary>
+    [Fact]
+    public async Task BuiltInSingleSelectorRejectsIcFamilyOption()
+    {
+        CliRunResult result = await RunCliAsync([
+            "dp-replace",
+            "preview",
+            "--profile",
+            "synthetic-dp-replace",
+            "--ic-family",
+            "NT51",
+            "--ic-num",
+            "51920",
+        ]);
+
+        Assert.Equal(64, result.ExitCode);
+        Assert.Contains("--ic-family is used only by cascade IC num profiles", result.Error, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies Replace commands reject firmware inputs that the selected profile would ignore.</summary>
     [Fact]
     public async Task ReplacePreviewRejectsUnusedFirmwareInputOption()

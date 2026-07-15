@@ -116,7 +116,7 @@ internal static partial class ReplaceCliCommandHandler
             return UsageError;
         }
 
-        if (!TryCreateIcNumberSelection(selectedProfile, options, error, out IcNumberSelection? icNumberSelection))
+        if (!RequireOption(options, "--ic-num", error, out string? icNumber))
         {
             return UsageError;
         }
@@ -132,7 +132,18 @@ internal static partial class ReplaceCliCommandHandler
             return SoftwareError;
         }
 
-        CompositionPlan plan = compile.Plan!;
+        CompiledComposition compiledComposition = compile.CompiledComposition!;
+        if (!TryCreateIcNumberSelection(
+                compiledComposition,
+                options,
+                icNumber,
+                error,
+                out IcNumberSelection? icNumberSelection))
+        {
+            return UsageError;
+        }
+
+        CompositionPlan plan = compiledComposition.Plan;
         if (!TryCreateBindings(plan, options, error, out IReadOnlyList<InputArtifactBinding> bindings))
         {
             return UsageError;
@@ -140,7 +151,7 @@ internal static partial class ReplaceCliCommandHandler
 
         CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
             options.Values.GetValueOrDefault("--output"),
-            selectedProfile.DefaultOutputFileName);
+            compiledComposition.DefaultOutputFileName);
         if (action == "build")
         {
             CliCompositionRunSupport.EnsureOutputDoesNotAliasInputs(outputTarget, bindings);
@@ -161,8 +172,7 @@ internal static partial class ReplaceCliCommandHandler
         var service = new CompositionRunService(reader, new SystemClock(), writer, ExternalProcessorFactory.CreateOrNull());
         var request = new CompositionRunRequest(
             CreateRunId(command, action),
-            CliCompositionRunSupport.ToRunProfile(selectedProfile),
-            plan,
+            compiledComposition,
             bindings,
             outputTarget.FileName,
             icNumberSelection: icNumberSelection);

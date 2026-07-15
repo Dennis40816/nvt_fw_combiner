@@ -26,7 +26,8 @@ public static partial class WorkbenchCompositionService
         IReadOnlyDictionary<string, string> slotPaths,
         bool build,
         CancellationToken cancellationToken,
-        string? outputPath = null)
+        string? outputPath = null,
+        WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit = null)
     {
         return await RunReplaceAsync(
             icId,
@@ -37,7 +38,8 @@ public static partial class WorkbenchCompositionService
             [],
             build,
             cancellationToken,
-            outputPath).ConfigureAwait(false);
+            outputPath,
+            ctrlRamFirmwareVersionEdit: ctrlRamFirmwareVersionEdit).ConfigureAwait(false);
     }
 
     /// <summary>Runs a Replace preview or build through the workbench Replace facade.</summary>
@@ -49,7 +51,8 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<WorkbenchGeneralReplaceMappingInput> generalReplaceMappings,
         bool build,
         CancellationToken cancellationToken,
-        string? outputPath = null)
+        string? outputPath = null,
+        WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit = null)
     {
         return await RunReplaceAsync(
             icId,
@@ -60,7 +63,8 @@ public static partial class WorkbenchCompositionService
             [],
             build,
             cancellationToken,
-            outputPath).ConfigureAwait(false);
+            outputPath,
+            ctrlRamFirmwareVersionEdit: ctrlRamFirmwareVersionEdit).ConfigureAwait(false);
     }
 
     /// <summary>Runs Replace preview or build with file-backed and virtual General Replace authoring inputs.</summary>
@@ -74,7 +78,8 @@ public static partial class WorkbenchCompositionService
         bool build,
         CancellationToken cancellationToken,
         string? outputPath = null,
-        WorkbenchGeneralReplaceBaseSnapshot? baseSnapshot = null)
+        WorkbenchGeneralReplaceBaseSnapshot? baseSnapshot = null,
+        WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(number);
@@ -82,49 +87,54 @@ public static partial class WorkbenchCompositionService
         ArgumentNullException.ThrowIfNull(slotPaths);
         ArgumentNullException.ThrowIfNull(generalReplaceMappings);
         ArgumentNullException.ThrowIfNull(generalReplacePatches);
-
-        return replaceMode switch
-        {
-            WorkbenchReplaceModes.Dp when IsDpPerspectiveIc(icId) => await RunDpPerspectiveDpReplaceAsync(
-                icId,
-                number,
-                slotPaths,
-                build,
-                outputPath,
-                cancellationToken).ConfigureAwait(false),
-            WorkbenchReplaceModes.Dp => CreatePlanningRunResult(
-                icId,
-                number,
-                replaceMode,
-                slotPaths,
-                build,
-                WorkbenchIssueCodes.ReplaceDpProfilePending,
-                $"DP Replace output is enabled only for {FormatDpPerspectiveIcIds()} until per-IC DP source mapping and golden evidence are approved."),
-            WorkbenchReplaceModes.CtrlRam => await RunCtrlRamReplaceAsync(
-                icId,
-                number,
-                slotPaths,
-                build,
-                outputPath,
-                cancellationToken).ConfigureAwait(false),
-            WorkbenchReplaceModes.General => await RunGeneralReplaceAsync(
-                icId,
-                number,
-                slotPaths,
-                generalReplaceMappings,
-                generalReplacePatches,
-                baseSnapshot,
-                build,
-                outputPath,
-                cancellationToken).ConfigureAwait(false),
-            _ => CreatePlanningRunResult(
-                icId,
-                number,
-                replaceMode,
-                slotPaths,
-                build,
-                WorkbenchIssueCodes.ReplaceModeUnknown,
-                $"Unknown Replace mode '{replaceMode}'."),
-        };
+        return ctrlRamFirmwareVersionEdit is not null &&
+            (!build || !string.Equals(replaceMode, WorkbenchReplaceModes.CtrlRam, StringComparison.Ordinal))
+            ? throw new ArgumentException(
+                "TP FW version editing is available only for CtrlRAM Replace Build.",
+                nameof(ctrlRamFirmwareVersionEdit))
+            : replaceMode switch
+            {
+                WorkbenchReplaceModes.Dp when IsDpPerspectiveIc(icId) => await RunDpPerspectiveDpReplaceAsync(
+                    icId,
+                    number,
+                    slotPaths,
+                    build,
+                    outputPath,
+                    cancellationToken).ConfigureAwait(false),
+                WorkbenchReplaceModes.Dp => CreatePlanningRunResult(
+                    icId,
+                    number,
+                    replaceMode,
+                    slotPaths,
+                    build,
+                    WorkbenchIssueCodes.ReplaceDpProfilePending,
+                    $"DP Replace output is enabled only for {FormatBuiltInV2DpReplaceIcIds()} until per-IC DP source mapping and golden evidence are approved."),
+                WorkbenchReplaceModes.CtrlRam => await RunCtrlRamReplaceAsync(
+                    icId,
+                    number,
+                    slotPaths,
+                    build,
+                    outputPath,
+                    ctrlRamFirmwareVersionEdit,
+                    cancellationToken).ConfigureAwait(false),
+                WorkbenchReplaceModes.General => await RunGeneralReplaceAsync(
+                    icId,
+                    number,
+                    slotPaths,
+                    generalReplaceMappings,
+                    generalReplacePatches,
+                    baseSnapshot,
+                    build,
+                    outputPath,
+                    cancellationToken).ConfigureAwait(false),
+                _ => CreatePlanningRunResult(
+                    icId,
+                    number,
+                    replaceMode,
+                    slotPaths,
+                    build,
+                    WorkbenchIssueCodes.ReplaceModeUnknown,
+                    $"Unknown Replace mode '{replaceMode}'."),
+            };
     }
 }

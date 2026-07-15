@@ -1,0 +1,259 @@
+{
+  "schemaVersion": "1.1",
+  "familyId": "nt51950-nt51951-dp-perspective",
+  "familyVersion": "1.0.0",
+  "members": [
+    { "memberId": "NT51950", "displayName": "NT51950" },
+    { "memberId": "NT51951", "displayName": "NT51951" }
+  ],
+  "capabilities": [],
+  "regionSets": [
+    {
+      "regionSetId": "dp-perspective-256k",
+      "addressSpaceId": "flash",
+      "regions": [
+        {
+          "regionId": "dp-container",
+          "owner": "dp",
+          "kind": "image",
+          "range": { "start": 0, "length": 262144 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "unmapped-prefix",
+          "parentRegionId": "dp-container",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 0, "length": 40960 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "tp-overlay",
+          "parentRegionId": "dp-container",
+          "owner": "tp",
+          "kind": "code",
+          "range": { "start": 40960, "length": 184320 },
+          "writeConstraint": "whole-region",
+          "alignment": 1
+        },
+        {
+          "regionId": "customer-info",
+          "parentRegionId": "dp-container",
+          "owner": "customer",
+          "kind": "data",
+          "range": { "start": 225280, "length": 4096 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "unmapped-suffix",
+          "parentRegionId": "dp-container",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 229376, "length": 32768 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        }
+      ],
+      "evidenceRefs": ["dp-perspective-51950-51951-owner-map"]
+    },
+    {
+      "regionSetId": "dp-perspective-512k",
+      "addressSpaceId": "flash",
+      "regions": [
+        {
+          "regionId": "dp-container",
+          "owner": "dp",
+          "kind": "image",
+          "range": { "start": 0, "length": 524288 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "unmapped-prefix",
+          "parentRegionId": "dp-container",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 0, "length": 40960 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "tp-overlay",
+          "parentRegionId": "dp-container",
+          "owner": "tp",
+          "kind": "code",
+          "range": { "start": 40960, "length": 184320 },
+          "writeConstraint": "whole-region",
+          "alignment": 1
+        },
+        {
+          "regionId": "customer-info",
+          "parentRegionId": "dp-container",
+          "owner": "customer",
+          "kind": "data",
+          "range": { "start": 225280, "length": 4096 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "unmapped-suffix",
+          "parentRegionId": "dp-container",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 229376, "length": 294912 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        }
+      ],
+      "evidenceRefs": ["dp-perspective-51950-51951-owner-map"]
+    },
+    {
+      "regionSetId": "dp-perspective-1024k",
+      "addressSpaceId": "flash",
+      "regions": [
+        {
+          "regionId": "dp-container",
+          "owner": "dp",
+          "kind": "image",
+          "range": { "start": 0, "length": 1048576 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "unmapped-prefix",
+          "parentRegionId": "dp-container",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 0, "length": 40960 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "tp-overlay",
+          "parentRegionId": "dp-container",
+          "owner": "tp",
+          "kind": "code",
+          "range": { "start": 40960, "length": 184320 },
+          "writeConstraint": "whole-region",
+          "alignment": 1
+        },
+        {
+          "regionId": "customer-info",
+          "parentRegionId": "dp-container",
+          "owner": "customer",
+          "kind": "data",
+          "range": { "start": 225280, "length": 4096 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "unmapped-suffix",
+          "parentRegionId": "dp-container",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 229376, "length": 819200 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        }
+      ],
+      "evidenceRefs": ["dp-perspective-51950-51951-owner-map"]
+    }
+  ],
+  "metadataSets": [],
+  "imageMaps": [
+    {
+      "mapId": "nt51950-standard-merge-256k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": ["NT51950"],
+        "modeIds": ["standard-merge", "dp-replace"],
+        "topologyRequirement": { "kind": "none" },
+        "capacityBytes": 262144
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": ["dp-perspective-256k"],
+      "metadataSetIds": [],
+      "evidenceRefs": ["standard-merge-51950-256k-golden"]
+    },
+    {
+      "mapId": "nt51950-standard-merge-512k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": ["NT51950"],
+        "modeIds": ["standard-merge", "dp-replace"],
+        "topologyRequirement": { "kind": "none" },
+        "capacityBytes": 524288
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": ["dp-perspective-512k"],
+      "metadataSetIds": [],
+      "evidenceRefs": ["legacy-v2-dp-perspective-parity-matrix"]
+    },
+    {
+      "mapId": "nt51950-standard-merge-1024k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": ["NT51950"],
+        "modeIds": ["standard-merge", "dp-replace"],
+        "topologyRequirement": { "kind": "none" },
+        "capacityBytes": 1048576
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": ["dp-perspective-1024k"],
+      "metadataSetIds": [],
+      "evidenceRefs": ["legacy-v2-dp-perspective-parity-matrix"]
+    },
+    {
+      "mapId": "nt51951-standard-merge-256k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": ["NT51951"],
+        "modeIds": ["standard-merge", "dp-replace"],
+        "topologyRequirement": { "kind": "none" },
+        "capacityBytes": 262144
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": ["dp-perspective-256k"],
+      "metadataSetIds": [],
+      "evidenceRefs": ["legacy-v2-dp-perspective-parity-matrix"]
+    },
+    {
+      "mapId": "nt51951-standard-merge-512k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": ["NT51951"],
+        "modeIds": ["standard-merge", "dp-replace"],
+        "topologyRequirement": { "kind": "none" },
+        "capacityBytes": 524288
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": ["dp-perspective-512k"],
+      "metadataSetIds": [],
+      "evidenceRefs": ["standard-merge-51951-512k-golden"]
+    },
+    {
+      "mapId": "nt51951-standard-merge-1024k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": ["NT51951"],
+        "modeIds": ["standard-merge", "dp-replace"],
+        "topologyRequirement": { "kind": "none" },
+        "capacityBytes": 1048576
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": ["dp-perspective-1024k"],
+      "metadataSetIds": [],
+      "evidenceRefs": ["legacy-v2-dp-perspective-parity-matrix"]
+    }
+  ],
+  "factAliases": [],
+  "evidenceRefs": [
+    "dp-perspective-51950-51951-owner-map",
+    "standard-merge-51950-256k-golden",
+    "standard-merge-51951-512k-golden",
+    "legacy-v2-dp-perspective-parity-matrix"
+  ]
+}

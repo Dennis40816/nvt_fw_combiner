@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
     x:DataType="vm:MainWindowViewModel"
-    Background="#660F172A">
+    Background="{DynamicResource NfcModalScrimBrush}">
   <Border
       Classes="modalSurface"
       Width="720"
@@ -12,9 +12,9 @@
       Padding="20"
       HorizontalAlignment="Center"
       VerticalAlignment="Center">
-    <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="16">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-        <StackPanel Spacing="4">
+    <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="{DynamicResource NfcSpace16}">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
+        <StackPanel Spacing="{DynamicResource NfcSpace4}">
           <TextBlock Classes="modalTitle" Text="{Binding Text.ReplaceSelectionTitle}" />
           <TextBlock Classes="mutedText" Text="{Binding ReplaceSelectionSubtitle}" TextWrapping="Wrap" />
         </StackPanel>
@@ -28,10 +28,10 @@
       </Grid>
 
       <Border Grid.Row="1" Classes="subtlePanel contentPanel">
-        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-          <Border Width="8" Height="38" VerticalAlignment="Top" Background="#2563EB" CornerRadius="999" />
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource NfcSpace12}">
+          <Border Width="8" Height="38" VerticalAlignment="Top" Background="{DynamicResource NfcAccentBrush}" CornerRadius="{DynamicResource NfcPillCornerRadius}" />
           <StackPanel Grid.Column="1" Spacing="3">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
               <TextBlock Classes="cardTitle" Text="{Binding ReplaceSelectionCountLabel}" />
               <TextBlock Grid.Column="1" Classes="infoText" Text="{Binding ReplaceSelectionStatusLabel}" TextWrapping="Wrap" />
             </Grid>
@@ -52,8 +52,8 @@
           </StackPanel>
 
           <Border Classes="warningSurface contentPanel" IsVisible="{Binding HasReplaceSelectionMissingRows}">
-            <StackPanel Spacing="8">
-              <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#9A3412" Text="{Binding Text.RequiredBeforeBuildTitle}" />
+            <StackPanel Spacing="{DynamicResource NfcSpace8}">
+              <TextBlock FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Foreground="{DynamicResource NfcWarningTextBrush}" Text="{Binding Text.RequiredBeforeBuildTitle}" />
               <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding ReplaceSelectionMissingRows}">
                 <ItemsControl.ItemTemplate>
                   <StaticResource ResourceKey="ReportMissingRequiredRowTemplate" />
@@ -64,7 +64,7 @@
         </StackPanel>
       </ScrollViewer>
 
-      <StackPanel Grid.Row="3" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+      <StackPanel Grid.Row="3" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
         <Button
             Classes="secondary"
             Command="{Binding CloseReplaceSelectionCommand}"

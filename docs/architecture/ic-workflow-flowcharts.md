@@ -8,8 +8,8 @@ This document is an index for the current Merge and Replace flows by IC. It is n
 
 Update this document in the same change when any of these sources change:
 
-- `src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles*.cs`; the root file owns exposure order only, and focused partials own evidence-family profile rows.
-- `src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles*.cs`; the root file owns exposure order only, and focused partials own synthetic or production policy rows.
+- `src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs`; this is the explicit production Standard Merge registration list.
+- `src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles*.cs`; these are synthetic contract fixtures only. Production Replace profiles are manifest-pinned V2 bundles with explicit Bootstrap registrations.
 - `src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.cs`
 - `docs/architecture/nt51950-nt51951-dp-length-policy.md`
 - `docs/architecture/ctrlram-postbuild-command-matrix.md`
@@ -28,29 +28,29 @@ The architecture test `IcWorkflowFlowchartReferenceCoversBuiltInIcLists` checks 
 
 | IC | Standard Merge flow | DP Replace flow | CtrlRAM Replace flow | General Replace flow | Current status notes |
 | --- | --- | --- | --- | --- | --- |
-| NT51917 | `SM-GENFLASH-ALIAS`: executable owner-confirmed alias of NT51927. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-927`: follows NT51927, numeric single/2/3 IC and cascade. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Standard Merge alias regression uses NT51927 golden bytes; CtrlRAM command core implemented. |
-| NT51919 | `SM-GENFLASH-ALIAS`: executable owner-confirmed alias of NT51929. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51932`: follows NT51929/NT51932. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Standard Merge alias regression uses NT51929 golden bytes; CtrlRAM command core implemented. |
-| NT51920 | `SM-GENFLASH`: direct gen_flash profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-LEGACY-NORMAL`: `CRC_Enable`. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Implemented Standard Merge profile and CtrlRAM command core. |
-| NT51923 | `SM-GENFLASH`: direct gen_flash profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-LEGACY-NORMAL`: `CRC_Enable`, cascade split DiffDLM. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Implemented Standard Merge profile and CtrlRAM command core. |
-| NT51926 | `SM-GENFLASH`: direct gen_flash profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-LEGACY-NORMAL`: `CRC_Enable`. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Implemented Standard Merge profile and CtrlRAM command core. |
-| NT51927 | `SM-GENFLASH`: direct gen_flash profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-927`: numeric single/2/3 IC and cascade. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Implemented Standard Merge profile and special CtrlRAM command core. |
-| NT51928 | `SM-GENFLASH-LD`: includes TP, DP, and LD. | `R-DP-GENERIC`: DP/LD profile wiring pending. | `R-CTRLRAM-927`: follows NT51927 for non-NB only. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | NT51928 NB is not covered and must be a separate IC if approved later. |
-| NT51929 | `SM-GENFLASH`: direct gen_flash profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51932`: follows NT51932. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Implemented Standard Merge profile and CtrlRAM command core; deferred AB must start from full DP container then profile-declared overlays. |
-| NT51930 | `SM-FLASHMAP-DYNAMIC`: flash-map derived profile with owner golden output. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51930`: current cascade maps to `<=13 IC`. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Standard Merge golden added from `merge_bin.7z`; CtrlRAM command core implemented. |
-| NT51931 | `SM-GENFLASH`: direct gen_flash profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51930`: NT51930-based mode. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Implemented Standard Merge profile and CtrlRAM command core. |
-| NT51932 | `SM-GENFLASH`: direct gen_flash profile. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51932`: direct postbuild reference. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Implemented Standard Merge profile and CtrlRAM command core; deferred AB must start from full DP container then profile-declared overlays. |
-| NT51950 | `SM-950-951-DP-PERSPECTIVE`: executable profile with owner `0x40000` DP golden output. | `R-DP-950-951`: workbench exact-base path implemented; production profile/golden pending. | `R-CTRLRAM-51950`: direct postbuild reference. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Standard Merge golden added from `merge_bin.7z`; DP Replace workbench path and CtrlRAM command core implemented. Deferred AB shares only the full-DP-first order, not the normal-merge ranges or integrity rules. |
-| NT51951 | `SM-950-951-DP-PERSPECTIVE`: follows NT51950 profile with owner `0x80000` DP golden output. | `R-DP-950-951`: follows NT51950 workbench exact-base path; production profile/golden pending. | `R-CTRLRAM-51950`: follows NT51950. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Standard Merge golden added from `merge_bin.7z`; DP Replace workbench path and CtrlRAM command core implemented. |
+| NT51917 | `SM-GENFLASH-V2-ALIAS`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor; map-bound alias of NT51927. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-927`: follows NT51927, numeric single/2/3 IC and cascade. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | V2 Standard Merge preserves NT51927 alias golden bytes; firmware-owner review remains required before release support. |
+| NT51919 | `SM-GENFLASH-V2-ALIAS`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor; map-bound alias of NT51929. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51932`: follows NT51929/NT51932. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | `AB-51919-CANDIDATE`: fixed `0x80000` V2 plan aliases NT51929; no UI/CLI route or runtime promotion. |
+| NT51920 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-LEGACY-NORMAL`: `CRC_Enable`. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | V2 Standard Merge preserves legacy golden bytes; firmware-owner review remains required before release support. |
+| NT51923 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-LEGACY-NORMAL`: `CRC_Enable`, cascade split DiffDLM. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | V2 Standard Merge preserves legacy golden bytes; firmware-owner review remains required before release support. |
+| NT51926 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-LEGACY-NORMAL`: `CRC_Enable`. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | V2 Standard Merge preserves legacy golden bytes; firmware-owner review remains required before release support. |
+| NT51927 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-927`: numeric single/2/3 IC and cascade. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | V2 Standard Merge preserves legacy golden bytes; firmware-owner review remains required before release support. |
+| NT51928 | `SM-GENFLASH-LD-V2`: hash-anchored V2 route includes TP, DP, and typed auxiliary LD. | `R-DP-GENERIC`: DP/LD profile wiring pending. | `R-CTRLRAM-927`: follows NT51927 for non-NB only. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | NT51928 NB is not covered and must be a separate IC if approved later. |
+| NT51929 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51932`: follows NT51932. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | `AB-51929-CANDIDATE`: fixed `0x80000` full DP -> TPA -> relocated TPB V2 plan; no UI/CLI route or runtime promotion. |
+| NT51930 | `SM-FLASHMAP-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51930`: current cascade maps to `<=13 IC`. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | V2 Standard Merge preserves the `merge_bin.7z` golden bytes; firmware-owner review remains required before release support. |
+| NT51931 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51930`: NT51930-based mode. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | V2 Standard Merge preserves legacy golden bytes; firmware-owner review remains required before release support. |
+| NT51932 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-DP-GENERIC`: DP profile wiring pending. | `R-CTRLRAM-51932`: direct postbuild reference. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | `AB-51932-CANDIDATE`: fixed `0x80000` full DP -> TPA -> relocated TPB V2 plan; no UI/CLI route or runtime promotion. |
+| NT51950 | `SM-950-951-DP-PERSPECTIVE-V2`: packaged canonical V2 maps select the exact submitted DP capacity; owner `0x40000` DP golden passes. | `R-DP-950-951`: the workbench UI/CLI routes the supported V2 profile and selects its exact base capacity. | `R-CTRLRAM-51950`: direct postbuild reference. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Public deterministic expected hashes plus archived owner-approved legacy comparison cover all capacities with no known deviations. This migration evidence is not a hardware golden or product support claim. Deferred AB shares only the full-DP-first order, not normal-merge ranges or integrity rules. |
+| NT51951 | `SM-950-951-DP-PERSPECTIVE-V2`: packaged canonical V2 maps select the exact submitted DP capacity; owner `0x80000` DP golden passes. | `R-DP-950-951`: the workbench UI/CLI routes the supported V2 profile and selects its exact base capacity. | `R-CTRLRAM-51950`: follows NT51950. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Public deterministic expected hashes plus archived owner-approved legacy comparison cover all capacities with no known deviations. This migration evidence is not a hardware golden or product support claim. |
 
 ## Deferred AB Initializer Policy
 
-NT51929, NT51932, and NT51950 AB Merge have no executable profile or UI. On owner reactivation, each profile must first copy the submitted full DP container, then apply its own declared TP/bank overlays. This records operation order only. It does not authorize reuse of NT51950/NT51951 normal Merge ranges, accepted sizes, integrity behavior, or IC-count handling. Each IC needs an owner-approved AB golden input/output, profile ranges, processor/integrity declaration, and firmware-owner review before a flowchart or implementation is promoted.
+NT51919, NT51929, and NT51932 now have executable-candidate V2 profiles with a fixed `0x80000` AB map. They first copy the submitted full DP container, overlay TPA, relocate cloned TPB `u32` values at `0x7164/0x7168/0x716C` by `+0x40000`, then overlay TPB. The profiles are intentionally not routed through Bootstrap, UI, CLI, or Application runtime. NT51950 has a separate repository-only fixed-`0x80000` compilable profile which stages raw full A/B banks for its external Combiner; it is blocked on an exact owner-provided `map.txt` sidecar and does not use C# relocation or CRC. NT51951 remains unimplemented: its normal Merge ranges, accepted sizes, integrity behavior, and IC-count handling cannot be reused. Every IC still needs owner-approved AB input/output, declared processor/integrity behavior where applicable, and firmware-owner review before promotion.
 
 ## Standard Merge flowcharts
 
-### SM-GENFLASH
+### SM-GENFLASH and SM-GENFLASH-V2
 
-Used by the executable golden-backed gen_flash profiles: NT51920, NT51923, NT51926, NT51927, NT51929, NT51931, and NT51932. Owner-confirmed alias profiles reuse this same flow: NT51917 follows NT51927, and NT51919 follows NT51929.
+Used by the executable golden-backed gen_flash profiles: NT51920, NT51923, NT51926, NT51927, NT51929, NT51931, and NT51932. Bootstrap selects the packaged, hash-anchored V2 artifact for NT51917, NT51919, NT51920, NT51923, NT51926, NT51927, NT51929, NT51931, and NT51932. The owner-confirmed aliases are map-bound: NT51917 resolves its physical region-set fact to NT51927, and NT51919 resolves it to NT51929.
 
 ```mermaid
 flowchart TD
@@ -81,9 +81,9 @@ The DP source-size notes below are expected golden lengths, not exact-size execu
 | NT51931 | `0x40000` | `[0x00000, 0x3C000)` | `[0x3E000, 0x40000)` | Declared source length `0x80000`. |
 | NT51932 | `0x40000` | `[0x07000, 0x40000)` | `[0x00000, 0x06000)` | Declared source length `0x40000`. |
 
-### SM-FLASHMAP-DYNAMIC
+### SM-FLASHMAP-V2
 
-Used by NT51930.
+Used by NT51930 through its packaged, hash-anchored canonical V2 bundle.
 
 ```mermaid
 flowchart TD
@@ -149,7 +149,7 @@ flowchart TD
 
 ### R-DP-950-951
 
-Used by NT51950 and NT51951 as the target DP Perspective policy. The workbench path is wired for this exact-base rule; golden evidence and profile promotion are still required before a support claim.
+Used by NT51950 and NT51951 as the target DP Perspective policy. The V2 profiles are runtime-admitted by archived owner-approved legacy full-byte comparison and public synthetic expected hashes with no known deviations; the workbench route has no legacy fallback. This migration evidence is not an independent hardware golden or a product support claim.
 
 ```mermaid
 flowchart TD
@@ -160,8 +160,8 @@ flowchart TD
     D -- "yes" --> F["Clone exact reference into output work image"]
     F --> G["Pad replacement DP to the selected reference length and replace the full DP container"]
     G --> H["Restore original TP range 0x0A000-0x36FFF (len 0x2D000) from reference firmware"]
-    H --> I["Restore customer info 0x37000-0x37FFF (len 0x1000) from reference firmware"]
-    I --> J["Write workbench artifact; keep support claim gated by golden evidence"]
+    H --> I["Keep customer info 0x37000-0x37FFF (len 0x1000) from replacement DP"]
+    I --> J["Write the V2 workbench artifact and record deterministic hashes plus archived legacy-comparison evidence"]
 ```
 
 ## CtrlRAM Replace flowcharts

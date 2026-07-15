@@ -51,7 +51,9 @@ public sealed partial class CompositionProfileCompilerTests
                 new RegionAccessRule("header", RegionAccessKind.Hidden, "protect header"),
                 new RegionAccessRule("payload", RegionAccessKind.ExplicitRange, "allow general mapping"),
             ],
-            icNumberInputMode);
+            icNumberInputMode ?? (compositionKind == CompositionKind.Replace
+                ? IcNumberInputMode.SingleSelector
+                : null));
     }
 
     private static ExplicitMapping CreateMapping(

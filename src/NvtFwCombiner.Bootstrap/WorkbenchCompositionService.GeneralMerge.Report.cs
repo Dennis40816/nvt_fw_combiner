@@ -14,14 +14,15 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<OperationRunSummary> operations,
         IReadOnlyList<CompositionIssue> issues,
         string outputFileName,
-        bool succeeded)
+        bool succeeded,
+        string profileId,
+        string profileVersion)
     {
         DateTimeOffset timestamp = DateTimeOffset.UtcNow;
-        string profileId = GetGeneralMergeWorkbenchProfileId(icId);
         var report = new CompositionRunReport(
             CreateWorkbenchReportRunId(GeneralMergeRunIdPrefix, build, timestamp),
             profileId,
-            GeneralMergeProfileVersion,
+            profileVersion,
             icId,
             IcWorkflowIds.GeneralMerge,
             IcWorkflowIds.GeneralMerge,

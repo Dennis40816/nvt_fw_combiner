@@ -204,7 +204,7 @@ public sealed partial class ShellViewModelTests
 
         using var document = JsonDocument.Parse(viewModel.LoadedReportJson);
         JsonElement root = document.RootElement;
-        Assert.Equal("nt51950-general-merge-workbench", root.GetProperty("ProfileId").GetString());
+        Assert.Equal("nt51950-general-merge-logical-candidate", root.GetProperty("ProfileId").GetString());
         Assert.Equal("general-merge", root.GetProperty("ExperienceId").GetString());
         JsonElement operation = Assert.Single(root.GetProperty("Operations").EnumerateArray());
         Assert.Equal("CopyRange", operation.GetProperty("Kind").GetString());
@@ -238,6 +238,10 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.CanPreviewStandardMerge);
         Assert.True(viewModel.CanBuildStandardMerge);
 
+        string oversizedTpPath = workspace.PathFor("tp-input-oversized.bin");
+        File.WriteAllBytes(oversizedTpPath, new byte[0x40001]);
+        viewModel.SetSlotFile(StandardMergeGoldenManifest.SlotIdForAddressSpace("tp-input"), oversizedTpPath);
+
         string outputPath = workspace.PathFor("blocked-standard-merge.bin");
         await viewModel.BuildStandardMergeAsync(outputPath);
 
@@ -249,9 +253,9 @@ public sealed partial class ShellViewModelTests
         Assert.Contains("tp-input", viewModel.LoadedReport.PrimaryIssue.Detail, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies an NT51950 preview with NT51926 TP input is blocked with a reopenable detailed report.</summary>
+    /// <summary>Verifies NT51950 accepts a TP BIN within the 256 KiB limit even when it exceeds the declared overlay span.</summary>
     [Fact]
-    public async Task PreviewNt51950WithNt51926InputsFailsWithDetailedReportAndNoOutput()
+    public async Task PreviewNt51950AcceptsTpInputWithinMaximum()
     {
         using var golden = StandardMergeGoldenManifest.Load();
         JsonElement goldenCase = golden.CaseByIc("51926");
@@ -263,30 +267,17 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.CanPreviewStandardMerge);
         Assert.True(viewModel.CanBuildStandardMerge);
 
-        string outputPath = workspace.PathFor("should-not-exist.bin");
         await viewModel.PreviewMergeCommand.ExecuteAsync(null);
 
-        Assert.False(viewModel.LastRunResult.Succeeded);
-        Assert.Equal("Preview blocked", viewModel.LastRunResult.Title);
-        Assert.Equal("No output", viewModel.LastRunResult.Output);
-        Assert.False(File.Exists(outputPath), outputPath);
+        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.True(viewModel.CanBuildStandardMerge);
         Assert.True(viewModel.HasLoadedReport);
         Assert.True(viewModel.CanOpenReport);
         Assert.True(viewModel.HasReportToast);
-        ReportLineViewModel issue = Assert.Single(viewModel.LoadedReport.Issues);
-        Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, issue.Title);
-        Assert.Contains("tp-input", issue.Detail, StringComparison.Ordinal);
-        Assert.Contains("actual 245760 bytes", issue.Detail, StringComparison.Ordinal);
-        Assert.Contains("declared 225280 bytes", issue.Detail, StringComparison.Ordinal);
-        Assert.True(viewModel.LoadedReport.HasPrimaryIssue);
-        Assert.Equal(issue.Title, viewModel.LoadedReport.PrimaryIssue.Title);
+        Assert.Empty(viewModel.LoadedReport.Issues);
+        Assert.False(viewModel.LoadedReport.HasPrimaryIssue);
         Assert.True(viewModel.LoadedReport.HasInputs);
         Assert.True(viewModel.LoadedReport.HasOperations);
-        Assert.Contains(viewModel.LoadedReport.SummaryRows, row =>
-            row.Title == "Status" &&
-            row.Detail == "1 issue(s)" &&
-            row.Meta == issue.Title);
     }
 
     /// <summary>Gets one normal DP/TP, LD-input, and DP Perspective Standard Merge golden case.</summary>

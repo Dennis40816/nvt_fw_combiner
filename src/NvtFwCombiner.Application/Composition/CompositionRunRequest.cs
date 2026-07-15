@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Collections.ObjectModel;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Composition;
@@ -5,31 +7,29 @@ namespace NvtFwCombiner.Application.Composition;
 /// <summary>Application request for previewing or building a compiled composition profile.</summary>
 public sealed class CompositionRunRequest
 {
-    private readonly Dictionary<string, InputArtifactBinding> _artifactBindings;
-
-    /// <summary>Creates a run request with typed profile, plan, input bindings, and output name.</summary>
+    /// <summary>Creates a run request with one compiled composition, input bindings, and runtime output options.</summary>
     public CompositionRunRequest(
         string runId,
-        CompositionRunProfile profile,
-        CompositionPlan plan,
+        CompiledComposition compiledComposition,
         IEnumerable<InputArtifactBinding> artifactBindings,
         string outputFileName,
         string? approvedPreviewToken = null,
         IcNumberSelection? icNumberSelection = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
-        ArgumentNullException.ThrowIfNull(profile);
-        ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(compiledComposition);
         ArgumentNullException.ThrowIfNull(artifactBindings);
         ArgumentException.ThrowIfNullOrWhiteSpace(outputFileName);
+        Dictionary<string, InputArtifactBinding> copiedBindings = CopyBindings(artifactBindings);
         ValidateOutputFileName(outputFileName);
-        ValidateProfileMatchesPlan(profile, plan);
-        ValidateIcNumberSelection(profile, icNumberSelection);
+        ValidateExecutableComposition(compiledComposition);
+        ValidateRuntimeValidationRequirements(compiledComposition);
+        ValidateIcNumberSelection(compiledComposition, icNumberSelection);
+        ValidateV2RuntimeRequest(compiledComposition, copiedBindings, outputFileName);
 
         RunId = runId;
-        Profile = profile;
-        Plan = plan;
-        _artifactBindings = CopyBindings(artifactBindings);
+        CompiledComposition = compiledComposition;
+        ArtifactBindings = new ReadOnlyDictionary<string, InputArtifactBinding>(copiedBindings);
         OutputFileName = outputFileName;
         ApprovedPreviewToken = string.IsNullOrWhiteSpace(approvedPreviewToken) ? null : approvedPreviewToken;
         IcNumberSelection = icNumberSelection;
@@ -38,14 +38,11 @@ public sealed class CompositionRunRequest
     /// <summary>Stable run id for reports and diagnostics.</summary>
     public string RunId { get; }
 
-    /// <summary>Profile metadata used for report generation.</summary>
-    public CompositionRunProfile Profile { get; }
-
-    /// <summary>Compiled plan to execute.</summary>
-    public CompositionPlan Plan { get; }
+    /// <summary>Atomic compiler output containing identity, policy, and the sole execution plan.</summary>
+    public CompiledComposition CompiledComposition { get; }
 
     /// <summary>Maps required address-space ids to copied artifact bindings.</summary>
-    public IReadOnlyDictionary<string, InputArtifactBinding> ArtifactBindings => _artifactBindings;
+    public IReadOnlyDictionary<string, InputArtifactBinding> ArtifactBindings { get; }
 
     /// <summary>Output file name proposed by profile naming policy or caller override.</summary>
     public string OutputFileName { get; }
@@ -62,9 +59,8 @@ public sealed class CompositionRunRequest
         ArgumentException.ThrowIfNullOrWhiteSpace(previewToken);
         return new CompositionRunRequest(
             RunId,
-            Profile,
-            Plan,
-            _artifactBindings.Values,
+            CompiledComposition,
+            ArtifactBindings.Values,
             OutputFileName,
             previewToken,
             IcNumberSelection);
@@ -96,30 +92,137 @@ public sealed class CompositionRunRequest
         }
     }
 
-    private static void ValidateProfileMatchesPlan(CompositionRunProfile profile, CompositionPlan plan)
+    private static void ValidateExecutableComposition(CompiledComposition compiledComposition)
     {
-        CompositionPlanProvenance? provenance = plan.Provenance;
-        if (provenance is null)
+        if (compiledComposition.Eligibility == CompiledCompositionEligibility.LegacyRuntimeExecutable &&
+            compiledComposition.Authority is LegacyProfileCompilationAuthority)
         {
             return;
         }
 
-        if (!string.Equals(profile.ProfileId, provenance.ProfileId, StringComparison.Ordinal) ||
-            !string.Equals(profile.ProfileVersion, provenance.ProfileVersion, StringComparison.Ordinal) ||
-            !string.Equals(profile.IcId, provenance.IcId, StringComparison.Ordinal) ||
-            !string.Equals(profile.ModeId, provenance.ModeId, StringComparison.Ordinal) ||
-            !string.Equals(profile.ExperienceId, provenance.ExperienceId, StringComparison.Ordinal) ||
-            profile.CompositionKind != provenance.CompositionKind)
+        if (compiledComposition.Eligibility == CompiledCompositionEligibility.V2RuntimeExecutable &&
+            compiledComposition.Authority is ProfileBundleV2CompilationAuthority &&
+            compiledComposition.V2Details is not null)
         {
-            throw new ArgumentException("Run profile metadata must match compiled plan provenance.", nameof(profile));
+            return;
+        }
+
+        if (compiledComposition.Eligibility == CompiledCompositionEligibility.V2PlanCompiled &&
+            compiledComposition.Authority is ProfileBundleV2CompilationAuthority &&
+            compiledComposition.V2Details is { Provenance.Promotion.Stage: CompiledProfilePromotionStage.ExecutableCandidate } details &&
+            details.Provenance.Context is LogicalOutputV2CompilationContext or RuntimeReferenceReplaceV2CompilationContext)
+        {
+            return;
+        }
+
+        throw new ArgumentException(
+            "Compiled composition is not executable by the current application runtime.",
+            nameof(compiledComposition));
+    }
+
+    private static void ValidateV2RuntimeRequest(
+        CompiledComposition compiledComposition,
+        Dictionary<string, InputArtifactBinding> bindings,
+        string outputFileName)
+    {
+        if (compiledComposition.Authority is not ProfileBundleV2CompilationAuthority)
+        {
+            return;
+        }
+
+        V2CompiledCompositionDetails details = compiledComposition.V2Details ?? throw new ArgumentException(
+            "V2 runtime artifacts require compiled V2 details.",
+            nameof(compiledComposition));
+        CompiledOutputNamingRequirement output = details.OutputNamingRequirement;
+        if (output.RequiredTokenIds.Count != 0 ||
+            output.InvalidCharacterPolicy != CompiledOutputInvalidCharacterPolicy.Reject)
+        {
+            throw new ArgumentException(
+                "V2 runtime artifacts require a token-free reject output template until token rendering is available.",
+                nameof(compiledComposition));
+        }
+
+        CompiledOutputNamingRequirement.ValidateRuntimeLiteralFileName(outputFileName, nameof(outputFileName));
+
+        if (!output.AllowOverride &&
+            !string.Equals(outputFileName, output.FileNameTemplate, StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "Output file name must match the compiled V2 template when overrides are forbidden.",
+                nameof(outputFileName));
+        }
+
+        IReadOnlyList<CompiledInputSpaceBinding> expectedBindings = details.InputContract.SpaceBindings;
+        if (bindings.Count != expectedBindings.Count)
+        {
+            throw new ArgumentException(
+                "V2 runtime bindings must exactly match the compiled input contract.",
+                nameof(bindings));
+        }
+
+        var slots = details.InputContract.Slots.ToDictionary(
+            static slot => slot.SlotId,
+            StringComparer.Ordinal);
+        bool isLogicalOutput = details.Provenance.Context is LogicalOutputV2CompilationContext;
+        bool isRuntimeReferenceReplace = details.Provenance.Context is RuntimeReferenceReplaceV2CompilationContext;
+        foreach (CompiledInputSpaceBinding expected in expectedBindings)
+        {
+            if (!bindings.TryGetValue(expected.AddressSpaceId, out InputArtifactBinding? binding))
+            {
+                throw new ArgumentException(
+                    $"V2 runtime requires an artifact binding for address space '{expected.AddressSpaceId}'.",
+                    nameof(bindings));
+            }
+
+            CompiledInputSlotRequirement slot = slots[expected.SlotId];
+            bool satisfiesInputContract = isLogicalOutput
+                ? expected.InstancePolicy == CompiledInputInstancePolicy.PerBinding &&
+                  slot.Required &&
+                  slot.Cardinality == CompiledInputSlotCardinality.OneOrMore &&
+                  binding.BindingId == expected.AddressSpaceId &&
+                  binding.ArtifactClass == slot.ArtifactClass &&
+                  binding.OriginalFileName is not null
+                : isRuntimeReferenceReplace
+                    ? ((expected.InstancePolicy == CompiledInputInstancePolicy.Singleton &&
+                        slot.Required &&
+                        slot.Cardinality == CompiledInputSlotCardinality.ExactlyOne &&
+                        slot.ArtifactClass == CompiledInputArtifactClass.ReferenceImage) ||
+                       (expected.InstancePolicy == CompiledInputInstancePolicy.PerBinding &&
+                        slot.Required &&
+                        slot.Cardinality == CompiledInputSlotCardinality.OneOrMore &&
+                        slot.ArtifactClass == CompiledInputArtifactClass.Auxiliary)) &&
+                      binding.BindingId == expected.AddressSpaceId &&
+                      binding.ArtifactClass == slot.ArtifactClass &&
+                      binding.OriginalFileName is not null
+                    : expected.InstancePolicy == CompiledInputInstancePolicy.Singleton &&
+                  slot.Required &&
+                  slot.Cardinality == CompiledInputSlotCardinality.ExactlyOne &&
+                  binding.ArtifactClass == slot.ArtifactClass &&
+                  binding.OriginalFileName is not null;
+            if (!satisfiesInputContract)
+            {
+                throw new ArgumentException(
+                    $"V2 runtime binding '{expected.AddressSpaceId}' does not satisfy the compiled input slot contract.",
+                    nameof(bindings));
+            }
+
+            string originalFileName = binding.OriginalFileName ?? throw new InvalidOperationException(
+                "A contract-matching V2 binding must retain its original file name.");
+            string extension = Path.GetExtension(originalFileName);
+            if (!slot.AcceptedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException(
+                    $"V2 runtime binding '{expected.AddressSpaceId}' has an unaccepted original file extension.",
+                    nameof(bindings));
+            }
         }
     }
 
     private static void ValidateIcNumberSelection(
-        CompositionRunProfile profile,
+        CompiledComposition compiledComposition,
         IcNumberSelection? selection)
     {
-        if (profile.CompositionKind != CompositionKind.Replace)
+        if (compiledComposition.IcNumberPolicy == CompiledIcNumberPolicy.NotApplicable)
         {
             if (selection is not null)
             {
@@ -129,20 +232,27 @@ public sealed class CompositionRunRequest
             return;
         }
 
-        if (profile.IcNumberInputMode is null)
-        {
-            throw new ArgumentException("Replace run profile must declare an IC number input mode.", nameof(profile));
-        }
-
         if (selection is null)
         {
             throw new ArgumentException("Replace runs require an IC number selection.", nameof(selection));
         }
 
-        if (selection.Mode != profile.IcNumberInputMode)
+        IcNumberInputMode expectedMode = compiledComposition.IcNumberPolicy switch
+        {
+            CompiledIcNumberPolicy.SingleSelector => IcNumberInputMode.SingleSelector,
+            CompiledIcNumberPolicy.CascadeSelector => IcNumberInputMode.CascadeSelector,
+            CompiledIcNumberPolicy.NumericSelector => IcNumberInputMode.NumericSelector,
+            CompiledIcNumberPolicy.NotApplicable => throw new InvalidOperationException(
+                "A non-applicable IC-number policy cannot require a selection."),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(compiledComposition),
+                compiledComposition.IcNumberPolicy,
+                "Unknown compiled IC-number policy."),
+        };
+        if (selection.Mode != expectedMode)
         {
             throw new ArgumentException(
-                "IC number selection mode must match the run profile IC number input mode.",
+                "IC number selection mode must match the compiled composition IC number policy.",
                 nameof(selection));
         }
 
@@ -153,8 +263,26 @@ public sealed class CompositionRunRequest
         }
     }
 
+    private static void ValidateRuntimeValidationRequirements(CompiledComposition compiledComposition)
+    {
+        foreach (CompiledValidationRequirement requirement in compiledComposition.ValidationRequirements)
+        {
+            if (compiledComposition.Authority is LegacyProfileCompilationAuthority &&
+                requirement is CompiledFirmwareConfigBackupVersionValidation &&
+                requirement.Stage == CompiledValidationStage.FinalOutput &&
+                requirement.Severity == CompiledValidationSeverity.Error)
+            {
+                continue;
+            }
+
+            throw new ArgumentException(
+                $"Compiled validation rule '{requirement.RuleId}' is not executable by the current application runtime.",
+                nameof(compiledComposition));
+        }
+    }
+
     private static bool IsPositiveInteger(string value)
     {
-        return int.TryParse(value, out int parsed) && parsed > 0;
+        return int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out int parsed) && parsed > 0;
     }
 }

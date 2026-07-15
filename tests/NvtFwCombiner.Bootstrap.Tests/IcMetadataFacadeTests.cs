@@ -25,7 +25,7 @@ public sealed class IcMetadataFacadeTests
             Assert.Equal(support.Notes, metadata.Notes);
             Assert.True(TpFlashMapCatalog.TryFind(support.IcId, out TpFlashMapProfile? flashMap));
             Assert.Equal(flashMap!.OverviewSource, metadata.TpOverviewSource);
-            Assert.Equal(flashMap.FirmwareConfigStart, metadata.FirmwareConfigStart);
+            Assert.Equal(flashMap.FirmwareConfigPrimaryStart, metadata.FirmwareConfigPrimaryStart);
             Assert.Equal(TpFlashMapCatalog.GetNumberChoices(support.IcId), metadata.NumberChoices);
             Assert.Equal(
                 LegacyCombinerPostbuildCatalog.GetProfiles(support.IcId)
@@ -33,7 +33,6 @@ public sealed class IcMetadataFacadeTests
                     .Distinct(StringComparer.Ordinal)
                     .Order(StringComparer.Ordinal),
                 metadata.PostbuildCategories);
-            Assert.Equal(DpPerspectiveCatalog.IsSupportedIc(support.IcId), metadata.UsesDpPerspective);
             Assert.Equal(
                 support.SupportsWorkflow(IcWorkflowIds.CtrlRamReplace),
                 metadata.HasPostbuild);
@@ -49,8 +48,7 @@ public sealed class IcMetadataFacadeTests
 
         Assert.Equal("NT51926", shortId!.IcId);
         Assert.Same(shortId, normalizedId);
-        Assert.True(IcMetadataFacade.TryGetFirmwareConfigStart("51926", out long firmwareConfigStart));
-        Assert.Equal(shortId.FirmwareConfigStart, firmwareConfigStart);
+        Assert.Equal(0x22000, shortId.FirmwareConfigPrimaryStart);
     }
 
     /// <summary>TP header labels remain owned by the shared header taxonomy rather than copied per IC row.</summary>

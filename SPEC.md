@@ -1,8 +1,8 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`Repository Bootstrap Baseline`
-> 文件版本：`0.9.0`
-> 基準日期：`2026-06-25`
+> 文件狀態：`0.9.7 integration milestone`
+> 文件版本：`0.9.7`
+> 基準日期：`2026-07-15`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
 > Repository：`Dennis40816/nvt_fw_combiner`
@@ -30,20 +30,25 @@
 
 ## 0.1 Current owner priority
 
-As of 2026-06-30, near-term implementation focuses on normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows.
+As of 2026-07-15, the canonical firmware-map/profile/compiler migration is anchored by `v0.9.2`; `0.9.7` integrates the evidence-gated AB and CtrlRAM candidates, deterministic candidate intake, reviewed V2 convergence, release-package hardening, and audited UI token consolidation. Existing normal Merge and Replace behavior remains governed by its documented legacy comparison and golden evidence; this milestone does not promote IC support.
 
-- AB Code Merge is intentionally deferred for now. Existing AB evidence remains reference material only; do not spend implementation effort on AB unless the owner explicitly reactivates it.
-- When AB Code Merge is reactivated, NT51929, NT51932, and NT51950 must initialize from a full submitted DP container before applying profile-declared TP or bank overlays. This is an operation-order direction only: it does not infer shared ranges, IC-number branches, CRC behavior, or output sizes from the current NT51950 normal Merge profile. Each IC still requires AB golden inputs/outputs and firmware-owner review before execution or UI exposure.
+- AB Code architecture and evidence intake are reactivated. Executable AB behavior remains a separate R3 phase and no profile is promoted without its exact ranges, relocation fields, integrity contract, golden output, and firmware-owner approval.
+- NT51919, NT51929, NT51932, NT51950, and NT51951 AB Merge must initialize from a full submitted DP_AB container before applying profile-declared TPA/TPB overlays. NT51919 may inherit the NT51929/NT51932 canonical AB facts only through owner-approved fact-scoped bindings and parity tests. This direction does not infer ranges, topology branches, CRC behavior, output sizes, or support promotion from Normal Merge.
+- Firmware ranges, aliases, metadata locators, capability evidence, workflow profiles, and execution promotion must converge through the versioned family/profile bundle and one compiled composition boundary defined by ADR 0015. Migration preserves current promotion stages and blockers; map coverage never grants Build authority.
 - Normal/Standard Merge includes NT51950 and NT51951 through the DP Perspective selected-container policy. Current owner golden cases are recorded; firmware-owner sign-off is still required before production promotion.
 - CtrlRAM Replace requires legacy `combiner.exe` CRC/header recalculation after replacement. Combiner `1.13.0` is imported under `external-tools/legacy-combiner/1.13.0/` and is pinned by SHA-256 manifest.
 - Owner-provided postbuild scripts are the behavioral truth for CtrlRAM Replace command order; mmap files explain offsets and sizes; TP Overview is the documentation baseline to correct when it conflicts with postbuild/mmap evidence.
 - CtrlRAM postbuild command sequences must be generated as structured command/argv data and tested against the hsi Combiner guide, not assembled as one shell command string. NT51927 requires explicit single, 2IC, and 3IC Replace branches.
 - FlashCode output naming uses the fixed `NT51xxx_FlashCode_DxxxxTxxxx_YYYYMMDD.bin` form and treats DP version as two contiguous bytes: main version byte followed by sub version byte. TP uses the validated FW version and FW sub-version bytes. The offsets are catalog-owned facts; UI must display decoded tokens or explicit unknown placeholders, never infer version bytes from file names.
 - NT51950/NT51951 normal Merge and DP Replace should use the DP image as the base container and overlay/preserve the TP range. Standard Merge DP inputs are limited to the owner-confirmed DP Perspective sizes `0x40000`, `0x80000`, and `0x100000`; the Standard Merge output length follows the selected DP input length. DP Replace must derive its work length from the selected base firmware length, which must be one of `0x40000`, `0x80000`, or `0x100000`; never hard-code the maximum container as the base. The confirmed TP overlay range is `0x0A000-0x36FFF (len 0x2D000)`; `0x37000-0x37FFF (len 0x1000)` is customer info and must not be overwritten by the TP overlay.
-- Other Standard Merge profiles extract only their declared DP source ranges. A DP artifact that reaches the required end offset may have an arbitrary total length; a non-golden length is a report warning, not a build blocker. TP remains exact-length profile input and every Standard Merge TP source length must be `<= 0x40000`. NT51950/NT51951 remain the exception because they paste a full DP container and retain their strict approved-size gate.
+- Other Standard Merge profiles extract only their declared DP source views. A DP artifact that
+  reaches every required end offset may have an arbitrary total length; a non-map length is a report
+  warning, not a build blocker. Every Standard Merge TP source must cover its declared views and be
+  `<= 0x40000`; oversize is a build error. NT51950/NT51951 remain the exception because they paste a
+  full DP container and require exact selected-map capacity.
 - NT51917 follows NT51927. NT51919 follows NT51929. NT51928 non-NB follows NT51927, while NT51928 NB is a separate IC and must not inherit that profile unless explicitly approved.
 - NT51930 currently has no `>13 IC` product target; map cascade to the `<=13 IC` DiffDLM branch (`0x2F200`, size `65024`) until owner data reactivates larger counts.
-- FW Register ranges should be captured as first-class map evidence when the owner updates TP Overview. A future REG Replace workflow may use those ranges, but current Replace scope remains DP Replace, CtrlRAM Replace, and General Replace.
+- FW Register ranges are first-class map evidence. REG Replace is represented as a pending capability over those regions, but remains without an executable profile or UI exposure until owner evidence is approved. Current executable Replace scope remains DP Replace, CtrlRAM Replace, and General Replace.
 - Merge and Replace runs must produce a report modal after Preview/Build and persist run history. The report must show each operation step, input/output hashes, IC/IC-num context, normalized ranges, external Combiner command sequence, processor result, warnings, and final artifact path.
 - Per-IC Merge/Replace flowcharts live in [`docs/architecture/ic-workflow-flowcharts.md`](docs/architecture/ic-workflow-flowcharts.md). Any change to built-in merge profiles, replace profiles, CtrlRAM postbuild catalog, 950/951 DP policy, or supported IC workflow matrix must update that reference in the same change.
 - Real firmware golden evidence is still required before declaring end-to-end CtrlRAM Replace parity for a production IC profile.
@@ -76,7 +81,8 @@ Merge：
 Replace：
 
 - `dp-replace`：DP whole 或 profile-declared partitions；LD replacement also belongs to DP Replace and may be modeled as a separate LD replacement BIN/slot from the DP BIN；不再提供獨立 TP persona replace 分類。
-- `ctrlram-replace`：只操作被標記為 `tp-ctrlram` 的 named regions/groups。
+- `ctrlram-replace`：只操作 physical `owner = tp`、`kind = ctrlram` 的 named regions，或完全由
+  這類 regions 組成的 approved groups。
 - `general-replace`：required reference BIN 加上一或多個 replacement BIN；使用者自由建立多筆 explicit mappings，但仍受 protected ranges、alignment、overlap、processor dependency 與 Preview/Build validation 約束。Any mapping that touches a TP-classified range must compile with an approved legacy Combiner CRC/header refresh after the replacement mutation.
 - `Hex Editor`（`0.9.0`）：由 Home 的 `Util Tools` 獨立入口開啟，是無 firmware 語意的 raw BIN 工具。它將最多 `0x800000` bytes 的來源讀取一次到私有記憶體，可 overwrite/fill、單筆或 bounded multi-byte insert、delete、undo/redo，並以確認後的 Save As 輸出新 BIN；不會讀取或修改 IC、profile、Flash Map、CRC、postbuild、General Replace 或 report。
 
@@ -164,7 +170,7 @@ Codex 與 agent governance 主要參考：
 9. production runtime 離線可用，不依賴網路、GitHub、系統 Python 或 package registry。
 10. release 產物最小化、可重現、可驗證 SHA-256，且不含 private inputs、unmanifested firmware 或 generated firmware outputs；owner-approved golden fixture BINs may ship only under the manifest-declared `reference/` payload。
 11. Codex 可從 root/nested AGENTS、repo skills、project config 與單一 verify command 得到一致規則；`polytail` 必須在完成與 review 前阻擋低品質 AI code。
-12. 新增 IC/mode 時主要修改 profile、processor/tool declaration 與 golden test，不新增 one-off merge/replace script。
+12. 新增 IC/mode 時主要修改 profile、processor/tool declaration 與 golden test，不新增 one-off merge/replace script。規劃中的自動 IC 匯入只能產生待審核的 bundle 與驗證報告；不得從任意 BIN 推斷 range、CRC/header、alias 或 FW Config 規則，也不得自行提升 support/promotion。
 
 ### 3.2 品質目標
 
@@ -246,22 +252,26 @@ Change risk class：
 - TPA copy：source `0x07000..0x40000` 到 target `0x07000..0x40000`。
 - TPB relocation patch：`0x7164`、`0x7168`、`0x716C` little-endian u32 加 `0x40000`。
 - TPB copy：source `0x07000..0x40000` 到 target `0x47000..0x80000`。
-- version parsing：DP A/B offset `0x67/0x68`；TP FW version by last `NVT` + `T address - 0xFFF`。
+- version parsing：DP A/B offset `0x67/0x68`；reference TP FW version parsing used the last `NVT` + `T address - 0xFFF`.
 - output naming：`{PROJECT_NAME}_Flashcode_A_{dpA}{tpA}_B_{dpB}{tpB}_{yyyyMMdd}.bin`。
 
 ### 4.1 必須 profile 化的 facts
 
 | Fact | Profile / Contract location |
 | --- | --- |
-| output size | `image.capacity` |
-| fill byte | `image.initializer.fillByte` |
+| output size | resolved firmware map capacity |
+| fill byte | output/work `spaces[].initializer.fillByte` |
 | DP_AB / split DP input mode | separate profile modes |
 | logical views | `views[]` |
 | copy order | `operations[].sequence` |
-| TPB relocation | `patch-scalar` operations or external processor if coupled to header |
-| CRC/header rewrite | `run-external-processor` with tool binding and allowed ranges |
-| output naming | `outputNaming` + version extractors |
+| TPB relocation | checked `transform-scalar` operations |
+| CRC/header rewrite | `run-processor` + closed legacy-combiner stage and allowed views |
+| output naming | `output` + metadata bindings/version extractors |
 | expected compare policy | `validations[]` |
+
+The reference's "last `NVT`" behavior is legacy evidence only. The canonical FWConfig Backup rule for
+all executable profiles is exactly one complete `00 4E 56 54` marker, with the Backup start at its
+terminal `T - 0xFFF`; zero or multiple markers fail closed.
 
 ### 4.2 Legacy combiner.exe CRC/Header path
 
@@ -269,7 +279,9 @@ Production CRC/header behavior may require multiple legacy `combiner.exe` versio
 
 Required model:
 
-- profile declares `run-external-processor` and `processorInvocation.parameters.toolBindingId`;
+- v2 profile declares `run-processor` referencing a closed `legacy-combiner-v1` stage;
+- the stage declares `toolBindingId`, registered `invocationProfileId`, read/write views, purpose,
+  transform authority, integrity disposition, evidence, and fail-closed policy;
 - tool manifest declares exact executable version, SHA-256, input mode, arguments, timeout, and platform;
 - infrastructure materializes a host-owned temporary `work.bin`;
 - legacy combiner reads/writes only inside the staging directory;
@@ -326,9 +338,12 @@ The current Python worker is a constrained pure CRC calculation prototype. It is
 
 ### 5.3 Profile 與契約格式
 
-- Canonical runtime profile：JSON，符合 `composition-profile-v1.schema.json`。
+- Current compatibility loader：JSON `composition-profile-v1`；accepted target authority is trusted
+  `firmware-family-v1` + `composition-profile-v2` + `profile-bundle-v1`. V1 becomes migration
+  evidence only after v2 production loading and parity gates pass.
 - Schema：JSON Schema Draft 2020-12。
 - Human authoring：第一階段直接編輯 JSON；後續可加入 Excel importer/compiler。
+- Automated IC intake（規劃於 0.9.4）：輸入必須是宣告完整的 IC intake manifest 與其檔案；輸出只能是 candidate bundle、materialization/validation report 與待補 evidence 清單。它不得成為 runtime source of truth，不得掃描未宣告的目錄、網路或使用者 BIN，也不得直接變更已核准 profile、support catalog 或 promotion。
 - General Merge / General Replace：UI 或 CLI 產生 typed mapping overlay，可保存成 versioned saved rule/profile fragment；不得產生 script、shell command 或 executable path。Saved-rule validation and General Merge CLI consumption must still compile back to normal explicit mappings.
 - Processor/tool recipe：JSON/typed declaration，與 memory mapping 分離但由 profile 明確引用。
 - Reports：JSON；UI 顯示由 typed report 轉換。
@@ -411,48 +426,45 @@ ByteRange
 
 AddressSpace
   id
-  role
-  length
-  mutability
-  owner
+  kind: input-artifact | work-buffer | output-image
+  capacity: resolved-map | fixed
 
-ImageInitialization
-  kind: blank | reference
-  capacity
+MutableSpaceInitialization
+  kind: blank | clone
   fillByte?
-  baseSlotId?
+  sourceSlotId?
 
-MemoryRegion
+FirmwareRegion
   regionId
   parentRegionId?
   addressSpaceId
   range
-  role
-  classificationTags[]
-  atomicity
-  writePolicy
-  processorDependencies[]
+  owner
+  kind
+  writeConstraint
+  alignment
+
+LogicalView
+  viewId
+  spaceId
+  map region, region slice, or space-relative range
 
 CompositionOperation
   operationId
   sequence
-  kind
-  sourceSpaceId?
-  sourceRange?
-  targetSpaceId?
-  targetRange?
+  kind: copy-range | replace-range | fill-range | patch-scalar |
+        transform-scalar | run-processor
+  sourceViewId?
+  targetViewId?
   overlapPolicy
-  processorInvocation?
   reason
 
-ProcessorInvocation
-  processorId
-  contractVersion
-  authority: calculate | transform
+ProcessorStage
+  kind: crc-worker-v1 | legacy-combiner-v1
+  authority / integrityDisposition
   purpose
-  allowedReadRanges[]
-  allowedWriteRanges[]
-  parameters
+  allowedReadViewIds[] / allowedWriteViewIds[]
+  registered calculation set OR trusted tool binding + invocation profile
   failurePolicy
 ```
 
@@ -460,30 +472,30 @@ ProcessorInvocation
 
 ```text
 CompositionProfile
-  schemaVersion
+  schemaVersion: 2.0
   profileId
   profileVersion
-  supportStatus
-  icId
-  modeId
+  promotion
   compositionKind
   experience
-  imageInitialization
+  mapBinding
   inputSlots[]
-  addressSpaces[]
-  regionAccessRules[]
+  spaces[]
   views[]
+  metadataBindings[]
+  regionAccessRules[]
   operations[]
   validations[]
-  outputNaming
+  processorStages[]
+  output
+  evidenceRefs[]
 
 CompositionRequest
   runId
-  profileRef
-  inputBindings{}
-  mappingOverrides[]
+  compiledComposition
+  immutableInputBindings{}
   outputOptions
-  strictness
+  previewToken?
 
 CompositionPlan
   initialization
@@ -506,7 +518,6 @@ CompositionResult
 | Address space | Mutable | Owner |
 | --- | --- | --- |
 | `input-artifact` | No | artifact loader |
-| `reference-base` | No | artifact loader |
 | `work-buffer` | Yes | one execution run |
 | `output-image` | Yes | one execution run |
 | `worker-staging-file` | Yes, isolated | infrastructure adapter |
@@ -516,18 +527,15 @@ Every range names its address space. Original input and reference base are immut
 ### 7.4 Canonical region classification
 
 ```text
-MemoryRegion
+FirmwareRegion
   regionId
   parentRegionId?
   addressSpaceId
-  role
-  classificationTags[]     // dp, tp, tp-ctrlram, header, protected, ...
+  owner                     // system, dp, tp, ldc, register, customer, ...
+  kind                      // code, header, command, ctrlram, customer-information, ...
   range
-  atomicity: whole | partitioned | explicit-mapping
-  defaultReplacePolicy
+  writeConstraint: forbidden | whole-region | declared-subregions | explicit-range
   alignment
-  processorDependencies[]
-  compatibilityTags[]
 ```
 
 Experience-specific access is separate：
@@ -548,7 +556,11 @@ The supported Replace/Merge authoring policies, operation algebra, integrity aut
 
 ## 8. Profile Schema
 
-The canonical versioned profile contract is [composition-profile-v1](docs/contracts/composition-profile-v1.md). Product-level supported experiences, input/region access policy, and external processor binding expectations are in [Profile Schema Summary](docs/specs/profile-schema.md).
+The accepted target contracts are [firmware-family-v1](docs/contracts/firmware-family-v1.md),
+[composition-profile-v2](docs/contracts/composition-profile-v2.md), and
+[profile-bundle-v1](docs/contracts/profile-bundle-v1.md). The current v1 loader remains a compatibility
+boundary until trusted loading and byte/name/trace parity pass. Product-level expectations are in
+[Profile Schema Summary](docs/specs/profile-schema.md).
 
 ## 9. External Processor Protocols
 
@@ -587,7 +599,13 @@ Preview executes through plan/validation and processor dry-run capability where 
 
 Profile address spaces declare the expected input length used by range validation. A supplied BIN shorter than the declared address-space length is accepted only when the profile explicitly declares an input padding byte for that immutable source/replacement address space and the profile has no CRC/header/processor dependency. Runtime/request address spaces cannot declare padding or truncation policy. The engine pads only the transient execution buffer before copy/replace operations run; source BIN files are never modified. Unapproved oversized input still fails closed.
 
-DP-only Replace flows that do not require CRC/header recalculation may use profile-declared padding. CtrlRAM Replace flows cannot declare input padding for shorter input. Because owner evidence shows CtrlRAM BINs commonly exceed the declared memory size, `ctrlram-replace` profiles may instead declare oversized-input truncation on immutable CtrlRAM replacement/source address spaces whose operations target a profile region tagged `tp-ctrlram`. Truncation keeps the leading declared bytes, discards the trailing bytes, and emits an `input.address-space.truncated` report diagnostic so the UI/CLI can show a prompt.
+DP-only Replace flows that do not require CRC/header recalculation may use profile-declared padding.
+CtrlRAM Replace flows cannot declare input padding for shorter input. Because owner evidence shows
+CtrlRAM BINs commonly exceed the declared memory size, `ctrlram-replace` profiles may instead declare
+oversized-input truncation on immutable CtrlRAM replacement/source spaces only when every affected
+target resolves to a physical region with `owner = tp` and `kind = ctrlram`. Truncation keeps the
+leading declared bytes, discards trailing bytes, and emits an
+`input.address-space.truncated` report diagnostic so UI/CLI can show a prompt.
 
 For reference-initialized Replace, the reference/base firmware address space must always be exact length and cannot declare input padding or truncation. Mutable work buffers also cannot declare input padding or truncation. Padding and truncation apply only to eligible immutable replacement source address spaces.
 
@@ -599,16 +617,23 @@ Fixed profile inputs and mappings. The user selects IC/mode and BINs; profile ow
 
 ### 10.4 AB Merge
 
-Fixed A/B bank model with explicit logical views, target banks, relocation patches, integrity stages and comparisons. DP_AB and split DPA/DPB are separate profile modes, not runtime guessing. AB implementation is currently deferred while normal Merge and Replace are prioritized.
+Fixed A/B bank model with explicit logical views, TPA/TPB work buffers, target banks, checked scalar
+relocation, integrity stages, and comparisons. DP_AB and split DPA/DPB are distinct profile shapes,
+not runtime guessing. The shared architecture is active; executable AB profiles remain R3-gated by
+owner ranges, Combiner 1.13 B-code behavior, and golden evidence.
 
 ### 10.5 General Merge
 
-General Merge is an advanced authoring surface, not a separate executor. User rows compile to checked `copy-range`/`fill-range`/`patch-scalar`/`run-external-processor` operations. Dragging a range in UI is equivalent to editing typed mapping data. Reviewed saved-rule rows may be consumed by CLI only when the user supplies explicit slot bindings; they still compile through the same General Merge plan and report their provenance as `saved-rule`.
+General Merge is an advanced authoring surface, not a separate executor. User rows compile to
+checked `copy-range` operations; fixed profile stages may add the other closed primitives. Dragging a
+range in UI is equivalent to editing typed mapping data. Reviewed saved-rule fragments still compile
+through the same profile/compiler/engine and report `saved-rule` provenance.
 
 ### 10.6 Replace experiences
 
 - DP Replace：DP-focused; DP whole/declared-part access only. LD replacement is included in this experience and may be supplied as its own LD BIN。
-- CtrlRAM Replace：CtrlRAM-only on regions tagged `tp-ctrlram`。
+- CtrlRAM Replace：只允許 physical `owner = tp`、`kind = ctrlram` regions 或完全由它們組成的
+  approved groups。
 - General：explicit mapping inside profile-approved envelope。
 
 Current Replace implementation priority is DP Replace and CtrlRAM Replace workflows. CtrlRAM postbuild command core is implemented from IC FlashMap postbuild evidence for NT51917, NT51919, NT51920, NT51923, NT51926, NT51927, NT51928 non-NB, NT51929, NT51930, NT51931, NT51932, NT51950, and NT51951, including NT51917/NT51927/NT51928 single/2IC/3IC branches. NT51919 and NT51929 follow the NT51932 reference flow; NT51951 follows the NT51950 reference flow. Remaining production work is profile wiring, UI/report/history integration, and golden replace outputs.

@@ -6,8 +6,11 @@ public static class CompositionIssueCodes
     /// <summary>Required immutable input bytes are missing.</summary>
     public const string InputAddressSpaceMissing = "input.address-space.missing";
 
-    /// <summary>Required mutable seed bytes are missing.</summary>
-    public const string InputMutableAddressSpaceMissing = "input.mutable-address-space.missing";
+    /// <summary>Caller bytes targeted an engine-owned mutable address space.</summary>
+    public const string InputMutableAddressSpaceNotAllowed = "execution.input.mutable-not-allowed";
+
+    /// <summary>Caller bytes targeted an undeclared address space.</summary>
+    public const string InputAddressSpaceUnknown = "execution.input.address-space-unknown";
 
     /// <summary>Input bytes do not satisfy the declared address-space length policy.</summary>
     public const string InputAddressSpaceLengthMismatch = "input.address-space.length-mismatch";
@@ -29,4 +32,13 @@ public static class CompositionIssueCodes
 
     /// <summary>An external processor changed the staged byte length.</summary>
     public const string ExecutionExternalProcessorLengthMismatch = "execution.external-processor.length-mismatch";
+
+    /// <summary>An external processor returned bytes that violate a profile-declared output postcondition.</summary>
+    public const string ExecutionExternalProcessorPostconditionFailed = "execution.external-processor.postcondition-failed";
+
+    /// <summary>A scalar transform source value did not match its declared expected value.</summary>
+    public const string ExecutionScalarTransformExpectedValueMismatch = "execution.scalar-transform.expected-value-mismatch";
+
+    /// <summary>A scalar transform result did not fit the declared unsigned width.</summary>
+    public const string ExecutionScalarTransformOverflow = "execution.scalar-transform.overflow";
 }

@@ -49,15 +49,4 @@ public sealed partial class CompositionEngineTests
             addressSpaces,
             [operation]);
     }
-
-    private static CompositionPlanProvenance CreateCtrlRamReplaceProvenance()
-    {
-        return new CompositionPlanProvenance(
-            "ctrlram-replace-profile",
-            "1.0.0",
-            "NT-SYNTHETIC",
-            "ctrlram-replace",
-            "ctrlram-replace",
-            CompositionKind.Replace);
-    }
 }

@@ -1,0 +1,90 @@
+{
+  "fixtureId": "nt51950-nt51951-dp-replace-oracle-v1",
+  "classification": "public-synthetic",
+  "ownerDecision": {
+    "date": "2026-07-13",
+    "decision": "NT51950/NT51951 DP Replace restores only the base TP range; customer information follows the replacement DP image."
+  },
+  "ownerApprovedLegacyComparison": {
+    "evidenceId": "dp-replace-owner-approved-legacy-comparison-v1",
+    "date": "2026-07-13",
+    "baseline": "The pre-V2 NT51950/NT51951 DP Replace compiler and engine evaluated with this public deterministic input matrix.",
+    "decision": "Owner approves direct V2/legacy comparison plus these static public synthetic output hashes as the 0.9.1 V2 runtime migration gate.",
+    "scope": "Migration behavior only; this is not a hardware golden or an IC product-support claim.",
+    "knownDeviations": []
+  },
+  "generator": {
+    "algorithm": "affine-byte-v1",
+    "formula": "byte(salt + (37 * offset))",
+    "replacementLengthBytes": 233472,
+    "replacementLengthHex": "0x39000"
+  },
+  "expectedRule": {
+    "replaceRange": "[0x00000, selected-capacity)",
+    "restoreBaseRanges": ["[0x0A000, 0x37000)"],
+    "customerInfoSource": "replacement-dp",
+    "paddingByte": 0
+  },
+  "cases": [
+    {
+      "icId": "NT51950",
+      "capacityBytes": 262144,
+      "baseSalt": 17,
+      "replacementSalt": 129,
+      "expectedSha256": "5093a639fea086e859781b29ddad7a29613d02e88a3c6d50bc9192612daaa1cb"
+    },
+    {
+      "icId": "NT51950",
+      "capacityBytes": 524288,
+      "baseSalt": 18,
+      "replacementSalt": 130,
+      "expectedSha256": "e90e1a1cbd0af91383aaf4b9eb7397a6bc1be9fdc04438322a600f8fd655941a"
+    },
+    {
+      "icId": "NT51950",
+      "capacityBytes": 1048576,
+      "baseSalt": 19,
+      "replacementSalt": 131,
+      "expectedSha256": "378804ff71b9e59a99d7790caab1c889888f9d944ef9f54dfd6cf18ce10ff2e2"
+    },
+    {
+      "icId": "NT51951",
+      "capacityBytes": 262144,
+      "baseSalt": 33,
+      "replacementSalt": 145,
+      "expectedSha256": "c9ba97ef782cec37bc242d1686dce713995ac17d42b11fea10a30fdd9c32a232"
+    },
+    {
+      "icId": "NT51951",
+      "capacityBytes": 524288,
+      "baseSalt": 34,
+      "replacementSalt": 146,
+      "expectedSha256": "3db20990e379d0741fd719839375ba8be289e65ff145459c5b14e5673e7f7ee7"
+    },
+    {
+      "icId": "NT51951",
+      "capacityBytes": 1048576,
+      "baseSalt": 35,
+      "replacementSalt": 147,
+      "expectedSha256": "7ff5bc0e87f493cc8bb83e9e54e56e958bf0ccac4e90728da9e11ee3c6343f73"
+    },
+    {
+      "caseId": "customer-padding-from-range-start",
+      "icId": "NT51950",
+      "capacityBytes": 262144,
+      "replacementLengthBytes": 225280,
+      "baseSalt": 20,
+      "replacementSalt": 132,
+      "expectedSha256": "ceec21f2f1f061046f2866736a42e3e85c087ce75d55c8bd8e7282e0df5397e7"
+    },
+    {
+      "caseId": "customer-padding-after-first-byte",
+      "icId": "NT51951",
+      "capacityBytes": 524288,
+      "replacementLengthBytes": 225281,
+      "baseSalt": 36,
+      "replacementSalt": 148,
+      "expectedSha256": "1d2be3b544ba19215d6ae5e958ddb23123ff15c2bf9e8c6f446458f3ecbf35d8"
+    }
+  ]
+}

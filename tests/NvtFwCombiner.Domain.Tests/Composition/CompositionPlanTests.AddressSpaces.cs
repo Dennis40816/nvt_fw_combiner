@@ -4,9 +4,9 @@ namespace NvtFwCombiner.Domain.Tests.Composition;
 
 public sealed partial class CompositionPlanTests
 {
-    /// <summary>Verifies required seeded mutable spaces are exposed to application services.</summary>
+    /// <summary>Verifies every mutable space is engine-owned and requires no caller seed.</summary>
     [Fact]
-    public void RequiredSeededMutableAddressSpacesListsWorkBuffers()
+    public void EngineOwnedInitializersCoverEveryMutableAddressSpace()
     {
         AddressSpace[] addressSpaces =
         [
@@ -14,7 +14,11 @@ public sealed partial class CompositionPlanTests
             new("scratch", 4, AddressSpaceMutability.Mutable),
         ];
         var plan = new CompositionPlan(
-            ImageInitialization.Blank("output-image", 4, 0),
+            [
+                ImageInitialization.Blank("scratch", 4, 0xAA),
+                ImageInitialization.Blank("output-image", 4, 0),
+            ],
+            "output-image",
             addressSpaces,
             [
                 CompositionOperation.FillRange(
@@ -27,8 +31,11 @@ public sealed partial class CompositionPlanTests
                     "write scratch"),
             ]);
 
-        string addressSpaceId = Assert.Single(plan.RequiredSeededMutableAddressSpaceIds);
-        Assert.Equal("scratch", addressSpaceId);
+        Assert.Equal(["output-image", "scratch"], plan.Initializations.Select(item => item.TargetSpaceId));
+        Assert.Same(
+            Assert.Single(plan.Initializations, item => item.TargetSpaceId == "output-image"),
+            plan.OutputInitialization);
+        Assert.Equal("output-image", plan.OutputSpaceId);
     }
 
     /// <summary>Verifies replace initialization cannot fabricate missing base image bytes via padding.</summary>

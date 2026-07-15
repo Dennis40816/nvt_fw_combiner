@@ -26,7 +26,9 @@ A production profile must not contain an executable path. A profile may referenc
 }
 ```
 
-The exact tool path, executable file name, SHA-256, argument template, input/output mode, timeout, and platform are supplied by an external combiner tool manifest.
+The exact tool path, executable file name, SHA-256, timeout, and platform are supplied by an external combiner tool manifest. A manifest also declares the default argument template and input/output mode for invocations that do not select a registered invocation profile.
+
+When a V2 processor stage declares an `invocationProfileId`, the profile selects a closed, host-owned invocation contract by that id. That contract supplies the exact argument template and input/output mode for the stage, and must require the same `toolBindingId` as both the processor stage and resolved manifest. It can only use approved host staging tokens. It cannot contain an executable path, user path, shell fragment, or arbitrary runtime parameter. This allows one audited Combiner package to expose distinct, firmware-owner-approved commands without embedding command lines in firmware profile JSON.
 
 `toolVersion` is always a string. It must never be parsed as a floating-point number. `1.10` and `1.9` are exact version tokens, not numeric values.
 
@@ -44,7 +46,7 @@ For every external combiner transform:
 8. The combiner may mutate only files inside the staging directory.
 9. Infrastructure reads back `work.bin` or the declared output file.
 10. Infrastructure verifies file count, expected names, final imported length, after SHA-256, and byte diff.
-11. Application accepts the result only if every changed byte is inside the profile-declared `allowedWriteRanges` and all postconditions pass.
+11. Application accepts the result only if every changed byte is inside the profile-declared `allowedWriteRanges` and all compiled output assertions pass before the output is committed.
 12. The validated bytes are imported into the current work buffer/output image.
 13. Any timeout, crash, malformed output, path escape, unexpected file, unexpected final length change, SHA mismatch, or out-of-range mutation fails closed.
 
@@ -54,40 +56,35 @@ The temporary firmware file is an implementation detail of the host. Profiles sh
 
 ## Profile expression
 
-The current `composition-profile-v1` contract already has `run-external-processor`, `integrityDisposition`, and `processorInvocation.parameters`. Until the next schema revision adds a first-class `toolBinding` object, profiles may place the combiner binding under `processorInvocation.parameters`:
+`composition-profile-v1` keeps its existing adapter shape only for compatibility migration.
+`composition-profile-v2` replaces arbitrary `processorInvocation.parameters` with a closed
+`legacy-combiner-v1` stage. The stage references a trusted tool binding and registered invocation
+profile. The V2 profile itself never carries executable paths or command arguments; the registered
+invocation contract is host-owned and must bind to the resolved manifest's exact tool binding.
 
 ```json
 {
-  "operationId": "run-nt51950-crc-header",
-  "sequence": 900,
-  "kind": "run-external-processor",
+  "processorStageId": "recalculate-crc-header",
+  "kind": "legacy-combiner-v1",
+  "toolBindingId": "legacy-combiner-1-13",
+  "invocationProfileId": "approved-postbuild-profile",
   "targetSpaceId": "output-image",
-  "targetRange": { "start": 0, "length": 524288 },
+  "authority": "transform",
+  "purpose": "header-and-integrity",
   "integrityDisposition": "recalculate-and-write",
-  "processorInvocation": {
-    "processorId": "nfc.nt51950.header-crc-v1",
-    "contractVersion": "2.0.0",
-    "authority": "transform",
-    "purpose": "header-and-integrity",
-    "allowedReadRanges": [
-      { "start": 0, "length": 524288 }
-    ],
-    "allowedWriteRanges": [
-      { "start": 41264, "length": 4 }
-    ],
-    "parameters": {
-      "toolId": "legacy-combiner",
-      "toolVersion": "1.10",
-      "toolBindingId": "legacy-combiner-1.10",
-      "adapterId": "legacy-combiner-inplace-v1"
-    },
-    "failurePolicy": "fail-closed"
-  },
-  "reason": "Run approved legacy combiner.exe 1.10 to recalculate and write CRC/header bytes."
+  "allowedReadViewIds": ["firmware-image"],
+  "allowedWriteViewIds": ["approved-header-and-crc-fields"],
+  "stagedSourceBindings": [],
+  "evidenceRef": "owner-approved-postbuild-evidence",
+  "failurePolicy": "fail-closed"
 }
 ```
 
-The concrete offsets above are examples only. Supported profiles require owner-approved read ranges, write ranges, preconditions, postconditions, and golden evidence.
+The referenced views resolve through the canonical firmware map. A postcondition is compiled as an
+exact output assertion over a declared target-image range; it verifies returned staging bytes but
+does not grant an additional write range. Supported profiles require owner-approved read/write
+regions, invocation behavior, preconditions, postconditions, and golden evidence. The profile
+cannot inline command arguments or host paths.
 
 ## Tool manifest
 

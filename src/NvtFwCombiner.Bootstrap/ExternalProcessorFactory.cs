@@ -29,12 +29,23 @@ internal static class ExternalProcessorFactory
         var registry = new ExternalCombinerToolRegistry(manifests);
         string stagingRoot = Path.Combine(Path.GetTempPath(), "nvt-fw-combiner", "external-tools");
         _ = Directory.CreateDirectory(stagingRoot);
-        return new LegacyCombinerPostbuildProcessor(
+        var processRunner = new SystemExternalProcessRunner();
+        var legacyPostbuildProcessor = new LegacyCombinerPostbuildProcessor(
             registry,
             LegacyCombinerPostbuildCatalog.All,
             toolRoot,
             stagingRoot,
-            new SystemExternalProcessRunner());
+            processRunner);
+        var manifestProcessor = new ExternalCombinerProcessor(
+            registry,
+            toolRoot,
+            stagingRoot,
+            processRunner,
+            ExternalCombinerInvocationCatalog.All);
+        return new ExternalProcessorRouter(
+            legacyPostbuildProcessor,
+            manifestProcessor,
+            LegacyCombinerPostbuildCatalog.All.Select(static profile => profile.ProcessorId));
     }
 
     private static string? FindExternalToolsRoot()

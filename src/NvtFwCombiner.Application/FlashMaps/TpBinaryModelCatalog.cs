@@ -66,7 +66,7 @@ public static class TpBinaryModelCatalog
                         [new TpBinaryAddressAnchor(
                             "primary-fw-config-start",
                             "FW Config primary start",
-                            profile.FirmwareConfigStart)]),
+                            profile.FirmwareConfigPrimaryStart)]),
                     Category(TpBinaryCategoryIds.CtrlRam, "CtrlRAM", regions.Where(region => region.Kind == TpFlashMapRegionKind.CtrlRam)),
                     Category(TpBinaryCategoryIds.Display, "Display / DP", regions.Where(region => region.Kind == TpFlashMapRegionKind.Dp)),
                     Category(TpBinaryCategoryIds.ProjectIdentity, "Project ID", regions.Where(region => region.Kind == TpFlashMapRegionKind.ProjectId)),

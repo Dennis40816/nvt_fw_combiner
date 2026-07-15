@@ -59,7 +59,7 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Equal("Replace synthetic DP declared partition.", operation.GetProperty("Reason").GetString());
     }
 
-    /// <summary>Verifies NT51950 DP Replace uses the selected base length instead of the static maximum container.</summary>
+    /// <summary>Verifies NT51950 DP Replace restores TP only while customer information follows replacement DP.</summary>
     [Theory]
     [InlineData("NT51950")]
     [InlineData("51950")]
@@ -99,8 +99,8 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Equal(0x11, bytes[0x09FFF]);
         Assert.Equal(0x22, bytes[0x0A000]);
         Assert.Equal(0x22, bytes[0x36FFF]);
-        Assert.Equal(0x33, bytes[0x37000]);
-        Assert.Equal(0x33, bytes[0x37FFF]);
+        Assert.Equal(0x11, bytes[0x37000]);
+        Assert.Equal(0x11, bytes[0x37FFF]);
         Assert.Equal(0x11, bytes[0x38000]);
         Assert.Equal(0x00, bytes[0x40000]);
         Assert.Equal(0x00, bytes[0x7FFFF]);

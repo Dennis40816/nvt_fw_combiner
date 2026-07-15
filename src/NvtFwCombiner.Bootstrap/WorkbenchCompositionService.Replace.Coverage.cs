@@ -2,7 +2,6 @@ using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -16,6 +15,12 @@ public static partial class WorkbenchCompositionService
         long? dpBaseLength = null,
         string? ctrlRamBasePath = null)
     {
+        if (replaceMode == WorkbenchReplaceModes.Dp &&
+            TryCreateV2DpReplaceCoverageSegments(icId, dpBaseLength, out IReadOnlyList<WorkbenchMemoryCoverageSegment> v2Segments))
+        {
+            return v2Segments;
+        }
+
         IcNumberSelection selection = ToIcNumberSelection(number);
         LegacyCombinerPostbuildProfile? postbuildProfile = replaceMode == WorkbenchReplaceModes.CtrlRam &&
             TryResolvePostbuildProfileForDisplay(icId, ctrlRamBasePath, out LegacyCombinerPostbuildProfile? profile)
@@ -37,76 +42,6 @@ public static partial class WorkbenchCompositionService
                     280,
                     false),
             ];
-        }
-
-        if (replaceMode == WorkbenchReplaceModes.Dp && IsDpPerspectiveIc(icId))
-        {
-            if (dpBaseLength is not long selectedBaseLength)
-            {
-                return
-                [
-                    new WorkbenchMemoryCoverageSegment(
-                        "Base length pending",
-                        "DP base required",
-                        $"Select a base BIN to resolve the actual DP Replace length ({FormatSupportedDpPerspectiveBaseLengths()}).",
-                        "#CBD5E1",
-                        280,
-                        false),
-                ];
-            }
-
-            if (!IsSupportedDpPerspectiveBaseLength(selectedBaseLength))
-            {
-                return
-                [
-                    new WorkbenchMemoryCoverageSegment(
-                        $"Unsupported {FormatHexLength(selectedBaseLength)}",
-                        "Unsupported base",
-                        $"This base BIN length is not approved for {FormatDpPerspectiveIcIds()} DP Replace; use {FormatSupportedDpPerspectiveBaseLengths()}.",
-                        "#FCA5A5",
-                        280,
-                        false),
-                ];
-            }
-
-            long selectedCapacity = selectedBaseLength;
-            ByteRange tpRestoreRange = DpPerspectiveCatalog.TpOverlayRange;
-            ByteRange customerInfoPreserveRange = DpPerspectiveCatalog.CustomerInfoPreserveRange;
-            CoverageSegment[] dpSegments =
-            [
-                new CoverageSegment(
-                    new ByteRange(0, selectedCapacity),
-                    "Base flash",
-                    "Kept from the original base firmware unless a replacement covers it.",
-                    "#CBD5E1",
-                    false),
-            ];
-            var dpRange = new ByteRange(0, selectedCapacity);
-            dpSegments = ApplyCoverageWrite(
-                dpSegments,
-                new CoverageSegment(
-                    dpRange,
-                    "Changed DP BIN",
-                    $"Replacement DP fills the selected base DP length {FormatDisplayRange(dpRange)}; shorter inputs are padded by profile policy.",
-                    "#2563EB",
-                    true));
-            dpSegments = ApplyCoverageWrite(
-                dpSegments,
-                new CoverageSegment(
-                    tpRestoreRange,
-                    "Base flash",
-                    "Final bytes remain from the original base firmware.",
-                    "#CBD5E1",
-                    false));
-            dpSegments = ApplyCoverageWrite(
-                dpSegments,
-                new CoverageSegment(
-                    customerInfoPreserveRange,
-                    "Base flash",
-                    "Final bytes remain from the original base firmware.",
-                    "#CBD5E1",
-                    false));
-            return ToWorkbenchCoverageSegments(dpSegments, selectedCapacity);
         }
 
         long capacity = regions.Max(region => region.Range.EndExclusive);

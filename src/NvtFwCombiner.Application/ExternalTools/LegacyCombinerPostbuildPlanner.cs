@@ -25,7 +25,7 @@ public static partial class LegacyCombinerPostbuildPlanner
         return new LegacyCombinerPostbuildCommandPlan(profile, branch, commands);
     }
 
-    /// <summary>Returns staged file block arguments in deterministic order.</summary>
+    /// <summary>Returns staged BIN block arguments in deterministic order.</summary>
     public static IReadOnlyList<LegacyCombinerBlockArgument> GetStagedFileBlocks(
         LegacyCombinerPostbuildCommandPlan plan)
     {
@@ -34,7 +34,8 @@ public static partial class LegacyCombinerPostbuildPlanner
         return [
             .. plan.Commands
                 .SelectMany(command => command.Blocks)
-                .Where(block => block.SourceKind == LegacyCombinerBlockSourceKind.StagedFile)
+                .Where(block => block.SourceKind is LegacyCombinerBlockSourceKind.StagedFile or
+                    LegacyCombinerBlockSourceKind.StagedArtifact)
                 .OrderBy(block => block.SourceFileName, StringComparer.Ordinal)
                 .ThenBy(block => block.SourceOffset)
                 .ThenBy(block => block.FirmwareRange.Start),

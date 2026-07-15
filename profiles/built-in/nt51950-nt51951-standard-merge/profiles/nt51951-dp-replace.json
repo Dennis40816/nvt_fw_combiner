@@ -1,0 +1,158 @@
+{
+  "schemaVersion": "2.0",
+  "profileId": "nt51951-dp-replace-dp-perspective",
+  "profileVersion": "0.6.1",
+  "promotion": {
+    "stage": "supported",
+    "blockers": []
+  },
+  "compositionKind": "replace",
+  "icNumberInputMode": "single-selector",
+  "experience": {
+    "experienceId": "dp-replace",
+    "audience": "dp",
+    "layoutPolicy": "constrained",
+    "inputPolicy": "fixed",
+    "topologyAuthoring": "hidden",
+    "displayNameKey": "profile.nt51951.dp-replace.dp-perspective"
+  },
+  "mapBinding": {
+    "familyId": "nt51950-nt51951-dp-perspective",
+    "familyVersion": "1.0.0",
+    "familyContentHash": "0bd613266308f512e87a07f62727d8ba9bdb4f73dde0c7adc001ab17f119d60f",
+    "mapIds": [
+      "nt51951-standard-merge-256k",
+      "nt51951-standard-merge-512k",
+      "nt51951-standard-merge-1024k"
+    ],
+    "requiredRegionIds": [
+      "dp-container",
+      "tp-overlay"
+    ],
+    "requiredMetadataStructureIds": [],
+    "requiredCapabilityIds": []
+  },
+  "inputSlots": [
+    {
+      "slotId": "reference-base",
+      "role": "reference",
+      "artifactClass": "reference-image",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [".bin"],
+      "acceptance": {
+        "lengthRule": { "kind": "exact-resolved-map-capacity" },
+        "normalization": { "kind": "none" }
+      }
+    },
+    {
+      "slotId": "dp-replacement",
+      "role": "dp",
+      "artifactClass": "dp-firmware",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [".bin"],
+      "acceptance": {
+        "lengthRule": { "kind": "exact-resolved-map-capacity" },
+        "normalization": {
+          "kind": "pad-shorter",
+          "fillByte": 0,
+          "evidenceRef": "dp-replace-synthetic-oracle-v1"
+        }
+      }
+    }
+  ],
+  "spaces": [
+    {
+      "spaceId": "reference-base",
+      "kind": "input-artifact",
+      "slotId": "reference-base",
+      "instancePolicy": "singleton"
+    },
+    {
+      "spaceId": "dp-replacement",
+      "kind": "input-artifact",
+      "slotId": "dp-replacement",
+      "instancePolicy": "singleton"
+    },
+    {
+      "spaceId": "output-image",
+      "kind": "output-image",
+      "capacity": { "kind": "resolved-map" },
+      "initializer": {
+        "kind": "clone",
+        "sourceSlotId": "reference-base"
+      }
+    }
+  ],
+  "views": [
+    {
+      "viewId": "dp-container-source",
+      "spaceId": "dp-replacement",
+      "selector": { "kind": "map-region", "regionId": "dp-container" }
+    },
+    {
+      "viewId": "dp-container-output",
+      "spaceId": "output-image",
+      "selector": { "kind": "map-region", "regionId": "dp-container" }
+    },
+    {
+      "viewId": "tp-overlay-reference",
+      "spaceId": "reference-base",
+      "selector": { "kind": "map-region", "regionId": "tp-overlay" }
+    },
+    {
+      "viewId": "tp-overlay-output",
+      "spaceId": "output-image",
+      "selector": { "kind": "map-region", "regionId": "tp-overlay" }
+    }
+  ],
+  "metadataBindings": [],
+  "regionAccessRules": [
+    {
+      "regionId": "dp-container",
+      "access": "explicit-range",
+      "reason": "Replace the full selected DP Perspective container before restoring the original TP range."
+    },
+    {
+      "regionId": "tp-overlay",
+      "access": "whole",
+      "reason": "Restore the exact original TP overlay range from the cloned base image."
+    }
+  ],
+  "operations": [
+    {
+      "operationId": "replace-dp-container",
+      "sequence": 100,
+      "overlapPolicy": "reject",
+      "reason": "Replace the selected NT51951 full DP Perspective container using the selected base length.",
+      "kind": "replace-range",
+      "sourceViewId": "dp-container-source",
+      "targetViewId": "dp-container-output"
+    },
+    {
+      "operationId": "restore-base-tp",
+      "sequence": 200,
+      "overlapPolicy": "replace-existing",
+      "reason": "Restore original TP firmware from the cloned base image after DP replacement.",
+      "kind": "copy-range",
+      "sourceViewId": "tp-overlay-reference",
+      "targetViewId": "tp-overlay-output"
+    }
+  ],
+  "validations": [],
+  "processorStages": [],
+  "output": {
+    "fileNameTemplate": "nt51951-dp-replace.bin",
+    "allowOverride": true,
+    "invalidCharacterPolicy": "reject",
+    "requiredTokenIds": []
+  },
+  "evidenceRefs": [
+    "dp-perspective-51950-51951-owner-map",
+    "legacy-v2-dp-perspective-parity-matrix",
+    "dp-replace-customer-info-follows-dp-owner-decision",
+    "dp-replace-synthetic-oracle-v1",
+    "dp-replace-owner-approved-legacy-comparison-v1"
+  ]
+}

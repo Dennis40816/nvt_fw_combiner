@@ -13,16 +13,17 @@ public sealed partial class CompositionRunService
     {
         var input = new CompositionExecutionInput(boundInputs.InputBytes);
         return _externalProcessor is null
-            ? CompositionEngine.Execute(request.Plan, input)
+            ? CompositionEngine.Execute(request.CompiledComposition.Plan, input)
             : await CompositionEngine.ExecuteAsync(
-                request.Plan,
+                request.CompiledComposition.Plan,
                 input,
-                (operation, inputBytes, stagedSources, token) =>
+                (operation, inputBytes, stagedSources, stagedArtifacts, token) =>
                     TransformExternalProcessorAsync(
                         request,
                         operation,
                         inputBytes,
                         stagedSources,
+                        stagedArtifacts,
                         executedCommandsByOperationId,
                         token),
                 cancellationToken)
@@ -34,6 +35,7 @@ public sealed partial class CompositionRunService
         CompositionOperation operation,
         ReadOnlyMemory<byte> inputBytes,
         IReadOnlyList<ExternalProcessorStagedSource> stagedSources,
+        IReadOnlyList<ExternalProcessorStagedArtifact> stagedArtifacts,
         IDictionary<string, IReadOnlyList<ExternalProcessInvocation>> executedCommandsByOperationId,
         CancellationToken cancellationToken)
     {
@@ -48,7 +50,8 @@ public sealed partial class CompositionRunService
                 inputBytes,
                 invocation.AllowedWriteRanges,
                 request.IcNumberSelection,
-                stagedSources);
+                stagedSources,
+                stagedArtifacts);
         }
         catch (ArgumentException exception)
         {

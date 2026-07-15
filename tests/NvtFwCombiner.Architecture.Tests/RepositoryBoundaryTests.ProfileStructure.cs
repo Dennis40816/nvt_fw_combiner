@@ -1,27 +1,31 @@
+using System.Xml.Linq;
+
 namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
-    /// <summary>Verifies built-in Replace profiles keep synthetic contracts separate from DP Perspective production policy.</summary>
+    /// <summary>Verifies legacy built-in Replace profiles contain only synthetic test contracts.</summary>
     [Fact]
     public void BuiltInReplaceProfileConcernsStaySplit()
     {
         string root = ReadText("src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.cs");
         string synthetic = ReadText("src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.Synthetic.cs");
-        string dpPerspective = ReadText("src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.DpPerspective.cs");
+        string v2Registration = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.BuiltInV2.cs");
 
         Assert.Contains("public static partial class BuiltInReplaceProfiles", root, StringComparison.Ordinal);
         Assert.Contains("public static IReadOnlyList<CompositionProfileDefinition> All", root, StringComparison.Ordinal);
         Assert.DoesNotContain("SyntheticIc", root, StringComparison.Ordinal);
-        Assert.DoesNotContain("CreateDpPerspectiveDpReplaceProfileCore", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("DpPerspective", root, StringComparison.Ordinal);
         Assert.Contains("SyntheticDpReplace", synthetic, StringComparison.Ordinal);
         Assert.Contains("SyntheticCtrlRamReplace", synthetic, StringComparison.Ordinal);
         Assert.Contains("SyntheticGeneralReplace", synthetic, StringComparison.Ordinal);
         Assert.DoesNotContain("DpPerspectiveCatalog", synthetic, StringComparison.Ordinal);
-        Assert.Contains("DpPerspectiveDpReplaceProfiles", dpPerspective, StringComparison.Ordinal);
-        Assert.Contains("CreateDpPerspectiveDpReplaceProfileCore", dpPerspective, StringComparison.Ordinal);
-        Assert.DoesNotContain("Nt51950Family", dpPerspective, StringComparison.Ordinal);
-        Assert.DoesNotContain("SyntheticIc", dpPerspective, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "BuiltInReplaceProfiles.DpPerspective.cs")));
+        Assert.Contains("BuiltInV2DpReplaceRegistration", v2Registration, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies profile compiler shared region helpers stay separate from explicit-mapping policy.</summary>
@@ -55,76 +59,150 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ResolveTargetRegionByRange", profileValidation, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies built-in Standard Merge profiles keep exposure order separate from firmware facts.</summary>
+    /// <summary>Verifies production Standard Merge facts live only in V2 bundles and registrations.</summary>
     [Fact]
-    public void BuiltInStandardMergeProfileConcernsStaySplit()
+    public void StandardMergeRetiresLegacyCSharpProfiles()
     {
-        string root = ReadText("src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles.cs");
-        string genFlash = ReadText("src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles.GenFlash.cs");
-        string synthetic = ReadText("src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles.Synthetic.cs");
-        string dpPerspective = ReadText("src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles.DpPerspective.cs");
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "BuiltInStandardMergeProfiles.cs")));
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "BuiltInStandardMergeProfiles.GenFlash.cs")));
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "BuiltInStandardMergeProfiles.DpPerspective.cs")));
 
-        Assert.Contains("public static partial class BuiltInStandardMergeProfiles", root, StringComparison.Ordinal);
-        Assert.Contains("public static IReadOnlyList<CompositionProfileDefinition> ExecutableStandardMergeProfiles", root, StringComparison.Ordinal);
-        Assert.Contains("public static IReadOnlyList<CompositionProfileDefinition> All", root, StringComparison.Ordinal);
-        Assert.DoesNotContain("CreateGenFlashProfile", root, StringComparison.Ordinal);
-        Assert.DoesNotContain("StandardMergeRegion", root, StringComparison.Ordinal);
-        Assert.DoesNotContain("DpPerspectiveCatalog", root, StringComparison.Ordinal);
-        Assert.Contains("GenFlashStandardMergeProfiles", genFlash, StringComparison.Ordinal);
-        Assert.Contains("OwnerConfirmedAliasStandardMergeProfiles", genFlash, StringComparison.Ordinal);
-        Assert.Contains("FlashMapStandardMergeProfiles", genFlash, StringComparison.Ordinal);
-        Assert.Contains("CreateGenFlashProfile", genFlash, StringComparison.Ordinal);
-        Assert.DoesNotContain("DpPerspectiveCatalog", genFlash, StringComparison.Ordinal);
-        Assert.Contains("SyntheticStandardMerge", synthetic, StringComparison.Ordinal);
-        Assert.DoesNotContain("CreateGenFlashProfile", synthetic, StringComparison.Ordinal);
-        Assert.Contains("DpPerspectiveStandardMergeProfiles", dpPerspective, StringComparison.Ordinal);
-        Assert.Contains("CreateDpPerspectiveProfileForInputLength", dpPerspective, StringComparison.Ordinal);
-        Assert.DoesNotContain("StandardMergeRegion", dpPerspective, StringComparison.Ordinal);
+        string synthetic = ReadText("src/NvtFwCombiner.Profiles/SyntheticCompositionProfiles.cs");
+        string registration = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs");
+        Assert.Contains("CreateStandardMerge", synthetic, StringComparison.Ordinal);
+        Assert.Contains("BuiltInV2StandardMergeRegistration", registration, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies DP Perspective operation and region ids stay owned by the DP Perspective catalog.</summary>
+    /// <summary>Verifies built-in bundle materialization remains an explicit identity allowlist, never source discovery.</summary>
     [Fact]
-    public void DpPerspectiveOperationIdsStayCatalogOwned()
+    public void BuiltInBundleMaterializationUsesExplicitIdentityAllowlist()
     {
-        string catalog = ReadText("src/NvtFwCombiner.Profiles/DpPerspectiveCatalog.cs");
-        string standardMerge = ReadText("src/NvtFwCombiner.Profiles/BuiltInStandardMergeProfiles.DpPerspective.cs");
-        string replace = ReadText("src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.DpPerspective.cs");
+        string project = ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj");
+        var document = XDocument.Parse(project);
+        XElement[] bundles = [
+            .. document.Descendants("BuiltInProfileBundle")
+                .Where(static bundle => bundle.Attribute("Include") is not null),
+        ];
+        string[] expectedBundleIds =
+        [
+            "nt51920-standard-merge",
+            "nt51920-general-merge-logical-candidate",
+            "nt51917-nt51927-general-merge-logical-candidate",
+            "nt51919-nt51929-nt51932-general-merge-logical-candidate",
+            "nt51923-nt51926-general-merge-logical-candidate",
+            "nt51928-general-merge-logical-candidate",
+            "nt51930-general-merge-logical-candidate",
+            "nt51931-general-merge-logical-candidate",
+            "nt51950-nt51951-general-merge-logical-candidate",
+            "nt51926-ctrlram-replace-candidate",
+            "nt51923-standard-merge",
+            "nt51927-standard-merge",
+            "nt51928-standard-merge",
+            "nt51929-standard-merge",
+            "nt51919-nt51929-nt51932-ab-merge",
+            "nt51930-standard-merge",
+            "nt51931-standard-merge",
+            "nt51950-nt51951-standard-merge",
+        ];
+        string[] logicalOutputCandidateBundleIds =
+        [
+            "nt51920-general-merge-logical-candidate",
+            "nt51917-nt51927-general-merge-logical-candidate",
+            "nt51919-nt51929-nt51932-general-merge-logical-candidate",
+            "nt51923-nt51926-general-merge-logical-candidate",
+            "nt51928-general-merge-logical-candidate",
+            "nt51930-general-merge-logical-candidate",
+            "nt51931-general-merge-logical-candidate",
+            "nt51950-nt51951-general-merge-logical-candidate",
+        ];
+
+        Assert.Equal(
+            expectedBundleIds,
+            bundles.Select(bundle => bundle.Attribute("Include")?.Value));
+        foreach (XElement bundle in bundles)
+        {
+            XAttribute include = Assert.Single(bundle.Attributes());
+
+            Assert.Equal("Include", include.Name.LocalName);
+            if (logicalOutputCandidateBundleIds.Contains(
+                    bundle.Attribute("Include")?.Value,
+                    StringComparer.Ordinal))
+            {
+                Assert.Equal(
+                    "ab3bed384c5d78590ad6a87ee23c12f23a1ea4a1bdc6001273f254b6e5f3547f",
+                    Assert.Single(bundle.Elements("CompositionProfileSchemaHash")).Value);
+            }
+            else if (string.Equals(
+                         "nt51926-ctrlram-replace-candidate",
+                         bundle.Attribute("Include")?.Value,
+                         StringComparison.Ordinal))
+            {
+                Assert.Equal(
+                    "61abe3f9eaa9d1821067788d08014868a81f42a01bd1eb75406aabb9c56df8a3",
+                    Assert.Single(bundle.Elements("CompositionProfileSchemaHash")).Value);
+            }
+            else
+            {
+                Assert.Empty(bundle.Elements());
+            }
+            Assert.DoesNotContain("*", include.Value, StringComparison.Ordinal);
+            Assert.DoesNotContain("$(", include.Value, StringComparison.Ordinal);
+            Assert.DoesNotContain("@(", include.Value, StringComparison.Ordinal);
+            Assert.DoesNotContain("%(", include.Value, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("$(BuiltInProfileSourceRoot)\\%(BuiltInProfileBundle.Identity)\\**\\*", project, StringComparison.Ordinal);
+        Assert.Contains(
+            "Exclude=\"$(BuiltInProfileSourceRoot)\\%(BuiltInProfileBundle.Identity)\\schemas\\**\\*\"",
+            project,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "<DefaultCompositionProfileSchemaHash>1af166d37379329cc7a298ea24637a665b183f286e5a2323d4ed014e893dc9f0</DefaultCompositionProfileSchemaHash>",
+            project,
+            StringComparison.Ordinal);
+        Assert.Equal(
+            "$(DefaultCompositionProfileSchemaHash)",
+            Assert.Single(document.Descendants("ItemDefinitionGroup")
+                .Descendants("BuiltInProfileBundle"))
+                .Element("CompositionProfileSchemaHash")?.Value);
+        Assert.Contains(
+            "$(ProfileSchemaSourceRoot)\\%(BuiltInProfileBundle.CompositionProfileSchemaHash)\\composition-profile-v2.schema.json",
+            project,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("<SourceRoot>", project, StringComparison.Ordinal);
+        Assert.DoesNotContain("**\\profile-bundle.json", project, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies retired DP Perspective C# facts cannot become a second oracle beside trusted V2 plans.</summary>
+    [Fact]
+    public void DpPerspectiveFactsStayOwnedByTrustedV2Profiles()
+    {
+        string registration = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.BuiltInV2.cs");
+        string display = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.V2Display.cs");
         string planning = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Planning.cs");
 
-        Assert.Contains("public const string ContainerRegionId = \"dp-perspective-container\";", catalog, StringComparison.Ordinal);
-        Assert.Contains("public const string CopyDpContainerOperationId = \"copy-dp-container\";", catalog, StringComparison.Ordinal);
-        Assert.Contains("public const string OverlayTpOperationId = \"overlay-tp\";", catalog, StringComparison.Ordinal);
-        Assert.Contains("public const string ReplaceDpContainerOperationId = \"replace-dp-container\";", catalog, StringComparison.Ordinal);
-        Assert.Contains("public const string RestoreBaseTpOperationId = \"restore-base-tp\";", catalog, StringComparison.Ordinal);
-        Assert.Contains(
-            "public const string RestoreBaseCustomerInfoOperationId = \"restore-base-customer-info\";",
-            catalog,
-            StringComparison.Ordinal);
-        Assert.Contains("DpPerspectiveCatalog.ContainerRegionId", standardMerge, StringComparison.Ordinal);
-        Assert.Contains("DpPerspectiveCatalog.CopyDpContainerOperationId", standardMerge, StringComparison.Ordinal);
-        Assert.Contains("DpPerspectiveCatalog.OverlayTpOperationId", standardMerge, StringComparison.Ordinal);
-        Assert.Contains("DpPerspectiveCatalog.ContainerRegionId", replace, StringComparison.Ordinal);
-        Assert.Contains("DpPerspectiveCatalog.ReplaceDpContainerOperationId", replace, StringComparison.Ordinal);
-        Assert.Contains("DpPerspectiveCatalog.RestoreBaseTpOperationId", replace, StringComparison.Ordinal);
-        Assert.Contains("DpPerspectiveCatalog.RestoreBaseCustomerInfoOperationId", replace, StringComparison.Ordinal);
-        Assert.Contains("DpPerspectiveCatalog.ReplaceDpContainerOperationId", planning, StringComparison.Ordinal);
-        Assert.Contains("DpPerspectiveCatalog.RestoreBaseTpOperationId", planning, StringComparison.Ordinal);
-        Assert.Contains("DpPerspectiveCatalog.RestoreBaseCustomerInfoOperationId", planning, StringComparison.Ordinal);
-
-        foreach (string literal in new[]
-        {
-            "\"dp-perspective-container\"",
-            "\"copy-dp-container\"",
-            "\"overlay-tp\"",
-            "\"replace-dp-container\"",
-            "\"restore-base-tp\"",
-            "\"restore-base-customer-info\"",
-        })
-        {
-            Assert.DoesNotContain(literal, standardMerge, StringComparison.Ordinal);
-            Assert.DoesNotContain(literal, replace, StringComparison.Ordinal);
-            Assert.DoesNotContain(literal, planning, StringComparison.Ordinal);
-        }
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "DpPerspectiveCatalog.cs")));
+        Assert.DoesNotContain("BuiltInReplaceProfiles", registration, StringComparison.Ordinal);
+        Assert.Contains("TryResolveDpPerspectiveDpReplaceDisplay", registration, StringComparison.Ordinal);
+        Assert.Contains("composition.Plan.OrderedOperations", display, StringComparison.Ordinal);
+        Assert.Contains("IsBuiltInV2DpReplaceIc", planning, StringComparison.Ordinal);
+        Assert.DoesNotContain("DpPerspectiveCatalog", ReadBootstrapSources(), StringComparison.Ordinal);
     }
 
 }

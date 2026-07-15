@@ -5,12 +5,15 @@ namespace NvtFwCombiner.Application.FlashMaps;
 /// <summary>Extracts stable display facts from the FWConfig structure embedded in a flash image.</summary>
 public static class FirmwareConfigMetadataReader
 {
-    private const int NvtEndFlagLength = 4;
-    private const int NvtEndFlagTerminalOffset = NvtEndFlagLength - 1;
-    private const int NvtCopyStartDistanceBeforeTerminal = 0xFFF;
+    private const int NvtBackupMarkerLength = 4;
+    private const int NvtBackupTerminalOffset = NvtBackupMarkerLength - 1;
+    private const int NvtBackupStartDistanceBeforeTerminal = 0xFFF;
 
-    /// <summary>Attempts to read FWConfig facts from <paramref name="image"/> at <paramref name="firmwareConfigStart"/>.</summary>
-    public static bool TryRead(
+    /// <summary>
+    /// Reads FWConfig facts from an absolute address for evidence and inspection only.
+    /// Runtime consumers must use <see cref="TryReadBackup"/>.
+    /// </summary>
+    public static bool TryReadAtAbsoluteAddress(
         ReadOnlySpan<byte> image,
         long firmwareConfigStart,
         out FirmwareConfigMetadata metadata)
@@ -66,14 +69,14 @@ public static class FirmwareConfigMetadataReader
     }
 
     /// <summary>
-    /// Attempts to read the common FWConfig copy located at the NVT End Flag terminal byte minus
-    /// <c>0xFFF</c>. Multiple valid NVT markers are rejected to avoid selecting an ambiguous copy.
+    /// Reads the canonical FWConfig Backup located at the unique NVT End Flag terminal byte minus
+    /// <c>0xFFF</c>. Multiple complete exact NVT markers are rejected to avoid selecting an ambiguous source.
     /// </summary>
-    public static bool TryReadNvtCopy(ReadOnlySpan<byte> image, out FirmwareConfigMetadata metadata)
+    public static bool TryReadBackup(ReadOnlySpan<byte> image, out FirmwareConfigMetadata metadata)
     {
         metadata = default;
-        long? copyStart = null;
-        for (int offset = 0; offset <= image.Length - NvtEndFlagLength; offset++)
+        int? markerStart = null;
+        for (int offset = 0; offset <= image.Length - NvtBackupMarkerLength; offset++)
         {
             if (image[offset] != 0x00 ||
                 image[offset + 1] != (byte)'N' ||
@@ -83,22 +86,23 @@ public static class FirmwareConfigMetadataReader
                 continue;
             }
 
-            long candidateStart = offset + NvtEndFlagTerminalOffset - NvtCopyStartDistanceBeforeTerminal;
-            if (candidateStart < 0 ||
-                candidateStart + FirmwareConfigLayout.RequiredLength > image.Length)
-            {
-                continue;
-            }
-
-            if (copyStart is not null)
+            if (markerStart is not null)
             {
                 return false;
             }
 
-            copyStart = candidateStart;
+            markerStart = offset;
         }
 
-        return copyStart is { } start && TryRead(image, start, out metadata);
+        if (markerStart is not { } start)
+        {
+            return false;
+        }
+
+        long backupStart = start + NvtBackupTerminalOffset - NvtBackupStartDistanceBeforeTerminal;
+        return backupStart >= 0 &&
+            backupStart + FirmwareConfigLayout.RequiredLength <= image.Length &&
+            TryReadAtAbsoluteAddress(image, backupStart, out metadata);
     }
 
     private static FirmwareConfigGipTable ReadGipTable(ReadOnlySpan<byte> image, int start)

@@ -2,29 +2,31 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Profiles;
 
-/// <summary>Result of compiling a profile into a composition plan.</summary>
+/// <summary>Result of compiling a profile into one atomic composition artifact.</summary>
 public sealed class ProfileCompileResult
 {
-    private ProfileCompileResult(CompositionPlan? plan, IReadOnlyList<CompositionIssue> issues)
+    private ProfileCompileResult(
+        CompiledComposition? compiledComposition,
+        IReadOnlyList<CompositionIssue> issues)
     {
-        Plan = plan;
+        CompiledComposition = compiledComposition;
         Issues = issues;
     }
 
-    /// <summary>Compiled plan when compilation succeeded.</summary>
-    public CompositionPlan? Plan { get; }
+    /// <summary>Atomic compiled artifact when compilation succeeded.</summary>
+    public CompiledComposition? CompiledComposition { get; }
 
     /// <summary>Structured compilation issues.</summary>
     public IReadOnlyList<CompositionIssue> Issues { get; }
 
-    /// <summary>True when a validated plan is available.</summary>
-    public bool IsSuccess => Plan is not null;
+    /// <summary>True when one compiled artifact is available.</summary>
+    public bool IsSuccess => CompiledComposition is not null;
 
     /// <summary>Creates a successful compilation result.</summary>
-    public static ProfileCompileResult Succeeded(CompositionPlan plan)
+    public static ProfileCompileResult Succeeded(CompiledComposition compiledComposition)
     {
-        ArgumentNullException.ThrowIfNull(plan);
-        return new ProfileCompileResult(plan, []);
+        ArgumentNullException.ThrowIfNull(compiledComposition);
+        return new ProfileCompileResult(compiledComposition, []);
     }
 
     /// <summary>Creates a failed compilation result.</summary>

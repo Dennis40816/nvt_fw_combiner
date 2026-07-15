@@ -8,6 +8,11 @@ The end-user ZIP contains one top-level directory with a closed file allowlist:
 NvtFwCombiner-vX.Y.Z-win-x64/
 ├─ NvtFwCombiner.exe
 ├─ Nfc.CrcWorker.exe
+├─ profiles/
+│  └─ built-in/
+│     └─ <Bootstrap-declared bundle>/
+│        ├─ profile-bundle.json
+│        └─ <manifest-pinned runtime files>
 ├─ external-tools/
 │  ├─ README.md
 │  └─ legacy-combiner/
@@ -35,17 +40,20 @@ NvtFwCombiner-vX.Y.Z-win-x64/
 └─ SHA256SUMS.txt
 ```
 
-No source/profile tree, Python runtime installation, .NET runtime installation, test projects, private golden inputs, unmanifested firmware BINs, generated firmware outputs, PDBs, Codex configuration, or signing material is shipped. The only shipped external executable is an owner-approved Combiner package under `external-tools/`. Owner-approved Standard Merge golden fixture BINs may ship under `reference/testdata/golden/standard-merge-gen-flash/` only when they are declared by that fixture manifest for future packaged self-tests. Every shipped file under `external-tools/` and `reference/` is listed in `RELEASE-MANIFEST.json` and `SHA256SUMS.txt`.
+No production source tree, editable source profile tree, Python runtime installation, .NET runtime installation, test projects, private golden inputs, unmanifested firmware BINs, generated firmware outputs, PDBs, Codex configuration, or signing material is shipped. `profiles/built-in/` contains only the bundles explicitly materialized by the Bootstrap project; each bundle is limited to `profile-bundle.json` and that manifest's pinned entries. Shipping a candidate bundle does not change its declared stage, blockers, runtime eligibility, or owner-review requirement. The packager rejects extra published bundle directories or files. The only shipped external executable is an owner-approved Combiner package under `external-tools/`; packaging copies only its fixed allowlist, so untracked or extra files in that source directory cannot enter a package. Owner-approved Standard Merge golden fixture BINs may ship under `reference/testdata/golden/standard-merge-gen-flash/` only when they are declared by that fixture manifest for future packaged self-tests. Every shipped file under `profiles/built-in/`, `external-tools/`, and `reference/` is listed in `RELEASE-MANIFEST.json` and `SHA256SUMS.txt`.
 
 ## Implemented commands
 
 ```powershell
 ./scripts/package.ps1 -Version 1.0.0 -Commit <40-character-git-sha>
+./scripts/package.ps1 -Version 0.0.0 -Commit 0000000000000000000000000000000000000000 -ExternalToolPolicyDryRun
 ```
 
-The stable release path accepts stable SemVer only, publishes a self-contained single-file `win-x64` Avalonia app with trimming disabled, builds the worker with PyInstaller one-file mode, copies the approved external tool subtree, copies the approved reference payload and manifest-declared golden fixture BINs, assembles a new empty directory, rejects paths outside the allowlist, writes the manifest and hashes, and creates the ZIP under `artifacts/release/`.
+The stable release path accepts stable SemVer only, publishes a self-contained single-file `win-x64` Avalonia app with trimming disabled, copies the Bootstrap-declared materialized built-in profile bundles through their manifests, builds the worker with PyInstaller one-file mode, copies only the approved external-tool files and paths, copies the approved reference payload and manifest-declared golden fixture BINs, assembles a new empty directory, rejects paths outside the allowlist, writes the manifest and hashes, and creates the ZIP under `artifacts/release/`.
 
-`main-package.yml` runs the same packager on every `main` push with `-AllowPrerelease`, using the repository `VERSION` value. That workflow first uploads the ZIP, SBOM, and provenance files as a short-retention CI artifact. If GitHub Actions artifact storage is unavailable, it publishes the same files to a generated `main-package-<sha>` prerelease so the self-contained package remains downloadable. This fallback is not a stable release and does not replace the manually gated `release.yml` flow. A stable `release.yml` run rejects a tag that is not reachable from `main`.
+`-ExternalToolPolicyDryRun` retains its compatibility name but now exercises both closed package policies without publishing application or worker binaries. It creates a temporary extra file inside the source `external-tools/` directory, runs the same approved-file copy and external-tool manifest-entry code used by normal packaging, and proves the probe is absent from staging and the persisted manifest. It also builds a temporary materialized-profile fixture from the Bootstrap bundle declarations, runs the production profile allowlist/copy/manifest-entry functions, proves manifest-pinned materialized files are included with the `builtInProfile` role, and proves an unexpected published profile file is rejected. The deterministic `tests/scripts/test_release_package_policy.py` regression invokes this mode through the canonical `python scripts/verify.py --all` flow and proves that release smoke rejects both an extra external-tool path and a package with no built-in materialized profiles.
+
+`main-package.yml` runs the same packager on every `main` push with `-AllowPrerelease`, using the repository `VERSION` value. Both package workflows run `smoke-release.ps1 -SkipUiLaunch` before upload or publication, which checks that materialized built-in profile paths use the `builtInProfile` role and include bundle manifests, checks the exact approved external-tool paths, verifies manifest/hashes and sidecars, and runs the worker self-test. They do not satisfy the visible startup or clean-machine gate. The main workflow first uploads the ZIP, SBOM, and provenance files as a short-retention CI artifact. If GitHub Actions artifact storage is unavailable, it publishes the same files to a generated `main-package-<sha>` prerelease so the self-contained package remains downloadable. This fallback is not a stable release and does not replace the manually gated `release.yml` flow. A stable `release.yml` run rejects a tag that is not reachable from `main`.
 
 ## Local package smoke
 
@@ -55,7 +63,7 @@ After `scripts/package.ps1` produces a ZIP, run the deterministic local smoke be
 ./scripts/smoke-release.ps1 -PackagePath ./artifacts/release/NvtFwCombiner-vX.Y.Z-win-x64.zip
 ```
 
-The smoke extracts into a fresh temporary directory, checks the closed package surface and manifest hashes, runs the bundled CRC worker `123456789` vector, then briefly starts the self-contained desktop executable. Use `-SkipUiLaunch` only when a visible desktop startup check cannot run; that omission must be recorded in release evidence.
+The smoke extracts into a fresh temporary directory, checks the closed package surface and manifest hashes, verifies the adjacent SBOM and provenance sidecars against the package version, source tag/commit, runtime, and declared file hashes, runs the bundled CRC worker `123456789` vector, then briefly starts the self-contained desktop executable. Keep the ZIP, SBOM, and provenance files together in the artifact directory. Use `-SkipUiLaunch` only when a visible desktop startup check cannot run; that omission must be recorded in release evidence.
 
 Both `scripts/verify.py` and `scripts/package.ps1` finish by stopping the repository SDK build server and any idle, repo-bound Avalonia BuildServices collector. The cleanup is scoped to that collector command line and never targets the packaged application, CRC worker, or Combiner process.
 
@@ -70,11 +78,12 @@ Release evidence must include:
 - clean Windows x64 smoke on a machine without separate .NET or Python installs;
 - startup, catalog/settings load, worker `123456789` self-check, representative Preview/Build, report modal/history review, and external Combiner 1.13.0 readiness check;
 - `RELEASE-MANIFEST.json`, `SHA256SUMS.txt`, SBOM/provenance, third-party notices, and signing/legal approval.
+- human release/security approval of the exact package, external-tool allowlist, signing identity, and redistribution decision.
 
 ## Release gates still requiring organizational setup
 
 - approved code-signing provider and certificate identity;
-- SBOM/provenance generation and retention policy;
+- SBOM/provenance retention policy; generation is implemented by the packager;
 - private golden regression runner and firmware-owner approval;
 - clean Windows smoke without development runtimes;
 - final third-party license/legal review.

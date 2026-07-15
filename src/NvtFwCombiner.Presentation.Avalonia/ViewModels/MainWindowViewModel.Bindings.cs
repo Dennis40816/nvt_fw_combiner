@@ -363,6 +363,15 @@ public sealed partial class MainWindowViewModel
     /// <summary>Command that closes the compact Replace input selection overview.</summary>
     public IRelayCommand CloseReplaceSelectionCommand { get; }
 
+    /// <summary>Command that keeps the source TP firmware version for the current CtrlRAM build.</summary>
+    public IRelayCommand SelectCtrlRamFirmwareVersionPreserveCommand { get; }
+
+    /// <summary>Command that enables TP firmware version editing for the current CtrlRAM build.</summary>
+    public IRelayCommand SelectCtrlRamFirmwareVersionEditCommand { get; }
+
+    /// <summary>Command that closes the CtrlRAM firmware-version confirmation modal.</summary>
+    public IRelayCommand CloseCtrlRamFirmwareVersionCommand { get; }
+
     /// <summary>Gets selected replace mode.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SelectedReplaceModeDescription))]

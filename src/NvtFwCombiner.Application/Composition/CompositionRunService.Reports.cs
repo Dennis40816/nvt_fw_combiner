@@ -15,10 +15,12 @@ public sealed partial class CompositionRunService
         DateTimeOffset startedAtUtc,
         DateTimeOffset completedAtUtc,
         bool committed,
+        IReadOnlyList<CompositionIssue>? additionalIssues = null,
+        IReadOnlyList<ValidationRunSummary>? validations = null,
         Dictionary<string, IReadOnlyList<ExternalProcessInvocation>>? executedCommandsByOperationId = null)
     {
         OperationRunSummary[] operations = [
-            .. request.Plan.OrderedOperations.Select(operation =>
+            .. request.CompiledComposition.Plan.OrderedOperations.Select(operation =>
             {
                 IReadOnlyList<ExternalProcessInvocation> executedCommands = executedCommandsByOperationId is not null &&
                     executedCommandsByOperationId.TryGetValue(
@@ -50,17 +52,18 @@ public sealed partial class CompositionRunService
         ];
         CompositionIssue[] issues = [
             .. execution.Issues,
+            .. additionalIssues ?? [],
             .. CreateOutputDifferenceIssues(outputDifferences),
         ];
 
         return new CompositionRunReport(
             request.RunId,
-            request.Profile.ProfileId,
-            request.Profile.ProfileVersion,
-            request.Profile.IcId,
-            request.Profile.ModeId,
-            request.Profile.ExperienceId,
-            request.Profile.CompositionKind,
+            request.CompiledComposition.ProfileId,
+            request.CompiledComposition.ProfileVersion,
+            request.CompiledComposition.IcId,
+            request.CompiledComposition.ModeId,
+            request.CompiledComposition.ExperienceId,
+            request.CompiledComposition.CompositionKind,
             startedAtUtc,
             completedAtUtc,
             inputSummaries,
@@ -68,7 +71,9 @@ public sealed partial class CompositionRunService
             mutations,
             issues,
             output,
-            outputDifferences);
+            outputDifferences,
+            request.CompiledComposition.CompilationFingerprint,
+            validations);
     }
 
     private static MutationRunSummary ToMutationSummary(MutationRecord mutation)

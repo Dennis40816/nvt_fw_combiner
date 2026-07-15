@@ -20,12 +20,12 @@ public static partial class TpFlashMapCatalog
         .. ProfilesByIc.Keys.Order(StringComparer.Ordinal),
     ];
 
-    /// <summary>Returns the primary FWConfig flash start for the selected IC, when documented.</summary>
-    public static bool TryGetFirmwareConfigStart(string icId, out long start)
+    /// <summary>Returns the documented primary FWConfig address for TP Overview and evidence cross-checks only.</summary>
+    public static bool TryGetFirmwareConfigPrimaryStart(string icId, out long start)
     {
         if (ProfilesByIc.TryGetValue(icId, out TpFlashMapProfile? profile))
         {
-            start = profile.FirmwareConfigStart;
+            start = profile.FirmwareConfigPrimaryStart;
             return true;
         }
 

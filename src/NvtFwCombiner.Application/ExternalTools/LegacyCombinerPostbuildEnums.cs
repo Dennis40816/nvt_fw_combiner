@@ -60,4 +60,7 @@ public enum LegacyCombinerBlockSourceKind
 
     /// <summary>The block source is a generated file under the staged BIN directory.</summary>
     StagedFile,
+
+    /// <summary>The block source is an engine-created immutable artifact materialized under the staged BIN directory.</summary>
+    StagedArtifact,
 }

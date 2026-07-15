@@ -4,7 +4,7 @@
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
 
 <DataTemplate x:Key="ReportHistoryEntryTemplate" DataType="vm:ReportHistoryEntryViewModel">
-  <Grid Margin="0,0,0,6" ColumnDefinitions="*,34" ColumnSpacing="8">
+  <Grid Margin="0,0,0,6" ColumnDefinitions="*,34" ColumnSpacing="{DynamicResource NfcSpace8}">
     <Button
         HorizontalAlignment="Stretch"
         Padding="0"
@@ -12,12 +12,12 @@
         BorderBrush="Transparent"
         Command="{ReflectionBinding $parent[Window].DataContext.OpenReportHistoryEntryCommand}"
         CommandParameter="{Binding}">
-      <Border Padding="10" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6">
+      <Border Classes="compactSurface" Padding="10">
         <StackPanel Spacing="3">
-          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-            <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Text="{Binding SequenceLabel}" />
-            <TextBlock Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding Status}" TextWrapping="Wrap" />
-            <TextBlock Grid.Column="2" FontSize="11" FontWeight="SemiBold" Foreground="#2563EB" Text="{Binding IssueSummary}" TextWrapping="Wrap" />
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
+            <TextBlock FontSize="{DynamicResource NfcFontSize11}" FontWeight="SemiBold" Foreground="{DynamicResource NfcTextMutedBrush}" Text="{Binding SequenceLabel}" />
+            <TextBlock Grid.Column="1" FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Foreground="{DynamicResource NfcTextStrongBrush}" Text="{Binding Status}" TextWrapping="Wrap" />
+            <TextBlock Grid.Column="2" FontSize="{DynamicResource NfcFontSize11}" FontWeight="SemiBold" Foreground="{DynamicResource NfcAccentBrush}" Text="{Binding IssueSummary}" TextWrapping="Wrap" />
           </Grid>
           <TextBlock Classes="bodyStrongText" Text="{Binding Title}" TextWrapping="Wrap" />
           <TextBlock Classes="captionText" Text="{Binding Context}" TextWrapping="Wrap" />
@@ -32,7 +32,7 @@
         Command="{ReflectionBinding $parent[Window].DataContext.RemoveReportHistoryEntryCommand}"
         CommandParameter="{Binding}"
         ToolTip.Tip="{ReflectionBinding $parent[Window].DataContext.Text.DeleteReportTooltip}">
-      <TextBlock FontSize="13" Text="×" />
+      <TextBlock FontSize="{DynamicResource NfcFontSize13}" Text="×" />
     </Button>
   </Grid>
 </DataTemplate>

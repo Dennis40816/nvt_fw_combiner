@@ -1,0 +1,196 @@
+{
+  "schemaVersion": "1.1",
+  "familyId": "nt51919-nt51929-nt51932-ab-merge",
+  "familyVersion": "0.1.0",
+  "members": [
+    {
+      "memberId": "NT51919",
+      "displayName": "NT51919"
+    },
+    {
+      "memberId": "NT51929",
+      "displayName": "NT51929"
+    },
+    {
+      "memberId": "NT51932",
+      "displayName": "NT51932"
+    }
+  ],
+  "capabilities": [],
+  "regionSets": [
+    {
+      "regionSetId": "nt51929-nt51932-ab-merge-flash",
+      "addressSpaceId": "flash",
+      "regions": [
+        {
+          "regionId": "ab-image",
+          "owner": "system",
+          "kind": "image",
+          "range": {
+            "start": 0,
+            "length": 524288
+          },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "dp-a-code",
+          "parentRegionId": "ab-image",
+          "owner": "dp",
+          "kind": "code",
+          "range": {
+            "start": 0,
+            "length": 28672
+          },
+          "writeConstraint": "whole-region",
+          "alignment": 1
+        },
+        {
+          "regionId": "tpa-code",
+          "parentRegionId": "ab-image",
+          "owner": "tp",
+          "kind": "code",
+          "range": {
+            "start": 28672,
+            "length": 233472
+          },
+          "writeConstraint": "whole-region",
+          "alignment": 1
+        },
+        {
+          "regionId": "dp-b-code",
+          "parentRegionId": "ab-image",
+          "owner": "dp",
+          "kind": "code",
+          "range": {
+            "start": 262144,
+            "length": 28672
+          },
+          "writeConstraint": "whole-region",
+          "alignment": 1
+        },
+        {
+          "regionId": "tpb-code",
+          "parentRegionId": "ab-image",
+          "owner": "tp",
+          "kind": "code",
+          "range": {
+            "start": 290816,
+            "length": 233472
+          },
+          "writeConstraint": "whole-region",
+          "alignment": 1
+        }
+      ],
+      "evidenceRefs": [
+        "uploaded-ab-combiner-51929",
+        "uploaded-ab-combiner-51932"
+      ]
+    }
+  ],
+  "metadataSets": [],
+  "imageMaps": [
+    {
+      "mapId": "nt51919-ab-merge-512k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [
+          "NT51919"
+        ],
+        "modeIds": [
+          "ab-merge"
+        ],
+        "topologyRequirement": {
+          "kind": "none"
+        },
+        "capacityBytes": 524288
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51919-ab-merge-flash"
+      ],
+      "metadataSetIds": [],
+      "evidenceRefs": [
+        "ab-merge-alias-51919-to-51929"
+      ]
+    },
+    {
+      "mapId": "nt51929-ab-merge-512k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [
+          "NT51929"
+        ],
+        "modeIds": [
+          "ab-merge"
+        ],
+        "topologyRequirement": {
+          "kind": "none"
+        },
+        "capacityBytes": 524288
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51929-nt51932-ab-merge-flash"
+      ],
+      "metadataSetIds": [],
+      "evidenceRefs": [
+        "uploaded-ab-combiner-51929"
+      ]
+    },
+    {
+      "mapId": "nt51932-ab-merge-512k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [
+          "NT51932"
+        ],
+        "modeIds": [
+          "ab-merge"
+        ],
+        "topologyRequirement": {
+          "kind": "none"
+        },
+        "capacityBytes": 524288
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51929-nt51932-ab-merge-flash"
+      ],
+      "metadataSetIds": [],
+      "evidenceRefs": [
+        "uploaded-ab-combiner-51932"
+      ]
+    }
+  ],
+  "factAliases": [
+    {
+      "aliasId": "nt51919-ab-merge-region-set-alias",
+      "factKind": "region-set",
+      "targetMemberId": "NT51919",
+      "targetMapId": "nt51919-ab-merge-512k",
+      "targetRegionSetId": "nt51919-ab-merge-flash",
+      "sourceMemberId": "NT51929",
+      "sourceMapId": "nt51929-ab-merge-512k",
+      "sourceRegionSetId": "nt51929-nt51932-ab-merge-flash",
+      "applicability": {
+        "modeIds": [
+          "ab-merge"
+        ],
+        "topologyRequirement": {
+          "kind": "none"
+        },
+        "capacityBytes": 524288
+      },
+      "reason": "Owner-confirmed NT51919 AB Merge alias of NT51929 retains the target map identity and source physical-region evidence.",
+      "evidenceRefs": [
+        "ab-merge-alias-51919-to-51929"
+      ]
+    }
+  ],
+  "evidenceRefs": [
+    "uploaded-ab-combiner-51929",
+    "uploaded-ab-combiner-51932",
+    "ab-merge-alias-51919-to-51929"
+  ]
+}

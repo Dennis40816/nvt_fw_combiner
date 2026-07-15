@@ -5,8 +5,8 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 public sealed partial class MainWindowViewModel
 {
     /// <summary>
-    /// Applies a number token only after the Bootstrap reader validates one NVT copy against the
-    /// selected IC's primary FWConfig. This is shared by Merge and Replace slot loading.
+    /// Applies a number token only after the Bootstrap reader finds one NVT Backup FWConfig.
+    /// This is shared by Merge and Replace slot loading.
     /// </summary>
     private void TryApplyVerifiedFirmwareContext(FirmwareSlotViewModel slot)
     {

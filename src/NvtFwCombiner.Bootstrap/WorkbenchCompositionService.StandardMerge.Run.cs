@@ -1,6 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -17,29 +17,31 @@ public static partial class WorkbenchCompositionService
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentNullException.ThrowIfNull(slotPaths);
 
-        if (!StandardMergeProfilesByIc.TryGetValue(icId, out CompositionProfileDefinition? profile))
+        if (FindStandardMergeProfileSummaryByIc(icId) is null)
         {
             throw new InvalidOperationException($"Standard Merge is not available for '{icId}'.");
         }
 
-        profile = ResolveStandardMergeProfileForInputs(profile, slotPaths);
-        ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
-        if (!compile.IsSuccess)
+        if (!TryGetStandardMergeDpInputLength(icId, slotPaths, out long? dpInputLength, out CompositionIssue? inputIssue))
         {
-            throw new InvalidOperationException(FormatIssues(compile.Issues));
+            throw new InvalidOperationException(FormatIssues([inputIssue]));
         }
 
-        CompositionPlan plan = compile.Plan!;
+        if (!TryCompileStandardMerge(icId, dpInputLength, out CompiledComposition? compiledComposition, out IReadOnlyList<CompositionIssue> issues))
+        {
+            throw new InvalidOperationException(FormatIssues(issues));
+        }
+
+        CompositionPlan plan = compiledComposition.Plan;
         InputArtifactBinding[] bindings = [
             .. plan.RequiredInputAddressSpaceIds
                 .Order(StringComparer.Ordinal)
-                .Select(addressSpaceId => CreateBinding(addressSpaceId, slotPaths)),
+                .Select(addressSpaceId => CreateBinding(compiledComposition, addressSpaceId, slotPaths)),
         ];
 
         return await RunCompiledCompositionAsync(
             StandardMergeRunIdPrefix,
-            profile,
-            plan,
+            compiledComposition,
             bindings,
             bindings[0].ArtifactId,
             build,
@@ -50,17 +52,39 @@ public static partial class WorkbenchCompositionService
             cancellationToken).ConfigureAwait(false);
     }
 
-    private static CompositionProfileDefinition ResolveStandardMergeProfileForInputs(
-        CompositionProfileDefinition profile,
-        IReadOnlyDictionary<string, string> slotPaths)
+    private static bool TryGetStandardMergeDpInputLength(
+        string icId,
+        IReadOnlyDictionary<string, string> slotPaths,
+        out long? dpInputLength,
+        [NotNullWhen(false)] out CompositionIssue? issue)
     {
-        return !BuiltInStandardMergeProfiles.IsDpPerspectiveStandardMergeProfile(profile) ||
-            !slotPaths.TryGetValue(CompositionAddressSpaceIds.DpInput, out string? dpPath) ||
-            string.IsNullOrWhiteSpace(dpPath) ||
-            !File.Exists(dpPath)
-                ? profile
-                : BuiltInStandardMergeProfiles.CreateDpPerspectiveProfileForInputLength(
-                    profile.IcId,
-                    new FileInfo(dpPath).Length);
+        _ = slotPaths.TryGetValue(CompositionAddressSpaceIds.DpInput, out string? dpPath);
+        return TryGetStandardMergeDpInputLength(icId, dpPath, out dpInputLength, out issue);
+    }
+
+    internal static bool TryGetStandardMergeDpInputLength(
+        string icId,
+        string? dpPath,
+        out long? dpInputLength,
+        [NotNullWhen(false)] out CompositionIssue? issue)
+    {
+        dpInputLength = null;
+        issue = null;
+        if (!IsBuiltInV2StandardMergeMapCapacityPending(icId))
+        {
+            return true;
+        }
+
+        if (string.IsNullOrWhiteSpace(dpPath) || !File.Exists(dpPath))
+        {
+            issue = new CompositionIssue(
+                WorkbenchIssueCodes.InputArtifactReadFailed,
+                $"Selected DP BIN path does not exist for {icId} Standard Merge.",
+                CompositionAddressSpaceIds.DpInput);
+            return false;
+        }
+
+        dpInputLength = new FileInfo(dpPath).Length;
+        return true;
     }
 }

@@ -4,13 +4,13 @@
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
 
 <DataTemplate x:Key="ReportModalHeaderTemplate" DataType="vm:MainWindowViewModel">
-  <Border Padding="22,18" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
-    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+  <Border Padding="22,18" BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="0,0,0,1">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
       <StackPanel Spacing="5">
         <TextBlock Classes="modalTitle" Text="{Binding LoadedReport.Title}" TextWrapping="Wrap" />
         <TextBlock Classes="mutedText" Text="{Binding LoadedReport.Subtitle}" TextWrapping="Wrap" />
       </StackPanel>
-      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
         <Button
             Classes="iconButton"
             Command="{Binding CloseReportCommand}"
@@ -28,13 +28,13 @@
       Margin="16,14,16,0"
       Padding="16">
     <Grid RowDefinitions="Auto,Auto,*" RowSpacing="14">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
         <StackPanel Spacing="3">
           <TextBlock Classes="sectionTitle" Text="{Binding Text.ReportHistoryTitle}" />
           <TextBlock Classes="mutedText" Text="{Binding ReportHistorySummary}" />
           <TextBlock Classes="captionText" Text="{Binding ReportHistoryStorageSummary}" />
         </StackPanel>
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
           <Button Classes="secondary" Command="{Binding CloseReportHistoryCommand}" Content="{Binding Text.BackToReportLabel}" />
           <Button
               Classes="danger"
@@ -46,7 +46,7 @@
 
       <Border Grid.Row="1" Classes="warningSurface" Padding="10" IsVisible="{Binding HasReportHistoryStorageWarning}">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-          <TextBlock FontSize="12" Foreground="#9A3412" Text="{Binding ReportHistoryStorageWarning}" TextWrapping="Wrap" />
+          <TextBlock FontSize="{DynamicResource NfcFontSize12}" Foreground="{DynamicResource NfcWarningTextBrush}" Text="{Binding ReportHistoryStorageWarning}" TextWrapping="Wrap" />
           <Button Grid.Column="1" Classes="danger" Command="{Binding ClearReportHistoryCommand}" Content="{Binding Text.ClearHistoryLabel}" />
         </Grid>
       </Border>
@@ -72,17 +72,17 @@
   <Border Classes="surface" Margin="16,14,16,0" Padding="0">
     <Expander IsExpanded="False">
       <Expander.Header>
-        <Grid Margin="16,12" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
+        <Grid Margin="16,12" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
           <Grid Width="32" Height="32" AutomationProperties.Name="{Binding LoadedReport.OutcomeAccessibilityLabel}">
-            <Border Background="#16A34A" CornerRadius="999" IsVisible="{Binding LoadedReport.IsClean}" />
-            <Border Background="#D97706" CornerRadius="999" IsVisible="{Binding LoadedReport.HasWarningsWithoutBlockingIssues}" />
-            <Border Background="#EA580C" CornerRadius="999" IsVisible="{Binding LoadedReport.HasPrimaryIssue}" />
+            <Border Background="{DynamicResource NfcSuccessAccentBrush}" CornerRadius="{DynamicResource NfcPillCornerRadius}" IsVisible="{Binding LoadedReport.IsClean}" />
+            <Border Background="{DynamicResource NfcWarningAccentStrongBrush}" CornerRadius="{DynamicResource NfcPillCornerRadius}" IsVisible="{Binding LoadedReport.HasWarningsWithoutBlockingIssues}" />
+            <Border Background="{DynamicResource NfcWarningAccentCriticalBrush}" CornerRadius="{DynamicResource NfcPillCornerRadius}" IsVisible="{Binding LoadedReport.HasPrimaryIssue}" />
             <TextBlock
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
-                FontSize="14"
+                FontSize="{DynamicResource NfcFontSize14}"
                 FontWeight="SemiBold"
-                Foreground="#FFFFFF"
+                Foreground="{DynamicResource NfcSurfaceBrush}"
                 Text="{Binding LoadedReport.OutcomeIcon}" />
           </Grid>
           <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
@@ -103,7 +103,7 @@
                 Height="16"
                 Data="M10,2 A8,8 0 1 1 2,10 M2,10 L2,4 M2,10 L8,10 M10,6 L10,10 L13,12"
                 Stretch="Uniform"
-                Stroke="#475569"
+                Stroke="{DynamicResource NfcTextSecondaryBrush}"
                 StrokeThickness="1.7" />
           </Button>
         </Grid>
@@ -112,13 +112,13 @@
       <Grid Margin="16,0,16,16" RowDefinitions="Auto,Auto" RowSpacing="14">
         <StackPanel Spacing="3">
           <TextBlock Classes="bodyText" Text="{Binding LoadedReport.OutcomeDetail}" TextWrapping="Wrap" />
-          <TextBlock Classes="compactStrongText" Text="{Binding LoadedReport.NextStepTitle}" TextWrapping="Wrap" />
+          <TextBlock Classes="compactTitle" Text="{Binding LoadedReport.NextStepTitle}" TextWrapping="Wrap" />
           <TextBlock Classes="captionText" Text="{Binding LoadedReport.NextStepDetail}" TextWrapping="Wrap" />
         </StackPanel>
 
         <Grid Grid.Row="1" ColumnDefinitions="*,*">
-        <Border Padding="16" BorderBrush="#E2E8F0" BorderThickness="0,0,1,0">
-          <StackPanel Spacing="8">
+        <Border Padding="16" BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="0,0,1,0">
+          <StackPanel Spacing="{DynamicResource NfcSpace8}">
             <TextBlock Classes="fieldLabel" Text="{Binding Text.OutputLabel}" />
             <Grid ColumnDefinitions="54,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="7">
               <TextBlock Classes="tableHeader" Text="{Binding Text.FileLabel}" />
@@ -126,8 +126,8 @@
               <TextBlock Grid.Row="1" Classes="tableHeader" Text="{Binding Text.SizeLabel}" />
               <TextBlock Grid.Row="1" Grid.Column="1" Classes="technicalDetail" Text="{Binding LoadedReport.OutputSizeLabel}" TextWrapping="Wrap" />
               <TextBlock Grid.Row="2" Classes="tableHeader" Text="{Binding Text.StateLabel}" />
-              <TextBlock Grid.Row="2" Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#166534" Text="{Binding LoadedReport.OutputCommitmentLabel}" TextWrapping="Wrap" IsVisible="{Binding LoadedReport.IsOutputCommitted}" />
-              <TextBlock Grid.Row="2" Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="#92400E" Text="{Binding LoadedReport.OutputCommitmentLabel}" TextWrapping="Wrap" IsVisible="{Binding LoadedReport.IsOutputPreview}" />
+              <TextBlock Grid.Row="2" Grid.Column="1" FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Foreground="{DynamicResource NfcSuccessTextBrush}" Text="{Binding LoadedReport.OutputCommitmentLabel}" TextWrapping="Wrap" IsVisible="{Binding LoadedReport.IsOutputCommitted}" />
+              <TextBlock Grid.Row="2" Grid.Column="1" FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Foreground="{DynamicResource NfcCautionTextBrush}" Text="{Binding LoadedReport.OutputCommitmentLabel}" TextWrapping="Wrap" IsVisible="{Binding LoadedReport.IsOutputPreview}" />
               <TextBlock Grid.Row="2" Grid.Column="1" Classes="sectionLabel" Text="{Binding LoadedReport.OutputCommitmentLabel}" TextWrapping="Wrap" IsVisible="{Binding LoadedReport.IsOutputStateUnknown}" />
             </Grid>
             <TextBlock Classes="captionText" Text="{Binding LoadedReport.OutputArtifactPath}" TextWrapping="Wrap" IsVisible="{Binding LoadedReport.HasOutputArtifactPath}" />
@@ -135,15 +135,15 @@
         </Border>
 
         <Border Grid.Column="1" Padding="16">
-          <Grid RowDefinitions="Auto,*" RowSpacing="8">
+          <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource NfcSpace8}">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
               <StackPanel Spacing="3">
                 <TextBlock Classes="fieldLabel" Text="{Binding Text.ChangeReviewTitle}" />
-                <TextBlock FontSize="17" FontWeight="SemiBold" Foreground="#0F172A" Text="{Binding LoadedReport.ByteDifferenceTitle}" TextWrapping="Wrap" />
+                <TextBlock FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource NfcTextStrongBrush}" Text="{Binding LoadedReport.ByteDifferenceTitle}" TextWrapping="Wrap" />
               </StackPanel>
               <Label Grid.Column="1" Classes="reportBadge large" Content="{Binding LoadedReport.ByteDifferenceMeta}" />
             </Grid>
-            <StackPanel Grid.Row="1" Spacing="8">
+            <StackPanel Grid.Row="1" Spacing="{DynamicResource NfcSpace8}">
               <TextBlock Classes="detailText" Text="{Binding LoadedReport.ByteDifferenceDetail}" TextWrapping="Wrap" />
               <ItemsControl ItemsSource="{Binding LoadedReport.OutputDifferenceSummaryRows}">
                 <ItemsControl.ItemTemplate>

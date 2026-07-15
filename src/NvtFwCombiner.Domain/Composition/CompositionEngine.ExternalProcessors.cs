@@ -6,6 +6,7 @@ public static partial class CompositionEngine
         CompositionOperation operation,
         byte[] targetBuffer,
         Dictionary<string, byte[]> input,
+        Dictionary<string, byte[]> mutableBuffers,
         CompositionExternalProcessor? externalProcessor,
         CancellationToken cancellationToken)
     {
@@ -21,10 +22,11 @@ public static partial class CompositionEngine
 
         byte[] processorInput = ReadSlice(targetBuffer, operation.TargetRange);
         List<ExternalProcessorStagedSource> stagedSources = BuildStagedSources(operation, input);
+        List<ExternalProcessorStagedArtifact> stagedArtifacts = BuildStagedArtifacts(operation, input, mutableBuffers);
         CompositionExternalProcessorResult processorResult;
         try
         {
-            processorResult = await externalProcessor(operation, processorInput, stagedSources, cancellationToken)
+            processorResult = await externalProcessor(operation, processorInput, stagedSources, stagedArtifacts, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -56,9 +58,36 @@ public static partial class CompositionEngine
             ]);
         }
 
+        CompositionIssue? postconditionIssue = ValidateExternalProcessorOutputAssertions(operation, processorResult.OutputBytes);
+        if (postconditionIssue is not null)
+        {
+            return CompositionExecutionResult.Failed([postconditionIssue]);
+        }
+
         processorResult.OutputBytes.Span.CopyTo(targetBuffer.AsSpan(
             (int)operation.TargetRange.Start,
             (int)operation.TargetRange.Length));
+        return null;
+    }
+
+    private static CompositionIssue? ValidateExternalProcessorOutputAssertions(
+        CompositionOperation operation,
+        ReadOnlyMemory<byte> outputBytes)
+    {
+        foreach (ExternalProcessorOutputAssertion assertion in operation.ExternalProcessorInvocation!.OutputAssertions)
+        {
+            ReadOnlySpan<byte> actual = outputBytes.Span.Slice(
+                checked((int)assertion.Range.Start),
+                checked((int)assertion.Range.Length));
+            if (!actual.SequenceEqual(assertion.ExpectedBytes.Span))
+            {
+                return new CompositionIssue(
+                    CompositionIssueCodes.ExecutionExternalProcessorPostconditionFailed,
+                    $"Operation '{operation.OperationId}' external processor output did not satisfy the declared postcondition at {assertion.Range}.",
+                    operation.OperationId);
+            }
+        }
+
         return null;
     }
 
@@ -81,5 +110,30 @@ public static partial class CompositionEngine
         }
 
         return stagedSources;
+    }
+
+    private static List<ExternalProcessorStagedArtifact> BuildStagedArtifacts(
+        CompositionOperation operation,
+        Dictionary<string, byte[]> input,
+        Dictionary<string, byte[]> mutableBuffers)
+    {
+        ExternalProcessorInvocation invocation = operation.ExternalProcessorInvocation!;
+        if (invocation.StagedArtifactBindings.Count == 0)
+        {
+            return [];
+        }
+
+        List<ExternalProcessorStagedArtifact> stagedArtifacts = [];
+        foreach (ExternalProcessorStagedArtifactBinding binding in invocation.StagedArtifactBindings)
+        {
+            byte[] sourceBuffer = mutableBuffers.TryGetValue(binding.SourceSpaceId, out byte[]? mutableSource)
+                ? mutableSource
+                : input[binding.SourceSpaceId];
+            stagedArtifacts.Add(new ExternalProcessorStagedArtifact(
+                binding.ArtifactId,
+                ReadSlice(sourceBuffer, binding.SourceRange)));
+        }
+
+        return stagedArtifacts;
     }
 }

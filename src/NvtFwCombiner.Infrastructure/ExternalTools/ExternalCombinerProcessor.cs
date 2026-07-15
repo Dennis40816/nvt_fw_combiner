@@ -15,23 +15,27 @@ public sealed partial class ExternalCombinerProcessor : IExternalProcessor
     private readonly string _toolRoot;
     private readonly string _stagingRoot;
     private readonly IExternalProcessRunner _processRunner;
+    private readonly Dictionary<string, ExternalCombinerInvocationProfile> _invocationsByProcessorId;
 
     /// <summary>Creates a staged external combiner processor.</summary>
     public ExternalCombinerProcessor(
         ExternalCombinerToolRegistry registry,
         string toolRoot,
         string stagingRoot,
-        IExternalProcessRunner processRunner)
+        IExternalProcessRunner processRunner,
+        IEnumerable<ExternalCombinerInvocationProfile> invocationProfiles)
     {
         ArgumentNullException.ThrowIfNull(registry);
         ArgumentException.ThrowIfNullOrWhiteSpace(toolRoot);
         ArgumentException.ThrowIfNullOrWhiteSpace(stagingRoot);
         ArgumentNullException.ThrowIfNull(processRunner);
+        ArgumentNullException.ThrowIfNull(invocationProfiles);
 
         _registry = registry;
         _toolRoot = Path.GetFullPath(toolRoot);
         _stagingRoot = Path.GetFullPath(stagingRoot);
         _processRunner = processRunner;
+        _invocationsByProcessorId = CreateInvocationIndex(invocationProfiles);
     }
 
     /// <inheritdoc />
@@ -46,9 +50,16 @@ public sealed partial class ExternalCombinerProcessor : IExternalProcessor
             return ExternalProcessorResult.Failed([manifestIssue!]);
         }
 
-        if (!TryResolveExecutable(manifest!, out string? executablePath, out CompositionIssue? executableIssue))
+        ExternalCombinerToolManifest resolvedManifest = manifest!;
+
+        if (!TryResolveExecutable(resolvedManifest, out string? executablePath, out CompositionIssue? executableIssue))
         {
             return ExternalProcessorResult.Failed([executableIssue!]);
+        }
+
+        if (!TryResolveInvocation(request, resolvedManifest, out ExternalCombinerInvocationProfile invocation, out CompositionIssue? invocationIssue))
+        {
+            return ExternalProcessorResult.Failed([invocationIssue!]);
         }
 
         string runDirectory = Path.Combine(_stagingRoot, request.RunId);
@@ -63,13 +74,28 @@ public sealed partial class ExternalCombinerProcessor : IExternalProcessor
             string workBin = Path.Combine(runDirectory, WorkFileName);
             string outputBin = Path.Combine(runDirectory, OutputFileName);
             await File.WriteAllBytesAsync(workBin, request.InputBytes.ToArray(), cancellationToken).ConfigureAwait(false);
+            IReadOnlyDictionary<string, string> stagedArtifactPaths = await MaterializeStagedArtifactsAsync(
+                request,
+                runDirectory,
+                cancellationToken).ConfigureAwait(false);
 
-            IReadOnlyList<string> arguments = ExpandArguments(manifest!.ArgumentTemplate, workBin, outputBin, runDirectory);
+            if (!TryExpandArguments(
+                    invocation.ArgumentTemplate,
+                    workBin,
+                    outputBin,
+                    runDirectory,
+                    stagedArtifactPaths,
+                    request.StagedArtifacts,
+                    out IReadOnlyList<string>? arguments,
+                    out CompositionIssue? argumentIssue))
+            {
+                return ExternalProcessorResult.Failed([argumentIssue!]);
+            }
             var startInfo = new ExternalProcessStartInfo(
                 executablePath!,
                 runDirectory,
-                arguments,
-                TimeSpan.FromSeconds(manifest.TimeoutSeconds));
+                arguments!,
+                TimeSpan.FromSeconds(resolvedManifest.TimeoutSeconds));
             ExternalProcessResult processResult = await _processRunner.RunAsync(startInfo, cancellationToken).ConfigureAwait(false);
             IReadOnlyList<ExternalProcessInvocation> executedCommands = [startInfo.ToExecutedCommand()];
             if (processResult.TimedOut)
@@ -85,13 +111,26 @@ public sealed partial class ExternalCombinerProcessor : IExternalProcessor
                     executedCommands);
             }
 
-            CompositionIssue? unexpectedFileIssue = FindUnexpectedStagingFileIssue(runDirectory, manifest);
+            CompositionIssue? unexpectedFileIssue = FindUnexpectedStagingFileIssue(
+                runDirectory,
+                invocation.InputMode,
+                resolvedManifest,
+                stagedArtifactPaths.Values);
             if (unexpectedFileIssue is not null)
             {
                 return ExternalProcessorResult.Failed([unexpectedFileIssue], executedCommands);
             }
 
-            string transformedPath = string.Equals(manifest.InputMode, "input-output-file", StringComparison.Ordinal)
+            CompositionIssue? artifactMutationIssue = await VerifyStagedArtifactsUnchangedAsync(
+                request.StagedArtifacts,
+                stagedArtifactPaths,
+                cancellationToken).ConfigureAwait(false);
+            if (artifactMutationIssue is not null)
+            {
+                return ExternalProcessorResult.Failed([artifactMutationIssue], executedCommands);
+            }
+
+            string transformedPath = string.Equals(invocation.InputMode, "input-output-file", StringComparison.Ordinal)
                 ? outputBin
                 : workBin;
             if (!File.Exists(transformedPath))
@@ -143,5 +182,58 @@ public sealed partial class ExternalCombinerProcessor : IExternalProcessor
         IReadOnlyList<ExternalProcessInvocation>? executedCommands = null)
     {
         return ExternalProcessorResult.Failed([new CompositionIssue(code, message)], executedCommands ?? []);
+    }
+
+    private static Dictionary<string, ExternalCombinerInvocationProfile> CreateInvocationIndex(
+        IEnumerable<ExternalCombinerInvocationProfile> invocationProfiles)
+    {
+        var byProcessorId = new Dictionary<string, ExternalCombinerInvocationProfile>(StringComparer.Ordinal);
+        foreach (ExternalCombinerInvocationProfile invocation in invocationProfiles)
+        {
+            ArgumentNullException.ThrowIfNull(invocation);
+            if (!byProcessorId.TryAdd(invocation.ProcessorId, invocation))
+            {
+                throw new ArgumentException(
+                    $"External Combiner invocation processor id '{invocation.ProcessorId}' is declared more than once.",
+                    nameof(invocationProfiles));
+            }
+        }
+
+        return byProcessorId;
+    }
+
+    private bool TryResolveInvocation(
+        ExternalProcessorRequest request,
+        ExternalCombinerToolManifest manifest,
+        out ExternalCombinerInvocationProfile invocation,
+        out CompositionIssue? issue)
+    {
+        invocation = _invocationsByProcessorId.TryGetValue(request.ProcessorId, out ExternalCombinerInvocationProfile? selected) &&
+            selected is not null
+            ? selected
+            : new ExternalCombinerInvocationProfile(
+                request.ProcessorId,
+                manifest.ToolBindingId,
+                manifest.InputMode,
+                manifest.ArgumentTemplate);
+
+        if (!string.Equals(invocation.ToolBindingId, request.ToolBindingId, StringComparison.Ordinal))
+        {
+            issue = new CompositionIssue(
+                "external-tool.invocation.binding-mismatch",
+                "External processor invocation does not permit the profile-selected tool binding.");
+            return false;
+        }
+
+        if (invocation.InputMode is not ("in-place" or "input-output-file"))
+        {
+            issue = new CompositionIssue(
+                "external-tool.invocation.input-mode.invalid",
+                "External processor invocation declares an unsupported staging input mode.");
+            return false;
+        }
+
+        issue = null;
+        return true;
     }
 }

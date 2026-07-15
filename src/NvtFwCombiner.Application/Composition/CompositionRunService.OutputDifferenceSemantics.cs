@@ -14,7 +14,7 @@ public sealed partial class CompositionRunService
         return expectation.Classification switch
         {
             OutputDifferenceClassifications.PostbuildCrcHeader =>
-                CreatePostbuildDifferenceSemantic(request.Profile.IcId, expectation, range),
+                CreatePostbuildDifferenceSemantic(request.CompiledComposition.IcId, expectation, range),
             OutputDifferenceClassifications.DeclaredReplacement =>
                 CreateDeclaredReplacementSemantic(expectation),
             OutputDifferenceClassifications.PreservedReference => new OutputDifferenceSemantic(

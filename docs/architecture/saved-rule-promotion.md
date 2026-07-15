@@ -11,27 +11,23 @@ A general mapping can be saved, reviewed, and promoted into a reusable rule that
 | General mapping | User-authored set of source-to-target mappings created in General Merge or General Replace. |
 | Saved rule | Versioned profile fragment generated from a validated general mapping. |
 | Promotion | Review process that makes a saved rule selectable from normal profile/catalog workflows. |
-| Compatibility envelope | IC/mode/profile conditions under which the saved rule may be used. |
+| Compatibility envelope | Exact bundle/profile/family/map binding plus a parent-narrowing access envelope. |
 
 ## Core principle
 
 A saved rule is data, not code.
 
-It must never contain shell commands, executable paths, script bodies, or hidden byte mutation logic. It compiles to the same operation algebra as any built-in profile:
+It must never contain shell commands, executable paths, script bodies, processor definitions, output
+naming overrides, or hidden byte mutation logic. Each mapping compiles through the parent profile to:
 
 ```text
 copy-range
 replace-range
-fill-range
-patch-scalar
-run-external-processor
-assert-range
-validate-checksum
 ```
 
 ## Saved rule fields
 
-Recommended model:
+V2 model:
 
 ```text
 SavedCompositionRule
@@ -40,33 +36,32 @@ SavedCompositionRule
   displayName
   description
   compositionKind: merge | replace
-  sourceExperience: general-merge | general-replace
-  compatibleProfileIds[]
-  compatibleIcIds[]
-  requiredInputSlotTemplates[]
-  mappingRows[]
-  operationFragments[]
-  processorDependencies[]
+  sourceExperienceId: general-merge | general-replace
+  parentBinding
+    exact bundle/profile/family ids, versions, hashes
+    canonical mapId
+  promotion
+  slotTemplates[]
+  mappingFragments[]
+  accessEnvelope
   validationRuleIds[]
-  protectedRangePolicy
+  processorStageIds[]
   owner
   reviewers[]
-  supportStatus: draft | candidate | supported | deprecated
   evidenceRefs[]
 ```
 
-## Mapping row fields
+## Mapping fragment fields
 
 ```text
-MappingRow
-  rowId
-  sourceBindingId or sourceSlotTemplateId
+MappingFragment
+  fragmentId
+  operationKind: copy-range | replace-range
+  parent-slot or rule-slot
   sourceRange
-  targetAddressSpaceId
-  targetRange
-  targetRegionId?
+  targetRegionId
+  targetOffset
   overlapPolicy
-  alignment
   reason
 ```
 
@@ -97,7 +92,10 @@ The rule is available only when its compatibility envelope matches the current I
 
 ## Current implementation status
 
-As of `0.7.3`, saved-rule support is intentionally limited to data validation, mapping projection, operation provenance, and General Merge CLI consumption.
+The accepted target contract is
+[`saved-composition-rule-v2`](../contracts/saved-composition-rule-v2.md). The current v1 runtime
+support remains a compatibility boundary until the v2 trusted loader and profile compiler are
+complete. V2 contract adoption does not enable UI authoring or promote an existing rule.
 
 Implemented:
 

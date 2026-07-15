@@ -67,17 +67,82 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private static async Task PrintWorkbenchRunResultAsync", report, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies DP Replace IC facts remain catalog-owned instead of hard-coded in Bootstrap.</summary>
+    /// <summary>Verifies DP Replace IC facts come from the trusted V2 registrations instead of a legacy C# catalog.</summary>
     [Fact]
-    public void BootstrapKeepsDpReplaceIcFactsCatalogOwned()
+    public void BootstrapProjectsDpReplaceIcFactsFromV2Registrations()
     {
-        string bootstrapSource = ReadBootstrapSources();
+        string bootstrapSource = string.Concat(
+            ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.DpWorkbench.cs"),
+            ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.cs"));
 
-        Assert.Contains("DpPerspectiveCatalog.FormatSupportedIcIds()", bootstrapSource, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.FormatBuiltInV2DpReplaceIcIds()", bootstrapSource, StringComparison.Ordinal);
         Assert.DoesNotContain("NT51950/NT51951", bootstrapSource, StringComparison.Ordinal);
         Assert.DoesNotContain("NT51950", bootstrapSource, StringComparison.Ordinal);
         Assert.DoesNotContain("Nt51950", bootstrapSource, StringComparison.Ordinal);
         Assert.DoesNotContain("NT51928", bootstrapSource, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies supported DP Replace reaches the shared engine from the trusted V2 bundle, not legacy profiles.</summary>
+    [Fact]
+    public void BootstrapRoutesSupportedDpReplaceThroughTrustedV2Artifacts()
+    {
+        string replaceDp = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.cs");
+        string v2Resolution = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.BuiltInV2.cs");
+        string v2Display = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.V2Display.cs");
+        string replaceDisplay = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Display.cs");
+        string replaceCoverage = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Coverage.cs");
+        string replaceCli = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.DpWorkbench.cs");
+        string bundle = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs");
+
+        Assert.Contains("TryCompileDpPerspectiveDpReplace", replaceDp, StringComparison.Ordinal);
+        Assert.Contains("CompiledCompositionInputBindingFactory.Create", replaceDp, StringComparison.Ordinal);
+        Assert.DoesNotContain("BuiltInReplaceProfiles", replaceDp, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileCompiler", replaceDp, StringComparison.Ordinal);
+        Assert.Contains("TryResolveDpPerspectiveDpReplaceSelector", replaceCli, StringComparison.Ordinal);
+        Assert.DoesNotContain("BuiltInReplaceProfiles", replaceCli, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileDefinition", replaceCli, StringComparison.Ordinal);
+        Assert.Contains("IcWorkflowIds.DpReplace", v2Resolution, StringComparison.Ordinal);
+        Assert.Contains("s_nt51950Nt51951V2Bundle", v2Resolution, StringComparison.Ordinal);
+        Assert.Contains("TryResolveDpPerspectiveDpReplaceDisplay", v2Resolution, StringComparison.Ordinal);
+        Assert.DoesNotContain("DpPerspectiveCatalog", v2Display, StringComparison.Ordinal);
+        Assert.Contains("TryCreateV2DpReplaceMemoryMapRows", replaceDisplay, StringComparison.Ordinal);
+        Assert.Contains("TryGetV2DpReplaceMemoryRangeLabel", replaceDisplay, StringComparison.Ordinal);
+        Assert.Contains("TryCreateV2DpReplaceCoverageSegments", replaceCoverage, StringComparison.Ordinal);
+        Assert.DoesNotContain("DpPerspectiveCatalog", string.Concat(
+            replaceDp,
+            v2Resolution,
+            v2Display,
+            replaceDisplay,
+            replaceCoverage,
+            replaceCli), StringComparison.Ordinal);
+        Assert.Contains("ProfileBundleLoader.Load", bundle, StringComparison.Ordinal);
+        Assert.Contains("Path.Combine(\"profiles\", \"built-in\", bundleDirectory)", bundle, StringComparison.Ordinal);
+        Assert.DoesNotContain("profiles\\\\built-in\\\\", ReadBootstrapSources(), StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies NT51926 CtrlRAM V2 compilation remains an artifact-backed candidate boundary, not a runtime route.</summary>
+    [Fact]
+    public void Nt51926CtrlRamV2CandidateStaysIsolatedFromRuntimeRoutes()
+    {
+        string candidateBoundary = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.V2.cs");
+        string runtime = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.cs");
+        string cli = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.CtrlRamWorkbench.cs");
+        string project = ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj");
+        string profile = ReadText(
+            "profiles/built-in/nt51926-ctrlram-replace-candidate/profiles/nt51926-ctrlram-replace-fw141-cascade.json");
+
+        Assert.Contains("CompileNt51926CtrlRamReplaceV2Candidate", candidateBoundary, StringComparison.Ordinal);
+        Assert.Contains("FirmwareArtifactPayload", candidateBoundary, StringComparison.Ordinal);
+        Assert.DoesNotContain("RunCompiledCompositionAsync", candidateBoundary, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionRunService", candidateBoundary, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompileNt51926CtrlRamReplaceV2Candidate", runtime, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompileNt51926CtrlRamReplaceV2Candidate", cli, StringComparison.Ordinal);
+        Assert.Contains("nt51926-ctrlram-replace-candidate", project, StringComparison.Ordinal);
+        Assert.Contains("\"stage\": \"executable-candidate\"", profile, StringComparison.Ordinal);
+        Assert.Contains("\"blockerId\": \"direct-golden-evidence\"", profile, StringComparison.Ordinal);
+        Assert.Contains("\"blockerId\": \"firmware-owner-review\"", profile, StringComparison.Ordinal);
+        Assert.Contains("\"blockerId\": \"runtime-route\"", profile, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies workbench Replace mode ids stay centralized for UI and CLI adapters.</summary>
@@ -124,6 +189,7 @@ public sealed partial class RepositoryBoundaryTests
         string runner = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Runner.cs");
         string standardMerge = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Run.cs");
         string generalMerge = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.cs");
+        string generalMergeV2 = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.V2.cs");
         string generalMergeReport = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Report.cs");
         string replaceDp = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.cs");
         string replaceCtrlRam = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.cs");
@@ -138,7 +204,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private static string CreateWorkbenchReportRunId", runner, StringComparison.Ordinal);
         Assert.Contains("private static string GetReplaceRunIdPrefix", runner, StringComparison.Ordinal);
         Assert.Contains("StandardMergeRunIdPrefix", standardMerge, StringComparison.Ordinal);
-        Assert.Contains("GeneralMergeRunIdPrefix", generalMerge, StringComparison.Ordinal);
+        Assert.Contains("GeneralMergeRunIdPrefix", generalMergeV2, StringComparison.Ordinal);
         Assert.Contains(
             "CreateWorkbenchReportRunId(GeneralMergeRunIdPrefix, build, timestamp)",
             generalMergeReport,
@@ -154,6 +220,7 @@ public sealed partial class RepositoryBoundaryTests
         {
             standardMerge,
             generalMerge,
+            generalMergeV2,
             generalMergeReport,
             replaceDp,
             replaceCtrlRam,
@@ -321,6 +388,22 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("CliCompositionRunSupport.FormatHex", bootstrapSource, StringComparison.Ordinal);
         Assert.DoesNotContain("FormatWorkbenchHex", bootstrapSource, StringComparison.Ordinal);
         Assert.DoesNotContain("TryParseCliNonNegativeLong", bootstrapSource, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies trusted bundle catalog handoff remains a structural Bootstrap bridge.</summary>
+    [Fact]
+    public void BootstrapTrustedBundleCatalogBridgeDoesNotOwnSemanticResolution()
+    {
+        string bridge = ReadText("src/NvtFwCombiner.Bootstrap/TrustedProfileBundleCatalogProjection.cs");
+        string infrastructureProject = ReadText("src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj");
+
+        Assert.Contains("TrustedProfileBundleCatalogFactory.Create", bridge, StringComparison.Ordinal);
+        Assert.Contains("CopyIdentity", bridge, StringComparison.Ordinal);
+        Assert.DoesNotContain("JsonSerializer", bridge, StringComparison.Ordinal);
+        Assert.DoesNotContain("Normalizer", bridge, StringComparison.Ordinal);
+        Assert.DoesNotContain("MapResolution", bridge, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileCompiler", bridge, StringComparison.Ordinal);
+        Assert.DoesNotContain("NvtFwCombiner.Profiles", infrastructureProject, StringComparison.Ordinal);
     }
 
 }

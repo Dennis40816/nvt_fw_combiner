@@ -116,6 +116,12 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                 return ExternalProcessorResult.Failed([stagedSourceIssue]);
             }
 
+            CompositionIssue? stagedArtifactIssue = ValidateStagedArtifacts(commandPlan, request.StagedArtifacts);
+            if (stagedArtifactIssue is not null)
+            {
+                return ExternalProcessorResult.Failed([stagedArtifactIssue]);
+            }
+
             foreach (LegacyCombinerPostbuildCommand command in commandPlan.Commands)
             {
                 byte[] commandInputBytes = await File.ReadAllBytesAsync(firmwarePath, cancellationToken).ConfigureAwait(false);
@@ -128,7 +134,11 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                 }
 
                 ResetDirectory(binDirectory);
-                CompositionIssue? stagingIssue = MaterializeStagedBlockFiles(command.Blocks, stagedSourceBytes, binDirectory);
+                CompositionIssue? stagingIssue = MaterializeStagedBlockFiles(
+                    command.Blocks,
+                    stagedSourceBytes,
+                    request.StagedArtifacts,
+                    binDirectory);
                 if (stagingIssue is not null)
                 {
                     return ExternalProcessorResult.Failed([stagingIssue], executedCommands);
@@ -159,6 +169,17 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                         "external-tool.process.failed",
                         $"External processor command '{command.CommandId}' exited with code {processResult.ExitCode}. {FormatProcessOutput(processResult)}",
                         executedCommands);
+                }
+
+                CompositionIssue? artifactMutationIssue = await VerifyStagedArtifactsUnchangedAsync(
+                        command.Blocks,
+                        request.StagedArtifacts,
+                        binDirectory,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                if (artifactMutationIssue is not null)
+                {
+                    return ExternalProcessorResult.Failed([artifactMutationIssue], executedCommands);
                 }
 
                 CompositionIssue? lengthIssue = await NormalizeShortenedFirmwareAsync(

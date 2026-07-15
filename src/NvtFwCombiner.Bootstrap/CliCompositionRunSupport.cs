@@ -1,24 +1,11 @@
 using System.Globalization;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
 internal static class CliCompositionRunSupport
 {
-    internal static CompositionRunProfile ToRunProfile(CompositionProfileDefinition profile)
-    {
-        return new CompositionRunProfile(
-            profile.ProfileId,
-            profile.ProfileVersion,
-            profile.IcId,
-            profile.ModeId,
-            profile.ExperienceId,
-            profile.CompositionKind,
-            profile.IcNumberInputMode);
-    }
-
     internal static CliOutputTarget ResolveOutputTarget(string? requestedOutput, string defaultFileName)
     {
         string outputPath = string.IsNullOrWhiteSpace(requestedOutput)

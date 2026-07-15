@@ -12,9 +12,23 @@ public sealed record WorkbenchSettingsSnapshot(
     string ToolBindingIds,
     string ToolManifestPath);
 
-/// <summary>Firmware facts read from a flash image FWConfig block.</summary>
+/// <summary>One stable workbench IC-number choice projected from compatibility catalogs.</summary>
+public sealed record WorkbenchIcNumberChoice(string Token, string DisplayLabel);
+
+/// <summary>One compiled built-in profile summary exposed without its legacy profile model.</summary>
+public sealed record WorkbenchProfileSummary(
+    string ProfileId,
+    string IcId,
+    CompositionKind CompositionKind,
+    IReadOnlyList<string> RequiredInputAddressSpaceIds,
+    string DefaultOutputFileName,
+    CompiledIcNumberPolicy? IcNumberPolicy,
+    bool CompileSucceeded,
+    IReadOnlyList<string> IssueCodes);
+
+/// <summary>Firmware facts read from the canonical NVT-located FWConfig Backup block.</summary>
 public sealed record WorkbenchFirmwareConfigMetadata(
-    long FirmwareConfigStart,
+    long FirmwareConfigBackupStart,
     string CommonFwVersion,
     byte FirmwareVersion,
     byte FirmwareVersionBar,
@@ -25,9 +39,12 @@ public sealed record WorkbenchFirmwareConfigMetadata(
     string? PostbuildCategory,
     FirmwareConfigHardwareMetadata Hardware);
 
+/// <summary>Build-only TP FW version override requested for a CtrlRAM Replace output.</summary>
+public sealed record WorkbenchCtrlRamFirmwareVersionEdit(byte FirmwareVersion, byte FirmwareSubVersion);
+
 /// <summary>
-/// A verified NVT-copy FWConfig suggestion for the shared workbench IC-number selection.
-/// It exists only when the selected flash-map primary and exactly one NVT copy agree.
+/// A verified NVT Backup FWConfig suggestion for the shared workbench IC-number selection.
+/// It exists only when the selected image has exactly one valid NVT Backup location.
 /// </summary>
 public sealed record WorkbenchFirmwareContextSuggestion(
     string IcId,

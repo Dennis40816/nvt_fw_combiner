@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.0",
+  "bundleId": "nt51929-standard-merge-family",
+  "bundleVersion": "0.9.1-v2-candidate.1",
+  "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
+  "contentHash": "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09",
+  "trustAnchorBindingId": "built-in-profile-bundle-v2",
+  "entries": [
+    {
+      "entryId": "composition-profile-v2-schema",
+      "kind": "schema",
+      "path": "schemas/composition-profile-v2.schema.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "1af166d37379329cc7a298ea24637a665b183f286e5a2323d4ed014e893dc9f0"
+    },
+    {
+      "entryId": "firmware-family-v1-schema",
+      "kind": "schema",
+      "path": "schemas/firmware-family-v1.schema.json",
+      "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
+      "contentHash": "0dd353296e02e448dcc653028fd3b3ce6ad7fdd8e11a1ce11a465b46f0b471d7"
+    },
+    {
+      "entryId": "nt51919-standard-merge-profile",
+      "kind": "composition-profile",
+      "path": "profiles/nt51919-standard-merge.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "9801dbfc24ac02b62cf2f600a5daa9f4f1c31a5f5f1ecf5cb64cec5d69cf9b86"
+    },
+    {
+      "entryId": "nt51929-nt51932-family",
+      "kind": "firmware-family",
+      "path": "families/nt51929-nt51932.json",
+      "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
+      "contentHash": "c23385d5ad956016dbf356ede9355205611bad636fe2ddea44f5f654634e80ce"
+    },
+    {
+      "entryId": "nt51929-standard-merge-profile",
+      "kind": "composition-profile",
+      "path": "profiles/nt51929-standard-merge.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "a27fc13b72a6d505f70fe0dbaead6916649fa4d6a904933ed68f5633b12fc620"
+    },
+    {
+      "entryId": "nt51932-standard-merge-profile",
+      "kind": "composition-profile",
+      "path": "profiles/nt51932-standard-merge.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "b25af9605cf805917c4f233ed09a6cd6ab0314a1377aab2f486acce09bca5ad1"
+    }
+  ]
+}

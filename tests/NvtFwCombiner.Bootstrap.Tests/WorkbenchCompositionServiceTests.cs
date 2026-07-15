@@ -1,7 +1,8 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
-using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.TestSupport;
 using static NvtFwCombiner.Bootstrap.WorkbenchIssueCodes;
 using static NvtFwCombiner.Bootstrap.Tests.BootstrapTestData;
@@ -12,6 +13,26 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class WorkbenchCompositionServiceTests
 {
     private const string EmptySha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+
+    private sealed class InspectingExternalProcessor : IExternalProcessor
+    {
+        private readonly Func<ExternalProcessorRequest, ExternalProcessorResult> _transform;
+
+        internal InspectingExternalProcessor(Func<ExternalProcessorRequest, ExternalProcessorResult> transform)
+        {
+            _transform = transform;
+        }
+
+        internal int CallCount { get; private set; }
+
+        public ValueTask<ExternalProcessorResult> TransformAsync(
+            ExternalProcessorRequest request,
+            CancellationToken cancellationToken)
+        {
+            CallCount++;
+            return ValueTask.FromResult(_transform(request));
+        }
+    }
 
     /// <summary>Verifies FlashCode output naming reads DP/FWConfig metadata outside the UI layer.</summary>
     [Fact]
@@ -81,7 +102,7 @@ public sealed class WorkbenchCompositionServiceTests
         Assert.Contains(
             document.RootElement.GetProperty("Issues").EnumerateArray(),
             issue =>
-                issue.GetProperty("Code").GetString() == CompositionIssueCodes.InputAddressSpaceLengthUnexpected &&
+                issue.GetProperty("Code").GetString() == "DP_SIZE_WARNING" &&
                 issue.GetProperty("Severity").GetString() == "warning");
     }
 
@@ -94,16 +115,17 @@ public sealed class WorkbenchCompositionServiceTests
             GoldenPath("expected/51926/flash.bin"));
 
         Assert.NotNull(metadata);
-        Assert.True(TpFlashMapCatalog.TryGetFirmwareConfigStart("NT51926", out long firmwareConfigStart));
-        Assert.Equal(firmwareConfigStart, metadata.FirmwareConfigStart);
+        byte[] image = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(image, out FirmwareConfigMetadata backup));
+        Assert.Equal(backup.FirmwareConfigStart, metadata.FirmwareConfigBackupStart);
         Assert.Equal("1.4.1", metadata.CommonFwVersion);
         Assert.Equal(0x02, metadata.ChipNumber);
         Assert.Equal("51926_1.4.1", metadata.PostbuildCategory);
     }
 
-    /// <summary>Uses a unique, matching NVT FWConfig copy to map the verified chip number to a planner token.</summary>
+    /// <summary>Uses a unique NVT FWConfig Backup to map the verified chip number to a planner token.</summary>
     [Fact]
-    public void FirmwareContextSuggestionUsesVerifiedNvtCopyAndApprovedBranch()
+    public void FirmwareContextSuggestionUsesVerifiedNvtBackupAndApprovedBranch()
     {
         WorkbenchFirmwareContextSuggestion? suggestion = WorkbenchCompositionService.TryReadFirmwareContextSuggestion(
             "NT51926",
@@ -116,21 +138,24 @@ public sealed class WorkbenchCompositionServiceTests
         Assert.Equal("1.4.1", suggestion.CommonFwVersion);
     }
 
-    /// <summary>Rejects automatic IC-number selection when the primary and unique NVT-copy FWConfigs disagree.</summary>
+    /// <summary>Uses canonical Backup facts when the TP Overview primary cross-check differs.</summary>
     [Fact]
-    public void FirmwareContextSuggestionRejectsPrimaryAndNvtCopyMismatch()
+    public void FirmwareContextSuggestionKeepsBackupAuthorityWhenPrimaryDiffers()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-fwconfig-mismatch");
         byte[] bytes = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
-        Assert.True(TpFlashMapCatalog.TryGetFirmwareConfigStart("NT51926", out long firmwareConfigStart));
-        bytes[checked((int)firmwareConfigStart + FirmwareConfigLayout.FirmwareSubVersionOffset)] ^= 0x01;
+        Assert.True(TpFlashMapCatalog.TryGetFirmwareConfigPrimaryStart("NT51926", out long firmwareConfigStart));
+        bytes[checked((int)firmwareConfigStart + FirmwareConfigLayout.ChipNumberOffset)] = 0x01;
         string path = workspace.Write("fwconfig-mismatch.bin", bytes);
 
         WorkbenchFirmwareContextSuggestion? suggestion = WorkbenchCompositionService.TryReadFirmwareContextSuggestion(
             "NT51926",
             path);
 
-        Assert.Null(suggestion);
+        Assert.NotNull(suggestion);
+        Assert.Equal((byte)0x02, suggestion.ChipNumber);
+        Assert.Equal("cascade", suggestion.NumberToken);
+        Assert.Equal("1.4.1", suggestion.CommonFwVersion);
     }
 
     /// <summary>Uses the selected TP NVT FWConfig ChipNumber to resolve NT51950's 1IC CMI location.</summary>
@@ -292,8 +317,8 @@ public sealed class WorkbenchCompositionServiceTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-invalid-fwbar");
         byte[] baseBytes = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
-        Assert.True(TpFlashMapCatalog.TryGetFirmwareConfigStart("NT51926", out long firmwareConfigStart));
-        baseBytes[checked((int)firmwareConfigStart + FirmwareConfigLayout.FirmwareVersionBarOffset)] ^= 0x01;
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(baseBytes, out FirmwareConfigMetadata backup));
+        baseBytes[checked((int)backup.FirmwareConfigStart + FirmwareConfigLayout.FirmwareVersionBarOffset)] ^= 0x01;
 
         string basePath = workspace.Write("base-invalid-fwbar.bin", baseBytes);
         string replacementPath = workspace.Write("normal.bin", baseBytes[0x22800..0x25400]);
@@ -317,6 +342,191 @@ public sealed class WorkbenchCompositionServiceTests
         Assert.Contains(
             document.RootElement.GetProperty("Issues").EnumerateArray(),
             issue => issue.GetProperty("Code").GetString() == ReplaceCtrlRamPostbuildCategoryUnknown);
+    }
+
+    /// <summary>
+    /// Verifies CtrlRAM Build patches the Combiner-declared FWConfig source before postbuild and receives the same
+    /// version fields back through the canonical NVT Backup copy.
+    /// </summary>
+    [Fact]
+    public async Task CtrlRamReplaceBuildPropagatesConfirmedFirmwareVersionThroughBackup()
+    {
+        const int Nt51926FirmwareConfigSourceStart = 0x22000;
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-fw-version-edit");
+        byte[] baseBytes = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
+        string basePath = workspace.Write("base.bin", baseBytes);
+        string replacementPath = workspace.Write("normal.bin", baseBytes[0x22800..0x25400]);
+        string outputPath = workspace.PathFor("edited.bin");
+        Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
+        {
+            ["replace-base"] = basePath,
+            ["replace-ctrlram-normal"] = replacementPath,
+        };
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51926",
+            "single",
+            "CtrlRAM",
+            slotPaths,
+            build: true,
+            TestContext.Current.CancellationToken,
+            outputPath,
+            ctrlRamFirmwareVersionEdit: new WorkbenchCtrlRamFirmwareVersionEdit(0x27, 0x04));
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
+        byte[] outputBytes = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
+        Assert.Equal(0x27, outputBytes[Nt51926FirmwareConfigSourceStart + FirmwareConfigLayout.FirmwareVersionOffset]);
+        Assert.Equal(0xD8, outputBytes[Nt51926FirmwareConfigSourceStart + FirmwareConfigLayout.FirmwareVersionBarOffset]);
+        Assert.Equal(0x04, outputBytes[Nt51926FirmwareConfigSourceStart + FirmwareConfigLayout.FirmwareSubVersionOffset]);
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(outputBytes, out FirmwareConfigMetadata backup));
+        Assert.Equal(0x27, backup.FirmwareVersion);
+        Assert.Equal(0xD8, backup.FirmwareVersionBar);
+        Assert.True(backup.IsFirmwareVersionBarValid);
+        Assert.Equal(0x04, backup.FirmwareSubVersion);
+
+        using var document = JsonDocument.Parse(result.ReportJson);
+        string[] operationIds = [
+            .. document.RootElement.GetProperty("Operations").EnumerateArray()
+                .Select(operation => operation.GetProperty("OperationId").GetString() ?? string.Empty),
+        ];
+        Assert.Equal(
+            ["patch-fw-version-and-bar", "patch-fw-sub-version", "postbuild-singlechip"],
+            operationIds);
+        JsonElement validation = Assert.Single(document.RootElement.GetProperty("Validations").EnumerateArray());
+        Assert.Equal("verify-nvt-fwconfig-backup-version", validation.GetProperty("RuleId").GetString());
+        Assert.Equal("Passed", validation.GetProperty("Status").GetString());
+    }
+
+    /// <summary>
+    /// Verifies a processor output with the expected fixed Backup bytes still fails closed when it introduces a
+    /// second universal NVT marker, because the final Backup location is no longer unambiguous.
+    /// </summary>
+    [Fact]
+    public async Task CtrlRamReplaceBuildRejectsAmbiguousFirmwareConfigBackupMarker()
+    {
+        const int firmwareConfigSourceStart = 0x22000;
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-fwconfig-ambiguous");
+        byte[] baseBytes = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(baseBytes, out FirmwareConfigMetadata originalBackup));
+        string basePath = workspace.Write("base.bin", baseBytes);
+        string replacementPath = workspace.Write("normal.bin", baseBytes[0x22800..0x25400]);
+        string outputPath = workspace.PathFor("not-published.bin");
+        Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
+        {
+            ["replace-base"] = basePath,
+            ["replace-ctrlram-normal"] = replacementPath,
+        };
+        var processor = new InspectingExternalProcessor(request =>
+        {
+            ReadOnlySpan<byte> input = request.InputBytes.Span;
+            Assert.Equal(0x27, input[firmwareConfigSourceStart + FirmwareConfigLayout.FirmwareVersionOffset]);
+            Assert.Equal(0xD8, input[firmwareConfigSourceStart + FirmwareConfigLayout.FirmwareVersionBarOffset]);
+            Assert.Equal(0x04, input[firmwareConfigSourceStart + FirmwareConfigLayout.FirmwareSubVersionOffset]);
+
+            byte[] output = request.InputBytes.ToArray();
+            int backupStart = checked((int)originalBackup.FirmwareConfigStart);
+            output[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = 0x27;
+            output[backupStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = 0xD8;
+            output[backupStart + FirmwareConfigLayout.FirmwareSubVersionOffset] = 0x04;
+            new byte[] { 0x00, 0x4E, 0x56, 0x54 }.CopyTo(output, backupStart + 0x100);
+            return ExternalProcessorResult.Success(
+                output,
+                [],
+                [
+                    new ExternalProcessInvocation(
+                        "C:\\tools\\Combiner.exe",
+                        "C:\\staging\\ctrlram-ambiguous-backup",
+                        ["CRC_Enable"]),
+                ]);
+        });
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+            "NT51926",
+            "single",
+            slotPaths,
+            build: true,
+            outputPath: outputPath,
+            firmwareVersionEdit: new WorkbenchCtrlRamFirmwareVersionEdit(0x27, 0x04),
+            externalProcessor: processor,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.False(result.Succeeded, result.ReportJson);
+        Assert.False(File.Exists(outputPath));
+        Assert.Equal(baseBytes.LongLength, result.OutputSize);
+        Assert.Equal(1, processor.CallCount);
+        using var document = JsonDocument.Parse(result.ReportJson);
+        Assert.Contains(
+            document.RootElement.GetProperty("Issues").EnumerateArray(),
+            issue => issue.GetProperty("Code").GetString() == "replace.ctrlram.fw-version-output-invalid");
+        JsonElement validation = Assert.Single(document.RootElement.GetProperty("Validations").EnumerateArray());
+        Assert.Equal("verify-nvt-fwconfig-backup-version", validation.GetProperty("RuleId").GetString());
+        Assert.Equal("Failed", validation.GetProperty("Status").GetString());
+        JsonElement postbuild = document.RootElement.GetProperty("Operations").EnumerateArray()
+            .Single(operation => operation.GetProperty("OperationId").GetString() == "postbuild-singlechip");
+        Assert.Equal("Succeeded", postbuild.GetProperty("Status").GetString());
+        _ = Assert.Single(postbuild.GetProperty("ExecutedCommands").EnumerateArray());
+    }
+
+    /// <summary>
+    /// Verifies the CtrlRAM Build preserve choice leaves FW version fields unpatched while still running the
+    /// approved legacy Combiner postbuild. The final values are read from the canonical NVT Backup only.
+    /// </summary>
+    [Fact]
+    public async Task CtrlRamReplaceBuildPreservesFirmwareVersionThroughBackup()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-fw-version-preserve");
+        byte[] baseBytes = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(baseBytes, out FirmwareConfigMetadata sourceBackup));
+        string basePath = workspace.Write("base.bin", baseBytes);
+        string replacementPath = workspace.Write("normal.bin", baseBytes[0x22800..0x25400]);
+        string outputPath = workspace.PathFor("preserved.bin");
+        Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
+        {
+            ["replace-base"] = basePath,
+            ["replace-ctrlram-normal"] = replacementPath,
+        };
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51926",
+            "single",
+            "CtrlRAM",
+            slotPaths,
+            build: true,
+            TestContext.Current.CancellationToken,
+            outputPath);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        byte[] outputBytes = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(outputBytes, out FirmwareConfigMetadata outputBackup));
+        Assert.Equal(sourceBackup.FirmwareVersion, outputBackup.FirmwareVersion);
+        Assert.Equal(sourceBackup.FirmwareVersionBar, outputBackup.FirmwareVersionBar);
+        Assert.Equal(sourceBackup.FirmwareSubVersion, outputBackup.FirmwareSubVersion);
+        Assert.True(outputBackup.IsFirmwareVersionBarValid);
+
+        using var document = JsonDocument.Parse(result.ReportJson);
+        string[] operationIds = [
+            .. document.RootElement.GetProperty("Operations").EnumerateArray()
+                .Select(operation => operation.GetProperty("OperationId").GetString() ?? string.Empty),
+        ];
+        Assert.Equal(["postbuild-singlechip"], operationIds);
+    }
+
+    /// <summary>Verifies TP FW version editing is rejected for a CtrlRAM preview before any firmware processing starts.</summary>
+    [Fact]
+    public async Task CtrlRamReplacePreviewRejectsFirmwareVersionEdit()
+    {
+        ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            WorkbenchCompositionService.RunReplaceAsync(
+                "NT51926",
+                "single",
+                "CtrlRAM",
+                new Dictionary<string, string>(StringComparer.Ordinal),
+                build: false,
+                TestContext.Current.CancellationToken,
+                ctrlRamFirmwareVersionEdit: new WorkbenchCtrlRamFirmwareVersionEdit(0x27, 0x04)).AsTask());
+
+        Assert.Contains("CtrlRAM Replace Build", exception.Message, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies gated Replace reports can summarize missing inputs without throwing.</summary>

@@ -14,6 +14,9 @@ from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
 from urllib.parse import unquote
 
+from ab_merge_fixture_validation import validate_ab_merge_golden_fixtures
+from repository_contract_validation import validate_v2_contract_model
+
 ROOT = Path(__file__).resolve().parents[1]
 
 REQUIRED_FILES = {
@@ -25,6 +28,7 @@ REQUIRED_FILES = {
     "scripts/bootstrap.ps1", "scripts/bootstrap.sh", "scripts/install-dotnet.ps1",
     "scripts/install-dotnet.sh", "scripts/package.ps1", "scripts/polytail_check.py",
     "scripts/publish-github.ps1", "scripts/publish-github.sh", "scripts/validate_repository.py",
+    "scripts/repository_contract_validation.py",
     "scripts/verify_ctrlram_replace_fixture.py", "scripts/verify.py",
     "external-tools/README.md", "external-tools/legacy-combiner/README.md",
     "external-tools/legacy-combiner/1.13.0/manifest.json",
@@ -34,6 +38,7 @@ REQUIRED_FILES = {
     "docs/adr/0005-replace-personas-and-general-mapping.md",
     "docs/adr/0006-external-combiner-tool-runner.md",
     "docs/adr/0007-dev0-contract-scope-and-region-model.md",
+    "docs/adr/0015-canonical-firmware-map-and-compiled-composition.md",
     "docs/architecture/canonical-variable-model.md",
     "docs/architecture/experience-and-access-policy.md",
     "docs/architecture/external-combiner-tool-runner.md",
@@ -43,13 +48,21 @@ REQUIRED_FILES = {
     "docs/architecture/saved-rule-promotion.md",
     "docs/architecture/terminal-log-and-diagnostics.md",
     "docs/contracts/composition-profile-v1.schema.json",
+    "docs/contracts/composition-profile-v2.md", "docs/contracts/composition-profile-v2.schema.json",
     "docs/contracts/composition-request-v1.schema.json",
     "docs/contracts/composition-report-v1.schema.json",
     "docs/contracts/crc-worker-v1.schema.json",
     "docs/contracts/external-combiner-tool-manifest-v1.schema.json",
+    "docs/contracts/firmware-evidence-manifest-v1.md",
+    "docs/contracts/firmware-evidence-manifest-v1.schema.json",
+    "docs/contracts/firmware-family-v1.md",
+    "docs/contracts/firmware-family-v1.schema.json",
+    "docs/contracts/profile-bundle-v1.md",
+    "docs/contracts/profile-bundle-v1.schema.json",
     "docs/contracts/region-v1.schema.json",
     "docs/contracts/release-manifest-v1.schema.json",
     "docs/contracts/saved-composition-rule-v1.schema.json",
+    "docs/contracts/saved-composition-rule-v2.md", "docs/contracts/saved-composition-rule-v2.schema.json",
     "docs/governance/codex-handoff.md",
     "docs/governance/development-tags.md",
     "docs/policies/polytail.md",
@@ -135,13 +148,12 @@ EXPECTED_SKILLS = {
     "ui-experience-change",
     "composition-experience-change",
     "dotnet-bootstrap",
-    "release-readiness",
-    "polytail",
+    "release-readiness", "polytail",
 }
-
 EXPECTED_REFCODE_SNAPSHOTS = {"gen_flash_bin_v2", "ab_code_combiner"}
 FORBIDDEN_SUFFIXES = {".bin", ".exe", ".dll", ".pdb", ".pfx", ".p12", ".pem", ".key", ".pyc"}
 ALLOWED_GOLDEN_BIN_ROOTS = {
+    PurePosixPath("testdata/golden/ab-merge"),
     PurePosixPath("testdata/golden/standard-merge-gen-flash"),
     PurePosixPath("testdata/golden/ctrlram-replace/fixtures"),
 }
@@ -372,6 +384,7 @@ def validate_source_manifest(manifest_path: Path, errors: list[str]) -> None:
 
 
 def validate_golden_fixtures(errors: list[str]) -> None:
+    validate_ab_merge_golden_fixtures(ROOT, load_json, validate_golden_manifest_entry, errors)
     validate_standard_merge_golden_fixtures(errors)
     validate_ctrlram_replace_golden_fixtures(errors)
 
@@ -656,6 +669,7 @@ def validate_contract_model(errors: list[str]) -> None:
         for key in {"compositionKind", "experience", "imageInitialization", "mutations"}:
             if key not in required:
                 errors.append(f"report schema does not require canonical field: {key}")
+    validate_v2_contract_model(ROOT, load_json, errors)
     spec = (ROOT / "SPEC.md").read_text(encoding="utf-8")
     for term in {"dp-replace", "ctrlram-replace", "general-replace", "general-merge", "`unknown` 絕不等同 `none`", "host-created staging copy", "legacy `combiner.exe`"}:
         if term not in spec:

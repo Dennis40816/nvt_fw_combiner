@@ -1,0 +1,144 @@
+{
+  "schemaVersion": "2.0",
+  "profileId": "nt51950-standard-merge-dp-perspective",
+  "profileVersion": "0.5.1",
+  "promotion": {
+    "stage": "supported",
+    "blockers": []
+  },
+  "compositionKind": "merge",
+  "experience": {
+    "experienceId": "standard-merge",
+    "audience": "system",
+    "layoutPolicy": "fixed",
+    "inputPolicy": "fixed",
+    "topologyAuthoring": "hidden",
+    "displayNameKey": "profile.nt51950.standard-merge.dp-perspective"
+  },
+  "mapBinding": {
+    "familyId": "nt51950-nt51951-dp-perspective",
+    "familyVersion": "1.0.0",
+    "familyContentHash": "0bd613266308f512e87a07f62727d8ba9bdb4f73dde0c7adc001ab17f119d60f",
+    "mapIds": [
+      "nt51950-standard-merge-256k",
+      "nt51950-standard-merge-512k",
+      "nt51950-standard-merge-1024k"
+    ],
+    "requiredRegionIds": [
+      "dp-container",
+      "tp-overlay",
+      "customer-info"
+    ],
+    "requiredMetadataStructureIds": [],
+    "requiredCapabilityIds": []
+  },
+  "inputSlots": [
+    {
+      "slotId": "dp-input",
+      "role": "dp",
+      "artifactClass": "dp-firmware",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [".bin"],
+      "acceptance": {
+        "lengthRule": { "kind": "exact-resolved-map-capacity" },
+        "normalization": { "kind": "none" }
+      }
+    },
+    {
+      "slotId": "tp-input",
+      "role": "tp",
+      "artifactClass": "tp-firmware",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [".bin"],
+      "acceptance": {
+        "lengthRule": { "kind": "tp-maximum-256k", "maximumBytes": 262144 },
+        "normalization": { "kind": "none" }
+      }
+    }
+  ],
+  "spaces": [
+    {
+      "spaceId": "dp-input",
+      "kind": "input-artifact",
+      "slotId": "dp-input",
+      "instancePolicy": "singleton"
+    },
+    {
+      "spaceId": "tp-input",
+      "kind": "input-artifact",
+      "slotId": "tp-input",
+      "instancePolicy": "singleton"
+    },
+    {
+      "spaceId": "output-image",
+      "kind": "output-image",
+      "capacity": { "kind": "resolved-map" },
+      "initializer": { "kind": "blank", "fillByte": 0 }
+    }
+  ],
+  "views": [
+    {
+      "viewId": "dp-container-source",
+      "spaceId": "dp-input",
+      "selector": { "kind": "map-region", "regionId": "dp-container" }
+    },
+    {
+      "viewId": "dp-container-output",
+      "spaceId": "output-image",
+      "selector": { "kind": "map-region", "regionId": "dp-container" }
+    },
+    {
+      "viewId": "tp-overlay-source",
+      "spaceId": "tp-input",
+      "selector": { "kind": "map-region", "regionId": "tp-overlay" }
+    },
+    {
+      "viewId": "tp-overlay-output",
+      "spaceId": "output-image",
+      "selector": { "kind": "map-region", "regionId": "tp-overlay" }
+    }
+  ],
+  "metadataBindings": [],
+  "regionAccessRules": [
+    {
+      "regionId": "dp-container",
+      "access": "explicit-range",
+      "reason": "Owner-approved DP Perspective merge writes the full DP container, then the declared TP overlay only."
+    }
+  ],
+  "operations": [
+    {
+      "operationId": "copy-dp-container",
+      "sequence": 100,
+      "overlapPolicy": "reject",
+      "reason": "Copy the selected NT51950 full DP Perspective container into the output image.",
+      "kind": "copy-range",
+      "sourceViewId": "dp-container-source",
+      "targetViewId": "dp-container-output"
+    },
+    {
+      "operationId": "overlay-tp",
+      "sequence": 200,
+      "overlapPolicy": "replace-existing",
+      "reason": "Overlay owner-approved TP firmware while retaining DP customer information outside the overlay.",
+      "kind": "copy-range",
+      "sourceViewId": "tp-overlay-source",
+      "targetViewId": "tp-overlay-output"
+    }
+  ],
+  "validations": [],
+  "processorStages": [],
+  "output": {
+    "fileNameTemplate": "nt51950-standard-merge-dp-perspective.bin",
+    "allowOverride": true,
+    "invalidCharacterPolicy": "reject",
+    "requiredTokenIds": []
+  },
+  "evidenceRefs": [
+    "dp-perspective-51950-51951-owner-map",
+    "standard-merge-51950-256k-golden",
+    "legacy-v2-dp-perspective-parity-matrix"
+  ]
+}

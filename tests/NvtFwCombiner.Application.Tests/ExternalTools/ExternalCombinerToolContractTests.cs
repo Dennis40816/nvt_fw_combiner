@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Contracts.ExternalTools;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Tests.ExternalTools;
 
@@ -29,6 +30,49 @@ public sealed class ExternalCombinerToolContractTests
 
         Assert.Contains(errors, error => error.Contains("Sha256", StringComparison.Ordinal));
         Assert.Contains(errors, error => error.Contains("{staging.hostPath}", StringComparison.Ordinal));
+    }
+
+    /// <summary>Accepts only closed lower-case named artifact tokens in approved manifests.</summary>
+    [Fact]
+    public void ManifestValidatorAcceptsNamedArtifactTokenAndRejectsMalformedId()
+    {
+        ExternalCombinerToolManifest valid = ValidManifest(
+            argumentTemplate: ["--a", "{staging.artifact.a-bank}", "--output", "{staging.outputBin}"]);
+        ExternalCombinerToolManifest malformed = ValidManifest(
+            argumentTemplate: ["--a", "{staging.artifact.A-Bank}", "--output", "{staging.outputBin}"]);
+
+        Assert.Empty(ExternalCombinerToolManifestValidator.Validate(valid));
+        Assert.Contains(
+            ExternalCombinerToolManifestValidator.Validate(malformed),
+            error => error.Contains("{staging.artifact.A-Bank}", StringComparison.Ordinal));
+    }
+
+    /// <summary>Rejects unsupported or malformed tokens in a profile-selected command before an adapter can launch it.</summary>
+    [Theory]
+    [InlineData("{staging.hostPath}")]
+    [InlineData("{staging.outputBin")]
+    public void InvocationProfileRejectsInvalidHostToken(string token)
+    {
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => new ExternalCombinerInvocationProfile(
+            "processor-v1",
+            "legacy-combiner-1.13.0",
+            "input-output-file",
+            ["--input", token]));
+
+        Assert.Contains("invalid argument template", exception.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>Rejects malformed named-artifact collections before their items are sorted for deterministic staging.</summary>
+    [Fact]
+    public void ExternalProcessorRequestRejectsNullArtifactEntry()
+    {
+        _ = Assert.Throws<ArgumentException>(() => new ExternalProcessorRequest(
+            "run-id",
+            "processor-v1",
+            "tool-v1",
+            new byte[] { 0 },
+            [new ByteRange(0, 1)],
+            stagedArtifacts: [null!]));
     }
 
     /// <summary>Rejects duplicate profile binding ids before runtime selection is possible.</summary>

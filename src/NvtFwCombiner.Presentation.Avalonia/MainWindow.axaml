@@ -11,8 +11,8 @@
     WindowState="Maximized"
     MinWidth="980"
     MinHeight="640"
-    Background="#F4F6FA"
-    FontFamily="fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI"
+    Background="{DynamicResource NfcAppBackgroundBrush}"
+    FontFamily="{DynamicResource NfcUiFontFamily}"
     Icon="/Assets/AppIcon.ico"
     Title="NVT FW Combiner">
   <Window.KeyBindings>
@@ -50,15 +50,15 @@
   <Grid RowDefinitions="Auto,Auto,Auto,*">
     <Border Classes="shellBar" Padding="28,12">
       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="28">
-        <StackPanel Spacing="2">
+        <StackPanel Spacing="{DynamicResource NfcSpace2}">
           <TextBlock
               FontSize="20"
               FontWeight="SemiBold"
-              Foreground="#0F172A"
+              Foreground="{DynamicResource NfcTextStrongBrush}"
               Text="{Binding Text.ProductTitle}" />
           <TextBlock
-              FontSize="12"
-              Foreground="#64748B"
+              FontSize="{DynamicResource NfcFontSize12}"
+              Foreground="{DynamicResource NfcTextMutedBrush}"
               Text="{Binding ShellVersion}" />
         </StackPanel>
 
@@ -66,30 +66,30 @@
             Grid.Column="1"
             VerticalAlignment="Center"
             Orientation="Horizontal"
-            Spacing="4">
+            Spacing="{DynamicResource NfcSpace4}">
           <ToggleButton
               Classes="nav"
               Command="{Binding ShowHomeCommand}"
               IsChecked="{Binding IsHomeVisible, Mode=OneWay}">
-            <TextBlock Foreground="#334155" Text="{Binding Text.HomeLabel}" />
+            <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{Binding Text.HomeLabel}" />
           </ToggleButton>
           <ToggleButton
               Classes="nav"
               Command="{Binding ShowSettingsCommand}"
               IsChecked="{Binding IsSettingsVisible, Mode=OneWay}">
-            <TextBlock Foreground="#334155" Text="{Binding SettingsPreview.Title}" />
+            <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{Binding SettingsPreview.Title}" />
           </ToggleButton>
           <ToggleButton
               Classes="nav"
               Command="{Binding ShowReplaceCommand}"
               IsChecked="{Binding IsReplaceVisible, Mode=OneWay}">
-            <TextBlock Foreground="#334155" Text="{Binding ReplacePreview.Title}" />
+            <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{Binding ReplacePreview.Title}" />
           </ToggleButton>
           <ToggleButton
               Classes="nav"
               Command="{Binding ShowMergeCommand}"
               IsChecked="{Binding IsMergeVisible, Mode=OneWay}">
-            <TextBlock Foreground="#334155" Text="{Binding MergePreview.Title}" />
+            <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{Binding MergePreview.Title}" />
           </ToggleButton>
         </StackPanel>
 
@@ -97,14 +97,14 @@
             Grid.Column="2"
             VerticalAlignment="Center"
             Orientation="Horizontal"
-            Spacing="8">
+            Spacing="{DynamicResource NfcSpace8}">
           <Button
               Classes="secondary"
               Click="LoadReportJsonButton_OnClick"
               ToolTip.Tip="{Binding Text.LoadJsonTooltip}">
             <StackPanel Orientation="Horizontal" Spacing="7">
-              <TextBlock VerticalAlignment="Center" FontSize="14" Text="↥" />
-              <TextBlock VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Text="{Binding Text.LoadJsonLabel}" />
+              <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize14}" Text="↥" />
+              <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Text="{Binding Text.LoadJsonLabel}" />
             </StackPanel>
           </Button>
           <Button
@@ -119,11 +119,11 @@
                   Text="▤" />
               <StackPanel Grid.Column="1" Spacing="0">
                 <TextBlock
-                    FontSize="12"
+                    FontSize="{DynamicResource NfcFontSize12}"
                     FontWeight="SemiBold"
                     Text="{Binding ReportActionLabel}" />
                 <TextBlock
-                    FontSize="10"
+                    FontSize="{DynamicResource NfcFontSize10}"
                     Opacity="0.82"
                     Text="{Binding ReportActionStatus}" />
               </StackPanel>
@@ -166,16 +166,16 @@
             ColumnDefinitions="1.15*,430"
             ColumnSpacing="18"
             IsVisible="{Binding IsReplaceVisible}">
-          <StackPanel Spacing="16">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-              <StackPanel Spacing="4">
+          <StackPanel Spacing="{DynamicResource NfcSpace16}">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
+              <StackPanel Spacing="{DynamicResource NfcSpace4}">
                 <TextBlock Classes="pageTitle" Text="{Binding ReplacePreview.Title}" />
                 <TextBlock Classes="pageSubtitle" Text="{Binding ReplacePreview.Subtitle}" />
               </StackPanel>
               <Grid
                   Grid.Column="1"
                   ColumnDefinitions="158,Auto,Auto"
-                  ColumnSpacing="12"
+                  ColumnSpacing="{DynamicResource NfcSpace12}"
                   VerticalAlignment="Center">
                 <StackPanel Spacing="3">
                   <TextBlock Classes="fieldLabel" Text="{Binding Text.ModeLabel}" />
@@ -196,14 +196,14 @@
                     </Grid>
                   </Button>
                 </StackPanel>
-                <StackPanel Grid.Column="2" Margin="0,15,0,0" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
+                <StackPanel Grid.Column="2" Margin="0,15,0,0" VerticalAlignment="Center" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
                   <Button
                       Classes="toolbarAction"
                       Click="BuildReplaceButton_OnClick"
                       IsEnabled="{Binding CanBuildReplace}"
                       ToolTip.Tip="{Binding ReplaceBuildActionTip}">
                     <StackPanel Orientation="Horizontal" Spacing="7">
-                      <TextBlock VerticalAlignment="Center" FontSize="13" Text="✓" />
+                      <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize13}" Text="✓" />
                        <TextBlock VerticalAlignment="Center" Text="{Binding Text.BuildActionLabel}" />
                     </StackPanel>
                   </Button>
@@ -227,13 +227,13 @@
             ColumnDefinitions="1.15*,430"
             ColumnSpacing="18"
             IsVisible="{Binding IsMergeVisible}">
-          <StackPanel Spacing="16">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-              <StackPanel Spacing="4">
+          <StackPanel Spacing="{DynamicResource NfcSpace16}">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
+              <StackPanel Spacing="{DynamicResource NfcSpace4}">
                 <TextBlock Classes="pageTitle" Text="{Binding MergePreview.Title}" />
                 <TextBlock Classes="pageSubtitle" Text="{Binding MergePreview.Subtitle}" />
               </StackPanel>
-              <Grid Grid.Column="1" ColumnDefinitions="170,Auto" ColumnSpacing="12" VerticalAlignment="Center">
+              <Grid Grid.Column="1" ColumnDefinitions="170,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" VerticalAlignment="Center">
                 <StackPanel Spacing="3" ToolTip.Tip="{Binding Text.MergeModeTooltip}">
                   <TextBlock Classes="fieldLabel" Text="{Binding Text.ModeLabel}" />
                   <ComboBox
@@ -241,14 +241,14 @@
                       ItemsSource="{Binding MergeModeChoices}"
                       SelectedItem="{Binding SelectedMergeMode, Mode=TwoWay}" />
                 </StackPanel>
-                <StackPanel Grid.Column="1" Margin="0,15,0,0" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
+                <StackPanel Grid.Column="1" Margin="0,15,0,0" VerticalAlignment="Center" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
                   <Button
                       Classes="toolbarAction"
                       Click="BuildMergeButton_OnClick"
                       IsEnabled="{Binding CanBuildMerge}"
                       ToolTip.Tip="{Binding MergeBuildActionTip}">
                     <StackPanel Orientation="Horizontal" Spacing="7">
-                      <TextBlock VerticalAlignment="Center" FontSize="13" Text="✓" />
+                      <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize13}" Text="✓" />
                       <TextBlock VerticalAlignment="Center" Text="{Binding Text.BuildActionLabel}" />
                     </StackPanel>
                   </Button>
@@ -278,6 +278,8 @@
         Opacity="{Binding ReportToastOpacity}" />
 
     <views:ReplaceSelectionModal Grid.RowSpan="4" IsVisible="{Binding IsReplaceSelectionModalOpen}" />
+
+    <views:CtrlRamFirmwareVersionModal Grid.RowSpan="4" IsVisible="{Binding IsCtrlRamFirmwareVersionModalOpen}" />
 
     <views:WorkflowContextSetupModal Grid.RowSpan="4" IsVisible="{Binding IsWorkflowContextModalOpen}" />
 

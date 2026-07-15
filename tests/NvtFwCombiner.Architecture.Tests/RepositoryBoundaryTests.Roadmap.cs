@@ -35,7 +35,7 @@ public sealed partial class RepositoryBoundaryTests
         {
             string[] row = FindMarkdownTableRow("docs/architecture/supported-ic-matrix.md", ic).Cells;
 
-            Assert.Contains("normal merge requested", row[1], StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("canonical V2 DP Perspective Standard Merge route", row[1], StringComparison.Ordinal);
             Assert.Contains("DP Perspective", row[1], StringComparison.OrdinalIgnoreCase);
             Assert.Contains("DP and CtrlRAM priority", row[3], StringComparison.Ordinal);
             Assert.Contains("DP", row[4], StringComparison.Ordinal);
@@ -57,9 +57,9 @@ public sealed partial class RepositoryBoundaryTests
         ];
 
         Assert.Contains("## Update rule", reference, StringComparison.Ordinal);
-        Assert.Contains("BuiltInStandardMergeProfiles*.cs", reference, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.StandardMerge.BuiltInV2.cs", reference, StringComparison.Ordinal);
         Assert.Contains("BuiltInReplaceProfiles*.cs", reference, StringComparison.Ordinal);
-        Assert.Contains("root file owns exposure order only", reference, StringComparison.Ordinal);
+        Assert.Contains("explicit production Standard Merge registration list", reference, StringComparison.Ordinal);
         Assert.Contains("IcWorkflowFlowchartReferenceCoversBuiltInIcLists", reference, StringComparison.Ordinal);
         Assert.Contains("NT51928 NB is not covered", reference, StringComparison.Ordinal);
         Assert.Contains("0x37000-0x37FFF (len 0x1000)", reference, StringComparison.Ordinal);

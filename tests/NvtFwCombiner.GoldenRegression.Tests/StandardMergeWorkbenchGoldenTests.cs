@@ -14,9 +14,22 @@ public sealed class StandardMergeWorkbenchGoldenTests
         string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string goldenRoot = Path.Combine(repositoryRoot, "testdata", "golden", "standard-merge-gen-flash");
         using var manifestDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
+        using var configDocument = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "test_ic_config.json")));
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-golden");
 
-        foreach (JsonElement goldenCase in manifestDocument.RootElement.GetProperty("cases").EnumerateArray())
+        JsonElement[] goldenCases = [.. manifestDocument.RootElement.GetProperty("cases").EnumerateArray()];
+        Assert.Equal(
+            configDocument.RootElement.EnumerateObject()
+                .Where(static property => property.Name != "global")
+                .Select(static property => property.Name)
+                .Order(StringComparer.Ordinal),
+            goldenCases
+                .Where(static goldenCase => goldenCase.GetProperty("profileId").GetString()!
+                    .EndsWith("-standard-merge-gen-flash", StringComparison.Ordinal))
+                .Select(static goldenCase => goldenCase.GetProperty("ic").GetString()!)
+                .Order(StringComparer.Ordinal));
+
+        foreach (JsonElement goldenCase in goldenCases)
         {
             await VerifyGoldenCaseAsync(goldenRoot, workspace.Root, goldenCase);
         }

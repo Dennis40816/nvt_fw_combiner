@@ -79,7 +79,6 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public const string DynamicCtrlRamReplacementPrefix = \"replace-ctrlram-\"", addressSpaceIds, StringComparison.Ordinal);
         Assert.Contains("CompositionAddressSpaceIds.OutputImage", profileSources, StringComparison.Ordinal);
         Assert.Contains("CompositionAddressSpaceIds.DpInput", profileSources, StringComparison.Ordinal);
-        Assert.Contains("CompositionAddressSpaceIds.TpInput", profileSources, StringComparison.Ordinal);
         Assert.Contains("CompositionAddressSpaceIds.DpReplacement", profileSources, StringComparison.Ordinal);
         Assert.Contains("CompositionAddressSpaceIds.CtrlRamReplacement", profileSources, StringComparison.Ordinal);
         Assert.Contains("public const string DpInput = CompositionAddressSpaceIds.DpInput;", workbenchAddressSpaceIds, StringComparison.Ordinal);
@@ -110,6 +109,29 @@ public sealed partial class RepositoryBoundaryTests
             Assert.DoesNotContain(addressSpaceLiteral, bootstrapSources, StringComparison.Ordinal);
             Assert.DoesNotContain(addressSpaceLiteral, presentationSources, StringComparison.Ordinal);
         }
+    }
+
+    /// <summary>Verifies profile JSON vocabulary remains Contracts-owned instead of masquerading as address-space ids.</summary>
+    [Fact]
+    public void CompositionProfileWireTokensStayContractOwned()
+    {
+        string profileWireTokens = ReadText(
+            "src/NvtFwCombiner.Contracts/Profiles/CompositionProfileWireTokens.cs");
+        string profileSources = ReadProfileSources();
+
+        Assert.Contains(
+            "public const string OutputImageSpaceKind = \"output-image\"",
+            profileWireTokens,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "public const string CtrlRamReplacementArtifactClass = \"ctrlram-replacement\"",
+            profileWireTokens,
+            StringComparison.Ordinal);
+        Assert.Contains("CompositionProfileWireTokens.OutputImageSpaceKind", profileSources, StringComparison.Ordinal);
+        Assert.Contains(
+            "CompositionProfileWireTokens.CtrlRamReplacementArtifactClass",
+            profileSources,
+            StringComparison.Ordinal);
     }
 
     /// <summary>Verifies dynamic CtrlRAM replacement report labels are parsed by one Domain helper.</summary>

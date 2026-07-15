@@ -96,7 +96,7 @@ public sealed class TpFlashMapProfile
     public TpFlashMapProfile(
         string icId,
         string overviewSource,
-        long firmwareConfigStart,
+        long firmwareConfigPrimaryStart,
         IEnumerable<TpFlashMapRegion> regions,
         string evidence)
     {
@@ -113,7 +113,7 @@ public sealed class TpFlashMapProfile
 
         IcId = icId;
         OverviewSource = overviewSource;
-        FirmwareConfigStart = firmwareConfigStart;
+        FirmwareConfigPrimaryStart = firmwareConfigPrimaryStart;
         Evidence = evidence;
     }
 
@@ -123,8 +123,8 @@ public sealed class TpFlashMapProfile
     /// <summary>TP Overview source section label.</summary>
     public string OverviewSource { get; }
 
-    /// <summary>Primary FLASHMAP_FW_REGISTER address used for FWConfig metadata reads.</summary>
-    public long FirmwareConfigStart { get; }
+    /// <summary>Primary FLASHMAP_FW_REGISTER address retained only for TP Overview and evidence cross-checks.</summary>
+    public long FirmwareConfigPrimaryStart { get; }
 
     /// <summary>Reference evidence used to create this profile.</summary>
     public string Evidence { get; }

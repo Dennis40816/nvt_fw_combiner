@@ -13,7 +13,8 @@ Normal Standard Merge DP artifacts can carry unrelated trailing container bytes 
 Add `InputOversizePolicy.ExtractDeclaredRange` and non-blocking `ExpectedInputLengths` to `AddressSpace`.
 
 - The declared address-space length for a normal Standard Merge DP input is the maximum byte end required by its profile `CopyRange` operation.
-- The approved golden size becomes an expected input length. A DP input that reaches the declared end is accepted; a different total length emits `input.address-space.length-unexpected` and the executor uses only the declared prefix range.
+- The owner-approved outer-container sizes become the optional profile-declared expected input lengths. When omitted, the selected map capacity is materialized as the sole expectation for backward compatibility. A DP input that reaches the declared end is accepted; a total length outside the expected set emits `input.address-space.length-unexpected` and the executor uses only the declared prefix range.
+- A declared expected-length set contains one to eight positive, strictly ascending values. Each value must be at least the greatest end-exclusive profile source view. This set is independently carried by the compiled V2 input requirement, plan address space, and compilation fingerprint.
 - The profile compiler permits this policy only for the fixed `standard-merge` `dp-input` with copy operations ending at the declared source length. Runtime mappings, Replace flows, TP inputs, LD inputs, processor-dependent profiles, and all other address spaces fail closed.
 - TP inputs retain their profile-declared exact length and the Standard Merge catalog constrains every TP source to at most `0x40000` bytes.
 - NT51950/NT51951 DP Perspective profiles do not use this policy. They retain `AllowedInputLengths` for `0x40000`, `0x80000`, and `0x100000` because their operation copies the full selected DP container.
@@ -26,7 +27,7 @@ Add `InputOversizePolicy.ExtractDeclaredRange` and non-blocking `ExpectedInputLe
 
 ## Verification
 
-- Domain test: a sufficient nonstandard input produces declared-range output and a warning.
+- Domain test: expected outer containers suppress the warning, a sufficient unexpected container produces declared-range output and a warning, and a too-short input fails.
 - Profile test: only Standard Merge `dp-input` can enable the extraction policy; runtime sources and non-DP flows are rejected.
 - Workbench test: NT51926 DP with one trailing byte produces the existing golden output hash and a warning.
 - Existing DP Perspective tests continue to reject unapproved full-container sizes.

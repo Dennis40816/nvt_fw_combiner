@@ -49,9 +49,36 @@ public sealed partial class CompositionPlan
             ValidateExternalProcessorRanges(operation, targetSpace);
         }
 
+        if (operation.Kind == CompositionOperationKind.TransformScalar)
+        {
+            ValidateScalarTransform(operation);
+        }
+        else if (operation.ScalarTransform is not null)
+        {
+            throw new ArgumentException(
+                $"Operation '{operation.OperationId}' has scalar transform metadata but is not a transform operation.",
+                nameof(operation));
+        }
+
         if (operation.SourceSpaceId is not null && operation.SourceRange is not null)
         {
             ValidateSourceRange(operation);
+        }
+    }
+
+    private static void ValidateScalarTransform(CompositionOperation operation)
+    {
+        ScalarTransform transform = operation.ScalarTransform ?? throw new ArgumentException(
+            $"Operation '{operation.OperationId}' is missing scalar transform metadata.",
+            nameof(operation));
+        ByteRange sourceRange = operation.SourceRange ?? throw new ArgumentException(
+            $"Operation '{operation.OperationId}' is missing scalar transform source range.",
+            nameof(operation));
+        if (sourceRange.Length != transform.WidthBytes || operation.TargetRange.Length != transform.WidthBytes)
+        {
+            throw new ArgumentException(
+                $"Operation '{operation.OperationId}' scalar transform ranges must match its declared width.",
+                nameof(operation));
         }
     }
 
@@ -91,6 +118,16 @@ public sealed partial class CompositionPlan
             }
         }
 
+        foreach (ExternalProcessorOutputAssertion assertion in invocation.OutputAssertions)
+        {
+            if (!operation.TargetRange.Contains(assertion.Range) || !targetSpace.Contains(assertion.Range))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(operation),
+                    $"Operation '{operation.OperationId}' output assertion range is outside the staged target range.");
+            }
+        }
+
         foreach (ExternalProcessorStagedSourceBinding binding in invocation.StagedSourceBindings)
         {
             if (!_addressSpacesById.TryGetValue(binding.SourceSpaceId, out AddressSpace? sourceSpace))
@@ -119,6 +156,23 @@ public sealed partial class CompositionPlan
                 throw new ArgumentOutOfRangeException(
                     nameof(operation),
                     $"Operation '{operation.OperationId}' staged source firmware range is outside the staged target range.");
+            }
+        }
+
+        foreach (ExternalProcessorStagedArtifactBinding binding in invocation.StagedArtifactBindings)
+        {
+            if (!_addressSpacesById.TryGetValue(binding.SourceSpaceId, out AddressSpace? sourceSpace))
+            {
+                throw new ArgumentException(
+                    $"Operation '{operation.OperationId}' staged artifact reads undeclared address space '{binding.SourceSpaceId}'.",
+                    nameof(operation));
+            }
+
+            if (!sourceSpace.Contains(binding.SourceRange))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(operation),
+                    $"Operation '{operation.OperationId}' staged artifact range is outside address space '{binding.SourceSpaceId}'.");
             }
         }
     }
@@ -218,6 +272,10 @@ public sealed partial class CompositionPlan
         return (reader.Kind == CompositionOperationKind.RunExternalProcessor &&
                 string.Equals(reader.TargetSpaceId, writer.TargetSpaceId, StringComparison.Ordinal) &&
                 reader.ExternalProcessorInvocation!.AllowedReadRanges.Any(range => range.Overlaps(writer.TargetRange))) ||
+            (reader.Kind == CompositionOperationKind.RunExternalProcessor &&
+             reader.ExternalProcessorInvocation!.StagedArtifactBindings.Any(binding =>
+                 string.Equals(binding.SourceSpaceId, writer.TargetSpaceId, StringComparison.Ordinal) &&
+                 binding.SourceRange.Overlaps(writer.TargetRange))) ||
             (reader.SourceSpaceId is not null &&
              reader.SourceRange is not null &&
              string.Equals(reader.SourceSpaceId, writer.TargetSpaceId, StringComparison.Ordinal) &&
@@ -225,10 +283,4 @@ public sealed partial class CompositionPlan
              reader.SourceRange.Value.Overlaps(writer.TargetRange));
     }
 
-    private bool RequiresSeededMutableAddressSpace(string addressSpaceId)
-    {
-        return OrderedOperations.Any(operation =>
-            string.Equals(operation.TargetSpaceId, addressSpaceId, StringComparison.Ordinal) ||
-            string.Equals(operation.SourceSpaceId, addressSpaceId, StringComparison.Ordinal));
-    }
 }

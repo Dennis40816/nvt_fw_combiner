@@ -97,4 +97,9 @@ public sealed partial class CompositionRunService
         int length = checked((int)Math.Min(range.Length, OutputDifferenceHexPreviewBytes));
         return ToHex(bytes.AsSpan(checked((int)range.Start), length));
     }
+
+    private static string ToHex(ReadOnlySpan<byte> bytes)
+    {
+        return Convert.ToHexString(bytes).ToLowerInvariant();
+    }
 }
