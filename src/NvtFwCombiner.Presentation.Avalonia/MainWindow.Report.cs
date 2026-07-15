@@ -38,9 +38,6 @@ public sealed partial class MainWindow
     private static void ApplyLaunchOptions(MainWindowViewModel viewModel, UiLaunchOptions launchOptions)
     {
         ApplyLaunchPage(viewModel, launchOptions.Page);
-#if DEBUG
-        ApplyDebugDemoWhenNoLaunchOptions(viewModel, launchOptions);
-#endif
         if (launchOptions.Issues.Count > 0)
         {
             viewModel.LoadReportError("Startup arguments", string.Join(Environment.NewLine, launchOptions.Issues));
