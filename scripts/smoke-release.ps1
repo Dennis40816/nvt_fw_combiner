@@ -15,6 +15,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+$ApprovedPackageBaselineBytes = 57501699
+$MaximumPackageBytes = 58076715
 $ApprovedExternalToolPackagePaths = @(
     'external-tools/README.md',
     'external-tools/legacy-combiner/README.md',
@@ -169,6 +171,10 @@ if (-not (Test-Path -LiteralPath $fullPackagePath -PathType Leaf)) {
 }
 if (-not $fullPackagePath.EndsWith('.zip', [StringComparison]::OrdinalIgnoreCase)) {
     throw 'Release smoke requires a .zip package.'
+}
+$packageBytes = (Get-Item -LiteralPath $fullPackagePath).Length
+if ($packageBytes -gt $MaximumPackageBytes) {
+    throw "Release package size $packageBytes exceeds the owner-approved maximum $MaximumPackageBytes bytes (v0.9.7 baseline $ApprovedPackageBaselineBytes bytes plus 1%)."
 }
 
 $smokeRoot = Join-Path ([IO.Path]::GetTempPath()) "nvt-fw-combiner-release-smoke-$([guid]::NewGuid().ToString('N'))"
