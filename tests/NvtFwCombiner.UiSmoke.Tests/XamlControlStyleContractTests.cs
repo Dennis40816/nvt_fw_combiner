@@ -372,9 +372,20 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("VirtualizingStackPanel", hexEditor, StringComparison.Ordinal);
         Assert.Contains("new ContextMenu()", codeBehind, StringComparison.Ordinal);
         Assert.Contains("_hexByteContextMenu.Open(HexViewport)", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("viewModel.RequestInsertBytesBeforeCommand", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("viewModel.RequestInsertBytesAfterCommand", codeBehind, StringComparison.Ordinal);
+        string[] byteContextBindings =
+        [
+            "BindContextCommand(_contextInsertBefore, viewModel.Text.HexEditorContextInsertZeroBeforeLabel, viewModel.InsertZeroBeforeCommand, e.Cell);",
+            "BindContextCommand(_contextInsertAfter, viewModel.Text.HexEditorContextInsertZeroAfterLabel, viewModel.InsertZeroAfterCommand, e.Cell);",
+            "BindContextCommand(_contextInsertManyBefore, viewModel.Text.HexEditorContextInsertBytesBeforeLabel, viewModel.RequestInsertBytesBeforeCommand, e.Cell);",
+            "BindContextCommand(_contextInsertManyAfter, viewModel.Text.HexEditorContextInsertBytesAfterLabel, viewModel.RequestInsertBytesAfterCommand, e.Cell);",
+            "BindContextCommand(_contextDeleteByte, viewModel.Text.HexEditorContextDeleteByteLabel, viewModel.DeleteByteCommand, e.Cell);",
+            "BindContextCommand(_contextSetToZero, viewModel.Text.HexEditorContextSetToZeroLabel, viewModel.SetByteToZeroCommand, e.Cell);",
+            "BindContextCommand(_contextSetToFf, viewModel.Text.HexEditorContextSetToFfLabel, viewModel.SetByteToFfCommand, e.Cell);",
+        ];
+        Assert.All(byteContextBindings, binding => Assert.Contains(binding, codeBehind, StringComparison.Ordinal));
+        Assert.Contains("menuItem.Header = header", codeBehind, StringComparison.Ordinal);
         Assert.Contains("menuItem.Command = command", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("menuItem.CommandParameter = parameter", codeBehind, StringComparison.Ordinal);
         Assert.Contains("StructuralBlockContextMenuRequested", viewport, StringComparison.Ordinal);
         Assert.Contains("TryHitTestStructuralAscii", viewportStructuralBlocks, StringComparison.Ordinal);
         Assert.Contains("ContainsStructuralPoint", viewportStructuralBlocks, StringComparison.Ordinal);
@@ -383,8 +394,14 @@ public sealed partial class XamlControlStyleContractTests
         Assert.True(
             codeBehind.IndexOf("HexViewport.TryGetStructuralBlockAt", StringComparison.Ordinal) <
             codeBehind.IndexOf("HexViewport.TryGetCellAt(point", StringComparison.Ordinal));
-        Assert.Contains("viewModel.GoToChangedBlockStartCommand", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("viewModel.GoToChangedBlockEndCommand", codeBehind, StringComparison.Ordinal);
+        Assert.Contains(
+            "BindContextCommand(_structuralGoToStart, viewModel.Text.HexEditorContextGoToBlockStartLabel, viewModel.GoToChangedBlockStartCommand, block);",
+            codeBehind,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "BindContextCommand(_structuralGoToEnd, viewModel.Text.HexEditorContextGoToBlockEndLabel, viewModel.GoToChangedBlockEndCommand, block);",
+            codeBehind,
+            StringComparison.Ordinal);
         Assert.Contains("NormalizeAddress", hexInputBehavior, StringComparison.Ordinal);
         Assert.Contains("NormalizeByteSequence", hexInputBehavior, StringComparison.Ordinal);
         Assert.DoesNotContain("KeepAsciiHexOnly", codeBehind, StringComparison.Ordinal);
