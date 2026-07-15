@@ -8,7 +8,7 @@ internal static partial class ReplaceCliCommandHandler
 {
     private static async Task WriteWorkbenchReportFileIfRequestedAsync(
         WorkbenchRunResult result,
-        ParsedOptions options,
+        ParsedCliOptions options,
         IReadOnlyList<InputArtifactBinding> bindings,
         string? outputFullPath,
         TextWriter output,

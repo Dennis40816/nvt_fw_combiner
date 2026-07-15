@@ -8,6 +8,7 @@ public sealed partial class RepositoryBoundaryTests
     {
         string dispatch = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.cs");
         string options = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.Options.cs");
+        string optionParser = ReadText("src/NvtFwCombiner.Bootstrap/CliOptionParser.cs");
         string result = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.Result.cs");
         string usage = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.Usage.cs");
         string workbenchReport = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.WorkbenchReport.cs");
@@ -16,13 +17,14 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("private static bool TryCreateBindings", dispatch, StringComparison.Ordinal);
         Assert.DoesNotContain("private const string GeneralReplaceInputAddressSpaceId", dispatch, StringComparison.Ordinal);
         Assert.DoesNotContain("private const string GeneralReplaceOperationId", dispatch, StringComparison.Ordinal);
-        Assert.DoesNotContain("private static bool TryParseOptions", dispatch, StringComparison.Ordinal);
+        Assert.Contains("CliOptionParser.TryParse", dispatch, StringComparison.Ordinal);
         Assert.DoesNotContain("private static async Task PrintRunResultAsync", dispatch, StringComparison.Ordinal);
         Assert.DoesNotContain("private static async Task WriteUsageAsync", dispatch, StringComparison.Ordinal);
         Assert.DoesNotContain("private sealed record ParsedOptions", dispatch, StringComparison.Ordinal);
-        Assert.Contains("private static bool TryParseOptions", options, StringComparison.Ordinal);
         Assert.Contains("private static bool RequireOption", options, StringComparison.Ordinal);
-        Assert.Contains("private sealed record ParsedOptions", options, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryParse", options, StringComparison.Ordinal);
+        Assert.Contains("internal static bool TryParse", optionParser, StringComparison.Ordinal);
+        Assert.Contains("internal sealed record ParsedCliOptions", optionParser, StringComparison.Ordinal);
         Assert.DoesNotContain("private static async Task PrintRunResultAsync", result, StringComparison.Ordinal);
         Assert.Contains("private static async Task<int> UnknownReplaceProfileAsync", result, StringComparison.Ordinal);
         Assert.Contains("private static async Task PrintWorkbenchRunResultAsync", workbenchReport, StringComparison.Ordinal);
@@ -131,6 +133,7 @@ public sealed partial class RepositoryBoundaryTests
     {
         string root = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.cs");
         string options = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.Options.cs");
+        string optionParser = ReadText("src/NvtFwCombiner.Bootstrap/CliOptionParser.cs");
         string profiles = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.Profiles.cs");
         string result = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.Result.cs");
         string standardMerge = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.StandardMerge.cs");
@@ -142,8 +145,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("private static bool TryParseOptions", root, StringComparison.Ordinal);
         Assert.DoesNotContain("private static async Task PrintRunResultAsync", root, StringComparison.Ordinal);
         Assert.DoesNotContain("private static async Task WriteUsageAsync", root, StringComparison.Ordinal);
-        Assert.Contains("private static bool TryParseOptions", options, StringComparison.Ordinal);
-        Assert.Contains("private sealed record ParsedOptions", options, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryParse", options, StringComparison.Ordinal);
+        Assert.Contains("CliOptionParser.TryParse", standardMerge, StringComparison.Ordinal);
+        Assert.Contains("internal static bool TryParse", optionParser, StringComparison.Ordinal);
+        Assert.Contains("internal sealed record ParsedCliOptions", optionParser, StringComparison.Ordinal);
         Assert.Contains("private static async Task<int> RunProfilesAsync", profiles, StringComparison.Ordinal);
         Assert.Contains("GetStandardMergeProfileSummaries", profiles, StringComparison.Ordinal);
         Assert.Contains("GetReplaceProfileSummaries", profiles, StringComparison.Ordinal);

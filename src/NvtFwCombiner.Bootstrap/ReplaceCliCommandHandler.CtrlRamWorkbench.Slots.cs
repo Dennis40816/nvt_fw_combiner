@@ -8,7 +8,7 @@ internal static partial class ReplaceCliCommandHandler
         string icId,
         string icNumber,
         string basePath,
-        ParsedOptions options,
+        ParsedCliOptions options,
         TextWriter error,
         [NotNullWhen(true)] out Dictionary<string, string>? slotPaths)
     {

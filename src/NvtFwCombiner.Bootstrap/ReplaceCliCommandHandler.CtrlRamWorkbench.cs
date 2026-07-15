@@ -8,7 +8,7 @@ internal static partial class ReplaceCliCommandHandler
     private static async Task<int> RunWorkbenchCtrlRamReplaceAsync(
         string action,
         string profileSelector,
-        ParsedOptions options,
+        ParsedCliOptions options,
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken)

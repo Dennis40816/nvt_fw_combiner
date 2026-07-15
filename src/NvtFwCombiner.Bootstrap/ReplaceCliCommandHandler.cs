@@ -56,7 +56,13 @@ internal static partial class ReplaceCliCommandHandler
         }
 
         string[] flagOptions = action == "build" ? ["--overwrite"] : [];
-        if (!TryParseOptions(args[1..], valueOptions, repeatableValueOptions, flagOptions, error, out ParsedOptions options))
+        if (!CliOptionParser.TryParse(
+                args[1..],
+                valueOptions,
+                repeatableValueOptions,
+                flagOptions,
+                error,
+                out ParsedCliOptions options))
         {
             return UsageError;
         }

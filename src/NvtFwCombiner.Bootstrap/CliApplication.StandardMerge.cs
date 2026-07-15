@@ -37,7 +37,13 @@ public static partial class CliApplication
 
         string[] valueOptions = ["--profile", "--dp", "--tp", "--ld", "--output", "--report"];
         string[] flagOptions = action == "build" ? ["--overwrite"] : [];
-        if (!TryParseOptions(args[1..], valueOptions, flagOptions, error, out ParsedOptions options))
+        if (!CliOptionParser.TryParse(
+                args[1..],
+                valueOptions,
+                [],
+                flagOptions,
+                error,
+                out ParsedCliOptions options))
         {
             return UsageError;
         }
@@ -159,7 +165,7 @@ public static partial class CliApplication
 
     private static bool TryCreateBindings(
         IReadOnlyList<string> requiredInputAddressSpaceIds,
-        ParsedOptions options,
+        ParsedCliOptions options,
         TextWriter error,
         out IReadOnlyList<InputArtifactBinding> bindings)
     {
