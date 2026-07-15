@@ -40,6 +40,59 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("string Label, string Value, bool IsWarning", viewModel, StringComparison.Ordinal);
     }
 
+    /// <summary>Keeps missing, selected, and optional slot completion states distinct while localized text remains the non-color cue.</summary>
+    [Fact]
+    public void FirmwareSlotCompletionUsesOrderedSharedVisualStates()
+    {
+        string tokens = ReadPresentationFile("Styles/ThemeTokens.axaml");
+        string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
+        string slotCard = ReadPresentationFile("Views/FirmwareSlotCard.axaml");
+        string viewModel = ReadPresentationFile("ViewModels/FirmwareSlotViewModel.cs");
+        string missingSlot = ExtractStyle(styles, "Border.fileDropZone.firmwareSlot");
+        string selectedSlot = ExtractStyle(styles, "Border.fileDropZone.firmwareSlot.hasFile");
+        string optionalSlot = ExtractStyle(styles, "Border.fileDropZone.firmwareSlot.optional");
+        string missingBadge = ExtractStyle(styles, "Label.slotBadge.firmwareSlotRequirement");
+        string selectedBadge = ExtractStyle(styles, "Label.slotBadge.firmwareSlotRequirement.hasFile");
+        string optionalBadge = ExtractStyle(styles, "Label.slotBadge.firmwareSlotRequirement.optional");
+
+        Assert.Contains("x:Key=\"NfcRequiredMissingBorderBrush\" Color=\"#FCA5A5\"", tokens, StringComparison.Ordinal);
+        Assert.Contains("x:Key=\"NfcRequiredMissingBadgeSurfaceBrush\" Color=\"#FEE2E2\"", tokens, StringComparison.Ordinal);
+        Assert.Contains("x:Key=\"NfcRequiredSelectedBorderBrush\" Color=\"#86EFAC\"", tokens, StringComparison.Ordinal);
+        Assert.Contains("x:Key=\"NfcRequiredSelectedBadgeSurfaceBrush\" Color=\"#DCFCE7\"", tokens, StringComparison.Ordinal);
+        Assert.Contains("x:Key=\"NfcSuccessEmphasisBrush\" Color=\"#15803D\"", tokens, StringComparison.Ordinal);
+
+        Assert.Contains("NfcCriticalSurfaceBrush", missingSlot, StringComparison.Ordinal);
+        Assert.Contains("NfcRequiredMissingBorderBrush", missingSlot, StringComparison.Ordinal);
+        Assert.Contains("Value=\"1.5\"", missingSlot, StringComparison.Ordinal);
+        Assert.Contains("NfcSuccessSurfaceBrush", selectedSlot, StringComparison.Ordinal);
+        Assert.Contains("NfcRequiredSelectedBorderBrush", selectedSlot, StringComparison.Ordinal);
+        Assert.Contains("NfcSurfaceSubtleBrush", optionalSlot, StringComparison.Ordinal);
+        Assert.Contains("NfcBorderBrush", optionalSlot, StringComparison.Ordinal);
+        Assert.True(
+            styles.IndexOf(optionalSlot, StringComparison.Ordinal) > styles.IndexOf(selectedSlot, StringComparison.Ordinal),
+            "The optional slot selector must follow the selected selector so an optional selected slot stays neutral.");
+
+        Assert.Contains("NfcRequiredMissingBadgeSurfaceBrush", missingBadge, StringComparison.Ordinal);
+        Assert.Contains("NfcDangerTextBrush", missingBadge, StringComparison.Ordinal);
+        Assert.Contains("NfcRequiredSelectedBadgeSurfaceBrush", selectedBadge, StringComparison.Ordinal);
+        Assert.Contains("NfcSuccessEmphasisBrush", selectedBadge, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentSurfaceBrush", optionalBadge, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentStrongBrush", optionalBadge, StringComparison.Ordinal);
+        Assert.True(
+            styles.IndexOf(optionalBadge, StringComparison.Ordinal) > styles.IndexOf(selectedBadge, StringComparison.Ordinal),
+            "The optional badge selector must follow the selected selector so its meaning does not drift after selection.");
+
+        Assert.Contains("Classes=\"fileDropZone firmwareSlot\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Classes.hasFile=\"{Binding HasFile}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Classes.optional=\"{Binding IsOptional}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"slotBadge firmwareSlotRequirement\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Content=\"{Binding RequirementLabel}\"", slotCard, StringComparison.Ordinal);
+        Assert.DoesNotContain("SlotBackgroundBrush", slotCard, StringComparison.Ordinal);
+        Assert.DoesNotContain("RequirementBadgeForegroundBrush", slotCard, StringComparison.Ordinal);
+        Assert.DoesNotContain("SlotBackgroundBrush", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("RequirementBadgeForegroundBrush", viewModel, StringComparison.Ordinal);
+    }
+
     private static string ExtractDataTemplate(string xaml, string key)
     {
         return ExtractXamlBlock(xaml, $"<DataTemplate x:Key=\"{key}\"", "</DataTemplate>");
