@@ -258,21 +258,19 @@ public sealed class GeneralMergeCliCommandTests
 
         Assert.True(standardMerge.Succeeded);
 
-        string baseImage = workspace.Write("replace-base.bin", [0, 0, 0, 0, 0, 0, 0, 0]);
-        string ctrlRam = workspace.Write("ctrlram.bin", [0xAA, 0xBB, 0xCC, 0xDD]);
+        string baseImage = workspace.Write("replace-base.bin", new byte[0x40000]);
+        string replacementDp = workspace.Write("replace-dp.bin", new byte[0x40000]);
         CliRunResult replace = await RunCliAsync([
-            "ctrlram-replace",
+            "dp-replace",
             "preview",
             "--profile",
-            "synthetic-ctrlram-replace",
-            "--ic-family",
-            "NT51",
+            "NT51950",
             "--ic-num",
-            "932",
+            "single",
             "--base",
             baseImage,
-            "--ctrlram",
-            ctrlRam,
+            "--dp",
+            replacementDp,
         ]);
 
         Assert.Equal(0, replace.ExitCode);

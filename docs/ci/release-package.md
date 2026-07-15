@@ -67,6 +67,19 @@ The smoke extracts into a fresh temporary directory, checks the closed package s
 
 Both `scripts/verify.py` and `scripts/package.ps1` finish by stopping the repository SDK build server and any idle, repo-bound Avalonia BuildServices collector. The cleanup is scoped to that collector command line and never targets the packaged application, CRC worker, or Combiner process.
 
+## Package-size ratchet
+
+The owner-approved `v0.9.7` Windows inner-ZIP baseline is 57,501,699 bytes.
+`smoke-release.ps1` rejects any later ZIP above 58,076,715 bytes, the greatest
+whole-byte value below a 1% increase. The check runs before extraction and is
+therefore also the fail-fast gate in `main-package.yml`, `release.yml`, and the
+reviewed workflow template.
+
+The byte ratchet does not authorize trimming, removal of the self-contained
+.NET runtime, removal of approved profiles/evidence/external tools, or weaker
+smoke coverage. A lower reproducible package result lowers the ratchet only
+after release review records the producing commit, environment, and artifact.
+
 ## First-sample `v1.0.0` release workflow
 
 The first sample release is allowed only after [`development-tags.md`](../governance/development-tags.md) marks the `v1.0.0` support matrix signed off. The package workflow is the distribution gate, not the firmware-support gate.

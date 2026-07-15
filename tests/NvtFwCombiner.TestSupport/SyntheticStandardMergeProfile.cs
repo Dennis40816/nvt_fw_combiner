@@ -1,12 +1,13 @@
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Profiles;
 
-namespace NvtFwCombiner.Profiles;
+namespace NvtFwCombiner.TestSupport;
 
-/// <summary>Small, non-production composition definitions shared by compiler and runner tests.</summary>
-public static class SyntheticCompositionProfiles
+/// <summary>Creates the fixed Standard Merge definition shared by compiler and runner tests.</summary>
+public static class SyntheticStandardMergeProfile
 {
-    /// <summary>Creates a fixed Standard Merge profile with two non-overlapping input copies.</summary>
-    public static CompositionProfileDefinition CreateStandardMerge()
+    /// <summary>Creates a profile with two non-overlapping input copies.</summary>
+    public static CompositionProfileDefinition Create()
     {
         return new CompositionProfileDefinition(
             "synthetic-standard-merge",

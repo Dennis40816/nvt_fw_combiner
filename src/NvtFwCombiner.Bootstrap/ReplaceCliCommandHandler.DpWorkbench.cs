@@ -21,20 +21,9 @@ internal static partial class ReplaceCliCommandHandler
             return UsageError;
         }
 
-        if (options.Values.ContainsKey("--ic-family"))
-        {
-            error.WriteLine("error: --ic-family is used only by cascade IC num profiles");
-            return UsageError;
-        }
-
         if (!WorkbenchIcNumberTokens.IsSingle(icNumber))
         {
             error.WriteLine($"error: {WorkbenchCompositionService.FormatBuiltInV2DpReplaceIcIds()} DP Replace requires --ic-num {WorkbenchIcNumberTokens.SingleChip}");
-            return UsageError;
-        }
-
-        if (!RejectUnusedDpWorkbenchOptions(options, error))
-        {
             return UsageError;
         }
 
@@ -89,17 +78,4 @@ internal static partial class ReplaceCliCommandHandler
         return WorkbenchCompositionService.TryResolveDpPerspectiveDpReplaceSelector(selector, out icId);
     }
 
-    private static bool RejectUnusedDpWorkbenchOptions(ParsedOptions options, TextWriter error)
-    {
-        foreach (string optionName in new[] { "--ld", "--ctrlram", "--input", "--source-start", "--target-start", "--length", "--mapping" })
-        {
-            if (options.Values.ContainsKey(optionName) || options.GetValues(optionName).Count > 0)
-            {
-                error.WriteLine($"error: option '{optionName}' is not used by {WorkbenchCompositionService.FormatBuiltInV2DpReplaceIcIds()} DP Replace");
-                return false;
-            }
-        }
-
-        return true;
-    }
 }

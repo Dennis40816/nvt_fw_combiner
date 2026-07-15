@@ -2,33 +2,37 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
-    /// <summary>Verifies the Presentation runner remains a thin split adapter over Bootstrap workbench contracts.</summary>
+    /// <summary>Verifies the Presentation projection keeps only UI-owned contract adaptation.</summary>
     [Fact]
     public void UiCompositionRunnerConcernsStaySplit()
     {
-        string root = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.cs");
         string catalog = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Catalog.cs");
         string common = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Common.cs");
         string facts = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.FirmwareFacts.cs");
         string merge = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Merge.cs");
         string replace = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Replace.cs");
+        string bindings = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Bindings.cs");
+        string mergeViewModel = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Merge.cs");
+        string replaceViewModel = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Replace.cs");
 
-        Assert.Contains("public static partial class UiCompositionRunner", root, StringComparison.Ordinal);
-        Assert.DoesNotContain("WorkbenchCompositionService.", root, StringComparison.Ordinal);
-        Assert.DoesNotContain("GetFirmwareSlotFacts", root, StringComparison.Ordinal);
-        Assert.DoesNotContain("GetStandardMergeMemoryMapRows", root, StringComparison.Ordinal);
-        Assert.DoesNotContain("GetReplaceMemoryMapRows", root, StringComparison.Ordinal);
-        Assert.Contains("GetSupportedIcIds", catalog, StringComparison.Ordinal);
-        Assert.Contains("GetDefaultIcId", catalog, StringComparison.Ordinal);
-        Assert.Contains("GetSettingsSnapshot", catalog, StringComparison.Ordinal);
+        Assert.Contains("GetNumberSelectionChoices", catalog, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetSupportedIcIds", catalog, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetDefaultIcId", catalog, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetSettingsSnapshot", catalog, StringComparison.Ordinal);
         Assert.Contains("private static MemoryMapRowViewModel ToMemoryMapRow", common, StringComparison.Ordinal);
         Assert.Contains("GetFirmwareSlotFacts", facts, StringComparison.Ordinal);
-        Assert.Contains("CreateFlashCodeOutputFileName", facts, StringComparison.Ordinal);
+        Assert.DoesNotContain("CreateFlashCodeOutputFileName", facts, StringComparison.Ordinal);
         Assert.Contains("WorkbenchReplaceModes", ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs"), StringComparison.Ordinal);
         Assert.Contains("GetStandardMergeMemoryMapRows", merge, StringComparison.Ordinal);
-        Assert.Contains("RunGeneralMergeAsync", merge, StringComparison.Ordinal);
+        Assert.DoesNotContain("RunGeneralMergeAsync", merge, StringComparison.Ordinal);
         Assert.Contains("GetReplaceMemoryMapRows", replace, StringComparison.Ordinal);
-        Assert.Contains("RunReplaceAsync", replace, StringComparison.Ordinal);
+        Assert.DoesNotContain("RunReplaceAsync", replace, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.GetSupportedIcIds", bindings, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.RunStandardMergeAsync", mergeViewModel, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", replaceViewModel, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies firmware slot model, icons, and fact badges stay split by UI responsibility.</summary>

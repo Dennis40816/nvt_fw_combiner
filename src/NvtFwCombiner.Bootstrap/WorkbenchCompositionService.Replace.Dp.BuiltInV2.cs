@@ -95,19 +95,11 @@ public static partial class WorkbenchCompositionService
     private static ReadOnlyDictionary<string, BuiltInV2DpReplaceRegistration> CreateBuiltInV2DpReplaceRegistrations()
     {
         return new ReadOnlyDictionary<string, BuiltInV2DpReplaceRegistration>(
-            new Dictionary<string, BuiltInV2DpReplaceRegistration>(StringComparer.Ordinal)
+            new BuiltInV2DpReplaceRegistration[]
             {
-                ["NT51950"] = new(
-                    "NT51950",
-                    "nt51950-dp-replace-dp-perspective",
-                    "0.6.1",
-                    s_nt51950Nt51951V2Bundle),
-                ["NT51951"] = new(
-                    "NT51951",
-                    "nt51951-dp-replace-dp-perspective",
-                    "0.6.1",
-                    s_nt51950Nt51951V2Bundle),
-            });
+                new("NT51950", "nt51950-dp-replace-dp-perspective", "0.6.1", Bundle("nt51950-nt51951-standard-merge")),
+                new("NT51951", "nt51951-dp-replace-dp-perspective", "0.6.1", Bundle("nt51950-nt51951-standard-merge")),
+            }.ToDictionary(static registration => registration.IcId, StringComparer.Ordinal));
     }
 
     private sealed class BuiltInV2DpReplaceRegistration

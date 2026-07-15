@@ -20,7 +20,7 @@ public sealed partial class MainWindowViewModel
 
     private void RefreshMergeSlotRequirements()
     {
-        IReadOnlyList<string> required = UiCompositionRunner.GetStandardMergeRequiredAddressSpaces(SelectedIc);
+        IReadOnlyList<string> required = WorkbenchCompositionService.GetStandardMergeRequiredAddressSpaces(SelectedIc);
         _mergeDpSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.DpInput, StringComparer.Ordinal);
         _mergeTpSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.TpInput, StringComparer.Ordinal);
         _mergeLdSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.LdInput, StringComparer.Ordinal);
@@ -63,7 +63,7 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
-        string? profileId = UiCompositionRunner.GetStandardMergeProfileId(SelectedIc);
+        string? profileId = WorkbenchCompositionService.GetStandardMergeProfileId(SelectedIc);
         if (profileId is null)
         {
             AddMergeRows(
@@ -89,7 +89,7 @@ public sealed partial class MainWindowViewModel
 
     private string GetRequiredStandardMergeSlotLabels()
     {
-        IReadOnlyList<string> required = UiCompositionRunner.GetStandardMergeRequiredAddressSpaces(SelectedIc);
+        IReadOnlyList<string> required = WorkbenchCompositionService.GetStandardMergeRequiredAddressSpaces(SelectedIc);
         return required.Count == 0
             ? "none"
             : string.Join(", ", required.Select(AddressSpaceLabel));
@@ -97,7 +97,7 @@ public sealed partial class MainWindowViewModel
 
     private string GetStandardMergeRangeSummary()
     {
-        return UiCompositionRunner.GetStandardMergePolicySummary(SelectedIc);
+        return WorkbenchCompositionService.GetStandardMergePolicySummary(SelectedIc);
     }
 
     private static string AddressSpaceLabel(string addressSpaceId)
@@ -113,7 +113,8 @@ public sealed partial class MainWindowViewModel
 
     private bool CanRunStandardMerge()
     {
-        IReadOnlyList<string> requiredAddressSpaces = UiCompositionRunner.GetStandardMergeRequiredAddressSpaces(SelectedIc);
+        IReadOnlyList<string> requiredAddressSpaces =
+            WorkbenchCompositionService.GetStandardMergeRequiredAddressSpaces(SelectedIc);
         return IsNormalMergeModeSelected && requiredAddressSpaces.Count > 0 && requiredAddressSpaces.All(addressSpace =>
             MergeSlotForAddressSpace(addressSpace) is { HasFile: true });
     }
@@ -156,7 +157,7 @@ public sealed partial class MainWindowViewModel
         try
         {
             cancellationSource = BeginRun();
-            WorkbenchRunResult result = await UiCompositionRunner.RunStandardMergeAsync(
+            WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeAsync(
                 SelectedIc,
                 CreateStandardMergeSlotPaths(),
                 build,
@@ -181,7 +182,8 @@ public sealed partial class MainWindowViewModel
             OnPropertyChanged(nameof(LastRunResult));
             LoadRunErrorReport(
                 action,
-                UiCompositionRunner.GetStandardMergeProfileId(SelectedIc) ?? WorkbenchWorkflowIds.StandardMerge,
+                WorkbenchCompositionService.GetStandardMergeProfileId(SelectedIc) ??
+                    WorkbenchWorkflowIds.StandardMerge,
                 SelectedIc,
                 SelectedNumber,
                 exception.Message,
@@ -202,7 +204,7 @@ public sealed partial class MainWindowViewModel
         try
         {
             cancellationSource = BeginRun();
-            WorkbenchRunResult result = await UiCompositionRunner.RunGeneralMergeAsync(
+            WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralMergeAsync(
                 SelectedIc,
                 GeneralMergeOutputLength,
                 CreateGeneralMergeMappingInputs(),
@@ -228,7 +230,7 @@ public sealed partial class MainWindowViewModel
             OnPropertyChanged(nameof(LastRunResult));
             LoadRunErrorReport(
                 action,
-                UiCompositionRunner.GetGeneralMergeDefaultOutputFileName(SelectedIc),
+                WorkbenchCompositionService.GetGeneralMergeDefaultOutputFileName(SelectedIc),
                 SelectedIc,
                 SelectedNumber,
                 exception.Message,

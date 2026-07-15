@@ -49,82 +49,20 @@ public sealed class WorkbenchCatalogProjectionTests
         Assert.Equal(originalNumberChoice, WorkbenchCompositionService.GetNumberChoices("NT51950")[0]);
     }
 
-    /// <summary>Profile summaries retain executable facts after legacy production profiles are retired.</summary>
+    /// <summary>Replace summaries expose only manifest-pinned V2 runtime profiles.</summary>
     [Fact]
-    public void ProfileSummariesProjectCompiledArtifactsWithoutLegacyTypes()
+    public void ProfileSummariesExcludeSyntheticCompilerFixtures()
     {
-        CompositionProfileDefinition[] syntheticReplaceProfiles =
-        [
-            .. BuiltInReplaceProfiles.All
-                .OrderBy(static profile => profile.ProfileId, StringComparer.Ordinal),
-        ];
-
         IReadOnlyList<WorkbenchProfileSummary> standardSummaries = WorkbenchCompositionService.GetStandardMergeProfileSummaries();
+        IReadOnlyList<WorkbenchProfileSummary> replaceSummaries = WorkbenchCompositionService.GetReplaceProfileSummaries();
         AssertStandardMergeProfileSummaries(standardSummaries);
-        AssertProfileSummaries(
-            syntheticReplaceProfiles,
-            [.. WorkbenchCompositionService.GetReplaceProfileSummaries().Where(static summary => summary.IcId == "NT-SYNTHETIC")]);
-        AssertV2DpReplaceProfileSummaries(WorkbenchCompositionService.GetReplaceProfileSummaries());
+        AssertV2DpReplaceProfileSummaries(replaceSummaries);
+        Assert.DoesNotContain(replaceSummaries, static summary => summary.IcId == "NT-SYNTHETIC");
 
         WorkbenchSettingsSnapshot settings = WorkbenchCompositionService.GetSettingsSnapshot();
         Assert.Equal(standardSummaries.Count, settings.StandardMergeProfileCount);
-        Assert.Equal(syntheticReplaceProfiles.Length + 2, settings.ReplaceProfileCount);
+        Assert.Equal(2, settings.ReplaceProfileCount);
         Assert.Equal(13, settings.FlashMapIcCount);
-    }
-
-    /// <summary>A failed compatibility compile remains visible with source identity and stable issue codes.</summary>
-    [Fact]
-    public void ProfileSummaryRetainsCompileFailureDiagnostics()
-    {
-        CompositionProfileDefinition source = SyntheticCompositionProfiles.CreateStandardMerge();
-        var invalid = new CompositionProfileDefinition(
-            source.ProfileId,
-            source.ProfileVersion,
-            source.IcId,
-            source.ModeId,
-            source.CompositionKind,
-            source.ExperienceId,
-            source.DefaultOutputFileName,
-            source.Initialization,
-            source.AddressSpaces,
-            source.Operations,
-            source.Regions,
-            source.RegionAccessRules,
-            IcNumberInputMode.SingleSelector);
-
-        WorkbenchProfileSummary summary = WorkbenchCompositionService.CreateProfileSummary(invalid);
-
-        Assert.False(summary.CompileSucceeded);
-        Assert.Equal(source.ProfileId, summary.ProfileId);
-        Assert.Equal(source.IcId, summary.IcId);
-        Assert.Equal(source.CompositionKind, summary.CompositionKind);
-        Assert.Equal(source.DefaultOutputFileName, summary.DefaultOutputFileName);
-        Assert.Empty(summary.RequiredInputAddressSpaceIds);
-        Assert.Null(summary.IcNumberPolicy);
-        Assert.Contains("profile.ic-number-mode.not-applicable", summary.IssueCodes);
-    }
-
-    private static void AssertProfileSummaries(
-        CompositionProfileDefinition[] profiles,
-        IReadOnlyList<WorkbenchProfileSummary> summaries)
-    {
-        Assert.Equal(profiles.Length, summaries.Count);
-        for (int index = 0; index < profiles.Length; index++)
-        {
-            CompositionProfileDefinition profile = profiles[index];
-            ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
-            CompiledComposition composition = Assert.IsType<CompiledComposition>(compile.CompiledComposition);
-            WorkbenchProfileSummary summary = summaries[index];
-
-            Assert.True(summary.CompileSucceeded);
-            Assert.Empty(summary.IssueCodes);
-            Assert.Equal(composition.ProfileId, summary.ProfileId);
-            Assert.Equal(composition.IcId, summary.IcId);
-            Assert.Equal(composition.CompositionKind, summary.CompositionKind);
-            Assert.Equal(composition.Plan.RequiredInputAddressSpaceIds, summary.RequiredInputAddressSpaceIds);
-            Assert.Equal(composition.DefaultOutputFileName, summary.DefaultOutputFileName);
-            Assert.Equal(composition.IcNumberPolicy, summary.IcNumberPolicy);
-        }
     }
 
     private static void AssertStandardMergeProfileSummaries(IReadOnlyList<WorkbenchProfileSummary> summaries)

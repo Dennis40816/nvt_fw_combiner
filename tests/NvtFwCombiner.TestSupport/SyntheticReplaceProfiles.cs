@@ -1,13 +1,15 @@
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Profiles;
 
-namespace NvtFwCombiner.Profiles;
+namespace NvtFwCombiner.TestSupport;
 
-public static partial class BuiltInReplaceProfiles
+/// <summary>Synthetic Replace definitions for compiler and application tests only.</summary>
+public static class SyntheticReplaceProfiles
 {
     private const string SyntheticIc = "NT-SYNTHETIC";
 
-    /// <summary>Synthetic DP Replace profile with separate DP and LD replacement payloads.</summary>
-    public static CompositionProfileDefinition SyntheticDpReplace { get; } =
+    /// <inheritdoc/>
+    public static CompositionProfileDefinition Dp { get; } =
         new(
             "synthetic-dp-replace",
             "0.5.0",
@@ -65,8 +67,8 @@ public static partial class BuiltInReplaceProfiles
             ],
             IcNumberInputMode.SingleSelector);
 
-    /// <summary>Synthetic CtrlRAM Replace profile with profile-declared oversized-input truncation.</summary>
-    public static CompositionProfileDefinition SyntheticCtrlRamReplace { get; } =
+    /// <inheritdoc/>
+    public static CompositionProfileDefinition CtrlRam { get; } =
         new(
             "synthetic-ctrlram-replace",
             "0.5.0",
@@ -110,8 +112,8 @@ public static partial class BuiltInReplaceProfiles
             ],
             IcNumberInputMode.CascadeSelector);
 
-    /// <summary>Synthetic General Replace profile that accepts runtime explicit mappings.</summary>
-    public static CompositionProfileDefinition SyntheticGeneralReplace { get; } =
+    /// <inheritdoc/>
+    public static CompositionProfileDefinition General { get; } =
         new(
             "synthetic-general-replace",
             "0.5.0",

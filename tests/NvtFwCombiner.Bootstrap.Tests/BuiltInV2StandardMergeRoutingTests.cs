@@ -135,13 +135,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
                 string relativePath = entry.GetProperty("path").GetString()!;
                 string contentHash = entry.GetProperty("contentHash").GetString()!;
                 string sourcePath = StringComparer.Ordinal.Equals(entry.GetProperty("kind").GetString(), "schema")
-                    ? Path.Combine(
-                        repositoryRoot,
-                        "profiles",
-                        "schema-source",
-                        "sha256",
-                        contentHash,
-                        Path.GetFileName(relativePath))
+                    ? V2StandardMergeGoldenTestSupport.ResolveContractSchemaPath(relativePath, contentHash)
                     : Path.Combine(sourceBundleRoot, relativePath);
                 string deployedPath = Path.Combine(deployedRoot, relativePath);
 

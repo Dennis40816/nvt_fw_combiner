@@ -26,29 +26,6 @@ internal static partial class ReplaceCliCommandHandler
             return UsageError;
         }
 
-        string[] unsupportedOptions =
-        [
-            "--ic-family",
-            "--dp",
-            "--ld",
-            "--ctrlram",
-            "--input",
-            "--source-start",
-            "--target-start",
-            "--length",
-        ];
-        string[] suppliedUnsupportedOptions =
-        [
-            .. unsupportedOptions.Where(options.Values.ContainsKey),
-        ];
-        if (suppliedUnsupportedOptions.Length > 0)
-        {
-            await error.WriteLineAsync(
-                    $"error: real IC General Replace does not accept fixed-profile option(s): {string.Join(", ", suppliedUnsupportedOptions)}; use --mapping, --patch, or --fill")
-                .ConfigureAwait(false);
-            return UsageError;
-        }
-
         if (!TryCreateWorkbenchGeneralAuthoringInputs(
                 options,
                 error,

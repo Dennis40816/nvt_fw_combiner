@@ -1,5 +1,4 @@
 using NvtFwCombiner.Bootstrap;
-using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -67,7 +66,8 @@ public sealed partial class ShellViewModelTests
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.True(File.Exists(outputPath), outputPath);
-        WorkbenchFirmwareConfigMetadata? outputMetadata = UiCompositionRunner.TryReadFirmwareConfigMetadata("NT51926", outputPath);
+        WorkbenchFirmwareConfigMetadata? outputMetadata =
+            WorkbenchCompositionService.TryReadFirmwareConfigMetadata("NT51926", outputPath);
         Assert.NotNull(outputMetadata);
         Assert.True(outputMetadata.IsFirmwareVersionBarValid);
         Assert.Equal((byte)0x2A, outputMetadata.FirmwareVersion);
