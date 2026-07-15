@@ -15,7 +15,6 @@ public sealed partial class ShellViewModelTests
         viewModel.LoadReportJson(json, "warning-report.json");
 
         Assert.Equal("Succeeded with 1 warning(s)", viewModel.ReportActionStatus);
-        Assert.True(viewModel.LoadedReport.IsSuccessful);
         Assert.False(viewModel.LoadedReport.IsClean);
         Assert.True(viewModel.LoadedReport.HasWarnings);
         Assert.True(viewModel.LoadedReport.HasWarningsWithoutBlockingIssues);

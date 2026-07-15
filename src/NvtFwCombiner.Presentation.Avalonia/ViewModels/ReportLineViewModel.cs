@@ -35,8 +35,7 @@ public sealed class ReportLineViewModel
         string inputSizeLabel = "",
         string inputAddressSpace = "",
         string codeBlockLabel = "",
-        IEnumerable<ReportRuntimeCommandViewModel>? runtimeCommands = null,
-        string runtimeCommandsLabel = "")
+        IEnumerable<ReportRuntimeCommandViewModel>? runtimeCommands = null)
     {
         Title = title;
         Detail = detail;
@@ -61,7 +60,6 @@ public sealed class ReportLineViewModel
         InputSizeLabel = inputSizeLabel ?? string.Empty;
         InputAddressSpace = inputAddressSpace ?? string.Empty;
         CodeBlockLabel = codeBlockLabel ?? string.Empty;
-        RuntimeCommandsLabel = runtimeCommandsLabel ?? string.Empty;
         CodeBlock = codeBlock;
         HasCodeBlock = !string.IsNullOrWhiteSpace(codeBlock);
         Badges = badges is null ? [] : [.. badges];
@@ -158,9 +156,6 @@ public sealed class ReportLineViewModel
     /// <summary>True when the row has a user-facing reason.</summary>
     public bool HasReason => !string.IsNullOrWhiteSpace(Reason);
 
-    /// <summary>True when the row has a section label.</summary>
-    public bool HasSectionLabel => !string.IsNullOrWhiteSpace(SectionLabel);
-
     /// <summary>True when the row has a dedicated range value.</summary>
     public bool HasRange => !string.IsNullOrWhiteSpace(Range);
 
@@ -178,9 +173,6 @@ public sealed class ReportLineViewModel
 
     /// <summary>True when a fixed-width code block should be rendered for this line.</summary>
     public bool HasCodeBlock { get; }
-
-    /// <summary>Localized label for completed external-process argv evidence.</summary>
-    public string RuntimeCommandsLabel { get; }
 
     /// <summary>Completed external process invocations recorded by the runtime report.</summary>
     public IReadOnlyList<ReportRuntimeCommandViewModel> RuntimeCommands { get; }

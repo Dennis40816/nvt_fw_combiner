@@ -10,9 +10,6 @@ public sealed partial class MainWindowViewModel
     [ObservableProperty]
     public partial bool IsFirmwareIcMismatchModalOpen { get; set; }
 
-    /// <summary>Gets the loaded slot title used in the mismatch prompt.</summary>
-    public string FirmwareIcMismatchSlotTitle { get; private set; } = string.Empty;
-
     /// <summary>Gets the loaded file name used in the mismatch prompt.</summary>
     public string FirmwareIcMismatchFileName { get; private set; } = string.Empty;
 
@@ -43,11 +40,9 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
-        FirmwareIcMismatchSlotTitle = slot.Title;
         FirmwareIcMismatchFileName = Path.GetFileName(slot.FilePath);
         FirmwareIcMismatchDetectedIc = detectedIc;
         _firmwareIcMismatchSlot = slot;
-        OnPropertyChanged(nameof(FirmwareIcMismatchSlotTitle));
         OnPropertyChanged(nameof(FirmwareIcMismatchFileName));
         OnPropertyChanged(nameof(FirmwareIcMismatchDetectedIc));
         OnPropertyChanged(nameof(FirmwareIcMismatchCurrentIc));

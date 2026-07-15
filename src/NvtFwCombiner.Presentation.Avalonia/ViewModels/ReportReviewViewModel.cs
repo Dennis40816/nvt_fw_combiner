@@ -44,7 +44,6 @@ public sealed partial class ReportReviewViewModel
         Output = output;
         OutputFileName = outputFileName;
         OutputSize = outputSize;
-        OutputCommitted = outputCommitted;
         IsOutputCommitted = outputCommitted == true;
         IsOutputPreview = outputCommitted == false;
         IsOutputStateUnknown = outputCommitted is null;
@@ -84,18 +83,11 @@ public sealed partial class ReportReviewViewModel
         HasStepOperations = StepOperations.Count > 0;
         HasMutations = mutations.Count > 0;
         HasOutputDifferences = outputDifferences.Count > 0;
-        HasOutputDifferenceGroups = OutputDifferenceGroups.Count > 0;
         HasIssues = issues.Count > 0;
         HasNoInputs = !HasInputs;
-        HasNoCommandOperations = !HasCommandOperations;
         HasNoPostbuildInvocations = !HasPostbuildInvocations;
-        HasNoStepOperations = !HasStepOperations;
-        HasNoMutations = !HasMutations;
-        HasNoOutputDifferences = !HasOutputDifferences;
         HasNoIssues = !HasIssues;
         HasNoByteChanges = !HasOutputDifferences && !HasMutations;
-        HasOutputFileName = !string.IsNullOrWhiteSpace(outputFileName) &&
-            !string.Equals(outputFileName, "No output", StringComparison.OrdinalIgnoreCase);
         SummaryRows = CreateSummaryRows(status, output, inputs, operations, mutations, issues, language);
         OutcomeTitle = CreateOutcomeTitle(status, issues, language);
         OutcomeDetail = CreateOutcomeDetail(output, issues, compositionKind, outputDifferences, language);
