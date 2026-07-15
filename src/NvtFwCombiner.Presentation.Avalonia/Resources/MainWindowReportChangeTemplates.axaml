@@ -16,7 +16,7 @@
           HorizontalAlignment="Right"
           VerticalAlignment="Center"
           FontSize="16"
-          FontFamily="Cascadia Mono, Consolas"
+          FontFamily="{DynamicResource NfcTechnicalFontFamily}"
           FontWeight="SemiBold"
           Foreground="{DynamicResource NfcTextStrongBrush}"
           Text="{Binding Count}" />

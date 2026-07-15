@@ -58,7 +58,7 @@
             SelectedItem="{Binding SelectedIc, Mode=TwoWay}">
           <ComboBox.ItemTemplate>
             <DataTemplate>
-              <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="13" Text="{Binding}" />
+              <TextBlock FontFamily="{DynamicResource NfcTechnicalFontFamily}" FontSize="13" Text="{Binding}" />
             </DataTemplate>
           </ComboBox.ItemTemplate>
         </ComboBox>
@@ -88,7 +88,7 @@
             SelectedItem="{Binding SelectedNumberChoice, Mode=TwoWay}">
           <ComboBox.ItemTemplate>
             <DataTemplate x:DataType="vm:IcNumberChoiceViewModel">
-              <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="13" Text="{Binding DisplayLabel}" />
+              <TextBlock FontFamily="{DynamicResource NfcTechnicalFontFamily}" FontSize="13" Text="{Binding DisplayLabel}" />
             </DataTemplate>
           </ComboBox.ItemTemplate>
         </ComboBox>

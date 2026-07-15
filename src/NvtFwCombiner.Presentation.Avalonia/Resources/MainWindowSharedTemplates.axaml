@@ -280,7 +280,7 @@
       CornerRadius="{DynamicResource NfcPillCornerRadius}">
     <StackPanel Orientation="Horizontal" Spacing="4">
       <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="{Binding LabelForegroundBrush}" Text="{Binding Label}" />
-      <TextBlock FontSize="10" FontFamily="Cascadia Mono, Consolas" FontWeight="SemiBold" Foreground="{Binding ValueForegroundBrush}" Text="{Binding Value}" />
+      <TextBlock FontSize="10" FontFamily="{DynamicResource NfcTechnicalFontFamily}" FontWeight="SemiBold" Foreground="{Binding ValueForegroundBrush}" Text="{Binding Value}" />
     </StackPanel>
   </Border>
 </DataTemplate>

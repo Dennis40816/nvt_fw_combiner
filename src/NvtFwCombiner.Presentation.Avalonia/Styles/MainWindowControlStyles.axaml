@@ -240,41 +240,41 @@
     <Setter Property="Foreground" Value="{DynamicResource NfcAccentBrush}" />
   </Style>
   <Style Selector="TextBlock.monoText">
-    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
   </Style>
   <Style Selector="TextBlock.technicalHeader">
-    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
     <Setter Property="FontSize" Value="10" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextMutedBrush}" />
   </Style>
   <Style Selector="TextBlock.technicalCaption">
-    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
     <Setter Property="FontSize" Value="10" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextMutedBrush}" />
   </Style>
   <Style Selector="TextBlock.technicalMeta">
-    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
     <Setter Property="FontSize" Value="11" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextMutedBrush}" />
   </Style>
   <Style Selector="TextBlock.technicalDetail">
-    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
     <Setter Property="FontSize" Value="12" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
   </Style>
   <Style Selector="TextBlock.technicalValue">
-    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
     <Setter Property="FontSize" Value="12" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
   </Style>
   <Style Selector="TextBlock.technicalCompactDetail">
-    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
     <Setter Property="FontSize" Value="11" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
   </Style>
   <Style Selector="TextBlock.technicalCompactValue">
-    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
     <Setter Property="FontSize" Value="11" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
   </Style>
@@ -443,7 +443,7 @@
     <Setter Property="AcceptsReturn" Value="True" />
     <Setter Property="IsReadOnly" Value="True" />
     <Setter Property="TextWrapping" Value="NoWrap" />
-    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
     <Setter Property="FontSize" Value="11" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
@@ -460,7 +460,7 @@
     <Setter Property="Padding" Value="1" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
-    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
     <Setter Property="FontSize" Value="12" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />

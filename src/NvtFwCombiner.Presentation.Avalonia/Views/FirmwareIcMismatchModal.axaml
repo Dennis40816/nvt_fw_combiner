@@ -24,7 +24,7 @@
         <TextBlock Grid.Row="1" Classes="fieldLabel" Text="{Binding Text.FirmwareIcMismatchCurrentLabel}" />
         <TextBlock Grid.Row="1" Grid.Column="1" Classes="monoText" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource NfcTextBrush}" Text="{Binding FirmwareIcMismatchCurrentIc}" />
         <TextBlock Grid.Row="2" Classes="fieldLabel" Text="{Binding Text.FirmwareIcMismatchDetectedLabel}" />
-        <TextBlock Grid.Row="2" Grid.Column="1" FontFamily="Cascadia Mono, Consolas" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource NfcWarningTextMutedBrush}" Text="{Binding FirmwareIcMismatchDetectedIc}" />
+        <TextBlock Grid.Row="2" Grid.Column="1" FontFamily="{DynamicResource NfcTechnicalFontFamily}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource NfcWarningTextMutedBrush}" Text="{Binding FirmwareIcMismatchDetectedIc}" />
       </Grid>
 
       <StackPanel Grid.Row="2" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">

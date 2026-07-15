@@ -19,6 +19,8 @@ public sealed partial class XamlControlStyleContractTests
 
     private static readonly Regex ThemeCornerRadiusTokenDefinitionPattern = ThemeCornerRadiusTokenDefinitionRegex();
 
+    private static readonly Regex ThemeFontFamilyTokenDefinitionPattern = ThemeFontFamilyTokenDefinitionRegex();
+
     private static readonly Regex DynamicThemeReferencePattern = DynamicThemeReferenceRegex();
 
     private static readonly Regex ColorLiteralPattern = ColorLiteralRegex();
@@ -104,9 +106,11 @@ public sealed partial class XamlControlStyleContractTests
         Match[] colorDefinitions = ReadThemeTokenDefinitions();
         Match[] shadowDefinitions = ReadThemeShadowTokenDefinitions();
         Match[] cornerRadiusDefinitions = ReadThemeCornerRadiusTokenDefinitions();
+        Match[] fontFamilyDefinitions = ReadThemeFontFamilyTokenDefinitions();
         var definedKeys = colorDefinitions
             .Concat(shadowDefinitions)
             .Concat(cornerRadiusDefinitions)
+            .Concat(fontFamilyDefinitions)
             .Select(static definition => definition.Groups["key"].Value)
             .ToHashSet(StringComparer.Ordinal);
         var definedColors = colorDefinitions
@@ -121,13 +125,17 @@ public sealed partial class XamlControlStyleContractTests
         Assert.NotEmpty(colorDefinitions);
         Assert.NotEmpty(shadowDefinitions);
         Assert.NotEmpty(cornerRadiusDefinitions);
+        _ = Assert.Single(fontFamilyDefinitions);
         Assert.Equal(colorDefinitions.Length, tokens.Split("<SolidColorBrush", StringSplitOptions.None).Length - 1);
         Assert.Equal(shadowDefinitions.Length, tokens.Split("<BoxShadows", StringSplitOptions.None).Length - 1);
         Assert.Equal(cornerRadiusDefinitions.Length, tokens.Split("<CornerRadius", StringSplitOptions.None).Length - 1);
+        Assert.Equal(fontFamilyDefinitions.Length, tokens.Split("<FontFamily", StringSplitOptions.None).Length - 1);
         Assert.Equal(
-            colorDefinitions.Length + shadowDefinitions.Length + cornerRadiusDefinitions.Length,
+            colorDefinitions.Length + shadowDefinitions.Length + cornerRadiusDefinitions.Length + fontFamilyDefinitions.Length,
             definedKeys.Count);
         Assert.Equal(colorDefinitions.Length, definedColors.Count);
+        Assert.Equal("NfcTechnicalFontFamily", fontFamilyDefinitions[0].Groups["key"].Value);
+        Assert.Equal("Cascadia Mono, Consolas", fontFamilyDefinitions[0].Groups["value"].Value);
 
         string[] migratedPaths =
         [
@@ -173,6 +181,10 @@ public sealed partial class XamlControlStyleContractTests
             Assert.Empty(colorLiterals);
         }
 
+        Assert.All(
+            ReadPresentationXamlFiles().Where(content => !StringComparer.Ordinal.Equals(content, tokens)),
+            static content => Assert.DoesNotContain("Cascadia Mono, Consolas", content, StringComparison.Ordinal));
+
         var referencedKeys = ReadPresentationXamlFiles()
             .SelectMany(content => DynamicThemeReferencePattern.Matches(content)
                 .Cast<Match>()
@@ -215,6 +227,15 @@ public sealed partial class XamlControlStyleContractTests
                 app.TryGetResource(key, ThemeVariant.Default, out object? resource),
                 $"Theme token '{key}' was not available from Application.Resources.");
             _ = Assert.IsType<CornerRadius>(resource);
+        }
+
+        foreach (string key in ReadThemeFontFamilyTokenDefinitions()
+                     .Select(static definition => definition.Groups["key"].Value))
+        {
+            Assert.True(
+                app.TryGetResource(key, ThemeVariant.Default, out object? resource),
+                $"Theme token '{key}' was not available from Application.Resources.");
+            _ = Assert.IsType<FontFamily>(resource);
         }
     }
 
@@ -590,6 +611,13 @@ public sealed partial class XamlControlStyleContractTests
             .Cast<Match>()];
     }
 
+    private static Match[] ReadThemeFontFamilyTokenDefinitions()
+    {
+        return [.. ThemeFontFamilyTokenDefinitionPattern
+            .Matches(ReadPresentationFile("Styles/ThemeTokens.axaml"))
+            .Cast<Match>()];
+    }
+
     [GeneratedRegex("<SolidColorBrush\\s+x:Key=\"(?<key>Nfc[A-Za-z]+)\"\\s+Color=\"(?<color>#[0-9A-Fa-f]{6,8})\"\\s*/>", RegexOptions.CultureInvariant)]
     private static partial Regex ThemeTokenDefinitionRegex();
 
@@ -598,6 +626,9 @@ public sealed partial class XamlControlStyleContractTests
 
     [GeneratedRegex("<CornerRadius\\s+x:Key=\"(?<key>Nfc[A-Za-z]+)\">[^<]+</CornerRadius>", RegexOptions.CultureInvariant)]
     private static partial Regex ThemeCornerRadiusTokenDefinitionRegex();
+
+    [GeneratedRegex("<FontFamily\\s+x:Key=\"(?<key>Nfc[A-Za-z]+)\">(?<value>[^<]+)</FontFamily>", RegexOptions.CultureInvariant)]
+    private static partial Regex ThemeFontFamilyTokenDefinitionRegex();
 
     [GeneratedRegex("\\{DynamicResource\\s+(?<key>Nfc[A-Za-z]+)\\}", RegexOptions.CultureInvariant)]
     private static partial Regex DynamicThemeReferenceRegex();
