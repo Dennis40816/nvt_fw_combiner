@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
@@ -15,24 +14,6 @@ public static partial class WorkbenchCompositionService
     private const string GeneralMergeV2CandidateCompilationUnexpected = "general-merge.v2-candidate.compilation-unexpected";
     private const string GeneralMergeLegacyPlanInvalid = "profile.plan.invalid";
     private const string GeneralMergeV2OperationOverlap = "profile.v2.plan.operation-overlap";
-    private static readonly ReadOnlyDictionary<string, GeneralMergeV2CandidateRegistration> s_generalMergeV2Candidates = new(
-        new GeneralMergeV2CandidateRegistration[]
-        {
-            new("NT51917", "nt51927", "nt51917-general-merge-logical-candidate", Bundle("nt51917-nt51927-general-merge-logical-candidate")),
-            new("NT51919", "nt51929-nt51932", "nt51919-general-merge-logical-candidate", Bundle("nt51919-nt51929-nt51932-general-merge-logical-candidate")),
-            new("NT51920", "nt51920", "nt51920-general-merge-logical-candidate", Bundle("nt51920-general-merge-logical-candidate")),
-            new("NT51923", "nt51923-nt51926", "nt51923-general-merge-logical-candidate", Bundle("nt51923-nt51926-general-merge-logical-candidate")),
-            new("NT51926", "nt51923-nt51926", "nt51926-general-merge-logical-candidate", Bundle("nt51923-nt51926-general-merge-logical-candidate")),
-            new("NT51927", "nt51927", "nt51927-general-merge-logical-candidate", Bundle("nt51917-nt51927-general-merge-logical-candidate")),
-            new("NT51928", "nt51928", "nt51928-general-merge-logical-candidate", Bundle("nt51928-general-merge-logical-candidate")),
-            new("NT51929", "nt51929-nt51932", "nt51929-general-merge-logical-candidate", Bundle("nt51919-nt51929-nt51932-general-merge-logical-candidate")),
-            new("NT51930", "nt51930", "nt51930-general-merge-logical-candidate", Bundle("nt51930-general-merge-logical-candidate")),
-            new("NT51931", "nt51931", "nt51931-general-merge-logical-candidate", Bundle("nt51931-general-merge-logical-candidate")),
-            new("NT51932", "nt51929-nt51932", "nt51932-general-merge-logical-candidate", Bundle("nt51919-nt51929-nt51932-general-merge-logical-candidate")),
-            new("NT51950", "nt51950-nt51951-dp-perspective", "nt51950-general-merge-logical-candidate", Bundle("nt51950-nt51951-general-merge-logical-candidate")),
-            new("NT51951", "nt51950-nt51951-dp-perspective", "nt51951-general-merge-logical-candidate", Bundle("nt51950-nt51951-general-merge-logical-candidate")),
-        }.ToDictionary(static registration => registration.IcId, StringComparer.Ordinal));
-
     /// <summary>Runs a registered logical-output V2 General Merge profile through the shared application core.</summary>
     private static async ValueTask<WorkbenchRunResult> RunGeneralMergeV2Async(
         string icId,
@@ -64,7 +45,9 @@ public static partial class WorkbenchCompositionService
                 GeneralMergeV2CandidateProfileVersion);
         }
 
-        if (!s_generalMergeV2Candidates.TryGetValue(icId, out GeneralMergeV2CandidateRegistration? registration))
+        if (!BuiltInV2RegistrationRegistry.GeneralMergeByIc.TryGetValue(
+                icId,
+                out GeneralMergeV2CandidateRegistration? registration))
         {
             return Blocked(
                 [new CompositionIssue(
@@ -202,10 +185,4 @@ public static partial class WorkbenchCompositionService
                     : issue),
         ];
     }
-
-    private sealed record GeneralMergeV2CandidateRegistration(
-        string IcId,
-        string FamilyId,
-        string ProfileId,
-        BuiltInV2Bundle Bundle);
 }

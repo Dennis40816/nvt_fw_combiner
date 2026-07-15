@@ -102,7 +102,8 @@ public sealed partial class RepositoryBoundaryTests
         string replaceDisplay = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Display.cs");
         string replaceCoverage = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Coverage.cs");
         string replaceCli = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.DpWorkbench.cs");
-        string bundle = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs");
+        string bundle = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2Bundle.cs");
+        string registrations = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
 
         Assert.Contains("TryCompileDpPerspectiveDpReplace", replaceDp, StringComparison.Ordinal);
         Assert.Contains("CompiledCompositionInputBindingFactory.Create", replaceDp, StringComparison.Ordinal);
@@ -111,10 +112,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("TryResolveDpPerspectiveDpReplaceSelector", replaceCli, StringComparison.Ordinal);
         Assert.DoesNotContain("BuiltInReplaceProfiles", replaceCli, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileDefinition", replaceCli, StringComparison.Ordinal);
-        Assert.Contains("IcWorkflowIds.DpReplace", v2Resolution, StringComparison.Ordinal);
+        Assert.Contains("IcWorkflowIds.DpReplace", registrations, StringComparison.Ordinal);
         Assert.Contains(
-            "Bundle(\"nt51950-nt51951-standard-merge\")",
-            v2Resolution,
+            "BuiltInV2BundleRegistry.All[\"nt51950-nt51951-standard-merge\"]",
+            registrations,
             StringComparison.Ordinal);
         Assert.Contains("TryResolveDpPerspectiveDpReplaceDisplay", v2Resolution, StringComparison.Ordinal);
         Assert.DoesNotContain("DpPerspectiveCatalog", v2Display, StringComparison.Ordinal);

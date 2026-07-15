@@ -9,7 +9,7 @@ public sealed partial class RepositoryBoundaryTests
     public void SyntheticReplaceProfilesStayTestOnly()
     {
         string synthetic = ReadText("tests/NvtFwCombiner.TestSupport/SyntheticReplaceProfiles.cs");
-        string v2Registration = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.BuiltInV2.cs");
+        string v2Registration = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
 
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
@@ -94,7 +94,7 @@ public sealed partial class RepositoryBoundaryTests
             "NvtFwCombiner.Profiles",
             "SyntheticCompositionProfiles.cs")));
         string synthetic = ReadText("tests/NvtFwCombiner.TestSupport/SyntheticStandardMergeProfile.cs");
-        string registration = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs");
+        string registration = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
         Assert.Contains("SyntheticStandardMergeProfile", synthetic, StringComparison.Ordinal);
         Assert.Contains("BuiltInV2StandardMergeRegistration", registration, StringComparison.Ordinal);
     }

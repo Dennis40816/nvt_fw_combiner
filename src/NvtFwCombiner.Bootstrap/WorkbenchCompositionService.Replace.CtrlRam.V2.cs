@@ -18,7 +18,7 @@ public static partial class WorkbenchCompositionService
         var referenceBase = new FirmwareArtifactPayload(
             CompositionAddressSpaceIds.ReferenceBase,
             referenceBaseBytes.Span);
-        return Bundle("nt51926-ctrlram-replace-candidate").Compile(
+        return BuiltInV2BundleRegistry.All["nt51926-ctrlram-replace-candidate"].Compile(
             "nt51926-ctrlram-replace-fw141-cascade",
             "0.2.0",
             "NT51926",
