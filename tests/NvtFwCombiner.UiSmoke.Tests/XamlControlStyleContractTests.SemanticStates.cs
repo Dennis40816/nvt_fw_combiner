@@ -93,6 +93,53 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("RequirementBadgeForegroundBrush", viewModel, StringComparison.Ordinal);
     }
 
+    /// <summary>Keeps each slot icon category visually distinct while geometry and accessible tooltips stay in the ViewModel.</summary>
+    [Fact]
+    public void FirmwareSlotIconsUseSharedCategoryVisualStates()
+    {
+        string tokens = ReadPresentationFile("Styles/ThemeTokens.axaml");
+        string styles = ReadPresentationFile("Styles/MainWindowVisualStyles.axaml");
+        string slotCard = ReadPresentationFile("Views/FirmwareSlotCard.axaml");
+        string viewModel = ReadPresentationFile("ViewModels/FirmwareSlotViewModel.Icons.cs");
+
+        foreach ((string key, string color) in new[]
+                 {
+                     ("NfcReferenceInputSurfaceBrush", "#EEF2FF"),
+                     ("NfcReferenceInputBorderBrush", "#C7D2FE"),
+                     ("NfcReferenceInputTextBrush", "#4338CA"),
+                     ("NfcControllerInputSurfaceBrush", "#F5F3FF"),
+                     ("NfcControllerInputBorderBrush", "#DDD6FE"),
+                     ("NfcControllerInputTextBrush", "#6D28D9"),
+                     ("NfcCautionBorderSoftBrush", "#FDE68A"),
+                 })
+        {
+            Assert.Contains($"x:Key=\"{key}\" Color=\"{color}\"", tokens, StringComparison.Ordinal);
+        }
+
+        AssertIconStyle(styles, "bin", "NfcCautionSurfaceBrush", "NfcCautionBorderSoftBrush", "NfcCautionTextBrush");
+        AssertIconStyle(styles, "base", "NfcReferenceInputSurfaceBrush", "NfcReferenceInputBorderBrush", "NfcReferenceInputTextBrush");
+        AssertIconStyle(styles, "dp", "NfcAccentSurfaceSubtleBrush", "NfcAccentBorderLightBrush", "NfcAccentStrongBrush");
+        AssertIconStyle(styles, "tp", "NfcSuccessSurfaceBrush", "NfcSuccessBorderBrush", "NfcSuccessEmphasisBrush");
+        AssertIconStyle(styles, "ctrlRam", "NfcControllerInputSurfaceBrush", "NfcControllerInputBorderBrush", "NfcControllerInputTextBrush");
+
+        Assert.Contains("xmlns:converters=\"clr-namespace:Avalonia.Data.Converters;assembly=Avalonia.Base\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Converter={x:Static converters:ObjectConverters.Equal}", slotCard, StringComparison.Ordinal);
+        foreach (string kind in new[] { "Unknown", "Base", "Dp", "Tp", "CtrlRam" })
+        {
+            Assert.Contains($"ConverterParameter={{x:Static vm:FirmwareSlotKind.{kind}}}", slotCard, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("ToolTip.Tip=\"{Binding SlotIconTooltip}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Data=\"{Binding SlotIconPathData}\"", slotCard, StringComparison.Ordinal);
+        Assert.DoesNotContain("SlotIconBackgroundBrush", slotCard, StringComparison.Ordinal);
+        Assert.DoesNotContain("SlotIconBorderBrush", slotCard, StringComparison.Ordinal);
+        Assert.DoesNotContain("SlotIconForegroundBrush", slotCard, StringComparison.Ordinal);
+        Assert.Contains("SlotIconPathData", viewModel, StringComparison.Ordinal);
+        Assert.Contains("SlotIconTooltip", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("Avalonia.Media", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("Brush.Parse", viewModel, StringComparison.Ordinal);
+    }
+
     private static string ExtractDataTemplate(string xaml, string key)
     {
         return ExtractXamlBlock(xaml, $"<DataTemplate x:Key=\"{key}\"", "</DataTemplate>");
@@ -110,5 +157,19 @@ public sealed partial class XamlControlStyleContractTests
         int end = xaml.IndexOf(closing, start, StringComparison.Ordinal);
         Assert.True(end >= 0, $"Unclosed XAML block: {opening}");
         return xaml[start..(end + closing.Length)];
+    }
+
+    private static void AssertIconStyle(
+        string styles,
+        string iconClass,
+        string backgroundToken,
+        string borderToken,
+        string foregroundToken)
+    {
+        string borderStyle = ExtractStyle(styles, $"Border.slotTypeIcon.{iconClass}");
+        string pathStyle = ExtractStyle(styles, $"Border.slotTypeIcon.{iconClass} Path");
+        Assert.Contains(backgroundToken, borderStyle, StringComparison.Ordinal);
+        Assert.Contains(borderToken, borderStyle, StringComparison.Ordinal);
+        Assert.Contains(foregroundToken, pathStyle, StringComparison.Ordinal);
     }
 }

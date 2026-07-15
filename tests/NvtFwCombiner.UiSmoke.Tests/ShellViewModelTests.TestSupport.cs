@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text.Json;
-using Avalonia.Media;
 using NvtFwCombiner.Contracts.Reports;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -58,12 +57,6 @@ public sealed partial class ShellViewModelTests
         return (
             int.Parse(startHex, NumberStyles.HexNumber, CultureInfo.InvariantCulture),
             int.Parse(lengthHex, NumberStyles.HexNumber, CultureInfo.InvariantCulture));
-    }
-
-    private static void AssertBrush(string expectedHex, IBrush brush)
-    {
-        ISolidColorBrush solid = Assert.IsType<ISolidColorBrush>(brush, exactMatch: false);
-        Assert.Equal(Color.Parse(expectedHex), solid.Color);
     }
 
     private static void AssertIconGeometry(FirmwareSlotViewModel slot)
