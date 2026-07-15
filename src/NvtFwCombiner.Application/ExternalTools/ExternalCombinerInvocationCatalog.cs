@@ -19,6 +19,20 @@ public static class ExternalCombinerInvocationCatalog
             "0x40000",
         ]);
 
+    /// <summary>Exact NT51951 AB merge command with the verified one-mebibyte B-bank placement.</summary>
+    public static ExternalCombinerInvocationProfile Nt51951AbMerge { get; } = new(
+        "nfc-nt51951-ab-merge-combiner-v1",
+        ToolBindingId,
+        "input-output-file",
+        [
+            "NT51950BASED_MERGE_AB_MODE",
+            "CRC8",
+            "{staging.artifact.a-bank}",
+            "{staging.artifact.b-bank}",
+            "{staging.outputBin}",
+            "0x80000",
+        ]);
+
     /// <summary>All profile-selected invocation contracts in deterministic processor-id order.</summary>
-    public static IReadOnlyList<ExternalCombinerInvocationProfile> All => [Nt51950AbMerge];
+    public static IReadOnlyList<ExternalCombinerInvocationProfile> All => [Nt51950AbMerge, Nt51951AbMerge];
 }

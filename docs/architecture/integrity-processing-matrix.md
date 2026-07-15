@@ -13,7 +13,7 @@ Owner update 2026-06-30:
 | NT51929 | uploaded AB combiner | None | Address relocation only; no CRC configured | fixed-`0x80000` V2 candidate relocates little-endian `u32` offsets `0x7164/0x7168/0x716C` by `+0x40000` in a cloned TPB buffer | Tracked fixture full-byte V2/reference parity: `c7e1e263...3d66abe2`; runtime exposure and firmware-owner promotion pending |
 | NT51932 | uploaded/reference AB combiner | None | Address relocation only; no CRC configured | fixed-`0x80000` V2 candidate relocates little-endian `u32` offsets `0x7164/0x7168/0x716C` by `+0x40000` in a cloned TPB buffer | Candidate profile evidence confirmed; independent product golden/owner promotion pending |
 | NT51950 | uploaded AB combiner | Verify existing CRC | DIFF relocation, then Combiner recalculates and writes CRC | V2 copies full DP, builds immutable A/B banks, overlays TPA/TPB, and relocates only TPB DIFF by `+0x40000`. Combiner 1.13.0 `NT51950BASED_MERGE_AB_MODE CRC8 A.bin B.bin output.bin 0x40000` writes the remaining B-header ILM/DLM fields and CRC. Two owner-approved fixtures are full-byte equal to the uploaded Python reference and Combiner output. | Executable candidate only; no UI/CLI route and firmware-owner promotion pending |
-| NT51951 | uploaded AB combiner config | Verify existing CRC | DIFF relocation, then Combiner recalculates and writes CRC | A deterministic 1 MiB topology experiment confirms Python and `NT51950BASED_MERGE_AB_MODE CRC8 A.bin B.bin output.bin 0x80000` are exact byte-for-byte equal after pre-tool DIFF relocation. Direct NT51951 AB golden parity is still absent. | Needs direct golden input/output before promotion |
+| NT51951 | uploaded AB combiner config | Verify existing CRC | DIFF relocation, then Combiner recalculates and writes CRC | Windows-only synthetic regression fixes Python-reference SHA-256 `e1524ba5...2e628c71` for `NT51950BASED_MERGE_AB_MODE CRC8 A.bin B.bin output.bin 0x80000` after pre-tool DIFF relocation. Direct NT51951 AB golden parity is still absent. | Needs direct golden input/output before promotion |
 | Other Standard-reference ICs | `gen_flash_bin_v2` | Unknown | Unknown/not applicable | no integrity rule established by current evidence | Must inventory |
 
 ## 2026-07-14 NT51950 AB private Combiner audit
@@ -33,10 +33,11 @@ the complete ILM `[0x4A100,0x4A104)`, DLM `[0x4A110,0x4A114)`, and header CRC
 The committed Combiner 1.13.0
 (`ED6B58289CC780F73D36B831F5424CEF44AD93187BA7518D36DF6A77AD0C76BF`) now
 reproduces both owner-approved NT51950 outputs byte-for-byte after the V2 DIFF
-relocation. A separate deterministic 1 MiB topology experiment confirms the same
-Combiner command with `0x80000` produces the Python NT51951 configuration output
-exactly after DIFF relocation. The latter establishes command capability only; it
-does not establish NT51951 product golden parity or support.
+relocation. The Windows-only `Nt51951CombinerTopologyMatchesPythonReferenceVectorAsync`
+regression fixes the exact SHA-256 of a deterministic 1 MiB Python NT51951 input
+vector and verifies that the same Combiner command with `0x80000` reproduces it
+after DIFF relocation. This establishes command capability only; it does not
+establish NT51951 product golden parity or support.
 
 ## Replace processing evidence
 
