@@ -3,6 +3,11 @@
 This folder accepts private R3 evidence only. Its payloads are ignored by Git
 and do not enable AB UI/CLI routing or support exposure.
 
+The tracked NT51929 case currently names NT51919 only as a fact-scoped alias,
+and the Bootstrap regression proves complete candidate-output parity through
+that alias. It is not a direct NT51919 product golden, and firmware-owner
+approval of the alias scope remains required before promotion.
+
 Provide these files under `inputs/`:
 
 - `dp-ab.bin`, `tpa.bin`, `tpb.bin`, and `expected.bin`;
