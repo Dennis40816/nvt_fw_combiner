@@ -100,6 +100,29 @@ class CodeSizePolicyTests(unittest.TestCase):
         self.assertTrue(any("maximum is 3" in error for error in default_errors))
         self.assertEqual([], exact_errors)
 
+    def test_tracks_each_partial_type_once_per_source_file(self) -> None:
+        self.write(
+            "src/Product/Workbench.One.cs",
+            "namespace Product;\n"
+            "public partial class Auxiliary {}\n"
+            "public partial class Workbench {}\n"
+            "public partial class Workbench {}\n",
+        )
+        self.write(
+            "src/Product/Workbench.Two.cs",
+            "namespace Product;\npublic partial class Workbench {}\n",
+        )
+
+        snapshot = measure_code_size(self.root)
+        workbench = next(
+            aggregate
+            for aggregate in snapshot.partial_types
+            if aggregate.name == "Product.Workbench"
+        )
+
+        self.assertEqual(2, workbench.file_count)
+        self.assertEqual(6, workbench.nonblank_lines)
+
 
 if __name__ == "__main__":
     unittest.main()

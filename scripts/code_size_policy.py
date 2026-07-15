@@ -123,10 +123,13 @@ def measure_code_size(root: Path) -> CodeSizeSnapshot:
             continue
         text = path.read_text(encoding="utf-8-sig")
         namespace_match = NAMESPACE_PATTERN.search(text)
-        partial_match = PARTIAL_TYPE_PATTERN.search(text)
-        if namespace_match and partial_match:
-            qualified_name = f"{namespace_match.group(1)}.{partial_match.group(1)}"
-            partial_files[qualified_name].append(path)
+        if namespace_match:
+            qualified_names = {
+                f"{namespace_match.group(1)}.{partial_match.group(1)}"
+                for partial_match in PARTIAL_TYPE_PATTERN.finditer(text)
+            }
+            for qualified_name in qualified_names:
+                partial_files[qualified_name].append(path)
 
     partial_types = tuple(
         PartialTypeAggregate(
