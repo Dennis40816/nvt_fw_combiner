@@ -35,6 +35,37 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", replaceViewModel, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies all composition commands share one UI-owned run lifecycle.</summary>
+    [Fact]
+    public void CompositionCommandsShareRunLifecycle()
+    {
+        string lifecycle = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.RunLifecycle.cs");
+        string merge = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Merge.cs");
+        string replace = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Replace.cs");
+
+        Assert.Equal(2, CountOccurrences(merge, "return RunCompositionAsync("));
+        Assert.Equal(1, CountOccurrences(replace, "return RunCompositionAsync("));
+        Assert.Contains("WorkbenchCompositionService.RunStandardMergeAsync", merge, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.RunGeneralMergeAsync", merge, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", replace, StringComparison.Ordinal);
+        Assert.Contains("ApplyRunResult(result, build);", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("loadErrorReport(action, exception.Message);", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("CompleteRun(cancellationSource);", lifecycle, StringComparison.Ordinal);
+        Assert.Equal(
+            1,
+            CountOccurrences(
+                ReadViewModelPartials(),
+                "catch (OperationCanceledException) when (cancellationSource is { IsCancellationRequested: true })"));
+        Assert.Equal(
+            1,
+            CountOccurrences(
+                ReadViewModelPartials(),
+                "catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)"));
+    }
+
     /// <summary>Verifies firmware slot model, icons, and fact badges stay split by UI responsibility.</summary>
     [Fact]
     public void FirmwareSlotViewModelConcernsStaySplit()

@@ -1,3 +1,5 @@
+using NvtFwCombiner.Bootstrap;
+
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
@@ -35,5 +37,43 @@ public sealed partial class MainWindowViewModel
         }
 
         cancellationSource.Dispose();
+    }
+
+    private async Task RunCompositionAsync(
+        bool build,
+        Func<CancellationToken, ValueTask<WorkbenchRunResult>> run,
+        Action<string, string> loadErrorReport)
+    {
+        CancellationTokenSource? cancellationSource = null;
+        try
+        {
+            cancellationSource = BeginRun();
+            WorkbenchRunResult result = await run(cancellationSource.Token);
+            ApplyRunResult(result, build);
+            RefreshCommandState();
+        }
+        catch (OperationCanceledException) when (cancellationSource is { IsCancellationRequested: true })
+        {
+            RefreshCommandState();
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            RefreshCommandState();
+            string action = build ? "Build" : "Preview";
+            LastRunResult = new UiRunResultViewModel(
+                $"{action} failed",
+                exception.Message,
+                "No output",
+                succeeded: false);
+            OnPropertyChanged(nameof(LastRunResult));
+            loadErrorReport(action, exception.Message);
+        }
+        finally
+        {
+            if (cancellationSource is not null)
+            {
+                CompleteRun(cancellationSource);
+            }
+        }
     }
 }
