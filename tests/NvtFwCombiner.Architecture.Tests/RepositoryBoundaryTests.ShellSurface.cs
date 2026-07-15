@@ -104,6 +104,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("Selector=\"Button.segmentDisabled", buttonStyles, StringComparison.Ordinal);
         Assert.DoesNotContain("Selector=\"Border.successSurface", controlStyles, StringComparison.Ordinal);
         Assert.DoesNotContain("Selector=\"TextBlock.technicalHeader", controlStyles, StringComparison.Ordinal);
+        Assert.DoesNotContain("Selector=\"Border.footerStatus", controlStyles, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource HomePageTemplate}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource SettingsPageTemplate}\"", shell, StringComparison.Ordinal);
         Assert.Contains("DataTemplate x:Key=\"HomePageTemplate\"", pageTemplates, StringComparison.Ordinal);

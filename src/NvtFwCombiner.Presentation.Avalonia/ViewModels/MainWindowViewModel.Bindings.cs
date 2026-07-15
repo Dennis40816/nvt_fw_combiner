@@ -79,8 +79,6 @@ public sealed partial class MainWindowViewModel
     public PlanningCardText ReplacePreview { get; private set; } = ShellTextResources.For(ShellLanguage.English).ReplacePreview;
 
     /// <summary>Gets footer status content.</summary>
-    public string FooterStatus { get; private set; } = string.Empty;
-
     /// <summary>Gets merge input slots.</summary>
     public ObservableCollection<FirmwareSlotViewModel> MergeSlots { get; } = [];
 
@@ -246,20 +244,8 @@ public sealed partial class MainWindowViewModel
     /// <summary>One-line Build action hint for Replace.</summary>
     public string ReplaceBuildActionTip => CreateBuildActionTip(ReplaceReadinessStatus, CanRunReplace());
 
-    /// <summary>True when Standard Merge preview can run.</summary>
-    public bool CanPreviewStandardMerge => !IsRunInProgress && CanRunStandardMerge();
-
-    /// <summary>True when Standard Merge build can run.</summary>
-    public bool CanBuildStandardMerge => !IsRunInProgress && CanRunStandardMerge();
-
-    /// <summary>True when active Merge preview can run.</summary>
-    public bool CanPreviewMerge => CanRunMerge();
-
     /// <summary>True when active Merge build can run.</summary>
     public bool CanBuildMerge => CanRunMerge();
-
-    /// <summary>True when Replace preview can run for the active mode.</summary>
-    public bool CanPreviewReplace => CanRunReplace();
 
     /// <summary>True when Replace build can run for the active mode.</summary>
     public bool CanBuildReplace => CanRunReplace();
@@ -397,7 +383,6 @@ public sealed partial class MainWindowViewModel
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(MergeMemoryRangeLabel))]
     [NotifyPropertyChangedFor(nameof(MergeReadinessStatus))]
-    [NotifyPropertyChangedFor(nameof(CanPreviewMerge))]
     [NotifyPropertyChangedFor(nameof(CanBuildMerge))]
     public partial string GeneralMergeOutputLength { get; set; } =
         WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(DefaultIcId);

@@ -31,7 +31,7 @@ public sealed partial class ShellViewModelTests
         viewModel.SetSlotFile("replace-base", basePath);
         viewModel.SetSlotFile(regionSlot.SlotId, regionPath);
 
-        Assert.True(viewModel.CanPreviewReplace);
+        Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
 
         await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
@@ -87,7 +87,7 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("2 / 12 targets selected", viewModel.ReplaceSelectionCountLabel);
         Assert.Contains(viewModel.ReplaceSelectionRows, row => row.Title == "Normal CtrlRAM (Slave R)");
         Assert.Contains(viewModel.ReplaceSelectionRows, row => row.Title == "VN CtrlRAM (Slave L)");
-        Assert.True(viewModel.CanPreviewReplace);
+        Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
 
         await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
@@ -126,7 +126,7 @@ public sealed partial class ShellViewModelTests
         string vnPath = workspace.Write("vn-ctrlram.bin", baseBytes[start..(start + length)]);
         viewModel.SetSlotFile(vnLeft.SlotId, vnPath);
 
-        Assert.True(viewModel.CanPreviewReplace);
+        Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
 
         await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
@@ -166,7 +166,7 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(baseBytes, simulatedBeforePostbuild);
         viewModel.SetSlotFile(vnLeftSlot.SlotId, replacementPath);
 
-        Assert.True(viewModel.CanPreviewReplace);
+        Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
 
         await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 

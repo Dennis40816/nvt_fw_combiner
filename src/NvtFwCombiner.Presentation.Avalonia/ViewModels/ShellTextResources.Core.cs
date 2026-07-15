@@ -35,19 +35,13 @@ public sealed partial class ShellTextResources
 
     public PlanningCardText ReplacePreview { get; private init; } = EmptyPlanningCard;
 
-    public string FooterStatus { get; private init; } = string.Empty;
-
     public string InitialRunTitle { get; private init; } = string.Empty;
 
     public string InitialRunDetail { get; private init; } = string.Empty;
 
     public string NoOutputLabel { get; private init; } = string.Empty;
 
-    public string ConfigureKicker { get; private init; } = string.Empty;
-
     public string WorkflowKicker { get; private init; } = string.Empty;
-
-    public string OpenSettingsLabel { get; private init; } = string.Empty;
 
     public string OpenLabel { get; private init; } = string.Empty;
 

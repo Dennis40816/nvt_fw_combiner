@@ -126,13 +126,13 @@ public sealed partial class ShellViewModelTests
 
         Assert.True(viewModel.PreviewMergeCommand.CanExecute(null));
         Assert.True(viewModel.BuildMergeCommand.CanExecute(null));
-        Assert.True(viewModel.CanBuildStandardMerge);
+        Assert.True(viewModel.CanBuildMerge);
 
         await viewModel.PreviewMergeCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.True(viewModel.BuildMergeCommand.CanExecute(null));
-        Assert.True(viewModel.CanBuildStandardMerge);
+        Assert.True(viewModel.CanBuildMerge);
 
         string outputPath = workspace.PathFor("selected-output.bin");
         await viewModel.BuildStandardMergeAsync(outputPath);
@@ -184,15 +184,16 @@ public sealed partial class ShellViewModelTests
 
         Assert.Contains(nameof(MainWindowViewModel.MergeReadinessStatus), propertyChanges);
         Assert.Contains("maps 1 source BIN", viewModel.MergeReadinessStatus, StringComparison.Ordinal);
-        Assert.True(viewModel.CanPreviewMerge);
+        Assert.True(viewModel.PreviewMergeCommand.CanExecute(null));
         Assert.True(viewModel.CanBuildMerge);
-        Assert.False(viewModel.CanBuildStandardMerge);
+        Assert.True(viewModel.IsGeneralMergeModeSelected);
+        Assert.False(viewModel.IsNormalMergeModeSelected);
 
         await viewModel.PreviewMergeCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.True(viewModel.CanBuildMerge);
-        Assert.False(viewModel.CanBuildStandardMerge);
+        Assert.True(viewModel.IsGeneralMergeModeSelected);
 
         string outputPath = workspace.PathFor("general-merge.bin");
         await viewModel.BuildMergeAsync(outputPath);
@@ -223,21 +224,21 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedIc = "NT51926";
         golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
 
-        Assert.True(viewModel.CanPreviewStandardMerge);
-        Assert.True(viewModel.CanBuildStandardMerge);
+        Assert.True(viewModel.PreviewMergeCommand.CanExecute(null));
+        Assert.True(viewModel.CanBuildMerge);
 
         JsonProperty firstInput = goldenCase.GetProperty("inputs").EnumerateObject().First();
         string replacementCopyPath = workspace.PathFor($"{firstInput.Name}-copy.bin");
         File.Copy(golden.ManifestPath(firstInput.Value), replacementCopyPath);
         viewModel.SetSlotFile(StandardMergeGoldenManifest.SlotIdForAddressSpace(firstInput.Name), replacementCopyPath);
 
-        Assert.True(viewModel.CanPreviewStandardMerge);
-        Assert.True(viewModel.CanBuildStandardMerge);
+        Assert.True(viewModel.PreviewMergeCommand.CanExecute(null));
+        Assert.True(viewModel.CanBuildMerge);
 
         viewModel.SelectedIc = "NT51927";
 
-        Assert.True(viewModel.CanPreviewStandardMerge);
-        Assert.True(viewModel.CanBuildStandardMerge);
+        Assert.True(viewModel.PreviewMergeCommand.CanExecute(null));
+        Assert.True(viewModel.CanBuildMerge);
 
         string oversizedTpPath = workspace.PathFor("tp-input-oversized.bin");
         File.WriteAllBytes(oversizedTpPath, new byte[0x40001]);
@@ -265,13 +266,13 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedIc = "NT51950";
         golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
 
-        Assert.True(viewModel.CanPreviewStandardMerge);
-        Assert.True(viewModel.CanBuildStandardMerge);
+        Assert.True(viewModel.PreviewMergeCommand.CanExecute(null));
+        Assert.True(viewModel.CanBuildMerge);
 
         await viewModel.PreviewMergeCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.True(viewModel.CanBuildStandardMerge);
+        Assert.True(viewModel.CanBuildMerge);
         Assert.True(viewModel.HasLoadedReport);
         Assert.True(viewModel.CanOpenReport);
         Assert.True(viewModel.HasReportToast);

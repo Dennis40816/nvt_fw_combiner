@@ -82,6 +82,12 @@ public sealed partial class RepositoryBoundaryTests
                      "RemoveGeneralReplaceMappingCommand",
                      "GetCtrlRamRegionSummary",
                      "FirmwareIcMismatchSlotTitle",
+                     "FooterStatus",
+                     "SettingsPreferenceRows",
+                     "CanPreviewStandardMerge",
+                     "CanBuildStandardMerge",
+                     "CanPreviewMerge",
+                     "CanPreviewReplace",
                  })
         {
             Assert.DoesNotContain(retiredName, viewModel, StringComparison.Ordinal);

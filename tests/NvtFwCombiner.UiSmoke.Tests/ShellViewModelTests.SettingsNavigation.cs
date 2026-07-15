@@ -41,26 +41,12 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("必填", viewModel.ReplaceBaseSlot.RequirementLabel);
         Assert.Equal("尚未選擇 BIN", viewModel.ReplaceBaseSlot.DisplayName);
         Assert.Contains(viewModel.SettingsProfileRows, row => row.Title == "內建 profiles" && row.Status == "已串接");
-        Assert.Contains(viewModel.SettingsPreferenceRows, row =>
-            row.Title == "主題" &&
-            row.Value == "Dark" &&
-            row.Status == "已儲存");
-        Assert.Contains(viewModel.SettingsPreferenceRows, row =>
-            row.Title == "審查嚴格度" &&
-            row.Value == "Warn only" &&
-            row.Status == "已儲存");
-        Assert.Contains(viewModel.SettingsPreferenceRows, row =>
-            row.Title == "語言" &&
-            row.Value == "Traditional Chinese" &&
-            row.Status == "已套用");
         Assert.Contains(viewModel.SettingsDiagnosticsRows, row =>
             row.Title == "Report history 儲存" &&
             row.Status == "已啟用");
         Assert.Contains(viewModel.SettingsReadinessRows, row =>
             row.Title == "偏好設定" &&
             row.Value == "本機儲存");
-        Assert.DoesNotContain(viewModel.SettingsPreferenceRows, row =>
-            row.Status.Contains("Pending", StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>Verifies breadcrumbs show page hierarchy while Back returns to the previous page.</summary>

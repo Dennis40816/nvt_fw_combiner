@@ -29,7 +29,7 @@ public sealed partial class ShellViewModelTests
         viewModel.SetSlotFile("replace-base", basePath);
         viewModel.SetSlotFile(vnSlot.SlotId, replacementPath);
 
-        Assert.True(viewModel.CanPreviewReplace);
+        Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
         Assert.True(viewModel.CanBuildReplace);
 
         await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
@@ -105,7 +105,7 @@ public sealed partial class ShellViewModelTests
             fixtures.SetReplacementSlots(viewModel, fixtureCase);
 
             string outputPath = workspace.PathFor($"{caseId}.bin");
-            Assert.True(viewModel.CanPreviewReplace, caseId);
+            Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null), caseId);
 
             await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
             Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
@@ -191,7 +191,9 @@ public sealed partial class ShellViewModelTests
 
             Assert.Equal(expectedSlotCount, expectedWrites.Count);
             Assert.Contains(expectedWrites, item => item.SlotId == expectedVnSlotId && item.Bytes.Length == 0x1660);
-            Assert.True(viewModel.CanPreviewReplace, viewModel.ReplacePreviewUnavailableReason);
+            Assert.True(
+                viewModel.PreviewReplaceCommand.CanExecute(null),
+                viewModel.ReplacePreviewUnavailableReason);
 
             await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 

@@ -33,7 +33,7 @@ public sealed partial class ShellViewModelTests
         Assert.NotEmpty(viewModel.ReplaceCoverageSegments);
         Assert.Contains("len 0x", viewModel.ReplaceMemoryRangeLabel, StringComparison.Ordinal);
         Assert.Contains("explicit profile-approved", viewModel.SelectedReplaceModeDescription, StringComparison.Ordinal);
-        Assert.False(viewModel.CanPreviewReplace);
+        Assert.False(viewModel.PreviewReplaceCommand.CanExecute(null));
         Assert.Equal(
             "Build blocked: base BIN and at least one explicit replacement mapping are required.",
             viewModel.ReplaceReadinessStatus);
@@ -68,13 +68,13 @@ public sealed partial class ShellViewModelTests
         mapping.EndAddress = "0x00101";
         viewModel.SetGeneralReplaceMappingFile(mapping.MappingId, replacementPath);
 
-        Assert.True(viewModel.CanPreviewReplace);
+        Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
         Assert.Contains("Ready", viewModel.ReplaceReadinessStatus, StringComparison.Ordinal);
 
         await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.True(viewModel.CanBuildReplace);
+        Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
 
         await viewModel.BuildReplaceAsync(outputPath);
 
@@ -106,7 +106,7 @@ public sealed partial class ShellViewModelTests
         mapping.EndAddress = "0x22C01";
         viewModel.SetGeneralReplaceMappingFile(mapping.MappingId, replacementPath);
 
-        Assert.True(viewModel.CanPreviewReplace);
+        Assert.True(viewModel.CanBuildReplace);
         Assert.Contains("run postbuild", viewModel.ReplaceReadinessStatus, StringComparison.Ordinal);
 
         await viewModel.PreviewReplaceCommand.ExecuteAsync(null);

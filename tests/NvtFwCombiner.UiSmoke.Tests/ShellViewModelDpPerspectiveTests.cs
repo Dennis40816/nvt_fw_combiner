@@ -152,7 +152,7 @@ public sealed partial class ShellViewModelTests
         viewModel.SetSlotFile("replace-base", basePath);
         viewModel.SetSlotFile("replace-dp", replacementPath);
 
-        Assert.True(viewModel.CanPreviewReplace);
+        Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
         Assert.True(viewModel.BuildReplaceCommand.CanExecute(null));
         Assert.True(viewModel.CanBuildReplace);
 
@@ -246,12 +246,12 @@ public sealed partial class ShellViewModelTests
         viewModel.SetSlotFile("replace-base", basePath);
         viewModel.SetSlotFile("replace-dp", replacementPath);
 
-        Assert.True(viewModel.CanPreviewReplace);
+        Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
         Assert.True(viewModel.CanBuildReplace);
 
         viewModel.SetSlotFile("replace-dp", replacementPath2);
 
-        Assert.True(viewModel.CanPreviewReplace);
+        Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
         Assert.True(viewModel.CanBuildReplace);
         Assert.True(viewModel.BuildReplaceCommand.CanExecute(null));
 
