@@ -3,16 +3,16 @@
     xmlns:behaviors="using:NvtFwCombiner.Presentation.Avalonia.Behaviors"
     xmlns:input="using:Avalonia.Input">
   <Style Selector="TabControl.reportTabs">
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
   </Style>
   <Style Selector="TabControl.reportTabs TabItem">
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Padding" Value="8,6" />
     <Setter Property="MinHeight" Value="32" />
   </Style>
   <Style Selector="TabControl.reportTabs TabItem TextBlock">
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
   </Style>
@@ -37,7 +37,7 @@
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
-    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
   </Style>
   <Style Selector="ToggleButton.nav /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="Transparent" />
@@ -62,7 +62,7 @@
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
-    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
   </Style>
   <Style Selector="ToggleButton.segment /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
@@ -93,11 +93,11 @@
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
     <Setter Property="FontFamily" Value="{DynamicResource NfcUiFontFamily}" />
-    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
   </Style>
   <Style Selector="ComboBoxItem">
     <Setter Property="FontFamily" Value="{DynamicResource NfcUiFontFamily}" />
-    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
   </Style>
   <Style Selector="ComboBox.technicalSelect">
     <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
@@ -120,7 +120,7 @@
     <Setter Property="VerticalContentAlignment" Value="Center" />
     <Setter Property="TextAlignment" Value="Center" />
     <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
-    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="behaviors:HexTextInputBehavior.Mode" Value="Address" />
     <Setter Property="input:InputMethod.IsInputMethodEnabled" Value="False" />
@@ -135,7 +135,7 @@
     <Setter Property="VerticalContentAlignment" Value="Center" />
     <Setter Property="TextAlignment" Value="Center" />
     <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
-    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="behaviors:HexTextInputBehavior.Mode" Value="ByteSequence" />
     <Setter Property="input:InputMethod.IsInputMethodEnabled" Value="False" />

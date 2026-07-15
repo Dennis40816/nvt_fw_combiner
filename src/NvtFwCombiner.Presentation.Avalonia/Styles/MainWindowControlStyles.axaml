@@ -142,7 +142,7 @@
     <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
   </Style>
   <Style Selector="TextBlock.pageSubtitle">
-    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextMutedBrush}" />
   </Style>
   <Style Selector="TextBlock.previewTitle">
@@ -161,7 +161,7 @@
     <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
   </Style>
   <Style Selector="TextBlock.cardTitle">
-    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize14}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
   </Style>
@@ -170,72 +170,72 @@
     <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
   </Style>
   <Style Selector="TextBlock.panelTitle">
-    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
   </Style>
   <Style Selector="TextBlock.fieldLabel">
-    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextMutedBrush}" />
   </Style>
   <Style Selector="TextBlock.sectionLabel">
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextMutedBrush}" />
   </Style>
   <Style Selector="TextBlock.compactTitle">
-    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
   </Style>
   <Style Selector="TextBlock.tableHeader">
-    <Setter Property="FontSize" Value="10" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize10}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextMutedBrush}" />
   </Style>
   <Style Selector="TextBlock.bodyText">
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
   </Style>
   <Style Selector="TextBlock.bodyStrongText">
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
   </Style>
   <Style Selector="TextBlock.bodyEmphasisText">
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
   </Style>
   <Style Selector="TextBlock.detailText">
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
   </Style>
   <Style Selector="TextBlock.readinessText">
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
   </Style>
   <Style Selector="TextBlock.mutedText">
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextMutedBrush}" />
   </Style>
   <Style Selector="TextBlock.captionText">
-    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextMutedBrush}" />
   </Style>
   <Style Selector="TextBlock.supportingText">
-    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextMutedBrush}" />
   </Style>
   <Style Selector="TextBlock.infoText">
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcAccentBrush}" />
   </Style>
   <Style Selector="TextBlock.microInfoText">
-    <Setter Property="FontSize" Value="10" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize10}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcAccentBrush}" />
   </Style>
@@ -244,44 +244,44 @@
   </Style>
   <Style Selector="TextBlock.technicalHeader">
     <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
-    <Setter Property="FontSize" Value="10" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize10}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextMutedBrush}" />
   </Style>
   <Style Selector="TextBlock.technicalCaption">
     <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
-    <Setter Property="FontSize" Value="10" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize10}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextMutedBrush}" />
   </Style>
   <Style Selector="TextBlock.technicalMeta">
     <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
-    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextMutedBrush}" />
   </Style>
   <Style Selector="TextBlock.technicalDetail">
     <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
   </Style>
   <Style Selector="TextBlock.technicalValue">
     <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
   </Style>
   <Style Selector="TextBlock.technicalCompactDetail">
     <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
-    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
   </Style>
   <Style Selector="TextBlock.technicalCompactValue">
     <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
-    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
   </Style>
   <Style Selector="TextBlock.mappingIndex">
     <Setter Property="HorizontalAlignment" Value="Center" />
     <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
   </Style>
@@ -297,7 +297,7 @@
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
-    <Setter Property="FontSize" Value="10" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize10}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
   </Style>
@@ -318,7 +318,7 @@
   </Style>
   <Style Selector="Label.reportBadge.large">
     <Setter Property="MinHeight" Value="24" />
-    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
   </Style>
   <Style Selector="Label.slotBadge">
     <Setter Property="MinHeight" Value="22" />
@@ -328,7 +328,7 @@
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
-    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
   <Style Selector="Label.countBadge">
@@ -341,7 +341,7 @@
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
-    <Setter Property="FontSize" Value="10" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize10}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
   </Style>
@@ -351,7 +351,7 @@
     <Setter Property="Foreground" Value="{DynamicResource NfcWarningTextStrongBrush}" />
   </Style>
   <Style Selector="TextBlock.hexInspectorSection">
-    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
   </Style>
@@ -380,7 +380,7 @@
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcCautionTextBrush}" />
-    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
   <Style Selector="Button.hexChangedBlockNavigator:disabled">
@@ -403,7 +403,7 @@
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
   </Style>
   <Style Selector="TextBlock.hexWriteModeLabel">
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
@@ -413,7 +413,7 @@
   <Style Selector="Button.hexApplyChange">
     <Setter Property="MinHeight" Value="32" />
     <Setter Property="Padding" Value="12,5" />
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
   </Style>
   <Style Selector="Button.hexInspectorAction">
     <Setter Property="MinWidth" Value="32" />
@@ -444,7 +444,7 @@
     <Setter Property="IsReadOnly" Value="True" />
     <Setter Property="TextWrapping" Value="NoWrap" />
     <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
-    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
@@ -461,7 +461,7 @@
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
     <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
     <Setter Property="BorderThickness" Value="1" />

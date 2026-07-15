@@ -257,6 +257,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("<x:Double x:Key=\"NfcSpace8\">8</x:Double>", themeTokens, StringComparison.Ordinal);
         Assert.Contains("<x:Double x:Key=\"NfcSpace12\">12</x:Double>", themeTokens, StringComparison.Ordinal);
         Assert.Contains("<x:Double x:Key=\"NfcSpace16\">16</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcFontSize10\">10</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcFontSize11\">11</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcFontSize12\">12</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcFontSize13\">13</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcFontSize14\">14</x:Double>", themeTokens, StringComparison.Ordinal);
         Assert.DoesNotContain("Classes=\"secondary\" Content=\"{Binding PreviewActionLabel}\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Background=\"#0F172A\" CornerRadius=\"8\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Merge / Replace workspace", shell, StringComparison.Ordinal);

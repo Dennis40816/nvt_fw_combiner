@@ -25,8 +25,8 @@
           <DataTemplate x:DataType="vm:ShellNavigationEntryViewModel">
             <Button Classes="breadcrumb" Command="{Binding NavigateCommand}">
               <Grid VerticalAlignment="Center" ColumnDefinitions="Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
-                <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource NfcTextBrush}" Text="{Binding Label}" />
-                <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="13" Foreground="{DynamicResource NfcTextDisabledBrush}" IsVisible="{Binding IsChevronVisible}" Text=">" />
+                <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize13}" FontWeight="SemiBold" Foreground="{DynamicResource NfcTextBrush}" Text="{Binding Label}" />
+                <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize13}" Foreground="{DynamicResource NfcTextDisabledBrush}" IsVisible="{Binding IsChevronVisible}" Text=">" />
               </Grid>
             </Button>
           </DataTemplate>
@@ -58,7 +58,7 @@
             SelectedItem="{Binding SelectedIc, Mode=TwoWay}">
           <ComboBox.ItemTemplate>
             <DataTemplate>
-              <TextBlock FontFamily="{DynamicResource NfcTechnicalFontFamily}" FontSize="13" Text="{Binding}" />
+              <TextBlock FontFamily="{DynamicResource NfcTechnicalFontFamily}" FontSize="{DynamicResource NfcFontSize13}" Text="{Binding}" />
             </DataTemplate>
           </ComboBox.ItemTemplate>
         </ComboBox>
@@ -88,7 +88,7 @@
             SelectedItem="{Binding SelectedNumberChoice, Mode=TwoWay}">
           <ComboBox.ItemTemplate>
             <DataTemplate x:DataType="vm:IcNumberChoiceViewModel">
-              <TextBlock FontFamily="{DynamicResource NfcTechnicalFontFamily}" FontSize="13" Text="{Binding DisplayLabel}" />
+              <TextBlock FontFamily="{DynamicResource NfcTechnicalFontFamily}" FontSize="{DynamicResource NfcFontSize13}" Text="{Binding DisplayLabel}" />
             </DataTemplate>
           </ComboBox.ItemTemplate>
         </ComboBox>

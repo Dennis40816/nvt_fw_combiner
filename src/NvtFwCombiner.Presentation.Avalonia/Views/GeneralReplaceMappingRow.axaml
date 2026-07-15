@@ -22,7 +22,7 @@
           Grid.Column="2"
           HorizontalAlignment="Center"
           VerticalAlignment="Center"
-          FontSize="12"
+          FontSize="{DynamicResource NfcFontSize12}"
           Foreground="{DynamicResource NfcTextMutedBrush}"
           Text="-" />
       <TextBox
@@ -59,7 +59,7 @@
           Classes="iconButton dangerIcon"
           Click="RemoveButton_OnClick"
           ToolTip.Tip="{Binding RemoveRangeTooltip, ElementName=Root}">
-        <TextBlock FontSize="13" Text="X" />
+        <TextBlock FontSize="{DynamicResource NfcFontSize13}" Text="X" />
       </Button>
     </Grid>
   </Border>

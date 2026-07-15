@@ -34,7 +34,7 @@
                   Data="{Binding SlotIconPathData}"
                   Stroke="{Binding SlotIconForegroundBrush}" />
             </Border>
-            <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource NfcTextStrongBrush}" Text="{Binding Title}" />
+            <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize14}" FontWeight="SemiBold" Foreground="{DynamicResource NfcTextStrongBrush}" Text="{Binding Title}" />
             <Label
                 Classes="slotBadge"
                 Background="{Binding RequirementBadgeBackgroundBrush}"
@@ -43,7 +43,7 @@
                 Content="{Binding RequirementLabel}" />
           </StackPanel>
           <TextBlock Classes="mutedText" Text="{Binding Description}" TextWrapping="Wrap" />
-          <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource NfcTextBrush}" Text="{Binding DisplayName}" TextWrapping="Wrap" />
+          <TextBlock FontSize="{DynamicResource NfcFontSize13}" FontWeight="SemiBold" Foreground="{DynamicResource NfcTextBrush}" Text="{Binding DisplayName}" TextWrapping="Wrap" />
           <ItemsControl IsVisible="{Binding HasFirmwareFacts}" ItemsSource="{Binding FirmwareFacts}">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate>

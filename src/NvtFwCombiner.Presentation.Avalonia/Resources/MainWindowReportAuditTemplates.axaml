@@ -14,7 +14,7 @@
         <Label Grid.Column="1" Classes="reportBadge" Content="{Binding Text.TraceLabel}" />
       </Grid>
 
-      <TabControl Grid.Row="1" Margin="12,0,12,12" Classes="reportTabs" FontSize="12">
+      <TabControl Grid.Row="1" Margin="12,0,12,12" Classes="reportTabs" FontSize="{DynamicResource NfcFontSize12}">
         <TabItem Header="{Binding Text.ReportTabInputs}">
           <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="0,12,0,0" Spacing="{DynamicResource NfcSpace12}">
@@ -80,7 +80,7 @@
               <Expander IsExpanded="False" IsVisible="{Binding LoadedReport.HasMutations}">
                 <Expander.Header>
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                    <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource NfcTextSecondaryBrush}" Text="{Binding Text.ChangedRangesTitle}" />
+                    <TextBlock FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Foreground="{DynamicResource NfcTextSecondaryBrush}" Text="{Binding Text.ChangedRangesTitle}" />
                     <Label Grid.Column="1" Classes="reportBadge" Content="{Binding LoadedReport.MutationCount}" />
                   </Grid>
                 </Expander.Header>
@@ -160,11 +160,11 @@
               <Border Classes="successInset" Padding="16" IsVisible="{Binding LoadedReport.HasNoIssues}">
                 <Grid ColumnDefinitions="34,*" ColumnSpacing="{DynamicResource NfcSpace12}">
                   <Border Width="26" Height="26" Background="{DynamicResource NfcSuccessAccentBrush}" CornerRadius="{DynamicResource NfcPillCornerRadius}">
-                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource NfcSurfaceBrush}" Text="✓" />
+                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize14}" FontWeight="SemiBold" Foreground="{DynamicResource NfcSurfaceBrush}" Text="✓" />
                   </Border>
                   <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace2}">
-                    <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource NfcSuccessTextStrongBrush}" Text="{Binding Text.NoActionRequiredTitle}" />
-                    <TextBlock FontSize="12" Foreground="{DynamicResource NfcSuccessTextBrush}" Text="{Binding Text.EmptyIssuesMessage}" TextWrapping="Wrap" />
+                    <TextBlock FontSize="{DynamicResource NfcFontSize13}" FontWeight="SemiBold" Foreground="{DynamicResource NfcSuccessTextStrongBrush}" Text="{Binding Text.NoActionRequiredTitle}" />
+                    <TextBlock FontSize="{DynamicResource NfcFontSize12}" Foreground="{DynamicResource NfcSuccessTextBrush}" Text="{Binding Text.EmptyIssuesMessage}" TextWrapping="Wrap" />
                   </StackPanel>
                 </Grid>
               </Border>

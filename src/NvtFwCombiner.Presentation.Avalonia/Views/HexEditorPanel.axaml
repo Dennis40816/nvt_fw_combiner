@@ -304,7 +304,7 @@
                 <TextBox
                     behaviors:HexTextInputBehavior.Mode="ByteSequence"
                     Classes="monoText"
-                    FontSize="13"
+                    FontSize="{DynamicResource NfcFontSize13}"
                     input:InputMethod.IsInputMethodEnabled="False"
                     PlaceholderText="{Binding Text.HexEditorHexBytesPlaceholder}"
                     Text="{Binding RangeValue, Mode=TwoWay}"

@@ -68,7 +68,7 @@
         <Grid Margin="0,2" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
           <StackPanel Spacing="3">
             <TextBlock Classes="panelTitle" Text="{Binding Title}" TextWrapping="Wrap" />
-            <TextBlock FontSize="11" Foreground="{DynamicResource NfcTextSecondaryBrush}" Text="{Binding Reason}" TextWrapping="Wrap" IsVisible="{Binding HasReason}" />
+            <TextBlock FontSize="{DynamicResource NfcFontSize11}" Foreground="{DynamicResource NfcTextSecondaryBrush}" Text="{Binding Reason}" TextWrapping="Wrap" IsVisible="{Binding HasReason}" />
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
               <TextBlock Classes="technicalCaption" Text="{Binding Range}" TextWrapping="Wrap" IsVisible="{Binding HasRange}" />
               <TextBlock Classes="tableHeader" Text="{Binding ChangedSummary}" TextWrapping="Wrap" IsVisible="{Binding HasChangedSummary}" />
@@ -94,7 +94,7 @@
               <TextBlock Classes="technicalValue" Text="{Binding BeforeValue}" TextWrapping="Wrap" />
             </StackPanel>
             <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace4}">
-              <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource NfcSuccessTextBrush}" Text="{Binding AfterLabel}" TextWrapping="Wrap" />
+              <TextBlock FontSize="{DynamicResource NfcFontSize10}" FontWeight="SemiBold" Foreground="{DynamicResource NfcSuccessTextBrush}" Text="{Binding AfterLabel}" TextWrapping="Wrap" />
               <TextBlock Classes="technicalValue" Text="{Binding AfterValue}" TextWrapping="Wrap" />
             </StackPanel>
           </Grid>

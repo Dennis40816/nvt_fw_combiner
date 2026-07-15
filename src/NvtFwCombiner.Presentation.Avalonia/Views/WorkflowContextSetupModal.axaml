@@ -26,7 +26,7 @@
               SelectedItem="{Binding WorkflowContextSetup.SelectedIc, Mode=TwoWay}">
             <ComboBox.ItemTemplate>
               <DataTemplate>
-                <TextBlock Classes="monoText" FontSize="13" Text="{Binding}" />
+                <TextBlock Classes="monoText" FontSize="{DynamicResource NfcFontSize13}" Text="{Binding}" />
               </DataTemplate>
             </ComboBox.ItemTemplate>
           </ComboBox>
@@ -39,7 +39,7 @@
               SelectedItem="{Binding WorkflowContextSetup.SelectedNumberChoice, Mode=TwoWay}">
             <ComboBox.ItemTemplate>
               <DataTemplate x:DataType="vm:IcNumberChoiceViewModel">
-                <TextBlock Classes="monoText" FontSize="13" Text="{Binding DisplayLabel}" />
+                <TextBlock Classes="monoText" FontSize="{DynamicResource NfcFontSize13}" Text="{Binding DisplayLabel}" />
               </DataTemplate>
             </ComboBox.ItemTemplate>
           </ComboBox>

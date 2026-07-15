@@ -57,7 +57,7 @@
               Foreground="{DynamicResource NfcTextStrongBrush}"
               Text="{Binding Text.ProductTitle}" />
           <TextBlock
-              FontSize="12"
+              FontSize="{DynamicResource NfcFontSize12}"
               Foreground="{DynamicResource NfcTextMutedBrush}"
               Text="{Binding ShellVersion}" />
         </StackPanel>
@@ -103,8 +103,8 @@
               Click="LoadReportJsonButton_OnClick"
               ToolTip.Tip="{Binding Text.LoadJsonTooltip}">
             <StackPanel Orientation="Horizontal" Spacing="7">
-              <TextBlock VerticalAlignment="Center" FontSize="14" Text="↥" />
-              <TextBlock VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Text="{Binding Text.LoadJsonLabel}" />
+              <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize14}" Text="↥" />
+              <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Text="{Binding Text.LoadJsonLabel}" />
             </StackPanel>
           </Button>
           <Button
@@ -119,11 +119,11 @@
                   Text="▤" />
               <StackPanel Grid.Column="1" Spacing="0">
                 <TextBlock
-                    FontSize="12"
+                    FontSize="{DynamicResource NfcFontSize12}"
                     FontWeight="SemiBold"
                     Text="{Binding ReportActionLabel}" />
                 <TextBlock
-                    FontSize="10"
+                    FontSize="{DynamicResource NfcFontSize10}"
                     Opacity="0.82"
                     Text="{Binding ReportActionStatus}" />
               </StackPanel>
@@ -203,7 +203,7 @@
                       IsEnabled="{Binding CanBuildReplace}"
                       ToolTip.Tip="{Binding ReplaceBuildActionTip}">
                     <StackPanel Orientation="Horizontal" Spacing="7">
-                      <TextBlock VerticalAlignment="Center" FontSize="13" Text="✓" />
+                      <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize13}" Text="✓" />
                        <TextBlock VerticalAlignment="Center" Text="{Binding Text.BuildActionLabel}" />
                     </StackPanel>
                   </Button>
@@ -248,7 +248,7 @@
                       IsEnabled="{Binding CanBuildMerge}"
                       ToolTip.Tip="{Binding MergeBuildActionTip}">
                     <StackPanel Orientation="Horizontal" Spacing="7">
-                      <TextBlock VerticalAlignment="Center" FontSize="13" Text="✓" />
+                      <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize13}" Text="✓" />
                       <TextBlock VerticalAlignment="Center" Text="{Binding Text.BuildActionLabel}" />
                     </StackPanel>
                   </Button>

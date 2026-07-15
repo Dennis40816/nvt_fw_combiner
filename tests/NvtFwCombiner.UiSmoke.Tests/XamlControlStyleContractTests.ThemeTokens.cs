@@ -14,11 +14,13 @@ public sealed partial class XamlControlStyleContractTests
         Match[] shadowDefinitions = ReadThemeShadowTokenDefinitions();
         Match[] cornerRadiusDefinitions = ReadThemeCornerRadiusTokenDefinitions();
         Match[] spacingDefinitions = ReadThemeSpacingTokenDefinitions();
+        Match[] fontSizeDefinitions = ReadThemeFontSizeTokenDefinitions();
         Match[] fontFamilyDefinitions = ReadThemeFontFamilyTokenDefinitions();
         var definedKeys = colorDefinitions
             .Concat(shadowDefinitions)
             .Concat(cornerRadiusDefinitions)
             .Concat(spacingDefinitions)
+            .Concat(fontSizeDefinitions)
             .Concat(fontFamilyDefinitions)
             .Select(static definition => definition.Groups["key"].Value)
             .ToHashSet(StringComparer.Ordinal);
@@ -35,14 +37,15 @@ public sealed partial class XamlControlStyleContractTests
         Assert.NotEmpty(shadowDefinitions);
         Assert.NotEmpty(cornerRadiusDefinitions);
         Assert.Equal(5, spacingDefinitions.Length);
+        Assert.Equal(5, fontSizeDefinitions.Length);
         Assert.Equal(2, fontFamilyDefinitions.Length);
         Assert.Equal(colorDefinitions.Length, tokens.Split("<SolidColorBrush", StringSplitOptions.None).Length - 1);
         Assert.Equal(shadowDefinitions.Length, tokens.Split("<BoxShadows", StringSplitOptions.None).Length - 1);
         Assert.Equal(cornerRadiusDefinitions.Length, tokens.Split("<CornerRadius", StringSplitOptions.None).Length - 1);
-        Assert.Equal(spacingDefinitions.Length, tokens.Split("<x:Double", StringSplitOptions.None).Length - 1);
+        Assert.Equal(spacingDefinitions.Length + fontSizeDefinitions.Length, tokens.Split("<x:Double", StringSplitOptions.None).Length - 1);
         Assert.Equal(fontFamilyDefinitions.Length, tokens.Split("<FontFamily", StringSplitOptions.None).Length - 1);
         Assert.Equal(
-            colorDefinitions.Length + shadowDefinitions.Length + cornerRadiusDefinitions.Length + spacingDefinitions.Length + fontFamilyDefinitions.Length,
+            colorDefinitions.Length + shadowDefinitions.Length + cornerRadiusDefinitions.Length + spacingDefinitions.Length + fontSizeDefinitions.Length + fontFamilyDefinitions.Length,
             definedKeys.Count);
         Assert.Equal(colorDefinitions.Length, definedColors.Count);
         Assert.Contains(
@@ -66,6 +69,20 @@ public sealed partial class XamlControlStyleContractTests
         {
             Assert.Contains(
                 spacingDefinitions,
+                definition => StringComparer.Ordinal.Equals(key, definition.Groups["key"].Value) &&
+                              StringComparer.Ordinal.Equals(value, definition.Groups["value"].Value));
+        }
+        foreach ((string key, string value) in new[]
+                 {
+                     ("NfcFontSize10", "10"),
+                     ("NfcFontSize11", "11"),
+                     ("NfcFontSize12", "12"),
+                     ("NfcFontSize13", "13"),
+                     ("NfcFontSize14", "14"),
+                 })
+        {
+            Assert.Contains(
+                fontSizeDefinitions,
                 definition => StringComparer.Ordinal.Equals(key, definition.Groups["key"].Value) &&
                               StringComparer.Ordinal.Equals(value, definition.Groups["value"].Value));
         }
@@ -134,7 +151,7 @@ public sealed partial class XamlControlStyleContractTests
 
     /// <summary>Prevents the common layout scale from drifting into repeated raw XAML literals.</summary>
     [Fact]
-    public void CommonLayoutSpacingUsesSharedScaleTokens()
+    public void CommonLayoutSpacingAndTypographyUseSharedScaleTokens()
     {
         Assert.All(
             ReadPresentationXamlFiles().Where(content => !StringComparer.Ordinal.Equals(
@@ -143,5 +160,12 @@ public sealed partial class XamlControlStyleContractTests
             static content => Assert.False(
                 RawCommonSpacingPattern.IsMatch(content),
                 "Common spacing literals must use the shared NfcSpace tokens."));
+        Assert.All(
+            ReadPresentationXamlFiles().Where(content => !StringComparer.Ordinal.Equals(
+                content,
+                ReadPresentationFile("Styles/ThemeTokens.axaml"))),
+            static content => Assert.False(
+                RawCommonFontSizePattern.IsMatch(content),
+                "Common font-size literals must use the shared NfcFontSize tokens."));
     }
 }

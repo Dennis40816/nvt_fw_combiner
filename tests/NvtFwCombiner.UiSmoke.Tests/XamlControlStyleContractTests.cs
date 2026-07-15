@@ -21,6 +21,8 @@ public sealed partial class XamlControlStyleContractTests
 
     private static readonly Regex ThemeSpacingTokenDefinitionPattern = ThemeSpacingTokenDefinitionRegex();
 
+    private static readonly Regex ThemeFontSizeTokenDefinitionPattern = ThemeFontSizeTokenDefinitionRegex();
+
     private static readonly Regex ThemeFontFamilyTokenDefinitionPattern = ThemeFontFamilyTokenDefinitionRegex();
 
     private static readonly Regex DynamicThemeReferencePattern = DynamicThemeReferenceRegex();
@@ -28,6 +30,8 @@ public sealed partial class XamlControlStyleContractTests
     private static readonly Regex ColorLiteralPattern = ColorLiteralRegex();
 
     private static readonly Regex RawCommonSpacingPattern = RawCommonSpacingRegex();
+
+    private static readonly Regex RawCommonFontSizePattern = RawCommonFontSizeRegex();
 
     /// <summary>Keeps every technical hexadecimal field on one canonical display format.</summary>
     [Fact]
@@ -136,6 +140,15 @@ public sealed partial class XamlControlStyleContractTests
         }
 
         foreach (string key in ReadThemeSpacingTokenDefinitions()
+                     .Select(static definition => definition.Groups["key"].Value))
+        {
+            Assert.True(
+                app.TryGetResource(key, ThemeVariant.Default, out object? resource),
+                $"Theme token '{key}' was not available from Application.Resources.");
+            _ = Assert.IsType<double>(resource);
+        }
+
+        foreach (string key in ReadThemeFontSizeTokenDefinitions()
                      .Select(static definition => definition.Groups["key"].Value))
         {
             Assert.True(
@@ -540,6 +553,13 @@ public sealed partial class XamlControlStyleContractTests
             .Cast<Match>()];
     }
 
+    private static Match[] ReadThemeFontSizeTokenDefinitions()
+    {
+        return [.. ThemeFontSizeTokenDefinitionPattern
+            .Matches(ReadPresentationFile("Styles/ThemeTokens.axaml"))
+            .Cast<Match>()];
+    }
+
     [GeneratedRegex("<SolidColorBrush\\s+x:Key=\"(?<key>Nfc[A-Za-z]+)\"\\s+Color=\"(?<color>#[0-9A-Fa-f]{6,8})\"\\s*/>", RegexOptions.CultureInvariant)]
     private static partial Regex ThemeTokenDefinitionRegex();
 
@@ -549,8 +569,11 @@ public sealed partial class XamlControlStyleContractTests
     [GeneratedRegex("<CornerRadius\\s+x:Key=\"(?<key>Nfc[A-Za-z]+)\">[^<]+</CornerRadius>", RegexOptions.CultureInvariant)]
     private static partial Regex ThemeCornerRadiusTokenDefinitionRegex();
 
-    [GeneratedRegex("<x:Double\\s+x:Key=\"(?<key>Nfc[A-Za-z0-9]+)\">(?<value>[^<]+)</x:Double>", RegexOptions.CultureInvariant)]
+    [GeneratedRegex("<x:Double\\s+x:Key=\"(?<key>NfcSpace[0-9]+)\">(?<value>[^<]+)</x:Double>", RegexOptions.CultureInvariant)]
     private static partial Regex ThemeSpacingTokenDefinitionRegex();
+
+    [GeneratedRegex("<x:Double\\s+x:Key=\"(?<key>NfcFontSize[0-9]+)\">(?<value>[^<]+)</x:Double>", RegexOptions.CultureInvariant)]
+    private static partial Regex ThemeFontSizeTokenDefinitionRegex();
 
     [GeneratedRegex("<FontFamily\\s+x:Key=\"(?<key>Nfc[A-Za-z]+)\">(?<value>[^<]+)</FontFamily>", RegexOptions.CultureInvariant)]
     private static partial Regex ThemeFontFamilyTokenDefinitionRegex();
@@ -563,4 +586,7 @@ public sealed partial class XamlControlStyleContractTests
 
     [GeneratedRegex("\\b(?:Row|Column)?Spacing=\"(?:2|4|8|12|16)\"", RegexOptions.CultureInvariant)]
     private static partial Regex RawCommonSpacingRegex();
+
+    [GeneratedRegex("(?:\\bFontSize=\"(?:10|11|12|13|14)\"|Property=\"FontSize\"\\s+Value=\"(?:10|11|12|13|14)\")", RegexOptions.CultureInvariant)]
+    private static partial Regex RawCommonFontSizeRegex();
 }

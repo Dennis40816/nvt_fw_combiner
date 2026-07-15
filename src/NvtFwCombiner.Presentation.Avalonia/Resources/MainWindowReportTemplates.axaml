@@ -10,7 +10,7 @@
 <DataTemplate x:Key="ReportLineFactTemplate" DataType="vm:ReportLineFactViewModel">
   <Grid Margin="0,1" ColumnDefinitions="Auto,*" ColumnSpacing="10">
     <TextBlock Classes="tableHeader" Text="{Binding Label}" TextWrapping="Wrap" />
-    <TextBlock Grid.Column="1" FontSize="11" Foreground="{DynamicResource NfcTextSecondaryBrush}" Text="{Binding Value}" TextWrapping="Wrap" IsVisible="{Binding IsPlainText}" />
+    <TextBlock Grid.Column="1" FontSize="{DynamicResource NfcFontSize11}" Foreground="{DynamicResource NfcTextSecondaryBrush}" Text="{Binding Value}" TextWrapping="Wrap" IsVisible="{Binding IsPlainText}" />
     <TextBlock Grid.Column="1" Classes="technicalCompactDetail" Text="{Binding Value}" TextWrapping="Wrap" IsVisible="{Binding IsTechnical}" />
   </Grid>
 </DataTemplate>
@@ -42,9 +42,9 @@
 
 <DataTemplate x:Key="ReportMissingRequiredRowTemplate" DataType="vm:ReportLineViewModel">
   <StackPanel Margin="0,0,0,8" Spacing="{DynamicResource NfcSpace2}">
-    <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource NfcWarningTextSubtleBrush}" Text="{Binding Title}" TextWrapping="Wrap" />
-    <TextBlock FontSize="12" Foreground="{DynamicResource NfcWarningTextSubtleBrush}" Text="{Binding Detail}" TextWrapping="Wrap" />
-    <TextBlock FontSize="11" Foreground="{DynamicResource NfcWarningTextMutedBrush}" Text="{Binding Meta}" TextWrapping="Wrap" />
+    <TextBlock FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Foreground="{DynamicResource NfcWarningTextSubtleBrush}" Text="{Binding Title}" TextWrapping="Wrap" />
+    <TextBlock FontSize="{DynamicResource NfcFontSize12}" Foreground="{DynamicResource NfcWarningTextSubtleBrush}" Text="{Binding Detail}" TextWrapping="Wrap" />
+    <TextBlock FontSize="{DynamicResource NfcFontSize11}" Foreground="{DynamicResource NfcWarningTextMutedBrush}" Text="{Binding Meta}" TextWrapping="Wrap" />
   </StackPanel>
 </DataTemplate>
 
@@ -79,7 +79,7 @@
           CornerRadius="{DynamicResource NfcPillCornerRadius}" />
     </Grid>
     <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace2}">
-      <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource NfcInfoTextStrongBrush}" Text="{Binding Title}" TextWrapping="Wrap" />
+      <TextBlock FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Foreground="{DynamicResource NfcInfoTextStrongBrush}" Text="{Binding Title}" TextWrapping="Wrap" />
       <TextBlock Classes="panelTitle" Text="{Binding Detail}" TextWrapping="Wrap" />
       <TextBlock Classes="captionText" Text="{Binding Meta}" TextWrapping="Wrap" />
     </StackPanel>
@@ -89,9 +89,9 @@
 <DataTemplate x:Key="ReportIssueRowTemplate" DataType="vm:ReportLineViewModel">
   <Border Padding="10,8" Background="{DynamicResource NfcWarningSurfaceBrush}" BorderBrush="{DynamicResource NfcWarningBorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource NfcCompactCornerRadius}" Margin="0,8,0,0">
     <StackPanel Spacing="{DynamicResource NfcSpace2}">
-      <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource NfcWarningTextBrush}" Text="{Binding Title}" TextWrapping="Wrap" />
-      <TextBlock FontSize="12" Foreground="{DynamicResource NfcWarningTextSubtleBrush}" Text="{Binding Detail}" TextWrapping="Wrap" />
-      <TextBlock FontSize="11" Foreground="{DynamicResource NfcWarningTextMutedBrush}" Text="{Binding Meta}" TextWrapping="Wrap" />
+      <TextBlock FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Foreground="{DynamicResource NfcWarningTextBrush}" Text="{Binding Title}" TextWrapping="Wrap" />
+      <TextBlock FontSize="{DynamicResource NfcFontSize12}" Foreground="{DynamicResource NfcWarningTextSubtleBrush}" Text="{Binding Detail}" TextWrapping="Wrap" />
+      <TextBlock FontSize="{DynamicResource NfcFontSize11}" Foreground="{DynamicResource NfcWarningTextMutedBrush}" Text="{Binding Meta}" TextWrapping="Wrap" />
     </StackPanel>
   </Border>
 </DataTemplate>
