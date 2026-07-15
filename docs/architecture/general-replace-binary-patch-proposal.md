@@ -8,7 +8,7 @@
 
 This document remains the reference for the profile-governed `WorkbenchGeneralReplacePatchInput` contract used by General Replace core/CLI callers. The Home Hex Editor is now a raw BIN utility and follows [ADR 0014](../adr/0014-raw-binary-utility-editor.md); it does not use this proposal's profile, postbuild, or report behavior.
 
-The superseded Bootstrap-only General Replace viewport and base-snapshot helpers were retired after ADR 0014 because no CLI or UI product path consumed them. General Replace patch execution, immutable input handling, output alias guards, profile compilation, and postbuild behavior remain on the ordinary composition path.
+The superseded Bootstrap-only General Replace viewport, base-snapshot, and editable-range projection helpers were retired after ADR 0014 because no CLI or UI product path consumed them. General Replace patch execution, immutable input handling, output alias guards, profile compilation, and postbuild behavior remain on the ordinary composition path; compiler validation, not a display projection, is the range authority.
 
 ## Original goal
 

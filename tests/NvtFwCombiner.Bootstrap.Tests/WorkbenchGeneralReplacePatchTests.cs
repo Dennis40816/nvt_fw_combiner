@@ -279,24 +279,6 @@ public sealed class WorkbenchGeneralReplacePatchTests
         Assert.Contains(1_000_000, sequences);
     }
 
-    /// <summary>Editor range choices are derived from the compiled General Replace profile and exclude protected header bytes.</summary>
-    [Fact]
-    public void GeneralReplaceEditableRangesExposeOnlyAuthorizedProfileRegions()
-    {
-        string basePath = GoldenPath("expected/51950/dp-256k/flash.bin");
-
-        IReadOnlyList<WorkbenchGeneralReplaceEditableRange> ranges = WorkbenchCompositionService.GetGeneralReplaceEditableRanges(
-            "NT51950",
-            "single",
-            basePath);
-
-        Assert.NotEmpty(ranges);
-        Assert.All(ranges, range => Assert.True(range.Start >= 0x100));
-        Assert.DoesNotContain(ranges, range => range.RegionId.Contains("protected", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(ranges, range => range.RequiresPostbuild);
-        Assert.Contains(ranges, range => !range.RequiresPostbuild);
-    }
-
     private static Dictionary<string, string> CreateBaseSlots(string basePath)
     {
         return new Dictionary<string, string>(StringComparer.Ordinal)
