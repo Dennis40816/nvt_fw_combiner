@@ -170,9 +170,11 @@ public sealed class AbMergeGoldenRegressionTests
         }
     }
 
-    /// <summary>Verifies the NT51951 one-mebibyte topology against a fixed synthetic Python-reference vector.</summary>
+    /// <summary>
+    /// Verifies the compiled NT51951 candidate plan and Combiner produce the fixed synthetic Python-reference vector.
+    /// </summary>
     [Fact]
-    public async Task Nt51951CombinerTopologyMatchesPythonReferenceVectorAsync()
+    public async Task Nt51951CandidatePlanWithCombinerMatchesPythonReferenceVectorAsync()
     {
         if (!OperatingSystem.IsWindows())
         {
@@ -180,13 +182,19 @@ public sealed class AbMergeGoldenRegressionTests
         }
 
         const int outputLength = 0x100000;
-        const int bankLength = 0x80000;
         const int tpLength = 0x37000;
-        const int tpCodeStart = 0xA000;
-        const int tpCodeEnd = 0x37000;
-        const int bBankOffset = 0x80000;
         const string expectedSha256 = "e1524ba52b41d5a49eb58fcdb75326d5f0c78a6df7af2fcfdaa632a12e628c71";
 
+        using var workspace = TempWorkspace.Create("nfc-nt51951-ab-topology");
+        CompiledComposition composition = CompileCandidate(
+            AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(
+                workspace,
+                Nt51950BundleDirectory,
+                Nt51950BundleContentHash),
+            "nt51951-ab-merge",
+            "0.1.0",
+            "NT51951",
+            outputLength);
         byte[] dp = CreatePattern(outputLength, 37, 11);
         byte[] tpA = CreatePattern(tpLength, 19, 23);
         byte[] tpB = CreatePattern(tpLength, 29, 31);
@@ -195,19 +203,9 @@ public sealed class AbMergeGoldenRegressionTests
         BinaryPrimitives.WriteUInt32LittleEndian(tpA.AsSpan(0xA130, sizeof(uint)), 0x1F6CF3EC);
         byte[] originalTpB = [.. tpB];
 
-        byte[] aBank = [.. dp.AsSpan(0, bankLength)];
-        tpA.AsSpan(tpCodeStart, tpCodeEnd - tpCodeStart).CopyTo(aBank.AsSpan(tpCodeStart));
-        byte[] relocatedTpB = [.. tpB];
-        uint rawDiff = BinaryPrimitives.ReadUInt32LittleEndian(relocatedTpB.AsSpan(0xA120, sizeof(uint)));
-        BinaryPrimitives.WriteUInt32LittleEndian(relocatedTpB.AsSpan(0xA120, sizeof(uint)), rawDiff + bBankOffset);
-        byte[] bBank = [.. dp.AsSpan(bankLength, bankLength)];
-        relocatedTpB.AsSpan(tpCodeStart, tpCodeEnd - tpCodeStart).CopyTo(bBank.AsSpan(tpCodeStart));
-        byte[] preCombiner = [.. dp];
-        aBank.CopyTo(preCombiner, 0);
-        bBank.CopyTo(preCombiner, bankLength);
-
         string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string stagingRoot = Path.Combine(Path.GetTempPath(), $"nfc-nt51951-ab-topology-{Guid.NewGuid():N}");
+        ExternalProcessorResult? externalResult = null;
         try
         {
             ExternalCombinerToolManifest manifest = LoadManifest(
@@ -218,27 +216,43 @@ public sealed class AbMergeGoldenRegressionTests
                 stagingRoot,
                 new SystemExternalProcessRunner(),
                 ExternalCombinerInvocationCatalog.All);
-            ExternalProcessorResult result = await processor.TransformAsync(
-                new ExternalProcessorRequest(
-                    "nt51951-synthetic-topology",
-                    ExternalCombinerInvocationCatalog.Nt51951AbMerge.ProcessorId,
-                    manifest.ToolBindingId,
-                    preCombiner,
-                    [new ByteRange(0x8A100, 4), new ByteRange(0x8A110, 4), new ByteRange(0x8A130, 4)],
-                    stagedArtifacts:
-                    [
-                        new ExternalProcessorStagedArtifact("a-bank", aBank),
-                        new ExternalProcessorStagedArtifact("b-bank", bBank),
-                    ]),
+            CompositionExecutionResult result = await CompositionEngine.ExecuteAsync(
+                composition.Plan,
+                new CompositionExecutionInput(new Dictionary<string, byte[]>(StringComparer.Ordinal)
+                {
+                    ["dp-ab-input"] = dp,
+                    ["tp-a-input"] = tpA,
+                    ["tp-b-input"] = tpB,
+                }),
+                async (operation, inputBytes, stagedSources, stagedArtifacts, cancellationToken) =>
+                {
+                    Assert.Empty(stagedSources);
+                    ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(
+                        operation.ExternalProcessorInvocation);
+                    externalResult = await processor.TransformAsync(
+                        new ExternalProcessorRequest(
+                            "nt51951-synthetic-topology",
+                            invocation.ProcessorId,
+                            invocation.ToolBindingId,
+                            inputBytes,
+                            invocation.AllowedWriteRanges,
+                            stagedArtifacts: stagedArtifacts),
+                        cancellationToken);
+                    return externalResult.Succeeded
+                        ? CompositionExternalProcessorResult.Success(externalResult.OutputBytes)
+                        : CompositionExternalProcessorResult.Failed(externalResult.Issues);
+                },
                 TestContext.Current.CancellationToken);
 
-            Assert.True(result.Succeeded, FormatIssues(result.Issues));
+            Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+            Assert.Empty(result.Issues);
             Assert.Equal(expectedSha256, Hash(result.OutputBytes.Span));
             Assert.Equal(originalTpB, tpB);
+            ExternalProcessorResult toolResult = Assert.IsType<ExternalProcessorResult>(externalResult);
             Assert.Equal(
                 [new ByteRange(0x8A102, 1), new ByteRange(0x8A112, 1), new ByteRange(0x8A130, 4)],
-                result.ChangedRanges);
-            ExternalProcessInvocation command = Assert.Single(result.ExecutedCommands);
+                toolResult.ChangedRanges);
+            ExternalProcessInvocation command = Assert.Single(toolResult.ExecutedCommands);
             Assert.Equal(
                 [
                     "NT51950BASED_MERGE_AB_MODE",
@@ -265,13 +279,28 @@ public sealed class AbMergeGoldenRegressionTests
         string icId,
         string? profileId = null)
     {
-        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
+        return CompileCandidate(
             catalog,
             profileId ?? goldenCase.GetProperty("profileId").GetString()!,
             goldenCase.GetProperty("profileVersion").GetString()!,
             icId,
-            ExperienceIds.AbMerge,
             goldenCase.GetProperty("mapCapacity").GetInt64());
+    }
+
+    private static CompiledComposition CompileCandidate(
+        TrustedProfileBundleCatalog catalog,
+        string profileId,
+        string profileVersion,
+        string icId,
+        long mapCapacity)
+    {
+        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
+            catalog,
+            profileId,
+            profileVersion,
+            icId,
+            ExperienceIds.AbMerge,
+            mapCapacity);
         Assert.True(compilation.IsCompiled, FormatIssues(compilation.Issues));
         return Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
     }
