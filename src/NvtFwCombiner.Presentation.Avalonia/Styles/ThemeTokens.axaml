@@ -27,6 +27,7 @@
   <SolidColorBrush x:Key="NfcSuccessTextStrongBrush" Color="#14532D" />
   <SolidColorBrush x:Key="NfcSuccessTextBrush" Color="#166534" />
   <SolidColorBrush x:Key="NfcInfoSurfaceBrush" Color="#EEF4FA" />
+  <SolidColorBrush x:Key="NfcSlotFactSurfaceBrush" Color="#EEF6FF" />
   <SolidColorBrush x:Key="NfcInfoSurfaceStrongBrush" Color="#DBEAFE" />
   <SolidColorBrush x:Key="NfcInfoBorderBrush" Color="#D7E2F1" />
   <SolidColorBrush x:Key="NfcInfoTextBrush" Color="#0F766E" />
