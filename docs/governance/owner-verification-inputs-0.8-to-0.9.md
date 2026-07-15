@@ -116,8 +116,8 @@ firmware-owner review requirements below.
 | AB group | Additional required evidence |
 | --- | --- |
 | NT51919 / NT51929 / NT51932 | An owner-approved fact-scoped AB alias/parity matrix. It must identify each effective member/map/capacity and provide direct output hashes for every reused member. A shared source payload is acceptable only when the matrix and member-specific expected results prove parity. |
-| NT51950 | Exact `Combiner.exe` identity, version, SHA-256, adapter/platform/timeout, full invocation trace, declared read/write ranges, and expected output. The source-verified AB command has no `map.txt`; Combiner, not C#, owns AB header CRC mutation. |
-| NT51951 | The same no-`map.txt` tool/trace/output package as NT51950, independently. Do not copy NT51950's result merely because the flows appear similar. Its `+0x80000` relocation/header facts must be proven by its own case. |
+| NT51950 | The tracked candidate already pins the source-verified `Combiner.exe` 1.13.0 binding, command, tool hash, and declared writes. Supply direct inputs, expected output, provenance, and owner approval for each release case; no `map.txt` is used. Submit command/tool sidecars only when the owner case differs from the pinned binding. Combiner, not C#, owns AB header CRC mutation. |
+| NT51951 | The candidate pins the same command family with the verified final `0x80000` argument and full Python/Combiner synthetic parity. Supply direct inputs, expected output, provenance, and owner approval for its own case; do not copy NT51950's output. No `map.txt` or duplicate command/tool sidecar is needed unless the owner case differs from the pinned binding, version, hash, or staging order. |
 
 The existing 256 KiB NT51929 `initial code` / `TPFW` / `FlashCode` archive is a
 Normal case, not this AB evidence. Existing V2 candidate profiles and reference
@@ -211,8 +211,8 @@ Before a support or release claim, provide:
 ## Current Highest-Priority Owner Inputs
 
 1. AB product evidence for NT51919, NT51929, NT51932, NT51950, and NT51951 as
-   specified above; NT51950/NT51951 additionally require their own Combiner
-   sidecar and trace.
+   specified above. NT51950/NT51951 reuse their pinned candidate Combiner
+   binding unless the submitted owner case changes it.
 2. Real CtrlRAM Replace Preserve/Edit expected outputs and postbuild evidence
    for the release-selected IC/count branches.
 3. General Replace safety envelopes and TP/CtrlRAM expected-output cases if
@@ -225,8 +225,8 @@ Before a support or release claim, provide:
 - private keys, passwords, tokens, API credentials, or certificates containing
   private keys;
 - a firmware output without its source inputs and provenance;
-- a `map.txt` or Combiner executable without the matching command trace and
-  executable hash;
+- an unbound `map.txt` or Combiner executable that does not identify the
+  matching command trace and executable hash;
 - a filename-only assertion that two ICs are equivalent; or
 - a private BIN intended for Git without an explicit fixture approval and
   manifest decision.
