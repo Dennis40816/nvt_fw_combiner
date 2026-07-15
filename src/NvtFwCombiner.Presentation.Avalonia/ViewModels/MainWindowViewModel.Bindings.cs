@@ -97,12 +97,6 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets grouped CtrlRAM replacement slots for dense multi-chip layouts.</summary>
     public ObservableCollection<FirmwareSlotGroupViewModel> ReplaceSlotGroups { get; } = [];
 
-    /// <summary>Gets replace inspector rows for the selected replace mode.</summary>
-    public ObservableCollection<string> ActiveReplaceRows { get; } = [];
-
-    /// <summary>Gets merge inspector rows for the selected IC and Number.</summary>
-    public ObservableCollection<string> ActiveMergeRows { get; } = [];
-
     /// <summary>Gets CtrlRAM region rows for the selected IC and Number.</summary>
     public ObservableCollection<CtrlRamRegionViewModel> CtrlRamRegions { get; } = [];
 
@@ -169,12 +163,6 @@ public sealed partial class MainWindowViewModel
         "No output",
         succeeded: true);
 
-    /// <summary>True when the selected CtrlRAM catalog has visible rows.</summary>
-    public bool HasCtrlRamRegions => CtrlRamRegions.Count > 0;
-
-    /// <summary>Gets selected CtrlRAM row summary text.</summary>
-    public string CtrlRamRegionSummary => Text.GetCtrlRamRegionSummary(SelectedIc, SelectedNumber);
-
     /// <summary>Gets the standard merge support summary for the selected IC.</summary>
     public string StandardMergeSupportSummary => IsStandardMergeSupported
         ? Text.GetStandardMergeSupportSummary(
@@ -210,9 +198,6 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>True when the independent raw-BIN Hex Editor utility page is visible.</summary>
     public bool IsHexEditorVisible => SelectedPage == ShellPage.HexEditor;
-
-    /// <summary>True when DP Replace is selected.</summary>
-    public bool IsDpReplaceModeSelected => string.Equals(SelectedReplaceMode, DpReplaceMode, StringComparison.Ordinal);
 
     /// <summary>True when CtrlRAM Replace is selected.</summary>
     public bool IsCtrlRamReplaceModeSelected => string.Equals(SelectedReplaceMode, CtrlRamReplaceMode, StringComparison.Ordinal);
@@ -321,14 +306,8 @@ public sealed partial class MainWindowViewModel
     /// <summary>Window-level redo shortcut scoped to the active raw-BIN Hex Editor page.</summary>
     public IRelayCommand RequestHexEditorRedoCommand { get; }
 
-    /// <summary>Command that opens Normal Merge.</summary>
-    public IRelayCommand ShowNormalMergeCommand { get; }
-
     /// <summary>Home entry command that collects Merge context before opening Standard Merge.</summary>
     public IRelayCommand BeginNormalMergeFromHomeCommand { get; }
-
-    /// <summary>Command that opens General Merge.</summary>
-    public IRelayCommand ShowGeneralMergeCommand { get; }
 
     /// <summary>Home entry command that collects Merge context before opening General Merge.</summary>
     public IRelayCommand BeginGeneralMergeFromHomeCommand { get; }
@@ -336,14 +315,8 @@ public sealed partial class MainWindowViewModel
     /// <summary>Command that adds a General Replace mapping row.</summary>
     public IRelayCommand AddGeneralReplaceMappingCommand { get; }
 
-    /// <summary>Command that removes a General Replace mapping row.</summary>
-    public IRelayCommand<GeneralReplaceMappingViewModel> RemoveGeneralReplaceMappingCommand { get; }
-
     /// <summary>Command that adds a General Merge mapping row.</summary>
     public IRelayCommand AddGeneralMergeMappingCommand { get; }
-
-    /// <summary>Command that removes a General Merge mapping row.</summary>
-    public IRelayCommand<GeneralMergeMappingViewModel> RemoveGeneralMergeMappingCommand { get; }
 
     /// <summary>Command that previews Standard Merge through the application core.</summary>
     public IAsyncRelayCommand PreviewMergeCommand { get; }
@@ -378,7 +351,6 @@ public sealed partial class MainWindowViewModel
     [NotifyPropertyChangedFor(nameof(ReplaceReadinessStatus))]
     [NotifyPropertyChangedFor(nameof(ReplacePreviewUnavailableReason))]
     [NotifyPropertyChangedFor(nameof(ReplaceBuildUnavailableReason))]
-    [NotifyPropertyChangedFor(nameof(IsDpReplaceModeSelected))]
     [NotifyPropertyChangedFor(nameof(IsCtrlRamReplaceModeSelected))]
     [NotifyPropertyChangedFor(nameof(IsGeneralReplaceModeSelected))]
     [NotifyPropertyChangedFor(nameof(IsStructuredReplaceModeSelected))]

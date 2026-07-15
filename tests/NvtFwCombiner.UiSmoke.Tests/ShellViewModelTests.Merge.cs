@@ -69,7 +69,8 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.ShowGeneralMergeCommand.Execute(null);
+        viewModel.BeginGeneralMergeFromHomeCommand.Execute(null);
+        viewModel.ConfirmWorkflowContextCommand.Execute(null);
 
         Assert.True(viewModel.IsMergeVisible);
         Assert.True(viewModel.IsGeneralMergeModeSelected);

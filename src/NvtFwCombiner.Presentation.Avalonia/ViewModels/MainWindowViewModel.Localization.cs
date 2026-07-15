@@ -64,7 +64,6 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(NavigationPath));
         RelocalizeLoadedReport();
         RefreshSettingsState();
-        RefreshMergeModeState();
         RefreshReplaceModeState(preserveSlotFiles: true);
         RefreshReplaceSelectionState();
     }

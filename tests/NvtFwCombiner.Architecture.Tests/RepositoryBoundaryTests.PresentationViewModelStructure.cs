@@ -66,6 +66,27 @@ public sealed partial class RepositoryBoundaryTests
                 "catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)"));
     }
 
+    /// <summary>Prevents retired, unbound shell inspector projections from returning.</summary>
+    [Fact]
+    public void ShellViewModelOmitsUnboundInspectorCompatibilityState()
+    {
+        string viewModel = ReadViewModelPartials();
+
+        foreach (string retiredName in new[]
+                 {
+                     "ActiveMergeRows",
+                     "ActiveReplaceRows",
+                     "ShowNormalMergeCommand",
+                     "ShowGeneralMergeCommand",
+                     "RemoveGeneralMergeMappingCommand",
+                     "RemoveGeneralReplaceMappingCommand",
+                     "GetCtrlRamRegionSummary",
+                 })
+        {
+            Assert.DoesNotContain(retiredName, viewModel, StringComparison.Ordinal);
+        }
+    }
+
     /// <summary>Verifies firmware slot model, icons, and fact badges stay split by UI responsibility.</summary>
     [Fact]
     public void FirmwareSlotViewModelConcernsStaySplit()
