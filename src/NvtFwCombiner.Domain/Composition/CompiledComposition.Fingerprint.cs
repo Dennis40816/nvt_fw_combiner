@@ -7,7 +7,7 @@ namespace NvtFwCombiner.Domain.Composition;
 
 public sealed partial class CompiledComposition
 {
-    private const string LegacyFingerprintFormat = "nfc.compiled-composition.legacy.v1";
+    private const string LegacyFingerprintFormat = "nfc.compiled-composition.legacy.v2";
     private const string V2FingerprintFormat = "nfc.compiled-composition.profile-v2.v4";
 
     private static string CalculateCompilationFingerprint(CompiledComposition composition)
@@ -38,6 +38,7 @@ public sealed partial class CompiledComposition
         AppendField(builder, "output.default-file-name", composition.DefaultOutputFileName);
         AppendEnum(builder, "run-policy.ic-number", composition.IcNumberPolicy);
         AppendEnum(builder, "eligibility", composition.Eligibility);
+        AppendValidationRequirements(builder, composition.ValidationRequirements);
         AppendPlan(builder, composition.Plan);
 
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())))
@@ -289,6 +290,11 @@ public sealed partial class CompiledComposition
                     AppendField(builder, $"{prefix}.view-id", assertion.ViewId);
                     AppendField(builder, $"{prefix}.expected", assertion.Expected.Hex);
                     AppendField(builder, $"{prefix}.mask", assertion.Mask?.Hex ?? string.Empty);
+                    break;
+                case CompiledFirmwareConfigBackupVersionValidation firmwareConfig:
+                    AppendField(builder, $"{prefix}.invalid-issue-code", firmwareConfig.InvalidIssueCode);
+                    AppendInteger(builder, $"{prefix}.firmware-version", firmwareConfig.FirmwareVersion);
+                    AppendInteger(builder, $"{prefix}.firmware-sub-version", firmwareConfig.FirmwareSubVersion);
                     break;
                 default:
                     throw new InvalidOperationException("Unknown compiled validation requirement kind.");

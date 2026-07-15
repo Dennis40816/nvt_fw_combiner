@@ -41,6 +41,8 @@ public enum CompiledValidationKind
     RejectMetadataBytePattern,
     /// <inheritdoc/>
     ViewByteAssertion,
+    /// <inheritdoc/>
+    FirmwareConfigBackupVersion,
 }
 
 /// <summary>One metadata field reached through a profile metadata binding.</summary>
