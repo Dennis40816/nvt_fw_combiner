@@ -31,13 +31,12 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("RunReplaceAsync", replace, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies firmware slot state, icons, and fact badges stay split by UI responsibility.</summary>
+    /// <summary>Verifies firmware slot model, icons, and fact badges stay split by UI responsibility.</summary>
     [Fact]
     public void FirmwareSlotViewModelConcernsStaySplit()
     {
         string root = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotViewModel.cs");
         string icons = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotViewModel.Icons.cs");
-        string state = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotViewModel.State.cs");
         string resolver = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotKindResolver.cs");
         string facts = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotFactViewModel.cs");
         string kind = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotKind.cs");
@@ -49,13 +48,13 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("FirmwareSlotKindResolver.Resolve", root, StringComparison.Ordinal);
         Assert.DoesNotContain("SlotIconPathData", root, StringComparison.Ordinal);
         Assert.DoesNotContain("public IBrush SlotBackgroundBrush", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("SlotBorderBrush", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("RequirementBadgeForegroundBrush", root, StringComparison.Ordinal);
         Assert.DoesNotContain("public sealed record FirmwareSlotFactViewModel", root, StringComparison.Ordinal);
         Assert.DoesNotContain("public enum FirmwareSlotKind", root, StringComparison.Ordinal);
         Assert.Contains("SlotIconPathData", icons, StringComparison.Ordinal);
         Assert.DoesNotContain("InferSlotKind", icons, StringComparison.Ordinal);
         Assert.DoesNotContain("WorkbenchSlotIds", icons, StringComparison.Ordinal);
-        Assert.Contains("SlotBackgroundBrush", state, StringComparison.Ordinal);
-        Assert.Contains("RequirementBadgeForegroundBrush", state, StringComparison.Ordinal);
         Assert.Contains("WorkbenchSlotIds.MergeDp", resolver, StringComparison.Ordinal);
         Assert.Contains("WorkbenchSlotIds.MergeTp", resolver, StringComparison.Ordinal);
         Assert.Contains("WorkbenchSlotIds.MergeLd", resolver, StringComparison.Ordinal);

@@ -81,6 +81,21 @@
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
   </Style>
+  <Style Selector="Border.fileDropZone.firmwareSlot">
+    <Setter Property="Background" Value="{DynamicResource NfcCriticalSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcRequiredMissingBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1.5" />
+  </Style>
+  <Style Selector="Border.fileDropZone.firmwareSlot.hasFile">
+    <Setter Property="Background" Value="{DynamicResource NfcSuccessSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcRequiredSelectedBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <Style Selector="Border.fileDropZone.firmwareSlot.optional">
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
   <Style Selector="Border.footerStatus">
     <Setter Property="Padding" Value="28,9" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
@@ -330,6 +345,21 @@
     <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
     <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Label.slotBadge.firmwareSlotRequirement">
+    <Setter Property="Background" Value="{DynamicResource NfcRequiredMissingBadgeSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcDangerBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcDangerTextBrush}" />
+  </Style>
+  <Style Selector="Label.slotBadge.firmwareSlotRequirement.hasFile">
+    <Setter Property="Background" Value="{DynamicResource NfcRequiredSelectedBadgeSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcSuccessBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcSuccessEmphasisBrush}" />
+  </Style>
+  <Style Selector="Label.slotBadge.firmwareSlotRequirement.optional">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
   <Style Selector="Border.firmwareSlotFact">
     <Setter Property="Background" Value="{DynamicResource NfcSlotFactSurfaceBrush}" />
