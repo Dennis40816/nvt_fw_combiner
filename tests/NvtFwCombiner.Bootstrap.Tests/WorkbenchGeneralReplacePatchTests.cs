@@ -10,8 +10,12 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class WorkbenchGeneralReplacePatchTests
 {
     /// <summary>Virtual overwrite patches must compile to the same output as file-backed mappings.</summary>
-    [Fact]
-    public async Task GeneralReplaceVirtualOverwriteMatchesEquivalentFileMappingAndKeepsBaseImmutable()
+    [Theory]
+    [InlineData("A5 5A")]
+    [InlineData("A5-5A")]
+    [InlineData("A5,5A")]
+    [InlineData("A5_5A")]
+    public async Task GeneralReplaceVirtualOverwriteMatchesEquivalentFileMappingAndKeepsBaseImmutable(string patchValue)
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-general-patch-equivalence");
         byte[] baseBytes = CreatePattern(0x40000, 0x20);
@@ -42,7 +46,7 @@ public sealed class WorkbenchGeneralReplacePatchTests
                 "0x00100",
                 "0x00101",
                 WorkbenchGeneralReplacePatchKind.Overwrite,
-                "A5 5A")],
+                patchValue)],
             build: true,
             TestContext.Current.CancellationToken,
             patchOutput);

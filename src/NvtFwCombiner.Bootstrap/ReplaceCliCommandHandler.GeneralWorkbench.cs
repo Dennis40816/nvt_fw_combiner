@@ -10,7 +10,7 @@ internal static partial class ReplaceCliCommandHandler
     private static async Task<int> RunWorkbenchGeneralReplaceAsync(
         string action,
         string profileSelector,
-        ParsedOptions options,
+        ParsedCliOptions options,
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken)
@@ -93,7 +93,7 @@ internal static partial class ReplaceCliCommandHandler
     }
 
     private static bool TryCreateWorkbenchGeneralAuthoringInputs(
-        ParsedOptions options,
+        ParsedCliOptions options,
         TextWriter error,
         [NotNullWhen(true)] out WorkbenchGeneralReplaceMappingInput[]? mappings,
         [NotNullWhen(true)] out WorkbenchGeneralReplacePatchInput[]? patches)

@@ -9,7 +9,7 @@ internal static partial class ReplaceCliCommandHandler
     private static async Task<int> RunWorkbenchDpReplaceAsync(
         string action,
         string icId,
-        ParsedOptions options,
+        ParsedCliOptions options,
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken)

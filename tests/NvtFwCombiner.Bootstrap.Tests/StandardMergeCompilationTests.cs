@@ -47,7 +47,19 @@ public sealed class StandardMergeCompilationTests
         Assert.Equal(dpInputLength, composition.Plan.OutputInitialization.Capacity);
         WorkbenchProfileSummary baseline = WorkbenchCompositionService.GetStandardMergeProfileSummaries()
             .Single(summary => string.Equals(summary.IcId, icId, StringComparison.Ordinal));
+        Assert.Equal(baseline.ProfileId, composition.ProfileId);
+        Assert.Equal(baseline.CompositionKind, composition.CompositionKind);
         Assert.Equal(baseline.RequiredInputAddressSpaceIds, composition.Plan.RequiredInputAddressSpaceIds);
+        Assert.Equal(baseline.DefaultOutputFileName, composition.DefaultOutputFileName);
+        Assert.Equal(baseline.IcNumberPolicy, composition.IcNumberPolicy);
+        Assert.Equal(
+            new ByteRange(0x0A000, 0x2D000),
+            composition.V2Details!.Provenance.ResolvedMap.ImageMap.Regions
+                .Single(static region => region.RegionId == "tp-overlay").Range);
+        Assert.Equal(
+            new ByteRange(0x37000, 0x1000),
+            composition.V2Details.Provenance.ResolvedMap.ImageMap.Regions
+                .Single(static region => region.RegionId == "customer-info").Range);
     }
 
     /// <summary>DP Perspective profiles wait for a selected DP length instead of selecting a maximum container.</summary>
