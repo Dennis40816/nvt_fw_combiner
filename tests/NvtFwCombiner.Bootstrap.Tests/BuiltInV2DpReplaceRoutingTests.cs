@@ -51,6 +51,13 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         Assert.Equal("65987f6b1e41feaca92e7b258bca282df9ae133f90db6877ba6b97c04d91f0f4", details.Provenance.Bundle.ContentHash);
         Assert.Equal($"nt{icId[2..]}-dp-replace-dp-perspective", artifact.ProfileId);
         Assert.Equal(baseCapacity, artifact.Plan.OutputInitialization.Capacity);
+        WorkbenchProfileSummary summary = WorkbenchCompositionService.GetReplaceProfileSummaries()
+            .Single(profile => string.Equals(profile.IcId, icId, StringComparison.Ordinal));
+        Assert.Equal(summary.ProfileId, artifact.ProfileId);
+        Assert.Equal(summary.CompositionKind, artifact.CompositionKind);
+        Assert.Equal(summary.RequiredInputAddressSpaceIds, artifact.Plan.RequiredInputAddressSpaceIds);
+        Assert.Equal(summary.DefaultOutputFileName, artifact.DefaultOutputFileName);
+        Assert.Equal(summary.IcNumberPolicy, artifact.IcNumberPolicy);
     }
 
     /// <summary>Verifies unsupported base capacities fail at the V2 resolver and never fall back to legacy planning.</summary>

@@ -168,6 +168,28 @@ public static partial class WorkbenchCompositionService
                 []);
         }
 
+        internal V2CompositionPlanCompileResult CompileExecutable(
+            string profileId,
+            string profileVersion,
+            string icId,
+            string experienceId,
+            long? requestedMapCapacity,
+            string failureMessage)
+        {
+            V2CompositionPlanCompileResult compilation = Compile(
+                profileId,
+                profileVersion,
+                icId,
+                experienceId,
+                requestedMapCapacity);
+            return compilation.CompiledComposition is { Eligibility: CompiledCompositionEligibility.V2RuntimeExecutable }
+                ? compilation
+                : V2CompositionPlanCompileResult.Failed(
+                compilation.Issues.Count == 0
+                    ? [new CompositionIssue(BuiltInV2CompilationFailed, failureMessage)]
+                    : compilation.Issues);
+        }
+
         internal V2CompositionPlanCompileResult Compile(
             string profileId,
             string profileVersion,
@@ -382,29 +404,15 @@ public static partial class WorkbenchCompositionService
                 requestedMapCapacity = dpInputLength.Value;
             }
 
-            V2CompositionPlanCompileResult compilation = Bundle.Compile(
+            V2CompositionPlanCompileResult compilation = Bundle.CompileExecutable(
                 ProfileId,
                 ProfileVersion,
                 IcId,
                 IcWorkflowIds.StandardMerge,
-                requestedMapCapacity);
+                requestedMapCapacity,
+                $"The built-in V2 profile for {IcId} did not produce an executable composition.");
             composition = compilation.CompiledComposition;
             issues = compilation.Issues;
-            if (composition is { Eligibility: CompiledCompositionEligibility.V2RuntimeExecutable })
-            {
-                return;
-            }
-
-            composition = null;
-            if (issues.Count == 0)
-            {
-                issues =
-                [
-                    new CompositionIssue(
-                        BuiltInV2CompilationFailed,
-                        $"The built-in V2 profile for {IcId} did not produce an executable composition."),
-                ];
-            }
         }
 
         internal bool TryGetAuthoringDefaultCapacity(
@@ -425,60 +433,21 @@ public static partial class WorkbenchCompositionService
         private V2CompositionPlanCompileResult LoadSummaryCompilation()
         {
             IReadOnlyList<long> capacities = GetMapCapacities(out IReadOnlyList<CompositionIssue> issues);
-            if (issues.Count != 0)
+            return (issues.Count, capacities.Count) switch
             {
-                return V2CompositionPlanCompileResult.Failed(issues);
-            }
-
-            V2CompositionPlanCompileResult[] compilations =
-            [
-                .. capacities.Select(capacity => Bundle.Compile(
+                ( > 0, _) => V2CompositionPlanCompileResult.Failed(issues),
+                (_, 0) => V2CompositionPlanCompileResult.Failed(
+                    [new CompositionIssue(
+                        BuiltInV2CompilationFailed,
+                        $"The built-in V2 profile for {IcId} has no declared map capacities.")]),
+                _ => Bundle.CompileExecutable(
                     ProfileId,
                     ProfileVersion,
                     IcId,
                     IcWorkflowIds.StandardMerge,
-                    capacities.Count > 1 ? capacity : null)),
-            ];
-            V2CompositionPlanCompileResult? failure = compilations.FirstOrDefault(compilation =>
-                compilation.CompiledComposition is not { Eligibility: CompiledCompositionEligibility.V2RuntimeExecutable });
-            if (failure is not null)
-            {
-                return failure.Issues.Count == 0
-                    ? V2CompositionPlanCompileResult.Failed(
-                        [new CompositionIssue(
-                            BuiltInV2CompilationFailed,
-                            $"The built-in V2 profile for {IcId} did not produce an executable composition.")])
-                    : V2CompositionPlanCompileResult.Failed(failure.Issues);
-            }
-
-            CompiledComposition first = compilations[0].CompiledComposition!;
-            return compilations.Skip(1).Any(compilation =>
-                    compilation.CompiledComposition is not { } candidate ||
-                    candidate.ProfileId != first.ProfileId ||
-                    candidate.CompositionKind != first.CompositionKind ||
-                    candidate.DefaultOutputFileName != first.DefaultOutputFileName ||
-                    !candidate.Plan.RequiredInputAddressSpaceIds.SequenceEqual(
-                        first.Plan.RequiredInputAddressSpaceIds,
-                        StringComparer.Ordinal) ||
-                    !HasSameCanonicalRegionRange(first, candidate, "tp-overlay") ||
-                    !HasSameCanonicalRegionRange(first, candidate, "customer-info"))
-                ? V2CompositionPlanCompileResult.Failed(
-                    [new CompositionIssue(
-                        BuiltInV2CompilationFailed,
-                        $"The capacity variants for built-in V2 profile {IcId} do not share one stable workbench summary.")])
-                : compilations[0];
-        }
-
-        private static bool HasSameCanonicalRegionRange(
-            CompiledComposition first,
-            CompiledComposition candidate,
-            string regionId)
-        {
-            FirmwareRegion? firstRegion = first.V2Details?.Provenance.ResolvedMap.ImageMap.Regions
-                .SingleOrDefault(region => string.Equals(region.RegionId, regionId, StringComparison.Ordinal));
-            FirmwareRegion? candidateRegion = candidate.V2Details?.Provenance.ResolvedMap.ImageMap.Regions
-                .SingleOrDefault(region => string.Equals(region.RegionId, regionId, StringComparison.Ordinal));
-            return firstRegion?.Range == candidateRegion?.Range;
+                    capacities.Count > 1 ? capacities[0] : null,
+                    $"The built-in V2 profile for {IcId} did not produce an executable composition."),
+            };
         }
 
         internal WorkbenchProfileSummary CreateProfileSummary()
