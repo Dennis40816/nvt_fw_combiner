@@ -18,9 +18,7 @@
               Foreground="{DynamicResource NfcAccentBrush}"
               Text="{Binding Text.WorkflowKicker}" />
           <TextBlock
-              FontSize="25"
-              FontWeight="SemiBold"
-              Foreground="{DynamicResource NfcTextStrongBrush}"
+              Classes="previewTitle"
               Text="{Binding ReplacePreview.Title}" />
           <TextBlock
               FontSize="{DynamicResource NfcFontSize13}"
@@ -80,9 +78,7 @@
               Foreground="{DynamicResource NfcAccentBrush}"
               Text="{Binding Text.WorkflowKicker}" />
           <TextBlock
-              FontSize="25"
-              FontWeight="SemiBold"
-              Foreground="{DynamicResource NfcTextStrongBrush}"
+              Classes="previewTitle"
               Text="{Binding MergePreview.Title}" />
           <TextBlock
               FontSize="{DynamicResource NfcFontSize13}"
@@ -142,9 +138,7 @@
               Foreground="{DynamicResource NfcInfoTextBrush}"
               Text="{Binding Text.UtilToolsLabel}" />
           <TextBlock
-              FontSize="25"
-              FontWeight="SemiBold"
-              Foreground="{DynamicResource NfcTextStrongBrush}"
+              Classes="previewTitle"
               Text="{Binding Text.UtilToolsHomeTitle}" />
           <TextBlock
               FontSize="{DynamicResource NfcFontSize13}"

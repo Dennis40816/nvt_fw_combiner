@@ -168,4 +168,16 @@ public sealed partial class XamlControlStyleContractTests
                 RawCommonFontSizePattern.IsMatch(content),
                 "Common font-size literals must use the shared NfcFontSize tokens."));
     }
+
+    /// <summary>Keeps the three Home preview headings on their shared semantic visual role.</summary>
+    [Fact]
+    public void HomePreviewTitlesUseSharedPreviewTitleRole()
+    {
+        string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
+        string pages = ReadPresentationFile("Resources/MainWindowPageTemplates.axaml");
+
+        Assert.Contains("Selector=\"TextBlock.previewTitle\"", styles, StringComparison.Ordinal);
+        Assert.Equal(3, pages.Split("Classes=\"previewTitle\"", StringSplitOptions.None).Length - 1);
+        Assert.DoesNotContain("FontSize=\"25\"", pages, StringComparison.Ordinal);
+    }
 }
