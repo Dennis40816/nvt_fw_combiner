@@ -54,12 +54,6 @@
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
   </Style>
-  <Style Selector="Border.successSurface">
-    <Setter Property="Background" Value="{DynamicResource NfcSuccessSurfaceBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcSuccessBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
-  </Style>
   <Style Selector="Border.successInset">
     <Setter Property="Background" Value="{DynamicResource NfcSuccessSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcSuccessBorderBrush}" />
@@ -256,12 +250,6 @@
   </Style>
   <Style Selector="TextBlock.monoText">
     <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
-  </Style>
-  <Style Selector="TextBlock.technicalHeader">
-    <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
-    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize10}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{DynamicResource NfcTextMutedBrush}" />
   </Style>
   <Style Selector="TextBlock.technicalCaption">
     <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
