@@ -15,9 +15,19 @@ public sealed class ValidationRunSummary
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(ruleId);
         ArgumentException.ThrowIfNullOrWhiteSpace(issueCode);
-        if (!Enum.IsDefined(stage) || !Enum.IsDefined(status) || !Enum.IsDefined(severity))
+        if (!Enum.IsDefined(stage))
         {
-            throw new ArgumentOutOfRangeException(nameof(status), "Unknown validation outcome discriminator.");
+            throw new ArgumentOutOfRangeException(nameof(stage), stage, "Unknown validation stage.");
+        }
+
+        if (!Enum.IsDefined(status))
+        {
+            throw new ArgumentOutOfRangeException(nameof(status), status, "Unknown validation status.");
+        }
+
+        if (!Enum.IsDefined(severity))
+        {
+            throw new ArgumentOutOfRangeException(nameof(severity), severity, "Unknown validation severity.");
         }
 
         RuleId = ruleId;
