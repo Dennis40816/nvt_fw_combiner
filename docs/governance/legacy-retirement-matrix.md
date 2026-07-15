@@ -30,6 +30,21 @@ Each row marked `retire` must link or name:
 | `TpFlashMapCatalog` and `IcMetadataFacade` compatibility projection | CtrlRAM/General Replace planning, UI metadata, number selection, and overview projection | Resolved V2 map/profile facts supply every current caller without copied firmware semantics | after per-workflow evidence | retain as compatibility projection; DP Perspective no longer consumes its duplicate family-fact projection |
 | `LegacyCombinerPostbuildCatalog` | CtrlRAM Replace staged `combiner.exe` postbuild | V2 processor declaration with the same declared staging/read/write ranges, exact tool binding, owner command evidence, and golden output | `v0.9.9`, after R3 owner evidence | migration scope owner-approved 2026-07-15; retain as processor authority until evidence closes. Legacy Combiner 1.13.0 EXE and constrained runner remain approved exceptions |
 
+## v0.9.8 inventory result
+
+The 2026-07-16 production-caller audit found no additional safe legacy
+deletion. Architecture exclusions still prove that every row already marked
+retired is absent from production. `CompositionProfileCompiler` remains called
+by the CtrlRAM and General Replace Workbench adapters, while
+`TpFlashMapCatalog` and `IcMetadataFacade` still serve CtrlRAM/General Replace
+planning, number selection, metadata, and UI projections. Those rows remain
+open until their listed direct V2 parity evidence exists.
+
+This audit does not change the Legacy Combiner exception. Moving
+`LegacyCombinerPostbuildCatalog` declarations remains R3-gated on the exact
+1.13 command, staging/read/write authority, full-output golden evidence, and
+firmware-owner review.
+
 ## Non-targets
 
 `FirmwareConfigMetadataReader` is not a legacy retirement target. It is the
