@@ -99,7 +99,7 @@ public static partial class WorkbenchCompositionService
         {
             return Blocked(
                 mappingIssues,
-                CreateGeneralMergePlanningOperations(explicitMappings),
+                CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.CopyRange),
                 registration.ProfileId);
         }
 
@@ -110,7 +110,7 @@ public static partial class WorkbenchCompositionService
                     GeneralMergeV2CandidateInputLengthUnsupported,
                     "The General Merge V2 candidate accepts source inputs up to the supported in-memory composition size.",
                     "source")],
-                CreateGeneralMergePlanningOperations(explicitMappings),
+                CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.CopyRange),
                 registration.ProfileId);
         }
 
@@ -141,7 +141,7 @@ public static partial class WorkbenchCompositionService
         {
             return Blocked(
                 NormalizeGeneralMergeV2Issues(compile.Issues),
-                CreateGeneralMergePlanningOperations(explicitMappings),
+                CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.CopyRange),
                 registration.ProfileId);
         }
 
@@ -152,7 +152,7 @@ public static partial class WorkbenchCompositionService
                     GeneralMergeV2CandidateCompilationUnexpected,
                     "The selected General Merge V2 artifact does not match the candidate admission contract.",
                     registration.ProfileId)],
-                CreateGeneralMergePlanningOperations(explicitMappings),
+                CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.CopyRange),
                 registration.ProfileId);
         }
 

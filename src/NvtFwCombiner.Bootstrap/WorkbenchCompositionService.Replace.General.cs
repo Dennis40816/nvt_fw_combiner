@@ -77,7 +77,7 @@ public static partial class WorkbenchCompositionService
             {
                 return Blocked(
                     [postbuildIssue!],
-                    CreateGeneralReplacePlanningOperations(explicitMappings));
+                    CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.ReplaceRange));
             }
 
             try
@@ -93,7 +93,7 @@ public static partial class WorkbenchCompositionService
                             exception.Message,
                             "number"),
                     ],
-                    CreateGeneralReplacePlanningOperations(explicitMappings));
+                    CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.ReplaceRange));
             }
 
             long requiredCapacity = LegacyCombinerPostbuildPlanner.CalculateRequiredCapacity(commandPlan, []);
@@ -106,7 +106,7 @@ public static partial class WorkbenchCompositionService
                             $"Base flash BIN is too short for {icId} / {number} General Replace postbuild (actual {context.Capacity} bytes, required at least {requiredCapacity} bytes).",
                             WorkbenchSlotIds.ReplaceBase),
                     ],
-                    CreateGeneralReplacePlanningOperations(explicitMappings));
+                    CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.ReplaceRange));
             }
 
             postbuildWriteRangeSections =
@@ -122,7 +122,7 @@ public static partial class WorkbenchCompositionService
                             "No approved postbuild write range could be derived for TP-touching General Replace.",
                             "postbuild"),
                     ],
-                    CreateGeneralReplacePlanningOperations(explicitMappings));
+                    CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.ReplaceRange));
             }
         }
 
@@ -141,7 +141,7 @@ public static partial class WorkbenchCompositionService
         {
             return Blocked(
                 compile.Issues,
-                CreateGeneralReplacePlanningOperations(explicitMappings),
+                CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.ReplaceRange),
                 profile.DefaultOutputFileName);
         }
 
@@ -152,7 +152,7 @@ public static partial class WorkbenchCompositionService
         {
             return Blocked(
                 materializationIssues,
-                CreateGeneralReplacePlanningOperations(explicitMappings),
+                CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.ReplaceRange),
                 profile.DefaultOutputFileName);
         }
 

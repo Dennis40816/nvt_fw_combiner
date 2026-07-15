@@ -279,6 +279,11 @@ public sealed class WorkbenchCompositionServiceTests
         Assert.Contains(
             document.RootElement.GetProperty("Issues").EnumerateArray(),
             issue => issue.GetProperty("Code").GetString() == "profile.explicit-mapping.region-not-enabled");
+        Assert.Equal(
+            "ReplaceRange",
+            Assert.Single(document.RootElement.GetProperty("Operations").EnumerateArray())
+                .GetProperty("Kind")
+                .GetString());
     }
 
     /// <summary>Rejects Workbench DP Replace build outputs that would overwrite selected input BINs.</summary>

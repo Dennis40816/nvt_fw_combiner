@@ -223,6 +223,9 @@ public sealed class GeneralMergeCliCommandTests
         JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
         Assert.Equal("profile.plan.invalid", issue.GetProperty("Code").GetString());
         Assert.Contains("overlaps earlier operation", issue.GetProperty("Message").GetString(), StringComparison.Ordinal);
+        Assert.All(
+            document.RootElement.GetProperty("Operations").EnumerateArray(),
+            operation => Assert.Equal("CopyRange", operation.GetProperty("Kind").GetString()));
     }
 
     /// <summary>Verifies a rejected V2 General Merge request does not disable unrelated Standard Merge or Replace workflows.</summary>
