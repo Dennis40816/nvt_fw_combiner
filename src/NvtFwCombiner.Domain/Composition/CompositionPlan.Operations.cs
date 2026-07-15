@@ -118,6 +118,16 @@ public sealed partial class CompositionPlan
             }
         }
 
+        foreach (ExternalProcessorOutputAssertion assertion in invocation.OutputAssertions)
+        {
+            if (!operation.TargetRange.Contains(assertion.Range) || !targetSpace.Contains(assertion.Range))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(operation),
+                    $"Operation '{operation.OperationId}' output assertion range is outside the staged target range.");
+            }
+        }
+
         foreach (ExternalProcessorStagedSourceBinding binding in invocation.StagedSourceBindings)
         {
             if (!_addressSpacesById.TryGetValue(binding.SourceSpaceId, out AddressSpace? sourceSpace))

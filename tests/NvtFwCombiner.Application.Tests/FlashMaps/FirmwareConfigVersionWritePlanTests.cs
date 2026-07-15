@@ -15,9 +15,12 @@ public sealed class FirmwareConfigVersionWritePlanTests
         var plan = FirmwareConfigVersionWritePlan.CreateForBackup(metadata, 0x27, 0x04);
 
         Assert.Equal(0x3B000, plan.FirmwareConfigStart);
+        Assert.Equal(0x3B000, plan.BackupFirmwareConfigStart);
         Assert.Equal(new ByteRange(0x3B000, 2), plan.FirmwareVersionAndBarRange);
         Assert.Equal([0x27, 0xD8], plan.FirmwareVersionAndBarBytes.ToArray());
         Assert.Equal(new ByteRange(0x3B011, 1), plan.FirmwareSubVersionRange);
+        Assert.Equal(new ByteRange(0x3B000, 2), plan.BackupFirmwareVersionAndBarRange);
+        Assert.Equal(new ByteRange(0x3B011, 1), plan.BackupFirmwareSubVersionRange);
         Assert.Equal([0x04], plan.FirmwareSubVersionBytes.ToArray());
     }
 
@@ -44,10 +47,14 @@ public sealed class FirmwareConfigVersionWritePlanTests
 
         FirmwareConfigVersionWritePlan sourcePlan = backupPlan.RebaseToCombinerSource(0x22000);
 
+        Assert.Equal(0x22000, sourcePlan.FirmwareConfigStart);
+        Assert.Equal(0x3B000, sourcePlan.BackupFirmwareConfigStart);
         Assert.Equal(new ByteRange(0x22000, 2), sourcePlan.FirmwareVersionAndBarRange);
         Assert.Equal([0x18, 0xE7], sourcePlan.FirmwareVersionAndBarBytes.ToArray());
         Assert.Equal(new ByteRange(0x22011, 1), sourcePlan.FirmwareSubVersionRange);
         Assert.Equal([0x03], sourcePlan.FirmwareSubVersionBytes.ToArray());
+        Assert.Equal(new ByteRange(0x3B000, 2), sourcePlan.BackupFirmwareVersionAndBarRange);
+        Assert.Equal(new ByteRange(0x3B011, 1), sourcePlan.BackupFirmwareSubVersionRange);
     }
 
     private static FirmwareConfigMetadata CreateMetadata(long start, bool firmwareVersionBarValid)

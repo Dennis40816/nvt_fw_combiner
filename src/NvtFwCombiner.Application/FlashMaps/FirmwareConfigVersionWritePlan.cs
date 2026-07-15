@@ -10,12 +10,15 @@ public sealed class FirmwareConfigVersionWritePlan
 {
     private FirmwareConfigVersionWritePlan(
         long firmwareConfigStart,
+        long backupFirmwareConfigStart,
         byte firmwareVersion,
         byte firmwareSubVersion)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(firmwareConfigStart);
+        ArgumentOutOfRangeException.ThrowIfNegative(backupFirmwareConfigStart);
 
         FirmwareConfigStart = firmwareConfigStart;
+        BackupFirmwareConfigStart = backupFirmwareConfigStart;
         FirmwareVersion = firmwareVersion;
         FirmwareSubVersion = firmwareSubVersion;
         FirmwareVersionAndBarRange = new ByteRange(
@@ -24,10 +27,19 @@ public sealed class FirmwareConfigVersionWritePlan
         FirmwareSubVersionRange = new ByteRange(
             checked(firmwareConfigStart + FirmwareConfigLayout.FirmwareSubVersionOffset),
             sizeof(byte));
+        BackupFirmwareVersionAndBarRange = new ByteRange(
+            checked(backupFirmwareConfigStart + FirmwareConfigLayout.FirmwareVersionOffset),
+            sizeof(ushort));
+        BackupFirmwareSubVersionRange = new ByteRange(
+            checked(backupFirmwareConfigStart + FirmwareConfigLayout.FirmwareSubVersionOffset),
+            sizeof(byte));
     }
 
     /// <summary>FWConfig structure start for the described writes.</summary>
     public long FirmwareConfigStart { get; }
+
+    /// <summary>Canonical NVT Backup FWConfig start whose final values must be observed in the output.</summary>
+    public long BackupFirmwareConfigStart { get; }
 
     /// <summary>User-confirmed TP FW version byte.</summary>
     public byte FirmwareVersion { get; }
@@ -43,6 +55,12 @@ public sealed class FirmwareConfigVersionWritePlan
 
     /// <summary><c>u8FWSubVersion</c> write range.</summary>
     public ByteRange FirmwareSubVersionRange { get; }
+
+    /// <summary>Canonical Backup range that must contain the final version and complement bytes after postbuild.</summary>
+    public ByteRange BackupFirmwareVersionAndBarRange { get; }
+
+    /// <summary>Canonical Backup range that must contain the final sub-version byte after postbuild.</summary>
+    public ByteRange BackupFirmwareSubVersionRange { get; }
 
     /// <summary>Exact bytes for <see cref="FirmwareVersionAndBarRange"/>.</summary>
     public ReadOnlyMemory<byte> FirmwareVersionAndBarBytes => new byte[] { FirmwareVersion, FirmwareVersionBar };
@@ -65,6 +83,7 @@ public sealed class FirmwareConfigVersionWritePlan
                 nameof(backupMetadata))
             : new FirmwareConfigVersionWritePlan(
             backupMetadata.FirmwareConfigStart,
+            backupMetadata.FirmwareConfigStart,
             firmwareVersion,
             firmwareSubVersion);
     }
@@ -77,6 +96,7 @@ public sealed class FirmwareConfigVersionWritePlan
     {
         return new FirmwareConfigVersionWritePlan(
             firmwareConfigSourceStart,
+            BackupFirmwareConfigStart,
             FirmwareVersion,
             FirmwareSubVersion);
     }

@@ -21,6 +21,17 @@ public static partial class WorkbenchCompositionService
     {
         string normalizedIc = icId.ToLowerInvariant();
         ByteRange[] postbuildWriteRanges = [.. postbuildWriteRangeSections.Select(section => section.Range)];
+        ExternalProcessorOutputAssertion[] postbuildOutputAssertions = firmwareVersionWritePlan is null
+            ? []
+            :
+            [
+                new ExternalProcessorOutputAssertion(
+                    firmwareVersionWritePlan.BackupFirmwareVersionAndBarRange,
+                    firmwareVersionWritePlan.FirmwareVersionAndBarBytes.ToArray()),
+                new ExternalProcessorOutputAssertion(
+                    firmwareVersionWritePlan.BackupFirmwareSubVersionRange,
+                    firmwareVersionWritePlan.FirmwareSubVersionBytes.ToArray()),
+            ];
         List<AddressSpace> addressSpaces =
         [
             new(CompositionAddressSpaceIds.ReferenceBase, capacity, AddressSpaceMutability.Immutable),
@@ -129,7 +140,8 @@ public static partial class WorkbenchCompositionService
                 postbuildWriteRanges,
                 stagedSourceBindings,
                 allowedWriteRangeSections: postbuildWriteRangeSections.Select(section =>
-                    new ExternalProcessorWriteRangeSection(section.SectionId, section.Range, section.SourceRange))),
+                    new ExternalProcessorWriteRangeSection(section.SectionId, section.Range, section.SourceRange)),
+                outputAssertions: postbuildOutputAssertions),
             OverlapPolicy.ReplaceExisting,
             $"Run {commandPlan.Branch} legacy Combiner postbuild and stage selected CtrlRAM BINs for Combiner pasteback. Combiner command: {FormatPostbuildCommandBlock(commandPlan)}."));
 

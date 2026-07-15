@@ -236,6 +236,8 @@ public sealed partial class CompiledCompositionTests
             CreateProcessorComposition(writeSectionSourceStart: 1),
             CreateProcessorComposition(stagedSourceStart: 1),
             CreateProcessorComposition(stagedFirmwareStart: 1),
+            CreateProcessorComposition(outputAssertion: new ExternalProcessorOutputAssertion(new ByteRange(2, 1), [0xA2])),
+            CreateProcessorComposition(outputAssertion: new ExternalProcessorOutputAssertion(new ByteRange(1, 1), [0xA1])),
         ];
 
         Assert.All(
@@ -385,7 +387,8 @@ public sealed partial class CompiledCompositionTests
         string writeSectionId = "header-a",
         long writeSectionSourceStart = 0,
         long stagedSourceStart = 0,
-        long stagedFirmwareStart = 0)
+        long stagedFirmwareStart = 0,
+        ExternalProcessorOutputAssertion? outputAssertion = null)
     {
         var invocation = new ExternalProcessorInvocation(
             processorId,
@@ -403,7 +406,8 @@ public sealed partial class CompiledCompositionTests
                     writeSectionId,
                     new ByteRange(writeStart, 2),
                     new ByteRange(writeSectionSourceStart, 2)),
-            ]);
+            ],
+            outputAssertions: outputAssertion is null ? [] : [outputAssertion]);
         var identity = new LegacyCompiledCompositionIdentity(
             "processor-profile",
             "1.0.0",

@@ -33,6 +33,9 @@ public static class CompositionIssueCodes
     /// <summary>An external processor changed the staged byte length.</summary>
     public const string ExecutionExternalProcessorLengthMismatch = "execution.external-processor.length-mismatch";
 
+    /// <summary>An external processor returned bytes that violate a profile-declared output postcondition.</summary>
+    public const string ExecutionExternalProcessorPostconditionFailed = "execution.external-processor.postcondition-failed";
+
     /// <summary>A scalar transform source value did not match its declared expected value.</summary>
     public const string ExecutionScalarTransformExpectedValueMismatch = "execution.scalar-transform.expected-value-mismatch";
 

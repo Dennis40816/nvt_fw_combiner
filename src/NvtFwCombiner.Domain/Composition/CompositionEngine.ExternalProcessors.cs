@@ -58,9 +58,36 @@ public static partial class CompositionEngine
             ]);
         }
 
+        CompositionIssue? postconditionIssue = ValidateExternalProcessorOutputAssertions(operation, processorResult.OutputBytes);
+        if (postconditionIssue is not null)
+        {
+            return CompositionExecutionResult.Failed([postconditionIssue]);
+        }
+
         processorResult.OutputBytes.Span.CopyTo(targetBuffer.AsSpan(
             (int)operation.TargetRange.Start,
             (int)operation.TargetRange.Length));
+        return null;
+    }
+
+    private static CompositionIssue? ValidateExternalProcessorOutputAssertions(
+        CompositionOperation operation,
+        ReadOnlyMemory<byte> outputBytes)
+    {
+        foreach (ExternalProcessorOutputAssertion assertion in operation.ExternalProcessorInvocation!.OutputAssertions)
+        {
+            ReadOnlySpan<byte> actual = outputBytes.Span.Slice(
+                checked((int)assertion.Range.Start),
+                checked((int)assertion.Range.Length));
+            if (!actual.SequenceEqual(assertion.ExpectedBytes.Span))
+            {
+                return new CompositionIssue(
+                    CompositionIssueCodes.ExecutionExternalProcessorPostconditionFailed,
+                    $"Operation '{operation.OperationId}' external processor output did not satisfy the declared postcondition at {assertion.Range}.",
+                    operation.OperationId);
+            }
+        }
+
         return null;
     }
 

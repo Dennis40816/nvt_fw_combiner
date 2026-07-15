@@ -44,7 +44,7 @@ For every external combiner transform:
 8. The combiner may mutate only files inside the staging directory.
 9. Infrastructure reads back `work.bin` or the declared output file.
 10. Infrastructure verifies file count, expected names, final imported length, after SHA-256, and byte diff.
-11. Application accepts the result only if every changed byte is inside the profile-declared `allowedWriteRanges` and all postconditions pass.
+11. Application accepts the result only if every changed byte is inside the profile-declared `allowedWriteRanges` and all compiled output assertions pass before the output is committed.
 12. The validated bytes are imported into the current work buffer/output image.
 13. Any timeout, crash, malformed output, path escape, unexpected file, unexpected final length change, SHA mismatch, or out-of-range mutation fails closed.
 
@@ -77,9 +77,11 @@ profile; executable paths and argument templates remain infrastructure manifest 
 }
 ```
 
-The referenced views resolve through the canonical firmware map. Supported profiles require
-owner-approved read/write regions, invocation behavior, preconditions, postconditions, and golden
-evidence. The profile cannot inline command arguments or host paths.
+The referenced views resolve through the canonical firmware map. A postcondition is compiled as an
+exact output assertion over a declared target-image range; it verifies returned staging bytes but
+does not grant an additional write range. Supported profiles require owner-approved read/write
+regions, invocation behavior, preconditions, postconditions, and golden evidence. The profile
+cannot inline command arguments or host paths.
 
 ## Tool manifest
 

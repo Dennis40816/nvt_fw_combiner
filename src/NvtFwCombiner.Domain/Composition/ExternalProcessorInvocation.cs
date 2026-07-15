@@ -17,7 +17,8 @@ public sealed class ExternalProcessorInvocation
         IEnumerable<ByteRange> allowedWriteRanges,
         IEnumerable<ExternalProcessorStagedSourceBinding>? stagedSourceBindings = null,
         IEnumerable<ExternalProcessorWriteRangeSection>? allowedWriteRangeSections = null,
-        IEnumerable<ExternalProcessorStagedArtifactBinding>? stagedArtifactBindings = null)
+        IEnumerable<ExternalProcessorStagedArtifactBinding>? stagedArtifactBindings = null,
+        IEnumerable<ExternalProcessorOutputAssertion>? outputAssertions = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(processorId);
         ArgumentException.ThrowIfNullOrWhiteSpace(toolBindingId);
@@ -69,6 +70,30 @@ public sealed class ExternalProcessorInvocation
         }
 
         _stagedArtifactBindings = [.. artifactBindings.OrderBy(binding => binding.ArtifactId, StringComparer.Ordinal)];
+        ExternalProcessorOutputAssertion[] assertions = [.. outputAssertions ?? []];
+        if (assertions.Any(static assertion => assertion is null))
+        {
+            throw new ArgumentException(
+                "External processor output assertions must not contain null entries.",
+                nameof(outputAssertions));
+        }
+
+        Array.Sort(assertions, static (left, right) =>
+        {
+            int startComparison = left.Range.Start.CompareTo(right.Range.Start);
+            return startComparison != 0 ? startComparison : left.Range.Length.CompareTo(right.Range.Length);
+        });
+        for (int index = 1; index < assertions.Length; index++)
+        {
+            if (assertions[index - 1].Range.Overlaps(assertions[index].Range))
+            {
+                throw new ArgumentException(
+                    "External processor output assertions must not overlap.",
+                    nameof(outputAssertions));
+            }
+        }
+
+        OutputAssertions = Array.AsReadOnly(assertions);
 
         ProcessorId = processorId;
         ToolBindingId = toolBindingId;
@@ -94,6 +119,9 @@ public sealed class ExternalProcessorInvocation
 
     /// <summary>Named source snapshots the host materializes as immutable tool input artifacts.</summary>
     public IReadOnlyList<ExternalProcessorStagedArtifactBinding> StagedArtifactBindings => _stagedArtifactBindings;
+
+    /// <summary>Exact post-transform bytes the host verifies before importing the staged output.</summary>
+    public IReadOnlyList<ExternalProcessorOutputAssertion> OutputAssertions { get; }
 }
 
 /// <summary>Diagnostic section attached to a declared external-processor write range.</summary>

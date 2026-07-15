@@ -34,6 +34,43 @@ public sealed partial class CompositionEngineTests
         Assert.Equal([new ByteRange(2, 1)], mutation.ChangedRanges);
     }
 
+    /// <summary>Verifies a declared external-processor postcondition rejects the staged output before it is imported.</summary>
+    [Fact]
+    public async Task ExternalProcessorOutputAssertionFailsBeforeImport()
+    {
+        CompositionPlan plan = CreateBlankPlan(
+            4,
+            CompositionOperation.RunExternalProcessor(
+                "run-crc",
+                10,
+                "output-image",
+                new ByteRange(0, 4),
+                new ExternalProcessorInvocation(
+                    "processor-v1",
+                    "tool-v1",
+                    [new ByteRange(0, 4)],
+                    [new ByteRange(2, 1)],
+                    outputAssertions: [new ExternalProcessorOutputAssertion(new ByteRange(2, 1), [0x44])]),
+                OverlapPolicy.Reject,
+                "run approved fake processor"));
+
+        CompositionExecutionResult result = await CompositionEngine.ExecuteAsync(
+            plan,
+            EmptyInput(),
+            (_, inputBytes, _, _, _) =>
+            {
+                byte[] output = inputBytes.ToArray();
+                output[2] = 0x43;
+                return ValueTask.FromResult(CompositionExternalProcessorResult.Success(output));
+            },
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal(CompositionIssueCodes.ExecutionExternalProcessorPostconditionFailed, issue.Code);
+        Assert.Equal("run-crc", issue.OperationId);
+    }
+
     /// <summary>Verifies staged source bytes reach the external hook without first changing the target image.</summary>
     [Fact]
     public async Task ExternalProcessorReceivesStagedSourcesWithoutHostPrePaste()
@@ -179,6 +216,29 @@ public sealed partial class CompositionEngineTests
                 "run approved fake processor")));
     }
 
+    /// <summary>Verifies output assertions cannot inspect bytes outside the processor target image.</summary>
+    [Fact]
+    public void ExternalProcessorOutputAssertionMustStayInsideTargetRange()
+    {
+        var invocation = new ExternalProcessorInvocation(
+            "processor-v1",
+            "tool-v1",
+            [new ByteRange(0, 4)],
+            [new ByteRange(2, 1)],
+            outputAssertions: [new ExternalProcessorOutputAssertion(new ByteRange(4, 1), [0x44])]);
+
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => CreateBlankPlan(
+            4,
+            CompositionOperation.RunExternalProcessor(
+                "run-crc",
+                10,
+                "output-image",
+                new ByteRange(0, 4),
+                invocation,
+                OverlapPolicy.Reject,
+                "run approved fake processor")));
+    }
+
     /// <summary>Verifies staged external processors always receive the full target image coordinate space.</summary>
     [Fact]
     public void ExternalProcessorTargetRangeMustCoverFullTargetSpace()
@@ -289,6 +349,7 @@ public sealed partial class CompositionEngineTests
             "processor-v1",
             "tool-v1",
             [new ByteRange(0, 4)],
-            [writeRange ?? new ByteRange(2, 1)]);
+            [writeRange ?? new ByteRange(2, 1)],
+            outputAssertions: [new ExternalProcessorOutputAssertion(new ByteRange(2, 1), [0x44])]);
     }
 }

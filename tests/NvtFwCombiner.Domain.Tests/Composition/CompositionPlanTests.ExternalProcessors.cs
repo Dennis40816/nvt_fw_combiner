@@ -155,6 +155,25 @@ public sealed partial class CompositionPlanTests
             stagedArtifactBindings: [null!]));
     }
 
+    /// <summary>Verifies an imported processor postcondition cannot be mutated after invocation validation.</summary>
+    [Fact]
+    public void ExternalProcessorOutputAssertionsAreReadOnly()
+    {
+        var invocation = new ExternalProcessorInvocation(
+            "processor-v1",
+            "tool-v1",
+            [new ByteRange(0, 4)],
+            [new ByteRange(2, 1)],
+            outputAssertions: [new ExternalProcessorOutputAssertion(new ByteRange(2, 1), [0x44])]);
+
+        var assertions = (IList<ExternalProcessorOutputAssertion>)invocation.OutputAssertions;
+
+        Assert.True(assertions.IsReadOnly);
+        _ = Assert.Throws<NotSupportedException>(() => assertions[0] = new ExternalProcessorOutputAssertion(
+            new ByteRange(2, 1),
+            [0x43]));
+    }
+
     /// <summary>Verifies CtrlRAM replace plans may combine truncation with external CRC/header processors.</summary>
     [Fact]
     public void ExternalProcessorAllowsInputTruncationForCtrlRamReplace()
