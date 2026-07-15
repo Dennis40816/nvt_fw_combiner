@@ -43,8 +43,9 @@ public static partial class WorkbenchCompositionService
             number,
             slotPaths,
             firmwareVersionEdit);
-
-        if (!context.CanRun)
+        WorkbenchRunResult Blocked(
+            IReadOnlyList<CompositionIssue> issues,
+            string? outputFileName = null)
         {
             return CreateReplaceReportRunResult(
                 icId,
@@ -58,9 +59,13 @@ public static partial class WorkbenchCompositionService
                     slotPaths,
                     runnablePreview: false,
                     context.PostbuildProfile),
-                context.ValidationIssues,
-                GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.CtrlRam),
-                succeeded: false);
+                issues,
+                outputFileName ?? GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.CtrlRam));
+        }
+
+        if (!context.CanRun)
+        {
+            return Blocked(context.ValidationIssues);
         }
 
         IReadOnlyList<LegacyCombinerPostbuildWriteRange> postbuildWriteRangeSections =
@@ -71,26 +76,13 @@ public static partial class WorkbenchCompositionService
             context.Regions.Select(region => region.Range));
         if (postbuildWriteRangeSections.Count == 0)
         {
-            return CreateReplaceReportRunResult(
-                icId,
-                WorkbenchReplaceModes.CtrlRam,
-                slotPaths,
-                build,
-                CreateCtrlRamPlanningOperations(
-                    icId,
-                    context.Selection,
-                    context.Regions,
-                    slotPaths,
-                    runnablePreview: false,
-                    context.PostbuildProfile),
+            return Blocked(
                 [
                     new CompositionIssue(
                         WorkbenchIssueCodes.ReplaceCtrlRamPostbuildWriteRangeMissing,
                         "No approved postbuild write range could be derived from the legacy Combiner command plan.",
                         "postbuild"),
-                ],
-                GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.CtrlRam),
-                succeeded: false);
+                ]);
         }
 
         CompositionProfileDefinition profile = CreateCtrlRamReplaceProfile(
@@ -106,21 +98,7 @@ public static partial class WorkbenchCompositionService
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         if (!compile.IsSuccess)
         {
-            return CreateReplaceReportRunResult(
-                icId,
-                WorkbenchReplaceModes.CtrlRam,
-                slotPaths,
-                build,
-                CreateCtrlRamPlanningOperations(
-                    icId,
-                    context.Selection,
-                    context.Regions,
-                    slotPaths,
-                    runnablePreview: false,
-                    context.PostbuildProfile),
-                compile.Issues,
-                profile.DefaultOutputFileName,
-                succeeded: false);
+            return Blocked(compile.Issues, profile.DefaultOutputFileName);
         }
 
         InputArtifactBinding[] bindings = CreateCtrlRamReplaceBindings(context, slotPaths);

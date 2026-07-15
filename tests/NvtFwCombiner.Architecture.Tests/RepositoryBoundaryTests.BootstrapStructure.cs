@@ -218,15 +218,14 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private static string GetReplaceRunIdPrefix", runner, StringComparison.Ordinal);
         Assert.Contains("StandardMergeRunIdPrefix", standardMerge, StringComparison.Ordinal);
         Assert.Contains("GeneralMergeRunIdPrefix", generalMergeV2, StringComparison.Ordinal);
-        Assert.Contains(
-            "CreateWorkbenchReportRunId(GeneralMergeRunIdPrefix, build, timestamp)",
-            generalMergeReport,
-            StringComparison.Ordinal);
+        Assert.Contains("CreateBlockedReportRunResult", generalMergeReport, StringComparison.Ordinal);
+        Assert.Contains("GeneralMergeRunIdPrefix", generalMergeReport, StringComparison.Ordinal);
         Assert.Contains("DpReplaceRunIdPrefix", replaceDp, StringComparison.Ordinal);
         Assert.Contains("CtrlRamReplaceRunIdPrefix", replaceCtrlRam, StringComparison.Ordinal);
         Assert.Contains("GeneralReplaceRunIdPrefix", replaceGeneral, StringComparison.Ordinal);
+        Assert.Contains("GetReplaceRunIdPrefix(replaceMode)", replaceReport, StringComparison.Ordinal);
         Assert.Contains(
-            "CreateWorkbenchReportRunId(GetReplaceRunIdPrefix(replaceMode), build, timestamp)",
+            "CreateWorkbenchReportRunId(runIdPrefix, build, timestamp)",
             replaceReport,
             StringComparison.Ordinal);
         foreach (string source in new[]
