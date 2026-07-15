@@ -16,7 +16,7 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
-        WorkbenchFirmwareContextSuggestion? suggestion = UiCompositionRunner.TryGetFirmwareContextSuggestion(
+        WorkbenchFirmwareContextSuggestion? suggestion = WorkbenchCompositionService.TryReadFirmwareContextSuggestion(
             SelectedIc,
             slot.FilePath);
         if (suggestion is null || string.Equals(SelectedNumber, suggestion.NumberToken, StringComparison.Ordinal))

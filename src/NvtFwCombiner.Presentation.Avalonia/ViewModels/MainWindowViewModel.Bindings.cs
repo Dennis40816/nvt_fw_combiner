@@ -7,7 +7,7 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
 {
-    private static string DefaultIcId => UiCompositionRunner.GetDefaultIcId();
+    private static string DefaultIcId => WorkbenchCompositionService.GetDefaultIcId();
 
     /// <summary>Gets the shell milestone label.</summary>
     public string ShellVersion { get; }
@@ -51,7 +51,7 @@ public sealed partial class MainWindowViewModel
         : $"{SelectedIc}: {DeviceContextRefreshSummary}";
 
     /// <summary>Gets selectable IC choices from the current catalog.</summary>
-    public IReadOnlyList<string> IcChoices { get; } = UiCompositionRunner.GetSupportedIcIds();
+    public IReadOnlyList<string> IcChoices { get; } = WorkbenchCompositionService.GetSupportedIcIds();
 
     /// <summary>Gets replace mode choices.</summary>
     public IReadOnlyList<string> ReplaceModeChoices { get; } =
@@ -130,7 +130,7 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets Merge memory coverage text for the selected IC.</summary>
     public string MergeMemoryRangeLabel => IsGeneralMergeModeSelected
         ? UiCompositionRunner.GetGeneralMergeMemoryRangeLabel(GeneralMergeOutputLength)
-        : UiCompositionRunner.GetStandardMergeMemoryRangeLabel(
+        : WorkbenchCompositionService.GetStandardMergeMemoryRangeLabel(
             SelectedIc,
             GetSelectedMergeDpInputLength());
 
@@ -146,7 +146,7 @@ public sealed partial class MainWindowViewModel
         : StandardMergeOutputFileName;
 
     /// <summary>Gets Replace memory coverage text for the selected IC and Number.</summary>
-    public string ReplaceMemoryRangeLabel => UiCompositionRunner.GetReplaceMemoryRangeLabel(
+    public string ReplaceMemoryRangeLabel => WorkbenchCompositionService.GetReplaceMemoryRangeLabel(
         SelectedIc,
         SelectedNumber,
         SelectedReplaceMode,
@@ -242,7 +242,7 @@ public sealed partial class MainWindowViewModel
     public bool IsAbCodeMergeModeSelected => string.Equals(SelectedMergeMode, AbCodeMergeMode, StringComparison.Ordinal);
 
     /// <summary>True when selected IC has a built-in standard merge profile.</summary>
-    public bool IsStandardMergeSupported => UiCompositionRunner.IsStandardMergeSupported(SelectedIc);
+    public bool IsStandardMergeSupported => WorkbenchCompositionService.IsStandardMergeSupported(SelectedIc);
 
     /// <summary>Description shown under the selected replace mode.</summary>
     public string SelectedReplaceModeDescription => Text.GetReplaceModeDescription(SelectedReplaceMode);
@@ -428,5 +428,5 @@ public sealed partial class MainWindowViewModel
     [NotifyPropertyChangedFor(nameof(CanPreviewMerge))]
     [NotifyPropertyChangedFor(nameof(CanBuildMerge))]
     public partial string GeneralMergeOutputLength { get; set; } =
-        UiCompositionRunner.GetGeneralMergeDefaultOutputLength(DefaultIcId);
+        WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(DefaultIcId);
 }

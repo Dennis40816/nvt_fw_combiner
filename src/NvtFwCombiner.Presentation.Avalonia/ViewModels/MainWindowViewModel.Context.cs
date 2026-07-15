@@ -294,7 +294,7 @@ public sealed partial class MainWindowViewModel
     partial void OnSelectedIcChanged(string value)
     {
         RefreshNumberChoicesForSelectedIc();
-        GeneralMergeOutputLength = UiCompositionRunner.GetGeneralMergeDefaultOutputLength(value);
+        GeneralMergeOutputLength = WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(value);
         RefreshContextState(resetRunResult: true);
         RefreshAllSelectedSlotFirmwareFacts();
     }
