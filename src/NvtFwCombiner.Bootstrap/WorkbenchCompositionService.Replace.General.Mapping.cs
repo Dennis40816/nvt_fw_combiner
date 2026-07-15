@@ -356,11 +356,6 @@ public static partial class WorkbenchCompositionService
 
         string compact = string.Concat(value.Where(character =>
             !char.IsWhiteSpace(character) && character is not '-' and not ',' and not '_'));
-        if (compact.Length == 0 || compact.Length % 2 != 0 || compact.Any(character => !IsHexDigit(character)))
-        {
-            return false;
-        }
-
         try
         {
             bytes = Convert.FromHexString(compact);
@@ -370,14 +365,6 @@ public static partial class WorkbenchCompositionService
         {
             return false;
         }
-    }
-
-    private static bool IsHexDigit(char character)
-    {
-        return character is
-            (>= '0' and <= '9') or
-            (>= 'A' and <= 'F') or
-            (>= 'a' and <= 'f');
     }
 
     private static bool TryRegisterGeneralReplaceId(
