@@ -158,6 +158,19 @@ public sealed class WorkbenchCompositionServiceTests
         Assert.Equal("1.4.1", suggestion.CommonFwVersion);
     }
 
+    /// <summary>Firmware display readers fail closed when the selected image disappears before reading.</summary>
+    [Fact]
+    public void FirmwareMetadataReadersRejectMissingImage()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-missing-metadata");
+        string missing = workspace.PathFor("missing.bin");
+
+        Assert.Null(WorkbenchCompositionService.TryReadDpVersionMetadata("NT51950", missing));
+        Assert.Null(WorkbenchCompositionService.TryReadCmiDpCodeMetadata("NT51950", missing));
+        Assert.Null(WorkbenchCompositionService.TryReadFirmwareConfigMetadata("NT51926", missing));
+        Assert.Null(WorkbenchCompositionService.TryReadFirmwareContextSuggestion("NT51926", missing));
+    }
+
     /// <summary>Uses the selected TP NVT FWConfig ChipNumber to resolve NT51950's 1IC CMI location.</summary>
     [Fact]
     public void Nt51950CmiMetadataRequiresTpNvtFirmwareConfig()
