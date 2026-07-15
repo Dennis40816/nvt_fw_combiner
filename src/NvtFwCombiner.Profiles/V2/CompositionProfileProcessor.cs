@@ -176,7 +176,8 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
         IEnumerable<string> allowedWriteViewIds,
         IEnumerable<CompositionProfileStagedSourceBinding> stagedSourceBindings,
         IEnumerable<CompositionProfileStagedArtifactBinding> stagedArtifactBindings,
-        string evidenceRef)
+        string evidenceRef,
+        string schemaVersion = "2.0")
         : base(
             processorStageId,
             CompositionProfileProcessorKind.LegacyCombinerV1,
@@ -187,7 +188,8 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
         ToolBindingId = CompositionProfileValueRules.RequireExternalToolBindingId(
             toolBindingId,
             nameof(toolBindingId));
-        InvocationProfileId = CompositionProfileValueRules.RequireId(
+        InvocationProfileId = CompositionProfileValueRules.RequireLegacyCombinerInvocationProfileIdForSchemaVersion(
+            schemaVersion,
             invocationProfileId,
             nameof(invocationProfileId));
         if (!Enum.IsDefined(purpose))

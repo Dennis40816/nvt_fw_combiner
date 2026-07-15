@@ -166,104 +166,6 @@ internal static partial class V2CompositionPlanCompiler
         return V2CompositionPlanCompileResult.Succeeded(artifact);
     }
 
-    private static void ValidateSupportedProfile(CompositionProfileDefinition profile, List<CompositionIssue> issues)
-    {
-        if (profile.CompositionKind is not (CompositionKind.Merge or CompositionKind.Replace))
-        {
-            AddUnsupported(issues, "composition kind must be Merge or Replace");
-        }
-
-        if (profile.CompositionKind == CompositionKind.Replace &&
-            !StringComparer.Ordinal.Equals(profile.Experience.ExperienceId, ExperienceIds.DpReplace))
-        {
-            AddUnsupported(issues, "Replace runtime lowering currently supports only the dp-replace experience");
-        }
-
-        if (profile.Promotion.Stage < CompositionProfilePromotionStage.Compilable)
-        {
-            AddUnsupported(issues, "promotion stage must be Compilable or later");
-        }
-
-        if (profile.Promotion.Stage == CompositionProfilePromotionStage.Supported &&
-            (profile.Output.RequiredTokenIds.Count != 0 ||
-             profile.Output.InvalidCharacterPolicy != CompositionProfileInvalidCharacterPolicy.Reject))
-        {
-            AddUnsupported(issues, "supported profiles require a token-free reject output template until token rendering is lowered");
-        }
-
-        if (profile.MetadataBindings.Count != 0 || profile.Validations.Count != 0)
-        {
-            AddUnsupported(issues, "metadata bindings and validations are not lowered in this slice");
-        }
-
-        MutableCompositionProfileSpace output = AssertOutputSpace(profile);
-        ValidateMapBoundOutputShape(profile, output, issues);
-
-        foreach (InputArtifactProfileSpace inputSpace in profile.Spaces.OfType<InputArtifactProfileSpace>())
-        {
-            CompositionProfileInputSlot? slot = profile.InputSlots.SingleOrDefault(candidate =>
-                StringComparer.Ordinal.Equals(candidate.SlotId, inputSpace.SlotId));
-            if (inputSpace.InstancePolicy != CompositionProfileInstancePolicy.Singleton ||
-                slot is null ||
-                !slot.Required ||
-                slot.Cardinality != CompositionProfileSlotCardinality.ExactlyOne ||
-                slot.Normalization is not (NoInputNormalization or PadShorterInputNormalization) ||
-                !IsCurrentInputLengthRuleSupported(slot))
-            {
-                AddUnsupported(
-                    issues,
-                    $"input space '{inputSpace.SpaceId}' must bind one required singleton exact-map-capacity, normal-DP, tp-maximum-256k, or exact TP slot with approved normalization");
-            }
-        }
-
-        InputArtifactProfileSpace[] inputSpaces = [.. profile.Spaces.OfType<InputArtifactProfileSpace>()];
-        if (profile.InputSlots.Any(slot => inputSpaces.Count(space =>
-                StringComparer.Ordinal.Equals(space.SlotId, slot.SlotId)) != 1))
-        {
-            AddUnsupported(issues, "current runtime lowering requires exactly one immutable address space per input slot");
-        }
-
-        string? replaceReferenceSourceSpaceId = profile.CompositionKind == CompositionKind.Replace
-            ? AssertOutputSpace(profile).Initializer is CloneProfileInitializer clone
-                ? ResolveCloneReferenceSourceSpaceId(profile, clone)
-                : null
-            : null;
-
-        foreach (CompositionProfileOperation operation in profile.Operations)
-        {
-            bool isCopyRange = operation is CopyOrReplaceProfileOperation
-            {
-                Kind: CompositionProfileOperationKind.CopyRange,
-            };
-            bool isDpReplaceRange = operation is CopyOrReplaceProfileOperation replace &&
-                replace.Kind == CompositionProfileOperationKind.ReplaceRange &&
-                IsDpFirmwareInputSource(profile, replace);
-            bool isProcessorRun = operation is RunProcessorProfileOperation;
-            bool isReferenceRestore = operation is CopyOrReplaceProfileOperation copy &&
-                copy.Kind == CompositionProfileOperationKind.CopyRange &&
-                copy.OverlapPolicy == OverlapPolicy.ReplaceExisting &&
-                StringComparer.Ordinal.Equals(
-                    replaceReferenceSourceSpaceId,
-                    profile.Views.Single(view => StringComparer.Ordinal.Equals(view.ViewId,
-                        copy.SourceViewId)).SpaceId);
-            bool isSupportedOperation = profile.CompositionKind == CompositionKind.Merge
-                ? isCopyRange || operation is FillRangeProfileOperation or PatchScalarProfileOperation or TransformScalarProfileOperation ||
-                  isProcessorRun
-                : isDpReplaceRange || isReferenceRestore;
-            bool hasSupportedOverlapPolicy = profile.CompositionKind == CompositionKind.Merge
-                ? operation.OverlapPolicy == OverlapPolicy.Reject ||
-                  ((isCopyRange || isProcessorRun) && operation.OverlapPolicy == OverlapPolicy.ReplaceExisting)
-                : (isDpReplaceRange && operation.OverlapPolicy == OverlapPolicy.Reject) || isReferenceRestore;
-            if (!isSupportedOperation || !hasSupportedOverlapPolicy)
-            {
-                AddUnsupported(
-                    issues,
-                    $"operation '{operation.OperationId}' is outside the Merge copy/fill/patch/transform or DP Replace replace-range plus reference-restoring copy-range subset",
-                    operation.OperationId);
-            }
-        }
-    }
-
     private static Dictionary<string, AddressSpace> LowerAddressSpaces(
         CompositionProfileDefinition profile,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
@@ -352,6 +254,11 @@ internal static partial class V2CompositionPlanCompiler
                 length,
                 AddressSpaceMutability.Immutable,
                 inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange),
+            ExactBytesLengthRule when slot.Normalization is TruncateCtrlRamInputNormalization => new AddressSpace(
+                addressSpaceId,
+                length,
+                AddressSpaceMutability.Immutable,
+                inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
             ExactBytesLengthRule => new AddressSpace(
                 addressSpaceId,
                 length,

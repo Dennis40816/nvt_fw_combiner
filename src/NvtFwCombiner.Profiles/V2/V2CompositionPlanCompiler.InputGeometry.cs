@@ -10,7 +10,10 @@ internal static partial class V2CompositionPlanCompiler
         return slot.LengthRule is ExactResolvedMapCapacityLengthRule or NormalDpExtractWithWarningLengthRule ||
             (slot.ArtifactClass == CompositionProfileArtifactClass.TpFirmware &&
              (slot.LengthRule is TpMaximum256KLengthRule ||
-              slot.LengthRule is ExactBytesLengthRule { Bytes: <= TpMaximum256KLengthRule.MaximumBytes }));
+              slot.LengthRule is ExactBytesLengthRule { Bytes: <= TpMaximum256KLengthRule.MaximumBytes })) ||
+            (slot.ArtifactClass == CompositionProfileArtifactClass.CtrlRamReplacement &&
+             slot.LengthRule is ExactBytesLengthRule &&
+             slot.Normalization is TruncateCtrlRamInputNormalization);
     }
 
     private static bool TryResolveInputSpaceLength(

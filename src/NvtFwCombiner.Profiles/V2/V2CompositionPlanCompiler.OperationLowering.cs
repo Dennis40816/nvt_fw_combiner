@@ -1,4 +1,5 @@
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Profiles.V2;
 
@@ -361,6 +362,16 @@ internal static partial class V2CompositionPlanCompiler
                 return;
             }
 
+            if (IsTruncatedCtrlRamInputSource(profile, source.SpaceId) &&
+                !IsTpCtrlRamTarget(target))
+            {
+                AddUnsupported(
+                    issues,
+                    $"processor staged source '{binding.SourceViewId}' with CtrlRAM truncation must target a TP-owned CtrlRAM region",
+                    operation.OperationId);
+                return;
+            }
+
             stagedSources.Add(new ExternalProcessorStagedSourceBinding(source.SpaceId, source.Range, target.Range));
         }
 
@@ -386,6 +397,27 @@ internal static partial class V2CompositionPlanCompiler
             invocation,
             operation.OverlapPolicy,
             operation.Reason));
+    }
+
+    private static bool IsTruncatedCtrlRamInputSource(
+        CompositionProfileDefinition profile,
+        string addressSpaceId)
+    {
+        InputArtifactProfileSpace? input = profile.Spaces.OfType<InputArtifactProfileSpace>().SingleOrDefault(space =>
+            StringComparer.Ordinal.Equals(space.SpaceId, addressSpaceId));
+        return input is not null &&
+            profile.InputSlots.Single(slot => StringComparer.Ordinal.Equals(slot.SlotId, input.SlotId)).Normalization
+                is TruncateCtrlRamInputNormalization;
+    }
+
+    private static bool IsTpCtrlRamTarget(ResolvedView target)
+    {
+        return target.GoverningRegionChain.Count != 0 &&
+            target.GoverningRegionChain[^1] is
+            {
+                Owner: FirmwareRegionOwner.Tp,
+                Kind: FirmwareRegionKind.CtrlRam,
+            };
     }
 
     private static bool TryResolveSourceAndTarget(

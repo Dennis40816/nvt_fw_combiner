@@ -1,0 +1,257 @@
+{
+  "schemaVersion": "2.7",
+  "profileId": "nt51926-ctrlram-replace-fw141-cascade",
+  "profileVersion": "0.1.0",
+  "promotion": {
+    "stage": "executable-candidate",
+    "blockers": [
+      {
+        "blockerId": "direct-golden-evidence",
+        "kind": "golden",
+        "reason": "A direct NT51926 Common FW 1.4.1 cascade CtrlRAM input/output golden is required before runtime exposure.",
+        "evidenceRefs": [ "nt51926-common-fw141-postbuild" ]
+      },
+      {
+        "blockerId": "firmware-owner-review",
+        "kind": "human-review",
+        "reason": "Firmware owner must approve the exact legacy Combiner command sequence and declared header integrity writes before runtime exposure.",
+        "evidenceRefs": [ "nt51926-common-fw141-postbuild" ]
+      },
+      {
+        "blockerId": "runtime-route",
+        "kind": "ui",
+        "reason": "The candidate is intentionally not routed through CtrlRAM Replace UI or CLI until golden parity is reviewed.",
+        "evidenceRefs": [ "nt51926-common-fw141-postbuild" ]
+      }
+    ]
+  },
+  "compositionKind": "replace",
+  "icNumberInputMode": "cascade-selector",
+  "experience": {
+    "experienceId": "ctrlram-replace",
+    "audience": "ctrlram",
+    "layoutPolicy": "fixed",
+    "inputPolicy": "fixed",
+    "topologyAuthoring": "hidden",
+    "displayNameKey": "profile.nt51926.ctrlram-replace.fw141.cascade"
+  },
+  "compilationContext": {
+    "kind": "resolved-map"
+  },
+  "mapBinding": {
+    "familyId": "nt51926-ctrlram-replace",
+    "familyVersion": "0.1.0",
+    "familyContentHash": "e521a45c907e45a8088c541f063f779d95b8bb723df6cbddc939420418441a58",
+    "mapIds": [ "nt51926-ctrlram-fw141-256k" ],
+    "requiredRegionIds": [
+      "flash-image",
+      "normal-ctrlram",
+      "diff-ctrlram",
+      "mp-ctrlram",
+      "vn-ctrlram-fw141",
+      "nf-ctrlram",
+      "fw-config-backup",
+      "header-copy",
+      "header-crc-1c",
+      "header-crc-3c",
+      "header-crc-fc"
+    ],
+    "requiredMetadataStructureIds": [],
+    "requiredCapabilityIds": []
+  },
+  "inputSlots": [
+    {
+      "slotId": "reference-base",
+      "role": "reference-base",
+      "artifactClass": "reference-image",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [ ".bin" ],
+      "acceptance": {
+        "lengthRule": { "kind": "exact-resolved-map-capacity" },
+        "normalization": { "kind": "none" }
+      }
+    },
+    {
+      "slotId": "normal-ctrlram-input",
+      "role": "normal-ctrlram",
+      "artifactClass": "ctrlram-replacement",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [ ".bin" ],
+      "acceptance": {
+        "lengthRule": { "kind": "exact-bytes", "bytes": 11264 },
+        "normalization": {
+          "kind": "truncate-ctrlram",
+          "warningIssueCode": "CTRLRAM_SIZE_WARNING",
+          "evidenceRef": "nt51926-common-fw141-postbuild"
+        }
+      }
+    },
+    {
+      "slotId": "diff-ctrlram-input",
+      "role": "diff-ctrlram",
+      "artifactClass": "ctrlram-replacement",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [ ".bin" ],
+      "acceptance": {
+        "lengthRule": { "kind": "exact-bytes", "bytes": 10240 },
+        "normalization": {
+          "kind": "truncate-ctrlram",
+          "warningIssueCode": "CTRLRAM_SIZE_WARNING",
+          "evidenceRef": "nt51926-common-fw141-postbuild"
+        }
+      }
+    },
+    {
+      "slotId": "mp-ctrlram-input",
+      "role": "mp-ctrlram",
+      "artifactClass": "ctrlram-replacement",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [ ".bin" ],
+      "acceptance": {
+        "lengthRule": { "kind": "exact-bytes", "bytes": 9216 },
+        "normalization": {
+          "kind": "truncate-ctrlram",
+          "warningIssueCode": "CTRLRAM_SIZE_WARNING",
+          "evidenceRef": "nt51926-common-fw141-postbuild"
+        }
+      }
+    },
+    {
+      "slotId": "vn-ctrlram-input",
+      "role": "vn-ctrlram",
+      "artifactClass": "ctrlram-replacement",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [ ".bin" ],
+      "acceptance": {
+        "lengthRule": { "kind": "exact-bytes", "bytes": 5728 },
+        "normalization": {
+          "kind": "truncate-ctrlram",
+          "warningIssueCode": "CTRLRAM_SIZE_WARNING",
+          "evidenceRef": "nt51926-common-fw141-postbuild"
+        }
+      }
+    },
+    {
+      "slotId": "nf-ctrlram-input",
+      "role": "nf-ctrlram",
+      "artifactClass": "ctrlram-replacement",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [ ".bin" ],
+      "acceptance": {
+        "lengthRule": { "kind": "exact-bytes", "bytes": 11728 },
+        "normalization": {
+          "kind": "truncate-ctrlram",
+          "warningIssueCode": "CTRLRAM_SIZE_WARNING",
+          "evidenceRef": "nt51926-common-fw141-postbuild"
+        }
+      }
+    }
+  ],
+  "spaces": [
+    { "spaceId": "reference-base", "kind": "input-artifact", "slotId": "reference-base", "instancePolicy": "singleton" },
+    { "spaceId": "normal-ctrlram-input", "kind": "input-artifact", "slotId": "normal-ctrlram-input", "instancePolicy": "singleton" },
+    { "spaceId": "diff-ctrlram-input", "kind": "input-artifact", "slotId": "diff-ctrlram-input", "instancePolicy": "singleton" },
+    { "spaceId": "mp-ctrlram-input", "kind": "input-artifact", "slotId": "mp-ctrlram-input", "instancePolicy": "singleton" },
+    { "spaceId": "vn-ctrlram-input", "kind": "input-artifact", "slotId": "vn-ctrlram-input", "instancePolicy": "singleton" },
+    { "spaceId": "nf-ctrlram-input", "kind": "input-artifact", "slotId": "nf-ctrlram-input", "instancePolicy": "singleton" },
+    {
+      "spaceId": "output-image",
+      "kind": "output-image",
+      "capacity": { "kind": "resolved-map" },
+      "initializer": { "kind": "clone", "sourceSlotId": "reference-base" }
+    }
+  ],
+  "views": [
+    { "viewId": "reference-image", "spaceId": "reference-base", "selector": { "kind": "map-region", "regionId": "flash-image" } },
+    { "viewId": "output-image", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "flash-image" } },
+    { "viewId": "normal-ctrlram-source", "spaceId": "normal-ctrlram-input", "selector": { "kind": "space-range", "range": { "start": 0, "length": 11264 } } },
+    { "viewId": "diff-ctrlram-source", "spaceId": "diff-ctrlram-input", "selector": { "kind": "space-range", "range": { "start": 0, "length": 10240 } } },
+    { "viewId": "mp-ctrlram-source", "spaceId": "mp-ctrlram-input", "selector": { "kind": "space-range", "range": { "start": 0, "length": 9216 } } },
+    { "viewId": "vn-ctrlram-source", "spaceId": "vn-ctrlram-input", "selector": { "kind": "space-range", "range": { "start": 0, "length": 5728 } } },
+    { "viewId": "nf-ctrlram-source", "spaceId": "nf-ctrlram-input", "selector": { "kind": "space-range", "range": { "start": 0, "length": 11728 } } },
+    { "viewId": "normal-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "normal-ctrlram" } },
+    { "viewId": "diff-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "diff-ctrlram" } },
+    { "viewId": "mp-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "mp-ctrlram" } },
+    { "viewId": "vn-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "vn-ctrlram-fw141" } },
+    { "viewId": "nf-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "nf-ctrlram" } },
+    { "viewId": "fw-config-backup-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "fw-config-backup" } },
+    { "viewId": "header-copy-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-copy" } },
+    { "viewId": "header-crc-1c-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-1c" } },
+    { "viewId": "header-crc-3c-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-3c" } },
+    { "viewId": "header-crc-fc-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-fc" } }
+  ],
+  "metadataBindings": [],
+  "regionAccessRules": [
+    { "regionId": "normal-ctrlram", "access": "whole", "reason": "Owner-provided Common FW 1.4.1 cascade Combiner stages the complete Normal CtrlRAM replacement." },
+    { "regionId": "diff-ctrlram", "access": "whole", "reason": "Owner-provided Common FW 1.4.1 cascade Combiner stages the complete DIFF CtrlRAM replacement." },
+    { "regionId": "mp-ctrlram", "access": "whole", "reason": "Owner-provided Common FW 1.4.1 cascade Combiner stages the complete MP CtrlRAM replacement." },
+    { "regionId": "vn-ctrlram-fw141", "access": "whole", "reason": "Owner-provided Common FW 1.4.1 cascade Combiner stages the complete 0x1660-byte VN CtrlRAM replacement." },
+    { "regionId": "nf-ctrlram", "access": "whole", "reason": "Owner-provided Common FW 1.4.1 cascade Combiner stages the complete NF CtrlRAM replacement." },
+    { "regionId": "fw-config-backup", "access": "explicit-range", "reason": "Combiner copies the reviewed firmware-config source block to the backup target; it is not user authoring authority." },
+    { "regionId": "header-copy", "access": "explicit-range", "reason": "Combiner owns the reviewed header copy and final header CRC refresh target." },
+    { "regionId": "header-crc-1c", "access": "explicit-range", "reason": "Combiner recalculates this reviewed source header integrity field." },
+    { "regionId": "header-crc-3c", "access": "explicit-range", "reason": "Combiner recalculates this reviewed source header integrity field." },
+    { "regionId": "header-crc-fc", "access": "explicit-range", "reason": "Combiner recalculates this reviewed source header integrity field." }
+  ],
+  "operations": [
+    {
+      "operationId": "run-nt51926-fw141-cascade-combiner",
+      "sequence": 100,
+      "overlapPolicy": "reject",
+      "reason": "Stage immutable CtrlRAM replacements into a host-created reference clone and run the owner-provided Common FW 1.4.1 cascade Combiner sequence.",
+      "kind": "run-processor",
+      "processorStageId": "nt51926-fw141-cascade-combiner"
+    }
+  ],
+  "validations": [],
+  "processorStages": [
+    {
+      "processorStageId": "nt51926-fw141-cascade-combiner",
+      "kind": "legacy-combiner-v1",
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "invocationProfileId": "nfc.nt51926.ctrlram-postbuild-fw1.4.1",
+      "targetSpaceId": "output-image",
+      "authority": "transform",
+      "purpose": "header-and-integrity",
+      "integrityDisposition": "recalculate-and-write",
+      "allowedReadViewIds": [ "output-image" ],
+      "allowedWriteViewIds": [
+        "normal-ctrlram-output",
+        "diff-ctrlram-output",
+        "mp-ctrlram-output",
+        "vn-ctrlram-output",
+        "nf-ctrlram-output",
+        "fw-config-backup-output",
+        "header-copy-output",
+        "header-crc-1c-output",
+        "header-crc-3c-output",
+        "header-crc-fc-output"
+      ],
+      "stagedSourceBindings": [
+        { "sourceViewId": "normal-ctrlram-source", "targetViewId": "normal-ctrlram-output" },
+        { "sourceViewId": "diff-ctrlram-source", "targetViewId": "diff-ctrlram-output" },
+        { "sourceViewId": "mp-ctrlram-source", "targetViewId": "mp-ctrlram-output" },
+        { "sourceViewId": "vn-ctrlram-source", "targetViewId": "vn-ctrlram-output" },
+        { "sourceViewId": "nf-ctrlram-source", "targetViewId": "nf-ctrlram-output" }
+      ],
+      "stagedArtifactBindings": [],
+      "evidenceRef": "nt51926-common-fw141-postbuild",
+      "failurePolicy": "fail-closed"
+    }
+  ],
+  "output": {
+    "fileNameTemplate": "nt51926-ctrlram-replace-fw141-cascade.bin",
+    "allowOverride": true,
+    "invalidCharacterPolicy": "reject",
+    "requiredTokenIds": []
+  },
+  "evidenceRefs": [
+    "nt51926-common-fw141-postbuild"
+  ]
+}

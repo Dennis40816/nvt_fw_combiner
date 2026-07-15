@@ -1,0 +1,252 @@
+{
+  "schemaVersion": "1.1",
+  "familyId": "nt51926-ctrlram-replace",
+  "familyVersion": "0.1.0",
+  "members": [
+    {
+      "memberId": "NT51926",
+      "displayName": "NT51926"
+    }
+  ],
+  "capabilities": [],
+  "regionSets": [
+    {
+      "regionSetId": "nt51926-ctrlram-fw141-flash",
+      "addressSpaceId": "flash",
+      "regions": [
+        {
+          "regionId": "flash-image",
+          "owner": "system",
+          "kind": "image",
+          "range": { "start": 0, "length": 262144 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-prefix-00",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 0, "length": 28 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "header-crc-1c",
+          "parentRegionId": "flash-image",
+          "owner": "system",
+          "kind": "header",
+          "range": { "start": 28, "length": 4 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-prefix-20",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 32, "length": 28 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "header-crc-3c",
+          "parentRegionId": "flash-image",
+          "owner": "system",
+          "kind": "header",
+          "range": { "start": 60, "length": 4 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-prefix-40",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 64, "length": 188 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "header-crc-fc",
+          "parentRegionId": "flash-image",
+          "owner": "system",
+          "kind": "header",
+          "range": { "start": 252, "length": 4 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-prefix-100",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 256, "length": 139008 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "fw-config-source",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "firmware-config",
+          "range": { "start": 139264, "length": 2048 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "normal-ctrlram",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "ctrlram",
+          "range": { "start": 141312, "length": 11264 },
+          "writeConstraint": "whole-region",
+          "alignment": 1
+        },
+        {
+          "regionId": "mp-ctrlram",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "ctrlram",
+          "range": { "start": 152576, "length": 9216 },
+          "writeConstraint": "whole-region",
+          "alignment": 1
+        },
+        {
+          "regionId": "diff-ctrlram",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "ctrlram",
+          "range": { "start": 161792, "length": 10240 },
+          "writeConstraint": "whole-region",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-2a000",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 172032, "length": 10240 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "nf-ctrlram",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "ctrlram",
+          "range": { "start": 182272, "length": 11728 },
+          "writeConstraint": "whole-region",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-2f5d0",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 194000, "length": 8192 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "vn-ctrlram-fw141",
+          "parentRegionId": "flash-image",
+          "owner": "tp",
+          "kind": "ctrlram",
+          "range": { "start": 202192, "length": 5728 },
+          "writeConstraint": "whole-region",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-32c30",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 207920, "length": 800 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "header-copy",
+          "parentRegionId": "flash-image",
+          "owner": "system",
+          "kind": "header",
+          "range": { "start": 208720, "length": 256 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-33050",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 208976, "length": 32688 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "fw-config-backup",
+          "parentRegionId": "flash-image",
+          "owner": "system",
+          "kind": "firmware-config",
+          "range": { "start": 241664, "length": 2048 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-3b800",
+          "parentRegionId": "flash-image",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 243712, "length": 6144 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "customer-info",
+          "parentRegionId": "flash-image",
+          "owner": "customer",
+          "kind": "customer-information",
+          "range": { "start": 249856, "length": 4096 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "dp",
+          "parentRegionId": "flash-image",
+          "owner": "dp",
+          "kind": "code",
+          "range": { "start": 253952, "length": 8192 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        }
+      ],
+      "evidenceRefs": [
+        "nt51926-common-fw141-postbuild"
+      ]
+    }
+  ],
+  "metadataSets": [],
+  "imageMaps": [
+    {
+      "mapId": "nt51926-ctrlram-fw141-256k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [ "NT51926" ],
+        "modeIds": [ "ctrlram-replace" ],
+        "topologyRequirement": { "kind": "none" },
+        "capacityBytes": 262144
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [ "nt51926-ctrlram-fw141-flash" ],
+      "metadataSetIds": [],
+      "evidenceRefs": [
+        "nt51926-common-fw141-postbuild"
+      ]
+    }
+  ],
+  "factAliases": [],
+  "evidenceRefs": [
+    "nt51926-common-fw141-postbuild"
+  ]
+}

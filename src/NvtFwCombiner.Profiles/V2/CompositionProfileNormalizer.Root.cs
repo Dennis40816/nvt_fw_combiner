@@ -14,9 +14,10 @@ internal static partial class CompositionProfileNormalizer
             !StringComparer.Ordinal.Equals(document.SchemaVersion, "2.3") &&
             !StringComparer.Ordinal.Equals(document.SchemaVersion, "2.4") &&
             !StringComparer.Ordinal.Equals(document.SchemaVersion, "2.5") &&
-            !StringComparer.Ordinal.Equals(document.SchemaVersion, "2.6"))
+            !StringComparer.Ordinal.Equals(document.SchemaVersion, "2.6") &&
+            !StringComparer.Ordinal.Equals(document.SchemaVersion, "2.7"))
         {
-            throw Error("schemaVersion", "Expected composition-profile schema version '2.0', '2.1', '2.2', '2.3', '2.4', '2.5', or '2.6'.");
+            throw Error("schemaVersion", "Expected composition-profile schema version '2.0', '2.1', '2.2', '2.3', '2.4', '2.5', '2.6', or '2.7'.");
         }
 
         CompositionKind compositionKind = NormalizeCompositionKind(

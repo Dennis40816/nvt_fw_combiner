@@ -216,9 +216,12 @@ public sealed partial class CompiledComposition
             if (binding.InstancePolicy != CompiledInputInstancePolicy.Singleton ||
                 !requirement.Required ||
                 requirement.Cardinality != CompiledInputSlotCardinality.ExactlyOne ||
-                requirement.Normalization is not (CompiledNoInputNormalization or CompiledPadShorterInputNormalization))
+                requirement.Normalization is not (
+                    CompiledNoInputNormalization or
+                    CompiledPadShorterInputNormalization or
+                    CompiledTruncateCtrlRamInputNormalization))
             {
-                throw new ArgumentException("Current V2 plan artifacts require singleton required inputs with no normalization or DP short-input padding.", nameof(details));
+                throw new ArgumentException("Current V2 plan artifacts require singleton required inputs with no normalization, DP short-input padding, or CtrlRAM truncation.", nameof(details));
             }
 
             if (!addressSpaces.TryGetValue(addressSpaceId, out AddressSpace? addressSpace) ||
@@ -233,7 +236,12 @@ public sealed partial class CompiledComposition
             switch (requirement.LengthRequirement)
             {
                 case CompiledExactBytesInputLengthRequirement exact:
-                    ValidateExactBytesInputGeometry(requirement, exact, addressSpace);
+                    ValidateExactBytesInputGeometry(
+                        compositionKind,
+                        experienceId,
+                        requirement,
+                        exact,
+                        addressSpace);
                     break;
                 case CompiledExactResolvedMapCapacityInputLengthRequirement exact:
                     ValidateExactResolvedMapCapacityInputGeometry(
@@ -535,26 +543,6 @@ public sealed partial class CompiledComposition
                     "Logical-output V2 bindings must be one-to-one unnormalized immutable in-memory input spaces.",
                     nameof(details));
             }
-        }
-    }
-
-    private static void ValidateExactBytesInputGeometry(
-        CompiledInputSlotRequirement requirement,
-        CompiledExactBytesInputLengthRequirement exact,
-        AddressSpace addressSpace)
-    {
-        if (requirement.ArtifactClass != CompiledInputArtifactClass.TpFirmware ||
-            requirement.Normalization is not CompiledNoInputNormalization ||
-            exact.Bytes > CompiledTpMaximum256KInputLengthRequirement.MaximumBytes ||
-            addressSpace.Length != exact.Bytes ||
-            addressSpace.InputPaddingByte is not null ||
-            addressSpace.InputOversizePolicy != InputOversizePolicy.Reject ||
-            addressSpace.AllowedInputLengths.Count != 0 ||
-            addressSpace.ExpectedInputLengths.Count != 0)
-        {
-            throw new ArgumentException(
-                "Exact TP input requirements must be unnormalized, within 256 KiB, and match an exact immutable plan space.",
-                nameof(requirement));
         }
     }
 

@@ -29,9 +29,27 @@ internal static partial class CompositionProfileValueRules
         return schemaVersion switch
         {
             "2.0" or "2.1" => RequireId(value, parameterName),
-            "2.2" or "2.3" or "2.4" or "2.5" or "2.6" => RequireExternalToolBindingId(value, parameterName),
+            "2.2" or "2.3" or "2.4" or "2.5" or "2.6" or "2.7" => RequireExternalToolBindingId(value, parameterName),
             _ => throw new ArgumentOutOfRangeException(nameof(schemaVersion), schemaVersion, "Unsupported profile schema version."),
         };
+    }
+
+    internal static string RequireLegacyCombinerInvocationProfileIdForSchemaVersion(
+        string schemaVersion,
+        string value,
+        string parameterName)
+    {
+        if (!StringComparer.Ordinal.Equals(schemaVersion, "2.7"))
+        {
+            return RequireId(value, parameterName);
+        }
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(value, parameterName);
+        return CanonicalIdPattern().IsMatch(value) || LegacyCombinerInvocationProfileIdPattern().IsMatch(value)
+            ? value
+            : throw new ArgumentException(
+                "Invocation profile identifier is not canonical or a published legacy Combiner catalog identifier.",
+                parameterName);
     }
 
     internal static string RequireSemanticVersion(string value, string parameterName)
@@ -93,7 +111,7 @@ internal static partial class CompositionProfileValueRules
         return schemaVersion switch
         {
             "2.4" => SnapshotIds(values, parameterName, requireValue: true),
-            "2.5" or "2.6" => SnapshotIds(values, parameterName, requireValue: true, RequireIcId),
+            "2.5" or "2.6" or "2.7" => SnapshotIds(values, parameterName, requireValue: true, RequireIcId),
             _ => throw new ArgumentOutOfRangeException(nameof(schemaVersion), schemaVersion, "Unsupported logical-output schema version."),
         };
     }
@@ -138,6 +156,11 @@ internal static partial class CompositionProfileValueRules
         "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:-[0-9]+(?:\\.[0-9]+)*(?:[-+][0-9A-Za-z.-]+)?)?$",
         RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
     private static partial Regex ExternalToolBindingIdPattern();
+
+    [GeneratedRegex(
+        "^nfc\\.[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$",
+        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
+    private static partial Regex LegacyCombinerInvocationProfileIdPattern();
 
     [GeneratedRegex(
         "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$",

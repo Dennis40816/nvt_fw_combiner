@@ -1,4 +1,4 @@
-# Composition Profile Contract 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, and 2.6
+# Composition Profile Contract 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, and 2.7
 
 The executable schemas are [`composition-profile-v2.schema.json`](composition-profile-v2.schema.json)
 [`composition-profile-v2.1.schema.json`](composition-profile-v2.1.schema.json), and
@@ -6,7 +6,8 @@ The executable schemas are [`composition-profile-v2.schema.json`](composition-pr
 [`composition-profile-v2.3.schema.json`](composition-profile-v2.3.schema.json), and
 [`composition-profile-v2.4.schema.json`](composition-profile-v2.4.schema.json), and
 [`composition-profile-v2.5.schema.json`](composition-profile-v2.5.schema.json), and
-[`composition-profile-v2.6.schema.json`](composition-profile-v2.6.schema.json). A trusted bundle
+[`composition-profile-v2.6.schema.json`](composition-profile-v2.6.schema.json), and
+[`composition-profile-v2.7.schema.json`](composition-profile-v2.7.schema.json). A trusted bundle
 selects one exact schema snapshot through its manifest content hash. They are the only declarative
 workflow policy compiled for Normal, AB, General, Merge, Replace, saved rules, and future Register work.
 
@@ -91,7 +92,7 @@ operation; a Replace `copy-range` from DP or a rejected replacement copy fails c
 is permitted only for this exact, unnormalized `reference-image` DP Replace base. Metadata validation,
 CRC-worker stages, and every other unrecognized runtime authority remain outside this subset and fail closed.
 The reserved future-schema `legacy-combiner-v1` stage lowers through the existing external-processor port
-only with profile-declared read/write ranges, staged sources, and named artifact bindings; it never grants
+only with profile-declared read/write ranges, staged sources, and, when required, named artifact bindings; it never grants
 C# checksum or header calculation authority.
 
 For this subset, an `exact-resolved-map-capacity` input binds an immutable source space at the resolved map
@@ -149,6 +150,14 @@ never select a map, and zero or multiple exact-capacity map candidates reject th
 has no caller-selected capacity override, and every compiled binding id must match the Application
 binding identity retained in reports and preview approval. This context remains candidate-only until
 its runtime routing and firmware evidence gates are closed.
+
+Schema 2.7 retains every 2.6 declaration and permits a `legacy-combiner-v1` stage to declare zero
+`stagedArtifactBindings` when it uses only `stagedSourceBindings`. This does not grant an implicit
+artifact: the processor adapter still rejects every undeclared or unused staged artifact. The change
+allows source-only legacy postbuild plans to remain declarative. Schema 2.7 also permits a
+`legacy-combiner-v1.invocationProfileId` to use either the canonical id grammar or the existing
+published `nfc.` legacy Combiner catalog grammar, including its dot-version suffixes; arbitrary
+processor identifiers remain invalid.
 
 ## Input size policy
 

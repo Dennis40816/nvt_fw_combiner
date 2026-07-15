@@ -126,7 +126,8 @@ internal static partial class CompositionProfileNormalizer
             RequireList(document.AllowedWriteViewIds, $"{path}.allowedWriteViewIds"),
             bindings,
             artifactBindings,
-            RequireText(document.EvidenceRef, $"{path}.evidenceRef", "Processor evidence is missing.")));
+            RequireText(document.EvidenceRef, $"{path}.evidenceRef", "Processor evidence is missing."),
+            schemaVersion));
     }
 
     private static CompositionProfileProcessorPurpose NormalizeProcessorPurpose(string value, string path)

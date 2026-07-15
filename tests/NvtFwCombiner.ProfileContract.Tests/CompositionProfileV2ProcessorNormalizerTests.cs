@@ -71,6 +71,7 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
     [Theory]
     [InlineData("2.2")]
     [InlineData("2.3")]
+    [InlineData("2.7")]
     public void ProcessorMapsPublishedCombinerToolBindingInVersionedSchemas(string schemaVersion)
     {
         LegacyCombinerProfileProcessorStage stage = Assert.IsType<LegacyCombinerProfileProcessorStage>(
@@ -80,6 +81,38 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
                 "processorStages[0]"));
 
         Assert.Equal("legacy-combiner-1.13.0", stage.ToolBindingId);
+    }
+
+    /// <summary>Verifies schema 2.7 alone accepts the published dotted legacy Combiner catalog identity.</summary>
+    [Theory]
+    [InlineData("2.6", false)]
+    [InlineData("2.7", true)]
+    public void ProcessorMapsPublishedLegacyCombinerCatalogIdentityOnlyInV27(
+        string schemaVersion,
+        bool expectedSuccess)
+    {
+        if (expectedSuccess)
+        {
+            LegacyCombinerProfileProcessorStage stage = Assert.IsType<LegacyCombinerProfileProcessorStage>(
+                CompositionProfileNormalizer.NormalizeProcessorStage(
+                    Legacy(
+                        "header-and-integrity",
+                        "recalculate-and-write",
+                        invocationProfileId: "nfc.nt51926.ctrlram-postbuild-fw1.4.1"),
+                    schemaVersion,
+                    "processorStages[0]"));
+            Assert.Equal("nfc.nt51926.ctrlram-postbuild-fw1.4.1", stage.InvocationProfileId);
+            return;
+        }
+
+        _ = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            CompositionProfileNormalizer.NormalizeProcessorStage(
+                Legacy(
+                    "header-and-integrity",
+                    "recalculate-and-write",
+                    invocationProfileId: "nfc.nt51926.ctrlram-postbuild-fw1.4.1"),
+                schemaVersion,
+                "processorStages[0]"));
     }
 
     /// <summary>Verifies every legacy purpose maps using an allowed integrity disposition.</summary>
@@ -210,7 +243,8 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
         IReadOnlyList<CompositionProfileStagedSourceBindingDocument>? bindings = default,
         IReadOnlyList<CompositionProfileStagedArtifactBindingDocument>? artifactBindings = default,
         string? toolBindingId = "combiner-1-13",
-        string? evidenceRef = "combiner-evidence")
+        string? evidenceRef = "combiner-evidence",
+        string? invocationProfileId = "profile")
     {
         return new CompositionProfileProcessorStageDocument(
             "legacy-postbuild",
@@ -223,7 +257,7 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
             ["integrity", "header"],
             "fail-closed",
             ToolBindingId: toolBindingId,
-            InvocationProfileId: "profile",
+            InvocationProfileId: invocationProfileId,
             StagedSourceBindings: bindings ?? [],
             EvidenceRef: evidenceRef,
             StagedArtifactBindings: artifactBindings);
