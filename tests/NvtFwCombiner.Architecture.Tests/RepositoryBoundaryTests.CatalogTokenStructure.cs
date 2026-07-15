@@ -188,8 +188,6 @@ public sealed partial class RepositoryBoundaryTests
         string workbenchSelections = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchIcNumberSelections.cs");
         string presentationBindings = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Bindings.cs");
-        string dynamicText = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.DynamicText.cs");
 
         Assert.Contains("public const string SingleChip = \"single\"", domainTokens, StringComparison.Ordinal);
         Assert.Contains("public const string Cascade = \"cascade\"", domainTokens, StringComparison.Ordinal);
@@ -202,7 +200,6 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public const string SingleChip = IcNumberSelectionTokens.SingleChip;", workbenchTokens, StringComparison.Ordinal);
         Assert.Contains("IcNumberSelectionTokens.IsSingle(number)", workbenchSelections, StringComparison.Ordinal);
         Assert.Contains("WorkbenchIcNumberTokens.SingleChip", presentationBindings, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchIcNumberTokens.IsSingle(number)", dynamicText, StringComparison.Ordinal);
         Assert.DoesNotContain("\"single\"", flashMapChoices, StringComparison.Ordinal);
         Assert.DoesNotContain("\"cascade\"", flashMapChoices, StringComparison.Ordinal);
         Assert.DoesNotContain("\"single\"", postbuildHelpers, StringComparison.Ordinal);

@@ -41,63 +41,12 @@ public sealed partial class MainWindowViewModel
         }
     }
 
-    private void RefreshMergeModeState()
-    {
-        ActiveMergeRows.Clear();
-        if (IsGeneralMergeModeSelected)
-        {
-            AddMergeRows(
-                $"{SelectedIc}: General Merge input policy is active.",
-                "Output starts as reserved bytes; mapping rows copy explicit source ranges into it.",
-                "No postbuild command is invoked by General Merge.",
-                $"Output length: {GeneralMergeOutputLength}");
-            return;
-        }
-
-        if (IsAbCodeMergeModeSelected)
-        {
-            AddMergeRows(
-                "AB Code Merge is reserved.",
-                "This mode will need a dedicated profile because it has TP CRC/start-address behavior.",
-                "Use Standard Merge or General Merge for current 0.7.x workflows.");
-            return;
-        }
-
-        string? profileId = WorkbenchCompositionService.GetStandardMergeProfileId(SelectedIc);
-        if (profileId is null)
-        {
-            AddMergeRows(
-                $"Profile: not available for {SelectedIc}",
-                "Build stays disabled until a profile is added.",
-                $"{SelectedIc} / {SelectedNumber} still refreshes Replace region policy.");
-            return;
-        }
-
-        AddMergeRows(
-            $"Profile: {profileId}",
-            $"Required slots: {GetRequiredStandardMergeSlotLabels()}",
-            GetStandardMergeRangeSummary());
-    }
-
-    private void AddMergeRows(params string[] rows)
-    {
-        foreach (string row in rows)
-        {
-            ActiveMergeRows.Add(row);
-        }
-    }
-
     private string GetRequiredStandardMergeSlotLabels()
     {
         IReadOnlyList<string> required = WorkbenchCompositionService.GetStandardMergeRequiredAddressSpaces(SelectedIc);
         return required.Count == 0
             ? "none"
             : string.Join(", ", required.Select(AddressSpaceLabel));
-    }
-
-    private string GetStandardMergeRangeSummary()
-    {
-        return WorkbenchCompositionService.GetStandardMergePolicySummary(SelectedIc);
     }
 
     private static string AddressSpaceLabel(string addressSpaceId)

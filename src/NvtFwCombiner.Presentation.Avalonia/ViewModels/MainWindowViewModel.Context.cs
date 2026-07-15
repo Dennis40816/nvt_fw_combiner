@@ -30,7 +30,6 @@ public sealed partial class MainWindowViewModel
         RefreshCtrlRamRegions();
         RefreshMemoryMapState();
         RefreshMergeSlotRequirements();
-        RefreshMergeModeState();
         RefreshReplaceModeState();
         RefreshSettingsState();
         RefreshCommandState();
@@ -68,14 +67,6 @@ public sealed partial class MainWindowViewModel
             ReplaceCoverageSegments))
         {
             ReplaceCoverageGroups.Add(group);
-        }
-    }
-
-    private void AddRows(params string[] rows)
-    {
-        foreach (string row in rows)
-        {
-            ActiveReplaceRows.Add(row);
         }
     }
 

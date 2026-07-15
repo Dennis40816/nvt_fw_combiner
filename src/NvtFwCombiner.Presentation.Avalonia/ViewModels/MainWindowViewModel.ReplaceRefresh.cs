@@ -14,9 +14,6 @@ public sealed partial class MainWindowViewModel
         {
             CtrlRamRegions.Add(region);
         }
-
-        OnPropertyChanged(nameof(HasCtrlRamRegions));
-        OnPropertyChanged(nameof(CtrlRamRegionSummary));
     }
 
     private void RefreshMemoryMapState()
@@ -103,7 +100,6 @@ public sealed partial class MainWindowViewModel
                 .ToDictionary(slot => slot.SlotId, slot => slot.FilePath, StringComparer.Ordinal)
             : new Dictionary<string, string?>(StringComparer.Ordinal);
         ReplaceSlots.Clear();
-        ActiveReplaceRows.Clear();
         switch (SelectedReplaceMode)
         {
             case DpReplaceMode:
@@ -117,10 +113,6 @@ public sealed partial class MainWindowViewModel
                     ReplaceSlots.Add(slot);
                 }
 
-                AddRows(
-                    $"{SelectedIc} / {SelectedNumber}: DP Replace input policy is active.",
-                    WorkbenchCompositionService.GetDpReplacePolicySummary(SelectedIc),
-                    "Visible DP Replace slots come from approved profile/catalog evidence.");
                 break;
             case CtrlRamReplaceMode:
                 ReplaceSlots.Add(ReplaceBaseSlot);
@@ -134,28 +126,16 @@ public sealed partial class MainWindowViewModel
                     ReplaceSlots.Add(slot);
                 }
 
-                AddRows(
-                    $"{SelectedIc} / {SelectedNumber}: {Math.Max(ReplaceSlots.Count - 1, 0)} replaceable CtrlRAM regions.",
-                    "Each CtrlRAM region slot may receive its own replacement BIN; empty slots stay from base.",
-                    "Build validates first, then runs the staged Combiner postbuild command sequence.",
-                    "Private golden outputs are still required before support parity is claimed.");
                 break;
             case GeneralReplaceMode:
-                AddRows(
-                    $"{SelectedIc} / {SelectedNumber}: General Replace input policy is active.",
-                    "Base firmware stays separate; mapping rows define replacement ranges.",
-                    "The compiler must approve each explicit range before build.",
-                    "Any TP-range mapping must compile with an approved Combiner CRC/header refresh.");
                 break;
             default:
-                AddRows("Select a replace mode.");
                 break;
         }
 
         ApplyFirmwareSlotText();
         RefreshReplaceSlotGroups();
         OnPropertyChanged(nameof(SelectedReplaceModeDescription));
-        OnPropertyChanged(nameof(IsDpReplaceModeSelected));
         OnPropertyChanged(nameof(IsCtrlRamReplaceModeSelected));
         OnPropertyChanged(nameof(IsGeneralReplaceModeSelected));
         OnPropertyChanged(nameof(IsStructuredReplaceModeSelected));
