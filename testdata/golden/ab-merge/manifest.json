@@ -52,6 +52,17 @@
         "configuration": "51929",
         "observedOn": "2026-07-15"
       },
+      "evidenceApplicability": {
+        "directMemberIds": [
+          "NT51929"
+        ],
+        "factScopedAliasMemberIds": [
+          "NT51919"
+        ],
+        "notEstablishedMemberIds": [
+          "NT51932"
+        ]
+      },
       "promotion": "executable-candidate only; firmware-owner review remains required"
     },
     {
@@ -96,6 +107,15 @@
         "configuration": "51950",
         "observedOn": "2026-07-15"
       },
+      "evidenceApplicability": {
+        "directMemberIds": [
+          "NT51950"
+        ],
+        "factScopedAliasMemberIds": [],
+        "notEstablishedMemberIds": [
+          "NT51951"
+        ]
+      },
       "promotion": "executable candidate only; full-byte Python/Combiner parity is tracked, but firmware-owner review remains required before runtime exposure"
     },
     {
@@ -139,6 +159,15 @@
         "snapshot": "refcode/ab_code_combiner",
         "configuration": "51950",
         "observedOn": "2026-07-15"
+      },
+      "evidenceApplicability": {
+        "directMemberIds": [
+          "NT51950"
+        ],
+        "factScopedAliasMemberIds": [],
+        "notEstablishedMemberIds": [
+          "NT51951"
+        ]
       },
       "promotion": "executable candidate only; full-byte Python/Combiner parity is tracked, but firmware-owner review remains required before runtime exposure"
     }

@@ -44,20 +44,28 @@ public sealed class AbMergeGoldenRegressionTests
     }
 
     /// <summary>
-    /// Verifies the owner-confirmed NT51919 alias and NT51932 candidate preserve the shared NT51929 AB bytes.
-    /// This reuses only the named fixture inputs and does not replace either target's direct product golden.
+    /// Verifies the owner-confirmed NT51919 fact-scoped alias preserves the direct NT51929 golden bytes.
+    /// This is alias parity and does not present the NT51929 output as a direct NT51919 product golden.
     /// </summary>
-    [Theory]
-    [InlineData("NT51919", "nt51919-ab-merge-alias")]
-    [InlineData("NT51932", "nt51932-ab-merge")]
-    public void Nt51919AndNt51932CandidatesMatchSharedNt51929AbGolden(string icId, string profileId)
+    [Fact]
+    public void Nt51919FactScopedAliasMatchesNt51929AbGolden()
     {
         JsonElement goldenCase = ReadGoldenCase("nt51929-ab-t05-d06");
+        JsonElement applicability = goldenCase.GetProperty("evidenceApplicability");
+        Assert.Equal(
+            ["NT51929"],
+            applicability.GetProperty("directMemberIds").EnumerateArray().Select(static item => item.GetString()));
+        Assert.Equal(
+            ["NT51919"],
+            applicability.GetProperty("factScopedAliasMemberIds").EnumerateArray().Select(static item => item.GetString()));
+        Assert.Equal(
+            ["NT51932"],
+            applicability.GetProperty("notEstablishedMemberIds").EnumerateArray().Select(static item => item.GetString()));
         CompiledComposition composition = CompileCandidate(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(Nt51929BundleDirectory, Nt51929BundleContentHash),
             goldenCase,
-            icId,
-            profileId);
+            "NT51919",
+            "nt51919-ab-merge-alias");
         Dictionary<string, byte[]> inputs = ReadInputs(goldenCase.GetProperty("inputs"));
         byte[] expected = ReadFixture(goldenCase.GetProperty("expectedOutput"));
 
@@ -69,6 +77,59 @@ public sealed class AbMergeGoldenRegressionTests
         Assert.Empty(result.Issues);
         Assert.Equal(expected, result.OutputBytes.ToArray());
         Assert.Equal("c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2", Hash(result.OutputBytes.Span));
+    }
+
+    /// <summary>
+    /// Verifies each directly named 51929/51932 candidate configuration against the immutable Python snapshot.
+    /// This synthetic parity is migration evidence and is not a direct owner product golden.
+    /// </summary>
+    [Theory]
+    [InlineData("NT51929", "nt51929-ab-merge", "51929")]
+    [InlineData("NT51932", "nt51932-ab-merge", "51932")]
+    public async Task Nt51929AndNt51932CandidatesMatchNamedPythonReferenceAsync(
+        string icId,
+        string profileId,
+        string referenceConfiguration)
+    {
+        const int capacity = 0x80000;
+        const int tpLength = 0x40000;
+        const string expectedSha256 = "cd54e124b02f2a91a5f43836ab49cc28db811a4a8e1ff407eb98e47437de10ce";
+
+        CompiledComposition composition = CompileCandidate(
+            V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(Nt51929BundleDirectory, Nt51929BundleContentHash),
+            profileId,
+            "0.1.0",
+            icId,
+            capacity);
+        byte[] dp = CreateAddressSensitivePattern(capacity, 0x31);
+        byte[] tpA = CreateAddressSensitivePattern(tpLength, 0x57);
+        byte[] tpB = CreateAddressSensitivePattern(tpLength, 0x83);
+        WriteRelocationPointers(tpB);
+        byte[] originalTpB = [.. tpB];
+        using var referenceWorkspace = TempWorkspace.Create($"nfc-{icId}-ab-python-reference");
+        byte[] pythonReferenceOutput = await RunPythonReferenceAsync(
+            referenceWorkspace,
+            referenceConfiguration,
+            dp,
+            tpA,
+            tpB,
+            TestContext.Current.CancellationToken);
+
+        CompositionExecutionResult result = CompositionEngine.Execute(
+            composition.Plan,
+            new CompositionExecutionInput(new Dictionary<string, byte[]>(StringComparer.Ordinal)
+            {
+                ["dp-ab-input"] = dp,
+                ["tp-a-input"] = tpA,
+                ["tp-b-input"] = tpB,
+            }));
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Empty(result.Issues);
+        Assert.Equal(expectedSha256, Hash(pythonReferenceOutput));
+        Assert.Equal(pythonReferenceOutput, result.OutputBytes.ToArray());
+        Assert.Equal(expectedSha256, Hash(result.OutputBytes.Span));
+        Assert.Equal(originalTpB, tpB);
     }
 
     /// <summary>Verifies the approved 51950 Combiner command reproduces each owner-approved AB output byte-for-byte.</summary>
@@ -457,6 +518,29 @@ public sealed class AbMergeGoldenRegressionTests
     private static byte[] CreatePattern(int length, int multiplier, int addend)
     {
         return [.. Enumerable.Range(0, length).Select(index => (byte)(((index * multiplier) + addend) & byte.MaxValue))];
+    }
+
+    private static byte[] CreateAddressSensitivePattern(int length, byte salt)
+    {
+        byte[] bytes = new byte[length];
+        for (int index = 0; index < bytes.Length; index++)
+        {
+            int wordOffset = index & ~3;
+            uint word = unchecked(
+                ((uint)wordOffset * 0x9E3779B9U)
+                ^ (salt * 0x01010101U)
+                ^ 0xA5A5A5A5U);
+            bytes[index] = unchecked((byte)(word >> ((index & 3) * 8)));
+        }
+
+        return bytes;
+    }
+
+    private static void WriteRelocationPointers(byte[] image)
+    {
+        BinaryPrimitives.WriteUInt32LittleEndian(image.AsSpan(0x7164, sizeof(uint)), 0x00123456);
+        BinaryPrimitives.WriteUInt32LittleEndian(image.AsSpan(0x7168, sizeof(uint)), 0x00ABCDEF);
+        BinaryPrimitives.WriteUInt32LittleEndian(image.AsSpan(0x716C, sizeof(uint)), 0x0000C0DE);
     }
 
     private static void WriteHeaderPointers(byte[] image)
