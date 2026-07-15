@@ -6,6 +6,10 @@ TPB, and expected output with full V2/reference parity. It remains an
 executable candidate: firmware-owner review and any required member-specific
 alias decision are still needed before runtime exposure.
 
+The manifest applies this case directly to NT51929 and names only NT51919 as a
+fact-scoped alias. NT51932 is explicitly not established by this product
+golden.
+
 The existing 256 KiB `initial code` / `TPFW` / `FlashCode` Combiner archive is
 a Normal case, not AB evidence. Do not substitute it for the required AB
 container and both TP bank inputs.
