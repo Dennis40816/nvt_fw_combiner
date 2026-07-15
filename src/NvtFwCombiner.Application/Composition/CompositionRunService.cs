@@ -84,7 +84,11 @@ public sealed partial class CompositionRunService
                 [],
                 startedAtUtc,
                 failedAtUtc,
-                committed: false);
+                committed: false,
+                validations: [
+                    .. CreateSkippedFinalOutputValidations(request.CompiledComposition)
+                        .Select(static evaluation => evaluation.Summary),
+                ]);
             return new CompositionRunResult(
                 previewRequired.Status,
                 [],
@@ -97,20 +101,32 @@ public sealed partial class CompositionRunService
         CompositionExecutionResult execution = boundInputs.Issues.Count == 0
             ? await ExecutePlanAsync(request, boundInputs, executedCommandsByOperationId, cancellationToken).ConfigureAwait(false)
             : CompositionExecutionResult.Failed(boundInputs.Issues);
-        string? previewToken = execution.Status == CompositionExecutionStatus.Succeeded
+        List<FinalOutputValidationEvaluation> finalOutputValidations =
+            execution.Status == CompositionExecutionStatus.Succeeded
+                ? EvaluateFinalOutput(request.CompiledComposition, execution.OutputBytes)
+                : CreateSkippedFinalOutputValidations(request.CompiledComposition);
+        List<CompositionIssue> runIssues = [
+            .. finalOutputValidations
+                .Where(static evaluation => evaluation.Issue is not null)
+                .Select(static evaluation => evaluation.Issue!),
+        ];
+        bool finalOutputAccepted = !finalOutputValidations.Any(static evaluation => evaluation.BlocksPublication);
+        CompositionExecutionStatus runStatus = execution.Status == CompositionExecutionStatus.Succeeded && finalOutputAccepted
+            ? CompositionExecutionStatus.Succeeded
+            : CompositionExecutionStatus.Failed;
+        string? previewToken = runStatus == CompositionExecutionStatus.Succeeded
             ? CalculatePreviewToken(request, execution, boundInputs.InputSummaries)
             : null;
 
         string? committedOutputId = null;
-        if (commitOutput && execution.Status == CompositionExecutionStatus.Succeeded)
+        if (commitOutput && runStatus == CompositionExecutionStatus.Succeeded)
         {
             if (!string.Equals(request.ApprovedPreviewToken, previewToken, StringComparison.Ordinal))
             {
-                execution = CompositionExecutionResult.Failed([
-                    new CompositionIssue(
-                        "build.preview-token.mismatch",
-                        "Build request does not match the approved preview token."),
-                ]);
+                runIssues.Add(new CompositionIssue(
+                    "build.preview-token.mismatch",
+                    "Build request does not match the approved preview token."));
+                runStatus = CompositionExecutionStatus.Failed;
             }
             else
             {
@@ -129,11 +145,13 @@ public sealed partial class CompositionRunService
             startedAtUtc,
             completedAtUtc,
             committedOutputId is not null,
-            executedCommandsByOperationId);
+            additionalIssues: runIssues,
+            validations: [.. finalOutputValidations.Select(static evaluation => evaluation.Summary)],
+            executedCommandsByOperationId: executedCommandsByOperationId);
 
         return new CompositionRunResult(
-            execution.Status,
-            execution.OutputBytes.ToArray(),
+            runStatus,
+            runStatus == CompositionExecutionStatus.Succeeded ? execution.OutputBytes.ToArray() : [],
             report,
             committedOutputId,
             commitOutput ? null : previewToken);
