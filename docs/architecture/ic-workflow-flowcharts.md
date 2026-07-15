@@ -8,8 +8,8 @@ This document is an index for the current Merge and Replace flows by IC. It is n
 
 Update this document in the same change when any of these sources change:
 
-- `src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs`; this is the explicit production Standard Merge registration list.
-- `src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.BuiltInV2.cs`; production Replace profiles are manifest-pinned V2 bundles with explicit Bootstrap registrations. Synthetic compiler fixtures remain test-only under `tests/NvtFwCombiner.TestSupport/`.
+- `src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs`; this owns the explicit production Standard Merge and DP Replace registration lists plus non-routed General Merge candidates.
+- `src/NvtFwCombiner.Bootstrap/BuiltInV2Bundle.cs`; production profiles are manifest-pinned V2 bundles. Synthetic compiler fixtures remain test-only under `tests/NvtFwCombiner.TestSupport/`.
 - `src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.cs`
 - `docs/architecture/nt51950-nt51951-dp-length-policy.md`
 - `docs/architecture/ctrlram-postbuild-command-matrix.md`

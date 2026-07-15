@@ -9,21 +9,21 @@ namespace NvtFwCombiner.Bootstrap;
 internal static class BuiltInV2RegistrationRegistry
 {
     internal static ReadOnlyCollection<BuiltInV2StandardMergeRegistration> StandardMerge { get; } =
-        Array.AsReadOnly<BuiltInV2StandardMergeRegistration>(
+        Array.AsReadOnly(
         [
-            new("NT51917", "nt51917-standard-merge-gen-flash-alias", "0.5.0", BuiltInV2BundleRegistry.All["nt51927-standard-merge"]),
-            new("NT51919", "nt51919-standard-merge-gen-flash-alias", "0.5.0", BuiltInV2BundleRegistry.All["nt51929-standard-merge"]),
-            new("NT51920", "nt51920-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51920-standard-merge"]),
-            new("NT51923", "nt51923-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51923-standard-merge"]),
-            new("NT51926", "nt51926-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51923-standard-merge"]),
-            new("NT51927", "nt51927-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51927-standard-merge"]),
-            new("NT51928", "nt51928-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51928-standard-merge"]),
-            new("NT51929", "nt51929-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51929-standard-merge"]),
-            new("NT51930", "nt51930-standard-merge-flashmap", "0.5.0", BuiltInV2BundleRegistry.All["nt51930-standard-merge"]),
-            new("NT51931", "nt51931-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51931-standard-merge"]),
-            new("NT51932", "nt51932-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51929-standard-merge"]),
-            new("NT51950", "nt51950-standard-merge-dp-perspective", "0.5.1", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"]),
-            new("NT51951", "nt51951-standard-merge-dp-perspective", "0.5.1", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"]),
+            new BuiltInV2StandardMergeRegistration("NT51917", "nt51917-standard-merge-gen-flash-alias", "0.5.0", BuiltInV2BundleRegistry.All["nt51927-standard-merge"]),
+            new BuiltInV2StandardMergeRegistration("NT51919", "nt51919-standard-merge-gen-flash-alias", "0.5.0", BuiltInV2BundleRegistry.All["nt51929-standard-merge"]),
+            new BuiltInV2StandardMergeRegistration("NT51920", "nt51920-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51920-standard-merge"]),
+            new BuiltInV2StandardMergeRegistration("NT51923", "nt51923-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51923-standard-merge"]),
+            new BuiltInV2StandardMergeRegistration("NT51926", "nt51926-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51923-standard-merge"]),
+            new BuiltInV2StandardMergeRegistration("NT51927", "nt51927-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51927-standard-merge"]),
+            new BuiltInV2StandardMergeRegistration("NT51928", "nt51928-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51928-standard-merge"]),
+            new BuiltInV2StandardMergeRegistration("NT51929", "nt51929-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51929-standard-merge"]),
+            new BuiltInV2StandardMergeRegistration("NT51930", "nt51930-standard-merge-flashmap", "0.5.0", BuiltInV2BundleRegistry.All["nt51930-standard-merge"]),
+            new BuiltInV2StandardMergeRegistration("NT51931", "nt51931-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51931-standard-merge"]),
+            new BuiltInV2StandardMergeRegistration("NT51932", "nt51932-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51929-standard-merge"]),
+            new BuiltInV2StandardMergeRegistration("NT51950", "nt51950-standard-merge-dp-perspective", "0.5.1", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"]),
+            new BuiltInV2StandardMergeRegistration("NT51951", "nt51951-standard-merge-dp-perspective", "0.5.1", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"]),
         ]);
 
     internal static ReadOnlyDictionary<string, BuiltInV2StandardMergeRegistration> StandardMergeByIc { get; } =
