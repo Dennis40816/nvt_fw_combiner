@@ -28,4 +28,53 @@ internal static partial class ReplaceCliCommandHandler
                     pair.Value)),
         ];
     }
+
+    private static async Task<int> RunWorkbenchReplaceAsync(
+        string action,
+        string icId,
+        string modeId,
+        string workflowId,
+        ParsedCliOptions options,
+        IReadOnlyDictionary<string, string> protectedInputPaths,
+        Func<bool, string?, CancellationToken, ValueTask<WorkbenchRunResult>> run,
+        TextWriter output,
+        TextWriter error,
+        CancellationToken cancellationToken)
+    {
+        InputArtifactBinding[] bindings = CreateWorkbenchBindings(protectedInputPaths);
+        CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
+            options.Values.GetValueOrDefault("--output"),
+            WorkbenchCompositionService.GetReplaceDefaultOutputFileName(icId, modeId));
+        bool build = action == "build";
+        if (build)
+        {
+            CliCompositionRunSupport.EnsureOutputDoesNotAliasInputs(outputTarget, bindings);
+            if (!options.Flags.Contains("--overwrite") && File.Exists(outputTarget.FullPath))
+            {
+                await error.WriteLineAsync(
+                        $"error: output file already exists: {outputTarget.FullPath}; pass --overwrite to replace it.")
+                    .ConfigureAwait(false);
+                return SoftwareError;
+            }
+        }
+
+        CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(
+            options.Values.GetValueOrDefault("--report"),
+            bindings,
+            outputTarget,
+            build);
+
+        string? outputPath = build ? outputTarget.FullPath : null;
+        WorkbenchRunResult result = await run(build, outputPath, cancellationToken).ConfigureAwait(false);
+        await WriteWorkbenchReportFileIfRequestedAsync(
+                result,
+                options,
+                bindings,
+                outputPath,
+                output,
+                cancellationToken)
+            .ConfigureAwait(false);
+        await PrintWorkbenchRunResultAsync(result, icId, workflowId, output, error).ConfigureAwait(false);
+        return result.Succeeded ? Success : CompositionFailed;
+    }
 }
