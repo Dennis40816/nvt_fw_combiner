@@ -1,6 +1,6 @@
 # IC Workflow Flowchart Reference
 
-Status: architecture reference as of 2026-07-16.
+Status: architecture reference; evidence dates are recorded by the cited manifests and review history.
 
 This document is an index for the current Merge and Replace flows by IC. It is not a production support claim. A profile is production-ready only after profile validation, golden regression, processor diff review, and owner sign-off. The implementation runbook for adding a new IC workflow is [`adding-ic-merge-replace-workflow.md`](adding-ic-merge-replace-workflow.md).
 
