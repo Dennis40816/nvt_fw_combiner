@@ -74,7 +74,7 @@ Release evidence must include:
 ## Release gates still requiring organizational setup
 
 - approved code-signing provider and certificate identity;
-- SBOM/provenance generation and retention policy;
+- SBOM/provenance retention policy; generation is implemented by the packager;
 - private golden regression runner and firmware-owner approval;
 - clean Windows smoke without development runtimes;
 - final third-party license/legal review.

@@ -17,12 +17,14 @@ require the evidence listed for their milestone.
 - Use `testdata/golden/owner-handoff/<workflow>/<ic>/inputs/` for a local
   intake copy. The tracked `CASE.md` file in that directory defines the
   requested case shape; payloads remain ignored.
-- Retain original filenames. For every supplied file record logical role,
-  original filename, byte length, SHA-256, source archive/ticket, and owner.
-  A `provenance.json` alongside the private payload is the preferred format.
-- For an external Combiner case, also provide the exact executable SHA-256,
-  tool version, adapter id, platform, timeout, full command/argument trace,
-  input/output mode, and every sidecar required by that exact command mode.
+- Retain original filenames and record the logical role, source archive/ticket,
+  and owner for every supplied file. Repository intake calculates byte length
+  and SHA-256, then writes or verifies `provenance.json`; the owner need not
+  calculate those values manually.
+- For an external Combiner case, provide the executable or approved source
+  package, tool version, adapter id, platform, timeout, full command/argument
+  trace, input/output mode, and every sidecar required by that exact command
+  mode. Repository intake calculates and records the executable SHA-256.
 - A workbook or FlashMap fact needs its original workbook/export checksum and
   the exact sheet, row, column/cell, and owner decision. Intake opens Office
   files read-only and never executes macros.
@@ -70,7 +72,7 @@ parity is questioned.
 
 | Area | Owner data needed for a new or disputed case |
 | --- | --- |
-| Standard Merge | DP input, TP input, expected flash output, exact output filename, source/output SHA-256, selected capacity, and owner approval. |
+| Standard Merge | DP input, TP input, expected flash output, exact output filename, selected capacity, and owner approval. Repository intake records source/output SHA-256. |
 | NT51950/NT51951 Standard Merge | One direct DP/TP/expected case for every additional capacity selected for release; state whether customer info remains from DP. Do not derive capacity behavior from a differently sized sample. The tracked direct cases cover NT51950 `0x40000` and NT51951 `0x80000`; the remaining capacities are release-evidence gaps only because V2 direct plan contracts have retired the legacy C# oracle. |
 | NT51950/NT51951 DP Replace | Base flash, DP replacement input, expected output, selected capacity, TP/customer ownership decision, and full-byte legacy/V2 comparison record. |
 | Alias or IC-count fact | Source IC/map, target IC/map, exact fact kind/id, applicable topology/capacity, direct parity input/output hashes, and owner approval. |
@@ -98,8 +100,9 @@ expected.bin
 provenance.json
 ```
 
-`provenance.json` must retain original filenames, SHA-256, lengths, source
-archive/ticket, output filename, capacity/topology, owner, and approval date.
+`provenance.json` must retain original filenames, source archive/ticket, output
+filename, capacity/topology, owner, and approval date. Repository intake
+calculates and records the SHA-256 and byte lengths from the supplied payloads.
 The submitted DP_AB container owns customer information unless an owner-approved
 case explicitly proves a narrower rule.
 
@@ -122,6 +125,11 @@ scripts also do not replace a product golden or firmware-owner review.
 
 ### CtrlRAM Replace: Preserve and Edit
 
+The checked-in Combiner source and postbuild references already support the
+current candidate command wiring. The following package is needed only to
+promote a selected IC/IC-number/postbuild branch to a release support claim;
+it is not a request for another Combiner source copy.
+
 For every IC/IC-number/postbuild branch selected for release, provide:
 
 ```text
@@ -135,8 +143,9 @@ provenance.json
 ```
 
 Record the source and final NVT Backup metadata, requested FW major/sub-version
-for the edit case, expected output name, exact Combiner command order, declared
-read/write/diff ranges, and output SHA-256 values. `expected-preserve.bin` and
+for the edit case, expected output name, exact Combiner command order, and
+declared read/write/diff ranges. Repository intake calculates output SHA-256
+values. `expected-preserve.bin` and
 `expected-edit.bin` must use the same base/replacement input set. The edit case
 must prove that the source image remains immutable, the staged source changes
 before postbuild, and the final version is read through the NVT Backup.
