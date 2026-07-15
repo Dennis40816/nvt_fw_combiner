@@ -464,18 +464,19 @@ public sealed partial class XamlControlStyleContractTests
         Assert.NotEqual(0, new FileInfo(icon).Length);
     }
 
-    /// <summary>Ensures the local fixture is Debug-only and never changes the default landing page.</summary>
+    /// <summary>Ensures startup never loads a repository fixture without an explicit launch option.</summary>
     [Fact]
-    public void DebugHexFixturePreloadsWithoutForcingHexEditorNavigation()
+    public void PresentationStartupHasNoImplicitDebugFixtureLoading()
     {
-        string debugDemo = ReadPresentationFile("MainWindow.DebugDemo.cs");
         string startup = ReadPresentationFile("MainWindow.Report.cs");
+        string presentation = RepositoryPaths.FromRepositoryRoot(
+            "src",
+            "NvtFwCombiner.Presentation.Avalonia");
 
-        Assert.StartsWith("#if DEBUG", debugDemo, StringComparison.Ordinal);
-        Assert.Contains("SetSlotFile(WorkbenchSlotIds.ReplaceBase, basePath)", debugDemo, StringComparison.Ordinal);
-        Assert.Contains("HexEditorWorkspace.LoadAsync(basePath)", debugDemo, StringComparison.Ordinal);
-        Assert.DoesNotContain("ShowHexEditorCommand.Execute", debugDemo, StringComparison.Ordinal);
-        Assert.Contains("#if DEBUG", startup, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(presentation, "DebugDemoFixture.cs")));
+        Assert.False(File.Exists(Path.Combine(presentation, "MainWindow.DebugDemo.cs")));
+        Assert.DoesNotContain("ApplyDebugDemoWhenNoLaunchOptions", startup, StringComparison.Ordinal);
+        Assert.DoesNotContain("#if DEBUG", startup, StringComparison.Ordinal);
     }
 
     /// <summary>Prevents repeated shell, panel, row, and text property bundles from drifting back into templates.</summary>
