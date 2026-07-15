@@ -102,7 +102,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("BuiltInReplaceProfiles", replaceCli, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileDefinition", replaceCli, StringComparison.Ordinal);
         Assert.Contains("IcWorkflowIds.DpReplace", v2Resolution, StringComparison.Ordinal);
-        Assert.Contains("s_nt51950Nt51951V2Bundle", v2Resolution, StringComparison.Ordinal);
+        Assert.Contains(
+            "Bundle(\"nt51950-nt51951-standard-merge\")",
+            v2Resolution,
+            StringComparison.Ordinal);
         Assert.Contains("TryResolveDpPerspectiveDpReplaceDisplay", v2Resolution, StringComparison.Ordinal);
         Assert.DoesNotContain("DpPerspectiveCatalog", v2Display, StringComparison.Ordinal);
         Assert.Contains("TryCreateV2DpReplaceMemoryMapRows", replaceDisplay, StringComparison.Ordinal);
