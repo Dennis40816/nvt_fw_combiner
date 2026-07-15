@@ -42,6 +42,34 @@ public sealed class AbMergeGoldenRegressionTests
         Assert.Equal(originalTpB, inputs["tp-b-input"]);
     }
 
+    /// <summary>
+    /// Verifies the owner-confirmed NT51919 alias and NT51932 candidate preserve the shared NT51929 AB bytes.
+    /// This reuses only the named fixture inputs and does not replace either target's direct product golden.
+    /// </summary>
+    [Theory]
+    [InlineData("NT51919", "nt51919-ab-merge-alias")]
+    [InlineData("NT51932", "nt51932-ab-merge")]
+    public void Nt51919AndNt51932CandidatesMatchSharedNt51929AbGolden(string icId, string profileId)
+    {
+        JsonElement goldenCase = ReadGoldenCase("nt51929-ab-t05-d06");
+        CompiledComposition composition = CompileCandidate(
+            V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(Nt51929BundleDirectory, Nt51929BundleContentHash),
+            goldenCase,
+            icId,
+            profileId);
+        Dictionary<string, byte[]> inputs = ReadInputs(goldenCase.GetProperty("inputs"));
+        byte[] expected = ReadFixture(goldenCase.GetProperty("expectedOutput"));
+
+        CompositionExecutionResult result = CompositionEngine.Execute(
+            composition.Plan,
+            new CompositionExecutionInput(inputs));
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Empty(result.Issues);
+        Assert.Equal(expected, result.OutputBytes.ToArray());
+        Assert.Equal("c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2", Hash(result.OutputBytes.Span));
+    }
+
     /// <summary>Verifies the approved 51950 Combiner command reproduces each owner-approved AB output byte-for-byte.</summary>
     [Theory]
     [InlineData("nt51950-ab-boe-d82t80")]
@@ -234,11 +262,12 @@ public sealed class AbMergeGoldenRegressionTests
     private static CompiledComposition CompileCandidate(
         TrustedProfileBundleCatalog catalog,
         JsonElement goldenCase,
-        string icId)
+        string icId,
+        string? profileId = null)
     {
         V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
             catalog,
-            goldenCase.GetProperty("profileId").GetString()!,
+            profileId ?? goldenCase.GetProperty("profileId").GetString()!,
             goldenCase.GetProperty("profileVersion").GetString()!,
             icId,
             ExperienceIds.AbMerge,
