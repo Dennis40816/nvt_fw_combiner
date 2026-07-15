@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles.V2;
 
@@ -61,6 +62,22 @@ public sealed class Nt51919Nt51929Nt51932AbMergeCandidateProfileTests
         Assert.Contains(
             wrongCapacity.Issues,
             static issue => StringComparer.Ordinal.Equals(issue.Code, "profile.v2.compile.map-capacity-unavailable"));
+    }
+
+    /// <summary>Verifies evidence-blocked AB candidates cannot cross the application execution boundary.</summary>
+    [Theory]
+    [InlineData("NT51919", "nt51919-ab-merge-alias")]
+    [InlineData("NT51929", "nt51929-ab-merge")]
+    [InlineData("NT51932", "nt51932-ab-merge")]
+    public void CandidateProfilesCannotCreateApplicationRunRequest(string icId, string profileId)
+    {
+        CompiledComposition composition = CompileCandidate(icId, profileId);
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            new CompositionRunRequest("ab-candidate", composition, [], composition.DefaultOutputFileName));
+
+        Assert.Equal("compiledComposition", exception.ParamName);
+        Assert.Contains("not executable", exception.Message, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies full DP placement, TP overlays, TPB relocation, and immutable TPB source behavior.</summary>

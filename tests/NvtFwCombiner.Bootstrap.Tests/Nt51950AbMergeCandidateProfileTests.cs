@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Numerics;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles.V2;
 using NvtFwCombiner.TestSupport;
@@ -69,6 +70,20 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         Assert.All(
             invocation.StagedArtifactBindings,
             static binding => Assert.Equal(new ByteRange(0, BankLength), binding.SourceRange));
+    }
+
+    /// <summary>Verifies the repository-only Combiner candidate cannot create an application run request.</summary>
+    [Fact]
+    public void CandidateProfileCannotCreateApplicationRunRequest()
+    {
+        using var workspace = TempWorkspace.Create("nfc-nt51950-ab-candidate");
+        CompiledComposition composition = CompileCandidate(workspace);
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            new CompositionRunRequest("ab-candidate", composition, [], composition.DefaultOutputFileName));
+
+        Assert.Equal("compiledComposition", exception.ParamName);
+        Assert.Contains("not executable", exception.Message, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies the engine stages immutable A/B artifacts, relocates only TPB DIFF, and leaves header CRC to Combiner.</summary>
