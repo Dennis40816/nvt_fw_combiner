@@ -108,36 +108,28 @@
   <Style Selector="ComboBox.settingsSelect">
     <Setter Property="Width" Value="180" />
   </Style>
-  <Style Selector="TextBox.addressInput">
+  <Style Selector="TextBox.technicalCenteredInput">
     <Setter Property="MinHeight" Value="32" />
     <Setter Property="MaxHeight" Value="32" />
     <Setter Property="Padding" Value="8,0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="TextAlignment" Value="Center" />
+    <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="input:InputMethod.IsInputMethodEnabled" Value="False" />
+  </Style>
+  <Style Selector="TextBox.addressInput">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
-    <Setter Property="HorizontalContentAlignment" Value="Center" />
-    <Setter Property="VerticalContentAlignment" Value="Center" />
-    <Setter Property="TextAlignment" Value="Center" />
-    <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
-    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="behaviors:HexTextInputBehavior.Mode" Value="Address" />
-    <Setter Property="input:InputMethod.IsInputMethodEnabled" Value="False" />
   </Style>
   <Style Selector="TextBox.hexByteInput">
     <Setter Property="MinWidth" Value="92" />
-    <Setter Property="MinHeight" Value="32" />
-    <Setter Property="MaxHeight" Value="32" />
     <Setter Property="MaxLength" Value="2" />
-    <Setter Property="Padding" Value="8,0" />
-    <Setter Property="HorizontalContentAlignment" Value="Center" />
-    <Setter Property="VerticalContentAlignment" Value="Center" />
-    <Setter Property="TextAlignment" Value="Center" />
-    <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
-    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="behaviors:HexTextInputBehavior.Mode" Value="ByteSequence" />
-    <Setter Property="input:InputMethod.IsInputMethodEnabled" Value="False" />
   </Style>
 </Styles>

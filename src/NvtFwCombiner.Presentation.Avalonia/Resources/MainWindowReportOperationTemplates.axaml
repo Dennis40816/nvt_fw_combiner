@@ -20,7 +20,7 @@
       <Expander.Header>
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
           <TextBlock Classes="panelTitle" Text="{Binding Title}" TextWrapping="Wrap" />
-          <Label Grid.Column="1" MinWidth="44" Classes="reportBadge" Content="{Binding Status}" />
+          <Label Grid.Column="1" MinWidth="44" Classes="compactBadge neutralBadge reportBadge" Content="{Binding Status}" />
         </Grid>
       </Expander.Header>
       <StackPanel Margin="0,7,0,0" Spacing="{DynamicResource NfcSpace4}">
@@ -49,12 +49,12 @@
     <Expander IsExpanded="False">
       <Expander.Header>
         <Grid Margin="10,8" ColumnDefinitions="58,*,Auto" ColumnSpacing="10">
-          <Label VerticalAlignment="Center" Classes="reportBadge info" Content="{Binding Number}" />
+          <Label VerticalAlignment="Center" Classes="compactBadge neutralBadge reportBadge info" Content="{Binding Number}" />
           <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace2}">
             <TextBlock Classes="panelTitle" Text="{Binding Title}" TextWrapping="Wrap" />
             <TextBlock Classes="captionText" Text="{Binding OperationTitle}" TextWrapping="Wrap" />
           </StackPanel>
-          <Label Grid.Column="2" VerticalAlignment="Center" Classes="reportBadge info" Content="{Binding Status}" />
+          <Label Grid.Column="2" VerticalAlignment="Center" Classes="compactBadge neutralBadge reportBadge info" Content="{Binding Status}" />
         </Grid>
       </Expander.Header>
       <StackPanel Margin="12,0,12,12" Spacing="7">
@@ -83,7 +83,7 @@
     <StackPanel Grid.Column="1" Margin="0,6,0,16" Spacing="6">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
         <TextBlock Classes="panelTitle" Text="{Binding Title}" TextWrapping="Wrap" />
-        <Label Grid.Column="1" MinWidth="52" Classes="reportBadge" Content="{Binding OperationStatus}" />
+        <Label Grid.Column="1" MinWidth="52" Classes="compactBadge neutralBadge reportBadge" Content="{Binding OperationStatus}" />
       </Grid>
       <TextBlock Classes="technicalDetail" Text="{Binding Detail}" TextWrapping="Wrap" />
       <TextBlock Classes="captionText" Text="{Binding Meta}" TextWrapping="Wrap" IsVisible="{Binding HasMeta}" />

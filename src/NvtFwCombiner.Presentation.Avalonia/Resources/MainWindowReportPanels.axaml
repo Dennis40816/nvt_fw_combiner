@@ -89,7 +89,7 @@
             <TextBlock Classes="tableHeader" Text="{Binding Text.RunLabel}" />
             <TextBlock Classes="cardTitle" Text="{Binding LoadedReport.OutcomeTitle}" TextWrapping="Wrap" />
           </StackPanel>
-          <Label Grid.Column="2" Classes="reportBadge" Content="{Binding LoadedReport.OutcomeMeta}" />
+          <Label Grid.Column="2" Classes="compactBadge neutralBadge reportBadge" Content="{Binding LoadedReport.OutcomeMeta}" />
           <Button
               Grid.Column="3"
               Classes="iconButton"
@@ -141,7 +141,7 @@
                 <TextBlock Classes="fieldLabel" Text="{Binding Text.ChangeReviewTitle}" />
                 <TextBlock FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource NfcTextStrongBrush}" Text="{Binding LoadedReport.ByteDifferenceTitle}" TextWrapping="Wrap" />
               </StackPanel>
-              <Label Grid.Column="1" Classes="reportBadge large" Content="{Binding LoadedReport.ByteDifferenceMeta}" />
+              <Label Grid.Column="1" Classes="compactBadge neutralBadge reportBadge large" Content="{Binding LoadedReport.ByteDifferenceMeta}" />
             </Grid>
             <StackPanel Grid.Row="1" Spacing="{DynamicResource NfcSpace8}">
               <TextBlock Classes="detailText" Text="{Binding LoadedReport.ByteDifferenceDetail}" TextWrapping="Wrap" />

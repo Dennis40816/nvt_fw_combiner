@@ -87,7 +87,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Classes=\"fileDropZone firmwareSlot\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes.hasFile=\"{Binding HasFile}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes.optional=\"{Binding IsOptional}\"", slotCard, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"slotBadge firmwareSlotRequirement\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"compactBadge slotBadge firmwareSlotRequirement\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Content=\"{Binding RequirementLabel}\"", slotCard, StringComparison.Ordinal);
         Assert.DoesNotContain("SlotBackgroundBrush", slotCard, StringComparison.Ordinal);
         Assert.DoesNotContain("RequirementBadgeForegroundBrush", slotCard, StringComparison.Ordinal);
@@ -172,7 +172,7 @@ public sealed partial class XamlControlStyleContractTests
         AssertCoverageClasses(tooltip);
         AssertCoverageClasses(replaceBar);
         AssertCoverageClasses(replaceList);
-        Assert.Contains("Classes=\"countBadge coverageChangeBadge\"", tooltip, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"compactBadge neutralBadge countBadge coverageChangeBadge\"", tooltip, StringComparison.Ordinal);
         Assert.Contains("Content=\"{Binding ChangeLabel}\"", tooltip, StringComparison.Ordinal);
         Assert.DoesNotContain("memoryCoverageMarker", mergeBar, StringComparison.Ordinal);
         Assert.DoesNotContain("memoryCoverageMarker", mergeList, StringComparison.Ordinal);

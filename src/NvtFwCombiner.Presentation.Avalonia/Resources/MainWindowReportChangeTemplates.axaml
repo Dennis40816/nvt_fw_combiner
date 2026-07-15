@@ -20,7 +20,7 @@
           FontWeight="SemiBold"
           Foreground="{DynamicResource NfcTextStrongBrush}"
           Text="{Binding Count}" />
-      <Label Grid.Column="2" Classes="reportBadge" Content="{Binding Status}" />
+      <Label Grid.Column="2" Classes="compactBadge neutralBadge reportBadge" Content="{Binding Status}" />
     </Grid>
   </Border>
 </DataTemplate>
@@ -46,9 +46,9 @@
             <TextBlock Classes="captionText" Text="{Binding Detail}" TextWrapping="Wrap" IsVisible="{Binding HasDetail}" />
           </StackPanel>
           <StackPanel Grid.Column="2" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="6">
-            <Label MinWidth="28" Classes="reportBadge info" Content="{Binding Count}" />
-            <Label Classes="reportBadge success" Content="{Binding Status}" IsVisible="{Binding IsAccepted}" />
-            <Label Classes="reportBadge review" Content="{Binding Status}" IsVisible="{Binding IsReviewRequired}" />
+            <Label MinWidth="28" Classes="compactBadge neutralBadge reportBadge info" Content="{Binding Count}" />
+            <Label Classes="compactBadge neutralBadge reportBadge success" Content="{Binding Status}" IsVisible="{Binding IsAccepted}" />
+            <Label Classes="compactBadge neutralBadge reportBadge review" Content="{Binding Status}" IsVisible="{Binding IsReviewRequired}" />
           </StackPanel>
         </Grid>
       </Border>
