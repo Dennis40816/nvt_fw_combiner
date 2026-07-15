@@ -5,37 +5,38 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Infrastructure.ExternalTools;
 
-public sealed partial class LegacyCombinerPostbuildProcessor
+internal sealed class ExternalCombinerToolResolver
 {
-    private bool TryResolveManifest(
-        ExternalProcessorRequest request,
+    private readonly ExternalCombinerToolRegistry _registry;
+    private readonly string _toolRoot;
+
+    internal ExternalCombinerToolResolver(ExternalCombinerToolRegistry registry, string toolRoot)
+    {
+        _registry = registry;
+        _toolRoot = Path.GetFullPath(toolRoot);
+    }
+
+    internal bool TryResolve(
+        string toolBindingId,
         out ExternalCombinerToolManifest? manifest,
+        out string? executablePath,
         out CompositionIssue? issue)
     {
+        executablePath = null;
         try
         {
-            manifest = _registry.Resolve(request.ToolBindingId);
-            issue = null;
-            return true;
+            manifest = _registry.Resolve(toolBindingId);
         }
         catch (KeyNotFoundException)
         {
             manifest = null;
             issue = new CompositionIssue(
                 "external-tool.binding.unknown",
-                $"External combiner tool binding '{request.ToolBindingId}' is not registered.");
+                $"External combiner tool binding '{toolBindingId}' is not registered.");
             return false;
         }
-    }
 
-    private bool TryResolveExecutable(
-        ExternalCombinerToolManifest manifest,
-        out string? executablePath,
-        out CompositionIssue? issue)
-    {
-        executablePath = null;
         issue = null;
-
         if (!IsSafePathSegment(manifest.ToolId) || !IsSafePathSegment(manifest.ToolVersion))
         {
             issue = new CompositionIssue(
@@ -78,6 +79,14 @@ public sealed partial class LegacyCombinerPostbuildProcessor
         return true;
     }
 
+    internal static bool IsInsideDirectory(string root, string candidate)
+    {
+        string relative = Path.GetRelativePath(root, candidate);
+        return relative != "." &&
+               !relative.StartsWith("..", StringComparison.Ordinal) &&
+               !Path.IsPathRooted(relative);
+    }
+
     private static bool IsSafePathSegment(string value)
     {
         return !string.IsNullOrWhiteSpace(value) &&
@@ -85,14 +94,6 @@ public sealed partial class LegacyCombinerPostbuildProcessor
                value != ".." &&
                value.IndexOfAny(Path.GetInvalidFileNameChars()) < 0 &&
                value.IndexOfAny([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar]) < 0;
-    }
-
-    private static bool IsInsideDirectory(string root, string candidate)
-    {
-        string relative = Path.GetRelativePath(root, candidate);
-        return relative != "." &&
-               !relative.StartsWith("..", StringComparison.Ordinal) &&
-               !Path.IsPathRooted(relative);
     }
 
     private static string GetLowerSha256(string path)
