@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
 
@@ -14,6 +15,27 @@ public static partial class WorkbenchCompositionService
         bool build,
         string? outputPath,
         WorkbenchCtrlRamFirmwareVersionEdit? firmwareVersionEdit,
+        CancellationToken cancellationToken)
+    {
+        return await RunCtrlRamReplaceWithProcessorAsync(
+            icId,
+            number,
+            slotPaths,
+            build,
+            outputPath,
+            firmwareVersionEdit,
+            ExternalProcessorFactory.CreateOrNull(),
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    internal static async ValueTask<WorkbenchRunResult> RunCtrlRamReplaceWithProcessorAsync(
+        string icId,
+        string number,
+        IReadOnlyDictionary<string, string> slotPaths,
+        bool build,
+        string? outputPath,
+        WorkbenchCtrlRamFirmwareVersionEdit? firmwareVersionEdit,
+        IExternalProcessor? externalProcessor,
         CancellationToken cancellationToken)
     {
         CtrlRamReplaceRunContext context = CreateCtrlRamReplaceRunContext(
@@ -110,7 +132,7 @@ public static partial class WorkbenchCompositionService
             context.BasePath!,
             build,
             outputPath,
-            externalProcessor: ExternalProcessorFactory.CreateOrNull(),
+            externalProcessor,
             icNumberSelection: context.Selection,
             overwrite: true,
             cancellationToken).ConfigureAwait(false);

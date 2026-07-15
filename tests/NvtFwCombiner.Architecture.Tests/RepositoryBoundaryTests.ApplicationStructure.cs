@@ -48,4 +48,46 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("CreateOutputDifferenceExpectations", outputDifferenceExpectations, StringComparison.Ordinal);
         Assert.Contains("ClassifyDifferenceSegment", outputDifferenceExpectations, StringComparison.Ordinal);
     }
+
+    /// <summary>Verifies final-output postconditions are compiled policy, not caller-provided run callbacks.</summary>
+    [Fact]
+    public void FinalOutputPostconditionsStayArtifactBound()
+    {
+        string root = ReadText("src/NvtFwCombiner.Application/Composition/CompositionRunService.cs");
+        string finalOutputValidations = ReadText(
+            "src/NvtFwCombiner.Application/Composition/CompositionRunService.FinalOutputValidations.cs");
+        string composition = ReadText("src/NvtFwCombiner.Domain/Composition/CompiledComposition.cs");
+        string fingerprint = ReadText("src/NvtFwCombiner.Domain/Composition/CompiledComposition.Fingerprint.cs");
+        string validationRequirement = ReadText(
+            "src/NvtFwCombiner.Domain/Composition/CompiledValidationRequirement.cs");
+        string profileCompiler = ReadText("src/NvtFwCombiner.Profiles/CompositionProfileCompiler.ValidationRequirements.cs");
+        string legacyValidationFactory = ReadText(
+            "src/NvtFwCombiner.Profiles/LegacyProfileValidationRequirements.cs");
+        string ctrlRamProfile = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.Profile.cs");
+        string bootstrapSources = ReadBootstrapSources();
+
+        Assert.Contains(
+            "EvaluateFinalOutput(request.CompiledComposition, execution.OutputBytes)",
+            root,
+            StringComparison.Ordinal);
+        Assert.Contains("ValidationRequirements { get; }", composition, StringComparison.Ordinal);
+        Assert.Contains(
+            "AppendValidationRequirements(builder, composition.ValidationRequirements)",
+            fingerprint,
+            StringComparison.Ordinal);
+        Assert.Contains("CompiledFirmwareConfigBackupVersionValidation", finalOutputValidations, StringComparison.Ordinal);
+        Assert.Contains("FirmwareConfigMetadataReader.TryReadBackup", finalOutputValidations, StringComparison.Ordinal);
+        Assert.DoesNotContain("NvtFwCombiner.Bootstrap", finalOutputValidations, StringComparison.Ordinal);
+        Assert.Contains(
+            "LegacyProfileValidationRequirements.FirmwareConfigBackupVersion",
+            ctrlRamProfile,
+            StringComparison.Ordinal);
+        Assert.Contains("ValidateRuntimeValidationRequirements", profileCompiler, StringComparison.Ordinal);
+        Assert.Contains("CompiledFirmwareConfigBackupVersionValidation", profileCompiler, StringComparison.Ordinal);
+        Assert.Contains("replace.ctrlram.fw-version-output-invalid", legacyValidationFactory, StringComparison.Ordinal);
+        Assert.DoesNotContain("replace.ctrlram", validationRequirement, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionOutputValidator", bootstrapSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("ValidateCtrlRamFirmwareVersionOutput", bootstrapSources, StringComparison.Ordinal);
+    }
 }
