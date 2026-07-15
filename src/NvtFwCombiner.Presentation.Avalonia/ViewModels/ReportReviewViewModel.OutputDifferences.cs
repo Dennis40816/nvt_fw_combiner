@@ -233,25 +233,6 @@ public sealed partial class ReportReviewViewModel
         return facts;
     }
 
-    private static string CreateOutputDifferenceMeta(
-        IReadOnlyList<ReportLineViewModel> outputDifferences,
-        ShellLanguage language)
-    {
-        if (outputDifferences.Count == 0)
-        {
-            return T(language, "same as base or non-Replace", "與 base 相同或非 Replace");
-        }
-
-        int acceptedCount = outputDifferences.Count(difference => difference.IsAccepted);
-        int reviewCount = outputDifferences.Count - acceptedCount;
-        return reviewCount == 0
-            ? T(language, "all expected", "全部預期")
-            : T(
-                language,
-                $"{acceptedCount.ToString(System.Globalization.CultureInfo.InvariantCulture)} expected / {reviewCount.ToString(System.Globalization.CultureInfo.InvariantCulture)} review",
-                $"{acceptedCount.ToString(System.Globalization.CultureInfo.InvariantCulture)} 預期 / {reviewCount.ToString(System.Globalization.CultureInfo.InvariantCulture)} 待審查");
-    }
-
     private static string FormatBytePreview(string hex)
     {
         string compact = hex.Replace(" ", string.Empty, StringComparison.Ordinal).Trim();

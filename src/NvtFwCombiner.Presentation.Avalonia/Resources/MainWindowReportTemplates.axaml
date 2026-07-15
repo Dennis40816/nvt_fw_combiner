@@ -48,22 +48,6 @@
   </StackPanel>
 </DataTemplate>
 
-<DataTemplate x:Key="ReportEvidenceChipTemplate" DataType="vm:ReportLineViewModel">
-  <Border
-      Classes="panelSurface"
-      MinWidth="128"
-      MaxWidth="220"
-      MinHeight="76"
-      Padding="11,8"
-      >
-    <StackPanel Spacing="{DynamicResource NfcSpace2}">
-      <TextBlock Classes="fieldLabel" Text="{Binding Title}" />
-      <TextBlock Classes="sectionTitle" Text="{Binding Detail}" TextWrapping="Wrap" />
-      <TextBlock Classes="captionText" Text="{Binding Meta}" TextWrapping="Wrap" />
-    </StackPanel>
-  </Border>
-</DataTemplate>
-
 <DataTemplate x:Key="ReportTriageRowTemplate" DataType="vm:ReportLineViewModel">
   <Grid ColumnDefinitions="26,*" ColumnSpacing="10" Margin="0,0,0,10">
     <Grid>

@@ -29,18 +29,6 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("Needs attention", report.OutcomeTitle);
         Assert.Equal("Start with this issue", report.NextStepTitle);
         Assert.Equal("processor.tool.missing", report.PrimaryIssue.Title);
-        Assert.Contains(report.TriageRows, row =>
-            row.Title == "1. First issue" &&
-            row.Detail == "processor.tool.missing" &&
-            row.Meta == "run-ctrlram-postbuild");
-        Assert.Contains(report.TriageRows, row =>
-            row.Title == "4. Evidence" &&
-            row.Detail == "Refresh commands" &&
-            row.Meta == "1 command(s)");
-        Assert.Contains(report.EvidenceRows, row =>
-            row.Title == "Commands" &&
-            row.Detail == "1" &&
-            row.Meta == "external processors");
         Assert.Equal(1, report.PostbuildInvocationCount);
         ReportPostbuildInvocationViewModel invocation = Assert.Single(report.PostbuildInvocations);
         Assert.Equal("900.01", invocation.Number);
