@@ -39,10 +39,12 @@ public sealed class CompiledOutputNamingRequirement
                 "Unknown output invalid-character policy.");
         }
 
-        _requiredTokenIds = CompiledProfilePromotionBlocker.SnapshotIds(
+        _requiredTokenIds = ImmutableStringSnapshot.Create(
             requiredTokenIds,
             nameof(requiredTokenIds),
-            requireValue: false);
+            null,
+            "Identifiers must be non-empty values.",
+            "Identifiers must be ordinally unique.");
         foreach (string tokenId in _requiredTokenIds)
         {
             ValidateTokenId(tokenId, nameof(requiredTokenIds));

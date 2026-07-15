@@ -123,7 +123,12 @@ public sealed class CompiledProfilePromotionBlocker
         }
 
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
-        _evidenceRefs = SnapshotIds(evidenceRefs, nameof(evidenceRefs), requireValue: false);
+        _evidenceRefs = ImmutableStringSnapshot.Create(
+            evidenceRefs,
+            nameof(evidenceRefs),
+            null,
+            "Identifiers must be non-empty values.",
+            "Identifiers must be ordinally unique.");
         BlockerId = blockerId;
         Kind = kind;
         Reason = reason;
@@ -142,26 +147,6 @@ public sealed class CompiledProfilePromotionBlocker
     /// <summary>Immutable evidence references supporting this blocker.</summary>
     public IReadOnlyList<string> EvidenceRefs { get; }
 
-    internal static string[] SnapshotIds(
-        IEnumerable<string> values,
-        string parameterName,
-        bool requireValue)
-    {
-        ArgumentNullException.ThrowIfNull(values, parameterName);
-        string[] snapshot = [.. values];
-        if ((requireValue && snapshot.Length == 0) || snapshot.Any(string.IsNullOrWhiteSpace))
-        {
-            throw new ArgumentException("Identifiers must be non-empty values.", parameterName);
-        }
-
-        if (snapshot.Distinct(StringComparer.Ordinal).Count() != snapshot.Length)
-        {
-            throw new ArgumentException("Identifiers must be ordinally unique.", parameterName);
-        }
-
-        Array.Sort(snapshot, StringComparer.Ordinal);
-        return snapshot;
-    }
 }
 
 /// <summary>Immutable profile-owned promotion stage and complete blocker snapshot.</summary>
@@ -244,10 +229,12 @@ public sealed class V2CompilationProvenance
         ArgumentNullException.ThrowIfNull(profileEntry);
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(promotion);
-        _profileEvidenceRefs = CompiledProfilePromotionBlocker.SnapshotIds(
+        _profileEvidenceRefs = ImmutableStringSnapshot.Create(
             profileEvidenceRefs,
             nameof(profileEvidenceRefs),
-            requireValue: true);
+            "Identifiers must be non-empty values.",
+            "Identifiers must be non-empty values.",
+            "Identifiers must be ordinally unique.");
         ArgumentNullException.ThrowIfNull(validationRequirements);
         _validationRequirements = [.. validationRequirements];
         if (_validationRequirements.Any(static requirement => requirement is null) ||

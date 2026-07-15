@@ -34,7 +34,12 @@ public sealed class FirmwareMetadataSet : IFirmwareMapFact
 
         Array.Sort(_structures, static (left, right) =>
             StringComparer.Ordinal.Compare(left.StructureId, right.StructureId));
-        _evidenceRefs = SnapshotEvidenceRefs(evidenceRefs);
+        _evidenceRefs = ImmutableStringSnapshot.Create(
+            evidenceRefs,
+            nameof(evidenceRefs),
+            "Firmware metadata sets require evidence.",
+            "Evidence references cannot contain null or whitespace.",
+            "Evidence references must be ordinally unique.");
 
         MetadataSetId = metadataSetId;
         Structures = Array.AsReadOnly(_structures);
@@ -56,26 +61,4 @@ public sealed class FirmwareMetadataSet : IFirmwareMapFact
     /// <summary>Evidence manifest ids in ordinal order.</summary>
     public IReadOnlyList<string> EvidenceRefs { get; }
 
-    private static string[] SnapshotEvidenceRefs(IEnumerable<string> evidenceRefs)
-    {
-        ArgumentNullException.ThrowIfNull(evidenceRefs);
-        string[] snapshot = [.. evidenceRefs];
-        if (snapshot.Length == 0)
-        {
-            throw new ArgumentException("Firmware metadata sets require evidence.", nameof(evidenceRefs));
-        }
-
-        if (snapshot.Any(string.IsNullOrWhiteSpace))
-        {
-            throw new ArgumentException("Evidence references cannot contain null or whitespace.", nameof(evidenceRefs));
-        }
-
-        if (snapshot.Distinct(StringComparer.Ordinal).Count() != snapshot.Length)
-        {
-            throw new ArgumentException("Evidence references must be ordinally unique.", nameof(evidenceRefs));
-        }
-
-        Array.Sort(snapshot, StringComparer.Ordinal);
-        return snapshot;
-    }
 }
