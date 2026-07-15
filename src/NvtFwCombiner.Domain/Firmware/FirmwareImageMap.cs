@@ -67,7 +67,12 @@ public sealed class FirmwareImageMap
         Array.Sort(_regions, CompareRegions);
         ValidateRegionGraph(_regions, applicability.CapacityBytes);
         _metadataSetIds = DeriveCanonicalIds(_metadataSetBindings);
-        _evidenceRefs = SnapshotIds(evidenceRefs, nameof(evidenceRefs), requireValue: true);
+        _evidenceRefs = ImmutableStringSnapshot.Create(
+            evidenceRefs,
+            nameof(evidenceRefs),
+            "At least one identifier is required.",
+            "Identifiers cannot contain null or whitespace.",
+            "Identifiers must be ordinally unique.");
 
         MapId = mapId;
         AddressSpaceId = addressSpaceId;
@@ -528,32 +533,6 @@ public sealed class FirmwareImageMap
         return lengthComparison != 0
             ? lengthComparison
             : StringComparer.Ordinal.Compare(left.RegionId, right.RegionId);
-    }
-
-    private static string[] SnapshotIds(
-        IEnumerable<string> values,
-        string parameterName,
-        bool requireValue)
-    {
-        ArgumentNullException.ThrowIfNull(values, parameterName);
-        string[] snapshot = [.. values];
-        if (requireValue && snapshot.Length == 0)
-        {
-            throw new ArgumentException("At least one identifier is required.", parameterName);
-        }
-
-        if (snapshot.Any(string.IsNullOrWhiteSpace))
-        {
-            throw new ArgumentException("Identifiers cannot contain null or whitespace.", parameterName);
-        }
-
-        if (snapshot.Distinct(StringComparer.Ordinal).Count() != snapshot.Length)
-        {
-            throw new ArgumentException("Identifiers must be ordinally unique.", parameterName);
-        }
-
-        Array.Sort(snapshot, StringComparer.Ordinal);
-        return snapshot;
     }
 
     private enum ParentVisitState

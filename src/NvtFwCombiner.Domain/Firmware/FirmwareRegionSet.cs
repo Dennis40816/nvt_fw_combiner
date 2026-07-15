@@ -35,7 +35,12 @@ public sealed class FirmwareRegionSet : IFirmwareMapFact
         }
 
         Array.Sort(_regions, CompareRegions);
-        _evidenceRefs = SnapshotEvidenceRefs(evidenceRefs);
+        _evidenceRefs = ImmutableStringSnapshot.Create(
+            evidenceRefs,
+            nameof(evidenceRefs),
+            "Firmware region sets require evidence.",
+            "Evidence references cannot contain null or whitespace.",
+            "Evidence references must be ordinally unique.");
 
         RegionSetId = regionSetId;
         AddressSpaceId = addressSpaceId;
@@ -75,26 +80,4 @@ public sealed class FirmwareRegionSet : IFirmwareMapFact
             : StringComparer.Ordinal.Compare(left.RegionId, right.RegionId);
     }
 
-    private static string[] SnapshotEvidenceRefs(IEnumerable<string> evidenceRefs)
-    {
-        ArgumentNullException.ThrowIfNull(evidenceRefs);
-        string[] snapshot = [.. evidenceRefs];
-        if (snapshot.Length == 0)
-        {
-            throw new ArgumentException("Firmware region sets require evidence.", nameof(evidenceRefs));
-        }
-
-        if (snapshot.Any(string.IsNullOrWhiteSpace))
-        {
-            throw new ArgumentException("Evidence references cannot contain null or whitespace.", nameof(evidenceRefs));
-        }
-
-        if (snapshot.Distinct(StringComparer.Ordinal).Count() != snapshot.Length)
-        {
-            throw new ArgumentException("Evidence references must be ordinally unique.", nameof(evidenceRefs));
-        }
-
-        Array.Sort(snapshot, StringComparer.Ordinal);
-        return snapshot;
-    }
 }

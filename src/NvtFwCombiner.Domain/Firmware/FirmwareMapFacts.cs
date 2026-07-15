@@ -74,13 +74,20 @@ public sealed class FirmwareFactApplicability
         IEnumerable<string>? commonFirmwareCategoryIds = null,
         IEnumerable<FirmwareMetadataPredicate>? metadataPredicates = null)
     {
-        _modeIds = SnapshotIds(modeIds, nameof(modeIds), requireValue: true);
+        _modeIds = ImmutableStringSnapshot.Create(
+            modeIds,
+            nameof(modeIds),
+            "At least one identifier is required.",
+            "Identifiers cannot contain null or whitespace.",
+            "Identifiers must be ordinally unique.");
         ArgumentNullException.ThrowIfNull(topologyRequirement);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacityBytes);
-        _commonFirmwareCategoryIds = SnapshotIds(
+        _commonFirmwareCategoryIds = ImmutableStringSnapshot.Create(
             commonFirmwareCategoryIds ?? [],
             nameof(commonFirmwareCategoryIds),
-            requireValue: false);
+            null,
+            "Identifiers cannot contain null or whitespace.",
+            "Identifiers must be ordinally unique.");
         _metadataPredicates = [.. metadataPredicates ?? []];
         if (_metadataPredicates.Any(static predicate => predicate is null))
         {
@@ -227,31 +234,6 @@ public sealed class FirmwareFactApplicability
             left.ExpectedValues.All(value => right.ExpectedValues.Contains(value));
     }
 
-    private static string[] SnapshotIds(
-        IEnumerable<string> values,
-        string parameterName,
-        bool requireValue)
-    {
-        ArgumentNullException.ThrowIfNull(values, parameterName);
-        string[] snapshot = [.. values];
-        if (requireValue && snapshot.Length == 0)
-        {
-            throw new ArgumentException("At least one identifier is required.", parameterName);
-        }
-
-        if (snapshot.Any(string.IsNullOrWhiteSpace))
-        {
-            throw new ArgumentException("Identifiers cannot contain null or whitespace.", parameterName);
-        }
-
-        if (snapshot.Distinct(StringComparer.Ordinal).Count() != snapshot.Length)
-        {
-            throw new ArgumentException("Identifiers must be ordinally unique.", parameterName);
-        }
-
-        Array.Sort(snapshot, StringComparer.Ordinal);
-        return snapshot;
-    }
 }
 
 /// <summary>One target-to-source alias edge retained by immutable fact provenance.</summary>
@@ -283,7 +265,12 @@ public sealed class FirmwareFactAliasHop
             throw new ArgumentException("An alias cannot point to the same fact key.", nameof(sourceKey));
         }
 
-        _evidenceRefs = SnapshotEvidenceRefs(evidenceRefs);
+        _evidenceRefs = ImmutableStringSnapshot.Create(
+            evidenceRefs,
+            nameof(evidenceRefs),
+            "Alias evidence references must be non-empty values.",
+            "Alias evidence references must be non-empty values.",
+            "Alias evidence references must be ordinally unique.");
         AliasId = aliasId;
         TargetKey = targetKey;
         SourceKey = sourceKey;
@@ -310,23 +297,6 @@ public sealed class FirmwareFactAliasHop
     /// <summary>Alias-specific evidence references.</summary>
     public IReadOnlyList<string> EvidenceRefs { get; }
 
-    private static string[] SnapshotEvidenceRefs(IEnumerable<string> evidenceRefs)
-    {
-        ArgumentNullException.ThrowIfNull(evidenceRefs);
-        string[] snapshot = [.. evidenceRefs];
-        if (snapshot.Length == 0 || snapshot.Any(string.IsNullOrWhiteSpace))
-        {
-            throw new ArgumentException("Alias evidence references must be non-empty values.", nameof(evidenceRefs));
-        }
-
-        if (snapshot.Distinct(StringComparer.Ordinal).Count() != snapshot.Length)
-        {
-            throw new ArgumentException("Alias evidence references must be ordinally unique.", nameof(evidenceRefs));
-        }
-
-        Array.Sort(snapshot, StringComparer.Ordinal);
-        return snapshot;
-    }
 }
 
 /// <summary>Immutable effective-to-direct fact history used by reports and future fingerprints.</summary>

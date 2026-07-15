@@ -116,10 +116,12 @@ public sealed class CompiledRegionAccessRequirement
         }
 
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
-        _allowedSubregionIds = CompiledProfilePromotionBlocker.SnapshotIds(
+        _allowedSubregionIds = ImmutableStringSnapshot.Create(
             allowedSubregionIds,
             nameof(allowedSubregionIds),
-            requireValue: access == CompiledRegionAccessKind.Parts);
+            access == CompiledRegionAccessKind.Parts ? "Identifiers must be non-empty values." : null,
+            "Identifiers must be non-empty values.",
+            "Identifiers must be ordinally unique.");
         if (access != CompiledRegionAccessKind.Parts && _allowedSubregionIds.Length != 0)
         {
             throw new ArgumentException("Only parts access can declare allowed subregions.", nameof(allowedSubregionIds));
