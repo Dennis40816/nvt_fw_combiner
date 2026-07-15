@@ -10,11 +10,20 @@ The 0.9.7 integration branch combines the reviewed 0.9.6 lineage with the
 fact-scoped AB evidence forward-port, compiled final-output validation and the
 non-routed NT51926 CtrlRAM V2 candidate, and the audited semantic UI token
 consolidation. Phase-local AB, Application, Domain, Bootstrap, Architecture,
-and UI smoke tests passed on 2026-07-15. The canonical full verification and
-release-package smoke results are recorded only after their final gates run.
+and UI smoke tests passed on 2026-07-15.
+
+On 2026-07-15, `python scripts/verify.py --all` passed with zero build warnings
+and errors: 12 repository Python tests, 28 CRC-worker tests at 98.88% coverage,
+Domain 345, Application 244, ProfileContract 362, Architecture 71,
+GoldenRegression 6, Bootstrap 260, Infrastructure 180 with 2 Unix-only skips,
+and UI Smoke 119. Polytail and the post-`v0.9.2` Conventional Commit audit also
+passed; all 98 integration commits present before this evidence-only update had
+clean phase-scoped subjects and no WIP/fixup markers.
+
 This candidate does not promote AB or CtrlRAM runtime support and does not
-replace the remaining firmware-owner, product-golden, signing, or clean-machine
-release evidence.
+replace the remaining firmware-owner, product-golden, signing, protected-CI,
+or clean-machine release evidence. Stable package smoke is performed only from
+the reviewed `main` commit, not from this pre-merge integration branch.
 
 ## 0.9.2 consolidation evidence
 
