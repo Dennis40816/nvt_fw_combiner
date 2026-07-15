@@ -81,9 +81,44 @@ public sealed partial class RepositoryBoundaryTests
                      "RemoveGeneralMergeMappingCommand",
                      "RemoveGeneralReplaceMappingCommand",
                      "GetCtrlRamRegionSummary",
+                     "FirmwareIcMismatchSlotTitle",
                  })
         {
             Assert.DoesNotContain(retiredName, viewModel, StringComparison.Ordinal);
+        }
+    }
+
+    /// <summary>Prevents retired, unbound report projections from returning.</summary>
+    [Fact]
+    public void ReportReviewOmitsUnboundCompatibilityProjections()
+    {
+        string report = string.Join(
+            Environment.NewLine,
+            Directory.GetFiles(
+                    Path.Combine(Root.FullName, "src/NvtFwCombiner.Presentation.Avalonia/ViewModels"),
+                    "Report*ViewModel*.cs")
+                .Order(StringComparer.Ordinal)
+                .Select(File.ReadAllText));
+
+        foreach (string retiredName in new[]
+                 {
+                     "HasOutputFileName",
+                     "public bool? OutputCommitted",
+                     "CommandOperationCount",
+                     "HasNoCommandOperations",
+                     "HasNoStepOperations",
+                     "HasNoMutations",
+                     "HasOutputDifferenceGroups",
+                     "HasNoOutputDifferences",
+                     "IsSuccessful",
+                     "HasArtifactPath",
+                     "InputLabel",
+                     "RoleLabel",
+                     "HasSectionLabel",
+                     "RuntimeCommandsLabel",
+                 })
+        {
+            Assert.DoesNotContain(retiredName, report, StringComparison.Ordinal);
         }
     }
 

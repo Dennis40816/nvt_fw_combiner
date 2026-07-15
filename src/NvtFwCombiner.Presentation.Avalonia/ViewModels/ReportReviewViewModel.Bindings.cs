@@ -44,14 +44,8 @@ public sealed partial class ReportReviewViewModel
     /// <summary>Report-safe output file name.</summary>
     public string OutputFileName { get; }
 
-    /// <summary>True when the report contains an output file name to show in the primary result panel.</summary>
-    public bool HasOutputFileName { get; }
-
     /// <summary>Output size in bytes.</summary>
     public long OutputSize { get; }
-
-    /// <summary>True when the report output was committed, false for preview, null when unknown.</summary>
-    public bool? OutputCommitted { get; }
 
     /// <summary>True when the report output was written to disk.</summary>
     public bool IsOutputCommitted { get; }
@@ -119,14 +113,8 @@ public sealed partial class ReportReviewViewModel
     /// <summary>Operations that contain a fixed-width external command block.</summary>
     public IReadOnlyList<ReportLineViewModel> CommandOperations { get; }
 
-    /// <summary>Number of command operation rows.</summary>
-    public int CommandOperationCount => CommandOperations.Count;
-
     /// <summary>True when external command operations are available.</summary>
     public bool HasCommandOperations { get; }
-
-    /// <summary>True when no external command operations are available.</summary>
-    public bool HasNoCommandOperations { get; }
 
     /// <summary>Actual postbuild process invocations flattened into independently numbered review rows.</summary>
     public IReadOnlyList<ReportPostbuildInvocationViewModel> PostbuildInvocations { get; }
@@ -149,9 +137,6 @@ public sealed partial class ReportReviewViewModel
     /// <summary>True when non-command operation details are available.</summary>
     public bool HasStepOperations { get; }
 
-    /// <summary>True when no non-command operation details are available.</summary>
-    public bool HasNoStepOperations { get; }
-
     /// <summary>Mutation rows.</summary>
     public IReadOnlyList<ReportLineViewModel> Mutations { get; }
 
@@ -160,9 +145,6 @@ public sealed partial class ReportReviewViewModel
 
     /// <summary>True when mutation details are available.</summary>
     public bool HasMutations { get; }
-
-    /// <summary>True when no mutation details are available.</summary>
-    public bool HasNoMutations { get; }
 
     /// <summary>Final output-vs-reference difference rows.</summary>
     public IReadOnlyList<ReportLineViewModel> OutputDifferences { get; }
@@ -173,14 +155,8 @@ public sealed partial class ReportReviewViewModel
     /// <summary>Final output differences grouped by physical report section.</summary>
     public IReadOnlyList<ReportDifferenceGroupViewModel> OutputDifferenceGroups { get; }
 
-    /// <summary>True when grouped output difference details are available.</summary>
-    public bool HasOutputDifferenceGroups { get; }
-
     /// <summary>True when output difference details are available.</summary>
     public bool HasOutputDifferences { get; }
-
-    /// <summary>True when no output difference details are available.</summary>
-    public bool HasNoOutputDifferences { get; }
 
     /// <summary>True when no output differences or changed ranges are available.</summary>
     public bool HasNoByteChanges { get; }
@@ -235,9 +211,6 @@ public sealed partial class ReportReviewViewModel
 
     /// <summary>True when the report should show a primary blocking reason.</summary>
     public bool HasPrimaryIssue { get; }
-
-    /// <summary>True when the report has no blocking issue and can use the success treatment.</summary>
-    public bool IsSuccessful => !HasPrimaryIssue;
 
     /// <summary>True when the report has neither blocking issues nor warnings.</summary>
     public bool IsClean { get; }

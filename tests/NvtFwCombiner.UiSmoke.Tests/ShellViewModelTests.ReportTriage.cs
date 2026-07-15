@@ -100,7 +100,7 @@ public sealed partial class ShellViewModelTests
             ReportJsonSamples.CtrlRamCommandTrace(runtimeInvocationCount: 3),
             "runtime-trace.json");
 
-        Assert.Equal(1, report.CommandOperationCount);
+        _ = Assert.Single(report.CommandOperations);
         Assert.Equal(3, report.PostbuildInvocationCount);
         Assert.Equal(
             ["900.01", "900.02", "900.03"],

@@ -28,7 +28,6 @@ public sealed class ReportHistoryEntryViewModel
             ? FormatCount(report.BlockingIssueCount, "issue")
             : report.HasWarnings ? FormatCount(report.WarningCount, "warning") : "No issue";
         ArtifactPath = report.OutputArtifactPath;
-        HasArtifactPath = report.HasOutputArtifactPath;
         EvidenceSummary = $"{FormatCount(report.InputCount, "input")} / {FormatCount(report.OperationCount, "step")} / {FormatCount(report.MutationCount, "mutation")}";
     }
 
@@ -61,9 +60,6 @@ public sealed class ReportHistoryEntryViewModel
 
     /// <summary>Session-local artifact path.</summary>
     public string ArtifactPath { get; }
-
-    /// <summary>True when a session-local artifact path exists.</summary>
-    public bool HasArtifactPath { get; }
 
     /// <summary>Counts of report evidence sections.</summary>
     public string EvidenceSummary { get; }

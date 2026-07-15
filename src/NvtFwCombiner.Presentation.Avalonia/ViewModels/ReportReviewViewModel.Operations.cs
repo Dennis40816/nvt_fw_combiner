@@ -43,13 +43,7 @@ public sealed partial class ReportReviewViewModel
                     codeBlockLabel: string.IsNullOrWhiteSpace(commandBlock)
                         ? string.Empty
                         : T(language, "Profile-declared Combiner plan", "Profile 宣告的 Combiner 計畫"),
-                    runtimeCommands: runtimeCommands,
-                    runtimeCommandsLabel: runtimeCommands.Count == 0
-                        ? string.Empty
-                        : T(
-                            language,
-                            $"Actual runtime argv ({runtimeCommands.Count})",
-                            $"實際執行 argv（{runtimeCommands.Count}）"));
+                    runtimeCommands: runtimeCommands);
             }),
             ];
     }
