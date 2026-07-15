@@ -193,7 +193,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             "test copy command followed by staged replacement restore");
     }
 
-    private static LegacyCombinerPostbuildProfile CreateCrcOnlyProfile(string processorId, string firmwareFileName)
+    private static LegacyCombinerPostbuildProfile CreateCrcOnlyProfile(
+        string processorId,
+        string firmwareFileName,
+        string toolBindingId = "legacy-combiner-1.13.0")
     {
         var command = new LegacyCombinerPostbuildCommand(
             "crc-only",
@@ -204,7 +207,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         return new LegacyCombinerPostbuildProfile(
             processorId,
             "NTTEST",
-            "legacy-combiner-1.13.0",
+            toolBindingId,
             firmwareFileName,
             [command],
             [command],

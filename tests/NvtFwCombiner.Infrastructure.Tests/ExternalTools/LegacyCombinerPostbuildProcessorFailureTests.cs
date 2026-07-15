@@ -7,6 +7,57 @@ namespace NvtFwCombiner.Infrastructure.Tests.ExternalTools;
 
 public sealed partial class LegacyCombinerPostbuildProcessorTests
 {
+    /// <summary>Rejects a profile-approved tool binding that is absent from the executable registry.</summary>
+    [Fact]
+    public async Task TransformRejectsUnknownRegisteredToolBindingBeforeLaunch()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        FakeProcessRunner runner = new(_ => throw new InvalidOperationException("Process should not run."));
+        LegacyCombinerPostbuildProfile profile = CreateCrcOnlyProfile(
+            "nfc.test.unknown-tool-v1",
+            "test_fw.bin",
+            "missing-tool-binding");
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
+        ExternalProcessorRequest request = new(
+            "run-unknown-tool",
+            profile.ProcessorId,
+            profile.ToolBindingId,
+            CreateFirmwareImage(),
+            [],
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("external-tool.binding.unknown", Assert.Single(result.Issues).Code);
+        Assert.Equal(0, runner.RunCount);
+    }
+
+    /// <summary>Rejects a Legacy Combiner executable whose bytes do not match its registered SHA-256.</summary>
+    [Fact]
+    public async Task TransformRejectsExecutableShaMismatchBeforeLaunch()
+    {
+        using var workspace = TempWorkspace.Create();
+        _ = workspace.CreateToolExecutable();
+        FakeProcessRunner runner = new(_ => throw new InvalidOperationException("Process should not run."));
+        LegacyCombinerPostbuildProfile profile = CreateCrcOnlyProfile("nfc.test.sha-mismatch-v1", "test_fw.bin");
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(new string('0', 64), runner, [profile]);
+        ExternalProcessorRequest request = new(
+            "run-sha-mismatch",
+            profile.ProcessorId,
+            profile.ToolBindingId,
+            CreateFirmwareImage(),
+            [],
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("external-tool.executable-sha.mismatch", Assert.Single(result.Issues).Code);
+        Assert.Equal(0, runner.RunCount);
+    }
+
     /// <summary>Rejects multiple work-image projections into the same staged file offset when bytes differ.</summary>
     [Fact]
     public async Task TransformRejectsConflictingStagedFileProjection()
