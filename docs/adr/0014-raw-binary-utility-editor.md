@@ -25,7 +25,7 @@ The Home-launched Hex Editor is intended for direct inspection and controlled ed
 
 - General Replace remains the supported firmware-aware explicit mapping workflow, including profile compiler checks and required TP postbuild behavior.
 - Raw Hex Editor output is an arbitrary user-authored BIN, not a supported firmware build claim.
-- Presentation calls a typed Bootstrap facade. File reading/writing stays outside Presentation; the Application raw session has no filesystem, profile, composition, Flash Map, or external-tool dependency.
+- Presentation calls the typed Bootstrap file-session facade and consumes the Application raw-editor contracts directly. Bootstrap does not mirror those contracts. File reading/writing stays outside Presentation; the Application raw session has no filesystem, profile, composition, Flash Map, or external-tool dependency.
 - No CLI command is required in this increment. Any future CLI editor command must use the same typed raw-session contract.
 
 ## Verification

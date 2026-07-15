@@ -1,6 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Application.HexEditor;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -90,7 +90,7 @@ public sealed partial class HexEditorWorkspaceViewModel
         ApplyOverwriteRange();
     }
 
-    private void ApplyRangeOperation(WorkbenchRawBinaryEditorOperationResult result, string selectedAddress)
+    private void ApplyRangeOperation(RawBinaryEditorOperationResult result, string selectedAddress)
     {
         if (!result.Succeeded)
         {

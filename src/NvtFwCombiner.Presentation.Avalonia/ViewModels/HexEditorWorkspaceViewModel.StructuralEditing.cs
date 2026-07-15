@@ -1,6 +1,7 @@
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using NvtFwCombiner.Application.HexEditor;
 using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -103,7 +104,7 @@ public sealed partial class HexEditorWorkspaceViewModel
         }
 
         int count = decimal.ToInt32(InsertByteCount);
-        WorkbenchRawBinaryEditorOperationResult result = InsertBeforeSelectedByte
+        RawBinaryEditorOperationResult result = InsertBeforeSelectedByte
             ? _session.InsertZeroBytesBefore(InsertTargetAddress, count)
             : _session.InsertZeroBytesAfter(InsertTargetAddress, count);
         if (!result.Succeeded)
