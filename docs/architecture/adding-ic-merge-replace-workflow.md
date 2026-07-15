@@ -91,7 +91,7 @@ Update only the rows that are relevant to the new IC/mode.
 | Area | File | What changes |
 | --- | --- | --- |
 | IC support / exposure catalog | `src/NvtFwCombiner.Profiles/IcSupportCatalog.cs` | Add the IC id, supported workflow ids, owner-approved alias facts, and short onboarding notes. This is the first C# row to update when introducing a new IC/mode. Workflow ids must come from `IcWorkflowIds.All`; unknown ids fail catalog construction. |
-| Family policy catalog | `src/NvtFwCombiner.Profiles/DpPerspectiveCatalog.cs` or another dedicated catalog | Add shared family policy only when multiple workflows need the same lengths/ranges/rules. Current example: NT51950/NT51951 DP Perspective supported IC ids, supported lengths, and TP/customer-info preservation ranges. V2 bundle compilation and display routing consume these facts; do not duplicate them in UI or CLI code. |
+| V2 family/map/profile facts | `profiles/built-in/<bundle>/{families,maps,profiles}` plus its manifest | Put shared family facts, supported capacities, canonical named ranges, operations, and access rules in the manifest-pinned V2 bundle. Runtime and display projections must consume the resolved map and compiled plan; do not add a companion C# family-fact catalog or duplicate facts in UI/CLI code. |
 | Standard Merge bundle / deployment / runtime registration | `profiles/built-in/<bundle>/{profile-bundle.json,families,profiles}`; `src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj`; `src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs` | Add a manifest-pinned V2 family/profile source bundle. The build materializer injects schemas from `profiles/schema-source/sha256`; do not add source schema snapshots. A reviewed, evidence-backed bundle must add one `<BuiltInProfileBundle Include="<bundle>" />` materialization allowlist entry and then receive the explicit Bootstrap V2 registration. A 0.9.4 candidate has no runtime authority and must add neither production allowlist nor registration; its closed-root preview belongs in caller-selected staging. |
 | Replace profile / V2 deployment | `profiles/built-in/<bundle>/{profile-bundle.json,families,profiles}` plus a focused Bootstrap V2 registration | Add an evidence-backed V2 Replace profile and explicit deployed-bundle registration before routing an IC. Candidate bundles have no runtime authority. `BuiltInReplaceProfiles` contains only synthetic contract fixtures and is never a production V2 fallback. |
 | Profile compiler rules | `src/NvtFwCombiner.Profiles/CompositionProfileCompiler.cs` | Change only for general validation gaps, not to special-case one IC. |
@@ -130,7 +130,7 @@ Minimum tests:
 - the focused trusted-V2 bundle/routing tests matching the changed profile family
 - direct V2 plan contract tests plus `tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeWorkbenchGoldenTests.cs`; no C# profile oracle remains after the retirement matrix closes the family
 - `tests/NvtFwCombiner.ProfileContract.Tests/IcSupportCatalogTests.cs` when support exposure or alias facts change
-- `tests/NvtFwCombiner.ProfileContract.Tests/DpPerspectiveCatalogTests.cs` or the matching family-policy test when shared family policy changes
+- direct trusted-V2 map/plan contract tests for every shared family fact or declared capacity that changes
 - `tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeWorkbenchGoldenTests.cs`, which exercises the deployed V2 workbench runtime against every approved Standard Merge fixture
 - CLI/UI smoke tests only when the new IC changes surfaced selector behavior or output naming.
 
@@ -148,7 +148,7 @@ Minimum tests:
 
 - a direct V2 compilation/routing test for the changed Replace profile family
 - `tests/NvtFwCombiner.ProfileContract.Tests/IcSupportCatalogTests.cs` when support exposure changes
-- `tests/NvtFwCombiner.ProfileContract.Tests/DpPerspectiveCatalogTests.cs` or the matching family-policy test when shared family policy changes
+- direct trusted-V2 map/plan contract tests for every shared family fact or declared capacity that changes
 - `tests/NvtFwCombiner.Bootstrap.Tests/ReplaceCliCommandTests.cs` when CLI can build the profile
 - UI smoke tests when the IC changes selector, slot, memory coverage, or report behavior
 - Golden regression or private golden evidence before support promotion
