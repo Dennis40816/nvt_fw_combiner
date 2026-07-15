@@ -106,6 +106,7 @@ public sealed partial class RepositoryBoundaryTests
             "nt51930-general-merge-logical-candidate",
             "nt51931-general-merge-logical-candidate",
             "nt51950-nt51951-general-merge-logical-candidate",
+            "nt51926-ctrlram-replace-candidate",
             "nt51923-standard-merge",
             "nt51927-standard-merge",
             "nt51928-standard-merge",
@@ -141,6 +142,15 @@ public sealed partial class RepositoryBoundaryTests
             {
                 Assert.Equal(
                     "ab3bed384c5d78590ad6a87ee23c12f23a1ea4a1bdc6001273f254b6e5f3547f",
+                    Assert.Single(bundle.Elements("CompositionProfileSchemaHash")).Value);
+            }
+            else if (string.Equals(
+                         "nt51926-ctrlram-replace-candidate",
+                         bundle.Attribute("Include")?.Value,
+                         StringComparison.Ordinal))
+            {
+                Assert.Equal(
+                    "61abe3f9eaa9d1821067788d08014868a81f42a01bd1eb75406aabb9c56df8a3",
                     Assert.Single(bundle.Elements("CompositionProfileSchemaHash")).Value);
             }
             else

@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.Bundles;
 using NvtFwCombiner.Profiles;
 using NvtFwCombiner.Profiles.V2;
@@ -186,6 +187,24 @@ public static partial class WorkbenchCompositionService
             string experienceId,
             long? requestedMapCapacity)
         {
+            return Compile(
+                profileId,
+                profileVersion,
+                icId,
+                experienceId,
+                requestedMapCapacity,
+                []);
+        }
+
+        internal V2CompositionPlanCompileResult Compile(
+            string profileId,
+            string profileVersion,
+            string icId,
+            string experienceId,
+            long? requestedMapCapacity,
+            IReadOnlyList<FirmwareArtifactPayload> resolutionArtifacts)
+        {
+            ArgumentNullException.ThrowIfNull(resolutionArtifacts);
             try
             {
                 return TrustedV2CompositionCompiler.Compile(
@@ -194,7 +213,8 @@ public static partial class WorkbenchCompositionService
                     profileVersion,
                     icId,
                     experienceId,
-                    requestedMapCapacity);
+                    requestedMapCapacity,
+                    resolutionArtifacts);
             }
             catch (Exception exception) when (exception is IOException or
                                              UnauthorizedAccessException or

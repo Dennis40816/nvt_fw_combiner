@@ -111,6 +111,31 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ProfileBundleLoader.Load", bundle, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies NT51926 CtrlRAM V2 compilation remains an artifact-backed candidate boundary, not a runtime route.</summary>
+    [Fact]
+    public void Nt51926CtrlRamV2CandidateStaysIsolatedFromRuntimeRoutes()
+    {
+        string candidateBoundary = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.V2.cs");
+        string runtime = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.cs");
+        string cli = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.CtrlRamWorkbench.cs");
+        string project = ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj");
+        string profile = ReadText(
+            "profiles/built-in/nt51926-ctrlram-replace-candidate/profiles/nt51926-ctrlram-replace-fw141-cascade.json");
+
+        Assert.Contains("CompileNt51926CtrlRamReplaceV2Candidate", candidateBoundary, StringComparison.Ordinal);
+        Assert.Contains("FirmwareArtifactPayload", candidateBoundary, StringComparison.Ordinal);
+        Assert.DoesNotContain("RunCompiledCompositionAsync", candidateBoundary, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionRunService", candidateBoundary, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompileNt51926CtrlRamReplaceV2Candidate", runtime, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompileNt51926CtrlRamReplaceV2Candidate", cli, StringComparison.Ordinal);
+        Assert.Contains("nt51926-ctrlram-replace-candidate", project, StringComparison.Ordinal);
+        Assert.Contains("\"stage\": \"executable-candidate\"", profile, StringComparison.Ordinal);
+        Assert.Contains("\"blockerId\": \"direct-golden-evidence\"", profile, StringComparison.Ordinal);
+        Assert.Contains("\"blockerId\": \"firmware-owner-review\"", profile, StringComparison.Ordinal);
+        Assert.Contains("\"blockerId\": \"runtime-route\"", profile, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies workbench Replace mode ids stay centralized for UI and CLI adapters.</summary>
     [Fact]
     public void BootstrapOwnsWorkbenchReplaceModeIds()
