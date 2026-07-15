@@ -88,7 +88,6 @@ public sealed partial class ReportReviewViewModel
         HasNoPostbuildInvocations = !HasPostbuildInvocations;
         HasNoIssues = !HasIssues;
         HasNoByteChanges = !HasOutputDifferences && !HasMutations;
-        SummaryRows = CreateSummaryRows(status, output, inputs, operations, mutations, issues, language);
         OutcomeTitle = CreateOutcomeTitle(status, issues, language);
         OutcomeDetail = CreateOutcomeDetail(output, issues, compositionKind, outputDifferences, language);
         OutcomeMeta = CreateOutcomeMeta(issues, language);
@@ -113,8 +112,6 @@ public sealed partial class ReportReviewViewModel
         ByteDifferenceMeta = CreateByteDifferenceMeta(outputDifferences, language);
         OutputDifferenceSummaryRows = CreateOutputDifferenceSummaryRows(outputDifferences, language);
         AuditSummary = CreateAuditSummary(inputs, operations, mutations, outputDifferences, issues, language);
-        TriageRows = CreateTriageRows(status, output, operations, issues, language);
-        EvidenceRows = CreateEvidenceRows(inputs, operations, mutations, outputDifferences, issues, language);
     }
 
     /// <summary>Empty report sentinel.</summary>

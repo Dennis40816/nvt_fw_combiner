@@ -116,10 +116,20 @@ public sealed partial class RepositoryBoundaryTests
                      "RoleLabel",
                      "HasSectionLabel",
                      "RuntimeCommandsLabel",
+                     "public IReadOnlyList<ReportLineViewModel> SummaryRows",
+                     "TriageRows",
+                     "EvidenceRows",
+                     "CreateSummaryRows",
+                     "CreateTriageRows",
+                     "CreateEvidenceRows",
                  })
         {
             Assert.DoesNotContain(retiredName, report, StringComparison.Ordinal);
         }
+
+        string templates = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportTemplates.axaml");
+        Assert.DoesNotContain("ReportEvidenceChipTemplate", templates, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies firmware slot model, icons, and fact badges stay split by UI responsibility.</summary>

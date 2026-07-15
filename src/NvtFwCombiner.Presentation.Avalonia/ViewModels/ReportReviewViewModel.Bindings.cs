@@ -215,9 +215,6 @@ public sealed partial class ReportReviewViewModel
     /// <summary>True when the report has neither blocking issues nor warnings.</summary>
     public bool IsClean { get; }
 
-    /// <summary>Compact summary chips shown at the top of the modal.</summary>
-    public IReadOnlyList<ReportLineViewModel> SummaryRows { get; }
-
     /// <summary>Primary report outcome shown before detailed evidence.</summary>
     public string OutcomeTitle { get; }
 
@@ -238,11 +235,5 @@ public sealed partial class ReportReviewViewModel
 
     /// <summary>Description for the next recommended review step.</summary>
     public string NextStepDetail { get; }
-
-    /// <summary>Ordered rows that tell the user where to look first.</summary>
-    public IReadOnlyList<ReportLineViewModel> TriageRows { get; }
-
-    /// <summary>Compact counts for each available evidence category.</summary>
-    public IReadOnlyList<ReportLineViewModel> EvidenceRows { get; }
 
 }

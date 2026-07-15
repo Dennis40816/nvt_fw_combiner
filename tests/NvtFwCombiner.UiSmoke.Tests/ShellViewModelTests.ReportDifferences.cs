@@ -53,11 +53,6 @@ public sealed partial class ShellViewModelTests
         ReportDifferenceGroupViewModel differenceGroup = Assert.Single(viewModel.LoadedReport.OutputDifferenceGroups);
         Assert.Equal("Header", differenceGroup.Title);
         Assert.Equal("1 expected field update", differenceGroup.Detail);
-        Assert.Contains(viewModel.LoadedReport.EvidenceRows, row =>
-            row.Title == "Output diff" &&
-            row.Detail == "1" &&
-            row.Meta == "all expected");
-
         viewModel.SelectedLanguage = "Traditional Chinese";
 
         Assert.Equal("差異", viewModel.Text.ReportTabChanges);
@@ -72,10 +67,6 @@ public sealed partial class ShellViewModelTests
             row.Label == "Header" &&
             row.Count == "1" &&
             row.Status == "預期");
-        Assert.Contains(viewModel.LoadedReport.EvidenceRows, row =>
-            row.Title == "Output diff" &&
-            row.Detail == "1" &&
-            row.Meta == "全部預期");
     }
 
     /// <summary>Verifies incomplete hex previews are not labelled as complete byte values.</summary>
