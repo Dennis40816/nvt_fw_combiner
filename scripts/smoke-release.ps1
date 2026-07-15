@@ -47,6 +47,115 @@ function Assert-FileHash {
     }
 }
 
+function Assert-AssetFileName {
+    param(
+        [Parameter(Mandatory = $true)][string]$AssetName,
+        [Parameter(Mandatory = $true)][string]$AssetKind
+    )
+
+    if ([string]::IsNullOrWhiteSpace($AssetName) -or
+        -not [string]::Equals([IO.Path]::GetFileName($AssetName), $AssetName, [StringComparison]::Ordinal)) {
+        throw "Release manifest has an unsafe $AssetKind asset name '$AssetName'."
+    }
+}
+
+function Assert-DeclaredSubjectHashes {
+    param(
+        [Parameter(Mandatory = $true)][object[]]$ManifestEntries,
+        [Parameter(Mandatory = $true)][object[]]$Subjects,
+        [Parameter(Mandatory = $true)][string]$ArtifactKind
+    )
+
+    $expected = [Collections.Generic.Dictionary[string, string]]::new([StringComparer]::Ordinal)
+    foreach ($entry in $ManifestEntries) {
+        $path = [string]$entry.path
+        if (-not $expected.TryAdd($path, [string]$entry.sha256)) {
+            throw "Release manifest repeats file '$path'."
+        }
+    }
+
+    $actual = [Collections.Generic.Dictionary[string, string]]::new([StringComparer]::Ordinal)
+    foreach ($subject in $Subjects) {
+        $path = [string]$subject.name
+        if (-not $actual.TryAdd($path, [string]$subject.sha256)) {
+            throw "$ArtifactKind repeats subject '$path'."
+        }
+    }
+
+    if ($expected.Count -ne $actual.Count) {
+        throw "$ArtifactKind subjects do not match the release manifest."
+    }
+
+    foreach ($path in $expected.Keys) {
+        $actualHash = $null
+        if (-not $actual.TryGetValue($path, [ref]$actualHash) -or $actualHash -ne $expected[$path]) {
+            throw "$ArtifactKind subject hash mismatch: $path"
+        }
+    }
+}
+
+function Assert-ReleaseSidecars {
+    param(
+        [Parameter(Mandatory = $true)][string]$PackageRoot,
+        [Parameter(Mandatory = $true)][string]$PackageDirectory,
+        [Parameter(Mandatory = $true)]$Manifest
+    )
+
+    Assert-AssetFileName -AssetName ([string]$Manifest.sbomAsset) -AssetKind 'SBOM'
+    Assert-AssetFileName -AssetName ([string]$Manifest.provenanceAsset) -AssetKind 'provenance'
+    if (-not ([string]$Manifest.sbomAsset).EndsWith('.spdx.json', [StringComparison]::Ordinal) -or
+        -not ([string]$Manifest.provenanceAsset).EndsWith('.provenance.json', [StringComparison]::Ordinal)) {
+        throw 'Release manifest sidecar names do not match the required SBOM/provenance suffixes.'
+    }
+
+    $expectedPackageName = "NvtFwCombiner-$($Manifest.sourceTag)-win-x64"
+    if (-not [string]::Equals((Split-Path -Leaf $PackageRoot), $expectedPackageName, [StringComparison]::Ordinal)) {
+        throw "Release package root does not match manifest source tag '$($Manifest.sourceTag)'."
+    }
+
+    $sbomPath = Join-Path $PackageDirectory ([string]$Manifest.sbomAsset)
+    $provenancePath = Join-Path $PackageDirectory ([string]$Manifest.provenanceAsset)
+    if (-not (Test-Path -LiteralPath $sbomPath -PathType Leaf)) {
+        throw "Release SBOM sidecar is missing: $($Manifest.sbomAsset)"
+    }
+    if (-not (Test-Path -LiteralPath $provenancePath -PathType Leaf)) {
+        throw "Release provenance sidecar is missing: $($Manifest.provenanceAsset)"
+    }
+
+    $sbom = Get-Content -LiteralPath $sbomPath -Raw | ConvertFrom-Json
+    if ($sbom.spdxVersion -ne 'SPDX-2.3' -or
+        $sbom.name -ne $expectedPackageName -or
+        -not ([string]$sbom.documentNamespace).EndsWith("/$($Manifest.sourceTag)/$($Manifest.sbomAsset)", [StringComparison]::Ordinal)) {
+        throw 'Release SBOM identity does not match the package manifest.'
+    }
+    $sbomPackages = @($sbom.packages)
+    if ($sbomPackages.Count -ne 1 -or
+        $sbomPackages[0].name -ne $Manifest.product -or
+        $sbomPackages[0].versionInfo -ne $Manifest.version) {
+        throw 'Release SBOM package metadata does not match the package manifest.'
+    }
+
+    $sbomSubjects = @($sbom.files | ForEach-Object {
+        $sha256 = @($_.checksums | Where-Object { $_.algorithm -eq 'SHA256' })
+        if ($sha256.Count -ne 1) {
+            throw "Release SBOM has an invalid SHA-256 declaration for '$($_.fileName)'."
+        }
+        [pscustomobject]@{ name = [string]$_.fileName; sha256 = [string]$sha256[0].checksumValue }
+    })
+    Assert-DeclaredSubjectHashes -ManifestEntries @($Manifest.files) -Subjects $sbomSubjects -ArtifactKind 'Release SBOM'
+
+    $provenance = Get-Content -LiteralPath $provenancePath -Raw | ConvertFrom-Json
+    if ($provenance.schemaVersion -ne '1.0' -or
+        $provenance.product -ne $Manifest.product -or
+        $provenance.version -ne $Manifest.version -or
+        $provenance.sourceCommit -ne $Manifest.sourceCommit -or
+        $provenance.sourceTag -ne $Manifest.sourceTag -or
+        $provenance.runtimeIdentifier -ne $Manifest.runtimeIdentifier) {
+        throw 'Release provenance identity does not match the package manifest.'
+    }
+    Assert-DeclaredSubjectHashes -ManifestEntries @($Manifest.files) -Subjects @($provenance.subjects) -ArtifactKind 'Release provenance'
+}
+
 $fullPackagePath = [IO.Path]::GetFullPath($PackagePath)
 if (-not (Test-Path -LiteralPath $fullPackagePath -PathType Leaf)) {
     throw "Release package was not found: $fullPackagePath"
@@ -102,6 +211,7 @@ try {
     foreach ($entry in $manifest.files) {
         Assert-FileHash -Root $packageRoot -Entry $entry
     }
+    Assert-ReleaseSidecars -PackageRoot $packageRoot -PackageDirectory (Split-Path -Parent $fullPackagePath) -Manifest $manifest
 
     $expectedPackagePaths = @(
         @($manifest.files | ForEach-Object { [string]$_.path }) +
