@@ -13,15 +13,8 @@ public static partial class WorkbenchCompositionService
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        if (!File.Exists(path))
-        {
-            return null;
-        }
-
-        try
-        {
-            byte[] image = File.ReadAllBytes(path);
-            return GenFlashVersionCatalog.TryReadDpVersion(
+        byte[]? image = TryReadFirmwareImage(path);
+        return image is not null && GenFlashVersionCatalog.TryReadDpVersion(
                 icId,
                 image,
                 out GenFlashDpVersionMetadata metadata)
@@ -36,11 +29,6 @@ public static partial class WorkbenchCompositionService
                         metadata.OutputSubAbsoluteAddress,
                         metadata.EvidenceSource)
                     : null;
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
-        {
-            return null;
-        }
     }
 
     /// <summary>Reads CMI DP Jira and major/minor facts without making unobserved DP sizes a build blocker.</summary>
@@ -52,16 +40,14 @@ public static partial class WorkbenchCompositionService
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        if (!File.Exists(path))
+        byte[]? image = TryReadFirmwareImage(path);
+        if (image is null)
         {
             return null;
         }
 
-        try
-        {
-            byte[] image = File.ReadAllBytes(path);
-            byte? chipNumber = TryReadFirmwareConfigBackupChipNumber(icId, tpPath);
-            return GenFlashVersionCatalog.TryReadCmiDpCode(
+        byte? chipNumber = TryReadFirmwareConfigBackupChipNumber(icId, tpPath);
+        return GenFlashVersionCatalog.TryReadCmiDpCode(
                 icId,
                 image,
                 chipNumber,
@@ -79,11 +65,6 @@ public static partial class WorkbenchCompositionService
                         metadata.Register18Offset,
                         metadata.EvidenceSource)
                     : null;
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
-        {
-            return null;
-        }
     }
 
     /// <summary>Reads FWConfig display metadata from the canonical NVT-located Backup in a selected firmware image.</summary>
@@ -224,20 +205,24 @@ public static partial class WorkbenchCompositionService
         out FirmwareConfigMetadata metadata)
     {
         metadata = default;
-        if (!IcMetadataFacade.TryFind(icId, out _) ||
-            !File.Exists(path))
+        if (!IcMetadataFacade.TryFind(icId, out _))
         {
             return false;
         }
 
+        byte[]? image = TryReadFirmwareImage(path);
+        return image is not null && TryReadFirmwareConfigBackupMetadata(icId, image, out metadata);
+    }
+
+    private static byte[]? TryReadFirmwareImage(string path)
+    {
         try
         {
-            byte[] image = File.ReadAllBytes(path);
-            return TryReadFirmwareConfigBackupMetadata(icId, image, out metadata);
+            return File.ReadAllBytes(path);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         {
-            return false;
+            return null;
         }
     }
 

@@ -55,6 +55,31 @@ public static partial class WorkbenchCompositionService
             outputFileName);
     }
 
+    private static IReadOnlyList<OperationRunSummary> CreateExplicitMappingPlanningOperations(
+        IReadOnlyList<ExplicitMapping> explicitMappings,
+        CompositionOperationKind operationKind)
+    {
+        return
+        [
+            .. explicitMappings.Select(mapping => new OperationRunSummary(
+                mapping.MappingId,
+                mapping.Sequence,
+                operationKind,
+                OperationRunStatus.Skipped,
+                mapping.SourceBindingId,
+                mapping.SourceRange,
+                mapping.TargetSpaceId,
+                mapping.TargetRange,
+                mapping.OverlapPolicy,
+                null,
+                null,
+                [],
+                [],
+                mapping.Reason,
+                mapping.Provenance)),
+        ];
+    }
+
     private static WorkbenchRunResult CreateBlockedReportRunResult(
         string runIdPrefix,
         string profileId,

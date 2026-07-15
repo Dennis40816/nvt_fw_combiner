@@ -436,30 +436,6 @@ public static partial class WorkbenchCompositionService
         }
     }
 
-    private static IReadOnlyList<OperationRunSummary> CreateGeneralReplacePlanningOperations(
-        IReadOnlyList<ExplicitMapping> explicitMappings)
-    {
-        return
-        [
-            .. explicitMappings.Select(mapping => new OperationRunSummary(
-                mapping.MappingId,
-                mapping.Sequence,
-                CompositionOperationKind.ReplaceRange,
-                OperationRunStatus.Skipped,
-                mapping.SourceBindingId,
-                mapping.SourceRange,
-                mapping.TargetSpaceId,
-                mapping.TargetRange,
-                mapping.OverlapPolicy,
-                null,
-                null,
-                [],
-                [],
-                mapping.Reason,
-                mapping.Provenance)),
-        ];
-    }
-
     private static Dictionary<string, string> CreateGeneralReplaceReportSlotPaths(
         IReadOnlyDictionary<string, string> slotPaths,
         IReadOnlyList<WorkbenchGeneralReplaceMappingInput> mappingInputs)

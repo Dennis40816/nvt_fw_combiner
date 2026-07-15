@@ -100,30 +100,6 @@ public static partial class WorkbenchCompositionService
         }
     }
 
-    private static IReadOnlyList<OperationRunSummary> CreateGeneralMergePlanningOperations(
-        IReadOnlyList<ExplicitMapping> explicitMappings)
-    {
-        return
-        [
-            .. explicitMappings.Select(mapping => new OperationRunSummary(
-                mapping.MappingId,
-                mapping.Sequence,
-                CompositionOperationKind.CopyRange,
-                OperationRunStatus.Skipped,
-                mapping.SourceBindingId,
-                mapping.SourceRange,
-                mapping.TargetSpaceId,
-                mapping.TargetRange,
-                mapping.OverlapPolicy,
-                null,
-                null,
-                [],
-                [],
-                mapping.Reason,
-                mapping.Provenance)),
-        ];
-    }
-
     private static Dictionary<string, string> CreateGeneralMergeReportSlotPaths(
         IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappingInputs)
     {
