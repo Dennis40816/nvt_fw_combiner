@@ -48,7 +48,7 @@ public static partial class WorkbenchCompositionService
             CompositionIssue issue = issues.Count > 0
                 ? issues[0]
                 : new CompositionIssue(
-                    BuiltInV2CompilationFailed,
+                    BuiltInV2Bundle.CompilationFailed,
                     $"The built-in V2 DP Replace profile for {icId} did not produce an executable composition.");
             return CreatePlanningRunResult(
                 icId,

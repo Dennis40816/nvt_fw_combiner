@@ -1,15 +1,9 @@
-using System.Collections.ObjectModel;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles;
-using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    private static readonly Lazy<ReadOnlyDictionary<string, BuiltInV2DpReplaceRegistration>> s_builtInV2DpReplaceByIc =
-        new(CreateBuiltInV2DpReplaceRegistrations);
-
     /// <summary>Compiles one supported DP Perspective Replace profile from its hash-anchored V2 bundle.</summary>
     internal static bool TryCompileDpPerspectiveDpReplace(
         string icId,
@@ -17,7 +11,9 @@ public static partial class WorkbenchCompositionService
         out CompiledComposition? composition,
         out IReadOnlyList<CompositionIssue> issues)
     {
-        if (!s_builtInV2DpReplaceByIc.Value.TryGetValue(icId, out BuiltInV2DpReplaceRegistration? registration))
+        if (!BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.TryGetValue(
+                icId,
+                out BuiltInV2DpReplaceRegistration? registration))
         {
             composition = null;
             issues = [];
@@ -34,7 +30,9 @@ public static partial class WorkbenchCompositionService
         long? baseCapacity,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out DpPerspectiveDpReplaceDisplay? display)
     {
-        if (!s_builtInV2DpReplaceByIc.Value.TryGetValue(icId, out BuiltInV2DpReplaceRegistration? registration))
+        if (!BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.TryGetValue(
+                icId,
+                out BuiltInV2DpReplaceRegistration? registration))
         {
             display = null;
             return false;
@@ -58,7 +56,7 @@ public static partial class WorkbenchCompositionService
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out string? icId)
     {
         string normalized = selector.Trim();
-        foreach (BuiltInV2DpReplaceRegistration registration in s_builtInV2DpReplaceByIc.Value.Values)
+        foreach (BuiltInV2DpReplaceRegistration registration in BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.Values)
         {
             if (registration.MatchesSelector(normalized))
             {
@@ -75,7 +73,7 @@ public static partial class WorkbenchCompositionService
     {
         return string.Join(
             "/",
-            s_builtInV2DpReplaceByIc.Value.Keys.Order(StringComparer.Ordinal));
+            BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.Keys.Order(StringComparer.Ordinal));
     }
 
     private static bool IsBuiltInV2DpReplaceIc(string icId)
@@ -89,134 +87,6 @@ public static partial class WorkbenchCompositionService
         string normalized = trimmed.StartsWith("NT", StringComparison.OrdinalIgnoreCase)
             ? $"NT{trimmed[2..]}"
             : $"NT{trimmed}";
-        return s_builtInV2DpReplaceByIc.Value.ContainsKey(normalized);
-    }
-
-    private static ReadOnlyDictionary<string, BuiltInV2DpReplaceRegistration> CreateBuiltInV2DpReplaceRegistrations()
-    {
-        return new ReadOnlyDictionary<string, BuiltInV2DpReplaceRegistration>(
-            new BuiltInV2DpReplaceRegistration[]
-            {
-                new("NT51950", "nt51950-dp-replace-dp-perspective", "0.6.1", Bundle("nt51950-nt51951-standard-merge")),
-                new("NT51951", "nt51951-dp-replace-dp-perspective", "0.6.1", Bundle("nt51950-nt51951-standard-merge")),
-            }.ToDictionary(static registration => registration.IcId, StringComparer.Ordinal));
-    }
-
-    private sealed class BuiltInV2DpReplaceRegistration
-    {
-        private readonly Lazy<V2CompositionPlanCompileResult> _summaryCompilation;
-
-        internal BuiltInV2DpReplaceRegistration(
-            string icId,
-            string profileId,
-            string profileVersion,
-            BuiltInV2Bundle bundle)
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-            ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
-            ArgumentException.ThrowIfNullOrWhiteSpace(profileVersion);
-            ArgumentNullException.ThrowIfNull(bundle);
-            IcId = icId;
-            ProfileId = profileId;
-            ProfileVersion = profileVersion;
-            Bundle = bundle;
-            _summaryCompilation = new(CompileSummary);
-        }
-
-        internal string IcId { get; }
-
-        private string ProfileId { get; }
-
-        private string ProfileVersion { get; }
-
-        private BuiltInV2Bundle Bundle { get; }
-
-        internal bool MatchesSelector(string selector)
-        {
-            return string.Equals(ProfileId, selector, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(IcId, selector, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(CliCompositionRunSupport.GetIcNumber(IcId), selector, StringComparison.OrdinalIgnoreCase);
-        }
-
-        internal IReadOnlyList<long> GetMapCapacities(out IReadOnlyList<CompositionIssue> issues)
-        {
-            return Bundle.GetMapCapacities(
-                ProfileId,
-                ProfileVersion,
-                IcId,
-                IcWorkflowIds.DpReplace,
-                out issues);
-        }
-
-        internal void TryCompile(
-            long baseCapacity,
-            out CompiledComposition? composition,
-            out IReadOnlyList<CompositionIssue> issues)
-        {
-            IReadOnlyList<long> capacities = GetMapCapacities(out issues);
-            if (issues.Count != 0)
-            {
-                composition = null;
-                return;
-            }
-
-            if (!capacities.Contains(baseCapacity))
-            {
-                composition = null;
-                issues =
-                [
-                    new CompositionIssue(
-                        CompositionIssueCodes.InputAddressSpaceLengthMismatch,
-                        $"{IcId} DP Replace base flash BIN length must be one of {BuiltInV2Bundle.FormatCapacities(capacities)} (actual 0x{baseCapacity:X})."),
-                ];
-                return;
-            }
-
-            V2CompositionPlanCompileResult compilation = Bundle.CompileExecutable(
-                ProfileId,
-                ProfileVersion,
-                IcId,
-                IcWorkflowIds.DpReplace,
-                baseCapacity,
-                $"The built-in V2 DP Replace profile for {IcId} did not produce an executable composition.");
-            composition = compilation.CompiledComposition;
-            issues = compilation.Issues;
-        }
-
-        internal WorkbenchProfileSummary CreateProfileSummary()
-        {
-            V2CompositionPlanCompileResult compilation = _summaryCompilation.Value;
-            return compilation.CompiledComposition is { } composition
-                ? WorkbenchCompositionService.CreateProfileSummary(composition)
-                : new WorkbenchProfileSummary(
-                    ProfileId,
-                    IcId,
-                    CompositionKind.Replace,
-                    [],
-                    $"nt{IcId[2..].ToLowerInvariant()}-dp-replace.bin",
-                    CompiledIcNumberPolicy.SingleSelector,
-                    CompileSucceeded: false,
-                    Array.AsReadOnly(compilation.Issues.Select(static issue => issue.Code).ToArray()));
-        }
-
-        private V2CompositionPlanCompileResult CompileSummary()
-        {
-            IReadOnlyList<long> capacities = GetMapCapacities(out IReadOnlyList<CompositionIssue> capacityIssues);
-            return (capacityIssues.Count, capacities.Count) switch
-            {
-                ( > 0, _) => V2CompositionPlanCompileResult.Failed(capacityIssues),
-                (_, 0) => V2CompositionPlanCompileResult.Failed(
-                    [new CompositionIssue(
-                        BuiltInV2CompilationFailed,
-                        $"The built-in V2 DP Replace profile for {IcId} has no declared base capacities.")]),
-                _ => Bundle.CompileExecutable(
-                    ProfileId,
-                    ProfileVersion,
-                    IcId,
-                    IcWorkflowIds.DpReplace,
-                    capacities[0],
-                    $"The built-in V2 DP Replace profile for {IcId} did not produce an executable composition."),
-            };
-        }
+        return BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.ContainsKey(normalized);
     }
 }

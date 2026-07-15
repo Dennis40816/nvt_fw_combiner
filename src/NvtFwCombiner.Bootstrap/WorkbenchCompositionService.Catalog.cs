@@ -5,7 +5,7 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    private const string StandardMergeFallbackOutputFileName = "nvt-fw-combiner-output.bin";
+    internal const string StandardMergeFallbackOutputFileName = "nvt-fw-combiner-output.bin";
 
     private static readonly Lazy<ReadOnlyCollection<WorkbenchProfileSummary>> s_standardMergeProfileSummaries = new(
         CreateStandardMergeProfileSummaries);
@@ -115,7 +115,7 @@ public static partial class WorkbenchCompositionService
     {
         WorkbenchProfileSummary[] summaries =
         [
-            .. s_builtInV2DpReplaceByIc.Value.Values.Select(static registration => registration.CreateProfileSummary()),
+            .. BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.Values.Select(static registration => registration.CreateProfileSummary()),
         ];
         return Array.AsReadOnly(
             summaries
@@ -123,7 +123,7 @@ public static partial class WorkbenchCompositionService
                 .ToArray());
     }
 
-    private static WorkbenchProfileSummary CreateProfileSummary(CompiledComposition composition)
+    internal static WorkbenchProfileSummary CreateProfileSummary(CompiledComposition composition)
     {
         ArgumentNullException.ThrowIfNull(composition);
         return new WorkbenchProfileSummary(

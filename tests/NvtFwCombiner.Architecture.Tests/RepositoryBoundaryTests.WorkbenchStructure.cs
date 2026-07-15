@@ -56,6 +56,9 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Compilation.cs");
         string standardMergeBuiltInV2 = ReadText(
             "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs");
+        string builtInV2Bundle = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2Bundle.cs");
+        string builtInV2Registrations = ReadText(
+            "src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
         string standardMergeRun = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Run.cs");
         string generalMergeProfile = ReadText(
             "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Profile.cs");
@@ -121,10 +124,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("RunStandardMergeAsync", standardMergeRun, StringComparison.Ordinal);
         Assert.Contains("TryGetStandardMergeDpInputLength", standardMergeRun, StringComparison.Ordinal);
         Assert.Contains("TryCompileStandardMerge", standardMergeRun, StringComparison.Ordinal);
-        Assert.Contains("ReadOnlyCollection<BuiltInV2StandardMergeRegistration>", standardMergeBuiltInV2, StringComparison.Ordinal);
-        Assert.Contains("ProfileBundleLoader.Load", standardMergeBuiltInV2, StringComparison.Ordinal);
-        Assert.Contains("TrustedV2CompositionCompiler.Compile", standardMergeBuiltInV2, StringComparison.Ordinal);
-        Assert.DoesNotContain("CompositionProfileCompiler", standardMergeBuiltInV2, StringComparison.Ordinal);
+        Assert.Contains("BuiltInV2RegistrationRegistry.StandardMerge", standardMergeBuiltInV2, StringComparison.Ordinal);
+        Assert.Contains("ReadOnlyCollection<BuiltInV2StandardMergeRegistration>", builtInV2Registrations, StringComparison.Ordinal);
+        Assert.Contains("ProfileBundleLoader.Load", builtInV2Bundle, StringComparison.Ordinal);
+        Assert.Contains("TrustedV2CompositionCompiler.Compile", builtInV2Bundle, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileCompiler", builtInV2Bundle, StringComparison.Ordinal);
         Assert.Contains("TryReadBaseCommonFwVersion", firmwareMetadata, StringComparison.Ordinal);
         Assert.Contains("FirmwareConfigMetadataReader.TryReadBackup", firmwareMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("FirmwareConfigMetadataReader.TryRead(", firmwareMetadata, StringComparison.Ordinal);
@@ -157,8 +161,8 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void BuiltInV2BundlePinsHaveOneOwner()
     {
-        string standardMerge = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs");
+        string bundle = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2Bundle.cs");
+        string registrations = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
         string generalMerge = ReadText(
             "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.V2.cs");
         string dpReplace = ReadText(
@@ -171,16 +175,15 @@ public sealed partial class RepositoryBoundaryTests
             return value.Length == 64 && value.All(static character => character is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
         }
 
-        Assert.Equal(17, standardMerge.Split('"').Count(IsSha256Literal));
-        Assert.Equal(13, CountOccurrences(standardMerge, "Bundle(\""));
-        Assert.Equal(13, CountOccurrences(generalMerge, "Bundle(\""));
-        Assert.Equal(2, CountOccurrences(dpReplace, "Bundle(\""));
-        Assert.Equal(1, CountOccurrences(ctrlRamCandidate, "Bundle(\""));
+        Assert.Equal(17, bundle.Split('"').Count(IsSha256Literal));
+        Assert.Equal(28, CountOccurrences(registrations, "BuiltInV2BundleRegistry.All[\""));
+        Assert.Equal(1, CountOccurrences(ctrlRamCandidate, "BuiltInV2BundleRegistry.All[\""));
         Assert.Equal(
             1,
             CountOccurrences(
-                standardMerge + generalMerge + dpReplace + ctrlRamCandidate,
+                bundle + registrations + generalMerge + dpReplace + ctrlRamCandidate,
                 "new BuiltInV2Bundle("));
+        Assert.DoesNotContain(registrations.Split('"'), IsSha256Literal);
         Assert.DoesNotContain(generalMerge.Split('"'), IsSha256Literal);
         Assert.DoesNotContain(dpReplace.Split('"'), IsSha256Literal);
         Assert.DoesNotContain(ctrlRamCandidate.Split('"'), IsSha256Literal);

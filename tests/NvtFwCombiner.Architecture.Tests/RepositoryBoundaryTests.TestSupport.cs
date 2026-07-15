@@ -6,13 +6,12 @@ public sealed partial class RepositoryBoundaryTests
 {
     private static string[] ReadStandardMergeIcIds()
     {
-        string source = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs");
+        string source = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
         return
         [
             .. StandardMergeProfileRegex().Matches(source)
                 .Cast<Match>()
                 .Select(match => $"NT{match.Groups["ic"].Value}")
-                .Distinct(StringComparer.Ordinal)
                 .Order(StringComparer.Ordinal),
         ];
     }

@@ -1,5 +1,3 @@
-using NvtFwCombiner.Application.Composition;
-
 namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
@@ -50,10 +48,4 @@ public static partial class WorkbenchCompositionService
             slotPaths);
         return true;
     }
-
-    private sealed record DpPerspectiveDpReplaceRunContext(
-        IcNumberSelection Selection,
-        string BasePath,
-        long Capacity,
-        IReadOnlyDictionary<string, string> SlotPaths);
 }

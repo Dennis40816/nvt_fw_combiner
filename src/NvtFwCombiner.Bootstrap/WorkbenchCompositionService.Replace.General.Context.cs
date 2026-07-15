@@ -107,12 +107,4 @@ public static partial class WorkbenchCompositionService
         failure = null;
         return true;
     }
-
-    private sealed record GeneralReplaceRunContext(
-        IcNumberSelection Selection,
-        IReadOnlyDictionary<string, string> ReportSlotPaths,
-        string BasePath,
-        long Capacity,
-        WorkbenchGeneralReplaceMappingInput[] SelectedMappings,
-        WorkbenchGeneralReplacePatchInput[] SelectedPatches);
 }
