@@ -1,6 +1,7 @@
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Profiles;
 
-namespace NvtFwCombiner.Profiles;
+namespace NvtFwCombiner.TestSupport;
 
 /// <summary>Small, non-production composition definitions shared by compiler and runner tests.</summary>
 public static class SyntheticCompositionProfiles

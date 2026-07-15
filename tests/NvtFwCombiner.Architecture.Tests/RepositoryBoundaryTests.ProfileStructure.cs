@@ -79,7 +79,12 @@ public sealed partial class RepositoryBoundaryTests
             "NvtFwCombiner.Profiles",
             "BuiltInStandardMergeProfiles.DpPerspective.cs")));
 
-        string synthetic = ReadText("src/NvtFwCombiner.Profiles/SyntheticCompositionProfiles.cs");
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "SyntheticCompositionProfiles.cs")));
+        string synthetic = ReadText("tests/NvtFwCombiner.TestSupport/SyntheticCompositionProfiles.cs");
         string registration = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs");
         Assert.Contains("CreateStandardMerge", synthetic, StringComparison.Ordinal);
         Assert.Contains("BuiltInV2StandardMergeRegistration", registration, StringComparison.Ordinal);

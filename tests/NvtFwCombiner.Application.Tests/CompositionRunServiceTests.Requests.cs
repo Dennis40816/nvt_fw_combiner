@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Application.Tests;
 
