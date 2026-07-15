@@ -1,14 +1,8 @@
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Small badge shown on dense report evidence rows.</summary>
-public sealed class ReportLineBadgeViewModel
+public sealed class ReportLineBadgeViewModel(string text)
 {
-    /// <summary>Creates a badge.</summary>
-    public ReportLineBadgeViewModel(string text)
-    {
-        Text = text ?? string.Empty;
-    }
-
     /// <summary>Badge text.</summary>
-    public string Text { get; }
+    public string Text { get; } = text ?? string.Empty;
 }

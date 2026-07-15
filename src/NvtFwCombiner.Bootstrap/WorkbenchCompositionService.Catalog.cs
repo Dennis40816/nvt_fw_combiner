@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -100,23 +99,6 @@ public static partial class WorkbenchCompositionService
             "external-tools/legacy-combiner/1.13.0/manifest.json");
     }
 
-    internal static WorkbenchProfileSummary CreateProfileSummary(CompositionProfileDefinition profile)
-    {
-        ArgumentNullException.ThrowIfNull(profile);
-        ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
-        return compile.CompiledComposition is not { } composition
-            ? new WorkbenchProfileSummary(
-                profile.ProfileId,
-                profile.IcId,
-                profile.CompositionKind,
-                [],
-                profile.DefaultOutputFileName,
-                null,
-                CompileSucceeded: false,
-                Array.AsReadOnly(compile.Issues.Select(static issue => issue.Code).ToArray()))
-            : CreateProfileSummary(composition);
-    }
-
     private static ReadOnlyCollection<WorkbenchProfileSummary> CreateStandardMergeProfileSummaries()
     {
         WorkbenchProfileSummary[] summaries =
@@ -133,7 +115,6 @@ public static partial class WorkbenchCompositionService
     {
         WorkbenchProfileSummary[] summaries =
         [
-            .. BuiltInReplaceProfiles.All.Select(CreateProfileSummary),
             .. s_builtInV2DpReplaceByIc.Value.Values.Select(static registration => registration.CreateProfileSummary()),
         ];
         return Array.AsReadOnly(

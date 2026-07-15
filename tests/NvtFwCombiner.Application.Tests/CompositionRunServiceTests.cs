@@ -122,7 +122,7 @@ public sealed partial class CompositionRunServiceTests
     [Fact]
     public async Task MissingStandardMergeBindingFailsClosed()
     {
-        CompositionProfileDefinition profile = SyntheticCompositionProfiles.CreateStandardMerge();
+        CompositionProfileDefinition profile = SyntheticStandardMergeProfile.Create();
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         var reader = new FakeArtifactReader(new Dictionary<string, byte[]>
         {
@@ -327,7 +327,7 @@ public sealed partial class CompositionRunServiceTests
     [Fact]
     public void ReplaceRunRequestRequiresIcNumberSelection()
     {
-        CompositionProfileDefinition profile = BuiltInReplaceProfiles.SyntheticDpReplace;
+        CompositionProfileDefinition profile = SyntheticReplaceProfiles.Dp;
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
 
         ArgumentException exception = Assert.Throws<ArgumentException>(() => new CompositionRunRequest(

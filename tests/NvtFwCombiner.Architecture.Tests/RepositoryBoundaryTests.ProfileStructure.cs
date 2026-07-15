@@ -4,21 +4,30 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
-    /// <summary>Verifies legacy built-in Replace profiles contain only synthetic test contracts.</summary>
+    /// <summary>Verifies synthetic Replace definitions cannot re-enter production profile catalogs.</summary>
     [Fact]
-    public void BuiltInReplaceProfileConcernsStaySplit()
+    public void SyntheticReplaceProfilesStayTestOnly()
     {
-        string root = ReadText("src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.cs");
-        string synthetic = ReadText("src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.Synthetic.cs");
+        string synthetic = ReadText("tests/NvtFwCombiner.TestSupport/SyntheticReplaceProfiles.cs");
         string v2Registration = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.BuiltInV2.cs");
 
-        Assert.Contains("public static partial class BuiltInReplaceProfiles", root, StringComparison.Ordinal);
-        Assert.Contains("public static IReadOnlyList<CompositionProfileDefinition> All", root, StringComparison.Ordinal);
-        Assert.DoesNotContain("SyntheticIc", root, StringComparison.Ordinal);
-        Assert.DoesNotContain("DpPerspective", root, StringComparison.Ordinal);
-        Assert.Contains("SyntheticDpReplace", synthetic, StringComparison.Ordinal);
-        Assert.Contains("SyntheticCtrlRamReplace", synthetic, StringComparison.Ordinal);
-        Assert.Contains("SyntheticGeneralReplace", synthetic, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "BuiltInReplaceProfiles.cs")));
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "BuiltInReplaceProfiles.Synthetic.cs")));
+        Assert.DoesNotContain("synthetic-dp-replace", ReadProfileSources(), StringComparison.Ordinal);
+        Assert.DoesNotContain("synthetic-ctrlram-replace", ReadProfileSources(), StringComparison.Ordinal);
+        Assert.DoesNotContain("synthetic-general-replace", ReadProfileSources(), StringComparison.Ordinal);
+        Assert.Contains("public static class SyntheticReplaceProfiles", synthetic, StringComparison.Ordinal);
+        Assert.Contains("CompositionProfileDefinition Dp", synthetic, StringComparison.Ordinal);
+        Assert.Contains("CompositionProfileDefinition CtrlRam", synthetic, StringComparison.Ordinal);
+        Assert.Contains("CompositionProfileDefinition General", synthetic, StringComparison.Ordinal);
         Assert.DoesNotContain("DpPerspectiveCatalog", synthetic, StringComparison.Ordinal);
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
@@ -79,9 +88,14 @@ public sealed partial class RepositoryBoundaryTests
             "NvtFwCombiner.Profiles",
             "BuiltInStandardMergeProfiles.DpPerspective.cs")));
 
-        string synthetic = ReadText("src/NvtFwCombiner.Profiles/SyntheticCompositionProfiles.cs");
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "SyntheticCompositionProfiles.cs")));
+        string synthetic = ReadText("tests/NvtFwCombiner.TestSupport/SyntheticStandardMergeProfile.cs");
         string registration = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs");
-        Assert.Contains("CreateStandardMerge", synthetic, StringComparison.Ordinal);
+        Assert.Contains("SyntheticStandardMergeProfile", synthetic, StringComparison.Ordinal);
         Assert.Contains("BuiltInV2StandardMergeRegistration", registration, StringComparison.Ordinal);
     }
 
@@ -141,8 +155,8 @@ public sealed partial class RepositoryBoundaryTests
                     StringComparer.Ordinal))
             {
                 Assert.Equal(
-                    "ab3bed384c5d78590ad6a87ee23c12f23a1ea4a1bdc6001273f254b6e5f3547f",
-                    Assert.Single(bundle.Elements("CompositionProfileSchemaHash")).Value);
+                    "composition-profile-v2.5.schema.json",
+                    Assert.Single(bundle.Elements("CompositionProfileSchemaFile")).Value);
             }
             else if (string.Equals(
                          "nt51926-ctrlram-replace-candidate",
@@ -150,8 +164,8 @@ public sealed partial class RepositoryBoundaryTests
                          StringComparison.Ordinal))
             {
                 Assert.Equal(
-                    "61abe3f9eaa9d1821067788d08014868a81f42a01bd1eb75406aabb9c56df8a3",
-                    Assert.Single(bundle.Elements("CompositionProfileSchemaHash")).Value);
+                    "composition-profile-v2.7.schema.json",
+                    Assert.Single(bundle.Elements("CompositionProfileSchemaFile")).Value);
             }
             else
             {
@@ -169,18 +183,22 @@ public sealed partial class RepositoryBoundaryTests
             project,
             StringComparison.Ordinal);
         Assert.Contains(
-            "<DefaultCompositionProfileSchemaHash>1af166d37379329cc7a298ea24637a665b183f286e5a2323d4ed014e893dc9f0</DefaultCompositionProfileSchemaHash>",
+            "<DefaultCompositionProfileSchemaFile>composition-profile-v2.schema.json</DefaultCompositionProfileSchemaFile>",
             project,
             StringComparison.Ordinal);
         Assert.Equal(
-            "$(DefaultCompositionProfileSchemaHash)",
+            "$(DefaultCompositionProfileSchemaFile)",
             Assert.Single(document.Descendants("ItemDefinitionGroup")
                 .Descendants("BuiltInProfileBundle"))
-                .Element("CompositionProfileSchemaHash")?.Value);
+                .Element("CompositionProfileSchemaFile")?.Value);
         Assert.Contains(
-            "$(ProfileSchemaSourceRoot)\\%(BuiltInProfileBundle.CompositionProfileSchemaHash)\\composition-profile-v2.schema.json",
+            "$(ProfileContractRoot)\\%(BuiltInProfileBundle.CompositionProfileSchemaFile)",
             project,
             StringComparison.Ordinal);
+        Assert.DoesNotContain("ProfileSchemaSourceRoot", project, StringComparison.Ordinal);
+        string retiredSchemaSource = Path.Combine(Root.FullName, "profiles", "schema-source");
+        Assert.False(Directory.Exists(retiredSchemaSource) &&
+            Directory.EnumerateFiles(retiredSchemaSource, "*", SearchOption.AllDirectories).Any());
         Assert.DoesNotContain("<SourceRoot>", project, StringComparison.Ordinal);
         Assert.DoesNotContain("**\\profile-bundle.json", project, StringComparison.Ordinal);
     }

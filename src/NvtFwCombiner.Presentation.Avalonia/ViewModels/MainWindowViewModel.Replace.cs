@@ -54,7 +54,7 @@ public sealed partial class MainWindowViewModel
         try
         {
             cancellationSource = BeginRun();
-            WorkbenchRunResult result = await UiCompositionRunner.RunReplaceAsync(
+            WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
                 SelectedIc,
                 SelectedNumber,
                 SelectedReplaceMode,

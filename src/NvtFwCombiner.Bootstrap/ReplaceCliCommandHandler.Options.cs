@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -84,42 +83,6 @@ internal static partial class ReplaceCliCommandHandler
 
         error.WriteLine($"error: {optionName} is required");
         return false;
-    }
-
-    private static bool RequireLong(
-        ParsedOptions options,
-        string optionName,
-        TextWriter error,
-        out long value)
-    {
-        value = 0;
-        if (!RequireOption(options, optionName, error, out string? text))
-        {
-            return false;
-        }
-
-        string trimmed = text.Trim();
-        bool parsed = trimmed.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
-            ? long.TryParse(
-                trimmed[2..],
-                NumberStyles.HexNumber,
-                CultureInfo.InvariantCulture,
-                out value)
-            : long.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
-        if (parsed && value >= 0)
-        {
-            return true;
-        }
-
-        error.WriteLine($"error: {optionName} must be a non-negative integer");
-        return false;
-    }
-
-    private static string CreateRunId(string command, string action)
-    {
-        return string.Create(
-            CultureInfo.InvariantCulture,
-            $"cli-{command}-{action}-{DateTimeOffset.UtcNow:yyyyMMddHHmmssfff}-{Guid.NewGuid():N}");
     }
 
     private sealed record ParsedOptions(

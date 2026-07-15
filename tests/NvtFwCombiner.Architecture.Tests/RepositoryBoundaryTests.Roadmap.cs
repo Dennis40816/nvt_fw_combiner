@@ -58,7 +58,7 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Contains("## Update rule", reference, StringComparison.Ordinal);
         Assert.Contains("WorkbenchCompositionService.StandardMerge.BuiltInV2.cs", reference, StringComparison.Ordinal);
-        Assert.Contains("BuiltInReplaceProfiles*.cs", reference, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.Replace.Dp.BuiltInV2.cs", reference, StringComparison.Ordinal);
         Assert.Contains("explicit production Standard Merge registration list", reference, StringComparison.Ordinal);
         Assert.Contains("IcWorkflowFlowchartReferenceCoversBuiltInIcLists", reference, StringComparison.Ordinal);
         Assert.Contains("NT51928 NB is not covered", reference, StringComparison.Ordinal);

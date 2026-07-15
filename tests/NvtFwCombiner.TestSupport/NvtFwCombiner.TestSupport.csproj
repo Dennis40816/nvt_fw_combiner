@@ -5,4 +5,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\NvtFwCombiner.Application\NvtFwCombiner.Application.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="SyntheticReplaceProfiles.cs" />
+    <Compile Remove="SyntheticStandardMergeProfile.cs" />
+  </ItemGroup>
 </Project>

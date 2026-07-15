@@ -1,49 +1,10 @@
 using System.Text.Json;
-using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class ReplaceCliCommandTests
 {
-    /// <summary>Verifies CtrlRAM Replace preview reports truncation warnings while succeeding.</summary>
-    [Fact]
-    public async Task CtrlRamReplacePreviewReportsOversizedInputTruncation()
-    {
-        using var workspace = TempWorkspace.Create();
-        string reference = workspace.Write("reference.bin", [0, 0, 0, 0, 0, 0, 0, 0]);
-        string ctrlram = workspace.Write("ctrlram.bin", [0xAA, 0xBB, 0xCC, 0xDD]);
-        string report = workspace.PathFor("ctrlram-warning-report.json");
-
-        CliRunResult result = await RunCliAsync([
-            "ctrlram-replace",
-            "preview",
-            "--profile",
-            "synthetic-ctrlram-replace",
-            "--ic-family",
-            "NT51",
-            "--ic-num",
-            "932",
-            "--base",
-            reference,
-            "--ctrlram",
-            ctrlram,
-            "--report",
-            report,
-        ]);
-
-        Assert.Equal(0, result.ExitCode);
-        Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
-        Assert.Contains("replace-ctrlram", result.Output, StringComparison.Ordinal);
-        Assert.Contains(CompositionIssueCodes.InputAddressSpaceTruncated, result.Error, StringComparison.Ordinal);
-        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(
-            report,
-            TestContext.Current.CancellationToken));
-        JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
-        Assert.Equal(CompositionIssueCodes.InputAddressSpaceTruncated, issue.GetProperty("Code").GetString());
-        Assert.Equal("warning", issue.GetProperty("Severity").GetString());
-    }
-
     /// <summary>Verifies real IC CtrlRAM Replace accepts multiple slot-specific replacement inputs in one CLI run.</summary>
     [Fact]
     public async Task CtrlRamReplacePreviewAcceptsRepeatedWorkbenchSlotInputs()

@@ -1,40 +1,29 @@
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>One independently numbered postbuild invocation projected from runtime process evidence.</summary>
-public sealed class ReportPostbuildInvocationViewModel
+public sealed class ReportPostbuildInvocationViewModel(
+    string number,
+    string title,
+    string operationTitle,
+    string status,
+    string argumentListEvidence,
+    string workingDirectoryDetail)
 {
-    /// <summary>Creates one independently reviewable postbuild invocation.</summary>
-    public ReportPostbuildInvocationViewModel(
-        string number,
-        string title,
-        string operationTitle,
-        string status,
-        string argumentListEvidence,
-        string workingDirectoryDetail)
-    {
-        Number = number ?? string.Empty;
-        Title = title ?? string.Empty;
-        OperationTitle = operationTitle ?? string.Empty;
-        Status = status ?? string.Empty;
-        ArgumentListEvidence = argumentListEvidence ?? string.Empty;
-        WorkingDirectoryDetail = workingDirectoryDetail ?? string.Empty;
-    }
-
     /// <summary>Stable display number within the originating operation, such as <c>300.01</c>.</summary>
-    public string Number { get; }
+    public string Number { get; } = number ?? string.Empty;
 
     /// <summary>Invocation kind, either a completed runtime call or a declared fallback plan.</summary>
-    public string Title { get; }
+    public string Title { get; } = title ?? string.Empty;
 
     /// <summary>Logical report operation that produced this invocation.</summary>
-    public string OperationTitle { get; }
+    public string OperationTitle { get; } = operationTitle ?? string.Empty;
 
     /// <summary>Outcome status inherited from the originating operation.</summary>
-    public string Status { get; }
+    public string Status { get; } = status ?? string.Empty;
 
     /// <summary>Executable and expanded argv evidence.</summary>
-    public string ArgumentListEvidence { get; }
+    public string ArgumentListEvidence { get; } = argumentListEvidence ?? string.Empty;
 
     /// <summary>Working-directory evidence or the declared-plan fallback detail.</summary>
-    public string WorkingDirectoryDetail { get; }
+    public string WorkingDirectoryDetail { get; } = workingDirectoryDetail ?? string.Empty;
 }

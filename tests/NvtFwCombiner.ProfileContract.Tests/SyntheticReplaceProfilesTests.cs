@@ -1,27 +1,17 @@
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
-/// <summary>Tests built-in synthetic Replace profiles used by CLI and UI wiring.</summary>
-public sealed class BuiltInReplaceProfilesTests
+/// <summary>Tests synthetic Replace definitions without exposing them from production catalogs.</summary>
+public sealed class SyntheticReplaceProfilesTests
 {
-    /// <summary>Verifies the built-in Replace catalog exposes the approved three-way taxonomy.</summary>
-    [Fact]
-    public void BuiltInReplaceProfilesExposeThreeWayTaxonomy()
-    {
-        Assert.Equal(
-            ["dp-replace", "ctrlram-replace", "general-replace"],
-            BuiltInReplaceProfiles.All
-                .Select(profile => profile.ExperienceId)
-                .Distinct(StringComparer.Ordinal));
-    }
-
-    /// <summary>Verifies fixed DP Replace compiles with separate DP and LD payloads.</summary>
+    /// <inheritdoc/>
     [Fact]
     public void SyntheticDpReplaceCompiles()
     {
-        CompositionProfileDefinition profile = BuiltInReplaceProfiles.SyntheticDpReplace;
+        CompositionProfileDefinition profile = SyntheticReplaceProfiles.Dp;
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
 
@@ -33,11 +23,11 @@ public sealed class BuiltInReplaceProfilesTests
         Assert.Contains(profile.Regions, region => region.RegionId == "ld" && region.ClassificationTags.Contains("ld", StringComparer.Ordinal));
     }
 
-    /// <summary>Verifies fixed CtrlRAM Replace compiles with oversized-input truncation policy.</summary>
+    /// <inheritdoc/>
     [Fact]
     public void SyntheticCtrlRamReplaceCompiles()
     {
-        CompositionProfileDefinition profile = BuiltInReplaceProfiles.SyntheticCtrlRamReplace;
+        CompositionProfileDefinition profile = SyntheticReplaceProfiles.CtrlRam;
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
 
@@ -52,11 +42,11 @@ public sealed class BuiltInReplaceProfilesTests
             region => region.ClassificationTags.Contains("tp-ctrlram", StringComparer.Ordinal));
     }
 
-    /// <summary>Verifies General Replace compiles runtime explicit mappings into replace operations.</summary>
+    /// <inheritdoc/>
     [Fact]
     public void SyntheticGeneralReplaceCompilesExplicitMapping()
     {
-        CompositionProfileDefinition profile = BuiltInReplaceProfiles.SyntheticGeneralReplace;
+        CompositionProfileDefinition profile = SyntheticReplaceProfiles.General;
         var mapping = new ExplicitMapping(
             "replace-general",
             100,

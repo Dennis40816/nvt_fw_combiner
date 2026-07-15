@@ -65,11 +65,6 @@ public sealed partial class CompositionPlan
             .Select(addressSpace => addressSpace.AddressSpaceId)
             .Order(StringComparer.Ordinal)];
 
-    internal AddressSpace GetAddressSpace(string addressSpaceId)
-    {
-        return _addressSpacesById[addressSpaceId];
-    }
-
     internal bool TryGetAddressSpace(string addressSpaceId, out AddressSpace? addressSpace)
     {
         return _addressSpacesById.TryGetValue(addressSpaceId, out addressSpace);
