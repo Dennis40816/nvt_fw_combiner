@@ -23,8 +23,7 @@ public static partial class WorkbenchCompositionService
             build,
             CreateReplacePlanningOperations(icId, number, replaceMode),
             [new CompositionIssue(issueCode, issueMessage, replaceMode.ToLowerInvariant())],
-            GetReplaceDefaultOutputFileName(icId, replaceMode),
-            succeeded: false);
+            GetReplaceDefaultOutputFileName(icId, replaceMode));
     }
 
     private static IReadOnlyList<OperationRunSummary> CreateReplacePlanningOperations(

@@ -48,48 +48,46 @@ public static partial class WorkbenchCompositionService
 
         Dictionary<string, string> reportSlotPaths = CreateGeneralMergeReportSlotPaths(mappingInputs);
         string defaultOutputFileName = GetGeneralMergeDefaultOutputFileName(icId);
-        if (!s_generalMergeV2Candidates.TryGetValue(icId, out GeneralMergeV2CandidateRegistration? registration))
+        WorkbenchRunResult Blocked(
+            IReadOnlyList<CompositionIssue> issues,
+            IReadOnlyList<OperationRunSummary>? operations = null,
+            string profileId = GeneralMergeV2CandidateFallbackProfileId)
         {
-            return CreateCandidateReport(
+            return CreateGeneralMergeReportRunResult(
                 icId,
                 reportSlotPaths,
                 build,
-                [],
+                operations ?? [],
+                issues,
+                defaultOutputFileName,
+                profileId,
+                GeneralMergeV2CandidateProfileVersion);
+        }
+
+        if (!s_generalMergeV2Candidates.TryGetValue(icId, out GeneralMergeV2CandidateRegistration? registration))
+        {
+            return Blocked(
                 [new CompositionIssue(
                     GeneralMergeV2CandidateMemberNotAdmitted,
                     "The General Merge V2 candidate is currently admitted only for explicitly registered members.",
-                    icId)],
-                defaultOutputFileName,
-                succeeded: false);
+                    icId)]);
         }
 
         if (!TryParseGeneralMergeCapacity(outputLength, out long capacity, out CompositionIssue? capacityIssue))
         {
-            return CreateCandidateReport(
-                icId,
-                reportSlotPaths,
-                build,
-                [],
+            return Blocked(
                 [capacityIssue!],
-                defaultOutputFileName,
-                succeeded: false,
-                registration.ProfileId);
+                profileId: registration.ProfileId);
         }
 
         if (mappingInputs.Count == 0)
         {
-            return CreateCandidateReport(
-                icId,
-                reportSlotPaths,
-                build,
-                [],
+            return Blocked(
                 [new CompositionIssue(
                     WorkbenchIssueCodes.GeneralMergeMappingRequired,
                     "General Merge requires at least one explicit source-to-target mapping.",
                     IcWorkflowIds.GeneralMerge)],
-                defaultOutputFileName,
-                succeeded: false,
-                registration.ProfileId);
+                profileId: registration.ProfileId);
         }
 
         if (!TryCreateGeneralMergeMappings(
@@ -99,30 +97,20 @@ public static partial class WorkbenchCompositionService
                 out IReadOnlyList<InputArtifactBinding> mappingBindings,
                 out IReadOnlyList<CompositionIssue> mappingIssues))
         {
-            return CreateCandidateReport(
-                icId,
-                reportSlotPaths,
-                build,
-                CreateGeneralMergePlanningOperations(explicitMappings),
+            return Blocked(
                 mappingIssues,
-                defaultOutputFileName,
-                succeeded: false,
+                CreateGeneralMergePlanningOperations(explicitMappings),
                 registration.ProfileId);
         }
 
         if (requestAddressSpaces.Any(static addressSpace => addressSpace.Length > int.MaxValue))
         {
-            return CreateCandidateReport(
-                icId,
-                reportSlotPaths,
-                build,
-                CreateGeneralMergePlanningOperations(explicitMappings),
+            return Blocked(
                 [new CompositionIssue(
                     GeneralMergeV2CandidateInputLengthUnsupported,
                     "The General Merge V2 candidate accepts source inputs up to the supported in-memory composition size.",
                     "source")],
-                defaultOutputFileName,
-                succeeded: false,
+                CreateGeneralMergePlanningOperations(explicitMappings),
                 registration.ProfileId);
         }
 
@@ -151,30 +139,20 @@ public static partial class WorkbenchCompositionService
                     provenance: mapping.Provenance))));
         if (!compile.IsCompiled || compile.CompiledComposition is not { } composition)
         {
-            return CreateCandidateReport(
-                icId,
-                reportSlotPaths,
-                build,
-                CreateGeneralMergePlanningOperations(explicitMappings),
+            return Blocked(
                 NormalizeGeneralMergeV2Issues(compile.Issues),
-                defaultOutputFileName,
-                succeeded: false,
+                CreateGeneralMergePlanningOperations(explicitMappings),
                 registration.ProfileId);
         }
 
         if (!IsExpectedGeneralMergeV2Candidate(composition, registration))
         {
-            return CreateCandidateReport(
-                icId,
-                reportSlotPaths,
-                build,
-                CreateGeneralMergePlanningOperations(explicitMappings),
+            return Blocked(
                 [new CompositionIssue(
                     GeneralMergeV2CandidateCompilationUnexpected,
                     "The selected General Merge V2 artifact does not match the candidate admission contract.",
                     registration.ProfileId)],
-                defaultOutputFileName,
-                succeeded: false,
+                CreateGeneralMergePlanningOperations(explicitMappings),
                 registration.ProfileId);
         }
 
@@ -223,28 +201,6 @@ public static partial class WorkbenchCompositionService
                     ? new CompositionIssue(GeneralMergeLegacyPlanInvalid, issue.Message, issue.OperationId)
                     : issue),
         ];
-    }
-
-    private static WorkbenchRunResult CreateCandidateReport(
-        string icId,
-        IReadOnlyDictionary<string, string> slotPaths,
-        bool build,
-        IReadOnlyList<OperationRunSummary> operations,
-        IReadOnlyList<CompositionIssue> issues,
-        string outputFileName,
-        bool succeeded,
-        string profileId = GeneralMergeV2CandidateFallbackProfileId)
-    {
-        return CreateGeneralMergeReportRunResult(
-            icId,
-            slotPaths,
-            build,
-            operations,
-            issues,
-            outputFileName,
-            succeeded,
-            profileId,
-            GeneralMergeV2CandidateProfileVersion);
     }
 
     private sealed record GeneralMergeV2CandidateRegistration(
