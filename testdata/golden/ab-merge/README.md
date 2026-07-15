@@ -11,5 +11,9 @@ establish NT51951 behavior. The NT51950 BOE and Hiway fixtures prove full-byte
 parity between the uploaded Python reference and `Combiner.exe` 1.13.0 using
 `NT51950BASED_MERGE_AB_MODE CRC8 A.bin B.bin output.bin 0x40000`. The profile
 relocates only TPB DIFF before the tool; the tool writes TPB ILM, DLM, and
-header CRC in its private staging output. This does not expose AB Merge through
-UI or CLI, and firmware-owner review remains required before runtime exposure.
+header CRC in its private staging output. The Bootstrap regression invokes the
+immutable Python snapshot and the V2 + Combiner path from identical inputs,
+then compares complete output bytes. A separate synthetic NT51951 regression
+uses the same experiment with the `0x80000` placement; it is topology evidence
+only, not a direct owner golden. None of these tests expose AB Merge through UI
+or CLI, and firmware-owner review remains required before runtime exposure.

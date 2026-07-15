@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
 using NvtFwCombiner.Application.ExternalTools;
@@ -93,6 +94,15 @@ public sealed class AbMergeGoldenRegressionTests
         Dictionary<string, byte[]> inputs = ReadInputs(goldenCase.GetProperty("inputs"));
         byte[] expected = ReadFixture(goldenCase.GetProperty("expectedOutput"));
         byte[] originalTpB = [.. inputs["tp-b-input"]];
+        using var referenceWorkspace = TempWorkspace.Create($"nfc-{caseId}-python-reference");
+        byte[] pythonReferenceOutput = await RunPythonReferenceAsync(
+            referenceWorkspace,
+            "51950",
+            inputs["dp-ab-input"],
+            inputs["tp-a-input"],
+            inputs["tp-b-input"],
+            TestContext.Current.CancellationToken);
+        Assert.Equal(expected, pythonReferenceOutput);
         string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string stagingRoot = Path.Combine(Path.GetTempPath(), $"nfc-{caseId}-{Guid.NewGuid():N}");
         ExternalProcessorResult? externalResult = null;
@@ -142,6 +152,7 @@ public sealed class AbMergeGoldenRegressionTests
             Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
             Assert.Empty(result.Issues);
             Assert.Equal(expected, result.OutputBytes.ToArray());
+            Assert.Equal(pythonReferenceOutput, result.OutputBytes.ToArray());
             Assert.Equal(goldenCase.GetProperty("expectedOutput").GetProperty("sha256").GetString(), Hash(result.OutputBytes.Span));
             Assert.Equal(originalTpB, inputs["tp-b-input"]);
 
@@ -171,10 +182,10 @@ public sealed class AbMergeGoldenRegressionTests
     }
 
     /// <summary>
-    /// Verifies the compiled NT51951 candidate plan and Combiner produce the fixed synthetic Python-reference vector.
+    /// Verifies the compiled NT51951 candidate and Combiner match the immutable Python snapshot byte-for-byte.
     /// </summary>
     [Fact]
-    public async Task Nt51951CandidatePlanWithCombinerMatchesPythonReferenceVectorAsync()
+    public async Task Nt51951CandidatePlanWithCombinerMatchesPythonReferenceAsync()
     {
         if (!OperatingSystem.IsWindows())
         {
@@ -202,6 +213,15 @@ public sealed class AbMergeGoldenRegressionTests
         WriteHeaderPointers(tpB);
         BinaryPrimitives.WriteUInt32LittleEndian(tpA.AsSpan(0xA130, sizeof(uint)), 0x1F6CF3EC);
         byte[] originalTpB = [.. tpB];
+        using var referenceWorkspace = TempWorkspace.Create("nfc-nt51951-ab-python-reference");
+        byte[] pythonReferenceOutput = await RunPythonReferenceAsync(
+            referenceWorkspace,
+            "51951",
+            dp,
+            tpA,
+            tpB,
+            TestContext.Current.CancellationToken);
+        Assert.Equal(expectedSha256, Hash(pythonReferenceOutput));
 
         string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string stagingRoot = Path.Combine(Path.GetTempPath(), $"nfc-nt51951-ab-topology-{Guid.NewGuid():N}");
@@ -247,6 +267,7 @@ public sealed class AbMergeGoldenRegressionTests
             Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
             Assert.Empty(result.Issues);
             Assert.Equal(expectedSha256, Hash(result.OutputBytes.Span));
+            Assert.Equal(pythonReferenceOutput, result.OutputBytes.ToArray());
             Assert.Equal(originalTpB, tpB);
             ExternalProcessorResult toolResult = Assert.IsType<ExternalProcessorResult>(externalResult);
             Assert.Equal(
@@ -349,6 +370,88 @@ public sealed class AbMergeGoldenRegressionTests
             root.GetProperty("workingDirectoryPolicy").GetString()!,
             root.GetProperty("timeoutSeconds").GetInt32(),
             [.. root.GetProperty("allowedExtraOutputFiles").EnumerateArray().Select(static item => item.GetString()!)]);
+    }
+
+    private static async Task<byte[]> RunPythonReferenceAsync(
+        TempWorkspace workspace,
+        string icId,
+        byte[] dp,
+        byte[] tpA,
+        byte[] tpB,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(workspace);
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentNullException.ThrowIfNull(dp);
+        ArgumentNullException.ThrowIfNull(tpA);
+        ArgumentNullException.ThrowIfNull(tpB);
+
+        // This test-only process invokes the immutable reference snapshot; production never loads it.
+        string dpPath = workspace.Write("DP_AB/input.bin", dp);
+        string tpAPath = workspace.Write("TPA/input.bin", tpA);
+        string tpBPath = workspace.Write("TPB/input.bin", tpB);
+        string outputPath = workspace.PathFor("python-reference-output.bin");
+        string referenceRoot = RepositoryPaths.FromRepositoryRoot("refcode", "ab_code_combiner");
+        const string script = """
+            import pathlib
+            import sys
+
+            reference_root = pathlib.Path(sys.argv[1])
+            sys.path.insert(0, str(reference_root))
+
+            from combine import combine
+            from ic_config import IC_CONFIGS
+
+            dp = bytearray(pathlib.Path(sys.argv[2]).read_bytes())
+            tpa = bytearray(pathlib.Path(sys.argv[3]).read_bytes())
+            tpb = bytearray(pathlib.Path(sys.argv[4]).read_bytes())
+            output = combine(IC_CONFIGS[sys.argv[5]], dp, tpa, tpb, debug=0)
+            pathlib.Path(sys.argv[6]).write_bytes(output)
+            """;
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "python",
+            WorkingDirectory = workspace.Root,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+        startInfo.ArgumentList.Add("-c");
+        startInfo.ArgumentList.Add(script);
+        startInfo.ArgumentList.Add(referenceRoot);
+        startInfo.ArgumentList.Add(dpPath);
+        startInfo.ArgumentList.Add(tpAPath);
+        startInfo.ArgumentList.Add(tpBPath);
+        startInfo.ArgumentList.Add(icId);
+        startInfo.ArgumentList.Add(outputPath);
+
+        using Process process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException("Could not start the Python AB reference snapshot.");
+        Task<string> standardOutput = process.StandardOutput.ReadToEndAsync(cancellationToken);
+        Task<string> standardError = process.StandardError.ReadToEndAsync(cancellationToken);
+        try
+        {
+            await process.WaitForExitAsync(cancellationToken);
+        }
+        catch
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+            }
+
+            throw;
+        }
+
+        string output = await standardOutput;
+        string error = await standardError;
+        Assert.True(
+            process.ExitCode == 0,
+            $"Python AB reference failed for NT{icId}. Exit={process.ExitCode}{Environment.NewLine}" +
+            $"stdout:{Environment.NewLine}{output}{Environment.NewLine}" +
+            $"stderr:{Environment.NewLine}{error}");
+        Assert.True(File.Exists(outputPath), $"Python AB reference did not produce {outputPath}.");
+        return File.ReadAllBytes(outputPath);
     }
 
     private static byte[] CreatePattern(int length, int multiplier, int addend)
