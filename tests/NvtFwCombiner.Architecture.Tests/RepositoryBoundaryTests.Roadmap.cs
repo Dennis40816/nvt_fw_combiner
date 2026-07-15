@@ -58,6 +58,7 @@ public sealed partial class RepositoryBoundaryTests
         ];
 
         Assert.Equal(13, standardMergeIcIds.Length);
+        Assert.Equal(standardMergeIcIds.Length, standardMergeIcIds.Distinct(StringComparer.Ordinal).Count());
         Assert.Contains("## Update rule", reference, StringComparison.Ordinal);
         Assert.Contains("BuiltInV2RegistrationRegistry.cs", reference, StringComparison.Ordinal);
         Assert.Contains("BuiltInV2Bundle.cs", reference, StringComparison.Ordinal);

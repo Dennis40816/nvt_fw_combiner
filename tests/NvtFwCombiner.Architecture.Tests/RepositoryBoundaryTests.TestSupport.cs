@@ -12,7 +12,6 @@ public sealed partial class RepositoryBoundaryTests
             .. StandardMergeProfileRegex().Matches(source)
                 .Cast<Match>()
                 .Select(match => $"NT{match.Groups["ic"].Value}")
-                .Distinct(StringComparer.Ordinal)
                 .Order(StringComparer.Ordinal),
         ];
     }
