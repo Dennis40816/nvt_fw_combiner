@@ -12,8 +12,8 @@ Owner update 2026-06-30:
 | --- | --- | --- | --- | --- | --- |
 | NT51929 | uploaded AB combiner | None | Address relocation only; no CRC configured | fixed-`0x80000` V2 candidate relocates little-endian `u32` offsets `0x7164/0x7168/0x716C` by `+0x40000` in a cloned TPB buffer | Tracked fixture full-byte V2/reference parity: `c7e1e263...3d66abe2`; runtime exposure and firmware-owner promotion pending |
 | NT51932 | uploaded/reference AB combiner | None | Address relocation only; no CRC configured | fixed-`0x80000` V2 candidate relocates little-endian `u32` offsets `0x7164/0x7168/0x716C` by `+0x40000` in a cloned TPB buffer | Candidate profile evidence confirmed; independent product golden/owner promotion pending |
-| NT51950 | uploaded AB combiner | Verify existing CRC | Relocate, recalculate, write CRC | Reference result uses CRC-32/MPEG-2 over `[0xA100,0xA130)` and writes little-endian `u32` at `[0xA130,0xA134)`. Two tracked fixtures prove pre-Combiner staging and reference output deltas; the exact legacy Combiner `map.txt` sidecar has not been supplied. | Compilable staging candidate only; no legacy-Combiner equivalence, no runtime exposure, and firmware-owner promotion pending |
-| NT51951 | uploaded AB combiner config | Verify existing CRC | Relocate, recalculate, write CRC | same algorithm/ranges; relocation differs; exact legacy combiner version/tool binding still required | Needs golden output and tool binding |
+| NT51950 | uploaded AB combiner | Verify existing CRC | DIFF relocation, then Combiner recalculates and writes CRC | V2 copies full DP, builds immutable A/B banks, overlays TPA/TPB, and relocates only TPB DIFF by `+0x40000`. Combiner 1.13.0 `NT51950BASED_MERGE_AB_MODE CRC8 A.bin B.bin output.bin 0x40000` writes the remaining B-header ILM/DLM fields and CRC. Two owner-approved fixtures are full-byte equal to the uploaded Python reference and Combiner output. | Executable candidate only; no UI/CLI route and firmware-owner promotion pending |
+| NT51951 | uploaded AB combiner config | Verify existing CRC | DIFF relocation, then Combiner recalculates and writes CRC | A deterministic 1 MiB topology experiment confirms Python and `NT51950BASED_MERGE_AB_MODE CRC8 A.bin B.bin output.bin 0x80000` are exact byte-for-byte equal after pre-tool DIFF relocation. Direct NT51951 AB golden parity is still absent. | Needs direct golden input/output before promotion |
 | Other Standard-reference ICs | `gen_flash_bin_v2` | Unknown | Unknown/not applicable | no integrity rule established by current evidence | Must inventory |
 
 ## 2026-07-14 NT51950 AB private Combiner audit
@@ -22,28 +22,21 @@ The owner-approved tracked NT51950 AB fixtures contain BOE and Hiway cases.
 Their reference output SHA-256 values are respectively
 `D18DB8DC02AB4FF52CB17B4B3B3B90F99047C9D1ACD2A5C23627197CF32F8650` and
 `4A292CD9615C58079B8994AF8060AF92562EAA92A55BC24BACC5EC5234E23B30`.
-The direct Combiner invocation is `NT51950BASED_NORMAL_MODE` with its `CRC8`
-selector. `CRC8` is a legacy command selector, not a claim that the AB header
-result is an eight-bit CRC. The observed reference output differs from the raw
-staged TPB image at `0x4A102`, `0x4A112`, `0x4A122`, and
-`[0x4A130,0x4A134)`; the last range is the little-endian header CRC word. The
-profile declares the complete little-endian `u32` fields `[0x4A100,0x4A104)`,
-`[0x4A110,0x4A114)`, and `[0x4A120,0x4A124)` because a valid `+0x40000`
-relocation can carry into any byte of each field.
+The source-verified command is `NT51950BASED_MERGE_AB_MODE CRC8 A.bin B.bin
+output.bin 0x40000`; it does not consume `map.txt`. `CRC8` is a legacy command
+selector, not a claim that the AB header result is an eight-bit CRC. The V2 plan
+uses a checked little-endian `u32` scalar transform for TPB DIFF
+`[0x4A120,0x4A124)` before the tool runs. Combiner then changes only bytes within
+the complete ILM `[0x4A100,0x4A104)`, DLM `[0x4A110,0x4A114)`, and header CRC
+`[0x4A130,0x4A134)` fields. C# never calculates or writes the AB header CRC.
 
-The previous parity claim is withdrawn: invoking the committed Combiner 1.13.0
-(`ED6B58289CC780F73D36B831F5424CEF44AD93187BA7518D36DF6A77AD0C76BF`) with
-the available DP/TP inputs and an empty `map.txt` exits successfully but leaves
-the image unchanged (`8D8B841AA27C754956827E7B9320F2FB3CC5FE200D3DFF324703E496CA4B3F6E`).
-The exact map sidecar and a reproducible tool trace are therefore required before
-the profile can advance beyond `compilable`. C# must not recalculate or write the
-AB header CRC.
-
-This is direct NT51950 evidence only. It does not establish the NT51951
-topology, its `0x80000` TPB relocation, or an NT51951 Combiner binding. The
-isolated reproduction environment requires the legacy tool's exact `map.txt`;
-that sidecar and its source/provenance must be captured with the eventual
-owner-approved AB golden before the production profile is promoted.
+The committed Combiner 1.13.0
+(`ED6B58289CC780F73D36B831F5424CEF44AD93187BA7518D36DF6A77AD0C76BF`) now
+reproduces both owner-approved NT51950 outputs byte-for-byte after the V2 DIFF
+relocation. A separate deterministic 1 MiB topology experiment confirms the same
+Combiner command with `0x80000` produces the Python NT51951 configuration output
+exactly after DIFF relocation. The latter establishes command capability only; it
+does not establish NT51951 product golden parity or support.
 
 ## Replace processing evidence
 

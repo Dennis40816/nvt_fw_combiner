@@ -226,6 +226,142 @@ public sealed class ExternalCombinerProcessorTests
         Assert.Equal([0, 7, 0, 0], result.OutputBytes.ToArray());
     }
 
+    /// <summary>Verifies a profile-selected Combiner invocation overrides only the tool package default argv and output mode.</summary>
+    [Fact]
+    public async Task TransformUsesProfileSelectedInvocationForNamedArtifacts()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        FakeProcessRunner runner = new(startInfo =>
+        {
+            Assert.Equal(
+                [
+                    "NT51950BASED_MERGE_AB_MODE",
+                    "CRC8",
+                    Path.Combine(startInfo.WorkingDirectory, "artifact-a-bank.bin"),
+                    Path.Combine(startInfo.WorkingDirectory, "artifact-b-bank.bin"),
+                    Path.Combine(startInfo.WorkingDirectory, "output.bin"),
+                    "0x40000",
+                ],
+                startInfo.Arguments);
+            File.WriteAllBytes(Path.Combine(startInfo.WorkingDirectory, "output.bin"), [0, 7, 0, 0]);
+            return new ExternalProcessResult(0, false, string.Empty, string.Empty);
+        });
+        var invocation = new ExternalCombinerInvocationProfile(
+            "nt51950-ab",
+            "legacy-combiner-1.10",
+            "input-output-file",
+            [
+                "NT51950BASED_MERGE_AB_MODE",
+                "CRC8",
+                "{staging.artifact.a-bank}",
+                "{staging.artifact.b-bank}",
+                "{staging.outputBin}",
+                "0x40000",
+            ]);
+        ExternalCombinerProcessor processor = workspace.CreateProcessor(
+            sha256,
+            runner,
+            ["--package-default", "{staging.runDir}"],
+            [invocation]);
+        var request = new ExternalProcessorRequest(
+            "run-profile-invocation",
+            "nt51950-ab",
+            "legacy-combiner-1.10",
+            new byte[] { 0, 0, 0, 0 },
+            [new ByteRange(1, 1)],
+            stagedArtifacts:
+            [
+                new ExternalProcessorStagedArtifact("a-bank", new byte[] { 0xA1, 0xA2 }),
+                new ExternalProcessorStagedArtifact("b-bank", new byte[] { 0xB1, 0xB2 }),
+            ]);
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal([0, 7, 0, 0], result.OutputBytes.ToArray());
+        _ = Assert.Single(result.ExecutedCommands);
+    }
+
+    /// <summary>Verifies a profile-selected invocation cannot run with another tool binding.</summary>
+    [Fact]
+    public async Task TransformRejectsProfileSelectedInvocationWithMismatchedToolBinding()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        FakeProcessRunner runner = new(_ => throw new InvalidOperationException("runner should not run"));
+        var invocation = new ExternalCombinerInvocationProfile(
+            "nt51950-ab",
+            "other-tool-binding",
+            "input-output-file",
+            ["{staging.outputBin}"]);
+        ExternalCombinerProcessor processor = workspace.CreateProcessor(
+            sha256,
+            runner,
+            invocationProfiles: [invocation]);
+        var request = new ExternalProcessorRequest(
+            "run-profile-invocation-mismatch",
+            "nt51950-ab",
+            "legacy-combiner-1.10",
+            new byte[] { 0, 0, 0, 0 },
+            [new ByteRange(1, 1)]);
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("external-tool.invocation.binding-mismatch", issue.Code);
+        Assert.Equal(0, runner.RunCount);
+    }
+
+    /// <summary>Verifies an unrecognized profile-selected staging mode fails before process launch.</summary>
+    [Fact]
+    public async Task TransformRejectsProfileSelectedInvocationWithInvalidInputMode()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        FakeProcessRunner runner = new(_ => throw new InvalidOperationException("runner should not run"));
+        var invocation = new ExternalCombinerInvocationProfile(
+            "nt51950-ab",
+            "legacy-combiner-1.10",
+            "two-input-files",
+            ["{staging.outputBin}"]);
+        ExternalCombinerProcessor processor = workspace.CreateProcessor(
+            sha256,
+            runner,
+            invocationProfiles: [invocation]);
+        var request = new ExternalProcessorRequest(
+            "run-profile-invocation-invalid-mode",
+            "nt51950-ab",
+            "legacy-combiner-1.10",
+            new byte[] { 0, 0, 0, 0 },
+            [new ByteRange(1, 1)]);
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("external-tool.invocation.input-mode.invalid", issue.Code);
+        Assert.Equal(0, runner.RunCount);
+    }
+
+    /// <summary>Verifies the command authority cannot be mutated by a caller after construction.</summary>
+    [Fact]
+    public void ProfileSelectedInvocationArgumentsAreRuntimeImmutable()
+    {
+        var invocation = new ExternalCombinerInvocationProfile(
+            "nt51950-ab",
+            "legacy-combiner-1.10",
+            "input-output-file",
+            ["CRC8", "{staging.outputBin}"]);
+
+        var arguments = (IList<string>)invocation.ArgumentTemplate;
+
+        Assert.True(arguments.IsReadOnly);
+        _ = Assert.Throws<NotSupportedException>(() => arguments[0] = "CRC32");
+        Assert.Equal("CRC8", invocation.ArgumentTemplate[0]);
+    }
+
     /// <summary>Verifies the host rejects a Combiner that changes a named source artifact.</summary>
     [Fact]
     public async Task TransformRejectsModifiedNamedArtifact()
@@ -381,10 +517,16 @@ public sealed class ExternalCombinerProcessorTests
         internal ExternalCombinerProcessor CreateProcessor(
             string executableSha256,
             IExternalProcessRunner runner,
-            IReadOnlyList<string>? argumentTemplate = null)
+            IReadOnlyList<string>? argumentTemplate = null,
+            IEnumerable<ExternalCombinerInvocationProfile>? invocationProfiles = null)
         {
             ExternalCombinerToolRegistry registry = new([Manifest(executableSha256, argumentTemplate)]);
-            return new ExternalCombinerProcessor(registry, ToolRoot, StagingRoot, runner);
+            return new ExternalCombinerProcessor(
+                registry,
+                ToolRoot,
+                StagingRoot,
+                runner,
+                invocationProfiles ?? []);
         }
 
         public void Dispose()

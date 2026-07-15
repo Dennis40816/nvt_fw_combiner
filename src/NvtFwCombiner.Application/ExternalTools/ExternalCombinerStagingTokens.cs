@@ -28,6 +28,49 @@ public static class ExternalCombinerStagingTokens
         return token is WorkBin or OutputBin or RunDirectory || TryGetArtifactId(token, out _);
     }
 
+    /// <summary>Returns validation errors for a host-expanded command argument template.</summary>
+    public static IReadOnlyList<string> FindArgumentTemplateErrors(IEnumerable<string> arguments)
+    {
+        ArgumentNullException.ThrowIfNull(arguments);
+
+        var errors = new List<string>();
+        foreach (string argument in arguments)
+        {
+            if (string.IsNullOrWhiteSpace(argument))
+            {
+                errors.Add("ArgumentTemplate must not contain blank arguments.");
+                continue;
+            }
+
+            int searchIndex = 0;
+            while (true)
+            {
+                int openIndex = argument.IndexOf('{', searchIndex);
+                if (openIndex < 0)
+                {
+                    break;
+                }
+
+                int closeIndex = argument.IndexOf('}', openIndex);
+                if (closeIndex < 0)
+                {
+                    errors.Add($"Argument '{argument}' contains an unclosed token.");
+                    break;
+                }
+
+                string token = argument[openIndex..(closeIndex + 1)];
+                if (!IsSupported(token))
+                {
+                    errors.Add($"Argument '{argument}' contains unsupported token '{token}'.");
+                }
+
+                searchIndex = closeIndex + 1;
+            }
+        }
+
+        return errors;
+    }
+
     /// <summary>Parses one complete named-artifact staging token.</summary>
     public static bool TryGetArtifactId(string token, out string artifactId)
     {

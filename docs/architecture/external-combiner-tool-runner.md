@@ -14,7 +14,8 @@ Composition operation reaches run-external-processor
   -> host creates private staging directory
   -> host materializes current work/output image as work.bin
   -> host resolves combiner.exe from manifest and verifies SHA-256
-  -> host runs combiner.exe with approved argument template
+  -> host resolves a registered invocation profile when the processor selected one, otherwise the manifest default
+  -> host runs combiner.exe with the resulting approved argument template
   -> host reads modified work.bin or declared output file
   -> host normalizes known command-shortened work output back to original length when coverage is complete
   -> host independently computes byte diff
@@ -38,7 +39,7 @@ A profile must not declare an absolute executable path or user-selected temporar
 
 ## Tool manifest responsibility
 
-A tool manifest declares executable packaging and launch behavior:
+A tool manifest declares executable packaging and default launch behavior:
 
 - `toolBindingId`
 - `toolId`
@@ -49,6 +50,8 @@ A tool manifest declares executable packaging and launch behavior:
 - argument template
 - timeout
 - platform
+
+For a V2 `legacy-combiner-v1` stage with an `invocationProfileId`, a closed host-owned invocation registry supplies the stage-specific argument template and input mode. The registry entry must require the same tool binding as the stage and manifest. It is a fixed product contract, not a user command surface and not firmware profile JSON.
 
 See `docs/contracts/external-combiner-tool-manifest-v1.md`.
 

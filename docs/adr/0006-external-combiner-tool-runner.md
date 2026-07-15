@@ -26,7 +26,9 @@ A production profile must not contain an executable path. A profile may referenc
 }
 ```
 
-The exact tool path, executable file name, SHA-256, argument template, input/output mode, timeout, and platform are supplied by an external combiner tool manifest.
+The exact tool path, executable file name, SHA-256, timeout, and platform are supplied by an external combiner tool manifest. A manifest also declares the default argument template and input/output mode for invocations that do not select a registered invocation profile.
+
+When a V2 processor stage declares an `invocationProfileId`, the profile selects a closed, host-owned invocation contract by that id. That contract supplies the exact argument template and input/output mode for the stage, and must require the same `toolBindingId` as both the processor stage and resolved manifest. It can only use approved host staging tokens. It cannot contain an executable path, user path, shell fragment, or arbitrary runtime parameter. This allows one audited Combiner package to expose distinct, firmware-owner-approved commands without embedding command lines in firmware profile JSON.
 
 `toolVersion` is always a string. It must never be parsed as a floating-point number. `1.10` and `1.9` are exact version tokens, not numeric values.
 
@@ -57,7 +59,8 @@ The temporary firmware file is an implementation detail of the host. Profiles sh
 `composition-profile-v1` keeps its existing adapter shape only for compatibility migration.
 `composition-profile-v2` replaces arbitrary `processorInvocation.parameters` with a closed
 `legacy-combiner-v1` stage. The stage references a trusted tool binding and registered invocation
-profile; executable paths and argument templates remain infrastructure manifest data.
+profile. The V2 profile itself never carries executable paths or command arguments; the registered
+invocation contract is host-owned and must bind to the resolved manifest's exact tool binding.
 
 ```json
 {

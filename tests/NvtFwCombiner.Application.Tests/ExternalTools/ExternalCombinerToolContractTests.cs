@@ -47,6 +47,21 @@ public sealed class ExternalCombinerToolContractTests
             error => error.Contains("{staging.artifact.A-Bank}", StringComparison.Ordinal));
     }
 
+    /// <summary>Rejects unsupported or malformed tokens in a profile-selected command before an adapter can launch it.</summary>
+    [Theory]
+    [InlineData("{staging.hostPath}")]
+    [InlineData("{staging.outputBin")]
+    public void InvocationProfileRejectsInvalidHostToken(string token)
+    {
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => new ExternalCombinerInvocationProfile(
+            "processor-v1",
+            "legacy-combiner-1.13.0",
+            "input-output-file",
+            ["--input", token]));
+
+        Assert.Contains("invalid argument template", exception.Message, StringComparison.Ordinal);
+    }
+
     /// <summary>Rejects malformed named-artifact collections before their items are sorted for deterministic staging.</summary>
     [Fact]
     public void ExternalProcessorRequestRejectsNullArtifactEntry()

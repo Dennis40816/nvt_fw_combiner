@@ -5,7 +5,7 @@ This contract describes legacy external `combiner.exe` binaries used for CRC/hea
 The manifest is intentionally separate from composition profiles:
 
 - profiles declare firmware semantics, processor identity, authority, purpose, and allowed read/write ranges;
-- manifests declare executable packaging, version, hash, command shape, staging file convention, timeout, and platform.
+- manifests declare executable packaging, version, hash, default command shape, staging file convention, timeout, and platform.
 
 ## Required fields
 
@@ -38,6 +38,8 @@ The manifest is intentionally separate from composition profiles:
 - `input-output-file`: the combiner reads `{staging.workBin}` and writes `{staging.outputBin}`.
 
 The host verifies the selected output file length and diff before importing it.
+
+For a V2 `legacy-combiner-v1` processor that selects a registered invocation profile, that closed host-owned contract replaces the manifest default `argumentTemplate` and `inputMode`. It must require the same `toolBindingId` and may use only the tokens in this contract. The manifest continues to supply the executable package, SHA-256, timeout, platform, and permitted extra output files. Firmware profile JSON never contains command arguments.
 
 ## Allowed argument tokens
 

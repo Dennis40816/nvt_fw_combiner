@@ -58,7 +58,7 @@
       "caseId": "nt51950-ab-boe-d82t80",
       "ic": "51950",
       "profileId": "nt51950-ab-merge",
-      "profileVersion": "0.1.0",
+      "profileVersion": "0.1.1",
       "mapCapacity": 524288,
       "inputs": {
         "dp-ab-input": {
@@ -91,18 +91,18 @@
         "sha256": "d18db8dc02ab4ff52cb17b4b3b3b90f99047c9d1acd2a5c23627197cf32f8650"
       },
       "referenceParity": {
-        "status": "full-byte-match-to-uploaded-python-reference; pre-combiner-boundary-verified",
+        "status": "full-byte-match-to-uploaded-python-reference-and-legacy-combiner-1.13.0",
         "snapshot": "refcode/ab_code_combiner",
         "configuration": "51950",
         "observedOn": "2026-07-15"
       },
-      "promotion": "compilable only; exact legacy Combiner map.txt, command trace, and firmware-owner review remain required"
+      "promotion": "executable candidate only; full-byte Python/Combiner parity is tracked, but firmware-owner review remains required before runtime exposure"
     },
     {
       "caseId": "nt51950-ab-hiway-d82t80",
       "ic": "51950",
       "profileId": "nt51950-ab-merge",
-      "profileVersion": "0.1.0",
+      "profileVersion": "0.1.1",
       "mapCapacity": 524288,
       "inputs": {
         "dp-ab-input": {
@@ -135,12 +135,12 @@
         "sha256": "4a292cd9615c58079b8994af8060af92562eaa92a55bc24bacc5ec5234e23b30"
       },
       "referenceParity": {
-        "status": "full-byte-match-to-uploaded-python-reference; pre-combiner-boundary-verified",
+        "status": "full-byte-match-to-uploaded-python-reference-and-legacy-combiner-1.13.0",
         "snapshot": "refcode/ab_code_combiner",
         "configuration": "51950",
         "observedOn": "2026-07-15"
       },
-      "promotion": "compilable only; exact legacy Combiner map.txt, command trace, and firmware-owner review remain required"
+      "promotion": "executable candidate only; full-byte Python/Combiner parity is tracked, but firmware-owner review remains required before runtime exposure"
     }
   ]
 }

@@ -40,7 +40,8 @@ internal static class ExternalProcessorFactory
             registry,
             toolRoot,
             stagingRoot,
-            processRunner);
+            processRunner,
+            ExternalCombinerInvocationCatalog.All);
         return new ExternalProcessorRouter(
             legacyPostbuildProcessor,
             manifestProcessor,

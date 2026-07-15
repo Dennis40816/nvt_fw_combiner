@@ -1,30 +1,14 @@
 {
   "schemaVersion": "2.2",
   "profileId": "nt51950-ab-merge",
-  "profileVersion": "0.1.0",
+  "profileVersion": "0.1.1",
   "promotion": {
-    "stage": "compilable",
+    "stage": "executable-candidate",
     "blockers": [
-      {
-        "blockerId": "combiner-map-evidence",
-        "kind": "processor",
-        "reason": "The NT51950 Combiner command requires an exact owner-provided map.txt sidecar; the current empty-map staging path exits successfully without the required AB relocation or header writes.",
-        "evidenceRefs": [
-          "nt51950-ab-combiner-audit-2026-07-14"
-        ]
-      },
       {
         "blockerId": "firmware-owner-review",
         "kind": "human-review",
-        "reason": "Firmware owner must approve the NT51950 AB Combiner staging sequence and exact output mutations before runtime exposure.",
-        "evidenceRefs": [
-          "nt51950-ab-combiner-audit-2026-07-14"
-        ]
-      },
-      {
-        "blockerId": "production-golden-evidence",
-        "kind": "golden",
-        "reason": "The private NT51950 expected AB output is parity evidence, not an owner-approved product golden.",
+        "reason": "Firmware owner must approve the exact NT51950 AB Combiner staging sequence before runtime exposure.",
         "evidenceRefs": [
           "nt51950-ab-combiner-audit-2026-07-14"
         ]
@@ -158,6 +142,18 @@
       }
     },
     {
+      "spaceId": "tp-b-work",
+      "kind": "work-buffer",
+      "capacity": {
+        "kind": "fixed",
+        "bytes": 225280
+      },
+      "initializer": {
+        "kind": "clone",
+        "sourceSlotId": "tp-b-input"
+      }
+    },
+    {
       "spaceId": "output-image",
       "kind": "output-image",
       "capacity": {
@@ -237,7 +233,7 @@
     },
     {
       "viewId": "tp-b-code-source",
-      "spaceId": "tp-b-input",
+      "spaceId": "tp-b-work",
       "selector": {
         "kind": "space-range",
         "range": {
@@ -305,13 +301,14 @@
       }
     },
     {
-      "viewId": "b-header-diff",
-      "spaceId": "output-image",
+      "viewId": "tp-b-diff-work",
+      "spaceId": "tp-b-work",
       "selector": {
-        "kind": "map-region-slice",
-        "regionId": "b-tp-code",
-        "offset": 288,
-        "length": 4
+        "kind": "space-range",
+        "range": {
+          "start": 41248,
+          "length": 4
+        }
       }
     },
     {
@@ -386,10 +383,24 @@
       "targetViewId": "b-bank-work-image"
     },
     {
-      "operationId": "overlay-tpb-into-b-bank",
+      "operationId": "relocate-tpb-diff-for-b-bank",
       "sequence": 500,
+      "overlapPolicy": "reject",
+      "reason": "Relocate the cloned TPB difference address by the fixed B-bank offset before overlay and Combiner header CRC recalculation.",
+      "kind": "transform-scalar",
+      "sourceViewId": "tp-b-diff-work",
+      "targetViewId": "tp-b-diff-work",
+      "widthBytes": 4,
+      "byteOrder": "little",
+      "valueInterpretation": "unsigned",
+      "addend": 262144,
+      "overflowPolicy": "reject"
+    },
+    {
+      "operationId": "overlay-tpb-into-b-bank",
+      "sequence": 550,
       "overlapPolicy": "replace-existing",
-      "reason": "Overlay raw TPB code; Combiner owns the audited pointer and header CRC recalculation.",
+      "reason": "Overlay relocated TPB code into the B-bank artifact before Combiner header processing.",
       "kind": "copy-range",
       "sourceViewId": "tp-b-code-source",
       "targetViewId": "b-tp-code-work"
@@ -438,7 +449,6 @@
       "allowedWriteViewIds": [
         "b-header-ilm",
         "b-header-dlm",
-        "b-header-diff",
         "b-header-crc"
       ],
       "stagedSourceBindings": [],

@@ -34,7 +34,7 @@ public sealed class ExternalCombinerToolManifestValidator
         }
         else
         {
-            ValidateArgumentTemplate(manifest.ArgumentTemplate, errors);
+            errors.AddRange(ExternalCombinerStagingTokens.FindArgumentTemplateErrors(manifest.ArgumentTemplate));
         }
 
         if (manifest.AllowedExtraOutputFiles is null)
@@ -89,43 +89,6 @@ public sealed class ExternalCombinerToolManifestValidator
         if (string.IsNullOrWhiteSpace(value) || value.Length != 64 || value.Any(character => !Uri.IsHexDigit(character) || char.IsUpper(character)))
         {
             errors.Add("Sha256 must be 64 lowercase hexadecimal characters.");
-        }
-    }
-
-    private static void ValidateArgumentTemplate(IEnumerable<string> arguments, List<string> errors)
-    {
-        foreach (string argument in arguments)
-        {
-            if (string.IsNullOrWhiteSpace(argument))
-            {
-                errors.Add("ArgumentTemplate must not contain blank arguments.");
-                continue;
-            }
-
-            int searchIndex = 0;
-            while (true)
-            {
-                int openIndex = argument.IndexOf('{', searchIndex);
-                if (openIndex < 0)
-                {
-                    break;
-                }
-
-                int closeIndex = argument.IndexOf('}', openIndex);
-                if (closeIndex < 0)
-                {
-                    errors.Add($"Argument '{argument}' contains an unclosed token.");
-                    break;
-                }
-
-                string token = argument[openIndex..(closeIndex + 1)];
-                if (!ExternalCombinerStagingTokens.IsSupported(token))
-                {
-                    errors.Add($"Argument '{argument}' contains unsupported token '{token}'.");
-                }
-
-                searchIndex = closeIndex + 1;
-            }
         }
     }
 

@@ -80,6 +80,7 @@ public sealed partial class ExternalCombinerProcessor
 
     private static CompositionIssue? FindUnexpectedStagingFileIssue(
         string runDirectory,
+        string inputMode,
         ExternalCombinerToolManifest manifest,
         IEnumerable<string> stagedArtifactPaths)
     {
@@ -87,7 +88,7 @@ public sealed partial class ExternalCombinerProcessor
         {
             WorkFileName,
         };
-        if (string.Equals(manifest.InputMode, "input-output-file", StringComparison.Ordinal))
+        if (string.Equals(inputMode, "input-output-file", StringComparison.Ordinal))
         {
             _ = allowed.Add(OutputFileName);
         }
