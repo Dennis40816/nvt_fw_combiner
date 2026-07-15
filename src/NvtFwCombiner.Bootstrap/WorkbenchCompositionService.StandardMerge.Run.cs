@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 
@@ -21,7 +22,11 @@ public static partial class WorkbenchCompositionService
             throw new InvalidOperationException($"Standard Merge is not available for '{icId}'.");
         }
 
-        long? dpInputLength = GetExistingStandardMergeDpInputLength(slotPaths);
+        if (!TryGetStandardMergeDpInputLength(icId, slotPaths, out long? dpInputLength, out CompositionIssue? inputIssue))
+        {
+            throw new InvalidOperationException(FormatIssues([inputIssue]));
+        }
+
         if (!TryCompileStandardMerge(icId, dpInputLength, out CompiledComposition? compiledComposition, out IReadOnlyList<CompositionIssue> issues))
         {
             throw new InvalidOperationException(FormatIssues(issues));
@@ -47,12 +52,39 @@ public static partial class WorkbenchCompositionService
             cancellationToken).ConfigureAwait(false);
     }
 
-    private static long? GetExistingStandardMergeDpInputLength(IReadOnlyDictionary<string, string> slotPaths)
+    private static bool TryGetStandardMergeDpInputLength(
+        string icId,
+        IReadOnlyDictionary<string, string> slotPaths,
+        out long? dpInputLength,
+        [NotNullWhen(false)] out CompositionIssue? issue)
     {
-        return !slotPaths.TryGetValue(CompositionAddressSpaceIds.DpInput, out string? dpPath) ||
-            string.IsNullOrWhiteSpace(dpPath) ||
-            !File.Exists(dpPath)
-                ? null
-                : new FileInfo(dpPath).Length;
+        _ = slotPaths.TryGetValue(CompositionAddressSpaceIds.DpInput, out string? dpPath);
+        return TryGetStandardMergeDpInputLength(icId, dpPath, out dpInputLength, out issue);
+    }
+
+    internal static bool TryGetStandardMergeDpInputLength(
+        string icId,
+        string? dpPath,
+        out long? dpInputLength,
+        [NotNullWhen(false)] out CompositionIssue? issue)
+    {
+        dpInputLength = null;
+        issue = null;
+        if (!IsBuiltInV2StandardMergeMapCapacityPending(icId))
+        {
+            return true;
+        }
+
+        if (string.IsNullOrWhiteSpace(dpPath) || !File.Exists(dpPath))
+        {
+            issue = new CompositionIssue(
+                WorkbenchIssueCodes.InputArtifactReadFailed,
+                $"Selected DP BIN path does not exist for {icId} Standard Merge.",
+                CompositionAddressSpaceIds.DpInput);
+            return false;
+        }
+
+        dpInputLength = new FileInfo(dpPath).Length;
+        return true;
     }
 }

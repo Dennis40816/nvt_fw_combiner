@@ -74,7 +74,18 @@ public static partial class CliApplication
             return UsageError;
         }
 
-        long? dpInputLength = GetExistingStandardMergeDpInputLength(bindings);
+        string? dpPath = bindings.FirstOrDefault(binding =>
+            string.Equals(binding.AddressSpaceId, CompositionAddressSpaceIds.DpInput, StringComparison.Ordinal))?.ArtifactId;
+        if (!WorkbenchCompositionService.TryGetStandardMergeDpInputLength(
+                selectedProfile.IcId,
+                dpPath,
+                out long? dpInputLength,
+                out CompositionIssue? inputIssue))
+        {
+            await CliCompositionRunSupport.PrintIssuesAsync(error, [inputIssue]).ConfigureAwait(false);
+            return SoftwareError;
+        }
+
         if (!WorkbenchCompositionService.TryCompileStandardMerge(
                 selectedProfile.IcId,
                 dpInputLength,
@@ -186,15 +197,6 @@ public static partial class CliApplication
 
         bindings = items;
         return true;
-    }
-
-    private static long? GetExistingStandardMergeDpInputLength(IReadOnlyList<InputArtifactBinding> bindings)
-    {
-        InputArtifactBinding? dpBinding = bindings.FirstOrDefault(binding =>
-            string.Equals(binding.AddressSpaceId, CompositionAddressSpaceIds.DpInput, StringComparison.Ordinal));
-        return dpBinding is null || !File.Exists(dpBinding.ArtifactId)
-            ? null
-            : new FileInfo(dpBinding.ArtifactId).Length;
     }
 
     private static bool TryFindStandardMergeProfileSummary(

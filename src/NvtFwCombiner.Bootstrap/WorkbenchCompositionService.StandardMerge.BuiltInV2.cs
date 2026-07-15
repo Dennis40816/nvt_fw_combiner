@@ -14,28 +14,28 @@ public static partial class WorkbenchCompositionService
     private const string BuiltInV2CompilationFailed = "profile.v2.builtin-compilation-failed";
 
     private static readonly BuiltInV2Bundle s_nt51920V2Bundle = new(
-        "profiles\\built-in\\nt51920-standard-merge",
+        "nt51920-standard-merge",
         "3bb76d56656642af553ff012a619ca8fc38fb7cdabf8ac674e5433998357f9f2");
     private static readonly BuiltInV2Bundle s_nt51929FamilyV2Bundle = new(
-        "profiles\\built-in\\nt51929-standard-merge",
+        "nt51929-standard-merge",
         "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09");
     private static readonly BuiltInV2Bundle s_nt51923FamilyV2Bundle = new(
-        "profiles\\built-in\\nt51923-standard-merge",
+        "nt51923-standard-merge",
         "6bac75eb386ff08c3fa6970e54b3c1dca35722ddaeaf52b67068a127c4e85a96");
     private static readonly BuiltInV2Bundle s_nt51930V2Bundle = new(
-        "profiles\\built-in\\nt51930-standard-merge",
+        "nt51930-standard-merge",
         "b9ca3d66d8674d080b4e0c8563110dfd305b3df18746f5164e7ed45514e0714e");
     private static readonly BuiltInV2Bundle s_nt51931V2Bundle = new(
-        "profiles\\built-in\\nt51931-standard-merge",
+        "nt51931-standard-merge",
         "a7b3534afce6d2fe107363e41554668a71832f203168c81fa09e9f98a1a5815f");
     private static readonly BuiltInV2Bundle s_nt51927V2Bundle = new(
-        "profiles\\built-in\\nt51927-standard-merge",
+        "nt51927-standard-merge",
         "751f44c7dd790a826e9ab17747b933542c691125bdee8b975c9c764e4f2ef4b1");
     private static readonly BuiltInV2Bundle s_nt51928V2Bundle = new(
-        "profiles\\built-in\\nt51928-standard-merge",
+        "nt51928-standard-merge",
         "27de29151abd1305a8ebf6ba25118acbf59392efd362d362699310a5564ad5af");
     private static readonly BuiltInV2Bundle s_nt51950Nt51951V2Bundle = new(
-        "profiles\\built-in\\nt51950-nt51951-standard-merge",
+        "nt51950-nt51951-standard-merge",
         "65987f6b1e41feaca92e7b258bca282df9ae133f90db6877ba6b97c04d91f0f4");
     private static readonly ReadOnlyCollection<BuiltInV2StandardMergeRegistration> s_builtInV2StandardMergeRegistrations =
         Array.AsReadOnly(
@@ -177,11 +177,11 @@ public static partial class WorkbenchCompositionService
     {
         private readonly Lazy<TrustedProfileBundleCatalog> _catalog;
 
-        internal BuiltInV2Bundle(string relativeRoot, string contentHash)
+        internal BuiltInV2Bundle(string bundleDirectory, string contentHash)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(relativeRoot);
+            ArgumentException.ThrowIfNullOrWhiteSpace(bundleDirectory);
             ArgumentException.ThrowIfNullOrWhiteSpace(contentHash);
-            RelativeRoot = relativeRoot;
+            RelativeRoot = Path.Combine("profiles", "built-in", bundleDirectory);
             ContentHash = contentHash;
             _catalog = new Lazy<TrustedProfileBundleCatalog>(LoadCatalog);
         }

@@ -370,6 +370,57 @@ public sealed class StandardMergeCliCommandTests
         Assert.Contains("--tp is required for address space 'tp-input'", result.Error, StringComparison.Ordinal);
     }
 
+    /// <summary>Missing DP Perspective files report a stable input issue instead of an empty compilation failure.</summary>
+    [Theory]
+    [InlineData("51950")]
+    [InlineData("51951")]
+    public async Task StandardMergePreviewReportsMissingDpPerspectiveFile(string profileSelector)
+    {
+        using var workspace = TempWorkspace.Create();
+        string missingDpPath = workspace.PathFor("missing-dp.bin");
+        string tpPath = workspace.Write("tp.bin", new byte[0x30000]);
+
+        CliRunResult result = await RunCliAsync([
+            "standard-merge",
+            "preview",
+            "--profile",
+            profileSelector,
+            "--dp",
+            missingDpPath,
+            "--tp",
+            tpPath,
+        ]);
+
+        Assert.Equal(70, result.ExitCode);
+        Assert.Contains("input.artifact.read-failed [dp-input]", result.Error, StringComparison.Ordinal);
+        Assert.Contains("Selected DP BIN path does not exist", result.Error, StringComparison.Ordinal);
+    }
+
+    /// <summary>Workbench DP Perspective runs surface the same stable missing-input issue as the CLI.</summary>
+    [Theory]
+    [InlineData("NT51950")]
+    [InlineData("NT51951")]
+    public async Task WorkbenchStandardMergeReportsMissingDpPerspectiveFile(string icId)
+    {
+        using var workspace = TempWorkspace.Create();
+        string missingDpPath = workspace.PathFor("missing-dp.bin");
+        string tpPath = workspace.Write("tp.bin", new byte[0x30000]);
+
+        InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            WorkbenchCompositionService.RunStandardMergeAsync(
+                icId,
+                new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    ["dp-input"] = missingDpPath,
+                    ["tp-input"] = tpPath,
+                },
+                build: false,
+                TestContext.Current.CancellationToken).AsTask());
+
+        Assert.Contains("input.artifact.read-failed", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("Selected DP BIN path does not exist", exception.Message, StringComparison.Ordinal);
+    }
+
     /// <summary>Inputs outside the compiled profile summary remain rejected.</summary>
     [Fact]
     public async Task StandardMergePreviewRejectsUnusedInput()
