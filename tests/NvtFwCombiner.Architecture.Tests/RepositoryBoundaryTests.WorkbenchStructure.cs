@@ -99,7 +99,6 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("Nt51920V2", standardMergeCompilation, StringComparison.Ordinal);
         Assert.DoesNotContain("StandardMergeProfilesByIc", standardMerge, StringComparison.Ordinal);
         Assert.DoesNotContain("StandardMergeProfilesByIc", generalMergeProfile, StringComparison.Ordinal);
-        Assert.Contains("TryCompileStandardMerge", standardMerge, StringComparison.Ordinal);
         Assert.Contains("TryCompileStandardMerge", generalMergeProfile, StringComparison.Ordinal);
         Assert.Contains("RunGeneralMergeV2Async", generalMergeCandidate, StringComparison.Ordinal);
         Assert.Contains("CompileLogicalOutput", generalMergeCandidate, StringComparison.Ordinal);

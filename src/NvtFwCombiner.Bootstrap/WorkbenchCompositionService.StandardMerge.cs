@@ -1,5 +1,3 @@
-using NvtFwCombiner.Domain.Composition;
-
 namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
@@ -35,31 +33,5 @@ public static partial class WorkbenchCompositionService
         return TryGetBuiltInV2StandardMergeContainerPolicy(icId, out V2StandardMergeContainerPolicy? policy)
             ? $"TP paste range: {FormatDisplayRange(policy.TpOverlayRange)}; {FormatDisplayRange(policy.CustomerInfoRange)} remains from the DP image."
             : "Address ranges come from the built-in Standard Merge profile.";
-    }
-
-    /// <summary>Gets normal Standard Merge DP range-extraction size facts when the selected IC permits nonstandard source lengths.</summary>
-    public static bool TryGetStandardMergeDpInputLengthPolicy(
-        string icId,
-        out WorkbenchStandardMergeDpInputLengthPolicy policy)
-    {
-        policy = default!;
-        if (!TryCompileStandardMerge(icId, dpInputLength: null, out CompiledComposition? composition, out _))
-        {
-            return false;
-        }
-
-        AddressSpace? dpInput = composition.Plan.AddressSpaces.SingleOrDefault(space =>
-            string.Equals(space.AddressSpaceId, CompositionAddressSpaceIds.DpInput, StringComparison.Ordinal));
-        if (dpInput is null ||
-            dpInput.InputOversizePolicy != InputOversizePolicy.ExtractDeclaredRange ||
-            dpInput.ExpectedInputLengths.Count == 0)
-        {
-            return false;
-        }
-
-        policy = new WorkbenchStandardMergeDpInputLengthPolicy(
-            dpInput.Length,
-            dpInput.ExpectedInputLengths);
-        return true;
     }
 }
