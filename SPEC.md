@@ -1,8 +1,8 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`Profile-bundle consolidation milestone`
-> 文件版本：`0.9.2`
-> 基準日期：`2026-07-13`
+> 文件狀態：`0.9.7 integration milestone`
+> 文件版本：`0.9.7`
+> 基準日期：`2026-07-15`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
 > Repository：`Dennis40816/nvt_fw_combiner`
@@ -30,7 +30,7 @@
 
 ## 0.1 Current owner priority
 
-As of 2026-07-13, the canonical firmware-map/profile/compiler migration is anchored by `v0.9.1`; `0.9.2` consolidates the built-in profile bundles through content-addressed source schemas and closed-root materialization. Existing normal Merge and Replace behavior remains governed by its documented legacy comparison and golden evidence; this milestone does not promote IC support.
+As of 2026-07-15, the canonical firmware-map/profile/compiler migration is anchored by `v0.9.2`; `0.9.7` integrates the evidence-gated AB and CtrlRAM candidates, deterministic candidate intake, reviewed V2 convergence, release-package hardening, and audited UI token consolidation. Existing normal Merge and Replace behavior remains governed by its documented legacy comparison and golden evidence; this milestone does not promote IC support.
 
 - AB Code architecture and evidence intake are reactivated. Executable AB behavior remains a separate R3 phase and no profile is promoted without its exact ranges, relocation fields, integrity contract, golden output, and firmware-owner approval.
 - NT51919, NT51929, NT51932, NT51950, and NT51951 AB Merge must initialize from a full submitted DP_AB container before applying profile-declared TPA/TPB overlays. NT51919 may inherit the NT51929/NT51932 canonical AB facts only through owner-approved fact-scoped bindings and parity tests. This direction does not infer ranges, topology branches, CRC behavior, output sizes, or support promotion from Normal Merge.

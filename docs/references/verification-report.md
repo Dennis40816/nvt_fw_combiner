@@ -1,8 +1,20 @@
 # Repository Verification Report
 
-Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.2 profile-bundle consolidation milestone. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
+Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.7 cumulative integration candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
 
-Specification package version: `0.9.2`
+Specification package version: `0.9.7`
+
+## 0.9.7 integration candidate
+
+The 0.9.7 integration branch combines the reviewed 0.9.6 lineage with the
+fact-scoped AB evidence forward-port, compiled final-output validation and the
+non-routed NT51926 CtrlRAM V2 candidate, and the audited semantic UI token
+consolidation. Phase-local AB, Application, Domain, Bootstrap, Architecture,
+and UI smoke tests passed on 2026-07-15. The canonical full verification and
+release-package smoke results are recorded only after their final gates run.
+This candidate does not promote AB or CtrlRAM runtime support and does not
+replace the remaining firmware-owner, product-golden, signing, or clean-machine
+release evidence.
 
 ## 0.9.2 consolidation evidence
 
