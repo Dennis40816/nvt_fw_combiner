@@ -244,7 +244,7 @@ public sealed partial class CompositionRunServiceTests
 
     private static CompositionRunRequest CreateDpReplaceRequest(string icNumber)
     {
-        CompositionProfileDefinition profile = BuiltInReplaceProfiles.SyntheticDpReplace;
+        CompositionProfileDefinition profile = SyntheticReplaceProfiles.Dp;
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         return new CompositionRunRequest(
             "run-dp-replace",

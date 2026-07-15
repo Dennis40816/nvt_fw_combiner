@@ -6,42 +6,6 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class ReplaceCliCommandTests
 {
-    /// <summary>Verifies General Replace build writes the mapped output after internal preview approval.</summary>
-    [Fact]
-    public async Task GeneralReplaceBuildWritesMappedOutput()
-    {
-        using var workspace = TempWorkspace.Create();
-        string reference = workspace.Write("reference.bin", [0, 1, 2, 3, 4, 5, 6, 7]);
-        string input = workspace.Write("input.bin", [0xAA, 0xBB]);
-        string output = workspace.PathFor("out.bin");
-
-        CliRunResult result = await RunCliAsync([
-            "general-replace",
-            "build",
-            "--profile",
-            "synthetic-general-replace",
-            "--ic-num",
-            "51920",
-            "--base",
-            reference,
-            "--input",
-            input,
-            "--source-start",
-            "0",
-            "--target-start",
-            "0x2",
-            "--length",
-            "2",
-            "--output",
-            output,
-        ]);
-
-        Assert.Equal(0, result.ExitCode);
-        Assert.Contains("Committed:", result.Output, StringComparison.Ordinal);
-        byte[] bytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
-        Assert.Equal([0, 1, 0xAA, 0xBB, 4, 5, 6, 7], bytes);
-    }
-
     /// <summary>Verifies real IC General Replace CLI accepts repeated workbench mapping rows.</summary>
     [Fact]
     public async Task GeneralReplaceBuildAcceptsRepeatedWorkbenchMappings()
@@ -261,13 +225,13 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Contains("ui.general-replace.patch-hex-invalid", result.Error, StringComparison.Ordinal);
     }
 
-    /// <summary>Rejects fixed-profile range options instead of silently ignoring them on real IC runs.</summary>
+    /// <summary>Rejects retired fixed-profile range options at the workflow allowlist.</summary>
     [Theory]
     [InlineData("--input", "ignored.bin")]
     [InlineData("--source-start", "0")]
     [InlineData("--target-start", "0x100")]
     [InlineData("--length", "1")]
-    public async Task GeneralReplaceRealIcRejectsFixedProfileOptions(string option, string value)
+    public async Task GeneralReplaceRejectsRetiredFixedProfileOptions(string option, string value)
     {
         using var workspace = TempWorkspace.Create();
         string reference = workspace.Write("reference.bin", CreatePattern(0x40000, 0x66));
@@ -288,8 +252,7 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains("does not accept fixed-profile option", result.Error, StringComparison.Ordinal);
-        Assert.Contains(option, result.Error, StringComparison.Ordinal);
+        Assert.Contains($"unknown option '{option}'", result.Error, StringComparison.Ordinal);
     }
 
     /// <summary>Rejects General Replace-only mapping and patch options in other Replace command groups.</summary>

@@ -14,19 +14,4 @@ internal static class WorkbenchIcNumberSelections
                 : IcNumberInputMode.CascadeSelector;
         return new IcNumberSelection(mode, [number]);
     }
-
-    public static IcNumberSelection Single(string icNumber)
-    {
-        return new IcNumberSelection(IcNumberInputMode.SingleSelector, [icNumber]);
-    }
-
-    public static IcNumberSelection Numeric(string icNumber)
-    {
-        return new IcNumberSelection(IcNumberInputMode.NumericSelector, [icNumber]);
-    }
-
-    public static IcNumberSelection Cascade(string icFamily, string icNumber)
-    {
-        return new IcNumberSelection(IcNumberInputMode.CascadeSelector, [icFamily, icNumber]);
-    }
 }

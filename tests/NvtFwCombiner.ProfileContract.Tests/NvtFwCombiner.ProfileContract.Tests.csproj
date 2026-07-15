@@ -13,6 +13,8 @@
              Link="TrustedV2BundleTestDocuments.cs" />
     <Compile Include="..\NvtFwCombiner.TestSupport\RuntimeReferenceReplaceTestDocuments.cs"
              Link="RuntimeReferenceReplaceTestDocuments.cs" />
+    <Compile Include="..\NvtFwCombiner.TestSupport\SyntheticReplaceProfiles.cs"
+             Link="SyntheticReplaceProfiles.cs" />
     <Compile Include="..\NvtFwCombiner.TestSupport\SyntheticStandardMergeProfile.cs"
              Link="SyntheticStandardMergeProfile.cs" />
   </ItemGroup>

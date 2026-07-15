@@ -40,7 +40,7 @@ public sealed class CompositionProfileCompilerArtifactTests
         CompiledIcNumberPolicy expectedPolicy)
     {
         CompositionProfileDefinition profile = CloneProfile(
-            BuiltInReplaceProfiles.SyntheticGeneralReplace,
+            SyntheticReplaceProfiles.General,
             inputMode);
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
@@ -57,10 +57,10 @@ public sealed class CompositionProfileCompilerArtifactTests
             SyntheticStandardMergeProfile.Create(),
             IcNumberInputMode.SingleSelector);
         CompositionProfileDefinition replaceWithoutSelector = CloneProfile(
-            BuiltInReplaceProfiles.SyntheticGeneralReplace,
+            SyntheticReplaceProfiles.General,
             inputMode: null);
         CompositionProfileDefinition replaceWithUnknownSelector = CloneProfile(
-            BuiltInReplaceProfiles.SyntheticGeneralReplace,
+            SyntheticReplaceProfiles.General,
             (IcNumberInputMode)int.MaxValue);
 
         AssertFailure(

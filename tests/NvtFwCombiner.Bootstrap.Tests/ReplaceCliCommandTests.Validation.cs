@@ -9,24 +9,21 @@ public sealed partial class ReplaceCliCommandTests
     public async Task DpReplaceBuildRejectsOutputPathThatAliasesInput()
     {
         using var workspace = TempWorkspace.Create();
-        byte[] referenceBytes = [0, 0, 0, 0, 0, 0, 0, 0];
+        byte[] referenceBytes = new byte[0x40000];
         string reference = workspace.Write("reference.bin", referenceBytes);
-        string dp = workspace.Write("dp.bin", [0x11, 0x22]);
-        string ld = workspace.Write("ld.bin", [0x33]);
+        string dp = workspace.Write("dp.bin", new byte[0x40000]);
 
         CliRunResult result = await RunCliAsync([
             "dp-replace",
             "build",
             "--profile",
-            "synthetic-dp-replace",
+            "NT51950",
             "--ic-num",
-            "51920",
+            "single",
             "--base",
             reference,
             "--dp",
             dp,
-            "--ld",
-            ld,
             "--output",
             reference,
             "--overwrite",
@@ -42,24 +39,21 @@ public sealed partial class ReplaceCliCommandTests
     public async Task DpReplaceBuildRejectsReportPathThatAliasesOutput()
     {
         using var workspace = TempWorkspace.Create();
-        string reference = workspace.Write("reference.bin", [0, 0, 0, 0, 0, 0, 0, 0]);
-        string dp = workspace.Write("dp.bin", [0x11, 0x22]);
-        string ld = workspace.Write("ld.bin", [0x33]);
+        string reference = workspace.Write("reference.bin", new byte[0x40000]);
+        string dp = workspace.Write("dp.bin", new byte[0x40000]);
         string output = workspace.PathFor("out.bin");
 
         CliRunResult result = await RunCliAsync([
             "dp-replace",
             "build",
             "--profile",
-            "synthetic-dp-replace",
+            "NT51950",
             "--ic-num",
-            "51920",
+            "single",
             "--base",
             reference,
             "--dp",
             dp,
-            "--ld",
-            ld,
             "--output",
             output,
             "--report",
@@ -76,21 +70,18 @@ public sealed partial class ReplaceCliCommandTests
     public async Task ReplacePreviewRejectsMissingIcNumber()
     {
         using var workspace = TempWorkspace.Create();
-        string reference = workspace.Write("reference.bin", [0, 0, 0, 0, 0, 0, 0, 0]);
-        string dp = workspace.Write("dp.bin", [0x11, 0x22]);
-        string ld = workspace.Write("ld.bin", [0x33]);
+        string reference = workspace.Write("reference.bin", new byte[0x40000]);
+        string dp = workspace.Write("dp.bin", new byte[0x40000]);
 
         CliRunResult result = await RunCliAsync([
             "dp-replace",
             "preview",
             "--profile",
-            "synthetic-dp-replace",
+            "NT51950",
             "--base",
             reference,
             "--dp",
             dp,
-            "--ld",
-            ld,
         ]);
 
         Assert.Equal(64, result.ExitCode);
@@ -105,60 +96,26 @@ public sealed partial class ReplaceCliCommandTests
             "general-replace",
             "preview",
             "--profile",
-            "synthetic-general-replace",
+            "NT51950",
         ]);
 
         Assert.Equal(64, result.ExitCode);
         Assert.Contains("--ic-num is required", result.Error, StringComparison.Ordinal);
-        Assert.DoesNotContain("--input is required", result.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("--base is required", result.Error, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies a compiled single-selector profile rejects the cascade-only family option.</summary>
+    /// <summary>Verifies each Replace workflow rejects firmware options owned by another workflow.</summary>
     [Fact]
-    public async Task BuiltInSingleSelectorRejectsIcFamilyOption()
+    public async Task ReplacePreviewRejectsForeignFirmwareInputOption()
     {
-        CliRunResult result = await RunCliAsync([
-            "dp-replace",
-            "preview",
-            "--profile",
-            "synthetic-dp-replace",
-            "--ic-family",
-            "NT51",
-            "--ic-num",
-            "51920",
-        ]);
-
-        Assert.Equal(64, result.ExitCode);
-        Assert.Contains("--ic-family is used only by cascade IC num profiles", result.Error, StringComparison.Ordinal);
-    }
-
-    /// <summary>Verifies Replace commands reject firmware inputs that the selected profile would ignore.</summary>
-    [Fact]
-    public async Task ReplacePreviewRejectsUnusedFirmwareInputOption()
-    {
-        using var workspace = TempWorkspace.Create();
-        string reference = workspace.Write("reference.bin", [0, 0, 0, 0, 0, 0, 0, 0]);
-        string ctrlram = workspace.Write("ctrlram.bin", [0xAA, 0xBB]);
-        string dp = workspace.Write("dp.bin", [0x11, 0x22]);
-
         CliRunResult result = await RunCliAsync([
             "ctrlram-replace",
             "preview",
-            "--profile",
-            "synthetic-ctrlram-replace",
-            "--ic-family",
-            "NT51",
-            "--ic-num",
-            "932",
-            "--base",
-            reference,
-            "--ctrlram",
-            ctrlram,
             "--dp",
-            dp,
+            "ignored.bin",
         ]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains("option '--dp' is not used", result.Error, StringComparison.Ordinal);
+        Assert.Contains("unknown option '--dp'", result.Error, StringComparison.Ordinal);
     }
 }
