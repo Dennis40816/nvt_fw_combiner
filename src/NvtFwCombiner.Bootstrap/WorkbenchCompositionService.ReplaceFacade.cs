@@ -78,7 +78,6 @@ public static partial class WorkbenchCompositionService
         bool build,
         CancellationToken cancellationToken,
         string? outputPath = null,
-        WorkbenchGeneralReplaceBaseSnapshot? baseSnapshot = null,
         WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
@@ -123,7 +122,6 @@ public static partial class WorkbenchCompositionService
                     slotPaths,
                     generalReplaceMappings,
                     generalReplacePatches,
-                    baseSnapshot,
                     build,
                     outputPath,
                     cancellationToken).ConfigureAwait(false),
