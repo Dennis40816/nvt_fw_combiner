@@ -87,8 +87,18 @@ function Copy-PackageFile {
         [Parameter(Mandatory = $true)][string]$DestinationRoot
     )
 
+    Copy-PackageFileFromRoot -SourceRoot $RepoRoot -RelativePath $RelativePath -DestinationRoot $DestinationRoot
+}
+
+function Copy-PackageFileFromRoot {
+    param(
+        [Parameter(Mandatory = $true)][string]$SourceRoot,
+        [Parameter(Mandatory = $true)][string]$RelativePath,
+        [Parameter(Mandatory = $true)][string]$DestinationRoot
+    )
+
     $NormalizedRelativePath = $RelativePath.Replace('/', [IO.Path]::DirectorySeparatorChar)
-    $SourcePath = Join-Path $RepoRoot $NormalizedRelativePath
+    $SourcePath = Join-Path $SourceRoot $NormalizedRelativePath
     if (-not (Test-Path -LiteralPath $SourcePath -PathType Leaf)) {
         throw "Package file was not found at $SourcePath"
     }
@@ -135,6 +145,171 @@ function Get-ExternalToolManifestEntries {
     )
 }
 
+function Get-BuiltInProfileBundleDirectories {
+    $ProjectPath = Join-Path $RepoRoot 'src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj'
+    $Project = [xml](Get-Content -LiteralPath $ProjectPath -Raw)
+    $BundleDirectories = @(
+        $Project.SelectNodes("//*[local-name()='BuiltInProfileBundle'][@Include]") |
+            ForEach-Object { [string]$_.GetAttribute('Include') } |
+            Sort-Object
+    )
+    if ($BundleDirectories.Count -eq 0) {
+        throw 'Bootstrap project does not declare any built-in profile bundles.'
+    }
+
+    $UniqueDirectories = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($BundleDirectory in $BundleDirectories) {
+        if ([string]::IsNullOrWhiteSpace($BundleDirectory) -or
+            $BundleDirectory.Contains('/') -or
+            $BundleDirectory.Contains('\') -or
+            $BundleDirectory -in @('.', '..')) {
+            throw "Bootstrap project declares an unsafe built-in profile bundle directory '$BundleDirectory'."
+        }
+        if (-not $UniqueDirectories.Add($BundleDirectory)) {
+            throw "Bootstrap project repeats built-in profile bundle directory '$BundleDirectory'."
+        }
+    }
+
+    return $BundleDirectories
+}
+
+function Assert-SafeBuiltInProfileManifestPath {
+    param([Parameter(Mandatory = $true)][string]$RelativePath)
+
+    $Segments = @($RelativePath.Split('/'))
+    if ([string]::IsNullOrWhiteSpace($RelativePath) -or
+        [IO.Path]::IsPathRooted($RelativePath) -or
+        $RelativePath.Contains('\') -or
+        $RelativePath.Contains(':') -or
+        $Segments.Count -eq 0 -or
+        @($Segments | Where-Object { [string]::IsNullOrWhiteSpace($_) -or $_ -in @('.', '..') }).Count -ne 0) {
+        throw "Built-in profile bundle manifest contains an unsafe path '$RelativePath'."
+    }
+}
+
+function Get-BuiltInProfilePackagePaths {
+    param([Parameter(Mandatory = $true)][string]$PublishedRoot)
+
+    $BundleDirectories = @(Get-BuiltInProfileBundleDirectories)
+    $BuiltInRoot = Join-Path $PublishedRoot 'profiles/built-in'
+    if (-not (Test-Path -LiteralPath $BuiltInRoot -PathType Container)) {
+        throw "Published application has no materialized built-in profile root at $BuiltInRoot"
+    }
+
+    $PublishedBundleDirectories = @(
+        Get-ChildItem -LiteralPath $BuiltInRoot -Directory |
+            ForEach-Object Name |
+            Sort-Object
+    )
+    if (Compare-Object -ReferenceObject $BundleDirectories -DifferenceObject $PublishedBundleDirectories) {
+        throw 'Published built-in profile bundle directories differ from the Bootstrap project allowlist.'
+    }
+
+    $PackagePaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($BundleDirectory in $BundleDirectories) {
+        $BundleRoot = Join-Path $BuiltInRoot $BundleDirectory
+        $ManifestPath = Join-Path $BundleRoot 'profile-bundle.json'
+        if (-not (Test-Path -LiteralPath $ManifestPath -PathType Leaf)) {
+            throw "Published built-in profile bundle manifest is missing: $BundleDirectory/profile-bundle.json"
+        }
+
+        $Manifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
+        $Entries = @($Manifest.entries)
+        if ($Entries.Count -eq 0) {
+            throw "Published built-in profile bundle '$BundleDirectory' has no manifest entries."
+        }
+
+        $DeclaredBundlePaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+        [void]$DeclaredBundlePaths.Add('profile-bundle.json')
+        [void]$PackagePaths.Add("profiles/built-in/$BundleDirectory/profile-bundle.json")
+        foreach ($Entry in $Entries) {
+            if ($null -eq $Entry -or $Entry.PSObject.Properties.Name -notcontains 'path') {
+                throw "Published built-in profile bundle '$BundleDirectory' has an entry without a path."
+            }
+
+            $EntryPath = [string]$Entry.path
+            Assert-SafeBuiltInProfileManifestPath -RelativePath $EntryPath
+            if (-not $DeclaredBundlePaths.Add($EntryPath)) {
+                throw "Published built-in profile bundle '$BundleDirectory' repeats path '$EntryPath'."
+            }
+
+            $PublishedPath = Join-Path $BundleRoot $EntryPath.Replace('/', [IO.Path]::DirectorySeparatorChar)
+            if (-not (Test-Path -LiteralPath $PublishedPath -PathType Leaf)) {
+                throw "Published built-in profile bundle file is missing: $BundleDirectory/$EntryPath"
+            }
+            [void]$PackagePaths.Add("profiles/built-in/$BundleDirectory/$EntryPath")
+        }
+
+        $ActualBundlePaths = @(
+            Get-ChildItem -LiteralPath $BundleRoot -File -Recurse |
+                ForEach-Object { [IO.Path]::GetRelativePath($BundleRoot, $_.FullName).Replace('\', '/') } |
+                Sort-Object
+        )
+        $ExpectedBundlePaths = @($DeclaredBundlePaths | Sort-Object)
+        if (Compare-Object -ReferenceObject $ExpectedBundlePaths -DifferenceObject $ActualBundlePaths) {
+            throw "Published built-in profile bundle '$BundleDirectory' differs from its manifest-pinned allowlist."
+        }
+    }
+
+    return @($PackagePaths | Sort-Object)
+}
+
+function Copy-BuiltInProfilePackageFiles {
+    param(
+        [Parameter(Mandatory = $true)][string]$PublishedRoot,
+        [Parameter(Mandatory = $true)][string]$DestinationRoot
+    )
+
+    $PackagePaths = @(Get-BuiltInProfilePackagePaths -PublishedRoot $PublishedRoot)
+    foreach ($PackagePath in $PackagePaths) {
+        Copy-PackageFileFromRoot `
+            -SourceRoot $PublishedRoot `
+            -RelativePath $PackagePath `
+            -DestinationRoot $DestinationRoot
+    }
+    return $PackagePaths
+}
+
+function Get-BuiltInProfileManifestEntries {
+    param(
+        [Parameter(Mandatory = $true)][string]$PackageRoot,
+        [Parameter(Mandatory = $true)][string[]]$PackagePaths
+    )
+
+    return @(
+        $PackagePaths | Sort-Object | ForEach-Object {
+            $Path = Join-Path $PackageRoot $_.Replace('/', [IO.Path]::DirectorySeparatorChar)
+            [ordered]@{
+                path = $_
+                size = (Get-Item -LiteralPath $Path).Length
+                sha256 = (Get-LowerSha256 -Path $Path)
+                role = 'builtInProfile'
+            }
+        }
+    )
+}
+
+function New-BuiltInProfilePolicyDryRunFixture {
+    param([Parameter(Mandatory = $true)][string]$PublishedRoot)
+
+    foreach ($BundleDirectory in (Get-BuiltInProfileBundleDirectories)) {
+        $SourceManifestPath = Join-Path $RepoRoot "profiles/built-in/$BundleDirectory/profile-bundle.json"
+        $FixtureBundleRoot = Join-Path $PublishedRoot "profiles/built-in/$BundleDirectory"
+        New-Item -ItemType Directory -Force -Path $FixtureBundleRoot | Out-Null
+        Copy-Item -LiteralPath $SourceManifestPath -Destination (Join-Path $FixtureBundleRoot 'profile-bundle.json')
+
+        $Manifest = Get-Content -LiteralPath $SourceManifestPath -Raw | ConvertFrom-Json
+        foreach ($Entry in @($Manifest.entries)) {
+            $EntryPath = [string]$Entry.path
+            Assert-SafeBuiltInProfileManifestPath -RelativePath $EntryPath
+            $FixturePath = Join-Path $FixtureBundleRoot $EntryPath.Replace('/', [IO.Path]::DirectorySeparatorChar)
+            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $FixturePath) | Out-Null
+            "built-in profile policy fixture: $BundleDirectory/$EntryPath" |
+                Set-Content -LiteralPath $FixturePath -Encoding utf8NoBOM
+        }
+    }
+}
+
 function Invoke-ExternalToolPolicyDryRun {
     $ProbeRelativePath = 'external-tools/release-package-policy-probe.txt'
     $ProbeSourcePath = Join-Path $RepoRoot $ProbeRelativePath
@@ -144,8 +319,9 @@ function Invoke-ExternalToolPolicyDryRun {
 
     $DryRunRoot = Join-Path ([IO.Path]::GetTempPath()) "nvt-fw-combiner-package-policy-$([guid]::NewGuid().ToString('N'))"
     $DryRunPackageRoot = Join-Path $DryRunRoot 'package'
+    $DryRunPublishedRoot = Join-Path $DryRunRoot 'published'
     try {
-        New-Item -ItemType Directory -Force -Path $DryRunPackageRoot | Out-Null
+        New-Item -ItemType Directory -Force -Path $DryRunPackageRoot, $DryRunPublishedRoot | Out-Null
         'negative release-policy probe' | Set-Content -LiteralPath $ProbeSourcePath -Encoding ascii
 
         Copy-ApprovedExternalToolPackageFiles -DestinationRoot $DryRunPackageRoot
@@ -153,8 +329,20 @@ function Invoke-ExternalToolPolicyDryRun {
         $DryRunEntries = @(Get-ExternalToolManifestEntries `
             -PackageRoot $DryRunPackageRoot `
             -ExternalToolsRoot $DryRunExternalToolsRoot)
+        New-BuiltInProfilePolicyDryRunFixture -PublishedRoot $DryRunPublishedRoot
+        $DryRunProfilePaths = @(Copy-BuiltInProfilePackageFiles `
+            -PublishedRoot $DryRunPublishedRoot `
+            -DestinationRoot $DryRunPackageRoot)
+        $DryRunProfileEntries = @(Get-BuiltInProfileManifestEntries `
+            -PackageRoot $DryRunPackageRoot `
+            -PackagePaths $DryRunProfilePaths)
+        if ($DryRunProfileEntries.Count -eq 0 -or
+            @($DryRunProfileEntries | Where-Object { $_.role -ne 'builtInProfile' }).Count -ne 0) {
+            throw 'Built-in profile policy dry-run did not produce role-pinned manifest entries.'
+        }
+
         $DryRunManifestPath = Join-Path $DryRunPackageRoot 'RELEASE-MANIFEST.json'
-        [ordered]@{ files = $DryRunEntries } |
+        [ordered]@{ files = @($DryRunEntries) + @($DryRunProfileEntries) } |
             ConvertTo-Json -Depth 4 |
             Set-Content -LiteralPath $DryRunManifestPath -Encoding utf8NoBOM
 
@@ -169,7 +357,25 @@ function Invoke-ExternalToolPolicyDryRun {
             throw 'External-tool policy probe entered the release manifest.'
         }
 
+        $FirstBundleDirectory = @(Get-BuiltInProfileBundleDirectories)[0]
+        $UnexpectedProfilePath = Join-Path $DryRunPublishedRoot "profiles/built-in/$FirstBundleDirectory/unexpected.json"
+        '{}' | Set-Content -LiteralPath $UnexpectedProfilePath -Encoding ascii
+        $UnexpectedProfileRejected = $false
+        try {
+            Get-BuiltInProfilePackagePaths -PublishedRoot $DryRunPublishedRoot | Out-Null
+        }
+        catch {
+            if ($_.Exception.Message -notlike '*differs from its manifest-pinned allowlist*') {
+                throw
+            }
+            $UnexpectedProfileRejected = $true
+        }
+        if (-not $UnexpectedProfileRejected) {
+            throw 'Unexpected built-in profile file was not rejected by the package allowlist.'
+        }
+
         Write-Host 'External-tool package policy dry-run passed: probe excluded from staging and manifest.'
+        Write-Host 'Built-in profile package policy dry-run passed: manifest-pinned materialized files included and unexpected file rejected.'
     }
     finally {
         if (Test-Path -LiteralPath $ProbeSourcePath) {
@@ -319,6 +525,9 @@ if (-not (Test-Path -LiteralPath $PublishedApp -PathType Leaf)) {
 }
 $AppExe = Join-Path $PackageRoot 'NvtFwCombiner.exe'
 Copy-Item -LiteralPath $PublishedApp -Destination $AppExe
+$BuiltInProfilePackagePaths = @(Copy-BuiltInProfilePackageFiles `
+    -PublishedRoot $AppPublish `
+    -DestinationRoot $PackageRoot)
 
 $WorkerEntry = Join-Path $WorkRoot 'crc_worker_entry.py'
 @'
@@ -402,12 +611,13 @@ NVT FW Combiner $SemanticVersion
 Contents:
 - NvtFwCombiner.exe: self-contained Windows x64 desktop application
 - Nfc.CrcWorker.exe: constrained external checksum/header worker
+- profiles/built-in/: manifest-pinned bundles materialized by the Bootstrap build; profile stage and runtime routing remain authoritative
 - external-tools/: approved legacy Combiner runtime packages
 - reference/: owner-approved flash-map, postbuild, flash-header, and golden fixture evidence
 - RELEASE-MANIFEST.json: source and file integrity metadata
 - SHA256SUMS.txt: package file hashes
 
-This package includes owner-approved golden firmware fixtures under reference/testdata/golden/standard-merge-gen-flash for future packaged self-tests. It contains no private golden inputs, unmanifested BIN files, generated firmware outputs, refcode, production source tree, test projects, editable profiles, Python runtime installation, or .NET installation requirement. External tools and reference files are pinned by manifest and SHA-256.
+This package includes owner-approved golden firmware fixtures under reference/testdata/golden/standard-merge-gen-flash for future packaged self-tests. It contains no private golden inputs, unmanifested BIN files, generated firmware outputs, refcode, production source tree, test projects, editable source profiles, Python runtime installation, or .NET installation requirement. Built-in materialized profiles, external tools, and reference files are pinned by manifest and SHA-256; packaging a candidate bundle does not promote its runtime support stage.
 "@ | Set-Content -LiteralPath (Join-Path $PackageRoot 'README.txt') -Encoding utf8NoBOM
 
 $AppHash = Get-LowerSha256 -Path $AppExe
@@ -423,6 +633,9 @@ $SchemaDigest = Get-TreeDigest -Paths $SchemaFiles
 $ExternalToolEntries = @(Get-ExternalToolManifestEntries `
     -PackageRoot $PackageRoot `
     -ExternalToolsRoot $ExternalToolsDestination)
+$BuiltInProfileEntries = @(Get-BuiltInProfileManifestEntries `
+    -PackageRoot $PackageRoot `
+    -PackagePaths $BuiltInProfilePackagePaths)
 $ReferencePayloadFiles = @(Get-ChildItem -LiteralPath $ReferenceDestination -File -Recurse | ForEach-Object FullName)
 $ReferencePayloadEntries = @(
     $ReferencePayloadFiles | Sort-Object | ForEach-Object {
@@ -456,7 +669,7 @@ $FileEntries = @(
     [ordered]@{ path = 'THIRD-PARTY-NOTICES.txt'; size = (Get-Item $NoticePath).Length; sha256 = (Get-LowerSha256 $NoticePath); role = 'notices' },
     [ordered]@{ path = 'LICENSE.txt'; size = (Get-Item $LicensePath).Length; sha256 = (Get-LowerSha256 $LicensePath); role = 'license' },
     [ordered]@{ path = 'README.txt'; size = (Get-Item $ReadmePath).Length; sha256 = (Get-LowerSha256 $ReadmePath); role = 'readme' }
-) + $ExternalToolEntries + $ReferencePayloadEntries
+) + $BuiltInProfileEntries + $ExternalToolEntries + $ReferencePayloadEntries
 
 $Manifest = [ordered]@{
     schemaVersion = '1.1'
@@ -542,7 +755,7 @@ $Expected = (@(
     'RELEASE-MANIFEST.json',
     'SHA256SUMS.txt',
     'THIRD-PARTY-NOTICES.txt'
-) + @($ExternalToolEntries.path) + @($ReferencePayloadEntries.path)) | Sort-Object
+) + @($BuiltInProfileEntries.path) + @($ExternalToolEntries.path) + @($ReferencePayloadEntries.path)) | Sort-Object
 $Actual = @(
     Get-ChildItem -LiteralPath $PackageRoot -File -Recurse |
         ForEach-Object { [System.IO.Path]::GetRelativePath($PackageRoot, $_.FullName).Replace('\', '/') } |

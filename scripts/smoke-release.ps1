@@ -237,6 +237,33 @@ try {
         throw 'Release manifest external-tool files differ from the approved allowlist.'
     }
 
+    $DeclaredBuiltInProfileEntries = @(
+        $manifest.files | Where-Object {
+            ([string]$_.path).StartsWith('profiles/built-in/', [StringComparison]::Ordinal) -or
+            $_.role -eq 'builtInProfile'
+        }
+    )
+    if ($DeclaredBuiltInProfileEntries.Count -eq 0) {
+        throw 'Release manifest has no materialized built-in profile files.'
+    }
+    $InvalidBuiltInProfileEntries = @(
+        $DeclaredBuiltInProfileEntries | Where-Object {
+            -not ([string]$_.path).StartsWith('profiles/built-in/', [StringComparison]::Ordinal) -or
+            $_.role -ne 'builtInProfile'
+        }
+    )
+    if ($InvalidBuiltInProfileEntries.Count -ne 0) {
+        throw 'Release manifest built-in profile paths and roles are inconsistent.'
+    }
+    $BuiltInProfileBundleManifests = @(
+        $DeclaredBuiltInProfileEntries | Where-Object {
+            ([string]$_.path) -match '^profiles/built-in/[^/]+/profile-bundle\.json$'
+        }
+    )
+    if ($BuiltInProfileBundleManifests.Count -eq 0) {
+        throw 'Release manifest has no built-in profile bundle manifest.'
+    }
+
     foreach ($entry in $manifest.files) {
         Assert-FileHash -Root $packageRoot -Entry $entry
     }
