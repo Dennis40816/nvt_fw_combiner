@@ -16,6 +16,41 @@
     <Setter Property="StrokeThickness" Value="1.65" />
     <Setter Property="StrokeLineCap" Value="Round" />
   </Style>
+  <Style Selector="Border.slotTypeIcon.bin">
+    <Setter Property="Background" Value="{DynamicResource NfcCautionSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcCautionBorderSoftBrush}" />
+  </Style>
+  <Style Selector="Border.slotTypeIcon.bin Path">
+    <Setter Property="Stroke" Value="{DynamicResource NfcCautionTextBrush}" />
+  </Style>
+  <Style Selector="Border.slotTypeIcon.base">
+    <Setter Property="Background" Value="{DynamicResource NfcReferenceInputSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcReferenceInputBorderBrush}" />
+  </Style>
+  <Style Selector="Border.slotTypeIcon.base Path">
+    <Setter Property="Stroke" Value="{DynamicResource NfcReferenceInputTextBrush}" />
+  </Style>
+  <Style Selector="Border.slotTypeIcon.dp">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
+  </Style>
+  <Style Selector="Border.slotTypeIcon.dp Path">
+    <Setter Property="Stroke" Value="{DynamicResource NfcAccentStrongBrush}" />
+  </Style>
+  <Style Selector="Border.slotTypeIcon.tp">
+    <Setter Property="Background" Value="{DynamicResource NfcSuccessSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcSuccessBorderBrush}" />
+  </Style>
+  <Style Selector="Border.slotTypeIcon.tp Path">
+    <Setter Property="Stroke" Value="{DynamicResource NfcSuccessEmphasisBrush}" />
+  </Style>
+  <Style Selector="Border.slotTypeIcon.ctrlRam">
+    <Setter Property="Background" Value="{DynamicResource NfcControllerInputSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcControllerInputBorderBrush}" />
+  </Style>
+  <Style Selector="Border.slotTypeIcon.ctrlRam Path">
+    <Setter Property="Stroke" Value="{DynamicResource NfcControllerInputTextBrush}" />
+  </Style>
   <Style Selector="Border.workflowCard">
     <Setter Property="Padding" Value="12,9" />
     <Setter Property="BorderThickness" Value="1" />

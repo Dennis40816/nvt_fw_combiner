@@ -18,9 +18,6 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(FirmwareSlotKind.Dp, required.SlotKind);
         Assert.Equal("DP BIN", required.SlotIconTooltip);
         AssertIconGeometry(required);
-        AssertBrush("#EFF6FF", required.SlotIconBackgroundBrush);
-        AssertBrush("#BFDBFE", required.SlotIconBorderBrush);
-        AssertBrush("#1D4ED8", required.SlotIconForegroundBrush);
         Assert.Equal("No BIN selected", required.DisplayName);
         Assert.Equal(string.Empty, required.DisplayDetail);
         Assert.Equal("Required", required.RequirementLabel);
@@ -31,7 +28,6 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("dp.bin", required.DisplayName);
         Assert.Equal(required.FilePath.Replace('/', '\\'), required.DisplayDetail);
         AssertIconGeometry(required);
-        AssertBrush("#EFF6FF", required.SlotIconBackgroundBrush);
         Assert.Equal("Required", required.RequirementLabel);
 
         FirmwareSlotViewModel optional = new("merge-ld", "LD BIN", "Optional payload", isOptional: true);
@@ -81,9 +77,6 @@ public sealed partial class ShellViewModelTests
                 Assert.Equal(FirmwareSlotKind.CtrlRam, slot.SlotKind);
                 Assert.Equal("CtrlRAM BIN", slot.SlotIconTooltip);
                 AssertIconGeometry(slot);
-                AssertBrush("#F5F3FF", slot.SlotIconBackgroundBrush);
-                AssertBrush("#DDD6FE", slot.SlotIconBorderBrush);
-                AssertBrush("#6D28D9", slot.SlotIconForegroundBrush);
             });
     }
 
