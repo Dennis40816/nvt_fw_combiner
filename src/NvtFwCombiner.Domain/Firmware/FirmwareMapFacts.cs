@@ -121,17 +121,6 @@ public sealed class FirmwareFactApplicability
             applicability.MetadataPredicates);
     }
 
-    /// <summary>Returns whether this binding shape exactly equals the non-member portion of one map.</summary>
-    public bool MatchesMapApplicability(FirmwareMapApplicability applicability)
-    {
-        ArgumentNullException.ThrowIfNull(applicability);
-        return CapacityBytes == applicability.CapacityBytes &&
-            TopologyRequirement == applicability.TopologyRequirement &&
-            ModeIds.SequenceEqual(applicability.ModeIds, StringComparer.Ordinal) &&
-            CommonFirmwareCategoryIds.SequenceEqual(applicability.CommonFirmwareCategoryIds, StringComparer.Ordinal) &&
-            HaveSamePredicates(MetadataPredicates, applicability.MetadataPredicates);
-    }
-
     /// <summary>
     /// Evaluates this fact scope against one already-resolved map without using profile or execution policy.
     /// </summary>

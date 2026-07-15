@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -33,12 +32,6 @@ public static partial class WorkbenchCompositionService
             CompositionAddressSpaceIds.OutputImage => "Output",
             _ => addressSpaceId,
         };
-    }
-
-    private static bool IsPreservedRegion(TpFlashMapRegion region)
-    {
-        return region.Kind == TpFlashMapRegionKind.CustomerInfo ||
-            region.Tags.Contains("preserve", StringComparer.OrdinalIgnoreCase);
     }
 
     private static string ActionSummaryForReplaceMode(string replaceMode)
