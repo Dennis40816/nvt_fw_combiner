@@ -15,6 +15,13 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+$ApprovedExternalToolPackagePaths = @(
+    'external-tools/README.md',
+    'external-tools/legacy-combiner/README.md',
+    'external-tools/legacy-combiner/1.13.0/Combiner.exe',
+    'external-tools/legacy-combiner/1.13.0/manifest.json'
+) | Sort-Object
+
 function Get-LowerSha256 {
     param([Parameter(Mandatory = $true)][string]$Path)
 
@@ -208,6 +215,28 @@ try {
     if ($null -eq $manifest.files -or $manifest.files.Count -eq 0) {
         throw 'Release manifest has no file entries.'
     }
+
+    $DeclaredExternalToolEntries = @(
+        $manifest.files | Where-Object {
+            ([string]$_.path).StartsWith('external-tools/', [StringComparison]::Ordinal) -or
+            $_.role -eq 'externalTool'
+        }
+    )
+    $InvalidExternalToolEntries = @(
+        $DeclaredExternalToolEntries | Where-Object {
+            -not ([string]$_.path).StartsWith('external-tools/', [StringComparison]::Ordinal) -or
+            $_.role -ne 'externalTool'
+        }
+    )
+    if ($InvalidExternalToolEntries.Count -ne 0) {
+        throw 'Release manifest external-tool paths and roles are inconsistent.'
+    }
+
+    $DeclaredExternalToolPaths = @($DeclaredExternalToolEntries | ForEach-Object { [string]$_.path } | Sort-Object)
+    if (Compare-Object -ReferenceObject $ApprovedExternalToolPackagePaths -DifferenceObject $DeclaredExternalToolPaths) {
+        throw 'Release manifest external-tool files differ from the approved allowlist.'
+    }
+
     foreach ($entry in $manifest.files) {
         Assert-FileHash -Root $packageRoot -Entry $entry
     }

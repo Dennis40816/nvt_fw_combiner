@@ -8,7 +8,7 @@ Rules:
 - UTF-8, deterministic property order, no unknown properties.
 - SHA-256 is lowercase 64-character hex.
 - Package paths are relative package paths. Base payload files are plain filenames; approved external tool payloads must live under `external-tools/`; human-review evidence and owner-approved golden fixtures must live under `reference/`.
-- Manifest lists the five base payload files plus every shipped file under the approved `external-tools/` subtree, excluding itself and `SHA256SUMS.txt`.
+- Manifest lists the five base payload files plus each explicitly approved file path under `external-tools/`, excluding itself and `SHA256SUMS.txt`.
 - Manifest also lists every shipped file under `reference/`. Owner-approved golden firmware fixtures use role `goldenFixture`; non-BIN reference evidence uses role `reference`.
 - Built-in profile/schema/processor digests describe resources embedded in the executables.
 - `licenseSpdx` is `MIT`.
