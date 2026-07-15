@@ -171,7 +171,7 @@
           <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace4}">
             <TextBlock Classes="fieldLabel" Text="{Binding Text.OutputLengthLabel}" />
             <TextBox
-                Classes="addressInput"
+                Classes="technicalCenteredInput addressInput"
                 Text="{Binding GeneralMergeOutputLength, Mode=TwoWay}"
                 PlaceholderText="{Binding Text.OutputLengthPlaceholder}" />
           </StackPanel>

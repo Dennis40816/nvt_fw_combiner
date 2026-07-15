@@ -12,7 +12,7 @@
         <TextBlock Classes="technicalCaption" Text="{Binding InputAddressSpace}" TextWrapping="Wrap" IsVisible="{Binding HasInputFields}" />
       </StackPanel>
       <StackPanel Grid.Column="1" HorizontalAlignment="Right" Spacing="{DynamicResource NfcSpace4}">
-        <Label Classes="reportBadge info" Content="{Binding InputRole}" />
+        <Label Classes="compactBadge neutralBadge reportBadge info" Content="{Binding InputRole}" />
         <TextBlock HorizontalAlignment="Right" Classes="technicalMeta" Text="{Binding InputSizeLabel}" TextWrapping="Wrap" />
       </StackPanel>
     </Grid>
@@ -29,7 +29,7 @@
             <TextBlock Classes="panelTitle" Text="{Binding Title}" TextWrapping="Wrap" />
             <TextBlock Classes="captionText" Text="{Binding Detail}" TextWrapping="Wrap" />
           </StackPanel>
-          <Label Grid.Column="2" Classes="reportBadge info" Content="{Binding Count}" />
+          <Label Grid.Column="2" Classes="compactBadge neutralBadge reportBadge info" Content="{Binding Count}" />
         </Grid>
       </Border>
     </Expander.Header>

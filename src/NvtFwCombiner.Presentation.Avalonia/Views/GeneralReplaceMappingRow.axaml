@@ -14,7 +14,7 @@
         <TextBlock Classes="mappingIndex" Text="{Binding Index}" />
       </Border>
       <TextBox
-          Classes="addressInput"
+          Classes="technicalCenteredInput addressInput"
           Grid.Column="1"
           Text="{Binding StartAddress, Mode=TwoWay}"
           PlaceholderText="start" />
@@ -26,7 +26,7 @@
           Foreground="{DynamicResource NfcTextMutedBrush}"
           Text="-" />
       <TextBox
-          Classes="addressInput"
+          Classes="technicalCenteredInput addressInput"
           Grid.Column="3"
           Text="{Binding EndAddress, Mode=TwoWay}"
           PlaceholderText="end" />

@@ -74,7 +74,7 @@
                 x:Name="GoToAddressTextBox"
                 behaviors:HexTextInputBehavior.Mode="Address"
                 Width="132"
-                Classes="addressInput"
+                Classes="technicalCenteredInput addressInput"
                 input:InputMethod.IsInputMethodEnabled="False"
                 Text="{Binding ViewportAddress, Mode=TwoWay}"
                 GotFocus="HexTextInput_OnGotFocus"
@@ -281,7 +281,7 @@
                   <TextBlock Classes="hexInspectorSection" Text="{Binding Text.StartLabel}" />
                   <TextBox
                       behaviors:HexTextInputBehavior.Mode="Address"
-                      Classes="addressInput"
+                      Classes="technicalCenteredInput addressInput"
                       input:InputMethod.IsInputMethodEnabled="False"
                       Text="{Binding RangeStartAddress, Mode=TwoWay}"
                       GotFocus="HexTextInput_OnGotFocus"
@@ -291,7 +291,7 @@
                   <TextBlock Classes="hexInspectorSection" Text="{Binding Text.EndLabel}" />
                   <TextBox
                       behaviors:HexTextInputBehavior.Mode="Address"
-                      Classes="addressInput"
+                      Classes="technicalCenteredInput addressInput"
                       input:InputMethod.IsInputMethodEnabled="False"
                       Text="{Binding RangeEndAddress, Mode=TwoWay}"
                       GotFocus="HexTextInput_OnGotFocus"

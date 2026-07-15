@@ -49,16 +49,29 @@ public sealed partial class XamlControlStyleContractTests
     [Fact]
     public void SharedControlStylesDefineTheBadgeAndReadOnlyRawContracts()
     {
-        string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
+        string controlStyles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
+        string windowStyles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
+        string compactBadge = ExtractStyle(controlStyles, "Label.compactBadge");
+        string neutralBadge = ExtractStyle(controlStyles, "Label.neutralBadge");
+        string reportBadge = ExtractStyle(controlStyles, "Label.reportBadge");
+        string countBadge = ExtractStyle(controlStyles, "Label.countBadge");
+        string technicalInput = ExtractStyle(windowStyles, "TextBox.technicalCenteredInput");
+        string addressInput = ExtractStyle(windowStyles, "TextBox.addressInput");
+        string hexByteInput = ExtractStyle(windowStyles, "TextBox.hexByteInput");
 
-        Assert.Contains("Selector=\"Label.reportBadge\"", styles, StringComparison.Ordinal);
-        Assert.Contains("HorizontalContentAlignment\" Value=\"Center\"", styles, StringComparison.Ordinal);
-        Assert.Contains("VerticalContentAlignment\" Value=\"Center\"", styles, StringComparison.Ordinal);
-        Assert.Contains("MinHeight\" Value=\"22\"", styles, StringComparison.Ordinal);
-        Assert.Contains("Selector=\"TextBox.readOnlyRaw\"", styles, StringComparison.Ordinal);
-        Assert.Contains("IsReadOnly\" Value=\"True\"", styles, StringComparison.Ordinal);
-        Assert.Contains("ScrollViewer.HorizontalScrollBarVisibility\" Value=\"Auto\"", styles, StringComparison.Ordinal);
-        Assert.Contains("ScrollViewer.VerticalScrollBarVisibility\" Value=\"Auto\"", styles, StringComparison.Ordinal);
+        Assert.Contains("HorizontalContentAlignment\" Value=\"Center\"", compactBadge, StringComparison.Ordinal);
+        Assert.Contains("VerticalContentAlignment\" Value=\"Center\"", compactBadge, StringComparison.Ordinal);
+        Assert.Contains("MinHeight\" Value=\"22\"", compactBadge, StringComparison.Ordinal);
+        Assert.Contains("NfcSurfaceSubtleBrush", neutralBadge, StringComparison.Ordinal);
+        Assert.DoesNotContain("MinHeight", reportBadge, StringComparison.Ordinal);
+        Assert.DoesNotContain("MinHeight", countBadge, StringComparison.Ordinal);
+        Assert.Contains("NfcTechnicalFontFamily", technicalInput, StringComparison.Ordinal);
+        Assert.DoesNotContain("FontFamily", addressInput, StringComparison.Ordinal);
+        Assert.DoesNotContain("FontFamily", hexByteInput, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"TextBox.readOnlyRaw\"", controlStyles, StringComparison.Ordinal);
+        Assert.Contains("IsReadOnly\" Value=\"True\"", controlStyles, StringComparison.Ordinal);
+        Assert.Contains("ScrollViewer.HorizontalScrollBarVisibility\" Value=\"Auto\"", controlStyles, StringComparison.Ordinal);
+        Assert.Contains("ScrollViewer.VerticalScrollBarVisibility\" Value=\"Auto\"", controlStyles, StringComparison.Ordinal);
     }
 
     /// <summary>Ensures General mapping rows use shared surface roles instead of repeating visual setters.</summary>
@@ -102,7 +115,7 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.Contains("Styles/MainWindowControlStyles.axaml", application, StringComparison.Ordinal);
         Assert.Contains("<Label", slotCard, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"slotBadge firmwareSlotRequirement\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"compactBadge slotBadge firmwareSlotRequirement\"", slotCard, StringComparison.Ordinal);
     }
 
     /// <summary>Loads the application resource tree and resolves every shared visual token.</summary>
@@ -316,6 +329,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("AutomationProperties.Name=\"{Binding Text.CtrlRamFirmwareVersionByteLabel}\"", modal, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding Text.CtrlRamFirmwareSubVersionByteLabel}\"", modal, StringComparison.Ordinal);
         Assert.Contains("Selector=\"TextBox.hexByteInput\"", styles, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"technicalCenteredInput hexByteInput\"", modal, StringComparison.Ordinal);
         Assert.Contains("behaviors:HexTextInputBehavior.Mode\" Value=\"ByteSequence\"", styles, StringComparison.Ordinal);
         Assert.DoesNotContain("FirmwareConfigLayout", modal, StringComparison.Ordinal);
         Assert.DoesNotContain("Combiner.exe", modal, StringComparison.Ordinal);

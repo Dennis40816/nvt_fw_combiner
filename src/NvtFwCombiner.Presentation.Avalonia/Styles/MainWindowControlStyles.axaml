@@ -301,20 +301,24 @@
     <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
   </Style>
 
-  <Style Selector="Label.reportBadge">
+  <Style Selector="Label.compactBadge">
     <Setter Property="MinHeight" Value="22" />
-    <Setter Property="Padding" Value="8,0" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
-    <Setter Property="HorizontalAlignment" Value="Right" />
     <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
-    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize10}" />
     <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Label.neutralBadge">
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize10}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
+  </Style>
+  <Style Selector="Label.reportBadge">
+    <Setter Property="Padding" Value="8,0" />
+    <Setter Property="HorizontalAlignment" Value="Right" />
   </Style>
   <Style Selector="Label.reportBadge.success">
     <Setter Property="Background" Value="{DynamicResource NfcSuccessSurfaceBrush}" />
@@ -336,15 +340,8 @@
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
   </Style>
   <Style Selector="Label.slotBadge">
-    <Setter Property="MinHeight" Value="22" />
     <Setter Property="Padding" Value="8,2" />
-    <Setter Property="HorizontalContentAlignment" Value="Center" />
-    <Setter Property="VerticalContentAlignment" Value="Center" />
-    <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
   <Style Selector="Label.slotBadge.firmwareSlotRequirement">
     <Setter Property="Background" Value="{DynamicResource NfcRequiredMissingBadgeSurfaceBrush}" />
@@ -379,18 +376,7 @@
     <Setter Property="Foreground" Value="{DynamicResource NfcWarningTextBrush}" />
   </Style>
   <Style Selector="Label.countBadge">
-    <Setter Property="MinHeight" Value="22" />
     <Setter Property="Padding" Value="8,2" />
-    <Setter Property="HorizontalContentAlignment" Value="Center" />
-    <Setter Property="VerticalContentAlignment" Value="Center" />
-    <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
-    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize10}" />
-    <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
   </Style>
   <Style Selector="Label.countBadge.changed">
     <Setter Property="Background" Value="{DynamicResource NfcWarningSurfaceBrush}" />

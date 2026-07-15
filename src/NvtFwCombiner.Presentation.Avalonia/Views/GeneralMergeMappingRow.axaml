@@ -14,17 +14,17 @@
         <TextBlock Classes="mappingIndex" Text="{Binding Index}" />
       </Border>
       <TextBox
-          Classes="addressInput"
+          Classes="technicalCenteredInput addressInput"
           Grid.Column="1"
           Text="{Binding SourceStartAddress, Mode=TwoWay}"
           PlaceholderText="source" />
       <TextBox
-          Classes="addressInput"
+          Classes="technicalCenteredInput addressInput"
           Grid.Column="2"
           Text="{Binding TargetStartAddress, Mode=TwoWay}"
           PlaceholderText="target" />
       <TextBox
-          Classes="addressInput"
+          Classes="technicalCenteredInput addressInput"
           Grid.Column="3"
           Text="{Binding Length, Mode=TwoWay}"
           PlaceholderText="length" />
