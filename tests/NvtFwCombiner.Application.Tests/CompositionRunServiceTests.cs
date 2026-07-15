@@ -327,7 +327,7 @@ public sealed partial class CompositionRunServiceTests
     [Fact]
     public void ReplaceRunRequestRequiresIcNumberSelection()
     {
-        CompositionProfileDefinition profile = BuiltInReplaceProfiles.SyntheticDpReplace;
+        CompositionProfileDefinition profile = SyntheticReplaceProfiles.Dp;
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
 
         ArgumentException exception = Assert.Throws<ArgumentException>(() => new CompositionRunRequest(

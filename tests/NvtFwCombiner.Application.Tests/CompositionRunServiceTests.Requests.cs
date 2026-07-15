@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Application.Tests;
 
@@ -243,7 +244,7 @@ public sealed partial class CompositionRunServiceTests
 
     private static CompositionRunRequest CreateDpReplaceRequest(string icNumber)
     {
-        CompositionProfileDefinition profile = BuiltInReplaceProfiles.SyntheticDpReplace;
+        CompositionProfileDefinition profile = SyntheticReplaceProfiles.Dp;
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         return new CompositionRunRequest(
             "run-dp-replace",

@@ -4,21 +4,30 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
-    /// <summary>Verifies legacy built-in Replace profiles contain only synthetic test contracts.</summary>
+    /// <summary>Verifies synthetic Replace definitions cannot re-enter production profile catalogs.</summary>
     [Fact]
-    public void BuiltInReplaceProfileConcernsStaySplit()
+    public void SyntheticReplaceProfilesStayTestOnly()
     {
-        string root = ReadText("src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.cs");
-        string synthetic = ReadText("src/NvtFwCombiner.Profiles/BuiltInReplaceProfiles.Synthetic.cs");
+        string synthetic = ReadText("tests/NvtFwCombiner.TestSupport/SyntheticReplaceProfiles.cs");
         string v2Registration = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.BuiltInV2.cs");
 
-        Assert.Contains("public static partial class BuiltInReplaceProfiles", root, StringComparison.Ordinal);
-        Assert.Contains("public static IReadOnlyList<CompositionProfileDefinition> All", root, StringComparison.Ordinal);
-        Assert.DoesNotContain("SyntheticIc", root, StringComparison.Ordinal);
-        Assert.DoesNotContain("DpPerspective", root, StringComparison.Ordinal);
-        Assert.Contains("SyntheticDpReplace", synthetic, StringComparison.Ordinal);
-        Assert.Contains("SyntheticCtrlRamReplace", synthetic, StringComparison.Ordinal);
-        Assert.Contains("SyntheticGeneralReplace", synthetic, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "BuiltInReplaceProfiles.cs")));
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "BuiltInReplaceProfiles.Synthetic.cs")));
+        Assert.DoesNotContain("synthetic-dp-replace", ReadProfileSources(), StringComparison.Ordinal);
+        Assert.DoesNotContain("synthetic-ctrlram-replace", ReadProfileSources(), StringComparison.Ordinal);
+        Assert.DoesNotContain("synthetic-general-replace", ReadProfileSources(), StringComparison.Ordinal);
+        Assert.Contains("public static class SyntheticReplaceProfiles", synthetic, StringComparison.Ordinal);
+        Assert.Contains("CompositionProfileDefinition Dp", synthetic, StringComparison.Ordinal);
+        Assert.Contains("CompositionProfileDefinition CtrlRam", synthetic, StringComparison.Ordinal);
+        Assert.Contains("CompositionProfileDefinition General", synthetic, StringComparison.Ordinal);
         Assert.DoesNotContain("DpPerspectiveCatalog", synthetic, StringComparison.Ordinal);
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,

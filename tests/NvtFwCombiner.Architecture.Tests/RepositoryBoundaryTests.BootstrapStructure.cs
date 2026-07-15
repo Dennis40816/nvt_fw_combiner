@@ -19,28 +19,38 @@ public sealed partial class RepositoryBoundaryTests
             CountOccurrences(bootstrapSource, "request.WithApprovedPreviewToken(preview.PreviewToken!)"));
     }
 
-    /// <summary>Verifies Replace CLI root stays a command flow instead of owning parsing sub-concerns.</summary>
+    /// <summary>Verifies Replace CLI routes only through the registered Workbench/V2 paths.</summary>
     [Fact]
-    public void BootstrapReplaceCliRootStaysSplit()
+    public void BootstrapReplaceCliRetiresLegacyProfileExecutionPath()
     {
         string root = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.cs");
-        string bindings = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.Bindings.cs");
-        string icNumbers = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.IcNumbers.cs");
-        string profileResolution = ReadText(
-            "src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.ProfileResolution.cs");
-        string profileCompile = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.ProfileCompile.cs");
 
         Assert.Contains("internal static async Task<int> RunAsync", root, StringComparison.Ordinal);
+        Assert.Contains("RunWorkbenchDpReplaceAsync", root, StringComparison.Ordinal);
+        Assert.Contains("RunWorkbenchCtrlRamReplaceAsync", root, StringComparison.Ordinal);
+        Assert.Contains("RunWorkbenchGeneralReplaceAsync", root, StringComparison.Ordinal);
         Assert.DoesNotContain("FixedInputOptionsByAddressSpace", root, StringComparison.Ordinal);
         Assert.DoesNotContain("private static bool TryCreateBindings", root, StringComparison.Ordinal);
         Assert.DoesNotContain("private static bool TryCreateIcNumberSelection", root, StringComparison.Ordinal);
         Assert.DoesNotContain("private static bool TryFindReplaceProfile", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileDefinition", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileCompiler", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("BuiltInReplaceProfiles", root, StringComparison.Ordinal);
         Assert.DoesNotContain("GeneralReplaceOperationId", root, StringComparison.Ordinal);
-        Assert.Contains("FixedInputOptionsByAddressSpace", bindings, StringComparison.Ordinal);
-        Assert.Contains("private static bool TryCreateBindings", bindings, StringComparison.Ordinal);
-        Assert.Contains("private static bool TryCreateIcNumberSelection", icNumbers, StringComparison.Ordinal);
-        Assert.Contains("private static bool TryFindReplaceProfile", profileResolution, StringComparison.Ordinal);
-        Assert.Contains("private const string GeneralReplaceOperationId", profileCompile, StringComparison.Ordinal);
+        foreach (string retiredFile in new[]
+                 {
+                     "ReplaceCliCommandHandler.Bindings.cs",
+                     "ReplaceCliCommandHandler.IcNumbers.cs",
+                     "ReplaceCliCommandHandler.ProfileCompile.cs",
+                     "ReplaceCliCommandHandler.ProfileResolution.cs",
+                 })
+        {
+            Assert.False(File.Exists(Path.Combine(
+                Root.FullName,
+                "src",
+                "NvtFwCombiner.Bootstrap",
+                retiredFile)));
+        }
     }
 
     /// <summary>Verifies shared Replace workbench CLI helpers stay out of the CtrlRAM workflow file.</summary>
@@ -246,9 +256,6 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Contains("new IcNumberSelection", helper, StringComparison.Ordinal);
         Assert.Contains("WorkbenchIcNumberSelections.FromNumberToken", bootstrapSource, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchIcNumberSelections.Single", bootstrapSource, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchIcNumberSelections.Numeric", bootstrapSource, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchIcNumberSelections.Cascade", bootstrapSource, StringComparison.Ordinal);
         Assert.DoesNotContain("new IcNumberSelection", bootstrapWithoutHelper, StringComparison.Ordinal);
     }
 

@@ -29,9 +29,6 @@ public sealed class ProfilesCliCommandTests
             "Built-in replace profiles:",
             "nt51950-dp-replace-dp-perspective  ic=NT51950  inputs=dp-replacement, reference-base  ic-num=SingleSelector  default-output=nt51950-dp-replace.bin",
             "nt51951-dp-replace-dp-perspective  ic=NT51951  inputs=dp-replacement, reference-base  ic-num=SingleSelector  default-output=nt51951-dp-replace.bin",
-            "synthetic-ctrlram-replace  ic=NT-SYNTHETIC  inputs=ctrlram-replacement, reference-base  ic-num=CascadeSelector  default-output=synthetic-ctrlram-replace.bin",
-            "synthetic-dp-replace  ic=NT-SYNTHETIC  inputs=dp-replacement, ld-replacement, reference-base  ic-num=SingleSelector  default-output=synthetic-dp-replace.bin",
-            "synthetic-general-replace  ic=NT-SYNTHETIC  inputs=reference-base  ic-num=SingleSelector  default-output=synthetic-general-replace.bin",
             string.Empty,
         ]);
 
