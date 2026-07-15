@@ -134,12 +134,4 @@
   </Border>
 </DataTemplate>
 
-<DataTemplate x:Key="FooterStatusPanelTemplate" DataType="vm:MainWindowViewModel">
-  <Border Classes="footerStatus">
-    <TextBlock
-        Classes="mutedText"
-        Text="{Binding FooterStatus}"
-        TextWrapping="Wrap" />
-  </Border>
-</DataTemplate>
 </ResourceDictionary>

@@ -49,8 +49,6 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
         SelectChangedBlockCommand = new RelayCommand<HexEditorChangedBlockViewModel>(SelectChangedBlock);
         GoToChangedBlockStartCommand = new RelayCommand<HexEditorChangedBlockViewModel>(GoToChangedBlockStart);
         GoToChangedBlockEndCommand = new RelayCommand<HexEditorChangedBlockViewModel>(GoToChangedBlockEnd);
-        SelectOverwriteModeCommand = new RelayCommand(() => RangeWriteMode = HexEditorRangeWriteMode.Overwrite);
-        SelectFillModeCommand = new RelayCommand(() => RangeWriteMode = HexEditorRangeWriteMode.Fill);
         ApplyRangeEditCommand = new RelayCommand(ApplyRangeEdit, CanApplyRangeEdit);
         ApplyOverwriteRangeCommand = new RelayCommand(ApplyOverwriteRange, CanApplyRangeEdit);
         ApplyFillRangeCommand = new RelayCommand(ApplyFillRange, CanApplyRangeEdit);
