@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Application.Tests;
 
@@ -10,7 +11,7 @@ public sealed partial class CompositionRunServiceTests
         IReadOnlyList<InputArtifactBinding>? bindings = null,
         string? outputFileName = null)
     {
-        CompositionProfileDefinition profile = SyntheticCompositionProfiles.CreateStandardMerge();
+        CompositionProfileDefinition profile = SyntheticStandardMergeProfile.Create();
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         return new CompositionRunRequest(
             "run-standard-synthetic",
