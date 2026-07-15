@@ -11,7 +11,7 @@ public sealed partial class CompositionRunServiceTests
         IReadOnlyList<InputArtifactBinding>? bindings = null,
         string? outputFileName = null)
     {
-        CompositionProfileDefinition profile = SyntheticCompositionProfiles.CreateStandardMerge();
+        CompositionProfileDefinition profile = SyntheticStandardMergeProfile.Create();
         ProfileCompileResult compile = CompositionProfileCompiler.Compile(profile, []);
         return new CompositionRunRequest(
             "run-standard-synthetic",

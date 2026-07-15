@@ -79,11 +79,6 @@ public sealed record WorkbenchCmiDpCodeMetadata(
     long Register18Offset,
     string EvidenceSource);
 
-/// <summary>Profile-owned normal Standard Merge DP source-length facts used for non-blocking slot diagnostics.</summary>
-public sealed record WorkbenchStandardMergeDpInputLengthPolicy(
-    long RequiredLength,
-    IReadOnlyList<long> ExpectedInputLengths);
-
 /// <summary>One selected firmware path candidate used by output naming metadata policy.</summary>
 public sealed record WorkbenchOutputNameCandidate(
     WorkbenchOutputNameCandidateKind Kind,

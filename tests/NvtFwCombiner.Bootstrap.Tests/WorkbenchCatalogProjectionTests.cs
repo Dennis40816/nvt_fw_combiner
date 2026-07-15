@@ -77,7 +77,7 @@ public sealed class WorkbenchCatalogProjectionTests
     [Fact]
     public void ProfileSummaryRetainsCompileFailureDiagnostics()
     {
-        CompositionProfileDefinition source = SyntheticCompositionProfiles.CreateStandardMerge();
+        CompositionProfileDefinition source = SyntheticStandardMergeProfile.Create();
         var invalid = new CompositionProfileDefinition(
             source.ProfileId,
             source.ProfileVersion,

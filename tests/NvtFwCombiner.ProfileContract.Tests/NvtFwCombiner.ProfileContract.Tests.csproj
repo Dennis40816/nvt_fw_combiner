@@ -13,8 +13,8 @@
              Link="TrustedV2BundleTestDocuments.cs" />
     <Compile Include="..\NvtFwCombiner.TestSupport\RuntimeReferenceReplaceTestDocuments.cs"
              Link="RuntimeReferenceReplaceTestDocuments.cs" />
-    <Compile Include="..\NvtFwCombiner.TestSupport\SyntheticCompositionProfiles.cs"
-             Link="SyntheticCompositionProfiles.cs" />
+    <Compile Include="..\NvtFwCombiner.TestSupport\SyntheticStandardMergeProfile.cs"
+             Link="SyntheticStandardMergeProfile.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />

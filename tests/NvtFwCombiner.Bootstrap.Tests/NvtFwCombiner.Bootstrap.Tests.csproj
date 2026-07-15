@@ -9,8 +9,8 @@
     <ProjectReference Include="..\NvtFwCombiner.TestSupport\NvtFwCombiner.TestSupport.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\NvtFwCombiner.TestSupport\SyntheticCompositionProfiles.cs"
-             Link="SyntheticCompositionProfiles.cs" />
+    <Compile Include="..\NvtFwCombiner.TestSupport\SyntheticStandardMergeProfile.cs"
+             Link="SyntheticStandardMergeProfile.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />

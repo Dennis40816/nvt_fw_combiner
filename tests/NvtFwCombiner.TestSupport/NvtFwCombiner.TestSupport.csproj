@@ -6,6 +6,6 @@
     <ProjectReference Include="..\..\src\NvtFwCombiner.Application\NvtFwCombiner.Application.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Remove="SyntheticCompositionProfiles.cs" />
+    <Compile Remove="SyntheticStandardMergeProfile.cs" />
   </ItemGroup>
 </Project>

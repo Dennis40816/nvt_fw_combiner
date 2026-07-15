@@ -111,18 +111,4 @@ public sealed class StandardMergeCompilationTests
         Assert.Equal(expectedLength, WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(icId));
     }
 
-    /// <summary>DP warning policy is projected from the compiled immutable input address space.</summary>
-    [Fact]
-    public void DpInputLengthPolicyUsesCompiledAddressSpaceFacts()
-    {
-        bool found = WorkbenchCompositionService.TryGetStandardMergeDpInputLengthPolicy(
-            "NT51929",
-            out WorkbenchStandardMergeDpInputLengthPolicy policy);
-
-        Assert.True(found);
-        Assert.Equal(0x6000, policy.RequiredLength);
-        Assert.Equal([0x40000], policy.ExpectedInputLengths);
-        Assert.False(WorkbenchCompositionService.TryGetStandardMergeDpInputLengthPolicy("NT51950", out _));
-        Assert.False(WorkbenchCompositionService.TryGetStandardMergeDpInputLengthPolicy("NT00000", out _));
-    }
 }
