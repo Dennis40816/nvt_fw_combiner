@@ -154,6 +154,39 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("FirmwareConfigMetadataReader.TryRead", replacePostbuild, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies every routed V2 workflow shares one immutable directory/hash bundle registry.</summary>
+    [Fact]
+    public void BuiltInV2BundlePinsHaveOneOwner()
+    {
+        string standardMerge = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs");
+        string generalMerge = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.V2.cs");
+        string dpReplace = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.BuiltInV2.cs");
+        string ctrlRamCandidate = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.V2.cs");
+
+        static bool IsSha256Literal(string value)
+        {
+            return value.Length == 64 && value.All(static character => character is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
+        }
+
+        Assert.Equal(17, standardMerge.Split('"').Count(IsSha256Literal));
+        Assert.Equal(13, CountOccurrences(standardMerge, "Bundle(\""));
+        Assert.Equal(13, CountOccurrences(generalMerge, "Bundle(\""));
+        Assert.Equal(2, CountOccurrences(dpReplace, "Bundle(\""));
+        Assert.Equal(1, CountOccurrences(ctrlRamCandidate, "Bundle(\""));
+        Assert.Equal(
+            1,
+            CountOccurrences(
+                standardMerge + generalMerge + dpReplace + ctrlRamCandidate,
+                "new BuiltInV2Bundle("));
+        Assert.DoesNotContain(generalMerge.Split('"'), IsSha256Literal);
+        Assert.DoesNotContain(dpReplace.Split('"'), IsSha256Literal);
+        Assert.DoesNotContain(ctrlRamCandidate.Split('"'), IsSha256Literal);
+    }
+
     /// <summary>Verifies the raw Hex Editor stays independent from firmware composition policy and UI file I/O.</summary>
     [Fact]
     public void HexEditorUsesRawBinaryFacadeWithoutUiFirmwareIo()

@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Collections.ObjectModel;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
@@ -13,98 +14,49 @@ public static partial class WorkbenchCompositionService
     private const string BuiltInV2BundleLoadFailed = "profile.v2.builtin-bundle-load-failed";
     private const string BuiltInV2CompilationFailed = "profile.v2.builtin-compilation-failed";
 
-    private static readonly BuiltInV2Bundle s_nt51920V2Bundle = new(
-        "nt51920-standard-merge",
-        "3bb76d56656642af553ff012a619ca8fc38fb7cdabf8ac674e5433998357f9f2");
-    private static readonly BuiltInV2Bundle s_nt51929FamilyV2Bundle = new(
-        "nt51929-standard-merge",
-        "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09");
-    private static readonly BuiltInV2Bundle s_nt51923FamilyV2Bundle = new(
-        "nt51923-standard-merge",
-        "6bac75eb386ff08c3fa6970e54b3c1dca35722ddaeaf52b67068a127c4e85a96");
-    private static readonly BuiltInV2Bundle s_nt51930V2Bundle = new(
-        "nt51930-standard-merge",
-        "b9ca3d66d8674d080b4e0c8563110dfd305b3df18746f5164e7ed45514e0714e");
-    private static readonly BuiltInV2Bundle s_nt51931V2Bundle = new(
-        "nt51931-standard-merge",
-        "a7b3534afce6d2fe107363e41554668a71832f203168c81fa09e9f98a1a5815f");
-    private static readonly BuiltInV2Bundle s_nt51927V2Bundle = new(
-        "nt51927-standard-merge",
-        "751f44c7dd790a826e9ab17747b933542c691125bdee8b975c9c764e4f2ef4b1");
-    private static readonly BuiltInV2Bundle s_nt51928V2Bundle = new(
-        "nt51928-standard-merge",
-        "27de29151abd1305a8ebf6ba25118acbf59392efd362d362699310a5564ad5af");
-    private static readonly BuiltInV2Bundle s_nt51950Nt51951V2Bundle = new(
-        "nt51950-nt51951-standard-merge",
-        "65987f6b1e41feaca92e7b258bca282df9ae133f90db6877ba6b97c04d91f0f4");
+    private static class BuiltInV2BundleRegistry
+    {
+        internal static FrozenDictionary<string, BuiltInV2Bundle> All { get; } =
+            new (string Directory, string ContentHash)[]
+            {
+                ("nt51917-nt51927-general-merge-logical-candidate", "1025069140de5ba78296af045dc477cf8164395b68b0ce82a77970eecbe05c0e"),
+                ("nt51919-nt51929-nt51932-general-merge-logical-candidate", "fabc02474120adb7659d9e069b9c60395cad4620282afdf8ff9e9b915acc4283"),
+                ("nt51920-general-merge-logical-candidate", "d2f87973576f54b80439f30ef1790f47df2994a6811673f0ceb8ecd5cacdbdc7"),
+                ("nt51920-standard-merge", "3bb76d56656642af553ff012a619ca8fc38fb7cdabf8ac674e5433998357f9f2"),
+                ("nt51923-nt51926-general-merge-logical-candidate", "26f12851f81d55bb88a0a0e18ab4f10f451747369e797efbc69fdbf05cdf5a96"),
+                ("nt51923-standard-merge", "6bac75eb386ff08c3fa6970e54b3c1dca35722ddaeaf52b67068a127c4e85a96"),
+                ("nt51926-ctrlram-replace-candidate", "83f22d939a257046a6b7357c98c34b1e953687b28545612d749a16a9323c0736"),
+                ("nt51927-standard-merge", "751f44c7dd790a826e9ab17747b933542c691125bdee8b975c9c764e4f2ef4b1"),
+                ("nt51928-general-merge-logical-candidate", "9cdfbe52fcf58071ab7ea9648844dc3d0dd5363e6b41db02454709bf921512a6"),
+                ("nt51928-standard-merge", "27de29151abd1305a8ebf6ba25118acbf59392efd362d362699310a5564ad5af"),
+                ("nt51929-standard-merge", "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09"),
+                ("nt51930-general-merge-logical-candidate", "dd94152806731536a7641b06b33ed177cc17e141032b705ed5b89956e3affc39"),
+                ("nt51930-standard-merge", "b9ca3d66d8674d080b4e0c8563110dfd305b3df18746f5164e7ed45514e0714e"),
+                ("nt51931-general-merge-logical-candidate", "ce3b18aede5c884b074b6f9253d45a255e82a2147ec76bd300e7548d6fdc52fe"),
+                ("nt51931-standard-merge", "a7b3534afce6d2fe107363e41554668a71832f203168c81fa09e9f98a1a5815f"),
+                ("nt51950-nt51951-general-merge-logical-candidate", "1da78f9a6d8aae1e7fbbda0f5977272b5c9902194ab102f2232586edd77eb121"),
+                ("nt51950-nt51951-standard-merge", "65987f6b1e41feaca92e7b258bca282df9ae133f90db6877ba6b97c04d91f0f4"),
+            }.ToFrozenDictionary(
+                static bundle => bundle.Directory,
+                static bundle => new BuiltInV2Bundle(bundle.Directory, bundle.ContentHash),
+                StringComparer.Ordinal);
+    }
     private static readonly ReadOnlyCollection<BuiltInV2StandardMergeRegistration> s_builtInV2StandardMergeRegistrations =
-        Array.AsReadOnly(
+        Array.AsReadOnly<BuiltInV2StandardMergeRegistration>(
         [
-            new BuiltInV2StandardMergeRegistration(
-                "NT51917",
-                "nt51917-standard-merge-gen-flash-alias",
-                "0.5.0",
-                s_nt51927V2Bundle),
-            new BuiltInV2StandardMergeRegistration(
-                "NT51919",
-                "nt51919-standard-merge-gen-flash-alias",
-                "0.5.0",
-                s_nt51929FamilyV2Bundle),
-            new BuiltInV2StandardMergeRegistration(
-                "NT51920",
-                "nt51920-standard-merge-gen-flash",
-                "0.5.0",
-                s_nt51920V2Bundle),
-            new BuiltInV2StandardMergeRegistration(
-                "NT51923",
-                "nt51923-standard-merge-gen-flash",
-                "0.5.0",
-                s_nt51923FamilyV2Bundle),
-            new BuiltInV2StandardMergeRegistration(
-                "NT51926",
-                "nt51926-standard-merge-gen-flash",
-                "0.5.0",
-                s_nt51923FamilyV2Bundle),
-            new BuiltInV2StandardMergeRegistration(
-                "NT51927",
-                "nt51927-standard-merge-gen-flash",
-                "0.5.0",
-                s_nt51927V2Bundle),
-            new BuiltInV2StandardMergeRegistration(
-                "NT51928",
-                "nt51928-standard-merge-gen-flash",
-                "0.5.0",
-                s_nt51928V2Bundle),
-            new BuiltInV2StandardMergeRegistration(
-                "NT51929",
-                "nt51929-standard-merge-gen-flash",
-                "0.5.0",
-                s_nt51929FamilyV2Bundle),
-            new BuiltInV2StandardMergeRegistration(
-                "NT51930",
-                "nt51930-standard-merge-flashmap",
-                "0.5.0",
-                s_nt51930V2Bundle),
-            new BuiltInV2StandardMergeRegistration(
-                "NT51931",
-                "nt51931-standard-merge-gen-flash",
-                "0.5.0",
-                s_nt51931V2Bundle),
-            new BuiltInV2StandardMergeRegistration(
-                "NT51932",
-                "nt51932-standard-merge-gen-flash",
-                "0.5.0",
-                s_nt51929FamilyV2Bundle),
-            new BuiltInV2StandardMergeRegistration(
-                "NT51950",
-                "nt51950-standard-merge-dp-perspective",
-                "0.5.1",
-                s_nt51950Nt51951V2Bundle),
-            new BuiltInV2StandardMergeRegistration(
-                "NT51951",
-                "nt51951-standard-merge-dp-perspective",
-                "0.5.1",
-                s_nt51950Nt51951V2Bundle),
+            new("NT51917", "nt51917-standard-merge-gen-flash-alias", "0.5.0", Bundle("nt51927-standard-merge")),
+            new("NT51919", "nt51919-standard-merge-gen-flash-alias", "0.5.0", Bundle("nt51929-standard-merge")),
+            new("NT51920", "nt51920-standard-merge-gen-flash", "0.5.0", Bundle("nt51920-standard-merge")),
+            new("NT51923", "nt51923-standard-merge-gen-flash", "0.5.0", Bundle("nt51923-standard-merge")),
+            new("NT51926", "nt51926-standard-merge-gen-flash", "0.5.0", Bundle("nt51923-standard-merge")),
+            new("NT51927", "nt51927-standard-merge-gen-flash", "0.5.0", Bundle("nt51927-standard-merge")),
+            new("NT51928", "nt51928-standard-merge-gen-flash", "0.5.0", Bundle("nt51928-standard-merge")),
+            new("NT51929", "nt51929-standard-merge-gen-flash", "0.5.0", Bundle("nt51929-standard-merge")),
+            new("NT51930", "nt51930-standard-merge-flashmap", "0.5.0", Bundle("nt51930-standard-merge")),
+            new("NT51931", "nt51931-standard-merge-gen-flash", "0.5.0", Bundle("nt51931-standard-merge")),
+            new("NT51932", "nt51932-standard-merge-gen-flash", "0.5.0", Bundle("nt51929-standard-merge")),
+            new("NT51950", "nt51950-standard-merge-dp-perspective", "0.5.1", Bundle("nt51950-nt51951-standard-merge")),
+            new("NT51951", "nt51951-standard-merge-dp-perspective", "0.5.1", Bundle("nt51950-nt51951-standard-merge")),
         ]);
     private static readonly ReadOnlyDictionary<string, BuiltInV2StandardMergeRegistration> s_builtInV2StandardMergeByIc =
         new(
@@ -114,6 +66,11 @@ public static partial class WorkbenchCompositionService
 
     private static IReadOnlyList<BuiltInV2StandardMergeRegistration> BuiltInV2StandardMergeRegistrations =>
         s_builtInV2StandardMergeRegistrations;
+
+    private static BuiltInV2Bundle Bundle(string directory)
+    {
+        return BuiltInV2BundleRegistry.All[directory];
+    }
 
     private static bool TryGetBuiltInV2StandardMergeCompilation(
         string icId,
