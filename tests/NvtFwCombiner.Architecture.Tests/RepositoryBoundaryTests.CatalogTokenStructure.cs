@@ -2,6 +2,29 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
+    /// <summary>Verifies canonical NT-prefixed IC normalization stays catalog-owned.</summary>
+    [Fact]
+    public void IcIdentifierNormalizationStaysCatalogOwned()
+    {
+        string catalog = ReadText("src/NvtFwCombiner.Profiles/IcSupportCatalog.cs");
+        string[] consumers =
+        [
+            ReadText("src/NvtFwCombiner.Profiles/DpReplaceAuthoringCatalog.cs"),
+            ReadText("src/NvtFwCombiner.Bootstrap/IcMetadataFacade.cs"),
+            ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.OutputNaming.cs"),
+            ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.BuiltInV2.cs"),
+        ];
+
+        const string implementationToken = "StartsWith(\"NT\", StringComparison.OrdinalIgnoreCase)";
+        Assert.Contains("public static string NormalizeIcId", catalog, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(catalog, implementationToken));
+        foreach (string consumer in consumers)
+        {
+            Assert.Contains("IcSupportCatalog.NormalizeIcId", consumer, StringComparison.Ordinal);
+            Assert.DoesNotContain(implementationToken, consumer, StringComparison.Ordinal);
+        }
+    }
+
     /// <summary>Verifies workflow ids stay catalog-owned instead of being duplicated in profile adapters.</summary>
     [Fact]
     public void WorkflowIdsStayCatalogOwned()

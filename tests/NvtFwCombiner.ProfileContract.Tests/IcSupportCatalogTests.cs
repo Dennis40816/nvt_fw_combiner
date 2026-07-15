@@ -6,6 +6,24 @@ namespace NvtFwCombiner.ProfileContract.Tests;
 /// <summary>Tests the centralized IC onboarding support catalog.</summary>
 public sealed class IcSupportCatalogTests
 {
+    /// <summary>IC identifiers have one catalog-owned canonical representation.</summary>
+    [Theory]
+    [InlineData("51950", "NT51950")]
+    [InlineData("nt51950", "NT51950")]
+    [InlineData(" NT51950 ", "NT51950")]
+    public void IcIdentifierNormalizationIsCatalogOwned(string value, string expected)
+    {
+        Assert.Equal(expected, IcSupportCatalog.NormalizeIcId(value));
+    }
+
+    /// <summary>Missing IC identifiers fail before a canonical token can be produced.</summary>
+    [Fact]
+    public void IcIdentifierNormalizationRejectsMissingValues()
+    {
+        _ = Assert.Throws<ArgumentNullException>(() => IcSupportCatalog.NormalizeIcId(null!));
+        _ = Assert.Throws<ArgumentException>(() => IcSupportCatalog.NormalizeIcId(" "));
+    }
+
     /// <summary>IC onboarding rows are unique and use only documented workflow ids.</summary>
     [Fact]
     public void IcSupportRowsAreUniqueAndUseKnownWorkflowIds()
