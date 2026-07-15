@@ -19,6 +19,10 @@ public sealed partial class ShellViewModelTests
         ShellPreferenceSnapshot loaded = ShellPreferenceFileStore.Load(preferencesPath);
         Assert.Equal(preferences, loaded);
 
+        var updatedPreferences = new ShellPreferenceSnapshot("Light", "Strict", "English");
+        ShellPreferenceFileStore.Save(preferencesPath, updatedPreferences);
+        Assert.Equal(updatedPreferences, ShellPreferenceFileStore.Load(preferencesPath));
+
         MainWindowViewModel restoredViewModel = ShellViewModelFactory.Create();
         restoredViewModel.LoadShellPreferences(loaded);
 
