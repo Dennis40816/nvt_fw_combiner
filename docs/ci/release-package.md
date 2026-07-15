@@ -41,11 +41,14 @@ No source/profile tree, Python runtime installation, .NET runtime installation, 
 
 ```powershell
 ./scripts/package.ps1 -Version 1.0.0 -Commit <40-character-git-sha>
+./scripts/package.ps1 -Version 0.0.0 -Commit 0000000000000000000000000000000000000000 -ExternalToolPolicyDryRun
 ```
 
-The stable release path accepts stable SemVer only, publishes a self-contained single-file `win-x64` Avalonia app with trimming disabled, builds the worker with PyInstaller one-file mode, copies the approved external tool subtree, copies the approved reference payload and manifest-declared golden fixture BINs, assembles a new empty directory, rejects paths outside the allowlist, writes the manifest and hashes, and creates the ZIP under `artifacts/release/`.
+The stable release path accepts stable SemVer only, publishes a self-contained single-file `win-x64` Avalonia app with trimming disabled, builds the worker with PyInstaller one-file mode, copies only the approved external-tool files and paths, copies the approved reference payload and manifest-declared golden fixture BINs, assembles a new empty directory, rejects paths outside the allowlist, writes the manifest and hashes, and creates the ZIP under `artifacts/release/`.
 
-`main-package.yml` runs the same packager on every `main` push with `-AllowPrerelease`, using the repository `VERSION` value. That workflow first uploads the ZIP, SBOM, and provenance files as a short-retention CI artifact. If GitHub Actions artifact storage is unavailable, it publishes the same files to a generated `main-package-<sha>` prerelease so the self-contained package remains downloadable. This fallback is not a stable release and does not replace the manually gated `release.yml` flow. A stable `release.yml` run rejects a tag that is not reachable from `main`.
+`-ExternalToolPolicyDryRun` creates a temporary extra file inside the source `external-tools/` directory, runs the same approved-file copy and external-tool manifest-entry code used by normal packaging, proves the probe is absent from both staging and the persisted dry-run manifest, and removes the probe and temporary stage. It does not publish application or worker binaries. The deterministic `tests/scripts/test_release_package_policy.py` regression invokes this mode through the canonical `python scripts/verify.py --all` flow and also proves that release smoke rejects a package which manifests an extra external-tool path.
+
+`main-package.yml` runs the same packager on every `main` push with `-AllowPrerelease`, using the repository `VERSION` value. Both package workflows run `smoke-release.ps1 -SkipUiLaunch` before upload or publication, which checks the exact approved external-tool paths, manifest/hashes and sidecars, and the worker self-test. They do not satisfy the visible startup or clean-machine gate. The main workflow first uploads the ZIP, SBOM, and provenance files as a short-retention CI artifact. If GitHub Actions artifact storage is unavailable, it publishes the same files to a generated `main-package-<sha>` prerelease so the self-contained package remains downloadable. This fallback is not a stable release and does not replace the manually gated `release.yml` flow. A stable `release.yml` run rejects a tag that is not reachable from `main`.
 
 ## Local package smoke
 
@@ -70,6 +73,7 @@ Release evidence must include:
 - clean Windows x64 smoke on a machine without separate .NET or Python installs;
 - startup, catalog/settings load, worker `123456789` self-check, representative Preview/Build, report modal/history review, and external Combiner 1.13.0 readiness check;
 - `RELEASE-MANIFEST.json`, `SHA256SUMS.txt`, SBOM/provenance, third-party notices, and signing/legal approval.
+- human release/security approval of the exact package, external-tool allowlist, signing identity, and redistribution decision.
 
 ## Release gates still requiring organizational setup
 

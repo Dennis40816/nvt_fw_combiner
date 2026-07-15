@@ -6,7 +6,9 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$Commit,
 
-    [switch]$AllowPrerelease
+    [switch]$AllowPrerelease,
+
+    [switch]$ExternalToolPolicyDryRun
 )
 
 Set-StrictMode -Version Latest
@@ -30,14 +32,8 @@ if ($Commit -notmatch '^[0-9a-f]{40}$') {
     throw "Commit must be a lowercase 40-character Git SHA; received '$Commit'."
 }
 
-$RepositoryDotNet = Join-Path $RepoRoot '.dotnet/dotnet.exe'
-$DotNet = if (Test-Path -LiteralPath $RepositoryDotNet -PathType Leaf) {
-    $RepositoryDotNet
-}
-else {
-    (Get-Command dotnet -ErrorAction Stop).Source
-}
-$Python = (Get-Command python -ErrorAction Stop).Source
+$DotNet = $null
+$Python = $null
 $ReleaseRoot = Join-Path $RepoRoot 'artifacts/release'
 $WorkRoot = Join-Path $RepoRoot 'artifacts/package-work'
 $PackageName = "NvtFwCombiner-$SourceTag-win-x64"
@@ -48,9 +44,6 @@ $WorkerDist = Join-Path $WorkRoot 'worker-dist'
 $IdleBuildWorkerStopper = Join-Path $PSScriptRoot 'stop-idle-build-workers.ps1'
 
 try {
-Remove-Item -LiteralPath $ReleaseRoot, $WorkRoot -Recurse -Force -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Force -Path $ReleaseRoot, $PackageRoot, $AppPublish, $WorkerBuild, $WorkerDist | Out-Null
-
 function Get-LowerSha256 {
     param([Parameter(Mandatory = $true)][string]$Path)
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -103,6 +96,89 @@ function Copy-PackageFile {
     $DestinationPath = Join-Path $DestinationRoot $NormalizedRelativePath
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $DestinationPath) | Out-Null
     Copy-Item -LiteralPath $SourcePath -Destination $DestinationPath
+}
+
+function Copy-ApprovedExternalToolPackageFiles {
+    param([Parameter(Mandatory = $true)][string]$DestinationRoot)
+
+    foreach ($ApprovedExternalToolPackagePath in $ApprovedExternalToolPackagePaths) {
+        Copy-PackageFile -RelativePath $ApprovedExternalToolPackagePath -DestinationRoot $DestinationRoot
+    }
+}
+
+function Get-ExternalToolManifestEntries {
+    param(
+        [Parameter(Mandatory = $true)][string]$PackageRoot,
+        [Parameter(Mandatory = $true)][string]$ExternalToolsRoot
+    )
+
+    $ExternalToolFiles = @(Get-ChildItem -LiteralPath $ExternalToolsRoot -File -Recurse | ForEach-Object FullName)
+    $PackagedExternalToolPaths = @(
+        $ExternalToolFiles |
+            ForEach-Object { [System.IO.Path]::GetRelativePath($PackageRoot, $_).Replace('\', '/') } |
+            Sort-Object
+    )
+    if (Compare-Object -ReferenceObject $ApprovedExternalToolPackagePaths -DifferenceObject $PackagedExternalToolPaths) {
+        throw 'Release package external-tool files differ from the approved allowlist.'
+    }
+
+    return @(
+        $ExternalToolFiles | Sort-Object | ForEach-Object {
+            $RelativePath = [System.IO.Path]::GetRelativePath($PackageRoot, $_).Replace('\', '/')
+            [ordered]@{
+                path = $RelativePath
+                size = (Get-Item $_).Length
+                sha256 = (Get-LowerSha256 $_)
+                role = 'externalTool'
+            }
+        }
+    )
+}
+
+function Invoke-ExternalToolPolicyDryRun {
+    $ProbeRelativePath = 'external-tools/release-package-policy-probe.txt'
+    $ProbeSourcePath = Join-Path $RepoRoot $ProbeRelativePath
+    if (Test-Path -LiteralPath $ProbeSourcePath) {
+        throw "External-tool policy probe already exists: $ProbeSourcePath"
+    }
+
+    $DryRunRoot = Join-Path ([IO.Path]::GetTempPath()) "nvt-fw-combiner-package-policy-$([guid]::NewGuid().ToString('N'))"
+    $DryRunPackageRoot = Join-Path $DryRunRoot 'package'
+    try {
+        New-Item -ItemType Directory -Force -Path $DryRunPackageRoot | Out-Null
+        'negative release-policy probe' | Set-Content -LiteralPath $ProbeSourcePath -Encoding ascii
+
+        Copy-ApprovedExternalToolPackageFiles -DestinationRoot $DryRunPackageRoot
+        $DryRunExternalToolsRoot = Join-Path $DryRunPackageRoot 'external-tools'
+        $DryRunEntries = @(Get-ExternalToolManifestEntries `
+            -PackageRoot $DryRunPackageRoot `
+            -ExternalToolsRoot $DryRunExternalToolsRoot)
+        $DryRunManifestPath = Join-Path $DryRunPackageRoot 'RELEASE-MANIFEST.json'
+        [ordered]@{ files = $DryRunEntries } |
+            ConvertTo-Json -Depth 4 |
+            Set-Content -LiteralPath $DryRunManifestPath -Encoding utf8NoBOM
+
+        $StagedProbePath = Join-Path $DryRunPackageRoot $ProbeRelativePath
+        if (Test-Path -LiteralPath $StagedProbePath) {
+            throw 'External-tool policy probe entered package staging.'
+        }
+
+        $PersistedManifest = Get-Content -LiteralPath $DryRunManifestPath -Raw | ConvertFrom-Json
+        $ManifestProbeEntries = @($PersistedManifest.files | Where-Object { $_.path -eq $ProbeRelativePath })
+        if ($ManifestProbeEntries.Count -ne 0) {
+            throw 'External-tool policy probe entered the release manifest.'
+        }
+
+        Write-Host 'External-tool package policy dry-run passed: probe excluded from staging and manifest.'
+    }
+    finally {
+        if (Test-Path -LiteralPath $ProbeSourcePath) {
+            Remove-Item -LiteralPath $ProbeSourcePath -Force
+        }
+        if (Test-Path -LiteralPath $DryRunRoot) {
+            Remove-Item -LiteralPath $DryRunRoot -Recurse -Force
+        }
+    }
 }
 
 function Copy-PackageReferenceTree {
@@ -206,6 +282,23 @@ function Get-DeclaredStandardMergeGoldenPaths {
     return @($Paths | Sort-Object)
 }
 
+if ($ExternalToolPolicyDryRun) {
+    Invoke-ExternalToolPolicyDryRun
+    return
+}
+
+$RepositoryDotNet = Join-Path $RepoRoot '.dotnet/dotnet.exe'
+$DotNet = if (Test-Path -LiteralPath $RepositoryDotNet -PathType Leaf) {
+    $RepositoryDotNet
+}
+else {
+    (Get-Command dotnet -ErrorAction Stop).Source
+}
+$Python = (Get-Command python -ErrorAction Stop).Source
+
+Remove-Item -LiteralPath $ReleaseRoot, $WorkRoot -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force -Path $ReleaseRoot, $PackageRoot, $AppPublish, $WorkerBuild, $WorkerDist | Out-Null
+
 $AppProject = Join-Path $RepoRoot 'src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj'
 $SourcePackageLockSnapshots = Save-SourcePackageLocks
 & $DotNet publish $AppProject -c Release -r win-x64 --self-contained true `
@@ -252,9 +345,7 @@ $WorkerExe = Join-Path $PackageRoot 'Nfc.CrcWorker.exe'
 Copy-Item -LiteralPath $BuiltWorker -Destination $WorkerExe
 
 $ExternalToolsDestination = Join-Path $PackageRoot 'external-tools'
-foreach ($ApprovedExternalToolPackagePath in $ApprovedExternalToolPackagePaths) {
-    Copy-PackageFile -RelativePath $ApprovedExternalToolPackagePath -DestinationRoot $PackageRoot
-}
+Copy-ApprovedExternalToolPackageFiles -DestinationRoot $PackageRoot
 
 $ReferenceDestination = Join-Path $PackageRoot 'reference'
 New-Item -ItemType Directory -Force -Path $ReferenceDestination | Out-Null
@@ -329,21 +420,9 @@ $ProfileFiles = @(Get-ChildItem -LiteralPath (Join-Path $RepoRoot 'profiles') -F
 $SchemaFiles = @(Get-ChildItem -LiteralPath (Join-Path $RepoRoot 'docs/contracts') -Filter '*.schema.json' -File | ForEach-Object FullName)
 $ProfileDigest = Get-TreeDigest -Paths $ProfileFiles
 $SchemaDigest = Get-TreeDigest -Paths $SchemaFiles
-$ExternalToolFiles = @(Get-ChildItem -LiteralPath $ExternalToolsDestination -File -Recurse | ForEach-Object FullName)
-$PackagedExternalToolPaths = @(
-    $ExternalToolFiles |
-        ForEach-Object { [System.IO.Path]::GetRelativePath($PackageRoot, $_).Replace('\', '/') } |
-        Sort-Object
-)
-if (Compare-Object -ReferenceObject $ApprovedExternalToolPackagePaths -DifferenceObject $PackagedExternalToolPaths) {
-    throw 'Release package external-tool files differ from the approved allowlist.'
-}
-$ExternalToolEntries = @(
-    $ExternalToolFiles | Sort-Object | ForEach-Object {
-        $RelativePath = [System.IO.Path]::GetRelativePath($PackageRoot, $_).Replace('\', '/')
-        [ordered]@{ path = $RelativePath; size = (Get-Item $_).Length; sha256 = (Get-LowerSha256 $_); role = 'externalTool' }
-    }
-)
+$ExternalToolEntries = @(Get-ExternalToolManifestEntries `
+    -PackageRoot $PackageRoot `
+    -ExternalToolsRoot $ExternalToolsDestination)
 $ReferencePayloadFiles = @(Get-ChildItem -LiteralPath $ReferenceDestination -File -Recurse | ForEach-Object FullName)
 $ReferencePayloadEntries = @(
     $ReferencePayloadFiles | Sort-Object | ForEach-Object {
@@ -482,15 +561,17 @@ Write-Host "Worker SHA-256: $WorkerHash"
 finally {
     # Publishing can leave MSBuild/Roslyn servers alive after a successful or failed package run.
     # They are build helpers, not package runtime dependencies, so always stop the repository SDK servers.
-    & $DotNet build-server shutdown
-    if ($LASTEXITCODE -ne 0) {
-        Write-Warning "dotnet build-server shutdown returned exit code $LASTEXITCODE."
-    }
-
-    if (Test-Path -LiteralPath $IdleBuildWorkerStopper -PathType Leaf) {
-        & $IdleBuildWorkerStopper -RepositoryRoot $RepoRoot
+    if ($null -ne $DotNet) {
+        & $DotNet build-server shutdown
         if ($LASTEXITCODE -ne 0) {
-            Write-Warning "idle Avalonia build worker cleanup returned exit code $LASTEXITCODE."
+            Write-Warning "dotnet build-server shutdown returned exit code $LASTEXITCODE."
+        }
+
+        if (Test-Path -LiteralPath $IdleBuildWorkerStopper -PathType Leaf) {
+            & $IdleBuildWorkerStopper -RepositoryRoot $RepoRoot
+            if ($LASTEXITCODE -ne 0) {
+                Write-Warning "idle Avalonia build worker cleanup returned exit code $LASTEXITCODE."
+            }
         }
     }
 }
