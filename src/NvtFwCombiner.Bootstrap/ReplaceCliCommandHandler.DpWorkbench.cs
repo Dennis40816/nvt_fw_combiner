@@ -29,7 +29,7 @@ internal static partial class ReplaceCliCommandHandler
 
         if (!WorkbenchIcNumberTokens.IsSingle(icNumber))
         {
-            error.WriteLine($"error: {DpPerspectiveCatalog.FormatSupportedIcIds()} DP Replace requires --ic-num {WorkbenchIcNumberTokens.SingleChip}");
+            error.WriteLine($"error: {WorkbenchCompositionService.FormatBuiltInV2DpReplaceIcIds()} DP Replace requires --ic-num {WorkbenchIcNumberTokens.SingleChip}");
             return UsageError;
         }
 
@@ -95,7 +95,7 @@ internal static partial class ReplaceCliCommandHandler
         {
             if (options.Values.ContainsKey(optionName) || options.GetValues(optionName).Count > 0)
             {
-                error.WriteLine($"error: option '{optionName}' is not used by {DpPerspectiveCatalog.FormatSupportedIcIds()} DP Replace");
+                error.WriteLine($"error: option '{optionName}' is not used by {WorkbenchCompositionService.FormatBuiltInV2DpReplaceIcIds()} DP Replace");
                 return false;
             }
         }

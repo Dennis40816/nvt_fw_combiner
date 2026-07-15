@@ -1,7 +1,6 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using NvtFwCombiner.Bootstrap;
-using NvtFwCombiner.Profiles;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.GoldenRegression.Tests;
@@ -11,8 +10,8 @@ public sealed class DpReplaceGoldenRegressionTests
 {
     private static readonly string[] ExpectedDpReplaceOperations =
     [
-        DpPerspectiveCatalog.ReplaceDpContainerOperationId,
-        DpPerspectiveCatalog.RestoreBaseTpOperationId,
+        "replace-dp-container",
+        "restore-base-tp",
     ];
 
     /// <summary>Verifies 950/951 DP Replace self-replacement preserves owner-approved golden flash bytes.</summary>

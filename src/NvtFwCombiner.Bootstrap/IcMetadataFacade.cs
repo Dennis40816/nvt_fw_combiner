@@ -34,15 +34,6 @@ internal static class IcMetadataFacade
         return MetadataByIc.TryGetValue(NormalizeIcId(icId), out metadata);
     }
 
-    /// <summary>Returns whether a selectable IC exposes an approved workbench workflow.</summary>
-    public static bool SupportsWorkflow(string icId, string workflowId)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(workflowId);
-        return TryFind(icId, out IcMetadata? metadata) &&
-            metadata is not null &&
-            metadata.SupportsWorkflow(workflowId);
-    }
-
     /// <summary>Gets the profile-declared IC-number choices for a selectable IC.</summary>
     public static IReadOnlyList<string> GetNumberChoices(string icId)
     {
@@ -57,14 +48,6 @@ internal static class IcMetadataFacade
         return TryFind(icId, out IcMetadata? metadata) && metadata is not null
             ? metadata.NumberSelectionChoices
             : [];
-    }
-
-    /// <summary>Returns true when the IC uses the profile-owned DP Perspective container policy.</summary>
-    public static bool IsDpPerspectiveIc(string icId)
-    {
-        return TryFind(icId, out IcMetadata? metadata) &&
-            metadata is not null &&
-            metadata.UsesDpPerspective;
     }
 
     /// <summary>Gets the approved postbuild category variants for a selectable IC.</summary>
@@ -132,8 +115,7 @@ internal static class IcMetadataFacade
                     .Select(profile => profile.DisplayCategory)
                     .Distinct(StringComparer.Ordinal)
                     .Order(StringComparer.Ordinal)
-                    .ToArray()),
-                DpPerspectiveCatalog.IsSupportedIc(support.IcId)));
+                    .ToArray())));
         }
 
         return metadata;
@@ -159,15 +141,8 @@ internal sealed record IcMetadata(
     long FirmwareConfigPrimaryStart,
     IReadOnlyList<string> NumberChoices,
     IReadOnlyList<IcNumberChoice> NumberSelectionChoices,
-    IReadOnlyList<string> PostbuildCategories,
-    bool UsesDpPerspective)
+    IReadOnlyList<string> PostbuildCategories)
 {
-    /// <summary>Returns true when this IC exposes the selected workflow.</summary>
-    public bool SupportsWorkflow(string workflowId)
-    {
-        return WorkflowIds.Contains(workflowId, StringComparer.Ordinal);
-    }
-
     /// <summary>Returns true when one or more approved postbuild categories are declared.</summary>
     public bool HasPostbuild => PostbuildCategories.Count > 0;
 }

@@ -2,7 +2,6 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
-using NvtFwCombiner.Profiles;
 using NvtFwCombiner.Profiles.V2;
 using NvtFwCombiner.TestSupport;
 
@@ -141,25 +140,27 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
         CompositionOperation[] operations = [.. plan.OrderedOperations];
         Assert.Equal(
             [
-                DpPerspectiveCatalog.ReplaceDpContainerOperationId,
-                DpPerspectiveCatalog.RestoreBaseTpOperationId,
+                "replace-dp-container",
+                "restore-base-tp",
             ],
             operations.Select(static operation => operation.OperationId));
         Assert.Equal(CompositionOperationKind.ReplaceRange, operations[0].Kind);
-        Assert.Equal(DpPerspectiveCatalog.ReplaceDpContainerSequence, operations[0].Sequence);
+        Assert.Equal(100, operations[0].Sequence);
         Assert.Equal(CompositionAddressSpaceIds.DpReplacement, operations[0].SourceSpaceId);
         Assert.Equal(new ByteRange(0, capacity), operations[0].SourceRange);
         Assert.Equal(CompositionAddressSpaceIds.OutputImage, operations[0].TargetSpaceId);
         Assert.Equal(new ByteRange(0, capacity), operations[0].TargetRange);
         Assert.Equal(OverlapPolicy.Reject, operations[0].OverlapPolicy);
         Assert.Equal(CompositionOperationKind.CopyRange, operations[1].Kind);
-        Assert.Equal(DpPerspectiveCatalog.RestoreBaseTpSequence, operations[1].Sequence);
+        Assert.Equal(200, operations[1].Sequence);
         Assert.Equal(CompositionAddressSpaceIds.ReferenceBase, operations[1].SourceSpaceId);
-        Assert.Equal(DpPerspectiveCatalog.TpOverlayRange, operations[1].SourceRange);
+        Assert.Equal(new ByteRange(TpOverlayStart, TpOverlayLength), operations[1].SourceRange);
         Assert.Equal(CompositionAddressSpaceIds.OutputImage, operations[1].TargetSpaceId);
-        Assert.Equal(DpPerspectiveCatalog.TpOverlayRange, operations[1].TargetRange);
+        Assert.Equal(new ByteRange(TpOverlayStart, TpOverlayLength), operations[1].TargetRange);
         Assert.Equal(OverlapPolicy.ReplaceExisting, operations[1].OverlapPolicy);
-        Assert.DoesNotContain(operations, operation => operation.TargetRange == DpPerspectiveCatalog.CustomerInfoRange);
+        Assert.DoesNotContain(
+            operations,
+            operation => operation.TargetRange == new ByteRange(CustomerInfoStart, CustomerInfoLength));
     }
 
     private static void AssertMapProtection(CompiledComposition candidate)

@@ -56,7 +56,7 @@ public static partial class WorkbenchCompositionService
             ]
             : replaceMode switch
             {
-                WorkbenchReplaceModes.Dp => CreateDpReplaceRows(icId, regions, dpBaseLength),
+                WorkbenchReplaceModes.Dp => CreateDpReplaceRows(icId, regions),
                 WorkbenchReplaceModes.CtrlRam => CreateCtrlRamReplaceRows(
                     TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile)),
                 WorkbenchReplaceModes.General =>
@@ -98,15 +98,6 @@ public static partial class WorkbenchCompositionService
             TryGetV2DpReplaceMemoryRangeLabel(icId, dpBaseLength, out string v2RangeLabel))
         {
             return v2RangeLabel;
-        }
-
-        if (replaceMode == WorkbenchReplaceModes.Dp && IsDpPerspectiveIc(icId))
-        {
-            return dpBaseLength is long value
-                ? IsSupportedDpPerspectiveBaseLength(value)
-                    ? FormatFullRange(value)
-                    : $"Unsupported base BIN length {FormatHexLength(value)}"
-                : $"Base BIN length: {FormatSupportedDpPerspectiveBaseLengths()}";
         }
 
         IcNumberSelection selection = ToIcNumberSelection(number);

@@ -68,7 +68,7 @@ public static partial class WorkbenchCompositionService
     /// <summary>Returns true when the IC uses the DP Perspective family policy.</summary>
     public static bool IsDpPerspectiveIc(string icId)
     {
-        return IcMetadataFacade.IsDpPerspectiveIc(icId);
+        return IsBuiltInV2DpReplaceIc(icId);
     }
 
     /// <summary>Gets a compact policy summary for the selected DP Replace IC.</summary>
@@ -76,8 +76,6 @@ public static partial class WorkbenchCompositionService
     {
         return TryGetV2DpReplacePolicySummary(icId, out string v2Summary)
             ? v2Summary
-            : IcMetadataFacade.IsDpPerspectiveIc(icId)
-            ? $"DP replacement follows the selected base BIN length: {DpPerspectiveCatalog.FormatSupportedLengths()}; original TP range {FormatDisplayRange(DpPerspectiveCatalog.TpOverlayRange)} is restored from base."
             : "Build stays gated until this IC has approved DP Replace source mapping evidence.";
     }
 

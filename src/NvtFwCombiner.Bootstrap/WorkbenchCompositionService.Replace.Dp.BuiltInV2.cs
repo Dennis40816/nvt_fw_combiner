@@ -71,6 +71,27 @@ public static partial class WorkbenchCompositionService
         return false;
     }
 
+    internal static string FormatBuiltInV2DpReplaceIcIds()
+    {
+        return string.Join(
+            "/",
+            s_builtInV2DpReplaceByIc.Value.Keys.Order(StringComparer.Ordinal));
+    }
+
+    private static bool IsBuiltInV2DpReplaceIc(string icId)
+    {
+        if (string.IsNullOrWhiteSpace(icId))
+        {
+            return false;
+        }
+
+        string trimmed = icId.Trim();
+        string normalized = trimmed.StartsWith("NT", StringComparison.OrdinalIgnoreCase)
+            ? $"NT{trimmed[2..]}"
+            : $"NT{trimmed}";
+        return s_builtInV2DpReplaceByIc.Value.ContainsKey(normalized);
+    }
+
     private static ReadOnlyDictionary<string, BuiltInV2DpReplaceRegistration> CreateBuiltInV2DpReplaceRegistrations()
     {
         return new ReadOnlyDictionary<string, BuiltInV2DpReplaceRegistration>(

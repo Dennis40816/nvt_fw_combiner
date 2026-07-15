@@ -7,6 +7,25 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Runtime-routing evidence for the supported NT51950/NT51951 V2 DP Replace profiles.</summary>
 public sealed class BuiltInV2DpReplaceRoutingTests
 {
+    /// <summary>Verifies UI/workbench family classification is projected from the registered V2 artifacts.</summary>
+    [Theory]
+    [InlineData("51950")]
+    [InlineData("nt51951")]
+    [InlineData("NT51950")]
+    public void DpPerspectiveClassificationNormalizesRegisteredV2IcIds(string icId)
+    {
+        Assert.True(WorkbenchCompositionService.IsDpPerspectiveIc(icId));
+    }
+
+    /// <summary>Verifies ICs without a registered V2 DP Replace artifact are not promoted by classification.</summary>
+    [Theory]
+    [InlineData("")]
+    [InlineData("NT51929")]
+    public void DpPerspectiveClassificationRejectsUnregisteredIcIds(string icId)
+    {
+        Assert.False(WorkbenchCompositionService.IsDpPerspectiveIc(icId));
+    }
+
     /// <summary>Verifies each supported IC/capacity resolves an executable trusted V2 artifact without legacy fallback.</summary>
     [Theory]
     [InlineData("NT51950", 0x40000)]

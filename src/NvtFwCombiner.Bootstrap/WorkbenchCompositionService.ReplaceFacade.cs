@@ -108,7 +108,7 @@ public static partial class WorkbenchCompositionService
                     slotPaths,
                     build,
                     WorkbenchIssueCodes.ReplaceDpProfilePending,
-                    $"DP Replace output is enabled only for {FormatDpPerspectiveIcIds()} until per-IC DP source mapping and golden evidence are approved."),
+                    $"DP Replace output is enabled only for {FormatBuiltInV2DpReplaceIcIds()} until per-IC DP source mapping and golden evidence are approved."),
                 WorkbenchReplaceModes.CtrlRam => await RunCtrlRamReplaceAsync(
                     icId,
                     number,
