@@ -7,13 +7,6 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    /// <summary>Returns true when the IC has a gen_flash-backed DP main/sub version-byte rule.</summary>
-    public static bool HasDpVersionMetadataRule(string icId)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        return GenFlashVersionCatalog.TryGetDpVersionRule(icId, out _);
-    }
-
     /// <summary>Reads gen_flash-backed contiguous DP main/sub version metadata from a selected DP payload.</summary>
     public static WorkbenchDpVersionMetadata? TryReadDpVersionMetadata(string icId, string path)
     {
@@ -158,24 +151,6 @@ public static partial class WorkbenchCompositionService
     {
         commonFwVersion = null;
         if (!TryReadFirmwareConfigBackupMetadata(icId, basePath, out FirmwareConfigMetadata metadata) ||
-            !metadata.IsFirmwareVersionBarValid)
-        {
-            return false;
-        }
-
-        commonFwVersion = metadata.CommonFwVersion;
-        return true;
-    }
-
-    private static bool TryReadBaseCommonFwVersion(
-        string icId,
-        WorkbenchGeneralReplaceBaseSnapshot baseSnapshot,
-        out string? commonFwVersion)
-    {
-        ArgumentNullException.ThrowIfNull(baseSnapshot);
-
-        commonFwVersion = null;
-        if (!TryReadFirmwareConfigBackupMetadata(icId, baseSnapshot.AsSpan(), out FirmwareConfigMetadata metadata) ||
             !metadata.IsFirmwareVersionBarValid)
         {
             return false;

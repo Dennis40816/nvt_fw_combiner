@@ -172,6 +172,35 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Equal(2, document.RootElement.GetProperty("Operations").GetArrayLength());
     }
 
+    /// <summary>Verifies a real IC General Replace build cannot overwrite its immutable base BIN.</summary>
+    [Fact]
+    public async Task GeneralReplaceBuildRejectsOutputPathThatAliasesBase()
+    {
+        using var workspace = TempWorkspace.Create();
+        byte[] baseBytes = CreatePattern(0x40000, 0x63);
+        string reference = workspace.Write("reference.bin", baseBytes);
+
+        CliRunResult result = await RunCliAsync([
+            "general-replace",
+            "build",
+            "--profile",
+            "NT51950",
+            "--ic-num",
+            "single",
+            "--base",
+            reference,
+            "--patch",
+            "0x100+0x1=A5",
+            "--output",
+            reference,
+            "--overwrite",
+        ]);
+
+        Assert.Equal(70, result.ExitCode);
+        Assert.Contains("Output path must not overwrite input artifact", result.Error, StringComparison.Ordinal);
+        Assert.Equal(baseBytes, await File.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken));
+    }
+
     /// <summary>Verifies malformed CLI patch bytes receive the shared workbench validation issue.</summary>
     [Fact]
     public async Task GeneralReplacePreviewRejectsMalformedVirtualPatch()

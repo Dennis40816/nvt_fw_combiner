@@ -41,10 +41,4 @@ public sealed class RangeSet
         return false;
     }
 
-    /// <summary>Returns true when every range in <paramref name="candidates"/> is fully declared.</summary>
-    public bool ContainsAll(IEnumerable<ByteRange> candidates)
-    {
-        ArgumentNullException.ThrowIfNull(candidates);
-        return candidates.All(Contains);
-    }
 }

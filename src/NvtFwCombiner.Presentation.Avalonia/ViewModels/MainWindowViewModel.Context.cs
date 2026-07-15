@@ -8,15 +8,6 @@ public sealed partial class MainWindowViewModel
 {
     private string DeviceContextRefreshSummary { get; set; } = string.Empty;
 
-    private static PlanningCardViewModel CreatePlanningCard(PlanningCardText text)
-    {
-        return new PlanningCardViewModel(
-            text.Title,
-            text.Subtitle,
-            text.Rows,
-            text.Status);
-    }
-
     private void RefreshNumberChoicesForSelectedIc()
     {
         IReadOnlyList<string> nextChoices = UiCompositionRunner.GetNumberChoices(SelectedIc);
@@ -294,7 +285,7 @@ public sealed partial class MainWindowViewModel
     partial void OnSelectedIcChanged(string value)
     {
         RefreshNumberChoicesForSelectedIc();
-        GeneralMergeOutputLength = UiCompositionRunner.GetGeneralMergeDefaultOutputLength(value);
+        GeneralMergeOutputLength = WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(value);
         RefreshContextState(resetRunResult: true);
         RefreshAllSelectedSlotFirmwareFacts();
     }

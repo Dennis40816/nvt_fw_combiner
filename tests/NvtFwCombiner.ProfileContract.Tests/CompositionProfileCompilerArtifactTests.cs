@@ -11,7 +11,7 @@ public sealed class CompositionProfileCompilerArtifactTests
     [Fact]
     public void CompileReturnsAtomicLegacyArtifact()
     {
-        CompositionProfileDefinition profile = SyntheticCompositionProfiles.CreateStandardMerge();
+        CompositionProfileDefinition profile = SyntheticStandardMergeProfile.Create();
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
 
@@ -54,7 +54,7 @@ public sealed class CompositionProfileCompilerArtifactTests
     public void CompileRejectsInvalidIcNumberPolicyBeforeArtifactCreation()
     {
         CompositionProfileDefinition mergeWithSelector = CloneProfile(
-            SyntheticCompositionProfiles.CreateStandardMerge(),
+            SyntheticStandardMergeProfile.Create(),
             IcNumberInputMode.SingleSelector);
         CompositionProfileDefinition replaceWithoutSelector = CloneProfile(
             SyntheticReplaceProfiles.General,
@@ -86,7 +86,7 @@ public sealed class CompositionProfileCompilerArtifactTests
             "output-image",
             new CompiledValidationBytes([0x00]));
         CompositionProfileDefinition profile = CloneProfile(
-            SyntheticCompositionProfiles.CreateStandardMerge(),
+            SyntheticStandardMergeProfile.Create(),
             inputMode: null,
             validationRequirements: [unsupported]);
 
@@ -103,7 +103,7 @@ public sealed class CompositionProfileCompilerArtifactTests
     [Fact]
     public void CompileFingerprintBindsLegacyProfileIdentityAndOutputPolicy()
     {
-        CompositionProfileDefinition profile = SyntheticCompositionProfiles.CreateStandardMerge();
+        CompositionProfileDefinition profile = SyntheticStandardMergeProfile.Create();
         CompiledComposition first = CompositionProfileCompiler.Compile(profile, []).CompiledComposition!;
         CompiledComposition second = CompositionProfileCompiler.Compile(profile, []).CompiledComposition!;
         CompiledComposition changedIdentity = CompositionProfileCompiler.Compile(
