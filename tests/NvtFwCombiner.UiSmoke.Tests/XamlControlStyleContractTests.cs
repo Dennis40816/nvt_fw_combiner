@@ -372,8 +372,9 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("VirtualizingStackPanel", hexEditor, StringComparison.Ordinal);
         Assert.Contains("new ContextMenu()", codeBehind, StringComparison.Ordinal);
         Assert.Contains("_hexByteContextMenu.Open(HexViewport)", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("RequestInsertBytesBeforeCommand.Execute", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("RequestInsertBytesAfterCommand.Execute", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("viewModel.RequestInsertBytesBeforeCommand", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("viewModel.RequestInsertBytesAfterCommand", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("menuItem.Command = command", codeBehind, StringComparison.Ordinal);
         Assert.Contains("StructuralBlockContextMenuRequested", viewport, StringComparison.Ordinal);
         Assert.Contains("TryHitTestStructuralAscii", viewportStructuralBlocks, StringComparison.Ordinal);
         Assert.Contains("ContainsStructuralPoint", viewportStructuralBlocks, StringComparison.Ordinal);
@@ -382,8 +383,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.True(
             codeBehind.IndexOf("HexViewport.TryGetStructuralBlockAt", StringComparison.Ordinal) <
             codeBehind.IndexOf("HexViewport.TryGetCellAt(point", StringComparison.Ordinal));
-        Assert.Contains("GoToChangedBlockStartCommand.Execute", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("GoToChangedBlockEndCommand.Execute", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("viewModel.GoToChangedBlockStartCommand", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("viewModel.GoToChangedBlockEndCommand", codeBehind, StringComparison.Ordinal);
         Assert.Contains("NormalizeAddress", hexInputBehavior, StringComparison.Ordinal);
         Assert.Contains("NormalizeByteSequence", hexInputBehavior, StringComparison.Ordinal);
         Assert.DoesNotContain("KeepAsciiHexOnly", codeBehind, StringComparison.Ordinal);
