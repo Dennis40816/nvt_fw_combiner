@@ -92,11 +92,11 @@
     <Setter Property="MinHeight" Value="32" />
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
-    <Setter Property="FontFamily" Value="Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC" />
+    <Setter Property="FontFamily" Value="{DynamicResource NfcUiFontFamily}" />
     <Setter Property="FontSize" Value="13" />
   </Style>
   <Style Selector="ComboBoxItem">
-    <Setter Property="FontFamily" Value="Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC" />
+    <Setter Property="FontFamily" Value="{DynamicResource NfcUiFontFamily}" />
     <Setter Property="FontSize" Value="13" />
   </Style>
   <Style Selector="ComboBox.technicalSelect">

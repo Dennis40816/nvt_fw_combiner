@@ -55,6 +55,7 @@
   <CornerRadius x:Key="NfcCompactCornerRadius">6</CornerRadius>
   <CornerRadius x:Key="NfcSurfaceCornerRadius">8</CornerRadius>
   <CornerRadius x:Key="NfcPillCornerRadius">999</CornerRadius>
+  <FontFamily x:Key="NfcUiFontFamily">fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI</FontFamily>
   <FontFamily x:Key="NfcTechnicalFontFamily">Cascadia Mono, Consolas</FontFamily>
   <BoxShadows x:Key="NfcWorkflowCardHoverShadow">0 6 14 0 #143B821A</BoxShadows>
   <BoxShadows x:Key="NfcWorkflowCardPressedShadow">0 1 4 0 #143B8214</BoxShadows>

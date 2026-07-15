@@ -12,7 +12,7 @@
     MinWidth="980"
     MinHeight="640"
     Background="{DynamicResource NfcAppBackgroundBrush}"
-    FontFamily="fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI"
+    FontFamily="{DynamicResource NfcUiFontFamily}"
     Icon="/Assets/AppIcon.ico"
     Title="NVT FW Combiner">
   <Window.KeyBindings>

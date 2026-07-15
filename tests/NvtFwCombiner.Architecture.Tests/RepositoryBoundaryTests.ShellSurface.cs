@@ -11,6 +11,7 @@ public sealed partial class RepositoryBoundaryTests
         string buttonStyles = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowButtonStyles.axaml");
         string controlStyles = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowControlStyles.axaml");
         string visualStyles = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowVisualStyles.axaml");
+        string themeTokens = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Styles/ThemeTokens.axaml");
         string sharedTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml");
         string reportTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportTemplates.axaml");
         string reportChangeTemplates = ReadText(
@@ -246,7 +247,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("LoadedReport.PostbuildInvocations", reportAuditTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("LoadedReport.CommandOperations", reportAuditTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("ColumnDefinitions=\"24,*\"", shell, StringComparison.Ordinal);
-        Assert.Contains("FontFamily=\"fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI\"", shell, StringComparison.Ordinal);
+        Assert.Contains("FontFamily=\"{DynamicResource NfcUiFontFamily}\"", shell, StringComparison.Ordinal);
+        Assert.Contains(
+            "<FontFamily x:Key=\"NfcUiFontFamily\">fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI</FontFamily>",
+            themeTokens,
+            StringComparison.Ordinal);
         Assert.DoesNotContain("Classes=\"secondary\" Content=\"{Binding PreviewActionLabel}\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Background=\"#0F172A\" CornerRadius=\"8\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Merge / Replace workspace", shell, StringComparison.Ordinal);

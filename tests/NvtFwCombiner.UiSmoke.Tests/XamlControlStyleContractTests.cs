@@ -125,7 +125,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.NotEmpty(colorDefinitions);
         Assert.NotEmpty(shadowDefinitions);
         Assert.NotEmpty(cornerRadiusDefinitions);
-        _ = Assert.Single(fontFamilyDefinitions);
+        Assert.Equal(2, fontFamilyDefinitions.Length);
         Assert.Equal(colorDefinitions.Length, tokens.Split("<SolidColorBrush", StringSplitOptions.None).Length - 1);
         Assert.Equal(shadowDefinitions.Length, tokens.Split("<BoxShadows", StringSplitOptions.None).Length - 1);
         Assert.Equal(cornerRadiusDefinitions.Length, tokens.Split("<CornerRadius", StringSplitOptions.None).Length - 1);
@@ -134,8 +134,16 @@ public sealed partial class XamlControlStyleContractTests
             colorDefinitions.Length + shadowDefinitions.Length + cornerRadiusDefinitions.Length + fontFamilyDefinitions.Length,
             definedKeys.Count);
         Assert.Equal(colorDefinitions.Length, definedColors.Count);
-        Assert.Equal("NfcTechnicalFontFamily", fontFamilyDefinitions[0].Groups["key"].Value);
-        Assert.Equal("Cascadia Mono, Consolas", fontFamilyDefinitions[0].Groups["value"].Value);
+        Assert.Contains(
+            fontFamilyDefinitions,
+            static definition => StringComparer.Ordinal.Equals("NfcUiFontFamily", definition.Groups["key"].Value) &&
+                                 StringComparer.Ordinal.Equals(
+                                     "fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI",
+                                     definition.Groups["value"].Value));
+        Assert.Contains(
+            fontFamilyDefinitions,
+            static definition => StringComparer.Ordinal.Equals("NfcTechnicalFontFamily", definition.Groups["key"].Value) &&
+                                 StringComparer.Ordinal.Equals("Cascadia Mono, Consolas", definition.Groups["value"].Value));
 
         string[] migratedPaths =
         [
@@ -183,7 +191,12 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.All(
             ReadPresentationXamlFiles().Where(content => !StringComparer.Ordinal.Equals(content, tokens)),
-            static content => Assert.DoesNotContain("Cascadia Mono, Consolas", content, StringComparison.Ordinal));
+            static content =>
+            {
+                Assert.DoesNotContain("fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI", content, StringComparison.Ordinal);
+                Assert.DoesNotContain("Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC", content, StringComparison.Ordinal);
+                Assert.DoesNotContain("Cascadia Mono, Consolas", content, StringComparison.Ordinal);
+            });
 
         var referencedKeys = ReadPresentationXamlFiles()
             .SelectMany(content => DynamicThemeReferencePattern.Matches(content)
