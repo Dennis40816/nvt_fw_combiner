@@ -68,14 +68,14 @@ public sealed class IcSupportEntry
             }
         }
 
-        IcId = NormalizeIcId(icId);
+        IcId = IcSupportCatalog.NormalizeIcId(icId);
         WorkflowIds = distinctWorkflowIds;
         StandardMergeSourceIcId = string.IsNullOrWhiteSpace(standardMergeSourceIcId)
             ? null
-            : NormalizeIcId(standardMergeSourceIcId);
+            : IcSupportCatalog.NormalizeIcId(standardMergeSourceIcId);
         CtrlRamPostbuildSourceIcId = string.IsNullOrWhiteSpace(ctrlRamPostbuildSourceIcId)
             ? null
-            : NormalizeIcId(ctrlRamPostbuildSourceIcId);
+            : IcSupportCatalog.NormalizeIcId(ctrlRamPostbuildSourceIcId);
         Notes = notes;
     }
 
@@ -100,13 +100,6 @@ public sealed class IcSupportEntry
         return WorkflowIds.Contains(workflowId, StringComparer.Ordinal);
     }
 
-    private static string NormalizeIcId(string icId)
-    {
-        string trimmed = icId.Trim();
-        return trimmed.StartsWith("NT", StringComparison.OrdinalIgnoreCase)
-            ? $"NT{trimmed[2..]}"
-            : $"NT{trimmed}";
-    }
 }
 
 /// <summary>Single C# entry point for IC workflow support and alias facts.</summary>
@@ -185,8 +178,10 @@ public static class IcSupportCatalog
             notes);
     }
 
-    private static string NormalizeIcId(string icId)
+    /// <summary>Normalizes a required IC identifier to its canonical NT-prefixed form.</summary>
+    public static string NormalizeIcId(string icId)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         string trimmed = icId.Trim();
         return trimmed.StartsWith("NT", StringComparison.OrdinalIgnoreCase)
             ? $"NT{trimmed[2..]}"

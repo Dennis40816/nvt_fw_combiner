@@ -1,4 +1,5 @@
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -78,15 +79,8 @@ public static partial class WorkbenchCompositionService
 
     private static bool IsBuiltInV2DpReplaceIc(string icId)
     {
-        if (string.IsNullOrWhiteSpace(icId))
-        {
-            return false;
-        }
-
-        string trimmed = icId.Trim();
-        string normalized = trimmed.StartsWith("NT", StringComparison.OrdinalIgnoreCase)
-            ? $"NT{trimmed[2..]}"
-            : $"NT{trimmed}";
-        return BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.ContainsKey(normalized);
+        return !string.IsNullOrWhiteSpace(icId) &&
+            BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.ContainsKey(
+                IcSupportCatalog.NormalizeIcId(icId));
     }
 }

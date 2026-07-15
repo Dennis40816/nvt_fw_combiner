@@ -31,7 +31,7 @@ internal static class IcMetadataFacade
     public static bool TryFind(string icId, out IcMetadata? metadata)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        return MetadataByIc.TryGetValue(NormalizeIcId(icId), out metadata);
+        return MetadataByIc.TryGetValue(IcSupportCatalog.NormalizeIcId(icId), out metadata);
     }
 
     /// <summary>Gets the profile-declared IC-number choices for a selectable IC.</summary>
@@ -53,7 +53,7 @@ internal static class IcMetadataFacade
     /// <summary>Gets the approved postbuild category variants for a selectable IC.</summary>
     public static IReadOnlyList<LegacyCombinerPostbuildProfile> GetPostbuildProfiles(string icId)
     {
-        return TryFind(icId, out _) ? LegacyCombinerPostbuildCatalog.GetProfiles(NormalizeIcId(icId)) : [];
+        return TryFind(icId, out _) ? LegacyCombinerPostbuildCatalog.GetProfiles(IcSupportCatalog.NormalizeIcId(icId)) : [];
     }
 
     /// <summary>Selects the approved postbuild category for a base image Common FW version.</summary>
@@ -71,7 +71,7 @@ internal static class IcMetadataFacade
         }
 
         return LegacyCombinerPostbuildCatalog.TrySelectProfileForCommonFwVersion(
-            NormalizeIcId(icId),
+            IcSupportCatalog.NormalizeIcId(icId),
             commonFwVersion,
             out postbuildProfile,
             out issue);
@@ -84,7 +84,7 @@ internal static class IcMetadataFacade
     {
         postbuildProfile = null;
         return TryFind(icId, out _) && LegacyCombinerPostbuildCatalog.TryGetDefaultProfile(
-            NormalizeIcId(icId),
+            IcSupportCatalog.NormalizeIcId(icId),
             out postbuildProfile);
     }
 
@@ -119,14 +119,6 @@ internal static class IcMetadataFacade
         }
 
         return metadata;
-    }
-
-    private static string NormalizeIcId(string icId)
-    {
-        string trimmed = icId.Trim();
-        return trimmed.StartsWith("NT", StringComparison.OrdinalIgnoreCase)
-            ? $"NT{trimmed[2..]}"
-            : $"NT{trimmed}";
     }
 }
 
