@@ -7,7 +7,8 @@ public sealed partial class CompiledComposition
         CompositionPlan plan,
         LegacyCompiledCompositionIdentity identity,
         string defaultOutputFileName,
-        CompiledIcNumberPolicy icNumberPolicy)
+        CompiledIcNumberPolicy icNumberPolicy,
+        IReadOnlyList<CompiledValidationRequirement>? validationRequirements)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(identity);
@@ -26,6 +27,7 @@ public sealed partial class CompiledComposition
         Eligibility = CompiledCompositionEligibility.LegacyRuntimeExecutable;
         Authority = new LegacyProfileCompilationAuthority();
         V2Details = null;
+        ValidationRequirements = CopyValidationRequirements(validationRequirements);
         CompilationFingerprint = CalculateCompilationFingerprint(this);
     }
 
@@ -61,6 +63,7 @@ public sealed partial class CompiledComposition
         Eligibility = eligibility;
         Authority = new ProfileBundleV2CompilationAuthority();
         V2Details = identity.Details;
+        ValidationRequirements = CopyValidationRequirements(identity.Details.Provenance.ValidationRequirements);
         CompilationFingerprint = CalculateCompilationFingerprint(this);
     }
 
@@ -100,6 +103,9 @@ public sealed partial class CompiledComposition
     /// <summary>Paired profile-bundle-v2 provenance and output requirements; null only for legacy artifacts.</summary>
     public V2CompiledCompositionDetails? V2Details { get; }
 
+    /// <summary>Closed validation requirements retained by the compiler authority.</summary>
+    public IReadOnlyList<CompiledValidationRequirement> ValidationRequirements { get; }
+
     /// <summary>Canonical lowercase SHA-256 over the complete compiled policy and plan.</summary>
     public string CompilationFingerprint { get; }
 
@@ -108,9 +114,15 @@ public sealed partial class CompiledComposition
         CompositionPlan plan,
         LegacyCompiledCompositionIdentity identity,
         string defaultOutputFileName,
-        CompiledIcNumberPolicy icNumberPolicy)
+        CompiledIcNumberPolicy icNumberPolicy,
+        IReadOnlyList<CompiledValidationRequirement>? validationRequirements = null)
     {
-        return new CompiledComposition(plan, identity, defaultOutputFileName, icNumberPolicy);
+        return new CompiledComposition(
+            plan,
+            identity,
+            defaultOutputFileName,
+            icNumberPolicy,
+            validationRequirements);
     }
 
     /// <summary>Creates a complete but non-executable profile-bundle-v2 plan artifact.</summary>

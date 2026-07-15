@@ -12,7 +12,7 @@ public sealed partial class CompiledCompositionTests
     {
         CompiledComposition composition = CreateMerge();
         Assert.Equal(
-            "d4b9967d8da7cb3b15d38e26f2fcd0311afbd2245f9499ca3ff87b83dc9b12fc",
+            "669860799db585ab3d2064debf4b0a64d2192c1a2a972e431f1d23c09e305bb5",
             composition.CompilationFingerprint);
 
         Assert.Equal("profile-a", composition.ProfileId);
@@ -183,6 +183,36 @@ public sealed partial class CompiledCompositionTests
             CreateReplace(CompiledIcNumberPolicy.CascadeSelector).CompilationFingerprint);
     }
 
+    /// <summary>Verifies legacy final-output validation requirements are immutable compiled policy and fingerprinted.</summary>
+    [Fact]
+    public void FingerprintBindsLegacyFinalOutputValidationRequirement()
+    {
+        CompiledValidationRequirement baselineRequirement =
+            CompiledValidationRequirements.FirmwareConfigBackupVersion(
+                "verify-nvt-fwconfig-backup-version",
+                "replace.ctrlram.fw-version-output-invalid",
+                "replace.ctrlram.fw-version-output-mismatch",
+                0x27,
+                0x04);
+        CompiledValidationRequirement changedRequirement =
+            CompiledValidationRequirements.FirmwareConfigBackupVersion(
+                "verify-nvt-fwconfig-backup-version",
+                "replace.ctrlram.fw-version-output-invalid",
+                "replace.ctrlram.fw-version-output-mismatch",
+                0x28,
+                0x04);
+        CompiledComposition baseline = CreateMerge(validationRequirements: [baselineRequirement]);
+        CompiledComposition changed = CreateMerge(validationRequirements: [changedRequirement]);
+
+        CompiledFirmwareConfigBackupVersionValidation requirement = Assert.IsType<
+            CompiledFirmwareConfigBackupVersionValidation>(Assert.Single(baseline.ValidationRequirements));
+        Assert.Equal(CompiledValidationStage.FinalOutput, requirement.Stage);
+        Assert.Equal(CompiledValidationSeverity.Error, requirement.Severity);
+        Assert.Equal(0x27, requirement.FirmwareVersion);
+        Assert.Equal(0x04, requirement.FirmwareSubVersion);
+        Assert.NotEqual(baseline.CompilationFingerprint, changed.CompilationFingerprint);
+    }
+
     /// <summary>Verifies initializer, output selection, input policy, and operation semantics affect the fingerprint.</summary>
     [Fact]
     public void FingerprintBindsPlanSemantics()
@@ -264,7 +294,8 @@ public sealed partial class CompiledCompositionTests
         OperationProvenance? copyProvenance = null,
         int copySequence = 10,
         int fillSequence = 20,
-        bool reverseDeclarations = false)
+        bool reverseDeclarations = false,
+        IReadOnlyList<CompiledValidationRequirement>? validationRequirements = null)
     {
         var input = new AddressSpace(
             "input",
@@ -310,7 +341,8 @@ public sealed partial class CompiledCompositionTests
             plan,
             identity,
             defaultOutputFileName,
-            CompiledIcNumberPolicy.NotApplicable);
+            CompiledIcNumberPolicy.NotApplicable,
+            validationRequirements);
     }
 
     private static CompiledComposition CreateReplace(CompiledIcNumberPolicy policy)
