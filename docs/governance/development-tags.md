@@ -39,11 +39,11 @@ for `v0.9.3` through `v0.9.6` are maintained in
 - `0.9.0` is the integration branch for the standalone raw-BIN Hex Editor milestone and subsequent UAT fixes after the reviewed stable tag.
 - `0.9.1` is the integration branch for the firmware-model-v2 migration after `0.9.0`.
 - `0.9.2` starts from the owner-approved locally verified `v0.9.1` tag and is limited to trust-preserving profile-bundle consolidation before AB Code work resumes. PR #94 records the temporary local-verification integration; remote CI and Codex review remain required before any later `main` integration.
-- `0.9.3` follows the reviewed `v0.9.2` tag and contains the separately evidence-gated AB Code and CtrlRAM version-edit work. The `0.9.2` release metadata and tag must exist before AB commits begin.
-- `0.9.4` follows the reviewed `0.9.3` tag for integration and release, and may automate declared IC-evidence intake only through the standardized 0.9.2 bundle contract.
-- `0.9.5` follows the reviewed `0.9.4` tag and performs staged V2 workflow convergence using the [Legacy Retirement Matrix](legacy-retirement-matrix.md); it does not treat a legacy name as evidence that code is removable.
-- `0.9.6` follows the reviewed `0.9.5` tag and closes only release/support evidence and compatibility items whose matrix gates are complete.
-- `0.9.7` follows the reviewed `0.9.6` tag and consolidates UI tokens and exactly replaced duplication. It does not introduce firmware behavior, relax release evidence, or use line-count reduction as a reason to remove required tests or compatibility paths.
+- `0.9.3` integrates and releases from the reviewed `v0.9.2` tag and contains the separately evidence-gated AB Code and CtrlRAM version-edit work. Candidate AB commits may begin earlier only under the pre-tag policy below.
+- `0.9.4` integrates and releases after reviewed `0.9.3`, and may automate declared IC-evidence intake only through the standardized 0.9.2 bundle contract. Candidate intake work may begin earlier under the pre-tag policy.
+- `0.9.5` integrates and releases after reviewed `0.9.4` and performs staged V2 workflow convergence using the [Legacy Retirement Matrix](legacy-retirement-matrix.md); it does not treat a legacy name as evidence that code is removable. Candidate convergence work may begin earlier under the pre-tag policy.
+- `0.9.6` integrates and releases after reviewed `0.9.5` and closes only release/support evidence and compatibility items whose matrix gates are complete. Candidate release-evidence work may begin earlier under the pre-tag policy.
+- `0.9.7` integrates and releases after reviewed `0.9.6` and consolidates UI tokens and exactly replaced duplication. Candidate token/code-size work may begin earlier under the pre-tag policy; it does not introduce firmware behavior, relax release evidence, or use line-count reduction as a reason to remove required tests or compatibility paths.
 
 Pre-tag `0.9.x` feature development is permitted for candidate-only work under
 the [roadmap policy](../architecture/0.9.x-completion-roadmap.md#pre-tag-candidate-development-policy).
