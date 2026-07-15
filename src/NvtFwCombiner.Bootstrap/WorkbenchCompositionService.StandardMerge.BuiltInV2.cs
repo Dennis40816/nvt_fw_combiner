@@ -210,17 +210,9 @@ public static partial class WorkbenchCompositionService
                     requestedMapCapacity,
                     resolutionArtifacts);
             }
-            catch (Exception exception) when (exception is IOException or
-                                             UnauthorizedAccessException or
-                                             InvalidDataException or
-                                             ProfileBundleManifestNormalizationException or
-                                             CompositionProfileNormalizationException or
-                                             TrustedProfileBundleCatalogException)
+            catch (Exception exception) when (IsBundleLoadFailure(exception))
             {
-                var issue = new CompositionIssue(
-                    BuiltInV2BundleLoadFailed,
-                    $"The built-in V2 bundle '{RelativeRoot}' could not be loaded: {exception.Message}");
-                return V2CompositionPlanCompileResult.Failed([issue]);
+                return V2CompositionPlanCompileResult.Failed([CreateBundleLoadIssue(exception)]);
             }
         }
 
@@ -239,17 +231,9 @@ public static partial class WorkbenchCompositionService
                     memberId,
                     request);
             }
-            catch (Exception exception) when (exception is IOException or
-                                             UnauthorizedAccessException or
-                                             InvalidDataException or
-                                             ProfileBundleManifestNormalizationException or
-                                             CompositionProfileNormalizationException or
-                                             TrustedProfileBundleCatalogException)
+            catch (Exception exception) when (IsBundleLoadFailure(exception))
             {
-                var issue = new CompositionIssue(
-                    BuiltInV2BundleLoadFailed,
-                    $"The built-in V2 bundle '{RelativeRoot}' could not be loaded: {exception.Message}");
-                return V2CompositionPlanCompileResult.Failed([issue]);
+                return V2CompositionPlanCompileResult.Failed([CreateBundleLoadIssue(exception)]);
             }
         }
 
@@ -270,21 +254,28 @@ public static partial class WorkbenchCompositionService
                     experienceId,
                     out issues);
             }
-            catch (Exception exception) when (exception is IOException or
-                                             UnauthorizedAccessException or
-                                             InvalidDataException or
-                                             ProfileBundleManifestNormalizationException or
-                                             CompositionProfileNormalizationException or
-                                             TrustedProfileBundleCatalogException)
+            catch (Exception exception) when (IsBundleLoadFailure(exception))
             {
-                issues =
-                [
-                    new CompositionIssue(
-                        BuiltInV2BundleLoadFailed,
-                        $"The built-in V2 bundle '{RelativeRoot}' could not be loaded: {exception.Message}"),
-                ];
+                issues = [CreateBundleLoadIssue(exception)];
                 return [];
             }
+        }
+
+        private static bool IsBundleLoadFailure(Exception exception)
+        {
+            return exception is IOException or
+                UnauthorizedAccessException or
+                InvalidDataException or
+                ProfileBundleManifestNormalizationException or
+                CompositionProfileNormalizationException or
+                TrustedProfileBundleCatalogException;
+        }
+
+        private CompositionIssue CreateBundleLoadIssue(Exception exception)
+        {
+            return new CompositionIssue(
+                BuiltInV2BundleLoadFailed,
+                $"The built-in V2 bundle '{RelativeRoot}' could not be loaded: {exception.Message}");
         }
 
         private TrustedProfileBundleCatalog LoadCatalog()
