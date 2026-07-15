@@ -27,7 +27,7 @@ public sealed class WorkbenchRawBinaryEditorSession
         : $"{Path.GetFileNameWithoutExtension(SourcePath)}-edited{Path.GetExtension(SourcePath)}";
 
     /// <summary>Gets the current in-memory document state.</summary>
-    public WorkbenchRawBinaryEditorState State => ToWorkbenchState(_editor.State);
+    public RawBinaryEditorState State => _editor.State;
 
     /// <summary>Reads a source BIN once through the file adapter and starts a fresh in-memory session.</summary>
     public async Task<WorkbenchRawBinaryEditorFileResult> LoadAsync(
@@ -59,7 +59,7 @@ public sealed class WorkbenchRawBinaryEditorSession
                 .ConfigureAwait(false);
             _ = _editor.Load(bytes.Span);
             SourcePath = fullPath;
-            return WorkbenchRawBinaryEditorFileResult.Success(fullPath, ToWorkbenchState(_editor.CreateViewport(0).State));
+            return WorkbenchRawBinaryEditorFileResult.Success(fullPath, _editor.State);
         }
         catch (Exception exception) when (exception is ArgumentException or IOException or UnauthorizedAccessException or NotSupportedException)
         {
@@ -68,28 +68,28 @@ public sealed class WorkbenchRawBinaryEditorSession
     }
 
     /// <summary>Returns a bounded viewport from the in-memory work buffer.</summary>
-    public WorkbenchRawBinaryEditorViewport CreateViewport(string requestedAddress)
+    public RawBinaryEditorViewport CreateViewport(string requestedAddress)
     {
-        return ToWorkbenchViewport(_editor.CreateViewport(requestedAddress));
+        return _editor.CreateViewport(requestedAddress);
     }
 
     /// <summary>Returns one aligned bounded page from the in-memory work buffer for the document viewport.</summary>
-    public WorkbenchRawBinaryEditorViewport CreatePage(long requestedAddress, int maximumRows)
+    public RawBinaryEditorViewport CreatePage(long requestedAddress, int maximumRows)
     {
-        return ToWorkbenchViewport(_editor.CreatePage(requestedAddress, maximumRows));
+        return _editor.CreatePage(requestedAddress, maximumRows);
     }
 
     /// <summary>Finds printable ASCII text in the editor-owned memory buffer without reading the source file again.</summary>
-    public WorkbenchRawBinaryEditorSearchResult FindAscii(string text, long startOffset)
+    public RawBinaryEditorSearchResult FindAscii(string text, long startOffset)
     {
-        return ToWorkbenchSearchResult(_editor.FindAscii(text, startOffset));
+        return _editor.FindAscii(text, startOffset);
     }
 
     /// <summary>
     /// Finds printable ASCII on a defensive memory snapshot so large searches do not block the UI
     /// or race a later editor mutation.
     /// </summary>
-    public async Task<WorkbenchRawBinaryEditorSearchResult> FindAsciiAsync(
+    public async Task<RawBinaryEditorSearchResult> FindAsciiAsync(
         string text,
         long startOffset,
         CancellationToken cancellationToken = default)
@@ -98,97 +98,82 @@ public sealed class WorkbenchRawBinaryEditorSession
         RawBinaryEditorState state = _editor.State;
         if (!_editor.TryCopyWorkingBytes(out byte[]? snapshot))
         {
-            return ToWorkbenchSearchResult(new RawBinaryEditorSearchResult(
+            return new RawBinaryEditorSearchResult(
                 state,
                 [],
-                Issue: new RawBinaryEditorIssue(RawBinaryEditorIssueCode.NoDocument)));
+                Issue: new RawBinaryEditorIssue(RawBinaryEditorIssueCode.NoDocument));
         }
 
         RawBinaryEditorSearchResult result = await Task.Run(
             () => RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken),
             cancellationToken).ConfigureAwait(false);
-        return ToWorkbenchSearchResult(result);
+        return result;
     }
 
     /// <summary>Returns contiguous changed blocks from the editor-owned memory buffer.</summary>
-    public IReadOnlyList<WorkbenchRawBinaryEditorChangedRange> GetChangedRanges()
+    public IReadOnlyList<RawBinaryEditorChangedRange> GetChangedRanges()
     {
-        return [.. _editor.GetChangedRanges().Select(range =>
-            new WorkbenchRawBinaryEditorChangedRange(
-                range.Start,
-                range.EndExclusive,
-                ToWorkbenchChangeKind(range.ChangeKind),
-                [.. range.ValueChanges.Select(change => new WorkbenchRawBinaryEditorValueChange(
-                    change.Start,
-                    change.EndExclusive,
-                    change.FirstOriginalValue,
-                    change.FirstCurrentValue))],
-                [.. range.StructuralChanges.Select(change => new WorkbenchRawBinaryEditorStructuralChange(
-                    change.Kind == RawBinaryEditorStructuralChangeKind.Insert
-                        ? WorkbenchRawBinaryEditorStructuralChangeKind.Insert
-                        : WorkbenchRawBinaryEditorStructuralChangeKind.Delete,
-                    change.Address,
-                    change.Count))]))];
+        return _editor.GetChangedRanges();
     }
 
     /// <summary>Writes one byte only to the session-owned work buffer.</summary>
-    public WorkbenchRawBinaryEditorOperationResult OverwriteByte(string address, string value)
+    public RawBinaryEditorOperationResult OverwriteByte(string address, string value)
     {
-        return ToWorkbenchResult(_editor.OverwriteByte(address, value));
+        return _editor.OverwriteByte(address, value);
     }
 
     /// <summary>Writes a hexadecimal sequence from Start without crossing the selected inclusive End.</summary>
-    public WorkbenchRawBinaryEditorOperationResult OverwriteRange(string startAddress, string endAddress, string values)
+    public RawBinaryEditorOperationResult OverwriteRange(string startAddress, string endAddress, string values)
     {
-        return ToWorkbenchResult(_editor.OverwriteRange(startAddress, endAddress, values));
+        return _editor.OverwriteRange(startAddress, endAddress, values);
     }
 
     /// <summary>Fills one inclusive range only in the session-owned work buffer.</summary>
-    public WorkbenchRawBinaryEditorOperationResult FillRange(string startAddress, string endAddress, string value)
+    public RawBinaryEditorOperationResult FillRange(string startAddress, string endAddress, string value)
     {
-        return ToWorkbenchResult(_editor.FillRange(startAddress, endAddress, value));
+        return _editor.FillRange(startAddress, endAddress, value);
     }
 
     /// <summary>Inserts an explicit zero byte before the selected working-buffer byte.</summary>
-    public WorkbenchRawBinaryEditorOperationResult InsertZeroBefore(string address)
+    public RawBinaryEditorOperationResult InsertZeroBefore(string address)
     {
-        return ToWorkbenchResult(_editor.InsertZeroBefore(address));
+        return _editor.InsertZeroBefore(address);
     }
 
     /// <summary>Inserts an explicit zero byte after the selected working-buffer byte.</summary>
-    public WorkbenchRawBinaryEditorOperationResult InsertZeroAfter(string address)
+    public RawBinaryEditorOperationResult InsertZeroAfter(string address)
     {
-        return ToWorkbenchResult(_editor.InsertZeroAfter(address));
+        return _editor.InsertZeroAfter(address);
     }
 
     /// <summary>Inserts a bounded zero-filled run before the selected byte.</summary>
-    public WorkbenchRawBinaryEditorOperationResult InsertZeroBytesBefore(string address, int count)
+    public RawBinaryEditorOperationResult InsertZeroBytesBefore(string address, int count)
     {
-        return ToWorkbenchResult(_editor.InsertZeroBytesBefore(address, count));
+        return _editor.InsertZeroBytesBefore(address, count);
     }
 
     /// <summary>Inserts a bounded zero-filled run after the selected byte.</summary>
-    public WorkbenchRawBinaryEditorOperationResult InsertZeroBytesAfter(string address, int count)
+    public RawBinaryEditorOperationResult InsertZeroBytesAfter(string address, int count)
     {
-        return ToWorkbenchResult(_editor.InsertZeroBytesAfter(address, count));
+        return _editor.InsertZeroBytesAfter(address, count);
     }
 
     /// <summary>Deletes one working-buffer byte and shifts later bytes toward lower offsets.</summary>
-    public WorkbenchRawBinaryEditorOperationResult DeleteByte(string address)
+    public RawBinaryEditorOperationResult DeleteByte(string address)
     {
-        return ToWorkbenchResult(_editor.DeleteByte(address));
+        return _editor.DeleteByte(address);
     }
 
     /// <summary>Reverts the most recent session-owned operation.</summary>
-    public WorkbenchRawBinaryEditorOperationResult Undo()
+    public RawBinaryEditorOperationResult Undo()
     {
-        return ToWorkbenchResult(_editor.Undo());
+        return _editor.Undo();
     }
 
     /// <summary>Reapplies the most recently reverted session-owned operation.</summary>
-    public WorkbenchRawBinaryEditorOperationResult Redo()
+    public RawBinaryEditorOperationResult Redo()
     {
-        return ToWorkbenchResult(_editor.Redo());
+        return _editor.Redo();
     }
 
     /// <summary>
@@ -226,7 +211,7 @@ public sealed class WorkbenchRawBinaryEditorSession
 
             var writer = new AtomicFileCompositionOutputWriter(outputDirectory);
             string savedPath = await writer.CommitAsync(outputFileName, bytes, cancellationToken).ConfigureAwait(false);
-            return WorkbenchRawBinaryEditorFileResult.Success(savedPath, ToWorkbenchState(_editor.CreateViewport(0).State));
+            return WorkbenchRawBinaryEditorFileResult.Success(savedPath, _editor.State);
         }
         catch (Exception exception) when (exception is ArgumentException or IOException or UnauthorizedAccessException or NotSupportedException)
         {
@@ -234,92 +219,17 @@ public sealed class WorkbenchRawBinaryEditorSession
         }
     }
 
-    private static WorkbenchRawBinaryEditorOperationResult ToWorkbenchResult(RawBinaryEditorOperationResult result)
-    {
-        return new WorkbenchRawBinaryEditorOperationResult(
-            ToWorkbenchState(result.State),
-            ToWorkbenchIssue(result.Issue));
-    }
-
-    private static WorkbenchRawBinaryEditorViewport ToWorkbenchViewport(RawBinaryEditorViewport viewport)
-    {
-        return new WorkbenchRawBinaryEditorViewport(
-            [.. viewport.Rows.Select(row => new WorkbenchRawBinaryEditorViewportRow(
-                row.Address,
-                [.. row.Bytes.Select(value => new WorkbenchRawBinaryEditorByte(
-                    value.Address,
-                    value.OriginalAddress,
-                    value.OriginalValue,
-                    value.OriginalValueAtAddress,
-                    value.CurrentValue,
-                    ToWorkbenchChangeKind(value.ChangeKind)))],
-                row.OriginalAscii,
-                row.CurrentAscii))],
-            ToWorkbenchState(viewport.State),
-            viewport.Start,
-            viewport.Length,
-            ToWorkbenchIssue(viewport.Issue));
-    }
-
-    private static WorkbenchRawBinaryEditorState ToWorkbenchState(RawBinaryEditorState state)
-    {
-        return new WorkbenchRawBinaryEditorState(
-            state.HasDocument,
-            state.OriginalLength,
-            state.WorkingLength,
-            state.UndoCount,
-            state.RedoCount,
-            state.HasUnsavedChanges);
-    }
-
-    private static WorkbenchRawBinaryEditorSearchResult ToWorkbenchSearchResult(
-        RawBinaryEditorSearchResult result)
-    {
-        return new WorkbenchRawBinaryEditorSearchResult(
-            ToWorkbenchState(result.State),
-            [.. result.Matches],
-            result.MatchIndex,
-            result.Length,
-            result.Wrapped,
-            result.TotalMatchCount,
-            result.SelectedAddress,
-            result.IsTruncated,
-            ToWorkbenchIssue(result.Issue));
-    }
-
-    private static WorkbenchRawBinaryEditorChangeKind ToWorkbenchChangeKind(RawBinaryEditorChangeKind changeKind)
-    {
-        WorkbenchRawBinaryEditorChangeKind result = WorkbenchRawBinaryEditorChangeKind.None;
-        if ((changeKind & RawBinaryEditorChangeKind.Data) != 0)
-        {
-            result |= WorkbenchRawBinaryEditorChangeKind.Data;
-        }
-
-        if ((changeKind & RawBinaryEditorChangeKind.Structural) != 0)
-        {
-            result |= WorkbenchRawBinaryEditorChangeKind.Structural;
-        }
-
-        return result;
-    }
-
-    private static WorkbenchRawBinaryEditorIssue? ToWorkbenchIssue(RawBinaryEditorIssue? issue)
-    {
-        return issue is null
-            ? null
-            : new WorkbenchRawBinaryEditorIssue((WorkbenchRawBinaryEditorIssueCode)issue.Code);
-    }
 }
 
 /// <summary>One adapter-owned file load or Save As result for the raw-BIN utility.</summary>
 public sealed record WorkbenchRawBinaryEditorFileResult(
     bool Succeeded,
     string? Path,
-    WorkbenchRawBinaryEditorState? State,
+    RawBinaryEditorState? State,
     string? ErrorMessage)
 {
     /// <summary>Creates a successful file result.</summary>
-    public static WorkbenchRawBinaryEditorFileResult Success(string path, WorkbenchRawBinaryEditorState state)
+    public static WorkbenchRawBinaryEditorFileResult Success(string path, RawBinaryEditorState state)
     {
         return new WorkbenchRawBinaryEditorFileResult(true, path, state, null);
     }
@@ -329,23 +239,4 @@ public sealed record WorkbenchRawBinaryEditorFileResult(
     {
         return new WorkbenchRawBinaryEditorFileResult(false, null, null, errorMessage);
     }
-}
-
-/// <summary>Adapter projection of a raw in-memory ASCII search result.</summary>
-public sealed record WorkbenchRawBinaryEditorSearchResult(
-    WorkbenchRawBinaryEditorState State,
-    IReadOnlyList<long> Matches,
-    int MatchIndex,
-    int Length,
-    bool Wrapped,
-    int TotalMatchCount,
-    long SelectedAddress,
-    bool IsTruncated,
-    WorkbenchRawBinaryEditorIssue? Issue = null)
-{
-    /// <summary>True when a matching ASCII sequence was found.</summary>
-    public bool Succeeded => Issue is null;
-
-    /// <summary>Address of the currently selected search match, or -1 when no match exists.</summary>
-    public long Address => SelectedAddress;
 }

@@ -3,6 +3,7 @@
     <OutputType>WinExe</OutputType>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\NvtFwCombiner.Application\NvtFwCombiner.Application.csproj" />
     <ProjectReference Include="..\NvtFwCombiner.Bootstrap\NvtFwCombiner.Bootstrap.csproj" />
   </ItemGroup>
   <ItemGroup>

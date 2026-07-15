@@ -111,6 +111,7 @@ EXPECTED_PROJECT_REFERENCES = {
     },
     "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj": {"src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj"},
     "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj": {
+        "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
         "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
     },
     "tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj": {"src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj"},
@@ -139,7 +140,6 @@ EXPECTED_PROJECT_REFERENCES = {
         "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj",
     },
 }
-
 EXPECTED_SKILLS = {
     "nfc-architecture-change",
     "firmware-profile-authoring",
