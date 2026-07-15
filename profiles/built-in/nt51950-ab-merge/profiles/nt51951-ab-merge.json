@@ -1,16 +1,24 @@
 {
   "schemaVersion": "2.2",
-  "profileId": "nt51950-ab-merge",
-  "profileVersion": "0.1.1",
+  "profileId": "nt51951-ab-merge",
+  "profileVersion": "0.1.0",
   "promotion": {
-    "stage": "executable-candidate",
+    "stage": "compilable",
     "blockers": [
+      {
+        "blockerId": "direct-golden-evidence",
+        "kind": "golden",
+        "reason": "A direct NT51951 AB input/output golden is required before executable promotion.",
+        "evidenceRefs": [
+          "nt51951-ab-combiner-topology-regression-2026-07-15"
+        ]
+      },
       {
         "blockerId": "firmware-owner-review",
         "kind": "human-review",
-        "reason": "Firmware owner must approve the exact NT51950 AB Combiner staging sequence before runtime exposure.",
+        "reason": "Firmware owner must approve the exact NT51951 AB Combiner staging sequence before runtime exposure.",
         "evidenceRefs": [
-          "nt51950-ab-combiner-audit-2026-07-14"
+          "nt51951-ab-combiner-topology-regression-2026-07-15"
         ]
       }
     ]
@@ -29,7 +37,7 @@
     "familyVersion": "0.1.1",
     "familyContentHash": "d5f8a6f865c743679b701036fdadfeb4a5e001d0f718c378063cccda7ee7fdc4",
     "mapIds": [
-      "nt51950-ab-merge-512k"
+      "nt51951-ab-merge-1024k"
     ],
     "requiredRegionIds": [
       "ab-image",
@@ -122,7 +130,7 @@
       "kind": "work-buffer",
       "capacity": {
         "kind": "fixed",
-        "bytes": 262144
+        "bytes": 524288
       },
       "initializer": {
         "kind": "blank",
@@ -134,7 +142,7 @@
       "kind": "work-buffer",
       "capacity": {
         "kind": "fixed",
-        "bytes": 262144
+        "bytes": 524288
       },
       "initializer": {
         "kind": "blank",
@@ -205,7 +213,7 @@
         "kind": "space-range",
         "range": {
           "start": 0,
-          "length": 262144
+          "length": 524288
         }
       }
     },
@@ -216,7 +224,7 @@
         "kind": "space-range",
         "range": {
           "start": 0,
-          "length": 262144
+          "length": 524288
         }
       }
     },
@@ -327,7 +335,7 @@
     {
       "regionId": "ab-image",
       "access": "explicit-range",
-      "reason": "Copy the full owner-supplied 512 KiB DP AB image before constructing A and B Combiner artifacts."
+      "reason": "Copy the full owner-supplied 1 MiB DP AB image before constructing A and B Combiner artifacts."
     },
     {
       "regionId": "a-bank",
@@ -350,7 +358,7 @@
       "operationId": "copy-dp-ab-image",
       "sequence": 100,
       "overlapPolicy": "reject",
-      "reason": "Copy the full 512 KiB AB DP image to the output staging image.",
+      "reason": "Copy the full 1 MiB AB DP image to the output staging image.",
       "kind": "copy-range",
       "sourceViewId": "dp-ab-source",
       "targetViewId": "dp-ab-output"
@@ -386,14 +394,14 @@
       "operationId": "relocate-tpb-diff-for-b-bank",
       "sequence": 500,
       "overlapPolicy": "reject",
-      "reason": "Relocate the cloned TPB difference address by the fixed B-bank offset before overlay and Combiner header CRC recalculation.",
+      "reason": "Relocate the cloned TPB difference address by the fixed 0x80000 B-bank offset before overlay and Combiner header CRC recalculation.",
       "kind": "transform-scalar",
       "sourceViewId": "tp-b-diff-work",
       "targetViewId": "tp-b-diff-work",
       "widthBytes": 4,
       "byteOrder": "little",
       "valueInterpretation": "unsigned",
-      "addend": 262144,
+      "addend": 524288,
       "overflowPolicy": "reject"
     },
     {
@@ -424,21 +432,21 @@
       "targetViewId": "b-bank-output"
     },
     {
-      "operationId": "run-nt51950-ab-combiner",
+      "operationId": "run-nt51951-ab-combiner",
       "sequence": 800,
       "overlapPolicy": "replace-existing",
-      "reason": "Use legacy Combiner 1.13.0 on a host-created output staging copy for audited TPB header and CRC recalculation.",
+      "reason": "Use legacy Combiner 1.13.0 on a host-created output staging copy for synthetic-topology-verified TPB header and CRC recalculation.",
       "kind": "run-processor",
-      "processorStageId": "nt51950-ab-combiner"
+      "processorStageId": "nt51951-ab-combiner"
     }
   ],
   "validations": [],
   "processorStages": [
     {
-      "processorStageId": "nt51950-ab-combiner",
+      "processorStageId": "nt51951-ab-combiner",
       "kind": "legacy-combiner-v1",
       "toolBindingId": "legacy-combiner-1.13.0",
-      "invocationProfileId": "nfc-nt51950-ab-merge-combiner-v1",
+      "invocationProfileId": "nfc-nt51951-ab-merge-combiner-v1",
       "targetSpaceId": "output-image",
       "authority": "transform",
       "purpose": "header-and-integrity",
@@ -462,17 +470,17 @@
           "sourceViewId": "b-bank-work-image"
         }
       ],
-      "evidenceRef": "nt51950-ab-combiner-audit-2026-07-14",
+      "evidenceRef": "nt51951-ab-combiner-topology-regression-2026-07-15",
       "failurePolicy": "fail-closed"
     }
   ],
   "output": {
-    "fileNameTemplate": "nt51950-ab-merge.bin",
+    "fileNameTemplate": "nt51951-ab-merge.bin",
     "allowOverride": true,
     "invalidCharacterPolicy": "reject",
     "requiredTokenIds": []
   },
   "evidenceRefs": [
-    "nt51950-ab-combiner-audit-2026-07-14"
+    "nt51951-ab-combiner-topology-regression-2026-07-15"
   ]
 }
