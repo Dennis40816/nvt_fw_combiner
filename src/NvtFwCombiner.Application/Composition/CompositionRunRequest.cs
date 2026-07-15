@@ -23,6 +23,7 @@ public sealed class CompositionRunRequest
         Dictionary<string, InputArtifactBinding> copiedBindings = CopyBindings(artifactBindings);
         ValidateOutputFileName(outputFileName);
         ValidateExecutableComposition(compiledComposition);
+        ValidateRuntimeValidationRequirements(compiledComposition);
         ValidateIcNumberSelection(compiledComposition, icNumberSelection);
         ValidateV2RuntimeRequest(compiledComposition, copiedBindings, outputFileName);
 
@@ -259,6 +260,24 @@ public sealed class CompositionRunRequest
             !IsPositiveInteger(selection.Parts[^1]))
         {
             throw new ArgumentException("Numeric IC number selection must be a positive integer.", nameof(selection));
+        }
+    }
+
+    private static void ValidateRuntimeValidationRequirements(CompiledComposition compiledComposition)
+    {
+        foreach (CompiledValidationRequirement requirement in compiledComposition.ValidationRequirements)
+        {
+            if (compiledComposition.Authority is LegacyProfileCompilationAuthority &&
+                requirement is CompiledFirmwareConfigBackupVersionValidation &&
+                requirement.Stage == CompiledValidationStage.FinalOutput &&
+                requirement.Severity == CompiledValidationSeverity.Error)
+            {
+                continue;
+            }
+
+            throw new ArgumentException(
+                $"Compiled validation rule '{requirement.RuleId}' is not executable by the current application runtime.",
+                nameof(compiledComposition));
         }
     }
 

@@ -34,9 +34,15 @@ public sealed partial class CompositionRunServiceTests
         CompositionPlan plan,
         LegacyCompiledCompositionIdentity identity,
         string defaultOutputFileName,
-        CompiledIcNumberPolicy icNumberPolicy = CompiledIcNumberPolicy.NotApplicable)
+        CompiledIcNumberPolicy icNumberPolicy = CompiledIcNumberPolicy.NotApplicable,
+        IReadOnlyList<CompiledValidationRequirement>? validationRequirements = null)
     {
-        return CompiledComposition.CreateLegacy(plan, identity, defaultOutputFileName, icNumberPolicy);
+        return CompiledComposition.CreateLegacy(
+            plan,
+            identity,
+            defaultOutputFileName,
+            icNumberPolicy,
+            validationRequirements);
     }
 
     private sealed class FakeOutputWriter : ICompositionOutputWriter
