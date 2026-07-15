@@ -1,4 +1,5 @@
 using System.Text;
+using static NvtFwCombiner.Domain.Firmware.FirmwareFingerprintWriter;
 
 namespace NvtFwCombiner.Domain.Composition;
 
