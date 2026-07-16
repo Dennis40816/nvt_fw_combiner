@@ -334,8 +334,6 @@ public sealed partial class MainWindowViewModel
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SelectedReplaceModeDescription))]
     [NotifyPropertyChangedFor(nameof(ReplaceReadinessStatus))]
-    [NotifyPropertyChangedFor(nameof(ReplacePreviewUnavailableReason))]
-    [NotifyPropertyChangedFor(nameof(ReplaceBuildUnavailableReason))]
     [NotifyPropertyChangedFor(nameof(IsCtrlRamReplaceModeSelected))]
     [NotifyPropertyChangedFor(nameof(IsGeneralReplaceModeSelected))]
     [NotifyPropertyChangedFor(nameof(IsStructuredReplaceModeSelected))]

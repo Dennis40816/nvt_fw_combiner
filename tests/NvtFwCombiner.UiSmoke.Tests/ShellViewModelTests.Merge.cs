@@ -135,7 +135,7 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.CanBuildMerge);
 
         string outputPath = workspace.PathFor("selected-output.bin");
-        await viewModel.BuildStandardMergeAsync(outputPath);
+        await viewModel.BuildMergeAsync(outputPath);
 
         string expectedPath = golden.ExpectedOutputPath(goldenCase);
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
@@ -245,7 +245,7 @@ public sealed partial class ShellViewModelTests
         viewModel.SetSlotFile(StandardMergeGoldenManifest.SlotIdForAddressSpace("tp-input"), oversizedTpPath);
 
         string outputPath = workspace.PathFor("blocked-standard-merge.bin");
-        await viewModel.BuildStandardMergeAsync(outputPath);
+        await viewModel.BuildMergeAsync(outputPath);
 
         Assert.False(viewModel.LastRunResult.Succeeded);
         Assert.Equal("Build blocked", viewModel.LastRunResult.Title);

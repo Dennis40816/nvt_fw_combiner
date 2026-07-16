@@ -173,20 +173,6 @@ public static partial class WorkbenchCompositionService
         return true;
     }
 
-    private static bool TryGetV2DpReplacePolicySummary(string icId, out string summary)
-    {
-        if (!TryResolveDpPerspectiveDpReplaceDisplay(icId, baseCapacity: null, out DpPerspectiveDpReplaceDisplay? display))
-        {
-            summary = string.Empty;
-            return false;
-        }
-
-        summary = display.Issues.Count == 0
-            ? $"DP replacement follows the selected base BIN length: {FormatV2DpReplaceCapacities(display)}; the V2 plan restores the original TP range from base."
-            : $"The V2 DP Replace profile is unavailable: {FormatV2DpReplaceIssues(display)}";
-        return true;
-    }
-
     private static string FormatV2DpReplaceCapacities(DpPerspectiveDpReplaceDisplay display)
     {
         return BuiltInV2Bundle.FormatCapacities(display.SupportedBaseCapacities);

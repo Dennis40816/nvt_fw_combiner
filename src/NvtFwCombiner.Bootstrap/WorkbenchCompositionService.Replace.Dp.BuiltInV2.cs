@@ -77,7 +77,8 @@ public static partial class WorkbenchCompositionService
             BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.Keys.Order(StringComparer.Ordinal));
     }
 
-    private static bool IsBuiltInV2DpReplaceIc(string icId)
+    /// <summary>Returns true when the IC uses the DP Perspective family policy.</summary>
+    public static bool IsDpPerspectiveIc(string icId)
     {
         return !string.IsNullOrWhiteSpace(icId) &&
             BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.ContainsKey(

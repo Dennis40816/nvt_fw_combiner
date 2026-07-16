@@ -11,13 +11,6 @@ public sealed partial class MainWindowViewModel
         return RunMergeAsync(build: true, outputPath);
     }
 
-    /// <summary>Builds Standard Merge output to a user-selected path.</summary>
-    public Task BuildStandardMergeAsync(string outputPath)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
-        return RunStandardMergeAsync(build: true, outputPath);
-    }
-
     private void RefreshMergeSlotRequirements()
     {
         IReadOnlyList<string> required = WorkbenchCompositionService.GetStandardMergeRequiredAddressSpaces(SelectedIc);

@@ -3,6 +3,7 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
+/// <summary>Typed facade used by the desktop shell to query catalogs and run application services.</summary>
 public static partial class WorkbenchCompositionService
 {
     internal const string StandardMergeFallbackOutputFileName = "nvt-fw-combiner-output.bin";
@@ -62,20 +63,6 @@ public static partial class WorkbenchCompositionService
         ArgumentNullException.ThrowIfNull(icId);
         return StandardMergeProfileSummaries.FirstOrDefault(profile =>
             string.Equals(profile.IcId, icId, StringComparison.Ordinal));
-    }
-
-    /// <summary>Returns true when the IC uses the DP Perspective family policy.</summary>
-    public static bool IsDpPerspectiveIc(string icId)
-    {
-        return IsBuiltInV2DpReplaceIc(icId);
-    }
-
-    /// <summary>Gets a compact policy summary for the selected DP Replace IC.</summary>
-    public static string GetDpReplacePolicySummary(string icId)
-    {
-        return TryGetV2DpReplacePolicySummary(icId, out string v2Summary)
-            ? v2Summary
-            : "Build stays gated until this IC has approved DP Replace source mapping evidence.";
     }
 
     /// <summary>Gets catalog and tool summary data for the Settings page.</summary>

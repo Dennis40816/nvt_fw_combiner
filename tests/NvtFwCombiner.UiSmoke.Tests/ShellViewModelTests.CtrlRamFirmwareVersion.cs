@@ -91,7 +91,7 @@ public sealed partial class ShellViewModelTests
             replacementSlot.SlotId,
             workspace.Write("self-vn-ctrlram.bin", baseBytes[start..(start + length)]));
 
-        Assert.True(viewModel.CanBuildReplace, viewModel.ReplaceBuildUnavailableReason);
+        Assert.True(viewModel.CanBuildReplace, viewModel.ReplaceReadinessStatus);
         return viewModel;
     }
 }

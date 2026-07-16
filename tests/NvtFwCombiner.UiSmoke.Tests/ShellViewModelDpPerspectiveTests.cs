@@ -32,8 +32,7 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.SourceLabel is "Changed DP BIN" or "Changed LDC BIN");
         Assert.Equal(
             "Build blocked: base BIN and required DP replacement inputs are required.",
-            viewModel.ReplacePreviewUnavailableReason);
-        Assert.Equal(viewModel.ReplacePreviewUnavailableReason, viewModel.ReplaceBuildUnavailableReason);
+            viewModel.ReplaceReadinessStatus);
     }
 
     /// <summary>Verifies NT51950 DP Replace does not draw a max-length range before the base BIN is selected.</summary>

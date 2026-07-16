@@ -14,12 +14,6 @@ public sealed partial class MainWindowViewModel
             ? Text.GetReplaceReadinessStatus(SelectedReplaceMode, CanRunReplace())
             : Text.GetReplaceNotSupportedStatus(SelectedIc);
 
-    /// <summary>Gets the compact reason shown on disabled Replace preview.</summary>
-    public string ReplacePreviewUnavailableReason => ReplaceReadinessStatus;
-
-    /// <summary>Gets the compact reason shown on disabled Replace build.</summary>
-    public string ReplaceBuildUnavailableReason => ReplaceReadinessStatus;
-
     /// <summary>Builds Replace output to a user-selected path.</summary>
     public Task BuildReplaceAsync(
         string outputPath,

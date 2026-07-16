@@ -40,11 +40,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("\"general-output\"", savedRuleRows, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies the Workbench facade stays split into catalog, Standard Merge, and shared adapter helpers.</summary>
+    /// <summary>Verifies the Workbench partials stay split into catalog, Standard Merge, and shared adapter helpers.</summary>
     [Fact]
     public void WorkbenchCompositionServiceConcernsStaySplit()
     {
-        string facade = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.cs");
         string catalog = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Catalog.cs");
         string common = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Common.cs");
         string runner = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Runner.cs");
@@ -75,10 +74,6 @@ public sealed partial class RepositoryBoundaryTests
         string replacePostbuild = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Postbuild.cs");
         string icMetadata = ReadText("src/NvtFwCombiner.Bootstrap/IcMetadataFacade.cs");
 
-        Assert.Contains("public static partial class WorkbenchCompositionService", facade, StringComparison.Ordinal);
-        Assert.DoesNotContain("GetStandardMergeMemoryMapRows", facade, StringComparison.Ordinal);
-        Assert.DoesNotContain("GetSettingsSnapshot", facade, StringComparison.Ordinal);
-        Assert.DoesNotContain("ToRunProfile", facade, StringComparison.Ordinal);
         Assert.Contains("GetSupportedIcIds", catalog, StringComparison.Ordinal);
         Assert.Contains("GetSettingsSnapshot", catalog, StringComparison.Ordinal);
         Assert.Contains("IcMetadataFacade.IcIds", catalog, StringComparison.Ordinal);
@@ -109,7 +104,6 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("RunGeneralMergeV2Async", generalMerge, StringComparison.Ordinal);
         Assert.DoesNotContain("RunGeneralMergeV2Async", mergeCli, StringComparison.Ordinal);
         Assert.DoesNotContain("RunGeneralMergeV2Async", mergeUi, StringComparison.Ordinal);
-        Assert.Contains("GetStandardMergePolicySummary", standardMerge, StringComparison.Ordinal);
         Assert.DoesNotContain("RunStandardMergeAsync", standardMerge, StringComparison.Ordinal);
         Assert.DoesNotContain("GetStandardMergeMemoryMapRows", standardMerge, StringComparison.Ordinal);
         Assert.Contains("GetStandardMergeMemoryMapRows", standardMergeDisplay, StringComparison.Ordinal);
@@ -167,8 +161,6 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.V2.cs");
         string dpReplace = ReadText(
             "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.BuiltInV2.cs");
-        string ctrlRamCandidate = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.V2.cs");
 
         static bool IsSha256Literal(string value)
         {
@@ -177,16 +169,14 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Equal(17, bundle.Split('"').Count(IsSha256Literal));
         Assert.Equal(28, CountOccurrences(registrations, "BuiltInV2BundleRegistry.All[\""));
-        Assert.Equal(1, CountOccurrences(ctrlRamCandidate, "BuiltInV2BundleRegistry.All[\""));
         Assert.Equal(
             1,
             CountOccurrences(
-                bundle + registrations + generalMerge + dpReplace + ctrlRamCandidate,
+                bundle + registrations + generalMerge + dpReplace,
                 "new BuiltInV2Bundle("));
         Assert.DoesNotContain(registrations.Split('"'), IsSha256Literal);
         Assert.DoesNotContain(generalMerge.Split('"'), IsSha256Literal);
         Assert.DoesNotContain(dpReplace.Split('"'), IsSha256Literal);
-        Assert.DoesNotContain(ctrlRamCandidate.Split('"'), IsSha256Literal);
     }
 
     /// <summary>Verifies the raw Hex Editor stays independent from firmware composition policy and UI file I/O.</summary>

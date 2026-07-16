@@ -91,8 +91,6 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(MergeReadinessStatus));
         OnPropertyChanged(nameof(MergeBuildActionTip));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
-        OnPropertyChanged(nameof(ReplacePreviewUnavailableReason));
-        OnPropertyChanged(nameof(ReplaceBuildUnavailableReason));
         OnPropertyChanged(nameof(ReplaceBuildActionTip));
         OnPropertyChanged(nameof(ReplaceOutputFileName));
         OnPropertyChanged(nameof(IsDeviceContextVisible));
@@ -253,8 +251,6 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(MergeBuildActionTip));
         OnPropertyChanged(nameof(CanBuildReplace));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
-        OnPropertyChanged(nameof(ReplacePreviewUnavailableReason));
-        OnPropertyChanged(nameof(ReplaceBuildUnavailableReason));
         OnPropertyChanged(nameof(ReplaceBuildActionTip));
         RefreshReplaceSelectionState();
     }

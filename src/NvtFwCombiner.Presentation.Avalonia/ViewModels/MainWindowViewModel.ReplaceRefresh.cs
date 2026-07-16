@@ -58,8 +58,6 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(ReplaceOutputFileName));
         OnPropertyChanged(nameof(MergeMemorySummary));
         OnPropertyChanged(nameof(ReplaceMemorySummary));
-        OnPropertyChanged(nameof(ReplacePreviewUnavailableReason));
-        OnPropertyChanged(nameof(ReplaceBuildUnavailableReason));
         OnPropertyChanged(nameof(IsReplaceCoverageGrouped));
         OnPropertyChanged(nameof(IsReplaceCoverageFlat));
     }

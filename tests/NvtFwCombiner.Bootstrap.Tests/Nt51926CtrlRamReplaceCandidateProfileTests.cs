@@ -262,7 +262,16 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
 
     private static V2CompositionPlanCompileResult CompileCandidateResult(byte[] referenceBase)
     {
-        return WorkbenchCompositionService.CompileNt51926CtrlRamReplaceV2Candidate(referenceBase);
+        var payload = new FirmwareArtifactPayload(
+            CompositionAddressSpaceIds.ReferenceBase,
+            referenceBase);
+        return BuiltInV2BundleRegistry.All["nt51926-ctrlram-replace-candidate"].Compile(
+            "nt51926-ctrlram-replace-fw141-cascade",
+            "0.2.0",
+            "NT51926",
+            ExperienceIds.CtrlRamReplace,
+            Capacity,
+            [payload]);
     }
 
     private static Dictionary<string, byte[]> CreateInputs()

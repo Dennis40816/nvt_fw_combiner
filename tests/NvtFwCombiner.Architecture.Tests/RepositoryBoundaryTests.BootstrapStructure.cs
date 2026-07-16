@@ -101,7 +101,9 @@ public sealed partial class RepositoryBoundaryTests
         string v2Display = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.V2Display.cs");
         string replaceDisplay = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Display.cs");
         string replaceCoverage = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Coverage.cs");
-        string replaceCli = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.DpWorkbench.cs");
+        string replaceCli = string.Concat(
+            ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.DpWorkbench.cs"),
+            ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.WorkbenchSupport.cs"));
         string bundle = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2Bundle.cs");
         string registrations = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
 
@@ -134,28 +136,20 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("profiles\\\\built-in\\\\", ReadBootstrapSources(), StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies NT51926 CtrlRAM V2 compilation remains an artifact-backed candidate boundary, not a runtime route.</summary>
+    /// <summary>Verifies NT51926 CtrlRAM V2 remains an artifact-backed candidate, not a runtime route.</summary>
     [Fact]
     public void Nt51926CtrlRamV2CandidateStaysIsolatedFromRuntimeRoutes()
     {
-        string candidateBoundary = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.V2.cs");
         string runtime = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.cs");
         string cli = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.CtrlRamWorkbench.cs");
+        string registrations = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
         string project = ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj");
         string profile = ReadText(
             "profiles/built-in/nt51926-ctrlram-replace-candidate/profiles/nt51926-ctrlram-replace-fw141-cascade.json");
 
-        Assert.Contains("CompileNt51926CtrlRamReplaceV2Candidate", candidateBoundary, StringComparison.Ordinal);
-        Assert.Contains("FirmwareArtifactPayload", candidateBoundary, StringComparison.Ordinal);
-        Assert.DoesNotContain("RunCompiledCompositionAsync", candidateBoundary, StringComparison.Ordinal);
-        Assert.DoesNotContain("CompositionRunService", candidateBoundary, StringComparison.Ordinal);
-        Assert.DoesNotContain("CompositionProfileCompiler", candidateBoundary, StringComparison.Ordinal);
-        Assert.DoesNotContain("TpFlashMapCatalog", candidateBoundary, StringComparison.Ordinal);
-        Assert.DoesNotContain("IcMetadataFacade", candidateBoundary, StringComparison.Ordinal);
-        Assert.DoesNotContain("LegacyCombinerPostbuildCatalog", candidateBoundary, StringComparison.Ordinal);
-        Assert.DoesNotContain("CompileNt51926CtrlRamReplaceV2Candidate", runtime, StringComparison.Ordinal);
-        Assert.DoesNotContain("CompileNt51926CtrlRamReplaceV2Candidate", cli, StringComparison.Ordinal);
+        Assert.DoesNotContain("nt51926-ctrlram-replace-candidate", registrations, StringComparison.Ordinal);
+        Assert.DoesNotContain("nt51926-ctrlram-replace-candidate", runtime, StringComparison.Ordinal);
+        Assert.DoesNotContain("nt51926-ctrlram-replace-candidate", cli, StringComparison.Ordinal);
         Assert.Contains("nt51926-ctrlram-replace-candidate", project, StringComparison.Ordinal);
         Assert.Contains("\"stage\": \"executable-candidate\"", profile, StringComparison.Ordinal);
         Assert.Contains("\"blockerId\": \"direct-golden-evidence\"", profile, StringComparison.Ordinal);
