@@ -264,10 +264,14 @@ class CandidateIcIntakeTests(unittest.TestCase):
         with intake.open_validated_output_directory(self.output) as output:
             publish = output.publish
 
-            def interrupt_second_publish(temporary_name: str, final_name: str) -> None:
+            def interrupt_second_publish(
+                temporary_name: str,
+                final_name: str,
+                descriptor: int,
+            ) -> None:
                 if final_name == intake.OUTPUT_FILES[1]:
                     raise KeyboardInterrupt("simulated interruption")
-                publish(temporary_name, final_name)
+                publish(temporary_name, final_name, descriptor)
 
             with mock.patch.object(
                 output,
@@ -292,13 +296,17 @@ class CandidateIcIntakeTests(unittest.TestCase):
             with intake.open_validated_output_directory(self.output) as output:
                 publish = output.publish
 
-                def inject_competing_file(temporary_name: str, final_name: str) -> None:
+                def inject_competing_file(
+                    temporary_name: str,
+                    final_name: str,
+                    descriptor: int,
+                ) -> None:
                     if final_name == competing_name:
                         (self.output / final_name).write_text(
                             competing_content,
                             encoding="utf-8",
                         )
-                    publish(temporary_name, final_name)
+                    publish(temporary_name, final_name, descriptor)
 
                 with mock.patch.object(
                     output,
@@ -313,6 +321,120 @@ class CandidateIcIntakeTests(unittest.TestCase):
         )
         self.assertEqual(
             [competing_name], [path.name for path in self.output.iterdir()]
+        )
+
+    def test_promotion_rejects_a_substituted_staged_file(self) -> None:
+        outputs = self.build_candidate_outputs()
+        competing_content = b"substituted staged bytes\n"
+
+        with self.assertRaisesRegex(
+            intake.IntakeError,
+            "staged candidate output changed before cleanup and was preserved",
+        ):
+            with intake.open_validated_output_directory(self.output) as output:
+                publish = output.publish
+
+                def substitute_staged_file(
+                    temporary_name: str,
+                    final_name: str,
+                    *publication_args: Any,
+                ) -> None:
+                    output.unlink(temporary_name)
+                    (self.output / temporary_name).write_bytes(competing_content)
+                    publish(temporary_name, final_name, *publication_args)
+
+                with mock.patch.object(
+                    output,
+                    "publish",
+                    side_effect=substitute_staged_file,
+                ):
+                    intake.write_outputs(output, outputs)
+
+        self.assertEqual(1, len(list(self.output.iterdir())))
+        self.assertEqual(competing_content, next(self.output.iterdir()).read_bytes())
+
+    def test_rollback_preserves_replaced_output_and_removes_earlier_outputs(
+        self,
+    ) -> None:
+        outputs = self.build_candidate_outputs()
+        replaced_name = intake.OUTPUT_FILES[1]
+        competing_content = "preserve replacement\n"
+
+        with self.assertRaisesRegex(
+            intake.IntakeError,
+            "candidate output changed before cleanup and was preserved",
+        ):
+            with intake.open_validated_output_directory(self.output) as output:
+                publish = output.publish
+
+                def replace_then_interrupt(
+                    temporary_name: str,
+                    final_name: str,
+                    *publication_args: Any,
+                ) -> None:
+                    if final_name == intake.OUTPUT_FILES[2]:
+                        output.unlink(replaced_name)
+                        (self.output / replaced_name).write_text(
+                            competing_content,
+                            encoding="utf-8",
+                        )
+                        raise KeyboardInterrupt("simulated interruption")
+                    publish(temporary_name, final_name, *publication_args)
+
+                with mock.patch.object(
+                    output,
+                    "publish",
+                    side_effect=replace_then_interrupt,
+                ):
+                    intake.write_outputs(output, outputs)
+
+        self.assertEqual([replaced_name], [path.name for path in self.output.iterdir()])
+        self.assertEqual(
+            competing_content,
+            (self.output / replaced_name).read_text(encoding="utf-8"),
+        )
+
+    def test_rollback_preserves_replaced_temp_and_removes_other_staged_files(
+        self,
+    ) -> None:
+        outputs = self.build_candidate_outputs()
+        competing_content = b"preserve staged replacement\n"
+        substituted_name: str | None = None
+
+        with self.assertRaisesRegex(
+            intake.IntakeError,
+            "staged candidate output changed before cleanup and was preserved",
+        ):
+            with intake.open_validated_output_directory(self.output) as output:
+                validate_identity = output.validate_identity
+
+                def replace_then_interrupt() -> None:
+                    nonlocal substituted_name
+                    if substituted_name is None:
+                        substituted_name = next(
+                            name
+                            for name in output.names()
+                            if name != intake.OUTPUT_LOCK_FILE
+                        )
+                        output.unlink(substituted_name)
+                        (self.output / substituted_name).write_bytes(competing_content)
+                        raise KeyboardInterrupt("simulated interruption")
+                    validate_identity()
+
+                with mock.patch.object(
+                    output,
+                    "validate_identity",
+                    side_effect=replace_then_interrupt,
+                ):
+                    intake.write_outputs(output, outputs)
+
+        assert substituted_name is not None
+        self.assertEqual(
+            [substituted_name], [path.name for path in self.output.iterdir()]
+        )
+        self.assertEqual(
+            competing_content,
+            (self.output / substituted_name).read_bytes(),
         )
 
     @unittest.skipIf(os.name == "nt", "Unix directory-fd substitution coverage")
