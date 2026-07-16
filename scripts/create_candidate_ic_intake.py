@@ -41,6 +41,7 @@ OUTPUT_FILES = (
     "validation-report.json",
 )
 ID_PATTERN = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
+MEMBER_ID_PATTERN = re.compile(r"^NT[0-9A-Z-]+$")
 HASH_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 SEMVER_PATTERN = re.compile(
     r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:[-+][0-9A-Za-z.-]+)?$"
@@ -339,6 +340,16 @@ def validate_facts(
             f"facts[{index}].subject",
         )
         require_id(subject["familyId"], f"facts[{index}].subject.familyId is invalid")
+        if "memberId" in subject:
+            require(
+                subject["memberId"],
+                f"facts[{index}].subject.memberId is invalid",
+                isinstance(subject["memberId"], str)
+                and MEMBER_ID_PATTERN.fullmatch(subject["memberId"]) is not None,
+            )
+        for key in ("modeId", "profileId"):
+            if key in subject:
+                require_id(subject[key], f"facts[{index}].subject.{key} is invalid")
         if fact["factKind"] not in FACT_KINDS or not isinstance(fact["value"], dict):
             raise IntakeError(f"facts[{index}] has an invalid kind or value")
         if (

@@ -124,15 +124,30 @@ class ValidatedOutputDirectory:
             return os.open(name, flags, 0o666, dir_fd=self.directory_descriptor)
         return os.open(self.path / name, flags, 0o666)
 
-    def unlink(self, name: str, *, missing_ok: bool = False) -> None:
+    def unlink(
+        self,
+        name: str,
+        *,
+        missing_ok: bool = False,
+        expected_identity: tuple[int, int] | None = None,
+    ) -> bool:
         try:
+            if expected_identity is not None:
+                status = self.entry_status(name)
+                if (
+                    not stat.S_ISREG(status.st_mode)
+                    or self.identity(status) != expected_identity
+                ):
+                    return False
             if self.directory_descriptor is not None:
                 os.unlink(name, dir_fd=self.directory_descriptor)
             else:
                 os.unlink(self.path / name)
+            return True
         except FileNotFoundError:
             if not missing_ok:
                 raise
+            return True
 
     def entry_status(self, name: str) -> os.stat_result:
         if self.directory_descriptor is not None:
@@ -379,20 +394,32 @@ class ValidatedOutputDirectory:
         ):
             tracked_links[identity] = tracked_links.get(identity, 0) + 1
         hardlink_failures = self._anchor_link_failures(tracked_links)
-        if hardlink_failures:
-            names = ", ".join(sorted(name for name, _ in hardlink_failures))
-            error = IntakeError(
-                "candidate output cleanup blocked by unexpected hard links: " + names
-            )
-            raise error from hardlink_failures[0][1]
+        blocked_identities = {identity for _, _, identity in hardlink_failures}
         staged_preserved, staged_failures = self._cleanup_identities(
-            self.staged_identities
+            self.staged_identities,
+            blocked_identities,
         )
         published_preserved, published_failures = self._cleanup_identities(
-            self.published_identities
+            self.published_identities,
+            blocked_identities,
         )
-        hardlink_failures = self._anchor_link_failures({})
+        remaining_links: dict[tuple[int, int], int] = {}
+        for identity in (
+            *self.staged_identities.values(),
+            *self.published_identities.values(),
+        ):
+            remaining_links[identity] = remaining_links.get(identity, 0) + 1
+        late_hardlink_failures = [
+            failure
+            for failure in self._anchor_link_failures(remaining_links)
+            if failure[2] not in blocked_identities
+        ]
         messages: list[str] = []
+        if hardlink_failures:
+            messages.append(
+                "candidate output cleanup blocked by unexpected hard links: "
+                + ", ".join(sorted(name for name, _, _ in hardlink_failures))
+            )
         if staged_preserved:
             messages.append(
                 "staged candidate output changed before cleanup and was preserved: "
@@ -403,7 +430,11 @@ class ValidatedOutputDirectory:
                 "candidate output changed before cleanup and was preserved: "
                 + ", ".join(sorted(published_preserved))
             )
-        failures = [*staged_failures, *published_failures, *hardlink_failures]
+        anchor_failures = [
+            (name, error)
+            for name, error, _ in (*hardlink_failures, *late_hardlink_failures)
+        ]
+        failures = [*staged_failures, *published_failures, *anchor_failures]
         if failures:
             messages.append(
                 "candidate output cleanup failed: "
@@ -418,32 +449,32 @@ class ValidatedOutputDirectory:
     def _cleanup_identities(
         self,
         identities: dict[str, tuple[int, int]],
+        blocked_identities: set[tuple[int, int]],
     ) -> tuple[list[str], list[tuple[str, OSError]]]:
         preserved: list[str] = []
         failures: list[tuple[str, OSError]] = []
         for name, expected in reversed(list(identities.items())):
-            try:
-                status = self.entry_status(name)
-            except FileNotFoundError:
-                continue
-            except OSError as exception:
-                failures.append((name, exception))
-                continue
-            if not stat.S_ISREG(status.st_mode) or self.identity(status) != expected:
-                preserved.append(name)
+            if expected in blocked_identities:
                 continue
             try:
-                self.unlink(name)
+                removed = self.unlink(
+                    name,
+                    missing_ok=True,
+                    expected_identity=expected,
+                )
             except OSError as exception:
                 failures.append((name, exception))
-        identities.clear()
+            else:
+                if not removed:
+                    preserved.append(name)
+            del identities[name]
         return preserved, failures
 
     def _anchor_link_failures(
         self,
         expected_links: dict[tuple[int, int], int],
-    ) -> list[tuple[str, OSError]]:
-        failures: list[tuple[str, OSError]] = []
+    ) -> list[tuple[str, OSError, tuple[int, int]]]:
+        failures: list[tuple[str, OSError, tuple[int, int]]] = []
         checked: set[tuple[int, int]] = set()
         for descriptor, expected_identity in self.anchor_descriptors.items():
             if expected_identity in checked:
@@ -453,11 +484,17 @@ class ValidatedOutputDirectory:
             try:
                 status = os.fstat(descriptor)
             except OSError as exception:
-                failures.append((label, exception))
+                failures.append((label, exception, expected_identity))
                 continue
             expected = expected_links.get(expected_identity, 0)
             if self.identity(status) != expected_identity:
-                failures.append((label, OSError("run-owned output handle changed")))
+                failures.append(
+                    (
+                        label,
+                        OSError("run-owned output handle changed"),
+                        expected_identity,
+                    )
+                )
             elif status.st_nlink > expected:
                 failures.append(
                     (
@@ -466,6 +503,7 @@ class ValidatedOutputDirectory:
                             "run-owned output has an untracked hard link: "
                             f"expected at most {expected}, found {status.st_nlink}"
                         ),
+                        expected_identity,
                     )
                 )
         return failures

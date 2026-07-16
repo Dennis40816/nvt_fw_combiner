@@ -208,6 +208,30 @@ class CandidateIcIntakeTests(unittest.TestCase):
         self.assertIn("unsupported fields", result.stderr)
         self.assertEqual([], list(self.output.iterdir()))
 
+    def test_rejects_invalid_optional_subject_identifiers(self) -> None:
+        cases: tuple[tuple[str, Any], ...] = (
+            ("memberId", "nt51950"),
+            ("memberId", 51950),
+            ("modeId", "STANDARD_MERGE"),
+            ("modeId", ["standard-merge"]),
+            ("profileId", "nt51950_standard"),
+            ("profileId", {"id": "nt51950-standard"}),
+        )
+        for key, value in cases:
+            with self.subTest(key=key, value=value):
+                invalid = manifest(self.artifact_content)
+                invalid["facts"][0]["subject"][key] = value
+                self.manifest_path.write_text(
+                    json.dumps(invalid, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+
+                result = self.run_command()
+
+                self.assertEqual(2, result.returncode)
+                self.assertIn(f"subject.{key} is invalid", result.stderr)
+                self.assertEqual([], list(self.output.iterdir()))
+
     def test_rejects_path_escape_office_lock_and_nonempty_output(self) -> None:
         escaped = self.run_command(
             artifact_binding="flashmap-workbook=../flashmap.xlsx"
@@ -507,6 +531,67 @@ class CandidateIcIntakeTests(unittest.TestCase):
             (self.output / substituted_name).read_bytes(),
         )
 
+    def test_rollback_rechecks_identity_at_unlink_and_preserves_swap(self) -> None:
+        outputs = self.build_candidate_outputs()
+        competing_content = b"replacement at unlink boundary\n"
+        substituted_name: str | None = None
+
+        with self.assertRaisesRegex(
+            intake.IntakeError,
+            "changed before cleanup and was preserved",
+        ):
+            with intake.open_validated_output_directory(self.output) as output:
+                publish = output.publish
+                unlink = output.unlink
+
+                def interrupt_second_publication(
+                    temporary_name: str,
+                    final_name: str,
+                    *publication_args: Any,
+                ) -> None:
+                    if final_name == intake.OUTPUT_FILES[1]:
+                        raise KeyboardInterrupt("simulated interruption")
+                    publish(temporary_name, final_name, *publication_args)
+
+                def substitute_at_unlink(
+                    name: str,
+                    *,
+                    missing_ok: bool = False,
+                    expected_identity: tuple[int, int] | None = None,
+                ) -> bool:
+                    nonlocal substituted_name
+                    if expected_identity is not None and substituted_name is None:
+                        unlink(name)
+                        (self.output / name).write_bytes(competing_content)
+                        substituted_name = name
+                    return unlink(
+                        name,
+                        missing_ok=missing_ok,
+                        expected_identity=expected_identity,
+                    )
+
+                with (
+                    mock.patch.object(
+                        output,
+                        "publish",
+                        side_effect=interrupt_second_publication,
+                    ),
+                    mock.patch.object(
+                        output,
+                        "unlink",
+                        side_effect=substitute_at_unlink,
+                    ),
+                ):
+                    intake.write_outputs(output, outputs)
+
+        assert substituted_name is not None
+        self.assertEqual(
+            [substituted_name], [path.name for path in self.output.iterdir()]
+        )
+        self.assertEqual(
+            competing_content, (self.output / substituted_name).read_bytes()
+        )
+
     @unittest.skipIf(os.name == "nt", "Unix hard-link rollback coverage")
     def test_rollback_reports_lock_named_hardlink_without_unlinking_it(self) -> None:
         outputs = self.build_candidate_outputs()
@@ -538,9 +623,24 @@ class CandidateIcIntakeTests(unittest.TestCase):
 
                 unlink = output.unlink
 
-                def record_unlink(name: str, *, missing_ok: bool = False) -> None:
-                    unlink_calls.append(mock.call(name, missing_ok=missing_ok))
-                    unlink(name, missing_ok=missing_ok)
+                def record_unlink(
+                    name: str,
+                    *,
+                    missing_ok: bool = False,
+                    expected_identity: tuple[int, int] | None = None,
+                ) -> bool:
+                    unlink_calls.append(
+                        mock.call(
+                            name,
+                            missing_ok=missing_ok,
+                            expected_identity=expected_identity,
+                        )
+                    )
+                    return unlink(
+                        name,
+                        missing_ok=missing_ok,
+                        expected_identity=expected_identity,
+                    )
 
                 with (
                     mock.patch.object(
@@ -556,7 +656,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
                 ):
                     intake.write_outputs(output, outputs)
 
-        self.assertNotIn(mock.call(hidden_link, missing_ok=False), unlink_calls)
+        self.assertNotIn(hidden_link, [call.args[0] for call in unlink_calls])
         self.assertTrue((self.output / hidden_link).is_file())
         self.assertTrue((self.output / intake.OUTPUT_FILES[0]).is_file())
         self.assertTrue(
@@ -564,6 +664,10 @@ class CandidateIcIntakeTests(unittest.TestCase):
                 self.output / hidden_link,
                 self.output / intake.OUTPUT_FILES[0],
             )
+        )
+        self.assertEqual(
+            {hidden_link, intake.OUTPUT_FILES[0]},
+            {path.name for path in self.output.iterdir()},
         )
 
     @unittest.skipIf(os.name == "nt", "Unix nested hard-link rollback coverage")
@@ -608,6 +712,10 @@ class CandidateIcIntakeTests(unittest.TestCase):
         self.assertTrue(
             os.path.samefile(nested_link, self.output / intake.OUTPUT_FILES[0])
         )
+        self.assertEqual(
+            {"competing-directory", intake.OUTPUT_FILES[0]},
+            {path.name for path in self.output.iterdir()},
+        )
 
     @unittest.skipIf(os.name == "nt", "Unix late hard-link rollback coverage")
     def test_rollback_keeps_anchors_open_and_detects_late_hardlink(self) -> None:
@@ -627,6 +735,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
 
                 def cleanup_with_open_anchors(
                     identities: dict[str, tuple[int, int]],
+                    blocked_identities: set[tuple[int, int]],
                 ) -> tuple[list[str], list[tuple[str, OSError]]]:
                     nonlocal cleanup_calls
                     for descriptor in descriptors:
@@ -634,7 +743,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
                     cleanup_calls += 1
                     if cleanup_calls == 2:
                         os.link(self.output / intake.OUTPUT_FILES[0], late_link)
-                    return cleanup_identities(identities)
+                    return cleanup_identities(identities, blocked_identities)
 
                 with mock.patch.object(
                     output,
