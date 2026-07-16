@@ -27,7 +27,7 @@ Post-`0.9.8` development targets verified legacy convergence, patch closure, fir
 
 ### Notes
 
-- The reviewed local Windows candidate ZIP is 57,603,094 bytes, approximately 0.176% above the `v0.9.7` baseline and below the 1% ceiling.
+- The reviewed local Windows candidate ZIP remains below the owner-approved 1% growth ceiling; exact bytes and SHA-256 belong to the immutable package evidence for its source commit.
 - CtrlRAM golden byte parity/output sign-off, protected remote CI, signing/legal approval, and an independent clean-machine package run remain explicit release/support gates.
 
 ## [0.9.7] - 2026-07-15

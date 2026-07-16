@@ -41,8 +41,9 @@ existing repository structure validator.
 ## Consequences
 
 - `v0.9.8` must remove duplicate ownership and unused compatibility code before
-  adding production abstractions, and must exit at or below 56,000 production
-  lines. `v0.9.9` must exit at or below 54,000 production lines.
+  adding production abstractions. On 2026-07-16 the owner accepted its exact
+  56,742-line final ratchet, superseding the original 56,000-line stretch gate.
+  `v0.9.9` must still exit at or below 54,000 production lines.
 - The source ratchet and release-package byte budget are separate. Package
   changes require a reproducible package artifact and release-risk review. The
   owner-approved package maximum is 1% above the 57,501,699-byte baseline.
