@@ -74,7 +74,7 @@ public sealed partial class ShellViewModelTests
         await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
+        Assert.True(viewModel.CanBuildReplace, viewModel.ReplaceBuildUnavailableReason);
 
         await viewModel.BuildReplaceAsync(outputPath);
 

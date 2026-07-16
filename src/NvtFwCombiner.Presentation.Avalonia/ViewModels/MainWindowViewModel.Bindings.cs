@@ -78,7 +78,6 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets replace card content.</summary>
     public PlanningCardText ReplacePreview { get; private set; } = ShellTextResources.For(ShellLanguage.English).ReplacePreview;
 
-    /// <summary>Gets footer status content.</summary>
     /// <summary>Gets merge input slots.</summary>
     public ObservableCollection<FirmwareSlotViewModel> MergeSlots { get; } = [];
 
