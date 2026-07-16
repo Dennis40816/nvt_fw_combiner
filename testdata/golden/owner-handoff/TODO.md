@@ -77,35 +77,39 @@ ctrlram-replace/nt51927/2chip/expected.bin   262,144 bytes
 ctrlram-replace/nt51927/3chip/expected.bin   262,144 bytes
 ```
 
-For a direct product golden, provide `base.bin`, `expected.bin`, and the actual
-replacement inputs from the same official run.
+For a direct product golden, use the committed base identified above and
+provide `expected.bin` plus the actual physical replacement inputs from the
+same official run. Do not create another `base.bin` folder.
 
 Two-chip input folder:
 
 ```text
 ctrlram-replace/nt51927/2chip/inputs/
-├─ nf-master.bin              4,048 bytes
+├─ nf.bin                     8,080 bytes
 ├─ normal-master.bin         12,288 bytes
 ├─ mp-master.bin              9,216 bytes
-├─ vn-master.bin              5,728 bytes
-├─ nf-slave-r.bin             4,048 bytes
+├─ vn.bin                     5,728 bytes
 ├─ normal-slave-r.bin        12,288 bytes
-├─ mp-slave-r.bin             9,216 bytes
-└─ vn-slave-r.bin             5,728 bytes
+└─ mp-slave-r.bin             9,216 bytes
 ```
 
-Three-chip uses all two-chip files plus:
+Three-chip has one shared NF/VN input plus the three Normal/MP positions:
 
 ```text
 ctrlram-replace/nt51927/3chip/inputs/
-├─ nf-slave-l.bin             4,048 bytes
+├─ nf.bin                    12,112 bytes
+├─ normal-master.bin         12,288 bytes
+├─ mp-master.bin              9,216 bytes
+├─ vn.bin                     5,728 bytes
+├─ normal-slave-r.bin        12,288 bytes
+├─ mp-slave-r.bin             9,216 bytes
 ├─ normal-slave-l.bin        12,288 bytes
-├─ mp-slave-l.bin             9,216 bytes
-└─ vn-slave-l.bin             5,728 bytes
+└─ mp-slave-l.bin             9,216 bytes
 ```
 
-If one source file is intentionally reused for multiple slots, provide it once
-and state the slot mapping; do not fabricate duplicate provenance.
+`nf.bin` and `vn.bin` are the physical files consumed once by Postbuild and
+reused for multiple logical destinations. Do not provide per-chip NF/VN copies
+or fabricate duplicate provenance.
 
 ### A3. NT51950 and NT51951 direct product cases
 

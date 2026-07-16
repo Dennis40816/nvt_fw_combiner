@@ -176,7 +176,8 @@ public static partial class LegacyCombinerPostbuildCatalog
             LegacyCombinerBlockSourceKind.StagedFile,
             fileName,
             sourceOffset,
-            new ByteRange(destinationOffset, length));
+            new ByteRange(destinationOffset, length),
+            $"postbuild-{Path.GetFileNameWithoutExtension(fileName).Replace('_', '-').ToLowerInvariant()}");
     }
 
     private static LegacyCombinerBlockArgument Fw(

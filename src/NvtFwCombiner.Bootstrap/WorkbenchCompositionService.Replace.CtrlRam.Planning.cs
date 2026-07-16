@@ -10,7 +10,7 @@ public static partial class WorkbenchCompositionService
     private static List<OperationRunSummary> CreateCtrlRamPlanningOperations(
         string icId,
         IcNumberSelection selection,
-        IReadOnlyList<TpFlashMapRegion> regions,
+        IReadOnlyList<TpCtrlRamPostbuildSource> sources,
         IReadOnlyDictionary<string, string> slotPaths,
         bool runnablePreview,
         LegacyCombinerPostbuildProfile? postbuildProfile = null)
@@ -21,9 +21,8 @@ public static partial class WorkbenchCompositionService
             1,
             TpFlashMapCatalog.GetRegions(icId, selection, postbuildProfile).Max(region => region.Range.EndExclusive));
         int sequence = 100;
-        foreach (TpFlashMapRegion region in regions.OrderBy(region => region.Range.Start))
+        foreach (TpFlashMapRegion region in sources.SelectMany(source => source.Regions).DistinctBy(region => region.RegionId, StringComparer.Ordinal).OrderBy(region => region.Range.Start))
         {
-            string slotId = CtrlRamSlotId(region.RegionId);
             operations.Add(new OperationRunSummary(
                 $"split-base-{region.RegionId}",
                 sequence,
@@ -40,24 +39,37 @@ public static partial class WorkbenchCompositionService
                 [],
                 $"Split original {region.DisplayName} from base flash for postbuild staging."));
             sequence += 10;
+        }
 
-            if (slotPaths.ContainsKey(slotId))
+        foreach (TpCtrlRamPostbuildSource source in sources.Where(source =>
+                     slotPaths.ContainsKey(CtrlRamSlotId(source.SourceId))))
+        {
+            string slotId = CtrlRamSlotId(source.SourceId);
+            long sourceLength = slotPaths.TryGetValue(slotId, out string? sourcePath) && File.Exists(sourcePath)
+                ? Math.Min(new FileInfo(sourcePath).Length, source.RequiredLength)
+                : source.RequiredLength;
+            foreach (LegacyCombinerBlockArgument block in source.Blocks)
             {
+                TpFlashMapRegion region = source.Regions.Single(region => region.Range.Overlaps(block.FirmwareRange));
+                long availableLength = sourceLength - block.SourceOffset;
+                long effectiveLength = availableLength > 0
+                    ? Math.Min(block.FirmwareRange.Length, availableLength)
+                    : block.FirmwareRange.Length;
                 operations.Add(new OperationRunSummary(
-                    $"replace-{region.RegionId}",
+                    $"stage-{block.BlockId}",
                     sequence,
                     CompositionOperationKind.ReplaceRange,
                     status,
                     slotId,
-                    new ByteRange(0, region.Range.Length),
+                    new ByteRange(block.SourceOffset, effectiveLength),
                     CompositionAddressSpaceIds.OutputImage,
-                    region.Range,
+                    new ByteRange(block.FirmwareRange.Start, effectiveLength),
                     OverlapPolicy.ReplaceExisting,
                     null,
                     null,
                     [],
                     [],
-                    $"Stage selected {region.DisplayName} for Combiner pasteback at {FormatDisplayRange(region.Range)}; oversized inputs are expected to truncate only by profile policy."));
+                    $"Stage up to {block.FirmwareRange.Length} bytes from {source.SourceFileName} offset 0x{block.SourceOffset:X} for {region.DisplayName}; short sources stop at EOF and oversized tails are unused."));
                 sequence += 10;
             }
         }

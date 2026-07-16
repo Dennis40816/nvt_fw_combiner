@@ -19,11 +19,11 @@ public sealed partial class ReplaceCliCommandTests
         JsonElement normalMaster = fixtureCase.GetProperty("replacementInputs")
             .EnumerateArray()
             .Single(input => input.GetProperty("slotId").GetString() == "replace-ctrlram-normal-master");
-        JsonElement vnSlaveRight = fixtureCase.GetProperty("replacementInputs")
+        JsonElement vn = fixtureCase.GetProperty("replacementInputs")
             .EnumerateArray()
-            .Single(input => input.GetProperty("slotId").GetString() == "replace-ctrlram-vn-slave-r");
+            .Single(input => input.GetProperty("slotId").GetString() == "replace-ctrlram-vn");
         string normalMasterPath = ManifestPath(fixtureRoot, normalMaster.GetProperty("file").GetProperty("path"));
-        string vnSlaveRightPath = ManifestPath(fixtureRoot, vnSlaveRight.GetProperty("file").GetProperty("path"));
+        string vnPath = ManifestPath(fixtureRoot, vn.GetProperty("file").GetProperty("path"));
         string report = workspace.PathFor("ctrlram-report.json");
 
         CliRunResult result = await RunCliAsync([
@@ -38,7 +38,7 @@ public sealed partial class ReplaceCliCommandTests
             "--ctrlram",
             $"replace-ctrlram-normal-master={normalMasterPath}",
             "--ctrlram",
-            $"vn-slave-r={vnSlaveRightPath}",
+            $"vn={vnPath}",
             "--report",
             report,
         ]);
@@ -57,7 +57,7 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Contains(root.GetProperty("Inputs").EnumerateArray(), input =>
             input.GetProperty("AddressSpaceId").GetString() == "replace-ctrlram-normal-master");
         Assert.Contains(root.GetProperty("Inputs").EnumerateArray(), input =>
-            input.GetProperty("AddressSpaceId").GetString() == "replace-ctrlram-vn-slave-r");
+            input.GetProperty("AddressSpaceId").GetString() == "replace-ctrlram-vn");
         JsonElement operation = Assert.Single(root.GetProperty("Operations").EnumerateArray());
         Assert.Equal("RunExternalProcessor", operation.GetProperty("Kind").GetString());
     }

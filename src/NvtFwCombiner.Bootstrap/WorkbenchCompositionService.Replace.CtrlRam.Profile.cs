@@ -13,7 +13,8 @@ public static partial class WorkbenchCompositionService
         IcNumberSelection selection,
         long capacity,
         IReadOnlyList<TpFlashMapRegion> ctrlRamRegions,
-        IReadOnlyList<TpFlashMapRegion> selectedRegions,
+        IReadOnlyList<TpCtrlRamPostbuildSource> selectedSources,
+        IReadOnlyDictionary<string, long> selectedSourceLengths,
         LegacyCombinerPostbuildProfile postbuildProfile,
         LegacyCombinerPostbuildCommandPlan commandPlan,
         IReadOnlyList<LegacyCombinerPostbuildWriteRange> postbuildWriteRangeSections,
@@ -60,18 +61,31 @@ public static partial class WorkbenchCompositionService
 
         int sequence = 100;
         List<ExternalProcessorStagedSourceBinding> stagedSourceBindings = [];
-        foreach (TpFlashMapRegion region in selectedRegions.OrderBy(region => region.Range.Start))
+        List<ExternalProcessorStagedArtifactBinding> stagedArtifactBindings = [];
+        foreach (TpCtrlRamPostbuildSource source in selectedSources)
         {
-            string slotId = CtrlRamSlotId(region.RegionId);
+            string slotId = CtrlRamSlotId(source.SourceId);
+            long sourceLength = selectedSourceLengths[source.SourceId];
             addressSpaces.Add(new AddressSpace(
                 slotId,
-                region.Range.Length,
+                sourceLength,
                 AddressSpaceMutability.Immutable,
                 inputOversizePolicy: InputOversizePolicy.TruncateWithWarning));
-            stagedSourceBindings.Add(new ExternalProcessorStagedSourceBinding(
+            stagedSourceBindings.AddRange(source.Blocks.Select(block =>
+            {
+                long effectiveLength = Math.Min(
+                    block.FirmwareRange.Length,
+                    sourceLength - block.SourceOffset);
+                return
+                new ExternalProcessorStagedSourceBinding(
+                    slotId,
+                    new ByteRange(block.SourceOffset, effectiveLength),
+                    new ByteRange(block.FirmwareRange.Start, effectiveLength));
+            }));
+            stagedArtifactBindings.Add(new ExternalProcessorStagedArtifactBinding(
+                source.StagedArtifactId,
                 slotId,
-                new ByteRange(0, region.Range.Length),
-                region.Range));
+                new ByteRange(0, sourceLength)));
         }
 
         ByteRange[] ctrlRamRanges = [.. ctrlRamRegions.Select(region => region.Range)];
@@ -145,6 +159,7 @@ public static partial class WorkbenchCompositionService
                 stagedSourceBindings,
                 allowedWriteRangeSections: postbuildWriteRangeSections.Select(section =>
                     new ExternalProcessorWriteRangeSection(section.SectionId, section.Range, section.SourceRange)),
+                stagedArtifactBindings: stagedArtifactBindings,
                 outputAssertions: postbuildOutputAssertions),
             OverlapPolicy.ReplaceExisting,
             $"Run {commandPlan.Branch} legacy Combiner postbuild and stage selected CtrlRAM BINs for Combiner pasteback. Combiner command: {FormatPostbuildCommandBlock(commandPlan)}."));

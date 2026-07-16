@@ -88,13 +88,14 @@
       },
       "replacementInputs": [
         {
-          "slotId": "replace-ctrlram-nf-master",
-          "regionName": "NF CtrlRAM (Master)",
+          "slotId": "replace-ctrlram-nf",
+          "regionName": "NF CtrlRAM (Shared)",
           "file": {
-            "path": "fixtures/20260705/inputs/nt51927-2chip-self-20260705/nf-master.bin",
-            "size": 4048,
-            "sha256": "29ff13ee4b798f59af20ffca76058baa801efa5bfc83d4d94a333865dc410d58"
-          }
+            "path": "fixtures/20260705/inputs/nt51927-2chip-self-20260705/nf.bin",
+            "size": 8080,
+            "sha256": "d9893ca964aeb0a92e3d9b1513a554cc01e0c2fb9698a774429f78837d5a3e1e"
+          },
+          "derivation": "Repository-derived Postbuild source: former nf-master.bin[0x0000:0x0FD0] followed by nf-slave-r.bin[0x0010:0x0FD0]."
         },
         {
           "slotId": "replace-ctrlram-normal-master",
@@ -115,22 +116,14 @@
           }
         },
         {
-          "slotId": "replace-ctrlram-vn-master",
-          "regionName": "VN CtrlRAM (Master)",
+          "slotId": "replace-ctrlram-vn",
+          "regionName": "VN CtrlRAM (Shared)",
           "file": {
-            "path": "fixtures/20260705/inputs/nt51927-2chip-self-20260705/vn-master.bin",
+            "path": "fixtures/20260705/inputs/nt51927-2chip-self-20260705/vn.bin",
             "size": 5728,
             "sha256": "93a6d24b9609b57110c7f1bf4decc6d03c631ebcdc79f39c4e53f6736fbd89b8"
-          }
-        },
-        {
-          "slotId": "replace-ctrlram-nf-slave-r",
-          "regionName": "NF CtrlRAM (Slave R)",
-          "file": {
-            "path": "fixtures/20260705/inputs/nt51927-2chip-self-20260705/nf-slave-r.bin",
-            "size": 4048,
-            "sha256": "4e82e7bf8f6a22fab68e3d00a611114e87fad69b539e5fe7726bf386344671fa"
-          }
+          },
+          "derivation": "Repository-derived Postbuild source: former VN master and slave-R slices were byte-identical."
         },
         {
           "slotId": "replace-ctrlram-normal-slave-r",
@@ -149,18 +142,9 @@
             "size": 9216,
             "sha256": "d0bebf670c491e8d01cacc29bf5c7e77141c6bee873218a514b2bee2687a719c"
           }
-        },
-        {
-          "slotId": "replace-ctrlram-vn-slave-r",
-          "regionName": "VN CtrlRAM (Slave R)",
-          "file": {
-            "path": "fixtures/20260705/inputs/nt51927-2chip-self-20260705/vn-slave-r.bin",
-            "size": 5728,
-            "sha256": "93a6d24b9609b57110c7f1bf4decc6d03c631ebcdc79f39c4e53f6736fbd89b8"
-          }
         }
       ],
-      "notes": "Committed owner-approved self-replacement fixture. Replacement inputs are sliced from the same base firmware. Postbuild output parity remains pending because current Combiner execution recalculates header/integrity bytes."
+      "notes": "Committed owner-approved base with repository-derived replay inputs. The six inputs now match the six physical BIN filenames consumed by the pinned Postbuild; NF and VN each feed multiple logical destinations. They are not independently owner-supplied replacement files. Postbuild output parity remains pending because no independent expected output is committed."
     },
     {
       "id": "nt51927-3chip-self-20260705",
@@ -178,13 +162,14 @@
       },
       "replacementInputs": [
         {
-          "slotId": "replace-ctrlram-nf-master",
-          "regionName": "NF CtrlRAM (Master)",
+          "slotId": "replace-ctrlram-nf",
+          "regionName": "NF CtrlRAM (Shared)",
           "file": {
-            "path": "fixtures/20260705/inputs/nt51927-3chip-self-20260705/nf-master.bin",
-            "size": 4048,
-            "sha256": "19cfabd5f0e4009c149af95b91389435e70a6518ece914b2f04e2a63f5d8f866"
-          }
+            "path": "fixtures/20260705/inputs/nt51927-3chip-self-20260705/nf.bin",
+            "size": 12112,
+            "sha256": "1da3b789fd593a9c9d226aa1deab11a6108b52cacb5eb8166487bf0cbfd01bd7"
+          },
+          "derivation": "Repository-derived Postbuild source: former nf-slave-l.bin[0x0000:0x0FD0] + nf-master.bin[0x0010:0x0FD0] + nf-slave-r.bin[0x0010:0x0FD0]."
         },
         {
           "slotId": "replace-ctrlram-normal-master",
@@ -205,22 +190,14 @@
           }
         },
         {
-          "slotId": "replace-ctrlram-vn-master",
-          "regionName": "VN CtrlRAM (Master)",
+          "slotId": "replace-ctrlram-vn",
+          "regionName": "VN CtrlRAM (Shared)",
           "file": {
-            "path": "fixtures/20260705/inputs/nt51927-3chip-self-20260705/vn-master.bin",
+            "path": "fixtures/20260705/inputs/nt51927-3chip-self-20260705/vn.bin",
             "size": 5728,
-            "sha256": "a692f93046699fc03c5a4795ed39a3b3cf37d1962b30c7bb2999972b9cc71b74"
-          }
-        },
-        {
-          "slotId": "replace-ctrlram-nf-slave-r",
-          "regionName": "NF CtrlRAM (Slave R)",
-          "file": {
-            "path": "fixtures/20260705/inputs/nt51927-3chip-self-20260705/nf-slave-r.bin",
-            "size": 4048,
-            "sha256": "9e00e7add8fd8f02ec605715bccdd1d6ae963f670793f2bf56e2e598717fb654"
-          }
+            "sha256": "aacd153b8d41c0e85e148654ff0feeefb42b51945c41b4a17f30fc393a25e533"
+          },
+          "derivation": "Repository-derived Postbuild source: former slave-R and slave-L slices were byte-identical; the former master slice differs by 22 bytes and remains an explicit parity gap."
         },
         {
           "slotId": "replace-ctrlram-normal-slave-r",
@@ -241,24 +218,6 @@
           }
         },
         {
-          "slotId": "replace-ctrlram-vn-slave-r",
-          "regionName": "VN CtrlRAM (Slave R)",
-          "file": {
-            "path": "fixtures/20260705/inputs/nt51927-3chip-self-20260705/vn-slave-r.bin",
-            "size": 5728,
-            "sha256": "aacd153b8d41c0e85e148654ff0feeefb42b51945c41b4a17f30fc393a25e533"
-          }
-        },
-        {
-          "slotId": "replace-ctrlram-nf-slave-l",
-          "regionName": "NF CtrlRAM (Slave L)",
-          "file": {
-            "path": "fixtures/20260705/inputs/nt51927-3chip-self-20260705/nf-slave-l.bin",
-            "size": 4048,
-            "sha256": "42af45605f6cf95899abb4a65ab92dafb31760808d7b7658c6676ea99223a2c4"
-          }
-        },
-        {
           "slotId": "replace-ctrlram-normal-slave-l",
           "regionName": "Normal CtrlRAM (Slave L)",
           "file": {
@@ -275,18 +234,9 @@
             "size": 9216,
             "sha256": "d4504418c5be595117e9093e8210ce254f553328b466f9f612e91d9ca8b5eca7"
           }
-        },
-        {
-          "slotId": "replace-ctrlram-vn-slave-l",
-          "regionName": "VN CtrlRAM (Slave L)",
-          "file": {
-            "path": "fixtures/20260705/inputs/nt51927-3chip-self-20260705/vn-slave-l.bin",
-            "size": 5728,
-            "sha256": "aacd153b8d41c0e85e148654ff0feeefb42b51945c41b4a17f30fc393a25e533"
-          }
         }
       ],
-      "notes": "Committed owner-approved self-replacement fixture. Replacement inputs are sliced from the same base firmware. Postbuild output parity remains pending because current Combiner execution recalculates header/integrity bytes."
+      "notes": "Committed owner-approved base with repository-derived replay inputs. The eight inputs now match the eight physical BIN filenames consumed by the pinned Postbuild; NF and VN each feed multiple logical destinations. They are not independently owner-supplied replacement files. The old per-region VN master slice differs from the shared R/L value by 22 bytes, so an official same-run physical vn.bin and expected output are still required for direct parity."
     }
   ],
   "commitApproval": "Repository owner explicitly approved committing golden BIN payloads to Git on 2026-07-05."

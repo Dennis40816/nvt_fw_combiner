@@ -29,17 +29,22 @@ public sealed class LegacyCombinerBlockArgument
             throw new ArgumentException("Source file name must be a plain file name.", nameof(sourceFileName));
         }
 
-        if (sourceKind == LegacyCombinerBlockSourceKind.StagedArtifact)
+        if (sourceKind == LegacyCombinerBlockSourceKind.StagedArtifact && stagedArtifactId is null)
         {
             ExternalProcessorStagedArtifact.ValidateArtifactId(
-                stagedArtifactId ?? string.Empty,
+                string.Empty,
                 nameof(stagedArtifactId));
         }
         else if (stagedArtifactId is not null)
         {
-            throw new ArgumentException(
-                "Only staged-artifact blocks can declare a staged artifact id.",
-                nameof(stagedArtifactId));
+            if (sourceKind is not (LegacyCombinerBlockSourceKind.StagedFile or LegacyCombinerBlockSourceKind.StagedArtifact))
+            {
+                throw new ArgumentException(
+                    "Only staged-file and staged-artifact blocks can declare a staged artifact id.",
+                    nameof(stagedArtifactId));
+            }
+
+            ExternalProcessorStagedArtifact.ValidateArtifactId(stagedArtifactId, nameof(stagedArtifactId));
         }
 
         BlockId = blockId;
@@ -59,7 +64,7 @@ public sealed class LegacyCombinerBlockArgument
     /// <summary>Plain source file name under the staged BIN directory when this block does not read the firmware image.</summary>
     public string SourceFileName { get; }
 
-    /// <summary>Required immutable engine artifact id when <see cref="SourceKind" /> is staged-artifact.</summary>
+    /// <summary>Required staged-artifact id, or an optional exact-file override id for a staged-file block.</summary>
     public string? StagedArtifactId { get; }
 
     /// <summary>Source offset passed to Combiner.exe.</summary>

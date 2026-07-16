@@ -55,7 +55,7 @@ public static partial class WorkbenchCompositionService
                 CreateCtrlRamPlanningOperations(
                     icId,
                     context.Selection,
-                    context.Regions,
+                    context.Sources,
                     slotPaths,
                     runnablePreview: false,
                     context.PostbuildProfile),
@@ -90,7 +90,8 @@ public static partial class WorkbenchCompositionService
             context.Selection,
             context.BaseLength,
             context.Regions,
-            context.SelectedRegions,
+            context.SelectedSources,
+            context.SelectedSourceLengths,
             context.PostbuildProfile!,
             context.CommandPlan!,
             postbuildWriteRangeSections,

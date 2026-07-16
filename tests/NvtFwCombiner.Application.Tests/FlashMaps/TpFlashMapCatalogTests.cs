@@ -55,6 +55,61 @@ public sealed class TpFlashMapCatalogTests
         Assert.Contains(mapped, region => region.RegionId == "mp-slave-l");
     }
 
+    /// <summary>NT51927 exposes physical Postbuild files separately from their destination instances.</summary>
+    [Theory]
+    [InlineData("1", 4, 0x0FD0, 1, 1)]
+    [InlineData("2", 6, 0x1F90, 3, 2)]
+    [InlineData("3", 8, 0x2F50, 5, 3)]
+    public void Nt51927PostbuildSourcesReuseOneNfAndVnFile(
+        string count,
+        int expectedSourceCount,
+        long expectedNfLength,
+        int expectedNfBlockCount,
+        int expectedVnRegionCount)
+    {
+        var selection = new IcNumberSelection(IcNumberInputMode.NumericSelector, [count]);
+
+        IReadOnlyList<TpCtrlRamPostbuildSource> sources = TpFlashMapCatalog.GetPostbuildCtrlRamSources(
+            "NT51927",
+            selection,
+            LegacyCombinerPostbuildCatalog.Nt51927);
+
+        Assert.Equal(expectedSourceCount, sources.Count);
+        Assert.Equal(sources.Count, sources.Select(source => source.SourceFileName).Distinct(StringComparer.Ordinal).Count());
+        TpCtrlRamPostbuildSource nf = sources.Single(source => source.SourceId == "nf");
+        Assert.Equal("NF_Ctrlram.bin", nf.SourceFileName);
+        Assert.Equal(expectedNfLength, nf.RequiredLength);
+        Assert.Equal(expectedNfBlockCount, nf.Blocks.Count);
+        TpCtrlRamPostbuildSource vn = sources.Single(source => source.SourceId == "vn");
+        Assert.Equal("VN_Ctrlram.bin", vn.SourceFileName);
+        Assert.Equal(0x1660, vn.RequiredLength);
+        Assert.Equal(expectedVnRegionCount, vn.Regions.Count);
+    }
+
+    /// <summary>Every Postbuild branch exposes exactly one physical input per distinct staged BIN filename.</summary>
+    [Fact]
+    public void PostbuildPhysicalSourcesMatchDistinctStagedFileNames()
+    {
+        foreach ((LegacyCombinerPostbuildProfile profile, IcNumberSelection selection) in AllPostbuildSelections())
+        {
+            LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(profile, selection);
+            string[] expectedFileNames =
+            [
+                .. LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(plan)
+                    .Where(block => block.SourceKind == LegacyCombinerBlockSourceKind.StagedFile)
+                    .Select(block => block.SourceFileName)
+                    .Distinct(StringComparer.Ordinal)
+                    .Order(StringComparer.Ordinal),
+            ];
+            IReadOnlyList<TpCtrlRamPostbuildSource> sources = TpFlashMapCatalog.GetPostbuildCtrlRamSources(
+                profile.IcId,
+                selection,
+                profile);
+
+            Assert.Equal(expectedFileNames, sources.Select(source => source.SourceFileName).Order(StringComparer.Ordinal));
+        }
+    }
+
     /// <summary>Single-chip selections hide DIFF/DLM rows while cascade selections expose them.</summary>
     [Fact]
     public void SingleSelectionHidesDiffDlmRows()

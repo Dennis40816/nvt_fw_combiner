@@ -63,7 +63,7 @@ public sealed partial class ShellViewModelTests
             });
     }
 
-    /// <summary>Verifies NT51927 three-chip CtrlRAM Replace exposes both right and left slave slots.</summary>
+    /// <summary>Verifies NT51927 three-chip CtrlRAM Replace exposes physical shared and per-chip inputs.</summary>
     [Fact]
     public void CtrlRamReplaceSlotsIncludeNt51927RightAndLeftSlaves()
     {
@@ -76,8 +76,14 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(viewModel.ReplaceSlots, slot => slot.Title == "Normal CtrlRAM (Slave L)");
         Assert.Contains(viewModel.ReplaceSlots, slot => slot.Title == "MP CtrlRAM (Slave R)");
         Assert.Contains(viewModel.ReplaceSlots, slot => slot.Title == "MP CtrlRAM (Slave L)");
+        Assert.Equal(8, viewModel.ReplaceSlots.Count(slot =>
+            slot.SlotId.StartsWith("replace-ctrlram-", StringComparison.Ordinal)));
+        Assert.Contains(viewModel.ReplaceSlots, slot => slot.Title == "NF CtrlRAM (Shared)");
+        Assert.Contains(viewModel.ReplaceSlots, slot => slot.Title == "VN CtrlRAM (Shared)");
+        Assert.DoesNotContain(viewModel.ReplaceSlots, slot => slot.Title == "VN CtrlRAM (Slave L)");
         Assert.Contains(viewModel.CtrlRamRegions, region => region.Name == "Normal CtrlRAM (Slave R)");
         Assert.Contains(viewModel.CtrlRamRegions, region => region.Name == "Normal CtrlRAM (Slave L)");
+        Assert.Contains(viewModel.ReplaceSlotGroups, group => group.Title == "Shared inputs" && group.IsExpanded);
         Assert.Contains(viewModel.ReplaceSlotGroups, group => group.Title == "Master" && group.IsExpanded);
         Assert.Contains(viewModel.ReplaceSlotGroups, group => group.Title == "Slave R" && !group.IsExpanded);
         Assert.Contains(viewModel.ReplaceSlotGroups, group => group.Title == "Slave L" && !group.IsExpanded);
@@ -118,28 +124,31 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedNumber = "3";
         viewModel.ShowCtrlRamReplaceCommand.Execute(null);
 
-        Assert.Equal("0 / 12 targets selected", viewModel.ReplaceSelectionCountLabel);
+        Assert.Equal("0 / 8 targets selected", viewModel.ReplaceSelectionCountLabel);
         Assert.Contains("Build blocked", viewModel.ReplaceSelectionStatusLabel, StringComparison.Ordinal);
         Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "Base flash BIN");
         Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "CtrlRAM replacement");
         FirmwareSlotGroupViewModel slaveLGroup = viewModel.ReplaceSlotGroups.Single(group => group.Title == "Slave L");
-        Assert.Equal("0/4", slaveLGroup.CountLabel);
-        Assert.Equal("4 areas. None selected.", slaveLGroup.SelectionSummary);
+        Assert.Equal("0/2", slaveLGroup.CountLabel);
+        Assert.Equal("2 areas. None selected.", slaveLGroup.SelectionSummary);
+        FirmwareSlotGroupViewModel sharedGroup = viewModel.ReplaceSlotGroups.Single(group => group.Title == "Shared inputs");
+        Assert.Equal("0/2", sharedGroup.CountLabel);
 
-        FirmwareSlotViewModel vnLeft = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Slave L)");
+        FirmwareSlotViewModel vn = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
         viewModel.SetSlotFile("replace-base", workspace.PathFor("base.bin"));
-        viewModel.SetSlotFile(vnLeft.SlotId, workspace.PathFor("vn-slave-l.bin"));
+        viewModel.SetSlotFile(vn.SlotId, workspace.PathFor("vn.bin"));
 
-        slaveLGroup = viewModel.ReplaceSlotGroups.Single(group => group.Title == "Slave L");
-        Assert.Equal("1 / 12 targets selected", viewModel.ReplaceSelectionCountLabel);
-        Assert.Equal("1/4", slaveLGroup.CountLabel);
-        Assert.Equal("1 selected / 4 areas.", slaveLGroup.SelectionSummary);
+        sharedGroup = viewModel.ReplaceSlotGroups.Single(group => group.Title == "Shared inputs");
+        Assert.Equal("1 / 8 targets selected", viewModel.ReplaceSelectionCountLabel);
+        Assert.Equal("1/2", sharedGroup.CountLabel);
+        Assert.Equal("1 selected / 2 areas.", sharedGroup.SelectionSummary);
         Assert.Equal("Ready for Build", viewModel.ReplaceSelectionStatusLabel);
         Assert.Empty(viewModel.ReplaceSelectionMissingRows);
         Assert.Contains(viewModel.ReplaceSelectionRows, row =>
-            row.Title == "VN CtrlRAM (Slave L)" &&
-            row.Detail == "vn-slave-l.bin" &&
-            row.Meta.Contains("0x2EBD0-0x3022F", StringComparison.Ordinal));
+            row.Title == "VN CtrlRAM (Shared)" &&
+            row.Detail == "vn.bin" &&
+            row.Meta.Contains("VN_Ctrlram.bin", StringComparison.Ordinal) &&
+            row.Meta.Contains("VN CtrlRAM (Slave L)", StringComparison.Ordinal));
         Assert.Contains("Build will validate", viewModel.ReplaceSelectionRunHint, StringComparison.Ordinal);
 
         Assert.False(viewModel.IsReplaceSelectionModalOpen);

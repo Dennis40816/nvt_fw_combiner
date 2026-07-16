@@ -20,6 +20,7 @@ public static partial class WorkbenchCompositionService
         LegacyCombinerPostbuildCommandPlan? commandPlan = null;
         FirmwareConfigVersionWritePlan? firmwareVersionWritePlan = null;
         IReadOnlyList<TpFlashMapRegion> regions = [];
+        IReadOnlyList<TpCtrlRamPostbuildSource> sources = [];
 
         (string? basePath, long baseLength) = ResolveCtrlRamBaseInput(slotPaths, validationIssues);
 
@@ -52,13 +53,12 @@ public static partial class WorkbenchCompositionService
                 "postbuild"));
         }
 
-        if (postbuildProfile is not null)
+        if (postbuildProfile is not null || basePath is null)
         {
-            regions = TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile);
-        }
-        else if (basePath is null)
-        {
-            regions = TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection);
+            sources = TpFlashMapCatalog.GetPostbuildCtrlRamSources(icId, selection, postbuildProfile);
+            regions = [.. sources.SelectMany(source => source.Regions)
+                .DistinctBy(region => region.RegionId, StringComparer.Ordinal)
+                .OrderBy(region => region.Range.Start)];
         }
 
         if (regions.Count == 0)
@@ -69,13 +69,12 @@ public static partial class WorkbenchCompositionService
                 IcWorkflowIds.CtrlRamReplace));
         }
 
-        List<TpFlashMapRegion> selectedRegions =
+        List<TpCtrlRamPostbuildSource> selectedSources =
         [
-            .. regions
-                .Where(region => IsSlotSupplied(slotPaths, CtrlRamSlotId(region.RegionId)))
-                .OrderBy(region => region.Range.Start),
+            .. sources
+                .Where(source => IsSlotSupplied(slotPaths, CtrlRamSlotId(source.SourceId))),
         ];
-        if (selectedRegions.Count == 0)
+        if (selectedSources.Count == 0)
         {
             validationIssues.Add(new CompositionIssue(
                 WorkbenchIssueCodes.ReplaceCtrlRamNoRegionInput,
@@ -83,11 +82,42 @@ public static partial class WorkbenchCompositionService
                 IcWorkflowIds.CtrlRamReplace));
         }
 
+        Dictionary<string, long> selectedSourceLengths = new(StringComparer.Ordinal);
+        foreach (TpCtrlRamPostbuildSource source in selectedSources)
+        {
+            string slotId = CtrlRamSlotId(source.SourceId);
+            string path = Path.GetFullPath(slotPaths[slotId]);
+            if (!File.Exists(path))
+            {
+                validationIssues.Add(new CompositionIssue(
+                    WorkbenchIssueCodes.InputArtifactReadFailed,
+                    $"CtrlRAM source '{source.SourceFileName}' does not exist.",
+                    slotId));
+                continue;
+            }
+
+            long length = new FileInfo(path).Length;
+            LegacyCombinerBlockArgument? unsafeBlock = source.Blocks.FirstOrDefault(block =>
+                block.SourceOffset > 0 && checked(block.SourceOffset + block.FirmwareRange.Length) > length);
+            if (length <= 0 || unsafeBlock is not null)
+            {
+                validationIssues.Add(new CompositionIssue(
+                    CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+                    length <= 0
+                        ? $"CtrlRAM source '{source.SourceFileName}' must not be empty."
+                        : $"CtrlRAM source '{source.SourceFileName}' is too short for nonzero source offset 0x{unsafeBlock!.SourceOffset:X} and section length {unsafeBlock.FirmwareRange.Length} bytes.",
+                    slotId));
+                continue;
+            }
+
+            selectedSourceLengths.Add(source.SourceId, Math.Min(length, source.RequiredLength));
+        }
+
         if (commandPlan is not null && baseLength > 0)
         {
             long requiredCapacity = LegacyCombinerPostbuildPlanner.CalculateRequiredCapacity(
                 commandPlan,
-                selectedRegions.Select(region => region.Range));
+                selectedSources.SelectMany(source => source.Regions).Select(region => region.Range));
             if (baseLength < requiredCapacity)
             {
                 validationIssues.Add(new CompositionIssue(
@@ -126,7 +156,9 @@ public static partial class WorkbenchCompositionService
             commandPlan,
             firmwareVersionWritePlan,
             regions,
-            selectedRegions,
+            sources,
+            selectedSources,
+            selectedSourceLengths,
             validationIssues);
     }
 
@@ -178,17 +210,14 @@ public static partial class WorkbenchCompositionService
         CtrlRamReplaceRunContext context,
         IReadOnlyDictionary<string, string> slotPaths)
     {
-        List<InputArtifactBinding> bindings =
-        [
+        return [
             new(CompositionAddressSpaceIds.ReferenceBase, WorkbenchSlotIds.ReplaceBase, context.BasePath!),
+            .. context.SelectedSources.Select(source =>
+            {
+                string slotId = CtrlRamSlotId(source.SourceId);
+                return new InputArtifactBinding(slotId, slotId, Path.GetFullPath(slotPaths[slotId]));
+            }),
         ];
-        foreach (TpFlashMapRegion region in context.SelectedRegions.OrderBy(region => region.Range.Start))
-        {
-            string slotId = CtrlRamSlotId(region.RegionId);
-            bindings.Add(CreateBinding(slotId, slotId, slotPaths));
-        }
-
-        return [.. bindings];
     }
 
     private sealed record CtrlRamReplaceRunContext(
@@ -199,7 +228,9 @@ public static partial class WorkbenchCompositionService
         LegacyCombinerPostbuildCommandPlan? CommandPlan,
         FirmwareConfigVersionWritePlan? FirmwareVersionWritePlan,
         IReadOnlyList<TpFlashMapRegion> Regions,
-        IReadOnlyList<TpFlashMapRegion> SelectedRegions,
+        IReadOnlyList<TpCtrlRamPostbuildSource> Sources,
+        IReadOnlyList<TpCtrlRamPostbuildSource> SelectedSources,
+        IReadOnlyDictionary<string, long> SelectedSourceLengths,
         IReadOnlyList<CompositionIssue> ValidationIssues)
     {
         public bool CanRun =>

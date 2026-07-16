@@ -1,6 +1,6 @@
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -9,8 +9,7 @@ public static partial class WorkbenchCompositionService
     private static IReadOnlyList<WorkbenchMemoryMapRow> CreateCtrlRamReplaceRows(
         IReadOnlyList<TpFlashMapRegion> postbuildMappedRegions)
     {
-        return
-        [
+        return [
             .. postbuildMappedRegions
                 .OrderBy(region => region.Range.Start)
                 .Select(region => new WorkbenchMemoryMapRow(
@@ -27,24 +26,49 @@ public static partial class WorkbenchCompositionService
         string number,
         string? basePath)
     {
-        LegacyCombinerPostbuildProfile? postbuildProfile = TryResolvePostbuildProfileForDisplay(
+        _ = TryResolvePostbuildProfileForDisplay(
             icId,
             basePath,
-            out LegacyCombinerPostbuildProfile? profile)
-                ? profile
-                : null;
-        return
-        [
-            .. TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, ToIcNumberSelection(number), postbuildProfile)
-                .OrderBy(region => region.Range.Start)
-                .Select(region => new WorkbenchReplaceInputSlot(
-                    CtrlRamSlotId(region.RegionId),
-                    region.DisplayName,
-                    $"Replace this area only when needed. TP position {FormatDisplayRange(region.Range)}.",
-                    true,
-                    CtrlRamSlotId(region.RegionId),
-                    region.RegionId)),
-        ];
+            out LegacyCombinerPostbuildProfile? postbuildProfile);
+        return postbuildProfile is null && basePath is not null && File.Exists(basePath)
+            ? []
+            : [
+            .. TpFlashMapCatalog.GetPostbuildCtrlRamSources(icId, ToIcNumberSelection(number), postbuildProfile)
+                    .Select(source => new WorkbenchReplaceInputSlot(
+                        CtrlRamSlotId(source.SourceId),
+                        FormatCtrlRamSourceTitle(source),
+                        FormatCtrlRamSourceDescription(icId, number, source),
+                        true,
+                        CtrlRamSlotId(source.SourceId),
+                        source.SourceId)),
+            ];
+    }
+
+    private static string FormatCtrlRamSourceTitle(TpCtrlRamPostbuildSource source)
+    {
+        return source.Regions.Count == 1
+            ? source.Regions[0].DisplayName
+            : $"{DynamicCtrlRamReplacementIds.FormatRegionDisplayLabel(source.SourceId)} (Shared)";
+    }
+
+    private static string FormatCtrlRamSourceDescription(
+        string icId,
+        string number,
+        TpCtrlRamPostbuildSource source)
+    {
+        string sections = string.Join("; ", source.Blocks
+            .DistinctBy(block => (block.SourceOffset, block.FirmwareRange))
+            .OrderBy(block => block.FirmwareRange.Start)
+            .Select(block =>
+            {
+                TpFlashMapRegion region = source.Regions.Single(region => region.Range.Overlaps(block.FirmwareRange));
+                return $"{region.DisplayName}: max {block.FirmwareRange.Length} bytes, source +0x{block.SourceOffset:X} to flash 0x{block.FirmwareRange.Start:X}";
+            }));
+        string description = $"{source.SourceFileName}. Expected sections: {sections}. Short source files stop at EOF without padding; bytes beyond each section maximum are not used.";
+        return source.SourceId == "nf" && number == IcNumberSelectionTokens.Cascade &&
+               icId is "NT51919" or "NT51929" or "NT51932" or "NT51950" or "NT51951"
+            ? $"{description} Before selection, build NF_Ctrlram.bin with DiffNFMerge.exe from one NF_Diff_<index>.bin per cascaded IC (NF_Diff_0.bin, NF_Diff_1.bin, ...). DiffNFMerge is not yet integrated."
+            : description;
     }
 
     private static string CtrlRamSlotId(string regionId)
@@ -52,13 +76,4 @@ public static partial class WorkbenchCompositionService
         return WorkbenchSlotIds.CreateReplaceCtrlRam(regionId);
     }
 
-    private static InputArtifactBinding CreateBinding(
-        string addressSpaceId,
-        string slotId,
-        IReadOnlyDictionary<string, string> slotPaths)
-    {
-        return slotPaths.TryGetValue(slotId, out string? path) && !string.IsNullOrWhiteSpace(path)
-            ? new InputArtifactBinding(addressSpaceId, slotId, Path.GetFullPath(path))
-            : throw new InvalidOperationException($"Input slot '{slotId}' is required.");
-    }
 }
