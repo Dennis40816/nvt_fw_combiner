@@ -57,6 +57,9 @@ public static class WorkbenchIssueCodes
     /// <summary>Replace mode is not recognized by the workbench router.</summary>
     public const string ReplaceModeUnknown = "replace.mode.unknown";
 
+    /// <summary>The selected IC does not expose the requested Replace workflow.</summary>
+    public const string ReplaceWorkflowNotSupported = "replace.workflow.not-supported";
+
     /// <summary>CtrlRAM Replace IC-number selection is unsupported by the selected postbuild profile.</summary>
     public const string ReplaceCtrlRamIcNumberUnsupported = "replace.ctrlram.ic-number-unsupported";
 

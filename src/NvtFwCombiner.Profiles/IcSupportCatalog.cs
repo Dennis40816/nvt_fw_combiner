@@ -124,7 +124,10 @@ public static class IcSupportCatalog
         Entry("NT51928", ctrlRamPostbuildSourceIcId: "NT51927", notes: "NT51928 NB is not covered."),
         Entry("NT51929", ctrlRamPostbuildSourceIcId: "NT51932"),
         Entry("NT51930", notes: "CtrlRAM postbuild category is selected by Common FW version."),
-        Entry("NT51931"),
+        Entry(
+            "NT51931",
+            workflowIds: [IcWorkflowIds.StandardMerge, IcWorkflowIds.GeneralMerge],
+            notes: "Replace is Not Supported: the official NT51930BASED_NORMAL_MODE command crashes Combiner 1.13, while the alternate NT51931BASED_NORMAL_MODE path has unexplained 108-byte drift."),
         Entry("NT51932"),
         Entry(
             "NT51950",

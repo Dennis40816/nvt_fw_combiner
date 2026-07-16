@@ -13,12 +13,15 @@ public static partial class WorkbenchCompositionService
         string replaceMode,
         string? basePath = null)
     {
-        return replaceMode switch
-        {
-            WorkbenchReplaceModes.Dp => GetDpReplaceInputSlots(icId),
-            WorkbenchReplaceModes.CtrlRam => GetCtrlRamReplaceInputSlots(icId, number, basePath),
-            _ => [],
-        };
+        return GetReplaceWorkflowId(replaceMode) is not null &&
+            !IsReplaceWorkflowSupported(icId, replaceMode)
+                ? []
+                : replaceMode switch
+                {
+                    WorkbenchReplaceModes.Dp => GetDpReplaceInputSlots(icId),
+                    WorkbenchReplaceModes.CtrlRam => GetCtrlRamReplaceInputSlots(icId, number, basePath),
+                    _ => [],
+                };
     }
 
     /// <summary>Gets readable memory-map rows for the selected Replace mode.</summary>
@@ -94,6 +97,12 @@ public static partial class WorkbenchCompositionService
         long? dpBaseLength = null,
         string? ctrlRamBasePath = null)
     {
+        if (GetReplaceWorkflowId(replaceMode) is not null &&
+            !IsReplaceWorkflowSupported(icId, replaceMode))
+        {
+            return "Not Supported";
+        }
+
         if (replaceMode == WorkbenchReplaceModes.Dp &&
             TryGetV2DpReplaceMemoryRangeLabel(icId, dpBaseLength, out string v2RangeLabel))
         {

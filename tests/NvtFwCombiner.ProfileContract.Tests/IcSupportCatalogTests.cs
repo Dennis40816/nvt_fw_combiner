@@ -138,6 +138,19 @@ public sealed class IcSupportCatalogTests
         Assert.Equal(["NT51950", "NT51951"], dpReplaceIcIds);
     }
 
+    /// <summary>NT51931 keeps Merge support while unresolved Combiner evidence blocks every Replace workflow.</summary>
+    [Fact]
+    public void Nt51931ReplaceIsNotSupportedWhileMergeRemainsAvailable()
+    {
+        Assert.True(IcSupportCatalog.TryFind("NT51931", out IcSupportEntry? entry));
+        Assert.True(entry!.SupportsWorkflow(IcWorkflowIds.StandardMerge));
+        Assert.True(entry.SupportsWorkflow(IcWorkflowIds.GeneralMerge));
+        Assert.False(entry.SupportsWorkflow(IcWorkflowIds.DpReplace));
+        Assert.False(entry.SupportsWorkflow(IcWorkflowIds.CtrlRamReplace));
+        Assert.False(entry.SupportsWorkflow(IcWorkflowIds.GeneralReplace));
+        Assert.Contains("108-byte drift", entry.Notes, StringComparison.Ordinal);
+    }
+
     /// <summary>Alias facts are explicit instead of being hidden in separate profile tables.</summary>
     [Theory]
     [InlineData("NT51917", "NT51927", "NT51927")]

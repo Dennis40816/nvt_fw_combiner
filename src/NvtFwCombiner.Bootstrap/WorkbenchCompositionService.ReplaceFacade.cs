@@ -1,3 +1,6 @@
+using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Profiles;
+
 namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
@@ -16,6 +19,15 @@ public static partial class WorkbenchCompositionService
             WorkbenchReplaceModes.General => $"{normalizedIc}-general-replace.bin",
             _ => "nvt-fw-combiner-replace.bin",
         };
+    }
+
+    /// <summary>Returns true when the IC support catalog exposes the selected Replace workflow.</summary>
+    public static bool IsReplaceWorkflowSupported(string icId, string replaceMode)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(replaceMode);
+        return GetReplaceWorkflowId(replaceMode) is { } workflowId &&
+            IcSupportCatalog.SupportsWorkflow(icId, workflowId);
     }
 
     /// <summary>Runs a Replace preview or build through the workbench Replace facade.</summary>
@@ -86,7 +98,20 @@ public static partial class WorkbenchCompositionService
         ArgumentNullException.ThrowIfNull(slotPaths);
         ArgumentNullException.ThrowIfNull(generalReplaceMappings);
         ArgumentNullException.ThrowIfNull(generalReplacePatches);
-        return ctrlRamFirmwareVersionEdit is not null &&
+        string? workflowId = GetReplaceWorkflowId(replaceMode);
+        return workflowId is not null && !IcSupportCatalog.SupportsWorkflow(icId, workflowId)
+            ? CreateReplaceReportRunResult(
+                icId,
+                replaceMode,
+                slotPaths,
+                build,
+                [],
+                [new CompositionIssue(
+                    WorkbenchIssueCodes.ReplaceWorkflowNotSupported,
+                    $"{IcSupportCatalog.NormalizeIcId(icId)} {replaceMode} Replace is Not Supported by the current IC support policy.",
+                    workflowId)],
+                GetReplaceDefaultOutputFileName(icId, replaceMode))
+            : ctrlRamFirmwareVersionEdit is not null &&
             (!build || !string.Equals(replaceMode, WorkbenchReplaceModes.CtrlRam, StringComparison.Ordinal))
             ? throw new ArgumentException(
                 "TP FW version editing is available only for CtrlRAM Replace Build.",
@@ -134,5 +159,16 @@ public static partial class WorkbenchCompositionService
                     WorkbenchIssueCodes.ReplaceModeUnknown,
                     $"Unknown Replace mode '{replaceMode}'."),
             };
+    }
+
+    private static string? GetReplaceWorkflowId(string replaceMode)
+    {
+        return replaceMode switch
+        {
+            WorkbenchReplaceModes.Dp => IcWorkflowIds.DpReplace,
+            WorkbenchReplaceModes.CtrlRam => IcWorkflowIds.CtrlRamReplace,
+            WorkbenchReplaceModes.General => IcWorkflowIds.GeneralReplace,
+            _ => null,
+        };
     }
 }

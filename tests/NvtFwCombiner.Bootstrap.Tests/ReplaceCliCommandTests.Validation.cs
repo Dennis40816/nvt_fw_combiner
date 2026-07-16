@@ -148,4 +148,25 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Equal(64, result.ExitCode);
         Assert.Contains("unknown option '--dp'", result.Error, StringComparison.Ordinal);
     }
+
+    /// <summary>Known NT51931 profiles report the catalog gate before workflow-specific input parsing.</summary>
+    [Theory]
+    [InlineData("dp-replace")]
+    [InlineData("ctrlram-replace")]
+    [InlineData("general-replace")]
+    public async Task Nt51931ReplaceCommandsReportNotSupported(string command)
+    {
+        CliRunResult result = await RunCliAsync([
+            command,
+            "preview",
+            "--profile",
+            "NT51931",
+        ]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains(WorkbenchIssueCodes.ReplaceWorkflowNotSupported, result.Error, StringComparison.Ordinal);
+        Assert.Contains("NT51931", result.Error, StringComparison.Ordinal);
+        Assert.Contains("Not Supported", result.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("--ic-num is required", result.Error, StringComparison.Ordinal);
+    }
 }

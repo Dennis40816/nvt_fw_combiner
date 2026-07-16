@@ -8,7 +8,11 @@ public sealed partial class MainWindowViewModel
     public string ReplaceMemorySummary => Text.GetReplaceMemorySummary(SelectedReplaceMode);
 
     /// <summary>Status shown in the replace inspector.</summary>
-    public string ReplaceReadinessStatus => Text.GetReplaceReadinessStatus(SelectedReplaceMode, CanRunReplace());
+    public string ReplaceReadinessStatus => WorkbenchCompositionService.IsReplaceWorkflowSupported(
+        SelectedIc,
+        SelectedReplaceMode)
+            ? Text.GetReplaceReadinessStatus(SelectedReplaceMode, CanRunReplace())
+            : Text.GetReplaceNotSupportedStatus(SelectedIc);
 
     /// <summary>Gets the compact reason shown on disabled Replace preview.</summary>
     public string ReplacePreviewUnavailableReason => ReplaceReadinessStatus;
@@ -27,16 +31,18 @@ public sealed partial class MainWindowViewModel
 
     private bool CanRunReplace()
     {
-        return !IsRunInProgress && (SelectedReplaceMode switch
-        {
-            DpReplaceMode => ReplaceSlots.Count > 0 &&
-                ReplaceSlots.Where(slot => !slot.IsOptional).All(slot => slot.HasFile),
-            CtrlRamReplaceMode => ReplaceBaseSlot.HasFile &&
-                ReplaceSlots.Any(slot => !ReferenceEquals(slot, ReplaceBaseSlot) && slot.HasFile),
-            GeneralReplaceMode => ReplaceBaseSlot.HasFile &&
-                GeneralReplaceMappings.Any(mapping => mapping.HasFile),
-            _ => false,
-        });
+        return !IsRunInProgress &&
+            WorkbenchCompositionService.IsReplaceWorkflowSupported(SelectedIc, SelectedReplaceMode) &&
+            (SelectedReplaceMode switch
+            {
+                DpReplaceMode => ReplaceSlots.Count > 0 &&
+                    ReplaceSlots.Where(slot => !slot.IsOptional).All(slot => slot.HasFile),
+                CtrlRamReplaceMode => ReplaceBaseSlot.HasFile &&
+                    ReplaceSlots.Any(slot => !ReferenceEquals(slot, ReplaceBaseSlot) && slot.HasFile),
+                GeneralReplaceMode => ReplaceBaseSlot.HasFile &&
+                    GeneralReplaceMappings.Any(mapping => mapping.HasFile),
+                _ => false,
+            });
     }
 
     private Task RunReplaceAsync(bool build)
