@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import stat
 import subprocess
 import sys
 import tempfile
@@ -507,87 +508,145 @@ class CandidateIcIntakeTests(unittest.TestCase):
         )
 
     @unittest.skipIf(os.name == "nt", "Unix hard-link rollback coverage")
-    def test_rollback_removes_untracked_hardlinks_to_run_owned_outputs(self) -> None:
+    def test_rollback_reports_lock_named_hardlink_without_unlinking_it(self) -> None:
         outputs = self.build_candidate_outputs()
-        hidden_link = "untracked-candidate-hardlink.json"
+        hidden_link = output_boundary.OUTPUT_LOCK_FILE
+        unlink_calls: list[Any] = []
 
-        with intake.open_validated_output_directory(self.output) as output:
-            publish = output.publish
+        with self.assertRaisesRegex(
+            intake.IntakeError,
+            "cleanup blocked by unexpected hard links",
+        ):
+            with intake.open_validated_output_directory(self.output) as output:
+                publish = output.publish
 
-            def link_then_interrupt(
-                temporary_name: str,
-                final_name: str,
-                descriptor: int,
-                expected_content: bytes,
-            ) -> None:
-                if final_name == intake.OUTPUT_FILES[1]:
-                    raise KeyboardInterrupt("simulated interruption")
-                publish(
-                    temporary_name,
-                    final_name,
-                    descriptor,
-                    expected_content,
-                )
-                os.link(self.output / final_name, self.output / hidden_link)
+                def link_then_interrupt(
+                    temporary_name: str,
+                    final_name: str,
+                    descriptor: int,
+                    expected_content: bytes,
+                ) -> None:
+                    if final_name == intake.OUTPUT_FILES[1]:
+                        raise KeyboardInterrupt("simulated interruption")
+                    publish(
+                        temporary_name,
+                        final_name,
+                        descriptor,
+                        expected_content,
+                    )
+                    os.link(self.output / final_name, self.output / hidden_link)
 
-            with mock.patch.object(
-                output,
-                "publish",
-                side_effect=link_then_interrupt,
-            ):
-                with self.assertRaisesRegex(
-                    KeyboardInterrupt,
-                    "simulated interruption",
+                unlink = output.unlink
+
+                def record_unlink(name: str, *, missing_ok: bool = False) -> None:
+                    unlink_calls.append(mock.call(name, missing_ok=missing_ok))
+                    unlink(name, missing_ok=missing_ok)
+
+                with (
+                    mock.patch.object(
+                        output,
+                        "publish",
+                        side_effect=link_then_interrupt,
+                    ),
+                    mock.patch.object(
+                        output,
+                        "unlink",
+                        side_effect=record_unlink,
+                    ),
                 ):
                     intake.write_outputs(output, outputs)
 
-            self.assertEqual(output.active_names(), output.names())
+        self.assertNotIn(mock.call(hidden_link, missing_ok=False), unlink_calls)
+        self.assertTrue((self.output / hidden_link).is_file())
+        self.assertTrue((self.output / intake.OUTPUT_FILES[0]).is_file())
+        self.assertTrue(
+            os.path.samefile(
+                self.output / hidden_link,
+                self.output / intake.OUTPUT_FILES[0],
+            )
+        )
 
-        self.assertEqual([], list(self.output.iterdir()))
-
-    def test_rollback_scans_hardlinks_before_releasing_tracked_anchors(self) -> None:
+    @unittest.skipIf(os.name == "nt", "Unix nested hard-link rollback coverage")
+    def test_rollback_reports_nested_hardlink_before_releasing_anchors(self) -> None:
         outputs = self.build_candidate_outputs()
-        unrelated = self.output / "unrelated-after-cleanup.json"
+        nested_directory = self.output / "competing-directory"
+        nested_link = nested_directory / "candidate-hardlink.json"
 
-        with intake.open_validated_output_directory(self.output) as output:
-            intake.write_outputs(output, outputs)
-            reused_status = output.entry_status(intake.OUTPUT_FILES[0])
-            cleanup_identities = output._cleanup_identities
-            entry_status = output.entry_status
-            cleanup_calls = 0
+        with self.assertRaisesRegex(
+            intake.IntakeError,
+            "cleanup blocked by unexpected hard links",
+        ):
+            with intake.open_validated_output_directory(self.output) as output:
+                publish = output.publish
 
-            def cleanup_then_simulate_reuse(
-                identities: dict[str, tuple[int, int]],
-            ) -> tuple[list[str], list[tuple[str, OSError]]]:
-                nonlocal cleanup_calls
-                result = cleanup_identities(identities)
-                cleanup_calls += 1
-                if cleanup_calls == 2:
-                    unrelated.write_text("unrelated bytes\n", encoding="utf-8")
-                return result
+                def link_then_interrupt(
+                    temporary_name: str,
+                    final_name: str,
+                    descriptor: int,
+                    expected_content: bytes,
+                ) -> None:
+                    if final_name == intake.OUTPUT_FILES[1]:
+                        raise KeyboardInterrupt("simulated interruption")
+                    publish(
+                        temporary_name,
+                        final_name,
+                        descriptor,
+                        expected_content,
+                    )
+                    nested_directory.mkdir()
+                    os.link(self.output / final_name, nested_link)
 
-            def report_reused_identity(name: str) -> os.stat_result:
-                if name == unrelated.name and unrelated.exists():
-                    return reused_status
-                return entry_status(name)
+                with mock.patch.object(
+                    output,
+                    "publish",
+                    side_effect=link_then_interrupt,
+                ):
+                    intake.write_outputs(output, outputs)
 
-            with (
-                mock.patch.object(
+        self.assertTrue(nested_link.is_file())
+        self.assertTrue((self.output / intake.OUTPUT_FILES[0]).is_file())
+        self.assertTrue(
+            os.path.samefile(nested_link, self.output / intake.OUTPUT_FILES[0])
+        )
+
+    @unittest.skipIf(os.name == "nt", "Unix late hard-link rollback coverage")
+    def test_rollback_keeps_anchors_open_and_detects_late_hardlink(self) -> None:
+        outputs = self.build_candidate_outputs()
+        late_link = self.output / "late-candidate-hardlink.json"
+        descriptors: tuple[int, ...] = ()
+
+        with self.assertRaisesRegex(
+            intake.IntakeError,
+            "unexpected hard links",
+        ):
+            with intake.open_validated_output_directory(self.output) as output:
+                intake.write_outputs(output, outputs)
+                descriptors = tuple(output.anchor_descriptors)
+                cleanup_identities = output._cleanup_identities
+                cleanup_calls = 0
+
+                def cleanup_with_open_anchors(
+                    identities: dict[str, tuple[int, int]],
+                ) -> tuple[list[str], list[tuple[str, OSError]]]:
+                    nonlocal cleanup_calls
+                    for descriptor in descriptors:
+                        self.assertTrue(stat.S_ISREG(os.fstat(descriptor).st_mode))
+                    cleanup_calls += 1
+                    if cleanup_calls == 2:
+                        os.link(self.output / intake.OUTPUT_FILES[0], late_link)
+                    return cleanup_identities(identities)
+
+                with mock.patch.object(
                     output,
                     "_cleanup_identities",
-                    side_effect=cleanup_then_simulate_reuse,
-                ),
-                mock.patch.object(
-                    output,
-                    "entry_status",
-                    side_effect=report_reused_identity,
-                ),
-            ):
-                output.cleanup_tracked()
+                    side_effect=cleanup_with_open_anchors,
+                ):
+                    output.cleanup_tracked()
 
-            self.assertEqual("unrelated bytes\n", unrelated.read_text(encoding="utf-8"))
-            unrelated.unlink()
-            self.assertEqual(output.active_names(), output.names())
+        self.assertTrue(late_link.is_file())
+        for descriptor in descriptors:
+            with self.assertRaises(OSError):
+                os.fstat(descriptor)
 
     @unittest.skipIf(os.name == "nt", "Unix descriptor-only lock coverage")
     def test_unix_uses_no_racy_named_lock(self) -> None:

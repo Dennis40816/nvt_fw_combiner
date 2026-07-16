@@ -72,14 +72,17 @@ directory descriptor must match the identity captured before open. On Windows, t
 still identify the original exclusive temporary lock before final validation; closing that handle
 performs the operating-system-owned cleanup.
 
-An error or interruption scans the selected output directory for additional hard links while the
-tracked names still anchor their run-owned identities, then removes the tracked staged and published
-names. This ordering prevents a freed file id from being reused by an unrelated file during the
-hard-link scan. Cleanup preserves unrelated replacements and reports failures only after the
-remaining cleanup completes. A competing output is never overwritten or removed, and a successful
-command leaves exactly the four records above. These are point-in-time guarantees through the final
-boundary validation; after the command closes its boundary handles, the caller owns and must protect
-the resulting directory from later mutation.
+An error or interruption keeps every run-owned output descriptor open while cleanup compares each
+live file identity's link count with its tracked staged and published names. Any additional hard
+link, including a lock-named or nested-directory link, blocks path-based cleanup and is reported
+without releasing the tracked identity anchors; cleanup never guesses which concurrently writable
+name is safe to unlink. After tracked-name removal, the still-open descriptors are checked again so
+a link added during cleanup is reported before their identities can be reused. Cleanup preserves
+unrelated replacements and reports failures only after the remaining safe cleanup completes. A
+competing output is never overwritten or removed, and a successful command leaves exactly the four
+records above. These are point-in-time guarantees through the final boundary validation; after the
+command closes its boundary handles, the caller owns and must protect the resulting directory from
+later mutation.
 
 The command rejects approved manifests, output overwrite, path traversal, reparse points, lock files,
 unknown or duplicate artifact bindings, and hash or size mismatch. It never copies firmware payloads,

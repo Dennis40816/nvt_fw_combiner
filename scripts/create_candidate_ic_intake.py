@@ -548,17 +548,11 @@ def write_outputs(
         output.require_names(output.active_names(*OUTPUT_FILES))
     except BaseException as exception:
         # Never retain staged or published records after an interrupted intake.
-        for _, _, descriptor in reversed(staged_outputs):
-            os.close(descriptor)
-        staged_outputs.clear()
         try:
             output.cleanup_tracked()
         except IntakeError as cleanup_error:
             raise cleanup_error from exception
         raise
-    finally:
-        for _, _, descriptor in reversed(staged_outputs):
-            os.close(descriptor)
 
 
 def main() -> int:

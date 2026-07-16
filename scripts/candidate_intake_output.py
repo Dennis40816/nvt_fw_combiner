@@ -63,6 +63,7 @@ class ValidatedOutputDirectory:
         self.staged_identities: dict[str, tuple[int, int]] = {}
         self.published_identities: dict[str, tuple[int, int]] = {}
         self.published_content: dict[str, tuple[int, str]] = {}
+        self.anchor_descriptors: dict[int, tuple[int, int]] = {}
         self.lock_identity: tuple[int, int] | None = None
 
     def validate_identity(self) -> None:
@@ -164,11 +165,26 @@ class ValidatedOutputDirectory:
                 raise IntakeError(
                     f"staged candidate output is not a regular file: {name}"
                 )
-            self.staged_identities[name] = self.identity(status)
+            identity = self.identity(status)
+            self.staged_identities[name] = identity
+            self.anchor_descriptors[descriptor] = identity
             return descriptor
         except BaseException:
+            self.anchor_descriptors.pop(descriptor, None)
             os.close(descriptor)
             raise
+
+    def close_anchors(self) -> None:
+        descriptors = tuple(self.anchor_descriptors)
+        self.anchor_descriptors.clear()
+        first_error: OSError | None = None
+        for descriptor in reversed(descriptors):
+            try:
+                os.close(descriptor)
+            except OSError as exception:
+                first_error = first_error or exception
+        if first_error is not None:
+            raise first_error
 
     def publish(
         self,
@@ -356,21 +372,26 @@ class ValidatedOutputDirectory:
             raise IntakeError("candidate intake lock changed while running")
 
     def cleanup_tracked(self) -> None:
-        tracked = {
+        tracked_links: dict[tuple[int, int], int] = {}
+        for identity in (
             *self.staged_identities.values(),
             *self.published_identities.values(),
-        }
-        tracked_names = {
-            *self.staged_identities.keys(),
-            *self.published_identities.keys(),
-        }
-        hardlink_failures = self._cleanup_matching_hardlinks(tracked, tracked_names)
+        ):
+            tracked_links[identity] = tracked_links.get(identity, 0) + 1
+        hardlink_failures = self._anchor_link_failures(tracked_links)
+        if hardlink_failures:
+            names = ", ".join(sorted(name for name, _ in hardlink_failures))
+            error = IntakeError(
+                "candidate output cleanup blocked by unexpected hard links: " + names
+            )
+            raise error from hardlink_failures[0][1]
         staged_preserved, staged_failures = self._cleanup_identities(
             self.staged_identities
         )
         published_preserved, published_failures = self._cleanup_identities(
             self.published_identities
         )
+        hardlink_failures = self._anchor_link_failures({})
         messages: list[str] = []
         if staged_preserved:
             messages.append(
@@ -418,29 +439,35 @@ class ValidatedOutputDirectory:
         identities.clear()
         return preserved, failures
 
-    def _cleanup_matching_hardlinks(
+    def _anchor_link_failures(
         self,
-        identities: set[tuple[int, int]],
-        tracked_names: set[str],
+        expected_links: dict[tuple[int, int], int],
     ) -> list[tuple[str, OSError]]:
         failures: list[tuple[str, OSError]] = []
-        if not identities:
-            return failures
-        try:
-            names = self.names()
-        except OSError as exception:
-            return [("<output-directory>", exception)]
-        for name in sorted(names):
-            if name == OUTPUT_LOCK_FILE or name in tracked_names:
+        checked: set[tuple[int, int]] = set()
+        for descriptor, expected_identity in self.anchor_descriptors.items():
+            if expected_identity in checked:
                 continue
+            checked.add(expected_identity)
+            label = f"<identity:{expected_identity[0]}:{expected_identity[1]}>"
             try:
-                status = self.entry_status(name)
-                if stat.S_ISREG(status.st_mode) and self.identity(status) in identities:
-                    self.unlink(name)
-            except FileNotFoundError:
-                continue
+                status = os.fstat(descriptor)
             except OSError as exception:
-                failures.append((name, exception))
+                failures.append((label, exception))
+                continue
+            expected = expected_links.get(expected_identity, 0)
+            if self.identity(status) != expected_identity:
+                failures.append((label, OSError("run-owned output handle changed")))
+            elif status.st_nlink > expected:
+                failures.append(
+                    (
+                        label,
+                        OSError(
+                            "run-owned output has an untracked hard link: "
+                            f"expected at most {expected}, found {status.st_nlink}"
+                        ),
+                    )
+                )
         return failures
 
 
@@ -512,7 +539,13 @@ def open_validated_output_directory(
                 raise cleanup_error from exception
             raise
     finally:
-        if lock_descriptor >= 0:
-            os.close(lock_descriptor)
-        if directory_descriptor >= 0:
-            os.close(directory_descriptor)
+        try:
+            if output is not None:
+                output.close_anchors()
+        finally:
+            try:
+                if lock_descriptor >= 0:
+                    os.close(lock_descriptor)
+            finally:
+                if directory_descriptor >= 0:
+                    os.close(directory_descriptor)
