@@ -20,7 +20,6 @@ public sealed partial class RepositoryBoundaryTests
             "TpFlashMapCatalog",
             "src/NvtFwCombiner.Application/FlashMaps/TpFlashMapCatalog",
             [
-                "src/NvtFwCombiner.Application/FlashMaps/TpBinaryModelCatalog.cs",
                 "src/NvtFwCombiner.Bootstrap/IcMetadataFacade.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.CtrlRamDisplay.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Coverage.cs",
@@ -51,6 +50,23 @@ public sealed partial class RepositoryBoundaryTests
                 "src/NvtFwCombiner.Bootstrap/ExternalProcessorFactory.cs",
                 "src/NvtFwCombiner.Bootstrap/IcMetadataFacade.cs",
             ]);
+    }
+
+    /// <summary>Prevents the unbound TP root/category projection from returning after report semantics moved to the header catalog.</summary>
+    [Fact]
+    public void RetiredTpBinaryRootProjectionStaysAbsent()
+    {
+        AssertNoProductionText("TpBinaryModelCatalog");
+        AssertNoProductionText("TpBinaryModel");
+        AssertNoProductionText("TpBinaryCategory");
+        AssertNoProductionText("TpBinaryAddressAnchor");
+    }
+
+    private static void AssertNoProductionText(string token)
+    {
+        Assert.DoesNotContain(
+            Directory.EnumerateFiles(Path.Combine(Root.FullName, "src"), "*.cs", SearchOption.AllDirectories),
+            path => File.ReadAllText(path).Contains(token, StringComparison.Ordinal));
     }
 
     private static void AssertProductionCallers(

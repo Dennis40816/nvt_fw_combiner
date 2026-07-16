@@ -42,9 +42,12 @@ open until their listed direct V2 parity evidence exists.
 
 `RemainingCompatibilityAuthoritiesHaveClosedProductionCallerSets` now locks
 the complete production caller allowlist at 2 `CompositionProfileCompiler`,
-11 `TpFlashMapCatalog`, 5 `IcMetadataFacade`, and 4 direct
+10 `TpFlashMapCatalog`, 5 `IcMetadataFacade`, and 4 direct
 `LegacyCombinerPostbuildCatalog` caller files. Any new caller is an architecture
 failure; each removal must update the allowlist in the same reviewed migration.
+The v0.9.9 ADR 0013 amendment also retired the unbound TP binary root/category
+projection and its `TpFlashMapCatalog` caller while preserving every emitted
+header/report semantic.
 General Merge default capacity now comes only from its compiled Standard Merge
 V2 registration; the unreachable TP flash-map fallback has been retired.
 Blocked Replace reports no longer project legacy DP operations from a TP map:

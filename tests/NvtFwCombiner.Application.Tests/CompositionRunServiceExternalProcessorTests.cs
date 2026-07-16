@@ -244,7 +244,7 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal(2, replacement.HexPreviewByteCount);
         Assert.True(replacement.IsHexPreviewComplete);
         OutputDifferenceSemantic replacementSemantic = Assert.IsType<OutputDifferenceSemantic>(replacement.Semantic);
-        Assert.Equal(TpBinaryCategoryIds.CtrlRam, replacementSemantic.CategoryId);
+        Assert.Equal(TpSemanticCategoryIds.CtrlRam, replacementSemantic.CategoryId);
         Assert.Equal(TpHeaderSectionIds.CtrlRamReplacement, replacementSemantic.SubjectId);
         Assert.Equal("NF CtrlRAM (Master)", replacementSemantic.SubjectLabel);
         OutputDifferenceSummary crcHeader = result.Report.OutputDifferences[1];

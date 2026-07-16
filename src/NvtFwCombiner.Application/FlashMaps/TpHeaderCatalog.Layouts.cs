@@ -2,114 +2,15 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.FlashMaps;
 
-/// <summary>
-/// Application-owned TP flash image model. It refines TP Overview region categories for inspection and reporting
-/// without changing authoring access, composition operations, or postbuild write authorization.
-/// </summary>
-public static class TpBinaryModelCatalog
+/// <summary>Application-owned evidenced TP header layouts used for semantic report classification.</summary>
+public static partial class TpHeaderCatalog
 {
     private static readonly Dictionary<string, TpHeaderLayout> HeaderLayoutsByIc = BuildHeaderLayouts();
 
-    private static readonly Dictionary<string, TpBinaryModel> ModelsByIc = BuildModels()
-        .ToDictionary(model => model.IcId, StringComparer.Ordinal);
-
-    /// <summary>Returns the top-level TP flash image model for an IC.</summary>
-    public static bool TryFind(string icId, out TpBinaryModel? model)
-    {
-        return ModelsByIc.TryGetValue(icId, out model);
-    }
-
     /// <summary>Returns the header layout assigned to an IC.</summary>
-    public static bool TryGetHeaderLayout(string icId, out TpHeaderLayout? layout)
+    public static bool TryGetLayout(string icId, out TpHeaderLayout? layout)
     {
         return HeaderLayoutsByIc.TryGetValue(icId, out layout);
-    }
-
-    /// <summary>Finds a documented header field that wholly contains the supplied image range.</summary>
-    public static bool TryFindHeaderField(string icId, ByteRange range, out TpHeaderField? field)
-    {
-        if (HeaderLayoutsByIc.TryGetValue(icId, out TpHeaderLayout? layout))
-        {
-            return layout.TryFindField(range, out field);
-        }
-
-        field = null;
-        return false;
-    }
-
-    private static IEnumerable<TpBinaryModel> BuildModels()
-    {
-        foreach (string icId in TpFlashMapCatalog.IcIds)
-        {
-            if (!TpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? profile) ||
-                profile is null ||
-                !HeaderLayoutsByIc.TryGetValue(icId, out TpHeaderLayout? headerLayout) ||
-                headerLayout is null)
-            {
-                throw new InvalidOperationException($"TP binary model prerequisites are missing for {icId}.");
-            }
-
-            TpFlashMapRegion[] regions = [.. profile.Regions];
-            yield return new TpBinaryModel(
-                icId,
-                "TP Flash Image",
-                [
-                    Category(
-                        TpBinaryCategoryIds.TpFlashHeader,
-                        "TP Flash Header",
-                        regions.Where(IsHeaderRegion),
-                        headerLayout: headerLayout),
-                    Category(
-                        TpBinaryCategoryIds.FirmwareConfiguration,
-                        "FW Configuration",
-                        regions.Where(IsFirmwareConfigurationRegion),
-                        [new TpBinaryAddressAnchor(
-                            "primary-fw-config-start",
-                            "FW Config primary start",
-                            profile.FirmwareConfigPrimaryStart)]),
-                    Category(TpBinaryCategoryIds.CtrlRam, "CtrlRAM", regions.Where(region => region.Kind == TpFlashMapRegionKind.CtrlRam)),
-                    Category(TpBinaryCategoryIds.Display, "Display / DP", regions.Where(region => region.Kind == TpFlashMapRegionKind.Dp)),
-                    Category(TpBinaryCategoryIds.ProjectIdentity, "Project ID", regions.Where(region => region.Kind == TpFlashMapRegionKind.ProjectId)),
-                    Category(TpBinaryCategoryIds.CustomerInformation, "Customer Information", regions.Where(region => region.Kind == TpFlashMapRegionKind.CustomerInfo)),
-                    Category(TpBinaryCategoryIds.FirmwareInformation, "FW Information", regions.Where(IsFirmwareInformationRegion)),
-                    Category(TpBinaryCategoryIds.OtherDocumentedRegion, "Other documented regions", regions.Where(IsOtherDocumentedRegion)),
-                ],
-                $"{profile.Evidence} Header semantics: {headerLayout.Evidence}");
-        }
-    }
-
-    private static TpBinaryCategory Category(
-        string categoryId,
-        string displayName,
-        IEnumerable<TpFlashMapRegion> regions,
-        IEnumerable<TpBinaryAddressAnchor>? anchors = null,
-        TpHeaderLayout? headerLayout = null)
-    {
-        return new TpBinaryCategory(categoryId, displayName, regions, anchors, headerLayout);
-    }
-
-    private static bool IsHeaderRegion(TpFlashMapRegion region)
-    {
-        return region.RegionId.Contains("header", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool IsFirmwareConfigurationRegion(TpFlashMapRegion region)
-    {
-        return region.RegionId.Contains("fw-config", StringComparison.OrdinalIgnoreCase) ||
-               region.Tags.Any(tag => string.Equals(tag, "fw-config", StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static bool IsFirmwareInformationRegion(TpFlashMapRegion region)
-    {
-        return region.Tags.Any(tag => string.Equals(tag, "fw-information", StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static bool IsOtherDocumentedRegion(TpFlashMapRegion region)
-    {
-        return region.Kind == TpFlashMapRegionKind.Other &&
-               !IsHeaderRegion(region) &&
-               !IsFirmwareConfigurationRegion(region) &&
-               !IsFirmwareInformationRegion(region);
     }
 
     private static Dictionary<string, TpHeaderLayout> BuildHeaderLayouts()

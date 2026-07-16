@@ -15,14 +15,9 @@ public sealed class TpHeaderCatalogTests
     [Fact]
     public void Nt51926HeaderModelsIlmStartAddressInBin()
     {
-        Assert.True(TpBinaryModelCatalog.TryFind("NT51926", out TpBinaryModel? model));
-
-        TpBinaryCategory header = Assert.Single(
-            model!.Categories,
-            category => category.CategoryId == TpBinaryCategoryIds.TpFlashHeader);
-        TpHeaderLayout layout = Assert.IsType<TpHeaderLayout>(header.HeaderLayout);
+        Assert.True(TpHeaderCatalog.TryGetLayout("NT51926", out TpHeaderLayout? layout));
         TpHeaderField field = Assert.Single(
-            layout.Fields,
+            layout!.Fields,
             candidate => candidate.FieldId == "ilm-start-address-in-bin");
 
         Assert.Equal(new ByteRange(0x0000, 0x0004), field.Range);
@@ -51,7 +46,7 @@ public sealed class TpHeaderCatalogTests
     [Fact]
     public void Nt51927HeaderModelsPostbuildContinuationCrcFields()
     {
-        Assert.True(TpBinaryModelCatalog.TryGetHeaderLayout("NT51927", out TpHeaderLayout? layout));
+        Assert.True(TpHeaderCatalog.TryGetLayout("NT51927", out TpHeaderLayout? layout));
         Assert.Equal(TpHeaderModelStatus.WorkbookWithPostbuildContinuation, layout!.Status);
         Assert.Contains(new ByteRange(0x0200, 0x00E0), layout.Ranges);
 
@@ -85,24 +80,17 @@ public sealed class TpHeaderCatalogTests
     }
 
     /// <summary>
-    /// Every selectable IC exposes the same top-level TP image categories even when a particular category has no
-    /// region in that IC's TP Overview row set.
+    /// Every selectable IC has one evidenced TP header layout for report classification.
     /// </summary>
     [Fact]
-    public void EveryIcExposesOneStableTopLevelBinaryCategoryStructure()
+    public void EveryIcExposesOneHeaderLayout()
     {
         foreach (string icId in TpFlashMapCatalog.IcIds)
         {
-            Assert.True(TpBinaryModelCatalog.TryFind(icId, out TpBinaryModel? model));
-
-            Assert.Equal(TpBinaryModel.DefaultRootId, model!.RootId);
-            Assert.Equal(
-                TpBinaryCategoryIds.All,
-                model.Categories.Select(category => category.CategoryId));
-            Assert.Contains(
-                model.Categories,
-                category => category.CategoryId == TpBinaryCategoryIds.TpFlashHeader &&
-                            category.HeaderLayout is not null);
+            Assert.True(TpHeaderCatalog.TryGetLayout(icId, out TpHeaderLayout? layout));
+            Assert.NotNull(layout);
+            Assert.NotEmpty(layout.Fields);
+            Assert.NotEmpty(layout.Ranges);
         }
     }
 
