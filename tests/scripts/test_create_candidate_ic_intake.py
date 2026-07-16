@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import AbstractContextManager
 from pathlib import Path
 from typing import Any
 from unittest import mock
@@ -97,6 +98,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
     def run_command(
         self, *extra: str, artifact_binding: str = "flashmap-workbook=flashmap.xlsx"
     ) -> subprocess.CompletedProcess[str]:
+        self.prepare_output_target()
         return subprocess.run(
             [
                 sys.executable,
@@ -119,12 +121,26 @@ class CandidateIcIntakeTests(unittest.TestCase):
             check=False,
         )
 
+    def prepare_output_target(self) -> None:
+        if os.name != "nt" and self.output.is_dir() and not any(self.output.iterdir()):
+            self.output.rmdir()
+
+    def output_entries(self) -> list[Path]:
+        return list(self.output.iterdir()) if self.output.is_dir() else []
+
+    def open_output(
+        self,
+    ) -> AbstractContextManager[output_boundary.ValidatedOutputDirectory]:
+        self.prepare_output_target()
+        return intake.open_validated_output_directory(self.output)
+
     def test_emits_deterministic_candidate_only_records_without_copying_artifacts(
         self,
     ) -> None:
         result = self.run_command()
 
         self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn(f" in {self.output}", result.stdout)
         self.assertEqual(
             {
                 "candidate-bundle-rows.json",
@@ -132,7 +148,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
                 "missing-evidence.json",
                 "validation-report.json",
             },
-            {path.name for path in self.output.iterdir()},
+            {path.name for path in self.output_entries()},
         )
         candidate_manifest = self.read_output("candidate-evidence-manifest.json")
         self.assertEqual(
@@ -182,7 +198,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
 
         self.assertEqual(2, result.returncode)
         self.assertIn("SHA-256 does not match", result.stderr)
-        self.assertEqual([], list(self.output.iterdir()))
+        self.assertEqual([], self.output_entries())
 
     def test_rejects_approved_manifest_and_preserves_empty_output(self) -> None:
         self.write_manifest(status="approved")
@@ -191,7 +207,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
 
         self.assertEqual(2, result.returncode)
         self.assertIn("status 'candidate'", result.stderr)
-        self.assertEqual([], list(self.output.iterdir()))
+        self.assertEqual([], self.output_entries())
 
     def test_rejects_unknown_evidence_fact_field_and_preserves_empty_output(
         self,
@@ -206,7 +222,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
 
         self.assertEqual(2, result.returncode)
         self.assertIn("unsupported fields", result.stderr)
-        self.assertEqual([], list(self.output.iterdir()))
+        self.assertEqual([], self.output_entries())
 
     def test_rejects_invalid_optional_subject_identifiers(self) -> None:
         cases: tuple[tuple[str, Any], ...] = (
@@ -230,7 +246,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
 
                 self.assertEqual(2, result.returncode)
                 self.assertIn(f"subject.{key} is invalid", result.stderr)
-                self.assertEqual([], list(self.output.iterdir()))
+                self.assertEqual([], self.output_entries())
 
     def test_rejects_path_escape_office_lock_and_nonempty_output(self) -> None:
         escaped = self.run_command(
@@ -238,17 +254,18 @@ class CandidateIcIntakeTests(unittest.TestCase):
         )
         self.assertEqual(2, escaped.returncode)
         self.assertIn("relative path without traversal", escaped.stderr)
-        self.assertEqual([], list(self.output.iterdir()))
+        self.assertEqual([], self.output_entries())
 
         locked = self.run_command(artifact_binding="flashmap-workbook=~$flashmap.xlsx")
         self.assertEqual(2, locked.returncode)
         self.assertIn("Office lock file", locked.stderr)
-        self.assertEqual([], list(self.output.iterdir()))
+        self.assertEqual([], self.output_entries())
 
+        self.output.mkdir(exist_ok=True)
         (self.output / "existing.txt").write_text("do not overwrite", encoding="utf-8")
         nonempty = self.run_command()
         self.assertEqual(2, nonempty.returncode)
-        self.assertIn("must be empty", nonempty.stderr)
+        self.assertRegex(nonempty.stderr, "must be empty|must not already exist")
         self.assertEqual(
             "do not overwrite",
             (self.output / "existing.txt").read_text(encoding="utf-8"),
@@ -267,7 +284,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
 
         self.assertEqual(2, result.returncode)
         self.assertIn("reparse point is not allowed", result.stderr)
-        self.assertEqual([], list(self.output.iterdir()))
+        self.assertEqual([], self.output_entries())
 
     def test_rejects_a_substituted_regular_file_handle(self) -> None:
         substituted_path = self.root / "substituted.json"
@@ -360,6 +377,22 @@ class CandidateIcIntakeTests(unittest.TestCase):
         self.assertTrue(parent.is_dir())
         self.assertTrue(renamed.is_dir())
 
+    @unittest.skipUnless(os.name == "nt", "Windows parent-handle coverage")
+    def test_windows_parent_chain_is_rechecked_before_manifest_bytes_are_parsed(
+        self,
+    ) -> None:
+        snapshots = intake._windows_parent_snapshots
+        with mock.patch.object(
+            intake,
+            "_windows_parent_snapshots",
+            wraps=snapshots,
+        ) as parent_snapshots:
+            with intake.open_validated_regular_file(
+                self.manifest_path,
+                "evidence manifest",
+            ):
+                self.assertGreaterEqual(parent_snapshots.call_count, 2)
+
     @unittest.skipIf(os.name == "nt", "Unix parent-dir-fd coverage")
     def test_unix_parent_swap_cannot_redirect_leaf_open(self) -> None:
         parent = self.root / "manifest-parent"
@@ -399,7 +432,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
     def test_interrupted_promotion_removes_every_partial_candidate_file(self) -> None:
         outputs = self.build_candidate_outputs()
 
-        with intake.open_validated_output_directory(self.output) as output:
+        with self.open_output() as output:
             publish = output.publish
 
             def interrupt_second_publish(
@@ -424,7 +457,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
 
             self.assertEqual(output.active_names(), output.names())
 
-        self.assertEqual([], list(self.output.iterdir()))
+        self.assertEqual([], self.output_entries())
 
     def test_link_then_cancellation_is_tracked_for_rollback(self) -> None:
         outputs = self.build_candidate_outputs()
@@ -442,7 +475,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
             KeyboardInterrupt,
             "simulated post-link interruption",
         ):
-            with intake.open_validated_output_directory(self.output) as output:
+            with self.open_output() as output:
                 with mock.patch.object(
                     output_boundary.os,
                     "link",
@@ -451,7 +484,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
                     intake.write_outputs(output, outputs)
 
         self.assertTrue(interrupted)
-        self.assertEqual([], list(self.output.iterdir()))
+        self.assertEqual([], self.output_entries())
 
     def test_success_path_rechecks_temp_identity_at_unlink(self) -> None:
         outputs = self.build_candidate_outputs()
@@ -463,7 +496,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
             intake.IntakeError,
             "changed before cleanup and was preserved",
         ):
-            with intake.open_validated_output_directory(self.output) as output:
+            with self.open_output() as output:
                 preserved_parent = output.path
                 unlink = output.unlink
 
@@ -501,7 +534,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
             competing_content, (preserved_parent / substituted_name).read_bytes()
         )
         if os.name != "nt":
-            self.assertEqual([], list(self.output.iterdir()))
+            self.assertEqual([], self.output_entries())
 
     def test_promotion_never_overwrites_a_competing_output_file(self) -> None:
         outputs = self.build_candidate_outputs()
@@ -510,7 +543,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
         preserved_parent: Path | None = None
 
         with self.assertRaises(FileExistsError):
-            with intake.open_validated_output_directory(self.output) as output:
+            with self.open_output() as output:
                 preserved_parent = output.path
                 publish = output.publish
 
@@ -549,7 +582,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
             [path.name for path in preserved_parent.iterdir()],
         )
         if os.name != "nt":
-            self.assertEqual([], list(self.output.iterdir()))
+            self.assertEqual([], self.output_entries())
 
     def test_promotion_rejects_a_substituted_staged_file(self) -> None:
         outputs = self.build_candidate_outputs()
@@ -560,7 +593,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
             intake.IntakeError,
             "staged candidate output changed before cleanup and was preserved",
         ):
-            with intake.open_validated_output_directory(self.output) as output:
+            with self.open_output() as output:
                 preserved_parent = output.path
                 publish = output.publish
 
@@ -586,7 +619,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
             competing_content, next(preserved_parent.iterdir()).read_bytes()
         )
         if os.name != "nt":
-            self.assertEqual([], list(self.output.iterdir()))
+            self.assertEqual([], self.output_entries())
 
     def test_promotion_rejects_in_place_staged_byte_mutation(self) -> None:
         outputs = self.build_candidate_outputs()
@@ -596,7 +629,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
             intake.IntakeError,
             "staged candidate output changed before publication",
         ):
-            with intake.open_validated_output_directory(self.output) as output:
+            with self.open_output() as output:
                 publish = output.publish
 
                 def mutate_staged_bytes(
@@ -625,7 +658,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
                 ):
                     intake.write_outputs(output, outputs)
 
-        self.assertEqual([], list(self.output.iterdir()))
+        self.assertEqual([], self.output_entries())
 
     def test_rollback_preserves_replaced_output_and_removes_earlier_outputs(
         self,
@@ -639,7 +672,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
             intake.IntakeError,
             "candidate output changed before cleanup and was preserved",
         ):
-            with intake.open_validated_output_directory(self.output) as output:
+            with self.open_output() as output:
                 preserved_parent = output.path
                 publish = output.publish
 
@@ -674,7 +707,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
             (preserved_parent / replaced_name).read_text(encoding="utf-8"),
         )
         if os.name != "nt":
-            self.assertEqual([], list(self.output.iterdir()))
+            self.assertEqual([], self.output_entries())
 
     def test_rollback_preserves_replaced_temp_and_removes_other_staged_files(
         self,
@@ -688,7 +721,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
             intake.IntakeError,
             "staged candidate output changed before cleanup and was preserved",
         ):
-            with intake.open_validated_output_directory(self.output) as output:
+            with self.open_output() as output:
                 preserved_parent = output.path
                 validate_identity = output.validate_identity
 
@@ -723,7 +756,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
             (preserved_parent / substituted_name).read_bytes(),
         )
         if os.name != "nt":
-            self.assertEqual([], list(self.output.iterdir()))
+            self.assertEqual([], self.output_entries())
 
     def test_rollback_rechecks_identity_at_unlink_and_preserves_swap(self) -> None:
         outputs = self.build_candidate_outputs()
@@ -735,7 +768,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
             intake.IntakeError,
             "changed before cleanup and was preserved",
         ):
-            with intake.open_validated_output_directory(self.output) as output:
+            with self.open_output() as output:
                 preserved_parent = output.path
                 publish = output.publish
                 unlink = output.unlink
@@ -790,7 +823,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
             competing_content, (preserved_parent / substituted_name).read_bytes()
         )
         if os.name != "nt":
-            self.assertEqual([], list(self.output.iterdir()))
+            self.assertEqual([], self.output_entries())
 
     @unittest.skipIf(os.name == "nt", "Unix hard-link rollback coverage")
     def test_rollback_reports_lock_named_hardlink_without_unlinking_it(self) -> None:
@@ -803,7 +836,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
             intake.IntakeError,
             "cleanup blocked by unexpected hard links",
         ):
-            with intake.open_validated_output_directory(self.output) as output:
+            with self.open_output() as output:
                 preserved_parent = output.path
                 publish = output.publish
 
@@ -875,7 +908,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
             {hidden_link, intake.OUTPUT_FILES[0]},
             {path.name for path in preserved_parent.iterdir()},
         )
-        self.assertEqual([], list(self.output.iterdir()))
+        self.assertEqual([], self.output_entries())
 
     @unittest.skipIf(os.name == "nt", "Unix nested hard-link rollback coverage")
     def test_rollback_reports_nested_hardlink_before_releasing_anchors(self) -> None:
@@ -887,7 +920,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
             intake.IntakeError,
             "cleanup blocked by unexpected hard links",
         ):
-            with intake.open_validated_output_directory(self.output) as output:
+            with self.open_output() as output:
                 preserved_parent = output.path
                 publish = output.publish
 
@@ -930,7 +963,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
             {nested_name, intake.OUTPUT_FILES[0]},
             {path.name for path in preserved_parent.iterdir()},
         )
-        self.assertEqual([], list(self.output.iterdir()))
+        self.assertEqual([], self.output_entries())
 
     @unittest.skipIf(os.name == "nt", "Unix late hard-link rollback coverage")
     def test_rollback_keeps_anchors_open_and_detects_late_hardlink(self) -> None:
@@ -942,7 +975,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
             intake.IntakeError,
             "unexpected hard links",
         ):
-            with intake.open_validated_output_directory(self.output) as output:
+            with self.open_output() as output:
                 preserved_parent = output.path
                 intake.write_outputs(output, outputs)
                 descriptors = tuple(output.anchor_descriptors)
@@ -973,7 +1006,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
 
         assert preserved_parent is not None
         self.assertTrue((preserved_parent / "late-candidate-hardlink.json").is_file())
-        self.assertEqual([], list(self.output.iterdir()))
+        self.assertEqual([], self.output_entries())
         for descriptor in descriptors:
             with self.assertRaises(OSError):
                 os.fstat(descriptor)
@@ -982,44 +1015,42 @@ class CandidateIcIntakeTests(unittest.TestCase):
     def test_unix_uses_no_racy_named_lock(self) -> None:
         outputs = self.build_candidate_outputs()
 
-        with intake.open_validated_output_directory(self.output) as output:
+        with self.open_output() as output:
             self.assertEqual(set(), output.names())
             intake.write_outputs(output, outputs)
             self.assertEqual(set(intake.OUTPUT_FILES), output.names())
 
         self.assertEqual(
-            set(intake.OUTPUT_FILES), {path.name for path in self.output.iterdir()}
+            set(intake.OUTPUT_FILES), {path.name for path in self.output_entries()}
         )
 
     @unittest.skipIf(os.name == "nt", "Unix directory publication coverage")
-    def test_unix_publishes_the_complete_set_with_one_directory_replace(self) -> None:
+    def test_unix_publishes_the_complete_set_with_one_no_replace_commit(self) -> None:
         outputs = self.build_candidate_outputs()
-        replace = output_boundary.os.replace
-        calls: list[tuple[tuple[Any, ...], dict[str, Any]]] = []
+        commit = output_boundary._rename_directory_no_replace
+        calls: list[tuple[int, str, str]] = []
 
-        def record_replace(*args: Any, **kwargs: Any) -> None:
-            self.assertEqual([], list(self.output.iterdir()))
-            calls.append((args, kwargs))
-            replace(*args, **kwargs)
+        def record_commit(parent: int, source: str, destination: str) -> None:
+            self.assertEqual([], self.output_entries())
+            calls.append((parent, source, destination))
+            commit(parent, source, destination)
 
         with mock.patch.object(
-            output_boundary.os,
-            "replace",
-            side_effect=record_replace,
+            output_boundary,
+            "_rename_directory_no_replace",
+            side_effect=record_commit,
         ):
-            with intake.open_validated_output_directory(self.output) as output:
+            with self.open_output() as output:
                 intake.write_outputs(output, outputs)
-                self.assertEqual([], list(self.output.iterdir()))
+                self.assertEqual([], self.output_entries())
 
         self.assertEqual(1, len(calls))
+        self.assertEqual(self.output.name, calls[0][2])
         self.assertEqual(
             set(intake.OUTPUT_FILES),
-            {path.name for path in self.output.iterdir()},
+            {path.name for path in self.output_entries()},
         )
-        self.assertEqual(
-            [],
-            list(self.root.glob(".candidate-ic-intake.*.tmp")),
-        )
+        self.assertEqual([], list(self.root.glob(".candidate-ic-intake.*.tmp")))
 
     @unittest.skipIf(os.name == "nt", "Unix directory publication coverage")
     def test_unix_public_competitor_blocks_directory_publication(self) -> None:
@@ -1028,18 +1059,48 @@ class CandidateIcIntakeTests(unittest.TestCase):
 
         with self.assertRaisesRegex(
             intake.IntakeError,
-            "output directory changed while intake was running",
+            "output destination appeared before atomic publication",
         ):
-            with intake.open_validated_output_directory(self.output) as output:
+            with self.open_output() as output:
                 intake.write_outputs(output, outputs)
+                self.output.mkdir()
                 competing.write_text("preserve public competitor\n", encoding="utf-8")
 
         self.assertEqual("preserve public competitor\n", competing.read_text())
-        self.assertEqual([competing], list(self.output.iterdir()))
-        self.assertEqual(
-            [],
-            list(self.root.glob(".candidate-ic-intake.*.tmp")),
-        )
+        self.assertEqual([competing], self.output_entries())
+        self.assertEqual([], list(self.root.glob(".candidate-ic-intake.*.tmp")))
+
+    @unittest.skipIf(os.name == "nt", "Unix atomic no-replace coverage")
+    def test_unix_empty_destination_swap_cannot_be_overwritten_at_commit(self) -> None:
+        outputs = self.build_candidate_outputs()
+        competing_identity: tuple[int, int] | None = None
+        commit = output_boundary._rename_directory_no_replace
+
+        def create_empty_destination_then_commit(
+            parent: int, source: str, destination: str
+        ) -> None:
+            nonlocal competing_identity
+            self.output.mkdir()
+            status = self.output.stat()
+            competing_identity = (status.st_dev, status.st_ino)
+            commit(parent, source, destination)
+
+        with self.assertRaisesRegex(
+            intake.IntakeError,
+            "output destination appeared before atomic publication",
+        ):
+            with mock.patch.object(
+                output_boundary,
+                "_rename_directory_no_replace",
+                side_effect=create_empty_destination_then_commit,
+            ):
+                with self.open_output() as output:
+                    intake.write_outputs(output, outputs)
+
+        assert competing_identity is not None
+        current = self.output.stat()
+        self.assertEqual(competing_identity, (current.st_dev, current.st_ino))
+        self.assertEqual([], self.output_entries())
 
     @unittest.skipIf(os.name == "nt", "Unix final-path substitution coverage")
     def test_final_validation_rechecks_name_after_descriptor_read(self) -> None:
@@ -1052,7 +1113,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
             intake.IntakeError,
             "candidate output changed before cleanup and was preserved",
         ):
-            with intake.open_validated_output_directory(self.output) as output:
+            with self.open_output() as output:
                 preserved_parent = output.path
                 validate_content = output._validate_descriptor_content
                 replaced = False
@@ -1081,69 +1142,90 @@ class CandidateIcIntakeTests(unittest.TestCase):
             [replaced_name],
             [path.name for path in preserved_parent.iterdir()],
         )
-        self.assertEqual([], list(self.output.iterdir()))
+        self.assertEqual([], self.output_entries())
 
-    @unittest.skipIf(os.name == "nt", "Unix directory-fd substitution coverage")
-    def test_unix_output_rejects_substitution_before_directory_open(self) -> None:
-        original_output = self.root / "preopen-original-output"
-        open_path = os.open
-        replaced = False
+    @unittest.skipIf(os.name == "nt", "Unix destination contract coverage")
+    def test_unix_rejects_a_preexisting_empty_destination(self) -> None:
+        status = self.output.stat()
+        identity = (status.st_dev, status.st_ino)
 
-        def replace_then_open(
-            path: str | Path,
-            flags: int,
-            mode: int = 0o777,
-            *,
-            dir_fd: int | None = None,
-        ) -> int:
-            nonlocal replaced
-            if (
-                not replaced
-                and Path(path) == Path(self.output.name)
-                and dir_fd is not None
-            ):
-                self.output.rename(original_output)
-                self.output.mkdir()
-                replaced = True
-            return open_path(path, flags, mode, dir_fd=dir_fd)
+        with self.assertRaisesRegex(
+            intake.IntakeError,
+            "output must not already exist on Unix",
+        ):
+            with intake.open_validated_output_directory(self.output):
+                self.fail("preexisting Unix output was accepted")
+
+        current = self.output.stat()
+        self.assertEqual(identity, (current.st_dev, current.st_ino))
+        self.assertEqual([], self.output_entries())
+
+    @unittest.skipIf(os.name == "nt", "Unix parent-dir-fd coverage")
+    def test_unix_parent_swap_cannot_redirect_private_staging(self) -> None:
+        self.output.rmdir()
+        ancestor = self.root / "output-ancestor"
+        ancestor.mkdir()
+        (ancestor / "parent").mkdir()
+        original_ancestor = self.root / "original-output-ancestor"
+        replacement_ancestor = self.root / "replacement-output-ancestor"
+        replacement_ancestor.mkdir()
+        (replacement_ancestor / "parent").mkdir()
+        self.output = ancestor / "parent" / "output"
+        reject_reparse_points = output_boundary.reject_reparse_points
+        swapped = False
+
+        def reject_then_swap(path: Path) -> None:
+            nonlocal swapped
+            reject_reparse_points(path)
+            if not swapped and path == self.output:
+                ancestor.rename(original_ancestor)
+                os.symlink(replacement_ancestor, ancestor, target_is_directory=True)
+                swapped = True
 
         with mock.patch.object(
-            output_boundary.os,
-            "open",
-            side_effect=replace_then_open,
+            output_boundary,
+            "reject_reparse_points",
+            side_effect=reject_then_swap,
         ):
             with self.assertRaisesRegex(
                 intake.IntakeError,
-                "output directory changed while validating",
+                "output parent component changed",
             ):
                 with intake.open_validated_output_directory(self.output):
-                    self.fail("substituted output directory was accepted")
+                    self.fail("swapped Unix output parent was accepted")
 
-        self.assertEqual([], list(original_output.iterdir()))
-        self.assertEqual([], list(self.output.iterdir()))
+        self.assertTrue(swapped)
+        self.assertFalse((replacement_ancestor / "parent" / "output").exists())
 
     @unittest.skipIf(os.name == "nt", "Unix directory-fd substitution coverage")
-    def test_unix_output_writes_stay_bound_to_the_opened_directory(self) -> None:
-        outputs = self.build_candidate_outputs()
-        original_output = self.root / "original-output"
+    def test_unix_private_staging_rejects_path_substitution(self) -> None:
+        replacement_path: Path | None = None
+        original_path: Path | None = None
 
-        with self.assertRaisesRegex(intake.IntakeError, "output directory changed"):
-            with intake.open_validated_output_directory(self.output) as output:
-                self.output.rename(original_output)
-                self.output.mkdir()
-                intake.write_outputs(output, outputs)
+        with self.open_output() as output:
+            replacement_path = output.path
+            original_path = output.path.with_name(output.path.name + ".original")
+            replacement_path.rename(original_path)
+            replacement_path.mkdir()
+            with self.assertRaisesRegex(intake.IntakeError, "output directory changed"):
+                output.validate_identity()
+            replacement_path.rmdir()
+            original_path.rename(replacement_path)
 
-        self.assertEqual([], list(original_output.iterdir()))
-        self.assertEqual([], list(self.output.iterdir()))
+        assert replacement_path is not None
+        assert original_path is not None
+        self.assertFalse(replacement_path.exists())
+        self.assertFalse(original_path.exists())
+        self.assertEqual([], self.output_entries())
 
     @unittest.skipUnless(os.name == "nt", "Windows output-lock coverage")
     def test_windows_output_lock_blocks_directory_substitution(self) -> None:
-        with intake.open_validated_output_directory(self.output) as output:
+        with self.open_output() as output:
             with self.assertRaises(PermissionError):
                 self.output.rename(self.root / "substituted-output")
             self.assertEqual(output.active_names(), output.names())
 
-        self.assertEqual([], list(self.output.iterdir()))
+        self.assertEqual([], self.output_entries())
 
     def build_candidate_outputs(self) -> dict[str, dict[str, Any]]:
         candidate_manifest = manifest(self.artifact_content)

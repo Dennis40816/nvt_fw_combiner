@@ -67,7 +67,8 @@ runtime bundle.
 Use `python scripts/create_candidate_ic_intake.py --help` for the concrete
 manifest-directed candidate interface. It binds only owner-selected files below
 one source root and writes candidate-only JSON records to an existing empty
-staging directory. It is deliberately separate from `intake_ic_reference.py`:
+directory on Windows or an absent output path below a writable parent on Unix.
+It is deliberately separate from `intake_ic_reference.py`:
 the latter is an owner-folder handoff classifier, while candidate intake never
 scans a folder and cannot alter runtime registration or existing workflows.
 

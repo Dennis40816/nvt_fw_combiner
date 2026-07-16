@@ -22,10 +22,12 @@ identified by logical name, exact byte size, and SHA-256. A repository path is o
 point outside the repository. Private files remain in the owner's evidence store; the manifest keeps
 only provenance, hashes, and precise locations such as workbook sheet/cell or source line.
 
-Offline workbook intake may add `intakeProvenance` only to candidate output. The intake tool writes
-to a caller-selected empty staging directory, opens Office files read-only, does not execute macros,
-and cannot edit approved contracts, profiles, bundles, or evidence. Candidate output has no runtime
-authority until reviewed and committed as an approved manifest in a trusted bundle.
+Offline workbook intake may add `intakeProvenance` only to candidate output. On Windows the intake
+tool writes to a caller-selected existing empty staging directory. On Unix the selected output path
+must not exist and its existing parent must permit private sibling creation. The tool opens Office
+files read-only, does not execute macros, and cannot edit approved contracts, profiles, bundles, or
+evidence. Candidate output has no runtime authority until reviewed and committed as an approved
+manifest in a trusted bundle.
 
 ## Candidate intake command
 
@@ -39,7 +41,7 @@ python scripts/create_candidate_ic_intake.py \
   --evidence-manifest <candidate-evidence.json> \
   --source-root <owner-evidence-root> \
   --artifact <artifact-id=relative-path> \
-  --output <existing-empty-staging-directory> \
+  --output <platform-specific-candidate-output-path> \
   --generated-at <UTC-ISO-8601-ending-in-Z>
 ```
 
@@ -54,20 +56,20 @@ Unix opens each parent component without following links and opens the leaf rela
 directory chain. Windows snapshots every parent identity before and after the leaf open and rejects
 any change.
 
-The empty output directory receives only four deterministic JSON records:
+The resulting output directory receives only four deterministic JSON records:
 
 - `candidate-evidence-manifest.json` — the input record plus candidate-only intake provenance;
 - `candidate-bundle-rows.json` — review rows referring to evidence facts, not a runtime profile bundle;
 - `missing-evidence.json` — unbound, unresolved, rejected, and promotion-blocking evidence ids; and
 - `validation-report.json` — artifact verification results and the candidate-only scope.
 
-The command binds that directory for the complete validation-and-write interval. Windows holds an
-exclusive temporary lock file that prevents the validated directory from being renamed or replaced.
-Unix keeps the caller's identity-bound destination empty while it builds the complete record set in
-an unpredictable private sibling directory opened relative to the destination parent. It validates
-the original destination identity and emptiness again before replacing that directory with the
-complete private directory in one atomic operation. A public entry added before that commit blocks
-publication and is preserved; no candidate record is visible at the public path before the commit.
+The command binds its private directory for the complete validation-and-write interval. Windows
+holds an exclusive temporary lock file that prevents the validated existing empty directory from
+being renamed or replaced. Unix requires the public output path to be absent, builds the complete
+record set in an unpredictable private sibling opened relative to the bound destination parent, and
+publishes with an atomic no-replace directory rename. A public file or directory created before that
+commit blocks publication and is preserved; no candidate record is visible at the public path before
+the commit. Unix fails closed when the filesystem/platform cannot provide atomic no-replace rename.
 
 All four records are serialized before writing, staged with exclusive creation, and flushed. Each
 unpredictable staged name remains bound to its open file descriptor through hard-link publication,

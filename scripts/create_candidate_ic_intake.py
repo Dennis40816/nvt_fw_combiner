@@ -19,6 +19,7 @@ if __package__:
     from .candidate_intake_output import (
         IntakeError,
         ValidatedOutputDirectory,
+        open_unix_directory_chain,
         open_validated_output_directory,
         resolve_directory,
     )
@@ -26,6 +27,7 @@ else:
     from candidate_intake_output import (
         IntakeError,
         ValidatedOutputDirectory,
+        open_unix_directory_chain,
         open_validated_output_directory,
         resolve_directory,
     )
@@ -41,6 +43,7 @@ OUTPUT_FILES = (
 ID_PATTERN = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
 MEMBER_ID_PATTERN = re.compile(r"^NT[0-9A-Z-]+$")
 HASH_PATTERN = re.compile(r"^[0-9a-f]{64}$")
+ParentSnapshots = tuple[tuple[Path, tuple[int, int]], ...]
 SEMVER_PATTERN = re.compile(
     r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:[-+][0-9A-Za-z.-]+)?$"
 )
@@ -93,7 +96,10 @@ def parse_args() -> argparse.Namespace:
         "--output",
         type=Path,
         required=True,
-        help="Existing empty candidate staging directory.",
+        help=(
+            "Candidate output path: an existing empty directory on Windows; "
+            "a nonexistent path under a writable parent on Unix."
+        ),
     )
     parser.add_argument(
         "--generated-at", required=True, help="UTC ISO-8601 timestamp ending in Z."
@@ -168,36 +174,19 @@ def sha256(stream: BinaryIO) -> str:
 
 
 @contextmanager
-def _validated_parent_directory(path: Path) -> Iterator[int | None]:
+def _validated_parent_directory(
+    path: Path,
+) -> Iterator[tuple[int | None, ParentSnapshots | None]]:
     if os.name == "nt":
         snapshots = _windows_parent_snapshots(path)
-        yield None
+        yield None, snapshots
         if _windows_parent_snapshots(path) != snapshots:
             raise IntakeError("input parent component changed while opening")
         return
 
-    flags = (
-        os.O_RDONLY
-        | getattr(os, "O_DIRECTORY", 0)
-        | getattr(os, "O_CLOEXEC", 0)
-        | getattr(os, "O_NOFOLLOW", 0)
-    )
-    parts = path.parent.parts
-    descriptor = os.open(parts[0], flags)
+    descriptor = open_unix_directory_chain(path.parent, "input parent")
     try:
-        for component in parts[1:]:
-            next_descriptor = os.open(component, flags, dir_fd=descriptor)
-            try:
-                if not stat.S_ISDIR(os.fstat(next_descriptor).st_mode):
-                    raise IntakeError(
-                        f"input parent component is not a directory: {component}"
-                    )
-            except BaseException:
-                os.close(next_descriptor)
-                raise
-            os.close(descriptor)
-            descriptor = next_descriptor
-        yield descriptor
+        yield descriptor, None
     finally:
         os.close(descriptor)
 
@@ -235,7 +224,10 @@ def open_validated_regular_file(
     )
     descriptor = -1
     reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
-    with _validated_parent_directory(raw) as parent_descriptor:
+    with _validated_parent_directory(raw) as (
+        parent_descriptor,
+        windows_parent_snapshots,
+    ):
         leaf: str | Path = raw if parent_descriptor is None else raw.name
         stat_options = (
             {"follow_symlinks": False}
@@ -276,6 +268,11 @@ def open_validated_regular_file(
                 raise IntakeError(
                     f"{description} open handle does not match the validated path"
                 )
+            if (
+                windows_parent_snapshots is not None
+                and _windows_parent_snapshots(raw) != windows_parent_snapshots
+            ):
+                raise IntakeError("input parent component changed while opening")
 
             with os.fdopen(descriptor, "rb", closefd=True) as stream:
                 descriptor = -1
@@ -645,7 +642,8 @@ def main() -> int:
                 output, build_outputs(manifest, facts, artifact_rows, generated_at)
             )
         print(
-            f"Created candidate-only intake for '{manifest['manifestId']}' in {output.path}"
+            "Created candidate-only intake for "
+            f"'{manifest['manifestId']}' in {output.destination_path}"
         )
         return 0
     except (IntakeError, OSError) as exception:

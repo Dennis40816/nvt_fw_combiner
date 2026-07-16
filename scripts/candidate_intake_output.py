@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import ctypes
+import errno
 import hashlib
 import os
 import secrets
@@ -11,6 +13,13 @@ from pathlib import Path
 from typing import Iterator
 
 OUTPUT_LOCK_FILE = ".candidate-ic-intake.lock"
+RENAME_NOREPLACE = 1
+DIRECTORY_OPEN_FLAGS = (
+    os.O_RDONLY
+    | getattr(os, "O_DIRECTORY", 0)
+    | getattr(os, "O_CLOEXEC", 0)
+    | getattr(os, "O_NOFOLLOW", 0)
+)
 
 
 class IntakeError(ValueError):
@@ -49,6 +58,31 @@ def _identity(status: os.stat_result) -> tuple[int, int]:
     return status.st_dev, status.st_ino
 
 
+def open_unix_directory_chain(path: Path, description: str) -> int:
+    parts = Path(os.path.abspath(path)).parts
+    descriptor = os.open(parts[0], DIRECTORY_OPEN_FLAGS)
+    try:
+        for component in parts[1:]:
+            try:
+                next_descriptor = os.open(
+                    component,
+                    DIRECTORY_OPEN_FLAGS,
+                    dir_fd=descriptor,
+                )
+            except OSError as exception:
+                raise IntakeError(
+                    f"{description} component changed while opening: {component}"
+                ) from exception
+            os.close(descriptor)
+            descriptor = next_descriptor
+        if not stat.S_ISDIR(os.fstat(descriptor).st_mode):
+            raise IntakeError(f"{description} is not a directory: {path}")
+        return descriptor
+    except BaseException:
+        os.close(descriptor)
+        raise
+
+
 class ValidatedOutputDirectory:
     """Keep candidate output bound to one directory while publishing files."""
 
@@ -57,8 +91,10 @@ class ValidatedOutputDirectory:
         path: Path,
         status: os.stat_result,
         directory_descriptor: int | None,
+        destination_path: Path | None = None,
     ) -> None:
         self.path = path
+        self.destination_path = destination_path or path
         self.status = status
         self.directory_descriptor = directory_descriptor
         self.staged_identities: dict[str, tuple[int, int]] = {}
@@ -521,39 +557,46 @@ class ValidatedOutputDirectory:
         return failures
 
 
-def _validate_empty_destination(
-    path: Path,
-    expected_status: os.stat_result,
-    descriptor: int,
+def _rename_directory_no_replace(
     parent_descriptor: int,
-    *,
-    initial: bool = False,
+    source_name: str,
+    destination_name: str,
 ) -> None:
     try:
-        opened = os.fstat(descriptor)
-        current = os.stat(
-            path.name,
-            dir_fd=parent_descriptor,
-            follow_symlinks=False,
-        )
-    except OSError as exception:
+        renameat2 = getattr(ctypes.CDLL(None, use_errno=True), "renameat2")
+    except AttributeError as exception:
         raise IntakeError(
-            f"output directory changed while intake was running: {path}"
+            "atomic no-replace directory publication is unavailable on this Unix platform"
         ) from exception
-    expected = _identity(expected_status)
-    identity_changed = (
-        not stat.S_ISDIR(opened.st_mode)
-        or not stat.S_ISDIR(current.st_mode)
-        or _identity(opened) != expected
-        or _identity(current) != expected
+    renameat2.argtypes = (
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_uint,
     )
-    if identity_changed:
-        phase = "validating" if initial else "intake was running"
-        raise IntakeError(f"output directory changed while {phase}: {path}")
-    if os.listdir(descriptor):
-        if initial:
-            raise IntakeError(f"output directory must be empty: {path}")
-        raise IntakeError(f"output directory changed while intake was running: {path}")
+    renameat2.restype = ctypes.c_int
+    if (
+        renameat2(
+            parent_descriptor,
+            os.fsencode(source_name),
+            parent_descriptor,
+            os.fsencode(destination_name),
+            RENAME_NOREPLACE,
+        )
+        == 0
+    ):
+        return
+    error = ctypes.get_errno()
+    if error in (errno.EEXIST, errno.ENOTEMPTY):
+        raise IntakeError(
+            f"output destination appeared before atomic publication: {destination_name}"
+        )
+    if error in (errno.ENOSYS, errno.EINVAL, errno.ENOTSUP):
+        raise IntakeError(
+            "atomic no-replace directory publication is unavailable on this Unix platform"
+        )
+    raise OSError(error, os.strerror(error), destination_name)
 
 
 def _remove_private_staging(
@@ -577,18 +620,26 @@ def open_validated_output_directory(
 ) -> Iterator[ValidatedOutputDirectory]:
     raw = path.expanduser().absolute()
     reject_reparse_points(raw)
-    try:
-        initial_status = os.stat(raw, follow_symlinks=False)
-    except OSError as exception:
-        raise IntakeError(f"output must be an existing directory: {raw}") from exception
-    if not stat.S_ISDIR(initial_status.st_mode):
-        raise IntakeError(f"output must be an existing directory: {raw}")
-    resolved = raw.resolve(strict=True)
-    resolved_status = os.stat(resolved, follow_symlinks=False)
-    if _identity(initial_status) != _identity(resolved_status):
-        raise IntakeError(f"output directory changed while validating: {raw}")
+    resolved: Path
+    resolved_status: os.stat_result | None = None
+    if os.name == "nt":
+        try:
+            initial_status = os.stat(raw, follow_symlinks=False)
+        except OSError as exception:
+            raise IntakeError(
+                f"output must be an existing directory on Windows: {raw}"
+            ) from exception
+        if not stat.S_ISDIR(initial_status.st_mode):
+            raise IntakeError(f"output must be an existing directory on Windows: {raw}")
+        resolved = raw.resolve(strict=True)
+        resolved_status = os.stat(resolved, follow_symlinks=False)
+        if _identity(initial_status) != _identity(resolved_status):
+            raise IntakeError(f"output directory changed while validating: {raw}")
+    else:
+        resolved = Path(os.path.abspath(raw))
+        if resolved.exists():
+            raise IntakeError(f"output must not already exist on Unix: {resolved}")
     directory_descriptor = -1
-    destination_descriptor = -1
     parent_descriptor = -1
     lock_descriptor = -1
     staging_name: str | None = None
@@ -597,35 +648,35 @@ def open_validated_output_directory(
     directory_published = os.name == "nt"
     try:
         if os.name != "nt":
-            directory_flags = (
-                os.O_RDONLY
-                | getattr(os, "O_DIRECTORY", 0)
-                | getattr(os, "O_CLOEXEC", 0)
-                | getattr(os, "O_NOFOLLOW", 0)
+            parent_descriptor = open_unix_directory_chain(
+                resolved.parent,
+                "output parent",
             )
-            parent_descriptor = os.open(resolved.parent, directory_flags)
-            destination_descriptor = os.open(
-                resolved.name,
-                directory_flags,
-                dir_fd=parent_descriptor,
-            )
-            _validate_empty_destination(
-                resolved,
-                resolved_status,
-                destination_descriptor,
-                parent_descriptor,
-                initial=True,
-            )
+            try:
+                os.stat(
+                    resolved.name,
+                    dir_fd=parent_descriptor,
+                    follow_symlinks=False,
+                )
+            except FileNotFoundError:
+                pass
+            else:
+                raise IntakeError(f"output must not already exist on Unix: {resolved}")
             while staging_name is None:
                 candidate = f".candidate-ic-intake.{secrets.token_hex(16)}.tmp"
                 try:
                     os.mkdir(candidate, 0o700, dir_fd=parent_descriptor)
                 except FileExistsError:
                     continue
+                except OSError as exception:
+                    raise IntakeError(
+                        "output parent must permit private staging creation on Unix: "
+                        f"{resolved.parent}"
+                    ) from exception
                 staging_name = candidate
             directory_descriptor = os.open(
                 staging_name,
-                directory_flags,
+                DIRECTORY_OPEN_FLAGS,
                 dir_fd=parent_descriptor,
             )
             status = os.fstat(directory_descriptor)
@@ -633,8 +684,10 @@ def open_validated_output_directory(
                 resolved.parent / staging_name,
                 status,
                 directory_descriptor,
+                resolved,
             )
         else:
+            assert resolved_status is not None
             status = resolved_status
             output = ValidatedOutputDirectory(resolved, status, None)
         if not stat.S_ISDIR(status.st_mode):
@@ -662,19 +715,12 @@ def open_validated_output_directory(
             output.validate_published()
             output.require_names(output.active_names(*output.published_identities))
             if staging_name is not None:
-                _validate_empty_destination(
-                    resolved,
-                    resolved_status,
-                    destination_descriptor,
-                    parent_descriptor,
-                )
                 os.fsync(directory_descriptor)
                 try:
-                    os.replace(
+                    _rename_directory_no_replace(
+                        parent_descriptor,
                         staging_name,
                         resolved.name,
-                        src_dir_fd=parent_descriptor,
-                        dst_dir_fd=parent_descriptor,
                     )
                 except OSError as publication_error:
                     raise IntakeError(
@@ -732,21 +778,17 @@ def open_validated_output_directory(
                             os.close(directory_descriptor)
                     finally:
                         try:
-                            if destination_descriptor >= 0:
-                                os.close(destination_descriptor)
+                            if output is None and staging_name is not None:
+                                try:
+                                    os.rmdir(
+                                        staging_name,
+                                        dir_fd=parent_descriptor,
+                                    )
+                                except OSError as exception:
+                                    raise IntakeError(
+                                        "candidate staging directory setup "
+                                        f"cleanup failed: {resolved.parent / staging_name}"
+                                    ) from exception
                         finally:
-                            try:
-                                if output is None and staging_name is not None:
-                                    try:
-                                        os.rmdir(
-                                            staging_name,
-                                            dir_fd=parent_descriptor,
-                                        )
-                                    except OSError as exception:
-                                        raise IntakeError(
-                                            "candidate staging directory setup "
-                                            f"cleanup failed: {resolved.parent / staging_name}"
-                                        ) from exception
-                            finally:
-                                if parent_descriptor >= 0:
-                                    os.close(parent_descriptor)
+                            if parent_descriptor >= 0:
+                                os.close(parent_descriptor)
