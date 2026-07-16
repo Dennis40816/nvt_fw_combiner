@@ -1102,6 +1102,96 @@ class CandidateIcIntakeTests(unittest.TestCase):
         self.assertEqual(competing_identity, (current.st_dev, current.st_ino))
         self.assertEqual([], self.output_entries())
 
+    @unittest.skipIf(os.name == "nt", "Unix post-commit parent coverage")
+    def test_unix_commit_revalidates_the_requested_public_parent(self) -> None:
+        outputs = self.build_candidate_outputs()
+        self.output.rmdir()
+        public_parent = self.root / "public-parent"
+        public_parent.mkdir()
+        moved_parent = self.root / "moved-public-parent"
+        self.output = public_parent / "output"
+        commit = output_boundary._rename_directory_no_replace
+
+        def commit_then_move_parent(parent: int, source: str, destination: str) -> None:
+            commit(parent, source, destination)
+            public_parent.rename(moved_parent)
+            public_parent.mkdir()
+
+        with self.assertRaisesRegex(
+            intake.IntakeError,
+            "output parent changed after atomic publication",
+        ):
+            with mock.patch.object(
+                output_boundary,
+                "_rename_directory_no_replace",
+                side_effect=commit_then_move_parent,
+            ):
+                with self.open_output() as output:
+                    intake.write_outputs(output, outputs)
+
+        self.assertFalse(self.output.exists())
+        self.assertEqual(
+            set(intake.OUTPUT_FILES),
+            {path.name for path in (moved_parent / "output").iterdir()},
+        )
+
+    @unittest.skipIf(os.name == "nt", "Unix post-commit cancellation coverage")
+    def test_unix_post_commit_cancellation_does_not_rollback_public_records(
+        self,
+    ) -> None:
+        outputs = self.build_candidate_outputs()
+        commit = output_boundary._rename_directory_no_replace
+
+        def commit_then_interrupt(parent: int, source: str, destination: str) -> None:
+            commit(parent, source, destination)
+            raise KeyboardInterrupt("simulated post-commit interruption")
+
+        with self.assertRaisesRegex(
+            KeyboardInterrupt,
+            "simulated post-commit interruption",
+        ):
+            with mock.patch.object(
+                output_boundary,
+                "_rename_directory_no_replace",
+                side_effect=commit_then_interrupt,
+            ):
+                with self.open_output() as output:
+                    intake.write_outputs(output, outputs)
+
+        self.assertEqual(
+            set(intake.OUTPUT_FILES),
+            {path.name for path in self.output_entries()},
+        )
+
+    @unittest.skipIf(os.name == "nt", "Unix private staging reporting coverage")
+    def test_unix_failure_reports_unowned_private_staging_entries(self) -> None:
+        private_path: Path | None = None
+
+        with self.assertRaisesRegex(
+            KeyboardInterrupt,
+            "simulated private staging interruption",
+        ) as raised:
+            with self.open_output() as output:
+                private_path = output.path
+                (output.path / "unowned.txt").write_text(
+                    "preserve unowned entry\n",
+                    encoding="utf-8",
+                )
+                raise KeyboardInterrupt("simulated private staging interruption")
+
+        assert private_path is not None
+        self.assertTrue(
+            any(
+                "candidate staging directory retained" in note and "unowned.txt" in note
+                for note in raised.exception.__notes__
+            )
+        )
+        self.assertEqual(
+            "preserve unowned entry\n",
+            (private_path / "unowned.txt").read_text(),
+        )
+        self.assertFalse(self.output.exists())
+
     @unittest.skipIf(os.name == "nt", "Unix final-path substitution coverage")
     def test_final_validation_rechecks_name_after_descriptor_read(self) -> None:
         outputs = self.build_candidate_outputs()

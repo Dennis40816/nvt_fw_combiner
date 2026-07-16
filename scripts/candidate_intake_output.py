@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import ctypes
-import errno
 import hashlib
 import os
 import secrets
@@ -12,75 +10,32 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
+if __package__:
+    from .candidate_intake_path import (
+        DIRECTORY_OPEN_FLAGS,
+        IntakeError,
+        _directory_entry_matches,
+        _identity,
+        _rename_directory_no_replace,
+        _validate_committed_destination,
+        open_unix_directory_chain,
+        reject_reparse_points,
+        resolve_directory as resolve_directory,
+    )
+else:
+    from candidate_intake_path import (
+        DIRECTORY_OPEN_FLAGS,
+        IntakeError,
+        _directory_entry_matches,
+        _identity,
+        _rename_directory_no_replace,
+        _validate_committed_destination,
+        open_unix_directory_chain,
+        reject_reparse_points,
+        resolve_directory as resolve_directory,
+    )
+
 OUTPUT_LOCK_FILE = ".candidate-ic-intake.lock"
-RENAME_NOREPLACE = 1
-DIRECTORY_OPEN_FLAGS = (
-    os.O_RDONLY
-    | getattr(os, "O_DIRECTORY", 0)
-    | getattr(os, "O_CLOEXEC", 0)
-    | getattr(os, "O_NOFOLLOW", 0)
-)
-
-
-class IntakeError(ValueError):
-    """Raised when declared candidate evidence is unsafe or incomplete."""
-
-
-def reject_reparse_points(path: Path) -> None:
-    reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
-    for component in (path, *path.parents):
-        if component.exists() and (
-            component.is_symlink()
-            or getattr(component.stat(), "st_file_attributes", 0) & reparse_flag
-        ):
-            raise IntakeError(f"reparse point is not allowed: {component}")
-
-
-def resolve_directory(path: Path, description: str) -> Path:
-    raw = path.expanduser().absolute()
-    reject_reparse_points(raw)
-    try:
-        initial_status = os.stat(raw, follow_symlinks=False)
-    except OSError as exception:
-        raise IntakeError(
-            f"{description} must be an existing directory: {raw}"
-        ) from exception
-    if not stat.S_ISDIR(initial_status.st_mode):
-        raise IntakeError(f"{description} must be an existing directory: {raw}")
-    resolved = raw.resolve(strict=True)
-    resolved_status = os.stat(resolved, follow_symlinks=False)
-    if _identity(initial_status) != _identity(resolved_status):
-        raise IntakeError(f"{description} changed while validating: {raw}")
-    return resolved
-
-
-def _identity(status: os.stat_result) -> tuple[int, int]:
-    return status.st_dev, status.st_ino
-
-
-def open_unix_directory_chain(path: Path, description: str) -> int:
-    parts = Path(os.path.abspath(path)).parts
-    descriptor = os.open(parts[0], DIRECTORY_OPEN_FLAGS)
-    try:
-        for component in parts[1:]:
-            try:
-                next_descriptor = os.open(
-                    component,
-                    DIRECTORY_OPEN_FLAGS,
-                    dir_fd=descriptor,
-                )
-            except OSError as exception:
-                raise IntakeError(
-                    f"{description} component changed while opening: {component}"
-                ) from exception
-            os.close(descriptor)
-            descriptor = next_descriptor
-        if not stat.S_ISDIR(os.fstat(descriptor).st_mode):
-            raise IntakeError(f"{description} is not a directory: {path}")
-        return descriptor
-    except BaseException:
-        os.close(descriptor)
-        raise
 
 
 class ValidatedOutputDirectory:
@@ -557,48 +512,6 @@ class ValidatedOutputDirectory:
         return failures
 
 
-def _rename_directory_no_replace(
-    parent_descriptor: int,
-    source_name: str,
-    destination_name: str,
-) -> None:
-    try:
-        renameat2 = getattr(ctypes.CDLL(None, use_errno=True), "renameat2")
-    except AttributeError as exception:
-        raise IntakeError(
-            "atomic no-replace directory publication is unavailable on this Unix platform"
-        ) from exception
-    renameat2.argtypes = (
-        ctypes.c_int,
-        ctypes.c_char_p,
-        ctypes.c_int,
-        ctypes.c_char_p,
-        ctypes.c_uint,
-    )
-    renameat2.restype = ctypes.c_int
-    if (
-        renameat2(
-            parent_descriptor,
-            os.fsencode(source_name),
-            parent_descriptor,
-            os.fsencode(destination_name),
-            RENAME_NOREPLACE,
-        )
-        == 0
-    ):
-        return
-    error = ctypes.get_errno()
-    if error in (errno.EEXIST, errno.ENOTEMPTY):
-        raise IntakeError(
-            f"output destination appeared before atomic publication: {destination_name}"
-        )
-    if error in (errno.ENOSYS, errno.EINVAL, errno.ENOTSUP):
-        raise IntakeError(
-            "atomic no-replace directory publication is unavailable on this Unix platform"
-        )
-    raise OSError(error, os.strerror(error), destination_name)
-
-
 def _remove_private_staging(
     output: ValidatedOutputDirectory,
     parent_descriptor: int,
@@ -717,18 +630,32 @@ def open_validated_output_directory(
             if staging_name is not None:
                 os.fsync(directory_descriptor)
                 try:
+                    directory_published = True
                     _rename_directory_no_replace(
                         parent_descriptor,
                         staging_name,
                         resolved.name,
                     )
-                except OSError as publication_error:
-                    raise IntakeError(
-                        "output directory changed before atomic publication: "
-                        f"{resolved}"
-                    ) from publication_error
-                directory_published = True
+                except BaseException as publication_error:
+                    directory_published = _directory_entry_matches(
+                        parent_descriptor,
+                        resolved.name,
+                        output.status,
+                    )
+                    if isinstance(publication_error, OSError):
+                        raise IntakeError(
+                            "output directory changed before atomic publication: "
+                            f"{resolved}"
+                        ) from publication_error
+                    raise
+                _validate_committed_destination(
+                    resolved,
+                    parent_descriptor,
+                    output.status,
+                )
         except BaseException as exception:
+            if directory_published:
+                raise
             # The output boundary must roll back on cancellation as well as I/O errors.
             cleanup_attempted = True
             try:
@@ -736,7 +663,13 @@ def open_validated_output_directory(
             except IntakeError as cleanup_error:
                 raise cleanup_error from exception
             if staging_name is not None:
-                if output.names():
+                remaining_names = sorted(output.names())
+                if remaining_names:
+                    exception.add_note(
+                        "candidate staging directory retained at "
+                        f"'{output.path}' with unowned entries: "
+                        + ", ".join(remaining_names)
+                    )
                     raise
                 try:
                     _remove_private_staging(
