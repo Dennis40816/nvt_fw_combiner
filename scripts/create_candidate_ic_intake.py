@@ -5,12 +5,14 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import stat
 import sys
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path, PureWindowsPath
-from typing import Any
+from typing import Any, BinaryIO, Iterator
 
 TOOL_ID = "candidate-ic-intake"
 TOOL_VERSION = "1.0.0"
@@ -129,9 +131,15 @@ def read_json(path: Path) -> dict[str, Any]:
         return result
 
     try:
-        result = json.loads(
-            path.read_text(encoding="utf-8"), object_pairs_hook=reject_duplicates
-        )
+        with open_validated_regular_file(path, "evidence manifest") as (
+            _,
+            stream,
+            _,
+        ):
+            result = json.loads(
+                stream.read().decode("utf-8"),
+                object_pairs_hook=reject_duplicates,
+            )
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exception:
         raise IntakeError(
             f"could not read evidence manifest '{path}': {exception}"
@@ -139,11 +147,10 @@ def read_json(path: Path) -> dict[str, Any]:
     return require_object(result, "evidence manifest root must be an object")
 
 
-def sha256(path: Path) -> str:
+def sha256(stream: BinaryIO) -> str:
     digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
+    for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+        digest.update(chunk)
     return digest.hexdigest()
 
 
@@ -157,6 +164,48 @@ def reject_reparse_points(path: Path) -> None:
             raise IntakeError(f"reparse point is not allowed: {component}")
 
 
+@contextmanager
+def open_validated_regular_file(
+    path: Path, description: str
+) -> Iterator[tuple[Path, BinaryIO, os.stat_result]]:
+    raw = path.expanduser().absolute()
+    if not raw.is_file():
+        raise IntakeError(f"{description} must be an existing file: {raw}")
+
+    reject_reparse_points(raw)
+    resolved = raw.resolve(strict=True)
+    flags = (
+        os.O_RDONLY
+        | getattr(os, "O_BINARY", 0)
+        | getattr(os, "O_CLOEXEC", 0)
+        | getattr(os, "O_NOFOLLOW", 0)
+    )
+    descriptor = -1
+    try:
+        descriptor = os.open(resolved, flags)
+        opened_status = os.fstat(descriptor)
+        reject_reparse_points(resolved)
+        path_status = os.stat(resolved, follow_symlinks=False)
+        if not stat.S_ISREG(opened_status.st_mode) or not stat.S_ISREG(
+            path_status.st_mode
+        ):
+            raise IntakeError(f"{description} must be a regular filesystem file")
+        if (opened_status.st_dev, opened_status.st_ino) != (
+            path_status.st_dev,
+            path_status.st_ino,
+        ):
+            raise IntakeError(
+                f"{description} open handle does not match the validated path"
+            )
+
+        with os.fdopen(descriptor, "rb", closefd=True) as stream:
+            descriptor = -1
+            yield resolved, stream, opened_status
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
+
+
 def resolve_directory(path: Path, description: str, *, empty: bool = False) -> Path:
     raw = path.expanduser().absolute()
     if not raw.is_dir():
@@ -166,14 +215,6 @@ def resolve_directory(path: Path, description: str, *, empty: bool = False) -> P
     if empty and any(resolved.iterdir()):
         raise IntakeError(f"{description} directory must be empty: {resolved}")
     return resolved
-
-
-def resolve_file(path: Path, description: str) -> Path:
-    raw = path.expanduser().absolute()
-    if not raw.is_file():
-        raise IntakeError(f"{description} must be an existing file: {raw}")
-    reject_reparse_points(raw)
-    return raw.resolve(strict=True)
 
 
 def validate_generated_at(value: str) -> str:
@@ -378,27 +419,26 @@ def verify_artifacts(
             rows.append({"artifactId": artifact_id, "status": "not-bound"})
             continue
         path = source_root.joinpath(*relative.parts)
-        if not path.is_file():
-            raise IntakeError(
-                f"bound artifact '{artifact_id}' is not a file below --source-root"
-            )
-        reject_reparse_points(path.absolute())
-        resolved = path.resolve(strict=True)
-        try:
-            resolved.relative_to(source_root)
-        except ValueError as exception:
-            raise IntakeError(
-                f"bound artifact '{artifact_id}' escapes --source-root"
-            ) from exception
         artifact = artifacts[artifact_id]
-        if resolved.stat().st_size != artifact["sizeBytes"]:
-            raise IntakeError(
-                f"bound artifact '{artifact_id}' size does not match its declared evidence"
-            )
-        if sha256(resolved) != artifact["contentHash"]:
-            raise IntakeError(
-                f"bound artifact '{artifact_id}' SHA-256 does not match its declared evidence"
-            )
+        with open_validated_regular_file(path, f"bound artifact '{artifact_id}'") as (
+            resolved,
+            stream,
+            opened_status,
+        ):
+            try:
+                resolved.relative_to(source_root)
+            except ValueError as exception:
+                raise IntakeError(
+                    f"bound artifact '{artifact_id}' escapes --source-root"
+                ) from exception
+            if opened_status.st_size != artifact["sizeBytes"]:
+                raise IntakeError(
+                    f"bound artifact '{artifact_id}' size does not match its declared evidence"
+                )
+            if sha256(stream) != artifact["contentHash"]:
+                raise IntakeError(
+                    f"bound artifact '{artifact_id}' SHA-256 does not match its declared evidence"
+                )
         rows.append({"artifactId": artifact_id, "status": "verified"})
     return rows
 
@@ -498,7 +538,7 @@ def write_outputs(output: Path, outputs: dict[str, dict[str, Any]]) -> None:
 def main() -> int:
     args = parse_args()
     try:
-        manifest = read_json(resolve_file(args.evidence_manifest, "evidence manifest"))
+        manifest = read_json(args.evidence_manifest)
         source_root = resolve_directory(args.source_root, "source root")
         output = resolve_directory(args.output, "output", empty=True)
         generated_at = validate_generated_at(args.generated_at)

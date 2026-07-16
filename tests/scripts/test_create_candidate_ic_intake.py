@@ -11,6 +11,9 @@ import tempfile
 import unittest
 from pathlib import Path
 from typing import Any
+from unittest import mock
+
+from scripts import create_candidate_ic_intake as intake
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "scripts" / "create_candidate_ic_intake.py"
@@ -239,6 +242,21 @@ class CandidateIcIntakeTests(unittest.TestCase):
         self.assertEqual(2, result.returncode)
         self.assertIn("reparse point is not allowed", result.stderr)
         self.assertEqual([], list(self.output.iterdir()))
+
+    def test_rejects_a_substituted_regular_file_handle(self) -> None:
+        substituted_path = self.root / "substituted.json"
+        substituted_path.write_text("{}\n", encoding="utf-8")
+        open_file = os.open
+
+        def open_substituted_file(_path: Path, flags: int) -> int:
+            return open_file(substituted_path, flags)
+
+        with mock.patch.object(intake.os, "open", side_effect=open_substituted_file):
+            with self.assertRaisesRegex(
+                intake.IntakeError,
+                "open handle does not match the validated path",
+            ):
+                intake.read_json(self.manifest_path)
 
     def read_output(self, name: str) -> dict[str, Any]:
         return json.loads((self.output / name).read_text(encoding="utf-8"))
