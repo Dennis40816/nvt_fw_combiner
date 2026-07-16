@@ -67,7 +67,8 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
             "cascade",
             WorkbenchReplaceModes.CtrlRam).Single(slot => slot.SlotId == "replace-ctrlram-nf");
 
-        Assert.Contains("DiffNFMerge.exe", nf.Description, StringComparison.Ordinal);
+        Assert.Contains("DiffNFMerge output", nf.Title, StringComparison.Ordinal);
+        Assert.Contains("select NF_Ctrlram.bin only after DiffNFMerge.exe has compiled", nf.Description, StringComparison.Ordinal);
         Assert.Contains("NF_Diff_0.bin, NF_Diff_1.bin", nf.Description, StringComparison.Ordinal);
         Assert.Contains("one NF_Diff_<index>.bin per cascaded IC", nf.Description, StringComparison.Ordinal);
     }
@@ -84,6 +85,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
             WorkbenchReplaceModes.CtrlRam).Single(slot => slot.SlotId == "replace-ctrlram-nf");
 
         Assert.DoesNotContain("DiffNFMerge.exe", nf.Description, StringComparison.Ordinal);
+        Assert.DoesNotContain("DiffNFMerge output", nf.Title, StringComparison.Ordinal);
     }
 
     /// <summary>Each slot reports the declared maximum while explaining Legacy Combiner short-file behavior.</summary>
