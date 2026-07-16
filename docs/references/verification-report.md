@@ -1,8 +1,19 @@
 # Repository Verification Report
 
-Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.7 cumulative integration candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
+Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.8 feature-frozen convergence candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
 
-Specification package version: `0.9.7`
+Specification package version: `0.9.8`
+
+## 0.9.8 convergence candidate
+
+The 0.9.8 integration branch is feature-frozen and support-neutral. It retains
+the 0.9.7 firmware behavior and evidence gates while lowering the owner-accepted
+production ratchet to 56,742 nonblank C#/AXAML lines, exact duplicate JSON to
+1,156 lines, `WorkbenchCompositionService` to 4,483 lines, and
+`MainWindowViewModel` to 2,847 lines. The portable Windows package remains
+bounded by the reviewed 58,076,715-byte maximum. Canonical verification and
+package smoke do not replace CtrlRAM owner golden outputs/sign-off, signing and
+legal approval, protected remote CI, or clean-machine evidence.
 
 ## 0.9.7 integration candidate
 

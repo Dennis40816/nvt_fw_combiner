@@ -4,7 +4,31 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-Post-`0.9.7` development targets firmware-owner evidence closure and `1.0.0` release readiness.
+Post-`0.9.8` development targets verified legacy convergence, patch closure, firmware-owner evidence, and the UI-driven IC intake toolchain.
+
+## [0.9.8] - 2026-07-16
+
+### Added
+
+- Exact canonical ratchets for hand-written production C#/AXAML, byte-identical profile/schema JSON, oversized partial-type aggregates, and the Windows release ZIP.
+- Deterministic package smoke enforcement for the owner-approved 58,076,715-byte maximum, including manifest, hash, SBOM, provenance, external-tool allowlist, worker self-test, and desktop startup checks.
+
+### Changed
+
+- Reduced production C#/AXAML from the 60,237-line `v0.9.7` baseline to the owner-accepted 56,742-line final ratchet without changing firmware behavior or support state.
+- Reduced exact duplicate profile/schema JSON from 10,781 to 1,156 lines, `WorkbenchCompositionService` from 6,033 to 4,483 lines, and `MainWindowViewModel` from 3,035 to 2,847 lines.
+- Consolidated canonical schema ownership, built-in bundle registration, external Combiner tool resolution, byte-range/string helpers, CLI/UI run lifecycles, local JSON persistence, and immutable report projections.
+- Retired only verified test-only, unbound, pass-through, synthetic, or exactly replaced compatibility surfaces; required validation, tests, evidence manifests, and external processing boundaries remain intact.
+
+### Security
+
+- Legacy Combiner 1.13.0 and its constrained staged runner remain the explicit legacy exception; no executable path, command, read/write range, CRC/header behavior, or runtime support state is promoted by this release.
+- AB and CtrlRAM candidates retain their direct or fact-scoped evidence gates, and C# does not write AB header CRC bytes.
+
+### Notes
+
+- The reviewed local Windows candidate ZIP is 57,603,094 bytes, approximately 0.176% above the `v0.9.7` baseline and below the 1% ceiling.
+- CtrlRAM golden byte parity/output sign-off, protected remote CI, signing/legal approval, and an independent clean-machine package run remain explicit release/support gates.
 
 ## [0.9.7] - 2026-07-15
 
