@@ -1,53 +1,93 @@
-# Owner Data TODO
+# Golden Evidence: Provide Now
 
-## Already Covered
+This list contains only evidence that is still missing. Use the existing
+folders below; do not create a second versioned intake tree.
 
-- Standard Merge golden exists for `51920`, `51923`, `51926`, `51927`, `51928`, `51929`, `51931`, `51932`.
-- These match the current `refcode/gen_flash_bin_v2/ic_config.json` coverage.
-- Owner confirmed `NT51917` follows `NT51927` and `NT51919` follows `NT51929`; executable alias tests reuse the corresponding golden bytes.
-- Owner-approved `merge_bin.7z` golden fixtures are recorded for `NT51930`, `NT51950` DP size `0x40000`, and `NT51951` DP size `0x80000`.
+## 1. Output only — base and inputs already exist
 
-## Standard Merge
+| Priority | Put this file here | Exact size | What it proves |
+| --- | --- | ---: | --- |
+| P0 | `ctrlram-replace/nt51926/cascade/expected.bin` | 262,144 bytes | NT51926 Common FW 1.4.1 cascade output after the tracked postbuild and Legacy Combiner 1.13 command |
+| P0 | `ctrlram-replace/nt51927/2chip/expected.bin` | 262,144 bytes | NT51927 two-chip output after postbuild |
+| P0 | `ctrlram-replace/nt51927/3chip/expected.bin` | 262,144 bytes | NT51927 three-chip output after postbuild |
 
-- [ ] Optional `NT51950` direct audit sample for DP size `0x80000` or `0x100000` if those variants are selected for release exposure.
-- [ ] Optional `NT51951` direct audit sample for DP size `0x40000` or `0x100000` if those variants are selected for release exposure.
-- [ ] Optional additional `NT51930` sample only if a new product variant or memory map needs promotion.
-- [ ] Optional direct audit sample for `NT51917` if you want IC-specific files in addition to the alias regression.
-- [ ] Optional direct audit sample for `NT51919` if you want IC-specific files in addition to the alias regression.
+Do **not** resend the NT51926 base, its five replacement BINs, BAT command, or
+Combiner. Do **not** resend the NT51927 two-chip/three-chip bases or replacement
+BINs. They are already tracked with hashes.
 
-## DP Replace
+The `expected.bin` must come from the approved independent reference run. It
+must not be generated only by the current V2 candidate. For NT51926, differences
+caused by the CtrlRAM replacement operation are expected output changes; the
+separate allowed post-Combiner drift is limited to the owner-marked Header CRC
+and Header Copy CRC areas.
 
-- [ ] `NT51950` with DP size `0x40000`: provide `base.bin`, `dp.bin`, and `expected.bin`.
-- [ ] `NT51950` with DP size `0x80000`: provide `base.bin`, `dp.bin`, and `expected.bin`.
-- [ ] `NT51950` with DP size `0x100000`: provide `base.bin`, `dp.bin`, and `expected.bin`.
-- [ ] `NT51951` with DP size `0x40000`: provide `base.bin`, `dp.bin`, and `expected.bin`.
-- [ ] `NT51951` with DP size `0x80000`: provide `base.bin`, `dp.bin`, and `expected.bin`.
-- [ ] `NT51951` with DP size `0x100000`: provide `base.bin`, `dp.bin`, and `expected.bin`.
+## 2. Direct AB golden still missing
 
-## AB Merge
+Put the following files under the existing `inputs/` folder.
 
-- [ ] `NT51919`: provide direct AB inputs/output and an owner-approved fact-scoped alias/parity decision; a Normal or whole-map alias is not enough.
-- [ ] `NT51929`: provide product AB input/output and firmware-owner review in addition to the existing candidate/reference evidence.
-- [ ] `NT51932`: provide product AB input/output and firmware-owner review in addition to the existing candidate evidence.
-- [ ] `NT51950`: provide any additional AB inputs/output, exact `Combiner.exe` identity, and full command trace. The AB command does not consume `map.txt`.
-- [ ] `NT51951`: provide AB inputs/output, exact `Combiner.exe` identity, and full command trace. The AB command does not consume `map.txt`.
+### NT51932
 
-For every AB case, retain original source filenames, source archive/ticket,
-output filename, and firmware-owner approval. Repository intake calculates and
-records SHA-256. AB header CRC is performed only by the owner-approved
-Combiner stage; C# does not calculate or write it.
+Path: `ab-merge/nt51932/inputs/`
 
-## CtrlRAM Replace
+- `dp-ab.bin` — 524,288 bytes
+- `tpa.bin` — 262,144 bytes
+- `tpb.bin` — 262,144 bytes
+- `expected.bin` — 524,288 bytes
 
-- [ ] At least one `NT51927` single/2-chip/3-chip real postbuild case.
-- [ ] At least one `NT51950` single/cascade real postbuild case.
-- [ ] At least one `NT51951` single/cascade real postbuild case.
-- [ ] Optional sweep cases for `NT51917`, `NT51919`, `NT51920`, `NT51923`, `NT51926`, `NT51928`, `NT51929`, `NT51930`, `NT51931`, `NT51932`.
+Instead of these four BINs, the firmware owner may approve a specific
+NT51929-to-NT51932 **AB-only fact-scoped alias**. A Normal/whole-map similarity
+statement is not enough.
 
-For each CtrlRAM case, provide:
+### NT51951
 
-- `base.bin`
-- replacement CtrlRAM BINs under `inputs/`
-- `expected.bin` if postbuild final output exists
-- `combiner-cmd.txt` or postbuild log if available
-- IC number mode: `single`, `cascade`, `1`, `2`, or `3`
+Path: `ab-merge/nt51951/inputs/`
+
+- `dp-ab.bin` — 1,048,576 bytes; this must be the complete DP container
+- `tpa.bin` — 225,280 bytes
+- `tpb.bin` — 225,280 bytes
+- `expected.bin` — 1,048,576 bytes
+
+Do not provide `map.txt`. Do not provide another Combiner when the case uses the
+already pinned Legacy Combiner 1.13 command. C# never writes the AB header CRC.
+
+## 3. DP Replace product goldens still missing
+
+Each existing folder below needs exactly `base.bin`, `dp.bin`, and
+`expected.bin`. The folder name is the exact base/output capacity. Keep
+`dp.bin` at its original length; do not pre-pad it.
+
+```text
+dp-replace/nt51950/dp-0x40000/
+dp-replace/nt51950/dp-0x80000/
+dp-replace/nt51950/dp-0x100000/
+dp-replace/nt51951/dp-0x40000/
+dp-replace/nt51951/dp-0x80000/
+dp-replace/nt51951/dp-0x100000/
+```
+
+## 4. No BIN upload required — owner decision only
+
+- **NT51919 AB:** approve the existing manifest-declared NT51929 AB-specific
+  fact alias, or reject it and then provide a direct golden set.
+- **NT51929 AB:** direct golden and full-byte parity already exist; only
+  firmware-owner promotion review remains.
+- **NT51950 AB:** two direct goldens and Python/Legacy Combiner 1.13 full-byte
+  parity already exist; only firmware-owner promotion review remains.
+
+Use a role such as `firmware-owner`, the approval date, and the exact IC,
+workflow, profile/mode, and fact scope. Do not include a personal name, email,
+account id, or user-profile path.
+
+## Not requested in this batch
+
+- Existing Standard Merge fixtures and aliases.
+- Optional CtrlRAM sweep cases beyond the three output-only cases above.
+- Optional Standard Merge capacity audits.
+- General Merge rows not selected for support.
+- General Replace BINs. Its protected-range and mapping policy must be approved
+  before a truthful golden case can be requested.
+
+After a drop, repository intake records original technical filenames, sizes,
+SHA-256, non-personal provenance, and owner approval. Accepted replay inputs
+and expected outputs are then committed under the canonical workflow golden;
+unreviewed payloads remain ignored.
