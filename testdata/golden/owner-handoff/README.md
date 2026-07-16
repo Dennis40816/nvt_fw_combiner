@@ -20,6 +20,28 @@ The committed NT51926 and NT51927 bases are owner-provided sources. Their
 committed CtrlRAM input files are derived replay fixtures sliced from those
 bases; they were not supplied as separate product replacement BINs.
 
+## Firmware stage names
+
+Do not compare files from different stages as if they were the same golden:
+
+| Canonical name | Stage |
+| --- | --- |
+| `compile.bin` | Raw compiler/linker output before Postbuild. A Copy Header window may still contain its linker fill such as `0xFF` or `0x00`. |
+| `base.bin` | Released/reference firmware used as the immutable Replace base. It may already contain a Copy Header written by an earlier Postbuild. |
+| `replace-pre-combiner.bin` | Base after declared replacement operations but before Legacy Combiner header/CRC processing. |
+| `expected.bin` | Complete final output after the approved legacy Postbuild and Legacy Combiner command sequence. This is the final golden oracle. |
+
+The main Header CRC and Copy Header CRC inside one valid final image may differ
+because the legacy command copies the header before refreshing the source CRC.
+For the inspected NT51926 Common FW 1.4.1 base, source Header `[0x00000,0x00100)`
+and Copy Header `[0x32F50,0x33050)` differ only at the two four-byte CRC words
+`[+0x1C,+0x20)` and `[+0xFC,+0x100)`.
+
+This stage difference does not relax the golden gate: the complete V2 plus
+approved external-Combiner output must match the same-stage `expected.bin`
+byte-for-byte. A raw `compile.bin` is not an acceptable substitute for
+`expected.bin`.
+
 ## Drop rules
 
 - Use the existing workflow/IC/case folders listed in `TODO.md`.
