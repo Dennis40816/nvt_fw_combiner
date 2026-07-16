@@ -577,6 +577,26 @@ public sealed class WorkbenchCompositionServiceTests
         JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
         Assert.Equal(InputArtifactReadFailed, issue.GetProperty("Code").GetString());
         Assert.Equal("error", issue.GetProperty("Severity").GetString());
+        Assert.Empty(document.RootElement.GetProperty("Operations").EnumerateArray());
+    }
+
+    /// <summary>Unsupported DP Replace stays blocked without projecting legacy flash-map operations.</summary>
+    [Fact]
+    public async Task UnsupportedDpReplacePlanningReportHasNoLegacyOperations()
+    {
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51927",
+            "single",
+            "DP",
+            new Dictionary<string, string>(StringComparer.Ordinal),
+            build: false,
+            CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        using var document = JsonDocument.Parse(result.ReportJson);
+        JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
+        Assert.Equal(ReplaceDpProfilePending, issue.GetProperty("Code").GetString());
+        Assert.Empty(document.RootElement.GetProperty("Operations").EnumerateArray());
     }
 
 }

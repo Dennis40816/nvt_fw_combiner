@@ -102,7 +102,6 @@ public static partial class WorkbenchCompositionService
                     cancellationToken).ConfigureAwait(false),
                 WorkbenchReplaceModes.Dp => CreatePlanningRunResult(
                     icId,
-                    number,
                     replaceMode,
                     slotPaths,
                     build,
@@ -127,7 +126,6 @@ public static partial class WorkbenchCompositionService
                     cancellationToken).ConfigureAwait(false),
                 _ => CreatePlanningRunResult(
                     icId,
-                    number,
                     replaceMode,
                     slotPaths,
                     build,

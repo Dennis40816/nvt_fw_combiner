@@ -17,7 +17,6 @@ public static partial class WorkbenchCompositionService
         {
             failure = CreatePlanningRunResult(
                 icId,
-                number,
                 WorkbenchReplaceModes.Dp,
                 slotPaths,
                 build,
@@ -31,7 +30,6 @@ public static partial class WorkbenchCompositionService
         {
             failure = CreatePlanningRunResult(
                 icId,
-                number,
                 WorkbenchReplaceModes.Dp,
                 slotPaths,
                 build,

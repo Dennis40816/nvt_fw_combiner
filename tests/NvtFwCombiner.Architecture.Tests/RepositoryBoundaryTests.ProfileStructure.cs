@@ -219,7 +219,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("BuiltInReplaceProfiles", registration, StringComparison.Ordinal);
         Assert.Contains("TryResolveDpPerspectiveDpReplaceDisplay", registration, StringComparison.Ordinal);
         Assert.Contains("composition.Plan.OrderedOperations", display, StringComparison.Ordinal);
-        Assert.Contains("IsBuiltInV2DpReplaceIc", planning, StringComparison.Ordinal);
+        Assert.DoesNotContain("TpFlashMapCatalog", planning, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetDpReplaceRegions", planning, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionOperationKind", planning, StringComparison.Ordinal);
         Assert.DoesNotContain("DpPerspectiveCatalog", ReadBootstrapSources(), StringComparison.Ordinal);
     }
 

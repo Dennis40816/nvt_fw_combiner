@@ -30,7 +30,6 @@ public sealed partial class RepositoryBoundaryTests
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.Context.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.Profile.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Planning.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.cs",
             ]);
         AssertProductionCallers(

@@ -35,7 +35,6 @@ public static partial class WorkbenchCompositionService
         {
             return CreatePlanningRunResult(
                 icId,
-                number,
                 WorkbenchReplaceModes.Dp,
                 slotPaths,
                 build,
@@ -52,7 +51,6 @@ public static partial class WorkbenchCompositionService
                     $"The built-in V2 DP Replace profile for {icId} did not produce an executable composition.");
             return CreatePlanningRunResult(
                 icId,
-                number,
                 WorkbenchReplaceModes.Dp,
                 slotPaths,
                 build,
