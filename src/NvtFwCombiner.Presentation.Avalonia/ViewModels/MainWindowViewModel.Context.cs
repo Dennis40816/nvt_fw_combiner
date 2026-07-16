@@ -248,13 +248,9 @@ public sealed partial class MainWindowViewModel
         BuildReplaceCommand.NotifyCanExecuteChanged();
         ShowReportCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(IsRunInProgress));
-        OnPropertyChanged(nameof(CanPreviewStandardMerge));
-        OnPropertyChanged(nameof(CanBuildStandardMerge));
-        OnPropertyChanged(nameof(CanPreviewMerge));
         OnPropertyChanged(nameof(CanBuildMerge));
         OnPropertyChanged(nameof(MergeReadinessStatus));
         OnPropertyChanged(nameof(MergeBuildActionTip));
-        OnPropertyChanged(nameof(CanPreviewReplace));
         OnPropertyChanged(nameof(CanBuildReplace));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
         OnPropertyChanged(nameof(ReplacePreviewUnavailableReason));

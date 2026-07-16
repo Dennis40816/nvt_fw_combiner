@@ -12,9 +12,6 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets external tool rows shown on Settings.</summary>
     public ObservableCollection<SettingSummaryViewModel> SettingsToolRows { get; } = [];
 
-    /// <summary>Gets preference rows shown on Settings.</summary>
-    public ObservableCollection<SettingSummaryViewModel> SettingsPreferenceRows { get; } = [];
-
     /// <summary>Gets diagnostics/report rows shown on Settings.</summary>
     public ObservableCollection<SettingSummaryViewModel> SettingsDiagnosticsRows { get; } = [];
 
@@ -135,24 +132,6 @@ public sealed partial class MainWindowViewModel
                     ? "執行檔名稱、SHA-256、adapter 與 timeout 由 manifest 固定。"
                     : "Executable name, SHA-256, adapter, and timeout are pinned by the manifest.",
                 Text.Language == ShellLanguage.ChineseTraditional ? "已設定" : "Configured"));
-
-        ReplaceSettingsRows(
-            SettingsPreferenceRows,
-            new SettingSummaryViewModel(
-                Text.ThemeLabel,
-                SelectedTheme,
-                ThemePreferenceStatus,
-                Text.Language == ShellLanguage.ChineseTraditional ? "已儲存" : "Saved"),
-            new SettingSummaryViewModel(
-                Text.StrictnessLabel,
-                SelectedStrictness,
-                StrictnessPreferenceStatus,
-                Text.Language == ShellLanguage.ChineseTraditional ? "已儲存" : "Saved"),
-            new SettingSummaryViewModel(
-                Text.LanguageLabel,
-                SelectedLanguage,
-                LanguagePreferenceStatus,
-                Text.Language == ShellLanguage.ChineseTraditional ? "已套用" : "Active"));
 
         ReplaceSettingsRows(
             SettingsDiagnosticsRows,

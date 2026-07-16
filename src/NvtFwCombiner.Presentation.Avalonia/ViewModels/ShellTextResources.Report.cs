@@ -87,17 +87,11 @@ public sealed partial class ShellTextResources
 
     public string OutputChangesTitle { get; private init; } = string.Empty;
 
-    public string DiffLabel { get; private init; } = string.Empty;
-
     public string RangeLabel { get; private init; } = string.Empty;
 
     public string ResultLabel { get; private init; } = string.Empty;
 
     public string DetailLabel { get; private init; } = string.Empty;
-
-    public string ExplanationLabel { get; private init; } = string.Empty;
-
-    public string ReasonLabel { get; private init; } = string.Empty;
 
     public string ChangedRangesTitle { get; private init; } = string.Empty;
 
@@ -105,15 +99,9 @@ public sealed partial class ShellTextResources
 
     public string OperationStepsTitle { get; private init; } = string.Empty;
 
-    public string StepLabel { get; private init; } = string.Empty;
-
     public string KindLabel { get; private init; } = string.Empty;
 
     public string SourceLabel { get; private init; } = string.Empty;
-
-    public string TargetLabel { get; private init; } = string.Empty;
-
-    public string ProcessorLabel { get; private init; } = string.Empty;
 
     public string EmptyPostbuildMessage { get; private init; } = string.Empty;
 

@@ -19,7 +19,6 @@ public sealed partial class MainWindowViewModel
         SettingsPreview = Text.SettingsPreview;
         MergePreview = Text.MergePreview;
         ReplacePreview = Text.ReplacePreview;
-        FooterStatus = Text.FooterStatus;
         ApplyFirmwareSlotText();
         ApplyInitialRunResultText();
         HexEditorWorkspace.ApplyTextResources(Text);
@@ -42,7 +41,6 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(SettingsPreview));
         OnPropertyChanged(nameof(MergePreview));
         OnPropertyChanged(nameof(ReplacePreview));
-        OnPropertyChanged(nameof(FooterStatus));
         OnPropertyChanged(nameof(LastRunResult));
         OnPropertyChanged(nameof(MergeMemorySummary));
         OnPropertyChanged(nameof(ReplaceMemorySummary));
