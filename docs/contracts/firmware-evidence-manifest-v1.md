@@ -50,6 +50,9 @@ existing V2 materializer/loader remains the sole trusted full-schema validator. 
 artifacts remain explicitly listed as missing evidence rather than being guessed or searched for.
 The manifest and every bound artifact retain the regular-file identity captured before open; the
 opened descriptor and the post-open path must both match that identity before any bytes are accepted.
+Unix opens each parent component without following links and opens the leaf relative to that bound
+directory chain. Windows snapshots every parent identity before and after the leaf open and rejects
+any change.
 
 The empty output directory receives only four deterministic JSON records:
 
@@ -58,19 +61,24 @@ The empty output directory receives only four deterministic JSON records:
 - `missing-evidence.json` — unbound, unresolved, rejected, and promotion-blocking evidence ids; and
 - `validation-report.json` — artifact verification results and the candidate-only scope.
 
-The command binds that directory for the complete validation-and-write interval. Unix writes use
-the opened directory descriptor for handle-relative staging and publication and use exact directory
-membership checks instead of a racy named lock. Windows holds an exclusive temporary lock file that
-prevents the validated directory from being renamed or replaced.
-All four records are serialized before writing, staged with exclusive creation, flushed, and then
-published individually with atomic no-clobber filesystem operations. Each unpredictable staged name
-remains bound to its open file descriptor through hard-link publication, and the final name must
-resolve to that same filesystem identity before success. The descriptor content must also match the
-pre-serialized byte length and SHA-256 before linking, after linking, and at final publication
-validation, and each final name is rechecked after its descriptor content is read. The output
-directory descriptor must match the identity captured before open. On Windows, the lock name must
-still identify the original exclusive temporary lock before final validation; closing that handle
-performs the operating-system-owned cleanup.
+The command binds that directory for the complete validation-and-write interval. Windows holds an
+exclusive temporary lock file that prevents the validated directory from being renamed or replaced.
+Unix keeps the caller's identity-bound destination empty while it builds the complete record set in
+an unpredictable private sibling directory opened relative to the destination parent. It validates
+the original destination identity and emptiness again before replacing that directory with the
+complete private directory in one atomic operation. A public entry added before that commit blocks
+publication and is preserved; no candidate record is visible at the public path before the commit.
+
+All four records are serialized before writing, staged with exclusive creation, and flushed. Each
+unpredictable staged name remains bound to its open file descriptor through hard-link publication,
+and the final name must resolve to that same filesystem identity before success. The descriptor
+content must also match the pre-serialized byte length and SHA-256 before linking, after linking, and
+at final validation, and each final name is rechecked after its descriptor content is read. Windows
+publishes the four final names individually inside the locked destination. Unix performs those same
+checks inside the private sibling, flushes its directory descriptor, verifies exact four-record
+membership, and then performs the single directory commit. On Windows, the lock name must still
+identify the original exclusive temporary lock before final validation; closing that handle performs
+the operating-system-owned cleanup.
 
 An error or interruption keeps every run-owned output descriptor open while cleanup compares each
 live file identity's link count with its tracked staged and published names. Any additional hard
@@ -78,11 +86,12 @@ link, including a lock-named or nested-directory link, blocks path-based cleanup
 without releasing the tracked identity anchors; cleanup never guesses which concurrently writable
 name is safe to unlink. After tracked-name removal, the still-open descriptors are checked again so
 a link added during cleanup is reported before their identities can be reused. Cleanup preserves
-unrelated replacements and reports failures only after the remaining safe cleanup completes. A
-competing output is never overwritten or removed, and a successful command leaves exactly the four
-records above. These are point-in-time guarantees through the final boundary validation; after the
-command closes its boundary handles, the caller owns and must protect the resulting directory from
-later mutation.
+unrelated replacements and reports failures only after the remaining safe cleanup completes. On
+Unix this cleanup is confined to the private sibling before directory commit; an unowned entry there
+is preserved with that private directory and reported instead of being deleted. A successful command
+leaves exactly the four records above. These are point-in-time guarantees through the final boundary
+validation; after the command closes its boundary handles, the caller owns and must protect the
+resulting directory from later mutation.
 
 The command rejects approved manifests, output overwrite, path traversal, reparse points, lock files,
 unknown or duplicate artifact bindings, and hash or size mismatch. It never copies firmware payloads,

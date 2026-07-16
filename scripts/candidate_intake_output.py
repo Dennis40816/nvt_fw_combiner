@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import secrets
 import stat
 from contextlib import contextmanager
 from pathlib import Path
@@ -520,6 +521,56 @@ class ValidatedOutputDirectory:
         return failures
 
 
+def _validate_empty_destination(
+    path: Path,
+    expected_status: os.stat_result,
+    descriptor: int,
+    parent_descriptor: int,
+    *,
+    initial: bool = False,
+) -> None:
+    try:
+        opened = os.fstat(descriptor)
+        current = os.stat(
+            path.name,
+            dir_fd=parent_descriptor,
+            follow_symlinks=False,
+        )
+    except OSError as exception:
+        raise IntakeError(
+            f"output directory changed while intake was running: {path}"
+        ) from exception
+    expected = _identity(expected_status)
+    identity_changed = (
+        not stat.S_ISDIR(opened.st_mode)
+        or not stat.S_ISDIR(current.st_mode)
+        or _identity(opened) != expected
+        or _identity(current) != expected
+    )
+    if identity_changed:
+        phase = "validating" if initial else "intake was running"
+        raise IntakeError(f"output directory changed while {phase}: {path}")
+    if os.listdir(descriptor):
+        if initial:
+            raise IntakeError(f"output directory must be empty: {path}")
+        raise IntakeError(f"output directory changed while intake was running: {path}")
+
+
+def _remove_private_staging(
+    output: ValidatedOutputDirectory,
+    parent_descriptor: int,
+    staging_name: str,
+) -> None:
+    output.validate_identity()
+    output.require_names(set())
+    try:
+        os.rmdir(staging_name, dir_fd=parent_descriptor)
+    except OSError as exception:
+        raise IntakeError(
+            f"candidate staging directory cleanup failed: {output.path}"
+        ) from exception
+
+
 @contextmanager
 def open_validated_output_directory(
     path: Path,
@@ -537,32 +588,62 @@ def open_validated_output_directory(
     if _identity(initial_status) != _identity(resolved_status):
         raise IntakeError(f"output directory changed while validating: {raw}")
     directory_descriptor = -1
+    destination_descriptor = -1
+    parent_descriptor = -1
     lock_descriptor = -1
+    staging_name: str | None = None
     output: ValidatedOutputDirectory | None = None
+    cleanup_attempted = False
+    directory_published = os.name == "nt"
     try:
         if os.name != "nt":
-            directory_descriptor = os.open(
-                resolved,
+            directory_flags = (
                 os.O_RDONLY
                 | getattr(os, "O_DIRECTORY", 0)
                 | getattr(os, "O_CLOEXEC", 0)
-                | getattr(os, "O_NOFOLLOW", 0),
+                | getattr(os, "O_NOFOLLOW", 0)
+            )
+            parent_descriptor = os.open(resolved.parent, directory_flags)
+            destination_descriptor = os.open(
+                resolved.name,
+                directory_flags,
+                dir_fd=parent_descriptor,
+            )
+            _validate_empty_destination(
+                resolved,
+                resolved_status,
+                destination_descriptor,
+                parent_descriptor,
+                initial=True,
+            )
+            while staging_name is None:
+                candidate = f".candidate-ic-intake.{secrets.token_hex(16)}.tmp"
+                try:
+                    os.mkdir(candidate, 0o700, dir_fd=parent_descriptor)
+                except FileExistsError:
+                    continue
+                staging_name = candidate
+            directory_descriptor = os.open(
+                staging_name,
+                directory_flags,
+                dir_fd=parent_descriptor,
             )
             status = os.fstat(directory_descriptor)
+            output = ValidatedOutputDirectory(
+                resolved.parent / staging_name,
+                status,
+                directory_descriptor,
+            )
         else:
             status = resolved_status
-        if not stat.S_ISDIR(status.st_mode) or _identity(status) != _identity(
-            resolved_status
-        ):
+            output = ValidatedOutputDirectory(resolved, status, None)
+        if not stat.S_ISDIR(status.st_mode):
             raise IntakeError(f"output directory changed while validating: {resolved}")
-        output = ValidatedOutputDirectory(
-            resolved,
-            status,
-            directory_descriptor if directory_descriptor >= 0 else None,
-        )
         output.validate_identity()
         if output.names():
-            raise IntakeError(f"output directory must be empty: {resolved}")
+            raise IntakeError(
+                f"candidate staging directory must be empty: {output.path}"
+            )
         if os.name == "nt":
             lock_descriptor = output.create_exclusive(
                 OUTPUT_LOCK_FILE,
@@ -580,21 +661,92 @@ def open_validated_output_directory(
                 output.validate_lock()
             output.validate_published()
             output.require_names(output.active_names(*output.published_identities))
+            if staging_name is not None:
+                _validate_empty_destination(
+                    resolved,
+                    resolved_status,
+                    destination_descriptor,
+                    parent_descriptor,
+                )
+                os.fsync(directory_descriptor)
+                try:
+                    os.replace(
+                        staging_name,
+                        resolved.name,
+                        src_dir_fd=parent_descriptor,
+                        dst_dir_fd=parent_descriptor,
+                    )
+                except OSError as publication_error:
+                    raise IntakeError(
+                        "output directory changed before atomic publication: "
+                        f"{resolved}"
+                    ) from publication_error
+                directory_published = True
         except BaseException as exception:
             # The output boundary must roll back on cancellation as well as I/O errors.
+            cleanup_attempted = True
             try:
                 output.cleanup_tracked()
             except IntakeError as cleanup_error:
                 raise cleanup_error from exception
+            if staging_name is not None:
+                if output.names():
+                    raise
+                try:
+                    _remove_private_staging(
+                        output,
+                        parent_descriptor,
+                        staging_name,
+                    )
+                except IntakeError as cleanup_error:
+                    raise cleanup_error from exception
+                staging_name = None
             raise
     finally:
         try:
-            if output is not None:
-                output.close_anchors()
+            if (
+                output is not None
+                and not directory_published
+                and staging_name is not None
+                and not cleanup_attempted
+            ):
+                cleanup_attempted = True
+                output.cleanup_tracked()
+                _remove_private_staging(
+                    output,
+                    parent_descriptor,
+                    staging_name,
+                )
+                staging_name = None
         finally:
             try:
-                if lock_descriptor >= 0:
-                    os.close(lock_descriptor)
+                if output is not None:
+                    output.close_anchors()
             finally:
-                if directory_descriptor >= 0:
-                    os.close(directory_descriptor)
+                try:
+                    if lock_descriptor >= 0:
+                        os.close(lock_descriptor)
+                finally:
+                    try:
+                        if directory_descriptor >= 0:
+                            os.close(directory_descriptor)
+                    finally:
+                        try:
+                            if destination_descriptor >= 0:
+                                os.close(destination_descriptor)
+                        finally:
+                            try:
+                                if output is None and staging_name is not None:
+                                    try:
+                                        os.rmdir(
+                                            staging_name,
+                                            dir_fd=parent_descriptor,
+                                        )
+                                    except OSError as exception:
+                                        raise IntakeError(
+                                            "candidate staging directory setup "
+                                            f"cleanup failed: {resolved.parent / staging_name}"
+                                        ) from exception
+                            finally:
+                                if parent_descriptor >= 0:
+                                    os.close(parent_descriptor)

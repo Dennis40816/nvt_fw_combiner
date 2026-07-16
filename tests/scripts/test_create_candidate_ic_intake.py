@@ -457,12 +457,14 @@ class CandidateIcIntakeTests(unittest.TestCase):
         outputs = self.build_candidate_outputs()
         competing_content = b"replacement at successful temp unlink\n"
         substituted_name: str | None = None
+        preserved_parent: Path | None = None
 
         with self.assertRaisesRegex(
             intake.IntakeError,
             "changed before cleanup and was preserved",
         ):
             with intake.open_validated_output_directory(self.output) as output:
+                preserved_parent = output.path
                 unlink = output.unlink
 
                 def substitute_at_unlink(
@@ -474,7 +476,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
                     nonlocal substituted_name
                     if expected_identity is not None and substituted_name is None:
                         unlink(name)
-                        (self.output / name).write_bytes(competing_content)
+                        (output.path / name).write_bytes(competing_content)
                         substituted_name = name
                     return unlink(
                         name,
@@ -490,20 +492,26 @@ class CandidateIcIntakeTests(unittest.TestCase):
                     intake.write_outputs(output, outputs)
 
         assert substituted_name is not None
+        assert preserved_parent is not None
         self.assertEqual(
-            [substituted_name], [path.name for path in self.output.iterdir()]
+            [substituted_name],
+            [path.name for path in preserved_parent.iterdir()],
         )
         self.assertEqual(
-            competing_content, (self.output / substituted_name).read_bytes()
+            competing_content, (preserved_parent / substituted_name).read_bytes()
         )
+        if os.name != "nt":
+            self.assertEqual([], list(self.output.iterdir()))
 
     def test_promotion_never_overwrites_a_competing_output_file(self) -> None:
         outputs = self.build_candidate_outputs()
         competing_name = intake.OUTPUT_FILES[0]
         competing_content = "preserve competing output\n"
+        preserved_parent: Path | None = None
 
         with self.assertRaises(FileExistsError):
             with intake.open_validated_output_directory(self.output) as output:
+                preserved_parent = output.path
                 publish = output.publish
 
                 def inject_competing_file(
@@ -513,7 +521,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
                     expected_content: bytes,
                 ) -> None:
                     if final_name == competing_name:
-                        (self.output / final_name).write_text(
+                        (output.path / final_name).write_text(
                             competing_content,
                             encoding="utf-8",
                         )
@@ -531,23 +539,29 @@ class CandidateIcIntakeTests(unittest.TestCase):
                 ):
                     intake.write_outputs(output, outputs)
 
+        assert preserved_parent is not None
         self.assertEqual(
             competing_content,
-            (self.output / competing_name).read_text(encoding="utf-8"),
+            (preserved_parent / competing_name).read_text(encoding="utf-8"),
         )
         self.assertEqual(
-            [competing_name], [path.name for path in self.output.iterdir()]
+            [competing_name],
+            [path.name for path in preserved_parent.iterdir()],
         )
+        if os.name != "nt":
+            self.assertEqual([], list(self.output.iterdir()))
 
     def test_promotion_rejects_a_substituted_staged_file(self) -> None:
         outputs = self.build_candidate_outputs()
         competing_content = b"substituted staged bytes\n"
+        preserved_parent: Path | None = None
 
         with self.assertRaisesRegex(
             intake.IntakeError,
             "staged candidate output changed before cleanup and was preserved",
         ):
             with intake.open_validated_output_directory(self.output) as output:
+                preserved_parent = output.path
                 publish = output.publish
 
                 def substitute_staged_file(
@@ -556,7 +570,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
                     *publication_args: Any,
                 ) -> None:
                     output.unlink(temporary_name)
-                    (self.output / temporary_name).write_bytes(competing_content)
+                    (output.path / temporary_name).write_bytes(competing_content)
                     publish(temporary_name, final_name, *publication_args)
 
                 with mock.patch.object(
@@ -566,8 +580,13 @@ class CandidateIcIntakeTests(unittest.TestCase):
                 ):
                     intake.write_outputs(output, outputs)
 
-        self.assertEqual(1, len(list(self.output.iterdir())))
-        self.assertEqual(competing_content, next(self.output.iterdir()).read_bytes())
+        assert preserved_parent is not None
+        self.assertEqual(1, len(list(preserved_parent.iterdir())))
+        self.assertEqual(
+            competing_content, next(preserved_parent.iterdir()).read_bytes()
+        )
+        if os.name != "nt":
+            self.assertEqual([], list(self.output.iterdir()))
 
     def test_promotion_rejects_in_place_staged_byte_mutation(self) -> None:
         outputs = self.build_candidate_outputs()
@@ -614,12 +633,14 @@ class CandidateIcIntakeTests(unittest.TestCase):
         outputs = self.build_candidate_outputs()
         replaced_name = intake.OUTPUT_FILES[1]
         competing_content = "preserve replacement\n"
+        preserved_parent: Path | None = None
 
         with self.assertRaisesRegex(
             intake.IntakeError,
             "candidate output changed before cleanup and was preserved",
         ):
             with intake.open_validated_output_directory(self.output) as output:
+                preserved_parent = output.path
                 publish = output.publish
 
                 def replace_then_interrupt(
@@ -629,7 +650,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
                 ) -> None:
                     if final_name == intake.OUTPUT_FILES[2]:
                         output.unlink(replaced_name)
-                        (self.output / replaced_name).write_text(
+                        (output.path / replaced_name).write_text(
                             competing_content,
                             encoding="utf-8",
                         )
@@ -643,11 +664,17 @@ class CandidateIcIntakeTests(unittest.TestCase):
                 ):
                     intake.write_outputs(output, outputs)
 
-        self.assertEqual([replaced_name], [path.name for path in self.output.iterdir()])
+        assert preserved_parent is not None
+        self.assertEqual(
+            [replaced_name],
+            [path.name for path in preserved_parent.iterdir()],
+        )
         self.assertEqual(
             competing_content,
-            (self.output / replaced_name).read_text(encoding="utf-8"),
+            (preserved_parent / replaced_name).read_text(encoding="utf-8"),
         )
+        if os.name != "nt":
+            self.assertEqual([], list(self.output.iterdir()))
 
     def test_rollback_preserves_replaced_temp_and_removes_other_staged_files(
         self,
@@ -655,12 +682,14 @@ class CandidateIcIntakeTests(unittest.TestCase):
         outputs = self.build_candidate_outputs()
         competing_content = b"preserve staged replacement\n"
         substituted_name: str | None = None
+        preserved_parent: Path | None = None
 
         with self.assertRaisesRegex(
             intake.IntakeError,
             "staged candidate output changed before cleanup and was preserved",
         ):
             with intake.open_validated_output_directory(self.output) as output:
+                preserved_parent = output.path
                 validate_identity = output.validate_identity
 
                 def replace_then_interrupt() -> None:
@@ -672,7 +701,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
                             if name not in output.active_names()
                         )
                         output.unlink(substituted_name)
-                        (self.output / substituted_name).write_bytes(competing_content)
+                        (output.path / substituted_name).write_bytes(competing_content)
                         raise KeyboardInterrupt("simulated interruption")
                     validate_identity()
 
@@ -684,24 +713,30 @@ class CandidateIcIntakeTests(unittest.TestCase):
                     intake.write_outputs(output, outputs)
 
         assert substituted_name is not None
+        assert preserved_parent is not None
         self.assertEqual(
-            [substituted_name], [path.name for path in self.output.iterdir()]
+            [substituted_name],
+            [path.name for path in preserved_parent.iterdir()],
         )
         self.assertEqual(
             competing_content,
-            (self.output / substituted_name).read_bytes(),
+            (preserved_parent / substituted_name).read_bytes(),
         )
+        if os.name != "nt":
+            self.assertEqual([], list(self.output.iterdir()))
 
     def test_rollback_rechecks_identity_at_unlink_and_preserves_swap(self) -> None:
         outputs = self.build_candidate_outputs()
         competing_content = b"replacement at unlink boundary\n"
         substituted_name: str | None = None
+        preserved_parent: Path | None = None
 
         with self.assertRaisesRegex(
             intake.IntakeError,
             "changed before cleanup and was preserved",
         ):
             with intake.open_validated_output_directory(self.output) as output:
+                preserved_parent = output.path
                 publish = output.publish
                 unlink = output.unlink
 
@@ -723,7 +758,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
                     nonlocal substituted_name
                     if expected_identity is not None and substituted_name is None:
                         unlink(name)
-                        (self.output / name).write_bytes(competing_content)
+                        (output.path / name).write_bytes(competing_content)
                         substituted_name = name
                     return unlink(
                         name,
@@ -746,24 +781,30 @@ class CandidateIcIntakeTests(unittest.TestCase):
                     intake.write_outputs(output, outputs)
 
         assert substituted_name is not None
+        assert preserved_parent is not None
         self.assertEqual(
-            [substituted_name], [path.name for path in self.output.iterdir()]
+            [substituted_name],
+            [path.name for path in preserved_parent.iterdir()],
         )
         self.assertEqual(
-            competing_content, (self.output / substituted_name).read_bytes()
+            competing_content, (preserved_parent / substituted_name).read_bytes()
         )
+        if os.name != "nt":
+            self.assertEqual([], list(self.output.iterdir()))
 
     @unittest.skipIf(os.name == "nt", "Unix hard-link rollback coverage")
     def test_rollback_reports_lock_named_hardlink_without_unlinking_it(self) -> None:
         outputs = self.build_candidate_outputs()
         hidden_link = output_boundary.OUTPUT_LOCK_FILE
         unlink_calls: list[Any] = []
+        preserved_parent: Path | None = None
 
         with self.assertRaisesRegex(
             intake.IntakeError,
             "cleanup blocked by unexpected hard links",
         ):
             with intake.open_validated_output_directory(self.output) as output:
+                preserved_parent = output.path
                 publish = output.publish
 
                 def link_then_interrupt(
@@ -780,7 +821,10 @@ class CandidateIcIntakeTests(unittest.TestCase):
                         descriptor,
                         expected_content,
                     )
-                    os.link(self.output / final_name, self.output / hidden_link)
+                    os.link(
+                        output.path / final_name,
+                        output.path / hidden_link,
+                    )
 
                 unlink = output.unlink
 
@@ -817,31 +861,34 @@ class CandidateIcIntakeTests(unittest.TestCase):
                 ):
                     intake.write_outputs(output, outputs)
 
+        assert preserved_parent is not None
         self.assertNotIn(hidden_link, [call.args[0] for call in unlink_calls])
-        self.assertTrue((self.output / hidden_link).is_file())
-        self.assertTrue((self.output / intake.OUTPUT_FILES[0]).is_file())
+        self.assertTrue((preserved_parent / hidden_link).is_file())
+        self.assertTrue((preserved_parent / intake.OUTPUT_FILES[0]).is_file())
         self.assertTrue(
             os.path.samefile(
-                self.output / hidden_link,
-                self.output / intake.OUTPUT_FILES[0],
+                preserved_parent / hidden_link,
+                preserved_parent / intake.OUTPUT_FILES[0],
             )
         )
         self.assertEqual(
             {hidden_link, intake.OUTPUT_FILES[0]},
-            {path.name for path in self.output.iterdir()},
+            {path.name for path in preserved_parent.iterdir()},
         )
+        self.assertEqual([], list(self.output.iterdir()))
 
     @unittest.skipIf(os.name == "nt", "Unix nested hard-link rollback coverage")
     def test_rollback_reports_nested_hardlink_before_releasing_anchors(self) -> None:
         outputs = self.build_candidate_outputs()
-        nested_directory = self.output / "competing-directory"
-        nested_link = nested_directory / "candidate-hardlink.json"
+        nested_name = "competing-directory"
+        preserved_parent: Path | None = None
 
         with self.assertRaisesRegex(
             intake.IntakeError,
             "cleanup blocked by unexpected hard links",
         ):
             with intake.open_validated_output_directory(self.output) as output:
+                preserved_parent = output.path
                 publish = output.publish
 
                 def link_then_interrupt(
@@ -858,8 +905,12 @@ class CandidateIcIntakeTests(unittest.TestCase):
                         descriptor,
                         expected_content,
                     )
+                    nested_directory = output.path / nested_name
                     nested_directory.mkdir()
-                    os.link(self.output / final_name, nested_link)
+                    os.link(
+                        output.path / final_name,
+                        nested_directory / "candidate-hardlink.json",
+                    )
 
                 with mock.patch.object(
                     output,
@@ -868,27 +919,31 @@ class CandidateIcIntakeTests(unittest.TestCase):
                 ):
                     intake.write_outputs(output, outputs)
 
+        assert preserved_parent is not None
+        nested_link = preserved_parent / nested_name / "candidate-hardlink.json"
         self.assertTrue(nested_link.is_file())
-        self.assertTrue((self.output / intake.OUTPUT_FILES[0]).is_file())
+        self.assertTrue((preserved_parent / intake.OUTPUT_FILES[0]).is_file())
         self.assertTrue(
-            os.path.samefile(nested_link, self.output / intake.OUTPUT_FILES[0])
+            os.path.samefile(nested_link, preserved_parent / intake.OUTPUT_FILES[0])
         )
         self.assertEqual(
-            {"competing-directory", intake.OUTPUT_FILES[0]},
-            {path.name for path in self.output.iterdir()},
+            {nested_name, intake.OUTPUT_FILES[0]},
+            {path.name for path in preserved_parent.iterdir()},
         )
+        self.assertEqual([], list(self.output.iterdir()))
 
     @unittest.skipIf(os.name == "nt", "Unix late hard-link rollback coverage")
     def test_rollback_keeps_anchors_open_and_detects_late_hardlink(self) -> None:
         outputs = self.build_candidate_outputs()
-        late_link = self.output / "late-candidate-hardlink.json"
         descriptors: tuple[int, ...] = ()
+        preserved_parent: Path | None = None
 
         with self.assertRaisesRegex(
             intake.IntakeError,
             "unexpected hard links",
         ):
             with intake.open_validated_output_directory(self.output) as output:
+                preserved_parent = output.path
                 intake.write_outputs(output, outputs)
                 descriptors = tuple(output.anchor_descriptors)
                 cleanup_identities = output._cleanup_identities
@@ -903,7 +958,10 @@ class CandidateIcIntakeTests(unittest.TestCase):
                         self.assertTrue(stat.S_ISREG(os.fstat(descriptor).st_mode))
                     cleanup_calls += 1
                     if cleanup_calls == 2:
-                        os.link(self.output / intake.OUTPUT_FILES[0], late_link)
+                        os.link(
+                            output.path / intake.OUTPUT_FILES[0],
+                            output.path / "late-candidate-hardlink.json",
+                        )
                     return cleanup_identities(identities, blocked_identities)
 
                 with mock.patch.object(
@@ -913,7 +971,9 @@ class CandidateIcIntakeTests(unittest.TestCase):
                 ):
                     output.cleanup_tracked()
 
-        self.assertTrue(late_link.is_file())
+        assert preserved_parent is not None
+        self.assertTrue((preserved_parent / "late-candidate-hardlink.json").is_file())
+        self.assertEqual([], list(self.output.iterdir()))
         for descriptor in descriptors:
             with self.assertRaises(OSError):
                 os.fstat(descriptor)
@@ -931,17 +991,69 @@ class CandidateIcIntakeTests(unittest.TestCase):
             set(intake.OUTPUT_FILES), {path.name for path in self.output.iterdir()}
         )
 
+    @unittest.skipIf(os.name == "nt", "Unix directory publication coverage")
+    def test_unix_publishes_the_complete_set_with_one_directory_replace(self) -> None:
+        outputs = self.build_candidate_outputs()
+        replace = output_boundary.os.replace
+        calls: list[tuple[tuple[Any, ...], dict[str, Any]]] = []
+
+        def record_replace(*args: Any, **kwargs: Any) -> None:
+            self.assertEqual([], list(self.output.iterdir()))
+            calls.append((args, kwargs))
+            replace(*args, **kwargs)
+
+        with mock.patch.object(
+            output_boundary.os,
+            "replace",
+            side_effect=record_replace,
+        ):
+            with intake.open_validated_output_directory(self.output) as output:
+                intake.write_outputs(output, outputs)
+                self.assertEqual([], list(self.output.iterdir()))
+
+        self.assertEqual(1, len(calls))
+        self.assertEqual(
+            set(intake.OUTPUT_FILES),
+            {path.name for path in self.output.iterdir()},
+        )
+        self.assertEqual(
+            [],
+            list(self.root.glob(".candidate-ic-intake.*.tmp")),
+        )
+
+    @unittest.skipIf(os.name == "nt", "Unix directory publication coverage")
+    def test_unix_public_competitor_blocks_directory_publication(self) -> None:
+        outputs = self.build_candidate_outputs()
+        competing = self.output / "competing.txt"
+
+        with self.assertRaisesRegex(
+            intake.IntakeError,
+            "output directory changed while intake was running",
+        ):
+            with intake.open_validated_output_directory(self.output) as output:
+                intake.write_outputs(output, outputs)
+                competing.write_text("preserve public competitor\n", encoding="utf-8")
+
+        self.assertEqual("preserve public competitor\n", competing.read_text())
+        self.assertEqual([competing], list(self.output.iterdir()))
+        self.assertEqual(
+            [],
+            list(self.root.glob(".candidate-ic-intake.*.tmp")),
+        )
+
     @unittest.skipIf(os.name == "nt", "Unix final-path substitution coverage")
     def test_final_validation_rechecks_name_after_descriptor_read(self) -> None:
         outputs = self.build_candidate_outputs()
         replaced_name = intake.OUTPUT_FILES[0]
         competing_content = b"replacement after descriptor read\n"
+        preserved_parent: Path | None = None
 
         with self.assertRaisesRegex(
             intake.IntakeError,
             "candidate output changed before cleanup and was preserved",
         ):
             with intake.open_validated_output_directory(self.output) as output:
+                preserved_parent = output.path
                 validate_content = output._validate_descriptor_content
                 replaced = False
 
@@ -951,7 +1063,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
                     message = args[3]
                     if not replaced and "after publication" in message:
                         output.unlink(replaced_name)
-                        (self.output / replaced_name).write_bytes(competing_content)
+                        (output.path / replaced_name).write_bytes(competing_content)
                         replaced = True
 
                 with mock.patch.object(
@@ -961,8 +1073,15 @@ class CandidateIcIntakeTests(unittest.TestCase):
                 ):
                     intake.write_outputs(output, outputs)
 
-        self.assertEqual(competing_content, (self.output / replaced_name).read_bytes())
-        self.assertEqual([replaced_name], [path.name for path in self.output.iterdir()])
+        assert preserved_parent is not None
+        self.assertEqual(
+            competing_content, (preserved_parent / replaced_name).read_bytes()
+        )
+        self.assertEqual(
+            [replaced_name],
+            [path.name for path in preserved_parent.iterdir()],
+        )
+        self.assertEqual([], list(self.output.iterdir()))
 
     @unittest.skipIf(os.name == "nt", "Unix directory-fd substitution coverage")
     def test_unix_output_rejects_substitution_before_directory_open(self) -> None:
@@ -978,7 +1097,11 @@ class CandidateIcIntakeTests(unittest.TestCase):
             dir_fd: int | None = None,
         ) -> int:
             nonlocal replaced
-            if not replaced and Path(path) == self.output and dir_fd is None:
+            if (
+                not replaced
+                and Path(path) == Path(self.output.name)
+                and dir_fd is not None
+            ):
                 self.output.rename(original_output)
                 self.output.mkdir()
                 replaced = True
