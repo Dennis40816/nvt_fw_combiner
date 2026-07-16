@@ -4,10 +4,21 @@ Use this area to drop private validation payloads for local verification.
 
 Rules:
 
-- Firmware payloads dropped here are ignored by Git by default.
+- Incoming, unreviewed payloads dropped below `intake/` are ignored by Git.
 - Keep the tracked `CASE.md` files as instructions only.
 - Prefer the requested file names in each case folder so scripts and UI smoke runs can be wired directly.
-- If a payload should become a committed golden fixture, it needs owner approval, manifest hashes, and a separate reviewed change.
+- Every accepted golden input/output needed to replay a case must be promoted
+  into a tracked workflow fixture under `testdata/golden/`. Promotion requires
+  owner approval, manifest path/size/SHA-256/provenance, privacy review, and a
+  separate reviewed change.
+- Preserve project/product identifiers needed for technical provenance. Remove
+  personal names, email addresses, account ids, user-profile paths, document
+  author metadata, and other personal identifiers before promotion. Record an
+  approval role/team such as `firmware-owner`, not a person's identity.
+- External/licensed executables, credentials, signing material, and unapproved
+  source archives are not golden fixtures. Record approved tool version and
+  SHA-256 without committing the executable unless the external-tool packaging
+  policy separately authorizes it.
 
 ## Automated intake
 
@@ -24,6 +35,30 @@ The script copies files into an ignored `intake/<run-id>/` folder, computes SHA-
 - `AI_PROMPT.md`
 
 Use `--mode standard-merge`, `--mode dp-replace`, `--mode ctrlram-replace`, `--mode general-replace`, or `--mode reference-only`. The script does not make C# changes and does not make a support claim.
+
+## Versioned v0.9.9 batch
+
+The current one-time owner drop is indexed in
+[`v0.9.9/README.md`](v0.9.9/README.md). Its private payload root is:
+
+```text
+testdata/golden/owner-handoff/v0.9.9/intake/<519xx>/<workflow>/<firmware-or-profile-version>/<mode>/
+```
+
+The complete directory skeleton is tracked so it follows a clone to another
+computer. Actual incoming payload files under `intake/` remain ignored until
+they pass golden approval and privacy review. Use the numeric directory name
+such as `51926`, but record the canonical IC id such as `NT51926` in the
+manifest.
+
+Firmware versions and profile versions are deliberately not conflated:
+
+- CtrlRAM Replace uses the base firmware's Common FW version, for example
+  `51926/ctrlram-replace/1.4.1/cascade/`.
+- AB, Standard Merge, and DP Replace use `profile-<version>` when there is no
+  owner-confirmed Common FW version for the evidence case.
+- `VERSION-REQUIRED`, `ALIAS-SCOPE`, and `profile-current` are explicit
+  placeholders. Do not guess a firmware version merely to rename a folder.
 
 ## AB Code evidence
 

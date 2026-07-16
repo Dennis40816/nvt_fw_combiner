@@ -49,7 +49,12 @@ Create the phase commit only after all of these are true:
 
 1. The change is one reviewable concern; unrelated UI, core, release, and documentation work is separated.
 2. The phase-local narrow test passes, or every skipped test has an explicit reason. The final `--all` gate remains required before `R1`-`R3` PR handoff, not before each intermediate phase commit.
-3. `git diff --check` passes and the reviewed diff excludes generated outputs, temporary staging data, real firmware, private golden payloads, and credentials.
+3. `git diff --check` passes and the reviewed diff excludes generated outputs,
+   temporary staging data, unapproved firmware/evidence, and credentials.
+   Owner-approved golden replay artifacts are allowed only under
+   `testdata/golden/` with path/size/SHA-256/provenance, privacy review, and the
+   required R3 firmware-owner gate defined by
+   `golden-fixture-retention-and-privacy.md`.
 4. Risk class, human-review requirements, and residual evidence gaps are recorded.
 
 Stage only explicit files belonging to the phase; never use `git add -A` or `git add -u`. Do not amend, reset, revert, or stage pre-existing changes from another agent. If overlapping uncommitted changes make the boundary unclear, stop and request direction rather than combining work.

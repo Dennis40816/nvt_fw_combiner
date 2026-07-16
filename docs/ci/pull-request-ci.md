@@ -8,7 +8,10 @@ The executable workflow is [`.github/workflows/ci.yml`](../../.github/workflows/
 2. **`python-worker / verify`** runs Ruff format/check, Pyright strict, Pylint, pytest, branch coverage, protocol/process tests, plus the structure gate.
 3. **`dotnet / build-test`** installs the SDK pinned by `global.json` through the repository installer, restores, checks formatting, builds Release with warnings as errors, and runs the public .NET tests.
 
-Private firmware golden regression remains an approved-runner gate once private vectors exist. It must publish reports/hashes only, never firmware payloads.
+Accepted firmware golden replay artifacts are tracked under `testdata/golden/`
+after owner approval, manifest/hash anchoring, and personal-information review.
+CI may execute those tracked fixtures but must not publish firmware payloads as
+logs or artifacts. Unreviewed intake evidence remains excluded from CI.
 
 ## Security rules
 
