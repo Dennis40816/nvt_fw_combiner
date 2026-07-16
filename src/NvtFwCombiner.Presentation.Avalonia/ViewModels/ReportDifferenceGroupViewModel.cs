@@ -3,47 +3,35 @@ using System.Globalization;
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Grouped output-difference rows for readable report change review.</summary>
-public sealed class ReportDifferenceGroupViewModel
+public sealed class ReportDifferenceGroupViewModel(
+    string title,
+    string detail,
+    string status,
+    IReadOnlyList<ReportLineViewModel> rows,
+    bool isAccepted)
 {
-    /// <summary>Creates an output-difference group.</summary>
-    public ReportDifferenceGroupViewModel(
-        string title,
-        string detail,
-        string status,
-        IReadOnlyList<ReportLineViewModel> rows,
-        bool isAccepted)
-    {
-        Title = title ?? string.Empty;
-        Detail = detail ?? string.Empty;
-        Status = status ?? string.Empty;
-        Rows = rows ?? throw new ArgumentNullException(nameof(rows));
-        Count = Rows.Count.ToString(CultureInfo.InvariantCulture);
-        HasDetail = !string.IsNullOrWhiteSpace(Detail);
-        IsAccepted = isAccepted;
-        IsReviewRequired = !isAccepted;
-    }
-
     /// <summary>Human-readable section title.</summary>
-    public string Title { get; }
+    public string Title { get; } = title ?? string.Empty;
 
     /// <summary>One-line physical-section summary shown before the field rows are expanded.</summary>
-    public string Detail { get; }
+    public string Detail { get; } = detail ?? string.Empty;
 
     /// <summary>Accepted/review status summary for the section.</summary>
-    public string Status { get; }
+    public string Status { get; } = status ?? string.Empty;
 
     /// <summary>Number of rows in this section.</summary>
-    public string Count { get; }
+    public string Count => Rows.Count.ToString(CultureInfo.InvariantCulture);
 
     /// <summary>True when the group has a compact section summary.</summary>
-    public bool HasDetail { get; }
+    public bool HasDetail => !string.IsNullOrWhiteSpace(Detail);
 
     /// <summary>True when every row in this section is accepted.</summary>
-    public bool IsAccepted { get; }
+    public bool IsAccepted { get; } = isAccepted;
 
     /// <summary>True when at least one row in this section needs review.</summary>
-    public bool IsReviewRequired { get; }
+    public bool IsReviewRequired => !IsAccepted;
 
     /// <summary>Difference rows in this section.</summary>
-    public IReadOnlyList<ReportLineViewModel> Rows { get; }
+    public IReadOnlyList<ReportLineViewModel> Rows { get; } =
+        rows ?? throw new ArgumentNullException(nameof(rows));
 }

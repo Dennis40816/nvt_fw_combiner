@@ -3,6 +3,8 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 /// <summary>Readable UI projection of a CLI/application run report JSON file.</summary>
 public sealed partial class ReportReviewViewModel
 {
+    private readonly bool? outputCommitted;
+
     private ReportReviewViewModel(
         bool isEmpty,
         string sourceName,
@@ -44,9 +46,7 @@ public sealed partial class ReportReviewViewModel
         Output = output;
         OutputFileName = outputFileName;
         OutputSize = outputSize;
-        IsOutputCommitted = outputCommitted == true;
-        IsOutputPreview = outputCommitted == false;
-        IsOutputStateUnknown = outputCommitted is null;
+        this.outputCommitted = outputCommitted;
         OutputSizeLabel = CreateOutputSizeLabel(outputSize, language);
         OutputCommitmentLabel = CreateOutputCommitmentLabel(outputCommitted, language);
         OutputSha256 = outputSha256;
@@ -54,7 +54,6 @@ public sealed partial class ReportReviewViewModel
             ? T(language, "No output hash", "無輸出雜湊")
             : Shorten(outputSha256, 16);
         OutputArtifactPath = string.IsNullOrWhiteSpace(outputArtifactPath) ? string.Empty : outputArtifactPath;
-        HasOutputArtifactPath = !string.IsNullOrWhiteSpace(OutputArtifactPath);
         Inputs = inputs;
         Operations = operations;
         CommandOperations = [.. operations.Where(operation => operation.HasCodeBlock || operation.HasRuntimeCommands)];
@@ -64,30 +63,9 @@ public sealed partial class ReportReviewViewModel
         OutputDifferences = outputDifferences;
         OutputDifferenceGroups = CreateOutputDifferenceGroups(outputDifferences, language);
         Issues = issues;
-        Warnings = [.. issues.Where(IsWarning)];
-        BlockingIssues = [.. issues.Where(issue => !IsWarning(issue))];
-        PrimaryIssue = BlockingIssues.Count == 0 ? ReportLineViewModel.Empty : BlockingIssues[0];
-        HasPrimaryIssue = BlockingIssues.Count > 0;
-        HasWarnings = Warnings.Count > 0;
-        HasWarningsWithoutBlockingIssues = HasWarnings && !HasPrimaryIssue;
-        IsClean = !HasPrimaryIssue && !HasWarnings;
+        PrimaryIssue = issues.FirstOrDefault(issue => !IsWarning(issue)) ?? ReportLineViewModel.Empty;
         InputGroups = CreateInputGroups(inputs, language);
         OperationFlow = CreateOperationFlow(inputs, operations, outputFileName, status, language);
-        HasInputs = inputs.Count > 0;
-        HasInputGroups = InputGroups.Count > 0;
-        HasOperations = operations.Count > 0;
-        HasOperationFlow = OperationFlow.Count > 0;
-        HasNoOperations = !HasOperationFlow && !HasOperations;
-        HasCommandOperations = CommandOperations.Count > 0;
-        HasPostbuildInvocations = PostbuildInvocations.Count > 0;
-        HasStepOperations = StepOperations.Count > 0;
-        HasMutations = mutations.Count > 0;
-        HasOutputDifferences = outputDifferences.Count > 0;
-        HasIssues = issues.Count > 0;
-        HasNoInputs = !HasInputs;
-        HasNoPostbuildInvocations = !HasPostbuildInvocations;
-        HasNoIssues = !HasIssues;
-        HasNoByteChanges = !HasOutputDifferences && !HasMutations;
         OutcomeTitle = CreateOutcomeTitle(status, issues, language);
         OutcomeDetail = CreateOutcomeDetail(output, issues, compositionKind, outputDifferences, language);
         OutcomeMeta = CreateOutcomeMeta(issues, language);
@@ -105,7 +83,7 @@ public sealed partial class ReportReviewViewModel
         NextStepDetail = HasPrimaryIssue
             ? CreateIssueAction(PrimaryIssue, language)
             : HasWarnings
-            ? Warnings[0].Detail
+            ? Issues.First(IsWarning).Detail
             : CreateCleanNextStepDetail(outputDifferences, operations, language);
         ByteDifferenceTitle = CreateByteDifferenceTitle(compositionKind, outputDifferences, language);
         ByteDifferenceDetail = CreateByteDifferenceDetail(compositionKind, outputDifferences, language);
