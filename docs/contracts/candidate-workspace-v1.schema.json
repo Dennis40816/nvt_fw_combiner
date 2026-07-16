@@ -1,0 +1,408 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/nfc/schemas/candidate-workspace-v1.schema.json",
+  "title": "NVT FW Combiner Candidate Workspace 1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "workspaceId",
+    "workspaceVersion",
+    "candidateId",
+    "generatedAt",
+    "authority",
+    "producer",
+    "inventoryHashAlgorithm",
+    "inventoryHash",
+    "compatibilityExport",
+    "generatedArtifacts",
+    "diagnostics",
+    "capabilities"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "workspaceId": { "$ref": "#/$defs/id" },
+    "workspaceVersion": { "$ref": "#/$defs/semver" },
+    "candidateId": { "$ref": "#/$defs/id" },
+    "generatedAt": { "$ref": "#/$defs/utcDateTime" },
+    "authority": { "const": "candidate-only" },
+    "producer": { "$ref": "#/$defs/producer" },
+    "inventoryHashAlgorithm": {
+      "const": "sha256-rfc8785-workspace-file-array-v1"
+    },
+    "inventoryHash": { "$ref": "#/$defs/sha256" },
+    "compatibilityExport": { "$ref": "#/$defs/compatibilityExport" },
+    "generatedArtifacts": {
+      "type": "array",
+      "maxItems": 256,
+      "items": { "$ref": "#/$defs/generatedArtifact" }
+    },
+    "diagnostics": { "$ref": "#/$defs/diagnostics" },
+    "capabilities": { "$ref": "#/$defs/capabilities" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "utcDateTime": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "issueCode": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+    },
+    "evidenceRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[^/\\\\]+$"
+    },
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["toolId", "toolVersion"],
+      "properties": {
+        "toolId": { "$ref": "#/$defs/id" },
+        "toolVersion": { "$ref": "#/$defs/semver" }
+      }
+    },
+    "fileRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sizeBytes", "contentHash"],
+      "properties": {
+        "path": { "type": "string" },
+        "sizeBytes": { "type": "integer", "minimum": 2 },
+        "contentHash": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "compatibilityExport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "records"],
+      "properties": {
+        "path": { "const": "compatibility-export" },
+        "records": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "prefixItems": [
+            {
+              "allOf": [
+                { "$ref": "#/$defs/fileRecord" },
+                {
+                  "properties": {
+                    "path": {
+                      "const": "compatibility-export/candidate-bundle-rows.json"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/fileRecord" },
+                {
+                  "properties": {
+                    "path": {
+                      "const": "compatibility-export/candidate-evidence-manifest.json"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/fileRecord" },
+                {
+                  "properties": {
+                    "path": {
+                      "const": "compatibility-export/missing-evidence.json"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/fileRecord" },
+                {
+                  "properties": {
+                    "path": {
+                      "const": "compatibility-export/validation-report.json"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "items": false
+        }
+      }
+    },
+    "generatedArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifactId",
+        "kind",
+        "path",
+        "schemaId",
+        "schemaContentHash",
+        "sizeBytes",
+        "contentHash",
+        "sourceFactIds"
+      ],
+      "properties": {
+        "artifactId": { "$ref": "#/$defs/id" },
+        "kind": {
+          "enum": [
+            "firmware-family",
+            "composition-profile",
+            "profile-bundle",
+            "evidence-manifest"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^generated/(?:families|profiles|bundles|evidence)/(?:[a-z0-9][a-z0-9.-]*/)*[a-z0-9][a-z0-9.-]*\\.json$"
+        },
+        "schemaId": {
+          "type": "string",
+          "pattern": "^https://example\\.invalid/nfc/schemas/(?:firmware-family-v1|composition-profile-v2(?:\\.[1-7])?|profile-bundle-v1|firmware-evidence-manifest-v1)\\.schema\\.json$"
+        },
+        "schemaContentHash": { "$ref": "#/$defs/sha256" },
+        "sizeBytes": { "type": "integer", "minimum": 2 },
+        "contentHash": { "$ref": "#/$defs/sha256" },
+        "sourceFactIds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "kind": { "const": "firmware-family" } },
+            "required": ["kind"]
+          },
+          "then": {
+            "properties": {
+              "path": { "pattern": "^generated/families/" },
+              "schemaId": {
+                "const": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "const": "composition-profile" } },
+            "required": ["kind"]
+          },
+          "then": {
+            "properties": {
+              "path": { "pattern": "^generated/profiles/" },
+              "schemaId": {
+                "pattern": "^https://example\\.invalid/nfc/schemas/composition-profile-v2(?:\\.[1-7])?\\.schema\\.json$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "const": "profile-bundle" } },
+            "required": ["kind"]
+          },
+          "then": {
+            "properties": {
+              "path": { "pattern": "^generated/bundles/" },
+              "schemaId": {
+                "const": "https://example.invalid/nfc/schemas/profile-bundle-v1.schema.json"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "const": "evidence-manifest" } },
+            "required": ["kind"]
+          },
+          "then": {
+            "properties": {
+              "path": { "pattern": "^generated/evidence/" },
+              "schemaId": {
+                "const": "https://example.invalid/nfc/schemas/firmware-evidence-manifest-v1.schema.json"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "compilerResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "issueCodes"],
+      "properties": {
+        "status": { "enum": ["not-run", "blocked", "passed", "failed"] },
+        "profileId": { "$ref": "#/$defs/id" },
+        "compilationFingerprint": { "$ref": "#/$defs/sha256" },
+        "issueCodes": {
+          "type": "array",
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/issueCode" }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "status": { "const": "passed" } },
+            "required": ["status"]
+          },
+          "then": { "required": ["profileId", "compilationFingerprint"] }
+        }
+      ]
+    },
+    "parityResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "issueCodes"],
+      "properties": {
+        "status": { "enum": ["not-run", "blocked", "passed", "failed"] },
+        "referenceKind": {
+          "enum": [
+            "python-reference",
+            "legacy-combiner-1.13",
+            "owner-expected-output"
+          ]
+        },
+        "expectedOutputHash": { "$ref": "#/$defs/sha256" },
+        "actualOutputHash": { "$ref": "#/$defs/sha256" },
+        "issueCodes": {
+          "type": "array",
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/issueCode" }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": { "enum": ["passed", "failed"] }
+            },
+            "required": ["status"]
+          },
+          "then": {
+            "required": [
+              "referenceKind",
+              "expectedOutputHash",
+              "actualOutputHash"
+            ]
+          }
+        }
+      ]
+    },
+    "residualGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gateCode",
+        "category",
+        "subject",
+        "reason",
+        "evidenceRefs"
+      ],
+      "properties": {
+        "gateCode": { "$ref": "#/$defs/id" },
+        "category": {
+          "enum": [
+            "architecture",
+            "security",
+            "dependency-package",
+            "firmware-owner",
+            "golden",
+            "release"
+          ]
+        },
+        "subject": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "reason": { "type": "string", "minLength": 1, "maxLength": 2048 },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/evidenceRef" }
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "compiler",
+        "parity",
+        "requiredReviews",
+        "residualGates"
+      ],
+      "properties": {
+        "compiler": { "$ref": "#/$defs/compilerResult" },
+        "parity": { "$ref": "#/$defs/parityResult" },
+        "requiredReviews": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "architecture",
+              "security",
+              "dependency-package",
+              "firmware-owner",
+              "golden",
+              "release"
+            ]
+          }
+        },
+        "residualGates": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": { "$ref": "#/$defs/residualGate" }
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtimeRegistration",
+        "supportPromotion",
+        "privatePayloadCopy",
+        "commandExecution",
+        "gitMutation"
+      ],
+      "properties": {
+        "runtimeRegistration": { "const": false },
+        "supportPromotion": { "const": false },
+        "privatePayloadCopy": { "const": false },
+        "commandExecution": { "const": false },
+        "gitMutation": { "const": false }
+      }
+    }
+  }
+}
