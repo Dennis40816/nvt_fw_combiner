@@ -84,6 +84,11 @@
       "maxLength": 128,
       "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
     },
+    "trimmedText": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!\\s)(?!.*\\s$)[^\\u0000-\\u001F\\u007F]+$"
+    },
     "factKind": {
       "enum": [
         "range",
@@ -133,10 +138,10 @@
           "enum": ["workbook", "source-code", "firmware", "document", "issue-export", "owner-record"]
         },
         "logicalName": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 256,
-          "pattern": "^[^\\\\/:\\u0000-\\u001F\\u007F]+$"
+          "allOf": [
+            { "$ref": "#/$defs/trimmedText" },
+            { "maxLength": 256, "pattern": "^[^\\\\/:]+$" }
+          ]
         }
       },
       "oneOf": [
@@ -184,7 +189,12 @@
         "factKind": { "$ref": "#/$defs/factKind" },
         "disposition": { "$ref": "#/$defs/disposition" },
         "promotionImpact": { "$ref": "#/$defs/promotionImpact" },
-        "rationale": { "type": "string", "minLength": 1, "maxLength": 2048 }
+        "rationale": {
+          "allOf": [
+            { "$ref": "#/$defs/trimmedText" },
+            { "maxLength": 2048 }
+          ]
+        }
       }
     },
     "rangeFact": {
@@ -214,7 +224,12 @@
               "oneOf": [
                 { "type": "boolean" },
                 { "type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991 },
-                { "type": "string", "minLength": 1, "maxLength": 2048 }
+                {
+                  "allOf": [
+                    { "$ref": "#/$defs/trimmedText" },
+                    { "maxLength": 2048 }
+                  ]
+                }
               ]
             }
           },
@@ -234,7 +249,12 @@
             {
               "properties": {
                 "valueType": { "const": "string" },
-                "value": { "type": "string", "minLength": 1, "maxLength": 2048 }
+                "value": {
+                  "allOf": [
+                    { "$ref": "#/$defs/trimmedText" },
+                    { "maxLength": 2048 }
+                  ]
+                }
               }
             }
           ]
@@ -262,7 +282,12 @@
           "type": "object",
           "required": ["text"],
           "properties": {
-            "text": { "type": "string", "minLength": 1, "maxLength": 4096 }
+            "text": {
+              "allOf": [
+                { "$ref": "#/$defs/trimmedText" },
+                { "maxLength": 4096 }
+              ]
+            }
           }
         }
       ],
@@ -276,7 +301,12 @@
         "factId": { "$ref": "#/$defs/id" },
         "ordinal": { "type": "integer", "minimum": 1, "maximum": 1024 },
         "artifactId": { "$ref": "#/$defs/id" },
-        "location": { "type": "string", "minLength": 1, "maxLength": 1024 }
+        "location": {
+          "allOf": [
+            { "$ref": "#/$defs/trimmedText" },
+            { "maxLength": 1024 }
+          ]
+        }
       }
     },
     "capabilities": {

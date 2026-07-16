@@ -180,10 +180,12 @@ runtime authority.
 Executable processor configuration remains in existing V2 processor stages and
 may reference only an installed allowlisted `processorId`, `toolBindingId`, and
 `invocationProfileId`. The current comparison authority is the exact Legacy
-Combiner 1.13 command. A future `combiner.exe` is a separately reviewed external
-tool package; its algorithm is not implemented in this workbook reader or the
-application. New command protocol, read/write ranges, integrity behavior, or
-tool authority retains normal R2/R3 evidence and release review.
+Combiner 1.13.0 command through the installed `legacy-combiner-1.13.0` binding.
+A future `combiner.exe` is a separately reviewed external tool package; its
+algorithm is not implemented in this workbook reader or the application.
+IC/mode-specific read/write ranges remain in reviewed V2 profile data and the
+compiled plan. New command protocol, ranges, integrity behavior, or tool
+authority retains normal R2/R3 evidence and release review.
 
 ## Firmware invariants
 
@@ -191,8 +193,9 @@ This contract changes no composition kind, experience, IC, mode, address space,
 range, operation, atomicity, processor write range, integrity rule, output name,
 golden output, or support stage. It specifically cannot alter the full submitted
 DP container base for NT51950/NT51951 AB candidates, add an AB `map.txt`,
-authorize C# AB header CRC writes, replace exact Legacy Combiner 1.13 parity, or
-weaken direct/approved fact-scoped evidence for NT51919/NT51932.
+authorize C# AB header CRC writes, replace exact Legacy Combiner 1.13.0 parity
+through `legacy-combiner-1.13.0`, or weaken direct/approved fact-scoped evidence
+for NT51919/NT51932.
 
 ## Synthetic normalized example
 
@@ -265,7 +268,11 @@ The example is fictional, candidate-only, and not an IC support claim:
 
 Before a reader or UI is implemented, this Proposed contract requires product,
 architecture, firmware-authoring, and workbook security acceptance. A reader
-dependency requires a separate package/license/size review. This contract is
-excluded from the portable package until the implementation/package decision is
-reviewed. Any generated firmware declaration, processor selection, golden result,
-or support promotion retains its normal owner gate.
+dependency requires a separate package/license/size review. The schema is not
+copied into the portable package, but while it remains under `docs/contracts`
+its repository bytes contribute to the release manifest's
+`embeddedSchemaBundleSha256` provenance digest. That contribution grants no
+runtime authority. Any runtime/package use requires a separately reviewed
+implementation and package decision. Any generated firmware declaration,
+processor selection, golden result, or support promotion retains its normal
+owner gate.

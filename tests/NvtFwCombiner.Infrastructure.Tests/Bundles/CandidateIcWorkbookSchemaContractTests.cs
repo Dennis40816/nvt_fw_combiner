@@ -39,6 +39,11 @@ public sealed class CandidateIcWorkbookSchemaContractTests
     [InlineData("unknown-root-property")]
     [InlineData("embedded-artifact-path")]
     [InlineData("path-shaped-logical-name")]
+    [InlineData("leading-logical-name-whitespace")]
+    [InlineData("trailing-rationale-whitespace")]
+    [InlineData("leading-citation-whitespace")]
+    [InlineData("leading-statement-whitespace")]
+    [InlineData("trailing-scalar-whitespace")]
     [InlineData("artifact-role-source-mismatch")]
     [InlineData("empty-facts")]
     [InlineData("zero-length-range")]
@@ -72,6 +77,21 @@ public sealed class CandidateIcWorkbookSchemaContractTests
                 return;
             case "path-shaped-logical-name":
                 workbook["artifacts"]![0]!["logicalName"] = "C:private.bin";
+                return;
+            case "leading-logical-name-whitespace":
+                workbook["artifacts"]![0]!["logicalName"] = " map.txt";
+                return;
+            case "trailing-rationale-whitespace":
+                workbook["rangeFacts"]![0]!["rationale"] = "Synthetic shape only. ";
+                return;
+            case "leading-citation-whitespace":
+                workbook["citations"]![0]!["location"] = " Synthetic range row";
+                return;
+            case "leading-statement-whitespace":
+                workbook["statementFacts"] = StatementFact(" unresolved statement");
+                return;
+            case "trailing-scalar-whitespace":
+                workbook["scalarFacts"] = ScalarStringFact("declared value ");
                 return;
             case "artifact-role-source-mismatch":
                 workbook["artifacts"]![0]!["sourceKind"] = "firmware";
@@ -112,6 +132,39 @@ public sealed class CandidateIcWorkbookSchemaContractTests
                 ["promotionImpact"] = "blocks-support",
                 ["valueType"] = "integer",
                 ["value"] = "1",
+            },
+        ];
+    }
+
+    private static JsonArray StatementFact(string text)
+    {
+        return
+        [
+            new JsonObject
+            {
+                ["factId"] = "synthetic-statement",
+                ["familyId"] = "nt-example",
+                ["factKind"] = "capability",
+                ["disposition"] = "unresolved",
+                ["promotionImpact"] = "blocks-support",
+                ["text"] = text,
+            },
+        ];
+    }
+
+    private static JsonArray ScalarStringFact(string value)
+    {
+        return
+        [
+            new JsonObject
+            {
+                ["factId"] = "synthetic-scalar",
+                ["familyId"] = "nt-example",
+                ["factKind"] = "capability",
+                ["disposition"] = "unresolved",
+                ["promotionImpact"] = "blocks-support",
+                ["valueType"] = "string",
+                ["value"] = value,
             },
         ];
     }
