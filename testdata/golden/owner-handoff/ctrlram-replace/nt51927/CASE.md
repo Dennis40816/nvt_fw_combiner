@@ -1,9 +1,13 @@
 # NT51927 CtrlRAM Replace Handoff
 
-Requested case folders inside this directory:
+## Required now
 
-- `single/`
-- `2chip/`
-- `3chip/`
+The two-chip and three-chip bases and replacement inputs already exist. Put
+only these independent postbuild outputs here:
 
-Requested files per case folder: `base.bin`, replacement files under `inputs/`, optional `expected.bin`, optional `combiner-cmd.txt`.
+```text
+2chip/expected.bin   262,144 bytes
+3chip/expected.bin   262,144 bytes
+```
+
+Do not resend those bases or inputs. `single/` is not requested in this batch.

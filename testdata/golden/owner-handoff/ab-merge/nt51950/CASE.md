@@ -1,5 +1,7 @@
 # NT51950 AB Merge Handoff
 
+No BIN upload is currently requested for NT51950.
+
 The tracked `nt51950-ab-boe-d82t80` and `nt51950-ab-hiway-d82t80` fixtures in
 `testdata/golden/ab-merge/manifest.json` record the supplied DP_AB, TPA, TPB,
 and expected output. They prove full-byte V2/Python/Combiner parity for their

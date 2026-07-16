@@ -1,5 +1,7 @@
 # NT51929 AB Merge Handoff
 
+No BIN upload is currently requested for NT51929.
+
 The tracked `nt51929-ab-t05-d06` fixture in
 `testdata/golden/ab-merge/manifest.json` now records the supplied DP_AB, TPA,
 TPB, and expected output with full V2/reference parity. It remains an
@@ -14,7 +16,8 @@ The existing 256 KiB `initial code` / `TPFW` / `FlashCode` Combiner archive is
 a Normal case, not AB evidence. Do not substitute it for the required AB
 container and both TP bank inputs.
 
-For an additional or topology-specific case, provide these files under `inputs/`:
+Only if a new or topology-specific case is intentionally opened, provide these
+files under `inputs/`:
 
 - `dp-ab.bin`, `tpa.bin`, `tpb.bin`, and `expected.bin`; and
 - `provenance.json` listing each original filename, SHA-256, source
