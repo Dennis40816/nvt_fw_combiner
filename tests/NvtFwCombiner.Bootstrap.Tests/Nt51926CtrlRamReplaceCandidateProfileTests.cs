@@ -1,8 +1,12 @@
+using System.Security.Cryptography;
+using System.Text.Json;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.V2;
+using NvtFwCombiner.TestSupport;
 using static NvtFwCombiner.Bootstrap.Tests.BootstrapTestData;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -123,6 +127,106 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             CompositionIssueCodes.InputAddressSpaceTruncated));
     }
 
+    /// <summary>Proves the V2 candidate and current Workbench route produce identical bytes from the approved owner inputs.</summary>
+    [Fact]
+    public async Task CandidateMatchesLegacyWorkbenchBytesForOwnerApprovedSelfReplacementAsync()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        string fixtureRoot = RepositoryPaths.FromRepositoryRoot("testdata", "golden", "ctrlram-replace");
+        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(fixtureRoot, "manifest.json")));
+        JsonElement fixtureCase = manifest.RootElement.GetProperty("cases")
+            .EnumerateArray()
+            .Single(static candidate =>
+                candidate.GetProperty("id").GetString() == "nt51926-cascade-self-20260705");
+        byte[] referenceBase = ReadManifestFile(fixtureRoot, fixtureCase.GetProperty("base"));
+        var replacementInputs = fixtureCase.GetProperty("replacementInputs")
+            .EnumerateArray()
+            .ToDictionary(
+                static input => input.GetProperty("slotId").GetString()!,
+                input => ReadManifestFile(fixtureRoot, input.GetProperty("file")),
+                StringComparer.Ordinal);
+        var originalInputs = replacementInputs.ToDictionary(
+            static pair => pair.Key,
+            static pair => pair.Value.ToArray(),
+            StringComparer.Ordinal);
+        string basePath = RepositoryPaths.ManifestPath(fixtureRoot, fixtureCase.GetProperty("base"));
+        var legacySlotPaths = replacementInputs.Keys.ToDictionary(
+            static slotId => slotId,
+            slotId => RepositoryPaths.ManifestPath(
+                fixtureRoot,
+                fixtureCase.GetProperty("replacementInputs")
+                    .EnumerateArray()
+                    .Single(input => input.GetProperty("slotId").GetString() == slotId)
+                    .GetProperty("file")),
+            StringComparer.Ordinal);
+        legacySlotPaths[WorkbenchSlotIds.ReplaceBase] = basePath;
+
+        using var workspace = TempWorkspace.Create("nfc-nt51926-ctrlram-v2-parity");
+        string legacyOutputPath = workspace.PathFor("legacy-workbench-output.bin");
+        WorkbenchRunResult legacy = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51926",
+            "cascade",
+            WorkbenchReplaceModes.CtrlRam,
+            legacySlotPaths,
+            build: true,
+            TestContext.Current.CancellationToken,
+            legacyOutputPath);
+        Assert.True(legacy.Succeeded, legacy.ReportJson);
+        byte[] legacyOutput = File.ReadAllBytes(legacyOutputPath);
+
+        CompiledComposition candidate = CompileCandidate(referenceBase);
+        Dictionary<string, byte[]> candidateInputs = new(StringComparer.Ordinal)
+        {
+            ["reference-base"] = referenceBase,
+            ["normal-ctrlram-input"] = replacementInputs["replace-ctrlram-normal"],
+            ["diff-ctrlram-input"] = replacementInputs["replace-ctrlram-diff"],
+            ["mp-ctrlram-input"] = replacementInputs["replace-ctrlram-mp"],
+            ["vn-ctrlram-input"] = replacementInputs["replace-ctrlram-vn"],
+            ["nf-ctrlram-input"] = replacementInputs["replace-ctrlram-nf"],
+        };
+        IExternalProcessor processor = Assert.IsType<IExternalProcessor>(
+            ExternalProcessorFactory.CreateOrNull(),
+            exactMatch: false);
+        var selection = new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]);
+
+        CompositionExecutionResult v2 = await CompositionEngine.ExecuteAsync(
+            candidate.Plan,
+            new CompositionExecutionInput(candidateInputs),
+            async (operation, inputBytes, stagedSources, stagedArtifacts, cancellationToken) =>
+            {
+                ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(
+                    operation.ExternalProcessorInvocation);
+                ExternalProcessorResult result = await processor.TransformAsync(
+                    new ExternalProcessorRequest(
+                        "nt51926-ctrlram-v2-parity",
+                        invocation.ProcessorId,
+                        invocation.ToolBindingId,
+                        inputBytes,
+                        invocation.AllowedWriteRanges,
+                        selection,
+                        stagedSources,
+                        stagedArtifacts),
+                    cancellationToken);
+                return result.Succeeded
+                    ? CompositionExternalProcessorResult.Success(result.OutputBytes)
+                    : CompositionExternalProcessorResult.Failed(result.Issues);
+            },
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, v2.Status);
+        Assert.Empty(v2.Issues);
+        Assert.Equal(legacyOutput, v2.OutputBytes.ToArray());
+        Assert.Equal(legacy.OutputSha256, Hash(v2.OutputBytes.Span));
+        Assert.Equal(ReadManifestFile(fixtureRoot, fixtureCase.GetProperty("base")), referenceBase);
+        Assert.All(
+            originalInputs,
+            pair => Assert.Equal(pair.Value, replacementInputs[pair.Key]));
+    }
+
     /// <summary>Verifies zero or multiple universal markers reject the candidate before a plan can be minted.</summary>
     [Theory]
     [InlineData(0)]
@@ -184,6 +288,19 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
     private static void WriteNvtMarker(byte[] target, int start)
     {
         NvtMarker.CopyTo(target.AsSpan(start));
+    }
+
+    private static byte[] ReadManifestFile(string fixtureRoot, JsonElement manifestFile)
+    {
+        byte[] bytes = File.ReadAllBytes(RepositoryPaths.ManifestPath(fixtureRoot, manifestFile));
+        Assert.Equal(manifestFile.GetProperty("size").GetInt64(), bytes.LongLength);
+        Assert.Equal(manifestFile.GetProperty("sha256").GetString(), Hash(bytes));
+        return bytes;
+    }
+
+    private static string Hash(ReadOnlySpan<byte> bytes)
+    {
+        return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
     }
 
     private static string FormatIssues(IEnumerable<CompositionIssue> issues)
