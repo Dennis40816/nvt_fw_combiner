@@ -1,0 +1,303 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/nfc/schemas/candidate-ic-workbook-v1.schema.json",
+  "title": "NVT FW Combiner Candidate IC Workbook Projection 1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "workbookId",
+    "workbookVersion",
+    "candidateId",
+    "authority",
+    "manifest",
+    "artifacts",
+    "rangeFacts",
+    "scalarFacts",
+    "referenceFacts",
+    "statementFacts",
+    "citations",
+    "capabilities"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "workbookId": { "$ref": "#/$defs/id" },
+    "workbookVersion": { "$ref": "#/$defs/semver" },
+    "candidateId": { "$ref": "#/$defs/id" },
+    "authority": { "const": "candidate-only" },
+    "manifest": { "$ref": "#/$defs/manifest" },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": { "$ref": "#/$defs/artifact" }
+    },
+    "rangeFacts": {
+      "type": "array",
+      "maxItems": 256,
+      "items": { "$ref": "#/$defs/rangeFact" }
+    },
+    "scalarFacts": {
+      "type": "array",
+      "maxItems": 256,
+      "items": { "$ref": "#/$defs/scalarFact" }
+    },
+    "referenceFacts": {
+      "type": "array",
+      "maxItems": 256,
+      "items": { "$ref": "#/$defs/referenceFact" }
+    },
+    "statementFacts": {
+      "type": "array",
+      "maxItems": 256,
+      "items": { "$ref": "#/$defs/statementFact" }
+    },
+    "citations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1024,
+      "items": { "$ref": "#/$defs/citation" }
+    },
+    "capabilities": { "$ref": "#/$defs/capabilities" }
+  },
+  "anyOf": [
+    { "properties": { "rangeFacts": { "minItems": 1 } } },
+    { "properties": { "scalarFacts": { "minItems": 1 } } },
+    { "properties": { "referenceFacts": { "minItems": 1 } } },
+    { "properties": { "statementFacts": { "minItems": 1 } } }
+  ],
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+    },
+    "memberId": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 64,
+      "pattern": "^NT[0-9A-Z-]+$"
+    },
+    "semver": {
+      "type": "string",
+      "maxLength": 128,
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "factKind": {
+      "enum": [
+        "range",
+        "locator",
+        "metadata-layout",
+        "topology",
+        "capability",
+        "alias",
+        "processor",
+        "integrity",
+        "output-naming",
+        "golden"
+      ]
+    },
+    "disposition": {
+      "enum": ["observed", "accepted", "rejected", "unresolved"]
+    },
+    "promotionImpact": {
+      "enum": ["none", "blocks-map-resolution", "blocks-execution", "blocks-support"]
+    },
+    "manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manifestId", "manifestVersion"],
+      "properties": {
+        "manifestId": { "$ref": "#/$defs/id" },
+        "manifestVersion": { "$ref": "#/$defs/semver" }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifactId", "role", "sourceKind", "logicalName"],
+      "properties": {
+        "artifactId": { "$ref": "#/$defs/id" },
+        "role": {
+          "enum": [
+            "supporting-workbook",
+            "memory-map",
+            "postbuild-command",
+            "sample-input",
+            "expected-output",
+            "provenance"
+          ]
+        },
+        "sourceKind": {
+          "enum": ["workbook", "source-code", "firmware", "document", "issue-export", "owner-record"]
+        },
+        "logicalName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[^\\\\/:\\u0000-\\u001F\\u007F]+$"
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "role": { "const": "supporting-workbook" },
+            "sourceKind": { "const": "workbook" }
+          }
+        },
+        {
+          "properties": {
+            "role": { "const": "memory-map" },
+            "sourceKind": { "const": "document" }
+          }
+        },
+        {
+          "properties": {
+            "role": { "const": "postbuild-command" },
+            "sourceKind": { "const": "source-code" }
+          }
+        },
+        {
+          "properties": {
+            "role": { "enum": ["sample-input", "expected-output"] },
+            "sourceKind": { "const": "firmware" }
+          }
+        },
+        {
+          "properties": {
+            "role": { "const": "provenance" },
+            "sourceKind": { "enum": ["document", "issue-export", "owner-record"] }
+          }
+        }
+      ]
+    },
+    "factCommon": {
+      "type": "object",
+      "required": ["factId", "familyId", "factKind", "disposition", "promotionImpact"],
+      "properties": {
+        "factId": { "$ref": "#/$defs/id" },
+        "familyId": { "$ref": "#/$defs/id" },
+        "memberId": { "$ref": "#/$defs/memberId" },
+        "modeId": { "$ref": "#/$defs/id" },
+        "profileId": { "$ref": "#/$defs/id" },
+        "factKind": { "$ref": "#/$defs/factKind" },
+        "disposition": { "$ref": "#/$defs/disposition" },
+        "promotionImpact": { "$ref": "#/$defs/promotionImpact" },
+        "rationale": { "type": "string", "minLength": 1, "maxLength": 2048 }
+      }
+    },
+    "rangeFact": {
+      "allOf": [
+        { "$ref": "#/$defs/factCommon" },
+        {
+          "type": "object",
+          "required": ["addressSpaceId", "start", "length"],
+          "properties": {
+            "addressSpaceId": { "$ref": "#/$defs/id" },
+            "start": { "type": "integer", "minimum": 0, "maximum": 18446744073709551615 },
+            "length": { "type": "integer", "minimum": 1, "maximum": 18446744073709551615 }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "scalarFact": {
+      "allOf": [
+        { "$ref": "#/$defs/factCommon" },
+        {
+          "type": "object",
+          "required": ["valueType", "value"],
+          "properties": {
+            "valueType": { "enum": ["boolean", "integer", "string"] },
+            "value": {
+              "oneOf": [
+                { "type": "boolean" },
+                { "type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991 },
+                { "type": "string", "minLength": 1, "maxLength": 2048 }
+              ]
+            }
+          },
+          "oneOf": [
+            {
+              "properties": {
+                "valueType": { "const": "boolean" },
+                "value": { "type": "boolean" }
+              }
+            },
+            {
+              "properties": {
+                "valueType": { "const": "integer" },
+                "value": { "type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991 }
+              }
+            },
+            {
+              "properties": {
+                "valueType": { "const": "string" },
+                "value": { "type": "string", "minLength": 1, "maxLength": 2048 }
+              }
+            }
+          ]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "referenceFact": {
+      "allOf": [
+        { "$ref": "#/$defs/factCommon" },
+        {
+          "type": "object",
+          "required": ["targetId"],
+          "properties": {
+            "targetId": { "$ref": "#/$defs/id" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "statementFact": {
+      "allOf": [
+        { "$ref": "#/$defs/factCommon" },
+        {
+          "type": "object",
+          "required": ["text"],
+          "properties": {
+            "text": { "type": "string", "minLength": 1, "maxLength": 4096 }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "citation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["factId", "ordinal", "artifactId", "location"],
+      "properties": {
+        "factId": { "$ref": "#/$defs/id" },
+        "ordinal": { "type": "integer", "minimum": 1, "maximum": 1024 },
+        "artifactId": { "$ref": "#/$defs/id" },
+        "location": { "type": "string", "minLength": 1, "maxLength": 1024 }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtimeRegistration",
+        "supportPromotion",
+        "commandExecution",
+        "privatePayloadCopy",
+        "profileInstallation",
+        "firmwareInference"
+      ],
+      "properties": {
+        "runtimeRegistration": { "const": false },
+        "supportPromotion": { "const": false },
+        "commandExecution": { "const": false },
+        "privatePayloadCopy": { "const": false },
+        "profileInstallation": { "const": false },
+        "firmwareInference": { "const": false }
+      }
+    }
+  }
+}
