@@ -48,6 +48,8 @@ match the manifest's exact byte size and SHA-256. The command reads all files as
 not automate Office or execute macros. It validates the candidate-intake structural subset only; the
 existing V2 materializer/loader remains the sole trusted full-schema validator. Unbound manifest
 artifacts remain explicitly listed as missing evidence rather than being guessed or searched for.
+The manifest and every bound artifact retain the regular-file identity captured before open; the
+opened descriptor and the post-open path must both match that identity before any bytes are accepted.
 
 The empty output directory receives only four deterministic JSON records:
 
@@ -62,10 +64,18 @@ exclusive temporary lock file that prevents the validated directory from being r
 All four records are serialized before writing, staged with exclusive creation, flushed, and then
 published individually with atomic no-clobber filesystem operations. Each unpredictable staged name
 remains bound to its open file descriptor through hard-link publication, and the final name must
-resolve to that same filesystem identity before success. An error or interruption scans every staged
-and published identity, removes only files that still belong to this run, preserves all replacements,
-and reports them after the remaining cleanup completes. A competing output is never overwritten or
-removed, and a successful command leaves exactly the four records above.
+resolve to that same filesystem identity before success. The descriptor content must also match the
+pre-serialized byte length and SHA-256 before linking, after linking, and at final publication
+validation. The output directory descriptor must match the identity captured before open. The lock
+name must still identify the original lock before final validation and is unlinked only when that
+identity matches.
+
+An error or interruption removes tracked staged and published names, scans the selected output
+directory for additional hard links to those run-owned identities, preserves unrelated replacements,
+and reports cleanup failures only after the remaining cleanup completes. A competing output is never
+overwritten or removed, and a successful command leaves exactly the four records above. These are
+point-in-time guarantees through the final locked validation; after the command releases its lock,
+the caller owns and must protect the resulting directory from later mutation.
 
 The command rejects approved manifests, output overwrite, path traversal, reparse points, lock files,
 unknown or duplicate artifact bindings, and hash or size mismatch. It never copies firmware payloads,
