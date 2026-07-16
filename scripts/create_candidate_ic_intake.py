@@ -20,7 +20,6 @@ if __package__:
         IntakeError,
         ValidatedOutputDirectory,
         open_validated_output_directory,
-        reject_reparse_points,
         resolve_directory,
     )
 else:
@@ -28,7 +27,6 @@ else:
         IntakeError,
         ValidatedOutputDirectory,
         open_validated_output_directory,
-        reject_reparse_points,
         resolve_directory,
     )
 
@@ -170,26 +168,65 @@ def sha256(stream: BinaryIO) -> str:
 
 
 @contextmanager
+def _validated_parent_directory(path: Path) -> Iterator[int | None]:
+    if os.name == "nt":
+        snapshots = _windows_parent_snapshots(path)
+        yield None
+        if _windows_parent_snapshots(path) != snapshots:
+            raise IntakeError("input parent component changed while opening")
+        return
+
+    flags = (
+        os.O_RDONLY
+        | getattr(os, "O_DIRECTORY", 0)
+        | getattr(os, "O_CLOEXEC", 0)
+        | getattr(os, "O_NOFOLLOW", 0)
+    )
+    parts = path.parent.parts
+    descriptor = os.open(parts[0], flags)
+    try:
+        for component in parts[1:]:
+            next_descriptor = os.open(component, flags, dir_fd=descriptor)
+            try:
+                if not stat.S_ISDIR(os.fstat(next_descriptor).st_mode):
+                    raise IntakeError(
+                        f"input parent component is not a directory: {component}"
+                    )
+            except BaseException:
+                os.close(next_descriptor)
+                raise
+            os.close(descriptor)
+            descriptor = next_descriptor
+        yield descriptor
+    finally:
+        os.close(descriptor)
+
+
+def _windows_parent_snapshots(path: Path) -> tuple[tuple[Path, tuple[int, int]], ...]:
+    reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+    snapshots: list[tuple[Path, tuple[int, int]]] = []
+    for parent in reversed(path.parents):
+        try:
+            status = os.stat(parent, follow_symlinks=False)
+        except OSError as exception:
+            raise IntakeError(
+                f"input parent component changed while opening: {parent}"
+            ) from exception
+        if stat.S_ISLNK(status.st_mode) or (
+            getattr(status, "st_file_attributes", 0) & reparse_flag
+        ):
+            raise IntakeError(f"reparse point is not allowed: {parent}")
+        if not stat.S_ISDIR(status.st_mode):
+            raise IntakeError(f"input parent component is not a directory: {parent}")
+        snapshots.append((parent, (status.st_dev, status.st_ino)))
+    return tuple(snapshots)
+
+
+@contextmanager
 def open_validated_regular_file(
     path: Path, description: str
 ) -> Iterator[tuple[Path, BinaryIO, os.stat_result]]:
-    raw = path.expanduser().absolute()
-    reject_reparse_points(raw)
-    try:
-        initial_status = os.stat(raw, follow_symlinks=False)
-    except OSError as exception:
-        raise IntakeError(
-            f"{description} must be an existing file: {raw}"
-        ) from exception
-    if not stat.S_ISREG(initial_status.st_mode):
-        raise IntakeError(f"{description} must be an existing file: {raw}")
-
-    resolved = raw.resolve(strict=True)
-    validated_status = os.stat(resolved, follow_symlinks=False)
-    initial_identity = (initial_status.st_dev, initial_status.st_ino)
-    validated_identity = (validated_status.st_dev, validated_status.st_ino)
-    if initial_identity != validated_identity:
-        raise IntakeError(f"{description} changed while validating")
+    raw = Path(os.path.abspath(path.expanduser()))
     flags = (
         os.O_RDONLY
         | getattr(os, "O_BINARY", 0)
@@ -197,28 +234,55 @@ def open_validated_regular_file(
         | getattr(os, "O_NOFOLLOW", 0)
     )
     descriptor = -1
-    try:
-        descriptor = os.open(resolved, flags)
-        opened_status = os.fstat(descriptor)
-        reject_reparse_points(resolved)
-        path_status = os.stat(resolved, follow_symlinks=False)
-        if not stat.S_ISREG(opened_status.st_mode) or not stat.S_ISREG(
-            path_status.st_mode
-        ):
-            raise IntakeError(f"{description} must be a regular filesystem file")
-        opened_identity = (opened_status.st_dev, opened_status.st_ino)
-        path_identity = (path_status.st_dev, path_status.st_ino)
-        if opened_identity != validated_identity or path_identity != validated_identity:
+    reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+    with _validated_parent_directory(raw) as parent_descriptor:
+        leaf: str | Path = raw if parent_descriptor is None else raw.name
+        stat_options = (
+            {"follow_symlinks": False}
+            if parent_descriptor is None
+            else {"dir_fd": parent_descriptor, "follow_symlinks": False}
+        )
+        try:
+            initial_status = os.stat(leaf, **stat_options)
+        except OSError as exception:
             raise IntakeError(
-                f"{description} open handle does not match the validated path"
-            )
+                f"{description} must be an existing file: {raw}"
+            ) from exception
+        if stat.S_ISLNK(initial_status.st_mode) or (
+            getattr(initial_status, "st_file_attributes", 0) & reparse_flag
+        ):
+            raise IntakeError(f"reparse point is not allowed: {raw}")
+        if not stat.S_ISREG(initial_status.st_mode):
+            raise IntakeError(f"{description} must be an existing file: {raw}")
 
-        with os.fdopen(descriptor, "rb", closefd=True) as stream:
-            descriptor = -1
-            yield resolved, stream, opened_status
-    finally:
-        if descriptor >= 0:
-            os.close(descriptor)
+        validated_identity = (initial_status.st_dev, initial_status.st_ino)
+        try:
+            if parent_descriptor is None:
+                descriptor = os.open(leaf, flags)
+            else:
+                descriptor = os.open(leaf, flags, dir_fd=parent_descriptor)
+            opened_status = os.fstat(descriptor)
+            path_status = os.stat(leaf, **stat_options)
+            if not stat.S_ISREG(opened_status.st_mode) or not stat.S_ISREG(
+                path_status.st_mode
+            ):
+                raise IntakeError(f"{description} must be a regular filesystem file")
+            opened_identity = (opened_status.st_dev, opened_status.st_ino)
+            path_identity = (path_status.st_dev, path_status.st_ino)
+            if (
+                opened_identity != validated_identity
+                or path_identity != validated_identity
+            ):
+                raise IntakeError(
+                    f"{description} open handle does not match the validated path"
+                )
+
+            with os.fdopen(descriptor, "rb", closefd=True) as stream:
+                descriptor = -1
+                yield raw, stream, opened_status
+        finally:
+            if descriptor >= 0:
+                os.close(descriptor)
 
 
 def validate_generated_at(value: str) -> str:

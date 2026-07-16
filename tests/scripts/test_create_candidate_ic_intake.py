@@ -274,8 +274,18 @@ class CandidateIcIntakeTests(unittest.TestCase):
         substituted_path.write_text("{}\n", encoding="utf-8")
         open_file = os.open
 
-        def open_substituted_file(_path: Path, flags: int) -> int:
-            return open_file(substituted_path, flags)
+        def open_substituted_file(
+            path: str | Path,
+            flags: int,
+            mode: int = 0o777,
+            *,
+            dir_fd: int | None = None,
+        ) -> int:
+            if Path(path).name == self.manifest_path.name:
+                return open_file(substituted_path, flags)
+            if dir_fd is None:
+                return open_file(path, flags, mode)
+            return open_file(path, flags, mode, dir_fd=dir_fd)
 
         with mock.patch.object(intake.os, "open", side_effect=open_substituted_file):
             with self.assertRaisesRegex(
@@ -291,13 +301,21 @@ class CandidateIcIntakeTests(unittest.TestCase):
         open_file = os.open
         replaced = False
 
-        def replace_then_open(path: Path, flags: int) -> int:
+        def replace_then_open(
+            path: str | Path,
+            flags: int,
+            mode: int = 0o777,
+            *,
+            dir_fd: int | None = None,
+        ) -> int:
             nonlocal replaced
-            if not replaced:
+            if not replaced and Path(path).name == self.manifest_path.name:
                 self.manifest_path.rename(original_path)
                 substituted_path.rename(self.manifest_path)
                 replaced = True
-            return open_file(path, flags)
+            if dir_fd is None:
+                return open_file(path, flags, mode)
+            return open_file(path, flags, mode, dir_fd=dir_fd)
 
         with mock.patch.object(intake.os, "open", side_effect=replace_then_open):
             with self.assertRaisesRegex(
@@ -305,6 +323,78 @@ class CandidateIcIntakeTests(unittest.TestCase):
                 "open handle does not match the validated path",
             ):
                 intake.read_json(self.manifest_path)
+
+    @unittest.skipUnless(os.name == "nt", "Windows parent-handle coverage")
+    def test_windows_parent_chain_rejects_substitution_before_leaf_open(self) -> None:
+        parent = self.root / "manifest-parent"
+        parent.mkdir()
+        self.manifest_path.replace(parent / "evidence.json")
+        self.manifest_path = parent / "evidence.json"
+        renamed = self.root / "renamed-manifest-parent"
+        replacement = self.root / "replacement-manifest-parent"
+        replacement.mkdir()
+        (replacement / "evidence.json").write_text("{}\n", encoding="utf-8")
+        open_file = os.open
+        attempted = False
+
+        def attempt_parent_rename(*args: Any, **kwargs: Any) -> int:
+            nonlocal attempted
+            if not attempted and Path(args[0]) == self.manifest_path:
+                attempted = True
+                parent.rename(renamed)
+                replacement.rename(parent)
+            return open_file(*args, **kwargs)
+
+        with self.assertRaisesRegex(
+            intake.IntakeError,
+            "open handle does not match|parent component changed",
+        ):
+            with mock.patch.object(
+                intake.os,
+                "open",
+                side_effect=attempt_parent_rename,
+            ):
+                intake.read_json(self.manifest_path)
+
+        self.assertTrue(attempted)
+        self.assertTrue(parent.is_dir())
+        self.assertTrue(renamed.is_dir())
+
+    @unittest.skipIf(os.name == "nt", "Unix parent-dir-fd coverage")
+    def test_unix_parent_swap_cannot_redirect_leaf_open(self) -> None:
+        parent = self.root / "manifest-parent"
+        parent.mkdir()
+        self.manifest_path.replace(parent / "evidence.json")
+        self.manifest_path = parent / "evidence.json"
+        original_parent = self.root / "original-manifest-parent"
+        replacement_parent = self.root / "replacement-manifest-parent"
+        replacement_parent.mkdir()
+        (replacement_parent / "evidence.json").write_text("{}\n", encoding="utf-8")
+        open_file = os.open
+        swapped = False
+
+        def swap_parent_before_leaf_open(*args: Any, **kwargs: Any) -> int:
+            nonlocal swapped
+            if (
+                not swapped
+                and args[0] == self.manifest_path.name
+                and kwargs.get("dir_fd") is not None
+            ):
+                parent.rename(original_parent)
+                replacement_parent.rename(parent)
+                swapped = True
+            return open_file(*args, **kwargs)
+
+        with mock.patch.object(
+            intake.os,
+            "open",
+            side_effect=swap_parent_before_leaf_open,
+        ):
+            result = intake.read_json(self.manifest_path)
+
+        self.assertTrue(swapped)
+        self.assertEqual("nt51950-candidate-intake", result["manifestId"])
+        self.assertEqual({}, json.loads((parent / "evidence.json").read_text()))
 
     def test_interrupted_promotion_removes_every_partial_candidate_file(self) -> None:
         outputs = self.build_candidate_outputs()
