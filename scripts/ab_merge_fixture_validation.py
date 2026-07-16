@@ -54,6 +54,57 @@ EXPECTED_CASES: dict[str, dict[str, Any]] = {
     },
 }
 
+NT51929_CTRLRAM_FIRST_HALF_EVIDENCE = {
+    "status": "fact-scoped-allowed-diff-parity",
+    "sourceArtifact": "expectedOutput",
+    "sourceRange": {
+        "start": 0,
+        "length": 262144,
+        "sha256": "e257e734a63d0d8a0e471bc7b541366578b9b56c94dd914197508d5af1127c12",
+    },
+    "sameProductTpArtifact": "tp-a-input",
+    "sameProductRegions": [
+        {
+            "name": "NF CtrlRAM",
+            "start": 130048,
+            "length": 8080,
+            "sha256": "417e04c58e2a587eeb02eb4c873d23cc8ae0478c0807c6b171c4cd6b301d42de",
+        },
+        {
+            "name": "Normal CtrlRAM",
+            "start": 138128,
+            "length": 18944,
+            "sha256": "9ec62a8200f7f305ab729b18b77e747572af493e2fdc32e7bbfb91c02c221c66",
+        },
+        {
+            "name": "VN CtrlRAM",
+            "start": 157072,
+            "length": 6496,
+            "sha256": "c90ced38fc2cc8e62cd0275050f7bfcc05e707eaaffd9704533f9a26a49de64d",
+        },
+    ],
+    "legacyCombinerObservation": {
+        "toolBindingId": "legacy-combiner-1.13.0",
+        "toolSha256": "ed6b58289cc780f73d36b831f5424cef44ad93187ba7518d36df6a77ad0c76bf",
+        "processorId": "nfc.nt51929.ctrlram-postbuild-v1",
+        "icNum": "single",
+        "commandFamily": "NT51932BASED_NORMAL_MODE CRC8",
+        "changedRanges": [
+            {"start": 28928, "length": 4, "classification": "Header CRC"},
+            {"start": 28952, "length": 3, "classification": "Header CRC"},
+            {"start": 163824, "length": 4, "classification": "Header Copy CRC"},
+            {"start": 163848, "length": 4, "classification": "Header Copy CRC"},
+        ],
+        "changedByteCount": 15,
+    },
+    "allowedDiffPolicy": ["Header CRC", "Header Copy CRC"],
+    "standaloneSingleGolden": False,
+    "fullByteParity": False,
+    "runtimePromotion": (
+        "blocked pending independent expected output and firmware-owner review"
+    ),
+}
+
 
 def _validate_case_evidence(
     item: dict[str, Any], index: int, errors: list[str]
@@ -111,6 +162,14 @@ def _validate_case_evidence(
 
     if item.get("promotion") != expected["promotion"]:
         errors.append(f"AB merge golden case '{case_id}' promotion gate drift")
+    ctrlram_evidence = item.get("ctrlRamFirstHalfSelfReplacementEvidence")
+    expected_ctrlram_evidence = (
+        NT51929_CTRLRAM_FIRST_HALF_EVIDENCE if case_id == "nt51929-ab-t05-d06" else None
+    )
+    if ctrlram_evidence != expected_ctrlram_evidence:
+        errors.append(
+            f"AB merge golden case '{case_id}' CtrlRAM first-half evidence drift"
+        )
     return case_id
 
 

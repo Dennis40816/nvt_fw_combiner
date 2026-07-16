@@ -70,6 +70,19 @@ class AbMergeFixtureValidationTests(unittest.TestCase):
             errors,
         )
 
+    def test_rejects_nt51929_first_half_promoted_to_single_golden(self) -> None:
+        manifest = deepcopy(self.manifest)
+        evidence = manifest["cases"][0]["ctrlRamFirstHalfSelfReplacementEvidence"]
+        evidence["standaloneSingleGolden"] = True
+        evidence["fullByteParity"] = True
+
+        errors = self.validate(manifest)
+
+        self.assertTrue(
+            any("CtrlRAM first-half evidence drift" in error for error in errors),
+            errors,
+        )
+
     def test_rejects_nt51950_reference_configuration_drift(self) -> None:
         manifest = deepcopy(self.manifest)
         manifest["cases"][1]["referenceParity"]["configuration"] = "51951"

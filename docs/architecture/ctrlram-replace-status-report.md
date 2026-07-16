@@ -46,7 +46,7 @@ Known stable conclusions:
 - Empty `map.txt` is sufficient for the observed no-overlay normal/NT-based postbuild smoke runs. This is a practical staging conclusion for the current golden cases, not a proof for overlay-enabled firmware.
 - For currently covered normal/NT-based no-overlay NT519xx references, header-copy size is correct when matched to the same codebase family: `0x100` for the observed 1.x.x/CRC_Enable-style headers and `0x200` for the observed 2.0.0 NT-based headers. NT51927/NT51928 are MERGE_MODE header/copy/backup flows and are tracked separately from this no-overlay size conclusion.
 - Representative tests show staged-source pasteback matches the older pre-pasted work-image model for NT51920, NT51923, NT51926, NT51927, and NT51950.
-- For NT51920, NT51923, NT51929, NT51932, NT51950, and NT51951, full postbuild self-replacement drift is the expected 16-byte CRC/header-word pattern.
+- For NT51920, NT51923, NT51929, NT51932, NT51950, and NT51951, the Standard Merge sample matrix has the expected 16-byte CRC/header-word self-replacement pattern. The same-product NT51929 AB first half separately produces 15 changed bytes because one byte in the second CRC word already matches; both observations remain valid for their own fixture.
 - For NT51927 and NT51928, drift is still CRC/header-word based, but more than 16 bytes because the flow updates multiple header/copy/backup windows.
 - Keep the CRC-changing postbuild behavior for production. It is acceptable only when the diff is constrained to declared CRC/header words or documented header-copy windows for the selected category.
 - NT51926 and NT51930 postbuild-category selection is implemented in Preview/Build and in workbench/UI slot/range display after a base BIN is loaded, but not production-closed until matching expected golden outputs and firmware-owner parity review are complete.
@@ -113,7 +113,7 @@ The current base input is the combiner TP work image size used by the postbuild 
 | NT51926 | `CRC_Enable` | inspected 1.4.1/2.0.0 BAT + 2026-07-05 fixtures | Workbench selects `1.4.1` or `2.0.0` profile from base FWConfig Common FW version. Current 2026-07-05 base reads `1.4.1` and report trace locks the `0x32F50` header-copy target. Expected final output is still owner-gated. |
 | NT51927 | `MERGE_MODE` + `NT51927BASED_GEN_CRC_MODE CRC32` | inspected BAT + 2026-07-05 fixtures | 2-chip/3-chip self-replacement differences are CRC/header-word based; matching branch expected outputs still needed for parity promotion. |
 | NT51928 non-NB | NT51927 alias flow | owner alias confirmation | Non-NB only; NB is not covered. |
-| NT51929 | `NT51932BASED_NORMAL_MODE CRC8` | inspected BAT / owner model | Catalog and 16-byte drift understood. |
+| NT51929 | `NT51932BASED_NORMAL_MODE CRC8` | inspected BAT / owner model + tracked same-product AB case | Standard sample has 16-byte CRC drift. The AB first half has direct same-product NF/Normal/VN byte equality and 15-byte Header CRC/Header Copy CRC drift; it is fact-scoped evidence, not a standalone single golden or runtime promotion. |
 | NT51930 | `NT51930BASED_NORMAL_MODE CRC8` | inspected 1.4.0/2.0.0 BAT + 51930 golden | Workbench selects `1.x.x` or `2.0.0` profile from base FWConfig Common FW version. Current 51930 golden reads `1.3.0`, so it maps to the archived `1.4.0` command shape. The `1.x` profile keeps numeric cascade `2..29` on the approved `0xFE00` range. CtrlRAM expected output is still owner-gated. |
 | NT51931 | official BAT: `NT51930BASED_NORMAL_MODE CRC8` | inspected BAT | Official shape crashes with Combiner 1.13.0; `NT51931BASED_NORMAL_MODE` is only a diagnostic trial so far. |
 | NT51932 | `NT51932BASED_NORMAL_MODE CRC8` | inspected BAT | Catalog and 16-byte drift understood. |
@@ -161,6 +161,8 @@ Purpose: run the full single-branch postbuild sequence on an already-final golde
 | NT51932 | 16 | Expected CRC-generation drift | `0x7100..0x7104`, `0x7118..0x711C`, `0x27FF0..0x27FF4`, `0x28008..0x2800C` |
 | NT51950 | 16 | Expected CRC-generation drift | `0xA11C..0xA120`, `0xA130..0xA134`, `0x2D428..0x2D42C`, `0x2D43C..0x2D440` |
 | NT51951 | 16 | Expected CRC-generation drift | same as NT51950 |
+
+The NT51929 AB case is intentionally recorded separately from that Standard Merge table. Its tracked 512 KiB expected output has SHA-256 `c7e1e263...3d66abe2`; `[0x00000,0x40000)` has SHA-256 `e257e734...1127c12`. NF `[0x1FC00,0x21B90)`, Normal `[0x21B90,0x26590)`, and VN `[0x26590,0x27EF0)` match the same-product TPFW byte-for-byte. Running the exact pinned Combiner 1.13.0 NT51929 single command changes 15 bytes at `[0x7100,0x7104)`, `[0x7118,0x711B)`, `[0x27FF0,0x27FF4)`, and `[0x28008,0x2800C)`; the owner-approved allowed-diff classes are Header CRC and Header Copy CRC. This does not establish full-byte single parity and does not create a standalone `expected.bin`.
 
 ### 3. Workbench self-replacement with committed 2026-07-05 CtrlRAM fixtures
 
