@@ -151,34 +151,34 @@ package-size decision. No dependency is implied by accepting this ADR.
 
 ### Candidate workspace and contracts
 
-The caller selects one existing empty output directory. The exported workspace
-has one closed inventory:
+The existing four-record export remains a versioned compatibility boundary. The
+caller selects one existing empty output directory, and a successful export
+leaves exactly these four files at its root:
 
 ```text
-records/
-  candidate-bundle-rows.json
-  candidate-evidence-manifest.json
-  missing-evidence.json
-  validation-report.json
-generated/
-  families/*.json
-  profiles/*.json
-  profile-bundle.json
-  evidence/*.json
-pr-ready.json
+candidate-bundle-rows.json
+candidate-evidence-manifest.json
+missing-evidence.json
+validation-report.json
 ```
 
-`records/` preserves the existing four-record contract byte-for-byte for the
-same logical request. `generated/` contains only artifacts that can be produced
-without inference and that validate against already approved V2 schemas. When
-a required fact is missing, the artifact is omitted or remains at the lowest
-representable blocked promotion stage; it is never completed with a default.
+For the same logical request, the C# use case must reproduce those four bytes
+before the Python oracle is retired. It may return generated family/profile/
+bundle/evidence previews and PR diagnostics as typed result data, but it may not
+persist extra files or relocate the four records under a subdirectory.
 
-`pr-ready.json` records the closed inventory, relative paths, SHA-256 values,
-candidate compiler/parity results, required reviewers, and residual evidence
-gates. It does not run Git, open a PR, copy private evidence, or authorize
-promotion. A future executable workspace schema is a separate reviewed contract;
-this ADR does not modify shared V2 schemas or compiler behavior.
+Persisting generated artifacts or a PR-ready inventory requires a separately
+versioned `candidate-workspace-v1` contract, schema, negative tests, and
+architecture/security review. That future wrapper must preserve the exact
+four-record compatibility export as an explicit surface rather than silently
+replacing or relocating it. It may contain only artifacts produced without
+inference and validated against already approved V2 schemas. Missing facts omit
+an artifact or retain the lowest representable blocked promotion stage; they
+never receive defaults. PR diagnostics may record relative paths, SHA-256
+values, compiler/parity results, required reviewers, and residual evidence
+gates, but never run Git, open a PR, copy private evidence, or authorize
+promotion. This ADR does not authorize that wrapper schema or modify shared V2
+schemas/compiler behavior.
 
 ### Candidate, compiler, and promotion boundary
 
@@ -272,7 +272,8 @@ firmware document normalization and compilation retain one Profiles owner.
 
 ## Compatibility and migration
 
-1. Owner accepts this ADR and the open choices below.
+1. The owner and required security/dependency reviewers accept this ADR and the
+   open choices below.
 2. Define typed Application request/result/issue contracts and the three port
    families without UI, a Profiles project reference, or a new generated
    workspace schema.
@@ -281,10 +282,13 @@ firmware document normalization and compilation retain one Profiles owner.
 4. Implement a focused Bootstrap forwarding adapter that delegates candidate
    projection to existing Profiles V2 DTO/normalizer/compiler boundaries. Any
    new candidate-workspace schema is reviewed separately.
-5. Prove Python/C# four-record parity, then remove Python from the product path.
-6. Add a thin CLI replay handler and the Settings UI flow over the same use case.
-7. Run clean-package size/security smoke and keep the existing package ceiling.
-8. Keep every generated candidate unregistered until its normal evidence and
+5. Prove Python/C# four-record parity, keep the exact four-file root export, then
+   remove Python from the product path.
+6. Review and version `candidate-workspace-v1` before persisting generated or
+   PR-ready outputs; typed previews do not pre-authorize that contract.
+7. Add a thin CLI replay handler and the Settings UI flow over the same use case.
+8. Run clean-package size/security smoke and keep the existing package ceiling.
+9. Keep every generated candidate unregistered until its normal evidence and
    owner-review PR is approved.
 
 Early v0.9.10 architecture/test work may proceed under the pre-tag candidate
@@ -309,8 +313,10 @@ predecessor is established.
   optional parity uses the existing composition engine without support promotion.
 - Full-byte synthetic/private parity tests when sufficient evidence exists;
   expected-output mismatch must fail without altering declarations.
-- Workspace security tests for immutable sources, closed inventory, atomic output,
-  private-payload exclusion, cancellation, and reparse/TOCTOU resistance.
+- Workspace security tests for immutable sources, the exact four-file root
+  export, closed inventory, atomic output, private-payload exclusion,
+  cancellation, and reparse/TOCTOU resistance. A later versioned workspace
+  wrapper requires its own schema and negative tests.
 - ViewModel/UI smoke tests for keyboard/focus/accessibility/localization, large
   diagnostics, cancellation, and identical typed requests from UI/CLI fixtures.
 - `python scripts/verify.py --all`, Polytail, independent architecture/security
@@ -327,7 +333,7 @@ predecessor is established.
 - No new runtime dependency, external authority, top-level navigation item, or
   release artifact is authorized by this Proposed ADR.
 
-## Owner decisions required for acceptance
+## Decisions and reviews required for acceptance
 
 1. Accept the typed in-process C# use case as canonical, with Python retained
    only until exact four-record parity and then retired.
@@ -335,3 +341,7 @@ predecessor is established.
    `.xlsm`/legacy `.xls` cases before reader design starts.
 3. Accept **Settings → New IC candidate** as a secondary surface without adding
    a fourth top-level tab.
+4. Require the security reviewer to accept the workbook/archive, mmap/BAT,
+   private-payload, process-authority, and workspace threat model, and require a
+   dependency/release reviewer to accept the selected reader dependency and
+   measured package impact (or confirm that the initial slice adds none).
