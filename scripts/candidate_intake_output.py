@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import stat
 from contextlib import contextmanager
@@ -27,10 +28,24 @@ def reject_reparse_points(path: Path) -> None:
 
 def resolve_directory(path: Path, description: str) -> Path:
     raw = path.expanduser().absolute()
-    if not raw.is_dir():
-        raise IntakeError(f"{description} must be an existing directory: {raw}")
     reject_reparse_points(raw)
-    return raw.resolve(strict=True)
+    try:
+        initial_status = os.stat(raw, follow_symlinks=False)
+    except OSError as exception:
+        raise IntakeError(
+            f"{description} must be an existing directory: {raw}"
+        ) from exception
+    if not stat.S_ISDIR(initial_status.st_mode):
+        raise IntakeError(f"{description} must be an existing directory: {raw}")
+    resolved = raw.resolve(strict=True)
+    resolved_status = os.stat(resolved, follow_symlinks=False)
+    if _identity(initial_status) != _identity(resolved_status):
+        raise IntakeError(f"{description} changed while validating: {raw}")
+    return resolved
+
+
+def _identity(status: os.stat_result) -> tuple[int, int]:
+    return status.st_dev, status.st_ino
 
 
 class ValidatedOutputDirectory:
@@ -47,6 +62,8 @@ class ValidatedOutputDirectory:
         self.directory_descriptor = directory_descriptor
         self.staged_identities: dict[str, tuple[int, int]] = {}
         self.published_identities: dict[str, tuple[int, int]] = {}
+        self.published_content: dict[str, tuple[int, str]] = {}
+        self.lock_identity: tuple[int, int] | None = None
 
     def validate_identity(self) -> None:
         try:
@@ -79,9 +96,15 @@ class ValidatedOutputDirectory:
                 f"expected {sorted(expected)}, found {sorted(actual)}"
             )
 
-    def create_exclusive(self, name: str, *, temporary: bool = False) -> int:
+    def create_exclusive(
+        self,
+        name: str,
+        *,
+        temporary: bool = False,
+        read_write: bool = False,
+    ) -> int:
         flags = (
-            os.O_WRONLY
+            (os.O_RDWR if read_write else os.O_WRONLY)
             | os.O_CREAT
             | os.O_EXCL
             | getattr(os, "O_BINARY", 0)
@@ -115,7 +138,7 @@ class ValidatedOutputDirectory:
 
     @staticmethod
     def identity(status: os.stat_result) -> tuple[int, int]:
-        return status.st_dev, status.st_ino
+        return _identity(status)
 
     def regular_entry_identity(self, name: str, description: str) -> tuple[int, int]:
         status = self.entry_status(name)
@@ -124,7 +147,11 @@ class ValidatedOutputDirectory:
         return self.identity(status)
 
     def create_staged(self, name: str) -> int:
-        descriptor = self.create_exclusive(name, temporary=os.name == "nt")
+        descriptor = self.create_exclusive(
+            name,
+            temporary=os.name == "nt",
+            read_write=True,
+        )
         try:
             status = os.fstat(descriptor)
             if not stat.S_ISREG(status.st_mode):
@@ -137,7 +164,13 @@ class ValidatedOutputDirectory:
             os.close(descriptor)
             raise
 
-    def publish(self, temporary_name: str, final_name: str, descriptor: int) -> None:
+    def publish(
+        self,
+        temporary_name: str,
+        final_name: str,
+        descriptor: int,
+        expected_content: bytes,
+    ) -> None:
         expected = self.staged_identities[temporary_name]
         if self.identity(os.fstat(descriptor)) != expected:
             raise IntakeError(
@@ -156,6 +189,13 @@ class ValidatedOutputDirectory:
             raise IntakeError(
                 f"staged candidate output changed before publication: {temporary_name}"
             )
+        content = (len(expected_content), hashlib.sha256(expected_content).hexdigest())
+        self._validate_descriptor_content(
+            descriptor,
+            expected,
+            content,
+            f"staged candidate output changed before publication: {temporary_name}",
+        )
 
         if self.directory_descriptor is None:
             os.link(
@@ -173,6 +213,7 @@ class ValidatedOutputDirectory:
             )
 
         self.published_identities[final_name] = expected
+        self.published_content[final_name] = content
         try:
             published_identity = self.regular_entry_identity(
                 final_name,
@@ -186,6 +227,12 @@ class ValidatedOutputDirectory:
             raise IntakeError(
                 f"candidate output changed during publication and was preserved: {final_name}"
             )
+        self._validate_descriptor_content(
+            descriptor,
+            expected,
+            content,
+            f"candidate output bytes changed during publication: {final_name}",
+        )
 
         try:
             staged_identity = self.regular_entry_identity(
@@ -206,22 +253,114 @@ class ValidatedOutputDirectory:
 
     def validate_published(self) -> None:
         for name, expected in self.published_identities.items():
+            descriptor = -1
             try:
-                current = self.regular_entry_identity(name, "candidate output")
-            except FileNotFoundError as exception:
-                raise IntakeError(
-                    f"candidate output changed after publication: {name}"
-                ) from exception
-            if current != expected:
-                raise IntakeError(f"candidate output changed after publication: {name}")
+                descriptor = self.open_readonly(name)
+                opened_status = os.fstat(descriptor)
+                try:
+                    current = self.regular_entry_identity(name, "candidate output")
+                except FileNotFoundError as exception:
+                    raise IntakeError(
+                        f"candidate output changed after publication: {name}"
+                    ) from exception
+                if (
+                    not stat.S_ISREG(opened_status.st_mode)
+                    or self.identity(opened_status) != expected
+                    or current != expected
+                ):
+                    raise IntakeError(
+                        f"candidate output changed after publication: {name}"
+                    )
+                self._validate_descriptor_content(
+                    descriptor,
+                    expected,
+                    self.published_content[name],
+                    f"candidate output bytes changed after publication: {name}",
+                )
+            finally:
+                if descriptor >= 0:
+                    os.close(descriptor)
+
+    def open_readonly(self, name: str) -> int:
+        flags = (
+            os.O_RDONLY
+            | getattr(os, "O_BINARY", 0)
+            | getattr(os, "O_CLOEXEC", 0)
+            | getattr(os, "O_NOFOLLOW", 0)
+        )
+        if self.directory_descriptor is not None:
+            return os.open(name, flags, dir_fd=self.directory_descriptor)
+        return os.open(self.path / name, flags)
+
+    def _validate_descriptor_content(
+        self,
+        descriptor: int,
+        expected_identity: tuple[int, int],
+        expected_content: tuple[int, str],
+        message: str,
+    ) -> None:
+        before = os.fstat(descriptor)
+        if (
+            not stat.S_ISREG(before.st_mode)
+            or self.identity(before) != expected_identity
+            or before.st_size != expected_content[0]
+        ):
+            raise IntakeError(message)
+        digest = hashlib.sha256()
+        os.lseek(descriptor, 0, os.SEEK_SET)
+        for chunk in iter(lambda: os.read(descriptor, 1024 * 1024), b""):
+            digest.update(chunk)
+        after = os.fstat(descriptor)
+        if (
+            self.identity(after) != expected_identity
+            or after.st_size != expected_content[0]
+            or digest.hexdigest() != expected_content[1]
+        ):
+            raise IntakeError(message)
+
+    def record_lock(self, descriptor: int) -> None:
+        status = os.fstat(descriptor)
+        if not stat.S_ISREG(status.st_mode):
+            raise IntakeError("candidate intake lock is not a regular file")
+        self.lock_identity = self.identity(status)
+
+    def validate_lock(self) -> None:
+        if self.lock_identity is None:
+            raise IntakeError("candidate intake lock was not established")
+        try:
+            current = self.regular_entry_identity(
+                OUTPUT_LOCK_FILE,
+                "candidate intake lock",
+            )
+        except (IntakeError, OSError) as exception:
+            raise IntakeError(
+                "candidate intake lock changed while running"
+            ) from exception
+        if current != self.lock_identity:
+            raise IntakeError("candidate intake lock changed while running")
+
+    def unlink_lock_if_owned(self) -> None:
+        if self.lock_identity is None:
+            return
+        try:
+            status = self.entry_status(OUTPUT_LOCK_FILE)
+        except FileNotFoundError:
+            return
+        if stat.S_ISREG(status.st_mode) and self.identity(status) == self.lock_identity:
+            self.unlink(OUTPUT_LOCK_FILE)
 
     def cleanup_tracked(self) -> None:
+        tracked = {
+            *self.staged_identities.values(),
+            *self.published_identities.values(),
+        }
         staged_preserved, staged_failures = self._cleanup_identities(
             self.staged_identities
         )
         published_preserved, published_failures = self._cleanup_identities(
             self.published_identities
         )
+        hardlink_failures = self._cleanup_matching_hardlinks(tracked)
         messages: list[str] = []
         if staged_preserved:
             messages.append(
@@ -233,7 +372,7 @@ class ValidatedOutputDirectory:
                 "candidate output changed before cleanup and was preserved: "
                 + ", ".join(sorted(published_preserved))
             )
-        failures = [*staged_failures, *published_failures]
+        failures = [*staged_failures, *published_failures, *hardlink_failures]
         if failures:
             messages.append(
                 "candidate output cleanup failed: "
@@ -269,16 +408,47 @@ class ValidatedOutputDirectory:
         identities.clear()
         return preserved, failures
 
+    def _cleanup_matching_hardlinks(
+        self,
+        identities: set[tuple[int, int]],
+    ) -> list[tuple[str, OSError]]:
+        failures: list[tuple[str, OSError]] = []
+        if not identities:
+            return failures
+        try:
+            names = self.names()
+        except OSError as exception:
+            return [("<output-directory>", exception)]
+        for name in sorted(names):
+            if name == OUTPUT_LOCK_FILE:
+                continue
+            try:
+                status = self.entry_status(name)
+                if stat.S_ISREG(status.st_mode) and self.identity(status) in identities:
+                    self.unlink(name)
+            except FileNotFoundError:
+                continue
+            except OSError as exception:
+                failures.append((name, exception))
+        return failures
+
 
 @contextmanager
 def open_validated_output_directory(
     path: Path,
 ) -> Iterator[ValidatedOutputDirectory]:
     raw = path.expanduser().absolute()
-    if not raw.is_dir():
-        raise IntakeError(f"output must be an existing directory: {raw}")
     reject_reparse_points(raw)
+    try:
+        initial_status = os.stat(raw, follow_symlinks=False)
+    except OSError as exception:
+        raise IntakeError(f"output must be an existing directory: {raw}") from exception
+    if not stat.S_ISDIR(initial_status.st_mode):
+        raise IntakeError(f"output must be an existing directory: {raw}")
     resolved = raw.resolve(strict=True)
+    resolved_status = os.stat(resolved, follow_symlinks=False)
+    if _identity(initial_status) != _identity(resolved_status):
+        raise IntakeError(f"output directory changed while validating: {raw}")
     directory_descriptor = -1
     lock_descriptor = -1
     output: ValidatedOutputDirectory | None = None
@@ -293,11 +463,11 @@ def open_validated_output_directory(
             )
             status = os.fstat(directory_descriptor)
         else:
-            status = os.stat(resolved, follow_symlinks=False)
-        if not stat.S_ISDIR(status.st_mode):
-            raise IntakeError(
-                f"output must be a regular filesystem directory: {resolved}"
-            )
+            status = resolved_status
+        if not stat.S_ISDIR(status.st_mode) or _identity(status) != _identity(
+            resolved_status
+        ):
+            raise IntakeError(f"output directory changed while validating: {resolved}")
         output = ValidatedOutputDirectory(
             resolved,
             status,
@@ -310,11 +480,14 @@ def open_validated_output_directory(
             OUTPUT_LOCK_FILE,
             temporary=os.name == "nt",
         )
+        output.record_lock(lock_descriptor)
         output.validate_identity()
+        output.validate_lock()
         output.require_names({OUTPUT_LOCK_FILE})
         try:
             yield output
             output.validate_identity()
+            output.validate_lock()
             output.validate_published()
             output.require_names(
                 {OUTPUT_LOCK_FILE, *output.published_identities.keys()}
@@ -329,7 +502,7 @@ def open_validated_output_directory(
     finally:
         if lock_descriptor >= 0:
             if os.name != "nt" and output is not None:
-                output.unlink(OUTPUT_LOCK_FILE, missing_ok=True)
+                output.unlink_lock_if_owned()
             os.close(lock_descriptor)
         if directory_descriptor >= 0:
             os.close(directory_descriptor)

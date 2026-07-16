@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 from unittest import mock
 
+from scripts import candidate_intake_output as output_boundary
 from scripts import create_candidate_ic_intake as intake
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -258,6 +259,28 @@ class CandidateIcIntakeTests(unittest.TestCase):
             ):
                 intake.read_json(self.manifest_path)
 
+    def test_rejects_a_path_replaced_after_initial_file_validation(self) -> None:
+        original_path = self.root / "original-evidence.json"
+        substituted_path = self.root / "substituted-evidence.json"
+        substituted_path.write_text("{}\n", encoding="utf-8")
+        open_file = os.open
+        replaced = False
+
+        def replace_then_open(path: Path, flags: int) -> int:
+            nonlocal replaced
+            if not replaced:
+                self.manifest_path.rename(original_path)
+                substituted_path.rename(self.manifest_path)
+                replaced = True
+            return open_file(path, flags)
+
+        with mock.patch.object(intake.os, "open", side_effect=replace_then_open):
+            with self.assertRaisesRegex(
+                intake.IntakeError,
+                "open handle does not match the validated path",
+            ):
+                intake.read_json(self.manifest_path)
+
     def test_interrupted_promotion_removes_every_partial_candidate_file(self) -> None:
         outputs = self.build_candidate_outputs()
 
@@ -268,10 +291,11 @@ class CandidateIcIntakeTests(unittest.TestCase):
                 temporary_name: str,
                 final_name: str,
                 descriptor: int,
+                expected_content: bytes,
             ) -> None:
                 if final_name == intake.OUTPUT_FILES[1]:
                     raise KeyboardInterrupt("simulated interruption")
-                publish(temporary_name, final_name, descriptor)
+                publish(temporary_name, final_name, descriptor, expected_content)
 
             with mock.patch.object(
                 output,
@@ -300,13 +324,19 @@ class CandidateIcIntakeTests(unittest.TestCase):
                     temporary_name: str,
                     final_name: str,
                     descriptor: int,
+                    expected_content: bytes,
                 ) -> None:
                     if final_name == competing_name:
                         (self.output / final_name).write_text(
                             competing_content,
                             encoding="utf-8",
                         )
-                    publish(temporary_name, final_name, descriptor)
+                    publish(
+                        temporary_name,
+                        final_name,
+                        descriptor,
+                        expected_content,
+                    )
 
                 with mock.patch.object(
                     output,
@@ -352,6 +382,45 @@ class CandidateIcIntakeTests(unittest.TestCase):
 
         self.assertEqual(1, len(list(self.output.iterdir())))
         self.assertEqual(competing_content, next(self.output.iterdir()).read_bytes())
+
+    def test_promotion_rejects_in_place_staged_byte_mutation(self) -> None:
+        outputs = self.build_candidate_outputs()
+        mutated = False
+
+        with self.assertRaisesRegex(
+            intake.IntakeError,
+            "staged candidate output changed before publication",
+        ):
+            with intake.open_validated_output_directory(self.output) as output:
+                publish = output.publish
+
+                def mutate_staged_bytes(
+                    temporary_name: str,
+                    final_name: str,
+                    descriptor: int,
+                    expected_content: bytes,
+                ) -> None:
+                    nonlocal mutated
+                    if not mutated:
+                        os.lseek(descriptor, 0, os.SEEK_SET)
+                        os.write(descriptor, b"X" + expected_content[1:])
+                        os.fsync(descriptor)
+                        mutated = True
+                    publish(
+                        temporary_name,
+                        final_name,
+                        descriptor,
+                        expected_content,
+                    )
+
+                with mock.patch.object(
+                    output,
+                    "publish",
+                    side_effect=mutate_staged_bytes,
+                ):
+                    intake.write_outputs(output, outputs)
+
+        self.assertEqual([], list(self.output.iterdir()))
 
     def test_rollback_preserves_replaced_output_and_removes_earlier_outputs(
         self,
@@ -436,6 +505,91 @@ class CandidateIcIntakeTests(unittest.TestCase):
             competing_content,
             (self.output / substituted_name).read_bytes(),
         )
+
+    @unittest.skipIf(os.name == "nt", "Unix hard-link rollback coverage")
+    def test_rollback_removes_untracked_hardlinks_to_run_owned_outputs(self) -> None:
+        outputs = self.build_candidate_outputs()
+        hidden_link = "untracked-candidate-hardlink.json"
+
+        with intake.open_validated_output_directory(self.output) as output:
+            publish = output.publish
+
+            def link_then_interrupt(
+                temporary_name: str,
+                final_name: str,
+                descriptor: int,
+                expected_content: bytes,
+            ) -> None:
+                if final_name == intake.OUTPUT_FILES[1]:
+                    raise KeyboardInterrupt("simulated interruption")
+                publish(
+                    temporary_name,
+                    final_name,
+                    descriptor,
+                    expected_content,
+                )
+                os.link(self.output / final_name, self.output / hidden_link)
+
+            with mock.patch.object(
+                output,
+                "publish",
+                side_effect=link_then_interrupt,
+            ):
+                with self.assertRaisesRegex(
+                    KeyboardInterrupt,
+                    "simulated interruption",
+                ):
+                    intake.write_outputs(output, outputs)
+
+            self.assertEqual({intake.OUTPUT_LOCK_FILE}, output.names())
+
+        self.assertEqual([], list(self.output.iterdir()))
+
+    @unittest.skipIf(os.name == "nt", "Unix lock-substitution coverage")
+    def test_unix_lock_cleanup_preserves_a_substituted_directory(self) -> None:
+        replacement = self.output / intake.OUTPUT_LOCK_FILE
+
+        with self.assertRaisesRegex(intake.IntakeError, "intake lock changed"):
+            with intake.open_validated_output_directory(self.output) as output:
+                output.unlink(intake.OUTPUT_LOCK_FILE)
+                replacement.mkdir()
+
+        self.assertTrue(replacement.is_dir())
+
+    @unittest.skipIf(os.name == "nt", "Unix directory-fd substitution coverage")
+    def test_unix_output_rejects_substitution_before_directory_open(self) -> None:
+        original_output = self.root / "preopen-original-output"
+        open_path = os.open
+        replaced = False
+
+        def replace_then_open(
+            path: str | Path,
+            flags: int,
+            mode: int = 0o777,
+            *,
+            dir_fd: int | None = None,
+        ) -> int:
+            nonlocal replaced
+            if not replaced and Path(path) == self.output and dir_fd is None:
+                self.output.rename(original_output)
+                self.output.mkdir()
+                replaced = True
+            return open_path(path, flags, mode, dir_fd=dir_fd)
+
+        with mock.patch.object(
+            output_boundary.os,
+            "open",
+            side_effect=replace_then_open,
+        ):
+            with self.assertRaisesRegex(
+                intake.IntakeError,
+                "output directory changed while validating",
+            ):
+                with intake.open_validated_output_directory(self.output):
+                    self.fail("substituted output directory was accepted")
+
+        self.assertEqual([], list(original_output.iterdir()))
+        self.assertEqual([], list(self.output.iterdir()))
 
     @unittest.skipIf(os.name == "nt", "Unix directory-fd substitution coverage")
     def test_unix_output_writes_stay_bound_to_the_opened_directory(self) -> None:

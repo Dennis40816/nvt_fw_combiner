@@ -175,11 +175,22 @@ def open_validated_regular_file(
     path: Path, description: str
 ) -> Iterator[tuple[Path, BinaryIO, os.stat_result]]:
     raw = path.expanduser().absolute()
-    if not raw.is_file():
+    reject_reparse_points(raw)
+    try:
+        initial_status = os.stat(raw, follow_symlinks=False)
+    except OSError as exception:
+        raise IntakeError(
+            f"{description} must be an existing file: {raw}"
+        ) from exception
+    if not stat.S_ISREG(initial_status.st_mode):
         raise IntakeError(f"{description} must be an existing file: {raw}")
 
-    reject_reparse_points(raw)
     resolved = raw.resolve(strict=True)
+    validated_status = os.stat(resolved, follow_symlinks=False)
+    initial_identity = (initial_status.st_dev, initial_status.st_ino)
+    validated_identity = (validated_status.st_dev, validated_status.st_ino)
+    if initial_identity != validated_identity:
+        raise IntakeError(f"{description} changed while validating")
     flags = (
         os.O_RDONLY
         | getattr(os, "O_BINARY", 0)
@@ -196,10 +207,9 @@ def open_validated_regular_file(
             path_status.st_mode
         ):
             raise IntakeError(f"{description} must be a regular filesystem file")
-        if (opened_status.st_dev, opened_status.st_ino) != (
-            path_status.st_dev,
-            path_status.st_ino,
-        ):
+        opened_identity = (opened_status.st_dev, opened_status.st_ino)
+        path_identity = (path_status.st_dev, path_status.st_ino)
+        if opened_identity != validated_identity or path_identity != validated_identity:
             raise IntakeError(
                 f"{description} open handle does not match the validated path"
             )
@@ -534,12 +544,15 @@ def write_outputs(
         output.validate_identity()
         output.require_names({OUTPUT_LOCK_FILE, *(item[1] for item in staged_outputs)})
         for name, temporary_name, descriptor in staged_outputs:
-            output.publish(temporary_name, name, descriptor)
+            output.publish(temporary_name, name, descriptor, serialized[name])
         output.validate_identity()
         output.validate_published()
         output.require_names({OUTPUT_LOCK_FILE, *OUTPUT_FILES})
     except BaseException as exception:
         # Never retain staged or published records after an interrupted intake.
+        for _, _, descriptor in reversed(staged_outputs):
+            os.close(descriptor)
+        staged_outputs.clear()
         try:
             output.cleanup_tracked()
         except IntakeError as cleanup_error:
