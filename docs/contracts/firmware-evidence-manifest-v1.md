@@ -56,6 +56,14 @@ The empty output directory receives only four deterministic JSON records:
 - `missing-evidence.json` — unbound, unresolved, rejected, and promotion-blocking evidence ids; and
 - `validation-report.json` — artifact verification results and the candidate-only scope.
 
+The command binds that directory for the complete validation-and-write interval. Unix writes use
+the opened directory descriptor for handle-relative staging and publication; Windows holds an
+exclusive temporary lock file that prevents the validated directory from being renamed or replaced.
+All four records are serialized before writing, staged with exclusive creation, flushed, and then
+published individually with atomic no-clobber filesystem operations. An error or interruption rolls
+back only files whose filesystem identities still match this run. A competing output is never
+overwritten or removed, and a successful command leaves exactly the four records above.
+
 The command rejects approved manifests, output overwrite, path traversal, reparse points, lock files,
 unknown or duplicate artifact bindings, and hash or size mismatch. It never copies firmware payloads,
 registers an IC/profile, promotes support, changes an allowlist, or infers ranges, CRC/header behavior,
