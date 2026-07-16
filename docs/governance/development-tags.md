@@ -22,7 +22,7 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 - `v0.9.5` — V2 workflow convergence milestone: one reviewed workflow family at a time may retire an exactly replaced legacy profile/catalog only after direct V2 runtime and golden evidence prove parity.
 - `v0.9.6` — support and release consolidation milestone: retire completed compatibility projections, reconcile the support matrix, and close package/release evidence without expanding firmware behavior.
 - `v0.9.7` — UI token consolidation and code-size discipline milestone: unify exactly equivalent visual, text, and spacing tokens; remove only proven duplicate UI or compatibility code while retaining UI behavior, accessibility, tests, and firmware boundaries.
-- `v0.9.8` — feature-frozen code-size convergence milestone: reduce hand-written production C#/AXAML to at most 56,000 nonblank lines and hold portable-package growth to at most 1% without expanding support or weakening trust-boundary checks.
+- `v0.9.8` — feature-frozen code-size convergence milestone: hold the owner-accepted 56,742-line final production ratchet and portable-package growth to at most 1% without expanding support or weakening trust-boundary checks.
 - `v0.9.9` — legacy convergence and patch-closure milestone: reduce production C#/AXAML to at most 54,000 nonblank lines, retire only exactly replaced legacy paths, preserve the Legacy Combiner executable/constrained runner exception, and close verified security gaps.
 - `v0.9.10` — UI-driven candidate IC intake milestone: normalize declared Excel, mmap, BAT, sample BIN, expected-output, and provenance evidence through the existing four-record candidate-intake boundary; no runtime registration or support promotion is implied.
 
@@ -89,7 +89,7 @@ Current execution priority: normal Merge and normal Replace for DP Replace and C
 | `v0.9.5` | V2 workflow convergence | Retire only legacy definitions with an exact V2 runtime replacement, direct tests, and golden/evidence closure recorded in the retirement matrix. |
 | `v0.9.6` | Support/release consolidation | Remove completed compatibility projections and close support/package evidence without adding firmware behavior. |
 | `v0.9.7` | UI token consolidation and code-size discipline | Consolidate exact-equivalent UI tokens, remove only proven duplicate UI/compatibility code, and retain behavioral/accessibility coverage without adding firmware behavior. |
-| `v0.9.8` | Feature-frozen code-size convergence | Enforce the 56,000-line and 1%-package ceilings through exact replacement and deletion without support expansion or safety-check removal. |
+| `v0.9.8` | Feature-frozen code-size convergence | Enforce the owner-accepted 56,742-line final ratchet and 1%-package ceiling without support expansion or safety-check removal. |
 | `v0.9.9` | Legacy convergence and patch closure | Enforce the 54,000-line and 1%-package ceilings, retire exactly replaced legacy paths except Legacy Combiner, and close evidence-backed security gaps. |
 | `v0.9.10` | UI-driven candidate IC intake | Produce the existing deterministic four-record candidate intake from declared source evidence; contract expansion and runtime promotion remain separately reviewed. |
 | `v1.0.0` | stable | Signed-off support matrix. |
