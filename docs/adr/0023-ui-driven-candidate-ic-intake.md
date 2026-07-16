@@ -21,6 +21,18 @@ PR-ready diagnostics. The tool must not infer firmware facts, execute submitted
 commands or macros, copy private firmware into Git, register runtime behavior,
 or promote support.
 
+Owner product direction recorded on 2026-07-16 requires an IC whose behavior is
+expressible by the already approved schemas, operations, and processor allowlist
+to be added through configuration/profile-pack data without rebuilding the C#
+application. The existing trusted profile compiler still validates and compiles
+those declarations into an execution plan at runtime; "no rebuild" does not
+mean accepting uncompiled or unchecked firmware instructions. New operation
+semantics, processor kinds, schemas, or executable tools still require a normal
+application release. Signed profile-pack discovery, activation, and rollback
+are separated into ADR 0024 and the v0.9.11 milestone. This direction does not
+pre-accept the workbook format, UI, security, dependency, or signing choices
+that remain open in this Proposed ADR.
+
 The portable package has no general Python runtime, and its reviewed size
 ceiling leaves no room to bundle another Python distribution casually. Keeping
 the current Python semantics and adding an independent C# implementation would
