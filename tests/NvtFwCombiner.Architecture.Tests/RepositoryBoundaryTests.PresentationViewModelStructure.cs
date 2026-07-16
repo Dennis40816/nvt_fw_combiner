@@ -138,6 +138,23 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("ReportEvidenceChipTemplate", templates, StringComparison.Ordinal);
     }
 
+    /// <summary>Verifies non-critical local UI stores share one JSON and atomic-promotion mechanism.</summary>
+    [Fact]
+    public void LocalUiFileStoresShareBestEffortJsonPersistence()
+    {
+        string helper = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/BestEffortLocalJsonFileStore.cs");
+        string stores = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ReportHistoryFileStore.cs") +
+            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ShellPreferenceFileStore.cs");
+
+        Assert.Equal(6, CountOccurrences(stores, "BestEffortLocalJsonFileStore."));
+        Assert.DoesNotContain("JsonSerializerOptions", stores, StringComparison.Ordinal);
+        Assert.DoesNotContain("File.Replace", stores, StringComparison.Ordinal);
+        Assert.Contains("JsonSerializerOptions", helper, StringComparison.Ordinal);
+        Assert.Contains("File.Replace", helper, StringComparison.Ordinal);
+        Assert.Contains("UnauthorizedAccessException", helper, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies firmware slot model, icons, and fact badges stay split by UI responsibility.</summary>
     [Fact]
     public void FirmwareSlotViewModelConcernsStaySplit()
