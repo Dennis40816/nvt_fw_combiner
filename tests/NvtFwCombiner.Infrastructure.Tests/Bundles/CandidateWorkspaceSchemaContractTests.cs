@@ -56,6 +56,39 @@ public sealed class CandidateWorkspaceSchemaContractTests
         AssertValid(workspace.ToJsonString());
     }
 
+    /// <summary>Proves profile artifacts use the canonical schema id rather than a source filename.</summary>
+    [Fact]
+    public void GeneratedProfileRequiresCanonicalCompositionProfileSchemaId()
+    {
+        JsonObject workspace = ParseExample();
+        workspace["generatedArtifacts"] = GeneratedProfile(
+            "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json");
+        AssertValid(workspace.ToJsonString());
+
+        workspace["generatedArtifacts"]![0]!["schemaId"] =
+            "https://example.invalid/nfc/schemas/composition-profile-v2.7.schema.json";
+        AssertInvalid(workspace.ToJsonString());
+    }
+
+    /// <summary>Proves parity diagnostics pin the installed Legacy Combiner binding exactly.</summary>
+    [Fact]
+    public void ParityReferenceRequiresExactLegacyCombinerBinding()
+    {
+        JsonObject workspace = ParseExample();
+        workspace["diagnostics"]!["parity"] = new JsonObject
+        {
+            ["status"] = "failed",
+            ["referenceKind"] = "legacy-combiner-1.13.0",
+            ["expectedOutputHash"] = ZeroHash,
+            ["actualOutputHash"] = ZeroHash,
+            ["issueCodes"] = new JsonArray("parity-mismatch"),
+        };
+        AssertValid(workspace.ToJsonString());
+
+        workspace["diagnostics"]!["parity"]!["referenceKind"] = "legacy-combiner-1.13";
+        AssertInvalid(workspace.ToJsonString());
+    }
+
     /// <summary>Proves authority expansion, path drift, and missing review gates fail closed.</summary>
     [Theory]
     [InlineData("support-promotion")]
@@ -122,6 +155,24 @@ public sealed class CandidateWorkspaceSchemaContractTests
                 ["path"] = path,
                 ["schemaId"] =
                     "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
+                ["schemaContentHash"] = ZeroHash,
+                ["sizeBytes"] = 2,
+                ["contentHash"] = ZeroHash,
+                ["sourceFactIds"] = new JsonArray("declared-fact"),
+            },
+        ];
+    }
+
+    private static JsonArray GeneratedProfile(string schemaId)
+    {
+        return
+        [
+            new JsonObject
+            {
+                ["artifactId"] = "candidate-profile",
+                ["kind"] = "composition-profile",
+                ["path"] = "generated/profiles/candidate-profile.json",
+                ["schemaId"] = schemaId,
                 ["schemaContentHash"] = ZeroHash,
                 ["sizeBytes"] = 2,
                 ["contentHash"] = ZeroHash,

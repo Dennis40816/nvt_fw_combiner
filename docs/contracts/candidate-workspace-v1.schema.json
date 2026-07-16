@@ -180,7 +180,7 @@
         },
         "schemaId": {
           "type": "string",
-          "pattern": "^https://example\\.invalid/nfc/schemas/(?:firmware-family-v1|composition-profile-v2(?:\\.[1-7])?|profile-bundle-v1|firmware-evidence-manifest-v1)\\.schema\\.json$"
+          "pattern": "^https://example\\.invalid/nfc/schemas/(?:firmware-family-v1|composition-profile-v2|profile-bundle-v1|firmware-evidence-manifest-v1)\\.schema\\.json$"
         },
         "schemaContentHash": { "$ref": "#/$defs/sha256" },
         "sizeBytes": { "type": "integer", "minimum": 2 },
@@ -217,7 +217,7 @@
             "properties": {
               "path": { "pattern": "^generated/profiles/" },
               "schemaId": {
-                "pattern": "^https://example\\.invalid/nfc/schemas/composition-profile-v2(?:\\.[1-7])?\\.schema\\.json$"
+                "const": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json"
               }
             }
           }
@@ -286,7 +286,7 @@
         "referenceKind": {
           "enum": [
             "python-reference",
-            "legacy-combiner-1.13",
+            "legacy-combiner-1.13.0",
             "owner-expected-output"
           ]
         },

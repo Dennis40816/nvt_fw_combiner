@@ -72,8 +72,9 @@ The only artifact kinds are:
 - `profile-bundle` validated by `profile-bundle-v1`; and
 - `evidence-manifest` validated by `firmware-evidence-manifest-v1`.
 
-Every artifact identifies the exact schema id and schema content hash used for
-validation and cites at least one explicit source fact id. A workspace cannot
+Every artifact identifies the canonical schema id and exact schema content hash
+used for validation and cites at least one explicit source fact id. A workspace
+cannot
 add or edit a schema, processor allowlist, tool manifest, executable, command,
 runtime registration, or support claim. A profile-bundle document in this
 workspace is candidate output, not a trusted installed bundle.
@@ -127,14 +128,19 @@ or UI exposure.
 This contract declares no range, offset, operation order, integrity behavior,
 processor write authority, alias, or supported IC. In particular it cannot
 alter the NT51950/NT51951 full-DP AB base, add an AB `map.txt`, authorize C# AB
-header CRC writes, replace exact Legacy Combiner 1.13 parity, or weaken direct or
-approved fact-scoped evidence gates for NT51919/NT51932.
+header CRC writes, replace exact Legacy Combiner 1.13.0 parity through
+`legacy-combiner-1.13.0`, or weaken direct or approved fact-scoped evidence gates
+for NT51919/NT51932.
 
-The schema adds no runtime dependency and is excluded from the portable package
-until a separately reviewed implementation and package decision exist. Before
-merge it requires architecture and security review; any generated firmware
-facts, profile behavior, golden output, processor authority, or support
-promotion retains its normal R2/R3 owner gates.
+The schema adds no runtime dependency and is not copied into the portable
+package. While it remains under `docs/contracts`, its repository bytes do
+contribute to the release manifest's `embeddedSchemaBundleSha256` provenance
+digest; that digest contribution does not embed, activate, or authorize the
+candidate workspace contract at runtime. Any future runtime/package use needs a
+separately reviewed implementation and package decision. Before merge it
+requires architecture and security review; any generated firmware facts,
+profile behavior, golden output, processor authority, or support promotion
+retains its normal R2/R3 owner gates.
 
 ## Synthetic shape example
 
