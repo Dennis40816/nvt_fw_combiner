@@ -11,9 +11,9 @@ internal static class FileSystemPathGuard
         ArgumentException.ThrowIfNullOrWhiteSpace(rootDirectory);
 
         string fullPath = Path.GetFullPath(rootDirectory);
-        RejectExistingParentReparsePoints(fullPath);
+        RejectReparsePoints(fullPath);
         DirectoryInfo directory = Directory.CreateDirectory(fullPath);
-        RejectReparsePoint(directory.FullName);
+        RejectReparsePoints(directory.FullName);
         return EnsureTrailingSeparator(directory.FullName);
     }
 
@@ -27,7 +27,7 @@ internal static class FileSystemPathGuard
             throw new DirectoryNotFoundException($"Allowed root was not found: {fullPath}");
         }
 
-        RejectReparsePoint(fullPath);
+        RejectReparsePoints(fullPath);
         return EnsureTrailingSeparator(fullPath);
     }
 
@@ -39,13 +39,9 @@ internal static class FileSystemPathGuard
         ArgumentNullException.ThrowIfNull(allowedRoots);
 
         string fullPath = Path.GetFullPath(path);
-        if (!File.Exists(fullPath))
-        {
-            throw new FileNotFoundException("Artifact file was not found.", fullPath);
-        }
-
+        RequireFile(fullPath, "Artifact file was not found.");
         EnsureUnderAnyRoot(fullPath, allowedRoots);
-        RejectReparsePoint(fullPath);
+        RejectReparsePoints(fullPath);
         return fullPath;
     }
 
@@ -54,7 +50,6 @@ internal static class FileSystemPathGuard
         string rootDirectory)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(manifestPath);
-        ArgumentException.ThrowIfNullOrWhiteSpace(rootDirectory);
         if (Path.IsPathFullyQualified(manifestPath) ||
             manifestPath.IndexOfAny(['\\', ':', '\0']) >= 0)
         {
@@ -73,13 +68,8 @@ internal static class FileSystemPathGuard
 
         string root = ResolveExistingRoot(rootDirectory);
         string fullPath = Path.GetFullPath(Path.Combine([root, .. segments]));
-        EnsureUnderRoot(fullPath, root);
-        if (!File.Exists(fullPath))
-        {
-            throw new FileNotFoundException("Bundle entry file was not found.", fullPath);
-        }
-
-        RejectReparsePoint(fullPath);
+        RequireFile(fullPath, "Bundle entry file was not found.");
+        RejectReparsePoints(fullPath);
         RegularFileGuard.RequirePath(fullPath);
         return fullPath;
     }
@@ -87,84 +77,45 @@ internal static class FileSystemPathGuard
     internal static string ResolveFileNameUnderRoot(string fileName, string rootDirectory)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(rootDirectory);
-        if (fileName.IndexOfAny(['/', '\\', ':']) >= 0 ||
+        return fileName.IndexOfAny(['/', '\\', ':']) >= 0 ||
             fileName is "." or ".." ||
-            Path.GetFileName(fileName) != fileName)
-        {
-            throw new ArgumentException("File name must be a plain filename without path syntax.", nameof(fileName));
-        }
-
-        string root = EnsureTrailingSeparator(Path.GetFullPath(rootDirectory));
-        string fullPath = Path.GetFullPath(Path.Combine(root, fileName));
-        EnsureUnderRoot(fullPath, root);
-        return fullPath;
+            Path.GetFileName(fileName) != fileName
+            ? throw new ArgumentException("File name must be a plain filename without path syntax.", nameof(fileName))
+            : Path.GetFullPath(Path.Combine(rootDirectory, fileName));
     }
 
     private static void EnsureUnderAnyRoot(string fullPath, IReadOnlyList<string> allowedRoots)
     {
-        if (allowedRoots.Count == 0)
-        {
-            throw new InvalidOperationException("At least one allowed root is required.");
-        }
-
-        foreach (string root in allowedRoots)
-        {
-            string normalizedRoot = EnsureTrailingSeparator(Path.GetFullPath(root));
-            if (fullPath.StartsWith(normalizedRoot, PathComparison))
-            {
-                return;
-            }
-        }
-
-        throw new UnauthorizedAccessException("Path is outside the configured root.");
-    }
-
-    private static void EnsureUnderRoot(string fullPath, string root)
-    {
-        string normalizedRoot = EnsureTrailingSeparator(Path.GetFullPath(root));
-        if (!fullPath.StartsWith(normalizedRoot, PathComparison))
+        if (!allowedRoots.Any(root => fullPath.StartsWith(
+                EnsureTrailingSeparator(Path.GetFullPath(root)),
+                PathComparison)))
         {
             throw new UnauthorizedAccessException("Path is outside the configured root.");
         }
     }
 
-    private static void RejectReparsePoint(string path)
+    private static void RequireFile(string fullPath, string message)
     {
-        FileAttributes attributes = File.GetAttributes(path);
-        if ((attributes & FileAttributes.ReparsePoint) != 0)
+        if (!File.Exists(fullPath))
         {
-            throw new UnauthorizedAccessException("Reparse points are not allowed.");
-        }
-
-        string? directoryPath = Directory.Exists(path)
-            ? path
-            : Path.GetDirectoryName(path);
-        while (!string.IsNullOrWhiteSpace(directoryPath))
-        {
-            FileAttributes directoryAttributes = File.GetAttributes(directoryPath);
-            if ((directoryAttributes & FileAttributes.ReparsePoint) != 0)
-            {
-                throw new UnauthorizedAccessException("Reparse points are not allowed.");
-            }
-
-            directoryPath = Directory.GetParent(directoryPath)?.FullName;
+            throw new FileNotFoundException(message, fullPath);
         }
     }
 
-    private static void RejectExistingParentReparsePoints(string path)
+    private static void RejectReparsePoints(string path)
     {
         string? currentPath = path;
-        while (!string.IsNullOrWhiteSpace(currentPath) &&
-               !File.Exists(currentPath) &&
-               !Directory.Exists(currentPath))
+        while (currentPath is not null && !File.Exists(currentPath) && !Directory.Exists(currentPath))
         {
             currentPath = Path.GetDirectoryName(currentPath);
         }
 
-        if (!string.IsNullOrWhiteSpace(currentPath))
+        for (; currentPath is not null; currentPath = Path.GetDirectoryName(currentPath))
         {
-            RejectReparsePoint(currentPath);
+            if ((File.GetAttributes(currentPath) & FileAttributes.ReparsePoint) != 0)
+            {
+                throw new UnauthorizedAccessException("Reparse points are not allowed.");
+            }
         }
     }
 

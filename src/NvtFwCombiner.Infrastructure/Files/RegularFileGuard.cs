@@ -16,15 +16,14 @@ internal static partial class RegularFileGuard
 
         if (OperatingSystem.IsWindows())
         {
-            FileAttributes attributes = File.GetAttributes(path);
             const FileAttributes rejectedAttributes =
                 FileAttributes.Device | FileAttributes.Directory | FileAttributes.ReparsePoint;
-            if ((attributes & rejectedAttributes) == 0)
+            if ((File.GetAttributes(path) & rejectedAttributes) != 0)
             {
-                return;
+                throw NotRegularFile(path);
             }
 
-            throw NotRegularFile(path);
+            return;
         }
 
         if (UnixLStat(path, out UnixFileStatus status) != 0)
@@ -38,7 +37,10 @@ internal static partial class RegularFileGuard
         }
     }
 
-    internal static void RequireOpenHandle(SafeFileHandle handle, string displayPath)
+    internal static void RequireOpenHandle(
+        SafeFileHandle handle,
+        string expectedFullPath,
+        string displayPath)
     {
         ArgumentNullException.ThrowIfNull(handle);
         ArgumentException.ThrowIfNullOrWhiteSpace(displayPath);
@@ -54,6 +56,7 @@ internal static partial class RegularFileGuard
                 throw NotRegularFile(displayPath);
             }
 
+            RequireWindowsHandlePath(handle, expectedFullPath, displayPath);
             return;
         }
 
@@ -66,22 +69,76 @@ internal static partial class RegularFileGuard
         {
             throw NotRegularFile(displayPath);
         }
+
+        if (UnixLStat(Path.GetFullPath(expectedFullPath), out UnixFileStatus expectedStatus) != 0)
+        {
+            throw NativeInspectionFailure(displayPath);
+        }
+
+        if (status.Dev != expectedStatus.Dev || status.Ino != expectedStatus.Ino)
+        {
+            throw HandlePathMismatch(displayPath);
+        }
+    }
+
+    private static unsafe void RequireWindowsHandlePath(
+        SafeFileHandle handle,
+        string expectedFullPath,
+        string displayPath)
+    {
+        const int maximumPathLength = 32768;
+        char* buffer = stackalloc char[maximumPathLength];
+        uint length = WindowsGetFinalPathNameByHandle(
+            handle,
+            buffer,
+            maximumPathLength,
+            0);
+        if (length is 0 or >= maximumPathLength)
+        {
+            throw NativeInspectionFailure(displayPath);
+        }
+
+        string actualPath = NormalizeWindowsFinalPath(new string(buffer, 0, checked((int)length)));
+        string expectedPath = NormalizeWindowsFinalPath(Path.GetFullPath(expectedFullPath));
+        if (!string.Equals(actualPath, expectedPath, StringComparison.OrdinalIgnoreCase))
+        {
+            throw HandlePathMismatch(displayPath);
+        }
+    }
+
+    private static string NormalizeWindowsFinalPath(string path)
+    {
+        return path.StartsWith(@"\\?\UNC\", StringComparison.OrdinalIgnoreCase)
+            ? @"\\" + path[@"\\?\UNC\".Length..]
+            : path.StartsWith(@"\\?\", StringComparison.OrdinalIgnoreCase)
+                ? path[@"\\?\".Length..]
+                : path;
     }
 
     private static UnauthorizedAccessException NotRegularFile(string path)
     {
-        return new UnauthorizedAccessException(
-            $"Bundle file '{path}' must be a regular filesystem file.");
+        return new($"Bundle file '{path}' must be a regular filesystem file.");
     }
 
     private static IOException NativeInspectionFailure(string path)
     {
-        return new IOException(
-            $"Could not inspect bundle file '{path}' (native error {Marshal.GetLastPInvokeError()}).");
+        return new($"Could not inspect bundle file '{path}' (native error {Marshal.GetLastPInvokeError()}).");
+    }
+
+    private static UnauthorizedAccessException HandlePathMismatch(string path)
+    {
+        return new($"Bundle file '{path}' open handle does not match the validated path.");
     }
 
     [LibraryImport("kernel32.dll", EntryPoint = "GetFileType", SetLastError = true)]
     private static partial uint WindowsGetFileType(SafeFileHandle handle);
+
+    [LibraryImport("kernel32.dll", EntryPoint = "GetFinalPathNameByHandleW", SetLastError = true)]
+    private static unsafe partial uint WindowsGetFinalPathNameByHandle(
+        SafeFileHandle handle,
+        char* filePath,
+        uint filePathLength,
+        uint flags);
 
     [LibraryImport(
         "System.Native",

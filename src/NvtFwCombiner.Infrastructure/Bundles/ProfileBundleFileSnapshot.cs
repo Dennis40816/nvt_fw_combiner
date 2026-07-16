@@ -54,18 +54,10 @@ internal sealed class ProfileBundleFileSnapshot
         string manifestPath,
         int maximumBytes)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(bundleRoot);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
         string fullPath = FileSystemPathGuard.ResolveExistingManifestFileUnderRoot(manifestPath, bundleRoot);
-        using var stream = new FileStream(fullPath, new FileStreamOptions
-        {
-            Mode = FileMode.Open,
-            Access = FileAccess.Read,
-            Share = FileShare.Read,
-            Options = FileOptions.SequentialScan,
-            BufferSize = 4096,
-        });
-        RegularFileGuard.RequireOpenHandle(stream.SafeFileHandle, manifestPath);
+        using FileStream stream = File.Open(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        RegularFileGuard.RequireOpenHandle(stream.SafeFileHandle, fullPath, manifestPath);
         long length = stream.Length;
         if (length > maximumBytes)
         {
@@ -80,7 +72,6 @@ internal sealed class ProfileBundleFileSnapshot
             throw new IOException($"Bundle file '{manifestPath}' changed while it was being read.");
         }
 
-        _ = FileSystemPathGuard.ResolveExistingManifestFileUnderRoot(manifestPath, bundleRoot);
         string actualSha256 = Convert.ToHexString(SHA256.HashData(content)).ToLowerInvariant();
         return new ProfileBundleFileSnapshot(manifestPath, actualSha256, content);
     }
