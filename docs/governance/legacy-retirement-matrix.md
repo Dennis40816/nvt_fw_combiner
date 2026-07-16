@@ -42,11 +42,14 @@ open until their listed direct V2 parity evidence exists.
 
 `RemainingCompatibilityAuthoritiesHaveClosedProductionCallerSets` now locks
 the complete production caller allowlist at 2 `CompositionProfileCompiler`,
-12 `TpFlashMapCatalog`, 5 `IcMetadataFacade`, and 4 direct
+11 `TpFlashMapCatalog`, 5 `IcMetadataFacade`, and 4 direct
 `LegacyCombinerPostbuildCatalog` caller files. Any new caller is an architecture
 failure; each removal must update the allowlist in the same reviewed migration.
 General Merge default capacity now comes only from its compiled Standard Merge
 V2 registration; the unreachable TP flash-map fallback has been retired.
+Blocked Replace reports no longer project legacy DP operations from a TP map:
+supported DP execution already owns its plan in V2, while unsupported DP,
+General preflight failure, and unknown mode stay issue-only and fail closed.
 The NT51926 V2 candidate compile boundary is also locked against all four
 compatibility authorities. Its next removable caller is therefore the current
 CtrlRAM Workbench compiler route, not the candidate compiler. That runtime

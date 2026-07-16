@@ -24,7 +24,6 @@ public static partial class WorkbenchCompositionService
             context = null;
             failure = CreatePlanningRunResult(
                 icId,
-                number,
                 WorkbenchReplaceModes.General,
                 reportSlotPaths,
                 build,
@@ -39,7 +38,6 @@ public static partial class WorkbenchCompositionService
             context = null;
             failure = CreatePlanningRunResult(
                 icId,
-                number,
                 WorkbenchReplaceModes.General,
                 reportSlotPaths,
                 build,
@@ -54,7 +52,6 @@ public static partial class WorkbenchCompositionService
             context = null;
             failure = CreatePlanningRunResult(
                 icId,
-                number,
                 WorkbenchReplaceModes.General,
                 reportSlotPaths,
                 build,
@@ -73,7 +70,6 @@ public static partial class WorkbenchCompositionService
             context = null;
             failure = CreatePlanningRunResult(
                 icId,
-                number,
                 WorkbenchReplaceModes.General,
                 reportSlotPaths,
                 build,
@@ -88,7 +84,6 @@ public static partial class WorkbenchCompositionService
             context = null;
             failure = CreatePlanningRunResult(
                 icId,
-                number,
                 WorkbenchReplaceModes.General,
                 reportSlotPaths,
                 build,
