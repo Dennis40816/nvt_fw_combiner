@@ -1,0 +1,9 @@
+*
+!*/
+!.gitignore
+!.keep
+!README.md
+!CASE.md
+!CASE.template.md
+!EVIDENCE_REQUIRED.md
+!case.template.json

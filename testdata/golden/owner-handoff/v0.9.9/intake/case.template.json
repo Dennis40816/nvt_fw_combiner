@@ -1,0 +1,24 @@
+{
+  "ic": "NT519XX",
+  "workflow": "ctrlram-replace",
+  "firmwareVersion": null,
+  "profileVersion": null,
+  "mode": null,
+  "sourceRef": null,
+  "owner": null,
+  "approvalDate": null,
+  "approvalScope": [],
+  "tool": {
+    "name": "Combiner.exe",
+    "version": null,
+    "sha256": null
+  },
+  "inputs": [],
+  "expectedOutput": {
+    "path": "expected.bin",
+    "sha256": null
+  },
+  "allowedDiffRanges": [],
+  "alias": null,
+  "classification": "private-owner-evidence"
+}
