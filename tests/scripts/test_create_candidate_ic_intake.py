@@ -547,14 +547,19 @@ class CandidateIcIntakeTests(unittest.TestCase):
 
     @unittest.skipIf(os.name == "nt", "Unix lock-substitution coverage")
     def test_unix_lock_cleanup_preserves_a_substituted_directory(self) -> None:
+        outputs = self.build_candidate_outputs()
         replacement = self.output / intake.OUTPUT_LOCK_FILE
 
         with self.assertRaisesRegex(intake.IntakeError, "intake lock changed"):
             with intake.open_validated_output_directory(self.output) as output:
+                intake.write_outputs(output, outputs)
                 output.unlink(intake.OUTPUT_LOCK_FILE)
                 replacement.mkdir()
 
         self.assertTrue(replacement.is_dir())
+        self.assertEqual(
+            {intake.OUTPUT_LOCK_FILE}, {path.name for path in self.output.iterdir()}
+        )
 
     @unittest.skipIf(os.name == "nt", "Unix directory-fd substitution coverage")
     def test_unix_output_rejects_substitution_before_directory_open(self) -> None:
