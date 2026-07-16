@@ -45,6 +45,11 @@ The current one-time owner drop is indexed in
 testdata/golden/owner-handoff/v0.9.9/intake/<519xx>/<workflow>/<firmware-or-profile-version>/<mode>/
 ```
 
+Use the versioned
+[`missing-goldens` guide](v0.9.9/intake/missing-goldens/README.md) for the exact
+BIN filenames and sizes; it also marks cases where only `expected.bin` or an
+alias approval is still missing so existing evidence is not uploaded twice.
+
 The complete directory skeleton is tracked so it follows a clone to another
 computer. Actual incoming payload files under `intake/` remain ignored until
 they pass golden approval and privacy review. Use the numeric directory name

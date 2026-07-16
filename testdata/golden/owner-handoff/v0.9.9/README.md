@@ -32,6 +32,10 @@ For example, the NT51926 case requested first is:
 v0.9.9/intake/51926/ctrlram-replace/1.4.1/cascade/
 ```
 
+The exact currently missing BIN filenames, sizes, and all CtrlRAM/DP/AB/
+General folders are listed in
+[`intake/missing-goldens/README.md`](intake/missing-goldens/README.md).
+
 ## Files required in every terminal case folder
 
 Use the original filenames when provenance depends on them. Otherwise these
@@ -79,17 +83,17 @@ Please provide:
 - `inputs/nf.bin`: 11,728 bytes (`0x2DD0`);
 - `expected.bin`: exact 262,144-byte final output from the approved reference
   run, not an output generated only to match the current V2 candidate;
-- the exact Combiner 1.13 command/order or unedited postbuild log;
-- the Combiner version and executable SHA-256; if the executable is already the
-  recorded 1.13.0 tool, do not upload a duplicate EXE;
 - approval of the allowed read/write authority and final expected-output hash;
 - whether the approval covers byte parity only or also permits later runtime
   exposure. Evidence intake itself will not promote support.
 
-The repository already has a direct base and five sliced inputs. If those are
-the official source artifacts, the essential new files are `expected.bin`, the
-exact command/tool trace, provenance, and signed-off allowed differences. Send
-the base/inputs again only when the official originals or their hashes differ.
+The repository already has the direct base, five sliced inputs, exact 1.4.1 BAT
+commands, Combiner 1.13.0 executable, and pinned SHA-256. Do not send them again
+unless the official originals differ. The essential new file is the independent
+`expected.bin` with non-personal provenance and approval. The owner confirmed
+on 2026-07-16 that post-Combiner byte differences are limited to the marked
+Header CRC and Header Copy CRC areas; the case-local checklist records the
+candidate half-open ranges and fail-closed interpretation.
 
 The current candidate declaration expects the five CtrlRAM destinations plus
 the reviewed FWConfig backup, copied header, and header CRC words to be the
@@ -191,13 +195,19 @@ AB invariants:
 - C# never calculates or writes the AB header CRC.
 - Python reference parity is compared against the exact Legacy Combiner 1.13
   command.
-- NT51919 and NT51932 need direct evidence or an owner-approved fact-scoped
-  alias. Normal/whole-map alias evidence is insufficient.
+- NT51919 already has manifest-declared fact-scoped parity to the direct
+  NT51929 golden. It needs firmware-owner approval of that AB-specific fact
+  scope; a new BIN is optional unless the alias is rejected.
+- NT51932 still needs direct evidence or an owner-approved fact-scoped alias.
+  Normal/whole-map alias evidence is insufficient.
+- NT51929 already has a direct owner-approved input/output golden and full-byte
+  Python reference parity. It needs firmware-owner promotion review, not another
+  product BIN set.
 - NT51950 already has two direct owner-approved cases and Python/Combiner byte
   parity. Its remaining item is firmware-owner runtime-promotion review, not a
   request to regenerate those existing bytes.
 - NT51951 still needs a direct product golden plus tool/command trace and owner
-  review. NT51929/NT51932 candidate evidence is not yet product approval.
+  review. Synthetic topology evidence is not product approval.
 
 For a new AB product golden include the input container(s), exact expected
 output, original filename, exact tool identity/hash, exact command/log, allowed

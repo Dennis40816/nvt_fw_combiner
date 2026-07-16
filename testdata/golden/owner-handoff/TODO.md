@@ -19,8 +19,10 @@ The complete versioned path list and per-case contract are in
 
 ## P0: blocks v1 authority retirement
 
-- [ ] NT51926 1.4.1 cascade: independent `expected.bin`, exact Combiner
-  command/tool hash, allowed-diff approval, and owner review.
+- [ ] NT51926 1.4.1 cascade: independent `expected.bin`, non-personal
+  provenance, and owner review. Combiner 1.13.0, its hash, and exact BAT command
+  are already tracked; the owner confirmed Header CRC/Header Copy CRC as the
+  allowed post-Combiner diff scope on 2026-07-16.
 - [ ] Remaining selected CtrlRAM IC/version/count cases: direct expected output
   or exact fact-scoped alias, allowed diff, and owner review.
 - [ ] NT51931: owner decision on correct Combiner tool/mode before any parity
@@ -31,8 +33,9 @@ The complete versioned path list and per-case contract are in
 
 ## P1: blocks selected candidate promotion
 
-- [ ] NT51919 AB: direct golden or owner-approved AB-specific fact alias.
-- [ ] NT51929 AB: product golden and firmware-owner review.
+- [ ] NT51919 AB: firmware-owner approval of the existing manifest-declared
+  NT51929 AB-specific fact alias; a direct golden is optional if approved.
+- [ ] NT51929 AB: firmware-owner review of the existing direct golden/parity.
 - [ ] NT51932 AB: direct golden or owner-approved AB-specific fact alias, plus
   firmware-owner review.
 - [ ] NT51950 AB: firmware-owner runtime-promotion review only; do not
