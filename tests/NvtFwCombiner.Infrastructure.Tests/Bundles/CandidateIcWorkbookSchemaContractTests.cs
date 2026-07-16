@@ -44,6 +44,7 @@ public sealed class CandidateIcWorkbookSchemaContractTests
     [InlineData("leading-citation-whitespace")]
     [InlineData("leading-statement-whitespace")]
     [InlineData("trailing-scalar-whitespace")]
+    [InlineData("c1-control-statement")]
     [InlineData("artifact-role-source-mismatch")]
     [InlineData("empty-facts")]
     [InlineData("zero-length-range")]
@@ -92,6 +93,9 @@ public sealed class CandidateIcWorkbookSchemaContractTests
                 return;
             case "trailing-scalar-whitespace":
                 workbook["scalarFacts"] = ScalarStringFact("declared value ");
+                return;
+            case "c1-control-statement":
+                workbook["statementFacts"] = StatementFact("hidden\u0085text");
                 return;
             case "artifact-role-source-mismatch":
                 workbook["artifacts"]![0]!["sourceKind"] = "firmware";
