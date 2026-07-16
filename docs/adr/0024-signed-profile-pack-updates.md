@@ -45,7 +45,8 @@ records the proposed boundary before contracts and code are authorized.
 - Detect app and pack versions independently without automatic support
   promotion.
 - Keep the Legacy Combiner 1.13 executable/runner exception constrained and
-  prevent packs from adding arbitrary tools or command authority.
+  prevent packs from adding arbitrary tools or command authority; a future
+  combiner replacement remains a separately reviewed external tool package.
 
 ## Considered options
 
@@ -112,10 +113,15 @@ schema and processor allowlist. It may not contain:
 - candidate records represented as stable supported profiles.
 
 An already approved external processor binding must be installed and verified
-by the application package. A pack cannot install or replace Legacy Combiner,
-the Python CRC worker, or any other processor. The Legacy Combiner 1.13
-executable and constrained runner remain the explicit exception; their command,
-staging, and declared read/write evidence remain application/release authority.
+by application/release authority. A pack cannot install or replace Legacy
+Combiner, a future `combiner.exe`, the Python CRC worker, or any other processor.
+The current Legacy Combiner 1.13 executable, exact comparison command, and
+constrained runner remain the explicit evidence baseline. A future replacement
+combiner is delivered as a separately signed and hashed external tool package
+with reviewed invocation profiles, staging, read/write ranges, owner evidence,
+and clean-machine/package gates. Its postbuild algorithm remains outside this
+application; packs may select only an already installed allowlisted binding and
+cannot supply executable paths or free-form argv.
 
 ### Trust and discovery
 

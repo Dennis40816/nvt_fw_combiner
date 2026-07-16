@@ -33,6 +33,14 @@ are separated into ADR 0024 and the v0.9.11 milestone. This direction does not
 pre-accept the workbook format, UI, security, dependency, or signing choices
 that remain open in this Proposed ADR.
 
+The owner further clarified that the canonical IC data model and a versioned
+`.xlsx` worksheet/table contract must be defined before workbook parsing or UI
+authoring begins. The workbook and a later UI are two adapters over the same
+typed request; neither is the source of firmware semantics. The owner also
+confirmed that postbuild remains a standardized external-tool call. The current
+Legacy Combiner stays in place, while a future newer `combiner.exe` is supplied
+and reviewed outside this application rather than reimplemented here.
+
 The portable package has no general Python runtime, and its reviewed size
 ceiling leaves no room to bundle another Python distribution casually. Keeping
 the current Python semantics and adding an independent C# implementation would
@@ -141,6 +149,39 @@ The tool may offer parser-discovered syntax locations for the user to select,
 but an unconfirmed value remains unresolved. A filename, neighboring IC, common
 offset, command name, or successful parse never becomes a firmware fact.
 
+### Canonical model before workbook and UI
+
+The first v0.9.10 authoring contract is a typed, format-neutral candidate IC
+configuration model. A versioned workbook contract maps named tables to that
+model without embedding JSON fragments, executable commands, or application
+class names. The later UI produces the same typed request and therefore cannot
+gain a second set of defaults or validation rules.
+
+The workbook contract is defined and owner-reviewed before selecting a reader
+library. Its initial table families are:
+
+- candidate/family/member identity and intended modes;
+- address spaces, capacities, regions, groups, and access/atomicity declarations;
+- mode inputs, explicit mappings, output naming, and version locators;
+- approved processor, tool-binding, and invocation-profile identifiers;
+- fact dispositions, promotion impact, provenance, and exact evidence locations;
+  and
+- sample/expected-output case roles and immutable size/SHA-256 references.
+
+Exact worksheet/table names, required columns, cell types, row keys, ordering,
+null rules, cross-table references, and workbook limits belong to a separately
+versioned `candidate-ic-workbook-v1` contract with positive/negative fixtures.
+Sample BINs, expected outputs, mmap/BAT files, and owner records remain separate
+explicitly bound artifacts; the workbook references their stable artifact ids
+and never embeds private firmware bytes. A formula result, merged-cell layout,
+formatting, worksheet position, or filename cannot supply a hidden default.
+
+The normalized typed configuration is still candidate-only. It must validate
+against the intake contract, project only explicit facts to existing approved
+V2 documents, and pass the existing compiler before it can produce a candidate
+workspace. A workbook or UI submission never becomes an installed profile pack
+or a support claim directly.
+
 ### Source-reader constraints
 
 - Workbook input is read-only. Macro execution, formula evaluation, external
@@ -160,6 +201,23 @@ offset, command name, or successful parse never becomes a firmware fact.
 
 Adding a workbook/parser dependency requires a separate reviewed dependency and
 package-size decision. No dependency is implied by accepting this ADR.
+
+### External postbuild boundary
+
+Candidate IC configuration names only an already installed and allowlisted
+`processorId`, `toolBindingId`, and `invocationProfileId`. It cannot carry an
+executable path or free-form argv. BAT text is evidence used to review or select
+that binding; it is not runtime configuration.
+
+The current parity authority remains the exact Legacy Combiner 1.13 command and
+the existing constrained staging runner. A future newer `combiner.exe` is a
+separately versioned external tool package with release-owned hashes, manifest,
+invocation profiles, read/write authority, owner evidence, and clean-machine
+review. Replacing that package does not move its postbuild algorithm into this
+application. If the replacement fits the already approved processor protocol,
+IC configuration may select its reviewed binding without an application
+rebuild; a new protocol, processor semantics, or write authority still requires
+an application release and normal R2/R3 gates.
 
 ### Candidate workspace and contracts
 
@@ -287,20 +345,23 @@ firmware document normalization and compilation retain one Profiles owner.
 1. The owner and required security/dependency reviewers accept this ADR and the
    open choices below.
 2. Define typed Application request/result/issue contracts and the three port
-   families without UI, a Profiles project reference, or a new generated
-   workspace schema.
-3. Implement immutable Infrastructure readers and atomic workspace writing with
+   families plus the format-neutral candidate IC configuration contract without
+   UI, a Profiles project reference, or a new generated workspace schema.
+3. Define and owner-review `candidate-ic-workbook-v1` as a strict mapping to the
+   typed configuration before selecting or adding a workbook reader.
+4. Implement immutable Infrastructure readers and atomic workspace writing with
    no new runtime dependency; add cross-platform security tests.
-4. Implement a focused Bootstrap forwarding adapter that delegates candidate
+5. Implement a focused Bootstrap forwarding adapter that delegates candidate
    projection to existing Profiles V2 DTO/normalizer/compiler boundaries. Any
    new candidate-workspace schema is reviewed separately.
-5. Prove Python/C# four-record parity, keep the exact four-file root export, then
+6. Prove Python/C# four-record parity, keep the exact four-file root export, then
    remove Python from the product path.
-6. Review and version `candidate-workspace-v1` before persisting generated or
+7. Review and version `candidate-workspace-v1` before persisting generated or
    PR-ready outputs; typed previews do not pre-authorize that contract.
-7. Add a thin CLI replay handler and the Settings UI flow over the same use case.
-8. Run clean-package size/security smoke and keep the existing package ceiling.
-9. Keep every generated candidate unregistered until its normal evidence and
+8. Add a thin CLI replay handler and the Settings UI flow over the same typed
+   configuration use case.
+9. Run clean-package size/security smoke and keep the existing package ceiling.
+10. Keep every generated candidate unregistered until its normal evidence and
    owner-review PR is approved.
 
 Early v0.9.10 architecture/test work may proceed under the pre-tag candidate
@@ -351,9 +412,11 @@ predecessor is established.
    only until exact four-record parity and then retired.
 2. Accept strict `.xlsx` as the initial workbook contract, or identify required
    `.xlsm`/legacy `.xls` cases before reader design starts.
-3. Accept **Settings → New IC candidate** as a secondary surface without adding
+3. Approve the versioned sheet/table/column mapping after the format-neutral
+   candidate IC configuration contract is reviewed; UI work starts afterward.
+4. Accept **Settings → New IC candidate** as a secondary surface without adding
    a fourth top-level tab.
-4. Require the security reviewer to accept the workbook/archive, mmap/BAT,
+5. Require the security reviewer to accept the workbook/archive, mmap/BAT,
    private-payload, process-authority, and workspace threat model, and require a
    dependency/release reviewer to accept the selected reader dependency and
    measured package impact (or confirm that the initial slice adds none).
