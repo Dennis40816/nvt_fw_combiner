@@ -22,6 +22,7 @@ OUTPUT_FILES = (
     "missing-evidence.json",
     "validation-report.json",
 )
+OUTPUT_LOCK_FILE = ".candidate-ic-intake.lock"
 ID_PATTERN = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
 HASH_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 SEMVER_PATTERN = re.compile(
@@ -206,15 +207,191 @@ def open_validated_regular_file(
             os.close(descriptor)
 
 
-def resolve_directory(path: Path, description: str, *, empty: bool = False) -> Path:
+def resolve_directory(path: Path, description: str) -> Path:
     raw = path.expanduser().absolute()
     if not raw.is_dir():
         raise IntakeError(f"{description} must be an existing directory: {raw}")
     reject_reparse_points(raw)
     resolved = raw.resolve(strict=True)
-    if empty and any(resolved.iterdir()):
-        raise IntakeError(f"{description} directory must be empty: {resolved}")
     return resolved
+
+
+class ValidatedOutputDirectory:
+    """Keep candidate output bound to one directory while publishing files."""
+
+    def __init__(
+        self,
+        path: Path,
+        status: os.stat_result,
+        directory_descriptor: int | None,
+    ) -> None:
+        self.path = path
+        self.status = status
+        self.directory_descriptor = directory_descriptor
+        self.published_identities: dict[str, tuple[int, int]] = {}
+
+    def validate_identity(self) -> None:
+        try:
+            reject_reparse_points(self.path)
+            current = os.stat(self.path, follow_symlinks=False)
+        except OSError as exception:
+            raise IntakeError(
+                f"output directory changed while intake was running: {self.path}"
+            ) from exception
+        if not stat.S_ISDIR(current.st_mode) or (
+            current.st_dev,
+            current.st_ino,
+        ) != (self.status.st_dev, self.status.st_ino):
+            raise IntakeError(
+                f"output directory changed while intake was running: {self.path}"
+            )
+
+    def names(self) -> set[str]:
+        target: int | Path = (
+            self.directory_descriptor
+            if self.directory_descriptor is not None
+            else self.path
+        )
+        return set(os.listdir(target))
+
+    def require_names(self, expected: set[str]) -> None:
+        actual = self.names()
+        if actual != expected:
+            raise IntakeError(
+                "output directory changed while intake was running: "
+                f"expected {sorted(expected)}, found {sorted(actual)}"
+            )
+
+    def create_exclusive(self, name: str, *, temporary: bool = False) -> int:
+        flags = (
+            os.O_WRONLY
+            | os.O_CREAT
+            | os.O_EXCL
+            | getattr(os, "O_BINARY", 0)
+            | getattr(os, "O_CLOEXEC", 0)
+            | getattr(os, "O_NOFOLLOW", 0)
+        )
+        if temporary:
+            flags |= getattr(os, "O_TEMPORARY", 0)
+        if self.directory_descriptor is not None:
+            return os.open(name, flags, 0o666, dir_fd=self.directory_descriptor)
+        return os.open(self.path / name, flags, 0o666)
+
+    def unlink(self, name: str, *, missing_ok: bool = False) -> None:
+        try:
+            if self.directory_descriptor is not None:
+                os.unlink(name, dir_fd=self.directory_descriptor)
+            else:
+                os.unlink(self.path / name)
+        except FileNotFoundError:
+            if not missing_ok:
+                raise
+
+    def entry_status(self, name: str) -> os.stat_result:
+        if self.directory_descriptor is not None:
+            return os.stat(
+                name,
+                dir_fd=self.directory_descriptor,
+                follow_symlinks=False,
+            )
+        return os.stat(self.path / name, follow_symlinks=False)
+
+    def publish(self, temporary_name: str, final_name: str) -> None:
+        if self.directory_descriptor is None:
+            os.rename(self.path / temporary_name, self.path / final_name)
+            return
+        os.link(
+            temporary_name,
+            final_name,
+            src_dir_fd=self.directory_descriptor,
+            dst_dir_fd=self.directory_descriptor,
+            follow_symlinks=False,
+        )
+        try:
+            self.unlink(temporary_name)
+        except OSError:
+            self.unlink(final_name, missing_ok=True)
+            raise
+
+    def track_published(self, name: str) -> None:
+        status = self.entry_status(name)
+        if not stat.S_ISREG(status.st_mode):
+            raise IntakeError(f"candidate output is not a regular file: {name}")
+        self.published_identities[name] = (status.st_dev, status.st_ino)
+
+    def cleanup_published(self) -> None:
+        for name, expected in reversed(self.published_identities.items()):
+            try:
+                status = self.entry_status(name)
+            except FileNotFoundError:
+                continue
+            if (status.st_dev, status.st_ino) != expected:
+                raise IntakeError(
+                    f"candidate output changed before cleanup and was preserved: {name}"
+                )
+            self.unlink(name)
+        self.published_identities.clear()
+
+
+@contextmanager
+def open_validated_output_directory(
+    path: Path,
+) -> Iterator[ValidatedOutputDirectory]:
+    raw = path.expanduser().absolute()
+    if not raw.is_dir():
+        raise IntakeError(f"output must be an existing directory: {raw}")
+    reject_reparse_points(raw)
+    resolved = raw.resolve(strict=True)
+    directory_descriptor = -1
+    lock_descriptor = -1
+    output: ValidatedOutputDirectory | None = None
+    try:
+        if os.name != "nt":
+            directory_descriptor = os.open(
+                resolved,
+                os.O_RDONLY
+                | getattr(os, "O_DIRECTORY", 0)
+                | getattr(os, "O_CLOEXEC", 0)
+                | getattr(os, "O_NOFOLLOW", 0),
+            )
+            status = os.fstat(directory_descriptor)
+        else:
+            status = os.stat(resolved, follow_symlinks=False)
+        if not stat.S_ISDIR(status.st_mode):
+            raise IntakeError(
+                f"output must be a regular filesystem directory: {resolved}"
+            )
+        output = ValidatedOutputDirectory(
+            resolved,
+            status,
+            directory_descriptor if directory_descriptor >= 0 else None,
+        )
+        output.validate_identity()
+        if output.names():
+            raise IntakeError(f"output directory must be empty: {resolved}")
+        lock_descriptor = output.create_exclusive(
+            OUTPUT_LOCK_FILE,
+            temporary=os.name == "nt",
+        )
+        output.validate_identity()
+        output.require_names({OUTPUT_LOCK_FILE})
+        try:
+            yield output
+            output.validate_identity()
+            output.require_names(
+                {OUTPUT_LOCK_FILE, *output.published_identities.keys()}
+            )
+        except BaseException:
+            # The output boundary must roll back on cancellation as well as I/O errors.
+            output.cleanup_published()
+            raise
+    finally:
+        if lock_descriptor >= 0:
+            if os.name != "nt" and output is not None:
+                output.unlink(OUTPUT_LOCK_FILE, missing_ok=True)
+            os.close(lock_descriptor)
+        if directory_descriptor >= 0:
+            os.close(directory_descriptor)
 
 
 def validate_generated_at(value: str) -> str:
@@ -516,22 +693,38 @@ def build_outputs(
     }
 
 
-def write_outputs(output: Path, outputs: dict[str, dict[str, Any]]) -> None:
-    if any(output.iterdir()):
-        raise IntakeError(f"output directory changed while validating: {output}")
-    written: list[Path] = []
+def write_outputs(
+    output: ValidatedOutputDirectory, outputs: dict[str, dict[str, Any]]
+) -> None:
+    serialized = {
+        name: (
+            json.dumps(outputs[name], ensure_ascii=False, indent=2, sort_keys=True)
+            + "\n"
+        ).encode("utf-8")
+        for name in OUTPUT_FILES
+    }
+    temporary_names: list[str] = []
     try:
         for name in OUTPUT_FILES:
-            path = output / name
-            path.write_text(
-                json.dumps(outputs[name], ensure_ascii=False, indent=2, sort_keys=True)
-                + "\n",
-                encoding="utf-8",
-            )
-            written.append(path)
-    except OSError:
-        for path in written:
-            path.unlink(missing_ok=True)
+            temporary_name = f".{name}.tmp"
+            descriptor = output.create_exclusive(temporary_name)
+            temporary_names.append(temporary_name)
+            with os.fdopen(descriptor, "wb", closefd=True) as stream:
+                stream.write(serialized[name])
+                stream.flush()
+                os.fsync(stream.fileno())
+        output.validate_identity()
+        output.require_names({OUTPUT_LOCK_FILE, *temporary_names})
+        for name, temporary_name in zip(OUTPUT_FILES, temporary_names, strict=True):
+            output.publish(temporary_name, name)
+            output.track_published(name)
+        output.validate_identity()
+        output.require_names({OUTPUT_LOCK_FILE, *OUTPUT_FILES})
+    except BaseException:
+        # Never retain staged or published records after an interrupted intake.
+        for name in reversed(temporary_names):
+            output.unlink(name, missing_ok=True)
+        output.cleanup_published()
         raise
 
 
@@ -540,17 +733,17 @@ def main() -> int:
     try:
         manifest = read_json(args.evidence_manifest)
         source_root = resolve_directory(args.source_root, "source root")
-        output = resolve_directory(args.output, "output", empty=True)
         generated_at = validate_generated_at(args.generated_at)
         artifacts, facts = validate_manifest(manifest)
-        artifact_rows = verify_artifacts(
-            artifacts, source_root, parse_bindings(args.artifact, artifacts)
-        )
-        write_outputs(
-            output, build_outputs(manifest, facts, artifact_rows, generated_at)
-        )
+        with open_validated_output_directory(args.output) as output:
+            artifact_rows = verify_artifacts(
+                artifacts, source_root, parse_bindings(args.artifact, artifacts)
+            )
+            write_outputs(
+                output, build_outputs(manifest, facts, artifact_rows, generated_at)
+            )
         print(
-            f"Created candidate-only intake for '{manifest['manifestId']}' in {output}"
+            f"Created candidate-only intake for '{manifest['manifestId']}' in {output.path}"
         )
         return 0
     except (IntakeError, OSError) as exception:

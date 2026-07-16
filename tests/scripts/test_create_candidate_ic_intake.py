@@ -258,6 +258,106 @@ class CandidateIcIntakeTests(unittest.TestCase):
             ):
                 intake.read_json(self.manifest_path)
 
+    def test_interrupted_promotion_removes_every_partial_candidate_file(self) -> None:
+        outputs = self.build_candidate_outputs()
+
+        with intake.open_validated_output_directory(self.output) as output:
+            publish = output.publish
+
+            def interrupt_second_publish(temporary_name: str, final_name: str) -> None:
+                if final_name == intake.OUTPUT_FILES[1]:
+                    raise KeyboardInterrupt("simulated interruption")
+                publish(temporary_name, final_name)
+
+            with mock.patch.object(
+                output,
+                "publish",
+                side_effect=interrupt_second_publish,
+            ):
+                with self.assertRaisesRegex(
+                    KeyboardInterrupt, "simulated interruption"
+                ):
+                    intake.write_outputs(output, outputs)
+
+            self.assertEqual({intake.OUTPUT_LOCK_FILE}, output.names())
+
+        self.assertEqual([], list(self.output.iterdir()))
+
+    def test_promotion_never_overwrites_a_competing_output_file(self) -> None:
+        outputs = self.build_candidate_outputs()
+        competing_name = intake.OUTPUT_FILES[0]
+        competing_content = "preserve competing output\n"
+
+        with self.assertRaises(FileExistsError):
+            with intake.open_validated_output_directory(self.output) as output:
+                publish = output.publish
+
+                def inject_competing_file(temporary_name: str, final_name: str) -> None:
+                    if final_name == competing_name:
+                        (self.output / final_name).write_text(
+                            competing_content,
+                            encoding="utf-8",
+                        )
+                    publish(temporary_name, final_name)
+
+                with mock.patch.object(
+                    output,
+                    "publish",
+                    side_effect=inject_competing_file,
+                ):
+                    intake.write_outputs(output, outputs)
+
+        self.assertEqual(
+            competing_content,
+            (self.output / competing_name).read_text(encoding="utf-8"),
+        )
+        self.assertEqual(
+            [competing_name], [path.name for path in self.output.iterdir()]
+        )
+
+    @unittest.skipIf(os.name == "nt", "Unix directory-fd substitution coverage")
+    def test_unix_output_writes_stay_bound_to_the_opened_directory(self) -> None:
+        outputs = self.build_candidate_outputs()
+        original_output = self.root / "original-output"
+
+        with self.assertRaisesRegex(intake.IntakeError, "output directory changed"):
+            with intake.open_validated_output_directory(self.output) as output:
+                self.output.rename(original_output)
+                self.output.mkdir()
+                intake.write_outputs(output, outputs)
+
+        self.assertEqual([], list(original_output.iterdir()))
+        self.assertEqual([], list(self.output.iterdir()))
+
+    @unittest.skipUnless(os.name == "nt", "Windows output-lock coverage")
+    def test_windows_output_lock_blocks_directory_substitution(self) -> None:
+        with intake.open_validated_output_directory(self.output) as output:
+            with self.assertRaises(PermissionError):
+                self.output.rename(self.root / "substituted-output")
+            self.assertEqual({intake.OUTPUT_LOCK_FILE}, output.names())
+
+        self.assertEqual([], list(self.output.iterdir()))
+
+    def build_candidate_outputs(self) -> dict[str, dict[str, Any]]:
+        candidate_manifest = manifest(self.artifact_content)
+        artifacts, facts = intake.validate_manifest(candidate_manifest)
+        return intake.build_outputs(
+            candidate_manifest,
+            facts,
+            [
+                {
+                    "artifactId": artifact_id,
+                    "status": (
+                        "verified"
+                        if artifact_id == "flashmap-workbook"
+                        else "not-bound"
+                    ),
+                }
+                for artifact_id in sorted(artifacts)
+            ],
+            GENERATED_AT,
+        )
+
     def read_output(self, name: str) -> dict[str, Any]:
         return json.loads((self.output / name).read_text(encoding="utf-8"))
 
