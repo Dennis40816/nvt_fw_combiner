@@ -123,4 +123,28 @@ public sealed class StandardMergeCompilationTests
         Assert.Equal(expectedLength, WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(icId));
     }
 
+    /// <summary>Every selectable General Merge IC has a compiled V2 capacity source.</summary>
+    [Fact]
+    public void EverySelectableGeneralMergeIcHasACompiledV2CapacitySource()
+    {
+        foreach (string icId in WorkbenchCompositionService.GetSupportedIcIds())
+        {
+            Assert.True(WorkbenchCompositionService.IsStandardMergeSupported(icId));
+            Assert.StartsWith(
+                "0x",
+                WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(icId),
+                StringComparison.Ordinal);
+        }
+    }
+
+    /// <summary>An unknown IC cannot obtain General Merge capacity from a compatibility catalog.</summary>
+    [Fact]
+    public void UnknownGeneralMergeIcHasNoCompatibilityCapacityFallback()
+    {
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
+            () => WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength("NT00000"));
+
+        Assert.Contains("No compiled V2 Standard Merge profile", exception.Message, StringComparison.Ordinal);
+    }
+
 }

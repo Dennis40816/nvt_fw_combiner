@@ -23,7 +23,6 @@ public sealed partial class RepositoryBoundaryTests
                 "src/NvtFwCombiner.Application/FlashMaps/TpBinaryModelCatalog.cs",
                 "src/NvtFwCombiner.Bootstrap/IcMetadataFacade.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.CtrlRamDisplay.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Profile.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Coverage.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.Context.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.Planning.cs",

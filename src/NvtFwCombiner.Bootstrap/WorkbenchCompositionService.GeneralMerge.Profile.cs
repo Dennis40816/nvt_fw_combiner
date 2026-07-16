@@ -1,4 +1,3 @@
-using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -12,11 +11,8 @@ public static partial class WorkbenchCompositionService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
 
-        WorkbenchProfileSummary? standardMergeProfile = FindStandardMergeProfileSummaryByIc(icId);
-        if (standardMergeProfile is null)
-        {
-            return BootstrapRangeText.FormatHex(GetGeneralMergeCatalogFallbackCapacity(icId));
-        }
+        _ = FindStandardMergeProfileSummaryByIc(icId) ?? throw new InvalidOperationException(
+            $"No compiled V2 Standard Merge profile is registered for '{icId}'.");
 
         if (TryGetBuiltInV2StandardMergeAuthoringDefaultCapacity(
                 icId,
@@ -85,12 +81,5 @@ public static partial class WorkbenchCompositionService
 
         issue = null;
         return true;
-    }
-
-    private static long GetGeneralMergeCatalogFallbackCapacity(string icId)
-    {
-        return TpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? profile) && profile is not null
-            ? profile.Regions.Max(region => region.Range.EndExclusive)
-            : throw new InvalidOperationException($"No Standard Merge profile or TP flash-map profile is available for '{icId}'.");
     }
 }
