@@ -150,6 +150,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("FirmwareArtifactPayload", candidateBoundary, StringComparison.Ordinal);
         Assert.DoesNotContain("RunCompiledCompositionAsync", candidateBoundary, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionRunService", candidateBoundary, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileCompiler", candidateBoundary, StringComparison.Ordinal);
+        Assert.DoesNotContain("TpFlashMapCatalog", candidateBoundary, StringComparison.Ordinal);
+        Assert.DoesNotContain("IcMetadataFacade", candidateBoundary, StringComparison.Ordinal);
+        Assert.DoesNotContain("LegacyCombinerPostbuildCatalog", candidateBoundary, StringComparison.Ordinal);
         Assert.DoesNotContain("CompileNt51926CtrlRamReplaceV2Candidate", runtime, StringComparison.Ordinal);
         Assert.DoesNotContain("CompileNt51926CtrlRamReplaceV2Candidate", cli, StringComparison.Ordinal);
         Assert.Contains("nt51926-ctrlram-replace-candidate", project, StringComparison.Ordinal);

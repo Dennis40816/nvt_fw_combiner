@@ -40,6 +40,17 @@ by the CtrlRAM and General Replace Workbench adapters, while
 planning, number selection, metadata, and UI projections. Those rows remain
 open until their listed direct V2 parity evidence exists.
 
+`RemainingCompatibilityAuthoritiesHaveClosedProductionCallerSets` now locks
+the complete production caller allowlist at 2 `CompositionProfileCompiler`,
+13 `TpFlashMapCatalog`, 5 `IcMetadataFacade`, and 4 direct
+`LegacyCombinerPostbuildCatalog` caller files. Any new caller is an architecture
+failure; each removal must update the allowlist in the same reviewed migration.
+The NT51926 V2 candidate compile boundary is also locked against all four
+compatibility authorities. Its next removable caller is therefore the current
+CtrlRAM Workbench compiler route, not the candidate compiler. That runtime
+change remains blocked on the independent expected output and firmware-owner
+review recorded below; this test phase does not route or promote the candidate.
+
 This audit does not change the Legacy Combiner exception. Moving
 `LegacyCombinerPostbuildCatalog` declarations remains R3-gated on the exact
 1.13 command, staging/read/write authority, full-output golden evidence, and
