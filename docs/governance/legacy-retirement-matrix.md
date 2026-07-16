@@ -45,6 +45,11 @@ This audit does not change the Legacy Combiner exception. Moving
 1.13 command, staging/read/write authority, full-output golden evidence, and
 firmware-owner review.
 
+The per-consumer replacement conditions, measured deletion surface, retirement
+order, and every currently known R3 owner-evidence gap are recorded in the
+[v0.9.9 legacy retirement evidence inventory](v0.9.9-legacy-retirement-evidence.md).
+That inventory records no currently safe whole-module deletion.
+
 ## Non-targets
 
 `FirmwareConfigMetadataReader` is not a legacy retirement target. It is the
