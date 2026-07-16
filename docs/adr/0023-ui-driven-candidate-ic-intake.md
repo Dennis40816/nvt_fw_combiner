@@ -177,10 +177,13 @@ and never embeds private firmware bytes. A formula result, merged-cell layout,
 formatting, worksheet position, or filename cannot supply a hidden default.
 
 The normalized typed configuration is still candidate-only. It must validate
-against the intake contract, project only explicit facts to existing approved
-V2 documents, and pass the existing compiler before it can produce a candidate
-workspace. A workbook or UI submission never becomes an installed profile pack
-or a support claim directly.
+against the intake contract and may project only explicit facts to existing
+approved V2 documents. Missing facts or a compiler blocker do not prevent the
+four-record compatibility export: they remain deterministic entries in
+`missing-evidence.json` and `validation-report.json`. Generated executable V2
+artifacts and parity, however, require the applicable existing schemas,
+normalizer, map resolver, and compiler to pass. A workbook or UI submission
+never becomes an installed profile pack or a support claim directly.
 
 ### Source-reader constraints
 
@@ -209,15 +212,18 @@ Candidate IC configuration names only an already installed and allowlisted
 executable path or free-form argv. BAT text is evidence used to review or select
 that binding; it is not runtime configuration.
 
-The current parity authority remains the exact Legacy Combiner 1.13 command and
-the existing constrained staging runner. A future newer `combiner.exe` is a
-separately versioned external tool package with release-owned hashes, manifest,
-invocation profiles, read/write authority, owner evidence, and clean-machine
-review. Replacing that package does not move its postbuild algorithm into this
-application. If the replacement fits the already approved processor protocol,
-IC configuration may select its reviewed binding without an application
-rebuild; a new protocol, processor semantics, or write authority still requires
-an application release and normal R2/R3 gates.
+The current parity authority remains the exact Legacy Combiner 1.13.0 command,
+the installed `legacy-combiner-1.13.0` tool binding, and the existing constrained
+staging runner. A future newer `combiner.exe` is a separately versioned external
+tool package with release-owned hashes, a signed manifest/executable, reviewed
+invocation assets, owner evidence, and clean-machine review. IC/mode-specific
+read/write ranges remain in reviewed V2 profile data and the compiled plan; the
+tool package never grants firmware mutation authority. Replacing that package
+does not move its postbuild algorithm into this application. If the replacement
+fits the already approved processor protocol, IC configuration may select its
+reviewed binding without an application rebuild. A new protocol or processor
+semantics requires an application release; new IC-specific read/write authority
+requires normal V2 profile review and R3 firmware-owner evidence.
 
 ### Candidate workspace and contracts
 
@@ -267,8 +273,9 @@ schemas/compiler behavior.
 
 NT51950/NT51951 AB candidates retain full DP container initialization, require
 no `map.txt`, and never authorize C# to write the AB header CRC. Python-reference
-parity remains against the exact Legacy Combiner 1.13 command. NT51919/NT51932
-remain blocked without direct evidence or an approved fact-scoped alias package.
+parity remains against the exact Legacy Combiner 1.13.0 command through
+`legacy-combiner-1.13.0`. NT51919/NT51932 remain blocked without direct evidence
+or an approved fact-scoped alias package.
 
 ### UI placement and interaction
 
@@ -281,7 +288,10 @@ does not add a fourth top-level tab. The proposed flow is:
 3. Explicit source-location/fact binding with unresolved values visible.
 4. Validation review showing source hashes, missing evidence, generated artifact
    preview, V2 compile eligibility, and optional parity result.
-5. Export of the closed PR-ready workspace after confirmation.
+5. Export of the exact four-record compatibility set after confirmation. After
+   `candidate-workspace-v1` receives its separate contract/schema/security
+   approval, the same result may additionally export that closed PR-ready
+   wrapper.
 
 Technical JSON and diagnostics use the existing read-only raw-text style.
 English remains the default with Traditional Chinese resources, and the flow
