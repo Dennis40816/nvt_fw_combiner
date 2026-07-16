@@ -60,9 +60,12 @@ The command binds that directory for the complete validation-and-write interval.
 the opened directory descriptor for handle-relative staging and publication; Windows holds an
 exclusive temporary lock file that prevents the validated directory from being renamed or replaced.
 All four records are serialized before writing, staged with exclusive creation, flushed, and then
-published individually with atomic no-clobber filesystem operations. An error or interruption rolls
-back only files whose filesystem identities still match this run. A competing output is never
-overwritten or removed, and a successful command leaves exactly the four records above.
+published individually with atomic no-clobber filesystem operations. Each unpredictable staged name
+remains bound to its open file descriptor through hard-link publication, and the final name must
+resolve to that same filesystem identity before success. An error or interruption scans every staged
+and published identity, removes only files that still belong to this run, preserves all replacements,
+and reports them after the remaining cleanup completes. A competing output is never overwritten or
+removed, and a successful command leaves exactly the four records above.
 
 The command rejects approved manifests, output overwrite, path traversal, reparse points, lock files,
 unknown or duplicate artifact bindings, and hash or size mismatch. It never copies firmware payloads,
