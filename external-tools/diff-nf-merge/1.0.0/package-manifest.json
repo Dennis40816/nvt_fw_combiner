@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "1.0",
+  "packageId": "diff-nf-merge",
+  "toolVersion": "1.0.0.0",
+  "productVersion": "1.0.0+90ac4292c65f94fd123098f8174f3e2cf68d0d41",
+  "platform": "windows",
+  "requiredRuntime": ".NET Framework 4.6",
+  "runtimeIntegrationStatus": "not-registered",
+  "releasePackageStatus": "excluded",
+  "ownerReviewRequired": true,
+  "provenance": {
+    "receivedDate": "2026-07-17",
+    "transfer": "owner-provided HackMD CJK14 intake",
+    "originalExecutableName": "未確認 410043.crdownload",
+    "embeddedOriginalFilename": "DiffNFMerge.exe"
+  },
+  "files": [
+    {
+      "path": "CommandLine.dll",
+      "size": 225280,
+      "sha256": "e7d67580a8999d0e5534039f62e0dbc423b2d6dac51c2f5ff6ef199e4a53138d",
+      "role": "dependency",
+      "source": "CommandLineParser 2.9.1 official NuGet package, lib/net45"
+    },
+    {
+      "path": "DiffNFMerge.exe",
+      "size": 9728,
+      "sha256": "f611af7e315d46341e15cd7140eb3962f6ac05d337121e5554022ef5e69a2bbe",
+      "role": "executable"
+    },
+    {
+      "path": "DiffNFMerge.exe.config",
+      "size": 174,
+      "sha256": "e2f8febf28b49915d142e4b698435d53b7eb3443853bd2892b86fe20e8895620",
+      "role": "runtime-config"
+    },
+    {
+      "path": "LICENSE.CommandLineParser.md",
+      "size": 1111,
+      "sha256": "87a1efc79d6ee27ee9dcc01534e2be6f26839e4a6b8e53b6d91458aae08831fa",
+      "role": "license"
+    }
+  ],
+  "inputContractStatus": "unverified; deferred to the v0.12.x integration"
+}

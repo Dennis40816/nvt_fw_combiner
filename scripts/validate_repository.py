@@ -16,6 +16,11 @@ from urllib.parse import unquote
 
 from ab_merge_fixture_validation import validate_ab_merge_golden_fixtures
 from code_size_policy import validate_code_size_policy
+from external_tool_policy import (
+    ALLOWED_EXTERNAL_TOOL_BINARY_PAYLOADS,
+    APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS,
+    APPROVED_EXTERNAL_TOOL_REPOSITORY_PATHS,
+)
 from repository_contract_validation import validate_v2_contract_model
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,7 +33,7 @@ REQUIRED_FILES = {
     "scripts/bootstrap.ps1", "scripts/bootstrap.sh", "scripts/install-dotnet.ps1",
     "scripts/install-dotnet.sh", "scripts/package.ps1", "scripts/polytail_check.py",
     "scripts/publish-github.ps1", "scripts/publish-github.sh", "scripts/validate_repository.py",
-    "scripts/code_size_policy.py", "scripts/repository_contract_validation.py",
+    "scripts/code_size_policy.py", "scripts/external_tool_policy.py", "scripts/repository_contract_validation.py",
     "scripts/verify_ctrlram_replace_fixture.py", "scripts/verify.py", "external-tools/README.md",
     "external-tools/legacy-combiner/README.md", "external-tools/legacy-combiner/1.13.0/manifest.json",
     "testdata/golden/standard-merge-gen-flash/manifest.json",
@@ -156,15 +161,7 @@ ALLOWED_GOLDEN_BIN_ROOTS = {
     PurePosixPath("testdata/golden/standard-merge-gen-flash"),
     PurePosixPath("testdata/golden/ctrlram-replace/fixtures"),
 }
-ALLOWED_EXECUTABLE_PAYLOADS = {
-    PurePosixPath("external-tools/legacy-combiner/1.13.0/Combiner.exe"),
-}
-APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS = {
-    PurePosixPath("external-tools/README.md"),
-    PurePosixPath("external-tools/legacy-combiner/README.md"),
-    PurePosixPath("external-tools/legacy-combiner/1.13.0/Combiner.exe"),
-    PurePosixPath("external-tools/legacy-combiner/1.13.0/manifest.json"),
-}
+ALLOWED_EXECUTABLE_PAYLOADS = ALLOWED_EXTERNAL_TOOL_BINARY_PAYLOADS
 FORBIDDEN_DIRECTORY_NAMES = {"__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", ".venv", "venv", "artifacts", "release", "bin", "obj"}
 FORBIDDEN_REFCODE_SUFFIXES = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"}
 SNAPSHOT_CODE_SUFFIXES = {".py", ".json", ".txt", ".bat"}
@@ -723,9 +720,9 @@ def validate_packaging_policy(files: Iterable[Path], errors: list[str]) -> None:
         for path in files
         if path.relative_to(ROOT).parts[:1] == ("external-tools",)
     }
-    if tracked_external_tools != APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS:
+    if tracked_external_tools != APPROVED_EXTERNAL_TOOL_REPOSITORY_PATHS:
         errors.append(
-            "tracked external-tools files differ from the release package allowlist: "
+            "tracked external-tools files differ from the approved repository inventory: "
             f"{', '.join(str(path) for path in sorted(tracked_external_tools))}"
         )
 

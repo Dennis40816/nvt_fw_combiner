@@ -1,10 +1,14 @@
 # External Tools
 
-`external-tools/` contains owner-approved runtime tool packages. These files may be copied into release artifacts when the manifest and SHA-256 match.
+`external-tools/` contains owner-approved, hash-pinned tool packages. A package is copied into release artifacts only when the release allowlist explicitly includes every file; repository intake alone does not promote runtime or release support.
 
-Current package:
+Current runtime and release package:
 
 - `legacy-combiner/1.13.0/Combiner.exe`
+
+Repository-only intake:
+
+- `diff-nf-merge/1.0.0/`: owner-supplied cascade NF compiler package. It is not registered as a processor and is not copied into release artifacts. See its package manifest and README for the remaining evidence and safety gates.
 
 ## Adding A Combiner Version
 
