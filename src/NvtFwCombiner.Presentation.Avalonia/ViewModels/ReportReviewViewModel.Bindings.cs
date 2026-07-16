@@ -48,13 +48,13 @@ public sealed partial class ReportReviewViewModel
     public long OutputSize { get; }
 
     /// <summary>True when the report output was written to disk.</summary>
-    public bool IsOutputCommitted { get; }
+    public bool IsOutputCommitted => outputCommitted == true;
 
     /// <summary>True when the report describes a preview-only output.</summary>
-    public bool IsOutputPreview { get; }
+    public bool IsOutputPreview => outputCommitted == false;
 
     /// <summary>True when the report does not state whether output was committed.</summary>
-    public bool IsOutputStateUnknown { get; }
+    public bool IsOutputStateUnknown => outputCommitted is null;
 
     /// <summary>Readable output size label for the primary report summary.</summary>
     public string OutputSizeLabel { get; }
@@ -72,7 +72,7 @@ public sealed partial class ReportReviewViewModel
     public string OutputArtifactPath { get; }
 
     /// <summary>True when the current UI session knows the committed output artifact path.</summary>
-    public bool HasOutputArtifactPath { get; }
+    public bool HasOutputArtifactPath => !string.IsNullOrWhiteSpace(OutputArtifactPath);
 
     /// <summary>Input artifact rows.</summary>
     public IReadOnlyList<ReportLineViewModel> Inputs { get; }
@@ -84,13 +84,13 @@ public sealed partial class ReportReviewViewModel
     public IReadOnlyList<ReportInputGroupViewModel> InputGroups { get; }
 
     /// <summary>True when grouped input rows are available.</summary>
-    public bool HasInputGroups { get; }
+    public bool HasInputGroups => InputGroups.Count > 0;
 
     /// <summary>True when input details are available.</summary>
-    public bool HasInputs { get; }
+    public bool HasInputs => Inputs.Count > 0;
 
     /// <summary>True when no input details are available.</summary>
-    public bool HasNoInputs { get; }
+    public bool HasNoInputs => !HasInputs;
 
     /// <summary>Operation rows.</summary>
     public IReadOnlyList<ReportLineViewModel> Operations { get; }
@@ -102,19 +102,19 @@ public sealed partial class ReportReviewViewModel
     public IReadOnlyList<ReportOperationFlowNodeViewModel> OperationFlow { get; }
 
     /// <summary>True when operation flow nodes are available.</summary>
-    public bool HasOperationFlow { get; }
+    public bool HasOperationFlow => OperationFlow.Count > 0;
 
     /// <summary>True when operation details are available.</summary>
-    public bool HasOperations { get; }
+    public bool HasOperations => Operations.Count > 0;
 
     /// <summary>True when no operation flow or detail rows are available.</summary>
-    public bool HasNoOperations { get; }
+    public bool HasNoOperations => !HasOperationFlow && !HasOperations;
 
     /// <summary>Operations that contain a fixed-width external command block.</summary>
     public IReadOnlyList<ReportLineViewModel> CommandOperations { get; }
 
     /// <summary>True when external command operations are available.</summary>
-    public bool HasCommandOperations { get; }
+    public bool HasCommandOperations => CommandOperations.Count > 0;
 
     /// <summary>Actual postbuild process invocations flattened into independently numbered review rows.</summary>
     public IReadOnlyList<ReportPostbuildInvocationViewModel> PostbuildInvocations { get; }
@@ -123,10 +123,10 @@ public sealed partial class ReportReviewViewModel
     public int PostbuildInvocationCount => PostbuildInvocations.Count;
 
     /// <summary>True when postbuild invocation or declared-plan rows are available.</summary>
-    public bool HasPostbuildInvocations { get; }
+    public bool HasPostbuildInvocations => PostbuildInvocations.Count > 0;
 
     /// <summary>True when no postbuild invocation or declared-plan rows are available.</summary>
-    public bool HasNoPostbuildInvocations { get; }
+    public bool HasNoPostbuildInvocations => !HasPostbuildInvocations;
 
     /// <summary>Operations that do not contain an external command block.</summary>
     public IReadOnlyList<ReportLineViewModel> StepOperations { get; }
@@ -135,7 +135,7 @@ public sealed partial class ReportReviewViewModel
     public int StepOperationCount => StepOperations.Count;
 
     /// <summary>True when non-command operation details are available.</summary>
-    public bool HasStepOperations { get; }
+    public bool HasStepOperations => StepOperations.Count > 0;
 
     /// <summary>Mutation rows.</summary>
     public IReadOnlyList<ReportLineViewModel> Mutations { get; }
@@ -144,7 +144,7 @@ public sealed partial class ReportReviewViewModel
     public int MutationCount => Mutations.Count;
 
     /// <summary>True when mutation details are available.</summary>
-    public bool HasMutations { get; }
+    public bool HasMutations => Mutations.Count > 0;
 
     /// <summary>Final output-vs-reference difference rows.</summary>
     public IReadOnlyList<ReportLineViewModel> OutputDifferences { get; }
@@ -156,10 +156,10 @@ public sealed partial class ReportReviewViewModel
     public IReadOnlyList<ReportDifferenceGroupViewModel> OutputDifferenceGroups { get; }
 
     /// <summary>True when output difference details are available.</summary>
-    public bool HasOutputDifferences { get; }
+    public bool HasOutputDifferences => OutputDifferences.Count > 0;
 
     /// <summary>True when no output differences or changed ranges are available.</summary>
-    public bool HasNoByteChanges { get; }
+    public bool HasNoByteChanges => !HasOutputDifferences && !HasMutations;
 
     /// <summary>Simplified output-difference rows for the primary report view.</summary>
     public IReadOnlyList<ReportDifferenceSummaryRowViewModel> OutputDifferenceSummaryRows { get; }
@@ -183,37 +183,31 @@ public sealed partial class ReportReviewViewModel
     public int IssueCount => Issues.Count;
 
     /// <summary>True when issue or warning diagnostics are available.</summary>
-    public bool HasIssues { get; }
+    public bool HasIssues => Issues.Count > 0;
 
     /// <summary>True when no issue or warning diagnostics are available.</summary>
-    public bool HasNoIssues { get; }
-
-    /// <summary>Warning diagnostics that do not block a successful run.</summary>
-    public IReadOnlyList<ReportLineViewModel> Warnings { get; }
+    public bool HasNoIssues => !HasIssues;
 
     /// <summary>Number of warning diagnostics.</summary>
-    public int WarningCount => Warnings.Count;
+    public int WarningCount => CountWarnings(Issues);
 
     /// <summary>True when warning diagnostics are available.</summary>
-    public bool HasWarnings { get; }
-
-    /// <summary>Blocking issue diagnostics.</summary>
-    public IReadOnlyList<ReportLineViewModel> BlockingIssues { get; }
+    public bool HasWarnings => WarningCount > 0;
 
     /// <summary>Number of blocking issue diagnostics.</summary>
-    public int BlockingIssueCount => BlockingIssues.Count;
+    public int BlockingIssueCount => CountBlockingIssues(Issues);
 
     /// <summary>True when warnings exist but no blocking issue exists.</summary>
-    public bool HasWarningsWithoutBlockingIssues { get; }
+    public bool HasWarningsWithoutBlockingIssues => HasWarnings && !HasPrimaryIssue;
 
     /// <summary>The first issue to show as the report's primary reason.</summary>
     public ReportLineViewModel PrimaryIssue { get; }
 
     /// <summary>True when the report should show a primary blocking reason.</summary>
-    public bool HasPrimaryIssue { get; }
+    public bool HasPrimaryIssue => BlockingIssueCount > 0;
 
     /// <summary>True when the report has neither blocking issues nor warnings.</summary>
-    public bool IsClean { get; }
+    public bool IsClean => !HasPrimaryIssue && !HasWarnings;
 
     /// <summary>Primary report outcome shown before detailed evidence.</summary>
     public string OutcomeTitle { get; }
