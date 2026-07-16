@@ -336,6 +336,77 @@ class CandidateIcIntakeTests(unittest.TestCase):
 
         self.assertEqual([], list(self.output.iterdir()))
 
+    def test_link_then_cancellation_is_tracked_for_rollback(self) -> None:
+        outputs = self.build_candidate_outputs()
+        link = output_boundary.os.link
+        interrupted = False
+
+        def link_then_interrupt(*args: Any, **kwargs: Any) -> None:
+            nonlocal interrupted
+            link(*args, **kwargs)
+            if not interrupted:
+                interrupted = True
+                raise KeyboardInterrupt("simulated post-link interruption")
+
+        with self.assertRaisesRegex(
+            KeyboardInterrupt,
+            "simulated post-link interruption",
+        ):
+            with intake.open_validated_output_directory(self.output) as output:
+                with mock.patch.object(
+                    output_boundary.os,
+                    "link",
+                    side_effect=link_then_interrupt,
+                ):
+                    intake.write_outputs(output, outputs)
+
+        self.assertTrue(interrupted)
+        self.assertEqual([], list(self.output.iterdir()))
+
+    def test_success_path_rechecks_temp_identity_at_unlink(self) -> None:
+        outputs = self.build_candidate_outputs()
+        competing_content = b"replacement at successful temp unlink\n"
+        substituted_name: str | None = None
+
+        with self.assertRaisesRegex(
+            intake.IntakeError,
+            "changed before cleanup and was preserved",
+        ):
+            with intake.open_validated_output_directory(self.output) as output:
+                unlink = output.unlink
+
+                def substitute_at_unlink(
+                    name: str,
+                    *,
+                    missing_ok: bool = False,
+                    expected_identity: tuple[int, int] | None = None,
+                ) -> bool:
+                    nonlocal substituted_name
+                    if expected_identity is not None and substituted_name is None:
+                        unlink(name)
+                        (self.output / name).write_bytes(competing_content)
+                        substituted_name = name
+                    return unlink(
+                        name,
+                        missing_ok=missing_ok,
+                        expected_identity=expected_identity,
+                    )
+
+                with mock.patch.object(
+                    output,
+                    "unlink",
+                    side_effect=substitute_at_unlink,
+                ):
+                    intake.write_outputs(output, outputs)
+
+        assert substituted_name is not None
+        self.assertEqual(
+            [substituted_name], [path.name for path in self.output.iterdir()]
+        )
+        self.assertEqual(
+            competing_content, (self.output / substituted_name).read_bytes()
+        )
+
     def test_promotion_never_overwrites_a_competing_output_file(self) -> None:
         outputs = self.build_candidate_outputs()
         competing_name = intake.OUTPUT_FILES[0]

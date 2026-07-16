@@ -234,23 +234,30 @@ class ValidatedOutputDirectory:
             f"staged candidate output changed before publication: {temporary_name}",
         )
 
-        if self.directory_descriptor is None:
-            os.link(
-                self.path / temporary_name,
-                self.path / final_name,
-                follow_symlinks=False,
-            )
-        else:
-            os.link(
-                temporary_name,
-                final_name,
-                src_dir_fd=self.directory_descriptor,
-                dst_dir_fd=self.directory_descriptor,
-                follow_symlinks=False,
-            )
-
         self.published_identities[final_name] = expected
         self.published_content[final_name] = content
+        try:
+            if self.directory_descriptor is None:
+                os.link(
+                    self.path / temporary_name,
+                    self.path / final_name,
+                    follow_symlinks=False,
+                )
+            else:
+                os.link(
+                    temporary_name,
+                    final_name,
+                    src_dir_fd=self.directory_descriptor,
+                    dst_dir_fd=self.directory_descriptor,
+                    follow_symlinks=False,
+                )
+        except OSError:
+            # A failed link syscall created no final entry. Cancellation remains
+            # tracked because it may arrive after the link became visible.
+            del self.published_identities[final_name]
+            del self.published_content[final_name]
+            raise
+
         try:
             published_identity = self.regular_entry_identity(
                 final_name,
@@ -285,7 +292,11 @@ class ValidatedOutputDirectory:
                 "staged candidate output changed during publication and was preserved: "
                 f"{temporary_name}"
             )
-        self.unlink(temporary_name)
+        if not self.unlink(temporary_name, expected_identity=expected):
+            raise IntakeError(
+                "staged candidate output changed during publication and was preserved: "
+                f"{temporary_name}"
+            )
         del self.staged_identities[temporary_name]
 
     def validate_published(self) -> None:
