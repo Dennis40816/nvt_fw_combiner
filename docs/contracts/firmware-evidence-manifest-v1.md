@@ -59,23 +59,27 @@ The empty output directory receives only four deterministic JSON records:
 - `validation-report.json` — artifact verification results and the candidate-only scope.
 
 The command binds that directory for the complete validation-and-write interval. Unix writes use
-the opened directory descriptor for handle-relative staging and publication; Windows holds an
-exclusive temporary lock file that prevents the validated directory from being renamed or replaced.
+the opened directory descriptor for handle-relative staging and publication and use exact directory
+membership checks instead of a racy named lock. Windows holds an exclusive temporary lock file that
+prevents the validated directory from being renamed or replaced.
 All four records are serialized before writing, staged with exclusive creation, flushed, and then
 published individually with atomic no-clobber filesystem operations. Each unpredictable staged name
 remains bound to its open file descriptor through hard-link publication, and the final name must
 resolve to that same filesystem identity before success. The descriptor content must also match the
 pre-serialized byte length and SHA-256 before linking, after linking, and at final publication
-validation. The output directory descriptor must match the identity captured before open. The lock
-name must still identify the original lock before final validation and is unlinked only when that
-identity matches.
+validation, and each final name is rechecked after its descriptor content is read. The output
+directory descriptor must match the identity captured before open. On Windows, the lock name must
+still identify the original exclusive temporary lock before final validation; closing that handle
+performs the operating-system-owned cleanup.
 
-An error or interruption removes tracked staged and published names, scans the selected output
-directory for additional hard links to those run-owned identities, preserves unrelated replacements,
-and reports cleanup failures only after the remaining cleanup completes. A competing output is never
-overwritten or removed, and a successful command leaves exactly the four records above. These are
-point-in-time guarantees through the final locked validation; after the command releases its lock,
-the caller owns and must protect the resulting directory from later mutation.
+An error or interruption scans the selected output directory for additional hard links while the
+tracked names still anchor their run-owned identities, then removes the tracked staged and published
+names. This ordering prevents a freed file id from being reused by an unrelated file during the
+hard-link scan. Cleanup preserves unrelated replacements and reports failures only after the
+remaining cleanup completes. A competing output is never overwritten or removed, and a successful
+command leaves exactly the four records above. These are point-in-time guarantees through the final
+boundary validation; after the command closes its boundary handles, the caller owns and must protect
+the resulting directory from later mutation.
 
 The command rejects approved manifests, output overwrite, path traversal, reparse points, lock files,
 unknown or duplicate artifact bindings, and hash or size mismatch. It never copies firmware payloads,

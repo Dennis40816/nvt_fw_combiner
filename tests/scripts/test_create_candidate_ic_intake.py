@@ -307,7 +307,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
                 ):
                     intake.write_outputs(output, outputs)
 
-            self.assertEqual({intake.OUTPUT_LOCK_FILE}, output.names())
+            self.assertEqual(output.active_names(), output.names())
 
         self.assertEqual([], list(self.output.iterdir()))
 
@@ -483,7 +483,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
                         substituted_name = next(
                             name
                             for name in output.names()
-                            if name != intake.OUTPUT_LOCK_FILE
+                            if name not in output.active_names()
                         )
                         output.unlink(substituted_name)
                         (self.output / substituted_name).write_bytes(competing_content)
@@ -541,25 +541,99 @@ class CandidateIcIntakeTests(unittest.TestCase):
                 ):
                     intake.write_outputs(output, outputs)
 
-            self.assertEqual({intake.OUTPUT_LOCK_FILE}, output.names())
+            self.assertEqual(output.active_names(), output.names())
 
         self.assertEqual([], list(self.output.iterdir()))
 
-    @unittest.skipIf(os.name == "nt", "Unix lock-substitution coverage")
-    def test_unix_lock_cleanup_preserves_a_substituted_directory(self) -> None:
+    def test_rollback_scans_hardlinks_before_releasing_tracked_anchors(self) -> None:
         outputs = self.build_candidate_outputs()
-        replacement = self.output / intake.OUTPUT_LOCK_FILE
+        unrelated = self.output / "unrelated-after-cleanup.json"
 
-        with self.assertRaisesRegex(intake.IntakeError, "intake lock changed"):
-            with intake.open_validated_output_directory(self.output) as output:
-                intake.write_outputs(output, outputs)
-                output.unlink(intake.OUTPUT_LOCK_FILE)
-                replacement.mkdir()
+        with intake.open_validated_output_directory(self.output) as output:
+            intake.write_outputs(output, outputs)
+            reused_status = output.entry_status(intake.OUTPUT_FILES[0])
+            cleanup_identities = output._cleanup_identities
+            entry_status = output.entry_status
+            cleanup_calls = 0
 
-        self.assertTrue(replacement.is_dir())
+            def cleanup_then_simulate_reuse(
+                identities: dict[str, tuple[int, int]],
+            ) -> tuple[list[str], list[tuple[str, OSError]]]:
+                nonlocal cleanup_calls
+                result = cleanup_identities(identities)
+                cleanup_calls += 1
+                if cleanup_calls == 2:
+                    unrelated.write_text("unrelated bytes\n", encoding="utf-8")
+                return result
+
+            def report_reused_identity(name: str) -> os.stat_result:
+                if name == unrelated.name and unrelated.exists():
+                    return reused_status
+                return entry_status(name)
+
+            with (
+                mock.patch.object(
+                    output,
+                    "_cleanup_identities",
+                    side_effect=cleanup_then_simulate_reuse,
+                ),
+                mock.patch.object(
+                    output,
+                    "entry_status",
+                    side_effect=report_reused_identity,
+                ),
+            ):
+                output.cleanup_tracked()
+
+            self.assertEqual("unrelated bytes\n", unrelated.read_text(encoding="utf-8"))
+            unrelated.unlink()
+            self.assertEqual(output.active_names(), output.names())
+
+    @unittest.skipIf(os.name == "nt", "Unix descriptor-only lock coverage")
+    def test_unix_uses_no_racy_named_lock(self) -> None:
+        outputs = self.build_candidate_outputs()
+
+        with intake.open_validated_output_directory(self.output) as output:
+            self.assertEqual(set(), output.names())
+            intake.write_outputs(output, outputs)
+            self.assertEqual(set(intake.OUTPUT_FILES), output.names())
+
         self.assertEqual(
-            {intake.OUTPUT_LOCK_FILE}, {path.name for path in self.output.iterdir()}
+            set(intake.OUTPUT_FILES), {path.name for path in self.output.iterdir()}
         )
+
+    @unittest.skipIf(os.name == "nt", "Unix final-path substitution coverage")
+    def test_final_validation_rechecks_name_after_descriptor_read(self) -> None:
+        outputs = self.build_candidate_outputs()
+        replaced_name = intake.OUTPUT_FILES[0]
+        competing_content = b"replacement after descriptor read\n"
+
+        with self.assertRaisesRegex(
+            intake.IntakeError,
+            "candidate output changed before cleanup and was preserved",
+        ):
+            with intake.open_validated_output_directory(self.output) as output:
+                validate_content = output._validate_descriptor_content
+                replaced = False
+
+                def replace_after_content_validation(*args: Any, **kwargs: Any) -> None:
+                    nonlocal replaced
+                    validate_content(*args, **kwargs)
+                    message = args[3]
+                    if not replaced and "after publication" in message:
+                        output.unlink(replaced_name)
+                        (self.output / replaced_name).write_bytes(competing_content)
+                        replaced = True
+
+                with mock.patch.object(
+                    output,
+                    "_validate_descriptor_content",
+                    side_effect=replace_after_content_validation,
+                ):
+                    intake.write_outputs(output, outputs)
+
+        self.assertEqual(competing_content, (self.output / replaced_name).read_bytes())
+        self.assertEqual([replaced_name], [path.name for path in self.output.iterdir()])
 
     @unittest.skipIf(os.name == "nt", "Unix directory-fd substitution coverage")
     def test_unix_output_rejects_substitution_before_directory_open(self) -> None:
@@ -615,7 +689,7 @@ class CandidateIcIntakeTests(unittest.TestCase):
         with intake.open_validated_output_directory(self.output) as output:
             with self.assertRaises(PermissionError):
                 self.output.rename(self.root / "substituted-output")
-            self.assertEqual({intake.OUTPUT_LOCK_FILE}, output.names())
+            self.assertEqual(output.active_names(), output.names())
 
         self.assertEqual([], list(self.output.iterdir()))
 

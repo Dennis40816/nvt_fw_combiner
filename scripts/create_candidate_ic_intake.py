@@ -17,7 +17,6 @@ from typing import Any, BinaryIO, Iterator
 
 if __package__:
     from .candidate_intake_output import (
-        OUTPUT_LOCK_FILE,
         IntakeError,
         ValidatedOutputDirectory,
         open_validated_output_directory,
@@ -26,7 +25,6 @@ if __package__:
     )
 else:
     from candidate_intake_output import (
-        OUTPUT_LOCK_FILE,
         IntakeError,
         ValidatedOutputDirectory,
         open_validated_output_directory,
@@ -542,12 +540,12 @@ def write_outputs(
                 stream.flush()
                 os.fsync(stream.fileno())
         output.validate_identity()
-        output.require_names({OUTPUT_LOCK_FILE, *(item[1] for item in staged_outputs)})
+        output.require_names(output.active_names(*(item[1] for item in staged_outputs)))
         for name, temporary_name, descriptor in staged_outputs:
             output.publish(temporary_name, name, descriptor, serialized[name])
         output.validate_identity()
         output.validate_published()
-        output.require_names({OUTPUT_LOCK_FILE, *OUTPUT_FILES})
+        output.require_names(output.active_names(*OUTPUT_FILES))
     except BaseException as exception:
         # Never retain staged or published records after an interrupted intake.
         for _, _, descriptor in reversed(staged_outputs):

@@ -96,6 +96,12 @@ class ValidatedOutputDirectory:
                 f"expected {sorted(expected)}, found {sorted(actual)}"
             )
 
+    def active_names(self, *names: str) -> set[str]:
+        expected = set(names)
+        if self.lock_identity is not None:
+            expected.add(OUTPUT_LOCK_FILE)
+        return expected
+
     def create_exclusive(
         self,
         name: str,
@@ -277,6 +283,16 @@ class ValidatedOutputDirectory:
                     self.published_content[name],
                     f"candidate output bytes changed after publication: {name}",
                 )
+                try:
+                    current = self.regular_entry_identity(name, "candidate output")
+                except FileNotFoundError as exception:
+                    raise IntakeError(
+                        f"candidate output changed after publication: {name}"
+                    ) from exception
+                if current != expected:
+                    raise IntakeError(
+                        f"candidate output changed after publication: {name}"
+                    )
             finally:
                 if descriptor >= 0:
                     os.close(descriptor)
@@ -339,28 +355,22 @@ class ValidatedOutputDirectory:
         if current != self.lock_identity:
             raise IntakeError("candidate intake lock changed while running")
 
-    def unlink_lock_if_owned(self) -> None:
-        if self.lock_identity is None:
-            return
-        try:
-            status = self.entry_status(OUTPUT_LOCK_FILE)
-        except FileNotFoundError:
-            return
-        if stat.S_ISREG(status.st_mode) and self.identity(status) == self.lock_identity:
-            self.unlink(OUTPUT_LOCK_FILE)
-
     def cleanup_tracked(self) -> None:
         tracked = {
             *self.staged_identities.values(),
             *self.published_identities.values(),
         }
+        tracked_names = {
+            *self.staged_identities.keys(),
+            *self.published_identities.keys(),
+        }
+        hardlink_failures = self._cleanup_matching_hardlinks(tracked, tracked_names)
         staged_preserved, staged_failures = self._cleanup_identities(
             self.staged_identities
         )
         published_preserved, published_failures = self._cleanup_identities(
             self.published_identities
         )
-        hardlink_failures = self._cleanup_matching_hardlinks(tracked)
         messages: list[str] = []
         if staged_preserved:
             messages.append(
@@ -411,6 +421,7 @@ class ValidatedOutputDirectory:
     def _cleanup_matching_hardlinks(
         self,
         identities: set[tuple[int, int]],
+        tracked_names: set[str],
     ) -> list[tuple[str, OSError]]:
         failures: list[tuple[str, OSError]] = []
         if not identities:
@@ -420,7 +431,7 @@ class ValidatedOutputDirectory:
         except OSError as exception:
             return [("<output-directory>", exception)]
         for name in sorted(names):
-            if name == OUTPUT_LOCK_FILE:
+            if name == OUTPUT_LOCK_FILE or name in tracked_names:
                 continue
             try:
                 status = self.entry_status(name)
@@ -476,22 +487,23 @@ def open_validated_output_directory(
         output.validate_identity()
         if output.names():
             raise IntakeError(f"output directory must be empty: {resolved}")
-        lock_descriptor = output.create_exclusive(
-            OUTPUT_LOCK_FILE,
-            temporary=os.name == "nt",
-        )
-        output.record_lock(lock_descriptor)
+        if os.name == "nt":
+            lock_descriptor = output.create_exclusive(
+                OUTPUT_LOCK_FILE,
+                temporary=True,
+            )
+            output.record_lock(lock_descriptor)
         output.validate_identity()
-        output.validate_lock()
-        output.require_names({OUTPUT_LOCK_FILE})
+        if lock_descriptor >= 0:
+            output.validate_lock()
+        output.require_names(output.active_names())
         try:
             yield output
             output.validate_identity()
-            output.validate_lock()
+            if lock_descriptor >= 0:
+                output.validate_lock()
             output.validate_published()
-            output.require_names(
-                {OUTPUT_LOCK_FILE, *output.published_identities.keys()}
-            )
+            output.require_names(output.active_names(*output.published_identities))
         except BaseException as exception:
             # The output boundary must roll back on cancellation as well as I/O errors.
             try:
@@ -501,8 +513,6 @@ def open_validated_output_directory(
             raise
     finally:
         if lock_descriptor >= 0:
-            if os.name != "nt" and output is not None:
-                output.unlink_lock_if_owned()
             os.close(lock_descriptor)
         if directory_descriptor >= 0:
             os.close(directory_descriptor)
