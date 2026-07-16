@@ -178,12 +178,14 @@ formatting, worksheet position, or filename cannot supply a hidden default.
 
 The normalized typed configuration is still candidate-only. It must validate
 against the intake contract and may project only explicit facts to existing
-approved V2 documents. Missing facts or a compiler blocker do not prevent the
-four-record compatibility export: they remain deterministic entries in
-`missing-evidence.json` and `validation-report.json`. Generated executable V2
-artifacts and parity, however, require the applicable existing schemas,
-normalizer, map resolver, and compiler to pass. A workbook or UI submission
-never becomes an installed profile pack or a support claim directly.
+approved V2 documents. Missing evidence does not prevent the four-record
+compatibility export and remains represented only where the current Python
+contract already records it. A later V2 compiler blocker is returned through
+typed preview diagnostics or a separately versioned workspace; it never changes
+the four compatibility records or their bytes. Generated executable V2 artifacts
+and parity require the applicable existing schemas, normalizer, map resolver,
+and compiler to pass. A workbook or UI submission never becomes an installed
+profile pack or a support claim directly.
 
 ### Source-reader constraints
 
@@ -273,9 +275,11 @@ schemas/compiler behavior.
 
 NT51950/NT51951 AB candidates retain full DP container initialization, require
 no `map.txt`, and never authorize C# to write the AB header CRC. Python-reference
-parity remains against the exact Legacy Combiner 1.13.0 command through
-`legacy-combiner-1.13.0`. NT51919/NT51932 remain blocked without direct evidence
-or an approved fact-scoped alias package.
+parity remains against the exact Legacy Combiner 1.13.0 command through the
+`legacy-combiner-1.13.0` tool binding and the profile-selected invocation id:
+`nfc-nt51950-ab-merge-combiner-v1` for NT51950 or
+`nfc-nt51951-ab-merge-combiner-v1` for NT51951. NT51919/NT51932 remain blocked
+without direct evidence or an approved fact-scoped alias package.
 
 ### UI placement and interaction
 
