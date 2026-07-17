@@ -414,7 +414,7 @@ public sealed class FirmwareMetadataStructureResolutionTests
 
     private static FirmwareImageMap Map(string mapId, IEnumerable<FirmwareMetadataSet> metadataSets)
     {
-        return FirmwareImageMap.CreateDirect(
+        return FirmwareImageMapTestFactory.CreateDirect(
             mapId,
             "flash",
             new FirmwareMapApplicability(

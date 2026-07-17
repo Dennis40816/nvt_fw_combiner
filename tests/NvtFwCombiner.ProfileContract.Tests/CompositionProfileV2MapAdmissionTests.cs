@@ -1,6 +1,7 @@
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.V2;
+using NvtFwCombiner.TestSupport;
 using ResolvedFirmwareImageMap = NvtFwCombiner.Domain.Firmware.FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
@@ -247,7 +248,7 @@ public sealed class CompositionProfileV2MapAdmissionTests
             ["region-evidence"]);
         FirmwareImageMap map = useAliasedFacts
             ? AliasedMap(applicability, regions, metadata)
-            : FirmwareImageMap.CreateDirect(
+            : FirmwareImageMapTestFactory.CreateDirect(
                 "standard-map",
                 "flash",
                 applicability,

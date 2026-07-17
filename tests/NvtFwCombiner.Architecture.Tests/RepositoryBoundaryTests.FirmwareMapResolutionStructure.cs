@@ -2,6 +2,20 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
+    /// <summary>Verifies synthetic construction and inspection helpers never become production API.</summary>
+    [Fact]
+    public void SyntheticFirmwareHelpersStayInTestSupport()
+    {
+        string domain = ReadDomainSources();
+        string testFactory = ReadText("tests/NvtFwCombiner.TestSupport/FirmwareImageMapTestFactory.cs");
+
+        Assert.DoesNotContain("CreateDirect(", domain, StringComparison.Ordinal);
+        Assert.DoesNotContain("HasSameShape(", domain, StringComparison.Ordinal);
+        Assert.DoesNotContain("EnumerateFactProvenance(", domain, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryResolveField(", domain, StringComparison.Ordinal);
+        Assert.Contains("public static FirmwareImageMap CreateDirect(", testFactory, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies only the Domain resolver can materialize one payload-free resolved firmware map.</summary>
     [Fact]
     public void ResolvedFirmwareMapCreationStaysDomainResolverOwned()

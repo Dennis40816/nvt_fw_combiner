@@ -190,50 +190,6 @@ public sealed class FirmwareFactApplicability
             : FirmwareApplicabilityResult.Match;
     }
 
-    /// <summary>Returns whether two fact applicability values have one exact physical binding shape.</summary>
-    public bool HasSameShape(FirmwareFactApplicability other)
-    {
-        ArgumentNullException.ThrowIfNull(other);
-        return CapacityBytes == other.CapacityBytes &&
-            TopologyRequirement == other.TopologyRequirement &&
-            ModeIds.SequenceEqual(other.ModeIds, StringComparer.Ordinal) &&
-            CommonFirmwareCategoryIds.SequenceEqual(other.CommonFirmwareCategoryIds, StringComparer.Ordinal) &&
-            HaveSamePredicates(MetadataPredicates, other.MetadataPredicates);
-    }
-
-    private static bool HaveSamePredicates(
-        IReadOnlyList<FirmwareMetadataPredicate> left,
-        IReadOnlyList<FirmwareMetadataPredicate> right)
-    {
-        if (left.Count != right.Count)
-        {
-            return false;
-        }
-
-        List<FirmwareMetadataPredicate> unmatched = [.. right];
-        foreach (FirmwareMetadataPredicate predicate in left)
-        {
-            int matchIndex = unmatched.FindIndex(candidate => SamePredicate(predicate, candidate));
-            if (matchIndex < 0)
-            {
-                return false;
-            }
-
-            unmatched.RemoveAt(matchIndex);
-        }
-
-        return true;
-    }
-
-    private static bool SamePredicate(FirmwareMetadataPredicate left, FirmwareMetadataPredicate right)
-    {
-        return StringComparer.Ordinal.Equals(left.MetadataStructureId, right.MetadataStructureId) &&
-            StringComparer.Ordinal.Equals(left.FieldId, right.FieldId) &&
-            left.Comparison == right.Comparison &&
-            left.ExpectedValues.Count == right.ExpectedValues.Count &&
-            left.ExpectedValues.All(value => right.ExpectedValues.Contains(value));
-    }
-
 }
 
 /// <summary>One target-to-source alias edge retained by immutable fact provenance.</summary>

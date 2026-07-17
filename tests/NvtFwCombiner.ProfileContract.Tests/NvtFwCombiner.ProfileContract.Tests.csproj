@@ -9,6 +9,8 @@
   </ItemGroup>
   <ItemGroup>
     <!-- This fixture has no production dependencies; link its source without widening ProfileContract test references. -->
+    <Compile Include="..\NvtFwCombiner.TestSupport\FirmwareImageMapTestFactory.cs"
+             Link="FirmwareImageMapTestFactory.cs" />
     <Compile Include="..\NvtFwCombiner.TestSupport\TrustedV2BundleTestDocuments.cs"
              Link="TrustedV2BundleTestDocuments.cs" />
     <Compile Include="..\NvtFwCombiner.TestSupport\RuntimeReferenceReplaceTestDocuments.cs"

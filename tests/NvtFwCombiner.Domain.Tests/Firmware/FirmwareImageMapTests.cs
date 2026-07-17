@@ -286,7 +286,7 @@ public sealed partial class FirmwareImageMapTests
         _ = Assert.Throws<ArgumentException>(() => Create(evidenceRefs: []));
         _ = Assert.Throws<ArgumentException>(() => Create(evidenceRefs: ["evidence", "evidence"]));
         _ = Assert.Throws<ArgumentException>(() => Create(evidenceRefs: [" "]));
-        _ = Assert.Throws<ArgumentNullException>(() => FirmwareImageMap.CreateDirect(
+        _ = Assert.Throws<ArgumentNullException>(() => FirmwareImageMapTestFactory.CreateDirect(
             "synthetic-map",
             "flash",
             null!,
@@ -294,7 +294,7 @@ public sealed partial class FirmwareImageMapTests
             [Set("regions", [Region("root", 0, 16)])],
             [],
             ["evidence"]));
-        _ = Assert.Throws<ArgumentNullException>(() => FirmwareImageMap.CreateDirect(
+        _ = Assert.Throws<ArgumentNullException>(() => FirmwareImageMapTestFactory.CreateDirect(
             "synthetic-map",
             "flash",
             Applicability(),
@@ -302,7 +302,7 @@ public sealed partial class FirmwareImageMapTests
             [Set("regions", [Region("root", 0, 16)])],
             null!,
             ["evidence"]));
-        _ = Assert.Throws<ArgumentNullException>(() => FirmwareImageMap.CreateDirect(
+        _ = Assert.Throws<ArgumentNullException>(() => FirmwareImageMapTestFactory.CreateDirect(
             "synthetic-map",
             "flash",
             Applicability(),
@@ -322,7 +322,7 @@ public sealed partial class FirmwareImageMapTests
         IEnumerable<string>? metadataSetIds = null,
         IEnumerable<string>? evidenceRefs = null)
     {
-        return FirmwareImageMap.CreateDirect(
+        return FirmwareImageMapTestFactory.CreateDirect(
             mapId,
             addressSpaceId,
             Applicability(capacityBytes),

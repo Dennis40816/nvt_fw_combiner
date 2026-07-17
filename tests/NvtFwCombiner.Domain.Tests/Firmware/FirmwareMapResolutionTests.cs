@@ -70,7 +70,7 @@ public sealed class FirmwareMapResolutionTests
     public void ResolveMapPrioritizesMetadataContradictionOverCommonCategoryPending()
     {
         FirmwareMetadataSet metadata = MetadataSet(Marker("marker", "tp-firmware"));
-        var map = FirmwareImageMap.CreateDirect(
+        FirmwareImageMap map = FirmwareImageMapTestFactory.CreateDirect(
             "map",
             "flash",
             new FirmwareMapApplicability(
@@ -454,7 +454,7 @@ public sealed class FirmwareMapResolutionTests
         long capacityBytes = 32,
         TopologyRequirement? topologyRequirement = null)
     {
-        return FirmwareImageMap.CreateDirect(
+        return FirmwareImageMapTestFactory.CreateDirect(
             mapId,
             "flash",
             new FirmwareMapApplicability(
@@ -598,7 +598,7 @@ public sealed class FirmwareMapResolutionTests
 
     private static FirmwareImageMap FingerprintVectorMap(FirmwareMetadataSet metadata)
     {
-        return FirmwareImageMap.CreateDirect(
+        return FirmwareImageMapTestFactory.CreateDirect(
             "map",
             "flash",
             new FirmwareMapApplicability(

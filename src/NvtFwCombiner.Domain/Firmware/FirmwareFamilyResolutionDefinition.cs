@@ -107,28 +107,6 @@ public sealed partial class FirmwareFamilyResolutionDefinition
     /// <summary>Map-bound technical capability evidence that never changes map eligibility or Build support.</summary>
     public IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> CapabilityBindings { get; }
 
-    /// <summary>Enumerates owned physical and capability provenance in deterministic binding order.</summary>
-    public IEnumerable<FirmwareFactProvenance> EnumerateFactProvenance()
-    {
-        foreach (FirmwareImageMap map in _imageMaps)
-        {
-            foreach (FirmwareMapFactBinding<FirmwareRegionSet> binding in map.RegionSetBindings)
-            {
-                yield return binding.Provenance;
-            }
-
-            foreach (FirmwareMapFactBinding<FirmwareMetadataSet> binding in map.MetadataSetBindings)
-            {
-                yield return binding.Provenance;
-            }
-        }
-
-        foreach (FirmwareMapFactBinding<FirmwareCapabilityFact> binding in _capabilityBindings)
-        {
-            yield return binding.Provenance;
-        }
-    }
-
     /// <summary>Artifact bindings reachable from at least one candidate map.</summary>
     public IReadOnlyList<string> RequiredArtifactBindingIds { get; }
 
@@ -158,25 +136,6 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         structure = structures.FirstOrDefault(candidate =>
             StringComparer.Ordinal.Equals(candidate.StructureId, structureId));
         return structure is not null;
-    }
-
-    /// <summary>Resolves a field only through a candidate-selected metadata structure.</summary>
-    public bool TryResolveField(
-        string mapId,
-        string structureId,
-        string fieldId,
-        [NotNullWhen(true)] out FirmwareMetadataField? field)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(fieldId);
-        field = null;
-        if (!TryResolveStructure(mapId, structureId, out FirmwareMetadataStructure? structure))
-        {
-            return false;
-        }
-
-        field = structure.Fields.FirstOrDefault(candidate =>
-            StringComparer.Ordinal.Equals(candidate.FieldId, fieldId));
-        return field is not null;
     }
 
     private static FirmwareImageMap[] SnapshotMaps(IEnumerable<FirmwareImageMap> imageMaps)
