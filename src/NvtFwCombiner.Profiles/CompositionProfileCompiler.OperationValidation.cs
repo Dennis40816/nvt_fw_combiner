@@ -7,13 +7,18 @@ public static partial class CompositionProfileCompiler
     private static List<CompositionIssue> ValidateProfileOperations(CompositionProfileDefinition profile)
     {
         List<CompositionIssue> issues = [];
-        if (profile.Regions.Count == 0)
-        {
-            return issues;
-        }
-
         foreach (CompositionOperation operation in profile.Operations)
         {
+            if (operation.Kind is not CompositionOperationKind.PatchScalar and
+                not CompositionOperationKind.RunExternalProcessor)
+            {
+                issues.Add(new CompositionIssue(
+                    "profile.operation.kind-retired",
+                    $"Operation '{operation.OperationId}' uses a retired legacy profile operation kind.",
+                    operation.OperationId));
+                continue;
+            }
+
             if (operation.Kind == CompositionOperationKind.RunExternalProcessor)
             {
                 ValidateExternalProcessorOperation(profile, operation, issues);
@@ -34,7 +39,7 @@ public static partial class CompositionProfileCompiler
             }
 
             RegionAccessRule? accessRule = FindAccessRule(profile, targetRegion.RegionId);
-            ValidateProfileOperationRegionPolicy(profile, operation, targetRegion, accessRule, issues);
+            ValidateProfileOperationRegionPolicy(operation, targetRegion, accessRule, issues);
             if (OverlapsProtectedRegion(profile, targetRegion, operation.TargetSpaceId, operation.TargetRange))
             {
                 issues.Add(new CompositionIssue(
@@ -88,7 +93,6 @@ public static partial class CompositionProfileCompiler
     }
 
     private static void ValidateProfileOperationRegionPolicy(
-        CompositionProfileDefinition profile,
         CompositionOperation operation,
         ProfileRegion targetRegion,
         RegionAccessRule? accessRule,
@@ -104,8 +108,7 @@ public static partial class CompositionProfileCompiler
                 operation.OperationId));
         }
 
-        if (targetRegion.ProcessorDependencyIds.Count > 0 &&
-            !AllowsCtrlRamReplaceBeforeProcessor(profile, operation, targetRegion))
+        if (targetRegion.ProcessorDependencyIds.Count > 0)
         {
             issues.Add(new CompositionIssue(
                 "profile.operation.processor-dependency",
@@ -132,17 +135,6 @@ public static partial class CompositionProfileCompiler
                 $"Operation '{operation.OperationId}' target range does not satisfy region '{targetRegion.RegionId}' alignment.",
                 operation.OperationId));
         }
-    }
-
-    private static bool AllowsCtrlRamReplaceBeforeProcessor(
-        CompositionProfileDefinition profile,
-        CompositionOperation operation,
-        ProfileRegion targetRegion)
-    {
-        return IsCtrlRamReplaceProfile(profile) &&
-            operation.Kind == CompositionOperationKind.ReplaceRange &&
-            operation.TargetRange == targetRegion.Range &&
-            targetRegion.ClassificationTags.Contains(CtrlRamClassificationTag, StringComparer.Ordinal);
     }
 
 }

@@ -10,6 +10,14 @@ public static partial class CompositionProfileCompiler
         IReadOnlyList<AddressSpace> requestAddressSpaces)
     {
         List<CompositionIssue> issues = [];
+        if (!IsCtrlRamReplaceProfile(profile) && !IsGeneralReplaceProfile(profile))
+        {
+            issues.Add(new CompositionIssue(
+                "profile.legacy-compiler.workflow-retired",
+                "Legacy profile compilation is retained only for CtrlRAM Replace and General Replace compatibility."));
+            return issues;
+        }
+
         ValidateInputPaddingPolicy(profile, requestAddressSpaces, issues);
         ValidateIcNumberPolicy(profile, issues);
 
@@ -78,13 +86,7 @@ public static partial class CompositionProfileCompiler
             return;
         }
 
-        if (profile.CompositionKind == CompositionKind.Merge && profile.IcNumberInputMode is not null)
-        {
-            issues.Add(new CompositionIssue(
-                "profile.ic-number-mode.not-applicable",
-                "Merge profiles cannot declare an IC-number input mode."));
-        }
-        else if (profile.CompositionKind == CompositionKind.Replace && profile.IcNumberInputMode is null)
+        if (profile.IcNumberInputMode is null)
         {
             issues.Add(new CompositionIssue(
                 "profile.ic-number-mode.required",
@@ -133,18 +135,13 @@ public static partial class CompositionProfileCompiler
         }
 
         ValidateInputOversizePolicy(profile, issues);
-        ValidateExpectedInputLengthPolicy(profile, issues);
-
-        if (!ForbidsInputPadding(profile))
-        {
-            return;
-        }
+        ValidateProfileInputLengthPolicy(profile, issues);
 
         foreach (AddressSpace addressSpace in profile.AddressSpaces.Where(space => space.InputPaddingByte is not null))
         {
             issues.Add(new CompositionIssue(
                 "profile.input-padding.processor-conflict",
-                $"Address space '{addressSpace.AddressSpaceId}' declares input padding in a profile with processor-dependent integrity.",
+                $"Address space '{addressSpace.AddressSpaceId}' declares retired profile-owned input padding.",
                 addressSpace.AddressSpaceId));
         }
     }
@@ -156,70 +153,32 @@ public static partial class CompositionProfileCompiler
         foreach (AddressSpace addressSpace in profile.AddressSpaces.Where(space =>
                      space.InputOversizePolicy != InputOversizePolicy.Reject))
         {
-            if (addressSpace.InputOversizePolicy == InputOversizePolicy.TruncateWithWarning)
+            if (addressSpace.InputOversizePolicy == InputOversizePolicy.TruncateWithWarning &&
+                IsCtrlRamReplaceProfile(profile))
             {
-                if (!IsCtrlRamReplaceProfile(profile))
-                {
-                    issues.Add(new CompositionIssue(
-                        "profile.input-truncation.not-allowed",
-                        $"Address space '{addressSpace.AddressSpaceId}' declares input truncation outside a CtrlRAM replace profile.",
-                        addressSpace.AddressSpaceId));
-                    continue;
-                }
-
                 ValidateTruncatingAddressSpaceTargetsCtrlRam(profile, addressSpace, issues);
                 continue;
             }
 
-            if (addressSpace.InputOversizePolicy == InputOversizePolicy.ExtractDeclaredRange &&
-                !IsStandardMergeDpExtraction(profile, addressSpace))
-            {
-                issues.Add(new CompositionIssue(
-                    "profile.input-extraction.not-allowed",
-                    $"Address space '{addressSpace.AddressSpaceId}' may extract its declared source range only for a Standard Merge DP input.",
-                    addressSpace.AddressSpaceId));
-            }
-        }
-    }
-
-    private static void ValidateExpectedInputLengthPolicy(
-        CompositionProfileDefinition profile,
-        List<CompositionIssue> issues)
-    {
-        foreach (AddressSpace addressSpace in profile.AddressSpaces.Where(space => space.ExpectedInputLengths.Count > 0))
-        {
-            if (addressSpace.InputOversizePolicy == InputOversizePolicy.ExtractDeclaredRange &&
-                IsStandardMergeDpExtraction(profile, addressSpace))
-            {
-                continue;
-            }
-
             issues.Add(new CompositionIssue(
-                "profile.expected-input-lengths.not-allowed",
-                $"Address space '{addressSpace.AddressSpaceId}' may declare expected input lengths only with Standard Merge DP range extraction.",
+                "profile.input-truncation.not-allowed",
+                $"Address space '{addressSpace.AddressSpaceId}' declares input truncation outside the CtrlRAM Replace compatibility workflow.",
                 addressSpace.AddressSpaceId));
         }
     }
 
-    private static bool IsStandardMergeDpExtraction(
+    private static void ValidateProfileInputLengthPolicy(
         CompositionProfileDefinition profile,
-        AddressSpace addressSpace)
+        List<CompositionIssue> issues)
     {
-        if (profile.CompositionKind != CompositionKind.Merge ||
-            !string.Equals(profile.ExperienceId, StandardMergeExperienceId, StringComparison.Ordinal) ||
-            !string.Equals(addressSpace.AddressSpaceId, CompositionAddressSpaceIds.DpInput, StringComparison.Ordinal))
+        foreach (AddressSpace addressSpace in profile.AddressSpaces.Where(space =>
+                     space.AllowedInputLengths.Count + space.ExpectedInputLengths.Count > 0))
         {
-            return false;
+            issues.Add(new CompositionIssue(
+                "profile.input-lengths.not-allowed",
+                $"Address space '{addressSpace.AddressSpaceId}' declares retired profile-owned input-length policy.",
+                addressSpace.AddressSpaceId));
         }
-
-        List<CompositionOperation> sourceOperations = [
-            .. profile.Operations.Where(operation =>
-                string.Equals(operation.SourceSpaceId, addressSpace.AddressSpaceId, StringComparison.Ordinal)),
-        ];
-        return sourceOperations.Count > 0 && sourceOperations.All(operation =>
-            operation.Kind == CompositionOperationKind.CopyRange &&
-            operation.SourceRange is { } sourceRange &&
-            sourceRange.EndExclusive == addressSpace.Length);
     }
 
     private static void ValidateTruncatingAddressSpaceTargetsCtrlRam(
@@ -281,13 +240,6 @@ public static partial class CompositionProfileCompiler
                 $"Address space '{addressSpace.AddressSpaceId}' declares input truncation but operation '{operationId}' targets non-CtrlRAM region '{targetRegion.RegionId}'.",
                 addressSpace.AddressSpaceId));
         }
-    }
-
-    private static bool ForbidsInputPadding(CompositionProfileDefinition profile)
-    {
-        return IsCtrlRamReplaceProfile(profile) ||
-            profile.Operations.Any(operation => operation.Kind == CompositionOperationKind.RunExternalProcessor) ||
-            profile.Regions.Any(region => region.ProcessorDependencyIds.Count > 0);
     }
 
     private static bool IsCtrlRamReplaceProfile(CompositionProfileDefinition profile)

@@ -60,6 +60,26 @@ public sealed partial class RepositoryBoundaryTests
         AssertNoProductionText("TpBinaryAddressAnchor");
     }
 
+    /// <summary>Prevents dormant V1 profile compiler capabilities from regaining runtime authority.</summary>
+    [Fact]
+    public void RetiredLegacyCompilerCapabilitiesStayAbsent()
+    {
+        string compiler = ReadText("src/NvtFwCombiner.Profiles/CompositionProfileCompiler.cs");
+        string profileValidation = ReadText(
+            "src/NvtFwCombiner.Profiles/CompositionProfileCompiler.ProfileValidation.cs");
+        string operationValidation = ReadText(
+            "src/NvtFwCombiner.Profiles/CompositionProfileCompiler.OperationValidation.cs");
+        string explicitCompilation = ReadText(
+            "src/NvtFwCombiner.Profiles/CompositionProfileCompiler.ExplicitMappingCompilation.cs");
+
+        Assert.DoesNotContain("StandardMergeExperienceId", compiler, StringComparison.Ordinal);
+        Assert.Contains("profile.legacy-compiler.workflow-retired", profileValidation, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsStandardMergeDpExtraction", profileValidation, StringComparison.Ordinal);
+        Assert.DoesNotContain("ExtractDeclaredRange", profileValidation, StringComparison.Ordinal);
+        Assert.DoesNotContain("AllowsCtrlRamReplaceBeforeProcessor", operationValidation, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionOperation.CopyRange", explicitCompilation, StringComparison.Ordinal);
+    }
+
     private static void AssertNoProductionText(string token)
     {
         Assert.DoesNotContain(

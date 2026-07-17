@@ -5,35 +5,24 @@ namespace NvtFwCombiner.ProfileContract.Tests;
 
 public sealed partial class CompositionProfileCompilerTests
 {
-    /// <summary>Verifies input padding is allowed for profiles that have no processor-dependent integrity stage.</summary>
+    /// <summary>Verifies the compatibility compiler rejects profile-owned input padding.</summary>
     [Fact]
-    public void InputPaddingCompilesWhenProfileHasNoProcessorDependency()
+    public void InputPaddingRejectsProfileWithoutProcessorDependency()
     {
         CompositionProfileDefinition profile = CreateProfile(
-            CompositionKind.Merge,
-            "standard-merge",
-            ImageInitialization.Blank("output-image", 4, 0),
+            CompositionKind.Replace,
+            "general-replace",
+            ImageInitialization.Reference("output-image", "source", 4),
             addressSpaces:
             [
                 new("source", 4, AddressSpaceMutability.Immutable, inputPaddingByte: 0xFF),
                 new("output-image", 4, AddressSpaceMutability.Mutable),
-            ],
-            operations:
-            [
-                CompositionOperation.CopyRange(
-                    "copy-payload",
-                    10,
-                    "source",
-                    new ByteRange(0, 3),
-                    "output-image",
-                    new ByteRange(1, 3),
-                    OverlapPolicy.Reject,
-                    "copy no-crc payload"),
             ]);
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
 
-        Assert.True(result.IsSuccess, FormatIssues(result.Issues));
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.input-padding.processor-conflict");
     }
 
     /// <summary>Verifies profiles with processor-owned integrity keep exact input lengths.</summary>
@@ -41,9 +30,9 @@ public sealed partial class CompositionProfileCompilerTests
     public void InputPaddingRejectsProfileWithProcessorDependency()
     {
         CompositionProfileDefinition profile = CreateProfile(
-            CompositionKind.Merge,
-            "standard-merge",
-            ImageInitialization.Blank("output-image", 4, 0),
+            CompositionKind.Replace,
+            "general-replace",
+            ImageInitialization.Reference("output-image", "source", 4),
             addressSpaces:
             [
                 new("source", 4, AddressSpaceMutability.Immutable, inputPaddingByte: 0xFF),
@@ -76,11 +65,12 @@ public sealed partial class CompositionProfileCompilerTests
     public void InputPaddingRejectsRuntimeAddressSpaceWithProcessorDependency()
     {
         CompositionProfileDefinition profile = CreateProfile(
-            CompositionKind.Merge,
-            "general-merge",
-            ImageInitialization.Blank("output-image", 4, 0),
+            CompositionKind.Replace,
+            "general-replace",
+            ImageInitialization.Reference("output-image", "source", 4),
             addressSpaces:
             [
+                new("source", 4, AddressSpaceMutability.Immutable),
                 new("output-image", 4, AddressSpaceMutability.Mutable),
             ],
             operations: [CreateExternalProcessorOperation("crc-v1")],
@@ -113,15 +103,11 @@ public sealed partial class CompositionProfileCompilerTests
     public void InputPaddingRejectsRuntimeAddressSpaceWithoutProcessorDependency()
     {
         CompositionProfileDefinition profile = CreateProfile(
-            CompositionKind.Merge,
-            "general-merge",
-            ImageInitialization.Blank("output-image", 4, 0),
-            addressSpaces:
-            [
-                new("output-image", 4, AddressSpaceMutability.Mutable),
-            ]);
+            CompositionKind.Replace,
+            "general-replace",
+            ImageInitialization.Reference("output-image", "source", 4));
         ExplicitMapping mapping = CreateMapping(
-            ExplicitMappingOperationKind.CopyRange,
+            ExplicitMappingOperationKind.ReplaceRange,
             sourceBindingId: "runtime-source");
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(
@@ -147,18 +133,7 @@ public sealed partial class CompositionProfileCompilerTests
                 new("ctrlram-replacement", 4, AddressSpaceMutability.Immutable, inputPaddingByte: 0xFF),
                 new("output-image", 4, AddressSpaceMutability.Mutable),
             ],
-            operations:
-            [
-                CompositionOperation.ReplaceRange(
-                    "replace-ctrlram",
-                    10,
-                    "ctrlram-replacement",
-                    new ByteRange(0, 3),
-                    "output-image",
-                    new ByteRange(1, 3),
-                    OverlapPolicy.Reject,
-                    "replace ctrlram"),
-            ]);
+            operations: []);
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
 

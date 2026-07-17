@@ -54,7 +54,6 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public const string GeneralMerge = ExperienceIds.GeneralMerge", catalog, StringComparison.Ordinal);
         Assert.Contains("public const string GeneralReplace = ExperienceIds.GeneralReplace", catalog, StringComparison.Ordinal);
         Assert.Contains("IcWorkflowIds.GeneralMerge", catalog, StringComparison.Ordinal);
-        Assert.Contains("IcWorkflowIds.StandardMerge", profilesWithoutCatalog, StringComparison.Ordinal);
         Assert.Contains("IcWorkflowIds.CtrlRamReplace", profilesWithoutCatalog, StringComparison.Ordinal);
         Assert.Contains("IcWorkflowIds.GeneralReplace", profilesWithoutCatalog, StringComparison.Ordinal);
         Assert.Contains("IcWorkflowIds.StandardMerge", bootstrapSources, StringComparison.Ordinal);
@@ -100,7 +99,6 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public const string CtrlRamReplacement = \"ctrlram-replacement\"", addressSpaceIds, StringComparison.Ordinal);
         Assert.Contains("public const string DynamicCtrlRamReplacementPrefix = \"replace-ctrlram-\"", addressSpaceIds, StringComparison.Ordinal);
         Assert.Contains("CompositionAddressSpaceIds.OutputImage", profileSources, StringComparison.Ordinal);
-        Assert.Contains("CompositionAddressSpaceIds.DpInput", profileSources, StringComparison.Ordinal);
         Assert.Contains("CompositionAddressSpaceIds.DpReplacement", bootstrapSources, StringComparison.Ordinal);
         Assert.Contains("public const string DpInput = CompositionAddressSpaceIds.DpInput;", workbenchAddressSpaceIds, StringComparison.Ordinal);
         Assert.Contains("public const string TpInput = CompositionAddressSpaceIds.TpInput;", workbenchAddressSpaceIds, StringComparison.Ordinal);

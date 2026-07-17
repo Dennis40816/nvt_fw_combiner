@@ -25,8 +25,6 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("synthetic-ctrlram-replace", ReadProfileSources(), StringComparison.Ordinal);
         Assert.DoesNotContain("synthetic-general-replace", ReadProfileSources(), StringComparison.Ordinal);
         Assert.Contains("public static class SyntheticReplaceProfiles", synthetic, StringComparison.Ordinal);
-        Assert.Contains("CompositionProfileDefinition Dp", synthetic, StringComparison.Ordinal);
-        Assert.Contains("CompositionProfileDefinition CtrlRam", synthetic, StringComparison.Ordinal);
         Assert.Contains("CompositionProfileDefinition General", synthetic, StringComparison.Ordinal);
         Assert.DoesNotContain("DpPerspectiveCatalog", synthetic, StringComparison.Ordinal);
         Assert.False(File.Exists(Path.Combine(
@@ -93,9 +91,12 @@ public sealed partial class RepositoryBoundaryTests
             "src",
             "NvtFwCombiner.Profiles",
             "SyntheticCompositionProfiles.cs")));
-        string synthetic = ReadText("tests/NvtFwCombiner.TestSupport/SyntheticStandardMergeProfile.cs");
         string registration = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
-        Assert.Contains("SyntheticStandardMergeProfile", synthetic, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "tests",
+            "NvtFwCombiner.TestSupport",
+            "SyntheticStandardMergeProfile.cs")));
         Assert.Contains("BuiltInV2Registration", registration, StringComparison.Ordinal);
     }
 

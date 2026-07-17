@@ -13,8 +13,6 @@
   <ItemGroup>
     <Compile Include="..\NvtFwCombiner.TestSupport\LegacyCombinerPostbuildCatalogAlias.cs"
              Link="LegacyCombinerPostbuildCatalogAlias.cs" />
-    <Compile Include="..\NvtFwCombiner.TestSupport\SyntheticStandardMergeProfile.cs"
-             Link="SyntheticStandardMergeProfile.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
@@ -22,7 +20,5 @@
     <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\NvtFwCombiner.TestSupport\SyntheticReplaceProfiles.cs"
-             Link="SyntheticReplaceProfiles.cs" />
   </ItemGroup>
 </Project>

@@ -9,6 +9,5 @@
   <ItemGroup>
     <Compile Remove="LegacyCombinerPostbuildCatalogAlias.cs" />
     <Compile Remove="SyntheticReplaceProfiles.cs" />
-    <Compile Remove="SyntheticStandardMergeProfile.cs" />
   </ItemGroup>
 </Project>

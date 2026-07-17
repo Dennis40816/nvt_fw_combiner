@@ -5,13 +5,13 @@ namespace NvtFwCombiner.ProfileContract.Tests;
 
 public sealed partial class CompositionProfileCompilerTests
 {
-    /// <summary>Verifies profile operations are validated against region access policy.</summary>
+    /// <summary>Verifies direct fixed ReplaceRange operations cannot coexist with the staged Replace model.</summary>
     [Fact]
-    public void FixedProfileOperationRejectsHiddenRegion()
+    public void FixedReplaceRangeOperationIsRetired()
     {
         CompositionProfileDefinition profile = CreateProfile(
             CompositionKind.Replace,
-            "dp-replace",
+            "ctrlram-replace",
             ImageInitialization.Reference("output-image", "source", 4),
             operations:
             [
@@ -29,7 +29,7 @@ public sealed partial class CompositionProfileCompilerTests
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
 
         Assert.False(result.IsSuccess);
-        Assert.Contains(result.Issues, issue => issue.Code == "profile.operation.region-not-enabled");
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.operation.kind-retired");
     }
 
     /// <summary>Verifies parent mappings cannot cross processor-owned child regions.</summary>
@@ -78,9 +78,9 @@ public sealed partial class CompositionProfileCompilerTests
     public void ExternalProcessorOperationCompilesForProcessorOwnedRegion()
     {
         CompositionProfileDefinition profile = CreateProfile(
-            CompositionKind.Merge,
-            "standard-merge",
-            ImageInitialization.Blank("output-image", 4, 0),
+            CompositionKind.Replace,
+            "general-replace",
+            ImageInitialization.Reference("output-image", "source", 4),
             operations: [CreateExternalProcessorOperation("crc-v1")],
             regions:
             [
@@ -116,9 +116,9 @@ public sealed partial class CompositionProfileCompilerTests
     public void ExternalProcessorOperationRejectsUnownedRegion()
     {
         CompositionProfileDefinition profile = CreateProfile(
-            CompositionKind.Merge,
-            "standard-merge",
-            ImageInitialization.Blank("output-image", 4, 0),
+            CompositionKind.Replace,
+            "general-replace",
+            ImageInitialization.Reference("output-image", "source", 4),
             operations: [CreateExternalProcessorOperation("wrong-processor")],
             regions:
             [

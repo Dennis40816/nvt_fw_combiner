@@ -5,9 +5,9 @@ namespace NvtFwCombiner.ProfileContract.Tests;
 
 public sealed partial class CompositionProfileCompilerTests
 {
-    /// <summary>Verifies CtrlRAM replace profiles may declare oversized-input truncation.</summary>
+    /// <summary>Verifies direct fixed CtrlRAM replacement no longer compiles beside staged postbuild.</summary>
     [Fact]
-    public void InputTruncationCompilesForCtrlRamReplaceProfile()
+    public void FixedCtrlRamReplaceOperationIsRetired()
     {
         CompositionProfileDefinition profile = CreateProfile(
             CompositionKind.Replace,
@@ -48,7 +48,8 @@ public sealed partial class CompositionProfileCompilerTests
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
 
-        Assert.True(result.IsSuccess, FormatIssues(result.Issues));
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.operation.kind-retired");
     }
 
     /// <summary>Verifies CtrlRAM Replace may stage a whole CtrlRAM region for its postbuild processor.</summary>
@@ -146,7 +147,7 @@ public sealed partial class CompositionProfileCompilerTests
     {
         CompositionProfileDefinition profile = CreateProfile(
             CompositionKind.Replace,
-            "dp-replace",
+            "general-replace",
             ImageInitialization.Reference("output-image", "source", 4),
             addressSpaces:
             [
@@ -163,11 +164,11 @@ public sealed partial class CompositionProfileCompilerTests
 
     /// <summary>Verifies declared-range extraction cannot become a generic oversize-input bypass.</summary>
     [Fact]
-    public void InputExtractionRejectsNonStandardMergeDpInput()
+    public void InputExtractionRejectsGeneralReplaceInput()
     {
         CompositionProfileDefinition profile = CreateProfile(
             CompositionKind.Replace,
-            "dp-replace",
+            "general-replace",
             ImageInitialization.Reference("output-image", "source", 4),
             addressSpaces:
             [
@@ -184,8 +185,8 @@ public sealed partial class CompositionProfileCompilerTests
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
 
         Assert.False(result.IsSuccess);
-        Assert.Contains(result.Issues, issue => issue.Code == "profile.input-extraction.not-allowed");
-        Assert.Contains(result.Issues, issue => issue.Code == "profile.expected-input-lengths.not-allowed");
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.input-truncation.not-allowed");
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.input-lengths.not-allowed");
     }
 
     /// <summary>Verifies request-time address spaces cannot choose truncation policy.</summary>
@@ -193,15 +194,11 @@ public sealed partial class CompositionProfileCompilerTests
     public void InputTruncationRejectsRuntimeAddressSpace()
     {
         CompositionProfileDefinition profile = CreateProfile(
-            CompositionKind.Merge,
-            "general-merge",
-            ImageInitialization.Blank("output-image", 4, 0),
-            addressSpaces:
-            [
-                new("output-image", 4, AddressSpaceMutability.Mutable),
-            ]);
+            CompositionKind.Replace,
+            "general-replace",
+            ImageInitialization.Reference("output-image", "source", 4));
         ExplicitMapping mapping = CreateMapping(
-            ExplicitMappingOperationKind.CopyRange,
+            ExplicitMappingOperationKind.ReplaceRange,
             sourceBindingId: "runtime-source");
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(

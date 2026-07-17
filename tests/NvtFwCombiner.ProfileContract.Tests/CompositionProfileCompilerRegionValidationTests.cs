@@ -11,7 +11,7 @@ public sealed partial class CompositionProfileCompilerTests
     {
         CompositionProfileDefinition profile = CreateProfile(
             CompositionKind.Replace,
-            "dp-replace",
+            "general-replace",
             ImageInitialization.Blank("output-image", 4, 0));
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
@@ -29,7 +29,7 @@ public sealed partial class CompositionProfileCompilerTests
     {
         CompositionProfileDefinition profile = CreateProfile(
             CompositionKind.Replace,
-            "dp-replace",
+            "general-replace",
             ImageInitialization.Reference("output-image", "source", 4),
             icNumberInputMode: mode);
 
@@ -123,9 +123,9 @@ public sealed partial class CompositionProfileCompilerTests
         Assert.Contains(result.Issues, issue => issue.Code == "profile.region-access.duplicate");
     }
 
-    /// <summary>Verifies fixed experience profiles cannot add runtime address spaces.</summary>
+    /// <summary>Verifies retired fixed Merge workflows cannot re-enter the compatibility compiler.</summary>
     [Fact]
-    public void FixedExperienceRejectsRuntimeAddressSpaces()
+    public void FixedMergeWorkflowIsRetired()
     {
         CompositionProfileDefinition profile = CreateProfile(
             CompositionKind.Merge,
@@ -138,6 +138,6 @@ public sealed partial class CompositionProfileCompilerTests
             [new AddressSpace("runtime-source", 4, AddressSpaceMutability.Immutable)]);
 
         Assert.False(result.IsSuccess);
-        Assert.Contains(result.Issues, issue => issue.Code == "profile.request-address-space.not-allowed");
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.legacy-compiler.workflow-retired");
     }
 }

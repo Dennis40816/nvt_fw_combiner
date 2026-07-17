@@ -11,7 +11,7 @@ public sealed class CompositionProfileCompilerArtifactTests
     [Fact]
     public void CompileReturnsAtomicLegacyArtifact()
     {
-        CompositionProfileDefinition profile = SyntheticStandardMergeProfile.Create();
+        CompositionProfileDefinition profile = SyntheticReplaceProfiles.General;
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
 
@@ -25,7 +25,7 @@ public sealed class CompositionProfileCompilerArtifactTests
         Assert.Equal(profile.ExperienceId, composition.ExperienceId);
         Assert.Equal(profile.CompositionKind, composition.CompositionKind);
         Assert.Equal(profile.DefaultOutputFileName, composition.DefaultOutputFileName);
-        Assert.Equal(CompiledIcNumberPolicy.NotApplicable, composition.IcNumberPolicy);
+        Assert.Equal(CompiledIcNumberPolicy.SingleSelector, composition.IcNumberPolicy);
         Assert.Equal(CompiledCompositionEligibility.LegacyRuntimeExecutable, composition.Eligibility);
         Assert.Equal("0.2", Assert.IsType<LegacyProfileCompilationAuthority>(composition.Authority).ModelVersion);
     }
@@ -49,13 +49,10 @@ public sealed class CompositionProfileCompilerArtifactTests
         Assert.Equal(expectedPolicy, result.CompiledComposition!.IcNumberPolicy);
     }
 
-    /// <summary>Verifies invalid Merge and Replace selector policies fail before artifact creation.</summary>
+    /// <summary>Verifies invalid Replace selector policies fail before artifact creation.</summary>
     [Fact]
     public void CompileRejectsInvalidIcNumberPolicyBeforeArtifactCreation()
     {
-        CompositionProfileDefinition mergeWithSelector = CloneProfile(
-            SyntheticStandardMergeProfile.Create(),
-            IcNumberInputMode.SingleSelector);
         CompositionProfileDefinition replaceWithoutSelector = CloneProfile(
             SyntheticReplaceProfiles.General,
             inputMode: null);
@@ -63,9 +60,6 @@ public sealed class CompositionProfileCompilerArtifactTests
             SyntheticReplaceProfiles.General,
             (IcNumberInputMode)int.MaxValue);
 
-        AssertFailure(
-            CompositionProfileCompiler.Compile(mergeWithSelector, []),
-            "profile.ic-number-mode.not-applicable");
         AssertFailure(
             CompositionProfileCompiler.Compile(replaceWithoutSelector, []),
             "profile.ic-number-mode.required");
@@ -86,8 +80,8 @@ public sealed class CompositionProfileCompilerArtifactTests
             "output-image",
             new CompiledValidationBytes([0x00]));
         CompositionProfileDefinition profile = CloneProfile(
-            SyntheticStandardMergeProfile.Create(),
-            inputMode: null,
+            SyntheticReplaceProfiles.General,
+            IcNumberInputMode.SingleSelector,
             validationRequirements: [unsupported]);
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
@@ -103,14 +97,14 @@ public sealed class CompositionProfileCompilerArtifactTests
     [Fact]
     public void CompileFingerprintBindsLegacyProfileIdentityAndOutputPolicy()
     {
-        CompositionProfileDefinition profile = SyntheticStandardMergeProfile.Create();
+        CompositionProfileDefinition profile = SyntheticReplaceProfiles.General;
         CompiledComposition first = CompositionProfileCompiler.Compile(profile, []).CompiledComposition!;
         CompiledComposition second = CompositionProfileCompiler.Compile(profile, []).CompiledComposition!;
         CompiledComposition changedIdentity = CompositionProfileCompiler.Compile(
-            CloneProfile(profile, inputMode: null, profileId: "changed-profile"),
+            CloneProfile(profile, IcNumberInputMode.SingleSelector, profileId: "changed-profile"),
             []).CompiledComposition!;
         CompiledComposition changedOutput = CompositionProfileCompiler.Compile(
-            CloneProfile(profile, inputMode: null, defaultOutputFileName: "changed.bin"),
+            CloneProfile(profile, IcNumberInputMode.SingleSelector, defaultOutputFileName: "changed.bin"),
             []).CompiledComposition!;
 
         Assert.Equal(first.CompilationFingerprint, second.CompilationFingerprint);
