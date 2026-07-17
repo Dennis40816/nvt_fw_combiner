@@ -15,13 +15,15 @@ Current behavior:
 
 - The verifier always can run public CtrlRAM Preview/Build smoke using self-replacement inputs sliced from existing approved Standard Merge golden data.
 - When schema `0.2` `manifest.json` exists, the verifier checks manifest metadata, sizes, SHA-256, and base-image FWConfig Common FW version for the base firmware, replacement CtrlRAM BINs, and expected output if provided.
-- Full byte comparison still needs owner-supplied expected outputs and firmware-owner sign-off before parity can be claimed.
+- The owner-authorized NT51926 TP-base self-test case archives the same-byte TP golden input and real-workflow output, plus exact half-open integrity ranges and the two-command Combiner 1.13.0 trace. Git deduplicates the copied TP input blob.
+- Full-byte comparison and firmware-owner sign-off remain pending for the other cases before broader parity can be claimed.
+- The TP-base case establishes only NT51926 Common FW 1.4.1 cascade admission/execution; it does not establish all-IC or V2 parity, and the other pending golden gates remain unchanged.
 
 Required owner data per case:
 
 - IC and IC number mode, for example `NT51927` / `3`.
 - Common FW version decoded from the base image and the postbuild category used for the run.
-- Base flash firmware hash and size.
+- Base firmware BIN hash and size.
 - Each replacement CtrlRAM slot id, display name, BIN hash, and size.
 - Expected final output hash and size for the staged Combiner postbuild result.
 - Source classification, provenance, and owner approval note.
