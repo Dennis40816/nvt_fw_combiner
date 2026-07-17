@@ -86,7 +86,7 @@ public sealed partial class MainWindowViewModel
         ReplaceBaseSlotId,
         "Base flash BIN",
         "Reference firmware image before replacement",
-        kind: FirmwareSlotKind.Base);
+        FirmwareSlotKind.Base);
 
     /// <summary>Gets replace input slots for the selected replace mode.</summary>
     public ObservableCollection<FirmwareSlotViewModel> ReplaceSlots { get; } = [];

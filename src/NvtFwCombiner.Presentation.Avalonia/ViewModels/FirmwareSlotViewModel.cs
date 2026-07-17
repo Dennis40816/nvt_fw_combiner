@@ -15,8 +15,8 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         string slotId,
         string title,
         string description,
-        bool isOptional = false,
-        FirmwareSlotKind kind = FirmwareSlotKind.Unknown)
+        FirmwareSlotKind kind,
+        bool isOptional = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
@@ -25,7 +25,7 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         SlotId = slotId;
         Title = title;
         Description = description;
-        SlotKind = kind is FirmwareSlotKind.Unknown ? FirmwareSlotKindResolver.Resolve(slotId, title) : kind;
+        SlotKind = kind;
         IsOptional = isOptional;
     }
 

@@ -11,7 +11,7 @@ public sealed partial class ShellViewModelTests
     public void FirmwareSlotCompletionToneHighlightsOnlyRequiredInputs()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-slot-tone");
-        FirmwareSlotViewModel required = new("merge-dp", "DP BIN", "Display payload");
+        FirmwareSlotViewModel required = new("merge-dp", "DP BIN", "Display payload", FirmwareSlotKind.Dp);
 
         Assert.False(required.IsOptional);
         Assert.False(required.HasFile);
@@ -30,7 +30,12 @@ public sealed partial class ShellViewModelTests
         AssertIconGeometry(required);
         Assert.Equal("Required", required.RequirementLabel);
 
-        FirmwareSlotViewModel optional = new("merge-ld", "LD BIN", "Optional payload", isOptional: true);
+        FirmwareSlotViewModel optional = new(
+            "merge-ld",
+            "LD BIN",
+            "Optional payload",
+            FirmwareSlotKind.Dp,
+            isOptional: true);
 
         Assert.True(optional.IsOptional);
         Assert.Equal(FirmwareSlotKind.Dp, optional.SlotKind);

@@ -20,18 +20,18 @@ public sealed partial class MainWindowViewModel
         MergeDpSlotId,
         "DP BIN",
         "Display payload for Standard Merge",
-        kind: FirmwareSlotKind.Dp);
+        FirmwareSlotKind.Dp);
     private readonly FirmwareSlotViewModel _mergeTpSlot = new(
         MergeTpSlotId,
         "TP BIN",
         "Touch payload for Standard Merge",
-        kind: FirmwareSlotKind.Tp);
+        FirmwareSlotKind.Tp);
     private readonly FirmwareSlotViewModel _mergeLdSlot = new(
         MergeLdSlotId,
         "LD BIN",
         "Required only when the selected profile uses LD",
-        isOptional: true,
-        kind: FirmwareSlotKind.Dp);
+        FirmwareSlotKind.Dp,
+        isOptional: true);
     private int _generalReplaceMappingCounter;
     private int _generalMergeMappingCounter;
     private string _selectedMergeMode = NormalMergeMode;

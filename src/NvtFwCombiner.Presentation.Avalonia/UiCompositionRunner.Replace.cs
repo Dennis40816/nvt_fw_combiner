@@ -29,6 +29,12 @@ public static partial class UiCompositionRunner
         string replaceMode,
         string? basePath = null)
     {
+        FirmwareSlotKind kind = replaceMode switch
+        {
+            WorkbenchReplaceModes.Dp => FirmwareSlotKind.Dp,
+            WorkbenchReplaceModes.CtrlRam => FirmwareSlotKind.CtrlRam,
+            _ => FirmwareSlotKind.Unknown,
+        };
         return
         [
             .. WorkbenchCompositionService.GetReplaceInputSlots(icId, number, replaceMode, basePath)
@@ -36,6 +42,7 @@ public static partial class UiCompositionRunner
                     slot.SlotId,
                     slot.Title,
                     slot.Description,
+                    kind,
                     slot.IsOptional)),
         ];
     }
