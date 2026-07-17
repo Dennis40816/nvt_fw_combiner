@@ -12,30 +12,10 @@ namespace NvtFwCombiner.Bootstrap;
 /// </summary>
 internal static class IcMetadataFacade
 {
-    /// <summary>All selectable IC identifiers in stable display order.</summary>
-    public static IReadOnlyList<string> IcIds { get; } = IcSupportCatalog.IcIds;
-
-    /// <summary>Catalog-owned initial IC identifier for workbench surfaces.</summary>
-    public static string DefaultIcId => IcSupportCatalog.DefaultIcId;
-
-    /// <summary>Returns true when the normalized IC is selectable.</summary>
-    public static bool IsKnown(string icId)
-    {
-        return IcSupportCatalog.TryFind(icId, out _);
-    }
-
-    /// <summary>Gets the profile-declared IC-number choices for a selectable IC.</summary>
-    public static IReadOnlyList<string> GetNumberChoices(string icId)
-    {
-        return IsKnown(icId)
-            ? IcNumberChoicePolicy.GetNumberChoices(GetPostbuildProfiles(icId))
-            : [];
-    }
-
     /// <summary>Gets grouped UI choices without exposing every legacy branch alias.</summary>
     public static IReadOnlyList<IcNumberChoice> GetNumberSelectionChoices(string icId)
     {
-        return IsKnown(icId)
+        return IcSupportCatalog.TryFind(icId, out _)
             ? IcNumberChoicePolicy.GetNumberSelectionChoices(GetPostbuildProfiles(icId))
             : [];
     }
@@ -43,19 +23,16 @@ internal static class IcMetadataFacade
     /// <summary>Gets the approved postbuild category variants for a selectable IC.</summary>
     public static IReadOnlyList<LegacyCombinerPostbuildProfile> GetPostbuildProfiles(string icId)
     {
-        return IsKnown(icId) ? BuiltInPostbuildProfileCatalog.GetProfiles(IcSupportCatalog.NormalizeIcId(icId)) : [];
+        return IcSupportCatalog.TryFind(icId, out _)
+            ? BuiltInPostbuildProfileCatalog.GetProfiles(IcSupportCatalog.NormalizeIcId(icId))
+            : [];
     }
 
     /// <summary>Returns whether a profile-backed IC-number token selects an approved postbuild branch.</summary>
     public static bool IsNumberSelectionSupported(string icId, IcNumberSelection selection)
     {
-        return IsKnown(icId) && IcNumberChoicePolicy.IsNumberSelectionSupported(selection, GetPostbuildProfiles(icId));
-    }
-
-    /// <summary>Returns true when support policy exposes CtrlRAM Replace for the selected IC.</summary>
-    public static bool SupportsCtrlRamReplace(string icId)
-    {
-        return IcSupportCatalog.SupportsWorkflow(icId, IcWorkflowIds.CtrlRamReplace);
+        return IcSupportCatalog.TryFind(icId, out _) &&
+            IcNumberChoicePolicy.IsNumberSelectionSupported(selection, GetPostbuildProfiles(icId));
     }
 
     /// <summary>Selects the approved postbuild category for a base image Common FW version.</summary>
@@ -65,7 +42,7 @@ internal static class IcMetadataFacade
         out LegacyCombinerPostbuildProfile? postbuildProfile,
         out string? issue)
     {
-        if (!IsKnown(icId))
+        if (!IcSupportCatalog.TryFind(icId, out _))
         {
             postbuildProfile = null;
             issue = $"No IC metadata is registered for {icId}.";
@@ -85,7 +62,7 @@ internal static class IcMetadataFacade
         out LegacyCombinerPostbuildProfile? postbuildProfile)
     {
         postbuildProfile = null;
-        return IsKnown(icId) && BuiltInPostbuildProfileCatalog.TryGetDefaultProfile(
+        return IcSupportCatalog.TryFind(icId, out _) && BuiltInPostbuildProfileCatalog.TryGetDefaultProfile(
             IcSupportCatalog.NormalizeIcId(icId),
             out postbuildProfile);
     }

@@ -11,23 +11,21 @@ public sealed class IcMetadataFacadeTests
     [Fact]
     public void SelectionFactsConvergeOnCanonicalCatalogs()
     {
-        Assert.Equal(IcSupportCatalog.IcIds, IcMetadataFacade.IcIds);
-        Assert.Equal(IcSupportCatalog.DefaultIcId, IcMetadataFacade.DefaultIcId);
-
         foreach (IcSupportEntry support in IcSupportCatalog.All)
         {
             IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = IcMetadataFacade.GetPostbuildProfiles(support.IcId);
-            Assert.True(IcMetadataFacade.IsKnown(support.IcId));
-            Assert.Equal(IcNumberChoicePolicy.GetNumberChoices(profiles), IcMetadataFacade.GetNumberChoices(support.IcId));
             Assert.Equal(
                 IcNumberChoicePolicy.GetNumberSelectionChoices(profiles),
                 IcMetadataFacade.GetNumberSelectionChoices(support.IcId));
             Assert.Equal(
                 LegacyCombinerPostbuildCatalog.GetProfiles(support.IcId),
                 IcMetadataFacade.GetPostbuildProfiles(support.IcId));
-            Assert.Equal(
-                support.SupportsWorkflow(IcWorkflowIds.CtrlRamReplace),
-                IcMetadataFacade.SupportsCtrlRamReplace(support.IcId));
+            foreach (IcNumberChoice choice in IcMetadataFacade.GetNumberSelectionChoices(support.IcId))
+            {
+                Assert.True(IcMetadataFacade.IsNumberSelectionSupported(
+                    support.IcId,
+                    PostbuildSelectionTestCases.ToNumberChoiceSelection(choice.Token)));
+            }
         }
     }
 
@@ -35,10 +33,11 @@ public sealed class IcMetadataFacadeTests
     [Fact]
     public void MetadataLookupNormalizesIcIdentifiers()
     {
-        Assert.True(IcMetadataFacade.IsKnown("51926"));
-        Assert.True(IcMetadataFacade.IsKnown("nt51926"));
         Assert.Equal(
-            IcMetadataFacade.GetNumberChoices("NT51926"),
-            IcMetadataFacade.GetNumberChoices("51926"));
+            IcMetadataFacade.GetNumberSelectionChoices("NT51926"),
+            IcMetadataFacade.GetNumberSelectionChoices("51926"));
+        Assert.Equal(
+            IcMetadataFacade.GetPostbuildProfiles("NT51926"),
+            IcMetadataFacade.GetPostbuildProfiles("nt51926"));
     }
 }

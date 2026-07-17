@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -23,19 +24,13 @@ public static partial class WorkbenchCompositionService
     /// <summary>Gets selectable IC ids from the IC support catalog.</summary>
     public static IReadOnlyList<string> GetSupportedIcIds()
     {
-        return IcMetadataFacade.IcIds;
+        return IcSupportCatalog.IcIds;
     }
 
     /// <summary>Gets the catalog-owned initial IC id for shell/workbench surfaces.</summary>
     public static string GetDefaultIcId()
     {
-        return IcMetadataFacade.DefaultIcId;
-    }
-
-    /// <summary>Gets supported IC-number choices from the TP flash-map/postbuild catalog.</summary>
-    public static IReadOnlyList<string> GetNumberChoices(string icId)
-    {
-        return IcMetadataFacade.GetNumberChoices(icId);
+        return IcSupportCatalog.DefaultIcId;
     }
 
     /// <summary>Gets concise grouped IC-number choices for workbench selection controls.</summary>
@@ -68,17 +63,18 @@ public static partial class WorkbenchCompositionService
     /// <summary>Gets catalog and tool summary data for the Settings page.</summary>
     public static WorkbenchSettingsSnapshot GetSettingsSnapshot()
     {
-        int externalToolBindingCount = IcMetadataFacade.IcIds
+        IReadOnlyList<string> icIds = IcSupportCatalog.IcIds;
+        int externalToolBindingCount = icIds
             .SelectMany(IcMetadataFacade.GetPostbuildProfiles)
             .Select(static profile => profile.ToolBindingId)
             .Distinct(StringComparer.Ordinal)
             .Count();
 
         return new WorkbenchSettingsSnapshot(
-            IcMetadataFacade.IcIds.Count,
+            icIds.Count,
             StandardMergeProfileSummaries.Count,
             ReplaceProfileSummaries.Count,
-            IcMetadataFacade.IcIds.Count(IcMetadataFacade.SupportsCtrlRamReplace),
+            icIds.Count(icId => IcSupportCatalog.SupportsWorkflow(icId, IcWorkflowIds.CtrlRamReplace)),
             externalToolBindingCount);
     }
 

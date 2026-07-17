@@ -285,7 +285,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ReportReviewViewModel", reportViewModel, StringComparison.Ordinal);
         Assert.Contains("CanOpenReport", reportViewModel, StringComparison.Ordinal);
         Assert.Contains("ReportToastText", reportViewModel, StringComparison.Ordinal);
-        Assert.Contains("UiCompositionRunner.GetNumberChoices", viewModel, StringComparison.Ordinal);
+        Assert.Contains("UiCompositionRunner.GetNumberSelectionChoices", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("public partial IReadOnlyList<string> NumberChoices", viewModel, StringComparison.Ordinal);
         Assert.Contains("UiCompositionRunner.GetStandardMergeMemoryMapRows", viewModel, StringComparison.Ordinal);
         Assert.Contains("UiCompositionRunner.GetStandardMergeCoverageSegments", viewModel, StringComparison.Ordinal);
         Assert.Contains("UiCompositionRunner.GetReplaceMemoryMapRows", viewModel, StringComparison.Ordinal);

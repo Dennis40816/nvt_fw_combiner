@@ -13,7 +13,7 @@ internal static partial class BuiltInTpFlashMapCatalog
         IcNumberSelection? selection,
         LegacyCombinerPostbuildProfile? postbuildProfile)
     {
-        if (!ProfilesByIc.ContainsKey(icId) || postbuildProfile is null)
+        if (postbuildProfile is null)
         {
             return [];
         }
@@ -21,7 +21,7 @@ internal static partial class BuiltInTpFlashMapCatalog
         IReadOnlyList<LegacyCombinerBlockArgument> blocks = LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(
             LegacyCombinerPostbuildPlanner.CreatePlan(postbuildProfile, selection));
         return [
-            .. GetCtrlRamRegions(icId, selection, postbuildProfile)
+            .. GetRegions(icId, selection, postbuildProfile, TpFlashMapRegionKind.CtrlRam)
                 .Where(region => blocks.Any(block => IsMappedBlock(region, block)))
         ];
     }

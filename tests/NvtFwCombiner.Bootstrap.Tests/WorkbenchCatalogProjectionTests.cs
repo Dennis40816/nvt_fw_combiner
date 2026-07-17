@@ -20,7 +20,6 @@ public sealed class WorkbenchCatalogProjectionTests
         foreach (string icId in icIds)
         {
             IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = IcMetadataFacade.GetPostbuildProfiles(icId);
-            Assert.Equal(IcNumberChoicePolicy.GetNumberChoices(profiles), WorkbenchCompositionService.GetNumberChoices(icId));
             Assert.Equal(
                 IcNumberChoicePolicy.GetNumberSelectionChoices(profiles).Select(static choice => (
                     choice.Token,
@@ -36,19 +35,21 @@ public sealed class WorkbenchCatalogProjectionTests
     public void CatalogProjectionsRejectMutation()
     {
         IReadOnlyList<string> supportedIcIds = WorkbenchCompositionService.GetSupportedIcIds();
-        IReadOnlyList<string> numberChoices = WorkbenchCompositionService.GetNumberChoices("NT51950");
+        IReadOnlyList<WorkbenchIcNumberChoice> numberChoices =
+            WorkbenchCompositionService.GetNumberSelectionChoices("NT51950");
         string originalIcId = supportedIcIds[0];
-        string originalNumberChoice = numberChoices[0];
+        WorkbenchIcNumberChoice originalNumberChoice = numberChoices[0];
 
         var mutableIcIds = (IList<string>)supportedIcIds;
-        var mutableNumberChoices = (IList<string>)numberChoices;
+        var mutableNumberChoices = (IList<WorkbenchIcNumberChoice>)numberChoices;
         Assert.True(mutableIcIds.IsReadOnly);
         Assert.True(mutableNumberChoices.IsReadOnly);
         _ = Assert.Throws<NotSupportedException>(() => mutableIcIds[0] = "NT00000");
-        _ = Assert.Throws<NotSupportedException>(() => mutableNumberChoices[0] = "invalid");
+        _ = Assert.Throws<NotSupportedException>(() =>
+            mutableNumberChoices[0] = new WorkbenchIcNumberChoice("invalid", "Invalid"));
 
         Assert.Equal(originalIcId, WorkbenchCompositionService.GetSupportedIcIds()[0]);
-        Assert.Equal(originalNumberChoice, WorkbenchCompositionService.GetNumberChoices("NT51950")[0]);
+        Assert.Equal(originalNumberChoice, WorkbenchCompositionService.GetNumberSelectionChoices("NT51950")[0]);
     }
 
     /// <summary>Replace summaries expose only manifest-pinned V2 runtime profiles.</summary>

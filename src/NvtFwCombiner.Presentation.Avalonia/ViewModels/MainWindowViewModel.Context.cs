@@ -10,9 +10,7 @@ public sealed partial class MainWindowViewModel
 
     private void RefreshNumberChoicesForSelectedIc()
     {
-        IReadOnlyList<string> nextChoices = UiCompositionRunner.GetNumberChoices(SelectedIc);
         IReadOnlyList<IcNumberChoiceViewModel> nextDisplayChoices = UiCompositionRunner.GetNumberSelectionChoices(SelectedIc);
-        NumberChoices = nextChoices;
         NumberSelectionChoices = nextDisplayChoices;
         if (!nextDisplayChoices.Any(choice =>
                 string.Equals(choice.Token, SelectedNumber, StringComparison.Ordinal)))

@@ -2,6 +2,7 @@ using System.Globalization;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -189,7 +190,7 @@ public static partial class WorkbenchCompositionService
         out FirmwareConfigMetadata metadata)
     {
         metadata = default;
-        if (!IcMetadataFacade.IsKnown(icId))
+        if (!IcSupportCatalog.TryFind(icId, out _))
         {
             return false;
         }
@@ -216,7 +217,7 @@ public static partial class WorkbenchCompositionService
         out FirmwareConfigMetadata metadata)
     {
         metadata = default;
-        if (!IcMetadataFacade.IsKnown(icId) ||
+        if (!IcSupportCatalog.TryFind(icId, out _) ||
             !FirmwareConfigMetadataReader.TryReadBackup(image, out FirmwareConfigMetadata backup))
         {
             return false;

@@ -25,15 +25,21 @@ public sealed class BuiltInTpFlashMapCatalogTests
     [Fact]
     public void Nt51927CtrlRamRowsFollowNumericIcCount()
     {
-        IReadOnlyList<TpFlashMapRegion> single = BuiltInTpFlashMapCatalog.GetCtrlRamRegions(
+        IReadOnlyList<TpFlashMapRegion> single = BuiltInTpFlashMapCatalog.GetRegions(
             "NT51927",
-            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["1"]));
-        IReadOnlyList<TpFlashMapRegion> twoChip = BuiltInTpFlashMapCatalog.GetCtrlRamRegions(
+            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["1"]),
+            null,
+            TpFlashMapRegionKind.CtrlRam);
+        IReadOnlyList<TpFlashMapRegion> twoChip = BuiltInTpFlashMapCatalog.GetRegions(
             "NT51927",
-            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]));
-        IReadOnlyList<TpFlashMapRegion> threeChip = BuiltInTpFlashMapCatalog.GetCtrlRamRegions(
+            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]),
+            null,
+            TpFlashMapRegionKind.CtrlRam);
+        IReadOnlyList<TpFlashMapRegion> threeChip = BuiltInTpFlashMapCatalog.GetRegions(
             "NT51927",
-            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["3"]));
+            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["3"]),
+            null,
+            TpFlashMapRegionKind.CtrlRam);
 
         Assert.DoesNotContain(single, region => region.DisplayName.Contains("Slave", StringComparison.Ordinal));
         Assert.Contains(twoChip, region => region.RegionId == "normal-slave-r");
@@ -115,12 +121,16 @@ public sealed class BuiltInTpFlashMapCatalogTests
     [Fact]
     public void SingleSelectionHidesDiffDlmRows()
     {
-        IReadOnlyList<TpFlashMapRegion> single = BuiltInTpFlashMapCatalog.GetCtrlRamRegions(
+        IReadOnlyList<TpFlashMapRegion> single = BuiltInTpFlashMapCatalog.GetRegions(
             "NT51950",
-            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
-        IReadOnlyList<TpFlashMapRegion> cascade = BuiltInTpFlashMapCatalog.GetCtrlRamRegions(
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
+            null,
+            TpFlashMapRegionKind.CtrlRam);
+        IReadOnlyList<TpFlashMapRegion> cascade = BuiltInTpFlashMapCatalog.GetRegions(
             "NT51950",
-            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
+            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]),
+            null,
+            TpFlashMapRegionKind.CtrlRam);
 
         Assert.DoesNotContain(single, region => region.RegionId == "diff");
         Assert.Contains(cascade, region => region.RegionId == "diff");
@@ -133,10 +143,12 @@ public sealed class BuiltInTpFlashMapCatalogTests
         IReadOnlyList<TpFlashMapRegion> singleDpRegions = BuiltInTpFlashMapCatalog.GetRegions(
             "NT51950",
             new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
+            null,
             TpFlashMapRegionKind.Dp);
         IReadOnlyList<TpFlashMapRegion> twoChipDpRegions = BuiltInTpFlashMapCatalog.GetRegions(
             "NT51950",
             new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]),
+            null,
             TpFlashMapRegionKind.Dp);
 
         Assert.DoesNotContain(singleDpRegions, region => region.RegionId == "dp-2ic-only");
@@ -248,7 +260,11 @@ public sealed class BuiltInTpFlashMapCatalogTests
         foreach ((LegacyCombinerPostbuildProfile profile, IcNumberSelection selection) in AllPostbuildSelections())
         {
             LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(profile, selection);
-            IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetCtrlRamRegions(profile.IcId, selection);
+            IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetRegions(
+                profile.IcId,
+                selection,
+                null,
+                TpFlashMapRegionKind.CtrlRam);
             foreach (LegacyCombinerBlockArgument block in LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(plan))
             {
                 Assert.Contains(
@@ -263,9 +279,11 @@ public sealed class BuiltInTpFlashMapCatalogTests
     [Fact]
     public void Nt51930MpCtrlRamIsVisibleAsOverviewOnly()
     {
-        IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetCtrlRamRegions(
+        IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetRegions(
             "NT51930",
-            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
+            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]),
+            null,
+            TpFlashMapRegionKind.CtrlRam);
         IReadOnlyList<TpFlashMapRegion> postbuildMapped = BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
             "NT51930",
             new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]),
@@ -326,18 +344,21 @@ public sealed class BuiltInTpFlashMapCatalogTests
         Assert.Contains(commonFw200Mapped, region => region.RegionId == "vn" && region.Range == new ByteRange(0x27650, 0x1960));
     }
 
-    /// <summary>NT51930 exposes numeric choices while the owner-approved cascade branch supports the current count range.</summary>
+    /// <summary>NT51930 retains serialized numeric aliases for the owner-approved cascade count range.</summary>
     [Fact]
-    public void Nt51930NumberChoicesExposeApprovedCascadeCounts()
+    public void Nt51930BranchRulesRetainApprovedCascadeCounts()
     {
-        IReadOnlyList<string> choices = IcNumberChoicePolicy.GetNumberChoices(
-            LegacyCombinerPostbuildCatalog.GetProfiles("NT51930"));
+        string[] choices =
+        [
+            .. LegacyCombinerPostbuildCatalog.GetProfiles("NT51930")
+                .SelectMany(static profile => profile.BranchRules.Keys)
+                .Distinct(StringComparer.Ordinal),
+        ];
 
         Assert.Contains("single", choices);
         Assert.Contains("13", choices);
         Assert.Contains("14", choices);
         Assert.Contains("29", choices);
-        Assert.DoesNotContain("cascade", choices);
     }
 
     /// <summary>Projects legacy numeric branch aliases into one concise UI choice per command branch.</summary>
@@ -370,10 +391,6 @@ public sealed class BuiltInTpFlashMapCatalogTests
                 new IcNumberChoice("3", "3 IC"),
             ],
             nt51927);
-        Assert.Equal(
-            1,
-            IcNumberChoicePolicy.GetNumberChoices(LegacyCombinerPostbuildCatalog.GetProfiles("NT51932"))
-                .Count(choice => choice == "single"));
     }
 
     private static IEnumerable<(LegacyCombinerPostbuildProfile Profile, IcNumberSelection Selection)> AllPostbuildSelections()

@@ -315,11 +315,6 @@ public sealed partial class MainWindowViewModel
     [NotifyPropertyChangedFor(nameof(IsReplaceCoverageFlat))]
     public partial string SelectedReplaceMode { get; set; } = DpReplaceMode;
 
-    /// <summary>Gets supported IC count/variant choices for the selected IC.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(DeviceContextStatus))]
-    public partial IReadOnlyList<string> NumberChoices { get; set; } = UiCompositionRunner.GetNumberChoices(DefaultIcId);
-
     /// <summary>Gets grouped display choices for the IC-count control.</summary>
     [ObservableProperty]
     public partial IReadOnlyList<IcNumberChoiceViewModel> NumberSelectionChoices { get; set; } =

@@ -23,32 +23,6 @@ internal static partial class BuiltInTpFlashMapCatalog
         return ProfilesByIc.TryGetValue(icId, out profile);
     }
 
-    /// <summary>Gets TP Overview CtrlRAM regions visible for the selected IC and IC-count context.</summary>
-    internal static IReadOnlyList<TpFlashMapRegion> GetCtrlRamRegions(
-        string icId,
-        IcNumberSelection? selection)
-    {
-        return GetRegions(icId, selection, TpFlashMapRegionKind.CtrlRam);
-    }
-
-    /// <summary>Gets TP Overview CtrlRAM regions adjusted to the selected postbuild category.</summary>
-    internal static IReadOnlyList<TpFlashMapRegion> GetCtrlRamRegions(
-        string icId,
-        IcNumberSelection? selection,
-        LegacyCombinerPostbuildProfile? postbuildProfile)
-    {
-        return GetRegions(icId, selection, postbuildProfile, TpFlashMapRegionKind.CtrlRam);
-    }
-
-    /// <summary>Gets TP Overview regions visible for the selected IC, IC-count context, and optional kind.</summary>
-    internal static IReadOnlyList<TpFlashMapRegion> GetRegions(
-        string icId,
-        IcNumberSelection? selection,
-        TpFlashMapRegionKind? kind = null)
-    {
-        return GetRegions(icId, selection, postbuildProfile: null, kind);
-    }
-
     /// <summary>Gets TP Overview regions adjusted to the selected postbuild category.</summary>
     internal static IReadOnlyList<TpFlashMapRegion> GetRegions(
         string icId,
@@ -70,7 +44,6 @@ internal static partial class BuiltInTpFlashMapCatalog
                         .Where(region => IsVisible(region.Visibility, isSingle, count)),
                     postbuildProfile,
                     selection)
-                .Where(region => kind is null || region.Kind == kind)
         ];
     }
 

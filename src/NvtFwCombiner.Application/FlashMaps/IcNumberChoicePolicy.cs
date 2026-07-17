@@ -29,24 +29,9 @@ public static class IcNumberChoicePolicy
         return profiles.Any(profile => profile.BranchRules.ContainsKey(token));
     }
 
-    /// <summary>Gets UI number choices from the postbuild branches available for an IC.</summary>
-    public static IReadOnlyList<string> GetNumberChoices(IReadOnlyList<LegacyCombinerPostbuildProfile> profiles)
-    {
-        ArgumentNullException.ThrowIfNull(profiles);
-        IReadOnlyList<string> numericChoices = GetNumericNumberChoices(profiles);
-        return numericChoices.Count > 0
-            ? [IcNumberSelectionTokens.SingleChip, .. numericChoices]
-            : profiles.Count == 0
-            ? [IcNumberSelectionTokens.SingleChip]
-            : profiles[0].TwoChipCommands is not null || profiles[0].ThreeChipCommands is not null
-            ? [IcNumberSelectionTokens.SingleChip, "2", "3"]
-            : [IcNumberSelectionTokens.SingleChip, IcNumberSelectionTokens.Cascade];
-    }
-
     /// <summary>
     /// Gets concise count choices grouped by the identical postbuild branch they select.
-    /// Raw branch aliases remain available through <see cref="GetNumberChoices"/> for callers that
-    /// need to validate a serialized request; the workbench should render these options instead.
+    /// Serialized request validation remains owned by <see cref="IsNumberSelectionSupported"/>.
     /// </summary>
     public static IReadOnlyList<IcNumberChoice> GetNumberSelectionChoices(
         IReadOnlyList<LegacyCombinerPostbuildProfile> profiles)
@@ -86,18 +71,6 @@ public static class IcNumberChoicePolicy
                 new IcNumberChoice(IcNumberSelectionTokens.SingleChip, "1 IC"),
                 new IcNumberChoice(IcNumberSelectionTokens.Cascade, "Cascade"),
             ];
-    }
-
-    private static IReadOnlyList<string> GetNumericNumberChoices(IEnumerable<LegacyCombinerPostbuildProfile> profiles)
-    {
-        return
-        [
-            .. profiles
-                .SelectMany(profile => profile.BranchRules.Keys)
-                .Where(token => int.TryParse(token, out int value) && value > 1)
-                .Distinct(StringComparer.Ordinal)
-                .OrderBy(token => int.Parse(token, CultureInfo.InvariantCulture)),
-        ];
     }
 
 }

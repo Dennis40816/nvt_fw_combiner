@@ -34,26 +34,25 @@ public sealed class IcSupportWorkflowDependencyTests
         }
     }
 
-    /// <summary>CtrlRAM Replace exposure must be backed by postbuild profiles and selectable IC-number choices.</summary>
+    /// <summary>CtrlRAM Replace exposure must be backed by executable postbuild branch selections.</summary>
     [Fact]
     public void CtrlRamReplaceSupportHasPostbuildAndNumberChoiceCoverage()
     {
         foreach (IcSupportEntry entry in IcSupportCatalog.All.Where(entry =>
-                     entry.SupportsWorkflow(IcWorkflowIds.CtrlRamReplace)))
+            entry.SupportsWorkflow(IcWorkflowIds.CtrlRamReplace)))
         {
             IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = LegacyCombinerPostbuildCatalog.GetProfiles(entry.IcId);
-            IReadOnlyList<string> numberChoices = IcNumberChoicePolicy.GetNumberChoices(profiles);
 
             Assert.NotEmpty(profiles);
-            Assert.NotEmpty(numberChoices);
             Assert.All(profiles, profile => Assert.Equal(entry.IcId, profile.IcId));
 
-            foreach (string numberChoice in numberChoices)
+            foreach (LegacyCombinerPostbuildProfile profile in profiles)
             {
-                IcNumberSelection selection = PostbuildSelectionTestCases.ToNumberChoiceSelection(numberChoice);
-                Assert.Contains(
-                    profiles,
-                    profile => CanCreatePostbuildPlan(profile, selection));
+                IcNumberSelection[] selections = [.. PostbuildSelectionTestCases.GetBranchSelections(profile)];
+                Assert.NotEmpty(selections);
+                Assert.All(
+                    selections,
+                    selection => Assert.Equal(profile, LegacyCombinerPostbuildPlanner.CreatePlan(profile, selection).Profile));
             }
         }
     }
@@ -119,10 +118,11 @@ public sealed class IcSupportWorkflowDependencyTests
                 foreach (IcNumberSelection selection in PostbuildSelectionTestCases.GetBranchSelections(profile))
                 {
                     LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(profile, selection);
-                    IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetCtrlRamRegions(
+                    IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetRegions(
                         profile.IcId,
                         selection,
-                        profile);
+                        profile,
+                        TpFlashMapRegionKind.CtrlRam);
 
                     foreach (LegacyCombinerBlockArgument block in LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(plan))
                     {
@@ -136,18 +136,4 @@ public sealed class IcSupportWorkflowDependencyTests
         }
     }
 
-    private static bool CanCreatePostbuildPlan(
-        LegacyCombinerPostbuildProfile profile,
-        IcNumberSelection selection)
-    {
-        try
-        {
-            _ = LegacyCombinerPostbuildPlanner.CreatePlan(profile, selection);
-            return true;
-        }
-        catch (ArgumentException)
-        {
-            return false;
-        }
-    }
 }
