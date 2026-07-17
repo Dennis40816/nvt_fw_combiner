@@ -46,7 +46,7 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.HasLoadedReport);
         Assert.True(viewModel.LoadedReport.HasOutputArtifactPath);
         Assert.Equal(outputPath, viewModel.LoadedReport.OutputArtifactPath);
-        Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
+        Assert.Contains(GetCommandOperations(viewModel.LoadedReport), operation =>
             operation.CodeBlock.Contains("Combiner.exe", StringComparison.Ordinal));
         using var firstReportDocument = JsonDocument.Parse(viewModel.LoadedReportJson);
         AssertAcceptedPostbuildOnlyOutputDifferences(firstReportDocument.RootElement, "postbuild-single");
@@ -111,7 +111,7 @@ public sealed partial class ShellViewModelTests
             Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
             if (caseId.StartsWith("nt51926-", StringComparison.Ordinal))
             {
-                Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
+                Assert.Contains(GetCommandOperations(viewModel.LoadedReport), operation =>
                     operation.Facts.Any(fact =>
                         fact.Label == "Processor" &&
                         fact.Value.Contains("nfc.nt51926.ctrlram-postbuild-fw1.4.1", StringComparison.Ordinal)) &&

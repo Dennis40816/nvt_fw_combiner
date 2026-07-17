@@ -32,7 +32,6 @@
   <SolidColorBrush x:Key="NfcInfoSurfaceStrongBrush" Color="#DBEAFE" />
   <SolidColorBrush x:Key="NfcInfoBorderBrush" Color="#D7E2F1" />
   <SolidColorBrush x:Key="NfcInfoTextBrush" Color="#0F766E" />
-  <SolidColorBrush x:Key="NfcInfoTextStrongBrush" Color="#1E3A8A" />
   <SolidColorBrush x:Key="NfcReferenceInputSurfaceBrush" Color="#EEF2FF" />
   <SolidColorBrush x:Key="NfcReferenceInputBorderBrush" Color="#C7D2FE" />
   <SolidColorBrush x:Key="NfcReferenceInputTextBrush" Color="#4338CA" />

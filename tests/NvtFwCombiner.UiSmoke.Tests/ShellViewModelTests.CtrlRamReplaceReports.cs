@@ -38,9 +38,9 @@ public sealed partial class ShellViewModelTests
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.True(viewModel.HasLoadedReport);
-        Assert.True(viewModel.LoadedReport.HasCommandOperations);
+        Assert.NotEmpty(GetCommandOperations(viewModel.LoadedReport));
         Assert.False(viewModel.LoadedReport.HasStepOperations);
-        Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
+        Assert.Contains(GetCommandOperations(viewModel.LoadedReport), operation =>
             operation.Title.Contains("Postbuild refresh", StringComparison.Ordinal) &&
             operation.Meta.Contains("legacy Combiner postbuild", StringComparison.Ordinal) &&
             !operation.Meta.Contains("Combiner command", StringComparison.Ordinal) &&
@@ -93,7 +93,7 @@ public sealed partial class ShellViewModelTests
         await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
+        Assert.Contains(GetCommandOperations(viewModel.LoadedReport), operation =>
             operation.CodeBlock.Contains("Normal_Ctrlram_R.bin", StringComparison.Ordinal) &&
             operation.CodeBlock.Contains("Normal_Ctrlram_L.bin", StringComparison.Ordinal));
         Assert.Contains(viewModel.ReplaceCoverageSegments, segment =>

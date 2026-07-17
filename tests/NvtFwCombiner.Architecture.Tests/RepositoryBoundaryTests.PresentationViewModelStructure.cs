@@ -110,8 +110,10 @@ public sealed partial class RepositoryBoundaryTests
                  {
                      "HasOutputFileName",
                      "public bool? OutputCommitted",
-                     "CommandOperationCount",
-                     "HasNoCommandOperations",
+                      "CommandOperationCount",
+                      "CommandOperations",
+                      "HasCommandOperations",
+                      "HasNoCommandOperations",
                      "HasNoStepOperations",
                      "HasNoMutations",
                      "HasOutputDifferenceGroups",

@@ -35,7 +35,7 @@ public sealed partial class ShellViewModelTests
             node.Number == "100" &&
             node.Meta == "command details in Postbuild tab");
         Assert.DoesNotContain(viewModel.LoadedReport.StepOperations, operation => operation.HasCodeBlock);
-        Assert.True(viewModel.LoadedReport.HasCommandOperations);
+        Assert.NotEmpty(GetCommandOperations(viewModel.LoadedReport));
         Assert.True(viewModel.LoadedReport.HasPostbuildInvocations);
         ReportPostbuildInvocationViewModel invocation = Assert.Single(viewModel.LoadedReport.PostbuildInvocations);
         Assert.Equal("900.01", invocation.Number);

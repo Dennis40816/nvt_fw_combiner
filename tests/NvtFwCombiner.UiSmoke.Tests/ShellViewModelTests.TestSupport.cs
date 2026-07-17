@@ -7,6 +7,11 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellViewModelTests
 {
+    private static IEnumerable<ReportLineViewModel> GetCommandOperations(ReportReviewViewModel report)
+    {
+        return report.Operations.Where(operation => operation.HasCodeBlock || operation.HasRuntimeCommands);
+    }
+
     private static void AssertAcceptedPostbuildOnlyOutputDifferences(
         JsonElement root,
         string expectedOperationId)

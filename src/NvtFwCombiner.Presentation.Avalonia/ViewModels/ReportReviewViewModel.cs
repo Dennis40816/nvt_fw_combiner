@@ -56,7 +56,6 @@ public sealed partial class ReportReviewViewModel
         OutputArtifactPath = string.IsNullOrWhiteSpace(outputArtifactPath) ? string.Empty : outputArtifactPath;
         Inputs = inputs;
         Operations = operations;
-        CommandOperations = [.. operations.Where(operation => operation.HasCodeBlock || operation.HasRuntimeCommands)];
         StepOperations = [.. operations.Where(operation => !operation.HasCodeBlock && !operation.HasRuntimeCommands)];
         PostbuildInvocations = CreatePostbuildInvocations(operations, language);
         Mutations = mutations;

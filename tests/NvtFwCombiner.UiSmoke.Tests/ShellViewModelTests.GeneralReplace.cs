@@ -117,7 +117,7 @@ public sealed partial class ShellViewModelTests
             operation.Title.Contains("Postbuild refresh", StringComparison.Ordinal) &&
             operation.HasCodeBlock &&
             operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
-        Assert.Contains(viewModel.LoadedReport.CommandOperations, operation =>
+        Assert.Contains(GetCommandOperations(viewModel.LoadedReport), operation =>
             operation.Title.Contains("Postbuild refresh", StringComparison.Ordinal) &&
             operation.CodeBlock.StartsWith("Combiner.exe ", StringComparison.Ordinal));
     }

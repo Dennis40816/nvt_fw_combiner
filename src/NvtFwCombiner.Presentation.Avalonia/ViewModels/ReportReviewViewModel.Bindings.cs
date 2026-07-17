@@ -110,12 +110,6 @@ public sealed partial class ReportReviewViewModel
     /// <summary>True when no operation flow or detail rows are available.</summary>
     public bool HasNoOperations => !HasOperationFlow && !HasOperations;
 
-    /// <summary>Operations that contain a fixed-width external command block.</summary>
-    public IReadOnlyList<ReportLineViewModel> CommandOperations { get; }
-
-    /// <summary>True when external command operations are available.</summary>
-    public bool HasCommandOperations => CommandOperations.Count > 0;
-
     /// <summary>Actual postbuild process invocations flattened into independently numbered review rows.</summary>
     public IReadOnlyList<ReportPostbuildInvocationViewModel> PostbuildInvocations { get; }
 
