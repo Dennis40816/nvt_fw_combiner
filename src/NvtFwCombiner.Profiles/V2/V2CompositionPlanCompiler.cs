@@ -518,13 +518,37 @@ internal static partial class V2CompositionPlanCompiler
         LoweredRegionAccess regionAccess,
         List<CompositionIssue> issues)
     {
+        ResolvedRegionAccessRule[] applicableRules =
+        [
+            .. regionAccess.Rules.Values.Where(rule => rule.Region.Range.Contains(target.Range)),
+        ];
         if (target.GoverningRegionChain.Count == 0 ||
-            !regionAccess.Rules.Values.Any(rule => rule.Region.Range.Contains(target.Range)))
+            applicableRules.Length == 0)
         {
             AddAccessDenied(
                 issues,
                 operationId,
                 $"processor target view '{targetViewId}' has no declared physical profile region");
+            return false;
+        }
+
+        bool isAuthorableTpCtrlRam = target.GoverningRegionChain[^1] is
+        {
+            Owner: FirmwareRegionOwner.Tp,
+            Kind: FirmwareRegionKind.CtrlRam,
+        };
+        CompiledRegionAccessKind mostSpecificAccess = applicableRules
+            .OrderBy(static rule => rule.Region.Range.Length)
+            .ThenBy(static rule => rule.Region.RegionId, StringComparer.Ordinal)
+            .First()
+            .Requirement.Access;
+        if (!isAuthorableTpCtrlRam &&
+            mostSpecificAccess is not (CompiledRegionAccessKind.Hidden or CompiledRegionAccessKind.ReadOnly))
+        {
+            AddAccessDenied(
+                issues,
+                operationId,
+                $"processor target view '{targetViewId}' is not isolated from General Replace authoring");
             return false;
         }
 

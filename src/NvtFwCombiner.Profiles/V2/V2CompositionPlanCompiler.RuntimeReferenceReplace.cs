@@ -94,14 +94,19 @@ internal static partial class V2CompositionPlanCompiler
             return V2CompositionPlanCompileResult.Failed(issues);
         }
 
-        CompositionOperation[] processorOperations = touchesTp
-            ? LowerOperations(profile, spaces, views, regionAccess, issues, useProcessorWriteAuthority: true)
-            : [];
+        CompositionOperation[] declaredProcessorOperations = LowerOperations(
+            profile,
+            spaces,
+            views,
+            regionAccess,
+            issues,
+            useProcessorWriteAuthority: true);
         if (issues.Count != 0)
         {
             return V2CompositionPlanCompileResult.Failed(issues);
         }
 
+        CompositionOperation[] processorOperations = touchesTp ? declaredProcessorOperations : [];
         CompositionOperation[] operations = [.. mappingOperations, .. processorOperations];
 
         V2RuntimeReferenceReplaceInputBinding referenceBinding = bindings.Values.Single(binding =>

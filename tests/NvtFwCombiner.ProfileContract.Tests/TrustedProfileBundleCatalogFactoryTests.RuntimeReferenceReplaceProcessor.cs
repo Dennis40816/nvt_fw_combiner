@@ -133,6 +133,25 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Contains(result.Issues, issue => issue.Code == "profile.v2.plan.region-access-denied");
     }
 
+    /// <summary>Verifies processor write views stay hidden from user mappings even for DP-only requests.</summary>
+    [Fact]
+    public void RuntimeReferenceReplaceRejectsProcessorWritesExposedToAuthoring()
+    {
+        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
+            CreateConditionalRuntimeReferenceReplaceCatalog(
+                includeProcessor: true,
+                headerAccess: "explicit-range"),
+            "runtime-general-replace",
+            "1.0.0",
+            LogicalTestMemberId,
+            RuntimeReferenceReplaceRequest(
+                mappings:
+                [RuntimeReferenceReplaceMapping("replace-dp", 10, new ByteRange(0, 2), new ByteRange(2, 2))]));
+
+        Assert.False(result.IsCompiled);
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.v2.plan.region-access-denied");
+    }
+
     private static V2CompositionPlanCompileResult CompileConditionalRuntimeReferenceReplace(
         V2RuntimeReferenceReplaceCompileRequest request,
         bool includeProcessor = true)
@@ -147,11 +166,15 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
 
     private static TrustedProfileBundleCatalog CreateConditionalRuntimeReferenceReplaceCatalog(
         bool includeProcessor,
-        string headerWriteConstraint = "explicit-range")
+        string headerWriteConstraint = "explicit-range",
+        string headerAccess = "hidden")
     {
         string familyJson = ConditionalRuntimeReferenceReplaceFamilyJson(headerWriteConstraint);
         string familyHash = Hash(familyJson);
-        string profileJson = ConditionalRuntimeReferenceReplaceProfileJson(familyHash, includeProcessor);
+        string profileJson = ConditionalRuntimeReferenceReplaceProfileJson(
+            familyHash,
+            includeProcessor,
+            headerAccess);
         using var familyDocument = JsonDocument.Parse(familyJson);
         using var profileDocument = JsonDocument.Parse(profileJson);
         return TrustedProfileBundleCatalogFactory.Create(Source(
@@ -175,7 +198,8 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
 
     private static string ConditionalRuntimeReferenceReplaceProfileJson(
         string familyHash,
-        bool includeProcessor)
+        bool includeProcessor,
+        string headerAccess)
     {
         JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(
             RuntimeReferenceReplaceTestDocuments.ProfileJson(familyHash, "compilable", ["map"])));
@@ -186,7 +210,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         {
             Access("dp", "explicit-range"),
             Access("tp", "explicit-range"),
-            Access("header", "hidden"),
+            Access("header", headerAccess),
         };
         if (!includeProcessor)
         {
