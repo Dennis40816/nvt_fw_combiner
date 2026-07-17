@@ -14,12 +14,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
         FirmwareSlotViewModel? slot = FindSlot(slotId);
         if (slot is null)
         {
-            if (SetGeneralMergeMappingFile(slotId, path))
+            if (TrySetGeneralMappingFile(slotId, path))
             {
                 return;
             }
-
-            SetGeneralReplaceMappingFile(slotId, path);
             return;
         }
 

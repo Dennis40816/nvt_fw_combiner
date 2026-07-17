@@ -56,7 +56,7 @@ public sealed partial class ShellViewModelTests
         viewModel.AddGeneralMergeMappingCommand.Execute(null);
 
         Assert.Equal(2, viewModel.GeneralMergeMappings.Count);
-        viewModel.RemoveGeneralMergeMappingRow(viewModel.GeneralMergeMappings[0]);
+        viewModel.RemoveGeneralMappingRow(viewModel.GeneralMergeMappings[0]);
         GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.GeneralMergeMappings);
         Assert.Equal(1, mapping.Index);
         Assert.Equal("No source BIN selected", mapping.DisplayName);
@@ -180,7 +180,7 @@ public sealed partial class ShellViewModelTests
             }
         };
 
-        Assert.True(viewModel.SetGeneralMergeMappingFile(mapping.MappingId, source));
+        viewModel.SetSlotFile(mapping.MappingId, source);
 
         Assert.Contains(nameof(MainWindowViewModel.MergeReadinessStatus), propertyChanges);
         Assert.Contains("maps 1 source BIN", viewModel.MergeReadinessStatus, StringComparison.Ordinal);

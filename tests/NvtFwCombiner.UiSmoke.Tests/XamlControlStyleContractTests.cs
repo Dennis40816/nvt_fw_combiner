@@ -87,18 +87,16 @@ public sealed partial class XamlControlStyleContractTests
     public void GeneralMappingRowsUseSharedSurfaceTokens()
     {
         string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
-        string merge = ReadPresentationFile("Views/GeneralMergeMappingRow.axaml");
-        string replace = ReadPresentationFile("Views/GeneralReplaceMappingRow.axaml");
+        string mappingRow = ReadPresentationFile("Views/GeneralMappingRow.axaml");
         string sharedTemplates = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
         string reportHistoryTemplates = ReadPresentationFile("Resources/MainWindowReportHistoryTemplates.axaml");
 
         Assert.Contains("Selector=\"Border.fileDropZone\"", styles, StringComparison.Ordinal);
-        foreach (string row in new[] { merge, replace })
-        {
-            Assert.Contains("Classes=\"subtleSurface\"", row, StringComparison.Ordinal);
-            Assert.Contains("Classes=\"fileDropZone\"", row, StringComparison.Ordinal);
-            Assert.DoesNotContain("Background=\"#F8FAFC\"", row, StringComparison.Ordinal);
-        }
+        Assert.Contains("Classes=\"subtleSurface\"", mappingRow, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"fileDropZone\"", mappingRow, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding SelectBinTooltip, ElementName=Root}\"", mappingRow, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding RemoveMappingTooltip, ElementName=Root}\"", mappingRow, StringComparison.Ordinal);
+        Assert.DoesNotContain("Background=\"#F8FAFC\"", mappingRow, StringComparison.Ordinal);
         Assert.Contains("Classes=\"surface\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("Classes=\"compactSurface\"", reportHistoryTemplates, StringComparison.Ordinal);
     }

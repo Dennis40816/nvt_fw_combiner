@@ -6,20 +6,20 @@ using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia.Views;
 
-/// <summary>Editable General Merge mapping row with source BIN browse and drop selection.</summary>
-public sealed partial class GeneralMergeMappingRow : UserControl
+/// <summary>Shared General mapping row with local BIN browse and drop selection.</summary>
+public sealed partial class GeneralMappingRow : UserControl
 {
     /// <summary>Defines the localized browse button label.</summary>
     public static readonly StyledProperty<string> BrowseLabelProperty =
-        AvaloniaProperty.Register<GeneralMergeMappingRow, string>(nameof(BrowseLabel), "Browse");
+        AvaloniaProperty.Register<GeneralMappingRow, string>(nameof(BrowseLabel), "Browse");
 
-    /// <summary>Defines the localized source BIN selection tooltip.</summary>
-    public static readonly StyledProperty<string> SelectSourceBinTooltipProperty =
-        AvaloniaProperty.Register<GeneralMergeMappingRow, string>(nameof(SelectSourceBinTooltip), string.Empty);
+    /// <summary>Defines the localized BIN selection tooltip.</summary>
+    public static readonly StyledProperty<string> SelectBinTooltipProperty =
+        AvaloniaProperty.Register<GeneralMappingRow, string>(nameof(SelectBinTooltip), string.Empty);
 
     /// <summary>Defines the localized row removal tooltip.</summary>
     public static readonly StyledProperty<string> RemoveMappingTooltipProperty =
-        AvaloniaProperty.Register<GeneralMergeMappingRow, string>(nameof(RemoveMappingTooltip), string.Empty);
+        AvaloniaProperty.Register<GeneralMappingRow, string>(nameof(RemoveMappingTooltip), string.Empty);
 
     /// <summary>Gets or sets the localized browse button label.</summary>
     public string BrowseLabel
@@ -28,11 +28,11 @@ public sealed partial class GeneralMergeMappingRow : UserControl
         set => SetValue(BrowseLabelProperty, value);
     }
 
-    /// <summary>Gets or sets the localized source BIN selection tooltip.</summary>
-    public string SelectSourceBinTooltip
+    /// <summary>Gets or sets the localized BIN selection tooltip.</summary>
+    public string SelectBinTooltip
     {
-        get => GetValue(SelectSourceBinTooltipProperty);
-        set => SetValue(SelectSourceBinTooltipProperty, value);
+        get => GetValue(SelectBinTooltipProperty);
+        set => SetValue(SelectBinTooltipProperty, value);
     }
 
     /// <summary>Gets or sets the localized row removal tooltip.</summary>
@@ -42,8 +42,8 @@ public sealed partial class GeneralMergeMappingRow : UserControl
         set => SetValue(RemoveMappingTooltipProperty, value);
     }
 
-    /// <summary>Initializes the General Merge mapping row.</summary>
-    public GeneralMergeMappingRow()
+    /// <summary>Initializes the shared General mapping row.</summary>
+    public GeneralMappingRow()
     {
         InitializeComponent();
     }
@@ -65,7 +65,7 @@ public sealed partial class GeneralMergeMappingRow : UserControl
     {
         DropZoneDragState.SetActive(sender, isActive: false);
 
-        if (DataContext is not GeneralMergeMappingViewModel mapping ||
+        if (DataContext is not GeneralMappingRowViewModel mapping ||
             ShellViewModel is not MainWindowViewModel viewModel)
         {
             return;
@@ -74,42 +74,37 @@ public sealed partial class GeneralMergeMappingRow : UserControl
         string? path = DropZoneDragState.GetFirstLocalFilePath(e);
         if (!string.IsNullOrWhiteSpace(path))
         {
-            _ = viewModel.SetGeneralMergeMappingFile(mapping.MappingId, path);
+            viewModel.SetSlotFile(mapping.MappingId, path);
         }
     }
 
     private async void BrowseButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not GeneralMergeMappingViewModel mapping ||
-            ShellViewModel is not MainWindowViewModel viewModel)
+        if (DataContext is not GeneralMappingRowViewModel mapping ||
+            ShellViewModel is not MainWindowViewModel viewModel ||
+            TopLevel.GetTopLevel(this) is not { } topLevel)
         {
             return;
         }
 
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel is null)
-        {
-            return;
-        }
-
-        string title = string.IsNullOrWhiteSpace(SelectSourceBinTooltip)
-            ? "Select source BIN"
-            : SelectSourceBinTooltip;
+        string title = string.IsNullOrWhiteSpace(SelectBinTooltip)
+            ? mapping is GeneralMergeMappingViewModel ? "Select source BIN" : "Select replacement BIN"
+            : SelectBinTooltip;
         string? path = await FirmwareFilePickerDialogs.PickFirmwareBinOpenFileAsync(
             topLevel.StorageProvider,
             title);
         if (!string.IsNullOrWhiteSpace(path))
         {
-            _ = viewModel.SetGeneralMergeMappingFile(mapping.MappingId, path);
+            viewModel.SetSlotFile(mapping.MappingId, path);
         }
     }
 
     private void RemoveButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is GeneralMergeMappingViewModel mapping &&
+        if (DataContext is GeneralMappingRowViewModel mapping &&
             ShellViewModel is MainWindowViewModel viewModel)
         {
-            viewModel.RemoveGeneralMergeMappingRow(mapping);
+            viewModel.RemoveGeneralMappingRow(mapping);
         }
     }
 }

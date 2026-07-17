@@ -58,7 +58,7 @@ public sealed partial class ShellViewModelTests
         viewModel.AddGeneralReplaceMappingCommand.Execute(null);
         Assert.Equal(2, viewModel.GeneralReplaceMappings.Count);
 
-        viewModel.RemoveGeneralReplaceMappingRow(viewModel.GeneralReplaceMappings[0]);
+        viewModel.RemoveGeneralMappingRow(viewModel.GeneralReplaceMappings[0]);
         _ = Assert.Single(viewModel.GeneralReplaceMappings);
         Assert.Equal(1, viewModel.GeneralReplaceMappings[0].Index);
         Assert.Equal("No replacement BIN selected", viewModel.GeneralReplaceMappings[0].DisplayName);
@@ -82,7 +82,7 @@ public sealed partial class ShellViewModelTests
         GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.GeneralReplaceMappings);
         mapping.StartAddress = "0x00100";
         mapping.EndAddress = "0x00101";
-        viewModel.SetGeneralReplaceMappingFile(mapping.MappingId, replacementPath);
+        viewModel.SetSlotFile(mapping.MappingId, replacementPath);
 
         Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
         Assert.Contains("Ready", viewModel.ReplaceReadinessStatus, StringComparison.Ordinal);
@@ -120,7 +120,7 @@ public sealed partial class ShellViewModelTests
         GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.GeneralReplaceMappings);
         mapping.StartAddress = "0x22C00";
         mapping.EndAddress = "0x22C01";
-        viewModel.SetGeneralReplaceMappingFile(mapping.MappingId, replacementPath);
+        viewModel.SetSlotFile(mapping.MappingId, replacementPath);
 
         Assert.True(viewModel.CanBuildReplace);
         Assert.Contains("run postbuild", viewModel.ReplaceReadinessStatus, StringComparison.Ordinal);
