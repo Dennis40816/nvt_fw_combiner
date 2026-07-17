@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using NvtFwCombiner.TestSupport;
 
@@ -5,6 +6,18 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class ReplaceCliCommandTests
 {
+    private const string Nt51926TpBaseSha256 =
+        "9e5321fb7673736c6c52e61549e33347e3852488bd253088db7239d4d0f371fc";
+    private const string Nt51926TpBaseOutputSha256 =
+        "f26b6366bc858a751bd0b7bc3be1b6a1ac6edfb4fa25b92b57bea140e193e13a";
+    private static readonly (int Start, int EndExclusive)[] Nt51926TpBaseIntegrityChanges =
+    [
+        (0x1C, 0x20),
+        (0xFC, 0x100),
+        (0x32F6C, 0x32F70),
+        (0x3304C, 0x33050),
+    ];
+
     /// <summary>Locks NT51926 CtrlRAM Replace admission and postbuild when TP FW is the base image.</summary>
     [Fact]
     public async Task Nt51926CtrlRamReplaceAcceptsTpFirmwareBase()
@@ -73,12 +86,13 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Contains("Status: Succeeded", build.Output, StringComparison.Ordinal);
         Assert.Contains("Size: 245760 bytes", build.Output, StringComparison.Ordinal);
         Assert.Contains("changed=16", build.Output, StringComparison.Ordinal);
-        Assert.Equal(0x3C000, new FileInfo(outputPath).Length);
+        byte[] baseBytes = File.ReadAllBytes(basePath);
+        byte[] outputBytes = File.ReadAllBytes(outputPath);
+        Assert.Equal(0x3C000, outputBytes.Length);
         Assert.Equal(
-            16,
-            File.ReadAllBytes(basePath)
-                .Zip(File.ReadAllBytes(outputPath), (before, after) => before != after)
-                .Count(changed => changed));
+            Nt51926TpBaseOutputSha256,
+            Convert.ToHexString(SHA256.HashData(outputBytes)).ToLowerInvariant());
+        AssertExactChangedRanges(baseBytes, outputBytes, Nt51926TpBaseIntegrityChanges);
         AssertProcessorTrace(buildReport);
     }
 
@@ -185,5 +199,41 @@ public sealed partial class ReplaceCliCommandTests
         JsonElement mutation = Assert.Single(reportDocument.RootElement.GetProperty("Mutations").EnumerateArray());
         Assert.Equal(16, mutation.GetProperty("ChangedByteCount").GetInt64());
         Assert.Equal(0x3C000, mutation.GetProperty("TargetRange").GetProperty("Length").GetInt64());
+        Assert.Equal(Nt51926TpBaseSha256, mutation.GetProperty("BeforeSha256").GetString());
+        Assert.Equal(Nt51926TpBaseOutputSha256, mutation.GetProperty("AfterSha256").GetString());
+    }
+
+    private static void AssertExactChangedRanges(
+        byte[] before,
+        byte[] after,
+        (int Start, int EndExclusive)[] expectedRanges)
+    {
+        Assert.Equal(before.Length, after.Length);
+        List<(int Start, int EndExclusive)> actualRanges = [];
+        int offset = 0;
+        while (offset < before.Length)
+        {
+            if (before[offset] == after[offset])
+            {
+                offset++;
+                continue;
+            }
+
+            int start = offset;
+            do
+            {
+                offset++;
+            }
+            while (offset < before.Length && before[offset] != after[offset]);
+
+            actualRanges.Add((start, offset));
+        }
+
+        Assert.Equal(expectedRanges.Length, actualRanges.Count);
+        for (int index = 0; index < expectedRanges.Length; index++)
+        {
+            Assert.Equal(expectedRanges[index], actualRanges[index]);
+            Assert.Equal(4, actualRanges[index].EndExclusive - actualRanges[index].Start);
+        }
     }
 }
