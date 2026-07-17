@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.7",
   "profileId": "nt51926-ctrlram-replace-fw141-cascade",
-  "profileVersion": "0.2.0",
+  "profileVersion": "0.3.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
@@ -40,9 +40,12 @@
   },
   "mapBinding": {
     "familyId": "nt51926-ctrlram-replace",
-    "familyVersion": "0.2.0",
-    "familyContentHash": "b9ade08ee84f759ae6af3703a420310a648b395a9abfe802d54263674e1c39b0",
-    "mapIds": [ "nt51926-ctrlram-fw141-256k" ],
+    "familyVersion": "0.3.0",
+    "familyContentHash": "b8005989f3233c37f9b50d5c9291930685e4549d4e135a87c512e9495e40a952",
+    "mapIds": [
+      "nt51926-ctrlram-fw141-tp-work-240k",
+      "nt51926-ctrlram-fw141-full-flash-256k"
+    ],
     "requiredRegionIds": [
       "flash-image",
       "normal-ctrlram",
@@ -170,8 +173,8 @@
     }
   ],
   "views": [
-    { "viewId": "reference-image", "spaceId": "reference-base", "selector": { "kind": "map-region", "regionId": "flash-image" } },
-    { "viewId": "output-image", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "flash-image" } },
+    { "viewId": "reference-tp-work-image", "spaceId": "reference-base", "selector": { "kind": "map-region", "regionId": "flash-image" } },
+    { "viewId": "output-tp-work-image", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "flash-image" } },
     { "viewId": "normal-ctrlram-source", "spaceId": "normal-ctrlram-input", "selector": { "kind": "space-range", "range": { "start": 0, "length": 11264 } } },
     { "viewId": "diff-ctrlram-source", "spaceId": "diff-ctrlram-input", "selector": { "kind": "space-range", "range": { "start": 0, "length": 10240 } } },
     { "viewId": "mp-ctrlram-source", "spaceId": "mp-ctrlram-input", "selector": { "kind": "space-range", "range": { "start": 0, "length": 9216 } } },
@@ -222,7 +225,7 @@
       "authority": "transform",
       "purpose": "header-and-integrity",
       "integrityDisposition": "recalculate-and-write",
-      "allowedReadViewIds": [ "output-image" ],
+      "allowedReadViewIds": [ "output-tp-work-image" ],
       "allowedWriteViewIds": [
         "normal-ctrlram-output",
         "diff-ctrlram-output",

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51926-ctrlram-replace",
-  "familyVersion": "0.2.0",
+  "familyVersion": "0.3.0",
   "members": [
     {
       "memberId": "NT51926",
@@ -11,14 +11,14 @@
   "capabilities": [],
   "regionSets": [
     {
-      "regionSetId": "nt51926-ctrlram-fw141-flash",
+      "regionSetId": "nt51926-ctrlram-fw141-tp-prefix",
       "addressSpaceId": "flash",
       "regions": [
         {
           "regionId": "flash-image",
           "owner": "system",
           "kind": "image",
-          "range": { "start": 0, "length": 262144 },
+          "range": { "start": 0, "length": 245760 },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -198,25 +198,24 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 243712, "length": 6144 },
+          "range": { "start": 243712, "length": 2048 },
           "writeConstraint": "forbidden",
           "alignment": 1
-        },
+        }
+      ],
+      "evidenceRefs": [
+        "nt51926-common-fw141-postbuild"
+      ]
+    },
+    {
+      "regionSetId": "nt51926-ctrlram-fw141-full-tail",
+      "addressSpaceId": "flash",
+      "regions": [
         {
-          "regionId": "customer-info",
-          "parentRegionId": "flash-image",
-          "owner": "customer",
-          "kind": "customer-information",
-          "range": { "start": 249856, "length": 4096 },
-          "writeConstraint": "forbidden",
-          "alignment": 1
-        },
-        {
-          "regionId": "dp",
-          "parentRegionId": "flash-image",
-          "owner": "dp",
-          "kind": "code",
-          "range": { "start": 253952, "length": 8192 },
+          "regionId": "full-flash-tail",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 245760, "length": 16384 },
           "writeConstraint": "forbidden",
           "alignment": 1
         }
@@ -236,7 +235,7 @@
           "length": 4096,
           "locator": {
             "kind": "marker-relative",
-            "searchRange": { "addressSpaceId": "flash", "start": 0, "length": 262144 },
+            "searchRange": { "addressSpaceId": "flash", "start": 0, "length": 245760 },
             "markerHex": "004e5654",
             "selection": { "kind": "unique" },
             "resultOffset": -4092,
@@ -255,7 +254,24 @@
   ],
   "imageMaps": [
     {
-      "mapId": "nt51926-ctrlram-fw141-256k",
+      "mapId": "nt51926-ctrlram-fw141-tp-work-240k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [ "NT51926" ],
+        "modeIds": [ "ctrlram-replace" ],
+        "topologyRequirement": { "kind": "none" },
+        "capacityBytes": 245760
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [ "nt51926-ctrlram-fw141-tp-prefix" ],
+      "metadataSetIds": [ "nt51926-fwconfig-backup-locator" ],
+      "evidenceRefs": [
+        "nt51926-common-fw141-postbuild",
+        "nt51926-fwconfig-backup-golden"
+      ]
+    },
+    {
+      "mapId": "nt51926-ctrlram-fw141-full-flash-256k",
       "addressSpaceId": "flash",
       "applicability": {
         "memberIds": [ "NT51926" ],
@@ -264,7 +280,10 @@
         "capacityBytes": 262144
       },
       "coveragePolicy": "complete-with-explicit-gaps",
-      "regionSetIds": [ "nt51926-ctrlram-fw141-flash" ],
+      "regionSetIds": [
+        "nt51926-ctrlram-fw141-tp-prefix",
+        "nt51926-ctrlram-fw141-full-tail"
+      ],
       "metadataSetIds": [ "nt51926-fwconfig-backup-locator" ],
       "evidenceRefs": [
         "nt51926-common-fw141-postbuild",

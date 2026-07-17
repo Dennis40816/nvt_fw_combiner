@@ -10,7 +10,8 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Compilable, non-routed evidence for the NT51926 Common FW 1.4.1 cascade CtrlRAM postbuild plan.</summary>
 public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
 {
-    private const int Capacity = 0x40000;
+    private const int TpWorkImageCapacity = 0x3C000;
+    private const int FullFlashCapacity = 0x40000;
     private const int FirmwareConfigBackupStart = 0x3B000;
     private const int NvtMarkerStart = FirmwareConfigBackupStart + 0xFFC;
 
@@ -21,7 +22,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
     public void CandidateProfileCompilesTheLegacyCascadeStagingAndWriteAuthority()
     {
         byte[] referenceBase = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
-        Assert.Equal(Capacity, referenceBase.Length);
+        Assert.Equal(FullFlashCapacity, referenceBase.Length);
         CompiledComposition composition = CompileCandidate(referenceBase);
         ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(
             Assert.Single(composition.Plan.OrderedOperations).ExternalProcessorInvocation);
@@ -31,7 +32,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
 
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
-        Assert.Equal("nt51926-ctrlram-fw141-256k", details.Provenance.ResolvedMap.ImageMap.MapId);
+        Assert.Equal("nt51926-ctrlram-fw141-full-flash-256k", details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, details.Provenance.Promotion.Stage);
         Assert.Equal(
             ["direct-golden-evidence", "firmware-owner-review", "runtime-route"],
@@ -47,10 +48,10 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         Assert.Equal(
             FirmwareConfigBackupStart,
             backup.LocatorOutcome.SelectedMarkerStart!.Value + 3 - 0xFFF);
-        Assert.Equal(Capacity, composition.Plan.OutputInitialization.Capacity);
+        Assert.Equal(FullFlashCapacity, composition.Plan.OutputInitialization.Capacity);
         Assert.Equal("nfc.nt51926.ctrlram-postbuild-fw1.4.1", invocation.ProcessorId);
         Assert.Equal("legacy-combiner-1.13.0", invocation.ToolBindingId);
-        Assert.Equal([new ByteRange(0, Capacity)], invocation.AllowedReadRanges);
+        Assert.Equal([new ByteRange(0, TpWorkImageCapacity)], invocation.AllowedReadRanges);
         Assert.Equal(
             [
                 new ByteRange(0x1C, 4),
@@ -90,11 +91,94 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
                             block.SourceOffset == 0);
     }
 
+    /// <summary>Exact reference length selects one canonical map and clone capacity without touching the full-flash tail.</summary>
+    [Theory]
+    [InlineData(TpWorkImageCapacity, "nt51926-ctrlram-fw141-tp-work-240k")]
+    [InlineData(FullFlashCapacity, "nt51926-ctrlram-fw141-full-flash-256k")]
+    public async Task CandidateSelectsExactReferenceShapeAndPreservesTheClonedImageAsync(
+        int capacity,
+        string expectedMapId)
+    {
+        byte[] referenceBase = CreateReferenceImage(capacity);
+        if (capacity == FullFlashCapacity)
+        {
+            referenceBase.AsSpan(TpWorkImageCapacity).Fill(0xA5);
+        }
+
+        CompiledComposition composition = CompileCandidate(referenceBase);
+        CompositionExecutionResult result = await CompositionEngine.ExecuteAsync(
+            composition.Plan,
+            new CompositionExecutionInput(CreateInputs(referenceBase)),
+            (_, inputBytes, _, _, _) =>
+                ValueTask.FromResult(CompositionExternalProcessorResult.Success(inputBytes)),
+            CancellationToken.None);
+
+        Assert.Equal(expectedMapId, composition.V2Details!.Provenance.ResolvedMap.ImageMap.MapId);
+        Assert.Equal(capacity, composition.Plan.OutputInitialization.Capacity);
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal(referenceBase, result.OutputBytes.ToArray());
+    }
+
+    /// <summary>Both artifact shapes expose only the shared TP prefix and retain the reviewed write authority.</summary>
+    [Fact]
+    public void ArtifactShapeMapsKeepIdenticalProcessorAuthorityAndDistinctFingerprints()
+    {
+        CompiledComposition tpWork = CompileCandidate(CreateReferenceImage(TpWorkImageCapacity));
+        CompiledComposition fullFlash = CompileCandidate(CreateReferenceImage(FullFlashCapacity));
+        ExternalProcessorInvocation tpInvocation = Assert.IsType<ExternalProcessorInvocation>(
+            Assert.Single(tpWork.Plan.OrderedOperations).ExternalProcessorInvocation);
+        ExternalProcessorInvocation fullInvocation = Assert.IsType<ExternalProcessorInvocation>(
+            Assert.Single(fullFlash.Plan.OrderedOperations).ExternalProcessorInvocation);
+
+        Assert.Equal([new ByteRange(0, TpWorkImageCapacity)], tpInvocation.AllowedReadRanges);
+        Assert.Equal(tpInvocation.AllowedReadRanges, fullInvocation.AllowedReadRanges);
+        Assert.Equal(tpInvocation.AllowedWriteRanges, fullInvocation.AllowedWriteRanges);
+        Assert.Equal(0x3B800, tpInvocation.AllowedWriteRanges.Max(static range => range.EndExclusive));
+        Assert.Equal(tpInvocation.ProcessorId, fullInvocation.ProcessorId);
+        Assert.Equal(tpInvocation.ToolBindingId, fullInvocation.ToolBindingId);
+        Assert.NotEqual(
+            tpWork.V2Details!.Provenance.ResolvedMap.ResolutionFingerprint,
+            fullFlash.V2Details!.Provenance.ResolvedMap.ResolutionFingerprint);
+        Assert.NotEqual(tpWork.CompilationFingerprint, fullFlash.CompilationFingerprint);
+    }
+
+    /// <summary>Only the two owner-approved exact reference capacities can select a canonical map.</summary>
+    [Theory]
+    [InlineData(TpWorkImageCapacity - 1)]
+    [InlineData(TpWorkImageCapacity + 1)]
+    [InlineData(FullFlashCapacity - 1)]
+    [InlineData(FullFlashCapacity + 1)]
+    public void CandidateRejectsUndeclaredReferenceLengths(int capacity)
+    {
+        V2CompositionPlanCompileResult compilation = CompileCandidateResult(new byte[capacity]);
+
+        Assert.False(compilation.IsCompiled);
+        Assert.Null(compilation.CompiledComposition);
+        Assert.Contains(
+            compilation.Issues,
+            static issue => issue.Code == "profile.v2.compile.map-capacity-unavailable");
+    }
+
+    /// <summary>A marker in the full-flash-only tail is outside the metadata search authority.</summary>
+    [Fact]
+    public void FullFlashTailNvtMarkerIsIgnored()
+    {
+        byte[] referenceBase = CreateReferenceImage(FullFlashCapacity);
+        WriteNvtMarker(referenceBase, FullFlashCapacity - NvtMarker.Length);
+
+        CompiledComposition composition = CompileCandidate(referenceBase);
+        FirmwareResolvedMetadataStructure backup = Assert.Single(
+            composition.V2Details!.Provenance.ResolvedMap.ResolvedMetadataStructures);
+
+        Assert.Equal(1, backup.LocatorOutcome.MarkerMatchCount);
+        Assert.Equal(NvtMarkerStart, backup.LocatorOutcome.SelectedMarkerStart);
+    }
+
     /// <summary>Verifies CtrlRAM-only oversize normalization is declared while the candidate remains outside runtime admission.</summary>
     [Fact]
     public async Task CandidatePlanTruncatesOnlyCtrlRamInputsBeforeHostStagingAsync()
     {
-        CompiledComposition composition = CompileCandidate(CreateReferenceImage());
+        CompiledComposition composition = CompileCandidate(CreateReferenceImage(FullFlashCapacity));
         Dictionary<string, byte[]> inputs = CreateInputs();
         byte[] normal = [.. inputs["normal-ctrlram-input"]];
         inputs["normal-ctrlram-input"] = [.. normal, 0xCC];
@@ -129,7 +213,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
     [InlineData(2)]
     public void CandidateCompilationRejectsMissingOrAmbiguousNvtBackupMarker(int markerCount)
     {
-        byte[] referenceBase = new byte[Capacity];
+        byte[] referenceBase = new byte[FullFlashCapacity];
         if (markerCount >= 1)
         {
             WriteNvtMarker(referenceBase, NvtMarkerStart);
@@ -161,11 +245,11 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         return WorkbenchCompositionService.CompileNt51926CtrlRamReplaceV2Candidate(referenceBase);
     }
 
-    private static Dictionary<string, byte[]> CreateInputs()
+    private static Dictionary<string, byte[]> CreateInputs(byte[]? referenceBase = null)
     {
         return new Dictionary<string, byte[]>(StringComparer.Ordinal)
         {
-            ["reference-base"] = CreateReferenceImage(),
+            ["reference-base"] = referenceBase ?? CreateReferenceImage(FullFlashCapacity),
             ["normal-ctrlram-input"] = new byte[0x2C00],
             ["diff-ctrlram-input"] = new byte[0x2800],
             ["mp-ctrlram-input"] = new byte[0x2400],
@@ -174,9 +258,9 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         };
     }
 
-    private static byte[] CreateReferenceImage()
+    private static byte[] CreateReferenceImage(int capacity)
     {
-        byte[] referenceBase = new byte[Capacity];
+        byte[] referenceBase = new byte[capacity];
         WriteNvtMarker(referenceBase, NvtMarkerStart);
         return referenceBase;
     }
