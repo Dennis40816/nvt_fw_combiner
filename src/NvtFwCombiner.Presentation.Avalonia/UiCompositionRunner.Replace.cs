@@ -83,13 +83,7 @@ public static partial class UiCompositionRunner
                     replaceMode,
                     dpBaseLength,
                     ctrlRamBasePath)
-                .Select(segment => new MemoryCoverageSegmentViewModel(
-                    segment.RangeLabel,
-                    segment.SourceLabel,
-                    segment.Detail,
-                    segment.Fill,
-                    segment.BarWidth,
-                    segment.IsChanged)),
+                .Select(ToMemoryCoverageSegment),
         ];
     }
 

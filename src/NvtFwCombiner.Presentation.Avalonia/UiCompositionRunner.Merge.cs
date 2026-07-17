@@ -25,12 +25,7 @@ public static partial class UiCompositionRunner
         return
         [
             .. WorkbenchCompositionService.GetStandardMergeCoverageSegments(icId, dpInputLength)
-                .Select(segment => new MemoryCoverageSegmentViewModel(
-                    segment.RangeLabel,
-                    segment.SourceLabel,
-                    segment.Detail,
-                    segment.Fill,
-                    segment.BarWidth)),
+                .Select(ToMemoryCoverageSegment),
         ];
     }
 
@@ -60,13 +55,7 @@ public static partial class UiCompositionRunner
         return
         [
             .. WorkbenchCompositionService.GetGeneralMergeCoverageSegments(outputLength, mappings)
-                .Select(segment => new MemoryCoverageSegmentViewModel(
-                    segment.RangeLabel,
-                    segment.SourceLabel,
-                    segment.Detail,
-                    segment.Fill,
-                    segment.BarWidth,
-                    segment.IsChanged)),
+                .Select(ToMemoryCoverageSegment),
         ];
     }
 
