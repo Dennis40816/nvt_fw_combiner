@@ -58,10 +58,14 @@ public sealed class IcSupportWorkflowDependencyTests
         }
     }
 
-    /// <summary>Postbuild profiles must be exposed through CtrlRAM Replace support instead of becoming hidden processor facts.</summary>
+    /// <summary>
+    /// Postbuild profiles must be exposed through CtrlRAM Replace support unless the owner-facing support catalog
+    /// explicitly closes every Replace workflow while retaining the profile as failure evidence.
+    /// </summary>
     [Fact]
-    public void PostbuildProfilesHaveCtrlRamReplaceSupportRows()
+    public void PostbuildProfilesHaveCtrlRamReplaceSupportOrExplicitBlockedRows()
     {
+        string[] evidenceOnlyIcIds = ["NT51931"];
         HashSet<string> ctrlRamReplaceIcIds =
         [
             .. IcSupportCatalog.All
@@ -73,6 +77,17 @@ public sealed class IcSupportWorkflowDependencyTests
                      .Select(profile => profile.IcId)
                      .Distinct(StringComparer.Ordinal))
         {
+            if (evidenceOnlyIcIds.Contains(icId, StringComparer.Ordinal))
+            {
+                Assert.True(IcSupportCatalog.TryFind(icId, out IcSupportEntry? blockedEntry));
+                Assert.NotNull(blockedEntry);
+                Assert.False(blockedEntry.SupportsWorkflow(IcWorkflowIds.DpReplace));
+                Assert.False(blockedEntry.SupportsWorkflow(IcWorkflowIds.CtrlRamReplace));
+                Assert.False(blockedEntry.SupportsWorkflow(IcWorkflowIds.GeneralReplace));
+                Assert.Contains("Not Supported", blockedEntry.Notes, StringComparison.Ordinal);
+                continue;
+            }
+
             Assert.Contains(icId, ctrlRamReplaceIcIds);
         }
     }
