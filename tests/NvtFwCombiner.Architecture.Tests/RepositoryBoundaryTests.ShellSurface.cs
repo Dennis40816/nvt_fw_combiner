@@ -304,8 +304,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("BuildMergeCommand", viewModel, StringComparison.Ordinal);
         Assert.Contains("WorkbenchCompositionService", mergeViewModel, StringComparison.Ordinal);
         Assert.Contains("RunStandardMergeAsync", mergeViewModel, StringComparison.Ordinal);
-        Assert.Contains("SettingsProfileRows", settingsViewModel, StringComparison.Ordinal);
-        Assert.Contains("SettingsToolRows", settingsViewModel, StringComparison.Ordinal);
+        Assert.Contains("SettingsOverviewRows", settingsViewModel, StringComparison.Ordinal);
+        Assert.Contains("SettingsCapabilityRows", settingsViewModel, StringComparison.Ordinal);
         Assert.Contains("NavigationPath", navigationViewModel, StringComparison.Ordinal);
 
         string flashMapCatalog = ReadFlashMapCatalogPartials();

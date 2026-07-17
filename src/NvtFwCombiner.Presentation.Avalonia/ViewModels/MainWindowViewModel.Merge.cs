@@ -192,7 +192,6 @@ public sealed partial class MainWindowViewModel
         CaptureLoadedReportInHistory();
         SetReportToast(Text.FormatReportGeneratedToast(action));
         NotifyReportChanged();
-        RefreshSettingsState();
     }
 
     private FirmwareSlotViewModel? MergeSlotForAddressSpace(string addressSpaceId)

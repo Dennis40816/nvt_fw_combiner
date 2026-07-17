@@ -60,9 +60,11 @@ public sealed class WorkbenchCatalogProjectionTests
         Assert.DoesNotContain(replaceSummaries, static summary => summary.IcId == "NT-SYNTHETIC");
 
         WorkbenchSettingsSnapshot settings = WorkbenchCompositionService.GetSettingsSnapshot();
+        Assert.Equal(13, settings.SupportedIcCount);
         Assert.Equal(standardSummaries.Count, settings.StandardMergeProfileCount);
         Assert.Equal(2, settings.ReplaceProfileCount);
-        Assert.Equal(13, settings.FlashMapIcCount);
+        Assert.Equal(12, settings.CtrlRamReplaceIcCount);
+        Assert.Equal(1, settings.ExternalToolBindingCount);
     }
 
     private static void AssertStandardMergeProfileSummaries(IReadOnlyList<WorkbenchProfileSummary> summaries)

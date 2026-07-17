@@ -81,7 +81,7 @@ public static class ShellPreferenceFileStore
         {
             return new ShellPreferenceFileEntry(
                 snapshot.Theme,
-                snapshot.Strictness,
+                "Strict",
                 snapshot.Language);
         }
 
@@ -89,7 +89,6 @@ public static class ShellPreferenceFileStore
         {
             return new ShellPreferenceSnapshot(
                 Theme ?? string.Empty,
-                Strictness ?? string.Empty,
                 Language ?? string.Empty);
         }
     }

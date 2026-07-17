@@ -31,7 +31,6 @@ public sealed partial class MainWindowViewModel
         RefreshMemoryMapState();
         RefreshMergeSlotRequirements();
         RefreshReplaceModeState();
-        RefreshSettingsState();
         RefreshCommandState();
         NotifyContextTextChanged();
         if (resetRunResult)
@@ -109,7 +108,6 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(LastRunResult));
         OnPropertyChanged(nameof(MergeBuildActionTip));
         OnPropertyChanged(nameof(ReplaceBuildActionTip));
-        RefreshSettingsState();
     }
 
     private void SelectReplaceMode(string mode)

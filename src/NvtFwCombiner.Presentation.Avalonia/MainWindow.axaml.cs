@@ -118,7 +118,6 @@ public sealed partial class MainWindow : Window
     {
         return propertyName is
             nameof(MainWindowViewModel.SelectedTheme) or
-            nameof(MainWindowViewModel.SelectedStrictness) or
             nameof(MainWindowViewModel.SelectedLanguage);
     }
 

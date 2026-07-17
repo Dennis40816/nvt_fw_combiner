@@ -84,6 +84,7 @@ public sealed partial class RepositoryBoundaryTests
                      "FirmwareIcMismatchSlotTitle",
                      "FooterStatus",
                      "SettingsPreferenceRows",
+                     "SelectedStrictness",
                      "CanPreviewStandardMerge",
                      "CanBuildStandardMerge",
                      "CanPreviewMerge",

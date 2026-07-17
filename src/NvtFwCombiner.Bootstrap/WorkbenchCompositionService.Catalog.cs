@@ -68,22 +68,18 @@ public static partial class WorkbenchCompositionService
     /// <summary>Gets catalog and tool summary data for the Settings page.</summary>
     public static WorkbenchSettingsSnapshot GetSettingsSnapshot()
     {
-        IReadOnlyList<string> toolBindingIds =
-        [
-            .. IcMetadataFacade.IcIds
-                .SelectMany(IcMetadataFacade.GetPostbuildProfiles)
-                .Select(profile => profile.ToolBindingId)
-                .Distinct(StringComparer.Ordinal)
-                .Order(StringComparer.Ordinal),
-        ];
+        int externalToolBindingCount = IcMetadataFacade.IcIds
+            .SelectMany(IcMetadataFacade.GetPostbuildProfiles)
+            .Select(static profile => profile.ToolBindingId)
+            .Distinct(StringComparer.Ordinal)
+            .Count();
 
         return new WorkbenchSettingsSnapshot(
+            IcMetadataFacade.IcIds.Count,
             StandardMergeProfileSummaries.Count,
             ReplaceProfileSummaries.Count,
-            IcMetadataFacade.IcIds.Count,
             IcMetadataFacade.IcIds.Count(IcMetadataFacade.SupportsCtrlRamReplace),
-            string.Join(", ", toolBindingIds),
-            "external-tools/legacy-combiner/1.13.0/manifest.json");
+            externalToolBindingCount);
     }
 
     private static ReadOnlyCollection<WorkbenchProfileSummary> CreateStandardMergeProfileSummaries()

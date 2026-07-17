@@ -19,20 +19,20 @@ public sealed partial class ShellViewModelTests
         Assert.False(viewModel.IsDeviceContextVisible);
         string expectedVersion = File.ReadAllText(RepositoryPaths.FromRepositoryRoot("VERSION")).Trim();
         Assert.Equal(expectedVersion, viewModel.AppVersion);
-        Assert.Contains(viewModel.SettingsProfileRows, row => row.Title == "Built-in profiles" && row.Value.Contains("merge", StringComparison.Ordinal));
-        Assert.Contains(viewModel.SettingsToolRows, row => row.Title == "CRC/header refresh" && row.Value == "Configured");
-        Assert.Contains(viewModel.SettingsDiagnosticsRows, row => row.Title == "Report review");
-        Assert.Contains(viewModel.SettingsReadinessRows, row => row.Title == "Device context" && row.Value == "Workflow pages only");
+        Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "App version" && row.Value == expectedVersion);
+        Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "Supported ICs" && row.Value == "13");
+        Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "Standard Merge" && row.Value == "13 profiles");
+        Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "DP Replace" && row.Value == "2 profiles");
+        Assert.Contains(viewModel.SettingsCapabilityRows, row => row.Title == "CtrlRAM catalog coverage" && row.Value == "12 ICs");
+        Assert.Contains(viewModel.SettingsCapabilityRows, row => row.Title == "External postbuild tools" && row.Value == "1 binding");
 
         viewModel.SelectedTheme = "Dark";
-        viewModel.SelectedStrictness = "Warn only";
         viewModel.SelectedLanguage = "Traditional Chinese";
 
         Assert.Equal("設定", viewModel.SettingsPreview.Title);
         Assert.Equal("建立", viewModel.Text.BuildActionLabel);
         Assert.Equal("首頁 > 設定", viewModel.NavigationPath);
         Assert.Equal("目前視窗已套用暗色主題。", viewModel.ThemePreferenceStatus);
-        Assert.Equal("只調整 UI review 語氣；韌體 gate 仍維持 fail-closed。", viewModel.StrictnessPreferenceStatus);
         Assert.Equal("繁體中文介面已套用並會在啟動時還原。", viewModel.LanguagePreferenceStatus);
         Assert.Contains(viewModel.MergeSlots, slot =>
             slot.Title == "DP BIN" &&
@@ -40,13 +40,10 @@ public sealed partial class ShellViewModelTests
             slot.DisplayName == "尚未選擇 BIN");
         Assert.Equal("必填", viewModel.ReplaceBaseSlot.RequirementLabel);
         Assert.Equal("尚未選擇 BIN", viewModel.ReplaceBaseSlot.DisplayName);
-        Assert.Contains(viewModel.SettingsProfileRows, row => row.Title == "內建 profiles" && row.Status == "已串接");
-        Assert.Contains(viewModel.SettingsDiagnosticsRows, row =>
-            row.Title == "Report history 儲存" &&
-            row.Status == "已啟用");
-        Assert.Contains(viewModel.SettingsReadinessRows, row =>
-            row.Title == "偏好設定" &&
-            row.Value == "本機儲存");
+        Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "支援 IC" && row.Status == "Catalog");
+        Assert.Contains(viewModel.SettingsCapabilityRows, row =>
+            row.Title == "外部 postbuild tools" &&
+            row.Status == "固定");
     }
 
     /// <summary>Verifies breadcrumbs show page hierarchy while Back returns to the previous page.</summary>

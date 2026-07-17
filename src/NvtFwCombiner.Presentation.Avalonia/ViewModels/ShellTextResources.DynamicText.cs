@@ -28,23 +28,6 @@ public sealed partial class ShellTextResources
             };
     }
 
-    public string GetStrictnessPreferenceStatus(string selectedStrictness)
-    {
-        return Language == ShellLanguage.ChineseTraditional
-            ? selectedStrictness switch
-            {
-                "Strict" => "Preview/Build 維持 fail-closed；所有阻擋問題都必須修正。",
-                "Warn only" => "只調整 UI review 語氣；韌體 gate 仍維持 fail-closed。",
-                _ => "審查嚴格度偏好已儲存在本機。",
-            }
-            : selectedStrictness switch
-            {
-                "Strict" => "Preview/Build stays fail-closed; blocking issues must be fixed.",
-                "Warn only" => "Changes only the UI review tone; firmware gates still fail closed.",
-                _ => "Review strictness preference is saved locally.",
-            };
-    }
-
     public string GetLanguagePreferenceStatus(string selectedLanguage)
     {
         return Language == ShellLanguage.ChineseTraditional
