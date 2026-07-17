@@ -8,7 +8,7 @@ namespace NvtFwCombiner.Bootstrap;
 public static partial class WorkbenchCompositionService
 {
     /// <summary>Reads gen_flash-backed contiguous DP main/sub version metadata from a selected DP payload.</summary>
-    public static GenFlashDpVersionMetadata? TryReadDpVersionMetadata(string icId, string path)
+    public static WorkbenchDpVersionMetadata? TryReadDpVersionMetadata(string icId, string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -18,12 +18,12 @@ public static partial class WorkbenchCompositionService
                 icId,
                 image,
                 out GenFlashDpVersionMetadata metadata)
-                    ? metadata
+                    ? new WorkbenchDpVersionMetadata(metadata.VersionToken)
                     : null;
     }
 
     /// <summary>Reads CMI DP Jira and major/minor facts without making unobserved DP sizes a build blocker.</summary>
-    public static CmiDpCodeMetadata? TryReadCmiDpCodeMetadata(
+    public static WorkbenchCmiDpCodeMetadata? TryReadCmiDpCodeMetadata(
         string icId,
         string path,
         string? tpPath = null)
@@ -43,7 +43,11 @@ public static partial class WorkbenchCompositionService
                 image,
                 chipNumber,
                 out CmiDpCodeMetadata metadata)
-                    ? metadata
+                    ? new WorkbenchCmiDpCodeMetadata(
+                        metadata.MajorVersionByte,
+                        metadata.MinorVersionNibble,
+                        metadata.JiraNumber,
+                        metadata.Register16Offset)
                     : null;
     }
 

@@ -90,10 +90,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("LegacyCombinerPostbuildCatalog.GetProfiles", icMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("BuildMetadata", icMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("internal sealed record IcMetadata(", icMetadata, StringComparison.Ordinal);
-        Assert.Contains("GenFlashDpVersionMetadata? TryReadDpVersionMetadata", firmwareMetadata, StringComparison.Ordinal);
-        Assert.Contains("CmiDpCodeMetadata? TryReadCmiDpCodeMetadata", firmwareMetadata, StringComparison.Ordinal);
-        Assert.DoesNotContain("WorkbenchDpVersionMetadata", workbenchModels, StringComparison.Ordinal);
-        Assert.DoesNotContain("WorkbenchCmiDpCodeMetadata", workbenchModels, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchDpVersionMetadata? TryReadDpVersionMetadata", firmwareMetadata, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCmiDpCodeMetadata? TryReadCmiDpCodeMetadata", firmwareMetadata, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchDpVersionMetadata", workbenchModels, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCmiDpCodeMetadata", workbenchModels, StringComparison.Ordinal);
         Assert.DoesNotContain("ToRunProfile", common, StringComparison.Ordinal);
         Assert.Contains("CompositionRunRequest request = new(", runner, StringComparison.Ordinal);
         Assert.DoesNotContain("CompiledCompositionRunAdapter", runner, StringComparison.Ordinal);

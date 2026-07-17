@@ -1,5 +1,4 @@
 using NvtFwCombiner.Bootstrap;
-using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
@@ -35,10 +34,10 @@ public static partial class UiCompositionRunner
         string path,
         string? tpPath = null)
     {
-        GenFlashDpVersionMetadata? legacyMetadata = WorkbenchCompositionService.TryReadDpVersionMetadata(
+        WorkbenchDpVersionMetadata? legacyMetadata = WorkbenchCompositionService.TryReadDpVersionMetadata(
             icId,
             path);
-        CmiDpCodeMetadata? cmiMetadata = WorkbenchCompositionService.TryReadCmiDpCodeMetadata(
+        WorkbenchCmiDpCodeMetadata? cmiMetadata = WorkbenchCompositionService.TryReadCmiDpCodeMetadata(
             icId,
             path,
             tpPath);
@@ -47,7 +46,7 @@ public static partial class UiCompositionRunner
             return [new FirmwareSlotFactViewModel("DP", "Pending", true)];
         }
 
-        string dpVersion = legacyMetadata is GenFlashDpVersionMetadata legacy
+        string dpVersion = legacyMetadata is WorkbenchDpVersionMetadata legacy
             ? FormatDpVersion(legacy.VersionToken)
             : FormatCmiDpVersion(cmiMetadata!.Value);
         List<FirmwareSlotFactViewModel> facts =
@@ -55,7 +54,7 @@ public static partial class UiCompositionRunner
             new FirmwareSlotFactViewModel("DP", dpVersion),
         ];
 
-        if (cmiMetadata is CmiDpCodeMetadata cmi && !string.IsNullOrWhiteSpace(cmi.JiraBadge))
+        if (cmiMetadata is WorkbenchCmiDpCodeMetadata cmi && !string.IsNullOrWhiteSpace(cmi.JiraBadge))
         {
             facts.Add(new FirmwareSlotFactViewModel("Jira", cmi.JiraBadge));
         }
@@ -70,7 +69,7 @@ public static partial class UiCompositionRunner
             : $"D{versionToken}";
     }
 
-    private static string FormatCmiDpVersion(CmiDpCodeMetadata metadata)
+    private static string FormatCmiDpVersion(WorkbenchCmiDpCodeMetadata metadata)
     {
         return FormattableString.Invariant($"D{metadata.MajorVersionByte:X2}-{metadata.MinorVersionNibble:X1}0");
     }

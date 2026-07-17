@@ -181,7 +181,7 @@ public sealed class WorkbenchCompositionServiceTests
 
         Assert.Null(WorkbenchCompositionService.TryReadCmiDpCodeMetadata("NT51950", dpPath));
 
-        CmiDpCodeMetadata metadata = Assert.IsType<CmiDpCodeMetadata>(
+        WorkbenchCmiDpCodeMetadata metadata = Assert.IsType<WorkbenchCmiDpCodeMetadata>(
             WorkbenchCompositionService.TryReadCmiDpCodeMetadata(
                 "NT51950",
                 dpPath,

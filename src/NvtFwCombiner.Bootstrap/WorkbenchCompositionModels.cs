@@ -38,6 +38,20 @@ public sealed record WorkbenchFirmwareConfigMetadata(
     string? PostbuildCategory,
     FirmwareConfigHardwareMetadata Hardware);
 
+/// <summary>DP version token projected without exposing the application flash-map catalog type.</summary>
+public readonly record struct WorkbenchDpVersionMetadata(string VersionToken);
+
+/// <summary>CMI DP facts projected for output naming and shell display.</summary>
+public readonly record struct WorkbenchCmiDpCodeMetadata(
+    byte MajorVersionByte,
+    byte MinorVersionNibble,
+    ushort JiraNumber,
+    long Register16Offset)
+{
+    /// <summary>Technical AUTO_PRJ badge, or <see langword="null"/> when Jira is zero.</summary>
+    public string? JiraBadge => JiraNumber == 0 ? null : $"AUTO_PRJ-{JiraNumber}";
+}
+
 /// <summary>Build-only TP FW version override requested for a CtrlRAM Replace output.</summary>
 public sealed record WorkbenchCtrlRamFirmwareVersionEdit(byte FirmwareVersion, byte FirmwareSubVersion);
 
