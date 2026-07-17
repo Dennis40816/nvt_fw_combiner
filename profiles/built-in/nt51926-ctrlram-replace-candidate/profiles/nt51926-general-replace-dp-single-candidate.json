@@ -1,0 +1,122 @@
+{
+  "schemaVersion": "2.8",
+  "profileId": "nt51926-general-replace-dp-single-candidate",
+  "profileVersion": "0.1.0",
+  "promotion": {
+    "stage": "executable-candidate",
+    "blockers": [
+      {
+        "blockerId": "full-route-parity",
+        "kind": "golden",
+        "reason": "Byte, report, naming, CLI, and UI parity with the current General Replace route must be reviewed before production routing.",
+        "evidenceRefs": [ "general-replace-v2-candidate-parity" ]
+      },
+      {
+        "blockerId": "tp-postbuild-deferred",
+        "kind": "processor",
+        "reason": "This candidate admits only DP mappings. TP and CtrlRAM mappings remain on the constrained Legacy Combiner route until processor parity is declared and reviewed.",
+        "evidenceRefs": [ "nt51926-common-fw141-postbuild" ]
+      },
+      {
+        "blockerId": "firmware-owner-review",
+        "kind": "human-review",
+        "reason": "Firmware owner must approve the physical DP explicit-range authority and the final General Replace runtime route.",
+        "evidenceRefs": [ "gen-flash-bin-v2-51926-golden" ]
+      }
+    ]
+  },
+  "compositionKind": "replace",
+  "icNumberInputMode": "single-selector",
+  "experience": {
+    "experienceId": "general-replace",
+    "audience": "advanced",
+    "layoutPolicy": "user-defined",
+    "inputPolicy": "extensible",
+    "topologyAuthoring": "hidden",
+    "displayNameKey": "profile.nt51926.general-replace.dp.single.candidate"
+  },
+  "compilationContext": {
+    "kind": "runtime-reference-replace"
+  },
+  "mapBinding": {
+    "familyId": "nt51926-ctrlram-replace",
+    "familyVersion": "0.5.0",
+    "familyContentHash": "ef9d64ccb7fb85fd2b1278885f5861c86c4d90e735d2cfcfff118f92a253b65e",
+    "mapIds": [ "nt51926-general-replace-full-flash-256k" ],
+    "requiredRegionIds": [ "flash-image", "general-replace-full-flash-dp-code" ],
+    "requiredMetadataStructureIds": [],
+    "requiredCapabilityIds": []
+  },
+  "inputSlots": [
+    {
+      "slotId": "reference",
+      "role": "reference",
+      "artifactClass": "reference-image",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [ ".bin" ],
+      "acceptance": {
+        "lengthRule": { "kind": "exact-resolved-map-capacity" },
+        "normalization": { "kind": "none" }
+      }
+    },
+    {
+      "slotId": "source",
+      "role": "source",
+      "artifactClass": "auxiliary",
+      "required": true,
+      "cardinality": "one-or-more",
+      "acceptedExtensions": [ ".bin" ],
+      "acceptance": {
+        "lengthRule": {
+          "kind": "bounded",
+          "minimumBytes": 1,
+          "maximumBytes": 2147483647
+        },
+        "normalization": { "kind": "none" }
+      }
+    }
+  ],
+  "spaces": [
+    {
+      "spaceId": "reference-image",
+      "kind": "input-artifact",
+      "slotId": "reference",
+      "instancePolicy": "singleton"
+    },
+    {
+      "spaceId": "source-template",
+      "kind": "input-artifact",
+      "slotId": "source",
+      "instancePolicy": "per-binding"
+    },
+    {
+      "spaceId": "output-image",
+      "kind": "output-image",
+      "capacity": { "kind": "runtime-request" },
+      "initializer": { "kind": "clone", "sourceSlotId": "reference" }
+    }
+  ],
+  "views": [],
+  "metadataBindings": [],
+  "regionAccessRules": [
+    {
+      "regionId": "general-replace-full-flash-dp-code",
+      "access": "explicit-range",
+      "reason": "Existing General Replace authoring permits explicit mappings only inside the declared DP region for this processor-free candidate."
+    }
+  ],
+  "operations": [],
+  "validations": [],
+  "processorStages": [],
+  "output": {
+    "fileNameTemplate": "nt51926-general-replace.bin",
+    "allowOverride": true,
+    "invalidCharacterPolicy": "reject",
+    "requiredTokenIds": []
+  },
+  "evidenceRefs": [
+    "gen-flash-bin-v2-51926-golden",
+    "general-replace-v2-candidate-parity"
+  ]
+}

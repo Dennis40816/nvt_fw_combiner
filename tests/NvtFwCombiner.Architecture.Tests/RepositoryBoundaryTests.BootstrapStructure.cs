@@ -137,9 +137,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("profiles\\\\built-in\\\\", ReadBootstrapSources(), StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies NT51926 CtrlRAM V2 remains an artifact-backed candidate, not a runtime route.</summary>
+    /// <summary>Verifies NT51926 Replace V2 profiles remain artifact-backed candidates, not runtime routes.</summary>
     [Fact]
-    public void Nt51926CtrlRamV2CandidateStaysIsolatedFromRuntimeRoutes()
+    public void Nt51926ReplaceV2CandidatesStayIsolatedFromRuntimeRoutes()
     {
         string runtime = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.cs");
         string cli = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.CtrlRamWorkbench.cs");
@@ -147,6 +147,8 @@ public sealed partial class RepositoryBoundaryTests
         string project = ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj");
         string profile = ReadText(
             "profiles/built-in/nt51926-ctrlram-replace-candidate/profiles/nt51926-ctrlram-replace-fw141-cascade.json");
+        string generalProfile = ReadText(
+            "profiles/built-in/nt51926-ctrlram-replace-candidate/profiles/nt51926-general-replace-dp-single-candidate.json");
 
         Assert.DoesNotContain("nt51926-ctrlram-replace-candidate", registrations, StringComparison.Ordinal);
         Assert.DoesNotContain("nt51926-ctrlram-replace-candidate", runtime, StringComparison.Ordinal);
@@ -159,6 +161,15 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("nt51926-ctrlram-fw141-tp-work-240k", profile, StringComparison.Ordinal);
         Assert.Contains("nt51926-ctrlram-fw141-full-flash-256k", profile, StringComparison.Ordinal);
         Assert.Contains("output-tp-work-image", profile, StringComparison.Ordinal);
+        Assert.DoesNotContain("nt51926-general-replace-dp-single-candidate", registrations, StringComparison.Ordinal);
+        Assert.DoesNotContain("nt51926-general-replace-dp-single-candidate", runtime, StringComparison.Ordinal);
+        Assert.DoesNotContain("nt51926-general-replace-dp-single-candidate", cli, StringComparison.Ordinal);
+        Assert.Contains("\"stage\": \"executable-candidate\"", generalProfile, StringComparison.Ordinal);
+        Assert.Contains("\"blockerId\": \"full-route-parity\"", generalProfile, StringComparison.Ordinal);
+        Assert.Contains("\"blockerId\": \"tp-postbuild-deferred\"", generalProfile, StringComparison.Ordinal);
+        Assert.Contains("\"blockerId\": \"firmware-owner-review\"", generalProfile, StringComparison.Ordinal);
+        Assert.Contains("nt51926-general-replace-full-flash-256k", generalProfile, StringComparison.Ordinal);
+        Assert.DoesNotContain("legacy-combiner-v1", generalProfile, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies workbench Replace mode ids stay centralized for UI and CLI adapters.</summary>

@@ -36,7 +36,11 @@ The 2026-07-17 production-caller audit retired the static TP flash-map C# facts
 without changing runtime routes. Architecture exclusions still prove that
 every row already marked retired is absent from production.
 `CompositionProfileCompiler` remains called by the CtrlRAM and General Replace
-Workbench adapters, while the config-backed map query and `IcMetadataFacade`
+Workbench adapters. NT51926 now has a hash-pinned, non-routed single-selector
+DP-only runtime-reference candidate with complete V1/V2 output-byte parity;
+TP/CtrlRAM targets fail closed and remain outside that candidate. This closes
+one General Replace migration slice but not the all-IC/number/report/postbuild
+replacement condition. The config-backed map query and `IcMetadataFacade`
 still serve CtrlRAM/General Replace planning, number selection, metadata, and
 UI projections. Those adapters remain open until their listed direct V2 parity
 evidence exists.

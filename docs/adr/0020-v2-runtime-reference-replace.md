@@ -88,3 +88,20 @@ UI catalog change, or support promotion.
    owner review are complete.
 4. Retire a legacy consumer only when the Legacy Retirement Matrix has direct
    evidence for every production consumer.
+
+## v0.9.9 Candidate Evidence
+
+The hash-pinned NT51926 bundle now contains
+`nt51926-general-replace-dp-single-candidate`. It admits only an exact
+`0x40000` full-Flash reference and explicit mappings wholly inside the
+declared DP range `[0x3E000,0x40000)`. A dedicated General Replace map omits
+the CtrlRAM map's FWConfig metadata locator because this compilation context
+accepts lengths and mappings, not firmware bytes. The original CtrlRAM maps,
+metadata resolution, and physical write constraints remain unchanged.
+
+Direct regression runs the current Workbench/V1 compiler and this V2
+candidate from the same immutable base and DP source and requires complete
+output-byte equality. Separate tests reject the `0x3C000` TP-only base and
+every TP/CtrlRAM target. This closes only the processor-free NT51926/single/DP
+candidate slice. It does not register a production route or close report,
+naming, CLI, UI, cascade, TP postbuild, or firmware-owner review gates.
