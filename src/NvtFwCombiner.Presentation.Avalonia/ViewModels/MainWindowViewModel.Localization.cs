@@ -38,6 +38,7 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(IcLabel));
         OnPropertyChanged(nameof(NumberLabel));
         OnPropertyChanged(nameof(DeviceContextStatus));
+        OnPropertyChanged(nameof(RunProgressAccessibleLabel));
         OnPropertyChanged(nameof(SettingsPreview));
         OnPropertyChanged(nameof(MergePreview));
         OnPropertyChanged(nameof(ReplacePreview));

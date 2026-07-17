@@ -15,6 +15,8 @@ public sealed partial class ShellTextResources
             WorkspaceSummary = "使用內建 profile、flash-map catalog 與 report review 的生產導向介面。",
             PreviewActionLabel = "預覽",
             BuildActionLabel = "建立",
+            PreviewRunProgressAccessibleLabel = "正在預覽",
+            BuildRunProgressAccessibleLabel = "正在建立",
             ReportModalActionLabel = "Report",
             DeviceContextTitle = "裝置條件",
             IcLabel = "IC",

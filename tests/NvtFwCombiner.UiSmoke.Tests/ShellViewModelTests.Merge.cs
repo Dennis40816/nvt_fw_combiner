@@ -213,6 +213,50 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("Succeeded", operation.GetProperty("Status").GetString());
     }
 
+    /// <summary>Verifies assistive progress text follows the active action and selected language.</summary>
+    [Fact]
+    public async Task RunProgressAccessibleLabelDescribesPreviewAndBuildInBothLanguages()
+    {
+        var english = ShellTextResources.For(ShellLanguage.English);
+        var traditionalChinese = ShellTextResources.For(ShellLanguage.ChineseTraditional);
+        Assert.Equal("Preview in progress", english.PreviewRunProgressAccessibleLabel);
+        Assert.Equal("Build in progress", english.BuildRunProgressAccessibleLabel);
+        Assert.Equal("正在預覽", traditionalChinese.PreviewRunProgressAccessibleLabel);
+        Assert.Equal("正在建立", traditionalChinese.BuildRunProgressAccessibleLabel);
+
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-run-progress");
+        string source = workspace.Write("source.bin", [0x10]);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.SelectedMergeMode = "General";
+        viewModel.GeneralMergeOutputLength = "0x1";
+        GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.GeneralMergeMappings);
+        mapping.SourceStartAddress = "0x0";
+        mapping.TargetStartAddress = "0x0";
+        mapping.Length = "0x1";
+        Assert.True(viewModel.SetGeneralMergeMappingFile(mapping.MappingId, source));
+
+        List<string> announcedLabels = [];
+        viewModel.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(MainWindowViewModel.RunProgressAccessibleLabel) &&
+                !string.IsNullOrEmpty(viewModel.RunProgressAccessibleLabel))
+            {
+                announcedLabels.Add(viewModel.RunProgressAccessibleLabel);
+            }
+        };
+
+        await viewModel.PreviewMergeCommand.ExecuteAsync(null);
+
+        Assert.Contains("Preview in progress", announcedLabels);
+
+        announcedLabels.Clear();
+        viewModel.SelectedLanguage = "Traditional Chinese";
+        await viewModel.BuildMergeAsync(workspace.PathFor("output.bin"));
+
+        Assert.Contains("正在建立", announcedLabels);
+    }
+
     /// <summary>Verifies Standard Merge Build validates the current context without a separate manual Preview.</summary>
     [Fact]
     public async Task BuildStandardMergeValidatesCurrentInputsWithoutManualPreview()

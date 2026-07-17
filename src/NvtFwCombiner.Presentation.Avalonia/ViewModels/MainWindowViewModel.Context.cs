@@ -248,6 +248,7 @@ public sealed partial class MainWindowViewModel
         BuildReplaceCommand.NotifyCanExecuteChanged();
         ShowReportCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(IsRunInProgress));
+        OnPropertyChanged(nameof(RunProgressAccessibleLabel));
         OnPropertyChanged(nameof(CanBuildMerge));
         OnPropertyChanged(nameof(MergeReadinessStatus));
         OnPropertyChanged(nameof(MergeBuildActionTip));

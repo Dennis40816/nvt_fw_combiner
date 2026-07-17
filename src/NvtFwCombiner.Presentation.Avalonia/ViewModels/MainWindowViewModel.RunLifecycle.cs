@@ -5,9 +5,18 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 public sealed partial class MainWindowViewModel
 {
     private CancellationTokenSource? _activeRunCancellationSource;
+    private bool? _activeRunIsBuild;
 
     /// <summary>True while one composition Preview or Build owns the external processing lifetime.</summary>
     public bool IsRunInProgress => _activeRunCancellationSource is not null;
+
+    /// <summary>Gets the localized assistive label for the active Preview or Build operation.</summary>
+    public string RunProgressAccessibleLabel => _activeRunIsBuild switch
+    {
+        true => Text.BuildRunProgressAccessibleLabel,
+        false => Text.PreviewRunProgressAccessibleLabel,
+        null => string.Empty,
+    };
 
     /// <summary>Cancels the active composition so external workers can terminate before the window closes.</summary>
     internal void CancelActiveRun()
@@ -15,7 +24,7 @@ public sealed partial class MainWindowViewModel
         _activeRunCancellationSource?.Cancel();
     }
 
-    private CancellationTokenSource BeginRun()
+    private CancellationTokenSource BeginRun(bool build)
     {
         if (_activeRunCancellationSource is not null)
         {
@@ -24,6 +33,7 @@ public sealed partial class MainWindowViewModel
 
         var cancellationSource = new CancellationTokenSource();
         _activeRunCancellationSource = cancellationSource;
+        _activeRunIsBuild = build;
         RefreshCommandState();
         return cancellationSource;
     }
@@ -33,6 +43,7 @@ public sealed partial class MainWindowViewModel
         if (ReferenceEquals(_activeRunCancellationSource, cancellationSource))
         {
             _activeRunCancellationSource = null;
+            _activeRunIsBuild = null;
             RefreshCommandState();
         }
 
@@ -47,7 +58,7 @@ public sealed partial class MainWindowViewModel
         CancellationTokenSource? cancellationSource = null;
         try
         {
-            cancellationSource = BeginRun();
+            cancellationSource = BeginRun(build);
             WorkbenchRunResult result = await run(cancellationSource.Token);
             ApplyRunResult(result, build);
             RefreshCommandState();
