@@ -51,11 +51,6 @@ public sealed partial class GeneralMergeMappingRow : UserControl
     private MainWindowViewModel? ShellViewModel =>
         WorkbenchShellViewModelLocator.Find(this);
 
-    private void DropZone_OnDragEnter(object? sender, DragEventArgs e)
-    {
-        DropZoneDragState.SetActive(sender, DropZoneDragState.ApplyFileDropEffect(e));
-    }
-
     private void DropZone_OnDragOver(object? sender, DragEventArgs e)
     {
         DropZoneDragState.SetActive(sender, DropZoneDragState.ApplyFileDropEffect(e));

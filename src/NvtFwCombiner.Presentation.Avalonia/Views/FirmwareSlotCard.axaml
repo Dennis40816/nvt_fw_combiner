@@ -15,7 +15,7 @@
       Padding="0"
       CornerRadius="{DynamicResource NfcSurfaceCornerRadius}"
       DragDrop.AllowDrop="True"
-      DragDrop.DragEnter="DropZone_OnDragEnter"
+      DragDrop.DragEnter="SlotDragOver_OnDragOver"
       DragDrop.DragOver="SlotDragOver_OnDragOver"
       DragDrop.DragLeave="DropZone_OnDragLeave"
       DragDrop.Drop="SlotDrop_OnDrop"

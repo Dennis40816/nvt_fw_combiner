@@ -36,7 +36,7 @@
           Grid.Column="0"
           Classes="compactSurface fileDropZone"
           DragDrop.AllowDrop="True"
-          DragDrop.DragEnter="HexEditorSourceDrop_OnDragEnter"
+          DragDrop.DragEnter="HexEditorSourceDrop_OnDragOver"
           DragDrop.DragOver="HexEditorSourceDrop_OnDragOver"
           DragDrop.DragLeave="HexEditorSourceDrop_OnDragLeave"
           DragDrop.Drop="HexEditorSourceDrop_OnDrop">

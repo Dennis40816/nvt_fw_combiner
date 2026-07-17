@@ -36,7 +36,7 @@
           MinHeight="32"
           Padding="0"
           DragDrop.AllowDrop="True"
-          DragDrop.DragEnter="DropZone_OnDragEnter"
+          DragDrop.DragEnter="DropZone_OnDragOver"
           DragDrop.DragOver="DropZone_OnDragOver"
           DragDrop.DragLeave="DropZone_OnDragLeave"
           DragDrop.Drop="MappingDrop_OnDrop">

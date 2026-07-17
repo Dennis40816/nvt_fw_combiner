@@ -192,11 +192,6 @@ public sealed partial class HexEditorPanel : UserControl
         }
     }
 
-    private void HexEditorSourceDrop_OnDragEnter(object? sender, DragEventArgs e)
-    {
-        DropZoneDragState.SetActive(sender, DropZoneDragState.ApplyFileDropEffect(e));
-    }
-
     private void HexEditorSourceDrop_OnDragOver(object? sender, DragEventArgs e)
     {
         DropZoneDragState.SetActive(sender, DropZoneDragState.ApplyFileDropEffect(e));
