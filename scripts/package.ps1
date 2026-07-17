@@ -655,7 +655,6 @@ $ApprovedProcessorIds = @(
     'nfc.nt51928.ctrlram-postbuild-v1',
     'nfc.nt51929.ctrlram-postbuild-v1',
     'nfc.nt51930.ctrlram-postbuild-v1',
-    'nfc.nt51931.ctrlram-postbuild-v1',
     'nfc.nt51932.ctrlram-postbuild-v1',
     'nfc.nt51950.ctrlram-postbuild-v1',
     'nfc.nt51951.ctrlram-postbuild-v1'

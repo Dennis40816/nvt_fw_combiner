@@ -127,6 +127,17 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             self.assertLess(package_index, smoke_index, workflow_path)
             self.assertLess(smoke_index, distribution_index, workflow_path)
 
+    def test_release_processor_allowlist_excludes_unsupported_nt51931_replace(self) -> None:
+        package_script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
+        match = re.search(
+            r"\$ApprovedProcessorIds\s*=\s*@\((.*?)\)\s*\n",
+            package_script,
+            flags=re.DOTALL,
+        )
+
+        self.assertIsNotNone(match)
+        self.assertNotIn("nfc.nt51931.ctrlram-postbuild-v1", match.group(1))
+
     @unittest.skipUnless(
         POWERSHELL, "PowerShell is required for Windows release-policy tests"
     )
