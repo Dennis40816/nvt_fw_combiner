@@ -65,6 +65,42 @@ auxiliary per-binding sources. A generic resolved-map artifact cannot obtain thi
 admission from its input shape. This candidate admission is not a production route,
 UI catalog change, or support promotion.
 
+## General Replace Product Boundary
+
+The `runtime-reference-replace` admission above is a narrow migration and evidence
+context. It is not the final General Replace product contract and must not be used
+to reduce General Replace to one IC, one number selector, DP-only targets, fixed
+CtrlRAM slots, or a fixed set of mapping rows.
+
+General Replace remains the extensible advanced authoring experience defined by
+ADRs 0003 through 0005:
+
+- one immutable reference image is cloned before any mutation;
+- one or more immutable source bindings may contribute any number of ordered
+  explicit mappings, hexadecimal patches, or fills;
+- mappings may target any range inside the profile-approved General Replace
+  envelope, independent of DP/CtrlRAM persona categories;
+- IC-number selection may choose a declared postbuild branch when a mapped range
+  requires that processor, but it must not narrow a processor-free mapping; and
+- TP and full-Flash reference shapes may both be declared when their exact
+  address-space relationship and tail-preservation behavior are proven.
+
+"Extensible" does not mean unbounded execution authority. Every target remains
+range checked against one canonical physical map; protected ranges remain denied;
+overlap is rejected unless a reviewed operation explicitly declares otherwise;
+the user cannot supply scripts, commands, processor paths, or processor arguments;
+and the host still verifies all external-processor writes against declared
+half-open ranges.
+
+The current context deliberately forbids processor stages, so it cannot express
+the final TP-touching General Replace route. Production cutover requires an
+explicitly reviewed contract/compiler extension that lowers request mappings and
+then, only when their targets intersect a declared processor dependency, appends
+the profile-owned Legacy Combiner stage to the same composition plan. This must be
+implemented in the profile/compiler/application boundary, never as a hidden UI or
+Bootstrap byte-execution branch. Until that extension, DP-only candidates are
+parity probes and not the product boundary.
+
 ## Non-goals
 
 - No new executor, operation kind, dynamic script, map resolver, or processor

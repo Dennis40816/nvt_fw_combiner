@@ -14,7 +14,7 @@ Keep one canonical IC region catalog and apply deny-by-default `RegionAccessRule
 
 - **DP Replace** — DP whole or declared partitions, including profile-declared LD replacement slots when LD is replaced separately from the DP BIN.
 - **CtrlRAM Replace** — named CtrlRAM regions/groups tagged `tp-ctrlram` only.
-- **General Replace** — explicit mappings only inside profile-enabled ranges; protected ranges remain blocked.
+- **General Replace** — explicit mappings only inside profile-enabled ranges; those ranges are not limited to the DP or CtrlRAM persona categories, while protected ranges remain blocked.
 
 General Merge and General Replace share one `ExplicitMapping` contract. Their only difference is blank versus reference initialization and the compiled operation kind (`copy-range` versus `replace-range`). Canvas drag and exact table/manual input are two views over one mapping state.
 
