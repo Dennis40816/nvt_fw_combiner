@@ -34,7 +34,7 @@ public sealed partial class RepositoryBoundaryTests
             "src",
             "NvtFwCombiner.Profiles",
             "BuiltInReplaceProfiles.DpPerspective.cs")));
-        Assert.Contains("BuiltInV2DpReplaceRegistration", v2Registration, StringComparison.Ordinal);
+        Assert.Contains("BuiltInV2Registration", v2Registration, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies profile compiler shared region helpers stay separate from explicit-mapping policy.</summary>
@@ -96,7 +96,7 @@ public sealed partial class RepositoryBoundaryTests
         string synthetic = ReadText("tests/NvtFwCombiner.TestSupport/SyntheticStandardMergeProfile.cs");
         string registration = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
         Assert.Contains("SyntheticStandardMergeProfile", synthetic, StringComparison.Ordinal);
-        Assert.Contains("BuiltInV2StandardMergeRegistration", registration, StringComparison.Ordinal);
+        Assert.Contains("BuiltInV2Registration", registration, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies built-in bundle materialization remains an explicit identity allowlist, never source discovery.</summary>

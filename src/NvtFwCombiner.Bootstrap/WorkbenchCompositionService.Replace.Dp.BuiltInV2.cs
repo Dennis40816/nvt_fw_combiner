@@ -14,7 +14,7 @@ public static partial class WorkbenchCompositionService
     {
         if (!BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.TryGetValue(
                 icId,
-                out BuiltInV2DpReplaceRegistration? registration))
+                out BuiltInV2Registration? registration))
         {
             composition = null;
             issues = [];
@@ -33,7 +33,7 @@ public static partial class WorkbenchCompositionService
     {
         if (!BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.TryGetValue(
                 icId,
-                out BuiltInV2DpReplaceRegistration? registration))
+                out BuiltInV2Registration? registration))
         {
             display = null;
             return false;
@@ -57,7 +57,7 @@ public static partial class WorkbenchCompositionService
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out string? icId)
     {
         string normalized = selector.Trim();
-        foreach (BuiltInV2DpReplaceRegistration registration in BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.Values)
+        foreach (BuiltInV2Registration registration in BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.Values)
         {
             if (registration.MatchesSelector(normalized))
             {

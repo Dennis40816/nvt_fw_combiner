@@ -4,7 +4,7 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    private static IReadOnlyList<BuiltInV2StandardMergeRegistration> BuiltInV2StandardMergeRegistrations =>
+    private static IReadOnlyList<BuiltInV2Registration> BuiltInV2StandardMergeRegistrations =>
         BuiltInV2RegistrationRegistry.StandardMerge;
 
     private static bool TryGetBuiltInV2StandardMergeCompilation(
@@ -15,7 +15,7 @@ public static partial class WorkbenchCompositionService
     {
         if (!BuiltInV2RegistrationRegistry.StandardMergeByIc.TryGetValue(
                 icId,
-                out BuiltInV2StandardMergeRegistration? registration))
+                out BuiltInV2Registration? registration))
         {
             composition = null;
             issues = [];
@@ -30,7 +30,7 @@ public static partial class WorkbenchCompositionService
     {
         return BuiltInV2RegistrationRegistry.StandardMergeByIc.TryGetValue(
                 icId,
-                out BuiltInV2StandardMergeRegistration? registration) &&
+                out BuiltInV2Registration? registration) &&
             registration.HasMultipleMapCapacities;
     }
 
@@ -40,7 +40,7 @@ public static partial class WorkbenchCompositionService
     {
         if (!BuiltInV2RegistrationRegistry.StandardMergeByIc.TryGetValue(
                 icId,
-                out BuiltInV2StandardMergeRegistration? registration))
+                out BuiltInV2Registration? registration))
         {
             policy = null;
             return false;
@@ -63,7 +63,7 @@ public static partial class WorkbenchCompositionService
     {
         if (!BuiltInV2RegistrationRegistry.StandardMergeByIc.TryGetValue(
                 icId,
-                out BuiltInV2StandardMergeRegistration? registration))
+                out BuiltInV2Registration? registration))
         {
             capacity = 0;
             issues = [];

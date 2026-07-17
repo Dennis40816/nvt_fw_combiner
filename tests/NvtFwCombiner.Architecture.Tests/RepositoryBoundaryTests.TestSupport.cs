@@ -29,7 +29,7 @@ public sealed partial class RepositoryBoundaryTests
         ];
     }
 
-    [GeneratedRegex(@"new BuiltInV2StandardMergeRegistration\(\s*""NT(?<ic>\d{5})""")]
+    [GeneratedRegex(@"new BuiltInV2Registration\(\s*""NT(?<ic>\d{5})""")]
     private static partial Regex StandardMergeProfileRegex();
 
     [GeneratedRegex(@"""icId""\s*:\s*""NT(?<ic>\d{5})""")]
