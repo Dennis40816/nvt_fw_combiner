@@ -8,6 +8,15 @@ Post-`0.9.8` development targets verified legacy convergence, patch closure, fir
 
 ### Changed
 
+- Added an evidence-backed full-codebase readiness audit and assigned every
+  confirmed P0/P1 item to `v0.9.10` through `v0.9.16`, covering predecessor
+  reconciliation, Replace reliability, Application/report boundaries, V2
+  Replace convergence, firmware evidence, operability/performance, and final
+  release/security closure.
+- Recorded that the audited `0.9.10` lineage is not yet based on reviewed
+  `0.9.9`, and that its canonical full gate remains red after one load-sensitive
+  process-tree timeout test failed while the isolated test passed. This is a
+  planning/verification finding, not a firmware or support change.
 - The `v0.9.10` roadmap now records why Replace performance work is needed: automatic Build currently executes Preview and Build separately, CtrlRAM postbuild repeatedly reads the full staging image, UI inspection rereads selected firmware, and owned byte buffers cross redundant copy boundaries.
 - The same roadmap clarifies that `DeclaredReplacement` means an accepted output difference inside a declared Replace write range, not a firmware version change. Any TP FW version-edit explanation must be projected as an Application-owned semantic while preserving or explicitly versioning the stable machine classification.
 - These entries authorize measurement and reviewed optimization work only. They do not change output bytes, ranges, processor commands, profile promotion, or firmware support state.

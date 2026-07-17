@@ -208,6 +208,23 @@ Before a support or release claim, provide:
   report/history, and Combiner readiness; and
 - PR/review/CI evidence or the documented local-verification exception.
 
+## v0.9.10-v0.9.16: Readiness Closure Inputs
+
+The [0.9.x Codebase Readiness Audit](../architecture/0.9.x-codebase-readiness-audit.md)
+assigns every confirmed P0/P1 issue to the following owner gates. Candidate or
+synthetic development may proceed under the roadmap policy, but it cannot
+replace the named acceptance evidence.
+
+| Milestone | Owner input or decision required | Firmware payload required? |
+| --- | --- | --- |
+| `v0.9.10` | Accept the exact `0.9.9`/`0.9.10` branch reconciliation and production-source ratchet; accept/reject ADR 0023 workbook, dependency, Settings-placement, workspace-contract, and security choices. | No new firmware for reconciliation or contracts; submitted intake parity fixtures retain their existing provenance rules. |
+| `v0.9.11` | Review the single-pass Build authority, UI cache trust fence, deterministic counters, and byte-buffer ownership record. | No; synthetic benchmark inputs are sufficient because bytes and support state cannot change. |
+| `v0.9.12` | Architecture/contract approval for Application ports, typed report projection, stable classification compatibility, and semantic-subject migration. | No; this milestone is support-neutral and must retain byte/report regression coverage. |
+| `v0.9.13` | Per-workflow approval that V2 data/compiler/runtime authority exactly replaces each legacy consumer before retirement. | Yes whenever the row includes ranges, processors, CRC/header, or private parity; otherwise direct retained behavior evidence and architecture review are still required. |
+| `v0.9.14` | Select the exact shipped IC/workflow/capacity/topology set; provide/approve its Standard, DP, CtrlRAM, General, and AB goldens, processor facts, aliases, NT51931 decision, TP-slice contract, and explicit deferred-scope exclusions. | Yes for every selected R3 support row. |
+| `v0.9.15` | Accept operability/soak and deterministic performance budgets; approve any postbuild I/O convergence against exact pre/post output and command evidence. | Only the R3 postbuild phase requires the applicable `v0.9.14` owner goldens. |
+| `v0.9.16` | Provide independent clean-machine package/UI/representative-workflow evidence and close signing/key-custody, legal/license, golden redistribution, branch-protection/required-check, independent-reviewer, SBOM, provenance, and hash decisions. | Only representative selected-workflow inputs under the approved private-evidence handling policy; do not send private material for Git by default. |
+
 ## Current Highest-Priority Owner Inputs
 
 1. AB product evidence for NT51919, NT51929, NT51932, NT51950, and NT51951 as
@@ -217,8 +234,8 @@ Before a support or release claim, provide:
    for the release-selected IC/count branches.
 3. General Replace safety envelopes and TP/CtrlRAM expected-output cases if
    those workflows are selected for support.
-4. A signed-off release support matrix before `v0.9.6`; package/signing data
-   is needed only when a release is prepared.
+4. A signed-off release support matrix during `v0.9.14`; package/signing data
+   is needed for the `v0.9.16` release candidate.
 
 ## Do Not Send
 

@@ -4,6 +4,27 @@ Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline
 
 Specification package version: `0.9.8`
 
+## 0.9.10 codebase-audit baseline
+
+On 2026-07-17, local `0.9.10` at `762c777d` was audited before readiness
+planning. `origin/0.9.9` and `origin/0.9.10` are sibling lines with five and two
+unique commits respectively, so the current branch is not yet a reviewed
+successor and cannot be a release baseline.
+
+`python scripts/verify.py --all` passed structure, Polytail, 19 repository
+Python tests, Ruff, Pyright, Pylint, 28 CRC-worker tests at 98.88% coverage,
+restore, format, Release build with zero warnings/errors, and 1,605 .NET tests.
+It failed one Infrastructure process-tree timeout test before the child PID was
+published; the isolated test then passed. Two Unix-only special-file tests
+skipped on Windows as designed. The candidate timeout/headless-process change
+already exists on `origin/0.9.9`, but it is not in the audited `0.9.10`
+lineage. The canonical full gate therefore remains red until predecessor
+reconciliation, review, and one final rerun.
+
+This baseline is diagnostic evidence only. It does not promote firmware
+support, close private golden/signing/legal/clean-machine gates, or authorize a
+range, processor, or output-byte change.
+
 ## 0.9.8 convergence candidate
 
 The 0.9.8 integration branch is feature-frozen and support-neutral. It retains

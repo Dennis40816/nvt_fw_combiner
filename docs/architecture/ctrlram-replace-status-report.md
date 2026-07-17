@@ -2,7 +2,11 @@
 
 Status: living investigation report, not a production support claim.
 Owner gate: firmware-owner confirmation is still required before CtrlRAM Replace is declared OK for release.
-Last updated: 2026-07-05.
+Evidence last updated: 2026-07-05.
+
+Codebase readiness re-audited: 2026-07-17. No firmware conclusion changed;
+remaining CtrlRAM evidence/support blockers are assigned to `v0.9.14`, and any
+golden-backed postbuild performance work is assigned to `v0.9.15`.
 
 This file is the current single place to update CtrlRAM Replace experiment results and conclusions until the workflow is formally accepted. Lower-level notes may keep raw details, but status, blockers, and final interpretation should be reflected here.
 

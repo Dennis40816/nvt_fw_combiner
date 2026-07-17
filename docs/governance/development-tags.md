@@ -23,11 +23,17 @@ Tags are immutable annotated SemVer tags describing code that exists. Future mil
 - `v0.9.6` — support and release consolidation milestone: retire completed compatibility projections, reconcile the support matrix, and close package/release evidence without expanding firmware behavior.
 - `v0.9.7` — UI token consolidation and code-size discipline milestone: unify exactly equivalent visual, text, and spacing tokens; remove only proven duplicate UI or compatibility code while retaining UI behavior, accessibility, tests, and firmware boundaries.
 - `v0.9.8` — feature-frozen code-size convergence milestone: hold the owner-accepted 56,742-line final production ratchet and portable-package growth to at most 1% without expanding support or weakening trust-boundary checks.
-- `v0.9.9` — legacy convergence and patch-closure milestone: reduce production C#/AXAML to at most 54,000 nonblank lines, retire only exactly replaced legacy paths, preserve the Legacy Combiner executable/constrained runner exception, and close verified security gaps.
-- `v0.9.10` — UI-driven candidate IC intake milestone with a bounded Replace optimization lane: normalize declared Excel, mmap, BAT, sample BIN, expected-output, and provenance evidence through the existing four-record candidate-intake boundary, then measure and review Replace orchestration, I/O, buffer ownership, and report-semantic improvements without changing firmware behavior or support state.
+- `v0.9.9` — legacy convergence and patch-closure milestone: the original 54,000-line target was not met and requires a measured-ratchet decision during `v0.9.10`; only exactly replaced legacy paths may retire, the Legacy Combiner executable/constrained runner exception remains, and verified security gaps must close.
+- `v0.9.10` — predecessor-reconciliation, UI-driven candidate IC intake, and Replace-measurement milestone: restore a reviewed `0.9.9` lineage and green canonical gate, normalize declared evidence through the accepted candidate-intake boundary, and establish deterministic Replace baselines without changing firmware behavior or support state.
+- `v0.9.11` — Replace reliability/performance milestone: converge automatic Build to one execution, use one immutable UI inspection snapshot, add deterministic counters, and remove only redundant same-owner buffer copies.
+- `v0.9.12` — architecture/report milestone: place composition firmware inspection and run metadata behind Application ports, return typed report projections to UI/CLI, and strengthen semantic boundary tests.
+- `v0.9.13` — V2 Replace convergence milestone: make trusted V2 data/compiler authority complete for selected CtrlRAM and General Replace workflows, then retire exact legacy consumers one reviewed evidence row at a time.
+- `v0.9.14` — firmware evidence/support-lock milestone: select the shipped IC/workflow subset and close or explicitly exclude its Standard, DP, CtrlRAM, General, AB, REG, and saved-rule evidence gates.
+- `v0.9.15` — operability/soak/performance milestone: finish audit UX, progress/cancellation/accessibility, long-run evidence, and only golden-backed R3 postbuild I/O convergence.
+- `v0.9.16` — release/security milestone: close protected cross-platform coverage, independent clean-machine UI/workflow smoke, signing/legal/redistribution, protected-review, provenance, and final documentation gates.
 
 The active closure goal, completed-milestone audit, and the exact scope fence
-for `v0.9.3` through `v0.9.10` are maintained in
+for `v0.9.3` through `v0.9.16` are maintained in
 [`0.9.x Completion Roadmap`](../architecture/0.9.x-completion-roadmap.md).
 
 ## Branch and merge policy
@@ -49,7 +55,13 @@ for `v0.9.3` through `v0.9.10` are maintained in
 - `0.9.7` integrates and releases after reviewed `0.9.6` and consolidates UI tokens and exactly replaced duplication. Candidate token/code-size work may begin earlier under the pre-tag policy; it does not introduce firmware behavior, relax release evidence, or use line-count reduction as a reason to remove required tests or compatibility paths.
 - `0.9.8` integrates and releases after reviewed `0.9.7` and is feature-frozen and support-neutral. It enforces the reviewed production-line and package-size ceilings while retaining required validation, golden evidence, and tests.
 - `0.9.9` integrates and releases after reviewed `0.9.8` and retires only legacy paths with an exact reviewed replacement. The Legacy Combiner executable and constrained runner remain; moving `LegacyCombinerPostbuildCatalog` declarations into V2 processor data remains R3 evidence-gated.
-- `0.9.10` integrates and releases after reviewed `0.9.9` and adds UI-driven candidate intake over the existing four-record `create_candidate_ic_intake.py` boundary plus separately reviewed, measurement-first Replace performance/report-semantic phases. Any new generated contract, profile bundle, runtime registration, support promotion, firmware-byte change, or processor-authority change requires its own reviewed contract/evidence change.
+- `0.9.10` first reconciles every reviewed `0.9.9` predecessor commit and open feature-branch disposition, restores the green canonical gate, then integrates accepted UI-driven candidate intake and deterministic Replace measurement only. Any new generated contract, profile bundle, runtime registration, support promotion, firmware-byte change, or processor-authority change requires its own reviewed contract/evidence change.
+- `0.9.11` integrates only after reviewed `0.9.10` and owns safe Replace orchestration, UI inspection, counters, and buffer-ownership convergence.
+- `0.9.12` integrates only after reviewed `0.9.11` and owns Application port, typed-report, and semantic architecture enforcement changes.
+- `0.9.13` integrates only after reviewed `0.9.12` and retires legacy Replace authority only after exact V2 parity and matrix evidence.
+- `0.9.14` integrates only after reviewed `0.9.13` and locks the owner-selected support scope with per-workflow R3 evidence or explicit exclusion.
+- `0.9.15` integrates only after reviewed `0.9.14` and closes operability, soak, and golden-backed postbuild performance work.
+- `0.9.16` integrates only after reviewed `0.9.15` and closes release/security/clean-machine evidence before the first stable sample.
 
 Pre-tag `0.9.x` feature development is permitted for candidate-only work under
 the [roadmap policy](../architecture/0.9.x-completion-roadmap.md#pre-tag-candidate-development-policy).
@@ -90,8 +102,14 @@ Current execution priority: normal Merge and normal Replace for DP Replace and C
 | `v0.9.6` | Support/release consolidation | Remove completed compatibility projections and close support/package evidence without adding firmware behavior. |
 | `v0.9.7` | UI token consolidation and code-size discipline | Consolidate exact-equivalent UI tokens, remove only proven duplicate UI/compatibility code, and retain behavioral/accessibility coverage without adding firmware behavior. |
 | `v0.9.8` | Feature-frozen code-size convergence | Enforce the owner-accepted 56,742-line final ratchet and 1%-package ceiling without support expansion or safety-check removal. |
-| `v0.9.9` | Legacy convergence and patch closure | Enforce the 54,000-line and 1%-package ceilings, retire exactly replaced legacy paths except Legacy Combiner, and close evidence-backed security gaps. |
-| `v0.9.10` | UI-driven candidate IC intake and bounded Replace optimization | Produce the existing deterministic four-record candidate intake from declared source evidence, then measure and review Replace orchestration, I/O, buffer ownership, and report semantics without changing firmware behavior or support state. |
+| `v0.9.9` | Legacy convergence and patch closure | Preserve the 1%-package ceiling, record the unmet 54,000-line target for `v0.9.10` owner disposition, retire only exactly replaced legacy paths except Legacy Combiner, and close evidence-backed security gaps. |
+| `v0.9.10` | Predecessor reconciliation, UI-driven candidate IC intake, and Replace baseline | Reconcile the reviewed `0.9.9` lineage, restore the canonical gate, close accepted intake contracts/use case/UI, and record deterministic Replace measurements without changing firmware behavior or support state. |
+| `v0.9.11` | Replace reliability and safe performance | Execute automatic Build once, reuse one immutable UI inspection snapshot, add deterministic counters, and converge only redundant same-owner copies. |
+| `v0.9.12` | Application boundaries and typed reports | Route composition inspection/run metadata through ports, give UI/CLI typed report projections, and enforce semantic architecture boundaries. |
+| `v0.9.13` | V2 Replace convergence | Close selected CtrlRAM/General Replace V2 parity and retire only exactly replaced legacy compiler/catalog/facade consumers. |
+| `v0.9.14` | Firmware evidence and support lock | Select the shipped subset, close its per-workflow R3 evidence, and explicitly exclude all unapproved/deferred capabilities. |
+| `v0.9.15` | Operability, soak, and performance | Finish audit UX and run lifecycle evidence, establish accepted performance budgets, and apply only golden-backed postbuild optimization. |
+| `v0.9.16` | Release, security, and clean-machine closure | Close protected cross-platform coverage, independent package/UI/workflow smoke, signing/legal/redistribution, review, SBOM/provenance, and final truth audit. |
 | `v1.0.0` | stable | Signed-off support matrix. |
 
 ## First-sample `v1.0.0` release gate
@@ -137,7 +155,13 @@ v0.9.6          support/release consolidation
 v0.9.7          UI token consolidation and code-size discipline
 v0.9.8          feature-frozen code-size convergence
 v0.9.9          legacy convergence and verified patch closure
-v0.9.10         UI-driven candidate IC intake and bounded Replace optimization
+v0.9.10         predecessor reconciliation, candidate IC intake, Replace baseline
+v0.9.11         Replace reliability and safe performance convergence
+v0.9.12         Application boundaries and typed reports
+v0.9.13         V2 Replace convergence and legacy retirement
+v0.9.14         firmware evidence and support-scope lock
+v0.9.15         operability, soak, and evidence-backed performance
+v0.9.16         release, security, and clean-machine closure
 v1.0.0          stable
 ```
 
