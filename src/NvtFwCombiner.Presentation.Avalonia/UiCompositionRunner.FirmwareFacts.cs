@@ -15,7 +15,7 @@ public static partial class UiCompositionRunner
             WorkbenchCompositionService.TryReadFirmwareConfigMetadata(icId, path);
         if (metadata is null || (!metadata.IsFirmwareVersionBarValid && !includeBaseFacts))
         {
-            return [];
+            return includeBaseFacts ? GetDpFirmwareSlotFacts(icId, path, path) : [];
         }
 
         List<FirmwareSlotFactViewModel> facts =
@@ -49,10 +49,7 @@ public static partial class UiCompositionRunner
         string dpVersion = legacyMetadata is not null
             ? FormatDpVersion(legacyMetadata.VersionToken)
             : FormatCmiDpVersion(cmiMetadata!);
-        List<FirmwareSlotFactViewModel> facts =
-        [
-            new FirmwareSlotFactViewModel("DP", dpVersion),
-        ];
+        List<FirmwareSlotFactViewModel> facts = [new FirmwareSlotFactViewModel("DP", dpVersion)];
 
         if (cmiMetadata is not null && !string.IsNullOrWhiteSpace(cmiMetadata.JiraBadge))
         {

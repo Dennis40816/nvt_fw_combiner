@@ -10,17 +10,23 @@ public sealed class SystemExternalProcessRunnerTests
 {
     /// <summary>Approved external tools never allocate a visible console or use a shell.</summary>
     [Fact]
-    public void RunnerSourcePinsHeadlessAndShellFreeProcessStartup()
+    public void CreateProcessStartInfoIsHeadlessAndShellFree()
     {
-        string source = File.ReadAllText(RepositoryPaths.FromRepositoryRoot(
-            "src",
-            "NvtFwCombiner.Infrastructure",
-            "ExternalTools",
-            "SystemExternalProcessRunner.cs"));
+        var request = new ExternalProcessStartInfo(
+            "approved-tool.exe",
+            Environment.CurrentDirectory,
+            ["first", "second value"],
+            TimeSpan.FromSeconds(5));
 
-        Assert.Contains("process.StartInfo.UseShellExecute = false;", source, StringComparison.Ordinal);
-        Assert.Contains("process.StartInfo.CreateNoWindow = true;", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("ProcessWindowStyle.Normal", source, StringComparison.Ordinal);
+        ProcessStartInfo actual = SystemExternalProcessRunner.CreateProcessStartInfo(request);
+
+        Assert.False(actual.UseShellExecute);
+        Assert.True(actual.CreateNoWindow);
+        Assert.True(actual.RedirectStandardOutput);
+        Assert.True(actual.RedirectStandardError);
+        Assert.Equal(request.ExecutablePath, actual.FileName);
+        Assert.Equal(request.WorkingDirectory, actual.WorkingDirectory);
+        Assert.Equal(request.Arguments, [.. actual.ArgumentList]);
     }
 
     /// <summary>Cancellation kills the launched process tree before the caller receives cancellation.</summary>

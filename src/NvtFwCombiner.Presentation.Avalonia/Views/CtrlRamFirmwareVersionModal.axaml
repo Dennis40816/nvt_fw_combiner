@@ -38,7 +38,7 @@
       <StackPanel Grid.Row="2" Spacing="10">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
           <TextBlock Classes="fieldLabel" VerticalAlignment="Center" Text="{Binding Text.CtrlRamFirmwareVersionCurrentLabel}" />
-          <Label Grid.Column="1" Classes="compactBadge neutralBadge" Content="{Binding CtrlRamFirmwareVersionCurrentValue}" />
+          <Label Grid.Column="1" Classes="compactBadge neutralBadge" FontFamily="{DynamicResource NfcTechnicalFontFamily}" Content="{Binding CtrlRamFirmwareVersionCurrentValue}" />
         </Grid>
         <TextBlock Classes="detailText" Text="{Binding CtrlRamFirmwareVersionMetadataDetail}" TextWrapping="Wrap" />
         <Grid
