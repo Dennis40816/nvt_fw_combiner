@@ -42,7 +42,12 @@ For every external combiner transform:
 4. Infrastructure computes the before SHA-256 and records the expected file length.
 5. Infrastructure resolves the exact `combiner.exe` from the manifest and verifies its SHA-256 before execution.
 6. Infrastructure expands only approved staging tokens such as `{staging.workBin}` and `{staging.outputBin}`.
-7. Infrastructure starts the process with `UseShellExecute = false`; no shell command string is assembled.
+7. Infrastructure starts every approved command with `UseShellExecute = false` and
+   `CreateNoWindow = true`; no shell command string is assembled and no console window is shown.
+   A multi-command owner Postbuild remains one logical staged processor run whose ordered Combiner
+   child processes share the same run directory and evolving staged firmware. Commands stay direct
+   and individually checked so timeout, exit code, shortened-output normalization, and audit evidence
+   remain attributable to the exact Postbuild step rather than being hidden inside a generated BAT.
 8. The combiner may mutate only files inside the staging directory.
 9. Infrastructure reads back `work.bin` or the declared output file.
 10. Infrastructure verifies file count, expected names, final imported length, after SHA-256, and byte diff.

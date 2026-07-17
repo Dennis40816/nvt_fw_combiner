@@ -13,16 +13,7 @@ public sealed class SystemExternalProcessRunner : IExternalProcessRunner
         ArgumentNullException.ThrowIfNull(startInfo);
         cancellationToken.ThrowIfCancellationRequested();
 
-        using var process = new Process();
-        process.StartInfo.FileName = startInfo.ExecutablePath;
-        process.StartInfo.WorkingDirectory = startInfo.WorkingDirectory;
-        process.StartInfo.UseShellExecute = false;
-        process.StartInfo.RedirectStandardOutput = true;
-        process.StartInfo.RedirectStandardError = true;
-        foreach (string argument in startInfo.Arguments)
-        {
-            process.StartInfo.ArgumentList.Add(argument);
-        }
+        using var process = new Process { StartInfo = CreateProcessStartInfo(startInfo) };
 
         _ = process.Start();
         Task<string> stdout = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
@@ -30,17 +21,13 @@ public sealed class SystemExternalProcessRunner : IExternalProcessRunner
         Task wait = process.WaitForExitAsync(CancellationToken.None);
         using var timeoutSource = new CancellationTokenSource();
         var timeout = Task.Delay(startInfo.Timeout, timeoutSource.Token);
-        var cancellation = new TaskCompletionSource(
-            TaskCreationOptions.RunContinuationsAsynchronously);
+        var cancellation = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using CancellationTokenRegistration cancellationRegistration = cancellationToken.Register(
-            static state =>
+            () =>
             {
-                var running =
-                    ((Process Process, TaskCompletionSource Completion))state!;
-                _ = running.Completion.TrySetResult();
-                TryKill(running.Process);
-            },
-            (process, cancellation));
+                _ = cancellation.TrySetResult();
+                TryKill(process);
+            });
 
         Task completed = await Task.WhenAny(wait, timeout, cancellation.Task).ConfigureAwait(false);
         timeoutSource.Cancel();
@@ -64,6 +51,24 @@ public sealed class SystemExternalProcessRunner : IExternalProcessRunner
             false,
             await stdout.ConfigureAwait(false),
             await stderr.ConfigureAwait(false));
+    }
+
+    internal static ProcessStartInfo CreateProcessStartInfo(ExternalProcessStartInfo startInfo)
+    {
+        var result = new ProcessStartInfo(startInfo.ExecutablePath)
+        {
+            WorkingDirectory = startInfo.WorkingDirectory,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+        foreach (string argument in startInfo.Arguments)
+        {
+            result.ArgumentList.Add(argument);
+        }
+
+        return result;
     }
 
     private static void TryKill(Process process)

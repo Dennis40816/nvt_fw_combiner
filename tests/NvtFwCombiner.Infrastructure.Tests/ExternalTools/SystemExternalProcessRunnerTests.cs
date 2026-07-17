@@ -8,6 +8,27 @@ namespace NvtFwCombiner.Infrastructure.Tests.ExternalTools;
 /// <summary>Verifies external process cancellation leaves no child process running.</summary>
 public sealed class SystemExternalProcessRunnerTests
 {
+    /// <summary>Approved external tools never allocate a visible console or use a shell.</summary>
+    [Fact]
+    public void CreateProcessStartInfoIsHeadlessAndShellFree()
+    {
+        var request = new ExternalProcessStartInfo(
+            "approved-tool.exe",
+            Environment.CurrentDirectory,
+            ["first", "second value"],
+            TimeSpan.FromSeconds(5));
+
+        ProcessStartInfo actual = SystemExternalProcessRunner.CreateProcessStartInfo(request);
+
+        Assert.False(actual.UseShellExecute);
+        Assert.True(actual.CreateNoWindow);
+        Assert.True(actual.RedirectStandardOutput);
+        Assert.True(actual.RedirectStandardError);
+        Assert.Equal(request.ExecutablePath, actual.FileName);
+        Assert.Equal(request.WorkingDirectory, actual.WorkingDirectory);
+        Assert.Equal(request.Arguments, [.. actual.ArgumentList]);
+    }
+
     /// <summary>Cancellation kills the launched process tree before the caller receives cancellation.</summary>
     [Fact]
     public async Task RunAsyncCancellationKillsChildProcessBeforeThrowing()
@@ -75,7 +96,7 @@ public sealed class SystemExternalProcessRunnerTests
         string scriptPath = CreateChildProcessScript(workspace.Root, parentProcessIdPath, childProcessIdPath);
         var runner = new SystemExternalProcessRunner();
         using var cancellation = new CancellationTokenSource();
-        ExternalProcessStartInfo startInfo = CreateStartInfo(workspace.Root, scriptPath, TimeSpan.FromSeconds(3));
+        ExternalProcessStartInfo startInfo = CreateStartInfo(workspace.Root, scriptPath, TimeSpan.FromSeconds(10));
         Task<ExternalProcessResult>? run = null;
         TestProcessIdentity? parentProcess = null;
         TestProcessIdentity? childProcess = null;

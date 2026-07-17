@@ -31,7 +31,7 @@ public sealed partial class MainWindowViewModel
             : UiCompositionRunner.GetFirmwareSlotFacts(
                 SelectedIc,
                 slot.FilePath!,
-                includeInvalid: slot.SlotKind == FirmwareSlotKind.Base));
+                includeBaseFacts: slot.SlotKind == FirmwareSlotKind.Base));
     }
 
     private static bool SlotSupportsFirmwareFacts(FirmwareSlotViewModel slot)

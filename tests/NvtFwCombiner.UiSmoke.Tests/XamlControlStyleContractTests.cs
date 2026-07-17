@@ -330,10 +330,27 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("AutomationProperties.Name=\"{Binding Text.CtrlRamFirmwareSubVersionByteLabel}\"", modal, StringComparison.Ordinal);
         Assert.Contains("Selector=\"TextBox.hexByteInput\"", styles, StringComparison.Ordinal);
         Assert.Contains("Classes=\"technicalCenteredInput hexByteInput\"", modal, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"compactBadge neutralBadge\"", modal, StringComparison.Ordinal);
+        Assert.Contains("FontFamily=\"{DynamicResource NfcTechnicalFontFamily}\"", modal, StringComparison.Ordinal);
         Assert.Contains("behaviors:HexTextInputBehavior.Mode\" Value=\"ByteSequence\"", styles, StringComparison.Ordinal);
         Assert.DoesNotContain("FirmwareConfigLayout", modal, StringComparison.Ordinal);
         Assert.DoesNotContain("Combiner.exe", modal, StringComparison.Ordinal);
         Assert.DoesNotContain("0x", modal, StringComparison.Ordinal);
+    }
+
+    /// <summary>Every composition run exposes one truthful indeterminate progress surface.</summary>
+    [Fact]
+    public void CompositionRunShowsGlobalWorkflowProgress()
+    {
+        string shell = ReadPresentationFile("MainWindow.axaml");
+        string contextPanel = ReadPresentationFile("Resources/MainWindowShellPanels.axaml");
+
+        Assert.Contains("<ProgressBar", shell, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsRunInProgress}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("IsIndeterminate=\"True\"", shell, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding DeviceContextStatus}\"", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("<ProgressBar", contextPanel, StringComparison.Ordinal);
+        Assert.DoesNotContain("Value=\"{Binding RunProgress", shell, StringComparison.Ordinal);
     }
 
     /// <summary>Keeps each byte value centered on the calculated 16-column viewport geometry.</summary>
