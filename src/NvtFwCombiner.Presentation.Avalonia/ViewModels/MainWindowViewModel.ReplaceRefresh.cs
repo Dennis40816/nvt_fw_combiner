@@ -98,7 +98,7 @@ public sealed partial class MainWindowViewModel
                 .ToDictionary(slot => slot.SlotId, slot => slot.FilePath, StringComparer.Ordinal)
             : new Dictionary<string, string?>(StringComparer.Ordinal);
         ReplaceSlots.Clear();
-        switch (SelectedReplaceMode)
+        switch (IsReplaceAuthoringAvailable ? SelectedReplaceMode : null)
         {
             case DpReplaceMode:
                 ReplaceSlots.Add(ReplaceBaseSlot);

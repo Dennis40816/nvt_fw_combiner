@@ -4,13 +4,14 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
 {
+    private bool IsSelectedReplaceModeSupported => WorkbenchCompositionService.IsReplaceWorkflowSupported(SelectedIc, SelectedReplaceMode);
+    private bool IsReplaceAuthoringAvailable => WorkbenchReplaceModes.All.Any(mode => WorkbenchCompositionService.IsReplaceWorkflowSupported(SelectedIc, mode));
+
     /// <summary>Gets short Replace memory-map summary text.</summary>
     public string ReplaceMemorySummary => Text.GetReplaceMemorySummary(SelectedReplaceMode);
 
     /// <summary>Status shown in the replace inspector.</summary>
-    public string ReplaceReadinessStatus => WorkbenchCompositionService.IsReplaceWorkflowSupported(
-        SelectedIc,
-        SelectedReplaceMode)
+    public string ReplaceReadinessStatus => IsSelectedReplaceModeSupported
             ? Text.GetReplaceReadinessStatus(SelectedReplaceMode, CanRunReplace())
             : Text.GetReplaceNotSupportedStatus(SelectedIc);
 
@@ -25,8 +26,7 @@ public sealed partial class MainWindowViewModel
 
     private bool CanRunReplace()
     {
-        return !IsRunInProgress &&
-            WorkbenchCompositionService.IsReplaceWorkflowSupported(SelectedIc, SelectedReplaceMode) &&
+        return !IsRunInProgress && IsSelectedReplaceModeSupported &&
             (SelectedReplaceMode switch
             {
                 DpReplaceMode => ReplaceSlots.Count > 0 &&

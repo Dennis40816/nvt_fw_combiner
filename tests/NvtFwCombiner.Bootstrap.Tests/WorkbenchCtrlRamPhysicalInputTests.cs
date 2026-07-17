@@ -55,16 +55,19 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
 
     /// <summary>932/950 cascade NF clearly identifies the external DiffNFMerge prerequisite.</summary>
     [Theory]
-    [InlineData("NT51919")]
-    [InlineData("NT51929")]
-    [InlineData("NT51932")]
-    [InlineData("NT51950")]
-    [InlineData("NT51951")]
-    public void DiffNfCascadeFamiliesWarnThatNfMustBePrebuilt(string icId)
+    [InlineData("NT51919", "cascade")]
+    [InlineData("NT51929", "cascade")]
+    [InlineData("NT51932", "cascade")]
+    [InlineData("NT51932", "2")]
+    [InlineData("NT51950", "cascade")]
+    [InlineData("NT51950", "2")]
+    [InlineData("NT51951", "cascade")]
+    [InlineData("NT51951", "2")]
+    public void DiffNfCascadeFamiliesWarnThatNfMustBePrebuilt(string icId, string number)
     {
         WorkbenchReplaceInputSlot nf = WorkbenchCompositionService.GetReplaceInputSlots(
             icId,
-            "cascade",
+            number,
             WorkbenchReplaceModes.CtrlRam).Single(slot => slot.SlotId == "replace-ctrlram-nf");
 
         Assert.Contains("DiffNFMerge output", nf.Title, StringComparison.Ordinal);

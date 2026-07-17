@@ -8,6 +8,37 @@ public sealed partial class ReplaceCliCommandTests
 {
     private const string Nt51926TpBaseCaseId = "nt51926-cascade-tp-base-self-regression-20260717";
 
+    /// <summary>Verifies malformed CtrlRAM arguments demonstrate a currently accepted physical slot id.</summary>
+    [Fact]
+    public async Task CtrlRamReplaceMalformedSlotUsesPhysicalVnExample()
+    {
+        string basePath = RepositoryPaths.FromRepositoryRoot(
+            "testdata",
+            "golden",
+            "ctrlram-replace",
+            "fixtures",
+            "20260705",
+            "base",
+            "nt51926-2ic-csot-toyota-d02t06-jira0597-20260622.bin");
+
+        CliRunResult result = await RunCliAsync([
+            "ctrlram-replace",
+            "preview",
+            "--profile",
+            "NT51926",
+            "--ic-num",
+            "cascade",
+            "--base",
+            basePath,
+            "--ctrlram",
+            "malformed",
+        ]);
+
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains("--ctrlram replace-ctrlram-vn=C:\\path\\vn.bin", result.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("vn-master", result.Error, StringComparison.Ordinal);
+    }
+
     /// <summary>Locks NT51926 CtrlRAM Replace admission and postbuild when TP FW is the base image.</summary>
     [Fact]
     public async Task Nt51926CtrlRamReplaceAcceptsTpFirmwareBase()

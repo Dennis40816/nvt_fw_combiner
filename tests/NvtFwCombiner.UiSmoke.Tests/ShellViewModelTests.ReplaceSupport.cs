@@ -14,6 +14,9 @@ public sealed partial class ShellViewModelTests
 
         Assert.False(viewModel.CanBuildReplace);
         Assert.False(viewModel.PreviewReplaceCommand.CanExecute(null));
+        Assert.Empty(viewModel.ReplaceSlots);
+        Assert.False(viewModel.IsGeneralReplaceModeSelected);
+        Assert.False(viewModel.IsStructuredReplaceModeSelected);
         Assert.Equal("NT51931 Replace: Not Supported.", viewModel.ReplaceReadinessStatus);
         Assert.Equal("Not Supported", viewModel.ReplaceMemoryRangeLabel);
     }
