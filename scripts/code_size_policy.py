@@ -63,12 +63,12 @@ class CodeSizeSnapshot:
 
 
 DEFAULT_LIMITS = CodeSizeLimits(
-    production_nonblank=56_049,
+    production_nonblank=56_040,
     duplicate_json_nonblank=1_156,
     partial_type_default_max=2_500,
     partial_type_exact_ratchets={
         "NvtFwCombiner.Bootstrap.WorkbenchCompositionService": 4_478,
-        "NvtFwCombiner.Presentation.Avalonia.ViewModels.MainWindowViewModel": 2_742,
+        "NvtFwCombiner.Presentation.Avalonia.ViewModels.MainWindowViewModel": 2_733,
     },
 )
 

@@ -7,6 +7,12 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellViewModelTests
 {
+    private static void OpenReplace(MainWindowViewModel viewModel, string mode)
+    {
+        viewModel.SelectedReplaceMode = mode;
+        viewModel.ShowReplaceCommand.Execute(null);
+    }
+
     private static IEnumerable<ReportLineViewModel> GetCommandOperations(ReportReviewViewModel report)
     {
         return report.Operations.Where(operation => operation.HasCodeBlock || operation.HasRuntimeCommands);

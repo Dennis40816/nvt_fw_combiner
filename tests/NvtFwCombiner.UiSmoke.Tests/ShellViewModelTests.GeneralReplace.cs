@@ -24,7 +24,7 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.ShowGeneralReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "General");
 
         Assert.True(viewModel.IsGeneralReplaceModeSelected);
         Assert.False(viewModel.IsStructuredReplaceModeSelected);
@@ -61,7 +61,7 @@ public sealed partial class ShellViewModelTests
 
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51950";
-        viewModel.ShowGeneralReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "General");
         viewModel.SetSlotFile("replace-base", basePath);
         GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.GeneralReplaceMappings);
         mapping.StartAddress = "0x00100";
@@ -99,7 +99,7 @@ public sealed partial class ShellViewModelTests
 
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51950";
-        viewModel.ShowGeneralReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "General");
         viewModel.SetSlotFile("replace-base", basePath);
         GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.GeneralReplaceMappings);
         mapping.StartAddress = "0x22C00";

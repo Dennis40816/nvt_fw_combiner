@@ -10,7 +10,7 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51931";
-        viewModel.ShowGeneralReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "General");
 
         Assert.False(viewModel.CanBuildReplace);
         Assert.False(viewModel.PreviewReplaceCommand.CanExecute(null));

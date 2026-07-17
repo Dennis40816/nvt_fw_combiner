@@ -66,14 +66,14 @@ public sealed partial class ShellViewModelTests
         AssertIconGeometry(viewModel.ReplaceBaseSlot);
         Assert.Equal("Base firmware BIN", viewModel.ReplaceBaseSlot.SlotIconTooltip);
 
-        viewModel.ShowDpReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "DP");
 
         Assert.Contains(viewModel.ReplaceSlots, slot =>
             slot.SlotId == "replace-dp" &&
             slot.SlotKind == FirmwareSlotKind.Dp &&
             HasDrawableIcon(slot));
 
-        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "CtrlRAM");
 
         Assert.All(
             viewModel.ReplaceSlots.Where(slot => !ReferenceEquals(slot, viewModel.ReplaceBaseSlot)),

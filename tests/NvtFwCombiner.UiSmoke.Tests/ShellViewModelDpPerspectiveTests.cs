@@ -14,7 +14,7 @@ public sealed partial class ShellViewModelTests
         string basePath = workspace.Write("base-40000.bin", new byte[0x40000]);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.ShowDpReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "DP");
         viewModel.SetSlotFile("replace-base", basePath);
 
         Assert.True(viewModel.IsReplaceVisible);
@@ -42,7 +42,7 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
         viewModel.SelectedIc = "NT51950";
-        viewModel.ShowDpReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "DP");
 
         MemoryCoverageSegmentViewModel segment = Assert.Single(viewModel.ReplaceCoverageSegments);
         Assert.Equal("Base BIN length: 0x40000 / 0x80000 / 0x100000", viewModel.ReplaceMemoryRangeLabel);
@@ -121,7 +121,7 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
         viewModel.SelectedIc = "NT51927";
-        viewModel.ShowDpReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "DP");
 
         Assert.Equal(["Base flash BIN"], viewModel.ReplaceSlots.Select(slot => slot.Title));
 
@@ -148,7 +148,7 @@ public sealed partial class ShellViewModelTests
 
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51950";
-        viewModel.ShowDpReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "DP");
         viewModel.SetSlotFile("replace-base", basePath);
         viewModel.SetSlotFile("replace-dp", replacementPath);
 
@@ -209,7 +209,7 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
         viewModel.SelectedIc = icId;
-        viewModel.ShowDpReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "DP");
         viewModel.SetSlotFile("replace-base", basePath);
         viewModel.SetSlotFile("replace-dp", dpPath);
 
@@ -242,7 +242,7 @@ public sealed partial class ShellViewModelTests
 
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51950";
-        viewModel.ShowDpReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "DP");
         viewModel.SetSlotFile("replace-base", basePath);
         viewModel.SetSlotFile("replace-dp", replacementPath);
 
@@ -274,7 +274,7 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
         viewModel.SelectedIc = "NT51950";
-        viewModel.ShowDpReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "DP");
         viewModel.SetSlotFile("replace-base", basePath);
         viewModel.SetSlotFile("replace-dp", replacementPath);
 

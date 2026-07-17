@@ -19,7 +19,7 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51927";
         viewModel.SelectedNumber = "2";
-        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "CtrlRAM");
 
         FirmwareSlotViewModel regionSlot = viewModel.ReplaceSlots.Single(slot =>
             slot.Title == "Normal CtrlRAM (Master)");
@@ -67,7 +67,7 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51927";
         viewModel.SelectedNumber = "3";
-        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "CtrlRAM");
 
         viewModel.SetSlotFile("replace-base", basePath);
 
@@ -116,7 +116,7 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51927";
         viewModel.SelectedNumber = "3";
-        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "CtrlRAM");
 
         viewModel.SetSlotFile("replace-base", basePath);
         viewModel.SelectedNumber = "3";
@@ -154,7 +154,7 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51927";
         viewModel.SelectedNumber = "3";
-        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "CtrlRAM");
 
         string basePath = workspace.Write("base-from-golden.bin", baseBytes);
         viewModel.SetSlotFile("replace-base", basePath);

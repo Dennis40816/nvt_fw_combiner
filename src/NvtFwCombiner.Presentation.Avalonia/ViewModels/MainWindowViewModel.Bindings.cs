@@ -261,20 +261,11 @@ public sealed partial class MainWindowViewModel
     /// <summary>Command that opens Replace.</summary>
     public IRelayCommand ShowReplaceCommand { get; }
 
-    /// <summary>Command that opens DP Replace.</summary>
-    public IRelayCommand ShowDpReplaceCommand { get; }
-
     /// <summary>Home entry command that collects Replace context before opening DP Replace.</summary>
     public IRelayCommand BeginDpReplaceFromHomeCommand { get; }
 
-    /// <summary>Command that opens CtrlRAM Replace.</summary>
-    public IRelayCommand ShowCtrlRamReplaceCommand { get; }
-
     /// <summary>Home entry command that collects Replace context before opening CtrlRAM Replace.</summary>
     public IRelayCommand BeginCtrlRamReplaceFromHomeCommand { get; }
-
-    /// <summary>Command that opens General Replace.</summary>
-    public IRelayCommand ShowGeneralReplaceCommand { get; }
 
     /// <summary>Home entry command that collects Replace context before opening General Replace.</summary>
     public IRelayCommand BeginGeneralReplaceFromHomeCommand { get; }

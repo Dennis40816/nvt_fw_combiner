@@ -79,7 +79,7 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51926";
         viewModel.SelectedNumber = "cascade";
-        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "CtrlRAM");
 
         string basePath = workspace.Write("base-from-golden.bin", baseBytes);
         viewModel.SetSlotFile("replace-base", basePath);

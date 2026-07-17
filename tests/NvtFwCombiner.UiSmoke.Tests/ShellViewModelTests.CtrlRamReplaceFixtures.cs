@@ -16,7 +16,7 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51927";
         viewModel.SelectedNumber = "single";
-        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "CtrlRAM");
 
         FirmwareSlotViewModel vnSlot = viewModel.ReplaceSlots.Single(slot =>
             slot.Title.Contains("VN CtrlRAM", StringComparison.Ordinal));
@@ -59,7 +59,7 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel cleanViewModel = ShellViewModelFactory.Create();
         cleanViewModel.SelectedIc = "NT51927";
         cleanViewModel.SelectedNumber = "single";
-        cleanViewModel.ShowCtrlRamReplaceCommand.Execute(null);
+        OpenReplace(cleanViewModel, "CtrlRAM");
         FirmwareSlotViewModel cleanVnSlot = cleanViewModel.ReplaceSlots.Single(slot => slot.Title == vnSlot.Title);
         cleanViewModel.SetSlotFile("replace-base", cleanBasePath);
         cleanViewModel.SetSlotFile(cleanVnSlot.SlotId, cleanReplacementPath);
@@ -100,7 +100,7 @@ public sealed partial class ShellViewModelTests
             MainWindowViewModel viewModel = ShellViewModelFactory.Create();
             viewModel.SelectedIc = fixtureCase.GetProperty("ic").GetString()!;
             viewModel.SelectedNumber = fixtureCase.GetProperty("icNum").GetString()!;
-            viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+            OpenReplace(viewModel, "CtrlRAM");
             fixtures.SetBaseSlot(viewModel, fixtureCase);
             fixtures.SetReplacementSlots(viewModel, fixtureCase);
 

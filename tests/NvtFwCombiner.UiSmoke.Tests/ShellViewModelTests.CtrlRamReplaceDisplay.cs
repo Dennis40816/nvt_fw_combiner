@@ -12,7 +12,7 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51926";
         viewModel.SelectedNumber = "cascade";
-        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "CtrlRAM");
         using var golden = StandardMergeGoldenManifest.Load();
         string basePath = golden.ExpectedOutputPath(golden.CaseByIc("51926"));
 
@@ -42,7 +42,7 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
         viewModel.SelectedIc = "NT51950";
-        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "CtrlRAM");
 
         Assert.Contains(viewModel.ReplaceMemoryRows, row =>
             row.ActionLabel == "Replace + CRC" &&
@@ -72,7 +72,7 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51927";
         viewModel.SelectedNumber = "3";
-        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "CtrlRAM");
 
         Assert.Contains(viewModel.ReplaceSlots, slot => slot.Title == "Normal CtrlRAM (Slave R)");
         Assert.Contains(viewModel.ReplaceSlots, slot => slot.Title == "Normal CtrlRAM (Slave L)");
@@ -102,7 +102,7 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51927";
         viewModel.SelectedNumber = "3";
-        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "CtrlRAM");
 
         Assert.Contains(viewModel.ReplaceCoverageGroups, group =>
             group.Title == "Base firmware" &&
@@ -124,7 +124,7 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51927";
         viewModel.SelectedNumber = "3";
-        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+        OpenReplace(viewModel, "CtrlRAM");
 
         Assert.Equal("0 / 8 targets selected", viewModel.ReplaceSelectionCountLabel);
         Assert.Contains("Build blocked", viewModel.ReplaceSelectionStatusLabel, StringComparison.Ordinal);
