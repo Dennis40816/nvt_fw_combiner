@@ -68,11 +68,14 @@ public static partial class WorkbenchCompositionService
             return Blocked(context.ValidationIssues);
         }
 
+        ExternalProcessorStagedSourceBinding[] stagedSourceBindings = CreateCtrlRamStagedSourceBindings(
+            context.SelectedSources,
+            context.SelectedSourceLengths);
         IReadOnlyList<LegacyCombinerPostbuildWriteRange> postbuildWriteRangeSections =
             LegacyCombinerPostbuildPlanner.GetAllowedWriteRangeSectionsForStagedSources(
             context.CommandPlan!,
             context.BaseLength,
-            context.Regions.Select(region => region.Range),
+            stagedSourceBindings.Select(binding => binding.FirmwareRange),
             context.Regions.Select(region => region.Range));
         if (postbuildWriteRangeSections.Count == 0)
         {
@@ -92,6 +95,7 @@ public static partial class WorkbenchCompositionService
             context.Regions,
             context.SelectedSources,
             context.SelectedSourceLengths,
+            stagedSourceBindings,
             context.PostbuildProfile!,
             context.CommandPlan!,
             postbuildWriteRangeSections,

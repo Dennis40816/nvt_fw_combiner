@@ -147,6 +147,52 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         Assert.True(result.Succeeded, result.ReportJson);
     }
 
+    /// <summary>A short zero-offset source grants pasteback authority only through its physical EOF.</summary>
+    [Fact]
+    public async Task ShortCtrlRamSourceNarrowsPostbuildWriteAuthorityToEof()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-short-ctrlram-authority");
+        string basePath = RepositoryPaths.FromRepositoryRoot(
+            "testdata",
+            "golden",
+            "ctrlram-replace",
+            "fixtures",
+            "20260705",
+            "base",
+            "nt51927-3ic-tm-tl177xfks03-gm-d08t9b-20260703.bin");
+        byte[] nfBytes = [0x10, 0x21, 0x32, 0x43, 0x54, 0x65, 0x76, 0x87];
+        string nfPath = workspace.Write("NF_Ctrlram.bin", nfBytes);
+        var processor = new InspectingProcessor(request =>
+        {
+            AssertStagedSource(request, nfBytes, 0, 0x16800, nfBytes.Length);
+            Assert.Contains(new ByteRange(0x16800, nfBytes.Length), request.AllowedWriteRanges);
+            Assert.Contains(new ByteRange(0x23C, 4), request.AllowedWriteRanges);
+
+            ChangedRangeVerdict tailVerdict = new ChangedRangePolicy(request.AllowedWriteRanges)
+                .Evaluate([new ByteRange(0x16800 + nfBytes.Length, 1)]);
+            Assert.False(tailVerdict.IsAllowed);
+            Assert.Equal([new ByteRange(0x16800 + nfBytes.Length, 1)], tailVerdict.ViolatingRanges);
+            return ExternalProcessorResult.Success(request.InputBytes, []);
+        });
+        Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
+        {
+            [WorkbenchSlotIds.ReplaceBase] = basePath,
+            ["replace-ctrlram-nf"] = nfPath,
+        };
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+            "NT51927",
+            "single",
+            slotPaths,
+            build: false,
+            outputPath: null,
+            firmwareVersionEdit: null,
+            externalProcessor: processor,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+    }
+
     private static void AssertStagedSource(
         ExternalProcessorRequest request,
         byte[] sourceBytes,

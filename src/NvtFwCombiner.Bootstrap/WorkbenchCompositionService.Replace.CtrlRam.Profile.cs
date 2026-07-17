@@ -15,6 +15,7 @@ public static partial class WorkbenchCompositionService
         IReadOnlyList<TpFlashMapRegion> ctrlRamRegions,
         IReadOnlyList<TpCtrlRamPostbuildSource> selectedSources,
         IReadOnlyDictionary<string, long> selectedSourceLengths,
+        IReadOnlyList<ExternalProcessorStagedSourceBinding> stagedSourceBindings,
         LegacyCombinerPostbuildProfile postbuildProfile,
         LegacyCombinerPostbuildCommandPlan commandPlan,
         IReadOnlyList<LegacyCombinerPostbuildWriteRange> postbuildWriteRangeSections,
@@ -60,7 +61,6 @@ public static partial class WorkbenchCompositionService
         }
 
         int sequence = 100;
-        List<ExternalProcessorStagedSourceBinding> stagedSourceBindings = [];
         List<ExternalProcessorStagedArtifactBinding> stagedArtifactBindings = [];
         foreach (TpCtrlRamPostbuildSource source in selectedSources)
         {
@@ -71,17 +71,6 @@ public static partial class WorkbenchCompositionService
                 sourceLength,
                 AddressSpaceMutability.Immutable,
                 inputOversizePolicy: InputOversizePolicy.TruncateWithWarning));
-            stagedSourceBindings.AddRange(source.Blocks.Select(block =>
-            {
-                long effectiveLength = Math.Min(
-                    block.FirmwareRange.Length,
-                    sourceLength - block.SourceOffset);
-                return
-                new ExternalProcessorStagedSourceBinding(
-                    slotId,
-                    new ByteRange(block.SourceOffset, effectiveLength),
-                    new ByteRange(block.FirmwareRange.Start, effectiveLength));
-            }));
             stagedArtifactBindings.Add(new ExternalProcessorStagedArtifactBinding(
                 source.StagedArtifactId,
                 slotId,
@@ -179,6 +168,30 @@ public static partial class WorkbenchCompositionService
             accessRules,
             selection.Mode,
             validationRequirements);
+    }
+
+    private static ExternalProcessorStagedSourceBinding[] CreateCtrlRamStagedSourceBindings(
+        IReadOnlyList<TpCtrlRamPostbuildSource> selectedSources,
+        IReadOnlyDictionary<string, long> selectedSourceLengths)
+    {
+        return
+        [
+            .. selectedSources.SelectMany(source =>
+            {
+                string slotId = CtrlRamSlotId(source.SourceId);
+                long sourceLength = selectedSourceLengths[source.SourceId];
+                return source.Blocks.Select(block =>
+                {
+                    long effectiveLength = Math.Min(
+                        block.FirmwareRange.Length,
+                        sourceLength - block.SourceOffset);
+                    return new ExternalProcessorStagedSourceBinding(
+                        slotId,
+                        new ByteRange(block.SourceOffset, effectiveLength),
+                        new ByteRange(block.FirmwareRange.Start, effectiveLength));
+                });
+            }),
+        ];
     }
 
     private static void AddFirmwareVersionWriteRegion(
