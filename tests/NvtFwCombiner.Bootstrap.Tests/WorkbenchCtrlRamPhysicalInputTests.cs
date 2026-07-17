@@ -68,9 +68,9 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
             WorkbenchReplaceModes.CtrlRam).Single(slot => slot.SlotId == "replace-ctrlram-nf");
 
         Assert.Contains("DiffNFMerge output", nf.Title, StringComparison.Ordinal);
-        Assert.Contains("select NF_Ctrlram.bin only after DiffNFMerge.exe has compiled", nf.Description, StringComparison.Ordinal);
-        Assert.Contains("NF_Diff_0.bin, NF_Diff_1.bin", nf.Description, StringComparison.Ordinal);
-        Assert.Contains("one NF_Diff_<index>.bin per cascaded IC", nf.Description, StringComparison.Ordinal);
+        Assert.Contains("select an NF_Ctrlram.bin prebuilt by the external DiffNFMerge.exe", nf.Description, StringComparison.Ordinal);
+        Assert.Contains("input contract and execution are not yet integrated", nf.Description, StringComparison.Ordinal);
+        Assert.DoesNotContain("NF_Diff_", nf.Description, StringComparison.Ordinal);
     }
 
     /// <summary>Single-chip NF is already the physical Postbuild input and does not show a cascade prerequisite.</summary>

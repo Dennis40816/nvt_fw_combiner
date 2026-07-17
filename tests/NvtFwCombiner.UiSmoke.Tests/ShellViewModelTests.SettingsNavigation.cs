@@ -23,7 +23,7 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "Supported ICs" && row.Value == "13");
         Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "Standard Merge" && row.Value == "13 profiles");
         Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "DP Replace" && row.Value == "2 profiles");
-        Assert.Contains(viewModel.SettingsCapabilityRows, row => row.Title == "CtrlRAM catalog coverage" && row.Value == "12 ICs");
+        Assert.Contains(viewModel.SettingsCapabilityRows, row => row.Title == "CtrlRAM Replace-enabled ICs" && row.Value == "12 ICs");
         Assert.Contains(viewModel.SettingsCapabilityRows, row => row.Title == "External postbuild tools" && row.Value == "1 binding");
 
         viewModel.SelectedTheme = "Dark";
@@ -41,6 +41,10 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("必填", viewModel.ReplaceBaseSlot.RequirementLabel);
         Assert.Equal("尚未選擇 BIN", viewModel.ReplaceBaseSlot.DisplayName);
         Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "支援 IC" && row.Status == "Catalog");
+        Assert.Contains(viewModel.SettingsCapabilityRows, row =>
+            row.Title == "已啟用 CtrlRAM Replace 的 IC" &&
+            row.Value == "12 ICs" &&
+            row.Status == "已支援");
         Assert.Contains(viewModel.SettingsCapabilityRows, row =>
             row.Title == "外部 postbuild tools" &&
             row.Status == "固定");

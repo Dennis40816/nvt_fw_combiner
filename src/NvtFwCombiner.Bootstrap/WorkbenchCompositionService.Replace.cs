@@ -73,7 +73,7 @@ public static partial class WorkbenchCompositionService
             }));
         string description = $"{source.SourceFileName}. Expected sections: {sections}. Short source files stop at EOF without padding; bytes beyond each section maximum are not used.";
         return RequiresDiffNfMergeOutput(icId, number, source)
-            ? $"{description} Required cascade input: select NF_Ctrlram.bin only after DiffNFMerge.exe has compiled one NF_Diff_<index>.bin per cascaded IC (NF_Diff_0.bin, NF_Diff_1.bin, ...). DiffNFMerge execution is not yet integrated."
+            ? $"{description} Required cascade input: select an NF_Ctrlram.bin prebuilt by the external DiffNFMerge.exe. Its input contract and execution are not yet integrated."
             : description;
     }
 

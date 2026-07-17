@@ -99,12 +99,12 @@ public sealed partial class MainWindowViewModel
             SettingsCapabilityRows,
             [
             new SettingSummaryViewModel(
-                "CtrlRAM catalog coverage",
+                Text.Language == ShellLanguage.ChineseTraditional ? "已啟用 CtrlRAM Replace 的 IC" : "CtrlRAM Replace-enabled ICs",
                 $"{snapshot.CtrlRamReplaceIcCount} ICs",
                 Text.Language == ShellLanguage.ChineseTraditional
-                    ? "具有實體 CtrlRAM region 與 postbuild profile 的 IC。"
-                    : "ICs with physical CtrlRAM regions and postbuild profiles.",
-                "Catalog"),
+                    ? "支援政策明確開放 CtrlRAM Replace 的 IC 數量。"
+                    : "ICs whose support policy explicitly enables CtrlRAM Replace.",
+                Text.Language == ShellLanguage.ChineseTraditional ? "已支援" : "Supported"),
             new SettingSummaryViewModel(
                 Text.Language == ShellLanguage.ChineseTraditional ? "外部 postbuild tools" : "External postbuild tools",
                 snapshot.ExternalToolBindingCount == 1
