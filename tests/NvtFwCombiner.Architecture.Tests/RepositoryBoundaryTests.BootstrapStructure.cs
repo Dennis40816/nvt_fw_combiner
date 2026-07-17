@@ -148,6 +148,8 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Contains("CompileNt51926CtrlRamReplaceV2Candidate", candidateBoundary, StringComparison.Ordinal);
         Assert.Contains("FirmwareArtifactPayload", candidateBoundary, StringComparison.Ordinal);
+        Assert.Contains("referenceBaseBytes.Length", candidateBoundary, StringComparison.Ordinal);
+        Assert.DoesNotContain("Nt51926CtrlRamCandidateCapacity", candidateBoundary, StringComparison.Ordinal);
         Assert.DoesNotContain("RunCompiledCompositionAsync", candidateBoundary, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionRunService", candidateBoundary, StringComparison.Ordinal);
         Assert.DoesNotContain("CompileNt51926CtrlRamReplaceV2Candidate", runtime, StringComparison.Ordinal);
@@ -157,6 +159,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("\"blockerId\": \"direct-golden-evidence\"", profile, StringComparison.Ordinal);
         Assert.Contains("\"blockerId\": \"firmware-owner-review\"", profile, StringComparison.Ordinal);
         Assert.Contains("\"blockerId\": \"runtime-route\"", profile, StringComparison.Ordinal);
+        Assert.Contains("nt51926-ctrlram-fw141-tp-work-240k", profile, StringComparison.Ordinal);
+        Assert.Contains("output-tp-work-image", profile, StringComparison.Ordinal);
+        Assert.DoesNotContain("nt51926-ctrlram-fw141-256k", profile, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies workbench Replace mode ids stay centralized for UI and CLI adapters.</summary>
