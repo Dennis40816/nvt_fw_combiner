@@ -4,7 +4,13 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-Post-`0.9.8` development targets verified legacy convergence, patch closure, firmware-owner evidence, and the UI-driven IC intake toolchain.
+Post-`0.9.8` development targets verified legacy convergence, patch closure, firmware-owner evidence, the UI-driven IC intake toolchain, and a bounded measurement-first Replace optimization lane.
+
+### Changed
+
+- The `v0.9.10` roadmap now records why Replace performance work is needed: automatic Build currently executes Preview and Build separately, CtrlRAM postbuild repeatedly reads the full staging image, UI inspection rereads selected firmware, and owned byte buffers cross redundant copy boundaries.
+- The same roadmap clarifies that `DeclaredReplacement` means an accepted output difference inside a declared Replace write range, not a firmware version change. Any TP FW version-edit explanation must be projected as an Application-owned semantic while preserving or explicitly versioning the stable machine classification.
+- These entries authorize measurement and reviewed optimization work only. They do not change output bytes, ranges, processor commands, profile promotion, or firmware support state.
 
 ## [0.9.8] - 2026-07-16
 
