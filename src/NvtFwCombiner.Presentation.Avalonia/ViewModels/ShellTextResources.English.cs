@@ -109,7 +109,7 @@ public sealed partial class ShellTextResources
             HexEditorSaveConfirmationActionLabel = "Choose output",
             GeneralMergeMappingDetail = "Copy explicit source BIN ranges into a blank output image. No postbuild command runs.",
             GeneralMergeMappingsDetail = "Each row copies one source BIN range to one output target range.",
-            CtrlRamInputFilesDetail = "Use TP FW or a complete Flash Code as the base firmware BIN. Drop files only for CtrlRAM areas you want to change; empty areas stay from the base firmware.",
+            CtrlRamInputFilesDetail = "When the selected IC/profile supports it, use TP FW or a complete Flash Code as the base firmware BIN. Drop files only for CtrlRAM areas you want to change; empty areas stay from the base firmware.",
             CtrlRamFirmwareVersionTitle = "TP version for this output",
             CtrlRamFirmwareVersionDetail = "Choose how the output version is prepared before the approved CtrlRAM postbuild runs.",
             CtrlRamFirmwareVersionKeepLabel = "✓  Keep base version",

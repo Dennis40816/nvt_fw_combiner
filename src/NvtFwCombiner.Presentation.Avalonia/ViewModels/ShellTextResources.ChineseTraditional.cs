@@ -109,7 +109,7 @@ public sealed partial class ShellTextResources
             HexEditorSaveConfirmationActionLabel = "選擇輸出位置",
             GeneralMergeMappingDetail = "將明確 source BIN ranges 複製到 blank output image；不執行 postbuild command。",
             GeneralMergeMappingsDetail = "每列將一個 source BIN range 複製到一個 output target range。",
-            CtrlRamInputFilesDetail = "Base firmware BIN 可使用 TP FW 或完整 Flash Code。只放入要更動的 CtrlRAM 區域檔案；未放入的區域保留 base firmware。",
+            CtrlRamInputFilesDetail = "僅在選定的 IC/profile 支援時，Base firmware BIN 才可使用 TP FW 或完整 Flash Code。只放入要更動的 CtrlRAM 區域檔案；未放入的區域保留 base firmware。",
             CtrlRamFirmwareVersionTitle = "設定這次輸出的 TP 版本",
             CtrlRamFirmwareVersionDetail = "選擇核准的 CtrlRAM postbuild 執行前，要如何準備輸出版本。",
             CtrlRamFirmwareVersionKeepLabel = "✓  沿用 Base 版本",

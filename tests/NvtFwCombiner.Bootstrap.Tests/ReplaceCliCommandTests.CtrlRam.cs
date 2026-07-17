@@ -101,6 +101,7 @@ public sealed partial class ReplaceCliCommandTests
     public async Task CtrlRamReplaceUsesGenericBaseFirmwareDiagnostic()
     {
         using var workspace = TempWorkspace.Create();
+        string reportPath = workspace.PathFor("missing-base-report.json");
         string vnPath = RepositoryPaths.FromRepositoryRoot(
             "testdata",
             "golden",
@@ -122,11 +123,37 @@ public sealed partial class ReplaceCliCommandTests
             workspace.PathFor("missing-base.bin"),
             "--ctrlram",
             $"replace-ctrlram-vn={vnPath}",
+            "--report",
+            reportPath,
         ]);
 
         Assert.NotEqual(0, result.ExitCode);
         Assert.Contains("Base firmware BIN path does not exist.", result.Error, StringComparison.Ordinal);
         Assert.DoesNotContain("Base flash", result.Error, StringComparison.Ordinal);
+        string reportJson = await File.ReadAllTextAsync(reportPath, TestContext.Current.CancellationToken);
+        Assert.DoesNotContain("base flash", reportJson, StringComparison.OrdinalIgnoreCase);
+
+        string basePath = RepositoryPaths.FromRepositoryRoot(
+            "testdata",
+            "golden",
+            "standard-merge-gen-flash",
+            "inputs",
+            "51926",
+            "tp.bin");
+        WorkbenchRunResult planning = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51926",
+            "cascade",
+            "CtrlRAM",
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["replace-base"] = basePath,
+            },
+            build: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(planning.Succeeded);
+        Assert.Contains("base firmware BIN for postbuild staging", planning.ReportJson, StringComparison.Ordinal);
+        Assert.DoesNotContain("base flash", planning.ReportJson, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>Verifies real IC CtrlRAM Replace accepts multiple slot-specific replacement inputs in one CLI run.</summary>
@@ -172,7 +199,7 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Contains("Profile: nt51927-ctrlram-replace-workbench (NT51927)", result.Output, StringComparison.Ordinal);
         Assert.Contains("postbuild-twochip", result.Output, StringComparison.Ordinal);
         Assert.True(File.Exists(report), report);
-        using var reportDocument = JsonDocument.Parse(await File.ReadAllTextAsync(
+        using JsonDocument reportDocument = JsonDocument.Parse(await File.ReadAllTextAsync(
             report,
             TestContext.Current.CancellationToken));
         JsonElement root = reportDocument.RootElement;

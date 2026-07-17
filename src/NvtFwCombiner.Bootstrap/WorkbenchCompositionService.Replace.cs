@@ -15,7 +15,7 @@ public static partial class WorkbenchCompositionService
                 .OrderBy(region => region.Range.Start)
                 .Select(region => new WorkbenchMemoryMapRow(
                     FormatDisplayRange(region.Range),
-                    "Base flash",
+                    "Base firmware",
                     "Replace + CRC",
                     region.PostbuildFileName ?? "CtrlRAM BIN",
                     $"{region.DisplayName} at {FormatDisplayRange(region.Range)} can use its own replacement BIN; the report shows the CRC/header refresh command.")),
