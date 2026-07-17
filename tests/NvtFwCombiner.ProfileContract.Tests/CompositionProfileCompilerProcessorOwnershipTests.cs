@@ -5,6 +5,106 @@ namespace NvtFwCombiner.ProfileContract.Tests;
 
 public sealed partial class CompositionProfileCompilerTests
 {
+    /// <summary>Verifies CtrlRAM compatibility cannot compile without its staged postbuild processor.</summary>
+    [Fact]
+    public void CtrlRamReplaceRequiresStagedPostbuildProcessor()
+    {
+        CompositionProfileDefinition profile = CreateProfile(
+            CompositionKind.Replace,
+            "ctrlram-replace",
+            ImageInitialization.Reference("output-image", "source", 4));
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(
+            result.Issues,
+            issue => issue.Code == "profile.ctrlram-replace.staged-processor-required");
+    }
+
+    /// <summary>Verifies an unstaged processor cannot stand in for CtrlRAM postbuild pasteback.</summary>
+    [Fact]
+    public void CtrlRamReplaceRejectsUnstagedProcessor()
+    {
+        CompositionProfileDefinition profile = CreateProfile(
+            CompositionKind.Replace,
+            "ctrlram-replace",
+            ImageInitialization.Reference("output-image", "source", 4),
+            operations: [CreateExternalProcessorOperation("crc-v1")],
+            regions:
+            [
+                new ProfileRegion(
+                    "ctrlram",
+                    "output-image",
+                    new ByteRange(3, 1),
+                    RegionAtomicity.Whole,
+                    RegionWritePolicy.WholeOnly,
+                    processorDependencyIds: ["crc-v1"],
+                    classificationTags: ["tp-ctrlram"]),
+            ],
+            accessRules:
+            [
+                new RegionAccessRule("ctrlram", RegionAccessKind.Whole, "allow whole CtrlRAM replacement"),
+            ]);
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(
+            result.Issues,
+            issue => issue.Code == "profile.ctrlram-replace.staged-processor-required");
+    }
+
+    /// <summary>Verifies staged postbuild sources cannot target a non-CtrlRAM region.</summary>
+    [Fact]
+    public void CtrlRamReplaceRejectsStagedNonCtrlRamRegion()
+    {
+        CompositionProfileDefinition profile = CreateProfile(
+            CompositionKind.Replace,
+            "ctrlram-replace",
+            ImageInitialization.Reference("output-image", "source", 4),
+            operations:
+            [
+                CompositionOperation.RunExternalProcessor(
+                    "postbuild",
+                    10,
+                    "output-image",
+                    new ByteRange(0, 4),
+                    new ExternalProcessorInvocation(
+                        "crc-v1",
+                        "tool-v1",
+                        [new ByteRange(0, 4)],
+                        [new ByteRange(3, 1)],
+                        [new ExternalProcessorStagedSourceBinding(
+                            "source",
+                            new ByteRange(0, 1),
+                            new ByteRange(3, 1))]),
+                    OverlapPolicy.ReplaceExisting,
+                    "stage a non-CtrlRAM source"),
+            ],
+            regions:
+            [
+                new ProfileRegion(
+                    "payload",
+                    "output-image",
+                    new ByteRange(3, 1),
+                    RegionAtomicity.Whole,
+                    RegionWritePolicy.WholeOnly,
+                    processorDependencyIds: ["crc-v1"]),
+            ],
+            accessRules:
+            [
+                new RegionAccessRule("payload", RegionAccessKind.Whole, "synthetic non-CtrlRAM payload"),
+            ]);
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, []);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(
+            result.Issues,
+            issue => issue.Code == "profile.ctrlram-replace.staged-source-region-required");
+    }
+
     /// <summary>Verifies direct fixed ReplaceRange operations cannot coexist with the staged Replace model.</summary>
     [Fact]
     public void FixedReplaceRangeOperationIsRetired()

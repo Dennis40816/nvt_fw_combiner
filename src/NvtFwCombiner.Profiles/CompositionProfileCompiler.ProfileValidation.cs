@@ -20,6 +20,7 @@ public static partial class CompositionProfileCompiler
 
         ValidateInputPaddingPolicy(profile, requestAddressSpaces, issues);
         ValidateIcNumberPolicy(profile, issues);
+        ValidateCtrlRamReplaceProcessorShape(profile, issues);
 
         AddDuplicateIssues(
             profile.Regions,
@@ -94,6 +95,50 @@ public static partial class CompositionProfileCompiler
         }
     }
 
+    private static void ValidateCtrlRamReplaceProcessorShape(
+        CompositionProfileDefinition profile,
+        List<CompositionIssue> issues)
+    {
+        if (!IsCtrlRamReplaceProfile(profile))
+        {
+            return;
+        }
+
+        CompositionOperation[] processors = [.. profile.Operations.Where(operation =>
+            operation.Kind == CompositionOperationKind.RunExternalProcessor)];
+        if (processors.Length != 1 ||
+            processors[0].ExternalProcessorInvocation!.StagedSourceBindings.Count == 0)
+        {
+            issues.Add(new CompositionIssue(
+                "profile.ctrlram-replace.staged-processor-required",
+                "CtrlRAM Replace compatibility profiles require exactly one external postbuild processor with staged source bindings."));
+            return;
+        }
+
+        ExternalProcessorInvocation invocation = processors[0].ExternalProcessorInvocation!;
+        foreach (ExternalProcessorStagedSourceBinding binding in invocation.StagedSourceBindings)
+        {
+            ProfileRegion? targetRegion = ResolveTargetRegionByRange(
+                profile,
+                processors[0].TargetSpaceId,
+                binding.FirmwareRange,
+                "profile.ctrlram-replace.staged-source-region-unresolved",
+                "profile.ctrlram-replace.staged-source-region-ambiguous",
+                binding.SourceSpaceId,
+                issues);
+            if (targetRegion is not null &&
+                (!targetRegion.ClassificationTags.Contains(CtrlRamClassificationTag, StringComparer.Ordinal) ||
+                 !targetRegion.ProcessorDependencyIds.Contains(invocation.ProcessorId, StringComparer.Ordinal) ||
+                 !invocation.AllowedWriteRanges.Any(range => range.Contains(binding.FirmwareRange))))
+            {
+                issues.Add(new CompositionIssue(
+                    "profile.ctrlram-replace.staged-source-region-required",
+                    $"Staged source '{binding.SourceSpaceId}' must target a processor-owned CtrlRAM region inside the postbuild write authority.",
+                    binding.SourceSpaceId));
+            }
+        }
+    }
+
     private static void ValidateInputPaddingPolicy(
         CompositionProfileDefinition profile,
         IReadOnlyList<AddressSpace> requestAddressSpaces,
@@ -135,7 +180,14 @@ public static partial class CompositionProfileCompiler
         }
 
         ValidateInputOversizePolicy(profile, issues);
-        ValidateProfileInputLengthPolicy(profile, issues);
+        foreach (AddressSpace addressSpace in profile.AddressSpaces.Where(space =>
+                     space.AllowedInputLengths.Count + space.ExpectedInputLengths.Count > 0))
+        {
+            issues.Add(new CompositionIssue(
+                "profile.input-lengths.not-allowed",
+                $"Address space '{addressSpace.AddressSpaceId}' declares retired profile-owned input-length policy.",
+                addressSpace.AddressSpaceId));
+        }
 
         foreach (AddressSpace addressSpace in profile.AddressSpaces.Where(space => space.InputPaddingByte is not null))
         {
@@ -167,77 +219,20 @@ public static partial class CompositionProfileCompiler
         }
     }
 
-    private static void ValidateProfileInputLengthPolicy(
-        CompositionProfileDefinition profile,
-        List<CompositionIssue> issues)
-    {
-        foreach (AddressSpace addressSpace in profile.AddressSpaces.Where(space =>
-                     space.AllowedInputLengths.Count + space.ExpectedInputLengths.Count > 0))
-        {
-            issues.Add(new CompositionIssue(
-                "profile.input-lengths.not-allowed",
-                $"Address space '{addressSpace.AddressSpaceId}' declares retired profile-owned input-length policy.",
-                addressSpace.AddressSpaceId));
-        }
-    }
-
     private static void ValidateTruncatingAddressSpaceTargetsCtrlRam(
         CompositionProfileDefinition profile,
         AddressSpace addressSpace,
         List<CompositionIssue> issues)
     {
-        List<(string OperationId, string TargetSpaceId, ByteRange TargetRange)> sourceTargets = [];
-        foreach (CompositionOperation operation in profile.Operations)
-        {
-            if (string.Equals(operation.SourceSpaceId, addressSpace.AddressSpaceId, StringComparison.Ordinal))
-            {
-                sourceTargets.Add((operation.OperationId, operation.TargetSpaceId, operation.TargetRange));
-            }
-
-            if (operation.ExternalProcessorInvocation is not { } invocation)
-            {
-                continue;
-            }
-
-            foreach (ExternalProcessorStagedSourceBinding binding in invocation.StagedSourceBindings.Where(binding =>
-                         string.Equals(binding.SourceSpaceId, addressSpace.AddressSpaceId, StringComparison.Ordinal)))
-            {
-                sourceTargets.Add((operation.OperationId, operation.TargetSpaceId, binding.FirmwareRange));
-            }
-        }
-
-        if (sourceTargets.Count == 0)
+        bool isStaged = profile.Operations
+            .Where(operation => operation.ExternalProcessorInvocation is not null)
+            .SelectMany(operation => operation.ExternalProcessorInvocation!.StagedSourceBindings)
+            .Any(binding => StringComparer.Ordinal.Equals(binding.SourceSpaceId, addressSpace.AddressSpaceId));
+        if (!isStaged)
         {
             issues.Add(new CompositionIssue(
                 "profile.input-truncation.ctrlram-region-required",
-                $"Address space '{addressSpace.AddressSpaceId}' declares input truncation but is not used by a CtrlRAM replacement or staged postbuild source.",
-                addressSpace.AddressSpaceId));
-            return;
-        }
-
-        foreach ((string operationId, string targetSpaceId, ByteRange targetRange) in sourceTargets)
-        {
-            ProfileRegion? targetRegion = ResolveTargetRegionByRange(
-                profile,
-                targetSpaceId,
-                targetRange,
-                "profile.input-truncation.target-region-unresolved",
-                "profile.input-truncation.target-region-ambiguous",
-                addressSpace.AddressSpaceId,
-                issues);
-            if (targetRegion is null)
-            {
-                continue;
-            }
-
-            if (targetRegion.ClassificationTags.Contains(CtrlRamClassificationTag, StringComparer.Ordinal))
-            {
-                continue;
-            }
-
-            issues.Add(new CompositionIssue(
-                "profile.input-truncation.ctrlram-region-required",
-                $"Address space '{addressSpace.AddressSpaceId}' declares input truncation but operation '{operationId}' targets non-CtrlRAM region '{targetRegion.RegionId}'.",
+                $"Address space '{addressSpace.AddressSpaceId}' declares input truncation but is not used by a staged CtrlRAM postbuild source.",
                 addressSpace.AddressSpaceId));
         }
     }

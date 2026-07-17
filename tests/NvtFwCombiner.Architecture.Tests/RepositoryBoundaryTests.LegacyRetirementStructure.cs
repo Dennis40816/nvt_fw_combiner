@@ -76,6 +76,7 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.DoesNotContain("StandardMergeExperienceId", compiler, StringComparison.Ordinal);
         Assert.Contains("profile.legacy-compiler.workflow-retired", profileValidation, StringComparison.Ordinal);
+        Assert.Contains("profile.ctrlram-replace.staged-processor-required", profileValidation, StringComparison.Ordinal);
         Assert.DoesNotContain("IsStandardMergeDpExtraction", profileValidation, StringComparison.Ordinal);
         Assert.DoesNotContain("ExtractDeclaredRange", profileValidation, StringComparison.Ordinal);
         Assert.DoesNotContain("AllowsCtrlRamReplaceBeforeProcessor", operationValidation, StringComparison.Ordinal);
