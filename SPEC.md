@@ -684,6 +684,12 @@ Build automatically runs the same validation path as Preview before committing o
 
 Preview/Build reports and diagnostics open in a report modal after the action completes or fails; they are not first-level pages. The UI must be structured for bilingual English/Chinese text resources rather than hard-coded display strings. The initial default language is English.
 
+While Preview or Build is active, the shell shows one accessible, indeterminate progress bar beside
+the selected IC/mode context. It must not invent percentage completion when the
+composition/external-tool contracts do not expose byte-level progress. CtrlRAM Replace remains one
+logical run across validation, replacement, and the approved Postbuild sequence; approved external
+processes execute headlessly and never open user-visible console windows.
+
 ### 11.5 Typography and localization defaults
 
 - Initial default language: English. Traditional Chinese is supported through the same text-resource architecture, not through duplicated XAML or ViewModel strings.

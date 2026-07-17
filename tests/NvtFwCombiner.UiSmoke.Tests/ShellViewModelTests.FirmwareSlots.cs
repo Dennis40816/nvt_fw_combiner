@@ -80,7 +80,7 @@ public sealed partial class ShellViewModelTests
             });
     }
 
-    /// <summary>Verifies base BIN slots expose FWConfig facts decoded from the selected flash image.</summary>
+    /// <summary>Verifies a full FlashCode base exposes both DP and TP facts instead of treating it as TP-only.</summary>
     [Fact]
     public void BaseFirmwareSlotShowsFwConfigFacts()
     {
@@ -92,6 +92,12 @@ public sealed partial class ShellViewModelTests
         viewModel.SetSlotFile("replace-base", basePath);
 
         Assert.True(viewModel.ReplaceBaseSlot.HasFirmwareFacts);
+        Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
+            fact.Label == "DP" &&
+            fact.Value == "D01-02");
+        Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
+            fact.Label == "Jira" &&
+            fact.Value == "AUTO_PRJ-597");
         Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
             fact.Label == "Common FW" && fact.Value == "1.4.1");
         Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>

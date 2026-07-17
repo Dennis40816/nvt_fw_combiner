@@ -330,10 +330,24 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("AutomationProperties.Name=\"{Binding Text.CtrlRamFirmwareSubVersionByteLabel}\"", modal, StringComparison.Ordinal);
         Assert.Contains("Selector=\"TextBox.hexByteInput\"", styles, StringComparison.Ordinal);
         Assert.Contains("Classes=\"technicalCenteredInput hexByteInput\"", modal, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"compactBadge neutralBadge\"", modal, StringComparison.Ordinal);
         Assert.Contains("behaviors:HexTextInputBehavior.Mode\" Value=\"ByteSequence\"", styles, StringComparison.Ordinal);
         Assert.DoesNotContain("FirmwareConfigLayout", modal, StringComparison.Ordinal);
         Assert.DoesNotContain("Combiner.exe", modal, StringComparison.Ordinal);
         Assert.DoesNotContain("0x", modal, StringComparison.Ordinal);
+    }
+
+    /// <summary>Every composition run exposes one truthful indeterminate progress surface.</summary>
+    [Fact]
+    public void CompositionRunShowsGlobalWorkflowProgress()
+    {
+        string contextPanel = ReadPresentationFile("Resources/MainWindowShellPanels.axaml");
+
+        Assert.Contains("<ProgressBar", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsRunInProgress}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("IsIndeterminate=\"True\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding DeviceContextStatus}\"", contextPanel, StringComparison.Ordinal);
+        Assert.DoesNotContain("Value=\"{Binding RunProgress", contextPanel, StringComparison.Ordinal);
     }
 
     /// <summary>Keeps each byte value centered on the calculated 16-column viewport geometry.</summary>

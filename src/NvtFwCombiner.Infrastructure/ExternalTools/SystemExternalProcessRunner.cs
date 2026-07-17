@@ -17,6 +17,7 @@ public sealed class SystemExternalProcessRunner : IExternalProcessRunner
         process.StartInfo.FileName = startInfo.ExecutablePath;
         process.StartInfo.WorkingDirectory = startInfo.WorkingDirectory;
         process.StartInfo.UseShellExecute = false;
+        process.StartInfo.CreateNoWindow = true;
         process.StartInfo.RedirectStandardOutput = true;
         process.StartInfo.RedirectStandardError = true;
         foreach (string argument in startInfo.Arguments)

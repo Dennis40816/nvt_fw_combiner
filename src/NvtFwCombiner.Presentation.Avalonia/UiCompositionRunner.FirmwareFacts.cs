@@ -9,25 +9,23 @@ public static partial class UiCompositionRunner
     public static IReadOnlyList<FirmwareSlotFactViewModel> GetFirmwareSlotFacts(
         string icId,
         string path,
-        bool includeInvalid = false)
+        bool includeBaseFacts = false)
     {
         WorkbenchFirmwareConfigMetadata? metadata =
             WorkbenchCompositionService.TryReadFirmwareConfigMetadata(icId, path);
-        if (metadata is null || (!metadata.IsFirmwareVersionBarValid && !includeInvalid))
+        if (metadata is null || (!metadata.IsFirmwareVersionBarValid && !includeBaseFacts))
         {
             return [];
         }
 
-        string firmwareVersion = FormattableString.Invariant(
-            $"T{metadata.FirmwareVersion:X2}-{metadata.FirmwareSubVersion:X2}");
         List<FirmwareSlotFactViewModel> facts =
         [
             new("Common FW", metadata.CommonFwVersion),
-            new("TP", firmwareVersion, !metadata.IsFirmwareVersionBarValid),
+            new("TP", FormattableString.Invariant($"T{metadata.FirmwareVersion:X2}-{metadata.FirmwareSubVersion:X2}"), !metadata.IsFirmwareVersionBarValid),
             new("PID", FormattableString.Invariant($"0x{metadata.ProjectId:X4}")),
         ];
 
-        return facts;
+        return includeBaseFacts ? [.. GetDpFirmwareSlotFacts(icId, path, path), .. facts] : facts;
     }
 
     /// <summary>Gets compact DP version facts decoded using gen_flash standard-merge version rules.</summary>
