@@ -71,6 +71,8 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Profiles/CompositionProfileCompiler.OperationValidation.cs");
         string explicitCompilation = ReadText(
             "src/NvtFwCombiner.Profiles/CompositionProfileCompiler.ExplicitMappingCompilation.cs");
+        string explicitMappings = ReadText(
+            "src/NvtFwCombiner.Profiles/CompositionProfileCompiler.ExplicitMappings.cs");
 
         Assert.DoesNotContain("StandardMergeExperienceId", compiler, StringComparison.Ordinal);
         Assert.Contains("profile.legacy-compiler.workflow-retired", profileValidation, StringComparison.Ordinal);
@@ -78,6 +80,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("ExtractDeclaredRange", profileValidation, StringComparison.Ordinal);
         Assert.DoesNotContain("AllowsCtrlRamReplaceBeforeProcessor", operationValidation, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionOperation.CopyRange", explicitCompilation, StringComparison.Ordinal);
+        Assert.DoesNotContain("% mapping.Alignment", explicitMappings, StringComparison.Ordinal);
+        Assert.DoesNotContain("profile.Regions.FirstOrDefault", explicitMappings, StringComparison.Ordinal);
     }
 
     private static void AssertNoProductionText(string token)

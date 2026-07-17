@@ -94,9 +94,9 @@ public sealed partial class CompositionProfileCompilerTests
         Assert.Equal("runtime-source", operation.SourceSpaceId);
     }
 
-    /// <summary>Verifies explicit mapping source and target lengths must satisfy the declared alignment.</summary>
+    /// <summary>Verifies legacy mappings cannot revive caller-selected alignment.</summary>
     [Fact]
-    public void ExplicitMappingLengthMustSatisfyAlignment()
+    public void ExplicitMappingAlignmentOverrideIsRetired()
     {
         CompositionProfileDefinition profile = CreateProfile(
             CompositionKind.Replace,
@@ -111,6 +111,6 @@ public sealed partial class CompositionProfileCompilerTests
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, [mapping]);
 
         Assert.False(result.IsSuccess);
-        Assert.Contains(result.Issues, issue => issue.Code == "profile.explicit-mapping.alignment");
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.explicit-mapping.alignment-retired");
     }
 }

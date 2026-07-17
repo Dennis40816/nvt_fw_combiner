@@ -53,7 +53,7 @@ public sealed partial class CompositionProfileCompilerTests
         Assert.Equal(new ByteRange(1, 2), operation.TargetRange);
     }
 
-    /// <summary>Verifies general replace mappings cannot cross a protected region even within the output address space.</summary>
+    /// <summary>Verifies a range crossing protected and writable regions cannot resolve a writable target.</summary>
     [Fact]
     public void GeneralReplaceRejectsMappingThatOverlapsProtectedRegion()
     {
@@ -63,14 +63,30 @@ public sealed partial class CompositionProfileCompilerTests
             ImageInitialization.Reference("output-image", "source", 4));
         ExplicitMapping mapping = CreateMapping(
             ExplicitMappingOperationKind.ReplaceRange,
-            targetRange: new ByteRange(0, 2),
+            targetRange: new ByteRange(0, 2));
+
+        ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, [mapping]);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.explicit-mapping.target-region-unresolved");
+    }
+
+    /// <summary>Verifies legacy mappings cannot select a profile region by caller-provided id.</summary>
+    [Fact]
+    public void ExplicitMappingTargetRegionOverrideIsRetired()
+    {
+        CompositionProfileDefinition profile = CreateProfile(
+            CompositionKind.Replace,
+            "general-replace",
+            ImageInitialization.Reference("output-image", "source", 4));
+        ExplicitMapping mapping = CreateMapping(
+            ExplicitMappingOperationKind.ReplaceRange,
             targetRegionId: "payload");
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, [mapping]);
 
         Assert.False(result.IsSuccess);
-        Assert.Contains(result.Issues, issue => issue.Code == "profile.explicit-mapping.range-outside-region");
-        Assert.Contains(result.Issues, issue => issue.Code == "profile.explicit-mapping.protected-overlap");
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.explicit-mapping.target-region-retired");
     }
 
     /// <summary>Verifies duplicate region ids return structured compile issues.</summary>

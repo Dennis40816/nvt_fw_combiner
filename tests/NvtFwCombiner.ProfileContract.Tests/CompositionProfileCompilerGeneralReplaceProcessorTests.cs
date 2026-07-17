@@ -28,8 +28,7 @@ public sealed partial class CompositionProfileCompilerTests
                 new RegionAccessRule("tp-payload", RegionAccessKind.ExplicitRange, "allow TP payload"),
             ]);
         ExplicitMapping mapping = CreateMapping(
-            ExplicitMappingOperationKind.ReplaceRange,
-            targetRegionId: "tp-payload");
+            ExplicitMappingOperationKind.ReplaceRange);
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, [mapping]);
 
@@ -37,9 +36,9 @@ public sealed partial class CompositionProfileCompilerTests
         Assert.Contains(result.Issues, issue => issue.Code == "profile.explicit-mapping.tp-processor-required");
     }
 
-    /// <summary>Verifies General Replace detects TP child ranges even when the explicit mapping targets a parent region.</summary>
+    /// <summary>Verifies overlapping parent/child regions fail closed without caller-selected target authority.</summary>
     [Fact]
-    public void GeneralReplaceRejectsParentMappingThatTouchesTpChildRegionWithoutExternalProcessor()
+    public void GeneralReplaceRejectsAmbiguousParentAndChildTargetRegions()
     {
         CompositionProfileDefinition profile = CreateProfile(
             CompositionKind.Replace,
@@ -67,13 +66,12 @@ public sealed partial class CompositionProfileCompilerTests
                 new RegionAccessRule("tp-window", RegionAccessKind.ExplicitRange, "allow TP window"),
             ]);
         ExplicitMapping mapping = CreateMapping(
-            ExplicitMappingOperationKind.ReplaceRange,
-            targetRegionId: "payload");
+            ExplicitMappingOperationKind.ReplaceRange);
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, [mapping]);
 
         Assert.False(result.IsSuccess);
-        Assert.Contains(result.Issues, issue => issue.Code == "profile.explicit-mapping.tp-processor-required");
+        Assert.Contains(result.Issues, issue => issue.Code == "profile.explicit-mapping.target-region-ambiguous");
     }
 
     /// <summary>Verifies General Replace TP mappings compile only when an external processor follows the mapping.</summary>
@@ -109,8 +107,7 @@ public sealed partial class CompositionProfileCompilerTests
                 new RegionAccessRule("tp-crc", RegionAccessKind.Hidden, "processor owned"),
             ]);
         ExplicitMapping mapping = CreateMapping(
-            ExplicitMappingOperationKind.ReplaceRange,
-            targetRegionId: "tp-payload");
+            ExplicitMappingOperationKind.ReplaceRange);
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, [mapping]);
 
@@ -155,8 +152,7 @@ public sealed partial class CompositionProfileCompilerTests
                 new RegionAccessRule("tp-crc", RegionAccessKind.Hidden, "processor owned"),
             ]);
         ExplicitMapping mapping = CreateMapping(
-            ExplicitMappingOperationKind.ReplaceRange,
-            targetRegionId: "tp-payload");
+            ExplicitMappingOperationKind.ReplaceRange);
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, [mapping]);
 
@@ -197,8 +193,7 @@ public sealed partial class CompositionProfileCompilerTests
                 new RegionAccessRule("tp-crc", RegionAccessKind.Hidden, "processor owned"),
             ]);
         ExplicitMapping mapping = CreateMapping(
-            ExplicitMappingOperationKind.ReplaceRange,
-            targetRegionId: "tp-payload");
+            ExplicitMappingOperationKind.ReplaceRange);
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, [mapping]);
 

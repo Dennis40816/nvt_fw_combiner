@@ -64,8 +64,7 @@ public sealed partial class CompositionProfileCompilerTests
         ExplicitMapping mapping = CreateMapping(
             ExplicitMappingOperationKind.ReplaceRange,
             sourceRange: new ByteRange(0, 4),
-            targetRange: new ByteRange(0, 4),
-            targetRegionId: "payload");
+            targetRange: new ByteRange(0, 4));
 
         ProfileCompileResult result = CompositionProfileCompiler.Compile(profile, [mapping]);
 

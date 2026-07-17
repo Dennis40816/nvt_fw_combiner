@@ -11,29 +11,32 @@ public static partial class CompositionProfileCompiler
         List<CompositionIssue> issues = [];
         foreach (ExplicitMapping mapping in explicitMappings)
         {
-            ValidateMappingAlignment(mapping, issues);
+            ValidateCompatibilityMappingShape(mapping, issues);
             ValidateExplicitMappingRegionPolicy(profile, mapping, issues);
         }
 
         return issues;
     }
 
-    private static void ValidateMappingAlignment(
+    private static void ValidateCompatibilityMappingShape(
         ExplicitMapping mapping,
         List<CompositionIssue> issues)
     {
-        if (mapping.SourceRange.Start % mapping.Alignment == 0 &&
-            mapping.SourceRange.Length % mapping.Alignment == 0 &&
-            mapping.TargetRange.Start % mapping.Alignment == 0 &&
-            mapping.TargetRange.Length % mapping.Alignment == 0)
+        if (mapping.Alignment != 1)
         {
-            return;
+            issues.Add(new CompositionIssue(
+                "profile.explicit-mapping.alignment-retired",
+                $"Explicit mapping '{mapping.MappingId}' cannot override the compatibility workflow alignment.",
+                mapping.MappingId));
         }
 
-        issues.Add(new CompositionIssue(
-            "profile.explicit-mapping.alignment",
-            $"Explicit mapping '{mapping.MappingId}' source and target ranges must satisfy alignment {mapping.Alignment}.",
-            mapping.MappingId));
+        if (mapping.TargetRegionId is not null)
+        {
+            issues.Add(new CompositionIssue(
+                "profile.explicit-mapping.target-region-retired",
+                $"Explicit mapping '{mapping.MappingId}' cannot select a profile region by id.",
+                mapping.MappingId));
+        }
     }
 
     private static void ValidateExplicitMappingRegionPolicy(
@@ -92,22 +95,6 @@ public static partial class CompositionProfileCompiler
         ExplicitMapping mapping,
         List<CompositionIssue> issues)
     {
-        if (mapping.TargetRegionId is not null)
-        {
-            ProfileRegion? namedRegion = profile.Regions.FirstOrDefault(region =>
-                string.Equals(region.RegionId, mapping.TargetRegionId, StringComparison.Ordinal));
-            if (namedRegion is not null)
-            {
-                return namedRegion;
-            }
-
-            issues.Add(new CompositionIssue(
-                "profile.explicit-mapping.target-region-unknown",
-                $"Explicit mapping '{mapping.MappingId}' targets unknown region '{mapping.TargetRegionId}'.",
-                mapping.MappingId));
-            return null;
-        }
-
         return ResolveTargetRegionByRange(
             profile,
             mapping.TargetSpaceId,

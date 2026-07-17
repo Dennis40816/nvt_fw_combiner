@@ -62,7 +62,7 @@ public sealed partial class CompositionProfileCompilerTests
         ByteRange? sourceRange = null,
         ByteRange? targetRange = null,
         int alignment = 1,
-        string? targetRegionId = "payload")
+        string? targetRegionId = null)
     {
         ByteRange resolvedTargetRange = targetRange ?? new ByteRange(1, 2);
         return new ExplicitMapping(
