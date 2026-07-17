@@ -6,39 +6,21 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class ReplaceCliCommandTests
 {
-    private const string Nt51926TpBaseSha256 =
-        "9e5321fb7673736c6c52e61549e33347e3852488bd253088db7239d4d0f371fc";
-    private const string Nt51926TpBaseOutputSha256 =
-        "f26b6366bc858a751bd0b7bc3be1b6a1ac6edfb4fa25b92b57bea140e193e13a";
-    private static readonly (int Start, int EndExclusive)[] Nt51926TpBaseIntegrityChanges =
-    [
-        (0x1C, 0x20),
-        (0xFC, 0x100),
-        (0x32F6C, 0x32F70),
-        (0x3304C, 0x33050),
-    ];
+    private const string Nt51926TpBaseCaseId = "nt51926-cascade-tp-base-self-regression-20260717";
 
     /// <summary>Locks NT51926 CtrlRAM Replace admission and postbuild when TP FW is the base image.</summary>
     [Fact]
     public async Task Nt51926CtrlRamReplaceAcceptsTpFirmwareBase()
     {
         using var workspace = TempWorkspace.Create();
-        string basePath = RepositoryPaths.FromRepositoryRoot(
-            "testdata",
-            "golden",
-            "standard-merge-gen-flash",
-            "inputs",
-            "51926",
-            "tp.bin");
-        string vnPath = RepositoryPaths.FromRepositoryRoot(
-            "testdata",
-            "golden",
-            "ctrlram-replace",
-            "fixtures",
-            "20260705",
-            "inputs",
-            "nt51926-cascade-self-20260705",
-            "vn.bin");
+        string fixtureRoot = RepositoryPaths.FromRepositoryRoot("testdata", "golden", "ctrlram-replace");
+        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(fixtureRoot, "manifest.json")));
+        JsonElement fixtureCase = manifest.RootElement.GetProperty("cases").EnumerateArray()
+            .Single(item => item.GetProperty("id").GetString() == Nt51926TpBaseCaseId);
+        string basePath = RepositoryPaths.ManifestPath(fixtureRoot, fixtureCase.GetProperty("base"));
+        JsonElement replacement = Assert.Single(fixtureCase.GetProperty("replacementInputs").EnumerateArray());
+        string vnPath = RepositoryPaths.ManifestPath(fixtureRoot, replacement.GetProperty("file"));
+        string expectedPath = RepositoryPaths.ManifestPath(fixtureRoot, fixtureCase.GetProperty("expectedOutput"));
         string previewReport = workspace.PathFor("preview-report.json");
 
         CliRunResult preview = await RunCliAsync([
@@ -61,7 +43,7 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Contains("Size: 245760 bytes", preview.Output, StringComparison.Ordinal);
         Assert.Contains("postbuild-cascade", preview.Output, StringComparison.Ordinal);
         Assert.Contains("changed=16", preview.Output, StringComparison.Ordinal);
-        AssertProcessorTrace(previewReport);
+        AssertProcessorTrace(previewReport, fixtureCase);
 
         string outputPath = workspace.PathFor("nt51926-tp-base.bin");
         string buildReport = workspace.PathFor("build-report.json");
@@ -88,12 +70,14 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Contains("changed=16", build.Output, StringComparison.Ordinal);
         byte[] baseBytes = File.ReadAllBytes(basePath);
         byte[] outputBytes = File.ReadAllBytes(outputPath);
+        byte[] expectedBytes = File.ReadAllBytes(expectedPath);
         Assert.Equal(0x3C000, outputBytes.Length);
+        Assert.Equal(expectedBytes, outputBytes);
         Assert.Equal(
-            Nt51926TpBaseOutputSha256,
+            fixtureCase.GetProperty("expectedOutput").GetProperty("sha256").GetString(),
             Convert.ToHexString(SHA256.HashData(outputBytes)).ToLowerInvariant());
-        AssertExactChangedRanges(baseBytes, outputBytes, Nt51926TpBaseIntegrityChanges);
-        AssertProcessorTrace(buildReport);
+        AssertExactChangedRanges(baseBytes, outputBytes, ReadManifestRanges(fixtureCase));
+        AssertProcessorTrace(buildReport, fixtureCase);
     }
 
     /// <summary>Verifies CtrlRAM base validation does not describe the input as Flash Code only.</summary>
@@ -199,7 +183,7 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Contains("Profile: nt51927-ctrlram-replace-workbench (NT51927)", result.Output, StringComparison.Ordinal);
         Assert.Contains("postbuild-twochip", result.Output, StringComparison.Ordinal);
         Assert.True(File.Exists(report), report);
-        using JsonDocument reportDocument = JsonDocument.Parse(await File.ReadAllTextAsync(
+        using var reportDocument = JsonDocument.Parse(await File.ReadAllTextAsync(
             report,
             TestContext.Current.CancellationToken));
         JsonElement root = reportDocument.RootElement;
@@ -213,21 +197,61 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Equal("RunExternalProcessor", operation.GetProperty("Kind").GetString());
     }
 
-    private static void AssertProcessorTrace(string reportPath)
+    private static void AssertProcessorTrace(string reportPath, JsonElement fixtureCase)
     {
         using var reportDocument = JsonDocument.Parse(File.ReadAllText(reportPath));
         JsonElement operation = Assert.Single(reportDocument.RootElement.GetProperty("Operations").EnumerateArray());
+        JsonElement trace = fixtureCase.GetProperty("processorTrace");
         Assert.Equal("postbuild-cascade", operation.GetProperty("OperationId").GetString());
         Assert.Equal("Succeeded", operation.GetProperty("Status").GetString());
-        Assert.Equal("nfc.nt51926.ctrlram-postbuild-fw1.4.1", operation.GetProperty("ProcessorId").GetString());
-        Assert.Equal("legacy-combiner-1.13.0", operation.GetProperty("ToolBindingId").GetString());
-        Assert.Equal(2, operation.GetProperty("ExecutedCommands").GetArrayLength());
+        Assert.Equal(trace.GetProperty("processorId").GetString(), operation.GetProperty("ProcessorId").GetString());
+        Assert.Equal(trace.GetProperty("toolBindingId").GetString(), operation.GetProperty("ToolBindingId").GetString());
+        JsonElement[] actualCommands = [.. operation.GetProperty("ExecutedCommands").EnumerateArray()];
+        JsonElement[] expectedCommands = [.. trace.GetProperty("commands").EnumerateArray()];
+        Assert.Equal(expectedCommands.Length, actualCommands.Length);
+
+        string executablePath = RepositoryPaths.FromRepositoryRoot(
+            "external-tools",
+            "legacy-combiner",
+            trace.GetProperty("toolVersion").GetString()!,
+            trace.GetProperty("executableName").GetString()!);
+        string stagingRoot = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "nvt-fw-combiner", "external-tools"));
+        for (int index = 0; index < actualCommands.Length; index++)
+        {
+            string workingDirectory = Path.GetFullPath(actualCommands[index].GetProperty("WorkingDirectory").GetString()!);
+            Assert.Equal(executablePath, actualCommands[index].GetProperty("ExecutablePath").GetString(), ignoreCase: true);
+            Assert.Equal(stagingRoot, Path.GetDirectoryName(workingDirectory), ignoreCase: true);
+            Assert.EndsWith(".postbuild-cascade", Path.GetFileName(workingDirectory), StringComparison.Ordinal);
+            string[] arguments = [
+                .. actualCommands[index].GetProperty("Arguments").EnumerateArray()
+                    .Select(argument => argument.GetString()!)
+                    .Select(argument => Path.IsPathRooted(argument)
+                        ? Path.GetRelativePath(workingDirectory, argument).Replace('\\', '/')
+                        : argument),
+            ];
+            Assert.DoesNotContain(arguments, argument => argument.StartsWith("../", StringComparison.Ordinal));
+            Assert.Equal(
+                expectedCommands[index].GetProperty("arguments").EnumerateArray().Select(argument => argument.GetString()),
+                arguments);
+        }
+        Assert.Equal(
+            trace.GetProperty("executableSha256").GetString(),
+            Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(executablePath))).ToLowerInvariant());
 
         JsonElement mutation = Assert.Single(reportDocument.RootElement.GetProperty("Mutations").EnumerateArray());
         Assert.Equal(16, mutation.GetProperty("ChangedByteCount").GetInt64());
         Assert.Equal(0x3C000, mutation.GetProperty("TargetRange").GetProperty("Length").GetInt64());
-        Assert.Equal(Nt51926TpBaseSha256, mutation.GetProperty("BeforeSha256").GetString());
-        Assert.Equal(Nt51926TpBaseOutputSha256, mutation.GetProperty("AfterSha256").GetString());
+        Assert.Equal(fixtureCase.GetProperty("base").GetProperty("sha256").GetString(), mutation.GetProperty("BeforeSha256").GetString());
+        Assert.Equal(fixtureCase.GetProperty("expectedOutput").GetProperty("sha256").GetString(), mutation.GetProperty("AfterSha256").GetString());
+    }
+
+    private static (int Start, int EndExclusive)[] ReadManifestRanges(JsonElement fixtureCase)
+    {
+        return [
+            .. fixtureCase.GetProperty("changedRanges").EnumerateArray().Select(range => (
+                Convert.ToInt32(range.GetProperty("start").GetString()![2..], 16),
+                Convert.ToInt32(range.GetProperty("endExclusive").GetString()![2..], 16))),
+        ];
     }
 
     private static void AssertExactChangedRanges(
