@@ -461,15 +461,9 @@ public sealed class FirmwareImageMap
 
     private static int CompareRegions(FirmwareRegion left, FirmwareRegion right)
     {
-        int startComparison = left.Range.Start.CompareTo(right.Range.Start);
-        if (startComparison != 0)
-        {
-            return startComparison;
-        }
-
-        int lengthComparison = right.Range.Length.CompareTo(left.Range.Length);
-        return lengthComparison != 0
-            ? lengthComparison
+        int rangeComparison = FirmwareRangeOrdering.Compare(left.Range, right.Range);
+        return rangeComparison != 0
+            ? rangeComparison
             : StringComparer.Ordinal.Compare(left.RegionId, right.RegionId);
     }
 
