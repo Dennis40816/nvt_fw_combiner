@@ -77,14 +77,22 @@ internal static partial class ReplaceCliCommandHandler
 
         string? outputPath = build ? outputTarget.FullPath : null;
         WorkbenchRunResult result = await run(build, outputPath, cancellationToken).ConfigureAwait(false);
-        await WriteWorkbenchReportFileIfRequestedAsync(
-                result,
-                options,
-                bindings,
-                outputPath,
-                output,
-                cancellationToken)
-            .ConfigureAwait(false);
+        if (options.Values.TryGetValue("--report", out string? reportPath))
+        {
+            string fullPath = Path.GetFullPath(reportPath);
+            ProtectedPathGuard.EnsureDoesNotAlias(
+                fullPath,
+                "Report path",
+                ProtectedPathGuard.CreateProtectedPaths(bindings, outputPath),
+                nameof(reportPath));
+            await CliCompositionRunSupport.WriteReportJsonAsync(
+                    fullPath,
+                    result.ReportJson,
+                    output,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         await PrintWorkbenchRunResultAsync(result, icId, workflowId, output, error).ConfigureAwait(false);
         return result.Succeeded ? Success : CompositionFailed;
     }

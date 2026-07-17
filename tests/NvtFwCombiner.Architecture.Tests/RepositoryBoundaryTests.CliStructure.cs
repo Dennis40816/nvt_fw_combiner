@@ -44,7 +44,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private static async Task<int> RunWorkbenchReplaceAsync", support, StringComparison.Ordinal);
         Assert.Contains("EnsureOutputDoesNotAliasInputs", support, StringComparison.Ordinal);
         Assert.Contains("EnsureReportDoesNotAliasProtectedPaths", support, StringComparison.Ordinal);
-        Assert.Contains("WriteWorkbenchReportFileIfRequestedAsync", support, StringComparison.Ordinal);
+        Assert.Contains("CliCompositionRunSupport.WriteReportJsonAsync", support, StringComparison.Ordinal);
         Assert.Contains("PrintWorkbenchRunResultAsync", support, StringComparison.Ordinal);
         foreach (string workflow in new[] { dp, ctrlRam, general })
         {
@@ -85,6 +85,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private sealed record ParsedOptions", options, StringComparison.Ordinal);
         Assert.Contains("private static async Task PrintResultAsync", result, StringComparison.Ordinal);
         Assert.Contains("private static async Task PrintReportIssuesAsync", result, StringComparison.Ordinal);
+        Assert.DoesNotContain("WriteReportAsync", result, StringComparison.Ordinal);
+        Assert.Contains("CliCompositionRunSupport.WriteReportJsonAsync", dispatch, StringComparison.Ordinal);
         Assert.Contains("private static Task WriteUsageAsync", usage, StringComparison.Ordinal);
     }
 

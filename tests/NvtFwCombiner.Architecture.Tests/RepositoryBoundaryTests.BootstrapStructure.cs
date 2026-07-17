@@ -73,7 +73,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private static Dictionary<string, WorkbenchReplaceInputSlot> CreateCtrlRamSlotLookup", ctrlRamSlots, StringComparison.Ordinal);
         Assert.Contains("private static bool TryResolveWorkbenchIc", support, StringComparison.Ordinal);
         Assert.Contains("private static InputArtifactBinding[] CreateWorkbenchBindings", support, StringComparison.Ordinal);
-        Assert.Contains("private static async Task WriteWorkbenchReportFileIfRequestedAsync", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("WriteWorkbenchReportFileIfRequestedAsync", report, StringComparison.Ordinal);
+        Assert.Contains("CliCompositionRunSupport.WriteReportJsonAsync", support, StringComparison.Ordinal);
         Assert.Contains("private static async Task PrintWorkbenchRunResultAsync", report, StringComparison.Ordinal);
     }
 

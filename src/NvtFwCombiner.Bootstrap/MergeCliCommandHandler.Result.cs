@@ -69,20 +69,4 @@ internal static partial class MergeCliCommandHandler
                 : fallback;
     }
 
-    private static async Task WriteReportAsync(
-        string reportPath,
-        string reportJson,
-        TextWriter output,
-        CancellationToken cancellationToken)
-    {
-        string fullPath = Path.GetFullPath(reportPath);
-        string? directory = Path.GetDirectoryName(fullPath);
-        if (!string.IsNullOrWhiteSpace(directory))
-        {
-            _ = Directory.CreateDirectory(directory);
-        }
-
-        await File.WriteAllTextAsync(fullPath, reportJson, cancellationToken).ConfigureAwait(false);
-        await output.WriteLineAsync($"Report: {fullPath}").ConfigureAwait(false);
-    }
 }
