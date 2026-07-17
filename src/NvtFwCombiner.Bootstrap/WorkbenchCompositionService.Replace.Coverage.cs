@@ -45,14 +45,11 @@ public static partial class WorkbenchCompositionService
         }
 
         long capacity = regions.Max(region => region.Range.EndExclusive);
-        string baseSourceLabel = replaceMode == WorkbenchReplaceModes.CtrlRam
-            ? "Base firmware"
-            : "Base flash";
         CoverageSegment[] segments =
         [
             new CoverageSegment(
                 new ByteRange(0, capacity),
-                baseSourceLabel,
+                "Base firmware",
                 "Kept from the original base firmware unless a replacement covers it.",
                 "#CBD5E1",
                 false),
