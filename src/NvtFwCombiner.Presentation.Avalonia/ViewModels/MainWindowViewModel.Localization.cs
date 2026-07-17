@@ -9,12 +9,6 @@ public sealed partial class MainWindowViewModel
         Text = ShellTextResources.For(language);
         WorkspaceTitle = Text.WorkspaceTitle;
         WorkspaceSummary = Text.WorkspaceSummary;
-        PreviewActionLabel = Text.PreviewActionLabel;
-        BuildActionLabel = Text.BuildActionLabel;
-        ReportModalActionLabel = Text.ReportModalActionLabel;
-        DeviceContextTitle = Text.DeviceContextTitle;
-        IcLabel = Text.IcLabel;
-        NumberLabel = Text.NumberLabel;
         DeviceContextRefreshSummary = Text.DeviceContextStatus;
         SettingsPreview = Text.SettingsPreview;
         MergePreview = Text.MergePreview;
@@ -31,12 +25,7 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(Text));
         OnPropertyChanged(nameof(WorkspaceTitle));
         OnPropertyChanged(nameof(WorkspaceSummary));
-        OnPropertyChanged(nameof(PreviewActionLabel));
-        OnPropertyChanged(nameof(BuildActionLabel));
-        OnPropertyChanged(nameof(ReportModalActionLabel));
-        OnPropertyChanged(nameof(DeviceContextTitle));
-        OnPropertyChanged(nameof(IcLabel));
-        OnPropertyChanged(nameof(NumberLabel));
+        OnPropertyChanged(nameof(RunProgressAccessibleLabel));
         OnPropertyChanged(nameof(DeviceContextStatus));
         OnPropertyChanged(nameof(SettingsPreview));
         OnPropertyChanged(nameof(MergePreview));

@@ -111,7 +111,7 @@
               Classes="reportAction"
               Command="{Binding ShowReportCommand}"
               IsEnabled="{Binding CanOpenReport}"
-              ToolTip.Tip="{Binding ReportModalActionLabel}">
+              ToolTip.Tip="{Binding Text.ReportModalActionLabel}">
             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="9">
               <TextBlock
                   VerticalAlignment="Center"
@@ -130,7 +130,7 @@
             </Grid>
           </Button>
         </StackPanel>
-        <ProgressBar Grid.Row="1" Grid.ColumnSpan="3" Height="4" AutomationProperties.Name="{Binding DeviceContextStatus}" IsIndeterminate="True" IsVisible="{Binding IsRunInProgress}" />
+        <ProgressBar Grid.Row="1" Grid.ColumnSpan="3" Height="4" AutomationProperties.Name="{Binding RunProgressAccessibleLabel}" IsIndeterminate="True" IsVisible="{Binding IsRunInProgress}" />
       </Grid>
     </Border>
 

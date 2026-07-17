@@ -15,6 +15,8 @@ public sealed partial class ShellTextResources
             WorkspaceSummary = "Production-backed shell with built-in profiles, flash-map catalog, and report review.",
             PreviewActionLabel = "Preview",
             BuildActionLabel = "Build",
+            PreviewRunProgressAccessibleLabel = "Preview in progress",
+            BuildRunProgressAccessibleLabel = "Build in progress",
             ReportModalActionLabel = "Report",
             DeviceContextTitle = "Device context",
             IcLabel = "IC",

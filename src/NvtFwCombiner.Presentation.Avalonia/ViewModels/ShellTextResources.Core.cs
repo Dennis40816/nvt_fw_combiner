@@ -19,6 +19,10 @@ public sealed partial class ShellTextResources
 
     public string BuildActionLabel { get; private init; } = string.Empty;
 
+    public string PreviewRunProgressAccessibleLabel { get; private init; } = string.Empty;
+
+    public string BuildRunProgressAccessibleLabel { get; private init; } = string.Empty;
+
     public string ReportModalActionLabel { get; private init; } = string.Empty;
 
     public string DeviceContextTitle { get; private init; } = string.Empty;

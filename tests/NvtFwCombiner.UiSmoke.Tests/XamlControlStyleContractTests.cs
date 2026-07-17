@@ -348,7 +348,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("<ProgressBar", shell, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsRunInProgress}\"", shell, StringComparison.Ordinal);
         Assert.Contains("IsIndeterminate=\"True\"", shell, StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.Name=\"{Binding DeviceContextStatus}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding RunProgressAccessibleLabel}\"", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("AutomationProperties.Name=\"{Binding DeviceContextStatus}\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("<ProgressBar", contextPanel, StringComparison.Ordinal);
         Assert.DoesNotContain("Value=\"{Binding RunProgress", shell, StringComparison.Ordinal);
     }
