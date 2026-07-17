@@ -222,12 +222,12 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             ["replace-ctrlram-vn"] = "VN_Ctrlram.bin",
             ["replace-ctrlram-nf"] = "NF_Ctrlram.bin",
         };
-        Dictionary<string, OwnerIntakeFile> intakeFiles = inputFileNames.ToDictionary(
+        var intakeFiles = inputFileNames.ToDictionary(
             static pair => pair.Key,
             pair => ReadOwnerIntakeFile(
                 "NT51926", "replace", "ctrlram", "1.4.1", "cascade", "postbuild_inputs", pair.Value),
             StringComparer.Ordinal);
-        Dictionary<string, byte[]> replacementInputs = intakeFiles.ToDictionary(
+        var replacementInputs = intakeFiles.ToDictionary(
             static pair => pair.Key,
             static pair => pair.Value.Bytes,
             StringComparer.Ordinal);
