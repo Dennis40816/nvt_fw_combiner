@@ -7,35 +7,26 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Convergence tests for the read-only IC metadata integration surface.</summary>
 public sealed class IcMetadataFacadeTests
 {
-    /// <summary>Each facade row projects one onboarding entry and its canonical flash-map and postbuild facts.</summary>
+    /// <summary>The facade delegates selection facts without caching a second joined IC model.</summary>
     [Fact]
-    public void MetadataRowsConvergeOnCanonicalCatalogs()
+    public void SelectionFactsConvergeOnCanonicalCatalogs()
     {
         Assert.Equal(IcSupportCatalog.IcIds, IcMetadataFacade.IcIds);
         Assert.Equal(IcSupportCatalog.DefaultIcId, IcMetadataFacade.DefaultIcId);
 
         foreach (IcSupportEntry support in IcSupportCatalog.All)
         {
-            Assert.True(IcMetadataFacade.TryFind(support.IcId, out IcMetadata? metadata));
-            Assert.NotNull(metadata);
-            Assert.Equal(support.IcId, metadata!.IcId);
-            Assert.Equal(support.WorkflowIds, metadata.WorkflowIds);
-            Assert.Equal(support.StandardMergeSourceIcId, metadata.StandardMergeSourceIcId);
-            Assert.Equal(support.CtrlRamPostbuildSourceIcId, metadata.CtrlRamPostbuildSourceIcId);
-            Assert.Equal(support.Notes, metadata.Notes);
-            Assert.True(TpFlashMapCatalog.TryFind(support.IcId, out TpFlashMapProfile? flashMap));
-            Assert.Equal(flashMap!.OverviewSource, metadata.TpOverviewSource);
-            Assert.Equal(flashMap.FirmwareConfigPrimaryStart, metadata.FirmwareConfigPrimaryStart);
-            Assert.Equal(TpFlashMapCatalog.GetNumberChoices(support.IcId), metadata.NumberChoices);
+            Assert.True(IcMetadataFacade.IsKnown(support.IcId));
+            Assert.Equal(TpFlashMapCatalog.GetNumberChoices(support.IcId), IcMetadataFacade.GetNumberChoices(support.IcId));
             Assert.Equal(
-                LegacyCombinerPostbuildCatalog.GetProfiles(support.IcId)
-                    .Select(profile => profile.DisplayCategory)
-                    .Distinct(StringComparer.Ordinal)
-                    .Order(StringComparer.Ordinal),
-                metadata.PostbuildCategories);
+                TpFlashMapCatalog.GetNumberSelectionChoices(support.IcId),
+                IcMetadataFacade.GetNumberSelectionChoices(support.IcId));
+            Assert.Equal(
+                LegacyCombinerPostbuildCatalog.GetProfiles(support.IcId),
+                IcMetadataFacade.GetPostbuildProfiles(support.IcId));
             Assert.Equal(
                 support.SupportsWorkflow(IcWorkflowIds.CtrlRamReplace),
-                metadata.HasPostbuild);
+                IcMetadataFacade.SupportsCtrlRamReplace(support.IcId));
         }
     }
 
@@ -43,24 +34,10 @@ public sealed class IcMetadataFacadeTests
     [Fact]
     public void MetadataLookupNormalizesIcIdentifiers()
     {
-        Assert.True(IcMetadataFacade.TryFind("51926", out IcMetadata? shortId));
-        Assert.True(IcMetadataFacade.TryFind("nt51926", out IcMetadata? normalizedId));
-
-        Assert.Equal("NT51926", shortId!.IcId);
-        Assert.Same(shortId, normalizedId);
-        Assert.Equal(0x22000, shortId.FirmwareConfigPrimaryStart);
-    }
-
-    /// <summary>TP header labels remain owned by the shared header taxonomy rather than copied per IC row.</summary>
-    [Fact]
-    public void HeaderSectionTaxonomyIsSharedWithoutPerIcCopies()
-    {
-        Assert.Same(TpHeaderCatalog.All, IcMetadataFacade.TpHeaderSections);
-        Assert.Contains(
-            IcMetadataFacade.TpHeaderSections,
-            section => section.SectionId == TpHeaderSectionIds.FlashHeaderCrc);
-        Assert.Contains(
-            IcMetadataFacade.TpHeaderSections,
-            section => section.SectionId == TpHeaderSectionIds.HeaderCopy);
+        Assert.True(IcMetadataFacade.IsKnown("51926"));
+        Assert.True(IcMetadataFacade.IsKnown("nt51926"));
+        Assert.Equal(
+            IcMetadataFacade.GetNumberChoices("NT51926"),
+            IcMetadataFacade.GetNumberChoices("51926"));
     }
 }

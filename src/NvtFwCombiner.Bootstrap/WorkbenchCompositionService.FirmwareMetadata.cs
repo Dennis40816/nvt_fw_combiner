@@ -205,7 +205,7 @@ public static partial class WorkbenchCompositionService
         out FirmwareConfigMetadata metadata)
     {
         metadata = default;
-        if (!IcMetadataFacade.TryFind(icId, out _))
+        if (!IcMetadataFacade.IsKnown(icId))
         {
             return false;
         }
@@ -232,7 +232,7 @@ public static partial class WorkbenchCompositionService
         out FirmwareConfigMetadata metadata)
     {
         metadata = default;
-        if (!IcMetadataFacade.TryFind(icId, out _) ||
+        if (!IcMetadataFacade.IsKnown(icId) ||
             !FirmwareConfigMetadataReader.TryReadBackup(image, out FirmwareConfigMetadata backup))
         {
             return false;

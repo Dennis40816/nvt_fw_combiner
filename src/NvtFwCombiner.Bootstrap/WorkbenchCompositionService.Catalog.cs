@@ -70,8 +70,8 @@ public static partial class WorkbenchCompositionService
     {
         IReadOnlyList<string> toolBindingIds =
         [
-            .. IcMetadataFacade.All
-                .SelectMany(metadata => IcMetadataFacade.GetPostbuildProfiles(metadata.IcId))
+            .. IcMetadataFacade.IcIds
+                .SelectMany(IcMetadataFacade.GetPostbuildProfiles)
                 .Select(profile => profile.ToolBindingId)
                 .Distinct(StringComparer.Ordinal)
                 .Order(StringComparer.Ordinal),
@@ -80,8 +80,8 @@ public static partial class WorkbenchCompositionService
         return new WorkbenchSettingsSnapshot(
             StandardMergeProfileSummaries.Count,
             ReplaceProfileSummaries.Count,
-            IcMetadataFacade.All.Count,
-            IcMetadataFacade.All.Count(metadata => metadata.HasPostbuild),
+            IcMetadataFacade.IcIds.Count,
+            IcMetadataFacade.IcIds.Count(IcMetadataFacade.SupportsCtrlRamReplace),
             string.Join(", ", toolBindingIds),
             "external-tools/legacy-combiner/1.13.0/manifest.json");
     }

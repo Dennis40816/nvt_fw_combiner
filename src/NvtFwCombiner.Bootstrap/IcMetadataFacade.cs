@@ -5,55 +5,49 @@ using NvtFwCombiner.Profiles;
 namespace NvtFwCombiner.Bootstrap;
 
 /// <summary>
-/// Read-only projection of the canonical IC onboarding, TP flash-map, TP header, and postbuild catalogs.
+/// Read-only boundary over the canonical IC onboarding, TP flash-map, and postbuild catalogs.
 /// This type owns no firmware facts; it prevents UI and CLI callers from joining catalog categories themselves.
 /// </summary>
 internal static class IcMetadataFacade
 {
-    private static IReadOnlyList<IcMetadata> Metadata { get; } = BuildMetadata().AsReadOnly();
-    private static readonly Dictionary<string, IcMetadata> MetadataByIc = Metadata
-        .ToDictionary(metadata => metadata.IcId, StringComparer.Ordinal);
-
-    /// <summary>All selectable IC metadata rows in stable display order.</summary>
-    public static IReadOnlyList<IcMetadata> All => Metadata;
-
     /// <summary>All selectable IC identifiers in stable display order.</summary>
-    public static IReadOnlyList<string> IcIds { get; } =
-        Array.AsReadOnly(Metadata.Select(static metadata => metadata.IcId).ToArray());
+    public static IReadOnlyList<string> IcIds { get; } = IcSupportCatalog.IcIds;
 
     /// <summary>Catalog-owned initial IC identifier for workbench surfaces.</summary>
     public static string DefaultIcId => IcSupportCatalog.DefaultIcId;
 
-    /// <summary>Shared TP header/write section taxonomy used by postbuild planning and run-report classification.</summary>
-    public static IReadOnlyList<TpHeaderSection> TpHeaderSections => TpHeaderCatalog.All;
-
-    /// <summary>Finds normalized IC metadata without exposing the underlying catalog joins.</summary>
-    public static bool TryFind(string icId, out IcMetadata? metadata)
+    /// <summary>Returns true when the normalized IC is selectable.</summary>
+    public static bool IsKnown(string icId)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        return MetadataByIc.TryGetValue(IcSupportCatalog.NormalizeIcId(icId), out metadata);
+        return IcSupportCatalog.TryFind(icId, out _);
     }
 
     /// <summary>Gets the profile-declared IC-number choices for a selectable IC.</summary>
     public static IReadOnlyList<string> GetNumberChoices(string icId)
     {
-        return TryFind(icId, out IcMetadata? metadata) && metadata is not null
-            ? metadata.NumberChoices
+        return IsKnown(icId)
+            ? TpFlashMapCatalog.GetNumberChoices(IcSupportCatalog.NormalizeIcId(icId))
             : [];
     }
 
     /// <summary>Gets grouped UI choices without exposing every legacy branch alias.</summary>
     public static IReadOnlyList<IcNumberChoice> GetNumberSelectionChoices(string icId)
     {
-        return TryFind(icId, out IcMetadata? metadata) && metadata is not null
-            ? metadata.NumberSelectionChoices
+        return IsKnown(icId)
+            ? TpFlashMapCatalog.GetNumberSelectionChoices(IcSupportCatalog.NormalizeIcId(icId))
             : [];
     }
 
     /// <summary>Gets the approved postbuild category variants for a selectable IC.</summary>
     public static IReadOnlyList<LegacyCombinerPostbuildProfile> GetPostbuildProfiles(string icId)
     {
-        return TryFind(icId, out _) ? LegacyCombinerPostbuildCatalog.GetProfiles(IcSupportCatalog.NormalizeIcId(icId)) : [];
+        return IsKnown(icId) ? LegacyCombinerPostbuildCatalog.GetProfiles(IcSupportCatalog.NormalizeIcId(icId)) : [];
+    }
+
+    /// <summary>Returns true when support policy exposes CtrlRAM Replace for the selected IC.</summary>
+    public static bool SupportsCtrlRamReplace(string icId)
+    {
+        return IcSupportCatalog.SupportsWorkflow(icId, IcWorkflowIds.CtrlRamReplace);
     }
 
     /// <summary>Selects the approved postbuild category for a base image Common FW version.</summary>
@@ -63,7 +57,7 @@ internal static class IcMetadataFacade
         out LegacyCombinerPostbuildProfile? postbuildProfile,
         out string? issue)
     {
-        if (!TryFind(icId, out _))
+        if (!IsKnown(icId))
         {
             postbuildProfile = null;
             issue = $"No IC metadata is registered for {icId}.";
@@ -83,58 +77,8 @@ internal static class IcMetadataFacade
         out LegacyCombinerPostbuildProfile? postbuildProfile)
     {
         postbuildProfile = null;
-        return TryFind(icId, out _) && LegacyCombinerPostbuildCatalog.TryGetDefaultProfile(
+        return IsKnown(icId) && LegacyCombinerPostbuildCatalog.TryGetDefaultProfile(
             IcSupportCatalog.NormalizeIcId(icId),
             out postbuildProfile);
     }
-
-    private static List<IcMetadata> BuildMetadata()
-    {
-        List<IcMetadata> metadata = [];
-        foreach (IcSupportEntry support in IcSupportCatalog.All)
-        {
-            if (!TpFlashMapCatalog.TryFind(support.IcId, out TpFlashMapProfile? flashMap))
-            {
-                throw new InvalidOperationException(
-                    $"IC metadata requires a TP flash-map profile for {support.IcId}.");
-            }
-
-            IReadOnlyList<LegacyCombinerPostbuildProfile> postbuildProfiles =
-                LegacyCombinerPostbuildCatalog.GetProfiles(support.IcId);
-            metadata.Add(new IcMetadata(
-                support.IcId,
-                Array.AsReadOnly(support.WorkflowIds.ToArray()),
-                support.StandardMergeSourceIcId,
-                support.CtrlRamPostbuildSourceIcId,
-                support.Notes,
-                flashMap!.OverviewSource,
-                flashMap.FirmwareConfigPrimaryStart,
-                Array.AsReadOnly(TpFlashMapCatalog.GetNumberChoices(support.IcId).ToArray()),
-                Array.AsReadOnly(TpFlashMapCatalog.GetNumberSelectionChoices(support.IcId).ToArray()),
-                Array.AsReadOnly(postbuildProfiles
-                    .Select(profile => profile.DisplayCategory)
-                    .Distinct(StringComparer.Ordinal)
-                    .Order(StringComparer.Ordinal)
-                    .ToArray())));
-        }
-
-        return metadata;
-    }
-}
-
-/// <summary>One read-only joined IC metadata row. Firmware semantics remain owned by the source catalogs.</summary>
-internal sealed record IcMetadata(
-    string IcId,
-    IReadOnlyList<string> WorkflowIds,
-    string? StandardMergeSourceIcId,
-    string? CtrlRamPostbuildSourceIcId,
-    string? Notes,
-    string TpOverviewSource,
-    long FirmwareConfigPrimaryStart,
-    IReadOnlyList<string> NumberChoices,
-    IReadOnlyList<IcNumberChoice> NumberSelectionChoices,
-    IReadOnlyList<string> PostbuildCategories)
-{
-    /// <summary>Returns true when runtime support policy exposes CtrlRAM Replace.</summary>
-    public bool HasPostbuild => WorkflowIds.Contains(IcWorkflowIds.CtrlRamReplace, StringComparer.Ordinal);
 }
