@@ -144,7 +144,8 @@ public sealed class WorkbenchCompositionServiceTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-fwconfig-mismatch");
         byte[] bytes = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
-        Assert.True(TpFlashMapCatalog.TryGetFirmwareConfigPrimaryStart("NT51926", out long firmwareConfigStart));
+        Assert.True(TpFlashMapCatalog.TryFind("NT51926", out TpFlashMapProfile? flashMap));
+        long firmwareConfigStart = flashMap!.FirmwareConfigPrimaryStart;
         bytes[checked((int)firmwareConfigStart + FirmwareConfigLayout.ChipNumberOffset)] = 0x01;
         string path = workspace.Write("fwconfig-mismatch.bin", bytes);
 

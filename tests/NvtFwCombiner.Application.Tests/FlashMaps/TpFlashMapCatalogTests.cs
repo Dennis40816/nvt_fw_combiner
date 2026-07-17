@@ -178,10 +178,8 @@ public sealed class TpFlashMapCatalogTests
     public void FirmwareConfigPrimaryStartComesFromFlashMapReference(string icId, long expectedStart)
     {
         Assert.True(TpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? profile));
-        Assert.True(TpFlashMapCatalog.TryGetFirmwareConfigPrimaryStart(icId, out long start));
 
         Assert.Equal(expectedStart, profile!.FirmwareConfigPrimaryStart);
-        Assert.Equal(expectedStart, start);
     }
 
     /// <summary>TP Overview backup rows used by postbuild traceability are declared explicitly.</summary>

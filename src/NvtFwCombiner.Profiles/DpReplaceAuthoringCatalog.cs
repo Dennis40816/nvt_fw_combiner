@@ -30,9 +30,6 @@ public static class DpReplaceAuthoringCatalog
             .GroupBy(rule => rule.IcId, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
 
-    /// <summary>All additional DP Replace payload authoring rules.</summary>
-    public static IReadOnlyList<DpReplaceAdditionalPayloadRule> AdditionalPayloads => AdditionalPayloadRules;
-
     /// <summary>Gets additional payload rules for one IC.</summary>
     public static IReadOnlyList<DpReplaceAdditionalPayloadRule> GetAdditionalPayloads(string icId)
     {

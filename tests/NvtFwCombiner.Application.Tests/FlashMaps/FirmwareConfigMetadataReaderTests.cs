@@ -147,7 +147,8 @@ public sealed class FirmwareConfigMetadataReaderTests
             "expected",
             relativePath));
 
-        Assert.True(TpFlashMapCatalog.TryGetFirmwareConfigPrimaryStart($"NT{ic}", out long firmwareConfigStart));
+        Assert.True(TpFlashMapCatalog.TryFind($"NT{ic}", out TpFlashMapProfile? flashMap));
+        long firmwareConfigStart = flashMap!.FirmwareConfigPrimaryStart;
         Assert.True(FirmwareConfigMetadataReader.TryReadAtAbsoluteAddress(image, firmwareConfigStart, out FirmwareConfigMetadata primary));
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(image, out FirmwareConfigMetadata backup));
         int nvtTerminal = Assert.Single(FindNvtEndFlagTerminals(image));

@@ -9,14 +9,8 @@ public sealed class DpReplaceAuthoringCatalogTests
     [Fact]
     public void AdditionalPayloadRulesAreExplicitAndUnique()
     {
-        Assert.Equal(
-            DpReplaceAuthoringCatalog.AdditionalPayloads.Count,
-            DpReplaceAuthoringCatalog.AdditionalPayloads
-                .Select(rule => $"{rule.IcId}:{rule.RegionId}")
-                .Distinct(StringComparer.Ordinal)
-                .Count());
-
-        DpReplaceAdditionalPayloadRule rule = Assert.Single(DpReplaceAuthoringCatalog.AdditionalPayloads);
+        DpReplaceAdditionalPayloadRule rule = Assert.Single(
+            DpReplaceAuthoringCatalog.GetAdditionalPayloads("NT51928"));
         Assert.Equal("NT51928", rule.IcId);
         Assert.Equal("dp-ldc-51928", rule.RegionId);
         Assert.Equal("replace-ldc", rule.SlotId);

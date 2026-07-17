@@ -10,16 +10,10 @@ public sealed class GenFlashVersionCatalogTests
     [Fact]
     public void DpVersionRulesAreContiguousAndInsideDeclaredDpRange()
     {
-        Assert.NotEmpty(GenFlashVersionCatalog.AllDpVersionRules);
-
-        string[] ruleIds = [.. GenFlashVersionCatalog.AllDpVersionRules.Select(rule => rule.IcId)];
-        Assert.Equal(
-            ["51917", "51919", "51920", "51923", "51926", "51927", "51928", "51929", "51931", "51932"],
-            ruleIds);
-        Assert.Equal(ruleIds.Length, ruleIds.Distinct(StringComparer.Ordinal).Count());
-
-        foreach (GenFlashDpVersionRule rule in GenFlashVersionCatalog.AllDpVersionRules)
+        string[] ruleIds = ["51917", "51919", "51920", "51923", "51926", "51927", "51928", "51929", "51931", "51932"];
+        foreach (string ruleId in ruleIds)
         {
+            Assert.True(GenFlashVersionCatalog.TryGetDpVersionRule(ruleId, out GenFlashDpVersionRule rule));
             Assert.Equal(rule.OutputDpStart + rule.InputRelativeOffset, rule.OutputMainAbsoluteAddress);
             Assert.Equal(rule.OutputMainAbsoluteAddress + 1, rule.OutputSubAbsoluteAddress);
             Assert.True(rule.OutputMainAbsoluteAddress >= rule.OutputDpStart);
@@ -75,13 +69,10 @@ public sealed class GenFlashVersionCatalogTests
     [Fact]
     public void CmiDpCodeRulesFitInsideExpectedPayloadLengths()
     {
-        Assert.NotEmpty(GenFlashVersionCatalog.AllCmiDpCodeRules);
-
-        string[] ruleIds = [.. GenFlashVersionCatalog.AllCmiDpCodeRules.Select(rule => rule.IcId)];
-        Assert.Equal(ruleIds.Length, ruleIds.Distinct(StringComparer.Ordinal).Count());
-
-        foreach (CmiDpCodeRule rule in GenFlashVersionCatalog.AllCmiDpCodeRules)
+        string[] ruleIds = ["51923", "51926", "51927", "51929", "51932", "51950", "51951"];
+        foreach (string ruleId in ruleIds)
         {
+            Assert.True(GenFlashVersionCatalog.TryGetCmiDpCodeRule(ruleId, out CmiDpCodeRule rule));
             Assert.True(rule.Register16Offset >= 0);
             Assert.NotEmpty(rule.ExpectedPayloadLengths);
             Assert.Equal(

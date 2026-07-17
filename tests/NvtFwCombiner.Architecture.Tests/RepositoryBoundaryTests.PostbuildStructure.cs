@@ -94,10 +94,12 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("private static void AddNtBasedHeaderIntegrityRanges", root, StringComparison.Ordinal);
         Assert.DoesNotContain("private static void AddNt51927BasedCrcOnlyIntegrityRanges", root, StringComparison.Ordinal);
 
-        Assert.Contains("GetKnownIntegrityWriteRanges", writeRanges, StringComparison.Ordinal);
         Assert.Contains("GetKnownIntegrityWriteRangeSections", writeRanges, StringComparison.Ordinal);
         Assert.Contains("GetAllowedWriteRangeSectionsForStagedSources", writeRanges, StringComparison.Ordinal);
         Assert.Contains("GetAllowedWriteRangeSectionsForInPlaceRefresh", writeRanges, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetKnownIntegrityWriteRanges", writeRanges, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetAllowedWriteRangesForStagedSources", writeRanges, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetAllowedWriteRangesForInPlaceRefresh", writeRanges, StringComparison.Ordinal);
         Assert.DoesNotContain("private static void AddNtBasedHeaderIntegrityRanges", writeRanges, StringComparison.Ordinal);
         Assert.DoesNotContain("private static string SelectWriteRangeSectionId", writeRanges, StringComparison.Ordinal);
 
