@@ -5,7 +5,8 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.FlashMaps;
 
-public static partial class TpFlashMapCatalog
+/// <summary>Projects profile-declared postbuild branch tokens into validated request and UI choices.</summary>
+public static class IcNumberChoicePolicy
 {
     /// <summary>Returns true when at least one approved postbuild profile accepts the selection.</summary>
     public static bool IsNumberSelectionSupported(
@@ -44,7 +45,7 @@ public static partial class TpFlashMapCatalog
 
     /// <summary>
     /// Gets concise count choices grouped by the identical postbuild branch they select.
-    /// Raw legacy aliases remain available through <see cref="GetNumberChoices"/> for callers that
+    /// Raw branch aliases remain available through <see cref="GetNumberChoices"/> for callers that
     /// need to validate a serialized request; the workbench should render these options instead.
     /// </summary>
     public static IReadOnlyList<IcNumberChoice> GetNumberSelectionChoices(
@@ -99,38 +100,4 @@ public static partial class TpFlashMapCatalog
         ];
     }
 
-    private static bool IsVisible(TpFlashMapRegionVisibility visibility, bool isSingle, int? count)
-    {
-        return visibility switch
-        {
-            TpFlashMapRegionVisibility.Always => true,
-            TpFlashMapRegionVisibility.MultiChipOnly => !isSingle,
-            TpFlashMapRegionVisibility.TwoChipAndAbove => !isSingle && (count is null || count >= 2),
-            TpFlashMapRegionVisibility.ThreeChipAndAbove => !isSingle && (count is null || count >= 3),
-            _ => throw new ArgumentOutOfRangeException(nameof(visibility), visibility, "Unsupported visibility."),
-        };
-    }
-
-    private static bool IsSingle(IcNumberSelection? selection, int? count)
-    {
-        if (selection is null)
-        {
-            return true;
-        }
-
-        if (selection.Mode == IcNumberInputMode.SingleSelector || count == 1)
-        {
-            return true;
-        }
-
-        string? lastPart = selection.Parts.Count == 0 ? null : selection.Parts[^1];
-        return IcNumberSelectionTokens.IsSingle(lastPart);
-    }
-
-    private static int? TryGetNumericCount(IcNumberSelection? selection)
-    {
-        return selection?.Mode != IcNumberInputMode.NumericSelector || selection.Parts.Count == 0
-            ? null
-            : int.TryParse(selection.Parts[^1], out int count) ? count : null;
-    }
 }

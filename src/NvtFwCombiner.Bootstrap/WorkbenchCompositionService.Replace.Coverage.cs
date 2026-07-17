@@ -32,7 +32,7 @@ public static partial class WorkbenchCompositionService
             TryResolvePostbuildProfileForDisplay(icId, ctrlRamBasePath, out LegacyCombinerPostbuildProfile? profile)
                 ? profile
                 : null;
-        IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetRegions(
+        IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetRegions(
             icId,
             selection,
             postbuildProfile);
@@ -64,7 +64,7 @@ public static partial class WorkbenchCompositionService
         IEnumerable<TpFlashMapRegion> replacementRegions = replaceMode switch
         {
             WorkbenchReplaceModes.Dp => GetDpReplaceRegions(icId, regions),
-            WorkbenchReplaceModes.CtrlRam => TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile),
+            WorkbenchReplaceModes.CtrlRam => BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile),
             _ => [],
         };
 

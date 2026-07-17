@@ -1,5 +1,4 @@
 using NvtFwCombiner.Application.ExternalTools;
-using NvtFwCombiner.Application.FlashMaps;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -19,7 +18,7 @@ public static partial class WorkbenchCompositionService
                 : null;
         return
         [
-            .. TpFlashMapCatalog.GetCtrlRamRegions(icId, ToIcNumberSelection(number), postbuildProfile)
+            .. BuiltInTpFlashMapCatalog.GetCtrlRamRegions(icId, ToIcNumberSelection(number), postbuildProfile)
                 .Select(region => new WorkbenchCtrlRamRegion(
                     region.DisplayName,
                     region.Range.Start,

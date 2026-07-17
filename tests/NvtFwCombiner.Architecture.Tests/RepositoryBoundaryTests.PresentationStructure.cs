@@ -38,7 +38,7 @@ public sealed partial class RepositoryBoundaryTests
             "NvtFwCombiner.Infrastructure.",
             "NvtFwCombiner.Profiles",
             "GenFlashVersionCatalog",
-            "TpFlashMapCatalog",
+            "BuiltInTpFlashMapCatalog",
             "TpHeaderCatalog",
             "LegacyCombinerPostbuildCatalog",
             "DpPerspectiveCatalog",

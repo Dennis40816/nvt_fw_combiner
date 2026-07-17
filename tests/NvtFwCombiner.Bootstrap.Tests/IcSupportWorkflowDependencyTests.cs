@@ -3,7 +3,7 @@ using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Profiles;
 
-namespace NvtFwCombiner.Application.Tests.FlashMaps;
+namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Cross-catalog guards that start from the IC onboarding support catalog.</summary>
 public sealed class IcSupportWorkflowDependencyTests
@@ -15,7 +15,7 @@ public sealed class IcSupportWorkflowDependencyTests
         foreach (IcSupportEntry entry in IcSupportCatalog.All)
         {
             Assert.True(
-                TpFlashMapCatalog.TryFind(entry.IcId, out TpFlashMapProfile? flashMapProfile),
+                BuiltInTpFlashMapCatalog.TryFind(entry.IcId, out TpFlashMapProfile? flashMapProfile),
                 $"Missing TP flash-map profile for support catalog IC {entry.IcId}.");
             Assert.NotNull(flashMapProfile);
             Assert.NotEmpty(flashMapProfile.Regions);
@@ -28,7 +28,7 @@ public sealed class IcSupportWorkflowDependencyTests
     {
         HashSet<string> supportedIcIds = [.. IcSupportCatalog.IcIds];
 
-        foreach (string icId in TpFlashMapCatalog.IcIds)
+        foreach (string icId in BuiltInTpFlashMapCatalog.IcIds)
         {
             Assert.Contains(icId, supportedIcIds);
         }
@@ -42,7 +42,7 @@ public sealed class IcSupportWorkflowDependencyTests
                      entry.SupportsWorkflow(IcWorkflowIds.CtrlRamReplace)))
         {
             IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = LegacyCombinerPostbuildCatalog.GetProfiles(entry.IcId);
-            IReadOnlyList<string> numberChoices = TpFlashMapCatalog.GetNumberChoices(profiles);
+            IReadOnlyList<string> numberChoices = IcNumberChoicePolicy.GetNumberChoices(profiles);
 
             Assert.NotEmpty(profiles);
             Assert.NotEmpty(numberChoices);
@@ -119,7 +119,7 @@ public sealed class IcSupportWorkflowDependencyTests
                 foreach (IcNumberSelection selection in PostbuildSelectionTestCases.GetBranchSelections(profile))
                 {
                     LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(profile, selection);
-                    IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetCtrlRamRegions(
+                    IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetCtrlRamRegions(
                         profile.IcId,
                         selection,
                         profile);

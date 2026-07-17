@@ -2,7 +2,7 @@ using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 
-namespace NvtFwCombiner.Application.Tests.FlashMaps;
+namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Shared postbuild branch selection cases used by catalog dependency tests.</summary>
 internal static class PostbuildSelectionTestCases

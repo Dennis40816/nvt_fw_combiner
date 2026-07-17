@@ -1,13 +1,14 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 
-namespace NvtFwCombiner.Application.FlashMaps;
+namespace NvtFwCombiner.Infrastructure.FlashMaps;
 
-public static partial class TpFlashMapCatalog
+internal static partial class BuiltInTpFlashMapCatalog
 {
     /// <summary>Gets visible CtrlRAM regions that are consumed by a selected postbuild command plan.</summary>
-    public static IReadOnlyList<TpFlashMapRegion> GetPostbuildMappedCtrlRamRegions(
+    internal static IReadOnlyList<TpFlashMapRegion> GetPostbuildMappedCtrlRamRegions(
         string icId,
         IcNumberSelection? selection,
         LegacyCombinerPostbuildProfile? postbuildProfile)
@@ -28,7 +29,7 @@ public static partial class TpFlashMapCatalog
     /// <summary>
     /// Gets physical CtrlRAM source files separately from the logical destination regions they feed.
     /// </summary>
-    public static IReadOnlyList<TpCtrlRamPostbuildSource> GetPostbuildCtrlRamSources(
+    internal static IReadOnlyList<TpCtrlRamPostbuildSource> GetPostbuildCtrlRamSources(
         string icId,
         IcNumberSelection? selection,
         LegacyCombinerPostbuildProfile? postbuildProfile)

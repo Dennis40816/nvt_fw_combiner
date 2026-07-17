@@ -55,7 +55,7 @@ public static partial class WorkbenchCompositionService
 
         if (postbuildProfile is not null || basePath is null)
         {
-            sources = TpFlashMapCatalog.GetPostbuildCtrlRamSources(icId, selection, postbuildProfile);
+            sources = BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(icId, selection, postbuildProfile);
             regions = [.. sources.SelectMany(source => source.Regions)
                 .DistinctBy(region => region.RegionId, StringComparer.Ordinal)
                 .OrderBy(region => region.Range.Start)];

@@ -21,8 +21,9 @@ The UI must not infer a firmware field from an output address. Doing so would du
    UI, CLI, report, or runtime consumer ever read it.
 
 2. Each layout contains named half-open header field ranges. TP Overview regions
-   remain owned by `TpFlashMapCatalog`; report semantics do not duplicate their
-   complete category tree or materialize unused address anchors.
+   remain owned by hash-pinned `profiles/built-in/ctrlram-postbuild-v2/flash-map.json`;
+   report semantics do not duplicate their complete category tree or materialize
+   unused address anchors.
 
 3. Existing `TpFlashMapRegionKind`, region visibility, General Replace access, compiled mappings, Combiner command plans, external processor authority, and allowed write ranges remain unchanged. The semantic catalog is not an authorization input.
 

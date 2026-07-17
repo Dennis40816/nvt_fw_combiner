@@ -17,10 +17,9 @@ public sealed partial class RepositoryBoundaryTests
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.cs",
             ]);
         AssertProductionCallers(
-            "TpFlashMapCatalog",
-            "src/NvtFwCombiner.Application/FlashMaps/TpFlashMapCatalog",
+            "BuiltInTpFlashMapCatalog",
+            "src/NvtFwCombiner.Infrastructure/FlashMaps/BuiltInTpFlashMapCatalog",
             [
-                "src/NvtFwCombiner.Bootstrap/IcMetadataFacade.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.CtrlRamDisplay.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Coverage.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.Context.cs",

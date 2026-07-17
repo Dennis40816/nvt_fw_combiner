@@ -57,7 +57,7 @@ public static partial class WorkbenchCompositionService
             TryResolvePostbuildProfileForDisplay(icId, ctrlRamBasePath, out LegacyCombinerPostbuildProfile? profile)
                 ? profile
                 : null;
-        IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetRegions(
+        IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetRegions(
             icId,
             selection,
             postbuildProfile);
@@ -75,7 +75,7 @@ public static partial class WorkbenchCompositionService
             {
                 WorkbenchReplaceModes.Dp => CreateDpReplaceRows(icId, regions),
                 WorkbenchReplaceModes.CtrlRam => CreateCtrlRamReplaceRows(
-                    TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile)),
+                    BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile)),
                 WorkbenchReplaceModes.General =>
                 [
                     new WorkbenchMemoryMapRow(
@@ -122,7 +122,7 @@ public static partial class WorkbenchCompositionService
             TryResolvePostbuildProfileForDisplay(icId, ctrlRamBasePath, out LegacyCombinerPostbuildProfile? profile)
                 ? profile
                 : null;
-        IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetRegions(icId, selection, postbuildProfile);
+        IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetRegions(icId, selection, postbuildProfile);
         return regions.Count == 0
             ? "No flash-map profile"
             : FormatFullRange(regions.Max(region => region.Range.EndExclusive));

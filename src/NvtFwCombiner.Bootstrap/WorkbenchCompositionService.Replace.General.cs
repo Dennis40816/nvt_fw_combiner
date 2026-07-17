@@ -64,7 +64,7 @@ public static partial class WorkbenchCompositionService
             context.BasePath,
             out LegacyCombinerPostbuildProfile? postbuildProfile,
             out CompositionIssue? postbuildIssue);
-        IReadOnlyList<TpFlashMapRegion> regionsForMappingPolicy = TpFlashMapCatalog.GetRegions(
+        IReadOnlyList<TpFlashMapRegion> regionsForMappingPolicy = BuiltInTpFlashMapCatalog.GetRegions(
             icId,
             context.Selection,
             postbuildProfileResolved ? postbuildProfile : null);

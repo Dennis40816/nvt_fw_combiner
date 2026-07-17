@@ -31,7 +31,7 @@ The UI shell is production-backed: it may introduce page structure and presentat
 Firmware-affecting UI data must come from production catalogs or application services, for example:
 
 ```text
-TpFlashMapCatalog
+BuiltInTpFlashMapCatalog (hash-pinned flash-map.json query)
 WorkbenchCompositionService
 BuiltInPostbuildProfileCatalog
 ```

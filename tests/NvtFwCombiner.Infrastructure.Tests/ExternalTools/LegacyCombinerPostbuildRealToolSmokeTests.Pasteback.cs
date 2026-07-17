@@ -34,7 +34,7 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
 
         Assert.True(LegacyCombinerPostbuildCatalog.TryGetDefaultProfile(icId, out LegacyCombinerPostbuildProfile? profile));
         IcNumberSelection selection = new(mode, [selectionToken]);
-        TpFlashMapRegion selectedRegion = TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, profile)
+        TpFlashMapRegion selectedRegion = BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, profile)
             .OrderBy(region => region.Range.Start)
             .ThenBy(region => region.RegionId, StringComparer.Ordinal)
             .First();

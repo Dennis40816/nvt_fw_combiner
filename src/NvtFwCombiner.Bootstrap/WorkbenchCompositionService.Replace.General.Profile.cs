@@ -106,7 +106,7 @@ public static partial class WorkbenchCompositionService
                 normalizedPostbuildWriteRanges);
         }
 
-        foreach (TpFlashMapRegion region in TpFlashMapCatalog.GetRegions(
+        foreach (TpFlashMapRegion region in BuiltInTpFlashMapCatalog.GetRegions(
             icId,
             selection,
             postbuildProfile))

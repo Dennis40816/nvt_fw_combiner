@@ -97,14 +97,27 @@ public sealed class TpFlashMapProfile
         string icId,
         string overviewSource,
         long firmwareConfigPrimaryStart,
+        long tpPrefixLength,
+        IEnumerable<long> fullFlashCapacities,
+        string baseShapeEvidence,
         IEnumerable<TpFlashMapRegion> regions,
         string evidence)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(overviewSource);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(tpPrefixLength);
+        ArgumentNullException.ThrowIfNull(fullFlashCapacities);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseShapeEvidence);
         ArgumentNullException.ThrowIfNull(regions);
         ArgumentException.ThrowIfNullOrWhiteSpace(evidence);
 
+        long[] capacities = [.. fullFlashCapacities.Distinct().Order()];
+        if (capacities.Length == 0 || capacities.Any(capacity => capacity < tpPrefixLength))
+        {
+            throw new ArgumentException(
+                "Flash-map profile must declare full-Flash capacities no shorter than its TP prefix.",
+                nameof(fullFlashCapacities));
+        }
         _regions = [.. regions];
         if (_regions.Length == 0)
         {
@@ -114,6 +127,9 @@ public sealed class TpFlashMapProfile
         IcId = icId;
         OverviewSource = overviewSource;
         FirmwareConfigPrimaryStart = firmwareConfigPrimaryStart;
+        TpPrefixLength = tpPrefixLength;
+        FullFlashCapacities = Array.AsReadOnly(capacities);
+        BaseShapeEvidence = baseShapeEvidence;
         Evidence = evidence;
     }
 
@@ -125,6 +141,15 @@ public sealed class TpFlashMapProfile
 
     /// <summary>Primary FLASHMAP_FW_REGISTER address retained only for TP Overview and evidence cross-checks.</summary>
     public long FirmwareConfigPrimaryStart { get; }
+
+    /// <summary>Zero-based TP work prefix passed to the CtrlRAM Postbuild processor.</summary>
+    public long TpPrefixLength { get; }
+
+    /// <summary>Declared full-Flash container capacities that preserve bytes after the TP prefix.</summary>
+    public IReadOnlyList<long> FullFlashCapacities { get; }
+
+    /// <summary>Evidence scope for the TP/full-Flash artifact shapes; it does not imply runtime promotion.</summary>
+    public string BaseShapeEvidence { get; }
 
     /// <summary>Reference evidence used to create this profile.</summary>
     public string Evidence { get; }

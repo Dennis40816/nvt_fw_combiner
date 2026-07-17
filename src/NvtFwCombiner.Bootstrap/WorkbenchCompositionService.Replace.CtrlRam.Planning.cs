@@ -19,7 +19,7 @@ public static partial class WorkbenchCompositionService
         List<OperationRunSummary> operations = [];
         long capacity = Math.Max(
             1,
-            TpFlashMapCatalog.GetRegions(icId, selection, postbuildProfile).Max(region => region.Range.EndExclusive));
+            BuiltInTpFlashMapCatalog.GetRegions(icId, selection, postbuildProfile).Max(region => region.Range.EndExclusive));
         int sequence = 100;
         foreach (TpFlashMapRegion region in sources.SelectMany(source => source.Regions).DistinctBy(region => region.RegionId, StringComparer.Ordinal).OrderBy(region => region.Range.Start))
         {

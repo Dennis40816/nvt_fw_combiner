@@ -3,10 +3,10 @@ using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 
-namespace NvtFwCombiner.Application.Tests.FlashMaps;
+namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Executable checks for the TP Overview-derived production flash-map catalog.</summary>
-public sealed class TpFlashMapCatalogTests
+public sealed class BuiltInTpFlashMapCatalogTests
 {
     /// <summary>Every postbuild-backed IC must have a TP flash-map profile.</summary>
     [Fact]
@@ -15,7 +15,7 @@ public sealed class TpFlashMapCatalogTests
         foreach (LegacyCombinerPostbuildProfile profile in LegacyCombinerPostbuildCatalog.All)
         {
             Assert.True(
-                TpFlashMapCatalog.TryFind(profile.IcId, out TpFlashMapProfile? flashMapProfile),
+                BuiltInTpFlashMapCatalog.TryFind(profile.IcId, out TpFlashMapProfile? flashMapProfile),
                 $"Missing flash-map profile for {profile.IcId}.");
             Assert.NotNull(flashMapProfile);
         }
@@ -25,13 +25,13 @@ public sealed class TpFlashMapCatalogTests
     [Fact]
     public void Nt51927CtrlRamRowsFollowNumericIcCount()
     {
-        IReadOnlyList<TpFlashMapRegion> single = TpFlashMapCatalog.GetCtrlRamRegions(
+        IReadOnlyList<TpFlashMapRegion> single = BuiltInTpFlashMapCatalog.GetCtrlRamRegions(
             "NT51927",
             new IcNumberSelection(IcNumberInputMode.NumericSelector, ["1"]));
-        IReadOnlyList<TpFlashMapRegion> twoChip = TpFlashMapCatalog.GetCtrlRamRegions(
+        IReadOnlyList<TpFlashMapRegion> twoChip = BuiltInTpFlashMapCatalog.GetCtrlRamRegions(
             "NT51927",
             new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]));
-        IReadOnlyList<TpFlashMapRegion> threeChip = TpFlashMapCatalog.GetCtrlRamRegions(
+        IReadOnlyList<TpFlashMapRegion> threeChip = BuiltInTpFlashMapCatalog.GetCtrlRamRegions(
             "NT51927",
             new IcNumberSelection(IcNumberInputMode.NumericSelector, ["3"]));
 
@@ -45,7 +45,7 @@ public sealed class TpFlashMapCatalogTests
     [Fact]
     public void Nt51927PostbuildMappedCtrlRamRowsIncludeRightAndLeftSlaves()
     {
-        IReadOnlyList<TpFlashMapRegion> mapped = TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
+        IReadOnlyList<TpFlashMapRegion> mapped = BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
             "NT51927",
             new IcNumberSelection(IcNumberInputMode.NumericSelector, ["3"]),
             LegacyCombinerPostbuildCatalog.Nt51927);
@@ -70,7 +70,7 @@ public sealed class TpFlashMapCatalogTests
     {
         var selection = new IcNumberSelection(IcNumberInputMode.NumericSelector, [count]);
 
-        IReadOnlyList<TpCtrlRamPostbuildSource> sources = TpFlashMapCatalog.GetPostbuildCtrlRamSources(
+        IReadOnlyList<TpCtrlRamPostbuildSource> sources = BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(
             "NT51927",
             selection,
             LegacyCombinerPostbuildCatalog.Nt51927);
@@ -102,7 +102,7 @@ public sealed class TpFlashMapCatalogTests
                     .Distinct(StringComparer.Ordinal)
                     .Order(StringComparer.Ordinal),
             ];
-            IReadOnlyList<TpCtrlRamPostbuildSource> sources = TpFlashMapCatalog.GetPostbuildCtrlRamSources(
+            IReadOnlyList<TpCtrlRamPostbuildSource> sources = BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(
                 profile.IcId,
                 selection,
                 profile);
@@ -115,10 +115,10 @@ public sealed class TpFlashMapCatalogTests
     [Fact]
     public void SingleSelectionHidesDiffDlmRows()
     {
-        IReadOnlyList<TpFlashMapRegion> single = TpFlashMapCatalog.GetCtrlRamRegions(
+        IReadOnlyList<TpFlashMapRegion> single = BuiltInTpFlashMapCatalog.GetCtrlRamRegions(
             "NT51950",
             new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
-        IReadOnlyList<TpFlashMapRegion> cascade = TpFlashMapCatalog.GetCtrlRamRegions(
+        IReadOnlyList<TpFlashMapRegion> cascade = BuiltInTpFlashMapCatalog.GetCtrlRamRegions(
             "NT51950",
             new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
 
@@ -130,11 +130,11 @@ public sealed class TpFlashMapCatalogTests
     [Fact]
     public void RegionLookupAppliesNumberVisibilityAcrossKinds()
     {
-        IReadOnlyList<TpFlashMapRegion> singleDpRegions = TpFlashMapCatalog.GetRegions(
+        IReadOnlyList<TpFlashMapRegion> singleDpRegions = BuiltInTpFlashMapCatalog.GetRegions(
             "NT51950",
             new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
             TpFlashMapRegionKind.Dp);
-        IReadOnlyList<TpFlashMapRegion> twoChipDpRegions = TpFlashMapCatalog.GetRegions(
+        IReadOnlyList<TpFlashMapRegion> twoChipDpRegions = BuiltInTpFlashMapCatalog.GetRegions(
             "NT51950",
             new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]),
             TpFlashMapRegionKind.Dp);
@@ -150,7 +150,7 @@ public sealed class TpFlashMapCatalogTests
     [InlineData("NT51951")]
     public void Nt51950BasedProfilesDeclareCustomerInformationPreserveRegion(string icId)
     {
-        Assert.True(TpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? profile));
+        Assert.True(BuiltInTpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? profile));
 
         TpFlashMapRegion region = Assert.Single(
             profile!.Regions,
@@ -178,7 +178,7 @@ public sealed class TpFlashMapCatalogTests
     [InlineData("NT51951", 0x22200)]
     public void FirmwareConfigPrimaryStartComesFromFlashMapReference(string icId, long expectedStart)
     {
-        Assert.True(TpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? profile));
+        Assert.True(BuiltInTpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? profile));
 
         Assert.Equal(expectedStart, profile!.FirmwareConfigPrimaryStart);
     }
@@ -192,7 +192,7 @@ public sealed class TpFlashMapCatalogTests
     [InlineData("NT51931", "fw-config-backup", 0x3B000, 0x00800)]
     public void BackupRowsFromTpOverviewAreDeclared(string icId, string regionId, long start, long length)
     {
-        Assert.True(TpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? profile));
+        Assert.True(BuiltInTpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? profile));
 
         TpFlashMapRegion region = Assert.Single(profile!.Regions, candidate => candidate.RegionId == regionId);
 
@@ -219,7 +219,7 @@ public sealed class TpFlashMapCatalogTests
         long length,
         string expectedTag)
     {
-        Assert.True(TpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? profile));
+        Assert.True(BuiltInTpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? profile));
 
         TpFlashMapRegion region = Assert.Single(profile!.Regions, candidate => candidate.RegionId == regionId);
 
@@ -232,7 +232,7 @@ public sealed class TpFlashMapCatalogTests
     [Fact]
     public void Nt51923FwConfigKeepsWorkbookLabel()
     {
-        Assert.True(TpFlashMapCatalog.TryFind("NT51923", out TpFlashMapProfile? profile));
+        Assert.True(BuiltInTpFlashMapCatalog.TryFind("NT51923", out TpFlashMapProfile? profile));
 
         TpFlashMapRegion region = Assert.Single(profile!.Regions, candidate => candidate.RegionId == "fw-config-backup");
 
@@ -248,7 +248,7 @@ public sealed class TpFlashMapCatalogTests
         foreach ((LegacyCombinerPostbuildProfile profile, IcNumberSelection selection) in AllPostbuildSelections())
         {
             LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(profile, selection);
-            IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetCtrlRamRegions(profile.IcId, selection);
+            IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetCtrlRamRegions(profile.IcId, selection);
             foreach (LegacyCombinerBlockArgument block in LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(plan))
             {
                 Assert.Contains(
@@ -263,10 +263,10 @@ public sealed class TpFlashMapCatalogTests
     [Fact]
     public void Nt51930MpCtrlRamIsVisibleAsOverviewOnly()
     {
-        IReadOnlyList<TpFlashMapRegion> regions = TpFlashMapCatalog.GetCtrlRamRegions(
+        IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetCtrlRamRegions(
             "NT51930",
             new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
-        IReadOnlyList<TpFlashMapRegion> postbuildMapped = TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
+        IReadOnlyList<TpFlashMapRegion> postbuildMapped = BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
             "NT51930",
             new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]),
             LegacyCombinerPostbuildCatalog.Nt51930);
@@ -281,11 +281,11 @@ public sealed class TpFlashMapCatalogTests
     {
         var selection = new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]);
 
-        IReadOnlyList<TpFlashMapRegion> commonFw141Regions = TpFlashMapCatalog.GetRegions(
+        IReadOnlyList<TpFlashMapRegion> commonFw141Regions = BuiltInTpFlashMapCatalog.GetRegions(
             "NT51926",
             selection,
             LegacyCombinerPostbuildCatalog.Nt51926CommonFw141);
-        IReadOnlyList<TpFlashMapRegion> commonFw200Regions = TpFlashMapCatalog.GetRegions(
+        IReadOnlyList<TpFlashMapRegion> commonFw200Regions = BuiltInTpFlashMapCatalog.GetRegions(
             "NT51926",
             selection,
             LegacyCombinerPostbuildCatalog.Nt51926);
@@ -306,15 +306,15 @@ public sealed class TpFlashMapCatalogTests
     {
         var selection = new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]);
 
-        IReadOnlyList<TpFlashMapRegion> commonFw1xMapped = TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
+        IReadOnlyList<TpFlashMapRegion> commonFw1xMapped = BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
             "NT51930",
             selection,
             LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x);
-        IReadOnlyList<TpFlashMapRegion> commonFw200Mapped = TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
+        IReadOnlyList<TpFlashMapRegion> commonFw200Mapped = BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
             "NT51930",
             selection,
             LegacyCombinerPostbuildCatalog.Nt51930);
-        IReadOnlyList<TpFlashMapRegion> commonFw1xLargeCountMapped = TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
+        IReadOnlyList<TpFlashMapRegion> commonFw1xLargeCountMapped = BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
             "NT51930",
             new IcNumberSelection(IcNumberInputMode.NumericSelector, ["14"]),
             LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x);
@@ -330,7 +330,7 @@ public sealed class TpFlashMapCatalogTests
     [Fact]
     public void Nt51930NumberChoicesExposeApprovedCascadeCounts()
     {
-        IReadOnlyList<string> choices = TpFlashMapCatalog.GetNumberChoices(
+        IReadOnlyList<string> choices = IcNumberChoicePolicy.GetNumberChoices(
             LegacyCombinerPostbuildCatalog.GetProfiles("NT51930"));
 
         Assert.Contains("single", choices);
@@ -344,11 +344,11 @@ public sealed class TpFlashMapCatalogTests
     [Fact]
     public void NumberSelectionChoicesGroupEquivalentCascadeAliases()
     {
-        IReadOnlyList<IcNumberChoice> nt51932 = TpFlashMapCatalog.GetNumberSelectionChoices(
+        IReadOnlyList<IcNumberChoice> nt51932 = IcNumberChoicePolicy.GetNumberSelectionChoices(
             LegacyCombinerPostbuildCatalog.GetProfiles("NT51932"));
-        IReadOnlyList<IcNumberChoice> nt51927 = TpFlashMapCatalog.GetNumberSelectionChoices(
+        IReadOnlyList<IcNumberChoice> nt51927 = IcNumberChoicePolicy.GetNumberSelectionChoices(
             LegacyCombinerPostbuildCatalog.GetProfiles("NT51927"));
-        IReadOnlyList<IcNumberChoice> nt51930 = TpFlashMapCatalog.GetNumberSelectionChoices(
+        IReadOnlyList<IcNumberChoice> nt51930 = IcNumberChoicePolicy.GetNumberSelectionChoices(
             LegacyCombinerPostbuildCatalog.GetProfiles("NT51930"));
 
         Assert.Equal(
@@ -372,7 +372,7 @@ public sealed class TpFlashMapCatalogTests
             nt51927);
         Assert.Equal(
             1,
-            TpFlashMapCatalog.GetNumberChoices(LegacyCombinerPostbuildCatalog.GetProfiles("NT51932"))
+            IcNumberChoicePolicy.GetNumberChoices(LegacyCombinerPostbuildCatalog.GetProfiles("NT51932"))
                 .Count(choice => choice == "single"));
     }
 

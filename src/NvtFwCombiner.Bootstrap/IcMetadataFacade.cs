@@ -28,7 +28,7 @@ internal static class IcMetadataFacade
     public static IReadOnlyList<string> GetNumberChoices(string icId)
     {
         return IsKnown(icId)
-            ? TpFlashMapCatalog.GetNumberChoices(GetPostbuildProfiles(icId))
+            ? IcNumberChoicePolicy.GetNumberChoices(GetPostbuildProfiles(icId))
             : [];
     }
 
@@ -36,7 +36,7 @@ internal static class IcMetadataFacade
     public static IReadOnlyList<IcNumberChoice> GetNumberSelectionChoices(string icId)
     {
         return IsKnown(icId)
-            ? TpFlashMapCatalog.GetNumberSelectionChoices(GetPostbuildProfiles(icId))
+            ? IcNumberChoicePolicy.GetNumberSelectionChoices(GetPostbuildProfiles(icId))
             : [];
     }
 
@@ -49,7 +49,7 @@ internal static class IcMetadataFacade
     /// <summary>Returns whether a profile-backed IC-number token selects an approved postbuild branch.</summary>
     public static bool IsNumberSelectionSupported(string icId, IcNumberSelection selection)
     {
-        return IsKnown(icId) && TpFlashMapCatalog.IsNumberSelectionSupported(selection, GetPostbuildProfiles(icId));
+        return IsKnown(icId) && IcNumberChoicePolicy.IsNumberSelectionSupported(selection, GetPostbuildProfiles(icId));
     }
 
     /// <summary>Returns true when support policy exposes CtrlRAM Replace for the selected IC.</summary>

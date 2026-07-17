@@ -181,7 +181,7 @@ public sealed partial class RepositoryBoundaryTests
     public void IcNumberSelectionTokensStayDomainOwned()
     {
         string domainTokens = ReadText("src/NvtFwCombiner.Domain/Composition/IcNumberSelectionTokens.cs");
-        string flashMapChoices = ReadText("src/NvtFwCombiner.Application/FlashMaps/TpFlashMapCatalog.NumberChoices.cs");
+        string flashMapChoices = ReadText("src/NvtFwCombiner.Application/FlashMaps/IcNumberChoicePolicy.cs");
         string postbuildProfile = ReadText("src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildProfile.cs");
         string workbenchTokens = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchIcNumberTokens.cs");
         string workbenchSelections = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchIcNumberSelections.cs");

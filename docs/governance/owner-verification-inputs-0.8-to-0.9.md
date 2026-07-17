@@ -200,7 +200,7 @@ the replacement covers every current consumer:
 | --- | --- |
 | Standard Merge V2 registrations | Additional capacity golden inputs/outputs, naming/report parity, and owner approval for any release-support expansion. Legacy C# profiles are not retained as a runtime or test oracle. |
 | Legacy `CompositionProfileCompiler` authority | Per-workflow V2 input/output/report/CLI/UI parity, including invalid cases and every selected processor path. |
-| `TpFlashMapCatalog` / `IcMetadataFacade` projections | Source-map provenance and UI/CLI metadata/number-selection parity for every consumer, with no copied firmware semantics. |
+| Config-backed flash-map query / `IcMetadataFacade` projections | Source-map provenance and UI/CLI metadata/number-selection parity for every consumer, with no copied firmware semantics. Static C# region/base-shape authority is retired. |
 | Hash-pinned CtrlRAM postbuild profile data | Exact tool binding, staging/read/write ranges, command trace, real expected output, and firmware-owner review before any support promotion. Static C# command authority is retired. |
 
 ## v0.9.6: Support and Release Consolidation

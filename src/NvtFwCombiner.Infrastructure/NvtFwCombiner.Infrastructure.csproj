@@ -19,6 +19,11 @@
       Link="profiles\built-in\ctrlram-postbuild-v2\catalog.json"
       CopyToOutputDirectory="PreserveNewest"
       CopyToPublishDirectory="PreserveNewest" />
+    <Content
+      Include="..\..\profiles\built-in\ctrlram-postbuild-v2\flash-map.json"
+      Link="profiles\built-in\ctrlram-postbuild-v2\flash-map.json"
+      CopyToOutputDirectory="PreserveNewest"
+      CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="NvtFwCombiner.Infrastructure.Tests" />

@@ -20,9 +20,9 @@ public sealed class WorkbenchCatalogProjectionTests
         foreach (string icId in icIds)
         {
             IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = IcMetadataFacade.GetPostbuildProfiles(icId);
-            Assert.Equal(TpFlashMapCatalog.GetNumberChoices(profiles), WorkbenchCompositionService.GetNumberChoices(icId));
+            Assert.Equal(IcNumberChoicePolicy.GetNumberChoices(profiles), WorkbenchCompositionService.GetNumberChoices(icId));
             Assert.Equal(
-                TpFlashMapCatalog.GetNumberSelectionChoices(profiles).Select(static choice => (
+                IcNumberChoicePolicy.GetNumberSelectionChoices(profiles).Select(static choice => (
                     choice.Token,
                     choice.DisplayLabel)),
                 WorkbenchCompositionService.GetNumberSelectionChoices(icId).Select(static choice => (

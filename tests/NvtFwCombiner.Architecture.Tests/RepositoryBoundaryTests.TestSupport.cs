@@ -189,16 +189,7 @@ public sealed partial class RepositoryBoundaryTests
 
     private static string ReadFlashMapCatalogPartials()
     {
-        string directory = Path.Combine(
-            Root.FullName,
-            "src",
-            "NvtFwCombiner.Application",
-            "FlashMaps");
-        return string.Join(
-            Environment.NewLine,
-            Directory.GetFiles(directory, "TpFlashMapCatalog*.cs")
-                .Order(StringComparer.Ordinal)
-                .Select(File.ReadAllText));
+        return ReadText("profiles/built-in/ctrlram-postbuild-v2/flash-map.json");
     }
 
     private static (int Line, string[] Cells) FindMarkdownTableRow(string relativePath, string firstCell)

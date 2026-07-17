@@ -95,9 +95,9 @@ Update only the rows that are relevant to the new IC/mode.
 | Standard Merge bundle / deployment / runtime registration | `profiles/built-in/<bundle>/{profile-bundle.json,families,profiles}`; `src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj`; `src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs` | Add a manifest-pinned V2 family/profile source bundle. The build materializer injects the selected canonical schema from `docs/contracts`; do not add source schema snapshots. A reviewed, evidence-backed bundle must add one `<BuiltInProfileBundle Include="<bundle>" />` materialization allowlist entry and then receive the explicit Bootstrap V2 registration. A 0.9.4 candidate has no runtime authority and must add neither production allowlist nor registration; its closed-root preview belongs in caller-selected staging. |
 | Replace profile / V2 deployment | `profiles/built-in/<bundle>/{profile-bundle.json,families,profiles}` plus a focused Bootstrap V2 registration | Add an evidence-backed V2 Replace profile and explicit deployed-bundle registration before routing an IC. Candidate bundles have no runtime authority. Synthetic compiler fixtures are test-only under `tests/NvtFwCombiner.TestSupport/` and are never a production fallback. |
 | Profile compiler rules | `src/NvtFwCombiner.Profiles/CompositionProfileCompiler.cs` | Change only for general validation gaps, not to special-case one IC. |
-| TP/DP/CtrlRAM compatibility catalog | `src/NvtFwCombiner.Application/FlashMaps/TpFlashMapCatalog.cs` | Project reviewed family rows during migration only. Canonical CtrlRAM eligibility is physical `owner = tp` plus `kind = ctrlram`; do not add a parallel tag authority. |
+| TP/DP/CtrlRAM compatibility catalog | `profiles/built-in/ctrlram-postbuild-v2/flash-map.json` plus `BuiltInTpFlashMapCatalog` | Add reviewed TP/full-Flash shapes and TP Overview rows as hash-pinned config facts. Canonical CtrlRAM eligibility is physical `owner = tp` plus `kind = ctrlram`; do not add a parallel C# or tag authority. |
 | TP header/write category | `src/NvtFwCombiner.Application/FlashMaps/TpHeaderCatalog.cs` | Add TP header/postbuild write section ids, report labels, overlap priority, and postbuild block-id classification when the IC introduces a new header copy, backup, CRC, or TP window category. Keep this out of planner, UI, and CLI code. |
-| FWConfig metadata reader/catalog | `src/NvtFwCombiner.Application/FlashMaps/FirmwareConfigLayout.cs`, `FirmwareConfigMetadataReader.cs`, and `TpFlashMapCatalog` | Retain the IC's primary FWConfig flash address only for TP Overview/evidence. Every runtime FWConfig value must come from the unique NVT Backup at terminal `T - 0xFFF`; record it in `docs/references/nvt-fwconfig-copy-validation.md` and cross-check exposed primary/Backup fields in golden tests. Do not add a primary fallback. Change layout offsets only through the reviewed layout catalog. |
+| FWConfig metadata reader/catalog | `src/NvtFwCombiner.Application/FlashMaps/FirmwareConfigLayout.cs`, `FirmwareConfigMetadataReader.cs`, and hash-pinned `flash-map.json` | Retain the IC's primary FWConfig flash address only for TP Overview/evidence. Every runtime FWConfig value must come from the unique NVT Backup at terminal `T - 0xFFF`; record it in `docs/references/nvt-fwconfig-copy-validation.md` and cross-check exposed primary/Backup fields in golden tests. Do not add a primary fallback. Change layout offsets only through the reviewed layout catalog. |
 | Output naming metadata | `src/NvtFwCombiner.Application/FlashMaps/GenFlashVersionCatalog.cs` and `src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.FirmwareMetadata.cs` | Add DP main/sub contiguous version-byte rules, CMI register evidence when applicable, and FlashCode naming metadata only from owner-approved evidence. UI passes selected slot roles and paths; it must not decide DP/TP version offsets, CMI branches, metadata priority, or date/name format. |
 | CtrlRAM postbuild catalog | `profiles/built-in/ctrlram-postbuild-v2/catalog.json` plus `BuiltInPostbuildProfileCatalog` | Add structured command sequences, branch rules, staged-file names, firmware block ranges, evidence source, and Common FW rule metadata. Update the pinned SHA-256 and parity tests; never assemble one shell command string. |
 | External tool manifest | `external-tools/legacy-combiner/.../manifest.json` | Add or update only when a new exact `combiner.exe` binding/version is approved. |
@@ -155,7 +155,7 @@ Minimum tests:
 
 ## CtrlRAM Replace steps
 
-1. Add or confirm TP flash-map CtrlRAM rows in `TpFlashMapCatalog`.
+1. Add or confirm TP/full-Flash shapes and TP flash-map CtrlRAM rows in hash-pinned `profiles/built-in/ctrlram-postbuild-v2/flash-map.json`.
 2. Add or confirm TP header/write categories in `TpHeaderCatalog` when postbuild writes new header copy, backup, CRC, or TP window sections.
 3. Add postbuild structured commands in `profiles/built-in/ctrlram-postbuild-v2/catalog.json` from owner-approved postbuild/mmap evidence and update its pinned SHA-256.
 4. Declare Common FW category rules for versioned ICs, then lock selection with catalog tests so unsupported or ambiguous versions fail closed.
@@ -169,7 +169,7 @@ Minimum tests:
 
 - `tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/BuiltInPostbuildProfileCatalogTests.cs`
 - the existing Application postbuild planner/command parity tests
-- `tests/NvtFwCombiner.Application.Tests/FlashMaps/TpFlashMapCatalogTests.cs`
+- `tests/NvtFwCombiner.Infrastructure.Tests/FlashMaps/BuiltInTpFlashMapCatalogLoaderTests.cs` plus the Bootstrap flash-map projection tests
 - processor/staging tests for command argv, staged-file seed bytes, changed-range verification, and failure cases
 - UI smoke or CLI tests proving Preview/Build records the postbuild sequence and final artifact hash
 - private CtrlRAM golden regression before support promotion

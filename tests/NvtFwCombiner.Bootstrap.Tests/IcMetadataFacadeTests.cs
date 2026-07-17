@@ -18,9 +18,9 @@ public sealed class IcMetadataFacadeTests
         {
             IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = IcMetadataFacade.GetPostbuildProfiles(support.IcId);
             Assert.True(IcMetadataFacade.IsKnown(support.IcId));
-            Assert.Equal(TpFlashMapCatalog.GetNumberChoices(profiles), IcMetadataFacade.GetNumberChoices(support.IcId));
+            Assert.Equal(IcNumberChoicePolicy.GetNumberChoices(profiles), IcMetadataFacade.GetNumberChoices(support.IcId));
             Assert.Equal(
-                TpFlashMapCatalog.GetNumberSelectionChoices(profiles),
+                IcNumberChoicePolicy.GetNumberSelectionChoices(profiles),
                 IcMetadataFacade.GetNumberSelectionChoices(support.IcId));
             Assert.Equal(
                 LegacyCombinerPostbuildCatalog.GetProfiles(support.IcId),

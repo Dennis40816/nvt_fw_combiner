@@ -82,7 +82,8 @@ Primary files:
 
 - `profiles/built-in/ctrlram-postbuild-v2/catalog.json`
 - `src/NvtFwCombiner.Infrastructure/ExternalTools/BuiltInPostbuildProfileCatalog.cs`
-- `src/NvtFwCombiner.Application/FlashMaps/TpFlashMapCatalog.cs`
+- `profiles/built-in/ctrlram-postbuild-v2/flash-map.json`
+- `src/NvtFwCombiner.Infrastructure/FlashMaps/BuiltInTpFlashMapCatalog*.cs`
 - `src/NvtFwCombiner.Infrastructure/ExternalTools/LegacyCombinerPostbuildProcessor.cs`
 - `external-tools/legacy-combiner/1.13.0/Combiner.exe`
 - `docs/references/ic-flashmap/postbuild/*.bat`
@@ -355,7 +356,7 @@ If owner later insists on production behavior, treat it as R3 firmware behavior:
 | NT51930 DiffDLM | One 4 KiB target slot has 4,090 mismatching bytes. | Same-run DiffDLM or command/log explaining the supplied variants. |
 | NT51931 incomplete toolchain | Corrected owner BAT depends on missing `InsertSID.py`; existing output has 108 unexplained bytes. | Keep Replace Not Supported. |
 | NT51932 DiffDLM/DiffNFMerge | One 4 KiB target slot has 4,095 mismatching bytes; NF composite is not proven. | Same-run DiffDLM and completed NF output or equivalent log/hash proof. |
-| TP/full-Flash base parity | The schema 2.8 prefix/reinsert contract and NT51926 candidate cover exact `0x3C000` TP and `0x40000` Flash shapes. | Direct expected-output evidence and firmware-owner R3 review remain required before V2 runtime promotion. |
+| TP/full-Flash base parity | Hash-pinned config records reviewed/candidate TP prefixes and full-Flash capacities for all catalog ICs. The schema 2.8 prefix/reinsert contract and NT51926 candidate alone prove exact `0x3C000` TP and `0x40000` Flash execution shapes. | Each additional IC/version/count still needs a closed V2 map, direct expected-output parity for both forms, and firmware-owner R3 review before runtime promotion. |
 | Remaining release-scope cases | NT51950 cascade and NT51951 corrected single/cascade remain missing or invalid. | Matching owner inputs/final, command/tool authority, and R3 review. |
 
 ## Update Rules
@@ -383,5 +384,5 @@ Each update should record:
 As of this report:
 
 ```text
-CtrlRAM Replace execution is traceable and its base contract accepts TP BIN or full Flash BIN with the same TP-relative semantics, but it is not globally OK for release. The non-routed V2 candidate makes the TP-prefix boundary explicit. The 2026-07-17 owner snapshot closes several completely-missing sample gaps. NT51930/NT51932 composition gaps remain, NT51931 Replace stays Not Supported, and every migrated family still needs owner R3 review before runtime promotion.
+CtrlRAM Replace execution is traceable and the product contract requires both TP BIN and declared full Flash BIN with the same TP-relative semantics. The current Workbench admits both forms but does not yet enforce an explicit TP prefix for every IC; only the non-routed NT51926 V2 candidate proves prefix/reinsert behavior. The 2026-07-17 owner snapshot closes several completely-missing sample gaps. NT51930/NT51932 composition gaps remain, NT51931 Replace stays Not Supported, and every migrated family still needs owner R3 review before runtime promotion.
 ```

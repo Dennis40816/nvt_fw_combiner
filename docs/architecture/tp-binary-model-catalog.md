@@ -14,7 +14,8 @@ Evidence sources:
 
 - `docs/references/ic-flashmap/IC_FlashMap_20260705.xlsx` TP Overview rows;
 - `docs/references/tddi-flash-header/TDDI_Flash_Header.xlsx` named header worksheets;
-- documented owner aliases already recorded in `TpFlashMapCatalog`.
+- documented owner aliases already recorded in hash-pinned
+  `profiles/built-in/ctrlram-postbuild-v2/flash-map.json`.
 
 All ranges below use half-open notation. For example, `[0x0000, 0x0004)` means bytes `0x0000` through `0x0003`.
 

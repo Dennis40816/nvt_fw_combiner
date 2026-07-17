@@ -2,7 +2,7 @@ using System.Buffers.Binary;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.TestSupport;
 
-namespace NvtFwCombiner.Application.Tests.FlashMaps;
+namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Golden-backed checks for FWConfig metadata extraction.</summary>
 public sealed class FirmwareConfigMetadataReaderTests
@@ -147,7 +147,7 @@ public sealed class FirmwareConfigMetadataReaderTests
             "expected",
             relativePath));
 
-        Assert.True(TpFlashMapCatalog.TryFind($"NT{ic}", out TpFlashMapProfile? flashMap));
+        Assert.True(BuiltInTpFlashMapCatalog.TryFind($"NT{ic}", out TpFlashMapProfile? flashMap));
         long firmwareConfigStart = flashMap!.FirmwareConfigPrimaryStart;
         Assert.True(FirmwareConfigMetadataReader.TryReadAtAbsoluteAddress(image, firmwareConfigStart, out FirmwareConfigMetadata primary));
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(image, out FirmwareConfigMetadata backup));

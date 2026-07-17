@@ -34,7 +34,7 @@ public static partial class WorkbenchCompositionService
         return postbuildProfile is null && basePath is not null && File.Exists(basePath)
             ? []
             : [
-            .. TpFlashMapCatalog.GetPostbuildCtrlRamSources(icId, ToIcNumberSelection(number), postbuildProfile)
+            .. BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(icId, ToIcNumberSelection(number), postbuildProfile)
                     .Select(source => new WorkbenchReplaceInputSlot(
                         CtrlRamSlotId(source.SourceId),
                         FormatCtrlRamSourceTitle(icId, number, source),

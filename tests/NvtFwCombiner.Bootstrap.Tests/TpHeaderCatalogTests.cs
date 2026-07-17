@@ -3,7 +3,7 @@ using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 
-namespace NvtFwCombiner.Application.Tests.FlashMaps;
+namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Executable checks for the TP header/write category catalog.</summary>
 public sealed class TpHeaderCatalogTests
@@ -85,7 +85,7 @@ public sealed class TpHeaderCatalogTests
     [Fact]
     public void EveryIcExposesOneHeaderLayout()
     {
-        foreach (string icId in TpFlashMapCatalog.IcIds)
+        foreach (string icId in BuiltInTpFlashMapCatalog.IcIds)
         {
             Assert.True(TpHeaderCatalog.TryGetLayout(icId, out TpHeaderLayout? layout));
             Assert.NotNull(layout);

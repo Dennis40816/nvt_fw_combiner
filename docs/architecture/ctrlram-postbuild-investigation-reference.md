@@ -26,7 +26,8 @@ Repository evidence used:
 
 - `profiles/built-in/ctrlram-postbuild-v2/catalog.json`
 - `src/NvtFwCombiner.Infrastructure/ExternalTools/BuiltInPostbuildProfileCatalog.cs`
-- `src/NvtFwCombiner.Application/FlashMaps/TpFlashMapCatalog.cs`
+- `profiles/built-in/ctrlram-postbuild-v2/flash-map.json`
+- `src/NvtFwCombiner.Infrastructure/FlashMaps/BuiltInTpFlashMapCatalog*.cs`
 - `profiles/built-in/*-standard-merge/` and `src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs`
 - `testdata/golden/standard-merge-gen-flash/manifest.json`
 - `testdata/golden/standard-merge-gen-flash/test_ic_config.json`
@@ -208,7 +209,7 @@ LDC/LD is Display/DP-side data, not CtrlRAM:
 - `test_ic_config.json` declares `extra_bins` item `LD`;
 - range is `[0x40000, 0x62000)`;
 - Standard Merge profile declares `ld-input`;
-- `TpFlashMapCatalog` classifies `dp-ldc-51928` as `TpFlashMapRegionKind.Dp`;
+- hash-pinned `flash-map.json` classifies `dp-ldc-51928` as `TpFlashMapRegionKind.Dp`;
 - UI exposes NT51928 LDC under DP Replace, not CtrlRAM Replace.
 
 Conclusion: NT51928 LDC belongs to Display/DP merge/replace handling.

@@ -79,14 +79,14 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("GetSettingsSnapshot", catalog, StringComparison.Ordinal);
         Assert.Contains("IcMetadataFacade.IcIds", catalog, StringComparison.Ordinal);
         Assert.DoesNotContain("IcSupportCatalog.IcIds", catalog, StringComparison.Ordinal);
-        Assert.DoesNotContain("TpFlashMapCatalog.IcIds", catalog, StringComparison.Ordinal);
+        Assert.DoesNotContain("BuiltInTpFlashMapCatalog.IcIds", catalog, StringComparison.Ordinal);
         Assert.DoesNotContain("LegacyCombinerPostbuildCatalog.All", catalog, StringComparison.Ordinal);
         Assert.Contains("internal static class IcMetadataFacade", icMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("public static class IcMetadataFacade", icMetadata, StringComparison.Ordinal);
         Assert.Contains("WorkbenchIcNumberChoice", catalog, StringComparison.Ordinal);
         Assert.Contains("CreateProfileSummary", catalog, StringComparison.Ordinal);
         Assert.Contains("composition.Plan.RequiredInputAddressSpaceIds", catalog, StringComparison.Ordinal);
-        Assert.Contains("TpFlashMapCatalog.GetNumberChoices", icMetadata, StringComparison.Ordinal);
+        Assert.Contains("IcNumberChoicePolicy.GetNumberChoices", icMetadata, StringComparison.Ordinal);
         Assert.Contains("BuiltInPostbuildProfileCatalog.GetProfiles", icMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("BuildMetadata", icMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("internal sealed record IcMetadata(", icMetadata, StringComparison.Ordinal);
@@ -153,7 +153,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("InputRelativeOffset", outputNaming, StringComparison.Ordinal);
         Assert.DoesNotContain("FirmwareConfigMetadataReader.TryRead", outputNaming, StringComparison.Ordinal);
         Assert.Contains("GetCtrlRamRegions", ctrlRamDisplay, StringComparison.Ordinal);
-        Assert.Contains("TpFlashMapCatalog.GetCtrlRamRegions", ctrlRamDisplay, StringComparison.Ordinal);
+        Assert.Contains("BuiltInTpFlashMapCatalog.GetCtrlRamRegions", ctrlRamDisplay, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateFlashCodeOutputFileName", ctrlRamDisplay, StringComparison.Ordinal);
         Assert.Contains("GetReplaceMemoryMapRows", replaceDisplay, StringComparison.Ordinal);
         Assert.Equal(1, CountOccurrences(replaceDisplay, "public static string GetReplaceMemoryRangeLabel("));
