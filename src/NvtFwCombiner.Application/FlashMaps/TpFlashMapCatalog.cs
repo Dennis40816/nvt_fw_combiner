@@ -9,11 +9,6 @@ public static partial class TpFlashMapCatalog
     private static readonly Dictionary<string, TpFlashMapProfile> ProfilesByIc = BuildProfiles()
         .ToDictionary(profile => profile.IcId, StringComparer.Ordinal);
 
-    private static readonly Dictionary<string, LegacyCombinerPostbuildProfile> PostbuildProfilesByIc =
-        LegacyCombinerPostbuildCatalog.All
-            .GroupBy(profile => profile.IcId, StringComparer.Ordinal)
-            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
-
     /// <summary>Supported IC ids in stable order.</summary>
     public static IReadOnlyList<string> IcIds { get; } =
     [

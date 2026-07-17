@@ -93,23 +93,15 @@ internal static partial class CompositionProfileNormalizer
                 1,
                 long.MaxValue,
                 $"{path}.bytes"))),
-            "runtime-request" when (StringComparer.Ordinal.Equals(schemaVersion, "2.3") ||
-                                     StringComparer.Ordinal.Equals(schemaVersion, "2.4") ||
-                                     StringComparer.Ordinal.Equals(schemaVersion, "2.5") ||
-                                     StringComparer.Ordinal.Equals(schemaVersion, "2.6") ||
-                                     StringComparer.Ordinal.Equals(schemaVersion, "2.7")) &&
+            "runtime-request" when schemaVersion is "2.3" or "2.4" or "2.5" or "2.6" or "2.7" or "2.8" &&
                                    spaceKind == CompositionProfileSpaceKind.OutputImage =>
                 new RuntimeRequestProfileCapacity(),
-            "runtime-request" when StringComparer.Ordinal.Equals(schemaVersion, "2.3") ||
-                                   StringComparer.Ordinal.Equals(schemaVersion, "2.4") ||
-                                   StringComparer.Ordinal.Equals(schemaVersion, "2.5") ||
-                                   StringComparer.Ordinal.Equals(schemaVersion, "2.6") ||
-                                   StringComparer.Ordinal.Equals(schemaVersion, "2.7") => throw Error(
+            "runtime-request" when schemaVersion is "2.3" or "2.4" or "2.5" or "2.6" or "2.7" or "2.8" => throw Error(
                 $"{path}.kind",
                 "The runtime-request capacity kind is valid only for an output-image space."),
             "runtime-request" => throw Error(
                 $"{path}.kind",
-                "The runtime-request capacity kind requires composition-profile schema version '2.3', '2.4', '2.5', '2.6', or '2.7'."),
+                "The runtime-request capacity kind requires composition-profile schema version '2.3', '2.4', '2.5', '2.6', '2.7', or '2.8'."),
             _ => throw Error($"{path}.kind", "Unknown profile capacity kind."),
         };
     }

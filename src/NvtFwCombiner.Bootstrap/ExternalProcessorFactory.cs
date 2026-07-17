@@ -32,7 +32,7 @@ internal static class ExternalProcessorFactory
         var processRunner = new SystemExternalProcessRunner();
         var legacyPostbuildProcessor = new LegacyCombinerPostbuildProcessor(
             registry,
-            LegacyCombinerPostbuildCatalog.All,
+            BuiltInPostbuildProfileCatalog.All,
             toolRoot,
             stagingRoot,
             processRunner);
@@ -45,7 +45,7 @@ internal static class ExternalProcessorFactory
         return new ExternalProcessorRouter(
             legacyPostbuildProcessor,
             manifestProcessor,
-            LegacyCombinerPostbuildCatalog.All.Select(static profile => profile.ProcessorId));
+            BuiltInPostbuildProfileCatalog.All.Select(static profile => profile.ProcessorId));
     }
 
     private static string? FindExternalToolsRoot()

@@ -1,6 +1,6 @@
 # ADR 0023: NT51926 CtrlRAM V2 TP-Work Boundary
 
-- Status: Accepted
+- Status: Superseded by ADR 0024
 - Date: 2026-07-17
 - Owners: Architecture owner + firmware owner
 - Amends: ADR 0015 and ADR 0020

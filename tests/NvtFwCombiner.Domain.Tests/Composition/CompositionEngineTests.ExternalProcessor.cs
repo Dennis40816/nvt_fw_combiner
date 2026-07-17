@@ -239,9 +239,9 @@ public sealed partial class CompositionEngineTests
                 "run approved fake processor")));
     }
 
-    /// <summary>Verifies staged external processors always receive the full target image coordinate space.</summary>
+    /// <summary>Verifies staged external processors can only target a zero-based image prefix.</summary>
     [Fact]
-    public void ExternalProcessorTargetRangeMustCoverFullTargetSpace()
+    public void ExternalProcessorTargetRangeMustStartAtZero()
     {
         ExternalProcessorInvocation invocation = CreateExternalInvocation(writeRange: new ByteRange(1, 1));
 
@@ -255,6 +255,42 @@ public sealed partial class CompositionEngineTests
                 invocation,
                 OverlapPolicy.Reject,
                 "run approved fake processor")));
+    }
+
+    /// <summary>Verifies prefix processing imports only the transformed prefix and preserves the container tail.</summary>
+    [Fact]
+    public async Task ExternalProcessorCanTransformPrefixWithoutChangingContainerTailAsync()
+    {
+        CompositionPlan plan = CreateBlankPlan(
+            4,
+            CompositionOperation.RunExternalProcessor(
+                "run-crc",
+                10,
+                "output-image",
+                new ByteRange(0, 3),
+                new ExternalProcessorInvocation(
+                    "processor-v1",
+                    "tool-v1",
+                    [new ByteRange(0, 3)],
+                    [new ByteRange(1, 1)]),
+                OverlapPolicy.Reject,
+                "run approved prefix processor"));
+
+        CompositionExecutionResult result = await CompositionEngine.ExecuteAsync(
+            plan,
+            EmptyInput(),
+            (_, inputBytes, _, _, _) =>
+            {
+                Assert.Equal([0xFF, 0xFF, 0xFF], inputBytes.ToArray());
+                byte[] output = inputBytes.ToArray();
+                output[1] = 0x44;
+                return ValueTask.FromResult(CompositionExternalProcessorResult.Success(output));
+            },
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal([0xFF, 0x44, 0xFF, 0xFF], result.OutputBytes.ToArray());
+        Assert.Equal(new ByteRange(0, 3), Assert.Single(result.Mutations).TargetRange);
     }
 
     /// <summary>Verifies an external processor receives snapshots of initialized mutable work buffers as named artifacts.</summary>

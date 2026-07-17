@@ -18,8 +18,8 @@ It covers:
 
 Affected layers:
 
-- `NvtFwCombiner.Application`: structured `LegacyCombinerPostbuildCatalog` command data.
-- `NvtFwCombiner.Infrastructure`: staged real-tool execution, output-length normalization, and byte diff validation.
+- `profiles/built-in/ctrlram-postbuild-v2/catalog.json`: hash-pinned structured command data.
+- `NvtFwCombiner.Infrastructure`: strict command-data loading, staged real-tool execution, output-length normalization, and byte diff validation.
 - Golden evidence: `testdata/golden/standard-merge-gen-flash` owner-approved expected outputs.
 
 Affected workflow:

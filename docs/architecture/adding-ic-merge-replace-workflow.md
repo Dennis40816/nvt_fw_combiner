@@ -99,7 +99,7 @@ Update only the rows that are relevant to the new IC/mode.
 | TP header/write category | `src/NvtFwCombiner.Application/FlashMaps/TpHeaderCatalog.cs` | Add TP header/postbuild write section ids, report labels, overlap priority, and postbuild block-id classification when the IC introduces a new header copy, backup, CRC, or TP window category. Keep this out of planner, UI, and CLI code. |
 | FWConfig metadata reader/catalog | `src/NvtFwCombiner.Application/FlashMaps/FirmwareConfigLayout.cs`, `FirmwareConfigMetadataReader.cs`, and `TpFlashMapCatalog` | Retain the IC's primary FWConfig flash address only for TP Overview/evidence. Every runtime FWConfig value must come from the unique NVT Backup at terminal `T - 0xFFF`; record it in `docs/references/nvt-fwconfig-copy-validation.md` and cross-check exposed primary/Backup fields in golden tests. Do not add a primary fallback. Change layout offsets only through the reviewed layout catalog. |
 | Output naming metadata | `src/NvtFwCombiner.Application/FlashMaps/GenFlashVersionCatalog.cs` and `src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.FirmwareMetadata.cs` | Add DP main/sub contiguous version-byte rules, CMI register evidence when applicable, and FlashCode naming metadata only from owner-approved evidence. UI passes selected slot roles and paths; it must not decide DP/TP version offsets, CMI branches, metadata priority, or date/name format. |
-| CtrlRAM postbuild catalog | `src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.Profiles.cs` for profile rows; `LegacyCombinerPostbuildCatalog.cs` for lookup/category selection | Add structured command sequences, branch rules, staged-file names, firmware block ranges, evidence source, and `CommonFwVersionRule` metadata when one IC has multiple postbuild categories. Never assemble one shell command string. |
+| CtrlRAM postbuild catalog | `profiles/built-in/ctrlram-postbuild-v2/catalog.json` plus `BuiltInPostbuildProfileCatalog` | Add structured command sequences, branch rules, staged-file names, firmware block ranges, evidence source, and Common FW rule metadata. Update the pinned SHA-256 and parity tests; never assemble one shell command string. |
 | External tool manifest | `external-tools/legacy-combiner/.../manifest.json` | Add or update only when a new exact `combiner.exe` binding/version is approved. |
 | Golden manifest | `testdata/golden/standard-merge-gen-flash/manifest.json` or workflow-specific golden folder | Add owner-approved public fixtures only. Use private manifests for confidential firmware evidence. |
 | CtrlRAM golden template | `testdata/golden/ctrlram-replace/manifest.template.json` | Keep required private evidence fields synchronized when adding CtrlRAM Replace coverage. |
@@ -157,7 +157,7 @@ Minimum tests:
 
 1. Add or confirm TP flash-map CtrlRAM rows in `TpFlashMapCatalog`.
 2. Add or confirm TP header/write categories in `TpHeaderCatalog` when postbuild writes new header copy, backup, CRC, or TP window sections.
-3. Add postbuild structured commands in `LegacyCombinerPostbuildCatalog.Profiles.cs` from owner-approved postbuild/mmap evidence.
+3. Add postbuild structured commands in `profiles/built-in/ctrlram-postbuild-v2/catalog.json` from owner-approved postbuild/mmap evidence and update its pinned SHA-256.
 4. Declare Common FW category rules for versioned ICs, then lock selection with catalog tests so unsupported or ambiguous versions fail closed.
 5. Declare IC-number branch rules. Use `single`/`cascade` text choices unless the owner evidence requires numeric 1/2/3 branches.
 6. Ensure selected staged-file blocks map to visible CtrlRAM rows.
@@ -167,7 +167,8 @@ Minimum tests:
 
 Minimum tests:
 
-- `tests/NvtFwCombiner.Application.Tests/ExternalTools/LegacyCombinerPostbuildCatalogTests.cs`
+- `tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/BuiltInPostbuildProfileCatalogTests.cs`
+- the existing Application postbuild planner/command parity tests
 - `tests/NvtFwCombiner.Application.Tests/FlashMaps/TpFlashMapCatalogTests.cs`
 - processor/staging tests for command argv, staged-file seed bytes, changed-range verification, and failure cases
 - UI smoke or CLI tests proving Preview/Build records the postbuild sequence and final artifact hash
@@ -206,7 +207,7 @@ dotnet test tests/NvtFwCombiner.GoldenRegression.Tests/NvtFwCombiner.GoldenRegre
 python scripts/verify.py --all
 ```
 
-For CtrlRAM/postbuild changes, also run the tests covering `LegacyCombinerPostbuildCatalog`, staging processor diff validation, and UI/CLI Preview/Build report surfaces.
+For CtrlRAM/postbuild changes, also run the hash-pinned catalog, planner/argv, staging processor diff validation, and UI/CLI Preview/Build report tests.
 
 ## PR notes checklist
 

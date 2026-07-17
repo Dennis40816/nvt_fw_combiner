@@ -21,9 +21,13 @@ It does not claim Standard Merge parity, DP Replace parity, AB behavior, or Gene
 
 CtrlRAM Replace is implemented as a workbench path with staged postbuild execution, but it is not yet production-cleared for all released ICs.
 
-The owner-confirmed base contract is a TP BIN work image. Product evidence is
-assembled as Initial DP + original TP, TP-only Replace, then Initial DP +
-updated TP. A full FlashCode must not be passed through TP-relative operations.
+The owner-confirmed base contract accepts either a TP BIN work image or a full
+Flash BIN. Both forms execute the same TP-relative replacement and postbuild
+semantics. The current Workbench runs the processor against a host-created
+base clone and enforces declared write ranges, preserving the full-Flash tail.
+The non-routed schema 2.8 candidate narrows this further by staging only the TP
+prefix and reinserting it into the full clone. Undeclared candidate container
+lengths fail closed.
 
 Highlighted conclusion:
 
@@ -76,7 +80,8 @@ All currently classified CtrlRAM self-replacement differences are either known h
 
 Primary files:
 
-- `src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.cs`
+- `profiles/built-in/ctrlram-postbuild-v2/catalog.json`
+- `src/NvtFwCombiner.Infrastructure/ExternalTools/BuiltInPostbuildProfileCatalog.cs`
 - `src/NvtFwCombiner.Application/FlashMaps/TpFlashMapCatalog.cs`
 - `src/NvtFwCombiner.Infrastructure/ExternalTools/LegacyCombinerPostbuildProcessor.cs`
 - `external-tools/legacy-combiner/1.13.0/Combiner.exe`
@@ -108,7 +113,7 @@ base TP work image
 -> host validates changed ranges and imports only approved output bytes
 ```
 
-The current base input is the combiner TP work image size used by the postbuild command offsets. If a future UI or CLI accepts a larger full-flash container, the flow must explicitly slice the owner-confirmed TP range, run this postbuild model on that TP slice, and reinsert the processed TP slice into the full-flash output.
+The base may be the Combiner TP work image or a declared full-Flash container. The V2 prefix contract explicitly slices the owner-confirmed zero-based TP range, runs this postbuild model on that TP slice, and reinserts only the audited TP result into the full clone.
 
 ## Postbuild Catalog Status
 
@@ -350,7 +355,7 @@ If owner later insists on production behavior, treat it as R3 firmware behavior:
 | NT51930 DiffDLM | One 4 KiB target slot has 4,090 mismatching bytes. | Same-run DiffDLM or command/log explaining the supplied variants. |
 | NT51931 incomplete toolchain | Corrected owner BAT depends on missing `InsertSID.py`; existing output has 108 unexplained bytes. | Keep Replace Not Supported. |
 | NT51932 DiffDLM/DiffNFMerge | One 4 KiB target slot has 4,095 mismatching bytes; NF composite is not proven. | Same-run DiffDLM and completed NF output or equivalent log/hash proof. |
-| Full FlashCode input | The owner-confirmed Replace base is TP BIN only. | Reject full FlashCode unless a separate TP slice/reinsert contract is approved. |
+| TP/full-Flash base parity | The schema 2.8 prefix/reinsert contract and NT51926 candidate cover exact `0x3C000` TP and `0x40000` Flash shapes. | Direct expected-output evidence and firmware-owner R3 review remain required before V2 runtime promotion. |
 | Remaining release-scope cases | NT51950 cascade and NT51951 corrected single/cascade remain missing or invalid. | Matching owner inputs/final, command/tool authority, and R3 review. |
 
 ## Update Rules
@@ -361,7 +366,7 @@ Update this report whenever any of these change:
 - a flash-map, mmap, header-copy, CRC/header, or allowed-write range;
 - a real-tool crash, timeout, or stdout/stderr diagnostic;
 - a new owner CtrlRAM Replace golden fixture or expected output;
-- a decision about NT51926, NT51930, NT51931, or full-flash slicing;
+- a decision about NT51926, NT51930, NT51931, or another IC's TP/full-Flash shape;
 - a support claim moves from investigation to release scope.
 
 Each update should record:
@@ -378,5 +383,5 @@ Each update should record:
 As of this report:
 
 ```text
-CtrlRAM Replace execution is traceable and its base contract is TP BIN only, but it is not globally OK for release. The 2026-07-17 owner snapshot closes several completely-missing sample gaps. NT51930/NT51932 composition gaps remain, NT51931 Replace stays Not Supported, and every migrated family still needs owner R3 review before runtime promotion.
+CtrlRAM Replace execution is traceable and its base contract accepts TP BIN or full Flash BIN with the same TP-relative semantics, but it is not globally OK for release. The non-routed V2 candidate makes the TP-prefix boundary explicit. The 2026-07-17 owner snapshot closes several completely-missing sample gaps. NT51930/NT51932 composition gaps remain, NT51931 Replace stays Not Supported, and every migrated family still needs owner R3 review before runtime promotion.
 ```

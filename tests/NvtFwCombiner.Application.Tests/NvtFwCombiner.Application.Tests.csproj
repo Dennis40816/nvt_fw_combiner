@@ -11,6 +11,8 @@
     <ProjectReference Include="..\NvtFwCombiner.TestSupport\NvtFwCombiner.TestSupport.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\NvtFwCombiner.TestSupport\LegacyCombinerPostbuildCatalogAlias.cs"
+             Link="LegacyCombinerPostbuildCatalogAlias.cs" />
     <Compile Include="..\NvtFwCombiner.TestSupport\SyntheticStandardMergeProfile.cs"
              Link="SyntheticStandardMergeProfile.cs" />
   </ItemGroup>

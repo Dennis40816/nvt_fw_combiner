@@ -28,7 +28,7 @@ Each row marked `retire` must link or name:
 | Dynamic General Merge C# profile construction | None. Default General Merge, CLI, and UI route through the registered logical-output V2 profiles for all built-in ICs; persisted saved rules retain only a profile-id compatibility alias | Direct legacy/V2 byte parity for every built-in IC; default-route byte/report/UI/saved-rule regression; no physical-map, processor, CRC, or firmware-support claim | `v0.9.5` | retired in `a9a65b49` (`refactor(general-merge): route default workflow through V2`) |
 | `CompositionProfileCompiler` legacy authority | CtrlRAM and General Replace Workbench profile adapters | Each applicable profile compiles and executes through trusted V2 authority with equivalent report/output behavior | after per-workflow R2/R3 evidence | retain as runtime dependency; the generic Replace CLI compiler adapter is retired |
 | `TpFlashMapCatalog` and `IcMetadataFacade` compatibility projection | CtrlRAM/General Replace planning, UI metadata, number selection, and overview projection | Resolved V2 map/profile facts supply every current caller without copied firmware semantics | after per-workflow evidence | retain as compatibility projection; DP Perspective no longer consumes its duplicate family-fact projection |
-| `LegacyCombinerPostbuildCatalog` | CtrlRAM Replace staged `combiner.exe` postbuild | V2 processor declaration with the same declared staging/read/write ranges, exact tool binding, owner command evidence, and golden output | `v0.9.9`, after R3 owner evidence | migration scope owner-approved 2026-07-15; NT51926 Common FW 1.4.1 cascade cross-route byte parity is proved in `6eb0db6e`, but its independent expected-output golden and firmware-owner review remain open. Retain as processor authority until evidence closes. Legacy Combiner 1.13.0 EXE and constrained runner remain approved exceptions |
+| Static `LegacyCombinerPostbuildCatalog` declarations | None. Bootstrap loads the same typed runtime profiles from the SHA-256-pinned `profiles/built-in/ctrlram-postbuild-v2/catalog.json` data authority | Exact profile/branch/command/block parity, strict unknown-field and argument validation, unchanged staged runner tests | `v0.9.9` | retired; the Legacy Combiner 1.13.0 EXE, typed runtime model, planner, and constrained runner remain approved exceptions. R3 golden/owner gaps still gate support promotion, not this support-neutral data move |
 
 ## v0.9.8 inventory result
 
@@ -42,8 +42,8 @@ open until their listed direct V2 parity evidence exists.
 
 `RemainingCompatibilityAuthoritiesHaveClosedProductionCallerSets` now locks
 the complete production caller allowlist at 2 `CompositionProfileCompiler`,
-10 `TpFlashMapCatalog`, 5 `IcMetadataFacade`, and 4 direct
-`LegacyCombinerPostbuildCatalog` caller files. Any new caller is an architecture
+10 `TpFlashMapCatalog` and 5 `IcMetadataFacade` caller files. Static
+`LegacyCombinerPostbuildCatalog` production callers are forbidden. Any new compatibility caller is an architecture
 failure; each removal must update the allowlist in the same reviewed migration.
 The v0.9.9 ADR 0013 amendment also retired the unbound TP binary root/category
 projection and its `TpFlashMapCatalog` caller while preserving every emitted
@@ -59,15 +59,15 @@ CtrlRAM Workbench compiler route, not the candidate compiler. That runtime
 change remains blocked on the independent expected output and firmware-owner
 review recorded below; this test phase does not route or promote the candidate.
 
-This audit does not change the Legacy Combiner exception. Moving
-`LegacyCombinerPostbuildCatalog` declarations remains R3-gated on the exact
-1.13 command, staging/read/write authority, full-output golden evidence, and
-firmware-owner review.
+This audit does not change the Legacy Combiner exception. The data-authority
+move preserves the exact 1.13 command, staging/read/write authority, and runtime
+route; full-output golden evidence and firmware-owner review still gate support.
 
 The per-consumer replacement conditions, measured deletion surface, retirement
 order, and every currently known R3 owner-evidence gap are recorded in the
 [v0.9.9 legacy retirement evidence inventory](v0.9.9-legacy-retirement-evidence.md).
-That inventory records no currently safe whole-module deletion.
+That inventory records the completed static-catalog deletion and the remaining
+compiler/map/facade cutovers.
 
 ## Non-targets
 

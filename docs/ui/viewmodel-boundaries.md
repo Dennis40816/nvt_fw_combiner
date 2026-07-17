@@ -33,7 +33,7 @@ Firmware-affecting UI data must come from production catalogs or application ser
 ```text
 TpFlashMapCatalog
 WorkbenchCompositionService
-LegacyCombinerPostbuildCatalog
+BuiltInPostbuildProfileCatalog
 ```
 
 Do not place firmware maps, IC choices, number choices, command sequences, or executable workflow state directly in XAML event handlers or Presentation-only hard-coded catalogs.

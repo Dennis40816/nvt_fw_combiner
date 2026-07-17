@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51926-ctrlram-replace",
-  "familyVersion": "0.3.0",
+  "familyVersion": "0.4.0",
   "members": [
     {
       "memberId": "NT51926",
@@ -206,6 +206,31 @@
       "evidenceRefs": [
         "nt51926-common-fw141-postbuild"
       ]
+    },
+    {
+      "regionSetId": "nt51926-full-flash-tail",
+      "addressSpaceId": "flash",
+      "regions": [
+        {
+          "regionId": "full-flash-unmapped-gap",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 245760, "length": 8192 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "full-flash-dp-code",
+          "owner": "dp",
+          "kind": "code",
+          "range": { "start": 253952, "length": 8192 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        }
+      ],
+      "evidenceRefs": [
+        "gen-flash-bin-v2-51926-golden"
+      ]
     }
   ],
   "metadataSets": [
@@ -252,11 +277,33 @@
         "nt51926-common-fw141-postbuild",
         "nt51926-fwconfig-backup-golden"
       ]
+    },
+    {
+      "mapId": "nt51926-ctrlram-fw141-full-flash-256k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [ "NT51926" ],
+        "modeIds": [ "ctrlram-replace" ],
+        "topologyRequirement": { "kind": "none" },
+        "capacityBytes": 262144
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51926-ctrlram-fw141-tp-work",
+        "nt51926-full-flash-tail"
+      ],
+      "metadataSetIds": [ "nt51926-fwconfig-backup-locator" ],
+      "evidenceRefs": [
+        "nt51926-common-fw141-postbuild",
+        "nt51926-fwconfig-backup-golden",
+        "gen-flash-bin-v2-51926-golden"
+      ]
     }
   ],
   "factAliases": [],
   "evidenceRefs": [
     "nt51926-common-fw141-postbuild",
-    "nt51926-fwconfig-backup-golden"
+    "nt51926-fwconfig-backup-golden",
+    "gen-flash-bin-v2-51926-golden"
   ]
 }

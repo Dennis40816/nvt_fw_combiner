@@ -6,16 +6,6 @@ namespace NvtFwCombiner.Application.FlashMaps;
 
 public static partial class TpFlashMapCatalog
 {
-    /// <summary>Gets visible CtrlRAM regions that are consumed by the selected postbuild command plan.</summary>
-    public static IReadOnlyList<TpFlashMapRegion> GetPostbuildMappedCtrlRamRegions(
-        string icId,
-        IcNumberSelection? selection)
-    {
-        return !PostbuildProfilesByIc.TryGetValue(icId, out LegacyCombinerPostbuildProfile? postbuildProfile)
-            ? []
-            : GetPostbuildMappedCtrlRamRegions(icId, selection, postbuildProfile);
-    }
-
     /// <summary>Gets visible CtrlRAM regions that are consumed by a selected postbuild command plan.</summary>
     public static IReadOnlyList<TpFlashMapRegion> GetPostbuildMappedCtrlRamRegions(
         string icId,
@@ -43,7 +33,6 @@ public static partial class TpFlashMapCatalog
         IcNumberSelection? selection,
         LegacyCombinerPostbuildProfile? postbuildProfile)
     {
-        postbuildProfile ??= PostbuildProfilesByIc.GetValueOrDefault(icId);
         if (!ProfilesByIc.TryGetValue(icId, out TpFlashMapProfile? flashMapProfile) ||
             postbuildProfile is null)
         {

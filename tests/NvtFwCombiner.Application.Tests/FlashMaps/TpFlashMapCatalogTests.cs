@@ -47,7 +47,8 @@ public sealed class TpFlashMapCatalogTests
     {
         IReadOnlyList<TpFlashMapRegion> mapped = TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
             "NT51927",
-            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["3"]));
+            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["3"]),
+            LegacyCombinerPostbuildCatalog.Nt51927);
 
         Assert.Contains(mapped, region => region.RegionId == "normal-slave-r");
         Assert.Contains(mapped, region => region.RegionId == "normal-slave-l");
@@ -267,7 +268,8 @@ public sealed class TpFlashMapCatalogTests
             new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
         IReadOnlyList<TpFlashMapRegion> postbuildMapped = TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
             "NT51930",
-            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
+            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]),
+            LegacyCombinerPostbuildCatalog.Nt51930);
 
         Assert.Contains(regions, region => region.RegionId == "mp" && region.Tags.Contains("overview-only"));
         Assert.DoesNotContain(postbuildMapped, region => region.RegionId == "mp");
@@ -328,7 +330,8 @@ public sealed class TpFlashMapCatalogTests
     [Fact]
     public void Nt51930NumberChoicesExposeApprovedCascadeCounts()
     {
-        IReadOnlyList<string> choices = TpFlashMapCatalog.GetNumberChoices("NT51930");
+        IReadOnlyList<string> choices = TpFlashMapCatalog.GetNumberChoices(
+            LegacyCombinerPostbuildCatalog.GetProfiles("NT51930"));
 
         Assert.Contains("single", choices);
         Assert.Contains("13", choices);
@@ -341,9 +344,12 @@ public sealed class TpFlashMapCatalogTests
     [Fact]
     public void NumberSelectionChoicesGroupEquivalentCascadeAliases()
     {
-        IReadOnlyList<IcNumberChoice> nt51932 = TpFlashMapCatalog.GetNumberSelectionChoices("NT51932");
-        IReadOnlyList<IcNumberChoice> nt51927 = TpFlashMapCatalog.GetNumberSelectionChoices("NT51927");
-        IReadOnlyList<IcNumberChoice> nt51930 = TpFlashMapCatalog.GetNumberSelectionChoices("NT51930");
+        IReadOnlyList<IcNumberChoice> nt51932 = TpFlashMapCatalog.GetNumberSelectionChoices(
+            LegacyCombinerPostbuildCatalog.GetProfiles("NT51932"));
+        IReadOnlyList<IcNumberChoice> nt51927 = TpFlashMapCatalog.GetNumberSelectionChoices(
+            LegacyCombinerPostbuildCatalog.GetProfiles("NT51927"));
+        IReadOnlyList<IcNumberChoice> nt51930 = TpFlashMapCatalog.GetNumberSelectionChoices(
+            LegacyCombinerPostbuildCatalog.GetProfiles("NT51930"));
 
         Assert.Equal(
             [
@@ -364,7 +370,10 @@ public sealed class TpFlashMapCatalogTests
                 new IcNumberChoice("3", "3 IC"),
             ],
             nt51927);
-        Assert.Equal(1, TpFlashMapCatalog.GetNumberChoices("NT51932").Count(choice => choice == "single"));
+        Assert.Equal(
+            1,
+            TpFlashMapCatalog.GetNumberChoices(LegacyCombinerPostbuildCatalog.GetProfiles("NT51932"))
+                .Count(choice => choice == "single"));
     }
 
     private static IEnumerable<(LegacyCombinerPostbuildProfile Profile, IcNumberSelection Selection)> AllPostbuildSelections()

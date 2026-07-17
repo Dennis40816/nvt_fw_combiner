@@ -80,6 +80,61 @@ public sealed partial class ReplaceCliCommandTests
         AssertProcessorTrace(buildReport, fixtureCase);
     }
 
+    /// <summary>Locks one CtrlRAM Replace result across TP-only and full-Flash base containers.</summary>
+    [Fact]
+    public async Task Nt51926CtrlRamReplaceAcceptsTpAndFullFlashBasesWithTheSameTpResult()
+    {
+        using var workspace = TempWorkspace.Create();
+        string fixtureRoot = RepositoryPaths.FromRepositoryRoot("testdata", "golden", "ctrlram-replace");
+        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(fixtureRoot, "manifest.json")));
+        JsonElement fixtureCase = manifest.RootElement.GetProperty("cases").EnumerateArray()
+            .Single(item => item.GetProperty("id").GetString() == "nt51926-cascade-self-20260705");
+        string fullFlashPath = RepositoryPaths.ManifestPath(fixtureRoot, fixtureCase.GetProperty("base"));
+        JsonElement replacement = fixtureCase.GetProperty("replacementInputs").EnumerateArray()
+            .Single(item => item.GetProperty("slotId").GetString() == "replace-ctrlram-vn");
+        string vnPath = RepositoryPaths.ManifestPath(fixtureRoot, replacement.GetProperty("file"));
+        byte[] fullFlashBase = File.ReadAllBytes(fullFlashPath);
+        Assert.Equal(0x40000, fullFlashBase.Length);
+        string tpBasePath = workspace.Write("base-tp.bin", fullFlashBase[..0x3C000]);
+        string tpOutputPath = workspace.PathFor("output-tp.bin");
+        string fullFlashOutputPath = workspace.PathFor("output-flash.bin");
+
+        WorkbenchRunResult tpRun = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51926",
+            "cascade",
+            WorkbenchReplaceModes.CtrlRam,
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                [WorkbenchSlotIds.ReplaceBase] = tpBasePath,
+                ["replace-ctrlram-vn"] = vnPath,
+            },
+            build: true,
+            TestContext.Current.CancellationToken,
+            tpOutputPath);
+        WorkbenchRunResult fullFlashRun = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51926",
+            "cascade",
+            WorkbenchReplaceModes.CtrlRam,
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                [WorkbenchSlotIds.ReplaceBase] = fullFlashPath,
+                ["replace-ctrlram-vn"] = vnPath,
+            },
+            build: true,
+            TestContext.Current.CancellationToken,
+            fullFlashOutputPath);
+
+        Assert.True(tpRun.Succeeded, tpRun.ReportJson);
+        Assert.True(fullFlashRun.Succeeded, fullFlashRun.ReportJson);
+        byte[] tpOutput = File.ReadAllBytes(tpOutputPath);
+        byte[] fullFlashOutput = File.ReadAllBytes(fullFlashOutputPath);
+        Assert.Equal(0x3C000, tpOutput.Length);
+        Assert.Equal(0x40000, fullFlashOutput.Length);
+        Assert.Equal(tpOutput, fullFlashOutput[..0x3C000]);
+        Assert.Equal(fullFlashBase[0x3C000..], fullFlashOutput[0x3C000..]);
+        Assert.Equal(fullFlashBase, File.ReadAllBytes(fullFlashPath));
+    }
+
     /// <summary>Verifies CtrlRAM base validation does not describe the input as Flash Code only.</summary>
     [Fact]
     public async Task CtrlRamReplaceUsesGenericBaseFirmwareDiagnostic()

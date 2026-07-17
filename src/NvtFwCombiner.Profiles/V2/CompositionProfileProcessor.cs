@@ -177,7 +177,8 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
         IEnumerable<CompositionProfileStagedSourceBinding> stagedSourceBindings,
         IEnumerable<CompositionProfileStagedArtifactBinding> stagedArtifactBindings,
         string evidenceRef,
-        string schemaVersion = "2.0")
+        string schemaVersion = "2.0",
+        string? targetViewId = null)
         : base(
             processorStageId,
             CompositionProfileProcessorKind.LegacyCombinerV1,
@@ -235,6 +236,14 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
         EvidenceRef = CompositionProfileValueRules.RequireId(evidenceRef, nameof(evidenceRef));
         Purpose = purpose;
         IntegrityDisposition = integrityDisposition;
+        TargetViewId = targetViewId;
+        if (targetViewId is not null && !AllowedReadViewIds.Contains(targetViewId, StringComparer.Ordinal))
+        {
+            throw new ArgumentException(
+                "The Legacy Combiner target view must be declared as readable because its complete bytes enter staging.",
+                nameof(targetViewId));
+        }
+
         StagedSourceBindings = Array.AsReadOnly(_stagedSourceBindings);
         StagedArtifactBindings = Array.AsReadOnly(_stagedArtifactBindings);
     }
@@ -242,6 +251,8 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
     internal string ToolBindingId { get; }
 
     internal string InvocationProfileId { get; }
+
+    internal string? TargetViewId { get; }
 
     internal override CompositionProfileProcessorAuthority Authority =>
         CompositionProfileProcessorAuthority.Transform;

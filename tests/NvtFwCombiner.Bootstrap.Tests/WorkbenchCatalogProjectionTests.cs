@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
 
@@ -18,9 +19,10 @@ public sealed class WorkbenchCatalogProjectionTests
         Assert.Equal("NT51950", WorkbenchCompositionService.GetDefaultIcId());
         foreach (string icId in icIds)
         {
-            Assert.Equal(TpFlashMapCatalog.GetNumberChoices(icId), WorkbenchCompositionService.GetNumberChoices(icId));
+            IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = IcMetadataFacade.GetPostbuildProfiles(icId);
+            Assert.Equal(TpFlashMapCatalog.GetNumberChoices(profiles), WorkbenchCompositionService.GetNumberChoices(icId));
             Assert.Equal(
-                TpFlashMapCatalog.GetNumberSelectionChoices(icId).Select(static choice => (
+                TpFlashMapCatalog.GetNumberSelectionChoices(profiles).Select(static choice => (
                     choice.Token,
                     choice.DisplayLabel)),
                 WorkbenchCompositionService.GetNumberSelectionChoices(icId).Select(static choice => (

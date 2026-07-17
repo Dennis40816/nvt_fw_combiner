@@ -139,7 +139,7 @@ EXPECTED_PROJECT_REFERENCES = {
         "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj", "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj",
     },
     "tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj": set(),
-    "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj": {"src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj"},
+    "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj": {"src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj", "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj"},
     "tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj": {
         "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
         "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj",

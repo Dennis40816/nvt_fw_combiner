@@ -43,7 +43,7 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
         IcNumberSelection selection = new(mode, [selectionToken]);
         TpFlashMapRegion[] mappedRegions =
         [
-            .. TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection)
+            .. TpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(icId, selection, profile)
                 .OrderBy(region => region.Range.Start)
                 .ThenBy(region => region.RegionId, StringComparer.Ordinal),
         ];

@@ -72,22 +72,28 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
     [InlineData("2.2")]
     [InlineData("2.3")]
     [InlineData("2.7")]
+    [InlineData("2.8")]
     public void ProcessorMapsPublishedCombinerToolBindingInVersionedSchemas(string schemaVersion)
     {
         LegacyCombinerProfileProcessorStage stage = Assert.IsType<LegacyCombinerProfileProcessorStage>(
             CompositionProfileNormalizer.NormalizeProcessorStage(
-                Legacy("relocation", "none", toolBindingId: "legacy-combiner-1.13.0"),
+                Legacy(
+                    "relocation",
+                    "none",
+                    toolBindingId: "legacy-combiner-1.13.0",
+                    targetView: schemaVersion == "2.8"),
                 schemaVersion,
                 "processorStages[0]"));
 
         Assert.Equal("legacy-combiner-1.13.0", stage.ToolBindingId);
     }
 
-    /// <summary>Verifies schema 2.7 alone accepts the published dotted legacy Combiner catalog identity.</summary>
+    /// <summary>Verifies schemas 2.7+ accept the published dotted legacy Combiner catalog identity.</summary>
     [Theory]
     [InlineData("2.6", false)]
     [InlineData("2.7", true)]
-    public void ProcessorMapsPublishedLegacyCombinerCatalogIdentityOnlyInV27(
+    [InlineData("2.8", true)]
+    public void ProcessorMapsPublishedLegacyCombinerCatalogIdentityInV27AndLater(
         string schemaVersion,
         bool expectedSuccess)
     {
@@ -98,7 +104,8 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
                     Legacy(
                         "header-and-integrity",
                         "recalculate-and-write",
-                        invocationProfileId: "nfc.nt51926.ctrlram-postbuild-fw1.4.1"),
+                        invocationProfileId: "nfc.nt51926.ctrlram-postbuild-fw1.4.1",
+                        targetView: schemaVersion == "2.8"),
                     schemaVersion,
                     "processorStages[0]"));
             Assert.Equal("nfc.nt51926.ctrlram-postbuild-fw1.4.1", stage.InvocationProfileId);
@@ -113,6 +120,59 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
                     invocationProfileId: "nfc.nt51926.ctrlram-postbuild-fw1.4.1"),
                 schemaVersion,
                 "processorStages[0]"));
+    }
+
+    /// <summary>Verifies schema 2.8 normalizes the processor image prefix view.</summary>
+    [Fact]
+    public void ProcessorMapsLegacyCombinerTargetViewInV28()
+    {
+        LegacyCombinerProfileProcessorStage stage = Assert.IsType<LegacyCombinerProfileProcessorStage>(
+            CompositionProfileNormalizer.NormalizeProcessorStage(
+                Legacy(
+                    "header-and-integrity",
+                    "recalculate-and-write",
+                    targetView: true),
+                "2.8",
+                "processorStages[0]"));
+
+        Assert.Equal("output-image", stage.TargetViewId);
+    }
+
+    /// <summary>Verifies processor target-view presence is an exact schema-version contract.</summary>
+    [Theory]
+    [InlineData("2.7", true)]
+    [InlineData("2.8", false)]
+    public void ProcessorRejectsTargetViewPresenceDrift(string schemaVersion, bool includeTargetView)
+    {
+        CompositionProfileNormalizationException exception = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            CompositionProfileNormalizer.NormalizeProcessorStage(
+                Legacy(
+                    "header-and-integrity",
+                    "recalculate-and-write",
+                    targetView: includeTargetView),
+                schemaVersion,
+                "processorStages[0]"));
+
+        Assert.Equal("processorStages[0].targetViewId", exception.Path);
+    }
+
+    /// <summary>Verifies every byte entering a typed processor staging image is covered by read authority.</summary>
+    [Fact]
+    public void ProcessorRejectsTypedTargetViewOutsideReadAuthority()
+    {
+        CompositionProfileProcessorStageDocument document = Legacy(
+            "header-and-integrity",
+            "recalculate-and-write",
+            targetView: true) with
+        {
+            TargetViewId = "undeclared-read-view",
+        };
+
+        CompositionProfileNormalizationException exception = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            CompositionProfileNormalizer.NormalizeProcessorStage(document, "2.8", "processorStages[0]"));
+
+        Assert.Equal("processorStages[0]", exception.Path);
+        _ = Assert.IsType<ArgumentException>(exception.InnerException, exactMatch: false);
     }
 
     /// <summary>Verifies every legacy purpose maps using an allowed integrity disposition.</summary>
@@ -244,7 +304,8 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
         IReadOnlyList<CompositionProfileStagedArtifactBindingDocument>? artifactBindings = default,
         string? toolBindingId = "combiner-1-13",
         string? evidenceRef = "combiner-evidence",
-        string? invocationProfileId = "profile")
+        string? invocationProfileId = "profile",
+        bool targetView = false)
     {
         return new CompositionProfileProcessorStageDocument(
             "legacy-postbuild",
@@ -260,6 +321,7 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
             InvocationProfileId: invocationProfileId,
             StagedSourceBindings: bindings ?? [],
             EvidenceRef: evidenceRef,
-            StagedArtifactBindings: artifactBindings);
+            StagedArtifactBindings: artifactBindings,
+            TargetViewId: targetView ? "output-image" : null);
     }
 }

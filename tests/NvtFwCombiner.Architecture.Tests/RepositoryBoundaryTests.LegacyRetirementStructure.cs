@@ -26,7 +26,6 @@ public sealed partial class RepositoryBoundaryTests
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.Context.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.Planning.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Display.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.Context.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.Profile.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.cs",
@@ -39,14 +38,14 @@ public sealed partial class RepositoryBoundaryTests
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.FirmwareMetadata.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.Context.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.Planning.cs",
+                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.Context.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Postbuild.cs",
             ]);
+        AssertNoProductionText("LegacyCombinerPostbuildCatalog");
         AssertProductionCallers(
-            "LegacyCombinerPostbuildCatalog",
-            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog",
+            "BuiltInPostbuildProfileCatalog",
+            "src/NvtFwCombiner.Infrastructure/ExternalTools/BuiltInPostbuildProfileCatalog",
             [
-                "src/NvtFwCombiner.Application/FlashMaps/TpFlashMapCatalog.NumberChoices.cs",
-                "src/NvtFwCombiner.Application/FlashMaps/TpFlashMapCatalog.cs",
                 "src/NvtFwCombiner.Bootstrap/ExternalProcessorFactory.cs",
                 "src/NvtFwCombiner.Bootstrap/IcMetadataFacade.cs",
             ]);

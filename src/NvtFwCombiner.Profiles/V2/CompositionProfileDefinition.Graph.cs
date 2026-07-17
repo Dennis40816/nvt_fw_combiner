@@ -383,6 +383,15 @@ internal sealed partial class CompositionProfileDefinition
                 continue;
             }
 
+            if (legacy.TargetViewId is { } targetViewId)
+            {
+                RequireViewInSpace(
+                    targetViewId,
+                    processor.TargetSpaceId,
+                    views,
+                    "Legacy Combiner target view");
+            }
+
             foreach (CompositionProfileStagedSourceBinding binding in legacy.StagedSourceBindings)
             {
                 _ = RequireReference(views, binding.SourceViewId, "Staged source references an unknown view.");

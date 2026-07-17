@@ -129,6 +129,41 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         Assert.Equal(referenceBase, result.OutputBytes.ToArray());
     }
 
+    /// <summary>The full-Flash form stages the same TP prefix and preserves every byte outside that prefix.</summary>
+    [Fact]
+    public async Task CandidateFullFlashStagesTpPrefixAndPreservesContainerTailAsync()
+    {
+        byte[] referenceBase = CreateReferenceImage(FullFlashCapacity);
+        referenceBase.AsSpan(Capacity).Fill(0xA5);
+        byte[] originalTail = referenceBase[Capacity..];
+        CompiledComposition composition = CompileCandidate(referenceBase);
+        CompositionOperation operation = Assert.Single(composition.Plan.OrderedOperations);
+
+        Assert.Equal(FullFlashCapacity, composition.Plan.OutputInitialization.Capacity);
+        Assert.Equal(new ByteRange(0, Capacity), operation.TargetRange);
+        Assert.Equal(
+            "nt51926-ctrlram-fw141-full-flash-256k",
+            composition.V2Details!.Provenance.ResolvedMap.ImageMap.MapId);
+
+        CompositionExecutionResult result = await CompositionEngine.ExecuteAsync(
+            composition.Plan,
+            new CompositionExecutionInput(CreateInputs(referenceBase)),
+            (_, inputBytes, _, _, _) =>
+            {
+                Assert.Equal(Capacity, inputBytes.Length);
+                Assert.Equal(referenceBase.AsSpan(0, Capacity).ToArray(), inputBytes.ToArray());
+                byte[] transformed = inputBytes.ToArray();
+                transformed[0x22800] ^= 0xFF;
+                return ValueTask.FromResult(CompositionExternalProcessorResult.Success(transformed));
+            },
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal(FullFlashCapacity, result.OutputBytes.Length);
+        Assert.Equal(originalTail, result.OutputBytes.Span[Capacity..].ToArray());
+        Assert.Equal((byte)(referenceBase[0x22800] ^ 0xFF), result.OutputBytes.Span[0x22800]);
+    }
+
     /// <summary>The exact TP artifact produces stable, reviewable resolved-map and compilation identities.</summary>
     [Fact]
     public void CandidateFingerprintsAreExactAndRepeatable()
@@ -138,10 +173,10 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         CompiledComposition second = CompileCandidate([.. referenceBase]);
 
         Assert.Equal(
-            "f129bba9a50918370f386c68e6ac2889c566e983dacf885eff6f2225f156c57b",
+            "541305bc954dee015b70fc8c33d07a44c89a5fe7e50b726a933d95fb46e5ebdd",
             first.V2Details!.Provenance.ResolvedMap.ResolutionFingerprint);
         Assert.Equal(
-            "f931394113269d5cc8f35a35836ea56c7779e1d5838e36e91fa91f6753efd8aa",
+            "bf3ce94f55d2a35ce4c88fc47a78e060872fa5e04bbb8945d8bb3345afc2e0c4",
             first.CompilationFingerprint);
         Assert.Equal(
             first.V2Details!.Provenance.ResolvedMap.ResolutionFingerprint,
@@ -149,14 +184,13 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         Assert.Equal(first.CompilationFingerprint, second.CompilationFingerprint);
     }
 
-    /// <summary>The TP-only candidate rejects full Flash and every undeclared neighboring shape.</summary>
+    /// <summary>The candidate accepts only the declared TP and full-Flash container shapes.</summary>
     [Theory]
     [InlineData(Capacity - 1)]
     [InlineData(Capacity + 1)]
     [InlineData(FullFlashCapacity - 1)]
-    [InlineData(FullFlashCapacity)]
     [InlineData(FullFlashCapacity + 1)]
-    public void CandidateRejectsEveryNonTpWorkReferenceLength(int referenceLength)
+    public void CandidateRejectsEveryUndeclaredReferenceLength(int referenceLength)
     {
         V2CompositionPlanCompileResult compilation = CompileCandidateResult(new byte[referenceLength]);
 
@@ -346,7 +380,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             referenceBase);
         return BuiltInV2BundleRegistry.All["nt51926-ctrlram-replace-candidate"].Compile(
             "nt51926-ctrlram-replace-fw141-cascade",
-            "0.3.0",
+            "0.4.0",
             "NT51926",
             ExperienceIds.CtrlRamReplace,
             referenceBase.Length,
@@ -366,9 +400,9 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         };
     }
 
-    private static byte[] CreateReferenceImage()
+    private static byte[] CreateReferenceImage(int length = Capacity)
     {
-        byte[] referenceBase = new byte[Capacity];
+        byte[] referenceBase = new byte[length];
         WriteNvtMarker(referenceBase, NvtMarkerStart);
         return referenceBase;
     }

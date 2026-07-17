@@ -42,7 +42,7 @@ public sealed class IcSupportWorkflowDependencyTests
                      entry.SupportsWorkflow(IcWorkflowIds.CtrlRamReplace)))
         {
             IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = LegacyCombinerPostbuildCatalog.GetProfiles(entry.IcId);
-            IReadOnlyList<string> numberChoices = TpFlashMapCatalog.GetNumberChoices(entry.IcId);
+            IReadOnlyList<string> numberChoices = TpFlashMapCatalog.GetNumberChoices(profiles);
 
             Assert.NotEmpty(profiles);
             Assert.NotEmpty(numberChoices);

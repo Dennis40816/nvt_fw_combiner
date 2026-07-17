@@ -326,6 +326,17 @@ internal static partial class V2CompositionPlanCompiler
         }
 
         AddressSpace targetSpace = spaces[legacy.TargetSpaceId];
+        ByteRange targetRange = legacy.TargetViewId is null
+            ? new ByteRange(0, targetSpace.Length)
+            : views[legacy.TargetViewId].Range;
+        if (targetRange.Start != 0)
+        {
+            AddUnsupported(
+                issues,
+                $"processor stage '{operation.ProcessorStageId}' target view must be a zero-based image prefix",
+                operation.OperationId);
+            return;
+        }
         foreach (string writeViewId in legacy.AllowedWriteViewIds)
         {
             if (!TryAuthorizeTargetWrite(
@@ -393,7 +404,7 @@ internal static partial class V2CompositionPlanCompiler
             operation.OperationId,
             sequence,
             targetSpace.AddressSpaceId,
-            new ByteRange(0, targetSpace.Length),
+            targetRange,
             invocation,
             operation.OverlapPolicy,
             operation.Reason));

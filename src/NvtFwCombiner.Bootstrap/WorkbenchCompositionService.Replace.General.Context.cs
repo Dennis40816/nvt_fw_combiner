@@ -1,5 +1,4 @@
 using NvtFwCombiner.Application.Composition;
-using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -19,7 +18,7 @@ public static partial class WorkbenchCompositionService
         Dictionary<string, string> reportSlotPaths = CreateGeneralReplaceReportSlotPaths(slotPaths, mappingInputs);
         IcNumberSelection selection = ToIcNumberSelection(number);
 
-        if (!TpFlashMapCatalog.IsNumberSelectionSupported(icId, selection))
+        if (!IcMetadataFacade.IsNumberSelectionSupported(icId, selection))
         {
             context = null;
             failure = CreatePlanningRunResult(

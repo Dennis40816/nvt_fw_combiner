@@ -87,7 +87,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("CreateProfileSummary", catalog, StringComparison.Ordinal);
         Assert.Contains("composition.Plan.RequiredInputAddressSpaceIds", catalog, StringComparison.Ordinal);
         Assert.Contains("TpFlashMapCatalog.GetNumberChoices", icMetadata, StringComparison.Ordinal);
-        Assert.Contains("LegacyCombinerPostbuildCatalog.GetProfiles", icMetadata, StringComparison.Ordinal);
+        Assert.Contains("BuiltInPostbuildProfileCatalog.GetProfiles", icMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("BuildMetadata", icMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("internal sealed record IcMetadata(", icMetadata, StringComparison.Ordinal);
         Assert.Contains("WorkbenchDpVersionMetadata? TryReadDpVersionMetadata", firmwareMetadata, StringComparison.Ordinal);

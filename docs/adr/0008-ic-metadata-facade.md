@@ -21,7 +21,7 @@ Keep canonical facts in their existing owned categories:
 - `IcSupportCatalog` owns selectable IC rows, workflow exposure, aliases, and onboarding notes.
 - `TpFlashMapCatalog` owns TP Overview regions and primary FWConfig addresses for inspection and evidence only.
 - `TpHeaderCatalog` owns the stable header, header-copy, CRC, and postbuild section taxonomy used for run-report labels.
-- `LegacyCombinerPostbuildCatalog` owns approved postbuild variants and Common FW category selection.
+- The hash-pinned `profiles/built-in/ctrlram-postbuild-v2/catalog.json` owns approved postbuild variants and Common FW category selection; Infrastructure validates and loads it, and Bootstrap exposes the typed projection.
 - `GenFlashVersionCatalog` remains an independent DP-version extractor. Its in-progress work is intentionally not folded into this decision.
 
 `FirmwareConfigMetadataReader` owns the generic Backup locator used for every runtime FWConfig value: it finds one unambiguous `00 4E 56 54` NVT end flag and reads the Backup at terminal `T - 0xFFF`. Missing or ambiguous markers fail closed and there is no primary-address fallback. `TpFlashMapCatalog` retains a primary FWConfig address only for TP Overview inspection and golden cross-check evidence; it is not a metadata source, a public FWConfig address, or a runtime prerequisite.

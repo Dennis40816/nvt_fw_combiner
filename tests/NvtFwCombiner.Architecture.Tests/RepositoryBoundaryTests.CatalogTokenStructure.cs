@@ -182,7 +182,6 @@ public sealed partial class RepositoryBoundaryTests
     {
         string domainTokens = ReadText("src/NvtFwCombiner.Domain/Composition/IcNumberSelectionTokens.cs");
         string flashMapChoices = ReadText("src/NvtFwCombiner.Application/FlashMaps/TpFlashMapCatalog.NumberChoices.cs");
-        string postbuildHelpers = ReadText("src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.Helpers.cs");
         string postbuildProfile = ReadText("src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildProfile.cs");
         string workbenchTokens = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchIcNumberTokens.cs");
         string workbenchSelections = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchIcNumberSelections.cs");
@@ -193,8 +192,6 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public const string Cascade = \"cascade\"", domainTokens, StringComparison.Ordinal);
         Assert.Contains("IcNumberSelectionTokens.SingleChip", flashMapChoices, StringComparison.Ordinal);
         Assert.Contains("IcNumberSelectionTokens.Cascade", flashMapChoices, StringComparison.Ordinal);
-        Assert.Contains("IcNumberSelectionTokens.SingleChip", postbuildHelpers, StringComparison.Ordinal);
-        Assert.Contains("IcNumberSelectionTokens.Cascade", postbuildHelpers, StringComparison.Ordinal);
         Assert.Contains("IcNumberSelectionTokens.SingleChip", postbuildProfile, StringComparison.Ordinal);
         Assert.Contains("IcNumberSelectionTokens.Cascade", postbuildProfile, StringComparison.Ordinal);
         Assert.Contains("public const string SingleChip = IcNumberSelectionTokens.SingleChip;", workbenchTokens, StringComparison.Ordinal);
@@ -202,8 +199,6 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("WorkbenchIcNumberTokens.SingleChip", presentationBindings, StringComparison.Ordinal);
         Assert.DoesNotContain("\"single\"", flashMapChoices, StringComparison.Ordinal);
         Assert.DoesNotContain("\"cascade\"", flashMapChoices, StringComparison.Ordinal);
-        Assert.DoesNotContain("\"single\"", postbuildHelpers, StringComparison.Ordinal);
-        Assert.DoesNotContain("\"cascade\"", postbuildHelpers, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies shared composition engine issue codes stay Domain-owned.</summary>

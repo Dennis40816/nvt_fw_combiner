@@ -8,16 +8,17 @@ namespace NvtFwCombiner.Application.FlashMaps;
 public static partial class TpFlashMapCatalog
 {
     /// <summary>Returns true when at least one approved postbuild profile accepts the selection.</summary>
-    public static bool IsNumberSelectionSupported(string icId, IcNumberSelection selection)
+    public static bool IsNumberSelectionSupported(
+        IcNumberSelection selection,
+        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentNullException.ThrowIfNull(selection);
+        ArgumentNullException.ThrowIfNull(profiles);
         if (selection.Parts.Count == 0)
         {
             return false;
         }
 
-        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = LegacyCombinerPostbuildCatalog.GetProfiles(icId);
         if (profiles.Count == 0)
         {
             return IcNumberSelectionTokens.IsSingle(selection.Parts[^1]);
@@ -28,15 +29,15 @@ public static partial class TpFlashMapCatalog
     }
 
     /// <summary>Gets UI number choices from the postbuild branches available for an IC.</summary>
-    public static IReadOnlyList<string> GetNumberChoices(string icId)
+    public static IReadOnlyList<string> GetNumberChoices(IReadOnlyList<LegacyCombinerPostbuildProfile> profiles)
     {
-        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = LegacyCombinerPostbuildCatalog.GetProfiles(icId);
+        ArgumentNullException.ThrowIfNull(profiles);
         IReadOnlyList<string> numericChoices = GetNumericNumberChoices(profiles);
         return numericChoices.Count > 0
             ? [IcNumberSelectionTokens.SingleChip, .. numericChoices]
-            : !PostbuildProfilesByIc.TryGetValue(icId, out LegacyCombinerPostbuildProfile? profile)
+            : profiles.Count == 0
             ? [IcNumberSelectionTokens.SingleChip]
-            : profile.TwoChipCommands is not null || profile.ThreeChipCommands is not null
+            : profiles[0].TwoChipCommands is not null || profiles[0].ThreeChipCommands is not null
             ? [IcNumberSelectionTokens.SingleChip, "2", "3"]
             : [IcNumberSelectionTokens.SingleChip, IcNumberSelectionTokens.Cascade];
     }
@@ -46,9 +47,10 @@ public static partial class TpFlashMapCatalog
     /// Raw legacy aliases remain available through <see cref="GetNumberChoices"/> for callers that
     /// need to validate a serialized request; the workbench should render these options instead.
     /// </summary>
-    public static IReadOnlyList<IcNumberChoice> GetNumberSelectionChoices(string icId)
+    public static IReadOnlyList<IcNumberChoice> GetNumberSelectionChoices(
+        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles)
     {
-        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = LegacyCombinerPostbuildCatalog.GetProfiles(icId);
+        ArgumentNullException.ThrowIfNull(profiles);
         if (profiles.Count == 0)
         {
             return [new IcNumberChoice(IcNumberSelectionTokens.SingleChip, "1 IC")];

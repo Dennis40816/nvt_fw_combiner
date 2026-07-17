@@ -1,4 +1,4 @@
-# Composition Profile Contract 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, and 2.7
+# Composition Profile Contract 2.0 through 2.8
 
 The executable schemas are [`composition-profile-v2.schema.json`](composition-profile-v2.schema.json)
 [`composition-profile-v2.1.schema.json`](composition-profile-v2.1.schema.json), and
@@ -7,7 +7,8 @@ The executable schemas are [`composition-profile-v2.schema.json`](composition-pr
 [`composition-profile-v2.4.schema.json`](composition-profile-v2.4.schema.json), and
 [`composition-profile-v2.5.schema.json`](composition-profile-v2.5.schema.json), and
 [`composition-profile-v2.6.schema.json`](composition-profile-v2.6.schema.json), and
-[`composition-profile-v2.7.schema.json`](composition-profile-v2.7.schema.json). A trusted bundle
+[`composition-profile-v2.7.schema.json`](composition-profile-v2.7.schema.json), and
+[`composition-profile-v2.8.schema.json`](composition-profile-v2.8.schema.json). A trusted bundle
 selects one exact schema snapshot through its manifest content hash. They are the only declarative
 workflow policy compiled for Normal, AB, General, Merge, Replace, saved rules, and future Register work.
 
@@ -159,6 +160,16 @@ allows source-only legacy postbuild plans to remain declarative. Schema 2.7 also
 published `nfc.` legacy Combiner catalog grammar, including its dot-version suffixes; arbitrary
 processor identifiers remain invalid.
 
+Schema 2.8 gives every `legacy-combiner-v1` stage a zero-based `targetViewId`. The target view may
+cover the entire output or a prefix. Prefix
+processing clones the complete reference container, stages only that prefix, imports only the audited
+processor result, and preserves all bytes after the prefix. Nonzero subranges remain forbidden. This
+is the TP-BIN/full-Flash convergence contract in
+[ADR 0024](../adr/0024-ctrlram-tp-and-flash-base-convergence.md); it does not promote a candidate or
+replace firmware-owner golden review. Exact ordered Combiner command facts remain selected by the
+closed `invocationProfileId` and are loaded from the separately hash-pinned built-in Postbuild data
+catalog; the composition profile does not duplicate that command table.
+
 ## Input size policy
 
 Every input declares an `artifactClass` and a closed length policy. `tp-firmware` uses either
@@ -219,9 +230,10 @@ is fixed to `calculate`, checksum purpose, and zero write views; it may verify e
 cannot transform bytes. `legacy-combiner-v1` references an approved tool binding and invocation
 profile and is fixed to `transform` with at least one write view. Its integrity disposition is
 `recalculate-and-write`, or evidence-backed `none` for a non-integrity transform. Neither variant can
-contain a path, command, argument template, script, or arbitrary parameter object. Transform
-execution uses a host-created staging copy, and the host rejects changed bytes outside the allowed
-write views. `unknown` cannot appear in this contract.
+contain a path, script, arbitrary parameter object, or caller-provided command. Transform execution uses a host-created staging
+copy, and the host rejects changed bytes outside the allowed write views. The staged target is either
+the complete image or an explicitly declared zero-based prefix; bytes after a prefix are retained by
+the engine-owned clone. `unknown` cannot appear in this contract.
 
 ## Promotion
 

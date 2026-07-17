@@ -24,7 +24,8 @@ This note does not approve new byte behavior, support exposure, or relaxed write
 
 Repository evidence used:
 
-- `src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildCatalog.cs`
+- `profiles/built-in/ctrlram-postbuild-v2/catalog.json`
+- `src/NvtFwCombiner.Infrastructure/ExternalTools/BuiltInPostbuildProfileCatalog.cs`
 - `src/NvtFwCombiner.Application/FlashMaps/TpFlashMapCatalog.cs`
 - `profiles/built-in/*-standard-merge/` and `src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs`
 - `testdata/golden/standard-merge-gen-flash/manifest.json`
@@ -113,7 +114,7 @@ base TP work image
 
 Representative real-tool smoke tests confirmed the old pre-pasted work-image model and the current staged-source model produce identical output for NT51920, NT51923, NT51926, NT51927, and NT51950. Therefore the workbench path uses the cleaner staged-source model.
 
-The current workbench input is still the Combiner TP work image size used by the postbuild command offsets. If future UI input is a larger full-flash container, the flow must first slice the owner-confirmed TP range, run this postbuild model on that TP slice, and then reinsert the processed TP slice into the full-flash output.
+The base may be the Combiner TP work image or a declared full-Flash container. The V2 prefix contract clones the complete base, slices the owner-confirmed zero-based TP range for this postbuild model, and reinserts only the audited TP result; bytes after the TP prefix remain unchanged.
 
 ## Current Per-IC Conclusions
 

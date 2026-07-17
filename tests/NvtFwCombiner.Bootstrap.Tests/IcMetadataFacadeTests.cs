@@ -16,10 +16,11 @@ public sealed class IcMetadataFacadeTests
 
         foreach (IcSupportEntry support in IcSupportCatalog.All)
         {
+            IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = IcMetadataFacade.GetPostbuildProfiles(support.IcId);
             Assert.True(IcMetadataFacade.IsKnown(support.IcId));
-            Assert.Equal(TpFlashMapCatalog.GetNumberChoices(support.IcId), IcMetadataFacade.GetNumberChoices(support.IcId));
+            Assert.Equal(TpFlashMapCatalog.GetNumberChoices(profiles), IcMetadataFacade.GetNumberChoices(support.IcId));
             Assert.Equal(
-                TpFlashMapCatalog.GetNumberSelectionChoices(support.IcId),
+                TpFlashMapCatalog.GetNumberSelectionChoices(profiles),
                 IcMetadataFacade.GetNumberSelectionChoices(support.IcId));
             Assert.Equal(
                 LegacyCombinerPostbuildCatalog.GetProfiles(support.IcId),

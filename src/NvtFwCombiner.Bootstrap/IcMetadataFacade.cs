@@ -1,5 +1,7 @@
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -26,7 +28,7 @@ internal static class IcMetadataFacade
     public static IReadOnlyList<string> GetNumberChoices(string icId)
     {
         return IsKnown(icId)
-            ? TpFlashMapCatalog.GetNumberChoices(IcSupportCatalog.NormalizeIcId(icId))
+            ? TpFlashMapCatalog.GetNumberChoices(GetPostbuildProfiles(icId))
             : [];
     }
 
@@ -34,14 +36,20 @@ internal static class IcMetadataFacade
     public static IReadOnlyList<IcNumberChoice> GetNumberSelectionChoices(string icId)
     {
         return IsKnown(icId)
-            ? TpFlashMapCatalog.GetNumberSelectionChoices(IcSupportCatalog.NormalizeIcId(icId))
+            ? TpFlashMapCatalog.GetNumberSelectionChoices(GetPostbuildProfiles(icId))
             : [];
     }
 
     /// <summary>Gets the approved postbuild category variants for a selectable IC.</summary>
     public static IReadOnlyList<LegacyCombinerPostbuildProfile> GetPostbuildProfiles(string icId)
     {
-        return IsKnown(icId) ? LegacyCombinerPostbuildCatalog.GetProfiles(IcSupportCatalog.NormalizeIcId(icId)) : [];
+        return IsKnown(icId) ? BuiltInPostbuildProfileCatalog.GetProfiles(IcSupportCatalog.NormalizeIcId(icId)) : [];
+    }
+
+    /// <summary>Returns whether a profile-backed IC-number token selects an approved postbuild branch.</summary>
+    public static bool IsNumberSelectionSupported(string icId, IcNumberSelection selection)
+    {
+        return IsKnown(icId) && TpFlashMapCatalog.IsNumberSelectionSupported(selection, GetPostbuildProfiles(icId));
     }
 
     /// <summary>Returns true when support policy exposes CtrlRAM Replace for the selected IC.</summary>
@@ -64,7 +72,7 @@ internal static class IcMetadataFacade
             return false;
         }
 
-        return LegacyCombinerPostbuildCatalog.TrySelectProfileForCommonFwVersion(
+        return BuiltInPostbuildProfileCatalog.TrySelectProfileForCommonFwVersion(
             IcSupportCatalog.NormalizeIcId(icId),
             commonFwVersion,
             out postbuildProfile,
@@ -77,7 +85,7 @@ internal static class IcMetadataFacade
         out LegacyCombinerPostbuildProfile? postbuildProfile)
     {
         postbuildProfile = null;
-        return IsKnown(icId) && LegacyCombinerPostbuildCatalog.TryGetDefaultProfile(
+        return IsKnown(icId) && BuiltInPostbuildProfileCatalog.TryGetDefaultProfile(
             IcSupportCatalog.NormalizeIcId(icId),
             out postbuildProfile);
     }

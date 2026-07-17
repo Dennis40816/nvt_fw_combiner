@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "2.7",
+  "schemaVersion": "2.8",
   "profileId": "nt51926-ctrlram-replace-fw141-cascade",
-  "profileVersion": "0.3.0",
+  "profileVersion": "0.4.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
@@ -40,9 +40,12 @@
   },
   "mapBinding": {
     "familyId": "nt51926-ctrlram-replace",
-    "familyVersion": "0.3.0",
-    "familyContentHash": "6088a2a5e3c7aa52c1e5f31aae921fbbda68f772434c2c539bd2675806b0e047",
-    "mapIds": [ "nt51926-ctrlram-fw141-tp-work-240k" ],
+    "familyVersion": "0.4.0",
+    "familyContentHash": "a7a96d4512009d93bbc3af581232e3e8f54dc817d605fd3b65a0b91acc6d71ab",
+    "mapIds": [
+      "nt51926-ctrlram-fw141-tp-work-240k",
+      "nt51926-ctrlram-fw141-full-flash-256k"
+    ],
     "requiredRegionIds": [
       "flash-image",
       "normal-ctrlram",
@@ -219,6 +222,7 @@
       "toolBindingId": "legacy-combiner-1.13.0",
       "invocationProfileId": "nfc.nt51926.ctrlram-postbuild-fw1.4.1",
       "targetSpaceId": "output-image",
+      "targetViewId": "output-tp-work-image",
       "authority": "transform",
       "purpose": "header-and-integrity",
       "integrityDisposition": "recalculate-and-write",

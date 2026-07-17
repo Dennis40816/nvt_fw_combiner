@@ -164,7 +164,7 @@ public sealed partial class RepositoryBoundaryTests
                          StringComparison.Ordinal))
             {
                 Assert.Equal(
-                    "composition-profile-v2.7.schema.json",
+                    "composition-profile-v2.8.schema.json",
                     Assert.Single(bundle.Elements("CompositionProfileSchemaFile")).Value);
             }
             else
