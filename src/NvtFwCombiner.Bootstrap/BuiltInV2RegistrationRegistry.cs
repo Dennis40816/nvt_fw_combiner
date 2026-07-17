@@ -74,10 +74,6 @@ internal sealed class BuiltInV2Registration
         BuiltInV2Bundle bundle,
         CompositionKind compositionKind)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(profileVersion);
-        ArgumentNullException.ThrowIfNull(bundle);
         if (compositionKind is not (CompositionKind.Merge or CompositionKind.Replace))
         {
             throw new ArgumentOutOfRangeException(nameof(compositionKind));
