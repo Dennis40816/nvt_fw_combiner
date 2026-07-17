@@ -31,11 +31,20 @@ ANSI_ESCAPE_PATTERN = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 def normalize_console_output(output: str) -> str:
     """Remove terminal styling and line wrapping before message assertions."""
 
-    return " ".join(ANSI_ESCAPE_PATTERN.sub("", output).split())
+    unstyled_output = ANSI_ESCAPE_PATTERN.sub("", output)
+    return " ".join(unstyled_output.replace("|", " ").split())
 
 
 class ReleasePackagePolicyTests(unittest.TestCase):
     """Exercises the packager and smoke policy without building release binaries."""
+
+    def test_console_output_normalization_removes_powershell_formatting(self) -> None:
+        output = "\x1b[31mowner-approved maximum\x1b[0m\n| 58076715 bytes"
+
+        self.assertEqual(
+            "owner-approved maximum 58076715 bytes",
+            normalize_console_output(output),
+        )
 
     def run_powershell(
         self, script: Path, *arguments: str
