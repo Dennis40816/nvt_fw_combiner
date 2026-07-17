@@ -33,7 +33,7 @@ public sealed partial class ShellViewModelTests
             segment.RangeLabel == "0x315D0-0x32C2F (len 0x1660)");
     }
 
-    /// <summary>Verifies CtrlRAM base copy accepts TP FW or a complete Flash Code without filename inference.</summary>
+    /// <summary>Verifies CtrlRAM base wording scopes TP FW and Flash Code admission to the selected IC/profile.</summary>
     [Fact]
     public void CtrlRamBaseSlotUsesGenericFirmwareWording()
     {
@@ -42,8 +42,12 @@ public sealed partial class ShellViewModelTests
         var traditionalChinese = ShellTextResources.For(ShellLanguage.ChineseTraditional);
 
         Assert.Equal("Base firmware BIN", viewModel.ReplaceBaseSlot.Title);
+        Assert.Contains("When the selected IC/profile supports it", viewModel.Text.CtrlRamInputFilesDetail, StringComparison.Ordinal);
         Assert.Contains("TP FW or a complete Flash Code", viewModel.Text.CtrlRamInputFilesDetail, StringComparison.Ordinal);
+        Assert.Contains("僅在選定的 IC/profile 支援時", traditionalChinese.CtrlRamInputFilesDetail, StringComparison.Ordinal);
         Assert.Contains("TP FW 或完整 Flash Code", traditionalChinese.CtrlRamInputFilesDetail, StringComparison.Ordinal);
+        Assert.DoesNotContain("base flash", viewModel.Text.CtrlRamInputFilesDetail, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("base flash", traditionalChinese.CtrlRamInputFilesDetail, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("FlashCode", viewModel.Text.CtrlRamFirmwareVersionCurrentLabel, StringComparison.Ordinal);
         Assert.DoesNotContain("FlashCode", traditionalChinese.CtrlRamFirmwareVersionSourceDetail, StringComparison.Ordinal);
         Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "Base firmware BIN");
@@ -114,7 +118,11 @@ public sealed partial class ShellViewModelTests
 
         Assert.Contains(viewModel.ReplaceCoverageGroups, group =>
             group.Title == "Base firmware" &&
-            group.Summary.Contains("base flash BIN", StringComparison.Ordinal));
+            group.Summary.Contains("base firmware BIN", StringComparison.Ordinal));
+        Assert.DoesNotContain(viewModel.ReplaceCoverageSegments, segment =>
+            segment.SourceLabel.Contains("Base flash", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(viewModel.ReplaceMemoryRows, row =>
+            row.BeforeSource.Contains("Base flash", StringComparison.OrdinalIgnoreCase));
         Assert.All(viewModel.ReplaceCoverageGroups, group =>
         {
             Assert.DoesNotContain("preserv", group.ChangeSummary, StringComparison.OrdinalIgnoreCase);

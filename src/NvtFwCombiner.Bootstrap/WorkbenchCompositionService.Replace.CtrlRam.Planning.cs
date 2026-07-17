@@ -38,7 +38,7 @@ public static partial class WorkbenchCompositionService
                 null,
                 [],
                 [],
-                $"Split original {region.DisplayName} from base flash for postbuild staging."));
+                $"Split original {region.DisplayName} from the base firmware BIN for postbuild staging."));
             sequence += 10;
 
             if (slotPaths.ContainsKey(slotId))
