@@ -18,7 +18,8 @@ public sealed partial class ShellViewModelTests
 
         Assert.Contains(viewModel.ReplaceSlots, slot =>
             slot.SlotId == "replace-ctrlram-vn" &&
-            slot.Description.Contains("len 0x149E", StringComparison.Ordinal));
+            slot.Description.Contains("VN_Ctrlram.bin", StringComparison.Ordinal) &&
+            slot.Description.Contains("max 5278 bytes", StringComparison.Ordinal));
 
         viewModel.SetSlotFile("replace-base", basePath);
 
@@ -27,7 +28,8 @@ public sealed partial class ShellViewModelTests
             region.SizeHex == "len 0x1660");
         Assert.Contains(viewModel.ReplaceSlots, slot =>
             slot.SlotId == "replace-ctrlram-vn" &&
-            slot.Description.Contains("len 0x1660", StringComparison.Ordinal));
+            slot.Description.Contains("VN_Ctrlram.bin", StringComparison.Ordinal) &&
+            slot.Description.Contains("max 5728 bytes", StringComparison.Ordinal));
         Assert.Contains(viewModel.ReplaceCoverageSegments, segment =>
             segment.SourceLabel == "VN CtrlRAM" &&
             segment.RangeLabel == "0x315D0-0x32C2F (len 0x1660)");

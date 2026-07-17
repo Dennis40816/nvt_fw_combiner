@@ -114,20 +114,21 @@ public sealed partial class ShellViewModelTests
         });
     }
 
-    /// <summary>Verifies DP Replace hides LDC except for the NT51928 evidence-backed slot.</summary>
+    /// <summary>Verifies Standard Merge LDC evidence does not promote NT51927/NT51928 to DP Replace support.</summary>
     [Fact]
-    public void DpReplaceSlotsExposeLdcOnlyForNt51928()
+    public void DpReplaceSlotsStayClosedForNonV2Ics()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
         viewModel.SelectedIc = "NT51927";
         viewModel.ShowDpReplaceCommand.Execute(null);
 
-        Assert.DoesNotContain(viewModel.ReplaceSlots, slot => slot.Title.Contains("LDC", StringComparison.Ordinal));
+        Assert.Equal(["Base flash BIN"], viewModel.ReplaceSlots.Select(slot => slot.Title));
 
         viewModel.SelectedIc = "NT51928";
 
-        Assert.Contains(viewModel.ReplaceSlots, slot => slot.Title == "LDC replacement BIN");
+        Assert.Equal(["Base flash BIN"], viewModel.ReplaceSlots.Select(slot => slot.Title));
+        Assert.Contains("Not Supported", viewModel.ReplaceReadinessStatus, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies NT51950 DP Replace restores only TP bytes while customer information follows replacement DP.</summary>
