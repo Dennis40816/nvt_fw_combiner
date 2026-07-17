@@ -2,7 +2,7 @@
 
 Status: living investigation report, not a production support claim.
 Owner gate: firmware-owner confirmation is still required before CtrlRAM Replace is declared OK for release.
-Last updated: 2026-07-05.
+Last updated: 2026-07-17.
 
 This file is the current single place to update CtrlRAM Replace experiment results and conclusions until the workflow is formally accepted. Lower-level notes may keep raw details, but status, blockers, and final interpretation should be reflected here.
 
@@ -20,6 +20,10 @@ It does not claim Standard Merge parity, DP Replace parity, AB behavior, or Gene
 ## Current Summary
 
 CtrlRAM Replace is implemented as a workbench path with staged postbuild execution, but it is not yet production-cleared for all released ICs.
+
+The owner-confirmed base contract is a TP BIN work image. Product evidence is
+assembled as Initial DP + original TP, TP-only Replace, then Initial DP +
+updated TP. A full FlashCode must not be passed through TP-relative operations.
 
 Highlighted conclusion:
 
@@ -52,6 +56,9 @@ Known stable conclusions:
 - NT51926 and NT51930 postbuild-category selection is implemented in Preview/Build and in workbench/UI slot/range display after a base BIN is loaded, but not production-closed until matching expected golden outputs and firmware-owner parity review are complete.
 - NT51930 Common FW 1.x keeps numeric `2..29` on the approved cascade command shape with `DiffDLM` length `0xFE00`. The earlier `0x23000` section is archived evidence only and must not execute without new owner approval.
 - NT51931 is not closed.
+- The 2026-07-17 owner-approved snapshot supplies single/cascade evidence for
+  NT51920/NT51923 and 1.4.1 NT51926, single evidence for NT51927/NT51929, and
+  diagnostic inputs for NT51930/NT51931/NT51932. It does not promote support.
 
 Do not use this stronger conclusion:
 
@@ -79,6 +86,7 @@ Primary files:
 - `docs/references/ic-flashmap/IC_FlashMap_20260705.xlsx`
 - `testdata/golden/standard-merge-gen-flash/manifest.json`
 - `testdata/golden/ctrlram-replace/manifest.json`
+- `testdata/golden/ctrlram-replace/manifest.20260717.json`
 
 Supporting notes:
 
@@ -108,15 +116,15 @@ The current base input is the combiner TP work image size used by the postbuild 
 | --- | --- | --- | --- |
 | NT51917 | NT51927 alias: `MERGE_MODE` + `NT51927BASED_GEN_CRC_MODE CRC32` | owner alias confirmation | Alias only; direct CtrlRAM Replace golden still optional evidence. |
 | NT51919 | NT51929/NT51932 alias: `NT51932BASED_NORMAL_MODE CRC8` | owner alias confirmation | Alias only; direct CtrlRAM Replace golden still optional evidence. |
-| NT51920 | `CRC_Enable` | inspected BAT | Catalog and 16-byte drift understood. |
-| NT51923 | `CRC_Enable` | inspected BAT | Catalog and 16-byte drift understood. |
-| NT51926 | `CRC_Enable` | inspected 1.4.1/2.0.0 BAT + 2026-07-05 fixtures | Workbench selects `1.4.1` or `2.0.0` profile from base FWConfig Common FW version. Current 2026-07-05 base reads `1.4.1` and report trace locks the `0x32F50` header-copy target. Expected final output is still owner-gated. |
-| NT51927 | `MERGE_MODE` + `NT51927BASED_GEN_CRC_MODE CRC32` | inspected BAT + 2026-07-05 fixtures | 2-chip/3-chip self-replacement differences are CRC/header-word based; matching branch expected outputs still needed for parity promotion. |
+| NT51920 | `CRC_Enable` | inspected BAT + 2026-07-17 owner snapshot | Single/cascade formal payload bytes match their declared targets; owner command/range review remains. |
+| NT51923 | `CRC_Enable` | inspected BAT + 2026-07-17 owner snapshot | Single/cascade formal payload bytes match their declared targets; owner command/range review remains. |
+| NT51926 | `CRC_Enable` | inspected 1.4.1/2.0.0 BAT + owner snapshots | Workbench selects from TP FWConfig. The 1.4.1 single/cascade payloads match; 2.0.0 evidence remains separate. |
+| NT51927 | `MERGE_MODE` + `NT51927BASED_GEN_CRC_MODE CRC32` | inspected BAT + owner snapshots | Single has direct real-tool evidence and TP-only product replay; two/three-chip residuals remain confined to header/CRC ranges. |
 | NT51928 non-NB | NT51927 alias flow | owner alias confirmation | Non-NB only; NB is not covered. |
-| NT51929 | `NT51932BASED_NORMAL_MODE CRC8` | inspected BAT / owner model + tracked same-product AB case | Standard sample has 16-byte CRC drift. The AB first half has direct same-product NF/Normal/VN byte equality and 15-byte Header CRC/Header Copy CRC drift; it is fact-scoped evidence, not a standalone single golden or runtime promotion. |
-| NT51930 | `NT51930BASED_NORMAL_MODE CRC8` | inspected 1.4.0/2.0.0 BAT + 51930 golden | Workbench selects `1.x.x` or `2.0.0` profile from base FWConfig Common FW version. Current 51930 golden reads `1.3.0`, so it maps to the archived `1.4.0` command shape. The `1.x` profile keeps numeric cascade `2..29` on the approved `0xFE00` range. CtrlRAM expected output is still owner-gated. |
-| NT51931 | official BAT: `NT51930BASED_NORMAL_MODE CRC8` | inspected BAT | Official shape crashes with Combiner 1.13.0; `NT51931BASED_NORMAL_MODE` is only a diagnostic trial so far. |
-| NT51932 | `NT51932BASED_NORMAL_MODE CRC8` | inspected BAT | Catalog and 16-byte drift understood. |
+| NT51929 | `NT51932BASED_NORMAL_MODE CRC8` | inspected BAT + 2026-07-17 owner snapshot | A true non-AB single expected output now exists; its NF/Normal/VN target bytes match. The AB half is not the single golden. |
+| NT51930 | `NT51930BASED_NORMAL_MODE CRC8` | inspected BAT + 2026-07-17 owner snapshot | NF/Normal/MP/VN match, but one DiffDLM 4 KiB slot has 4,090 mismatches; not closed. |
+| NT51931 | owner BAT: `NT51931BASED_NORMAL_MODE CRC8` | 2026-07-17 owner BAT | BAT consumes only `0xC800` DiffDLM bytes and calls missing `InsertSID.py`; prior run still has 108 unexplained bytes. Replace stays Not Supported. |
+| NT51932 | `NT51932BASED_NORMAL_MODE CRC8` | inspected BAT + 2026-07-17 owner snapshot | Normal/VN/NF prefix match, but DiffDLM has a 4,095-byte mismatch and the completed DiffNFMerge NF is not proven. |
 | NT51950 | `NT51950BASED_NORMAL_MODE CRC8` | inspected BAT | Catalog and 16-byte drift understood. |
 | NT51951 | NT51950 alias flow | owner alias confirmation | Catalog and 16-byte drift understood through alias. |
 
@@ -236,7 +244,10 @@ TP Overview evidence notes:
   | NT51950 / NT51951 | FW Information for Host | `[0x36000,0x36FFC)` | `fw-information-host`, protected traceability row; not backup |
 
 - Allowed-write ranges must follow the selected postbuild command's full declared CRC/header/header-copy blocks. Do not carve a PID byte out of a declared header-copy block; CtrlRAM Replace does not run a separate Insert PID stage, and any PID-byte drift inside a wrong-version header-copy target is part of the postbuild-version mismatch evidence.
-- NT51931 remains a separate workbook note: official `NT51930BASED_NORMAL_MODE` with Combiner 1.13.0 crashes in current evidence, while `NT51931BASED_NORMAL_MODE` is diagnostic only until owner confirms it.
+- NT51931 remains fail-closed. The newest owner BAT corrects the intended mode
+  to `NT51931BASED_NORMAL_MODE` and the DiffDLM consumption to `0xC800`, but
+  also depends on a missing `InsertSID.py`; the existing 108-byte drift is not
+  resolved.
 
 NT51927 flash-header cross-check:
 
@@ -245,14 +256,14 @@ NT51927 flash-header cross-check:
 - Observed changed words align with 16-byte descriptor CRC positions (`descriptor + 0x0C`), including split 3-chip diff ranges where one byte in a 4-byte word happened to match.
 - Synthetic sentinel replacement confirmed the real Combiner 1.13.0 path can update additional 3-chip main-header CRC words that self-replacement did not necessarily surface.
 
-### 4. NT51931 official crash and `NT51931BASED` diagnostic
+### 4. NT51931 corrected command evidence, incomplete toolchain
 
 Current repo reference for NT51931 is `1.3.0`, not `2.0.0`:
 
 - `docs/references/ic-flashmap/mmap/51931_1.3.0_mmap.h`
 - `docs/references/ic-flashmap/postbuild/PostbuildSetup_51931_1.3.0.bat`
 
-Official BAT-shaped command:
+The earlier repository BAT-shaped command was:
 
 ```text
 Combiner.exe NT51930BASED_NORMAL_MODE CRC8 ...
@@ -268,7 +279,7 @@ STDERR=<empty>
 DiffBytes=0
 ```
 
-Diagnostic trial:
+The 2026-07-17 owner BAT instead declares:
 
 ```text
 Combiner.exe NT51931BASED_NORMAL_MODE CRC8 ...
@@ -298,9 +309,13 @@ Changed ranges from the diagnostic run:
 Interpretation:
 
 - `NT51931BASED_NORMAL_MODE` avoids the crash with Combiner 1.13.0.
+- The owner BAT consumes `0xC800` bytes from DiffDLM rather than the previously
+  modeled `0x17C00` and calls `InsertSID.py` before Combiner.
+- `InsertSID.py` and its produced input state are absent from the evidence.
 - The 108-byte drift is in main header / `0x1DA30` header-copy area, but it is not CRC-only.
 - This resembles a header-copy target state issue, not a finished proof that production should use `NT51931BASED_NORMAL_MODE`.
-- Changing production catalog from official BAT shape to `NT51931BASED_NORMAL_MODE` requires owner approval or owner-provided 931 postbuild evidence.
+- Correcting diagnostic facts does not unlock runtime support. NT51931
+  CtrlRAM Replace remains Not Supported.
 
 ### 5. Header-copy `0xFF` prefill mode assessment
 
@@ -331,12 +346,12 @@ If owner later insists on production behavior, treat it as R3 firmware behavior:
 
 | Blocker | Impact | Needed evidence/decision |
 | --- | --- | --- |
-| NT51926 expected output | Version-detected profile selection, category-aware UI ranges, and versioned TP Overview rows are implemented, but support cannot be promoted from execution to parity. | Owner expected final output for the `1.4.1` fixture. |
-| NT51927 multi-chip branch parity | Current 2-chip/3-chip fixture outputs differ only at CRC/header words, but no expected final output exists. | Matching owner 2-chip/3-chip postbuild-clean expected outputs if those branches are in release scope. |
-| NT51930 expected output | Version-detected profile selection, MP consumption, the approved `1.x` numeric cascade range, and TP Overview category notes are implemented, but support cannot be promoted from execution to parity. | Owner CtrlRAM Replace expected output for a `1.x.x` base and any `2.0.0` base selected for release. |
-| NT51931 official command crash | Official inspected BAT shape crashes with Combiner 1.13.0. | Correct combiner version/tool hash, compatible input/header state, or owner approval to use `NT51931BASED_NORMAL_MODE`. |
-| Full-flash versus TP-work-image input | Current workbench assumes TP work image offsets. | Owner-confirmed TP slice/reinsert contract if base input may be larger full flash. |
-| Private expected outputs | Current fixtures mostly prove execution and classification, not final parity. | For each released IC/mode: base, replacement BINs, final expected output, tool version/hash, command log, and output hash. |
+| NT51926 2.0.0 | 1.4.1 single/cascade expected outputs and inputs are present. | 2.0.0 single/cascade evidence or explicit v0.9.9 scope exclusion. |
+| NT51930 DiffDLM | One 4 KiB target slot has 4,090 mismatching bytes. | Same-run DiffDLM or command/log explaining the supplied variants. |
+| NT51931 incomplete toolchain | Corrected owner BAT depends on missing `InsertSID.py`; existing output has 108 unexplained bytes. | Keep Replace Not Supported. |
+| NT51932 DiffDLM/DiffNFMerge | One 4 KiB target slot has 4,095 mismatching bytes; NF composite is not proven. | Same-run DiffDLM and completed NF output or equivalent log/hash proof. |
+| Full FlashCode input | The owner-confirmed Replace base is TP BIN only. | Reject full FlashCode unless a separate TP slice/reinsert contract is approved. |
+| Remaining release-scope cases | NT51950 cascade and NT51951 corrected single/cascade remain missing or invalid. | Matching owner inputs/final, command/tool authority, and R3 review. |
 
 ## Update Rules
 
@@ -363,5 +378,5 @@ Each update should record:
 As of this report:
 
 ```text
-CtrlRAM Replace workbench execution is implemented and traceable, but CtrlRAM Replace is not yet globally OK for release. NT51926/NT51930 postbuild-version selection is implemented in the workbench path. The remaining blockers are NT51926/NT51930 expected outputs, NT51931 official-command crash or mode decision, and owner-approved final expected outputs for every release-scope IC/mode.
+CtrlRAM Replace execution is traceable and its base contract is TP BIN only, but it is not globally OK for release. The 2026-07-17 owner snapshot closes several completely-missing sample gaps. NT51930/NT51932 composition gaps remain, NT51931 Replace stays Not Supported, and every migrated family still needs owner R3 review before runtime promotion.
 ```
