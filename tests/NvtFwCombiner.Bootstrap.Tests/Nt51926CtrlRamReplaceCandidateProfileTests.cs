@@ -10,7 +10,8 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Compilable, non-routed evidence for the NT51926 Common FW 1.4.1 cascade CtrlRAM postbuild plan.</summary>
 public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
 {
-    private const int Capacity = 0x40000;
+    private const int Capacity = 0x3C000;
+    private const int FullFlashCapacity = 0x40000;
     private const int FirmwareConfigBackupStart = 0x3B000;
     private const int NvtMarkerStart = FirmwareConfigBackupStart + 0xFFC;
 
@@ -20,18 +21,20 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
     [Fact]
     public void CandidateProfileCompilesTheLegacyCascadeStagingAndWriteAuthority()
     {
-        byte[] referenceBase = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
-        Assert.Equal(Capacity, referenceBase.Length);
+        byte[] fullFlash = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
+        Assert.Equal(FullFlashCapacity, fullFlash.Length);
+        byte[] referenceBase = fullFlash[..Capacity];
         CompiledComposition composition = CompileCandidate(referenceBase);
+        CompositionOperation processorOperation = Assert.Single(composition.Plan.OrderedOperations);
         ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(
-            Assert.Single(composition.Plan.OrderedOperations).ExternalProcessorInvocation);
+            processorOperation.ExternalProcessorInvocation);
         LegacyCombinerPostbuildCommandPlan legacyPlan = LegacyCombinerPostbuildPlanner.CreatePlan(
             LegacyCombinerPostbuildCatalog.Nt51926CommonFw141,
             new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
 
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
-        Assert.Equal("nt51926-ctrlram-fw141-256k", details.Provenance.ResolvedMap.ImageMap.MapId);
+        Assert.Equal("nt51926-ctrlram-fw141-tp-work-240k", details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, details.Provenance.Promotion.Stage);
         Assert.Equal(
             ["direct-golden-evidence", "firmware-owner-review", "runtime-route"],
@@ -48,6 +51,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             FirmwareConfigBackupStart,
             backup.LocatorOutcome.SelectedMarkerStart!.Value + 3 - 0xFFF);
         Assert.Equal(Capacity, composition.Plan.OutputInitialization.Capacity);
+        Assert.Equal(new ByteRange(0, Capacity), processorOperation.TargetRange);
         Assert.Equal("nfc.nt51926.ctrlram-postbuild-fw1.4.1", invocation.ProcessorId);
         Assert.Equal("legacy-combiner-1.13.0", invocation.ToolBindingId);
         Assert.Equal([new ByteRange(0, Capacity)], invocation.AllowedReadRanges);
@@ -65,6 +69,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
                 new ByteRange(0x3B000, 0x800),
             ],
             invocation.AllowedWriteRanges);
+        Assert.Equal(0x3B800, invocation.AllowedWriteRanges.Max(static range => range.EndExclusive));
         Assert.Equal(
             [
                 ("normal-ctrlram-input", new ByteRange(0, 0x2C00), new ByteRange(0x22800, 0x2C00)),
@@ -90,6 +95,70 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
                             block.SourceOffset == 0);
     }
 
+    /// <summary>The shared executor passes only the exact TP work image to the processor and returns that clone.</summary>
+    [Fact]
+    public async Task CandidateProcessorReceivesAndReturnsOnlyTheExactTpWorkImageAsync()
+    {
+        byte[] referenceBase = CreateReferenceImage();
+        CompiledComposition composition = CompileCandidate(referenceBase);
+        bool invoked = false;
+
+        CompositionExecutionResult result = await CompositionEngine.ExecuteAsync(
+            composition.Plan,
+            new CompositionExecutionInput(CreateInputs(referenceBase)),
+            (_, inputBytes, _, _, _) =>
+            {
+                invoked = true;
+                Assert.Equal(Capacity, inputBytes.Length);
+                Assert.Equal(referenceBase, inputBytes.ToArray());
+                return ValueTask.FromResult(CompositionExternalProcessorResult.Success(inputBytes));
+            },
+            CancellationToken.None);
+
+        Assert.True(invoked);
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal(Capacity, result.OutputBytes.Length);
+        Assert.Equal(referenceBase, result.OutputBytes.ToArray());
+    }
+
+    /// <summary>The exact TP artifact produces stable, reviewable resolved-map and compilation identities.</summary>
+    [Fact]
+    public void CandidateFingerprintsAreExactAndRepeatable()
+    {
+        byte[] referenceBase = CreateReferenceImage();
+        CompiledComposition first = CompileCandidate(referenceBase);
+        CompiledComposition second = CompileCandidate([.. referenceBase]);
+
+        Assert.Equal(
+            "f129bba9a50918370f386c68e6ac2889c566e983dacf885eff6f2225f156c57b",
+            first.V2Details!.Provenance.ResolvedMap.ResolutionFingerprint);
+        Assert.Equal(
+            "3a4443de70c42e784c3b6c941992ff512ffeb508b48ff21cc38715bbd5cc1e49",
+            first.CompilationFingerprint);
+        Assert.Equal(
+            first.V2Details!.Provenance.ResolvedMap.ResolutionFingerprint,
+            second.V2Details!.Provenance.ResolvedMap.ResolutionFingerprint);
+        Assert.Equal(first.CompilationFingerprint, second.CompilationFingerprint);
+    }
+
+    /// <summary>The TP-only candidate rejects full Flash and every undeclared neighboring shape.</summary>
+    [Theory]
+    [InlineData(Capacity - 1)]
+    [InlineData(Capacity + 1)]
+    [InlineData(FullFlashCapacity - 1)]
+    [InlineData(FullFlashCapacity)]
+    [InlineData(FullFlashCapacity + 1)]
+    public void CandidateRejectsEveryNonTpWorkReferenceLength(int referenceLength)
+    {
+        V2CompositionPlanCompileResult compilation = CompileCandidateResult(new byte[referenceLength]);
+
+        Assert.False(compilation.IsCompiled);
+        Assert.Null(compilation.CompiledComposition);
+        Assert.Contains(
+            compilation.Issues,
+            static issue => issue.Code == "profile.v2.compile.map-capacity-unavailable");
+    }
+
     /// <summary>Verifies CtrlRAM-only oversize normalization is declared while the candidate remains outside runtime admission.</summary>
     [Fact]
     public async Task CandidatePlanTruncatesOnlyCtrlRamInputsBeforeHostStagingAsync()
@@ -106,6 +175,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             (_, inputBytes, stagedSources, _, _) =>
             {
                 invoked = true;
+                Assert.Equal(Capacity, inputBytes.Length);
                 ExternalProcessorStagedSource normalBinding = Assert.Single(
                     stagedSources,
                     static binding => binding.FirmwareRange == new ByteRange(0x22800, 0x2C00));
@@ -161,11 +231,11 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         return WorkbenchCompositionService.CompileNt51926CtrlRamReplaceV2Candidate(referenceBase);
     }
 
-    private static Dictionary<string, byte[]> CreateInputs()
+    private static Dictionary<string, byte[]> CreateInputs(byte[]? referenceBase = null)
     {
         return new Dictionary<string, byte[]>(StringComparer.Ordinal)
         {
-            ["reference-base"] = CreateReferenceImage(),
+            ["reference-base"] = referenceBase ?? CreateReferenceImage(),
             ["normal-ctrlram-input"] = new byte[0x2C00],
             ["diff-ctrlram-input"] = new byte[0x2800],
             ["mp-ctrlram-input"] = new byte[0x2400],
