@@ -165,14 +165,6 @@ public sealed partial class HexEditorByteCellViewModel : ObservableObject
     [ObservableProperty]
     public partial string EditValue { get; set; }
 
-    /// <summary>Inline validation text, shown only after a rejected direct edit.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasInlineValidationMessage))]
-    public partial string InlineValidationMessage { get; set; } = string.Empty;
-
-    /// <summary>True when the inline editor should render its validation state.</summary>
-    public bool HasInlineValidationMessage => !string.IsNullOrWhiteSpace(InlineValidationMessage);
-
     /// <summary>True when this cell is editable current work-buffer data.</summary>
     public bool IsEditable => !IsReference;
 

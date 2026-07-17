@@ -48,28 +48,6 @@
   </StackPanel>
 </DataTemplate>
 
-<DataTemplate x:Key="ReportTriageRowTemplate" DataType="vm:ReportLineViewModel">
-  <Grid ColumnDefinitions="26,*" ColumnSpacing="10" Margin="0,0,0,10">
-    <Grid>
-      <Border Width="2" HorizontalAlignment="Center" Background="{DynamicResource NfcInfoSurfaceStrongBrush}" />
-      <Border
-          Width="18"
-          Height="18"
-          HorizontalAlignment="Center"
-          VerticalAlignment="Top"
-          Background="{DynamicResource NfcAccentSurfaceSubtleBrush}"
-          BorderBrush="{DynamicResource NfcAccentBorderBrush}"
-          BorderThickness="1"
-          CornerRadius="{DynamicResource NfcPillCornerRadius}" />
-    </Grid>
-    <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace2}">
-      <TextBlock FontSize="{DynamicResource NfcFontSize12}" FontWeight="SemiBold" Foreground="{DynamicResource NfcInfoTextStrongBrush}" Text="{Binding Title}" TextWrapping="Wrap" />
-      <TextBlock Classes="panelTitle" Text="{Binding Detail}" TextWrapping="Wrap" />
-      <TextBlock Classes="captionText" Text="{Binding Meta}" TextWrapping="Wrap" />
-    </StackPanel>
-  </Grid>
-</DataTemplate>
-
 <DataTemplate x:Key="ReportIssueRowTemplate" DataType="vm:ReportLineViewModel">
   <Border Padding="10,8" Background="{DynamicResource NfcWarningSurfaceBrush}" BorderBrush="{DynamicResource NfcWarningBorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource NfcCompactCornerRadius}" Margin="0,8,0,0">
     <StackPanel Spacing="{DynamicResource NfcSpace2}">

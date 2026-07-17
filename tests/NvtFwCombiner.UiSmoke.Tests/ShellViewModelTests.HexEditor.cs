@@ -131,7 +131,6 @@ public sealed partial class ShellViewModelTests
 
         Assert.True(editor.IsInlineEditActive);
         Assert.True(cell.IsEditing);
-        Assert.NotEmpty(cell.InlineValidationMessage);
         Assert.False(editor.CanSave);
     }
 

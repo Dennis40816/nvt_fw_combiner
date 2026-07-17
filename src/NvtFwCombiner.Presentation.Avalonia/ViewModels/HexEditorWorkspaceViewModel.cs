@@ -314,7 +314,6 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
 
         SelectByte(cell);
         cell.EditValue = cell.ValueHex;
-        cell.InlineValidationMessage = string.Empty;
         cell.IsEditing = true;
         _activeInlineEdit = cell;
         OnPropertyChanged(nameof(IsInlineEditActive));
@@ -330,7 +329,6 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
         RawBinaryEditorOperationResult result = _session.OverwriteByte(cell.Address, cell.EditValue);
         if (!result.Succeeded)
         {
-            cell.InlineValidationMessage = DescribeIssue(result.Issue!);
             return;
         }
 
@@ -348,7 +346,6 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
         }
 
         cell.EditValue = cell.ValueHex;
-        cell.InlineValidationMessage = string.Empty;
         cell.IsEditing = false;
         if (ReferenceEquals(_activeInlineEdit, cell))
         {

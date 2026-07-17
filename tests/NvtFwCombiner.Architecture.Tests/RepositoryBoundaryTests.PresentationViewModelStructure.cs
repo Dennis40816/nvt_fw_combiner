@@ -136,6 +136,20 @@ public sealed partial class RepositoryBoundaryTests
         string templates = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportTemplates.axaml");
         Assert.DoesNotContain("ReportEvidenceChipTemplate", templates, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportTriageRowTemplate", templates, StringComparison.Ordinal);
+    }
+
+    /// <summary>Prevents unbound memory-coverage and hex-cell projections from returning.</summary>
+    [Fact]
+    public void PresentationOmitsUnboundCoverageAndHexCellState()
+    {
+        string coverage = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageSegmentViewModel.cs");
+        string hexCell = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/HexEditorViewportViewModels.cs");
+
+        Assert.DoesNotContain("TooltipText", coverage, StringComparison.Ordinal);
+        Assert.DoesNotContain("InlineValidationMessage", hexCell, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies non-critical local UI stores share one JSON and atomic-promotion mechanism.</summary>
