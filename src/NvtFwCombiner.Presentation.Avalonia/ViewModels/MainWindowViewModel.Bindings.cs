@@ -66,7 +66,7 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets the independent General Replace base firmware slot.</summary>
     public FirmwareSlotViewModel ReplaceBaseSlot { get; } = new(
         ReplaceBaseSlotId,
-        "Base flash BIN",
+        "Base firmware BIN",
         "Reference firmware image before replacement",
         kind: FirmwareSlotKind.Base);
 
