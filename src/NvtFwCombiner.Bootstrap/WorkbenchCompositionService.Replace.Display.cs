@@ -97,12 +97,6 @@ public static partial class WorkbenchCompositionService
             };
     }
 
-    /// <summary>Gets TP Overview address coverage text for the selected Replace context.</summary>
-    public static string GetReplaceMemoryRangeLabel(string icId, string number)
-    {
-        return GetReplaceMemoryRangeLabel(icId, number, replaceMode: string.Empty);
-    }
-
     /// <summary>Gets TP Overview address coverage text for the selected Replace context and mode.</summary>
     public static string GetReplaceMemoryRangeLabel(
         string icId,

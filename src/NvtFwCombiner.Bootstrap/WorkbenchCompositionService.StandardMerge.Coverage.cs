@@ -4,12 +4,6 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    /// <summary>Gets final visual coverage segments for the selected Standard Merge profile.</summary>
-    public static IReadOnlyList<WorkbenchMemoryCoverageSegment> GetStandardMergeCoverageSegments(string icId)
-    {
-        return GetStandardMergeCoverageSegments(icId, dpInputLength: null);
-    }
-
     /// <summary>Gets final visual coverage segments for the selected Standard Merge profile and DP input length.</summary>
     public static IReadOnlyList<WorkbenchMemoryCoverageSegment> GetStandardMergeCoverageSegments(
         string icId,

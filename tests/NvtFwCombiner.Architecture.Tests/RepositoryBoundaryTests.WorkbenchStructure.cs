@@ -115,12 +115,15 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("RunStandardMergeAsync", standardMerge, StringComparison.Ordinal);
         Assert.DoesNotContain("GetStandardMergeMemoryMapRows", standardMerge, StringComparison.Ordinal);
         Assert.Contains("GetStandardMergeMemoryMapRows", standardMergeDisplay, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(standardMergeDisplay, "public static IReadOnlyList<WorkbenchMemoryMapRow> GetStandardMergeMemoryMapRows("));
         Assert.DoesNotContain("GetStandardMergeCoverageSegments", standardMergeDisplay, StringComparison.Ordinal);
         Assert.DoesNotContain("private static bool TryResolveStandardMergeProfileForDisplay", standardMergeDisplay, StringComparison.Ordinal);
         Assert.Contains("TryCompileStandardMerge", standardMergeDisplay, StringComparison.Ordinal);
         Assert.Contains("GetStandardMergeCoverageSegments", standardMergeCoverage, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(standardMergeCoverage, "public static IReadOnlyList<WorkbenchMemoryCoverageSegment> GetStandardMergeCoverageSegments("));
         Assert.Contains("TryCompileStandardMerge", standardMergeCoverage, StringComparison.Ordinal);
         Assert.Contains("GetStandardMergeMemoryRangeLabel", standardMergeDisplayProfile, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(standardMergeDisplayProfile, "public static string GetStandardMergeMemoryRangeLabel("));
         Assert.DoesNotContain("TryResolveStandardMergeProfileForDisplay", standardMergeDisplayProfile, StringComparison.Ordinal);
         Assert.Contains("TryCompileStandardMerge", standardMergeDisplayProfile, StringComparison.Ordinal);
         Assert.Contains("RunStandardMergeAsync", standardMergeRun, StringComparison.Ordinal);
@@ -153,6 +156,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("TpFlashMapCatalog.GetCtrlRamRegions", ctrlRamDisplay, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateFlashCodeOutputFileName", ctrlRamDisplay, StringComparison.Ordinal);
         Assert.Contains("GetReplaceMemoryMapRows", replaceDisplay, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(replaceDisplay, "public static string GetReplaceMemoryRangeLabel("));
         Assert.Contains("GetReplaceMemoryRangeLabel", replaceDisplay, StringComparison.Ordinal);
         Assert.DoesNotContain("GetReplaceCoverageSegments", replaceDisplay, StringComparison.Ordinal);
         Assert.Contains("GetReplaceCoverageSegments", replaceCoverage, StringComparison.Ordinal);

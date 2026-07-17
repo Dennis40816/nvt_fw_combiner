@@ -4,12 +4,6 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    /// <summary>Gets output address coverage text for the selected Standard Merge profile.</summary>
-    public static string GetStandardMergeMemoryRangeLabel(string icId)
-    {
-        return GetStandardMergeMemoryRangeLabel(icId, dpInputLength: null);
-    }
-
     /// <summary>Gets output address coverage text for the selected Standard Merge profile and DP input length.</summary>
     public static string GetStandardMergeMemoryRangeLabel(string icId, long? dpInputLength)
     {

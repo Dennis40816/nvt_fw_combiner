@@ -4,12 +4,6 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    /// <summary>Gets readable memory-map rows for the selected Standard Merge profile.</summary>
-    public static IReadOnlyList<WorkbenchMemoryMapRow> GetStandardMergeMemoryMapRows(string icId)
-    {
-        return GetStandardMergeMemoryMapRows(icId, dpInputLength: null);
-    }
-
     /// <summary>Gets readable memory-map rows for the selected Standard Merge profile and DP input length.</summary>
     public static IReadOnlyList<WorkbenchMemoryMapRow> GetStandardMergeMemoryMapRows(string icId, long? dpInputLength)
     {
