@@ -12,7 +12,7 @@ from pathlib import Path, PurePosixPath
 SCRIPTS = Path(__file__).resolve().parents[2] / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
-from validate_repository import validate_repository_external_tool_manifests
+from external_tool_policy import validate_repository_external_tool_manifests
 
 
 class ExternalToolPolicyTests(unittest.TestCase):
