@@ -1,6 +1,3 @@
-using System.Security.Cryptography;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 
@@ -10,12 +7,6 @@ internal static class BuiltInPostbuildProfileCatalog
 {
     private const string RelativePath = "profiles/built-in/ctrlram-postbuild-v2/catalog.json";
     private const string ExpectedSha256 = "6fac2fd083c1f9438acdedf0753e9cd6b3af0a7716b47848669e017c08f819fa";
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = false,
-        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
-    };
     private static readonly Lazy<IReadOnlyList<LegacyCombinerPostbuildProfile>> Profiles = new(Load);
 
     internal static IReadOnlyList<LegacyCombinerPostbuildProfile> All => Profiles.Value;
@@ -31,22 +22,11 @@ internal static class BuiltInPostbuildProfileCatalog
         ReadOnlySpan<byte> bytes,
         string expectedSha256)
     {
-        string actualHash = Convert.ToHexStringLower(SHA256.HashData(bytes));
-        if (!StringComparer.Ordinal.Equals(actualHash, expectedSha256))
-        {
-            throw new InvalidDataException($"Built-in CtrlRAM Postbuild catalog hash mismatch: {actualHash}.");
-        }
-
-        CatalogDocument document;
-        try
-        {
-            document = JsonSerializer.Deserialize<CatalogDocument>(bytes, JsonOptions) ??
-                throw new InvalidDataException("Built-in CtrlRAM Postbuild catalog is empty.");
-        }
-        catch (JsonException exception)
-        {
-            throw new InvalidDataException("Built-in CtrlRAM Postbuild catalog JSON is invalid.", exception);
-        }
+        CatalogDocument document = PinnedJsonCatalogLoader.Load<CatalogDocument>(
+            bytes,
+            expectedSha256,
+            "Built-in CtrlRAM Postbuild catalog",
+            "Built-in CtrlRAM Postbuild catalog is empty.");
         if (document.SchemaVersion != "2.0" || document.Profiles is null)
         {
             throw new InvalidDataException("Built-in CtrlRAM Postbuild catalog must use schema 2.0 with profiles.");

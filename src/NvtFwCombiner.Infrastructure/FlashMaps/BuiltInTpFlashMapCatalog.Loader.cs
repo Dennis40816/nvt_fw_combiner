@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
@@ -10,13 +8,6 @@ internal static partial class BuiltInTpFlashMapCatalog
 {
     private const string RelativePath = "profiles/built-in/ctrlram-postbuild-v2/flash-map.json";
     private const string ExpectedSha256 = "db4f9c2bcb07085c4995eef8ec846ba33b3d0bb2a5298cd961a659e75e6d3afa";
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = false,
-        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
-    };
-
     private static IReadOnlyList<TpFlashMapProfile> LoadProfiles()
     {
         string path = Path.Combine(AppContext.BaseDirectory, RelativePath.Replace('/', Path.DirectorySeparatorChar));
@@ -25,22 +16,11 @@ internal static partial class BuiltInTpFlashMapCatalog
 
     internal static IReadOnlyList<TpFlashMapProfile> Load(ReadOnlySpan<byte> bytes, string expectedSha256)
     {
-        string actualHash = Convert.ToHexStringLower(SHA256.HashData(bytes));
-        if (!StringComparer.Ordinal.Equals(actualHash, expectedSha256))
-        {
-            throw new InvalidDataException($"Built-in TP flash-map catalog hash mismatch: {actualHash}.");
-        }
-
-        CatalogDocument document;
-        try
-        {
-            document = JsonSerializer.Deserialize<CatalogDocument>(bytes, JsonOptions) ??
-                throw Invalid("empty document");
-        }
-        catch (JsonException exception)
-        {
-            throw new InvalidDataException("Built-in TP flash-map catalog JSON is invalid.", exception);
-        }
+        CatalogDocument document = PinnedJsonCatalogLoader.Load<CatalogDocument>(
+            bytes,
+            expectedSha256,
+            "Built-in TP flash-map catalog",
+            "Built-in TP flash-map catalog has invalid empty document.");
 
         if (document.SchemaVersion != "1.0" || document.Profiles is null)
         {
