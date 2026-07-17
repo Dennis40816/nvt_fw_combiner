@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -24,6 +25,13 @@ APPROVED_EXTERNAL_TOOL_PATHS = (
 )
 POWERSHELL = shutil.which("pwsh") or shutil.which("powershell")
 MAXIMUM_PACKAGE_BYTES = 58_076_715
+ANSI_ESCAPE_PATTERN = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+
+
+def normalize_console_output(output: str) -> str:
+    """Remove terminal styling and line wrapping before message assertions."""
+
+    return " ".join(ANSI_ESCAPE_PATTERN.sub("", output).split())
 
 
 class ReleasePackagePolicyTests(unittest.TestCase):
@@ -131,7 +139,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn(
             "exceeds the owner-approved maximum 58076715 bytes",
-            result.stdout + result.stderr,
+            normalize_console_output(result.stdout + result.stderr),
         )
 
     @unittest.skipUnless(
