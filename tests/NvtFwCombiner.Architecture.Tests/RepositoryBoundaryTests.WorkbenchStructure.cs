@@ -67,6 +67,7 @@ public sealed partial class RepositoryBoundaryTests
         string mergeCli = ReadText("src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.cs");
         string mergeUi = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Merge.cs");
         string firmwareMetadata = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.FirmwareMetadata.cs");
+        string workbenchModels = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionModels.cs");
         string outputNaming = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.OutputNaming.cs");
         string ctrlRamDisplay = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.CtrlRamDisplay.cs");
         string replaceDisplay = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Display.cs");
@@ -89,6 +90,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("LegacyCombinerPostbuildCatalog.GetProfiles", icMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("BuildMetadata", icMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("internal sealed record IcMetadata(", icMetadata, StringComparison.Ordinal);
+        Assert.Contains("GenFlashDpVersionMetadata? TryReadDpVersionMetadata", firmwareMetadata, StringComparison.Ordinal);
+        Assert.Contains("CmiDpCodeMetadata? TryReadCmiDpCodeMetadata", firmwareMetadata, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchDpVersionMetadata", workbenchModels, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchCmiDpCodeMetadata", workbenchModels, StringComparison.Ordinal);
         Assert.DoesNotContain("ToRunProfile", common, StringComparison.Ordinal);
         Assert.Contains("CompositionRunRequest request = new(", runner, StringComparison.Ordinal);
         Assert.DoesNotContain("CompiledCompositionRunAdapter", runner, StringComparison.Ordinal);

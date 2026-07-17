@@ -53,32 +53,6 @@ public sealed record WorkbenchFirmwareContextSuggestion(
     string CommonFwVersion,
     ushort ProjectId);
 
-/// <summary>DP version facts read using gen_flash standard-merge contiguous main/sub version-byte rules.</summary>
-public sealed record WorkbenchDpVersionMetadata(
-    string IcId,
-    string Prefix,
-    string VersionToken,
-    string DisplayVersion,
-    long MainInputReadOffset,
-    long SubInputReadOffset,
-    long OutputMainAbsoluteAddress,
-    long OutputSubAbsoluteAddress,
-    string EvidenceSource);
-
-/// <summary>CMI DP register facts used for Jira traceability and non-blocking payload-size diagnostics.</summary>
-public sealed record WorkbenchCmiDpCodeMetadata(
-    string IcId,
-    byte MajorVersionByte,
-    byte MinorVersionNibble,
-    ushort JiraNumber,
-    string? JiraBadge,
-    int PayloadLength,
-    IReadOnlyList<int> ExpectedPayloadLengths,
-    bool HasPayloadLengthWarning,
-    long Register16Offset,
-    long Register18Offset,
-    string EvidenceSource);
-
 /// <summary>One selected firmware path candidate used by output naming metadata policy.</summary>
 public sealed record WorkbenchOutputNameCandidate(
     WorkbenchOutputNameCandidateKind Kind,

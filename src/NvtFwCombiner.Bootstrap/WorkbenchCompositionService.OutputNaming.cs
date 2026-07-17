@@ -1,4 +1,5 @@
 using System.Globalization;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -41,10 +42,11 @@ public static partial class WorkbenchCompositionService
                 continue;
             }
 
-            WorkbenchDpVersionMetadata? metadata = TryReadDpVersionMetadata(icId, candidate.Path);
-            if (!string.IsNullOrWhiteSpace(metadata?.VersionToken))
+            GenFlashDpVersionMetadata? metadata = TryReadDpVersionMetadata(icId, candidate.Path);
+            if (metadata is GenFlashDpVersionMetadata value &&
+                !string.IsNullOrWhiteSpace(value.VersionToken))
             {
-                return metadata.VersionToken;
+                return value.VersionToken;
             }
         }
 

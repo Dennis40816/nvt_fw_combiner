@@ -181,12 +181,12 @@ public sealed class WorkbenchCompositionServiceTests
 
         Assert.Null(WorkbenchCompositionService.TryReadCmiDpCodeMetadata("NT51950", dpPath));
 
-        WorkbenchCmiDpCodeMetadata? metadata = WorkbenchCompositionService.TryReadCmiDpCodeMetadata(
-            "NT51950",
-            dpPath,
-            tpPath);
+        CmiDpCodeMetadata metadata = Assert.IsType<CmiDpCodeMetadata>(
+            WorkbenchCompositionService.TryReadCmiDpCodeMetadata(
+                "NT51950",
+                dpPath,
+                tpPath));
 
-        Assert.NotNull(metadata);
         Assert.Equal(0x3B016, metadata.Register16Offset);
         Assert.Equal(576, metadata.JiraNumber);
         Assert.Equal("AUTO_PRJ-576", metadata.JiraBadge);

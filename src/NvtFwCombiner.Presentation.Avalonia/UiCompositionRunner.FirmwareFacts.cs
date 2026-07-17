@@ -1,4 +1,5 @@
 using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
@@ -34,10 +35,10 @@ public static partial class UiCompositionRunner
         string path,
         string? tpPath = null)
     {
-        WorkbenchDpVersionMetadata? legacyMetadata = WorkbenchCompositionService.TryReadDpVersionMetadata(
+        GenFlashDpVersionMetadata? legacyMetadata = WorkbenchCompositionService.TryReadDpVersionMetadata(
             icId,
             path);
-        WorkbenchCmiDpCodeMetadata? cmiMetadata = WorkbenchCompositionService.TryReadCmiDpCodeMetadata(
+        CmiDpCodeMetadata? cmiMetadata = WorkbenchCompositionService.TryReadCmiDpCodeMetadata(
             icId,
             path,
             tpPath);
@@ -46,14 +47,17 @@ public static partial class UiCompositionRunner
             return [new FirmwareSlotFactViewModel("DP", "Pending", true)];
         }
 
-        string dpVersion = legacyMetadata is not null
-            ? FormatDpVersion(legacyMetadata.VersionToken)
-            : FormatCmiDpVersion(cmiMetadata!);
-        List<FirmwareSlotFactViewModel> facts = [new FirmwareSlotFactViewModel("DP", dpVersion)];
+        string dpVersion = legacyMetadata is GenFlashDpVersionMetadata legacy
+            ? FormatDpVersion(legacy.VersionToken)
+            : FormatCmiDpVersion(cmiMetadata!.Value);
+        List<FirmwareSlotFactViewModel> facts =
+        [
+            new FirmwareSlotFactViewModel("DP", dpVersion),
+        ];
 
-        if (cmiMetadata is not null && !string.IsNullOrWhiteSpace(cmiMetadata.JiraBadge))
+        if (cmiMetadata is CmiDpCodeMetadata cmi && !string.IsNullOrWhiteSpace(cmi.JiraBadge))
         {
-            facts.Add(new FirmwareSlotFactViewModel("Jira", cmiMetadata.JiraBadge));
+            facts.Add(new FirmwareSlotFactViewModel("Jira", cmi.JiraBadge));
         }
 
         return facts;
@@ -66,7 +70,7 @@ public static partial class UiCompositionRunner
             : $"D{versionToken}";
     }
 
-    private static string FormatCmiDpVersion(WorkbenchCmiDpCodeMetadata metadata)
+    private static string FormatCmiDpVersion(CmiDpCodeMetadata metadata)
     {
         return FormattableString.Invariant($"D{metadata.MajorVersionByte:X2}-{metadata.MinorVersionNibble:X1}0");
     }

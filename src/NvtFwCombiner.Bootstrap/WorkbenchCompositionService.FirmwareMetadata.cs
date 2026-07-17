@@ -8,7 +8,7 @@ namespace NvtFwCombiner.Bootstrap;
 public static partial class WorkbenchCompositionService
 {
     /// <summary>Reads gen_flash-backed contiguous DP main/sub version metadata from a selected DP payload.</summary>
-    public static WorkbenchDpVersionMetadata? TryReadDpVersionMetadata(string icId, string path)
+    public static GenFlashDpVersionMetadata? TryReadDpVersionMetadata(string icId, string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -18,21 +18,12 @@ public static partial class WorkbenchCompositionService
                 icId,
                 image,
                 out GenFlashDpVersionMetadata metadata)
-                    ? new WorkbenchDpVersionMetadata(
-                        metadata.IcId,
-                        metadata.Prefix,
-                        metadata.VersionToken,
-                        metadata.DisplayVersion,
-                        metadata.MainInputReadOffset,
-                        metadata.SubInputReadOffset,
-                        metadata.OutputMainAbsoluteAddress,
-                        metadata.OutputSubAbsoluteAddress,
-                        metadata.EvidenceSource)
+                    ? metadata
                     : null;
     }
 
     /// <summary>Reads CMI DP Jira and major/minor facts without making unobserved DP sizes a build blocker.</summary>
-    public static WorkbenchCmiDpCodeMetadata? TryReadCmiDpCodeMetadata(
+    public static CmiDpCodeMetadata? TryReadCmiDpCodeMetadata(
         string icId,
         string path,
         string? tpPath = null)
@@ -52,18 +43,7 @@ public static partial class WorkbenchCompositionService
                 image,
                 chipNumber,
                 out CmiDpCodeMetadata metadata)
-                    ? new WorkbenchCmiDpCodeMetadata(
-                        metadata.IcId,
-                        metadata.MajorVersionByte,
-                        metadata.MinorVersionNibble,
-                        metadata.JiraNumber,
-                        metadata.JiraBadge,
-                        metadata.PayloadLength,
-                        metadata.ExpectedPayloadLengths,
-                        metadata.HasPayloadLengthWarning,
-                        metadata.Register16Offset,
-                        metadata.Register18Offset,
-                        metadata.EvidenceSource)
+                    ? metadata
                     : null;
     }
 
