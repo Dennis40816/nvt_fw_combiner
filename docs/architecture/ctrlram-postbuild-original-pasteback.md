@@ -222,6 +222,13 @@ Combiner.exe CRC_Enable .\nt51926_fw.bin .\nt51926_fw.bin 0x0 0x32A70 256
 
 Owner-provided `PostbuildSetup_51926_1.4.1.bat` instead uses `0x32F50` for the same header-copy length and uses `VN_Ctrlram.bin` length `5728` plus FWConfig length `2048`. The 2026-07-05 NT51926 base has its initialized header-copy area at `0x32F50`, not `0x32A70`.
 
+The NT51926 Common FW `1.4.1` cascade reference maps to this canonical host-staging argv. Path tokens are staging-relative; the runtime report expands them beneath one host-created staging working directory:
+
+```text
+Combiner.exe CRC_Enable output/nt51926_fw.bin BIN/Normal_Ctrlram.bin 0x0 0x22800 11264 BIN/DiffDLM.bin 0x0 0x27800 10240 BIN/MP_Ctrlram.bin 0x0 0x25400 9216 BIN/VN_Ctrlram.bin 0x0 0x315D0 5728 BIN/NF_Ctrlram.bin 0x0 0x2C800 11728 output/nt51926_fw.bin 0x22000 0x3B000 2048 output/nt51926_fw.bin 0x0 0x32F50 256
+Combiner.exe CRC_Enable output/nt51926_fw.bin output/nt51926_fw.bin 0x0 0x32F50 256
+```
+
 NT51930 full-single calls currently implemented from `2.0.0`:
 
 ```text

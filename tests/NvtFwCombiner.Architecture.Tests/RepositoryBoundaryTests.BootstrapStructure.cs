@@ -156,6 +156,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("\"blockerId\": \"direct-golden-evidence\"", profile, StringComparison.Ordinal);
         Assert.Contains("\"blockerId\": \"firmware-owner-review\"", profile, StringComparison.Ordinal);
         Assert.Contains("\"blockerId\": \"runtime-route\"", profile, StringComparison.Ordinal);
+        Assert.Contains("nt51926-ctrlram-fw141-tp-work-240k", profile, StringComparison.Ordinal);
+        Assert.Contains("output-tp-work-image", profile, StringComparison.Ordinal);
+        Assert.DoesNotContain("nt51926-ctrlram-fw141-256k", profile, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies workbench Replace mode ids stay centralized for UI and CLI adapters.</summary>

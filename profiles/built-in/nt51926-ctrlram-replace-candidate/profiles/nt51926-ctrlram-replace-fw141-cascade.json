@@ -8,7 +8,7 @@
       {
         "blockerId": "direct-golden-evidence",
         "kind": "golden",
-        "reason": "A direct NT51926 Common FW 1.4.1 cascade TP-work-image postbuild output golden is required before runtime exposure.",
+        "reason": "A direct NT51926 Common FW 1.4.1 cascade CtrlRAM input/output golden is required before runtime exposure.",
         "evidenceRefs": [ "nt51926-common-fw141-postbuild" ]
       },
       {
@@ -41,8 +41,8 @@
   "mapBinding": {
     "familyId": "nt51926-ctrlram-replace",
     "familyVersion": "0.3.0",
-    "familyContentHash": "208503381c7dbf9349f9b85b8fdce130136e298dd29bdcb3a78f065a23c440c6",
-    "mapIds": [ "nt51926-ctrlram-fw141-tp-240k" ],
+    "familyContentHash": "6088a2a5e3c7aa52c1e5f31aae921fbbda68f772434c2c539bd2675806b0e047",
+    "mapIds": [ "nt51926-ctrlram-fw141-tp-work-240k" ],
     "requiredRegionIds": [
       "flash-image",
       "normal-ctrlram",
@@ -170,8 +170,8 @@
     }
   ],
   "views": [
-    { "viewId": "reference-image", "spaceId": "reference-base", "selector": { "kind": "map-region", "regionId": "flash-image" } },
-    { "viewId": "output-image", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "flash-image" } },
+    { "viewId": "reference-tp-work-image", "spaceId": "reference-base", "selector": { "kind": "map-region", "regionId": "flash-image" } },
+    { "viewId": "output-tp-work-image", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "flash-image" } },
     { "viewId": "normal-ctrlram-source", "spaceId": "normal-ctrlram-input", "selector": { "kind": "space-range", "range": { "start": 0, "length": 11264 } } },
     { "viewId": "diff-ctrlram-source", "spaceId": "diff-ctrlram-input", "selector": { "kind": "space-range", "range": { "start": 0, "length": 10240 } } },
     { "viewId": "mp-ctrlram-source", "spaceId": "mp-ctrlram-input", "selector": { "kind": "space-range", "range": { "start": 0, "length": 9216 } } },
@@ -222,7 +222,7 @@
       "authority": "transform",
       "purpose": "header-and-integrity",
       "integrityDisposition": "recalculate-and-write",
-      "allowedReadViewIds": [ "output-image" ],
+      "allowedReadViewIds": [ "output-tp-work-image" ],
       "allowedWriteViewIds": [
         "normal-ctrlram-output",
         "diff-ctrlram-output",

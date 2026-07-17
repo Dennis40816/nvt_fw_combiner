@@ -104,7 +104,7 @@ internal static class ReplaceRegionGroupBuilder
     {
         return key switch
         {
-            ReplaceRegionGroupKeys.Base => $"{count} areas retained from the base flash BIN.",
+            ReplaceRegionGroupKeys.Base => $"{count} areas retained from the base firmware BIN.",
             _ => $"{count} areas that can be replaced for this IC group.",
         };
     }

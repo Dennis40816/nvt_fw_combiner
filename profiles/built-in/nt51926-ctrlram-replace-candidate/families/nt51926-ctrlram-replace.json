@@ -237,7 +237,7 @@
   ],
   "imageMaps": [
     {
-      "mapId": "nt51926-ctrlram-fw141-tp-240k",
+      "mapId": "nt51926-ctrlram-fw141-tp-work-240k",
       "addressSpaceId": "flash",
       "applicability": {
         "memberIds": [ "NT51926" ],

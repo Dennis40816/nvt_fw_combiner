@@ -27,24 +27,6 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets the workspace summary.</summary>
     public string WorkspaceSummary { get; private set; } = string.Empty;
 
-    /// <summary>Gets the preview action label.</summary>
-    public string PreviewActionLabel { get; private set; } = string.Empty;
-
-    /// <summary>Gets the build action label.</summary>
-    public string BuildActionLabel { get; private set; } = string.Empty;
-
-    /// <summary>Gets the report modal action label.</summary>
-    public string ReportModalActionLabel { get; private set; } = string.Empty;
-
-    /// <summary>Gets the shared device context heading.</summary>
-    public string DeviceContextTitle { get; private set; } = string.Empty;
-
-    /// <summary>Gets the IC field label.</summary>
-    public string IcLabel { get; private set; } = string.Empty;
-
-    /// <summary>Gets the IC count/variant field label.</summary>
-    public string NumberLabel { get; private set; } = string.Empty;
-
     /// <summary>Gets the shared device context status text.</summary>
     public string DeviceContextStatus => IsNumberSelectorVisible
         ? $"{SelectedIc} / {SelectedNumber}: {DeviceContextRefreshSummary}"
@@ -84,7 +66,7 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets the independent General Replace base firmware slot.</summary>
     public FirmwareSlotViewModel ReplaceBaseSlot { get; } = new(
         ReplaceBaseSlotId,
-        "Base flash BIN",
+        "Base firmware BIN",
         "Reference firmware image before replacement",
         FirmwareSlotKind.Base);
 

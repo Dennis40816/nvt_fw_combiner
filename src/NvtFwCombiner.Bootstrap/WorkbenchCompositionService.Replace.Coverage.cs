@@ -55,7 +55,7 @@ public static partial class WorkbenchCompositionService
         [
             new CoverageSegment(
                 new ByteRange(0, capacity),
-                "Base flash",
+                "Base firmware",
                 "Kept from the original base firmware unless a replacement covers it.",
                 "#CBD5E1",
                 false),
