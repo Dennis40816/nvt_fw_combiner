@@ -123,11 +123,11 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedIc = "NT51927";
         OpenReplace(viewModel, "DP");
 
-        Assert.Equal(["Base flash BIN"], viewModel.ReplaceSlots.Select(slot => slot.Title));
+        Assert.Equal(["Base firmware BIN"], viewModel.ReplaceSlots.Select(slot => slot.Title));
 
         viewModel.SelectedIc = "NT51928";
 
-        Assert.Equal(["Base flash BIN"], viewModel.ReplaceSlots.Select(slot => slot.Title));
+        Assert.Equal(["Base firmware BIN"], viewModel.ReplaceSlots.Select(slot => slot.Title));
         Assert.Contains("Not Supported", viewModel.ReplaceReadinessStatus, StringComparison.Ordinal);
     }
 
