@@ -95,7 +95,9 @@ internal sealed class LogicalOutputProfileCompilationContext : CompositionProfil
 /// <summary>Map-bound V2 declaration lowered from typed reference-clone mappings at compile time.</summary>
 internal sealed class RuntimeReferenceReplaceProfileCompilationContext : CompositionProfileCompilationContext
 {
-    internal RuntimeReferenceReplaceProfileCompilationContext(CompositionProfileMapBinding mapBinding)
+    internal RuntimeReferenceReplaceProfileCompilationContext(
+        string schemaVersion,
+        CompositionProfileMapBinding mapBinding)
         : base(
             CompositionProfileCompilationContextKind.RuntimeReferenceReplace,
             RequireBinding(mapBinding).FamilyId,
@@ -103,9 +105,13 @@ internal sealed class RuntimeReferenceReplaceProfileCompilationContext : Composi
             mapBinding.FamilyContentHash)
     {
         MapBinding = mapBinding;
+        AllowsConditionalProcessor = StringComparer.Ordinal.Equals(schemaVersion, "2.9");
     }
 
     internal CompositionProfileMapBinding MapBinding { get; }
+
+    /// <summary>Whether this contract version admits one mapping-triggered Legacy Combiner stage.</summary>
+    internal bool AllowsConditionalProcessor { get; }
 
     private static CompositionProfileMapBinding RequireBinding(CompositionProfileMapBinding mapBinding)
     {

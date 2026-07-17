@@ -73,6 +73,28 @@ public sealed partial class CompositionRunRequestV2Tests
             CreateRuntimeReferenceCandidate().CompilationFingerprint);
     }
 
+    /// <summary>Verifies the conditional processor capability is explicit fingerprint-bound authority.</summary>
+    [Fact]
+    public void RuntimeReferenceConditionalProcessorCapabilityChangesCompilationFingerprint()
+    {
+        CompiledComposition baseline = CreateRuntimeReferenceCandidate();
+        CompiledComposition conditional = CreateRuntimeReferenceCandidate(allowsConditionalProcessor: true);
+
+        Assert.False(Assert.IsType<RuntimeReferenceReplaceV2CompilationContext>(
+            baseline.V2Details!.Provenance.Context).AllowsConditionalProcessor);
+        Assert.True(Assert.IsType<RuntimeReferenceReplaceV2CompilationContext>(
+            conditional.V2Details!.Provenance.Context).AllowsConditionalProcessor);
+        Assert.NotEqual(baseline.CompilationFingerprint, conditional.CompilationFingerprint);
+    }
+
+    /// <summary>Verifies legacy runtime-reference contracts cannot retain processor-only physical views.</summary>
+    [Fact]
+    public void RuntimeReferenceContextRejectsProcessorViewsWithoutCapability()
+    {
+        _ = Assert.Throws<ArgumentException>(() => CreateRuntimeReferenceCandidate(
+            includeProcessorView: true));
+    }
+
     /// <summary>Verifies runtime-reference bindings retain their compiler-materialized identities.</summary>
     [Theory]
     [InlineData("other-reference", "source-a")]
@@ -118,6 +140,8 @@ public sealed partial class CompositionRunRequestV2Tests
     private static CompiledComposition CreateRuntimeReferenceCandidate(
         bool useRuntimeContext = true,
         bool includeAuxiliarySource = true,
+        bool allowsConditionalProcessor = false,
+        bool includeProcessorView = false,
         string modeId = ExperienceIds.GeneralReplace,
         string experienceId = ExperienceIds.GeneralReplace)
     {
@@ -141,7 +165,9 @@ public sealed partial class CompositionRunRequestV2Tests
                 "runtime-reference-profile",
                 "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
             useRuntimeContext
-                ? new RuntimeReferenceReplaceV2CompilationContext(resolvedMap)
+                ? new RuntimeReferenceReplaceV2CompilationContext(
+                    resolvedMap,
+                    allowsConditionalProcessor)
                 : new ResolvedMapV2CompilationContext(resolvedMap),
             new CompiledProfilePromotion(CompiledProfilePromotionStage.ExecutableCandidate, []),
             ["runtime-reference-evidence"],
@@ -185,7 +211,13 @@ public sealed partial class CompositionRunRequestV2Tests
                     [],
                     chain),
             ],
-            []);
+            includeProcessorView
+                ? [new CompiledResolvedPhysicalView(
+                    "processor-output",
+                    "output-image",
+                    new ByteRange(0, 4),
+                    chain)]
+                : []);
         var identity = new V2CompiledCompositionIdentity(
             "runtime-reference-profile",
             "1.0.0",

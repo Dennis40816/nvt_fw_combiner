@@ -11,6 +11,8 @@ internal static partial class V2CompositionPlanCompiler
     private const string RuntimeReferenceMappingInvalid = "profile.v2.runtime-reference-replace.mapping-invalid";
     private const string RuntimeReferenceSourceOutOfBounds = "profile.v2.runtime-reference-replace.source-out-of-bounds";
     private const string RuntimeReferenceTargetOutOfBounds = "profile.v2.runtime-reference-replace.target-out-of-bounds";
+    private const string RuntimeReferenceProcessorRequired = "profile.v2.runtime-reference-replace.processor-required";
+    private const string RuntimeReferenceProcessorOrderInvalid = "profile.v2.runtime-reference-replace.processor-order-invalid";
 
     /// <summary>Lowers one admitted map-bound General Replace request through the shared plan algebra.</summary>
     internal static V2CompositionPlanCompileResult CompileRuntimeReferenceReplace(
@@ -39,37 +41,41 @@ internal static partial class V2CompositionPlanCompiler
         }
 
         RuntimeReferenceReplaceProfileShape shape = AssertRuntimeReferenceReplaceProfileShape(profile);
-        LoweredRegionAccess regionAccess = LowerRegionAccess(
-            profile,
+        Dictionary<string, V2RuntimeReferenceReplaceInputBinding> bindings =
+            ValidateRuntimeReferenceReplaceBindings(shape, resolvedMap, request, issues);
+        if (issues.Count != 0)
+        {
+            return V2CompositionPlanCompileResult.Failed(issues);
+        }
+
+        var spaces = bindings.Values.ToDictionary(
+            static binding => binding.BindingId,
+            static binding => new AddressSpace(
+                binding.BindingId,
+                binding.ExactLengthBytes,
+                AddressSpaceMutability.Immutable),
+            StringComparer.Ordinal);
+        spaces.Add(
+            shape.Output.SpaceId,
+            new AddressSpace(
+                shape.Output.SpaceId,
+                resolvedMap.CapacityBytes,
+                AddressSpaceMutability.Mutable));
+        Dictionary<string, ResolvedView> views = LowerViews(profile, resolvedMap, spaces, issues);
+        LoweredRegionAccess regionAccess = LowerRegionAccess(profile, resolvedMap, views, issues);
+        bool touchesTp = ValidateRuntimeReferenceReplaceMappings(
+            shape,
             resolvedMap,
-            new Dictionary<string, ResolvedView>(StringComparer.Ordinal),
+            request,
+            bindings,
+            regionAccess,
             issues);
         if (issues.Count != 0)
         {
             return V2CompositionPlanCompileResult.Failed(issues);
         }
 
-        ValidateRuntimeReferenceReplaceRequest(shape, resolvedMap, request, regionAccess, issues);
-        if (issues.Count != 0)
-        {
-            return V2CompositionPlanCompileResult.Failed(issues);
-        }
-
-        var bindings = request.Bindings.ToDictionary(
-            static binding => binding.BindingId,
-            StringComparer.Ordinal);
-        AddressSpace[] spaces =
-        [
-            .. bindings.Values.Select(static binding => new AddressSpace(
-                binding.BindingId,
-                binding.ExactLengthBytes,
-                AddressSpaceMutability.Immutable)),
-            new AddressSpace(
-                shape.Output.SpaceId,
-                resolvedMap.CapacityBytes,
-                AddressSpaceMutability.Mutable),
-        ];
-        CompositionOperation[] operations =
+        CompositionOperation[] mappingOperations =
         [
             .. request.Mappings.Select(static mapping => CompositionOperation.ReplaceRange(
                 mapping.MappingId,
@@ -82,18 +88,28 @@ internal static partial class V2CompositionPlanCompiler
                 mapping.Reason,
                 mapping.Provenance)),
         ];
-        ValidateOperationOverlaps(operations, issues);
+        ValidateOperationOverlaps(mappingOperations, issues);
         if (issues.Count != 0)
         {
             return V2CompositionPlanCompileResult.Failed(issues);
         }
+
+        CompositionOperation[] processorOperations = touchesTp
+            ? LowerOperations(profile, spaces, views, regionAccess, issues, useProcessorWriteAuthority: true)
+            : [];
+        if (issues.Count != 0)
+        {
+            return V2CompositionPlanCompileResult.Failed(issues);
+        }
+
+        CompositionOperation[] operations = [.. mappingOperations, .. processorOperations];
 
         V2RuntimeReferenceReplaceInputBinding referenceBinding = bindings.Values.Single(binding =>
             StringComparer.Ordinal.Equals(binding.SlotId, shape.ReferenceSlot.SlotId));
         var plan = new CompositionPlan(
             [ImageInitialization.Reference(shape.Output.SpaceId, referenceBinding.BindingId, resolvedMap.CapacityBytes)],
             shape.Output.SpaceId,
-            spaces,
+            spaces.Values,
             operations);
         var promotion = new CompiledProfilePromotion(
             MapPromotionStage(profile.Promotion.Stage),
@@ -101,7 +117,10 @@ internal static partial class V2CompositionPlanCompiler
         var provenance = new V2CompilationProvenance(
             preparation.Selection.BundleIdentity,
             preparation.Selection.ProfileEntryIdentity,
-            new RuntimeReferenceReplaceV2CompilationContext(resolvedMap),
+            new RuntimeReferenceReplaceV2CompilationContext(
+                resolvedMap,
+                ((RuntimeReferenceReplaceProfileCompilationContext)profile.CompilationContext)
+                    .AllowsConditionalProcessor),
             promotion,
             profile.EvidenceRefs,
             [],
@@ -140,12 +159,14 @@ internal static partial class V2CompositionPlanCompiler
             StringComparer.Ordinal.Equals(profile.Experience.ExperienceId, ExperienceIds.GeneralReplace) &&
             profile.Experience.LayoutPolicy == LayoutPolicy.UserDefined &&
             profile.Experience.InputPolicy == InputPolicy.Extensible &&
-            profile.Views.Count == 0 &&
             profile.MetadataBindings.Count == 0 &&
             profile.RegionAccessRules.Count != 0 &&
-            profile.Operations.Count == 0 &&
             profile.Validations.Count == 0 &&
-            profile.ProcessorStages.Count == 0;
+            (profile.ProcessorStages.Count == 0 ||
+             profile.CompilationContext is RuntimeReferenceReplaceProfileCompilationContext
+             {
+                 AllowsConditionalProcessor: true,
+             });
     }
 
     internal static bool TryGetRuntimeReferenceReplaceReferenceSlotId(
@@ -205,14 +226,17 @@ internal static partial class V2CompositionPlanCompiler
             referenceSpace.InstancePolicy != CompositionProfileInstancePolicy.Singleton ||
             sourceSpace.InstancePolicy != CompositionProfileInstancePolicy.PerBinding
             ? throw new InvalidOperationException("Validated runtime reference-replace profile has an invalid input contract.")
-            : new RuntimeReferenceReplaceProfileShape(reference, source, output);
+            : new RuntimeReferenceReplaceProfileShape(
+                reference,
+                source,
+                output,
+                profile.Operations.OfType<RunProcessorProfileOperation>().SingleOrDefault());
     }
 
-    private static void ValidateRuntimeReferenceReplaceRequest(
+    private static Dictionary<string, V2RuntimeReferenceReplaceInputBinding> ValidateRuntimeReferenceReplaceBindings(
         RuntimeReferenceReplaceProfileShape shape,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         V2RuntimeReferenceReplaceCompileRequest request,
-        LoweredRegionAccess regionAccess,
         List<CompositionIssue> issues)
     {
         var bindings = new Dictionary<string, V2RuntimeReferenceReplaceInputBinding>(StringComparer.Ordinal);
@@ -249,6 +273,19 @@ internal static partial class V2CompositionPlanCompiler
                 RuntimeReferenceBindingInvalid,
                 "Runtime reference-replace compilation requires exactly one map-capacity reference binding and one or more auxiliary source bindings."));
         }
+
+        return bindings;
+    }
+
+    private static bool ValidateRuntimeReferenceReplaceMappings(
+        RuntimeReferenceReplaceProfileShape shape,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        V2RuntimeReferenceReplaceCompileRequest request,
+        Dictionary<string, V2RuntimeReferenceReplaceInputBinding> bindings,
+        LoweredRegionAccess regionAccess,
+        List<CompositionIssue> issues)
+    {
+        bool touchesTp = false;
 
         var mappingIds = new HashSet<string>(StringComparer.Ordinal);
         var sequences = new HashSet<int>();
@@ -313,6 +350,10 @@ internal static partial class V2CompositionPlanCompiler
                 continue;
             }
 
+            touchesTp |= resolvedMap.ImageMap.Regions.Any(region =>
+                region.Owner == FirmwareRegionOwner.Tp &&
+                region.Range.Overlaps(mapping.TargetRange));
+
             _ = TryAuthorizeTargetWrite(
                 mapping.MappingId,
                 "runtime-request-target",
@@ -321,17 +362,38 @@ internal static partial class V2CompositionPlanCompiler
                 issues);
         }
 
-        if (request.Mappings.Count == 0 || referencedSourceBindingIds.Count != sourceCount)
+        int sourceBindingCount = bindings.Values.Count(binding =>
+            StringComparer.Ordinal.Equals(binding.SlotId, shape.SourceSlot.SlotId));
+        if (request.Mappings.Count == 0 || referencedSourceBindingIds.Count != sourceBindingCount)
         {
             issues.Add(new CompositionIssue(
                 RuntimeReferenceMappingInvalid,
                 "Runtime reference-replace compilation requires mappings for every concrete auxiliary source binding.",
                 "mappings"));
         }
+
+        if (touchesTp && shape.ProcessorOperation is null)
+        {
+            issues.Add(new CompositionIssue(
+                RuntimeReferenceProcessorRequired,
+                "A General Replace mapping touches a TP-owned canonical region, but the selected profile has no approved Legacy Combiner refresh stage.",
+                "mappings"));
+        }
+        else if (touchesTp && request.Mappings.Any(mapping =>
+                     mapping is not null && mapping.Sequence >= shape.ProcessorOperation!.Sequence))
+        {
+            issues.Add(new CompositionIssue(
+                RuntimeReferenceProcessorOrderInvalid,
+                "Every General Replace mapping must run before the profile-owned Legacy Combiner refresh stage.",
+                shape.ProcessorOperation!.OperationId));
+        }
+
+        return touchesTp;
     }
 
     private sealed record RuntimeReferenceReplaceProfileShape(
         CompositionProfileInputSlot ReferenceSlot,
         CompositionProfileInputSlot SourceSlot,
-        MutableCompositionProfileSpace Output);
+        MutableCompositionProfileSpace Output,
+        RunProcessorProfileOperation? ProcessorOperation);
 }

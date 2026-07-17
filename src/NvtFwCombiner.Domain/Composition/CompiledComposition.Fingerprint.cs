@@ -72,6 +72,10 @@ public sealed partial class CompiledComposition
         if (context.Kind == V2CompilationContextKind.RuntimeReferenceReplace)
         {
             AppendEnum(builder, "compilation-context", context.Kind);
+            if (((RuntimeReferenceReplaceV2CompilationContext)context).AllowsConditionalProcessor)
+            {
+                AppendInteger(builder, "compilation-context.conditional-processor", 1);
+            }
         }
         AppendV2ProfileAdmission(builder, composition, provenance);
         AppendField(builder, "resolved-map.fingerprint", provenance.ResolvedMap.ResolutionFingerprint);

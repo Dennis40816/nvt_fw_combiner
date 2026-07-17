@@ -10,7 +10,8 @@ internal static partial class V2CompositionPlanCompiler
         IReadOnlyDictionary<string, AddressSpace> spaces,
         IReadOnlyDictionary<string, ResolvedView> views,
         LoweredRegionAccess regionAccess,
-        List<CompositionIssue> issues)
+        List<CompositionIssue> issues,
+        bool useProcessorWriteAuthority = false)
     {
         var operations = new List<CompositionOperation>();
         foreach (CompositionProfileOperation operation in profile.Operations)
@@ -43,7 +44,8 @@ internal static partial class V2CompositionPlanCompiler
                         views,
                         regionAccess,
                         operations,
-                        issues);
+                        issues,
+                        useProcessorWriteAuthority);
                     break;
                 default:
                     throw new InvalidOperationException("Validated V2 lowering encountered an unsupported operation shape.");
@@ -312,7 +314,8 @@ internal static partial class V2CompositionPlanCompiler
         IReadOnlyDictionary<string, ResolvedView> views,
         LoweredRegionAccess regionAccess,
         List<CompositionOperation> operations,
-        List<CompositionIssue> issues)
+        List<CompositionIssue> issues,
+        bool useProcessorWriteAuthority)
     {
         CompositionProfileProcessorStage stage = profile.ProcessorStages.Single(candidate =>
             StringComparer.Ordinal.Equals(candidate.ProcessorStageId, operation.ProcessorStageId));
@@ -339,12 +342,20 @@ internal static partial class V2CompositionPlanCompiler
         }
         foreach (string writeViewId in legacy.AllowedWriteViewIds)
         {
-            if (!TryAuthorizeTargetWrite(
+            bool authorized = useProcessorWriteAuthority
+                ? TryAuthorizeProcessorWrite(
                     operation.OperationId,
                     writeViewId,
                     views[writeViewId],
                     regionAccess,
-                    issues))
+                    issues)
+                : TryAuthorizeTargetWrite(
+                    operation.OperationId,
+                    writeViewId,
+                    views[writeViewId],
+                    regionAccess,
+                    issues);
+            if (!authorized)
             {
                 return;
             }

@@ -34,7 +34,10 @@ internal sealed partial class CompositionProfileDefinition
         if (CompilationContext.Kind == CompositionProfileCompilationContextKind.RuntimeReferenceReplace)
         {
             ValidateRuntimeReferenceReplaceShape();
+            ValidateViews(spaces);
             ValidateRegionAccess();
+            ValidateOperations(views, spaces, processors);
+            ValidateProcessors(views, spaces);
             ValidateOutputNaming();
             return;
         }
@@ -103,23 +106,26 @@ internal sealed partial class CompositionProfileDefinition
 
     private void ValidateRuntimeReferenceReplaceShape()
     {
+        var context =
+            (RuntimeReferenceReplaceProfileCompilationContext)CompilationContext;
+        MutableCompositionProfileSpace output = _spaces.OfType<MutableCompositionProfileSpace>().Single(space =>
+            space.Kind == CompositionProfileSpaceKind.OutputImage);
+        bool processorFree = _views.Length == 0 && _operations.Length == 0 && _processorStages.Length == 0;
+        bool conditionalProcessor = context.AllowsConditionalProcessor &&
+            HasValidRuntimeReferenceProcessorShape(output);
         if (CompositionKind != CompositionKind.Replace ||
             !StringComparer.Ordinal.Equals(Experience.ExperienceId, ExperienceIds.GeneralReplace) ||
             Experience.LayoutPolicy != LayoutPolicy.UserDefined ||
             Experience.InputPolicy != InputPolicy.Extensible ||
-            _views.Length != 0 ||
             _metadataBindings.Length != 0 ||
-            _operations.Length != 0 ||
             _validations.Length != 0 ||
-            _processorStages.Length != 0 ||
-            _regionAccessRules.Length == 0)
+            _regionAccessRules.Length == 0 ||
+            (!processorFree && !conditionalProcessor))
         {
             throw new ArgumentException(
-                "Runtime reference-replace profiles require the closed General Replace shape with declared physical region access only.");
+                "Runtime reference-replace profiles require the closed General Replace mapping shape with zero or one conditional Legacy Combiner stage.");
         }
 
-        MutableCompositionProfileSpace output = _spaces.OfType<MutableCompositionProfileSpace>().Single(space =>
-            space.Kind == CompositionProfileSpaceKind.OutputImage);
         InputArtifactProfileSpace[] inputs = [.. _spaces.OfType<InputArtifactProfileSpace>()];
         if (_inputSlots.Length != 2 || inputs.Length != 2 || _spaces.Length != 3 ||
             output.Capacity is not RuntimeRequestProfileCapacity ||
@@ -165,6 +171,30 @@ internal sealed partial class CompositionProfileDefinition
             throw new ArgumentException(
                 "Runtime reference-replace profiles cannot be marked supported before runtime request routing and owner evidence are complete.");
         }
+    }
+
+    private bool HasValidRuntimeReferenceProcessorShape(MutableCompositionProfileSpace output)
+    {
+        if (_operations is not [RunProcessorProfileOperation operation] ||
+            _processorStages is not [LegacyCombinerProfileProcessorStage processor] ||
+            operation.Sequence != int.MaxValue ||
+            operation.OverlapPolicy != OverlapPolicy.ReplaceExisting ||
+            !StringComparer.Ordinal.Equals(operation.ProcessorStageId, processor.ProcessorStageId) ||
+            !StringComparer.Ordinal.Equals(processor.TargetSpaceId, output.SpaceId) ||
+            processor.Purpose != CompositionProfileProcessorPurpose.HeaderAndIntegrity ||
+            processor.IntegrityDisposition != CompositionProfileIntegrityDisposition.RecalculateAndWrite ||
+            processor.TargetViewId is null ||
+            processor.StagedSourceBindings.Count != 0 ||
+            processor.StagedArtifactBindings.Count != 0 ||
+            _views.Any(view => !StringComparer.Ordinal.Equals(view.SpaceId, output.SpaceId)))
+        {
+            return false;
+        }
+
+        var referencedViewIds = new HashSet<string>(processor.AllowedReadViewIds, StringComparer.Ordinal);
+        referencedViewIds.UnionWith(processor.AllowedWriteViewIds);
+        _ = referencedViewIds.Add(processor.TargetViewId);
+        return referencedViewIds.SetEquals(_views.Select(static view => view.ViewId));
     }
 
     private void ValidateIcNumberInputMode()

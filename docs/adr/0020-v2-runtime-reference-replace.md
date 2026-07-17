@@ -92,14 +92,19 @@ the user cannot supply scripts, commands, processor paths, or processor argument
 and the host still verifies all external-processor writes against declared
 half-open ranges.
 
-The current context deliberately forbids processor stages, so it cannot express
-the final TP-touching General Replace route. Production cutover requires an
-explicitly reviewed contract/compiler extension that lowers request mappings and
-then, only when their targets intersect a declared processor dependency, appends
-the profile-owned Legacy Combiner stage to the same composition plan. This must be
-implemented in the profile/compiler/application boundary, never as a hidden UI or
-Bootstrap byte-execution branch. Until that extension, DP-only candidates are
-parity probes and not the product boundary.
+Schemas 2.6 through 2.8 deliberately forbid processor stages. Schema 2.9 implements
+the reviewed extension as a second closed shape: zero or one final profile-owned
+Legacy Combiner stage, with no staged source/artifact authority. The compiler
+lowers all request mappings first and appends that stage exactly once only when a
+target intersects a canonical TP-owned region. TP-touching requests fail closed
+when the stage is absent. DP-only requests do not execute it. Header/CRC write views
+remain processor authority and do not grant user authoring access. No UI or
+Bootstrap byte-execution branch selects the stage.
+
+This compiler capability does not itself route a production profile. The current
+NT51926 DP-only candidate remains a parity probe until an exact TP/full-Flash
+General Replace profile, Legacy Combiner golden output, report/naming/UI/CLI parity,
+and firmware-owner review close independently.
 
 ## Non-goals
 

@@ -1,4 +1,4 @@
-# Composition Profile Contract 2.0 through 2.8
+# Composition Profile Contract 2.0 through 2.9
 
 The executable schemas are [`composition-profile-v2.schema.json`](composition-profile-v2.schema.json)
 [`composition-profile-v2.1.schema.json`](composition-profile-v2.1.schema.json), and
@@ -8,7 +8,8 @@ The executable schemas are [`composition-profile-v2.schema.json`](composition-pr
 [`composition-profile-v2.5.schema.json`](composition-profile-v2.5.schema.json), and
 [`composition-profile-v2.6.schema.json`](composition-profile-v2.6.schema.json), and
 [`composition-profile-v2.7.schema.json`](composition-profile-v2.7.schema.json), and
-[`composition-profile-v2.8.schema.json`](composition-profile-v2.8.schema.json). A trusted bundle
+[`composition-profile-v2.8.schema.json`](composition-profile-v2.8.schema.json), and
+[`composition-profile-v2.9.schema.json`](composition-profile-v2.9.schema.json). A trusted bundle
 selects one exact schema snapshot through its manifest content hash. They are the only declarative
 workflow policy compiled for Normal, AB, General, Merge, Replace, saved rules, and future Register work.
 
@@ -169,6 +170,23 @@ is the TP-BIN/full-Flash convergence contract in
 replace firmware-owner golden review. Exact ordered Combiner command facts remain selected by the
 closed `invocationProfileId` and are loaded from the separately hash-pinned built-in Postbuild data
 catalog; the composition profile does not duplicate that command table.
+
+Schema 2.9 keeps every earlier resolved-map and processor contract and adds one closed alternative
+to `runtime-reference-replace`. A General Replace profile remains processor-free, or declares exactly
+one final `run-processor` operation and one `legacy-combiner-v1` stage for TP header/integrity refresh.
+The operation sequence is `2147483647`, its overlap policy is `replace-existing`, and the stage cannot
+stage source or auxiliary artifacts. Its views are profile-owned output/map views only; the typed request
+still supplies only immutable binding lengths and explicit mappings, never commands, processor paths,
+arguments, or mutable buffers.
+
+The compiler intersects every accepted mapping target with canonical `owner = tp` regions. A DP-only
+request omits the declared stage. One or many TP-touching mappings append the stage exactly once after
+all mappings; TP authoring without that closed stage fails. Processor allowed-write views have separate
+processor authority: they must be declared in the profile and permitted by the canonical physical map,
+but a `hidden` or `read-only` authoring rule remains denied to the user. This permits reviewed Header/CRC
+writes without exposing those ranges as General Replace mapping targets. Schema 2.9 adds compilation
+authority only; it does not register a UI/CLI route, promote support, or replace Legacy Combiner golden
+and firmware-owner review.
 
 ## Input size policy
 

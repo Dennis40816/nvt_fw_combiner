@@ -73,6 +73,7 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
     [InlineData("2.3")]
     [InlineData("2.7")]
     [InlineData("2.8")]
+    [InlineData("2.9")]
     public void ProcessorMapsPublishedCombinerToolBindingInVersionedSchemas(string schemaVersion)
     {
         LegacyCombinerProfileProcessorStage stage = Assert.IsType<LegacyCombinerProfileProcessorStage>(
@@ -81,7 +82,7 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
                     "relocation",
                     "none",
                     toolBindingId: "legacy-combiner-1.13.0",
-                    targetView: schemaVersion == "2.8"),
+                    targetView: schemaVersion is "2.8" or "2.9"),
                 schemaVersion,
                 "processorStages[0]"));
 
@@ -93,6 +94,7 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
     [InlineData("2.6", false)]
     [InlineData("2.7", true)]
     [InlineData("2.8", true)]
+    [InlineData("2.9", true)]
     public void ProcessorMapsPublishedLegacyCombinerCatalogIdentityInV27AndLater(
         string schemaVersion,
         bool expectedSuccess)
@@ -105,7 +107,7 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
                         "header-and-integrity",
                         "recalculate-and-write",
                         invocationProfileId: "nfc.nt51926.ctrlram-postbuild-fw1.4.1",
-                        targetView: schemaVersion == "2.8"),
+                        targetView: schemaVersion is "2.8" or "2.9"),
                     schemaVersion,
                     "processorStages[0]"));
             Assert.Equal("nfc.nt51926.ctrlram-postbuild-fw1.4.1", stage.InvocationProfileId);
@@ -122,9 +124,11 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
                 "processorStages[0]"));
     }
 
-    /// <summary>Verifies schema 2.8 normalizes the processor image prefix view.</summary>
-    [Fact]
-    public void ProcessorMapsLegacyCombinerTargetViewInV28()
+    /// <summary>Verifies schemas 2.8+ normalize the processor image prefix view.</summary>
+    [Theory]
+    [InlineData("2.8")]
+    [InlineData("2.9")]
+    public void ProcessorMapsLegacyCombinerTargetViewInV28AndLater(string schemaVersion)
     {
         LegacyCombinerProfileProcessorStage stage = Assert.IsType<LegacyCombinerProfileProcessorStage>(
             CompositionProfileNormalizer.NormalizeProcessorStage(
@@ -132,7 +136,7 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
                     "header-and-integrity",
                     "recalculate-and-write",
                     targetView: true),
-                "2.8",
+                schemaVersion,
                 "processorStages[0]"));
 
         Assert.Equal("output-image", stage.TargetViewId);
@@ -142,6 +146,7 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
     [Theory]
     [InlineData("2.7", true)]
     [InlineData("2.8", false)]
+    [InlineData("2.9", false)]
     public void ProcessorRejectsTargetViewPresenceDrift(string schemaVersion, bool includeTargetView)
     {
         CompositionProfileNormalizationException exception = Assert.Throws<CompositionProfileNormalizationException>(() =>
@@ -157,8 +162,10 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
     }
 
     /// <summary>Verifies every byte entering a typed processor staging image is covered by read authority.</summary>
-    [Fact]
-    public void ProcessorRejectsTypedTargetViewOutsideReadAuthority()
+    [Theory]
+    [InlineData("2.8")]
+    [InlineData("2.9")]
+    public void ProcessorRejectsTypedTargetViewOutsideReadAuthority(string schemaVersion)
     {
         CompositionProfileProcessorStageDocument document = Legacy(
             "header-and-integrity",
@@ -169,7 +176,7 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
         };
 
         CompositionProfileNormalizationException exception = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeProcessorStage(document, "2.8", "processorStages[0]"));
+            CompositionProfileNormalizer.NormalizeProcessorStage(document, schemaVersion, "processorStages[0]"));
 
         Assert.Equal("processorStages[0]", exception.Path);
         _ = Assert.IsType<ArgumentException>(exception.InnerException, exactMatch: false);

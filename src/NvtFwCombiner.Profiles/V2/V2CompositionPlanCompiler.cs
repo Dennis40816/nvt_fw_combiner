@@ -511,6 +511,38 @@ internal static partial class V2CompositionPlanCompiler
         return true;
     }
 
+    private static bool TryAuthorizeProcessorWrite(
+        string operationId,
+        string targetViewId,
+        ResolvedView target,
+        LoweredRegionAccess regionAccess,
+        List<CompositionIssue> issues)
+    {
+        if (target.GoverningRegionChain.Count == 0 ||
+            !regionAccess.Rules.Values.Any(rule => rule.Region.Range.Contains(target.Range)))
+        {
+            AddAccessDenied(
+                issues,
+                operationId,
+                $"processor target view '{targetViewId}' has no declared physical profile region");
+            return false;
+        }
+
+        foreach (FirmwareRegion region in target.GoverningRegionChain)
+        {
+            if (!AllowsPhysicalTarget(region, target.Range, regionAccess.RegionsById))
+            {
+                AddAccessDenied(
+                    issues,
+                    operationId,
+                    $"physical write constraint '{region.WriteConstraint}' for processor region '{region.RegionId}' does not authorize its target range");
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private static bool AllowsProfileTarget(
         ResolvedRegionAccessRule rule,
         ByteRange targetRange,

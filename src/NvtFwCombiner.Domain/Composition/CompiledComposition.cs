@@ -1,3 +1,5 @@
+using NvtFwCombiner.Domain.Firmware;
+
 namespace NvtFwCombiner.Domain.Composition;
 
 /// <summary>Atomic compiler output containing one executable plan and its run identity.</summary>
@@ -333,10 +335,11 @@ public sealed partial class CompiledComposition
             plan.OutputInitialization.Kind != ImageInitializationKind.Reference ||
             plan.OutputInitialization.ReferenceSpaceId is null ||
             details.RegionAccessContract.Requirements.Count == 0 ||
-            details.RegionAccessContract.ResolvedViews.Count != 0)
+            (!runtimeContext.AllowsConditionalProcessor &&
+             details.RegionAccessContract.ResolvedViews.Count != 0))
         {
             throw new ArgumentException(
-                "Map-bound runtime reference-replace artifacts require the General Replace mode and experience, a reference-cloned Replace output, declared physical access, and no static views.",
+                "Map-bound runtime reference-replace artifacts require the General Replace mode and experience, a reference-cloned Replace output, declared physical access, and only contract-authorized processor views.",
                 nameof(details));
         }
 
@@ -451,9 +454,25 @@ public sealed partial class CompiledComposition
             }
         }
 
+        ValidateRuntimeReferenceReplaceViews(
+            plan,
+            runtimeContext,
+            details.RegionAccessContract.ResolvedViews);
+
+        CompositionOperation[] mappingOperations =
+        [
+            .. plan.OrderedOperations.Where(static operation =>
+                operation.Kind == CompositionOperationKind.ReplaceRange),
+        ];
+        CompositionOperation[] processorOperations =
+        [
+            .. plan.OrderedOperations.Where(static operation =>
+                operation.Kind == CompositionOperationKind.RunExternalProcessor),
+        ];
         var referencedSourceAddressSpaceIds = new HashSet<string>(StringComparer.Ordinal);
-        if (plan.OrderedOperations.Count == 0 || plan.OrderedOperations.Any(operation =>
-                operation.Kind != CompositionOperationKind.ReplaceRange ||
+        if (mappingOperations.Length == 0 ||
+            mappingOperations.Length + processorOperations.Length != plan.OrderedOperations.Count ||
+            mappingOperations.Any(operation =>
                 operation.OverlapPolicy != OverlapPolicy.Reject ||
                 !StringComparer.Ordinal.Equals(operation.TargetSpaceId, plan.OutputSpaceId) ||
                 operation.SourceSpaceId is null ||
@@ -464,7 +483,7 @@ public sealed partial class CompiledComposition
                 nameof(plan));
         }
 
-        foreach (CompositionOperation operation in plan.OrderedOperations)
+        foreach (CompositionOperation operation in mappingOperations)
         {
             _ = referencedSourceAddressSpaceIds.Add(operation.SourceSpaceId!);
         }
@@ -474,6 +493,87 @@ public sealed partial class CompiledComposition
             throw new ArgumentException(
                 "Every runtime reference-replace auxiliary source binding must participate in at least one operation.",
                 nameof(plan));
+        }
+
+        ValidateRuntimeReferenceReplaceProcessor(
+            plan,
+            runtimeContext,
+            mappingOperations,
+            processorOperations,
+            details.RegionAccessContract.ResolvedViews);
+    }
+
+    private static void ValidateRuntimeReferenceReplaceViews(
+        CompositionPlan plan,
+        RuntimeReferenceReplaceV2CompilationContext runtimeContext,
+        IReadOnlyList<CompiledResolvedPhysicalView> resolvedViews)
+    {
+        AddressSpace output = plan.AddressSpaces.Single(space =>
+            StringComparer.Ordinal.Equals(space.AddressSpaceId, plan.OutputSpaceId));
+        if ((!runtimeContext.AllowsConditionalProcessor && resolvedViews.Count != 0) ||
+            resolvedViews.Any(view =>
+                !StringComparer.Ordinal.Equals(view.AddressSpaceId, plan.OutputSpaceId) ||
+                !output.Contains(view.Range)))
+        {
+            throw new ArgumentException(
+                "General Replace processor views must be profile-owned physical ranges inside the cloned output image.",
+                nameof(resolvedViews));
+        }
+    }
+
+    private static void ValidateRuntimeReferenceReplaceProcessor(
+        CompositionPlan plan,
+        RuntimeReferenceReplaceV2CompilationContext runtimeContext,
+        CompositionOperation[] mappingOperations,
+        CompositionOperation[] processorOperations,
+        IReadOnlyList<CompiledResolvedPhysicalView> resolvedViews)
+    {
+        bool touchesTp = mappingOperations.Any(mapping =>
+            runtimeContext.ResolvedMap.ImageMap.Regions.Any(region =>
+                region.Owner == FirmwareRegionOwner.Tp &&
+                region.Range.Overlaps(mapping.TargetRange)));
+        int requiredProcessorCount = touchesTp ? 1 : 0;
+        if (processorOperations.Length != requiredProcessorCount ||
+            (touchesTp && !runtimeContext.AllowsConditionalProcessor))
+        {
+            throw new ArgumentException(
+                "General Replace requires exactly one approved processor after TP mappings and no processor for mappings outside TP regions.",
+                nameof(processorOperations));
+        }
+
+        if (processorOperations.Length == 0)
+        {
+            return;
+        }
+
+        CompositionOperation processor = processorOperations[0];
+        ExternalProcessorInvocation invocation = processor.ExternalProcessorInvocation!;
+        if (processor.Sequence != int.MaxValue ||
+            processor.OverlapPolicy != OverlapPolicy.ReplaceExisting ||
+            !ReferenceEquals(processor, plan.OrderedOperations[^1]) ||
+            !StringComparer.Ordinal.Equals(processor.TargetSpaceId, plan.OutputSpaceId) ||
+            processor.TargetRange.Start != 0 ||
+            invocation.StagedSourceBindings.Count != 0 ||
+            invocation.StagedArtifactBindings.Count != 0)
+        {
+            throw new ArgumentException(
+                "The General Replace processor must be the single final profile-owned output refresh with no staged source artifacts.",
+                nameof(processorOperations));
+        }
+
+        ByteRange[] processorRanges =
+        [
+            processor.TargetRange,
+            .. invocation.AllowedReadRanges,
+            .. invocation.AllowedWriteRanges,
+        ];
+        if (resolvedViews.Count == 0 ||
+            resolvedViews.Any(view => !processorRanges.Contains(view.Range)) ||
+            processorRanges.Any(range => !resolvedViews.Any(view => view.Range == range)))
+        {
+            throw new ArgumentException(
+                "Every General Replace processor target, read, and write range must retain profile-owned physical-view provenance.",
+                nameof(resolvedViews));
         }
     }
 

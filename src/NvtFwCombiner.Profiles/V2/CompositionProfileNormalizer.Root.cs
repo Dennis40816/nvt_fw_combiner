@@ -8,9 +8,9 @@ internal static partial class CompositionProfileNormalizer
     internal static CompositionProfileDefinition Normalize(CompositionProfileDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);
-        if (document.SchemaVersion is not ("2.0" or "2.1" or "2.2" or "2.3" or "2.4" or "2.5" or "2.6" or "2.7" or "2.8"))
+        if (document.SchemaVersion is not ("2.0" or "2.1" or "2.2" or "2.3" or "2.4" or "2.5" or "2.6" or "2.7" or "2.8" or "2.9"))
         {
-            throw Error("schemaVersion", "Expected composition-profile schema version '2.0', '2.1', '2.2', '2.3', '2.4', '2.5', '2.6', '2.7', or '2.8'.");
+            throw Error("schemaVersion", "Expected composition-profile schema version '2.0' through '2.9'.");
         }
 
         CompositionKind compositionKind = NormalizeCompositionKind(
