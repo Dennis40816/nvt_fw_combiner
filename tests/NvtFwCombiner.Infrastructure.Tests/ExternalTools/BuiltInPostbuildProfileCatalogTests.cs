@@ -27,6 +27,17 @@ public sealed class BuiltInPostbuildProfileCatalogTests
             BuiltInPostbuildProfileCatalog.Load(bytes, new string('0', 64)));
     }
 
+    /// <summary>Repository LF bytes and a Windows CRLF worktree share one canonical release pin.</summary>
+    [Fact]
+    public void LoadAcceptsCanonicalLfHashFromCrlfCheckout()
+    {
+        string lfText = Encoding.UTF8.GetString(ReadCatalog()).Replace("\r\n", "\n", StringComparison.Ordinal);
+        byte[] lfBytes = Encoding.UTF8.GetBytes(lfText);
+        byte[] crlfBytes = Encoding.UTF8.GetBytes(lfText.Replace("\n", "\r\n", StringComparison.Ordinal));
+
+        Assert.Equal(15, BuiltInPostbuildProfileCatalog.Load(crlfBytes, Hash(lfBytes)).Count);
+    }
+
     /// <summary>Unknown config fields fail closed after their exact bytes are explicitly trusted.</summary>
     [Fact]
     public void LoadRejectsUnknownFields()
