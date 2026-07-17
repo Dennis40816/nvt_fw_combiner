@@ -8,13 +8,18 @@ public sealed partial class RepositoryBoundaryTests
     {
         string catalog = ReadText("profiles/built-in/ctrlram-postbuild-v2/catalog.json");
         string loader = ReadText("src/NvtFwCombiner.Infrastructure/ExternalTools/BuiltInPostbuildProfileCatalog.cs");
+        string pinnedJsonLoader = ReadText("src/NvtFwCombiner.Infrastructure/PinnedJsonCatalogLoader.cs");
 
         Assert.Contains("\"schemaVersion\": \"2.0\"", catalog, StringComparison.Ordinal);
         Assert.Equal(15, catalog.Split("\"processorId\":", StringSplitOptions.None).Length - 1);
         Assert.Contains("NT51917", catalog, StringComparison.Ordinal);
         Assert.Contains("NT51951", catalog, StringComparison.Ordinal);
         Assert.Contains("ExpectedSha256", loader, StringComparison.Ordinal);
-        Assert.Contains("UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow", loader, StringComparison.Ordinal);
+        Assert.Contains("PinnedJsonCatalogLoader.Load", loader, StringComparison.Ordinal);
+        Assert.Contains(
+            "UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow",
+            pinnedJsonLoader,
+            StringComparison.Ordinal);
         AssertNoProductionText("LegacyCombinerPostbuildCatalog");
     }
 
