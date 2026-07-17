@@ -34,7 +34,7 @@ public sealed class FirmwareRegionSet : IFirmwareMapFact
             throw new ArgumentException("Firmware region ids must be ordinally unique within a set.", nameof(regions));
         }
 
-        Array.Sort(_regions, CompareRegions);
+        Array.Sort(_regions, FirmwareRangeOrdering.Compare);
         _evidenceRefs = ImmutableStringSnapshot.Create(
             evidenceRefs,
             nameof(evidenceRefs),
@@ -65,13 +65,4 @@ public sealed class FirmwareRegionSet : IFirmwareMapFact
 
     /// <summary>Evidence manifest ids in ordinal order.</summary>
     public IReadOnlyList<string> EvidenceRefs { get; }
-
-    private static int CompareRegions(FirmwareRegion left, FirmwareRegion right)
-    {
-        int rangeComparison = FirmwareRangeOrdering.Compare(left.Range, right.Range);
-        return rangeComparison != 0
-            ? rangeComparison
-            : StringComparer.Ordinal.Compare(left.RegionId, right.RegionId);
-    }
-
 }

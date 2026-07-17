@@ -9,4 +9,12 @@ internal static class FirmwareRangeOrdering
         int start = left.Start.CompareTo(right.Start);
         return start != 0 ? start : right.Length.CompareTo(left.Length);
     }
+
+    internal static int Compare(FirmwareRegion left, FirmwareRegion right)
+    {
+        int rangeComparison = Compare(left.Range, right.Range);
+        return rangeComparison != 0
+            ? rangeComparison
+            : StringComparer.Ordinal.Compare(left.RegionId, right.RegionId);
+    }
 }

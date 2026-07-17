@@ -64,7 +64,7 @@ public sealed class FirmwareImageMap
                 nameof(regionSetBindings));
         }
 
-        Array.Sort(_regions, CompareRegions);
+        Array.Sort(_regions, FirmwareRangeOrdering.Compare);
         ValidateRegionGraph(_regions, applicability.CapacityBytes);
         _metadataSetIds = DeriveCanonicalIds(_metadataSetBindings);
         _evidenceRefs = ImmutableStringSnapshot.Create(
@@ -457,14 +457,6 @@ public sealed class FirmwareImageMap
                 $"Firmware children of {subject} must cover its exact range.",
                 nameof(regions));
         }
-    }
-
-    private static int CompareRegions(FirmwareRegion left, FirmwareRegion right)
-    {
-        int rangeComparison = FirmwareRangeOrdering.Compare(left.Range, right.Range);
-        return rangeComparison != 0
-            ? rangeComparison
-            : StringComparer.Ordinal.Compare(left.RegionId, right.RegionId);
     }
 
     private enum ParentVisitState
