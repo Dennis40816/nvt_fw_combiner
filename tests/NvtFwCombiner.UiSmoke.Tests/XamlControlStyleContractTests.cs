@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Styling;
 using NvtFwCombiner.Presentation.Avalonia;
@@ -37,12 +38,19 @@ public sealed partial class XamlControlStyleContractTests
     [Fact]
     public void HexInputBehaviorNormalizesAddressesBytesAndExcelPaste()
     {
-        Assert.Equal("0xAB12", HexTextInputBehavior.NormalizeText("0Xab12g", HexTextInputMode.Address));
-        Assert.Equal("0x123A", HexTextInputBehavior.NormalizeText("123a", HexTextInputMode.Address));
-        Assert.Equal("C5", HexTextInputBehavior.NormalizeText("c5z", HexTextInputMode.Byte));
+        Assert.Equal("0xAB12", NormalizeHexText("0Xab12g", HexTextInputMode.Address));
+        Assert.Equal("0x123A", NormalizeHexText("123a", HexTextInputMode.Address));
+        Assert.Equal("C5", NormalizeHexText("c5z", HexTextInputMode.Byte));
         Assert.Equal(
             "A5\t5A\r\n01,FF",
-            HexTextInputBehavior.NormalizeText("a5\t5a\r\n01,ffz", HexTextInputMode.ByteSequence));
+            NormalizeHexText("a5\t5a\r\n01,ffz", HexTextInputMode.ByteSequence));
+    }
+
+    private static string NormalizeHexText(string text, HexTextInputMode mode)
+    {
+        var textBox = new TextBox { Text = text, CaretIndex = text.Length };
+        HexTextInputBehavior.SetMode(textBox, mode);
+        return textBox.Text;
     }
 
     /// <summary>Ensures badge alignment and raw-text scrolling remain centralized.</summary>

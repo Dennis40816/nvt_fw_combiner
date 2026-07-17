@@ -48,9 +48,6 @@ public static class WorkbenchIssueCodes
     /// <summary>General Replace fill values must contain exactly one hexadecimal byte.</summary>
     public const string GeneralReplacePatchFillByteInvalid = "ui.general-replace.patch-fill-byte-invalid";
 
-    /// <summary>Staged hexadecimal patches must not overlap before the General Replace compiler validates them.</summary>
-    public const string GeneralReplacePatchOverlap = "ui.general-replace.patch-overlap";
-
     /// <summary>DP Replace profile is intentionally pending for the selected IC.</summary>
     public const string ReplaceDpProfilePending = "replace.dp.profile-pending";
 
