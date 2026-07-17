@@ -92,7 +92,7 @@ public static partial class WorkbenchCompositionService
             {
                 validationIssues.Add(new CompositionIssue(
                     CompositionIssueCodes.InputAddressSpaceLengthMismatch,
-                    $"Base flash BIN is too short for {icId} / {number} CtrlRAM postbuild (actual {baseLength} bytes, required at least {requiredCapacity} bytes).",
+                    $"Base firmware BIN is too short for {icId} / {number} CtrlRAM postbuild (actual {baseLength} bytes, required at least {requiredCapacity} bytes).",
                     WorkbenchSlotIds.ReplaceBase));
             }
         }
@@ -139,7 +139,7 @@ public static partial class WorkbenchCompositionService
         {
             validationIssues.Add(new CompositionIssue(
                 WorkbenchIssueCodes.InputMissing,
-                "Base flash BIN is required before CtrlRAM Replace can run.",
+                "Base firmware BIN is required before CtrlRAM Replace can run.",
                 WorkbenchSlotIds.ReplaceBase));
             return (null, 0);
         }
@@ -149,7 +149,7 @@ public static partial class WorkbenchCompositionService
         {
             validationIssues.Add(new CompositionIssue(
                 WorkbenchIssueCodes.InputArtifactReadFailed,
-                "Base flash BIN path does not exist.",
+                "Base firmware BIN path does not exist.",
                 WorkbenchSlotIds.ReplaceBase));
             return (basePath, 0);
         }
@@ -159,7 +159,7 @@ public static partial class WorkbenchCompositionService
         {
             validationIssues.Add(new CompositionIssue(
                 CompositionIssueCodes.InputAddressSpaceLengthMismatch,
-                "Base flash BIN must not be empty.",
+                "Base firmware BIN must not be empty.",
                 WorkbenchSlotIds.ReplaceBase));
         }
 

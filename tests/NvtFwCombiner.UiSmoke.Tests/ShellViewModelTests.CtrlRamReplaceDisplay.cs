@@ -33,6 +33,22 @@ public sealed partial class ShellViewModelTests
             segment.RangeLabel == "0x315D0-0x32C2F (len 0x1660)");
     }
 
+    /// <summary>Verifies CtrlRAM base copy accepts TP FW or a complete Flash Code without filename inference.</summary>
+    [Fact]
+    public void CtrlRamBaseSlotUsesGenericFirmwareWording()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.ShowCtrlRamReplaceCommand.Execute(null);
+        var traditionalChinese = ShellTextResources.For(ShellLanguage.ChineseTraditional);
+
+        Assert.Equal("Base firmware BIN", viewModel.ReplaceBaseSlot.Title);
+        Assert.Contains("TP FW or a complete Flash Code", viewModel.Text.CtrlRamInputFilesDetail, StringComparison.Ordinal);
+        Assert.Contains("TP FW 或完整 Flash Code", traditionalChinese.CtrlRamInputFilesDetail, StringComparison.Ordinal);
+        Assert.DoesNotContain("FlashCode", viewModel.Text.CtrlRamFirmwareVersionCurrentLabel, StringComparison.Ordinal);
+        Assert.DoesNotContain("FlashCode", traditionalChinese.CtrlRamFirmwareVersionSourceDetail, StringComparison.Ordinal);
+        Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "Base firmware BIN");
+    }
+
     /// <summary>Verifies CtrlRAM plan rows promote readable region labels over raw postbuild filenames.</summary>
     [Fact]
     public void CtrlRamPlanRowsExposeReadablePrimaryLabels()
@@ -120,7 +136,7 @@ public sealed partial class ShellViewModelTests
 
         Assert.Equal("0 / 12 targets selected", viewModel.ReplaceSelectionCountLabel);
         Assert.Contains("Build blocked", viewModel.ReplaceSelectionStatusLabel, StringComparison.Ordinal);
-        Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "Base flash BIN");
+        Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "Base firmware BIN");
         Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "CtrlRAM replacement");
         FirmwareSlotGroupViewModel slaveLGroup = viewModel.ReplaceSlotGroups.Single(group => group.Title == "Slave L");
         Assert.Equal("0/4", slaveLGroup.CountLabel);
