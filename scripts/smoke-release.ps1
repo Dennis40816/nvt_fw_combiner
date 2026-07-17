@@ -17,6 +17,7 @@ $ErrorActionPreference = 'Stop'
 
 $ApprovedPackageBaselineBytes = 57501699
 $MaximumPackageBytes = 58076715
+$CrcWorkerPackagePath = 'external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe'
 $ApprovedExternalToolPackagePaths = @(
     'external-tools/README.md',
     'external-tools/legacy-combiner/README.md',
@@ -194,7 +195,7 @@ try {
     $packageRoot = $topLevelDirectories[0].FullName
     foreach ($requiredPath in @(
         'NvtFwCombiner.exe',
-        'Nfc.CrcWorker.exe',
+        $CrcWorkerPackagePath,
         'RELEASE-MANIFEST.json',
         'SHA256SUMS.txt',
         'README.txt',
@@ -222,9 +223,21 @@ try {
         throw 'Release manifest has no file entries.'
     }
 
+    $DeclaredCrcWorkerEntries = @(
+        $manifest.files | Where-Object {
+            ([string]$_.path) -eq $CrcWorkerPackagePath -or $_.role -eq 'crcWorker'
+        }
+    )
+    if ($DeclaredCrcWorkerEntries.Count -ne 1 -or
+        ([string]$DeclaredCrcWorkerEntries[0].path) -ne $CrcWorkerPackagePath -or
+        $DeclaredCrcWorkerEntries[0].role -ne 'crcWorker') {
+        throw 'Release manifest CRC worker path and role are inconsistent.'
+    }
+
     $DeclaredExternalToolEntries = @(
         $manifest.files | Where-Object {
-            ([string]$_.path).StartsWith('external-tools/', [StringComparison]::Ordinal) -or
+            (([string]$_.path).StartsWith('external-tools/', [StringComparison]::Ordinal) -and
+                ([string]$_.path) -ne $CrcWorkerPackagePath) -or
             $_.role -eq 'externalTool'
         }
     )
@@ -304,7 +317,7 @@ try {
         }
     }
 
-    $workerPath = Join-Path $packageRoot 'Nfc.CrcWorker.exe'
+    $workerPath = Join-Path $packageRoot $CrcWorkerPackagePath
     $request = '{"protocolVersion":"1.0","requestId":"release-smoke","operation":"calculate","algorithmId":"crc-32-mpeg-2","payloadBase64":"MTIzNDU2Nzg5"}'
     $workerOutput = [string]::Join([Environment]::NewLine, @($request | & $workerPath))
     if ($LASTEXITCODE -ne 0) {

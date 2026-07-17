@@ -80,6 +80,13 @@ $ApprovedExternalToolPackagePaths = @(
     'external-tools/legacy-combiner/1.13.0/Combiner.exe',
     'external-tools/legacy-combiner/1.13.0/manifest.json'
 ) | Sort-Object
+$WorkerProjectMetadata = Get-Content -LiteralPath (Join-Path $RepoRoot 'tools/crc-worker/pyproject.toml') -Raw
+$WorkerVersionMatch = [regex]::Match($WorkerProjectMetadata, '(?m)^version\s*=\s*"(?<version>[^"]+)"\s*$')
+if (-not $WorkerVersionMatch.Success) {
+    throw 'CRC worker version was not found in tools/crc-worker/pyproject.toml.'
+}
+$WorkerVersion = $WorkerVersionMatch.Groups['version'].Value
+$WorkerPackageRelativePath = "external-tools/crc-worker/$WorkerVersion/Nfc.CrcWorker.exe"
 
 function Copy-PackageFile {
     param(
@@ -122,7 +129,14 @@ function Get-ExternalToolManifestEntries {
         [Parameter(Mandatory = $true)][string]$ExternalToolsRoot
     )
 
-    $ExternalToolFiles = @(Get-ChildItem -LiteralPath $ExternalToolsRoot -File -Recurse | ForEach-Object FullName)
+    $ExternalToolFiles = @(
+        Get-ChildItem -LiteralPath $ExternalToolsRoot -File -Recurse |
+            Where-Object {
+                [System.IO.Path]::GetRelativePath($PackageRoot, $_.FullName).Replace('\', '/') -ne
+                    $WorkerPackageRelativePath
+            } |
+            ForEach-Object FullName
+    )
     $PackagedExternalToolPaths = @(
         $ExternalToolFiles |
             ForEach-Object { [System.IO.Path]::GetRelativePath($PackageRoot, $_).Replace('\', '/') } |
@@ -550,7 +564,8 @@ $BuiltWorker = Join-Path $WorkerDist 'Nfc.CrcWorker.exe'
 if (-not (Test-Path -LiteralPath $BuiltWorker -PathType Leaf)) {
     throw "Packaged CRC worker was not found at $BuiltWorker"
 }
-$WorkerExe = Join-Path $PackageRoot 'Nfc.CrcWorker.exe'
+$WorkerExe = Join-Path $PackageRoot $WorkerPackageRelativePath
+New-Item -ItemType Directory -Force -Path (Split-Path -Parent $WorkerExe) | Out-Null
 Copy-Item -LiteralPath $BuiltWorker -Destination $WorkerExe
 
 $ExternalToolsDestination = Join-Path $PackageRoot 'external-tools'
@@ -610,9 +625,9 @@ NVT FW Combiner $SemanticVersion
 
 Contents:
 - NvtFwCombiner.exe: self-contained Windows x64 desktop application
-- Nfc.CrcWorker.exe: constrained external checksum/header worker
+- external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe: constrained external checksum/header worker
 - profiles/built-in/: manifest-pinned bundles materialized by the Bootstrap build; profile stage and runtime routing remain authoritative
-- external-tools/: approved legacy Combiner runtime packages
+- external-tools/: versioned constrained processors and approved legacy Combiner runtime packages
 - reference/: owner-approved flash-map, postbuild, flash-header, and golden fixture evidence
 - RELEASE-MANIFEST.json: source and file integrity metadata
 - SHA256SUMS.txt: package file hashes
@@ -665,14 +680,14 @@ $SbomName = "$PackageName.spdx.json"
 $ProvenanceName = "$PackageName.provenance.json"
 $FileEntries = @(
     [ordered]@{ path = 'NvtFwCombiner.exe'; size = (Get-Item $AppExe).Length; sha256 = $AppHash; role = 'application' },
-    [ordered]@{ path = 'Nfc.CrcWorker.exe'; size = (Get-Item $WorkerExe).Length; sha256 = $WorkerHash; role = 'crcWorker' },
+    [ordered]@{ path = $WorkerPackageRelativePath; size = (Get-Item $WorkerExe).Length; sha256 = $WorkerHash; role = 'crcWorker' },
     [ordered]@{ path = 'THIRD-PARTY-NOTICES.txt'; size = (Get-Item $NoticePath).Length; sha256 = (Get-LowerSha256 $NoticePath); role = 'notices' },
     [ordered]@{ path = 'LICENSE.txt'; size = (Get-Item $LicensePath).Length; sha256 = (Get-LowerSha256 $LicensePath); role = 'license' },
     [ordered]@{ path = 'README.txt'; size = (Get-Item $ReadmePath).Length; sha256 = (Get-LowerSha256 $ReadmePath); role = 'readme' }
 ) + $BuiltInProfileEntries + $ExternalToolEntries + $ReferencePayloadEntries
 
 $Manifest = [ordered]@{
-    schemaVersion = '1.1'
+    schemaVersion = '1.2'
     product = 'NVT FW Combiner'
     version = $SemanticVersion
     sourceCommit = $Commit
@@ -749,7 +764,7 @@ $HashLines | Set-Content -LiteralPath (Join-Path $PackageRoot 'SHA256SUMS.txt') 
 
 $Expected = (@(
     'LICENSE.txt',
-    'Nfc.CrcWorker.exe',
+    $WorkerPackageRelativePath,
     'NvtFwCombiner.exe',
     'README.txt',
     'RELEASE-MANIFEST.json',

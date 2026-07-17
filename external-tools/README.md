@@ -6,6 +6,10 @@ Current package:
 
 - `legacy-combiner/1.13.0/Combiner.exe`
 
+Release packaging also builds the constrained CRC Worker from `tools/crc-worker/` into
+`external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe`. The generated executable is hash-pinned by
+`RELEASE-MANIFEST.json` and is not committed to this source directory.
+
 ## Adding A Combiner Version
 
 1. Create `external-tools/legacy-combiner/<version>/`.

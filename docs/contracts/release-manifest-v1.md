@@ -7,8 +7,8 @@ Rules:
 - JSON Schema Draft 2020-12.
 - UTF-8, deterministic property order, no unknown properties.
 - SHA-256 is lowercase 64-character hex.
-- Package paths are relative package paths. Base payload files are plain filenames; approved external tool payloads must live under `external-tools/`; human-review evidence and owner-approved golden fixtures must live under `reference/`.
-- Manifest lists the five base payload files plus each explicitly approved file path under `external-tools/`, excluding itself and `SHA256SUMS.txt`.
+- Package paths are relative package paths. Application and notice payloads are plain filenames; the CRC worker and approved external tool payloads must live under `external-tools/`; human-review evidence and owner-approved golden fixtures must live under `reference/`.
+- Manifest lists the application, versioned CRC worker, three notice/readme files, and each explicitly approved external-tool path, excluding itself and `SHA256SUMS.txt`.
 - Manifest also lists every shipped file under `reference/`. Owner-approved golden firmware fixtures use role `goldenFixture`; non-BIN reference evidence uses role `reference`.
 - Built-in profile/schema/processor digests describe resources embedded in the executables.
 - `licenseSpdx` is `MIT`.
@@ -18,7 +18,7 @@ Example:
 
 ```json
 {
-  "schemaVersion": "1.1",
+  "schemaVersion": "1.2",
   "product": "NVT FW Combiner",
   "version": "0.8.0-beta.1",
   "sourceCommit": "0123456789abcdef0123456789abcdef01234567",
@@ -47,7 +47,7 @@ Example:
       "role": "application"
     },
     {
-      "path": "Nfc.CrcWorker.exe",
+      "path": "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
       "size": 1,
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
       "role": "crcWorker"
@@ -94,4 +94,4 @@ Example:
 }
 ```
 
-`approvedProcessorIds` may be empty in a pre-transform beta, but a profile requiring processor authority `transform` cannot be included unless its processor id is present and tested. `processorBundleSha256` covers the deterministic registry/parameter-schema bundle, not firmware data. Shipped legacy Combiner binaries are represented as `externalTool` file entries and pinned by their own external tool manifests.
+`approvedProcessorIds` may be empty in a pre-transform beta, but a profile requiring processor authority `transform` cannot be included unless its processor id is present and tested. `processorBundleSha256` covers the deterministic registry/parameter-schema bundle, not firmware data. The packaged CRC worker keeps role `crcWorker` at its exact versioned `external-tools/crc-worker/` path; shipped legacy Combiner binaries use role `externalTool` and are pinned by their own external tool manifests.

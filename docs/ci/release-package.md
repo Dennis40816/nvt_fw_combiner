@@ -7,7 +7,6 @@ The end-user ZIP contains one top-level directory with a closed file allowlist:
 ```text
 NvtFwCombiner-vX.Y.Z-win-x64/
 ├─ NvtFwCombiner.exe
-├─ Nfc.CrcWorker.exe
 ├─ profiles/
 │  └─ built-in/
 │     └─ <Bootstrap-declared bundle>/
@@ -15,6 +14,9 @@ NvtFwCombiner-vX.Y.Z-win-x64/
 │        └─ <manifest-pinned runtime files>
 ├─ external-tools/
 │  ├─ README.md
+│  ├─ crc-worker/
+│  │  └─ 0.1.0/
+│  │     └─ Nfc.CrcWorker.exe
 │  └─ legacy-combiner/
 │     ├─ README.md
 │     └─ 1.13.0/
@@ -40,7 +42,7 @@ NvtFwCombiner-vX.Y.Z-win-x64/
 └─ SHA256SUMS.txt
 ```
 
-No production source tree, editable source profile tree, Python runtime installation, .NET runtime installation, test projects, private golden inputs, unmanifested firmware BINs, generated firmware outputs, PDBs, Codex configuration, or signing material is shipped. `profiles/built-in/` contains only the bundles explicitly materialized by the Bootstrap project; each bundle is limited to `profile-bundle.json` and that manifest's pinned entries. Shipping a candidate bundle does not change its declared stage, blockers, runtime eligibility, or owner-review requirement. The packager rejects extra published bundle directories or files. The only shipped external executable is an owner-approved Combiner package under `external-tools/`; packaging copies only its fixed allowlist, so untracked or extra files in that source directory cannot enter a package. Owner-approved Standard Merge golden fixture BINs may ship under `reference/testdata/golden/standard-merge-gen-flash/` only when they are declared by that fixture manifest for future packaged self-tests. Every shipped file under `profiles/built-in/`, `external-tools/`, and `reference/` is listed in `RELEASE-MANIFEST.json` and `SHA256SUMS.txt`.
+No production source tree, editable source profile tree, Python runtime installation, .NET runtime installation, test projects, private golden inputs, unmanifested firmware BINs, generated firmware outputs, PDBs, Codex configuration, or signing material is shipped. `profiles/built-in/` contains only the bundles explicitly materialized by the Bootstrap project; each bundle is limited to `profile-bundle.json` and that manifest's pinned entries. Shipping a candidate bundle does not change its declared stage, blockers, runtime eligibility, or owner-review requirement. The packager rejects extra published bundle directories or files. The two shipped external executables are the generated, constrained CRC worker under its versioned `external-tools/crc-worker/` path and the owner-approved Combiner package; repository external-tool copying still uses a fixed allowlist, so untracked or extra files cannot enter a package. Owner-approved Standard Merge golden fixture BINs may ship under `reference/testdata/golden/standard-merge-gen-flash/` only when they are declared by that fixture manifest for future packaged self-tests. Every shipped file under `profiles/built-in/`, `external-tools/`, and `reference/` is listed in `RELEASE-MANIFEST.json` and `SHA256SUMS.txt`.
 
 ## Implemented commands
 

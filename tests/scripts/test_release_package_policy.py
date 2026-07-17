@@ -24,6 +24,9 @@ APPROVED_EXTERNAL_TOOL_PATHS = (
 )
 POWERSHELL = shutil.which("pwsh") or shutil.which("powershell")
 MAXIMUM_PACKAGE_BYTES = 58_076_715
+CRC_WORKER_PACKAGE_PATH = Path(
+    "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe"
+)
 
 
 class ReleasePackagePolicyTests(unittest.TestCase):
@@ -150,19 +153,27 @@ class ReleasePackagePolicyTests(unittest.TestCase):
 
             for required_file in (
                 "NvtFwCombiner.exe",
-                "Nfc.CrcWorker.exe",
                 "SHA256SUMS.txt",
                 "README.txt",
                 "LICENSE.txt",
                 "THIRD-PARTY-NOTICES.txt",
             ):
                 (package_root / required_file).write_bytes(b"release-policy fixture\n")
+            worker_path = package_root / CRC_WORKER_PACKAGE_PATH
+            worker_path.parent.mkdir(parents=True)
+            worker_path.write_bytes(b"release-policy fixture\n")
 
             staged_probe = package_root / PROBE_RELATIVE_PATH
-            staged_probe.parent.mkdir(parents=True)
+            staged_probe.parent.mkdir(parents=True, exist_ok=True)
             staged_probe.write_bytes(b"negative release-policy probe\n")
             manifest = {
                 "files": [
+                    {
+                        "path": CRC_WORKER_PACKAGE_PATH.as_posix(),
+                        "size": worker_path.stat().st_size,
+                        "sha256": "0" * 64,
+                        "role": "crcWorker",
+                    },
                     {
                         "path": PROBE_RELATIVE_PATH.as_posix(),
                         "size": staged_probe.stat().st_size,
@@ -211,15 +222,25 @@ class ReleasePackagePolicyTests(unittest.TestCase):
 
             for required_file in (
                 "NvtFwCombiner.exe",
-                "Nfc.CrcWorker.exe",
                 "SHA256SUMS.txt",
                 "README.txt",
                 "LICENSE.txt",
                 "THIRD-PARTY-NOTICES.txt",
             ):
                 (package_root / required_file).write_bytes(b"release-policy fixture\n")
+            worker_path = package_root / CRC_WORKER_PACKAGE_PATH
+            worker_path.parent.mkdir(parents=True)
+            worker_path.write_bytes(b"release-policy fixture\n")
 
             manifest_entries = []
+            manifest_entries.append(
+                {
+                    "path": CRC_WORKER_PACKAGE_PATH.as_posix(),
+                    "size": worker_path.stat().st_size,
+                    "sha256": "0" * 64,
+                    "role": "crcWorker",
+                }
+            )
             for relative_path in APPROVED_EXTERNAL_TOOL_PATHS:
                 external_path = package_root / relative_path
                 external_path.parent.mkdir(parents=True, exist_ok=True)
