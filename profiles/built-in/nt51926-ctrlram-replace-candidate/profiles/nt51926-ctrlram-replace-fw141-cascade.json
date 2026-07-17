@@ -1,14 +1,14 @@
 {
   "schemaVersion": "2.7",
   "profileId": "nt51926-ctrlram-replace-fw141-cascade",
-  "profileVersion": "0.2.0",
+  "profileVersion": "0.3.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
       {
         "blockerId": "direct-golden-evidence",
         "kind": "golden",
-        "reason": "A direct NT51926 Common FW 1.4.1 cascade CtrlRAM input/output golden is required before runtime exposure.",
+        "reason": "A direct NT51926 Common FW 1.4.1 cascade TP-work-image postbuild output golden is required before runtime exposure.",
         "evidenceRefs": [ "nt51926-common-fw141-postbuild" ]
       },
       {
@@ -40,9 +40,9 @@
   },
   "mapBinding": {
     "familyId": "nt51926-ctrlram-replace",
-    "familyVersion": "0.2.0",
-    "familyContentHash": "b9ade08ee84f759ae6af3703a420310a648b395a9abfe802d54263674e1c39b0",
-    "mapIds": [ "nt51926-ctrlram-fw141-256k" ],
+    "familyVersion": "0.3.0",
+    "familyContentHash": "208503381c7dbf9349f9b85b8fdce130136e298dd29bdcb3a78f065a23c440c6",
+    "mapIds": [ "nt51926-ctrlram-fw141-tp-240k" ],
     "requiredRegionIds": [
       "flash-image",
       "normal-ctrlram",

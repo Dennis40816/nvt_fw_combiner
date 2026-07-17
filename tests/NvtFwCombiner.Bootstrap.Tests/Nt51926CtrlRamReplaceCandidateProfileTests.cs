@@ -7,14 +7,13 @@ using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.V2;
 using NvtFwCombiner.TestSupport;
-using static NvtFwCombiner.Bootstrap.Tests.BootstrapTestData;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Compilable, non-routed evidence for the NT51926 Common FW 1.4.1 cascade CtrlRAM postbuild plan.</summary>
 public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
 {
-    private const int Capacity = 0x40000;
+    private const int Capacity = 0x3C000;
     private const int FirmwareConfigBackupStart = 0x3B000;
     private const int NvtMarkerStart = FirmwareConfigBackupStart + 0xFFC;
 
@@ -24,7 +23,13 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
     [Fact]
     public void CandidateProfileCompilesTheLegacyCascadeStagingAndWriteAuthority()
     {
-        byte[] referenceBase = File.ReadAllBytes(GoldenPath("expected/51926/flash.bin"));
+        byte[] referenceBase = ReadOwnerIntakeFile(
+            "NT51926",
+            "replace",
+            "ctrlram",
+            "1.4.1",
+            "cascade",
+            "NT51926TT_TPFW_T06.bin").Bytes;
         Assert.Equal(Capacity, referenceBase.Length);
         CompiledComposition composition = CompileCandidate(referenceBase);
         ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(
@@ -35,7 +40,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
 
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
-        Assert.Equal("nt51926-ctrlram-fw141-256k", details.Provenance.ResolvedMap.ImageMap.MapId);
+        Assert.Equal("nt51926-ctrlram-fw141-tp-240k", details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, details.Provenance.Promotion.Stage);
         Assert.Equal(
             ["direct-golden-evidence", "firmware-owner-review", "runtime-route"],
@@ -136,34 +141,36 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             return;
         }
 
-        string fixtureRoot = RepositoryPaths.FromRepositoryRoot("testdata", "golden", "ctrlram-replace");
-        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(fixtureRoot, "manifest.json")));
-        JsonElement fixtureCase = manifest.RootElement.GetProperty("cases")
-            .EnumerateArray()
-            .Single(static candidate =>
-                candidate.GetProperty("id").GetString() == "nt51926-cascade-self-20260705");
-        byte[] referenceBase = ReadManifestFile(fixtureRoot, fixtureCase.GetProperty("base"));
-        var replacementInputs = fixtureCase.GetProperty("replacementInputs")
-            .EnumerateArray()
-            .ToDictionary(
-                static input => input.GetProperty("slotId").GetString()!,
-                input => ReadManifestFile(fixtureRoot, input.GetProperty("file")),
-                StringComparer.Ordinal);
+        OwnerIntakeFile baseFile = ReadOwnerIntakeFile(
+            "NT51926", "replace", "ctrlram", "1.4.1", "cascade", "NT51926TT_TPFW_T06.bin");
+        byte[] referenceBase = baseFile.Bytes;
+        byte[] originalReference = [.. referenceBase];
+        var inputFileNames = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["replace-ctrlram-normal"] = "Normal_Ctrlram.bin",
+            ["replace-ctrlram-diff"] = "DiffDLM.bin",
+            ["replace-ctrlram-mp"] = "MP_Ctrlram.bin",
+            ["replace-ctrlram-vn"] = "VN_Ctrlram.bin",
+            ["replace-ctrlram-nf"] = "NF_Ctrlram.bin",
+        };
+        Dictionary<string, OwnerIntakeFile> intakeFiles = inputFileNames.ToDictionary(
+            static pair => pair.Key,
+            pair => ReadOwnerIntakeFile(
+                "NT51926", "replace", "ctrlram", "1.4.1", "cascade", "postbuild_inputs", pair.Value),
+            StringComparer.Ordinal);
+        Dictionary<string, byte[]> replacementInputs = intakeFiles.ToDictionary(
+            static pair => pair.Key,
+            static pair => pair.Value.Bytes,
+            StringComparer.Ordinal);
         var originalInputs = replacementInputs.ToDictionary(
             static pair => pair.Key,
-            static pair => pair.Value.ToArray(),
+            static pair => pair.Value[..],
             StringComparer.Ordinal);
-        string basePath = RepositoryPaths.ManifestPath(fixtureRoot, fixtureCase.GetProperty("base"));
-        var legacySlotPaths = replacementInputs.Keys.ToDictionary(
-            static slotId => slotId,
-            slotId => RepositoryPaths.ManifestPath(
-                fixtureRoot,
-                fixtureCase.GetProperty("replacementInputs")
-                    .EnumerateArray()
-                    .Single(input => input.GetProperty("slotId").GetString() == slotId)
-                    .GetProperty("file")),
+        var legacySlotPaths = intakeFiles.ToDictionary(
+            static pair => pair.Key,
+            static pair => pair.Value.Path,
             StringComparer.Ordinal);
-        legacySlotPaths[WorkbenchSlotIds.ReplaceBase] = basePath;
+        legacySlotPaths[WorkbenchSlotIds.ReplaceBase] = baseFile.Path;
 
         using var workspace = TempWorkspace.Create("nfc-nt51926-ctrlram-v2-parity");
         string legacyOutputPath = workspace.PathFor("legacy-workbench-output.bin");
@@ -218,10 +225,13 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, v2.Status);
-        Assert.Empty(v2.Issues);
+        Assert.Equal(2, v2.Issues.Count);
+        Assert.All(v2.Issues, static issue => Assert.Equal(
+            CompositionIssueCodes.InputAddressSpaceTruncated,
+            issue.Code));
         Assert.Equal(legacyOutput, v2.OutputBytes.ToArray());
         Assert.Equal(legacy.OutputSha256, Hash(v2.OutputBytes.Span));
-        Assert.Equal(ReadManifestFile(fixtureRoot, fixtureCase.GetProperty("base")), referenceBase);
+        Assert.Equal(originalReference, referenceBase);
         Assert.All(
             originalInputs,
             pair => Assert.Equal(pair.Value, replacementInputs[pair.Key]));
@@ -267,7 +277,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             referenceBase);
         return BuiltInV2BundleRegistry.All["nt51926-ctrlram-replace-candidate"].Compile(
             "nt51926-ctrlram-replace-fw141-cascade",
-            "0.2.0",
+            "0.3.0",
             "NT51926",
             ExperienceIds.CtrlRamReplace,
             Capacity,
@@ -299,18 +309,34 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         NvtMarker.CopyTo(target.AsSpan(start));
     }
 
-    private static byte[] ReadManifestFile(string fixtureRoot, JsonElement manifestFile)
+    private static OwnerIntakeFile ReadOwnerIntakeFile(params string[] parts)
     {
-        byte[] bytes = File.ReadAllBytes(RepositoryPaths.ManifestPath(fixtureRoot, manifestFile));
-        Assert.Equal(manifestFile.GetProperty("size").GetInt64(), bytes.LongLength);
-        Assert.Equal(manifestFile.GetProperty("sha256").GetString(), Hash(bytes));
-        return bytes;
+        string goldenRoot = RepositoryPaths.FromRepositoryRoot(
+            "testdata",
+            "golden",
+            "ctrlram-replace");
+        string relativePath = Path.Combine("fixtures", "20260717", Path.Combine(parts)).Replace('\\', '/');
+        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(
+            goldenRoot,
+            "manifest.20260717.json")));
+        JsonElement entry = manifest.RootElement.GetProperty("payloads")
+            .EnumerateArray()
+            .Single(candidate => StringComparer.Ordinal.Equals(
+                candidate.GetProperty("path").GetString(),
+                relativePath));
+        string path = RepositoryPaths.ManifestPath(goldenRoot, entry);
+        byte[] bytes = File.ReadAllBytes(path);
+        Assert.Equal(entry.GetProperty("size").GetInt64(), bytes.LongLength);
+        Assert.Equal(entry.GetProperty("sha256").GetString(), Hash(bytes));
+        return new OwnerIntakeFile(path, bytes);
     }
 
     private static string Hash(ReadOnlySpan<byte> bytes)
     {
         return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
     }
+
+    private sealed record OwnerIntakeFile(string Path, byte[] Bytes);
 
     private static string FormatIssues(IEnumerable<CompositionIssue> issues)
     {
