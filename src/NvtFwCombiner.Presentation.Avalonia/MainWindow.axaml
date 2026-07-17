@@ -111,7 +111,7 @@
               Classes="reportAction"
               Command="{Binding ShowReportCommand}"
               IsEnabled="{Binding CanOpenReport}"
-              ToolTip.Tip="{Binding ReportModalActionLabel}">
+              ToolTip.Tip="{Binding Text.ReportModalActionLabel}">
             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="9">
               <TextBlock
                   VerticalAlignment="Center"

@@ -68,7 +68,7 @@ DEFAULT_LIMITS = CodeSizeLimits(
     partial_type_default_max=2_500,
     partial_type_exact_ratchets={
         "NvtFwCombiner.Bootstrap.WorkbenchCompositionService": 4_483,
-        "NvtFwCombiner.Presentation.Avalonia.ViewModels.MainWindowViewModel": 2_847,
+        "NvtFwCombiner.Presentation.Avalonia.ViewModels.MainWindowViewModel": 2_835,
     },
 )
 

@@ -15,13 +15,14 @@ public sealed partial class ShellTextResources
 
     public string WorkspaceSummary { get; private init; } = string.Empty;
 
-    public string PreviewActionLabel { get; private init; } = string.Empty;
-
     public string BuildActionLabel { get; private init; } = string.Empty;
 
-    public string PreviewRunProgressAccessibleLabel { get; private init; } = string.Empty;
-
-    public string BuildRunProgressAccessibleLabel { get; private init; } = string.Empty;
+    public string GetRunProgressAccessibleLabel(bool build)
+    {
+        return Language == ShellLanguage.ChineseTraditional
+            ? build ? "正在建立" : "正在預覽"
+            : build ? "Build in progress" : "Preview in progress";
+    }
 
     public string ReportModalActionLabel { get; private init; } = string.Empty;
 

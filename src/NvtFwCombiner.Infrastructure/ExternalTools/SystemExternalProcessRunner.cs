@@ -7,11 +7,8 @@ public sealed class SystemExternalProcessRunner : IExternalProcessRunner
 {
     internal static ProcessStartInfo CreateProcessStartInfo(ExternalProcessStartInfo startInfo)
     {
-        ArgumentNullException.ThrowIfNull(startInfo);
-
-        var processStartInfo = new ProcessStartInfo
+        var processStartInfo = new ProcessStartInfo(startInfo.ExecutablePath)
         {
-            FileName = startInfo.ExecutablePath,
             WorkingDirectory = startInfo.WorkingDirectory,
             UseShellExecute = false,
             CreateNoWindow = true,

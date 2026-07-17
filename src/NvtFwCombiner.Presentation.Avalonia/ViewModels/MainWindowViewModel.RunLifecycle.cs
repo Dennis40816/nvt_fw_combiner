@@ -13,8 +13,8 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets the localized assistive label for the active Preview or Build operation.</summary>
     public string RunProgressAccessibleLabel => _activeRunIsBuild switch
     {
-        true => Text.BuildRunProgressAccessibleLabel,
-        false => Text.PreviewRunProgressAccessibleLabel,
+        true => Text.GetRunProgressAccessibleLabel(build: true),
+        false => Text.GetRunProgressAccessibleLabel(build: false),
         null => string.Empty,
     };
 

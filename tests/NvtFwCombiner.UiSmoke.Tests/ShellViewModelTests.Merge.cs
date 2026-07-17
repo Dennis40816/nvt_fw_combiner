@@ -219,10 +219,10 @@ public sealed partial class ShellViewModelTests
     {
         var english = ShellTextResources.For(ShellLanguage.English);
         var traditionalChinese = ShellTextResources.For(ShellLanguage.ChineseTraditional);
-        Assert.Equal("Preview in progress", english.PreviewRunProgressAccessibleLabel);
-        Assert.Equal("Build in progress", english.BuildRunProgressAccessibleLabel);
-        Assert.Equal("正在預覽", traditionalChinese.PreviewRunProgressAccessibleLabel);
-        Assert.Equal("正在建立", traditionalChinese.BuildRunProgressAccessibleLabel);
+        Assert.Equal("Preview in progress", english.GetRunProgressAccessibleLabel(build: false));
+        Assert.Equal("Build in progress", english.GetRunProgressAccessibleLabel(build: true));
+        Assert.Equal("正在預覽", traditionalChinese.GetRunProgressAccessibleLabel(build: false));
+        Assert.Equal("正在建立", traditionalChinese.GetRunProgressAccessibleLabel(build: true));
 
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-run-progress");
         string source = workspace.Write("source.bin", [0x10]);
