@@ -7,253 +7,227 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class ShellTextResources
 {
+    private string SelectLanguage(string english, string traditionalChinese)
+    {
+        return Language == ShellLanguage.ChineseTraditional ? traditionalChinese : english;
+    }
+
     public string GetThemePreferenceStatus(string selectedTheme)
     {
-        return Language == ShellLanguage.ChineseTraditional
-            ? selectedTheme switch
-            {
-                "System" => "跟隨作業系統主題。",
-                "Light" => "目前視窗已套用亮色主題。",
-                "Dark" => "目前視窗已套用暗色主題。",
-                "High contrast" => "目前使用暗色視覺變體；韌體 gate 不受影響。",
-                _ => "主題偏好已儲存在本機。",
-            }
-            : selectedTheme switch
-            {
-                "System" => "Follows the operating-system theme.",
-                "Light" => "Light theme is applied to this window.",
-                "Dark" => "Dark theme is applied to this window.",
-                "High contrast" => "Uses the dark visual variant; firmware gates are unchanged.",
-                _ => "Theme preference is saved locally.",
-            };
+        return selectedTheme switch
+        {
+            "System" => SelectLanguage("Follows the operating-system theme.", "跟隨作業系統主題。"),
+            "Light" => SelectLanguage("Light theme is applied to this window.", "目前視窗已套用亮色主題。"),
+            "Dark" => SelectLanguage("Dark theme is applied to this window.", "目前視窗已套用暗色主題。"),
+            "High contrast" => SelectLanguage(
+                "Uses the dark visual variant; firmware gates are unchanged.",
+                "目前使用暗色視覺變體；韌體 gate 不受影響。"),
+            _ => SelectLanguage("Theme preference is saved locally.", "主題偏好已儲存在本機。"),
+        };
     }
 
     public string GetLanguagePreferenceStatus(string selectedLanguage)
     {
-        return Language == ShellLanguage.ChineseTraditional
-            ? selectedLanguage switch
-            {
-                "Traditional Chinese" => "繁體中文介面已套用並會在啟動時還原。",
-                "English" => "英文介面已套用並會在啟動時還原。",
-                _ => "語言偏好已儲存在本機。",
-            }
-            : selectedLanguage switch
-            {
-                "Traditional Chinese" => "Traditional Chinese shell resources are active and restored on startup.",
-                "English" => "English shell resources are active and restored on startup.",
-                _ => "Language preference is saved locally.",
-            };
+        return selectedLanguage switch
+        {
+            "Traditional Chinese" => SelectLanguage(
+                "Traditional Chinese shell resources are active and restored on startup.",
+                "繁體中文介面已套用並會在啟動時還原。"),
+            "English" => SelectLanguage(
+                "English shell resources are active and restored on startup.",
+                "英文介面已套用並會在啟動時還原。"),
+            _ => SelectLanguage("Language preference is saved locally.", "語言偏好已儲存在本機。"),
+        };
     }
 
     public string GetReplaceModeDescription(string mode)
     {
-        return Language == ShellLanguage.ChineseTraditional
-            ? mode switch
-            {
-                WorkbenchReplaceModes.Dp => "取代 DP 與選用 LD payload；不執行 CRC postbuild。",
-                WorkbenchReplaceModes.CtrlRam => "取代 CtrlRAM payload 後執行 combiner.exe postbuild 更新 CRC/header。",
-                WorkbenchReplaceModes.General => "編輯 profile 核准的明確範圍；碰到 TP 範圍時必須執行 combiner.exe CRC/header 更新。",
-                _ => "選擇一個 Replace 模式。",
-            }
-            : mode switch
-            {
-                WorkbenchReplaceModes.Dp => "Replace DP and optional LD payloads without CRC postbuild.",
-                WorkbenchReplaceModes.CtrlRam => "Replace CtrlRAM payloads, then run combiner.exe postbuild for CRC/header refresh.",
-                WorkbenchReplaceModes.General => "Author explicit profile-approved ranges; TP ranges require combiner.exe CRC/header refresh.",
-                _ => "Select a replace mode.",
-            };
+        return mode switch
+        {
+            WorkbenchReplaceModes.Dp => SelectLanguage(
+                "Replace DP and optional LD payloads without CRC postbuild.",
+                "取代 DP 與選用 LD payload；不執行 CRC postbuild。"),
+            WorkbenchReplaceModes.CtrlRam => SelectLanguage(
+                "Replace CtrlRAM payloads, then run combiner.exe postbuild for CRC/header refresh.",
+                "取代 CtrlRAM payload 後執行 combiner.exe postbuild 更新 CRC/header。"),
+            WorkbenchReplaceModes.General => SelectLanguage(
+                "Author explicit profile-approved ranges; TP ranges require combiner.exe CRC/header refresh.",
+                "編輯 profile 核准的明確範圍；碰到 TP 範圍時必須執行 combiner.exe CRC/header 更新。"),
+            _ => SelectLanguage("Select a replace mode.", "選擇一個 Replace 模式。"),
+        };
     }
 
     public string GetReplaceMemorySummary(string mode)
     {
-        return Language == ShellLanguage.ChineseTraditional
-            ? mode switch
-            {
-                WorkbenchReplaceModes.Dp => "藍色代表新的 DP bytes；灰色代表從 base firmware 保留或還原的區段。",
-                WorkbenchReplaceModes.CtrlRam => "有色區塊代表可取代的 CtrlRAM 位置；灰色保留 base firmware。",
-                WorkbenchReplaceModes.General => "Base flash 只會在核准的明確取代範圍內改變。",
-                _ => "選擇 Replace 模式後查看目標範圍。",
-            }
-            : mode switch
-            {
-                WorkbenchReplaceModes.Dp => "Blue shows new DP bytes; gray shows sections preserved or restored from the base firmware.",
-                WorkbenchReplaceModes.CtrlRam => "Colored blocks show replaceable CtrlRAM positions; gray stays from the base firmware.",
-                WorkbenchReplaceModes.General => "Base flash stays unchanged except approved explicit replacement ranges.",
-                _ => "Select a replace mode to inspect its target ranges.",
-            };
+        return mode switch
+        {
+            WorkbenchReplaceModes.Dp => SelectLanguage(
+                "Blue shows new DP bytes; gray shows sections preserved or restored from the base firmware.",
+                "藍色代表新的 DP bytes；灰色代表從 base firmware 保留或還原的區段。"),
+            WorkbenchReplaceModes.CtrlRam => SelectLanguage(
+                "Colored blocks show replaceable CtrlRAM positions; gray stays from the base firmware.",
+                "有色區塊代表可取代的 CtrlRAM 位置；灰色保留 base firmware。"),
+            WorkbenchReplaceModes.General => SelectLanguage(
+                "Base flash stays unchanged except approved explicit replacement ranges.",
+                "Base flash 只會在核准的明確取代範圍內改變。"),
+            _ => SelectLanguage(
+                "Select a replace mode to inspect its target ranges.",
+                "選擇 Replace 模式後查看目標範圍。"),
+        };
     }
 
     public string GetReplaceReadinessStatus(string mode, bool canRun)
     {
-        return Language == ShellLanguage.ChineseTraditional
-            ? mode switch
-            {
-                WorkbenchReplaceModes.Dp when canRun => "Ready：Build 會先驗證 DP Replace input，再寫出 output 與 report。",
-                WorkbenchReplaceModes.Dp => "Build blocked：需要 base BIN 與必要的 DP replacement input。",
-                WorkbenchReplaceModes.CtrlRam when canRun => "Ready：Build 會取代選定的 CtrlRAM region 並執行 postbuild。",
-                WorkbenchReplaceModes.CtrlRam => "Build blocked：需要 base BIN 與至少一個 CtrlRAM region BIN。",
-                WorkbenchReplaceModes.General when canRun => "Ready：Build 會編譯明確 mapping；碰到 TP range 時會執行 postbuild。",
-                WorkbenchReplaceModes.General => "Build blocked：需要 base BIN 與至少一筆 replacement mapping。",
-                _ => "Build blocked：請選擇 Replace 模式。",
-            }
-            : mode switch
-            {
-                WorkbenchReplaceModes.Dp when canRun => "Ready: Build will validate DP Replace inputs, then write output and report.",
-                WorkbenchReplaceModes.Dp => "Build blocked: base BIN and required DP replacement inputs are required.",
-                WorkbenchReplaceModes.CtrlRam when canRun => "Ready: Build will replace selected CtrlRAM regions and run postbuild.",
-                WorkbenchReplaceModes.CtrlRam => "Build blocked: base BIN and at least one CtrlRAM region BIN are required.",
-                WorkbenchReplaceModes.General when canRun => "Ready: Build will compile explicit mappings and run postbuild when TP ranges are touched.",
-                WorkbenchReplaceModes.General => "Build blocked: base BIN and at least one explicit replacement mapping are required.",
-                _ => "Build blocked: select a Replace mode.",
-            };
+        return mode switch
+        {
+            WorkbenchReplaceModes.Dp when canRun => SelectLanguage(
+                "Ready: Build will validate DP Replace inputs, then write output and report.",
+                "Ready：Build 會先驗證 DP Replace input，再寫出 output 與 report。"),
+            WorkbenchReplaceModes.Dp => SelectLanguage(
+                "Build blocked: base BIN and required DP replacement inputs are required.",
+                "Build blocked：需要 base BIN 與必要的 DP replacement input。"),
+            WorkbenchReplaceModes.CtrlRam when canRun => SelectLanguage(
+                "Ready: Build will replace selected CtrlRAM regions and run postbuild.",
+                "Ready：Build 會取代選定的 CtrlRAM region 並執行 postbuild。"),
+            WorkbenchReplaceModes.CtrlRam => SelectLanguage(
+                "Build blocked: base BIN and at least one CtrlRAM region BIN are required.",
+                "Build blocked：需要 base BIN 與至少一個 CtrlRAM region BIN。"),
+            WorkbenchReplaceModes.General when canRun => SelectLanguage(
+                "Ready: Build will compile explicit mappings and run postbuild when TP ranges are touched.",
+                "Ready：Build 會編譯明確 mapping；碰到 TP range 時會執行 postbuild。"),
+            WorkbenchReplaceModes.General => SelectLanguage(
+                "Build blocked: base BIN and at least one explicit replacement mapping are required.",
+                "Build blocked：需要 base BIN 與至少一筆 replacement mapping。"),
+            _ => SelectLanguage("Build blocked: select a Replace mode.", "Build blocked：請選擇 Replace 模式。"),
+        };
     }
 
     public string GetMergeMemorySummary(string mode, bool isStandardMergeSupported, bool hasGeneralMapping)
     {
-        return Language == ShellLanguage.ChineseTraditional
-            ? mode switch
-            {
-                WorkbenchMergeModes.Standard when isStandardMergeSupported => "此圖顯示每個最終 flash 位置由哪個 input file 寫入。",
-                WorkbenchMergeModes.Standard => "所選 IC 尚未有 Merge profile。",
-                WorkbenchMergeModes.General when hasGeneralMapping => "輸出先以 reserved byte 初始化，再標出每筆明確 source mapping 寫入的位置。",
-                WorkbenchMergeModes.General => "輸出先以 reserved byte 初始化；新增 mapping 後會標出寫入位置。",
-                _ => "此 Merge 模式保留中。",
-            }
-            : mode switch
-            {
-                WorkbenchMergeModes.Standard when isStandardMergeSupported => "The bar shows which input file occupies each final flash position.",
-                WorkbenchMergeModes.Standard => "No merge profile is available for the selected IC.",
-                WorkbenchMergeModes.General => "The bar starts reserved and marks each explicit source mapping written into the output.",
-                _ => "This merge mode is reserved.",
-            };
+        return mode switch
+        {
+            WorkbenchMergeModes.Standard when isStandardMergeSupported => SelectLanguage(
+                "The bar shows which input file occupies each final flash position.",
+                "此圖顯示每個最終 flash 位置由哪個 input file 寫入。"),
+            WorkbenchMergeModes.Standard => SelectLanguage(
+                "No merge profile is available for the selected IC.",
+                "所選 IC 尚未有 Merge profile。"),
+            WorkbenchMergeModes.General when hasGeneralMapping => SelectLanguage(
+                "The bar starts reserved and marks each explicit source mapping written into the output.",
+                "輸出先以 reserved byte 初始化，再標出每筆明確 source mapping 寫入的位置。"),
+            WorkbenchMergeModes.General => SelectLanguage(
+                "The bar starts reserved and marks each explicit source mapping written into the output.",
+                "輸出先以 reserved byte 初始化；新增 mapping 後會標出寫入位置。"),
+            _ => SelectLanguage("This merge mode is reserved.", "此 Merge 模式保留中。"),
+        };
     }
 
     public string GetStandardMergeSupportSummary(string ic, bool supported, string requiredSlots)
     {
-        return Language == ShellLanguage.ChineseTraditional
-            ? supported
-                ? $"{ic}：找到 Standard Merge profile。必要 slots：{requiredSlots}。"
-                : $"{ic}：尚未提供 Standard Merge profile。"
-            : supported
-                ? $"{ic}: Standard Merge profile found. Required slots: {requiredSlots}."
-                : $"{ic}: no Standard Merge profile yet.";
+        return supported
+            ? SelectLanguage(
+                $"{ic}: Standard Merge profile found. Required slots: {requiredSlots}.",
+                $"{ic}：找到 Standard Merge profile。必要 slots：{requiredSlots}。")
+            : SelectLanguage($"{ic}: no Standard Merge profile yet.", $"{ic}：尚未提供 Standard Merge profile。");
     }
 
     public string GetMergeReadinessStatus(string mode, string ic, string requiredSlots, bool isStandardMergeSupported, int generalMappingFileCount)
     {
-        return Language == ShellLanguage.ChineseTraditional
-            ? mode switch
-            {
-                WorkbenchMergeModes.Standard when isStandardMergeSupported => $"{ic}：放入 {requiredSlots} BIN files。",
-                WorkbenchMergeModes.Standard => $"{ic}：Standard Merge 尚未可用。",
-                WorkbenchMergeModes.General when generalMappingFileCount > 0 => $"{ic}：General Merge 會將 {generalMappingFileCount} 個 source BIN mapping 寫入 blank output。",
-                WorkbenchMergeModes.General => $"{ic}：至少新增一筆 source BIN mapping。",
-                _ => "AB Code Merge 保留給後續流程。",
-            }
-            : mode switch
-            {
-                WorkbenchMergeModes.Standard when isStandardMergeSupported => $"{ic}: drop {requiredSlots} BIN files.",
-                WorkbenchMergeModes.Standard => $"{ic}: Standard Merge is not available yet.",
-                WorkbenchMergeModes.General when generalMappingFileCount > 0 => $"{ic}: General Merge maps {generalMappingFileCount} source BIN file(s) into a blank output.",
-                WorkbenchMergeModes.General => $"{ic}: add at least one source BIN mapping.",
-                _ => "AB Code Merge is reserved for a later workflow.",
-            };
+        return mode switch
+        {
+            WorkbenchMergeModes.Standard when isStandardMergeSupported => SelectLanguage(
+                $"{ic}: drop {requiredSlots} BIN files.",
+                $"{ic}：放入 {requiredSlots} BIN files。"),
+            WorkbenchMergeModes.Standard => SelectLanguage(
+                $"{ic}: Standard Merge is not available yet.",
+                $"{ic}：Standard Merge 尚未可用。"),
+            WorkbenchMergeModes.General when generalMappingFileCount > 0 => SelectLanguage(
+                $"{ic}: General Merge maps {generalMappingFileCount} source BIN file(s) into a blank output.",
+                $"{ic}：General Merge 會將 {generalMappingFileCount} 個 source BIN mapping 寫入 blank output。"),
+            WorkbenchMergeModes.General => SelectLanguage(
+                $"{ic}: add at least one source BIN mapping.",
+                $"{ic}：至少新增一筆 source BIN mapping。"),
+            _ => SelectLanguage(
+                "AB Code Merge is reserved for a later workflow.",
+                "AB Code Merge 保留給後續流程。"),
+        };
     }
 
     public string GetBuildActionTip(string readinessStatus, bool canBuild)
     {
         return canBuild
-            ? Language == ShellLanguage.ChineseTraditional
-                ? $"{readinessStatus} Build 會先驗證，再寫出 output 與 report。"
-                : $"{readinessStatus} Build validates first, then writes output and report."
+            ? SelectLanguage(
+                $"{readinessStatus} Build validates first, then writes output and report.",
+                $"{readinessStatus} Build 會先驗證，再寫出 output 與 report。")
             : readinessStatus;
     }
 
     public string GetOpenReportForDetailsSentence()
     {
-        return Language == ShellLanguage.ChineseTraditional
-            ? "開啟 report 查看詳細內容。"
-            : "Open report for details.";
+        return SelectLanguage("Open report for details.", "開啟 report 查看詳細內容。");
     }
 
     public string GetReportHistorySummary(int count)
     {
-        return Language == ShellLanguage.ChineseTraditional
-            ? count switch
-            {
-                <= 0 => "目前沒有 report history",
-                1 => "history 中有 1 份 report",
-                _ => $"history 中有 {count} 份 report",
-            }
-            : count switch
-            {
-                <= 0 => "No reports in history",
-                1 => "1 report in history",
-                _ => $"{count} reports in history",
-            };
+        return count switch
+        {
+            <= 0 => SelectLanguage("No reports in history", "目前沒有 report history"),
+            1 => SelectLanguage("1 report in history", "history 中有 1 份 report"),
+            _ => SelectLanguage($"{count} reports in history", $"history 中有 {count} 份 report"),
+        };
     }
 
     public string GetReportHistoryStorageSummary(string byteCount)
     {
-        return Language == ShellLanguage.ChineseTraditional
-            ? $"{byteCount} 儲存在本機"
-            : $"{byteCount} stored locally";
+        return SelectLanguage($"{byteCount} stored locally", $"{byteCount} 儲存在本機");
     }
 
     public string GetReportHistoryStorageWarning(string total, string limit)
     {
-        return Language == ShellLanguage.ChineseTraditional
-            ? $"History 使用 {total}，已超過 {limit} 限制。清除 history 可維持本機 UI 狀態精簡。"
-            : $"History uses {total}, above the {limit} limit. Clear history to keep local UI state small.";
+        return SelectLanguage(
+            $"History uses {total}, above the {limit} limit. Clear history to keep local UI state small.",
+            $"History 使用 {total}，已超過 {limit} 限制。清除 history 可維持本機 UI 狀態精簡。");
     }
 
     public string GetReportActionLabel(bool hasLoadedReport)
     {
         return hasLoadedReport
-            ? Language == ShellLanguage.ChineseTraditional ? "開啟 report" : "Open report"
-            : Language == ShellLanguage.ChineseTraditional ? "尚無 report" : "No report";
+            ? SelectLanguage("Open report", "開啟 report")
+            : SelectLanguage("No report", "尚無 report");
     }
 
     public string GetReportActionStatus(bool hasLoadedReport, string loadedStatus)
     {
         return hasLoadedReport
             ? loadedStatus
-            : Language == ShellLanguage.ChineseTraditional ? "Build 後產生" : "Build creates one";
+            : SelectLanguage("Build creates one", "Build 後產生");
     }
 
     public string FormatReportLoadedToast(string sourceName)
     {
-        return Language == ShellLanguage.ChineseTraditional
-            ? $"Report loaded：{sourceName}"
-            : $"Report loaded: {sourceName}";
+        return SelectLanguage($"Report loaded: {sourceName}", $"Report loaded：{sourceName}");
     }
 
     public string FormatReportIssueToast(string sourceName)
     {
-        return Language == ShellLanguage.ChineseTraditional
-            ? $"Report issue：{sourceName}"
-            : $"Report issue: {sourceName}";
+        return SelectLanguage($"Report issue: {sourceName}", $"Report issue：{sourceName}");
     }
 
     public string FormatReportSavedToast(string destinationName)
     {
-        return Language == ShellLanguage.ChineseTraditional
-            ? $"Report saved：{destinationName}"
-            : $"Report saved: {destinationName}";
+        return SelectLanguage($"Report saved: {destinationName}", $"Report saved：{destinationName}");
     }
 
     public string FormatReportGeneratedToast(string action)
     {
-        return Language == ShellLanguage.ChineseTraditional
-            ? $"{action} report 已產生"
-            : $"{action} report generated";
+        return SelectLanguage($"{action} report generated", $"{action} report 已產生");
     }
 
     public string FormatVerifiedFirmwareContextToast(string selectionLabel, byte chipNumber)
     {
-        return Language == ShellLanguage.ChineseTraditional
-            ? $"已依唯一且驗證一致的 NVT FWConfig 將 IC 數量設為 {selectionLabel}（Chip Num 0x{chipNumber:X2}）。"
-            : $"IC number set to {selectionLabel} from the unique, verified NVT FWConfig (Chip Num 0x{chipNumber:X2}).";
+        return SelectLanguage(
+            $"IC number set to {selectionLabel} from the unique, verified NVT FWConfig (Chip Num 0x{chipNumber:X2}).",
+            $"已依唯一且驗證一致的 NVT FWConfig 將 IC 數量設為 {selectionLabel}（Chip Num 0x{chipNumber:X2}）。");
     }
 }
 
