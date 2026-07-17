@@ -10,17 +10,28 @@ public sealed class SystemExternalProcessRunnerTests
 {
     /// <summary>Approved external tools never allocate a visible console or use a shell.</summary>
     [Fact]
-    public void RunnerSourcePinsHeadlessAndShellFreeProcessStartup()
+    public void ProcessStartInfoIsHeadlessShellFreeAndPreservesLaunchContract()
     {
-        string source = File.ReadAllText(RepositoryPaths.FromRepositoryRoot(
-            "src",
-            "NvtFwCombiner.Infrastructure",
-            "ExternalTools",
-            "SystemExternalProcessRunner.cs"));
+        string executablePath = Path.Combine(Path.GetTempPath(), "approved tool.exe");
+        string workingDirectory = Path.Combine(Path.GetTempPath(), "approved staging");
+        string[] arguments = ["--mode", "value with spaces", "--literal=\"quoted\""];
+        var externalStartInfo = new ExternalProcessStartInfo(
+            executablePath,
+            workingDirectory,
+            arguments,
+            TimeSpan.FromSeconds(30));
 
-        Assert.Contains("process.StartInfo.UseShellExecute = false;", source, StringComparison.Ordinal);
-        Assert.Contains("process.StartInfo.CreateNoWindow = true;", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("ProcessWindowStyle.Normal", source, StringComparison.Ordinal);
+        ProcessStartInfo processStartInfo = SystemExternalProcessRunner.CreateProcessStartInfo(externalStartInfo);
+
+        Assert.Equal(executablePath, processStartInfo.FileName);
+        Assert.Equal(workingDirectory, processStartInfo.WorkingDirectory);
+        Assert.False(processStartInfo.UseShellExecute);
+        Assert.True(processStartInfo.CreateNoWindow);
+        Assert.True(processStartInfo.RedirectStandardOutput);
+        Assert.True(processStartInfo.RedirectStandardError);
+        Assert.False(processStartInfo.RedirectStandardInput);
+        Assert.Equal(arguments, processStartInfo.ArgumentList);
+        Assert.Empty(processStartInfo.Arguments);
     }
 
     /// <summary>Cancellation kills the launched process tree before the caller receives cancellation.</summary>

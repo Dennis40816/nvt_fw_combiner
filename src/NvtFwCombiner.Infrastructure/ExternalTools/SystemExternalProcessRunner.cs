@@ -5,6 +5,27 @@ namespace NvtFwCombiner.Infrastructure.ExternalTools;
 /// <summary>Default process runner that uses ProcessStartInfo.ArgumentList with shell execution disabled.</summary>
 public sealed class SystemExternalProcessRunner : IExternalProcessRunner
 {
+    internal static ProcessStartInfo CreateProcessStartInfo(ExternalProcessStartInfo startInfo)
+    {
+        ArgumentNullException.ThrowIfNull(startInfo);
+
+        var processStartInfo = new ProcessStartInfo
+        {
+            FileName = startInfo.ExecutablePath,
+            WorkingDirectory = startInfo.WorkingDirectory,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+        foreach (string argument in startInfo.Arguments)
+        {
+            processStartInfo.ArgumentList.Add(argument);
+        }
+
+        return processStartInfo;
+    }
+
     /// <inheritdoc />
     public async ValueTask<ExternalProcessResult> RunAsync(
         ExternalProcessStartInfo startInfo,
@@ -13,17 +34,10 @@ public sealed class SystemExternalProcessRunner : IExternalProcessRunner
         ArgumentNullException.ThrowIfNull(startInfo);
         cancellationToken.ThrowIfCancellationRequested();
 
-        using var process = new Process();
-        process.StartInfo.FileName = startInfo.ExecutablePath;
-        process.StartInfo.WorkingDirectory = startInfo.WorkingDirectory;
-        process.StartInfo.UseShellExecute = false;
-        process.StartInfo.CreateNoWindow = true;
-        process.StartInfo.RedirectStandardOutput = true;
-        process.StartInfo.RedirectStandardError = true;
-        foreach (string argument in startInfo.Arguments)
+        using var process = new Process
         {
-            process.StartInfo.ArgumentList.Add(argument);
-        }
+            StartInfo = CreateProcessStartInfo(startInfo),
+        };
 
         _ = process.Start();
         Task<string> stdout = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
