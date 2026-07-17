@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51926-ctrlram-replace-candidate",
-  "bundleVersion": "0.9.9-candidate.5",
+  "bundleVersion": "0.9.9-candidate.6",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "37dcebe66b6f21dc1d2ea893f2e7b761aed09b5e75998fe52bc9bffb7460c7dd",
+  "contentHash": "3f27e46eeb84eca54391a42d884c698b5dc667bb8a16d765ecd8dedf43b8e99a",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -32,7 +32,7 @@
       "kind": "composition-profile",
       "path": "profiles/nt51926-ctrlram-replace-fw141-cascade.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "d257b54d050f5c82ac442fdda0f9a53d19c15a63f3b54c0f79ff7aef7eb99e58"
+      "contentHash": "9e5ab1e10c9904832ec1b29dc78f5f7a69e0a3fdf2290e754a6f8ae3c1635aa7"
     },
     {
       "entryId": "nt51926-general-replace-dp-single-candidate-profile",

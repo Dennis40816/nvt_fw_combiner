@@ -155,9 +155,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("nt51926-ctrlram-replace-candidate", cli, StringComparison.Ordinal);
         Assert.Contains("nt51926-ctrlram-replace-candidate", project, StringComparison.Ordinal);
         Assert.Contains("\"stage\": \"executable-candidate\"", profile, StringComparison.Ordinal);
-        Assert.Contains("\"blockerId\": \"direct-golden-evidence\"", profile, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"blockerId\": \"direct-golden-evidence\"", profile, StringComparison.Ordinal);
         Assert.Contains("\"blockerId\": \"firmware-owner-review\"", profile, StringComparison.Ordinal);
         Assert.Contains("\"blockerId\": \"runtime-route\"", profile, StringComparison.Ordinal);
+        Assert.Contains("nt51926-cascade-tp-base-self-regression-20260717", profile, StringComparison.Ordinal);
         Assert.Contains("nt51926-ctrlram-fw141-tp-work-240k", profile, StringComparison.Ordinal);
         Assert.Contains("nt51926-ctrlram-fw141-full-flash-256k", profile, StringComparison.Ordinal);
         Assert.Contains("output-tp-work-image", profile, StringComparison.Ordinal);

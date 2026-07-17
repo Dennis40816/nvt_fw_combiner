@@ -186,18 +186,19 @@
         ]
       },
       "claims": {
-        "established": "NT51926 Common FW 1.4.1 cascade TP-base admission and execution self-test through the current workbench CLI path.",
+        "established": "NT51926 Common FW 1.4.1 cascade TP-base V2 candidate full-output parity with the archived Legacy Combiner 1.13.0 result.",
         "notEstablished": [
           "all-IC CtrlRAM Replace golden parity",
-          "V2 runtime or golden parity"
+          "independent pre-replacement product-base parity",
+          "V2 production routing or support promotion"
         ]
       },
       "residualGates": [
         "Other CtrlRAM IC/mode expected-output parity remains pending.",
-        "V2 parity remains pending and outside this evidence case.",
+        "The exact full-Flash owner-intake self-replacement has V1/V2 byte parity and tail preservation, but no independent pre-replacement base.",
         "Firmware-owner and independent reviewer approval remain required before support promotion."
       ],
-      "notes": "Owner-authorized self-test regression using already committed golden inputs and the archived real-workflow output. The full output and exact integrity ranges are evidence for this NT51926 case only; no all-IC or V2 parity is claimed."
+      "notes": "Owner-authorized self-test regression using already committed golden inputs and the archived real-workflow output. The V2 candidate matches that complete output for this NT51926 case only; no all-IC, independent product-base, or runtime-promotion claim is made."
     },
     {
       "id": "nt51927-2chip-self-20260705",

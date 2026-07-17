@@ -29,7 +29,7 @@ Current behavior:
 - The official owner system may provide only the final expected firmware and physical CtrlRAM inputs. Do not ask the owner to fabricate or rename that final output as `base.bin`. Expected-only intake may use the documented expected-derived sentinel audit, but it is range/processor evidence rather than independent base-backed parity and cannot promote support by itself.
 - The owner-authorized NT51926 TP-base self-test case lives under `fixtures/derived/20260717`; it archives the same-byte TP golden input and real-workflow output, plus exact half-open integrity ranges and the two-command Combiner 1.13.0 trace. Git deduplicates the copied TP input blob and keeps it distinct from the HackMD intake inventory.
 - Full-byte comparison and firmware-owner sign-off remain pending for the other cases before broader parity can be claimed.
-- The TP-base case establishes only NT51926 Common FW 1.4.1 cascade admission/execution; it does not establish all-IC or V2 parity, and the other pending golden gates remain unchanged.
+- The TP-base case now establishes full-output V2-candidate parity with its archived Legacy Combiner 1.13.0 result for NT51926 Common FW 1.4.1 cascade. The owner intake also establishes V1/V2 parity for the exact full-Flash self-replacement shape and byte-for-byte tail preservation. It does not establish all-IC parity, an independent pre-replacement product base, or runtime promotion.
 
 Required owner data per case:
 

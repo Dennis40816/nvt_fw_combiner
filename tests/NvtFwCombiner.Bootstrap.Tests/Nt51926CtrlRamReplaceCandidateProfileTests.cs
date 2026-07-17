@@ -17,6 +17,11 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
     private const int FullFlashCapacity = 0x40000;
     private const int FirmwareConfigBackupStart = 0x3B000;
     private const int NvtMarkerStart = FirmwareConfigBackupStart + 0xFFC;
+    private static readonly ByteRange NormalCtrlRamRange = new(0x22800, 0x2C00);
+    private static readonly ByteRange MpCtrlRamRange = new(0x25400, 0x2400);
+    private static readonly ByteRange DiffCtrlRamRange = new(0x27800, 0x2800);
+    private static readonly ByteRange NfCtrlRamRange = new(0x2C800, 0x2DD0);
+    private static readonly ByteRange VnCtrlRamRange = new(0x315D0, 0x1660);
 
     private static ReadOnlySpan<byte> NvtMarker => [0x00, 0x4E, 0x56, 0x54];
 
@@ -45,7 +50,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         Assert.Equal("nt51926-ctrlram-fw141-tp-work-240k", details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, details.Provenance.Promotion.Stage);
         Assert.Equal(
-            ["direct-golden-evidence", "firmware-owner-review", "runtime-route"],
+            ["firmware-owner-review", "runtime-route"],
             details.Provenance.Promotion.Blockers.Select(static blocker => blocker.BlockerId));
         FirmwareResolvedMetadataStructure backup = Assert.Single(
             details.Provenance.ResolvedMap.ResolvedMetadataStructures);
@@ -176,7 +181,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             "67ae81a778b30b19f31b25ae7b2e5ec619ed2241c87733771807c8d0bcddec8f",
             first.V2Details!.Provenance.ResolvedMap.ResolutionFingerprint);
         Assert.Equal(
-            "2d8a8e8011ff1bf0738ee5ec583ccdb090d3c40230c26ce3193cb036ce4eb2aa",
+            "7c8118b6bff9e79fa5771096f23a03607370e134f51189ccbe63b79e365c800e",
             first.CompilationFingerprint);
         Assert.Equal(
             first.V2Details!.Provenance.ResolvedMap.ResolutionFingerprint,
@@ -235,17 +240,33 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             CompositionIssueCodes.InputAddressSpaceTruncated));
     }
 
-    /// <summary>Proves the V2 candidate and current Workbench route produce identical bytes from the approved owner inputs.</summary>
-    [Fact]
-    public async Task CandidateMatchesLegacyWorkbenchBytesForOwnerApprovedSelfReplacementAsync()
+    /// <summary>Proves TP and full-Flash candidates match the current Workbench route on the approved owner inputs.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CandidateMatchesLegacyWorkbenchBytesForOwnerApprovedSelfReplacementAsync(bool fullFlashBase)
     {
         if (!OperatingSystem.IsWindows())
         {
             return;
         }
 
-        OwnerIntakeFile baseFile = ReadOwnerIntakeFile(
-            "NT51926", "replace", "ctrlram", "1.4.1", "cascade", "NT51926TT_TPFW_T06.bin");
+        OwnerIntakeFile baseFile = fullFlashBase
+            ? ReadOwnerIntakeFile(
+                "NT51926",
+                "replace",
+                "ctrlram",
+                "1.4.1",
+                "cascade",
+                "expected_output",
+                "NT51926TT_FlashCode_CSOT_TOYOTA_D02T06_JIRA0597_20260622.bin")
+            : ReadOwnerIntakeFile(
+                "NT51926",
+                "replace",
+                "ctrlram",
+                "1.4.1",
+                "cascade",
+                "NT51926TT_TPFW_T06.bin");
         byte[] referenceBase = baseFile.Bytes;
         byte[] originalReference = [.. referenceBase];
         var inputFileNames = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -288,7 +309,6 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         Assert.True(legacy.Succeeded, legacy.ReportJson);
         byte[] legacyOutput = File.ReadAllBytes(legacyOutputPath);
 
-        CompiledComposition candidate = CompileCandidate(referenceBase);
         Dictionary<string, byte[]> candidateInputs = new(StringComparer.Ordinal)
         {
             ["reference-base"] = referenceBase,
@@ -298,34 +318,10 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             ["vn-ctrlram-input"] = replacementInputs["replace-ctrlram-vn"],
             ["nf-ctrlram-input"] = replacementInputs["replace-ctrlram-nf"],
         };
-        IExternalProcessor processor = Assert.IsType<IExternalProcessor>(
-            ExternalProcessorFactory.CreateOrNull(),
-            exactMatch: false);
-        var selection = new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]);
-
-        CompositionExecutionResult v2 = await CompositionEngine.ExecuteAsync(
-            candidate.Plan,
-            new CompositionExecutionInput(candidateInputs),
-            async (operation, inputBytes, stagedSources, stagedArtifacts, cancellationToken) =>
-            {
-                ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(
-                    operation.ExternalProcessorInvocation);
-                ExternalProcessorResult result = await processor.TransformAsync(
-                    new ExternalProcessorRequest(
-                        "nt51926-ctrlram-v2-parity",
-                        invocation.ProcessorId,
-                        invocation.ToolBindingId,
-                        inputBytes,
-                        invocation.AllowedWriteRanges,
-                        selection,
-                        stagedSources,
-                        stagedArtifacts),
-                    cancellationToken);
-                return result.Succeeded
-                    ? CompositionExternalProcessorResult.Success(result.OutputBytes)
-                    : CompositionExternalProcessorResult.Failed(result.Issues);
-            },
-            TestContext.Current.CancellationToken);
+        CompositionExecutionResult v2 = await ExecuteCandidateWithLegacyCombinerAsync(
+            referenceBase,
+            candidateInputs,
+            "nt51926-ctrlram-v2-parity");
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, v2.Status);
         Assert.Equal(2, v2.Issues.Count);
@@ -335,9 +331,42 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         Assert.Equal(legacyOutput, v2.OutputBytes.ToArray());
         Assert.Equal(legacy.OutputSha256, Hash(v2.OutputBytes.Span));
         Assert.Equal(originalReference, referenceBase);
+        if (fullFlashBase)
+        {
+            Assert.Equal(originalReference[Capacity..], v2.OutputBytes.Span[Capacity..].ToArray());
+        }
+
         Assert.All(
             originalInputs,
             pair => Assert.Equal(pair.Value, replacementInputs[pair.Key]));
+    }
+
+    /// <summary>Locks the V2 candidate to the archived Legacy Combiner 1.13 TP-base output for one selected VN replacement.</summary>
+    [Fact]
+    public async Task CandidateMatchesArchivedTpBaseLegacyCombinerGoldenForSelectiveVnReplacementAsync()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        OwnerRegressionCase evidence = ReadOwnerRegressionCase();
+        byte[] referenceBase = evidence.Base.Bytes;
+        byte[] originalReference = [.. referenceBase];
+        Dictionary<string, byte[]> candidateInputs = CreateBaseDerivedCandidateInputs(referenceBase);
+        candidateInputs["vn-ctrlram-input"] = evidence.Vn.Bytes;
+        byte[] originalVn = [.. evidence.Vn.Bytes];
+
+        CompositionExecutionResult v2 = await ExecuteCandidateWithLegacyCombinerAsync(
+            referenceBase,
+            candidateInputs,
+            "nt51926-ctrlram-v2-owner-golden");
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, v2.Status);
+        Assert.Empty(v2.Issues);
+        Assert.Equal(evidence.Expected.Bytes, v2.OutputBytes.ToArray());
+        Assert.Equal(originalReference, referenceBase);
+        Assert.Equal(originalVn, evidence.Vn.Bytes);
     }
 
     /// <summary>Verifies zero or multiple universal markers reject the candidate before a plan can be minted.</summary>
@@ -364,6 +393,59 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         Assert.Contains(
             compilation.Issues,
             static issue => issue.Code == "profile.v2.compile.preparation-not-admitted");
+    }
+
+    private static async Task<CompositionExecutionResult> ExecuteCandidateWithLegacyCombinerAsync(
+        byte[] referenceBase,
+        Dictionary<string, byte[]> candidateInputs,
+        string runId)
+    {
+        CompiledComposition candidate = CompileCandidate(referenceBase);
+        IExternalProcessor processor = Assert.IsType<IExternalProcessor>(
+            ExternalProcessorFactory.CreateOrNull(),
+            exactMatch: false);
+        var selection = new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]);
+        return await CompositionEngine.ExecuteAsync(
+            candidate.Plan,
+            new CompositionExecutionInput(candidateInputs),
+            async (operation, inputBytes, stagedSources, stagedArtifacts, cancellationToken) =>
+            {
+                ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(
+                    operation.ExternalProcessorInvocation);
+                ExternalProcessorResult result = await processor.TransformAsync(
+                    new ExternalProcessorRequest(
+                        runId,
+                        invocation.ProcessorId,
+                        invocation.ToolBindingId,
+                        inputBytes,
+                        invocation.AllowedWriteRanges,
+                        selection,
+                        stagedSources,
+                        stagedArtifacts),
+                    cancellationToken);
+                return result.Succeeded
+                    ? CompositionExternalProcessorResult.Success(result.OutputBytes)
+                    : CompositionExternalProcessorResult.Failed(result.Issues);
+            },
+            TestContext.Current.CancellationToken);
+    }
+
+    private static Dictionary<string, byte[]> CreateBaseDerivedCandidateInputs(byte[] referenceBase)
+    {
+        return new Dictionary<string, byte[]>(StringComparer.Ordinal)
+        {
+            ["reference-base"] = referenceBase,
+            ["normal-ctrlram-input"] = Slice(referenceBase, NormalCtrlRamRange),
+            ["diff-ctrlram-input"] = Slice(referenceBase, DiffCtrlRamRange),
+            ["mp-ctrlram-input"] = Slice(referenceBase, MpCtrlRamRange),
+            ["vn-ctrlram-input"] = Slice(referenceBase, VnCtrlRamRange),
+            ["nf-ctrlram-input"] = Slice(referenceBase, NfCtrlRamRange),
+        };
+    }
+
+    private static byte[] Slice(byte[] source, ByteRange range)
+    {
+        return source.AsSpan(checked((int)range.Start), checked((int)range.Length)).ToArray();
     }
 
     private static CompiledComposition CompileCandidate(byte[] referenceBase)
@@ -427,6 +509,34 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             .Single(candidate => StringComparer.Ordinal.Equals(
                 candidate.GetProperty("path").GetString(),
                 relativePath));
+        return ReadManifestArtifact(goldenRoot, entry);
+    }
+
+    private static OwnerRegressionCase ReadOwnerRegressionCase()
+    {
+        string goldenRoot = RepositoryPaths.FromRepositoryRoot(
+            "testdata",
+            "golden",
+            "ctrlram-replace");
+        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(goldenRoot, "manifest.json")));
+        JsonElement evidenceCase = manifest.RootElement.GetProperty("cases")
+            .EnumerateArray()
+            .Single(candidate => StringComparer.Ordinal.Equals(
+                candidate.GetProperty("id").GetString(),
+                "nt51926-cascade-tp-base-self-regression-20260717"));
+        JsonElement vn = evidenceCase.GetProperty("replacementInputs")
+            .EnumerateArray()
+            .Single(input => StringComparer.Ordinal.Equals(
+                input.GetProperty("slotId").GetString(),
+                "replace-ctrlram-vn"));
+        return new OwnerRegressionCase(
+            ReadManifestArtifact(goldenRoot, evidenceCase.GetProperty("base")),
+            ReadManifestArtifact(goldenRoot, evidenceCase.GetProperty("expectedOutput")),
+            ReadManifestArtifact(goldenRoot, vn.GetProperty("file")));
+    }
+
+    private static OwnerIntakeFile ReadManifestArtifact(string goldenRoot, JsonElement entry)
+    {
         string path = RepositoryPaths.ManifestPath(goldenRoot, entry);
         byte[] bytes = File.ReadAllBytes(path);
         Assert.Equal(entry.GetProperty("size").GetInt64(), bytes.LongLength);
@@ -440,6 +550,11 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
     }
 
     private sealed record OwnerIntakeFile(string Path, byte[] Bytes);
+
+    private sealed record OwnerRegressionCase(
+        OwnerIntakeFile Base,
+        OwnerIntakeFile Expected,
+        OwnerIntakeFile Vn);
 
     private static string FormatIssues(IEnumerable<CompositionIssue> issues)
     {

@@ -6,12 +6,6 @@
     "stage": "executable-candidate",
     "blockers": [
       {
-        "blockerId": "direct-golden-evidence",
-        "kind": "golden",
-        "reason": "A direct NT51926 Common FW 1.4.1 cascade CtrlRAM input/output golden is required before runtime exposure.",
-        "evidenceRefs": [ "nt51926-common-fw141-postbuild" ]
-      },
-      {
         "blockerId": "firmware-owner-review",
         "kind": "human-review",
         "reason": "Firmware owner must approve the exact legacy Combiner command sequence and declared header integrity writes before runtime exposure.",
@@ -20,8 +14,8 @@
       {
         "blockerId": "runtime-route",
         "kind": "ui",
-        "reason": "The candidate is intentionally not routed through CtrlRAM Replace UI or CLI until golden parity is reviewed.",
-        "evidenceRefs": [ "nt51926-common-fw141-postbuild" ]
+        "reason": "The candidate is intentionally not routed until selective-slot, TP FW version-edit, report, naming, CLI, and UI parity are reviewed.",
+        "evidenceRefs": [ "nt51926-cascade-tp-base-self-regression-20260717" ]
       }
     ]
   },
@@ -259,6 +253,7 @@
   },
   "evidenceRefs": [
     "nt51926-common-fw141-postbuild",
-    "nt51926-fwconfig-backup-golden"
+    "nt51926-fwconfig-backup-golden",
+    "nt51926-cascade-tp-base-self-regression-20260717"
   ]
 }
