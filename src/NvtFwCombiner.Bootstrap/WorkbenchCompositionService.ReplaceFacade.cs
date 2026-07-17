@@ -103,7 +103,7 @@ public static partial class WorkbenchCompositionService
             ? CreateReplaceReportRunResult(
                 icId,
                 replaceMode,
-                slotPaths,
+                new Dictionary<string, string>(StringComparer.Ordinal),
                 build,
                 [],
                 [new CompositionIssue(

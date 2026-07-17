@@ -135,6 +135,6 @@ internal sealed record IcMetadata(
     IReadOnlyList<IcNumberChoice> NumberSelectionChoices,
     IReadOnlyList<string> PostbuildCategories)
 {
-    /// <summary>Returns true when one or more approved postbuild categories are declared.</summary>
-    public bool HasPostbuild => PostbuildCategories.Count > 0;
+    /// <summary>Returns true when runtime support policy exposes CtrlRAM Replace.</summary>
+    public bool HasPostbuild => WorkflowIds.Contains(IcWorkflowIds.CtrlRamReplace, StringComparer.Ordinal);
 }

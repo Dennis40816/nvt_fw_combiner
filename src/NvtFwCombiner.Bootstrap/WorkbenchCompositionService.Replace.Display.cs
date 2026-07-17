@@ -32,6 +32,20 @@ public static partial class WorkbenchCompositionService
         long? dpBaseLength = null,
         string? ctrlRamBasePath = null)
     {
+        if (GetReplaceWorkflowId(replaceMode) is not null &&
+            !IsReplaceWorkflowSupported(icId, replaceMode))
+        {
+            return
+            [
+                new WorkbenchMemoryMapRow(
+                    "Policy",
+                    "Not Supported",
+                    "Blocked",
+                    "No target",
+                    $"{icId} {replaceMode} Replace is Not Supported by the current IC support policy."),
+            ];
+        }
+
         if (replaceMode == WorkbenchReplaceModes.Dp &&
             TryCreateV2DpReplaceMemoryMapRows(icId, dpBaseLength, out IReadOnlyList<WorkbenchMemoryMapRow> v2Rows))
         {

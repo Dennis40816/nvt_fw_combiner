@@ -16,7 +16,10 @@ public sealed class WorkbenchReplaceSupportPolicyTests
             "NT51931",
             "single",
             replaceMode,
-            new Dictionary<string, string>(StringComparer.Ordinal),
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                [WorkbenchSlotIds.ReplaceBase] = "\0must-not-be-resolved.bin",
+            },
             build: false,
             TestContext.Current.CancellationToken);
 
@@ -27,6 +30,7 @@ public sealed class WorkbenchReplaceSupportPolicyTests
         Assert.Equal(WorkbenchIssueCodes.ReplaceWorkflowNotSupported, issue.GetProperty("Code").GetString());
         Assert.Contains("Not Supported", issue.GetProperty("Message").GetString(), StringComparison.Ordinal);
         Assert.Empty(document.RootElement.GetProperty("Operations").EnumerateArray());
+        Assert.Empty(document.RootElement.GetProperty("Inputs").EnumerateArray());
     }
 
     /// <summary>Workbench projections expose an explicit blocked state instead of executable inputs.</summary>
@@ -41,7 +45,12 @@ public sealed class WorkbenchReplaceSupportPolicyTests
         Assert.Equal(
             "Not Supported",
             WorkbenchCompositionService.GetReplaceMemoryRangeLabel("NT51931", "single", replaceMode));
-
+        WorkbenchMemoryMapRow row = Assert.Single(
+            WorkbenchCompositionService.GetReplaceMemoryMapRows("NT51931", "single", replaceMode));
+        Assert.Equal("Blocked", row.ActionLabel);
+        Assert.Equal("No target", row.AfterSource);
+        Assert.Contains("Not Supported", row.Detail, StringComparison.Ordinal);
+        Assert.Empty(WorkbenchCompositionService.GetReplaceCoverageSegments("NT51931", "single", replaceMode));
     }
 
     /// <summary>The NT51931 gate does not remove established Replace exposure from other ICs.</summary>

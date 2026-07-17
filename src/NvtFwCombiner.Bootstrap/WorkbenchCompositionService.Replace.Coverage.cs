@@ -15,6 +15,12 @@ public static partial class WorkbenchCompositionService
         long? dpBaseLength = null,
         string? ctrlRamBasePath = null)
     {
+        if (GetReplaceWorkflowId(replaceMode) is not null &&
+            !IsReplaceWorkflowSupported(icId, replaceMode))
+        {
+            return [];
+        }
+
         if (replaceMode == WorkbenchReplaceModes.Dp &&
             TryCreateV2DpReplaceCoverageSegments(icId, dpBaseLength, out IReadOnlyList<WorkbenchMemoryCoverageSegment> v2Segments))
         {
