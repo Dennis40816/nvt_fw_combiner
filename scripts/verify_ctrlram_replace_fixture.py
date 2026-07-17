@@ -19,6 +19,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from owner_golden_intake_validation import verify_owner_golden_intake_20260717
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MANIFEST = ROOT / "testdata" / "golden" / "ctrlram-replace" / "manifest.json"
@@ -208,6 +210,7 @@ def verify_fixture_manifest(manifest_path: Path) -> None:
     for index, item in enumerate(cases):
         require(isinstance(item, dict), f"case[{index}] must be an object")
         verify_case(root, item, index)
+    verify_owner_golden_intake_20260717(root)
 
 
 def verify_case(root: Path, item: dict[str, Any], index: int) -> None:

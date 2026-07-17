@@ -520,7 +520,7 @@ def validate_ctrlram_replace_golden_fixtures(errors: list[str]) -> None:
     actual_bins = {
         PurePosixPath(path.relative_to(golden_root).as_posix())
         for path in golden_root.rglob("*.bin")
-        if path.is_file()
+        if path.is_file() and not path.is_relative_to(golden_root / "fixtures/20260717")
     }
     if actual_bins != declared_bins:
         errors.append(

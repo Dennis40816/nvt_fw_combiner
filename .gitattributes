@@ -19,3 +19,4 @@ external-tools/**/*.exe binary
 
 # Preserve immutable reference snapshots byte-for-byte.
 refcode/** binary
+testdata/golden/ctrlram-replace/fixtures/20260717/NT51931/51931_1.3.0_PostbuildSetup.bat binary
