@@ -16,13 +16,19 @@ Current behavior:
 - The verifier always can run public CtrlRAM Preview/Build smoke using self-replacement inputs sliced from existing approved Standard Merge golden data.
 - When schema `0.2` `manifest.json` exists, the verifier checks manifest metadata, sizes, SHA-256, and base-image FWConfig Common FW version for the base firmware, replacement CtrlRAM BINs, and expected output if provided.
 - Full byte comparison still needs owner-supplied expected outputs and firmware-owner sign-off before parity can be claimed.
+- The official owner system may provide only the final expected firmware and physical CtrlRAM inputs. Do not ask the owner to fabricate or rename that final output as `base.bin`. Expected-only intake may use the documented expected-derived sentinel audit, but it is range/processor evidence rather than independent base-backed parity and cannot promote support by itself.
 
 Required owner data per case:
 
 - IC and IC number mode, for example `NT51927` / `3`.
-- Common FW version decoded from the base image and the postbuild category used for the run.
-- Base flash firmware hash and size.
+- Common FW version decoded from the available official firmware and the postbuild category used for the run.
 - Each physical replacement CtrlRAM slot id, display name, BIN hash, and size;
   a Postbuild file reused at several logical destinations is listed once.
 - Expected final output hash and size for the staged Combiner postbuild result.
 - Source classification, provenance, and owner approval note.
+
+Schema `0.2` remains the stronger base-backed private-fixture format. When no
+pre-replacement base exists, keep the private payload in owner intake and record
+only its hashes and the expected-derived audit result until an explicitly
+reviewed expected-only manifest contract is added. Do not put the expected
+firmware into the schema `0.2` `base` field.

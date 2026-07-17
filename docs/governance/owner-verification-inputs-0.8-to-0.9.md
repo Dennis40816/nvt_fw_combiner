@@ -133,7 +133,6 @@ it is not a request for another Combiner source copy.
 For every IC/IC-number/postbuild branch selected for release, provide:
 
 ```text
-base.bin
 one replacement BIN for each selected CtrlRAM region/group
 expected-preserve.bin
 expected-edit.bin
@@ -142,17 +141,29 @@ combiner-tool.json
 provenance.json
 ```
 
-Record the source and final NVT Backup metadata, requested FW major/sub-version
-for the edit case, expected output name, exact Combiner command order, and
-declared read/write/diff ranges. Repository intake calculates output SHA-256
-values. `expected-preserve.bin` and
+The official owner system is not expected to export a separate pre-replacement
+`base.bin`. The expected output is the authoritative firmware artifact. Intake
+may create a temporary expected-derived sentinel work image for range/processor
+parity, but that method cannot independently prove base selection or unchanged
+bytes and still requires the R3 decisions recorded in the
+[v0.9.9 owner CtrlRAM evidence audit](v0.9.9-owner-ctrlram-evidence-audit.md).
+
+Record the source and final NVT Backup metadata that is available, requested FW
+major/sub-version for the edit case, expected output name, exact Combiner
+command order, and declared read/write/diff ranges. Repository intake
+calculates output SHA-256 values. `expected-preserve.bin` and
 `expected-edit.bin` must use the same base/replacement input set. The edit case
 must prove that the source image remains immutable, the staged source changes
 before postbuild, and the final version is read through the NVT Backup.
 
-Current high-priority missing CtrlRAM cases include NT51927 single/2-chip/3-chip
-and the selected NT51919/NT51929/NT51932/NT51950/NT51951 branches. A real
-expected output is required; a successful Combiner exit code is not parity.
+Current high-priority missing CtrlRAM cases include NT51927 single and the
+selected NT51919/NT51929/NT51932 branches. NT51927 2-chip/3-chip and NT51950
+single now have conditional expected-derived range-parity candidates, pending
+the exact owner decisions listed in the audit. The supplied NT51951 single set
+is rejected because 3,773 Normal payload bytes do not match its final output.
+NT51950 cascade and NT51951 cascade still need their own final output and
+physical input set. A real expected output is required; a successful Combiner
+exit code is not parity.
 
 ### DP and General Replace
 
