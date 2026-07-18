@@ -290,7 +290,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public long StoredByteCount", entry, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportReviewViewModel", entry, StringComparison.Ordinal);
         Assert.Contains("LoadReportHistoryEntry(latest);", history, StringComparison.Ordinal);
-        Assert.Contains("LoadReportHistoryEntry(entry);", history, StringComparison.Ordinal);
+        Assert.Contains("private async Task OpenReportHistoryEntryAsync(", history, StringComparison.Ordinal);
+        Assert.Contains("report = await ProjectReportAsync(", history, StringComparison.Ordinal);
+        Assert.DoesNotContain("LoadReportHistoryEntry(entry);", history, StringComparison.Ordinal);
         Assert.Contains("entry.StoredByteCount", history, StringComparison.Ordinal);
         Assert.DoesNotContain("Encoding.UTF8.GetByteCount(entry.ReportJson)", history, StringComparison.Ordinal);
     }

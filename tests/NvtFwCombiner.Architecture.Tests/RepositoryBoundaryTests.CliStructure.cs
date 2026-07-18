@@ -209,16 +209,12 @@ public sealed partial class RepositoryBoundaryTests
     {
         string cli = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.StandardMerge.cs");
         string run = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Run.cs");
-        string displayProfile = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.DisplayProfile.cs");
         string display = ReadText(
             "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Display.cs");
-        string coverage = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Coverage.cs");
         string resolver = ReadText(
             "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Compilation.cs");
 
-        foreach (string runtimeSource in new[] { cli, run, displayProfile, display, coverage })
+        foreach (string runtimeSource in new[] { cli, run, display })
         {
             Assert.Contains("TryCompileStandardMerge", runtimeSource, StringComparison.Ordinal);
             Assert.DoesNotContain("CompositionProfileDefinition", runtimeSource, StringComparison.Ordinal);

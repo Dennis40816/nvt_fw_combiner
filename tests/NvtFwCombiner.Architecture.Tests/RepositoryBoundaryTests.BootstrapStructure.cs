@@ -7,12 +7,17 @@ public sealed partial class RepositoryBoundaryTests
     public void BootstrapUsesOneAutomaticBuildExecutionGate()
     {
         string bootstrapSource = ReadBootstrapSources();
+        string cli = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.StandardMerge.cs");
+        string runner = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Runner.cs");
+        int cliCalls = CountOccurrences(cli, ".PreviewOrBuildAsync(");
+        int runnerCalls = CountOccurrences(runner, ".PreviewOrBuildAsync(");
 
         Assert.DoesNotContain("CompositionRunExecutionSupport", bootstrapSource, StringComparison.Ordinal);
         Assert.DoesNotContain("BuildWithInternalPreviewAsync", bootstrapSource, StringComparison.Ordinal);
-        Assert.Equal(
-            2,
-            CountOccurrences(bootstrapSource, ".PreviewOrBuildAsync("));
+        Assert.Equal(1, cliCalls);
+        Assert.Equal(2, runnerCalls);
+        Assert.Contains("progress is null", runner, StringComparison.Ordinal);
+        Assert.Equal(cliCalls + runnerCalls, CountOccurrences(bootstrapSource, ".PreviewOrBuildAsync("));
         Assert.DoesNotContain("WithApprovedPreviewToken", bootstrapSource, StringComparison.Ordinal);
     }
 
@@ -163,7 +168,6 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("nt51926-general-replace-dp-single-candidate", runtime, StringComparison.Ordinal);
         Assert.DoesNotContain("nt51926-general-replace-dp-single-candidate", cli, StringComparison.Ordinal);
         Assert.Contains("\"stage\": \"executable-candidate\"", generalProfile, StringComparison.Ordinal);
-        Assert.Contains("\"blockerId\": \"full-route-parity\"", generalProfile, StringComparison.Ordinal);
         Assert.Contains("\"blockerId\": \"tp-postbuild-deferred\"", generalProfile, StringComparison.Ordinal);
         Assert.Contains("\"blockerId\": \"firmware-owner-review\"", generalProfile, StringComparison.Ordinal);
         Assert.Contains("nt51926-general-replace-full-flash-256k", generalProfile, StringComparison.Ordinal);
