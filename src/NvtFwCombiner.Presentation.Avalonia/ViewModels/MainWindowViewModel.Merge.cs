@@ -182,22 +182,6 @@ public sealed partial class MainWindowViewModel
         }
     }
 
-    private static ReportReviewViewModel ProjectRunReport(
-        WorkbenchRunResult result,
-        bool build,
-        ShellLanguage language,
-        CancellationToken cancellationToken)
-    {
-        string action = build ? "Build" : "Preview";
-        return ReportReviewViewModel.FromJsonCancellable(
-            result.ReportJson,
-            $"{action.ToLowerInvariant()} report",
-            result.CommittedOutputId,
-            result.InspectionSnapshot,
-            language,
-            cancellationToken);
-    }
-
     private void ApplyRunResult(
         WorkbenchRunResult result,
         bool build,

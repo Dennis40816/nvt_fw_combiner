@@ -54,19 +54,41 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("WorkbenchCompositionService.RunReplaceWithProgressAsync", replace, StringComparison.Ordinal);
         Assert.Contains("await Task.Yield();", lifecycle, StringComparison.Ordinal);
         Assert.Contains("await Task.Run(", lifecycle, StringComparison.Ordinal);
-        Assert.Contains("ProjectRunReport(result, build, reportLanguage", lifecycle, StringComparison.Ordinal);
-        int reportProjectionIndex = lifecycle.IndexOf("ProjectRunReport(result, build, reportLanguage", StringComparison.Ordinal);
+        Assert.Contains(
+            "await ProjectAndApplyRunResultAsync(result, build, cancellationSource.Token);",
+            lifecycle,
+            StringComparison.Ordinal);
+        int projectionMethodIndex = lifecycle.IndexOf(
+            "internal async Task ProjectAndApplyRunResultAsync(",
+            StringComparison.Ordinal);
+        int generationIndex = lifecycle.IndexOf(
+            "long reportProjectionGeneration = BeginReportProjection();",
+            projectionMethodIndex,
+            StringComparison.Ordinal);
+        int reportProjectionIndex = lifecycle.IndexOf(
+            "ReportReviewViewModel report = await ProjectReportAsync(",
+            generationIndex,
+            StringComparison.Ordinal);
         int cancellationIndex = lifecycle.IndexOf(
-            "cancellationSource.Token.ThrowIfCancellationRequested();",
+            "cancellationToken.ThrowIfCancellationRequested();",
             reportProjectionIndex,
             StringComparison.Ordinal);
         int publishIndex = lifecycle.IndexOf("publishReport: IsCurrentReportProjection(", StringComparison.Ordinal);
         Assert.True(
-            reportProjectionIndex >= 0 && cancellationIndex > reportProjectionIndex && publishIndex > cancellationIndex,
+            projectionMethodIndex >= 0 &&
+            generationIndex > projectionMethodIndex &&
+            reportProjectionIndex > generationIndex &&
+            cancellationIndex > reportProjectionIndex &&
+            publishIndex > cancellationIndex,
             "Run cancellation must be rechecked after report projection and before publishing UI/history state.");
         Assert.Contains("long reportProjectionGeneration = BeginReportProjection();", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("result.CommittedOutputId", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("materializationErrorsAsReport: false", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("inspectionSnapshot: result.InspectionSnapshot", lifecycle, StringComparison.Ordinal);
         Assert.Contains("publishReport: IsCurrentReportProjection(reportProjectionGeneration)", lifecycle, StringComparison.Ordinal);
-        Assert.Contains("ReportReviewViewModel.FromJsonCancellable(", merge, StringComparison.Ordinal);
+        Assert.DoesNotContain("ProjectRunReport(", ReadViewModelPartials(), StringComparison.Ordinal);
+        Assert.Contains("ReportReviewViewModel.FromJsonCancellable(", ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Report.cs"), StringComparison.Ordinal);
         Assert.Contains("loadErrorReport(action, exception.Message);", lifecycle, StringComparison.Ordinal);
         Assert.Contains("CompleteRun(cancellationSource);", lifecycle, StringComparison.Ordinal);
         Assert.Equal(
@@ -152,7 +174,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("CreateLinkedTokenSource(cancellationToken)", reportHistory, StringComparison.Ordinal);
         Assert.Contains("requestVersion == Volatile.Read(ref _reportRelocalizationRequestVersion)", reportHistory, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportReviewViewModel.FromJson(\n                LoadedReportJson", reportHistory, StringComparison.Ordinal);
-        Assert.Contains("while (reportLanguage != Text.Language);", ReadText(
+        Assert.Contains("await ProjectReportAsync(", ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.RunLifecycle.cs"), StringComparison.Ordinal);
     }
 

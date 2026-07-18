@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
@@ -176,6 +177,23 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(string.Empty, viewModel.LoadedReportJson);
     }
 
+    /// <summary>A cancelled run projection cannot publish its verified in-session Hex Diff snapshot.</summary>
+    [Fact]
+    public async Task CancelledRunHexDiffProjectionPublishesNoPartialState()
+    {
+        WorkbenchRunResult result = await CreateGeneralReplaceInspectionResultAsync();
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        using var cancellationSource = new CancellationTokenSource();
+        cancellationSource.Cancel();
+
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            viewModel.ProjectAndApplyRunResultAsync(result, build: false, cancellationSource.Token));
+
+        Assert.False(viewModel.HasLoadedReport);
+        Assert.False(viewModel.HasReportHistory);
+        Assert.Equal(string.Empty, viewModel.LoadedReportJson);
+    }
+
     /// <summary>A language change during background projection cannot publish a stale-language report.</summary>
     [Fact]
     public async Task ChangeReportProjectionReplaysWhenLanguageChangesInFlight()
@@ -222,6 +240,39 @@ public sealed partial class ShellViewModelTests
 
         Assert.Equal("newer-report.json", viewModel.LoadedReport.SourceName);
         Assert.Equal(newerJson, viewModel.LoadedReportJson);
+        ReportHistoryEntryViewModel historyEntry = Assert.Single(viewModel.ReportHistoryEntries);
+        Assert.Equal("newer-report.json", historyEntry.SourceName);
+    }
+
+    /// <summary>A stale run projection cannot publish a verified Hex Diff or append report history.</summary>
+    [Fact]
+    public async Task RunHexDiffProjectionUsesLatestReportGeneration()
+    {
+        WorkbenchRunResult result = await CreateGeneralReplaceInspectionResultAsync();
+        using var source = JsonDocument.Parse(result.ReportJson);
+        string runId = source.RootElement.GetProperty("RunId").GetString()!;
+        WorkbenchRunResult largeResult = result with
+        {
+            ReportJson = ReportJsonSamples.ReplaceWithManyOutputDifferences(
+                count: 10_000,
+                sectionCount: 40,
+                runId: runId,
+                outputSize: result.OutputSize,
+                outputSha256: result.OutputSha256),
+        };
+        string newerJson = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences(runId: "newer-report");
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        Task olderProjection = viewModel.ProjectAndApplyRunResultAsync(
+            largeResult,
+            build: false,
+            TestContext.Current.CancellationToken);
+        viewModel.LoadReportJson(newerJson, "newer-report.json");
+        await olderProjection;
+
+        Assert.Equal("newer-report.json", viewModel.LoadedReport.SourceName);
+        Assert.Equal(newerJson, viewModel.LoadedReportJson);
+        Assert.False(viewModel.LoadedReport.HexDiff.HasCompleteDifferenceWorkspace);
         ReportHistoryEntryViewModel historyEntry = Assert.Single(viewModel.ReportHistoryEntries);
         Assert.Equal("newer-report.json", historyEntry.SourceName);
     }

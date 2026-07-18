@@ -99,4 +99,23 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("Animation", hexDiffSurface, StringComparison.Ordinal);
         Assert.DoesNotContain("Background=\"#", hexDiffSurface, StringComparison.Ordinal);
     }
+
+    /// <summary>Changed and selected Hex Diff states remain distinguishable without color perception.</summary>
+    [Fact]
+    public void ReportHexDiffHighContrastCuesDoNotDependOnColor()
+    {
+        string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
+        string changes = ReadPresentationFile("Resources/MainWindowReportChangeTemplates.axaml");
+        string viewportRow = ExtractDataTemplate(changes, "ReportHexDiffViewportRowTemplate");
+        string rangeRow = ExtractDataTemplate(changes, "ReportHexDiffRangeRowTemplate");
+        string selectedRangeStyle = ExtractStyle(styles, "RadioButton.reportHexDiffRange:checked");
+
+        Assert.Contains("Content=\"{ReflectionBinding $parent[Window].DataContext.Text.HexDiffChangedRowLabel}\"", viewportRow, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding HasChanges}\"", viewportRow, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{ReflectionBinding $parent[Window].DataContext.Text.HexDiffReferenceRowLabel}\"", viewportRow, StringComparison.Ordinal);
+        Assert.Contains("Content=\"{ReflectionBinding $parent[Window].DataContext.Text.HexDiffSelectedRangeLabel}\"", rangeRow, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsSelected}\"", rangeRow, StringComparison.Ordinal);
+        Assert.Contains("Content=\"{Binding Status}\"", rangeRow, StringComparison.Ordinal);
+        Assert.Contains("BorderThickness\" Value=\"2\"", selectedRangeStyle, StringComparison.Ordinal);
+    }
 }
