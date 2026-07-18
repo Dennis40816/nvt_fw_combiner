@@ -15,7 +15,8 @@ public sealed class ReportPagedListViewModel : ObservableObject
     private ReportPagedListViewModel(
         IReadOnlyList<object> allItems,
         int pageSize,
-        ShellLanguage language)
+        ShellLanguage language,
+        bool loadInitialPage)
     {
         ArgumentNullException.ThrowIfNull(allItems);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
@@ -23,7 +24,10 @@ public sealed class ReportPagedListViewModel : ObservableObject
         _pageSize = pageSize;
         _language = language;
         _loadMoreCommand = new RelayCommand(LoadMore, () => HasMoreItems);
-        LoadMore();
+        if (loadInitialPage)
+        {
+            LoadMore();
+        }
     }
 
     /// <summary>Rows currently materialized for the report UI.</summary>
@@ -64,10 +68,23 @@ public sealed class ReportPagedListViewModel : ObservableObject
     internal static ReportPagedListViewModel Create<T>(
         IReadOnlyList<T> items,
         int pageSize,
-        ShellLanguage language)
+        ShellLanguage language,
+        bool loadInitialPage = true)
     {
         ArgumentNullException.ThrowIfNull(items);
-        return new ReportPagedListViewModel([.. items.Cast<object>()], pageSize, language);
+        return new ReportPagedListViewModel(
+            new ObjectReadOnlyList<T>(items),
+            pageSize,
+            language,
+            loadInitialPage);
+    }
+
+    internal void EnsureInitialPage()
+    {
+        if (VisibleCount == 0 && TotalCount > 0)
+        {
+            LoadMore();
+        }
     }
 
     private void LoadMore()
@@ -84,5 +101,27 @@ public sealed class ReportPagedListViewModel : ObservableObject
         OnPropertyChanged(nameof(PageStatus));
         OnPropertyChanged(nameof(LoadMoreLabel));
         _loadMoreCommand.NotifyCanExecuteChanged();
+    }
+
+    private sealed class ObjectReadOnlyList<T>(IReadOnlyList<T> items) : IReadOnlyList<object>
+    {
+        private readonly IReadOnlyList<T> _items = items ?? throw new ArgumentNullException(nameof(items));
+
+        public int Count => _items.Count;
+
+        public object this[int index] => _items[index]!;
+
+        public IEnumerator<object> GetEnumerator()
+        {
+            for (int index = 0; index < Count; index++)
+            {
+                yield return this[index];
+            }
+        }
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
     }
 }

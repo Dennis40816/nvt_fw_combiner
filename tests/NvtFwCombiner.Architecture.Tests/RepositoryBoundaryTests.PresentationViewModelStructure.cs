@@ -69,7 +69,7 @@ public sealed partial class RepositoryBoundaryTests
                 "catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)"));
     }
 
-    /// <summary>Verifies complete report evidence is projected through bounded UI collections.</summary>
+    /// <summary>Verifies complete report evidence uses bounded pages and lazy difference-row projection.</summary>
     [Fact]
     public void ReportDetailsUseBoundedPresentationPages()
     {
@@ -81,6 +81,12 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportChangeTemplates.axaml");
         string parser = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.OutputDifferences.cs");
+        string indexedRows = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportIndexedReadOnlyLists.cs");
+        string differenceGroups = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportDifferenceGroupViewModel.cs");
+        string paging = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPagedListViewModel.cs");
         string reportLifecycle = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Report.cs");
 
@@ -94,6 +100,12 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("RowsPage.Items", changes, StringComparison.Ordinal);
         Assert.DoesNotContain("ItemsSource=\"{Binding LoadedReport.OutputDifferenceGroups}\"", audit, StringComparison.Ordinal);
         Assert.Contains("MaximumRenderedHexPreviewBytes = 64", parser, StringComparison.Ordinal);
+        Assert.Contains("MemoizedIndexedReadOnlyList<ReportLineViewModel>", parser, StringComparison.Ordinal);
+        Assert.Contains("Interlocked.CompareExchange", indexedRows, StringComparison.Ordinal);
+        Assert.Contains("loadInitialPage: false", differenceGroups, StringComparison.Ordinal);
+        Assert.Contains("IsExpanded=\"{Binding IsExpanded, Mode=TwoWay}\"", changes, StringComparison.Ordinal);
+        Assert.Contains("new ObjectReadOnlyList<T>(items)", paging, StringComparison.Ordinal);
+        Assert.DoesNotContain("items.Cast<object>()", paging, StringComparison.Ordinal);
         Assert.Contains("public async Task LoadReportJsonAsync(", reportLifecycle, StringComparison.Ordinal);
         Assert.Contains("report = await Task.Run(", reportLifecycle, StringComparison.Ordinal);
     }

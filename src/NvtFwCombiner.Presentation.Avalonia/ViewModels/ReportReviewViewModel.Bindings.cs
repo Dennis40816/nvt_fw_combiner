@@ -150,13 +150,16 @@ public sealed partial class ReportReviewViewModel
     public IReadOnlyList<ReportLineViewModel> OutputDifferences { get; }
 
     /// <summary>Number of final output-vs-reference difference rows.</summary>
-    public int OutputDifferenceCount => OutputDifferences.Count;
+    public int OutputDifferenceCount => _outputDifferenceProjection.Count;
+
+    /// <summary>Number of detailed difference row models created for currently requested UI pages.</summary>
+    internal int MaterializedOutputDifferenceCount => _outputDifferenceProjection.MaterializedCount;
 
     /// <summary>Final output differences grouped by physical report section.</summary>
     public IReadOnlyList<ReportDifferenceGroupViewModel> OutputDifferenceGroups { get; }
 
     /// <summary>True when output difference details are available.</summary>
-    public bool HasOutputDifferences => OutputDifferences.Count > 0;
+    public bool HasOutputDifferences => _outputDifferenceProjection.Count > 0;
 
     /// <summary>True when no output differences or changed ranges are available.</summary>
     public bool HasNoByteChanges => !HasOutputDifferences && !HasMutations;

@@ -127,10 +127,16 @@ and binds only bounded pages of summaries, difference groups/rows, mutations,
 operation flow/detail, postbuild invocations, and issues. Review-required
 difference groups and rows sort first. Legacy reports that contain complete hex
 fields render at most the first 64 bytes; the untouched JSON remains the
-history/save/export authority. This slice still builds the complete immutable
-row model on a background worker. Deferring row-model creation by selected tab
-and measuring separate summary-ready/detail-ready latency remain explicit
-follow-up work rather than an implied result.
+history/save/export authority.
+
+The second slice scans the cloned difference array only for complete counts,
+expected/review status, grouping, and summary rows. It memoizes detailed row
+models by source index; collapsed groups request none, expansion requests the
+first 24, and paging requests only the next bounded window. Global and grouped
+views share each memoized row, and the pager no longer copies the complete item
+list into an object array. Separate summary-ready/detail-ready timing,
+allocation, working-set measurement, and a virtualizing-control comparison
+remain explicit node B/C work rather than an implied result.
 
 ### Immutable UI firmware inspection
 

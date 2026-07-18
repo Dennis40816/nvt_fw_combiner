@@ -178,7 +178,9 @@ inspection slice records `57,636`, including exact partial aggregates of
 `MainWindowViewModel`; no safety check or evidence was removed to offset these
 changes. The first typed Application progress slice records `57,916`; its
 bounded feed and lifecycle tests are retained as correctness infrastructure,
-not claimed as a performance win based on source size.
+not claimed as a performance win based on source size. The lazy report-detail
+slice records `58,112`; its acceptance is the deterministic materialization
+result below, not a lower line count.
 
 Staged immutable-artifact verification reads are separate and must not be
 hidden in future evidence. During the conservative phase, the first canonical
@@ -243,13 +245,23 @@ postbuild rows, and 40 issues at a time. Review-required groups/rows sort first.
 Legacy complete hex fields render at most a 64-byte preview while
 `LoadedReportJson`, history, save, and export retain the complete payload.
 
-`ReportReviewViewModel.FromJson` still enumerates every output difference and
-constructs the complete immutable row model, but that work is no longer on the
-dispatcher and the UI no longer creates every detail control initially. True
-selected-tab lazy row-model creation, summary-ready/detail-ready separation,
-and a virtualizing-control comparison remain unclaimed until final node B/C
-evidence. The raw tab continues to expose the complete JSON string on explicit
-selection.
+The second report slice now scans the cloned output-difference JSON array only
+for stable global counts, expected/review status, section grouping, and summary
+rows. Detailed `ReportLineViewModel` instances are memoized by source index and
+created only through the page the user requests. Collapsed groups start with
+zero detail rows; expanding one group creates at most 24, and Load more creates
+only its next bounded page. All group and global views share the same memoized
+row instance. A deterministic 1,000-difference/40-section test records 0 detail
+row models after summary publication, 24 after first expansion, and 25 after
+the final row of that section is requested; loading eight more group headers
+leaves the count at 25.
+
+The raw tab, `LoadedReportJson`, history, save, and export continue to retain
+the complete JSON. This slice also removes the pager's eager all-item object
+array copy. It does retain one cloned `JsonElement` array so lazy rows remain
+valid after the parser document is disposed. Authoritative node B/C still must
+measure summary-ready/detail-ready latency, allocation, and working set against
+the final `0.9.9` report shape; a virtualizing-control comparison remains open.
 
 Node B must record click-to-first-progress, dispatcher heartbeat gap,
 summary-ready/detail-ready latency, initial row/control count, allocation, and

@@ -57,7 +57,7 @@ public sealed partial class ReportReviewViewModel
         string output,
         IReadOnlyList<ReportLineViewModel> issues,
         string compositionKind,
-        IReadOnlyList<ReportLineViewModel> outputDifferences,
+        OutputDifferenceProjection outputDifferences,
         ShellLanguage language)
     {
         int blockingIssueCount = CountBlockingIssues(issues);
@@ -73,10 +73,10 @@ public sealed partial class ReportReviewViewModel
 
     private static string CreateCleanOutcomeDetail(
         string compositionKind,
-        IReadOnlyList<ReportLineViewModel> outputDifferences,
+        OutputDifferenceProjection outputDifferences,
         ShellLanguage language)
     {
-        return outputDifferences.Count > 0 && !HasReviewRequiredOutputDifference(outputDifferences)
+        return outputDifferences.Count > 0 && !outputDifferences.HasReviewRequired
             ? T(
                 language,
                 "No blocking issues or warnings. All reported byte changes are classified as expected.",
@@ -106,7 +106,7 @@ public sealed partial class ReportReviewViewModel
     }
 
     private static string CreateCleanNextStepTitle(
-        IReadOnlyList<ReportLineViewModel> outputDifferences,
+        OutputDifferenceProjection outputDifferences,
         ShellLanguage language)
     {
         return outputDifferences.Count > 0
@@ -115,7 +115,7 @@ public sealed partial class ReportReviewViewModel
     }
 
     private static string CreateCleanNextStepDetail(
-        IReadOnlyList<ReportLineViewModel> outputDifferences,
+        OutputDifferenceProjection outputDifferences,
         IReadOnlyList<ReportLineViewModel> operations,
         ShellLanguage language)
     {
