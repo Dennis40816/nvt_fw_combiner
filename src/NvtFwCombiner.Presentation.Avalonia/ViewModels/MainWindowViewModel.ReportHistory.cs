@@ -64,6 +64,9 @@ public sealed partial class MainWindowViewModel
     /// <summary>Command that reopens a report history entry.</summary>
     public IRelayCommand<ReportHistoryEntryViewModel> OpenReportHistoryEntryCommand { get; }
 
+    /// <summary>Cancellable command used by the UI to reopen a report without blocking the dispatcher.</summary>
+    public IAsyncRelayCommand<ReportHistoryEntryViewModel> OpenReportHistoryEntryAsyncCommand { get; }
+
     /// <summary>Command that removes one local report history entry.</summary>
     public IRelayCommand<ReportHistoryEntryViewModel> RemoveReportHistoryEntryCommand { get; }
 
@@ -135,18 +138,45 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
+        CancelReportHistoryReopen();
         IsReportHistoryViewOpen = false;
         NotifyReportViewModeChanged();
     }
 
-    private void OpenReportHistoryEntry(ReportHistoryEntryViewModel? entry)
+    private async Task OpenReportHistoryEntryAsync(
+        ReportHistoryEntryViewModel? entry,
+        CancellationToken cancellationToken)
     {
         if (entry is null)
         {
             return;
         }
 
-        LoadReportHistoryEntry(entry);
+        long generation = BeginReportProjection(preserveHistoryReopen: true);
+        string sourceName = string.IsNullOrWhiteSpace(entry.SourceName)
+            ? "persisted report"
+            : entry.SourceName;
+        ReportReviewViewModel report;
+        try
+        {
+            report = await ProjectReportAsync(
+                entry.ReportJson,
+                sourceName,
+                entry.ArtifactPath,
+                cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (!IsCurrentReportProjection(generation))
+        {
+            return;
+        }
+
+        LoadedReport = report;
+        LoadedReportJson = entry.ReportJson;
         CloseReplaceSelectionForRun();
         IsReportModalOpen = true;
         IsReportHistoryViewOpen = false;
@@ -166,6 +196,7 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
+        CancelReportHistoryReopen();
         ReportHistoryEntries.Clear();
         NotifyReportHistoryChanged();
     }
@@ -177,6 +208,7 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
+        CancelReportHistoryReopen();
         NotifyReportHistoryChanged();
         if (!HasReportHistory)
         {
@@ -257,8 +289,21 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(CanClearReportHistory));
         ShowReportHistoryCommand.NotifyCanExecuteChanged();
         ClearReportHistoryCommand.NotifyCanExecuteChanged();
-        OpenReportHistoryEntryCommand.NotifyCanExecuteChanged();
+        OpenReportHistoryEntryAsyncCommand.NotifyCanExecuteChanged();
         RemoveReportHistoryEntryCommand.NotifyCanExecuteChanged();
+    }
+
+    private void OpenReportHistoryEntryAsyncCommand_CanExecuteChanged(object? sender, EventArgs e)
+    {
+        OpenReportHistoryEntryCommand.NotifyCanExecuteChanged();
+    }
+
+    private void CancelReportHistoryReopen()
+    {
+        if (OpenReportHistoryEntryAsyncCommand.IsRunning)
+        {
+            _ = BeginReportProjection();
+        }
     }
 
     private void RelocalizeLoadedReport()

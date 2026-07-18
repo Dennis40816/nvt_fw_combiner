@@ -10,7 +10,7 @@ public sealed partial class ShellViewModelTests
 {
     /// <summary>Verifies report history can reopen earlier reports without adding a new run.</summary>
     [Fact]
-    public void ReportHistoryTracksSessionReportsAndReopensEarlierEntry()
+    public async Task ReportHistoryTracksSessionReportsAndReopensEarlierEntry()
     {
         string previewJson = ReportJsonSamples.Succeeded(
             runId: "preview-run",
@@ -36,7 +36,7 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.IsReportHistoryViewOpen);
         Assert.False(viewModel.IsReportReviewViewOpen);
 
-        viewModel.OpenReportHistoryEntryCommand.Execute(viewModel.ReportHistoryEntries[1]);
+        await viewModel.OpenReportHistoryEntryAsyncCommand.ExecuteAsync(viewModel.ReportHistoryEntries[1]);
 
         Assert.True(viewModel.IsReportModalOpen);
         Assert.False(viewModel.IsReportHistoryViewOpen);
@@ -209,7 +209,7 @@ public sealed partial class ShellViewModelTests
 
     /// <summary>Metadata-backed history stays compact and materializes only the entry opened for review.</summary>
     [Fact]
-    public void ReportHistoryDefersOlderReviewMaterialization()
+    public async Task ReportHistoryDefersOlderReviewMaterialization()
     {
         string latestJson = ReportJsonSamples.Succeeded(runId: "latest-run");
         string deferredJson = ReportJsonSamples.Succeeded(runId: "deferred-run");
@@ -240,7 +240,7 @@ public sealed partial class ShellViewModelTests
             deferredEntry.StoredByteCount);
         Assert.Same(deferred, deferredEntry.ToSnapshot());
 
-        viewModel.OpenReportHistoryEntryCommand.Execute(deferredEntry);
+        await viewModel.OpenReportHistoryEntryAsyncCommand.ExecuteAsync(deferredEntry);
 
         Assert.Equal(deferredJson, viewModel.LoadedReportJson);
         Assert.Equal("deferred-run", viewModel.LoadedReport.RunId);
@@ -289,7 +289,7 @@ public sealed partial class ShellViewModelTests
 
     /// <summary>A metadata-backed invalid older report degrades safely only when the user opens it.</summary>
     [Fact]
-    public void ReportHistoryInvalidDeferredShapeDegradesOnOpen()
+    public async Task ReportHistoryInvalidDeferredShapeDegradesOnOpen()
     {
         string latestJson = ReportJsonSamples.Succeeded(runId: "latest-safe-run");
         ReportHistoryMetadataSnapshot latestMetadata = ReportHistoryMetadataSnapshot.Empty with
@@ -315,7 +315,7 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("latest-safe-run", viewModel.LoadedReport.RunId);
         ReportHistoryEntryViewModel invalidEntry = viewModel.ReportHistoryEntries[1];
 
-        viewModel.OpenReportHistoryEntryCommand.Execute(invalidEntry);
+        await viewModel.OpenReportHistoryEntryAsyncCommand.ExecuteAsync(invalidEntry);
 
         Assert.Equal("Invalid JSON", viewModel.LoadedReport.Status);
         Assert.True(viewModel.LoadedReport.HasPrimaryIssue);
