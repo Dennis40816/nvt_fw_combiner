@@ -157,6 +157,9 @@ internal sealed partial class CompositionProfileDefinition
             StringComparer.Ordinal.Equals(space.SlotId, clone.SourceSlotId));
         InputArtifactProfileSpace? sourceSpace = inputs.SingleOrDefault(space =>
             !StringComparer.Ordinal.Equals(space.SlotId, clone.SourceSlotId));
+        bool sourceNormalizationIsValid = isCtrlRamReplace
+            ? source?.Normalization is TruncateCtrlRamInputNormalization
+            : source?.Normalization is NoInputNormalization;
         if (reference is not
             {
                 Required: true,
@@ -170,14 +173,14 @@ internal sealed partial class CompositionProfileDefinition
                 Required: true,
                 Cardinality: CompositionProfileSlotCardinality.OneOrMore,
                 LengthRule: BoundedLengthRule { MinimumBytes: 1, MaximumBytes: int.MaxValue },
-                Normalization: NoInputNormalization,
             } ||
             source.ArtifactClass != expectedSourceClass ||
+            !sourceNormalizationIsValid ||
             referenceSpace is not { InstancePolicy: CompositionProfileInstancePolicy.Singleton } ||
             sourceSpace is not { InstancePolicy: CompositionProfileInstancePolicy.PerBinding })
         {
             throw new ArgumentException(
-                "Runtime reference-replace profiles require one exact singleton reference and one unnormalized per-binding source of the experience-owned artifact class.");
+                "Runtime reference-replace profiles require one exact singleton reference and one experience-owned per-binding source with its closed normalization policy.");
         }
 
         if (Promotion.Stage >= CompositionProfilePromotionStage.Supported)

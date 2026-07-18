@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
@@ -10,7 +11,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
-/// <summary>Compilable, non-routed evidence for the NT51926 Common FW 1.4.1 cascade CtrlRAM postbuild plan.</summary>
+/// <summary>Executable-candidate evidence for the routed NT51926 Common FW 1.4.1 cascade CtrlRAM postbuild plan.</summary>
 public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
 {
     private const int Capacity = 0x3C000;
@@ -181,7 +182,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             "09204deaaf1c0db10ed83cde7d4e55d49a673777414dfa857b13bc953e234439",
             first.V2Details!.Provenance.ResolvedMap.ResolutionFingerprint);
         Assert.Equal(
-            "0df2749ee444689fcd2010c5b6768ae69460cb9ef614f1b7798a73977bf2bdba",
+            "8b690981a426062ba473cd774ab6f05430059abbf40339acfe3996ae97627833",
             first.CompilationFingerprint);
         Assert.Equal(
             first.V2Details!.Provenance.ResolvedMap.ResolutionFingerprint,
@@ -295,6 +296,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             static pair => pair.Value.Path,
             StringComparer.Ordinal);
         legacySlotPaths[WorkbenchSlotIds.ReplaceBase] = baseFile.Path;
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(referenceBase, out FirmwareConfigMetadata backup));
 
         using var workspace = TempWorkspace.Create("nfc-nt51926-ctrlram-v2-parity");
         string legacyOutputPath = workspace.PathFor("legacy-workbench-output.bin");
@@ -305,8 +307,18 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             legacySlotPaths,
             build: true,
             TestContext.Current.CancellationToken,
-            legacyOutputPath);
+            legacyOutputPath,
+            ctrlRamFirmwareVersionEdit: new WorkbenchCtrlRamFirmwareVersionEdit(
+                backup.FirmwareVersion,
+                backup.FirmwareSubVersion));
         Assert.True(legacy.Succeeded, legacy.ReportJson);
+        using (var legacyReport = JsonDocument.Parse(legacy.ReportJson))
+        {
+            Assert.Equal(
+                "nt51926-ctrlram-replace-workbench",
+                legacyReport.RootElement.GetProperty("ProfileId").GetString());
+        }
+
         byte[] legacyOutput = File.ReadAllBytes(legacyOutputPath);
 
         Dictionary<string, byte[]> candidateInputs = new(StringComparer.Ordinal)

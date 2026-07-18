@@ -180,8 +180,19 @@
                   },
                   "inputSlots": {
                     "contains": {
-                      "properties": { "artifactClass": { "const": "auxiliary" } },
-                      "required": [ "artifactClass" ]
+                      "properties": {
+                        "artifactClass": { "const": "auxiliary" },
+                        "acceptance": {
+                          "properties": {
+                            "normalization": {
+                              "properties": { "kind": { "const": "none" } },
+                              "required": [ "kind" ]
+                            }
+                          },
+                          "required": [ "normalization" ]
+                        }
+                      },
+                      "required": [ "artifactClass", "acceptance" ]
                     },
                     "minContains": 1,
                     "maxContains": 1
@@ -199,8 +210,19 @@
                   },
                   "inputSlots": {
                     "contains": {
-                      "properties": { "artifactClass": { "const": "ctrlram-replacement" } },
-                      "required": [ "artifactClass" ]
+                      "properties": {
+                        "artifactClass": { "const": "ctrlram-replacement" },
+                        "acceptance": {
+                          "properties": {
+                            "normalization": {
+                              "properties": { "kind": { "const": "truncate-ctrlram" } },
+                              "required": [ "kind" ]
+                            }
+                          },
+                          "required": [ "normalization" ]
+                        }
+                      },
+                      "required": [ "artifactClass", "acceptance" ]
                     },
                     "minContains": 1,
                     "maxContains": 1
@@ -256,10 +278,6 @@
                             "maximumBytes": { "const": 2147483647 }
                           },
                           "required": ["kind", "minimumBytes", "maximumBytes"]
-                        },
-                        "normalization": {
-                          "properties": { "kind": { "const": "none" } },
-                          "required": ["kind"]
                         }
                       },
                       "required": ["lengthRule", "normalization"]

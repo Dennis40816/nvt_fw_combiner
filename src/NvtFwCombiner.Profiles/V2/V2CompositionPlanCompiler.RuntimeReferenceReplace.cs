@@ -49,12 +49,19 @@ internal static partial class V2CompositionPlanCompiler
             return V2CompositionPlanCompileResult.Failed(issues);
         }
 
+        bool truncateCtrlRamSources =
+            StringComparer.Ordinal.Equals(profile.Experience.ExperienceId, ExperienceIds.CtrlRamReplace) &&
+            shape.SourceSlot.Normalization is TruncateCtrlRamInputNormalization;
         var spaces = bindings.Values.ToDictionary(
             static binding => binding.BindingId,
-            static binding => new AddressSpace(
+            binding => new AddressSpace(
                 binding.BindingId,
                 binding.ExactLengthBytes,
-                AddressSpaceMutability.Immutable),
+                AddressSpaceMutability.Immutable,
+                inputOversizePolicy:
+                    truncateCtrlRamSources && StringComparer.Ordinal.Equals(binding.SlotId, shape.SourceSlot.SlotId)
+                        ? InputOversizePolicy.TruncateWithWarning
+                        : InputOversizePolicy.Reject),
             StringComparer.Ordinal);
         spaces.Add(
             shape.Output.SpaceId,
@@ -233,6 +240,9 @@ internal static partial class V2CompositionPlanCompiler
             StringComparer.Ordinal.Equals(space.SlotId, reference.SlotId));
         InputArtifactProfileSpace sourceSpace = profile.Spaces.OfType<InputArtifactProfileSpace>().Single(space =>
             StringComparer.Ordinal.Equals(space.SlotId, source.SlotId));
+        bool sourceNormalizationIsValid = isCtrlRamReplace
+            ? source.Normalization is TruncateCtrlRamInputNormalization
+            : source.Normalization is NoInputNormalization;
         return reference is not
         {
             Required: true,
@@ -246,9 +256,9 @@ internal static partial class V2CompositionPlanCompiler
                 Required: true,
                 Cardinality: CompositionProfileSlotCardinality.OneOrMore,
                 LengthRule: BoundedLengthRule { MinimumBytes: 1, MaximumBytes: int.MaxValue },
-                Normalization: NoInputNormalization,
             } ||
             source.ArtifactClass != expectedSourceClass ||
+            !sourceNormalizationIsValid ||
             referenceSpace.InstancePolicy != CompositionProfileInstancePolicy.Singleton ||
             sourceSpace.InstancePolicy != CompositionProfileInstancePolicy.PerBinding
             ? throw new InvalidOperationException("Validated runtime reference-replace profile has an invalid input contract.")

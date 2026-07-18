@@ -69,7 +69,9 @@ public sealed partial class ReplaceCliCommandTests
             previewReport,
         ]);
 
-        Assert.Equal(0, preview.ExitCode);
+        Assert.True(
+            preview.ExitCode == 0,
+            $"stdout:{Environment.NewLine}{preview.Output}{Environment.NewLine}stderr:{Environment.NewLine}{preview.Error}");
         Assert.Contains("Status: Succeeded", preview.Output, StringComparison.Ordinal);
         Assert.Contains("Size: 245760 bytes", preview.Output, StringComparison.Ordinal);
         Assert.Contains("postbuild-cascade", preview.Output, StringComparison.Ordinal);
@@ -108,6 +110,16 @@ public sealed partial class ReplaceCliCommandTests
             fixtureCase.GetProperty("expectedOutput").GetProperty("sha256").GetString(),
             Convert.ToHexString(SHA256.HashData(outputBytes)).ToLowerInvariant());
         AssertExactChangedRanges(baseBytes, outputBytes, ReadManifestRanges(fixtureCase));
+        using (var report = JsonDocument.Parse(File.ReadAllText(buildReport)))
+        {
+            Assert.Equal(
+                "nt51926-ctrlram-replace-fw141-runtime-cascade",
+                report.RootElement.GetProperty("ProfileId").GetString());
+            Assert.Contains(
+                report.RootElement.GetProperty("Operations").EnumerateArray(),
+                operation => operation.GetProperty("OperationId").GetString() == "replace-vn-00");
+        }
+
         AssertProcessorTrace(buildReport, fixtureCase);
     }
 
@@ -286,8 +298,10 @@ public sealed partial class ReplaceCliCommandTests
     private static void AssertProcessorTrace(string reportPath, JsonElement fixtureCase)
     {
         using var reportDocument = JsonDocument.Parse(File.ReadAllText(reportPath));
-        JsonElement operation = Assert.Single(reportDocument.RootElement.GetProperty("Operations").EnumerateArray());
         JsonElement trace = fixtureCase.GetProperty("processorTrace");
+        JsonElement operation = reportDocument.RootElement.GetProperty("Operations").EnumerateArray()
+            .Single(candidate => candidate.TryGetProperty("ProcessorId", out JsonElement processorId) &&
+                processorId.GetString() == trace.GetProperty("processorId").GetString());
         Assert.Equal("postbuild-cascade", operation.GetProperty("OperationId").GetString());
         Assert.Equal("Succeeded", operation.GetProperty("Status").GetString());
         Assert.Equal(trace.GetProperty("processorId").GetString(), operation.GetProperty("ProcessorId").GetString());
@@ -324,7 +338,8 @@ public sealed partial class ReplaceCliCommandTests
             trace.GetProperty("executableSha256").GetString(),
             Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(executablePath))).ToLowerInvariant());
 
-        JsonElement mutation = Assert.Single(reportDocument.RootElement.GetProperty("Mutations").EnumerateArray());
+        JsonElement mutation = reportDocument.RootElement.GetProperty("Mutations").EnumerateArray()
+            .Single(candidate => candidate.GetProperty("OperationId").GetString() == "postbuild-cascade");
         Assert.Equal(16, mutation.GetProperty("ChangedByteCount").GetInt64());
         Assert.Equal(0x3C000, mutation.GetProperty("TargetRange").GetProperty("Length").GetInt64());
         Assert.Equal(fixtureCase.GetProperty("base").GetProperty("sha256").GetString(), mutation.GetProperty("BeforeSha256").GetString());

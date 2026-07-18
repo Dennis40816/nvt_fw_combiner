@@ -3,6 +3,7 @@ using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
+using V2CompositionPlanCompileResult = NvtFwCombiner.Profiles.V2.V2CompositionPlanCompileResult;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -66,6 +67,24 @@ public static partial class WorkbenchCompositionService
         if (!context.CanRun)
         {
             return Blocked(context.ValidationIssues);
+        }
+
+        if (firmwareVersionEdit is null && IsNt51926Fw141CascadeV2Route(context))
+        {
+            V2CompositionPlanCompileResult v2Compile = CompileNt51926Fw141CascadeV2(context);
+            return !v2Compile.IsCompiled
+                ? Blocked(v2Compile.Issues, "nt51926-ctrlram-replace.bin")
+                : await RunCompiledCompositionAsync(
+                    CtrlRamReplaceRunIdPrefix,
+                    v2Compile.CompiledComposition!,
+                    CreateNt51926Fw141CascadeV2Bindings(context, slotPaths),
+                    context.BasePath!,
+                    build,
+                    outputPath,
+                    externalProcessor,
+                    icNumberSelection: context.Selection,
+                    overwrite: true,
+                    cancellationToken).ConfigureAwait(false);
         }
 
         ExternalProcessorStagedSourceBinding[] stagedSourceBindings = CreateCtrlRamStagedSourceBindings(

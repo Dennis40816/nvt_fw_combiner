@@ -6,12 +6,6 @@
     "stage": "executable-candidate",
     "blockers": [
       {
-        "blockerId": "runtime-route-parity",
-        "kind": "golden",
-        "reason": "Full output bytes, report, naming, CLI, and UI parity with the current NT51926 Common FW 1.4.1 cascade route must be reviewed before production routing.",
-        "evidenceRefs": [ "nt51926-cascade-tp-base-self-regression-20260717" ]
-      },
-      {
         "blockerId": "firmware-owner-review",
         "kind": "human-review",
         "reason": "Firmware owner must approve short-source prefix authority and the exact Legacy Combiner write ranges before support promotion.",
@@ -76,7 +70,11 @@
       "acceptedExtensions": [ ".bin" ],
       "acceptance": {
         "lengthRule": { "kind": "bounded", "minimumBytes": 1, "maximumBytes": 2147483647 },
-        "normalization": { "kind": "none" }
+        "normalization": {
+          "kind": "truncate-ctrlram",
+          "warningIssueCode": "CTRLRAM_SIZE_WARNING",
+          "evidenceRef": "nt51926-common-fw141-postbuild"
+        }
       }
     }
   ],
@@ -118,7 +116,7 @@
   ],
   "operations": [
     {
-      "operationId": "run-nt51926-fw141-runtime-combiner",
+      "operationId": "postbuild-cascade",
       "sequence": 2147483647,
       "overlapPolicy": "replace-existing",
       "reason": "Refresh the approved NT51926 Common FW 1.4.1 header and integrity fields after all runtime CtrlRAM mappings.",
@@ -158,7 +156,7 @@
     }
   ],
   "output": {
-    "fileNameTemplate": "nt51926-ctrlram-replace-fw141-runtime-cascade.bin",
+    "fileNameTemplate": "nt51926-ctrlram-replace.bin",
     "allowOverride": true,
     "invalidCharacterPolicy": "reject",
     "requiredTokenIds": []

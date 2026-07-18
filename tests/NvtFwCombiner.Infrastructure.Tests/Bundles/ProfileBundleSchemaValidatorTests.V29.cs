@@ -28,6 +28,12 @@ public sealed partial class ProfileBundleSchemaValidatorTests
         experience["inputPolicy"] = "fixed";
         JsonObject source = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["inputSlots"])[1]);
         source["artifactClass"] = "ctrlram-replacement";
+        Assert.IsType<JsonObject>(source["acceptance"])["normalization"] = new JsonObject
+        {
+            ["kind"] = "truncate-ctrlram",
+            ["warningIssueCode"] = "CTRLRAM_SIZE_WARNING",
+            ["evidenceRef"] = "synthetic-tp-refresh",
+        };
 
         ProfileBundleSchemaValidator.ValidateEntries(
             CaptureCompositionProfile(profile.ToJsonString(), "composition-profile-v2.9.schema.json"),

@@ -29,6 +29,9 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
             "nt51926-ctrlram-fw141-tp-work-240k",
             composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(TpWorkCapacity, composition.Plan.OutputInitialization.Capacity);
+        Assert.Equal(
+            InputOversizePolicy.TruncateWithWarning,
+            composition.Plan.AddressSpaces.Single(space => space.AddressSpaceId == "vn-source").InputOversizePolicy);
 
         CompositionOperation[] operations = [.. composition.Plan.OrderedOperations];
         Assert.Equal(2, operations.Length);

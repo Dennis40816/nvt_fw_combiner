@@ -46,6 +46,9 @@ public sealed partial class CompiledComposition
             .. details.InputContract.Slots.Where(slot =>
                 slot.ArtifactClass == expectedSourceClass),
         ];
+        bool sourceNormalizationIsValid = isCtrlRamReplace
+            ? sourceSlots.FirstOrDefault()?.Normalization is CompiledTruncateCtrlRamInputNormalization
+            : sourceSlots.FirstOrDefault()?.Normalization is CompiledNoInputNormalization;
         if (details.InputContract.Slots.Count != 2 || referenceSlots.Length != 1 || sourceSlots.Length != 1 ||
             referenceSlots[0] is not
             {
@@ -63,11 +66,11 @@ public sealed partial class CompiledComposition
                     MinimumBytes: 1,
                     MaximumBytes: int.MaxValue,
                 },
-                Normalization: CompiledNoInputNormalization,
-            })
+            } ||
+            !sourceNormalizationIsValid)
         {
             throw new ArgumentException(
-                "Map-bound runtime reference-replace artifacts require one exact reference slot and one unnormalized per-binding experience-owned source slot.",
+                "Map-bound runtime reference-replace artifacts require one exact reference slot and one per-binding source with the experience-owned normalization policy.",
                 nameof(details));
         }
 
@@ -130,19 +133,22 @@ public sealed partial class CompiledComposition
         }
 
         var sourceAddressSpaceIds = new HashSet<string>(StringComparer.Ordinal);
+        InputOversizePolicy expectedSourceOversizePolicy = isCtrlRamReplace
+            ? InputOversizePolicy.TruncateWithWarning
+            : InputOversizePolicy.Reject;
         foreach (CompiledInputSpaceBinding sourceBinding in sourceBindings)
         {
             if (!spaces.TryGetValue(sourceBinding.AddressSpaceId, out AddressSpace? sourceSpace) ||
                 sourceSpace.Mutability != AddressSpaceMutability.Immutable ||
                 sourceSpace.Length is < 1 or > int.MaxValue ||
                 sourceSpace.InputPaddingByte is not null ||
-                sourceSpace.InputOversizePolicy != InputOversizePolicy.Reject ||
+                sourceSpace.InputOversizePolicy != expectedSourceOversizePolicy ||
                 sourceSpace.AllowedInputLengths.Count != 0 ||
                 sourceSpace.ExpectedInputLengths.Count != 0 ||
                 !sourceAddressSpaceIds.Add(sourceBinding.AddressSpaceId))
             {
                 throw new ArgumentException(
-                    "Runtime reference-replace auxiliary bindings must be unique unnormalized immutable in-memory sources.",
+                    "Runtime reference-replace source bindings must be unique immutable inputs with the experience-owned oversize policy.",
                     nameof(details));
             }
         }

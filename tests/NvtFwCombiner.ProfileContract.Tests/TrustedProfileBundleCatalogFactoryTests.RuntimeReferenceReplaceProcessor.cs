@@ -388,6 +388,17 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 mapIds ?? ["map"],
                 experienceId)));
         profile["schemaVersion"] = "2.9";
+        if (StringComparer.Ordinal.Equals(experienceId, ExperienceIds.CtrlRamReplace))
+        {
+            JsonObject sourceSlot = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["inputSlots"])[1]);
+            Assert.IsType<JsonObject>(sourceSlot["acceptance"])["normalization"] = new JsonObject
+            {
+                ["kind"] = "truncate-ctrlram",
+                ["warningIssueCode"] = "CTRLRAM_SIZE_WARNING",
+                ["evidenceRef"] = "synthetic-tp-refresh",
+            };
+        }
+
         JsonObject mapBinding = Assert.IsType<JsonObject>(profile["mapBinding"]);
         mapBinding["requiredRegionIds"] = new JsonArray("root", "dp", "tp", "header");
         profile["regionAccessRules"] = new JsonArray

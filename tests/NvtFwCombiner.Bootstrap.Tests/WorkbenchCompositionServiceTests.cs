@@ -405,6 +405,9 @@ public sealed class WorkbenchCompositionServiceTests
         Assert.Equal(0x04, backup.FirmwareSubVersion);
 
         using var document = JsonDocument.Parse(result.ReportJson);
+        Assert.Equal(
+            "nt51926-ctrlram-replace-workbench",
+            document.RootElement.GetProperty("ProfileId").GetString());
         string[] operationIds = [
             .. document.RootElement.GetProperty("Operations").EnumerateArray()
                 .Select(operation => operation.GetProperty("OperationId").GetString() ?? string.Empty),
