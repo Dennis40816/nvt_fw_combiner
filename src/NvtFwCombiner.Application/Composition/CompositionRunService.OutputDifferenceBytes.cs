@@ -10,7 +10,7 @@ public sealed partial class CompositionRunService
         ByteRange changedRange,
         IReadOnlyList<OutputDifferenceExpectation> expectations)
     {
-        SortedSet<long> points = [changedRange.Start, changedRange.EndExclusive];
+        List<long>? interiorPoints = null;
         foreach (OutputDifferenceExpectation expectation in expectations)
         {
             ByteRange? overlap = changedRange.Intersect(expectation.Range);
@@ -19,15 +19,37 @@ public sealed partial class CompositionRunService
                 continue;
             }
 
-            _ = points.Add(overlap.Value.Start);
-            _ = points.Add(overlap.Value.EndExclusive);
+            if (overlap.Value.Start > changedRange.Start)
+            {
+                (interiorPoints ??= []).Add(overlap.Value.Start);
+            }
+
+            if (overlap.Value.EndExclusive < changedRange.EndExclusive)
+            {
+                (interiorPoints ??= []).Add(overlap.Value.EndExclusive);
+            }
         }
 
-        long[] ordered = [.. points];
-        for (int index = 0; index < ordered.Length - 1; index++)
+        if (interiorPoints is null)
         {
-            yield return ByteRange.FromStartEndExclusive(ordered[index], ordered[index + 1]);
+            yield return changedRange;
+            yield break;
         }
+
+        interiorPoints.Sort();
+        long segmentStart = changedRange.Start;
+        foreach (long point in interiorPoints)
+        {
+            if (point == segmentStart)
+            {
+                continue;
+            }
+
+            yield return ByteRange.FromStartEndExclusive(segmentStart, point);
+            segmentStart = point;
+        }
+
+        yield return ByteRange.FromStartEndExclusive(segmentStart, changedRange.EndExclusive);
     }
 
     private static IEnumerable<ByteRange> SplitRangeByWriteSectionBoundaries(
