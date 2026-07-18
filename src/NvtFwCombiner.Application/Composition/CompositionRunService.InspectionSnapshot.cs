@@ -4,7 +4,7 @@ namespace NvtFwCombiner.Application.Composition;
 
 public sealed partial class CompositionRunService
 {
-    private static (string? ReferenceSpaceId, byte[]? ReferenceBytes) GetInspectionReference(
+    private static (string? OutputSpaceId, string? ReferenceSpaceId, byte[]? ReferenceBytes) GetInspectionReference(
         CompositionRunRequest request,
         CompositionExecutionStatus runStatus,
         IReadOnlyDictionary<string, byte[]> inputBytes,
@@ -17,9 +17,9 @@ public sealed partial class CompositionRunService
             !inputBytes.TryGetValue(candidateSpaceId, out byte[]? candidateBytes) ||
             candidateBytes.Length != outputLength)
         {
-            return (null, null);
+            return (null, null, null);
         }
 
-        return (candidateSpaceId, candidateBytes);
+        return (request.CompiledComposition.Plan.OutputSpaceId, candidateSpaceId, candidateBytes);
     }
 }

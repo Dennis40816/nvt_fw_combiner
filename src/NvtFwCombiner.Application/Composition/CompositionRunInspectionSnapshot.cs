@@ -9,11 +9,17 @@ public sealed class CompositionRunInspectionSnapshot
     private readonly byte[] _referenceBytes;
 
     internal CompositionRunInspectionSnapshot(
+        string runId,
+        string outputSpaceId,
         string referenceSpaceId,
+        string outputSha256,
         byte[] immutableReferenceBytes,
         byte[] immutableOutputBytes)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(runId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputSpaceId);
         ArgumentException.ThrowIfNullOrWhiteSpace(referenceSpaceId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputSha256);
         ArgumentNullException.ThrowIfNull(immutableReferenceBytes);
         ArgumentNullException.ThrowIfNull(immutableOutputBytes);
         if (immutableReferenceBytes.Length != immutableOutputBytes.Length)
@@ -23,13 +29,25 @@ public sealed class CompositionRunInspectionSnapshot
                 nameof(immutableReferenceBytes));
         }
 
+        RunId = runId;
+        OutputSpaceId = outputSpaceId;
         ReferenceSpaceId = referenceSpaceId;
+        OutputSha256 = outputSha256;
         _referenceBytes = immutableReferenceBytes;
         OutputBytes = immutableOutputBytes;
     }
 
+    /// <summary>Authoritative run that produced these inspection bytes.</summary>
+    public string RunId { get; }
+
+    /// <summary>Compiled mutable address space represented by output offsets.</summary>
+    public string OutputSpaceId { get; }
+
     /// <summary>Canonical immutable address space that initialized the selected output.</summary>
     public string ReferenceSpaceId { get; }
+
+    /// <summary>SHA-256 of the authoritative final output, copied from the run report.</summary>
+    public string OutputSha256 { get; }
 
     /// <summary>Reference image bytes captured during the authoritative run.</summary>
     public ReadOnlyMemory<byte> ReferenceBytes => _referenceBytes;
