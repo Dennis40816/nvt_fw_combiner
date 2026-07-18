@@ -28,6 +28,13 @@ public sealed class CompositionRunProgressStepViewModel
         Phase = phase;
         Label = label;
         State = state;
+        StateMarker = state switch
+        {
+            CompositionRunProgressStepState.Completed => "✓",
+            CompositionRunProgressStepState.Active => "▶",
+            CompositionRunProgressStepState.Pending => "○",
+            _ => throw new ArgumentOutOfRangeException(nameof(state), state, "Unknown progress step state."),
+        };
         AccessibleLabel = accessibleLabel;
     }
 
@@ -39,6 +46,9 @@ public sealed class CompositionRunProgressStepViewModel
 
     /// <summary>Truthful lifecycle state derived only from the Application snapshot.</summary>
     public CompositionRunProgressStepState State { get; }
+
+    /// <summary>Non-color visual marker that remains distinct when motion or theme color is unavailable.</summary>
+    public string StateMarker { get; }
 
     /// <summary>Localized phase and state description for assistive technology.</summary>
     public string AccessibleLabel { get; }

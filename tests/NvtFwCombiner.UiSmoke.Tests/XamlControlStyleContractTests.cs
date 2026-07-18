@@ -340,6 +340,10 @@ public sealed partial class XamlControlStyleContractTests
     {
         string shell = ReadPresentationFile("MainWindow.axaml");
         string contextPanel = ReadPresentationFile("Resources/MainWindowShellPanels.axaml");
+        string styles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
+        string nodeStyle = ExtractStyle(styles, "Border.runProgressNode");
+        string activeNodeStyle = ExtractStyle(styles, "Border.runProgressNode.active");
+        string markerStyle = ExtractStyle(styles, "TextBlock.runProgressMarker");
         var contextDocument = XDocument.Parse(contextPanel);
         XElement progressBar = Assert.Single(
             contextDocument.Descendants(),
@@ -349,6 +353,9 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("IsVisible=\"{Binding IsRunInProgress}\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding CompositionProgress.Steps}\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding AccessibleLabel}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding StateMarker}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"runProgressMarker\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.AccessibilityView=\"Raw\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.LiveSetting=\"Polite\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding ActiveRunIc}\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding ActiveRunNumber}\"", contextPanel, StringComparison.Ordinal);
@@ -359,6 +366,10 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal(
             "{Binding RunProgressStatusLabel}",
             progressBar.Attribute("AutomationProperties.Name")?.Value);
+        Assert.Contains("Property=\"Height\" Value=\"22\"", nodeStyle, StringComparison.Ordinal);
+        Assert.Contains("Property=\"BorderThickness\" Value=\"1\"", nodeStyle, StringComparison.Ordinal);
+        Assert.Contains("Property=\"BorderThickness\" Value=\"2\"", activeNodeStyle, StringComparison.Ordinal);
+        Assert.Contains("NfcTextStrongBrush", markerStyle, StringComparison.Ordinal);
         Assert.DoesNotContain("AutomationProperties.Name=\"{Binding DeviceContextStatus}\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Value=\"{Binding RunProgress", contextPanel, StringComparison.Ordinal);
     }
