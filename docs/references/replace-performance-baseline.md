@@ -161,6 +161,24 @@ last-top-level-property semantics, cancellation, output identity, bounded
 materialization, and jump behavior remain locked. Repeated same-source p50/p95,
 packaged first-page evidence, and Windows working-set observation remain open.
 
+## Startup report restoration baseline
+
+Commit `7b6f1ab6` removes persisted-history and explicit startup-report work
+from the window constructor. The production path begins after `OnOpened`,
+yields once, reads local history on a worker, prepares the bounded 12-entry
+history and latest review on a worker, then reads and projects any explicit
+`--load-report` source on a worker. Publication order remains history, startup
+argument diagnostics, explicit report, and finally `--open-report`.
+
+Deterministic tests lock successful publication, source failure, malformed
+JSON exclusion, valid-but-invalid-shape error degradation, close cancellation,
+and latest-generation rejection for both slow history and slow explicit
+sources. A stale source is rejected before the expensive report projection.
+These are responsiveness and ordering contracts, not elapsed-time evidence.
+The exact packaged candidate must still record cold first-interactive-frame
+behavior with a full 12-entry history and with an explicit large report; those
+rows remain in the Windows manual gate.
+
 ## Firmware evidence scope
 
 The synthetic counter cases are process-contract evidence, not firmware
