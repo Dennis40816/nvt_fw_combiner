@@ -38,7 +38,10 @@ public static partial class WorkbenchCompositionService
             return null;
         }
 
-        byte? chipNumber = TryReadFirmwareConfigBackupChipNumber(icId, tpPath);
+        byte? chipNumber = !string.IsNullOrWhiteSpace(tpPath) &&
+            TryReadFirmwareConfigBackupMetadata(icId, tpPath, out FirmwareConfigMetadata fwConfigMetadata)
+                ? fwConfigMetadata.ChipNumber
+                : null;
         return GenFlashVersionCatalog.TryReadCmiDpCode(
                 icId,
                 image,
@@ -174,14 +177,6 @@ public static partial class WorkbenchCompositionService
         }
 
         return false;
-    }
-
-    private static byte? TryReadFirmwareConfigBackupChipNumber(string icId, string? tpPath)
-    {
-        return !string.IsNullOrWhiteSpace(tpPath) &&
-            TryReadFirmwareConfigBackupMetadata(icId, tpPath, out FirmwareConfigMetadata metadata)
-                ? metadata.ChipNumber
-                : null;
     }
 
     private static bool TryReadFirmwareConfigBackupMetadata(

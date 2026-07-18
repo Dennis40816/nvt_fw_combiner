@@ -10,7 +10,7 @@
     "recoveredAtTaipei": "2026-07-17T17:18:00+08:00"
   },
   "ownerApproval": "Repository owner explicitly approved committing all supplied golden sample payloads to public Git on 2026-07-17. Technical project/AUTO_PRJ data is retained; personal data is excluded.",
-  "evidenceScope": "Owner-approved intake plus exact NT51920, NT51923, and NT51927 Phase B route evidence. Their routed controls lock canonical-base reconstruction where DP/TP inputs exist, V1/V2 full-byte and process parity, and explicit CRC-only owner differences; no support promotion is authorized.",
+  "evidenceScope": "Owner-approved intake plus exact NT51920, NT51923, NT51927, and NT51929 Phase B route evidence. Their routed controls lock canonical-base reconstruction where DP/TP inputs exist, V1/V2 full-byte and process parity, and explicit CRC-only owner differences; no support promotion is authorized.",
   "phaseBResults": [
     {
       "caseId": "nt51920-fw120-single-auto-prj-72-20260717",
@@ -157,6 +157,35 @@
       "commandCount": 7,
       "inputArtifactsUnchanged": true,
       "reportAndOrderedArgvParityTest": "Nt51927CtrlRamFw141SingleEvidenceTests.ExactOwnerCaseRunsThroughV2WithLegacyProcessParityAsync",
+      "runtimeSupportPromotion": false
+    },
+    {
+      "caseId": "nt51929-fw200-single-auto-prj-594-20260717",
+      "ic": "NT51929",
+      "workflow": "ctrlram-replace",
+      "variant": "Common FW 2.0.0",
+      "project": "AUTO_PRJ-594",
+      "pid": "0x4703",
+      "topology": "single",
+      "chipCount": 1,
+      "baseKind": "canonical-standard-merge-owner-output",
+      "ownerExpectedSha256": "d3c958d2aac1e29bd1f88b8ac62dc74c36810ab11e707770199d4b34f5ce3910",
+      "legacyOutputSha256": "d23f53a13db3c6fc0009ed547e8cfa5f1b54033145825828416c7458b14f198f",
+      "v2OutputSha256": "d23f53a13db3c6fc0009ed547e8cfa5f1b54033145825828416c7458b14f198f",
+      "differenceCounts": { "legacyToV2": 0, "ownerToLegacy": 15, "ownerToV2": 15, "ctrlRamPayload": 0 },
+      "allowedDifferenceRanges": [
+        { "start": "0x7100", "endExclusive": "0x7104", "classification": "header-crc-word" },
+        { "start": "0x7118", "endExclusive": "0x711C", "classification": "header-crc-word" },
+        { "start": "0x27FF0", "endExclusive": "0x27FF4", "classification": "header-copy-crc-word" },
+        { "start": "0x28008", "endExclusive": "0x2800C", "classification": "header-copy-crc-word" }
+      ],
+      "routeProfileId": "nt51929-ctrlram-replace-fw200-single",
+      "processorId": "nfc.nt51929.ctrlram-postbuild-v1",
+      "toolBindingId": "legacy-combiner-1.13.0",
+      "sessionCount": 1,
+      "commandCount": 2,
+      "inputArtifactsUnchanged": true,
+      "reportAndOrderedArgvParityTest": "Nt51929CtrlRamFw200SingleEvidenceTests.V1AndV2ProduceIdenticalExactOutputWithCrcOnlyGoldenDeviationAsync",
       "runtimeSupportPromotion": false
     }
   ],

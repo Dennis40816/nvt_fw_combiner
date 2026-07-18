@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "1.0",
+  "bundleId": "nt51929-ctrlram-replace-candidate",
+  "bundleVersion": "0.9.9-candidate.1",
+  "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
+  "contentHash": "bbc65984a0e92533750f1110ed2803b08981635061991bb674fa2313d6d04df8",
+  "trustAnchorBindingId": "built-in-profile-bundle-v2",
+  "entries": [
+    {
+      "entryId": "composition-profile-v2-schema",
+      "kind": "schema",
+      "path": "schemas/composition-profile-v2.schema.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "59fa0e240bdde76db530457219d5d41b2bcb47d90428fb48b8f94a83f516e051"
+    },
+    {
+      "entryId": "firmware-family-v1-schema",
+      "kind": "schema",
+      "path": "schemas/firmware-family-v1.schema.json",
+      "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
+      "contentHash": "0dd353296e02e448dcc653028fd3b3ce6ad7fdd8e11a1ce11a465b46f0b471d7"
+    },
+    {
+      "entryId": "nt51929-ctrlram-replace-family",
+      "kind": "firmware-family",
+      "path": "families/nt51929-ctrlram-replace.json",
+      "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
+      "contentHash": "8f4e24c0d65fba24a64e40e030c5b8149cb219fc97d13defd45c557d91f530e7"
+    },
+    {
+      "entryId": "nt51929-ctrlram-replace-fw200-single-profile",
+      "kind": "composition-profile",
+      "path": "profiles/nt51929-ctrlram-replace-fw200-single.json",
+      "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
+      "contentHash": "edc9425443699c8aa80625c6a63202faf3034e3cd75ab1fadf7ec2f7e80eabb1"
+    }
+  ]
+}
