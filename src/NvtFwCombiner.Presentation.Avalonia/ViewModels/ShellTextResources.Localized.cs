@@ -254,6 +254,9 @@ public sealed partial class ShellTextResources
             FirmwareIcMismatchKeepLabel = Pick("Keep current IC", "維持目前 IC"),
             FirmwareIcMismatchUseDetectedLabel = Pick("Use detected IC", "使用偵測到的 IC"),
             ContextUpdatedToastTitle = Pick("Context updated", "條件已更新"),
+            FirmwareInspectionLoadingStatus = Pick(
+                "Inspecting the selected BIN… Build will be ready when the latest file snapshot is verified.",
+                "正在檢查所選 BIN… 最新檔案快照確認完成後即可 Build。"),
             UtilToolsLabel = Pick("UTIL", "工具"),
             UtilToolsHomeTitle = Pick("Tool", "工具"),
             UtilToolsHomeDetail = Pick("Inspect and edit raw BIN files.", "檢視與編輯原始 BIN。"),

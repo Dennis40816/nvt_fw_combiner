@@ -45,6 +45,9 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets the title for the shell notification, including non-report context updates.</summary>
     public string ShellToastTitle { get; private set; } = string.Empty;
 
+    /// <summary>Gets the complete title and detail announced for the current shell notification.</summary>
+    public string ShellToastAccessibleLabel => $"{ShellToastTitle}. {ReportToastText}";
+
     /// <summary>Gets a suggested report JSON file name.</summary>
     public string ReportSaveFileName => HasLoadedReport
         ? $"{SanitizeFileName(LoadedReport.Title)}.json"
@@ -345,6 +348,7 @@ public sealed partial class MainWindowViewModel
         ReportToastOpacity = 1;
         OnPropertyChanged(nameof(ShellToastTitle));
         OnPropertyChanged(nameof(ReportToastText));
+        OnPropertyChanged(nameof(ShellToastAccessibleLabel));
         OnPropertyChanged(nameof(HasReportToast));
         OnPropertyChanged(nameof(ReportToastOpacity));
     }

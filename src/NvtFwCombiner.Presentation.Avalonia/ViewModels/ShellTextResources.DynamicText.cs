@@ -266,6 +266,13 @@ public sealed partial class ShellTextResources
             $"IC number set to {selectionLabel} from the unique, verified NVT FWConfig (Chip Num 0x{chipNumber:X2}).",
             $"已依唯一且驗證一致的 NVT FWConfig 將 IC 數量設為 {selectionLabel}（Chip Num 0x{chipNumber:X2}）。");
     }
+
+    public string FormatFirmwareSelectionNotRetainedToast(string fileName)
+    {
+        return SelectLanguage(
+            $"{fileName} was not retained because the selected IC does not expose the same safe input slot. Select a compatible BIN again.",
+            $"所選 IC 沒有相同的安全輸入 slot，因此未保留 {fileName}。請重新選擇相容的 BIN。");
+    }
 }
 
 #pragma warning restore CS1591

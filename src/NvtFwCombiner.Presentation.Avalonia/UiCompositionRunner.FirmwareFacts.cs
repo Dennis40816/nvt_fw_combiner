@@ -5,17 +5,20 @@ namespace NvtFwCombiner.Presentation.Avalonia;
 
 public static partial class UiCompositionRunner
 {
-    /// <summary>Gets compact firmware facts decoded from a selected BIN file.</summary>
+    /// <summary>Gets compact firmware facts from one already-read inspection snapshot.</summary>
     public static IReadOnlyList<FirmwareSlotFactViewModel> GetFirmwareSlotFacts(
-        string icId,
-        string path,
+        WorkbenchFirmwareInspection inspection,
         bool includeBaseFacts = false)
     {
-        WorkbenchFirmwareConfigMetadata? metadata =
-            WorkbenchCompositionService.TryReadFirmwareConfigMetadata(icId, path);
+        ArgumentNullException.ThrowIfNull(inspection);
+
+        WorkbenchFirmwareConfigMetadata? metadata = inspection.FirmwareConfig;
+        IReadOnlyList<FirmwareSlotFactViewModel> dpFacts = includeBaseFacts
+            ? GetDpFirmwareSlotFacts(inspection)
+            : [];
         if (metadata is null || (!metadata.IsFirmwareVersionBarValid && !includeBaseFacts))
         {
-            return includeBaseFacts ? GetDpFirmwareSlotFacts(icId, path, path) : [];
+            return dpFacts;
         }
 
         List<FirmwareSlotFactViewModel> facts =
@@ -24,23 +27,17 @@ public static partial class UiCompositionRunner
             new("TP", FormattableString.Invariant($"T{metadata.FirmwareVersion:X2}-{metadata.FirmwareSubVersion:X2}"), !metadata.IsFirmwareVersionBarValid),
             new("PID", FormattableString.Invariant($"0x{metadata.ProjectId:X4}")),
         ];
-
-        return includeBaseFacts ? [.. GetDpFirmwareSlotFacts(icId, path, path), .. facts] : facts;
+        return includeBaseFacts ? [.. dpFacts, .. facts] : facts;
     }
 
-    /// <summary>Gets compact DP version facts decoded using gen_flash standard-merge version rules.</summary>
+    /// <summary>Gets compact DP facts from one already-read inspection snapshot.</summary>
     public static IReadOnlyList<FirmwareSlotFactViewModel> GetDpFirmwareSlotFacts(
-        string icId,
-        string path,
-        string? tpPath = null)
+        WorkbenchFirmwareInspection inspection)
     {
-        WorkbenchDpVersionMetadata? legacyMetadata = WorkbenchCompositionService.TryReadDpVersionMetadata(
-            icId,
-            path);
-        WorkbenchCmiDpCodeMetadata? cmiMetadata = WorkbenchCompositionService.TryReadCmiDpCodeMetadata(
-            icId,
-            path,
-            tpPath);
+        ArgumentNullException.ThrowIfNull(inspection);
+
+        WorkbenchDpVersionMetadata? legacyMetadata = inspection.DpVersion;
+        WorkbenchCmiDpCodeMetadata? cmiMetadata = inspection.CmiDpCode;
         if (legacyMetadata is null && cmiMetadata is null)
         {
             return [new FirmwareSlotFactViewModel("DP", "Pending", true)];
@@ -49,11 +46,7 @@ public static partial class UiCompositionRunner
         string dpVersion = legacyMetadata is WorkbenchDpVersionMetadata legacy
             ? FormatDpVersion(legacy.VersionToken)
             : FormatCmiDpVersion(cmiMetadata!.Value);
-        List<FirmwareSlotFactViewModel> facts =
-        [
-            new FirmwareSlotFactViewModel("DP", dpVersion),
-        ];
-
+        List<FirmwareSlotFactViewModel> facts = [new FirmwareSlotFactViewModel("DP", dpVersion)];
         if (cmiMetadata is WorkbenchCmiDpCodeMetadata cmi && !string.IsNullOrWhiteSpace(cmi.JiraBadge))
         {
             facts.Add(new FirmwareSlotFactViewModel("Jira", cmi.JiraBadge));

@@ -5,7 +5,10 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
 {
-    private FirmwareSlotViewModel? _firmwareIcMismatchSlot;
+    private string? _firmwareIcMismatchSlotId;
+    private string? _firmwareIcMismatchPath;
+    private AcceptedFirmwareMismatchSelection? _acceptedFirmwareMismatchSelection;
+
     /// <summary>True while a loaded BIN suggests a different IC context.</summary>
     [ObservableProperty]
     public partial bool IsFirmwareIcMismatchModalOpen { get; set; }
@@ -25,14 +28,15 @@ public sealed partial class MainWindowViewModel
     /// <summary>Command that retains the current IC context despite the prompt.</summary>
     public IRelayCommand DismissFirmwareIcMismatchCommand { get; }
 
-    private void PromptForFirmwareIcMismatch(FirmwareSlotViewModel slot)
+    private void PromptForFirmwareIcMismatch(FirmwareSlotViewModel slot, string? detectedIc)
     {
-        if (!slot.HasFile || string.IsNullOrWhiteSpace(slot.FilePath))
+        if (IsFirmwareIcMismatchModalOpen ||
+            !slot.HasFile ||
+            string.IsNullOrWhiteSpace(slot.FilePath))
         {
             return;
         }
 
-        string? detectedIc = FirmwareIcIdentifierDetector.TryDetect(slot.FilePath);
         if (string.IsNullOrWhiteSpace(detectedIc) ||
             !IcChoices.Contains(detectedIc, StringComparer.OrdinalIgnoreCase) ||
             string.Equals(detectedIc, SelectedIc, StringComparison.OrdinalIgnoreCase))
@@ -42,7 +46,8 @@ public sealed partial class MainWindowViewModel
 
         FirmwareIcMismatchFileName = Path.GetFileName(slot.FilePath);
         FirmwareIcMismatchDetectedIc = detectedIc;
-        _firmwareIcMismatchSlot = slot;
+        _firmwareIcMismatchSlotId = slot.SlotId;
+        _firmwareIcMismatchPath = slot.FilePath;
         OnPropertyChanged(nameof(FirmwareIcMismatchFileName));
         OnPropertyChanged(nameof(FirmwareIcMismatchDetectedIc));
         OnPropertyChanged(nameof(FirmwareIcMismatchCurrentIc));
@@ -51,23 +56,44 @@ public sealed partial class MainWindowViewModel
 
     private void AcceptFirmwareIcMismatch()
     {
+        _acceptedFirmwareMismatchSelection =
+            _firmwareIcMismatchSlotId is { } slotId && _firmwareIcMismatchPath is { } path
+                ? new AcceptedFirmwareMismatchSelection(slotId, path)
+                : null;
+        IsFirmwareIcMismatchModalOpen = false;
         if (!string.IsNullOrWhiteSpace(FirmwareIcMismatchDetectedIc))
         {
             SelectedIc = FirmwareIcMismatchDetectedIc;
         }
-
-        IsFirmwareIcMismatchModalOpen = false;
-        if (_firmwareIcMismatchSlot is { } slot)
-        {
-            TryApplyVerifiedFirmwareContext(slot);
-        }
-
-        _firmwareIcMismatchSlot = null;
+        _firmwareIcMismatchSlotId = null;
+        _firmwareIcMismatchPath = null;
     }
 
     private void DismissFirmwareIcMismatch()
     {
         IsFirmwareIcMismatchModalOpen = false;
-        _firmwareIcMismatchSlot = null;
+        _firmwareIcMismatchSlotId = null;
+        _firmwareIcMismatchPath = null;
     }
+
+    private void InvalidateFirmwareIcMismatch()
+    {
+        if (IsFirmwareIcMismatchModalOpen)
+        {
+            IsFirmwareIcMismatchModalOpen = false;
+        }
+
+        _firmwareIcMismatchSlotId = null;
+        _firmwareIcMismatchPath = null;
+        _acceptedFirmwareMismatchSelection = null;
+    }
+
+    private AcceptedFirmwareMismatchSelection? ConsumeAcceptedFirmwareMismatchSelection()
+    {
+        AcceptedFirmwareMismatchSelection? selection = _acceptedFirmwareMismatchSelection;
+        _acceptedFirmwareMismatchSelection = null;
+        return selection;
+    }
+
+    private sealed record AcceptedFirmwareMismatchSelection(string SlotId, string Path);
 }

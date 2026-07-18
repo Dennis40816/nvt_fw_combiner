@@ -236,6 +236,7 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.CanBuildMerge);
 
         viewModel.SelectedIc = "NT51927";
+        await viewModel.FirmwareInspectionRefreshTask;
 
         Assert.True(viewModel.PreviewMergeCommand.CanExecute(null));
         Assert.True(viewModel.CanBuildMerge);

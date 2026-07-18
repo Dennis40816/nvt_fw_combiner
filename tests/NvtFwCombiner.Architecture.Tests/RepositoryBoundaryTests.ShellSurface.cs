@@ -143,7 +143,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("SlotDrop_OnDrop", firmwareSlotCard, StringComparison.Ordinal);
         Assert.Contains("SlotDragOver_OnDragOver", firmwareSlotCard, StringComparison.Ordinal);
         Assert.Contains("BrowseButton_OnClick", firmwareSlotCard, StringComparison.Ordinal);
-        Assert.Contains("SetSlotFile", firmwareSlotCardCode, StringComparison.Ordinal);
+        Assert.Contains("await viewModel.SetSlotFileAsync", firmwareSlotCardCode, StringComparison.Ordinal);
+        Assert.DoesNotContain("viewModel.SetSlotFile(", firmwareSlotCardCode, StringComparison.Ordinal);
         Assert.Contains("DropZoneDragState.ApplyFileDropEffect", firmwareSlotCardCode, StringComparison.Ordinal);
         Assert.Contains("DropZoneDragState.GetFirstLocalFilePath", firmwareSlotCardCode, StringComparison.Ordinal);
         Assert.Contains("GetFirstLocalFilePath", dropZoneDragState, StringComparison.Ordinal);
@@ -156,7 +157,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("MappingDrop_OnDrop", generalMappingRow, StringComparison.Ordinal);
         Assert.Contains("BrowseButton_OnClick", generalMappingRow, StringComparison.Ordinal);
         Assert.Contains("RemoveButton_OnClick", generalMappingRow, StringComparison.Ordinal);
-        Assert.Contains("SetSlotFile", generalMappingRowCode, StringComparison.Ordinal);
+        Assert.Contains("await viewModel.SetSlotFileAsync", generalMappingRowCode, StringComparison.Ordinal);
+        Assert.DoesNotContain("viewModel.SetSlotFile(", generalMappingRowCode, StringComparison.Ordinal);
         Assert.Contains("RemoveGeneralMappingRow", generalMappingRowCode, StringComparison.Ordinal);
         Assert.Contains("IsNonCtrlRamStructuredReplaceModeSelected", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.GeneralReplaceMappingTitle}\"", workflowTemplates, StringComparison.Ordinal);
@@ -285,6 +287,15 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ReportReviewViewModel", reportViewModel, StringComparison.Ordinal);
         Assert.Contains("CanOpenReport", reportViewModel, StringComparison.Ordinal);
         Assert.Contains("ReportToastText", reportViewModel, StringComparison.Ordinal);
+        Assert.Contains("ShellToastAccessibleLabel", reportViewModel, StringComparison.Ordinal);
+        Assert.Contains(
+            "AutomationProperties.LiveSetting=\"Polite\"",
+            shellPanels,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "AutomationProperties.Name=\"{Binding ShellToastAccessibleLabel}\"",
+            shellPanels,
+            StringComparison.Ordinal);
         Assert.Contains("UiCompositionRunner.GetNumberSelectionChoices", viewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("public partial IReadOnlyList<string> NumberChoices", viewModel, StringComparison.Ordinal);
         Assert.Contains("UiCompositionRunner.GetStandardMergeMemoryDisplay", viewModel, StringComparison.Ordinal);

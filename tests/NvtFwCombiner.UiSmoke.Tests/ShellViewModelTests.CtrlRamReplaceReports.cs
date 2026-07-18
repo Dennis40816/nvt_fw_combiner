@@ -29,7 +29,10 @@ public sealed partial class ShellViewModelTests
         (int start, int length) = ParseCtrlRamRegion(region);
         string regionPath = workspace.Write("ctrlram.bin", baseBytes[start..(start + length)]);
 
-        viewModel.SetSlotFile("replace-base", basePath);
+        await viewModel.SetSlotFileAsync(
+            "replace-base",
+            basePath,
+            TestContext.Current.CancellationToken);
         viewModel.SetSlotFile(regionSlot.SlotId, regionPath);
 
         Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
@@ -69,11 +72,15 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedNumber = "3";
         OpenReplace(viewModel, "CtrlRAM");
 
-        viewModel.SetSlotFile("replace-base", basePath);
+        await viewModel.SetSlotFileAsync(
+            "replace-base",
+            basePath,
+            TestContext.Current.CancellationToken);
 
         // The verified FWConfig may choose the base image's branch. This fixture deliberately
         // exercises the owner-selected three-chip branch afterwards.
         viewModel.SelectedNumber = "3";
+        await viewModel.FirmwareInspectionRefreshTask;
         FirmwareSlotViewModel normalRight = viewModel.ReplaceSlots.Single(slot => slot.Title == "Normal CtrlRAM (Slave R)");
         FirmwareSlotViewModel vn = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
         (int normalRightStart, int normalRightLength) = ParseCtrlRamRegion(
@@ -118,8 +125,12 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedNumber = "3";
         OpenReplace(viewModel, "CtrlRAM");
 
-        viewModel.SetSlotFile("replace-base", basePath);
+        await viewModel.SetSlotFileAsync(
+            "replace-base",
+            basePath,
+            TestContext.Current.CancellationToken);
         viewModel.SelectedNumber = "3";
+        await viewModel.FirmwareInspectionRefreshTask;
         FirmwareSlotViewModel vn = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
         Assert.Contains("VN_Ctrlram.bin", vn.Description, StringComparison.Ordinal);
         Assert.Contains("VN CtrlRAM (Master): max 5728 bytes", vn.Description, StringComparison.Ordinal);
@@ -157,8 +168,12 @@ public sealed partial class ShellViewModelTests
         OpenReplace(viewModel, "CtrlRAM");
 
         string basePath = workspace.Write("base-from-golden.bin", baseBytes);
-        viewModel.SetSlotFile("replace-base", basePath);
+        await viewModel.SetSlotFileAsync(
+            "replace-base",
+            basePath,
+            TestContext.Current.CancellationToken);
         viewModel.SelectedNumber = "3";
+        await viewModel.FirmwareInspectionRefreshTask;
         FirmwareSlotViewModel vnSlot = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
         CtrlRamRegionViewModel vnLeftRegion = viewModel.CtrlRamRegions.Single(region => region.Name == "VN CtrlRAM (Slave L)");
         (int start, int length) = ParseCtrlRamRegion(vnLeftRegion);

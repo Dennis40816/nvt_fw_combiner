@@ -2,6 +2,39 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
+    /// <summary>Slot and context refreshes cannot synchronously inspect firmware from Presentation.</summary>
+    [Fact]
+    public void PresentationFirmwareInspectionStaysBatchAsync()
+    {
+        string viewModels = ReadViewModelPartials();
+        string firmwareFacts = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.FirmwareFacts.cs");
+        string replaceRunner = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Replace.cs");
+        string replaceRefresh = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.ReplaceRefresh.cs");
+
+        Assert.Contains("SetSlotFileAsync", viewModels, StringComparison.Ordinal);
+        Assert.Contains("Task.Run", viewModels, StringComparison.Ordinal);
+        Assert.Contains("InspectFirmwareBatch", viewModels, StringComparison.Ordinal);
+        Assert.DoesNotContain("public void SetSlotFile(", viewModels, StringComparison.Ordinal);
+        Assert.DoesNotContain("RefreshAllSelectedSlotFirmwareFacts", viewModels, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetSelectedCtrlRamBasePath", viewModels, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryReadFirmwareContextSuggestion", viewModels, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchCompositionService.InspectFirmware", firmwareFacts, StringComparison.Ordinal);
+        Assert.DoesNotContain("string? ctrlRamBasePath", replaceRunner, StringComparison.Ordinal);
+        Assert.Contains("ctrlRamBasePath: null", replaceRunner, StringComparison.Ordinal);
+        Assert.DoesNotContain("File.Exists", replaceRefresh, StringComparison.Ordinal);
+        Assert.DoesNotContain("new FileInfo", replaceRefresh, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "FileIdentity.Equals(FirmwareFileIdentity.Capture",
+            viewModels,
+            StringComparison.Ordinal);
+        Assert.Contains("RefreshMergeMemoryMapState", replaceRefresh, StringComparison.Ordinal);
+        Assert.Contains("RefreshReplaceMemoryMapState", replaceRefresh, StringComparison.Ordinal);
+        Assert.DoesNotContain("ValidateCachedCtrlRamDisplayAsync", viewModels, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies General Merge workbench orchestration, mapping, profile, and report helpers stay split.</summary>
     [Fact]
     public void GeneralMergeWorkbenchConcernsStaySplit()

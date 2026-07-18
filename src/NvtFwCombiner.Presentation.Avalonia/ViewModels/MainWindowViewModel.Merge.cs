@@ -70,7 +70,7 @@ public sealed partial class MainWindowViewModel
 
     private bool CanRunMerge()
     {
-        return !IsRunInProgress && (SelectedMergeMode switch
+        return !IsRunInProgress && !IsFirmwareInspectionLoading && (SelectedMergeMode switch
         {
             NormalMergeMode => CanRunStandardMerge(),
             GeneralMergeMode => CanRunGeneralMerge(),
