@@ -1,0 +1,88 @@
+# v0.9.10 Replace Performance Baseline
+
+Status: deterministic orchestration/count baseline on the reviewed `v0.9.9`
+source line; wall-clock, allocation, Infrastructure staging-read, and final
+same-source node B/C evidence remain open.
+
+Captured: 2026-07-18. Executable owner:
+`tests/NvtFwCombiner.Bootstrap.Tests/CompositionRunExecutionMetricsTests.cs`.
+
+## Purpose and boundary
+
+The harness compares the retained Preview-then-Build sequence with the
+Application-owned single authoritative Automatic Build path. It uses the real
+Application service, compiler, Domain engine, typed ports, immutable reports,
+and output-writer contract with deterministic in-memory adapters.
+
+It does not execute a physical tool, hard-code a fixture/tool path, add a
+production metrics type, extend a report schema, expose timing as a CI
+threshold, change support, or authorize UI-cached bytes for Build. It counts:
+
+- complete Application runs;
+- attempted and successful input-artifact reads;
+- external-processor sessions;
+- external process invocations retained in the operation report; and
+- output commits.
+
+## Deterministic comparison
+
+| Synthetic case | Retained sequence runs / successful reads / sessions / launches | Single Automatic Build runs / successful reads / sessions / launches | Commits |
+| --- | --- | --- | ---: |
+| DP Replace `0x40000` | `2 / 4 / 0 / 0` | `1 / 2 / 0 / 0` | 1 |
+| DP Replace `0x80000` | `2 / 4 / 0 / 0` | `1 / 2 / 0 / 0` | 1 |
+| DP Replace `0x100000` | `2 / 4 / 0 / 0` | `1 / 2 / 0 / 0` | 1 |
+| CtrlRAM Replace, two-command plan | `2 / 4 / 2 / 4` | `1 / 2 / 1 / 2` | 1 |
+| CtrlRAM Replace, 13-command plan | `2 / 4 / 2 / 26` | `1 / 2 / 1 / 13` | 1 |
+| Standalone Preview | `1 / 2 / 0 / 0` | unchanged | 0 |
+| Automatic Build with one unreadable required input | no second run | `1 / 1 successful of 2 attempted / 0 / 0` | 0 |
+
+Successful comparisons lock complete output bytes, output SHA-256, mutation
+summaries, validation summaries, issue summaries, and processor argv. The
+count reduction is not authority to reuse a prior Preview output: Automatic
+Build still performs its one authoritative input read, execution, validation,
+and atomic commit.
+
+Run the executable baseline from the repository root:
+
+```text
+dotnet test tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj --filter "FullyQualifiedName~CompositionRunExecutionMetricsTests"
+```
+
+## Firmware evidence scope
+
+The synthetic counter cases are process-contract evidence, not firmware
+support or golden claims. Final same-source node B/C uses:
+
+- NT51950/NT51951 public deterministic DP Replace at 256/512/1024 KiB;
+- owner-golden-backed NT51950 256 KiB and NT51951 512 KiB base smoke where the
+  tracked manifests apply; and
+- NT51926 Common FW 1.4.1 cascade two-command full-output parity as the minimum
+  CtrlRAM golden anchor.
+
+The 13-command case remains count/timing-only. General Replace contract tests
+do not substitute for an owner full-output golden.
+
+## Remaining node B/C record
+
+Before and after results must use identical source, input/expected hashes,
+Legacy Combiner manifest hash, machine/runtime settings, warm-up policy, and
+run count. Record:
+
+- cold/warm p50 and p95;
+- allocations, GC counts, and peak working set;
+- dispatcher heartbeat and click-to-first-step;
+- composition runs, artifact reads, processor sessions, launches, staging
+  metadata/full/selective reads and writes, and commits;
+- report discovery, hashing, creation, serialization, projection, history
+  capture/save/reopen/relocalization;
+- Hex Diff first bounded page and address-jump latency; and
+- output SHA, mutations, report facts, process-window behavior, cancellation,
+  and atomic-failure parity.
+
+Legacy Combiner readback and any physical tool/golden layout dependency wait
+for the owner-coordinated `0.9.9.5` predecessor-layout convergence gate. This is
+not a release tag or assumed branch: P2 remains blocked until the owner supplies
+the exact reviewed commit SHA and its external-tool/golden-layout reference. No
+final performance or release claim is made until the same-source B/C record,
+Polytail, architecture/UI review, required golden and firmware-owner gates, and
+canonical verification are complete.
