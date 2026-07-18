@@ -12,7 +12,7 @@ public sealed partial class RepositoryBoundaryTests
         string report = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Report.cs");
 
         Assert.Contains("RunGeneralMergeAsync", orchestration, StringComparison.Ordinal);
-        Assert.Contains("GetGeneralMergeMemoryMapRows", orchestration, StringComparison.Ordinal);
+        Assert.Contains("GetGeneralMergeMemoryDisplay", orchestration, StringComparison.Ordinal);
         Assert.DoesNotContain("private static bool TryCreateGeneralMergeMappings", orchestration, StringComparison.Ordinal);
         Assert.DoesNotContain("private static CompositionProfileDefinition CreateGeneralMergeProfile", orchestration, StringComparison.Ordinal);
         Assert.DoesNotContain("private static WorkbenchRunResult CreateGeneralMergeReportRunResult", orchestration, StringComparison.Ordinal);

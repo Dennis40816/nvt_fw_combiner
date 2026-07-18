@@ -20,34 +20,19 @@ public static partial class UiCompositionRunner
             [.. display.CoverageSegments.Select(ToMemoryCoverageSegment)]);
     }
 
-    /// <summary>Gets readable memory-map rows for the selected General Merge authoring state.</summary>
-    public static IReadOnlyList<MemoryMapRowViewModel> GetGeneralMergeMemoryMapRows(
+    /// <summary>Projects one General Merge memory display snapshot.</summary>
+    public static (
+        string RangeLabel,
+        IReadOnlyList<MemoryMapRowViewModel> Rows,
+        IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetGeneralMergeMemoryDisplay(
         string outputLength,
         IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappings)
     {
-        return
-        [
-            .. WorkbenchCompositionService.GetGeneralMergeMemoryMapRows(outputLength, mappings)
-                .Select(ToMemoryMapRow),
-        ];
-    }
-
-    /// <summary>Gets output address coverage text for the selected General Merge output length.</summary>
-    public static string GetGeneralMergeMemoryRangeLabel(string outputLength)
-    {
-        return WorkbenchCompositionService.GetGeneralMergeMemoryRangeLabel(outputLength);
-    }
-
-    /// <summary>Gets visual coverage segments for the selected General Merge authoring state.</summary>
-    public static IReadOnlyList<MemoryCoverageSegmentViewModel> GetGeneralMergeCoverageSegments(
-        string outputLength,
-        IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappings)
-    {
-        return
-        [
-            .. WorkbenchCompositionService.GetGeneralMergeCoverageSegments(outputLength, mappings)
-                .Select(ToMemoryCoverageSegment),
-        ];
+        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(outputLength, mappings);
+        return (
+            display.RangeLabel,
+            [.. display.MemoryMapRows.Select(ToMemoryMapRow)],
+            [.. display.CoverageSegments.Select(ToMemoryCoverageSegment)]);
     }
 
 }

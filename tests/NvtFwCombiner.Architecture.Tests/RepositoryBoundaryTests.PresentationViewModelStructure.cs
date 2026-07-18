@@ -27,6 +27,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("CreateFlashCodeOutputFileName", facts, StringComparison.Ordinal);
         Assert.Contains("WorkbenchReplaceModes", ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs"), StringComparison.Ordinal);
         Assert.Contains("GetStandardMergeMemoryDisplay", merge, StringComparison.Ordinal);
+        Assert.Contains("GetGeneralMergeMemoryDisplay", merge, StringComparison.Ordinal);
         Assert.DoesNotContain("RunGeneralMergeAsync", merge, StringComparison.Ordinal);
         Assert.Contains("GetReplaceMemoryMapRows", replace, StringComparison.Ordinal);
         Assert.DoesNotContain("RunReplaceAsync", replace, StringComparison.Ordinal);

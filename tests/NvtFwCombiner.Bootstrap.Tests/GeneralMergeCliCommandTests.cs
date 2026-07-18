@@ -188,17 +188,41 @@ public sealed class GeneralMergeCliCommandTests
     [Fact]
     public void GeneralMergeCoverageKeepsAdjacentMappingRowsDistinct()
     {
-        IReadOnlyList<WorkbenchMemoryCoverageSegment> segments = WorkbenchCompositionService.GetGeneralMergeCoverageSegments(
+        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
             "0x10",
             [
                 new WorkbenchGeneralMergeMappingInput("general-merge-map-1", "first.bin", "0x0", "0x0", "0x4"),
                 new WorkbenchGeneralMergeMappingInput("general-merge-map-2", "second.bin", "0x0", "0x4", "0x4"),
             ]);
 
-        WorkbenchMemoryCoverageSegment[] changed = [.. segments.Where(segment => segment.IsChanged)];
+        WorkbenchMemoryCoverageSegment[] changed = [.. display.CoverageSegments.Where(segment => segment.IsChanged)];
         Assert.Equal(2, changed.Length);
         Assert.Contains("general-merge-map-1", changed[0].Detail, StringComparison.Ordinal);
         Assert.Contains("general-merge-map-2", changed[1].Detail, StringComparison.Ordinal);
+    }
+
+    /// <summary>Keeps invalid and out-of-output mappings visible without painting unsupported coverage.</summary>
+    [Fact]
+    public void GeneralMergeDisplayKeepsBlockedRowsAndRangeStateTogether()
+    {
+        WorkbenchMemoryDisplay invalid = WorkbenchCompositionService.GetGeneralMergeMemoryDisplay("", []);
+
+        Assert.Equal("Enter a valid output length", invalid.RangeLabel);
+        Assert.Equal("Blocked", Assert.Single(invalid.MemoryMapRows).ActionLabel);
+        Assert.Equal("Pending", Assert.Single(invalid.CoverageSegments).SourceLabel);
+
+        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+            "0x10",
+            [
+                new WorkbenchGeneralMergeMappingInput("invalid-map", "invalid.bin", "", "0x0", "0x1"),
+                new WorkbenchGeneralMergeMappingInput("outside-map", "outside.bin", "0x0", "0x10", "0x1"),
+            ]);
+
+        Assert.Equal("0x00000-0x0000F (len 0x10)", display.RangeLabel);
+        Assert.Equal(3, display.MemoryMapRows.Count);
+        Assert.Contains("invalid-map", display.MemoryMapRows[1].RangeLabel, StringComparison.Ordinal);
+        Assert.Contains("0x00010", display.MemoryMapRows[2].RangeLabel, StringComparison.Ordinal);
+        Assert.DoesNotContain(display.CoverageSegments, segment => segment.IsChanged);
     }
 
     /// <summary>Rejects overlapping General Merge target mappings through the shared profile compiler.</summary>

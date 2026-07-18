@@ -4,16 +4,8 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    /// <summary>Gets output address coverage text for a General Merge output length.</summary>
-    public static string GetGeneralMergeMemoryRangeLabel(string outputLength)
-    {
-        return TryParseGeneralMergeCapacity(outputLength, out long capacity, out _)
-            ? FormatFullRange(capacity)
-            : "Enter a valid output length";
-    }
-
-    /// <summary>Gets readable memory-map rows for General Merge authoring state.</summary>
-    public static IReadOnlyList<WorkbenchMemoryMapRow> GetGeneralMergeMemoryMapRows(
+    /// <summary>Gets one coherent General Merge range, row, and coverage snapshot.</summary>
+    public static WorkbenchMemoryDisplay GetGeneralMergeMemoryDisplay(
         string outputLength,
         IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappingInputs)
     {
@@ -21,15 +13,25 @@ public static partial class WorkbenchCompositionService
 
         if (!TryParseGeneralMergeCapacity(outputLength, out long capacity, out CompositionIssue? issue))
         {
-            return
-            [
-                new WorkbenchMemoryMapRow(
-                    "Output length",
-                    "No output",
-                    "Blocked",
-                    "No output",
-                    issue!.Message),
-            ];
+            return new WorkbenchMemoryDisplay(
+                "Enter a valid output length",
+                [
+                    new WorkbenchMemoryMapRow(
+                        "Output length",
+                        "No output",
+                        "Blocked",
+                        "No output",
+                        issue!.Message),
+                ],
+                [
+                    new WorkbenchMemoryCoverageSegment(
+                        "Output length",
+                        "Pending",
+                        "Enter a valid General Merge output length.",
+                        "#CBD5E1",
+                        280,
+                        false),
+                ]);
         }
 
         List<WorkbenchMemoryMapRow> rows =
@@ -41,6 +43,16 @@ public static partial class WorkbenchCompositionService
                 $"Blank output 0x{GeneralMergeFillByte:X2}",
                 "Start with a blank output image. Unmapped ranges remain reserved until an explicit mapping writes them."),
         ];
+        CoverageSegment[] segments =
+        [
+            new CoverageSegment(
+                new ByteRange(0, capacity),
+                $"Blank 0x{GeneralMergeFillByte:X2}",
+                "No source mapping writes this output range.",
+                "#CBD5E1",
+                false),
+        ];
+        ByteRange outputRange = new(0, capacity);
 
         foreach (WorkbenchGeneralMergeMappingInput mapping in mappingInputs)
         {
@@ -65,47 +77,8 @@ public static partial class WorkbenchCompositionService
                 "Copy",
                 "Source BIN",
                 $"Copy source {FormatDisplayRange(sourceRange)} from {GeneralMergeSourceLabel(mapping)} into output {FormatDisplayRange(targetRange)}."));
-        }
 
-        return rows;
-    }
-
-    /// <summary>Gets visual coverage segments for General Merge authoring state.</summary>
-    public static IReadOnlyList<WorkbenchMemoryCoverageSegment> GetGeneralMergeCoverageSegments(
-        string outputLength,
-        IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappingInputs)
-    {
-        ArgumentNullException.ThrowIfNull(mappingInputs);
-
-        if (!TryParseGeneralMergeCapacity(outputLength, out long capacity, out _))
-        {
-            return
-            [
-                new WorkbenchMemoryCoverageSegment(
-                    "Output length",
-                    "Pending",
-                    "Enter a valid General Merge output length.",
-                    "#CBD5E1",
-                    280,
-                    false),
-            ];
-        }
-
-        CoverageSegment[] segments =
-        [
-            new CoverageSegment(
-                new ByteRange(0, capacity),
-                $"Blank 0x{GeneralMergeFillByte:X2}",
-                "No source mapping writes this output range.",
-                "#CBD5E1",
-                false),
-        ];
-
-        ByteRange outputRange = new(0, capacity);
-        foreach (WorkbenchGeneralMergeMappingInput mapping in mappingInputs)
-        {
-            if (!TryParseGeneralMergeMapping(mapping, out _, out ByteRange targetRange, out _) ||
-                !outputRange.Contains(targetRange))
+            if (!outputRange.Contains(targetRange))
             {
                 continue;
             }
@@ -120,7 +93,10 @@ public static partial class WorkbenchCompositionService
                     true));
         }
 
-        return ToWorkbenchCoverageSegments(segments, capacity);
+        return new WorkbenchMemoryDisplay(
+            FormatFullRange(capacity),
+            rows,
+            ToWorkbenchCoverageSegments(segments, capacity));
     }
 
     /// <summary>Runs General Merge preview or build through the admitted logical-output V2 profile.</summary>
