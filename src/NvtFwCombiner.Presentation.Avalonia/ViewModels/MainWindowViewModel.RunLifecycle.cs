@@ -142,24 +142,7 @@ public sealed partial class MainWindowViewModel
             WorkbenchRunResult result = await Task.Run(
                 () => run(progress, cancellationSource.Token).AsTask(),
                 cancellationSource.Token);
-            long reportProjectionGeneration = BeginReportProjection();
-            ShellLanguage reportLanguage;
-            ReportReviewViewModel report;
-            do
-            {
-                reportLanguage = Text.Language;
-                report = await Task.Run(
-                    () => ProjectRunReport(result, build, reportLanguage, cancellationSource.Token),
-                    cancellationSource.Token);
-                cancellationSource.Token.ThrowIfCancellationRequested();
-            }
-            while (reportLanguage != Text.Language);
-
-            ApplyRunResult(
-                result,
-                build,
-                report,
-                publishReport: IsCurrentReportProjection(reportProjectionGeneration));
+            await ProjectAndApplyRunResultAsync(result, build, cancellationSource.Token);
         }
         catch (OperationCanceledException) when (cancellationSource is { IsCancellationRequested: true })
         {
@@ -206,6 +189,30 @@ public sealed partial class MainWindowViewModel
                 }
             }
         }
+    }
+
+    /// <summary>Projects one completed run off-dispatcher and publishes it only while its generation is current.</summary>
+    internal async Task ProjectAndApplyRunResultAsync(
+        WorkbenchRunResult result,
+        bool build,
+        CancellationToken cancellationToken)
+    {
+        long reportProjectionGeneration = BeginReportProjection();
+        string action = build ? "Build" : "Preview";
+        ReportReviewViewModel report = await ProjectReportAsync(
+            result.ReportJson,
+            $"{action.ToLowerInvariant()} report",
+            result.CommittedOutputId,
+            cancellationToken,
+            materializationErrorsAsReport: false,
+            inspectionSnapshot: result.InspectionSnapshot);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        ApplyRunResult(
+            result,
+            build,
+            report,
+            publishReport: IsCurrentReportProjection(reportProjectionGeneration));
     }
 
     private async Task ObserveRunProgressAsync(
